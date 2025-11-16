@@ -1,0 +1,25 @@
+# .gitignore for a .NET project
+bin/
+obj/
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.nuget/
+*.nupkg
+packages/
+# Rider
+.idea/
+# Visual Studio Code
+.vscode/
+# macOS
+.DS_Store
+# Logs
+*.log
+# local settings
+appsettings.*.json
+# Temporary
+*.tmp
+# node
+node_modules/
