@@ -8,4 +8,8 @@
     <RootNamespace>AutoPartsShop.Infrastructure</RootNamespace>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="../AutoPartShop.Domain/AutoPartShop.Domain.csproj" />
+  </ItemGroup>
+
 </Project>

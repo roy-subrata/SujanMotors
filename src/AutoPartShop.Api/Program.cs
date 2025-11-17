@@ -1,6 +1,41 @@
 using Microsoft.OpenApi;
+using AutoPartShop.Infrastructure.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configure CORS
+var corsPolicy = "AllowBlazorApp";
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(corsPolicy, policy =>
+    {
+        if (builder.Environment.IsDevelopment())
+        {
+            // For development, allow any origin without credentials
+            policy.AllowAnyOrigin()
+                  .AllowAnyHeader()
+                  .AllowAnyMethod();
+        }
+        else
+        {
+            // For production, allow specific origins
+            policy.WithOrigins(
+                "http://localhost:5173",  // Blazor dev server default
+                "http://localhost:5174",  // Alternative Blazor port
+                "https://localhost:7173", // HTTPS Blazor dev
+                "https://localhost:7174", // HTTPS Blazor dev alternative
+                "http://localhost:7020",  // Aspire Blazor app port
+                "https://localhost:5109"  // HTTPS Blazor dev alternative
+            )
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+        }
+    });
+});
+
+// Register repositories
+builder.Services.AddSingleton<ICategoryRepository, CategoryRepository>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -31,6 +66,9 @@ if (app.Environment.IsDevelopment())
         c.RoutePrefix = "docs"; // set swagger path to /docs
     });
 }
+
+// Enable CORS
+app.UseCors(corsPolicy);
 
 app.UseHttpsRedirection();
 app.UseRouting();

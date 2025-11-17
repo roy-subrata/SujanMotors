@@ -1,4 +1,7 @@
 @page "/inventory/categories/add"
+@using AutoPartShop.Web.Services
+@inject ICategoryService CategoryService
+@inject NavigationManager Navigation
 
 <PageTitle>Add New Category - AutoParts Shop</PageTitle>
 
@@ -10,66 +13,105 @@
             <p class="text-dark-500 mt-1">Create a new product category or subcategory</p>
         </div>
         <div class="flex flex-col sm:flex-row gap-2 flex-shrink-0">
-            <button class="btn-secondary flex items-center justify-center">
+            <a href="/inventory/categories" class="btn-secondary flex items-center justify-center">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                 </svg>
                 Cancel
-            </button>
-            <button class="btn-primary flex items-center justify-center">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                </svg>
-                Create Category
+            </a>
+            <button @onclick="CreateCategory" disabled="@IsSubmitting" class="btn-primary flex items-center justify-center">
+                @if (IsSubmitting)
+                {
+                    <svg class="w-5 h-5 mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                    <span>Creating...</span>
+                }
+                else
+                {
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    <span>Create Category</span>
+                }
             </button>
         </div>
     </div>
 
+    <!-- Error Message -->
+    @if (!string.IsNullOrEmpty(ErrorMessage))
+    {
+        <div class="card border-l-4 border-red-500 bg-red-50">
+            <div class="flex items-center gap-4">
+                <svg class="w-6 h-6 text-red-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4v.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <div class="flex-1">
+                    <h4 class="font-semibold text-red-900">Error</h4>
+                    <p class="text-red-700 text-sm">@ErrorMessage</p>
+                </div>
+                <button @onclick="() => ErrorMessage = string.Empty" class="text-red-600 hover:text-red-700 font-medium">Dismiss</button>
+            </div>
+        </div>
+    }
+
+    <!-- Success Message -->
+    @if (!string.IsNullOrEmpty(SuccessMessage))
+    {
+        <div class="card border-l-4 border-green-500 bg-green-50">
+            <div class="flex items-center gap-4">
+                <svg class="w-6 h-6 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <div class="flex-1">
+                    <h4 class="font-semibold text-green-900">Success</h4>
+                    <p class="text-green-700 text-sm">@SuccessMessage</p>
+                </div>
+            </div>
+        </div>
+    }
+
     <!-- Add Category Form -->
-    <form class="space-y-6">
+    <div class="space-y-6">
         <!-- Basic Information Section -->
         <div class="card">
             <h3 class="text-lg font-bold text-dark-900 mb-6">Basic Information</h3>
             <div class="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label class="block text-sm font-medium text-dark-900 mb-2">Category Name *</label>
-                        <input type="text" placeholder="e.g., Engine Components" class="input-field" required />
+                        <input type="text" @bind="NewCategory.Name" placeholder="e.g., Engine Components" class="input-field" required />
                         <p class="text-xs text-dark-500 mt-1">Display name for the category</p>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-dark-900 mb-2">Category Code</label>
-                        <input type="text" placeholder="e.g., CAT-001" class="input-field" />
-                        <p class="text-xs text-dark-500 mt-1">Auto-generated if left empty</p>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Category Code *</label>
+                        <input type="text" @bind="NewCategory.Code" placeholder="e.g., ENG-001" class="input-field" required />
+                        <p class="text-xs text-dark-500 mt-1">Unique identifier (will be uppercase)</p>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label class="block text-sm font-medium text-dark-900 mb-2">Parent Category</label>
-                        <select class="input-field">
+                        <select @bind="NewCategory.ParentCategoryId" class="input-field">
                             <option value="">-- No Parent (Root Category) --</option>
-                            <option value="engine">Engine Components</option>
-                            <option value="brake">Brake System</option>
-                            <option value="electrical">Electrical</option>
-                            <option value="suspension">Suspension</option>
-                            <option value="cooling">Cooling System</option>
-                            <option value="transmission">Transmission</option>
-                            <option value="fluids">Fluids</option>
-                            <option value="exterior">Exterior</option>
+                            @foreach (var cat in ParentCategories)
+                            {
+                                <option value="@cat.Id">@cat.Name (@cat.Code)</option>
+                            }
                         </select>
                         <p class="text-xs text-dark-500 mt-1">Leave empty to create a root category</p>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-dark-900 mb-2">Category Level</label>
-                        <input type="text" value="Root (Level 1)" class="input-field bg-dark-100" disabled />
-                        <p class="text-xs text-dark-500 mt-1">Updated based on parent selection</p>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Display Order</label>
+                        <input type="number" @bind="NewCategory.DisplayOrder" placeholder="0" class="input-field" />
+                        <p class="text-xs text-dark-500 mt-1">Order in lists (0 = first)</p>
                     </div>
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-dark-900 mb-2">Description</label>
-                    <textarea rows="4" class="input-field" placeholder="Detailed description of this category..."></textarea>
+                    <textarea rows="4" @bind="NewCategory.Description" class="input-field" placeholder="Detailed description of this category..."></textarea>
                     <p class="text-xs text-dark-500 mt-1">What products are included in this category?</p>
                 </div>
             </div>
@@ -78,179 +120,127 @@
         <!-- Display & Visibility Section -->
         <div class="card">
             <h3 class="text-lg font-bold text-dark-900 mb-6">Display & Visibility</h3>
-            <div className="space-y-6">
-                <div>
-                    <label class="block text-sm font-medium text-dark-900 mb-2">Display Name (for UI)</label>
-                    <input type="text" placeholder="Same as category name by default" class="input-field" />
-                    <p class="text-xs text-dark-500 mt-1">Optional: override display name</p>
+            <div class="space-y-6">
+                <div class="flex items-center space-x-3">
+                    <input type="checkbox" @bind="NewCategory.IsActive" id="isActive" class="w-4 h-4 rounded border-dark-300" />
+                    <label for="isActive" class="text-sm font-medium text-dark-900">Active Category</label>
                 </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label class="block text-sm font-medium text-dark-900 mb-2">Category Icon</label>
-                        <select class="input-field">
-                            <option value="">-- Select Icon --</option>
-                            <option value="engine">⚙️ Engine</option>
-                            <option value="brake">🛑 Brake</option>
-                            <option value="electrical">⚡ Electrical</option>
-                            <option value="suspension">🚗 Suspension</option>
-                            <option value="cooling">❄️ Cooling</option>
-                            <option value="transmission">🔧 Transmission</option>
-                            <option value="fluids">🧴 Fluids</option>
-                            <option value="exterior">🪟 Exterior</option>
-                            <option value="custom">📎 Custom</option>
-                        </select>
-                        <p class="text-xs text-dark-500 mt-1">Visual icon for category</p>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-dark-900 mb-2">Background Color</label>
-                        <div class="flex items-center gap-2">
-                            <input type="color" value="#8b5cf6" class="h-10 rounded border border-dark-200 cursor-pointer" />
-                            <input type="text" value="#8b5cf6" class="input-field" placeholder="#8b5cf6" />
-                        </div>
-                        <p class="text-xs text-dark-500 mt-1">Color for category cards</p>
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label class="flex items-center space-x-3 cursor-pointer">
-                            <input type="checkbox" checked class="w-4 h-4 rounded border-dark-300" />
-                            <span class="text-sm font-medium text-dark-900">Visible in Menu</span>
-                        </label>
-                        <p class="text-xs text-dark-500 mt-2">Show in navigation menu</p>
-                    </div>
-                    <div>
-                        <label class="flex items-center space-x-3 cursor-pointer">
-                            <input type="checkbox" checked class="w-4 h-4 rounded border-dark-300" />
-                            <span class="text-sm font-medium text-dark-900">Searchable</span>
-                        </label>
-                        <p class="text-xs text-dark-500 mt-2">Include in search results</p>
-                    </div>
-                </div>
-
-                <div>
-                    <label class="flex items-center space-x-3 cursor-pointer">
-                        <input type="checkbox" checked class="w-4 h-4 rounded border-dark-300" />
-                        <span class="text-sm font-medium text-dark-900">Active Category</span>
-                    </label>
-                    <p class="text-xs text-dark-500 mt-2">Inactive categories won't appear in frontend</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- SEO & Metadata Section -->
-        <div class="card">
-            <h3 class="text-lg font-bold text-dark-900 mb-6">SEO & Metadata</h3>
-            <div className="space-y-6">
-                <div>
-                    <label class="block text-sm font-medium text-dark-900 mb-2">Meta Title</label>
-                    <input type="text" placeholder="Category title for search engines" class="input-field" />
-                    <p class="text-xs text-dark-500 mt-1">Max 60 characters recommended</p>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-dark-900 mb-2">Meta Description</label>
-                    <textarea rows="3" placeholder="Brief description for search engines..." class="input-field"></textarea>
-                    <p class="text-xs text-dark-500 mt-1">Max 160 characters recommended</p>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-dark-900 mb-2">URL Slug</label>
-                    <input type="text" placeholder="auto-generated-from-name" class="input-field" />
-                    <p class="text-xs text-dark-500 mt-1">URL-friendly version of the category name</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Permissions & Access Section -->
-        <div class="card">
-            <h3 class="text-lg font-bold text-dark-900 mb-6">Permissions & Access</h3>
-            <div className="space-y-6">
-                <div>
-                    <label class="block text-sm font-medium text-dark-900 mb-4">Who Can View This Category?</label>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <label class="flex items-center space-x-3 cursor-pointer">
-                            <input type="radio" name="visibility" checked class="w-4 h-4" />
-                            <span class="text-sm font-medium text-dark-900">Everyone</span>
-                        </label>
-                        <label class="flex items-center space-x-3 cursor-pointer">
-                            <input type="radio" name="visibility" class="w-4 h-4" />
-                            <span class="text-sm font-medium text-dark-900">Registered Users Only</span>
-                        </label>
-                        <label class="flex items-center space-x-3 cursor-pointer">
-                            <input type="radio" name="visibility" class="w-4 h-4" />
-                            <span class="text-sm font-medium text-dark-900">Staff Only</span>
-                        </label>
-                        <label class="flex items-center space-x-3 cursor-pointer">
-                            <input type="radio" name="visibility" class="w-4 h-4" />
-                            <span class="text-sm font-medium text-dark-900">Specific Groups</span>
-                        </label>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Additional Settings Section -->
-        <div class="card">
-            <h3 class="text-lg font-bold text-dark-900 mb-6">Additional Settings</h3>
-            <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label class="block text-sm font-medium text-dark-900 mb-2">Sort Order</label>
-                        <input type="number" value="1" class="input-field" />
-                        <p class="text-xs text-dark-500 mt-1">Display position in lists</p>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-dark-900 mb-2">Maximum Nesting Depth</label>
-                        <input type="number" value="3" class="input-field" />
-                        <p class="text-xs text-dark-500 mt-1">How deep subcategories can go</p>
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-dark-900 mb-2">Tags (comma separated)</label>
-                    <input type="text" placeholder="engine, maintenance, parts" class="input-field" />
-                    <p class="text-xs text-dark-500 mt-1">Help categorize and organize</p>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-dark-900 mb-2">Related Categories</label>
-                    <input type="text" placeholder="Select multiple categories..." class="input-field" />
-                    <p class="text-xs text-dark-500 mt-1">Link to similar categories</p>
-                </div>
+                <p class="text-xs text-dark-500">Inactive categories won't appear in frontend</p>
             </div>
         </div>
 
         <!-- Form Actions -->
         <div class="flex flex-col sm:flex-row gap-2 sm:gap-4 justify-between">
-            <button type="button" class="btn-secondary flex items-center justify-center">
+            <a href="/inventory/categories" class="btn-secondary flex items-center justify-center">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                 </svg>
                 Cancel
-            </button>
+            </a>
             <div class="flex gap-2">
-                <button type="reset" class="btn-secondary flex items-center justify-center">
+                <button type="button" @onclick="ResetForm" class="btn-secondary flex items-center justify-center">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                     </svg>
                     Reset
                 </button>
-                <button type="submit" class="btn-primary flex items-center justify-center">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                    </svg>
-                    Create Category
+                <button type="button" @onclick="CreateCategory" disabled="@IsSubmitting" class="btn-primary flex items-center justify-center">
+                    @if (IsSubmitting)
+                    {
+                        <svg class="w-5 h-5 mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                        <span>Creating...</span>
+                    }
+                    else
+                    {
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        <span>Create Category</span>
+                    }
                 </button>
             </div>
         </div>
-    </form>
+    </div>
 </div>
 
 @code {
-    protected override void OnInitialized()
+    private CreateCategoryRequest NewCategory = new() { IsActive = true };
+    private List<CategoryDto> ParentCategories = new();
+    private bool IsSubmitting = false;
+    private string ErrorMessage = string.Empty;
+    private string SuccessMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
     {
-        // Initialize form
+        await LoadParentCategories();
+    }
+
+    private async Task LoadParentCategories()
+    {
+        try
+        {
+            var response = await CategoryService.GetTopLevelCategoriesAsync();
+            if (response != null)
+            {
+                ParentCategories = response.ToList();
+            }
+        }
+        catch (ServiceException ex)
+        {
+            ErrorMessage = $"Failed to load parent categories: {ex.Message}";
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"An error occurred: {ex.Message}";
+        }
+    }
+
+    private async Task CreateCategory()
+    {
+        // Validation
+        if (string.IsNullOrWhiteSpace(NewCategory.Name))
+        {
+            ErrorMessage = "Category name is required";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(NewCategory.Code))
+        {
+            ErrorMessage = "Category code is required";
+            return;
+        }
+
+        try
+        {
+            IsSubmitting = true;
+            ErrorMessage = string.Empty;
+            SuccessMessage = string.Empty;
+
+            await CategoryService.CreateCategoryAsync(NewCategory);
+            SuccessMessage = "Category created successfully!";
+            await Task.Delay(1500);
+            Navigation.NavigateTo("/inventory/categories");
+        }
+        catch (ServiceException ex)
+        {
+            ErrorMessage = $"Error creating category: {ex.Message}";
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"An unexpected error occurred: {ex.Message}";
+        }
+        finally
+        {
+            IsSubmitting = false;
+        }
+    }
+
+    private void ResetForm()
+    {
+        NewCategory = new() { IsActive = true };
+        ErrorMessage = string.Empty;
+        SuccessMessage = string.Empty;
     }
 }

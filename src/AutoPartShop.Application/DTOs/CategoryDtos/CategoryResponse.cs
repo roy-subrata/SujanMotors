@@ -1,0 +1,57 @@
+namespace AutoPartShop.Application.DTOs.CategoryDtos;
+
+/// <summary>
+/// Response DTO for category data
+/// </summary>
+public class CategoryResponse
+{
+    /// <summary>
+    /// Category ID
+    /// </summary>
+    public Guid Id { get; set; }
+
+    /// <summary>
+    /// Category name
+    /// </summary>
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Category description
+    /// </summary>
+    public string Description { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Category code
+    /// </summary>
+    public string Code { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Parent category ID (if this is a subcategory)
+    /// </summary>
+    public Guid? ParentCategoryId { get; set; }
+
+    /// <summary>
+    /// Whether the category is active
+    /// </summary>
+    public bool IsActive { get; set; }
+
+    /// <summary>
+    /// Display order in lists
+    /// </summary>
+    public int DisplayOrder { get; set; }
+
+    /// <summary>
+    /// Created by user
+    /// </summary>
+    public string CreatedBy { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Last modified by user
+    /// </summary>
+    public string ModifiedBy { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Subcategories (only populated when requested)
+    /// </summary>
+    public IList<CategoryResponse> SubCategories { get; set; } = new List<CategoryResponse>();
+}
