@@ -97,7 +97,7 @@
             <div class="space-y-2">
                 @foreach (var category in CategoryList.Where(c => c.ParentCategoryId == null).OrderBy(c => c.DisplayOrder))
                 {
-                    <CategoryTreeItem Category="category" AllCategories="CategoryList"
+                    <CategoryTreeItem Category="category"
                         OnEdit="EditCategory" OnDelete="DeleteCategory" OnView="ViewCategory"
                         ExpandedCategories="ExpandedCategories" OnToggleExpand="ToggleExpand" />
                 }
