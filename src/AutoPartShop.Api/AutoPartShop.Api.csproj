@@ -6,6 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>AutoPartsShop.Api</AssemblyName>
     <RootNamespace>AutoPartsShop.Api</RootNamespace>
+    <OutputType>Exe</OutputType>
   </PropertyGroup>
 
   <PropertyGroup>

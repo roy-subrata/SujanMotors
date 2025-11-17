@@ -16,7 +16,6 @@ var api = builder.AddProject<Projects.AutoPartShop_Api>("AutoPartApi")
 // 4️⃣ BLAZOR PROJECT
 // ================================================
 builder.AddProject<Projects.AutoPartShop_Web>("AutoPartWeb")
-                   .WithExternalHttpEndpoints()
                    .WithReference(api);       // Blazor calls the API
 
 builder.Build().Run();
