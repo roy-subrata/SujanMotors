@@ -1,0 +1,234 @@
+@page "/procurement/purchase-orders/{id}"
+
+<PageTitle>Purchase Order Details - AutoParts Shop</PageTitle>
+
+<div class="space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-dark-900">Purchase Order</h1>
+            <p class="text-dark-500 mt-1">PO-2024-001 • Parts Direct Inc. • Engine Oil Filter</p>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-2 flex-shrink-0">
+            <button class="btn-secondary flex items-center justify-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                </svg>
+                Export PDF
+            </button>
+            <button class="btn-secondary flex items-center justify-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8m0 8l-4-4m4 4l4-4"></path>
+                </svg>
+                Print
+            </button>
+            <button class="btn-primary flex items-center justify-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H14v2.828a2 2 0 11-2.828-2.828l8.586-8.586z"></path>
+                </svg>
+                Edit PO
+            </button>
+        </div>
+    </div>
+
+    <!-- Status Overview -->
+    <div class="card">
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-6">
+            <div>
+                <p class="text-sm text-dark-500 font-medium">Status</p>
+                <div class="mt-2">
+                    <span class="badge-success">Delivered</span>
+                </div>
+            </div>
+            <div>
+                <p class="text-sm text-dark-500 font-medium">PO Date</p>
+                <p class="text-dark-900 font-semibold mt-2">Nov 15, 2024</p>
+            </div>
+            <div>
+                <p class="text-sm text-dark-500 font-medium">Delivery Date</p>
+                <p class="text-dark-900 font-semibold mt-2">Nov 18, 2024</p>
+            </div>
+            <div>
+                <p class="text-sm text-dark-500 font-medium">Total Amount</p>
+                <p class="text-primary-600 font-bold mt-2">₹7,40,000</p>
+            </div>
+            <div>
+                <p class="text-sm text-dark-500 font-medium">Payment Status</p>
+                <p class="text-dark-900 font-semibold mt-2">Pending</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Left Sidebar -->
+        <div class="space-y-6">
+            <!-- PO Information -->
+            <div class="card">
+                <h3 class="text-lg font-bold text-dark-900 mb-4">PO Information</h3>
+                <div class="space-y-4">
+                    <div>
+                        <p class="text-sm text-dark-500 font-medium">PO Number</p>
+                        <p class="text-dark-900 font-semibold mt-1">PO-2024-001</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-dark-500 font-medium">Supplier</p>
+                        <p class="text-dark-900 font-semibold mt-1">Parts Direct Inc.</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-dark-500 font-medium">Created By</p>
+                        <p class="text-dark-900 font-semibold mt-1">Admin User</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-dark-500 font-medium">Created Date</p>
+                        <p class="text-dark-900 font-semibold mt-1">Nov 15, 2024 10:30 AM</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Delivery Details -->
+            <div class="card">
+                <h3 class="text-lg font-bold text-dark-900 mb-4">Delivery Details</h3>
+                <div class="space-y-4">
+                    <div>
+                        <p class="text-sm text-dark-500 font-medium">Location</p>
+                        <p class="text-dark-900 font-semibold mt-1">Main Warehouse</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-dark-500 font-medium">Method</p>
+                        <p class="text-dark-900 font-semibold mt-1">Supplier's Logistics</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-dark-500 font-medium">Required By</p>
+                        <p class="text-dark-900 font-semibold mt-1">Nov 20, 2024</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-dark-500 font-medium">Actual Delivery</p>
+                        <p class="text-green-600 font-semibold mt-1">Nov 18, 2024 (2 days early)</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card space-y-2">
+                <button class="w-full btn-primary flex items-center justify-center text-sm">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    Receive Goods
+                </button>
+                <button class="w-full btn-secondary flex items-center justify-center text-sm">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+                    </svg>
+                    Download PDF
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Line Items -->
+            <div class="card">
+                <h3 class="text-lg font-bold text-dark-900 mb-6">Order Items</h3>
+
+                <div class="overflow-x-auto mb-6">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="border-b border-dark-200 bg-dark-50">
+                                <th class="text-left py-4 px-4 font-semibold text-dark-900">Part</th>
+                                <th class="text-right py-4 px-4 font-semibold text-dark-900">Qty</th>
+                                <th class="text-right py-4 px-4 font-semibold text-dark-900">Unit Price</th>
+                                <th class="text-right py-4 px-4 font-semibold text-dark-900">Amount</th>
+                                <th class="text-center py-4 px-4 font-semibold text-dark-900">Received</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-dark-200">
+                            <tr class="hover:bg-dark-50">
+                                <td class="py-4 px-4">
+                                    <p class="font-semibold text-dark-900">Engine Oil Filter</p>
+                                    <p class="text-xs text-dark-500 mt-1">SKU: EOF-001</p>
+                                </td>
+                                <td class="text-right py-4 px-4 text-dark-700">500</td>
+                                <td class="text-right py-4 px-4 text-dark-700">₹1,480</td>
+                                <td class="text-right py-4 px-4 font-semibold text-dark-900">₹7,40,000</td>
+                                <td class="text-center py-4 px-4">
+                                    <span class="badge-success">500/500</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Summary -->
+                <div class="border-t border-dark-200 pt-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <p class="text-sm text-dark-500 font-medium mb-2">Subtotal</p>
+                            <p class="text-lg font-bold text-dark-900">₹7,40,000</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-dark-500 font-medium mb-2">Tax (18%)</p>
+                            <p class="text-lg font-bold text-dark-900">₹1,33,200</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-dark-500 font-medium mb-2">Shipping</p>
+                            <p class="text-lg font-bold text-dark-900">Free</p>
+                        </div>
+                        <div className="bg-primary-50 rounded-lg p-4">
+                            <p class="text-sm text-dark-500 font-medium mb-2">Total Amount</p>
+                            <p class="text-2xl font-bold text-primary-600">₹8,73,200</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Supplier Information -->
+            <div class="card">
+                <h3 class="text-lg font-bold text-dark-900 mb-6">Supplier Information</h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <p class="text-sm text-dark-500 font-medium">Supplier Name</p>
+                        <p class="text-dark-900 font-semibold mt-2">Parts Direct Inc.</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-dark-500 font-medium">Contact Person</p>
+                        <p class="text-dark-900 font-semibold mt-2">John Smith</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-dark-500 font-medium">Email</p>
+                        <p class="text-dark-900 font-semibold mt-2">john@partsdirect.com</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-dark-500 font-medium">Phone</p>
+                        <p class="text-dark-900 font-semibold mt-2">+91-98765-43210</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-dark-500 font-medium">Payment Terms</p>
+                        <p class="text-dark-900 font-semibold mt-2">Net 30</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-dark-500 font-medium">Lead Time</p>
+                        <p class="text-dark-900 font-semibold mt-2">5 days</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notes -->
+            <div class="card">
+                <h3 class="text-lg font-bold text-dark-900 mb-4">Notes & Instructions</h3>
+                <p class="text-dark-700 bg-dark-50 rounded-lg p-4">Please deliver to Main Warehouse. Ensure all items are properly packaged. Quality inspection required upon delivery.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string? Id { get; set; }
+
+    protected override void OnInitialized()
+    {
+        // Load PO details
+    }
+}

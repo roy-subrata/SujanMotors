@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir:*)",
+      "Bash(tree:*)",
+      "Bash(nul)",
+      "Bash(cat:*)",
+      "Bash(dotnet build:*)",
+      "Bash(npm run tailwind:build:*)",
+      "Bash(npm install)",
+      "Bash(findstr:*)",
+      "Bash(dotnet format:*)",
+      "Bash(curl:*)",
+      "Bash(taskkill:*)",
+      "Bash(powershell -Command:*)",
+      "Bash(dotnet clean:*)",
+      "Bash(del \"nul\" 2)",
+      "Bash(git add:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

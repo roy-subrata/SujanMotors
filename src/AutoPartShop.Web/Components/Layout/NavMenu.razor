@@ -1,30 +1,312 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">AutoPartsShop.Web</a>
+
+<!-- Sidebar Header -->
+<div class="px-6 py-6 border-b border-dark-700">
+    <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 bg-gradient-to-br from-primary-400 to-primary-600 rounded-lg flex items-center justify-center">
+            <span class="text-white font-bold text-lg">AP</span>
+        </div>
+        <span class="text-lg font-bold text-white">AutoParts</span>
     </div>
 </div>
 
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+<!-- Navigation Menu -->
+<nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+    <!-- Dashboard -->
+    <NavLink href="" Match="NavLinkMatch.All" class="nav-menu-item">
+        <div class="flex items-center space-x-3">
+            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-3m0 0l7-4 7 4M5 9v10a1 1 0 001 1h12a1 1 0 001-1V9m-9 13l4-8"></path>
+            </svg>
+            <span class="text-sm font-medium">Dashboard</span>
+        </div>
+    </NavLink>
 
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="nav flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+    <!-- Inventory Management -->
+    <div class="group">
+        <button class="w-full nav-menu-item text-left flex items-center justify-between group-open:bg-primary-600/20" data-toggle="inventory-menu" onclick="toggleSubmenuHandler(this)">
+            <div class="flex items-center space-x-3">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m0 0l8-4 8 4m0 0v10l-8 4-8-4V7m8 4v10m-8-4l8 4 8-4"></path>
+                </svg>
+                <span class="text-sm font-medium">Inventory</span>
+            </div>
+            <svg class="submenu-arrow w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="transform: rotate(0deg);">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+            </svg>
+        </button>
+
+        <!-- Submenu -->
+        <div id="inventory-menu" class="submenu pl-4 mt-2 space-y-2 border-l-2 border-primary-600/30" style="display: none;">
+            <NavLink href="/inventory/parts" class="submenu-item">
+                <span class="text-sm text-dark-300 hover:text-white">All Parts</span>
+            </NavLink>
+            <NavLink href="/inventory/categories" class="submenu-item">
+                <span class="text-sm text-dark-300 hover:text-white">Categories</span>
+            </NavLink>
+            <NavLink href="/inventory/stock" class="submenu-item">
+                <span class="text-sm text-dark-300 hover:text-white">Stock Levels</span>
+            </NavLink>
+            <NavLink href="/inventory/suppliers" class="submenu-item">
+                <span class="text-sm text-dark-300 hover:text-white">Suppliers</span>
+            </NavLink>
+            <NavLink href="/inventory/units" class="submenu-item">
+                <span class="text-sm text-dark-300 hover:text-white">Units of Measurement</span>
+            </NavLink>
+            <NavLink href="/inventory/unit-conversions" class="submenu-item">
+                <span class="text-sm text-dark-300 hover:text-white">Unit Conversions</span>
+            </NavLink>
+
+            <!-- Warehouse Management Subsection -->
+            <div class="text-xs font-semibold text-primary-400 px-3 py-2 mt-3">Warehouse Management</div>
+            <NavLink href="/inventory/warehouses" class="submenu-item">
+                <span class="text-sm text-dark-300 hover:text-white">Warehouses</span>
+            </NavLink>
+            <NavLink href="/inventory/warehouse-stock" class="submenu-item">
+                <span class="text-sm text-dark-300 hover:text-white">Stock Levels</span>
+            </NavLink>
+            <NavLink href="/inventory/warehouse-transfers" class="submenu-item">
+                <span class="text-sm text-dark-300 hover:text-white">Stock Transfers</span>
             </NavLink>
         </div>
+    </div>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="counter">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Counter
+    <!-- Procurement -->
+    <div class="group">
+        <button class="w-full nav-menu-item text-left flex items-center justify-between group-open:bg-primary-600/20" data-toggle="procurement-menu" onclick="toggleSubmenuHandler(this)">
+            <div class="flex items-center space-x-3">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path>
+                </svg>
+                <span class="text-sm font-medium">Procurement</span>
+            </div>
+            <svg class="submenu-arrow w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="transform: rotate(0deg);">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+            </svg>
+        </button>
+
+        <!-- Submenu -->
+        <div id="procurement-menu" class="submenu pl-4 mt-2 space-y-2 border-l-2 border-primary-600/30" style="display: none;">
+            <NavLink href="procurement/rfq" class="submenu-item">
+                <span class="text-sm text-dark-300 hover:text-white">Request for Quote</span>
+            </NavLink>
+            <NavLink href="procurement/purchase-orders" class="submenu-item">
+                <span class="text-sm text-dark-300 hover:text-white">Purchase Orders</span>
+            </NavLink>
+            <NavLink href="procurement/grn" class="submenu-item">
+                <span class="text-sm text-dark-300 hover:text-white">Goods Receipt</span>
+            </NavLink>
+            <NavLink href="procurement/returns" class="submenu-item">
+                <span class="text-sm text-dark-300 hover:text-white">Purchase Returns</span>
+            </NavLink>
+            <NavLink href="procurement/payments" class="submenu-item">
+                <span class="text-sm text-dark-300 hover:text-white">Supplier Payments</span>
             </NavLink>
         </div>
+    </div>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="weather">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Weather
+    <!-- Sales & Orders -->
+    <div class="group">
+        <button class="w-full nav-menu-item text-left flex items-center justify-between group-open:bg-primary-600/20" data-toggle="sales-menu" onclick="toggleSubmenuHandler(this)">
+            <div class="flex items-center space-x-3">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+                </svg>
+                <span class="text-sm font-medium">Sales & Orders</span>
+            </div>
+            <svg class="submenu-arrow w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="transform: rotate(0deg);">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+            </svg>
+        </button>
+
+        <!-- Submenu -->
+        <div id="sales-menu" class="submenu pl-4 mt-2 space-y-2 border-l-2 border-primary-600/30" style="display: none;">
+            <NavLink href="/sales" class="submenu-item">
+                <span class="text-sm text-dark-300 hover:text-white">Sales Dashboard</span>
+            </NavLink>
+            <NavLink href="/orders" class="submenu-item">
+                <span class="text-sm text-dark-300 hover:text-white">All Orders</span>
+            </NavLink>
+            <NavLink href="/sales/returns" class="submenu-item">
+                <span class="text-sm text-dark-300 hover:text-white">Customer Returns</span>
+            </NavLink>
+            <NavLink href="/invoices" class="submenu-item">
+                <span class="text-sm text-dark-300 hover:text-white">Invoices</span>
+            </NavLink>
+            <NavLink href="/customer-payments" class="submenu-item">
+                <span class="text-sm text-dark-300 hover:text-white">Customer Payments</span>
             </NavLink>
         </div>
-    </nav>
+    </div>
+
+    <!-- Customers -->
+    <div class="group">
+        <button class="w-full nav-menu-item text-left flex items-center justify-between group-open:bg-primary-600/20" data-toggle="customers-menu" onclick="toggleSubmenuHandler(this)">
+            <div class="flex items-center space-x-3">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-2a6 6 0 0112 0v2zm0 0h6v-2a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                </svg>
+                <span class="text-sm font-medium">Customers</span>
+            </div>
+            <svg class="submenu-arrow w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="transform: rotate(0deg);">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+            </svg>
+        </button>
+
+        <!-- Submenu -->
+        <div id="customers-menu" class="submenu pl-4 mt-2 space-y-2 border-l-2 border-primary-600/30" style="display: none;">
+            <NavLink href="customers" class="submenu-item">
+                <span class="text-sm text-dark-300 hover:text-white">All Customers</span>
+            </NavLink>
+            <NavLink href="customer-payments" class="submenu-item">
+                <span class="text-sm text-dark-300 hover:text-white">Customer Payments</span>
+            </NavLink>
+        </div>
+    </div>
+
+    <!-- Reports & Analytics -->
+    <div class="group">
+        <button class="w-full nav-menu-item text-left flex items-center justify-between group-open:bg-primary-600/20" data-toggle="reports-menu" onclick="toggleSubmenuHandler(this)">
+            <div class="flex items-center space-x-3">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                </svg>
+                <span class="text-sm font-medium">Reports</span>
+            </div>
+            <svg class="submenu-arrow w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="transform: rotate(0deg);">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+            </svg>
+        </button>
+
+        <!-- Submenu -->
+        <div id="reports-menu" class="submenu pl-4 mt-2 space-y-2 border-l-2 border-primary-600/30" style="display: none;">
+            <!-- Sales & Operations -->
+            <div class="text-xs font-semibold text-primary-400 px-3 py-2 mt-2">Sales & Operations</div>
+            <NavLink href="reports/sales" class="submenu-item">
+                <span class="text-sm text-dark-300 hover:text-white">Sales Report</span>
+            </NavLink>
+            <NavLink href="reports/inventory" class="submenu-item">
+                <span class="text-sm text-dark-300 hover:text-white">Inventory Report</span>
+            </NavLink>
+            <NavLink href="reports/customers" class="submenu-item">
+                <span class="text-sm text-dark-300 hover:text-white">Customer Analytics</span>
+            </NavLink>
+
+            <!-- Financial -->
+            <div class="text-xs font-semibold text-primary-400 px-3 py-2 mt-3">Financial</div>
+            <NavLink href="reports/revenue" class="submenu-item">
+                <span class="text-sm text-dark-300 hover:text-white">Revenue Analytics</span>
+            </NavLink>
+            <NavLink href="reports/receivables" class="submenu-item">
+                <span class="text-sm text-dark-300 hover:text-white">Receivables Report</span>
+            </NavLink>
+            <NavLink href="reports/payables" class="submenu-item">
+                <span class="text-sm text-dark-300 hover:text-white">Payables Report</span>
+            </NavLink>
+            <NavLink href="reports/cash-flow" class="submenu-item">
+                <span class="text-sm text-dark-300 hover:text-white">Cash Flow Report</span>
+            </NavLink>
+        </div>
+    </div>
+
+    <!-- Settings -->
+    <div class="group">
+        <button class="w-full nav-menu-item text-left flex items-center justify-between group-open:bg-primary-600/20" data-toggle="settings-menu" onclick="toggleSubmenuHandler(this)">
+            <div class="flex items-center space-x-3">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
+                <span class="text-sm font-medium">Settings</span>
+            </div>
+            <svg class="submenu-arrow w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="transform: rotate(0deg);">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+            </svg>
+        </button>
+
+        <!-- Submenu -->
+        <div id="settings-menu" class="submenu pl-4 mt-2 space-y-2 border-l-2 border-primary-600/30" style="display: none;">
+            <NavLink href="settings/company" class="submenu-item">
+                <span class="text-sm text-dark-300 hover:text-white">Company Info</span>
+            </NavLink>
+            <NavLink href="settings/users" class="submenu-item">
+                <span class="text-sm text-dark-300 hover:text-white">Users & Roles</span>
+            </NavLink>
+            <NavLink href="settings/tax" class="submenu-item">
+                <span class="text-sm text-dark-300 hover:text-white">Tax Settings</span>
+            </NavLink>
+            <NavLink href="settings/general" class="submenu-item">
+                <span class="text-sm text-dark-300 hover:text-white">General</span>
+            </NavLink>
+        </div>
+    </div>
+
+    <!-- Help & Support -->
+    <NavLink href="help" class="nav-menu-item">
+        <div class="flex items-center space-x-3">
+            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <span class="text-sm font-medium">Help & Support</span>
+        </div>
+    </NavLink>
+</nav>
+
+<!-- Sidebar Footer -->
+<div class="px-4 py-4 border-t border-dark-700">
+    <button class="w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-dark-300 hover:bg-dark-800 transition-colors">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+        </svg>
+        <span class="text-sm font-medium">Logout</span>
+    </button>
 </div>
 
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Initialize submenu functionality if needed
+            await Task.CompletedTask;
+        }
+    }
+}
+
+<script>
+    function toggleSubmenuHandler(button) {
+        // Get the menu ID from the button's data attribute
+        const menuId = button.getAttribute('data-toggle');
+        const menu = document.getElementById(menuId);
+        const arrow = button.querySelector('.submenu-arrow');
+
+        if (!menu) {
+            console.error('Menu not found for ID:', menuId);
+            return false;
+        }
+
+        // Check current display state
+        const isHidden = menu.style.display === 'none';
+
+        if (isHidden) {
+            // Show menu
+            menu.style.display = 'block';
+            if (arrow) {
+                arrow.style.transform = 'rotate(180deg)';
+            }
+        } else {
+            // Hide menu
+            menu.style.display = 'none';
+            if (arrow) {
+                arrow.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        return false;
+    }
+
+    // Ensure the script is ready
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('NavMenu script loaded');
+    });
+</script>

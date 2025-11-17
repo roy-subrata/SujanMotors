@@ -1,0 +1,304 @@
+@page "/invoices"
+
+<PageTitle>Invoices - AutoParts Shop</PageTitle>
+
+<div class="space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-dark-900">Invoices</h1>
+            <p class="text-dark-500 mt-1">Manage and track all sales invoices</p>
+        </div>
+        <a href="/invoices/create" class="btn-primary flex items-center justify-center flex-shrink-0">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+            Generate Invoice
+        </a>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Total Invoices -->
+        <div class="card">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-dark-500 font-medium mb-1">Total Invoices</p>
+                    <p class="text-2xl font-bold text-dark-900">127</p>
+                </div>
+                <div class="p-3 bg-primary-100 rounded-lg">
+                    <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Outstanding Amount -->
+        <div class="card">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-dark-500 font-medium mb-1">Outstanding</p>
+                    <p class="text-2xl font-bold text-dark-900">₹45.2L</p>
+                </div>
+                <div class="p-3 bg-orange-100 rounded-lg">
+                    <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Paid Amount -->
+        <div class="card">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-dark-500 font-medium mb-1">Total Paid</p>
+                    <p class="text-2xl font-bold text-dark-900">₹39.3L</p>
+                </div>
+                <div class="p-3 bg-green-100 rounded-lg">
+                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Overdue Invoices -->
+        <div class="card">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-dark-500 font-medium mb-1">Overdue</p>
+                    <p class="text-2xl font-bold text-dark-900">12</p>
+                </div>
+                <div class="p-3 bg-red-100 rounded-lg">
+                    <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="card">
+        <h3 class="text-lg font-bold text-dark-900 mb-4">Filters</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-dark-900 mb-2">Search Invoice</label>
+                <input type="text" placeholder="Search by Invoice # or Customer..." class="input-field" />
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-dark-900 mb-2">Status</label>
+                <select class="input-field">
+                    <option selected>All Status</option>
+                    <option>Draft</option>
+                    <option>Sent</option>
+                    <option>Viewed</option>
+                    <option>Paid</option>
+                    <option>Partially Paid</option>
+                    <option>Overdue</option>
+                    <option>Cancelled</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-dark-900 mb-2">Customer</label>
+                <select class="input-field">
+                    <option selected>All Customers</option>
+                    <option>Sharma Auto Parts</option>
+                    <option>Tech Engine Solutions</option>
+                    <option>Drive Forward Ltd</option>
+                    <option>Mechanic's Hub</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-dark-900 mb-2">Date Range</label>
+                <input type="date" class="input-field" />
+            </div>
+        </div>
+    </div>
+
+    <!-- Invoices Table -->
+    <div class="card">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-lg font-bold text-dark-900">Recent Invoices</h3>
+            <span class="text-sm text-dark-500">Showing 1-10 of 127 invoices</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-dark-200 bg-dark-50">
+                        <th class="text-left py-3 px-4 font-semibold text-dark-900">Invoice #</th>
+                        <th class="text-left py-3 px-4 font-semibold text-dark-900">Customer</th>
+                        <th class="text-left py-3 px-4 font-semibold text-dark-900">Order ID</th>
+                        <th class="text-right py-3 px-4 font-semibold text-dark-900">Amount</th>
+                        <th class="text-left py-3 px-4 font-semibold text-dark-900">Invoice Date</th>
+                        <th class="text-left py-3 px-4 font-semibold text-dark-900">Due Date</th>
+                        <th class="text-center py-3 px-4 font-semibold text-dark-900">Status</th>
+                        <th class="text-center py-3 px-4 font-semibold text-dark-900">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-dark-200">
+                    <tr class="hover:bg-dark-50">
+                        <td class="py-4 px-4 font-semibold text-dark-900">INV-2024-127</td>
+                        <td class="py-4 px-4 text-dark-700">Sharma Auto Parts</td>
+                        <td class="py-4 px-4 text-dark-700">ORD-2024-152</td>
+                        <td class="text-right py-4 px-4 text-dark-900 font-semibold">₹45,000</td>
+                        <td class="py-4 px-4 text-dark-700">Dec 20, 2024</td>
+                        <td class="py-4 px-4 text-dark-700">Dec 27, 2024</td>
+                        <td class="text-center py-4 px-4"><span class="badge-success">Paid</span></td>
+                        <td class="text-center py-4 px-4">
+                            <div class="flex items-center justify-center gap-2">
+                                <a href="/invoices/INV-2024-127/view" class="text-primary-600 hover:text-primary-700 font-medium text-xs">View</a>
+                                <a href="/invoices/INV-2024-127/edit" class="text-primary-600 hover:text-primary-700 font-medium text-xs">Edit</a>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-dark-50">
+                        <td class="py-4 px-4 font-semibold text-dark-900">INV-2024-126</td>
+                        <td class="py-4 px-4 text-dark-700">Tech Engine Solutions</td>
+                        <td class="py-4 px-4 text-dark-700">ORD-2024-151</td>
+                        <td class="text-right py-4 px-4 text-dark-900 font-semibold">₹89,500</td>
+                        <td class="py-4 px-4 text-dark-700">Dec 19, 2024</td>
+                        <td class="py-4 px-4 text-dark-700">Dec 26, 2024</td>
+                        <td class="text-center py-4 px-4"><span class="badge-success">Paid</span></td>
+                        <td class="text-center py-4 px-4">
+                            <div class="flex items-center justify-center gap-2">
+                                <a href="/invoices/INV-2024-126/view" class="text-primary-600 hover:text-primary-700 font-medium text-xs">View</a>
+                                <a href="/invoices/INV-2024-126/edit" class="text-primary-600 hover:text-primary-700 font-medium text-xs">Edit</a>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-dark-50">
+                        <td class="py-4 px-4 font-semibold text-dark-900">INV-2024-125</td>
+                        <td class="py-4 px-4 text-dark-700">Drive Forward Ltd</td>
+                        <td class="py-4 px-4 text-dark-700">ORD-2024-150</td>
+                        <td class="text-right py-4 px-4 text-dark-900 font-semibold">₹52,300</td>
+                        <td class="py-4 px-4 text-dark-700">Dec 18, 2024</td>
+                        <td class="py-4 px-4 text-dark-700">Dec 25, 2024</td>
+                        <td class="text-center py-4 px-4"><span class="badge-info">Viewed</span></td>
+                        <td class="text-center py-4 px-4">
+                            <div class="flex items-center justify-center gap-2">
+                                <a href="/invoices/INV-2024-125/view" class="text-primary-600 hover:text-primary-700 font-medium text-xs">View</a>
+                                <a href="/invoices/INV-2024-125/edit" class="text-primary-600 hover:text-primary-700 font-medium text-xs">Edit</a>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-dark-50">
+                        <td class="py-4 px-4 font-semibold text-dark-900">INV-2024-124</td>
+                        <td class="py-4 px-4 text-dark-700">Mechanic's Hub</td>
+                        <td class="py-4 px-4 text-dark-700">ORD-2024-149</td>
+                        <td class="text-right py-4 px-4 text-dark-900 font-semibold">₹34,700</td>
+                        <td class="py-4 px-4 text-dark-700">Dec 17, 2024</td>
+                        <td class="py-4 px-4 text-dark-700">Dec 24, 2024</td>
+                        <td class="text-center py-4 px-4"><span class="badge-warning">Partially Paid</span></td>
+                        <td class="text-center py-4 px-4">
+                            <div class="flex items-center justify-center gap-2">
+                                <a href="/invoices/INV-2024-124/view" class="text-primary-600 hover:text-primary-700 font-medium text-xs">View</a>
+                                <a href="/invoices/INV-2024-124/edit" class="text-primary-600 hover:text-primary-700 font-medium text-xs">Edit</a>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-dark-50">
+                        <td class="py-4 px-4 font-semibold text-dark-900">INV-2024-123</td>
+                        <td class="py-4 px-4 text-dark-700">Sharma Auto Parts</td>
+                        <td class="py-4 px-4 text-dark-700">ORD-2024-148</td>
+                        <td class="text-right py-4 px-4 text-dark-900 font-semibold">₹61,200</td>
+                        <td class="py-4 px-4 text-dark-700">Dec 16, 2024</td>
+                        <td class="py-4 px-4 text-dark-700">Dec 23, 2024</td>
+                        <td class="text-center py-4 px-4"><span class="badge-danger">Overdue</span></td>
+                        <td class="text-center py-4 px-4">
+                            <div class="flex items-center justify-center gap-2">
+                                <a href="/invoices/INV-2024-123/view" class="text-primary-600 hover:text-primary-700 font-medium text-xs">View</a>
+                                <a href="/invoices/INV-2024-123/edit" class="text-primary-600 hover:text-primary-700 font-medium text-xs">Edit</a>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-dark-50">
+                        <td class="py-4 px-4 font-semibold text-dark-900">INV-2024-122</td>
+                        <td class="py-4 px-4 text-dark-700">Tech Engine Solutions</td>
+                        <td class="py-4 px-4 text-dark-700">ORD-2024-147</td>
+                        <td class="text-right py-4 px-4 text-dark-900 font-semibold">₹78,900</td>
+                        <td class="py-4 px-4 text-dark-700">Dec 15, 2024</td>
+                        <td class="py-4 px-4 text-dark-700">Dec 22, 2024</td>
+                        <td class="text-center py-4 px-4"><span class="badge-success">Paid</span></td>
+                        <td class="text-center py-4 px-4">
+                            <div class="flex items-center justify-center gap-2">
+                                <a href="/invoices/INV-2024-122/view" class="text-primary-600 hover:text-primary-700 font-medium text-xs">View</a>
+                                <a href="/invoices/INV-2024-122/edit" class="text-primary-600 hover:text-primary-700 font-medium text-xs">Edit</a>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-dark-50">
+                        <td class="py-4 px-4 font-semibold text-dark-900">INV-2024-121</td>
+                        <td class="py-4 px-4 text-dark-700">Drive Forward Ltd</td>
+                        <td class="py-4 px-4 text-dark-700">ORD-2024-146</td>
+                        <td class="text-right py-4 px-4 text-dark-900 font-semibold">₹43,500</td>
+                        <td class="py-4 px-4 text-dark-700">Dec 14, 2024</td>
+                        <td class="py-4 px-4 text-dark-700">Dec 21, 2024</td>
+                        <td class="text-center py-4 px-4"><span class="badge-success">Paid</span></td>
+                        <td class="text-center py-4 px-4">
+                            <div class="flex items-center justify-center gap-2">
+                                <a href="/invoices/INV-2024-121/view" class="text-primary-600 hover:text-primary-700 font-medium text-xs">View</a>
+                                <a href="/invoices/INV-2024-121/edit" class="text-primary-600 hover:text-primary-700 font-medium text-xs">Edit</a>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-dark-50">
+                        <td class="py-4 px-4 font-semibold text-dark-900">INV-2024-120</td>
+                        <td class="py-4 px-4 text-dark-700">Mechanic's Hub</td>
+                        <td class="py-4 px-4 text-dark-700">ORD-2024-145</td>
+                        <td class="text-right py-4 px-4 text-dark-900 font-semibold">₹29,800</td>
+                        <td class="py-4 px-4 text-dark-700">Dec 13, 2024</td>
+                        <td class="py-4 px-4 text-dark-700">Dec 20, 2024</td>
+                        <td class="text-center py-4 px-4"><span class="badge-danger">Overdue</span></td>
+                        <td class="text-center py-4 px-4">
+                            <div class="flex items-center justify-center gap-2">
+                                <a href="/invoices/INV-2024-120/view" class="text-primary-600 hover:text-primary-700 font-medium text-xs">View</a>
+                                <a href="/invoices/INV-2024-120/edit" class="text-primary-600 hover:text-primary-700 font-medium text-xs">Edit</a>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-dark-50">
+                        <td class="py-4 px-4 font-semibold text-dark-900">INV-2024-119</td>
+                        <td class="py-4 px-4 text-dark-700">Sharma Auto Parts</td>
+                        <td class="py-4 px-4 text-dark-700">ORD-2024-144</td>
+                        <td class="text-right py-4 px-4 text-dark-900 font-semibold">₹55,600</td>
+                        <td class="py-4 px-4 text-dark-700">Dec 12, 2024</td>
+                        <td class="py-4 px-4 text-dark-700">Dec 19, 2024</td>
+                        <td class="text-center py-4 px-4"><span class="badge-success">Paid</span></td>
+                        <td class="text-center py-4 px-4">
+                            <div class="flex items-center justify-center gap-2">
+                                <a href="/invoices/INV-2024-119/view" class="text-primary-600 hover:text-primary-700 font-medium text-xs">View</a>
+                                <a href="/invoices/INV-2024-119/edit" class="text-primary-600 hover:text-primary-700 font-medium text-xs">Edit</a>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-dark-50">
+                        <td class="py-4 px-4 font-semibold text-dark-900">INV-2024-118</td>
+                        <td class="py-4 px-4 text-dark-700">Tech Engine Solutions</td>
+                        <td class="py-4 px-4 text-dark-700">ORD-2024-143</td>
+                        <td class="text-right py-4 px-4 text-dark-900 font-semibold">₹67,200</td>
+                        <td class="py-4 px-4 text-dark-700">Dec 11, 2024</td>
+                        <td class="py-4 px-4 text-dark-700">Dec 18, 2024</td>
+                        <td class="text-center py-4 px-4"><span class="badge-warning">Partially Paid</span></td>
+                        <td class="text-center py-4 px-4">
+                            <div class="flex items-center justify-center gap-2">
+                                <a href="/invoices/INV-2024-118/view" class="text-primary-600 hover:text-primary-700 font-medium text-xs">View</a>
+                                <a href="/invoices/INV-2024-118/edit" class="text-primary-600 hover:text-primary-700 font-medium text-xs">Edit</a>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        // Load invoices list
+    }
+}

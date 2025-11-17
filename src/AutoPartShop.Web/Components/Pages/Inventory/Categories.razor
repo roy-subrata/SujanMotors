@@ -1,0 +1,364 @@
+@page "/inventory/categories"
+
+<PageTitle>Categories - AutoParts Shop</PageTitle>
+
+<div class="space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-dark-900">Product Categories</h1>
+            <p class="text-dark-500 mt-1">Manage your multilevel product category hierarchy</p>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-2 flex-shrink-0">
+            <button class="btn-secondary flex items-center justify-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                </svg>
+                Import
+            </button>
+            <button class="btn-primary flex items-center justify-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                Add Category
+            </button>
+        </div>
+    </div>
+
+    <!-- View Toggle -->
+    <div class="card">
+        <div class="flex items-center justify-between">
+            <h3 class="text-sm font-medium text-dark-900">View Options</h3>
+            <div class="flex gap-2">
+                <button class="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium">
+                    <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h12a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6z"></path>
+                    </svg>
+                    Tree View
+                </button>
+                <button class="px-4 py-2 border border-dark-300 text-dark-600 rounded-lg text-sm font-medium hover:bg-dark-100">
+                    <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                    List View
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Tree View -->
+    <div class="card">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-lg font-bold text-dark-900">Category Hierarchy</h3>
+            <div class="flex gap-2">
+                <button class="text-sm text-dark-600 hover:text-dark-900 font-medium">Expand All</button>
+                <span class="text-dark-300">|</span>
+                <button class="text-sm text-dark-600 hover:text-dark-900 font-medium">Collapse All</button>
+            </div>
+        </div>
+
+        <div class="space-y-2">
+            <!-- Root Category 1: Engine Components -->
+            <div class="border border-dark-200 rounded-lg overflow-hidden">
+                <div class="flex items-center hover:bg-primary-50 transition-colors">
+                    <button class="p-3 text-dark-600 hover:text-dark-900">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M7 10l5 5 5-5z"></path>
+                        </svg>
+                    </button>
+                    <div class="flex-1 py-3 px-2">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-8 h-8 bg-purple-100 rounded flex items-center justify-center">
+                                <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path>
+                                </svg>
+                            </div>
+                            <div class="flex-1">
+                                <p class="font-semibold text-dark-900">Engine Components</p>
+                                <p class="text-xs text-dark-500">CAT-001 • 5 subcategories • 28 parts</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="px-4 py-3 flex gap-2 flex-shrink-0">
+                        <button class="text-primary-600 hover:text-primary-700 text-sm font-medium">View</button>
+                        <button class="text-blue-600 hover:text-blue-700 text-sm font-medium">Edit</button>
+                        <button class="text-red-600 hover:text-red-700 text-sm font-medium">Delete</button>
+                    </div>
+                </div>
+
+                <!-- Subcategories -->
+                <div class="bg-dark-50 border-t border-dark-200">
+                    <!-- Subcategory 1 -->
+                    <div class="flex items-center hover:bg-primary-50 transition-colors ml-4">
+                        <button class="p-3 text-dark-600 hover:text-dark-900">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M7 10l5 5 5-5z"></path>
+                            </svg>
+                        </button>
+                        <div class="flex-1 py-3 px-2">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
+                                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                    </svg>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="font-medium text-dark-900">Spark Plugs</p>
+                                    <p class="text-xs text-dark-500">CAT-001-001 • 8 parts</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="px-4 py-3 flex gap-2 flex-shrink-0">
+                            <button class="text-primary-600 hover:text-primary-700 text-sm font-medium text-xs">View</button>
+                            <button class="text-blue-600 hover:text-blue-700 text-sm font-medium text-xs">Edit</button>
+                            <button class="text-red-600 hover:text-red-700 text-sm font-medium text-xs">Del</button>
+                        </div>
+                    </div>
+
+                    <!-- Subcategory 2 -->
+                    <div class="flex items-center hover:bg-primary-50 transition-colors ml-4">
+                        <button class="p-3 text-dark-600 hover:text-dark-900">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M7 10l5 5 5-5z"></path>
+                            </svg>
+                        </button>
+                        <div class="flex-1 py-3 px-2">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 bg-orange-100 rounded flex items-center justify-center">
+                                    <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3v-6"></path>
+                                    </svg>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="font-medium text-dark-900">Air Filters</p>
+                                    <p class="text-xs text-dark-500">CAT-001-002 • 12 parts</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="px-4 py-3 flex gap-2 flex-shrink-0">
+                            <button class="text-primary-600 hover:text-primary-700 text-sm font-medium text-xs">View</button>
+                            <button class="text-blue-600 hover:text-blue-700 text-sm font-medium text-xs">Edit</button>
+                            <button class="text-red-600 hover:text-red-700 text-sm font-medium text-xs">Del</button>
+                        </div>
+                    </div>
+
+                    <!-- Subcategory 3 -->
+                    <div class="flex items-center hover:bg-primary-50 transition-colors ml-4">
+                        <span class="p-3 text-dark-300 w-14"></span>
+                        <div class="flex-1 py-3 px-2">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 bg-green-100 rounded flex items-center justify-center">
+                                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="font-medium text-dark-900">Engine Oil Filters</p>
+                                    <p class="text-xs text-dark-500">CAT-001-003 • 8 parts</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="px-4 py-3 flex gap-2 flex-shrink-0">
+                            <button class="text-primary-600 hover:text-primary-700 text-sm font-medium text-xs">View</button>
+                            <button class="text-blue-600 hover:text-blue-700 text-sm font-medium text-xs">Edit</button>
+                            <button class="text-red-600 hover:text-red-700 text-sm font-medium text-xs">Del</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Root Category 2: Brake System -->
+            <div class="border border-dark-200 rounded-lg overflow-hidden">
+                <div class="flex items-center hover:bg-primary-50 transition-colors">
+                    <button class="p-3 text-dark-600 hover:text-dark-900">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M7 10l5 5 5-5z"></path>
+                        </svg>
+                    </button>
+                    <div class="flex-1 py-3 px-2">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-8 h-8 bg-red-100 rounded flex items-center justify-center">
+                                <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v12m8-12v12M3 7l1.293 8.378A2 2 0 004.263 18h15.474a2 2 0 001.97-2.622L21 7M5 4h14v3H5z"></path>
+                                </svg>
+                            </div>
+                            <div class="flex-1">
+                                <p class="font-semibold text-dark-900">Brake System</p>
+                                <p class="text-xs text-dark-500">CAT-002 • 3 subcategories • 18 parts</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="px-4 py-3 flex gap-2 flex-shrink-0">
+                        <button class="text-primary-600 hover:text-primary-700 text-sm font-medium">View</button>
+                        <button class="text-blue-600 hover:text-blue-700 text-sm font-medium">Edit</button>
+                        <button class="text-red-600 hover:text-red-700 text-sm font-medium">Delete</button>
+                    </div>
+                </div>
+
+                <!-- Subcategories -->
+                <div class="bg-dark-50 border-t border-dark-200">
+                    <div class="flex items-center hover:bg-primary-50 transition-colors ml-4">
+                        <span class="p-3 text-dark-300 w-14"></span>
+                        <div class="flex-1 py-3 px-2">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 bg-red-100 rounded flex items-center justify-center">
+                                    <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="font-medium text-dark-900">Brake Pads</p>
+                                    <p class="text-xs text-dark-500">CAT-002-001 • 6 parts</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="px-4 py-3 flex gap-2 flex-shrink-0">
+                            <button class="text-primary-600 hover:text-primary-700 text-sm font-medium text-xs">View</button>
+                            <button class="text-blue-600 hover:text-blue-700 text-sm font-medium text-xs">Edit</button>
+                            <button class="text-red-600 hover:text-red-700 text-sm font-medium text-xs">Del</button>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center hover:bg-primary-50 transition-colors ml-4">
+                        <span class="p-3 text-dark-300 w-14"></span>
+                        <div class="flex-1 py-3 px-2">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 bg-red-100 rounded flex items-center justify-center">
+                                    <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="font-medium text-dark-900">Brake Rotors</p>
+                                    <p class="text-xs text-dark-500">CAT-002-002 • 7 parts</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="px-4 py-3 flex gap-2 flex-shrink-0">
+                            <button class="text-primary-600 hover:text-primary-700 text-sm font-medium text-xs">View</button>
+                            <button class="text-blue-600 hover:text-blue-700 text-sm font-medium text-xs">Edit</button>
+                            <button class="text-red-600 hover:text-red-700 text-sm font-medium text-xs">Del</button>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center hover:bg-primary-50 transition-colors ml-4">
+                        <span class="p-3 text-dark-300 w-14"></span>
+                        <div class="flex-1 py-3 px-2">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 bg-red-100 rounded flex items-center justify-center">
+                                    <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="font-medium text-dark-900">Brake Fluid</p>
+                                    <p class="text-xs text-dark-500">CAT-002-003 • 5 parts</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="px-4 py-3 flex gap-2 flex-shrink-0">
+                            <button class="text-primary-600 hover:text-primary-700 text-sm font-medium text-xs">View</button>
+                            <button class="text-blue-600 hover:text-blue-700 text-sm font-medium text-xs">Edit</button>
+                            <button class="text-red-600 hover:text-red-700 text-sm font-medium text-xs">Del</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Root Category 3: Electrical -->
+            <div class="border border-dark-200 rounded-lg overflow-hidden">
+                <div class="flex items-center hover:bg-primary-50 transition-colors">
+                    <button class="p-3 text-dark-600 hover:text-dark-900">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M7 10l5 5 5-5z"></path>
+                        </svg>
+                    </button>
+                    <div class="flex-1 py-3 px-2">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-8 h-8 bg-yellow-100 rounded flex items-center justify-center">
+                                <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                </svg>
+                            </div>
+                            <div class="flex-1">
+                                <p class="font-semibold text-dark-900">Electrical</p>
+                                <p class="text-xs text-dark-500">CAT-003 • 4 subcategories • 32 parts</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="px-4 py-3 flex gap-2 flex-shrink-0">
+                        <button class="text-primary-600 hover:text-primary-700 text-sm font-medium">View</button>
+                        <button class="text-blue-600 hover:text-blue-700 text-sm font-medium">Edit</button>
+                        <button class="text-red-600 hover:text-red-700 text-sm font-medium">Delete</button>
+                    </div>
+                </div>
+
+                <!-- Subcategories (collapsed) -->
+                <div class="bg-dark-50 border-t border-dark-200 p-4 text-center text-dark-500 text-sm">
+                    4 subcategories - Click to expand
+                </div>
+            </div>
+
+            <!-- Root Category 4: Suspension -->
+            <div class="border border-dark-200 rounded-lg overflow-hidden">
+                <div class="flex items-center hover:bg-primary-50 transition-colors">
+                    <button class="p-3 text-dark-600 hover:text-dark-900">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M7 10l5 5 5-5z"></path>
+                        </svg>
+                    </button>
+                    <div class="flex-1 py-3 px-2">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-8 h-8 bg-indigo-100 rounded flex items-center justify-center">
+                                <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                </svg>
+                            </div>
+                            <div class="flex-1">
+                                <p class="font-semibold text-dark-900">Suspension</p>
+                                <p class="text-xs text-dark-500">CAT-004 • 3 subcategories • 24 parts</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="px-4 py-3 flex gap-2 flex-shrink-0">
+                        <button class="text-primary-600 hover:text-primary-700 text-sm font-medium">View</button>
+                        <button class="text-blue-600 hover:text-blue-700 text-sm font-medium">Edit</button>
+                        <button class="text-red-600 hover:text-red-700 text-sm font-medium">Delete</button>
+                    </div>
+                </div>
+
+                <!-- Subcategories (collapsed) -->
+                <div class="bg-dark-50 border-t border-dark-200 p-4 text-center text-dark-500 text-sm">
+                    3 subcategories - Click to expand
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Section -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="card-sm border-l-4 border-primary-500">
+            <h4 class="font-semibold text-dark-900 mb-3">Total Categories</h4>
+            <p class="text-3xl font-bold text-primary-600">12</p>
+            <p class="text-dark-500 text-xs mt-2">Including all levels</p>
+        </div>
+
+        <div class="card-sm border-l-4 border-blue-500">
+            <h4 class="font-semibold text-dark-900 mb-3">Root Categories</h4>
+            <p class="text-3xl font-bold text-blue-600">4</p>
+            <p class="text-dark-500 text-xs mt-2">Top level items</p>
+        </div>
+
+        <div class="card-sm border-l-4 border-green-500">
+            <h4 class="font-semibold text-dark-900 mb-3">Subcategories</h4>
+            <p class="text-3xl font-bold text-green-600">8</p>
+            <p class="text-dark-500 text-xs mt-2">Child categories</p>
+        </div>
+
+        <div class="card-sm border-l-4 border-orange-500">
+            <h4 class="font-semibold text-dark-900 mb-3">Max Depth</h4>
+            <p class="text-3xl font-bold text-orange-600">3</p>
+            <p class="text-dark-500 text-xs mt-2">Hierarchy levels</p>
+        </div>
+    </div>
+</div>

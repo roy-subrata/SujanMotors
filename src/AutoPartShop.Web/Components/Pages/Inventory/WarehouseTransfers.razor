@@ -1,0 +1,366 @@
+@page "/inventory/warehouse-transfers"
+
+<PageTitle>Stock Transfers - AutoParts Shop</PageTitle>
+
+<div class="space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-dark-900">Stock Transfers</h1>
+            <p class="text-dark-500 mt-1">Manage inventory transfers between warehouses</p>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-2 flex-shrink-0">
+            <a href="/inventory/warehouses" class="btn-secondary flex items-center justify-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                </svg>
+                Back to Warehouses
+            </a>
+            <a href="/inventory/warehouse-transfers/create" class="btn-primary flex items-center justify-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                Create Transfer
+            </a>
+        </div>
+    </div>
+
+    <!-- Statistics -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <!-- Total Transfers -->
+        <div class="card">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-dark-500 font-medium mb-1">Total Transfers</p>
+                    <p class="text-2xl font-bold text-dark-900">127</p>
+                </div>
+                <div class="p-3 bg-primary-100 rounded-lg">
+                    <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pending Transfers -->
+        <div class="card">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-dark-500 font-medium mb-1">Pending Transfers</p>
+                    <p class="text-2xl font-bold text-dark-900">8</p>
+                </div>
+                <div class="p-3 bg-yellow-100 rounded-lg">
+                    <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- In Transit -->
+        <div class="card">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-dark-500 font-medium mb-1">In Transit</p>
+                    <p class="text-2xl font-bold text-dark-900">5</p>
+                </div>
+                <div class="p-3 bg-blue-100 rounded-lg">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Completed (This Month) -->
+        <div class="card">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-dark-500 font-medium mb-1">Completed (This Month)</p>
+                    <p class="text-2xl font-bold text-dark-900">24</p>
+                </div>
+                <div class="p-3 bg-green-100 rounded-lg">
+                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card">
+        <h3 class="text-lg font-bold text-dark-900 mb-4">Filters</h3>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-dark-900 mb-2">From Warehouse</label>
+                <select class="input-field">
+                    <option selected>All Warehouses</option>
+                    <option>Main Warehouse (WH-001)</option>
+                    <option>South Regional Hub (WH-002)</option>
+                    <option>East Distribution (WH-003)</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-dark-900 mb-2">To Warehouse</label>
+                <select class="input-field">
+                    <option selected>All Warehouses</option>
+                    <option>Main Warehouse (WH-001)</option>
+                    <option>South Regional Hub (WH-002)</option>
+                    <option>West Express Hub (WH-004)</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-dark-900 mb-2">Status</label>
+                <select class="input-field">
+                    <option selected>All Status</option>
+                    <option>Pending</option>
+                    <option>In Transit</option>
+                    <option>Received</option>
+                    <option>Cancelled</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-dark-900 mb-2">Search Transfer</label>
+                <input type="text" placeholder="Search by Transfer ID..." class="input-field" />
+            </div>
+        </div>
+    </div>
+
+    <!-- Transfers Table -->
+    <div class="card">
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-dark-200 bg-dark-50">
+                        <th class="text-left py-3 px-4 font-semibold text-dark-900">Transfer ID</th>
+                        <th class="text-left py-3 px-4 font-semibold text-dark-900">From Warehouse</th>
+                        <th class="text-left py-3 px-4 font-semibold text-dark-900">To Warehouse</th>
+                        <th class="text-right py-3 px-4 font-semibold text-dark-900">Items Count</th>
+                        <th class="text-left py-3 px-4 font-semibold text-dark-900">Transfer Date</th>
+                        <th class="text-left py-3 px-4 font-semibold text-dark-900">Expected Delivery</th>
+                        <th class="text-center py-3 px-4 font-semibold text-dark-900">Status</th>
+                        <th class="text-center py-3 px-4 font-semibold text-dark-900">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-dark-200">
+                    <tr class="hover:bg-dark-50">
+                        <td class="py-4 px-4 font-semibold text-dark-900">TRF-2024-001</td>
+                        <td class="py-4 px-4 text-dark-700">Main Warehouse</td>
+                        <td class="py-4 px-4 text-dark-700">South Regional Hub</td>
+                        <td class="text-right py-4 px-4 text-dark-700">85 units</td>
+                        <td class="py-4 px-4 text-dark-700">Nov 15, 2024</td>
+                        <td class="py-4 px-4 text-dark-700">Nov 18, 2024</td>
+                        <td class="text-center py-4 px-4"><span class="badge-info">In Transit</span></td>
+                        <td class="text-center py-4 px-4">
+                            <a href="/inventory/warehouse-transfers/TRF-2024-001/view" class="text-primary-600 hover:text-primary-700 text-xs font-medium">View</a>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-dark-50">
+                        <td class="py-4 px-4 font-semibold text-dark-900">TRF-2024-002</td>
+                        <td class="py-4 px-4 text-dark-700">South Regional Hub</td>
+                        <td class="py-4 px-4 text-dark-700">East Distribution</td>
+                        <td class="text-right py-4 px-4 text-dark-700">120 units</td>
+                        <td class="py-4 px-4 text-dark-700">Nov 14, 2024</td>
+                        <td class="py-4 px-4 text-dark-700">Nov 16, 2024</td>
+                        <td class="text-center py-4 px-4"><span class="badge-success">Received</span></td>
+                        <td class="text-center py-4 px-4">
+                            <a href="/inventory/warehouse-transfers/TRF-2024-002/view" class="text-primary-600 hover:text-primary-700 text-xs font-medium">View</a>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-dark-50">
+                        <td class="py-4 px-4 font-semibold text-dark-900">TRF-2024-003</td>
+                        <td class="py-4 px-4 text-dark-700">Main Warehouse</td>
+                        <td class="py-4 px-4 text-dark-700">West Express Hub</td>
+                        <td class="text-right py-4 px-4 text-dark-700">156 units</td>
+                        <td class="py-4 px-4 text-dark-700">Nov 16, 2024</td>
+                        <td class="py-4 px-4 text-dark-700">Nov 19, 2024</td>
+                        <td class="text-center py-4 px-4"><span class="badge-warning">Pending</span></td>
+                        <td class="text-center py-4 px-4">
+                            <a href="/inventory/warehouse-transfers/TRF-2024-003/view" class="text-primary-600 hover:text-primary-700 text-xs font-medium">View</a>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-dark-50">
+                        <td class="py-4 px-4 font-semibold text-dark-900">TRF-2024-004</td>
+                        <td class="py-4 px-4 text-dark-700">East Distribution</td>
+                        <td class="py-4 px-4 text-dark-700">Main Warehouse</td>
+                        <td class="text-right py-4 px-4 text-dark-700">92 units</td>
+                        <td class="py-4 px-4 text-dark-700">Nov 13, 2024</td>
+                        <td class="py-4 px-4 text-dark-700">Nov 15, 2024</td>
+                        <td class="text-center py-4 px-4"><span class="badge-success">Received</span></td>
+                        <td class="text-center py-4 px-4">
+                            <a href="/inventory/warehouse-transfers/TRF-2024-004/view" class="text-primary-600 hover:text-primary-700 text-xs font-medium">View</a>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-dark-50">
+                        <td class="py-4 px-4 font-semibold text-dark-900">TRF-2024-005</td>
+                        <td class="py-4 px-4 text-dark-700">West Express Hub</td>
+                        <td class="py-4 px-4 text-dark-700">South Regional Hub</td>
+                        <td class="text-right py-4 px-4 text-dark-700">78 units</td>
+                        <td class="py-4 px-4 text-dark-700">Nov 17, 2024</td>
+                        <td class="py-4 px-4 text-dark-700">Nov 20, 2024</td>
+                        <td class="text-center py-4 px-4"><span class="badge-warning">Pending</span></td>
+                        <td class="text-center py-4 px-4">
+                            <a href="/inventory/warehouse-transfers/TRF-2024-005/view" class="text-primary-600 hover:text-primary-700 text-xs font-medium">View</a>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-dark-50">
+                        <td class="py-4 px-4 font-semibold text-dark-900">TRF-2024-006</td>
+                        <td class="py-4 px-4 text-dark-700">South Regional Hub</td>
+                        <td class="py-4 px-4 text-dark-700">Main Warehouse</td>
+                        <td class="text-right py-4 px-4 text-dark-700">145 units</td>
+                        <td class="py-4 px-4 text-dark-700">Nov 12, 2024</td>
+                        <td class="py-4 px-4 text-dark-700">Nov 14, 2024</td>
+                        <td class="text-center py-4 px-4"><span class="badge-success">Received</span></td>
+                        <td class="text-center py-4 px-4">
+                            <a href="/inventory/warehouse-transfers/TRF-2024-006/view" class="text-primary-600 hover:text-primary-700 text-xs font-medium">View</a>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-dark-50">
+                        <td class="py-4 px-4 font-semibold text-dark-900">TRF-2024-007</td>
+                        <td class="py-4 px-4 text-dark-700">Main Warehouse</td>
+                        <td class="py-4 px-4 text-dark-700">East Distribution</td>
+                        <td class="text-right py-4 px-4 text-dark-700">67 units</td>
+                        <td class="py-4 px-4 text-dark-700">Nov 18, 2024</td>
+                        <td class="py-4 px-4 text-dark-700">Nov 21, 2024</td>
+                        <td class="text-center py-4 px-4"><span class="badge-warning">Pending</span></td>
+                        <td class="text-center py-4 px-4">
+                            <a href="/inventory/warehouse-transfers/TRF-2024-007/view" class="text-primary-600 hover:text-primary-700 text-xs font-medium">View</a>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-dark-50">
+                        <td class="py-4 px-4 font-semibold text-dark-900">TRF-2024-008</td>
+                        <td class="py-4 px-4 text-dark-700">East Distribution</td>
+                        <td class="py-4 px-4 text-dark-700">West Express Hub</td>
+                        <td class="text-right py-4 px-4 text-dark-700">134 units</td>
+                        <td class="py-4 px-4 text-dark-700">Nov 11, 2024</td>
+                        <td class="py-4 px-4 text-dark-700">Nov 13, 2024</td>
+                        <td class="text-center py-4 px-4"><span class="badge-success">Received</span></td>
+                        <td class="text-center py-4 px-4">
+                            <a href="/inventory/warehouse-transfers/TRF-2024-008/view" class="text-primary-600 hover:text-primary-700 text-xs font-medium">View</a>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-dark-50">
+                        <td class="py-4 px-4 font-semibold text-dark-900">TRF-2024-009</td>
+                        <td class="py-4 px-4 text-dark-700">West Express Hub</td>
+                        <td class="py-4 px-4 text-dark-700">Main Warehouse</td>
+                        <td class="text-right py-4 px-4 text-dark-700">88 units</td>
+                        <td class="py-4 px-4 text-dark-700">Nov 19, 2024</td>
+                        <td class="py-4 px-4 text-dark-700">Nov 22, 2024</td>
+                        <td class="text-center py-4 px-4"><span class="badge-info">In Transit</span></td>
+                        <td class="text-center py-4 px-4">
+                            <a href="/inventory/warehouse-transfers/TRF-2024-009/view" class="text-primary-600 hover:text-primary-700 text-xs font-medium">View</a>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-dark-50">
+                        <td class="py-4 px-4 font-semibold text-dark-900">TRF-2024-010</td>
+                        <td class="py-4 px-4 text-dark-700">South Regional Hub</td>
+                        <td class="py-4 px-4 text-dark-700">East Distribution</td>
+                        <td class="text-right py-4 px-4 text-dark-700">112 units</td>
+                        <td class="py-4 px-4 text-dark-700">Nov 10, 2024</td>
+                        <td class="py-4 px-4 text-dark-700">Nov 12, 2024</td>
+                        <td class="text-center py-4 px-4"><span class="badge-success">Received</span></td>
+                        <td class="text-center py-4 px-4">
+                            <a href="/inventory/warehouse-transfers/TRF-2024-010/view" class="text-primary-600 hover:text-primary-700 text-xs font-medium">View</a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Transfer Summary -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Most Active Routes -->
+        <div class="card">
+            <h3 class="text-lg font-bold text-dark-900 mb-6">Most Active Transfer Routes</h3>
+
+            <div class="space-y-4">
+                <div class="flex items-center justify-between p-3 bg-dark-50 rounded-lg">
+                    <span class="text-sm font-medium text-dark-900">Main (WH-001) → South (WH-002)</span>
+                    <span class="badge-info">18 transfers</span>
+                </div>
+                <div class="flex items-center justify-between p-3 bg-dark-50 rounded-lg">
+                    <span class="text-sm font-medium text-dark-900">South (WH-002) → East (WH-003)</span>
+                    <span class="badge-info">15 transfers</span>
+                </div>
+                <div class="flex items-center justify-between p-3 bg-dark-50 rounded-lg">
+                    <span class="text-sm font-medium text-dark-900">Main (WH-001) → West (WH-004)</span>
+                    <span class="badge-info">12 transfers</span>
+                </div>
+                <div class="flex items-center justify-between p-3 bg-dark-50 rounded-lg">
+                    <span class="text-sm font-medium text-dark-900">East (WH-003) → Main (WH-001)</span>
+                    <span class="badge-info">10 transfers</span>
+                </div>
+                <div class="flex items-center justify-between p-3 bg-dark-50 rounded-lg">
+                    <span class="text-sm font-medium text-dark-900">West (WH-004) → South (WH-002)</span>
+                    <span class="badge-info">8 transfers</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Monthly Transfer Statistics -->
+        <div class="card">
+            <h3 class="text-lg font-bold text-dark-900 mb-6">Transfer Statistics</h3>
+
+            <div class="space-y-4">
+                <div>
+                    <div class="flex justify-between mb-2">
+                        <p class="text-sm font-medium text-dark-900">Total Units Transferred</p>
+                        <p class="text-sm font-semibold text-dark-900">2,847 units</p>
+                    </div>
+                    <div class="w-full bg-dark-200 rounded-full h-2">
+                        <div class="bg-primary-600 h-2 rounded-full" style="width: 100%"></div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex justify-between mb-2">
+                        <p class="text-sm font-medium text-dark-900">Completed Transfers</p>
+                        <p class="text-sm font-semibold text-dark-900">84 (66%)</p>
+                    </div>
+                    <div class="w-full bg-dark-200 rounded-full h-2">
+                        <div class="bg-green-600 h-2 rounded-full" style="width: 66%"></div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex justify-between mb-2">
+                        <p class="text-sm font-medium text-dark-900">In Transit</p>
+                        <p class="text-sm font-semibold text-dark-900">5 (4%)</p>
+                    </div>
+                    <div class="w-full bg-dark-200 rounded-full h-2">
+                        <div class="bg-blue-600 h-2 rounded-full" style="width: 4%"></div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex justify-between mb-2">
+                        <p class="text-sm font-medium text-dark-900">Pending</p>
+                        <p class="text-sm font-semibold text-dark-900">8 (6%)</p>
+                    </div>
+                    <div class="w-full bg-dark-200 rounded-full h-2">
+                        <div class="bg-yellow-600 h-2 rounded-full" style="width: 6%"></div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex justify-between mb-2">
+                        <p class="text-sm font-medium text-dark-900">Cancelled</p>
+                        <p class="text-sm font-semibold text-dark-900">3 (2%)</p>
+                    </div>
+                    <div class="w-full bg-dark-200 rounded-full h-2">
+                        <div class="bg-red-600 h-2 rounded-full" style="width: 2%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        // Load warehouse transfers
+    }
+}

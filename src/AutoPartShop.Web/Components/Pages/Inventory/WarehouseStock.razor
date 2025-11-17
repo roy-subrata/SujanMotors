@@ -1,0 +1,342 @@
+@page "/inventory/warehouse-stock"
+
+<PageTitle>Warehouse Stock - AutoParts Shop</PageTitle>
+
+<div class="space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-dark-900">Warehouse Stock Levels</h1>
+            <p class="text-dark-500 mt-1">Monitor inventory levels and stock distribution across all warehouses</p>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-2 flex-shrink-0">
+            <a href="/inventory/warehouse-transfers" class="btn-secondary flex items-center justify-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path>
+                </svg>
+                Stock Transfers
+            </a>
+        </div>
+    </div>
+
+    <!-- Statistics -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- Total Stock Items -->
+        <div class="card">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-dark-500 font-medium mb-1">Total Stock Items (All)</p>
+                    <p class="text-2xl font-bold text-dark-900">15,990</p>
+                </div>
+                <div class="p-3 bg-primary-100 rounded-lg">
+                    <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m0 0l8 4m-8-4v10l8 4m0-10l8-4m-8 4v10m-8-4l8 4m0-10l-8-4"></path>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Low Stock Alert -->
+        <div class="card">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-dark-500 font-medium mb-1">Low Stock Items</p>
+                    <p class="text-2xl font-bold text-dark-900">12</p>
+                </div>
+                <div class="p-3 bg-yellow-100 rounded-lg">
+                    <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4v.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Out of Stock -->
+        <div class="card">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-dark-500 font-medium mb-1">Out of Stock Items</p>
+                    <p class="text-2xl font-bold text-dark-900">2</p>
+                </div>
+                <div class="p-3 bg-red-100 rounded-lg">
+                    <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card">
+        <h3 class="text-lg font-bold text-dark-900 mb-4">Filters</h3>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-dark-900 mb-2">Warehouse</label>
+                <select class="input-field">
+                    <option selected>All Warehouses</option>
+                    <option>Main Warehouse (WH-001)</option>
+                    <option>South Regional Hub (WH-002)</option>
+                    <option>East Distribution (WH-003)</option>
+                    <option>West Express Hub (WH-004)</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-dark-900 mb-2">Product Category</label>
+                <select class="input-field">
+                    <option selected>All Categories</option>
+                    <option>Engine & Engine Parts</option>
+                    <option>Suspension & Brakes</option>
+                    <option>Electrical Components</option>
+                    <option>Body & Exterior</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-dark-900 mb-2">Stock Status</label>
+                <select class="input-field">
+                    <option selected>All Status</option>
+                    <option>In Stock</option>
+                    <option>Low Stock</option>
+                    <option>Out of Stock</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-dark-900 mb-2">Search Item</label>
+                <input type="text" placeholder="Search by SKU or name..." class="input-field" />
+            </div>
+        </div>
+    </div>
+
+    <!-- Warehouse Stock Summary -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <!-- Main Warehouse -->
+        <div class="card">
+            <h3 class="text-lg font-bold text-dark-900 mb-4">Main Warehouse (WH-001)</h3>
+            <div class="space-y-3">
+                <div class="flex justify-between items-center">
+                    <p class="text-sm text-dark-700">Total Items</p>
+                    <p class="font-semibold text-dark-900">4,251 units</p>
+                </div>
+                <div class="flex justify-between items-center">
+                    <p class="text-sm text-dark-700">Stock Value</p>
+                    <p class="font-semibold text-dark-900">₹52.3L</p>
+                </div>
+                <div class="flex justify-between items-center">
+                    <p class="text-sm text-dark-700">Capacity Used</p>
+                    <p class="font-semibold text-dark-900">75%</p>
+                </div>
+                <div class="mt-3">
+                    <div class="w-full bg-dark-200 rounded-full h-2">
+                        <div class="bg-primary-600 h-2 rounded-full" style="width: 75%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- South Regional Hub -->
+        <div class="card">
+            <h3 class="text-lg font-bold text-dark-900 mb-4">South Regional Hub (WH-002)</h3>
+            <div class="space-y-3">
+                <div class="flex justify-between items-center">
+                    <p class="text-sm text-dark-700">Total Items</p>
+                    <p class="font-semibold text-dark-900">3,128 units</p>
+                </div>
+                <div class="flex justify-between items-center">
+                    <p class="text-sm text-dark-700">Stock Value</p>
+                    <p class="font-semibold text-dark-900">₹38.5L</p>
+                </div>
+                <div class="flex justify-between items-center">
+                    <p class="text-sm text-dark-700">Capacity Used</p>
+                    <p class="font-semibold text-dark-900">60%</p>
+                </div>
+                <div class="mt-3">
+                    <div class="w-full bg-dark-200 rounded-full h-2">
+                        <div class="bg-primary-600 h-2 rounded-full" style="width: 60%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- East Distribution Center -->
+        <div class="card">
+            <h3 class="text-lg font-bold text-dark-900 mb-4">East Distribution (WH-003)</h3>
+            <div class="space-y-3">
+                <div class="flex justify-between items-center">
+                    <p class="text-sm text-dark-700">Total Items</p>
+                    <p class="font-semibold text-dark-900">2,847 units</p>
+                </div>
+                <div class="flex justify-between items-center">
+                    <p class="text-sm text-dark-700">Stock Value</p>
+                    <p class="font-semibold text-dark-900">₹31.2L</p>
+                </div>
+                <div class="flex justify-between items-center">
+                    <p class="text-sm text-dark-700">Capacity Used</p>
+                    <p class="font-semibold text-dark-900">50%</p>
+                </div>
+                <div class="mt-3">
+                    <div class="w-full bg-dark-200 rounded-full h-2">
+                        <div class="bg-primary-600 h-2 rounded-full" style="width: 50%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- West Express Hub -->
+        <div class="card">
+            <h3 class="text-lg font-bold text-dark-900 mb-4">West Express Hub (WH-004)</h3>
+            <div class="space-y-3">
+                <div class="flex justify-between items-center">
+                    <p class="text-sm text-dark-700">Total Items</p>
+                    <p class="font-semibold text-dark-900">3,956 units</p>
+                </div>
+                <div class="flex justify-between items-center">
+                    <p class="text-sm text-dark-700">Stock Value</p>
+                    <p class="font-semibold text-dark-900">₹45.8L</p>
+                </div>
+                <div class="flex justify-between items-center">
+                    <p class="text-sm text-dark-700">Capacity Used</p>
+                    <p class="font-semibold text-dark-900">82%</p>
+                </div>
+                <div class="mt-3">
+                    <div class="w-full bg-dark-200 rounded-full h-2">
+                        <div class="bg-primary-600 h-2 rounded-full" style="width: 82%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Low Stock & Out of Stock Items -->
+    <div class="card">
+        <h3 class="text-lg font-bold text-dark-900 mb-6">Low Stock & Out of Stock Items</h3>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-dark-200 bg-dark-50">
+                        <th class="text-left py-3 px-4 font-semibold text-dark-900">Product SKU</th>
+                        <th class="text-left py-3 px-4 font-semibold text-dark-900">Product Name</th>
+                        <th class="text-right py-3 px-4 font-semibold text-dark-900">Current Stock</th>
+                        <th class="text-right py-3 px-4 font-semibold text-dark-900">Min. Level</th>
+                        <th class="text-left py-3 px-4 font-semibold text-dark-900">Primary Warehouse</th>
+                        <th class="text-center py-3 px-4 font-semibold text-dark-900">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-dark-200">
+                    <tr class="hover:bg-dark-50">
+                        <td class="py-4 px-4 font-semibold text-dark-900">ENG-2401</td>
+                        <td class="py-4 px-4 text-dark-700">Engine Oil Filter (Premium)</td>
+                        <td class="text-right py-4 px-4 text-dark-700">45 units</td>
+                        <td class="text-right py-4 px-4 text-dark-700">200 units</td>
+                        <td class="py-4 px-4 text-dark-700">WH-001</td>
+                        <td class="text-center py-4 px-4"><span class="badge-warning">Low Stock</span></td>
+                    </tr>
+                    <tr class="hover:bg-dark-50">
+                        <td class="py-4 px-4 font-semibold text-dark-900">SUS-1205</td>
+                        <td class="py-4 px-4 text-dark-700">Shock Absorber Assembly</td>
+                        <td class="text-right py-4 px-4 text-dark-700">12 units</td>
+                        <td class="text-right py-4 px-4 text-dark-700">150 units</td>
+                        <td class="py-4 px-4 text-dark-700">WH-002</td>
+                        <td class="text-center py-4 px-4"><span class="badge-danger">Out of Stock</span></td>
+                    </tr>
+                    <tr class="hover:bg-dark-50">
+                        <td class="py-4 px-4 font-semibold text-dark-900">ELC-3401</td>
+                        <td class="py-4 px-4 text-dark-700">Alternator 100A</td>
+                        <td class="text-right py-4 px-4 text-dark-700">0 units</td>
+                        <td class="text-right py-4 px-4 text-dark-700">75 units</td>
+                        <td class="py-4 px-4 text-dark-700">WH-003</td>
+                        <td class="text-center py-4 px-4"><span class="badge-danger">Out of Stock</span></td>
+                    </tr>
+                    <tr class="hover:bg-dark-50">
+                        <td class="py-4 px-4 font-semibold text-dark-900">BRK-0850</td>
+                        <td class="py-4 px-4 text-dark-700">Brake Pad Set (Ceramic)</td>
+                        <td class="text-right py-4 px-4 text-dark-700">78 units</td>
+                        <td class="text-right py-4 px-4 text-dark-700">300 units</td>
+                        <td class="py-4 px-4 text-dark-700">WH-001</td>
+                        <td class="text-center py-4 px-4"><span class="badge-warning">Low Stock</span></td>
+                    </tr>
+                    <tr class="hover:bg-dark-50">
+                        <td class="py-4 px-4 font-semibold text-dark-900">BDY-4520</td>
+                        <td class="py-4 px-4 text-dark-700">Door Handle Chrome (Driver)</td>
+                        <td class="text-right py-4 px-4 text-dark-700">156 units</td>
+                        <td class="text-right py-4 px-4 text-dark-900">200 units</td>
+                        <td class="py-4 px-4 text-dark-700">WH-004</td>
+                        <td class="text-center py-4 px-4"><span class="badge-warning">Low Stock</span></td>
+                    </tr>
+                    <tr class="hover:bg-dark-50">
+                        <td class="py-4 px-4 font-semibold text-dark-900">ENG-4401</td>
+                        <td class="py-4 px-4 text-dark-700">Spark Plugs (Set of 4)</td>
+                        <td class="text-right py-4 px-4 text-dark-700">234 units</td>
+                        <td class="text-right py-4 px-4 text-dark-700">250 units</td>
+                        <td class="py-4 px-4 text-dark-700">WH-002</td>
+                        <td class="text-center py-4 px-4"><span class="badge-warning">Low Stock</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Stock Distribution by Category -->
+    <div class="card">
+        <h3 class="text-lg font-bold text-dark-900 mb-6">Stock Distribution by Category</h3>
+
+        <div class="space-y-4">
+            <div>
+                <div class="flex justify-between mb-2">
+                    <p class="text-sm font-medium text-dark-900">Engine & Engine Parts</p>
+                    <p class="text-sm font-semibold text-dark-900">4,251 units (26.6%)</p>
+                </div>
+                <div class="w-full bg-dark-200 rounded-full h-3">
+                    <div class="bg-primary-600 h-3 rounded-full" style="width: 26.6%"></div>
+                </div>
+            </div>
+
+            <div>
+                <div class="flex justify-between mb-2">
+                    <p class="text-sm font-medium text-dark-900">Suspension & Brakes</p>
+                    <p class="text-sm font-semibold text-dark-900">3,958 units (24.7%)</p>
+                </div>
+                <div class="w-full bg-dark-200 rounded-full h-3">
+                    <div class="bg-green-600 h-3 rounded-full" style="width: 24.7%"></div>
+                </div>
+            </div>
+
+            <div>
+                <div class="flex justify-between mb-2">
+                    <p class="text-sm font-medium text-dark-900">Electrical Components</p>
+                    <p class="text-sm font-semibold text-dark-900">3,520 units (22.0%)</p>
+                </div>
+                <div class="w-full bg-dark-200 rounded-full h-3">
+                    <div class="bg-blue-600 h-3 rounded-full" style="width: 22%"></div>
+                </div>
+            </div>
+
+            <div>
+                <div class="flex justify-between mb-2">
+                    <p class="text-sm font-medium text-dark-900">Body & Exterior</p>
+                    <p class="text-sm font-semibold text-dark-900">3,261 units (20.4%)</p>
+                </div>
+                <div class="w-full bg-dark-200 rounded-full h-3">
+                    <div class="bg-yellow-600 h-3 rounded-full" style="width: 20.4%"></div>
+                </div>
+            </div>
+
+            <div>
+                <div class="flex justify-between mb-2">
+                    <p class="text-sm font-medium text-dark-900">Accessories</p>
+                    <p class="text-sm font-semibold text-dark-900">1,000 units (6.3%)</p>
+                </div>
+                <div class="w-full bg-dark-200 rounded-full h-3">
+                    <div class="bg-purple-600 h-3 rounded-full" style="width: 6.3%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        // Load warehouse stock data
+    }
+}

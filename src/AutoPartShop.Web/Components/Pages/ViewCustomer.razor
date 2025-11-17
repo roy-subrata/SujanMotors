@@ -1,0 +1,269 @@
+@page "/customers/{id}/view"
+
+<PageTitle>View Customer - AutoParts Shop</PageTitle>
+
+<div class="space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-dark-900">Sharma Auto Parts</h1>
+            <p class="text-dark-500 mt-1">Customer ID: C-001 • Registered on: Jan 15, 2024</p>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-2 flex-shrink-0">
+            <a href="/customers" class="btn-secondary flex items-center justify-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                </svg>
+                Back
+            </a>
+            <a href="/customers/C-001/edit" class="btn-primary flex items-center justify-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                </svg>
+                Edit Customer
+            </a>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Left Sidebar -->
+        <div class="space-y-6">
+            <!-- Customer Status -->
+            <div class="card">
+                <h3 class="text-lg font-bold text-dark-900 mb-4">Customer Status</h3>
+                <div class="space-y-4">
+                    <div>
+                        <p class="text-sm text-dark-500 font-medium mb-2">Status</p>
+                        <span class="badge-success">Active</span>
+                    </div>
+
+                    <div>
+                        <p class="text-sm text-dark-500 font-medium mb-2">Customer Type</p>
+                        <span class="badge-info">Retail</span>
+                    </div>
+
+                    <div>
+                        <p class="text-sm text-dark-500 font-medium mb-2">Credit Limit</p>
+                        <p class="text-dark-900 font-semibold">₹5,00,000</p>
+                    </div>
+
+                    <div>
+                        <p class="text-sm text-dark-500 font-medium mb-2">Payment Terms</p>
+                        <p class="text-dark-900 font-semibold">30 Days</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Customer Statistics -->
+            <div class="card bg-blue-50 border-l-4 border-blue-500">
+                <h3 class="text-lg font-bold text-blue-900 mb-4">Customer Statistics</h3>
+                <div class="space-y-3 text-sm">
+                    <div class="flex justify-between">
+                        <p class="text-blue-800">Total Orders</p>
+                        <p class="font-semibold text-blue-900">45</p>
+                    </div>
+                    <div class="flex justify-between">
+                        <p class="text-blue-800">Total Spent</p>
+                        <p class="font-semibold text-blue-900">₹2,45,000</p>
+                    </div>
+                    <div class="flex justify-between">
+                        <p class="text-blue-800">Avg Order Value</p>
+                        <p class="font-semibold text-blue-900">₹5,444</p>
+                    </div>
+                    <div class="flex justify-between">
+                        <p class="text-blue-800">Outstanding Balance</p>
+                        <p class="font-semibold text-blue-900">₹45,000</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card">
+                <h3 class="text-lg font-bold text-dark-900 mb-4">Quick Actions</h3>
+                <div class="space-y-2">
+                    <button class="w-full btn-primary flex items-center justify-center text-sm">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        Create Order
+                    </button>
+                    <button class="w-full btn-secondary flex items-center justify-center text-sm">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                        </svg>
+                        Send Email
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Contact Information -->
+            <div class="card">
+                <h3 class="text-lg font-bold text-dark-900 mb-6">Contact Information</h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <p class="text-sm text-dark-500 font-medium mb-1">Company Name</p>
+                        <p class="text-dark-900 font-semibold">Sharma Auto Parts</p>
+                    </div>
+
+                    <div>
+                        <p class="text-sm text-dark-500 font-medium mb-1">Contact Person</p>
+                        <p class="text-dark-900 font-semibold">Rajesh Sharma</p>
+                    </div>
+
+                    <div>
+                        <p class="text-sm text-dark-500 font-medium mb-1">Email Address</p>
+                        <p class="text-dark-900 font-semibold">sharma@autoparts.com</p>
+                    </div>
+
+                    <div>
+                        <p class="text-sm text-dark-500 font-medium mb-1">Phone Number</p>
+                        <p class="text-dark-900 font-semibold">+91 98765 43210</p>
+                    </div>
+
+                    <div>
+                        <p class="text-sm text-dark-500 font-medium mb-1">Website</p>
+                        <p class="text-dark-900 font-semibold">www.sharmaparts.com</p>
+                    </div>
+
+                    <div>
+                        <p class="text-sm text-dark-500 font-medium mb-1">Secondary Contact</p>
+                        <p class="text-dark-900 font-semibold">Priya Sharma - +91 98765 11111</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Address Information -->
+            <div class="card">
+                <h3 class="text-lg font-bold text-dark-900 mb-6">Address Information</h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="md:col-span-2">
+                        <p class="text-sm text-dark-500 font-medium mb-1">Street Address</p>
+                        <p class="text-dark-900 font-semibold">123, Auto Parts Street, Dadar East</p>
+                    </div>
+
+                    <div>
+                        <p class="text-sm text-dark-500 font-medium mb-1">City</p>
+                        <p class="text-dark-900 font-semibold">Mumbai</p>
+                    </div>
+
+                    <div>
+                        <p class="text-sm text-dark-500 font-medium mb-1">State</p>
+                        <p class="text-dark-900 font-semibold">Maharashtra</p>
+                    </div>
+
+                    <div>
+                        <p class="text-sm text-dark-500 font-medium mb-1">Postal Code</p>
+                        <p class="text-dark-900 font-semibold">400014</p>
+                    </div>
+
+                    <div>
+                        <p class="text-sm text-dark-500 font-medium mb-1">Country</p>
+                        <p class="text-dark-900 font-semibold">India</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Business Information -->
+            <div class="card">
+                <h3 class="text-lg font-bold text-dark-900 mb-6">Business Information</h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <p class="text-sm text-dark-500 font-medium mb-1">GST Number</p>
+                        <p class="text-dark-900 font-semibold">27AACSN1234C1Z0</p>
+                    </div>
+
+                    <div>
+                        <p class="text-sm text-dark-500 font-medium mb-1">PAN Number</p>
+                        <p class="text-dark-900 font-semibold">AABCS5555A</p>
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <p class="text-sm text-dark-500 font-medium mb-1">Business Description</p>
+                        <p class="text-dark-900">Leading supplier of automotive spare parts and components. Serves retail and wholesale customers across Mumbai region.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bank Details -->
+            <div class="card">
+                <h3 class="text-lg font-bold text-dark-900 mb-6">Bank Details</h3>
+
+                <div className="bg-dark-50 rounded-lg p-4 space-y-4">
+                    <div>
+                        <p className="text-xs text-dark-500 font-medium">Bank Name</p>
+                        <p className="text-sm font-semibold text-dark-900">HDFC Bank</p>
+                    </div>
+                    <div>
+                        <p className="text-xs text-dark-500 font-medium">Account Number</p>
+                        <p className="text-sm font-semibold text-dark-900">1023456789****</p>
+                    </div>
+                    <div>
+                        <p className="text-xs text-dark-500 font-medium">IFSC Code</p>
+                        <p className="text-sm font-semibold text-dark-900">HDFC0000001</p>
+                    </div>
+                    <div>
+                        <p className="text-xs text-dark-500 font-medium">Account Holder</p>
+                        <p className="text-sm font-semibold text-dark-900">Sharma Auto Parts</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Orders -->
+            <div class="card">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-bold text-dark-900">Recent Orders</h3>
+                    <a href="#" class="text-primary-600 hover:text-primary-700 text-sm font-medium">View All</a>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="border-b border-dark-200 bg-dark-50">
+                                <th class="text-left py-3 px-4 font-semibold text-dark-900">Order ID</th>
+                                <th class="text-left py-3 px-4 font-semibold text-dark-900">Date</th>
+                                <th class="text-right py-3 px-4 font-semibold text-dark-900">Amount</th>
+                                <th class="text-center py-3 px-4 font-semibold text-dark-900">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-dark-200">
+                            <tr class="hover:bg-dark-50">
+                                <td class="py-3 px-4 text-dark-900 font-semibold">ORD-2024-089</td>
+                                <td class="py-3 px-4 text-dark-700">Dec 20, 2024</td>
+                                <td class="text-right py-3 px-4 text-dark-700">₹45,000</td>
+                                <td class="text-center py-3 px-4"><span class="badge-success">Delivered</span></td>
+                            </tr>
+                            <tr class="hover:bg-dark-50">
+                                <td class="py-3 px-4 text-dark-900 font-semibold">ORD-2024-075</td>
+                                <td class="py-3 px-4 text-dark-700">Dec 10, 2024</td>
+                                <td class="text-right py-3 px-4 text-dark-700">₹32,500</td>
+                                <td class="text-center py-3 px-4"><span class="badge-success">Delivered</span></td>
+                            </tr>
+                            <tr class="hover:bg-dark-50">
+                                <td class="py-3 px-4 text-dark-900 font-semibold">ORD-2024-062</td>
+                                <td class="py-3 px-4 text-dark-700">Nov 28, 2024</td>
+                                <td class="text-right py-3 px-4 text-dark-700">₹28,000</td>
+                                <td class="text-center py-3 px-4"><span class="badge-success">Delivered</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string? Id { get; set; }
+
+    protected override void OnInitialized()
+    {
+        // Load customer details
+    }
+}

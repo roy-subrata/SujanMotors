@@ -1,0 +1,471 @@
+@page "/inventory/parts"
+
+<PageTitle>All Parts - AutoParts Shop</PageTitle>
+
+<div class="space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-dark-900">Parts Inventory</h1>
+            <p class="text-dark-500 mt-1">Manage your automotive parts catalog</p>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-2 flex-shrink-0">
+            <button class="btn-secondary flex items-center justify-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                </svg>
+                Import
+            </button>
+            <a href="/inventory/parts/add" class="btn-primary flex items-center justify-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                Add Part
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters Card -->
+    <div class="card">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-dark-900 mb-2">Search Parts</label>
+                <input type="text" placeholder="Filter by name or SKU..." class="input-field" />
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-dark-900 mb-2">Category</label>
+                <select class="input-field">
+                    <option>All Categories</option>
+                    <option>Filters</option>
+                    <option>Brake System</option>
+                    <option>Engine</option>
+                    <option>Transmission</option>
+                    <option>Suspension</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-dark-900 mb-2">Stock Status</label>
+                <select class="input-field">
+                    <option>All Status</option>
+                    <option>In Stock</option>
+                    <option>Low Stock</option>
+                    <option>Out of Stock</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-dark-900 mb-2">Price Range</label>
+                <select class="input-field">
+                    <option>All Prices</option>
+                    <option>$0 - $10</option>
+                    <option>$10 - $50</option>
+                    <option>$50 - $100</option>
+                    <option>$100+</option>
+                </select>
+            </div>
+            <div class="flex items-end">
+                <button class="btn-primary w-full">Apply Filters</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Parts Table -->
+    <div class="card">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-lg font-bold text-dark-900">Parts List</h3>
+            <div class="text-sm text-dark-500">
+                Showing <span class="font-semibold">1-10</span> of <span class="font-semibold">245</span> parts
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="border-b border-dark-200">
+                        <th class="text-left py-3 px-4 font-semibold text-dark-900 text-sm">Part Name</th>
+                        <th class="text-left py-3 px-4 font-semibold text-dark-900 text-sm">SKU</th>
+                        <th class="text-left py-3 px-4 font-semibold text-dark-900 text-sm">Category</th>
+                        <th class="text-left py-3 px-4 font-semibold text-dark-900 text-sm">Price</th>
+                        <th class="text-left py-3 px-4 font-semibold text-dark-900 text-sm">Stock</th>
+                        <th class="text-left py-3 px-4 font-semibold text-dark-900 text-sm">Status</th>
+                        <th class="text-left py-3 px-4 font-semibold text-dark-900 text-sm">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Row 1 -->
+                    <tr class="border-b border-dark-100 hover:bg-primary-50 transition-colors">
+                        <td class="py-4 px-4">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-dark-900">Engine Oil Filter</p>
+                                    <p class="text-xs text-dark-500">Synthetic Grade</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="py-4 px-4 text-sm text-dark-700">EOF-001</td>
+                        <td class="py-4 px-4 text-sm text-dark-700">Filters</td>
+                        <td class="py-4 px-4 text-sm font-semibold text-dark-900">$12.99</td>
+                        <td class="py-4 px-4">
+                            <div class="text-sm">
+                                <p class="font-semibold text-dark-900">245</p>
+                                <p class="text-xs text-dark-500">units</p>
+                            </div>
+                        </td>
+                        <td class="py-4 px-4">
+                            <span class="badge-success">In Stock</span>
+                        </td>
+                        <td class="py-4 px-4">
+                            <a href="/inventory/parts/EOF-001/edit" class="text-primary-600 hover:text-primary-700 text-sm font-medium">Edit</a>
+                        </td>
+                    </tr>
+
+                    <!-- Row 2 -->
+                    <tr class="border-b border-dark-100 hover:bg-primary-50 transition-colors">
+                        <td class="py-4 px-4">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                                    <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v12m8-12v12M3 7l2.293-2.293a1 1 0 011.414 0L12 9.414l5.293-5.293a1 1 0 011.414 0L21 7"></path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-dark-900">Brake Pads Set</p>
+                                    <p class="text-xs text-dark-500">Front Axle</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="py-4 px-4 text-sm text-dark-700">BPS-002</td>
+                        <td class="py-4 px-4 text-sm text-dark-700">Brake System</td>
+                        <td class="py-4 px-4 text-sm font-semibold text-dark-900">$45.50</td>
+                        <td class="py-4 px-4">
+                            <div class="text-sm">
+                                <p class="font-semibold text-dark-900">12</p>
+                                <p class="text-xs text-dark-500">units</p>
+                            </div>
+                        </td>
+                        <td class="py-4 px-4">
+                            <span class="badge-warning">Low Stock</span>
+                        </td>
+                        <td class="py-4 px-4">
+                            <a href="/inventory/parts/BPS-002/edit" class="text-primary-600 hover:text-primary-700 text-sm font-medium">Edit</a>
+                        </td>
+                    </tr>
+
+                    <!-- Row 3 -->
+                    <tr class="border-b border-dark-100 hover:bg-primary-50 transition-colors">
+                        <td class="py-4 px-4">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
+                                    <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3v-6"></path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-dark-900">Air Filter</p>
+                                    <p class="text-xs text-dark-500">Engine Intake</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="py-4 px-4 text-sm text-dark-700">AF-003</td>
+                        <td class="py-4 px-4 text-sm text-dark-700">Filters</td>
+                        <td class="py-4 px-4 text-sm font-semibold text-dark-900">$18.75</td>
+                        <td class="py-4 px-4">
+                            <div class="text-sm">
+                                <p class="font-semibold text-dark-900">156</p>
+                                <p class="text-xs text-dark-500">units</p>
+                            </div>
+                        </td>
+                        <td class="py-4 px-4">
+                            <span class="badge-success">In Stock</span>
+                        </td>
+                        <td class="py-4 px-4">
+                            <a href="/inventory/parts/AF-003/edit" class="text-primary-600 hover:text-primary-700 text-sm font-medium">Edit</a>
+                        </td>
+                    </tr>
+
+                    <!-- Row 4 -->
+                    <tr class="border-b border-dark-100 hover:bg-primary-50 transition-colors">
+                        <td class="py-4 px-4">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-dark-900">Spark Plugs (4pc)</p>
+                                    <p class="text-xs text-dark-500">NGK Iridium</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="py-4 px-4 text-sm text-dark-700">SP-004</td>
+                        <td class="py-4 px-4 text-sm text-dark-700">Engine</td>
+                        <td class="py-4 px-4 text-sm font-semibold text-dark-900">$34.20</td>
+                        <td class="py-4 px-4">
+                            <div class="text-sm">
+                                <p class="font-semibold text-dark-900">0</p>
+                                <p class="text-xs text-dark-500">units</p>
+                            </div>
+                        </td>
+                        <td class="py-4 px-4">
+                            <span class="badge-danger">Out of Stock</span>
+                        </td>
+                        <td class="py-4 px-4">
+                            <a href="/inventory/parts/SP-004/edit" class="text-primary-600 hover:text-primary-700 text-sm font-medium">Edit</a>
+                        </td>
+                    </tr>
+
+                    <!-- Row 5 -->
+                    <tr class="border-b border-dark-100 hover:bg-primary-50 transition-colors">
+                        <td class="py-4 px-4">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-dark-900">Battery 12V 60Ah</p>
+                                    <p class="text-xs text-dark-500">Premium Lead Acid</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="py-4 px-4 text-sm text-dark-700">BAT-005</td>
+                        <td class="py-4 px-4 text-sm text-dark-700">Electrical</td>
+                        <td class="py-4 px-4 text-sm font-semibold text-dark-900">$89.99</td>
+                        <td class="py-4 px-4">
+                            <div class="text-sm">
+                                <p class="font-semibold text-dark-900">34</p>
+                                <p class="text-xs text-dark-500">units</p>
+                            </div>
+                        </td>
+                        <td class="py-4 px-4">
+                            <span class="badge-success">In Stock</span>
+                        </td>
+                        <td class="py-4 px-4">
+                            <a href="/inventory/parts/BAT-005/edit" class="text-primary-600 hover:text-primary-700 text-sm font-medium">Edit</a>
+                        </td>
+                    </tr>
+
+                    <!-- Row 6 -->
+                    <tr class="border-b border-dark-100 hover:bg-primary-50 transition-colors">
+                        <td class="py-4 px-4">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                                    <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-dark-900">Radiator Hose</p>
+                                    <p class="text-xs text-dark-500">Upper/Lower</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="py-4 px-4 text-sm text-dark-700">RAH-006</td>
+                        <td class="py-4 px-4 text-sm text-dark-700">Cooling System</td>
+                        <td class="py-4 px-4 text-sm font-semibold text-dark-900">$22.50</td>
+                        <td class="py-4 px-4">
+                            <div class="text-sm">
+                                <p class="font-semibold text-dark-900">8</p>
+                                <p class="text-xs text-dark-500">units</p>
+                            </div>
+                        </td>
+                        <td class="py-4 px-4">
+                            <span class="badge-warning">Low Stock</span>
+                        </td>
+                        <td class="py-4 px-4">
+                            <a href="/inventory/parts/RAH-006/edit" class="text-primary-600 hover:text-primary-700 text-sm font-medium">Edit</a>
+                        </td>
+                    </tr>
+
+                    <!-- Row 7 -->
+                    <tr class="border-b border-dark-100 hover:bg-primary-50 transition-colors">
+                        <td class="py-4 px-4">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
+                                    <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-dark-900">Transmission Fluid</p>
+                                    <p class="text-xs text-dark-500">ATF Type</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="py-4 px-4 text-sm text-dark-700">TF-007</td>
+                        <td class="py-4 px-4 text-sm text-dark-700">Fluids</td>
+                        <td class="py-4 px-4 text-sm font-semibold text-dark-900">$15.99</td>
+                        <td class="py-4 px-4">
+                            <div class="text-sm">
+                                <p class="font-semibold text-dark-900">62</p>
+                                <p class="text-xs text-dark-500">units</p>
+                            </div>
+                        </td>
+                        <td class="py-4 px-4">
+                            <span class="badge-success">In Stock</span>
+                        </td>
+                        <td class="py-4 px-4">
+                            <a href="/inventory/parts/TF-007/edit" class="text-primary-600 hover:text-primary-700 text-sm font-medium">Edit</a>
+                        </td>
+                    </tr>
+
+                    <!-- Row 8 -->
+                    <tr class="border-b border-dark-100 hover:bg-primary-50 transition-colors">
+                        <td class="py-4 px-4">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-pink-100 rounded-lg flex items-center justify-center">
+                                    <svg class="w-6 h-6 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.893 13.393l-1.135-1.135a2.252 2.252 0 01-.421-.585l-1.08-2.077a4.666 4.666 0 00-7.119 0l-1.08 2.077a2.252 2.252 0 01-.421.585l-1.135 1.135a2.252 2.252 0 00-.421.585l-1.08 2.077a4.666 4.666 0 007.119 0l1.08-2.077a2.252 2.252 0 01.421-.585zM5 7a4 4 0 018 0"></path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-dark-900">Windshield Wipers</p>
+                                    <p class="text-xs text-dark-500">Front Set</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="py-4 px-4 text-sm text-dark-700">WW-008</td>
+                        <td class="py-4 px-4 text-sm text-dark-700">Exterior</td>
+                        <td class="py-4 px-4 text-sm font-semibold text-dark-900">$19.99</td>
+                        <td class="py-4 px-4">
+                            <div class="text-sm">
+                                <p class="font-semibold text-dark-900">98</p>
+                                <p class="text-xs text-dark-500">units</p>
+                            </div>
+                        </td>
+                        <td class="py-4 px-4">
+                            <span class="badge-success">In Stock</span>
+                        </td>
+                        <td class="py-4 px-4">
+                            <a href="/inventory/parts/WW-008/edit" class="text-primary-600 hover:text-primary-700 text-sm font-medium">Edit</a>
+                        </td>
+                    </tr>
+
+                    <!-- Row 9 -->
+                    <tr class="border-b border-dark-100 hover:bg-primary-50 transition-colors">
+                        <td class="py-4 px-4">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-cyan-100 rounded-lg flex items-center justify-center">
+                                    <svg class="w-6 h-6 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-dark-900">Alternator</p>
+                                    <p class="text-xs text-dark-500">120A Output</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="py-4 px-4 text-sm text-dark-700">ALT-009</td>
+                        <td class="py-4 px-4 text-sm text-dark-700">Electrical</td>
+                        <td class="py-4 px-4 text-sm font-semibold text-dark-900">$145.00</td>
+                        <td class="py-4 px-4">
+                            <div class="text-sm">
+                                <p class="font-semibold text-dark-900">5</p>
+                                <p class="text-xs text-dark-500">units</p>
+                            </div>
+                        </td>
+                        <td class="py-4 px-4">
+                            <span class="badge-warning">Low Stock</span>
+                        </td>
+                        <td class="py-4 px-4">
+                            <a href="/inventory/parts/ALT-009/edit" class="text-primary-600 hover:text-primary-700 text-sm font-medium">Edit</a>
+                        </td>
+                    </tr>
+
+                    <!-- Row 10 -->
+                    <tr class="hover:bg-primary-50 transition-colors">
+                        <td class="py-4 px-4">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-lime-100 rounded-lg flex items-center justify-center">
+                                    <svg class="w-6 h-6 text-lime-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-dark-900">Brake Fluid</p>
+                                    <p class="text-xs text-dark-500">DOT 4 Premium</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="py-4 px-4 text-sm text-dark-700">BF-010</td>
+                        <td class="py-4 px-4 text-sm text-dark-700">Fluids</td>
+                        <td class="py-4 px-4 text-sm font-semibold text-dark-900">$12.50</td>
+                        <td class="py-4 px-4">
+                            <div class="text-sm">
+                                <p class="font-semibold text-dark-900">127</p>
+                                <p class="text-xs text-dark-500">units</p>
+                            </div>
+                        </td>
+                        <td class="py-4 px-4">
+                            <span class="badge-success">In Stock</span>
+                        </td>
+                        <td class="py-4 px-4">
+                            <a href="/inventory/parts/BF-010/edit" class="text-primary-600 hover:text-primary-700 text-sm font-medium">Edit</a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-6 pt-6 border-t border-dark-200 space-y-4 sm:space-y-0">
+            <div class="text-sm text-dark-600">
+                Showing <span class="font-semibold">1-10</span> of <span class="font-semibold">245</span> parts
+            </div>
+            <div class="flex space-x-2">
+                <button class="px-3 py-2 border border-dark-300 rounded-lg text-dark-600 hover:bg-dark-100 transition-colors disabled:opacity-50">
+                    ← Previous
+                </button>
+                <button class="px-3 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+                    1
+                </button>
+                <button class="px-3 py-2 border border-dark-300 rounded-lg text-dark-600 hover:bg-dark-100 transition-colors">
+                    2
+                </button>
+                <button class="px-3 py-2 border border-dark-300 rounded-lg text-dark-600 hover:bg-dark-100 transition-colors">
+                    3
+                </button>
+                <span class="px-3 py-2 text-dark-600">...</span>
+                <button class="px-3 py-2 border border-dark-300 rounded-lg text-dark-600 hover:bg-dark-100 transition-colors">
+                    24
+                </button>
+                <button class="px-3 py-2 border border-dark-300 rounded-lg text-dark-600 hover:bg-dark-100 transition-colors">
+                    Next →
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Total Parts -->
+        <div class="card-sm border-l-4 border-primary-500">
+            <h4 class="font-semibold text-dark-900 mb-3">Total Parts</h4>
+            <p class="text-3xl font-bold text-primary-600">245</p>
+            <p class="text-dark-500 text-xs mt-2">Across all categories</p>
+        </div>
+
+        <!-- Low Stock Alert -->
+        <div class="card-sm border-l-4 border-orange-500">
+            <h4 class="font-semibold text-dark-900 mb-3">Low Stock Items</h4>
+            <p class="text-3xl font-bold text-orange-600">12</p>
+            <p class="text-dark-500 text-xs mt-2">Need restocking soon</p>
+            <a href="#" class="text-orange-600 hover:text-orange-700 text-sm font-medium inline-block mt-3">View details →</a>
+        </div>
+
+        <!-- Out of Stock -->
+        <div class="card-sm border-l-4 border-red-500">
+            <h4 class="font-semibold text-dark-900 mb-3">Out of Stock</h4>
+            <p class="text-3xl font-bold text-red-600">8</p>
+            <p class="text-dark-500 text-xs mt-2">Need to order immediately</p>
+            <a href="#" class="text-red-600 hover:text-red-700 text-sm font-medium inline-block mt-3">View details →</a>
+        </div>
+    </div>
+</div>

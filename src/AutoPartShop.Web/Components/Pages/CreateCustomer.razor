@@ -1,0 +1,267 @@
+@page "/customers/create"
+
+<PageTitle>Create New Customer - AutoParts Shop</PageTitle>
+
+<div class="space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-dark-900">Create New Customer</h1>
+            <p class="text-dark-500 mt-1">Add a new customer to your system</p>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-2 flex-shrink-0">
+            <a href="/customers" class="btn-secondary flex items-center justify-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+                Cancel
+            </a>
+            <button class="btn-primary flex items-center justify-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                Create Customer
+            </button>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Left Sidebar -->
+        <div class="space-y-6">
+            <!-- Quick Info -->
+            <div class="card">
+                <h3 class="text-lg font-bold text-dark-900 mb-4">Quick Info</h3>
+                <div class="space-y-3 text-sm">
+                    <div class="flex items-start gap-3">
+                        <svg class="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span class="text-dark-700">Auto-generated Customer ID</span>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <svg class="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span class="text-dark-700">Complete all required fields</span>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <svg class="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span class="text-dark-700">Email must be unique</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Customer Type Selection -->
+            <div class="card">
+                <h3 class="text-lg font-bold text-dark-900 mb-4">Customer Type *</h3>
+                <div class="space-y-3">
+                    <label class="flex items-center p-3 border-2 border-primary-600 rounded-lg cursor-pointer bg-primary-50">
+                        <input type="radio" name="type" value="retail" checked class="w-4 h-4" />
+                        <span class="ml-3 font-medium text-dark-900">Retail</span>
+                    </label>
+                    <label class="flex items-center p-3 border-2 border-dark-200 rounded-lg cursor-pointer hover:border-primary-600">
+                        <input type="radio" name="type" value="wholesale" class="w-4 h-4" />
+                        <span class="ml-3 font-medium text-dark-900">Wholesale</span>
+                    </label>
+                    <label class="flex items-center p-3 border-2 border-dark-200 rounded-lg cursor-pointer hover:border-primary-600">
+                        <input type="radio" name="type" value="corporate" class="w-4 h-4" />
+                        <span class="ml-3 font-medium text-dark-900">Corporate</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Basic Information Section -->
+            <div class="card">
+                <h3 class="text-lg font-bold text-dark-900 mb-6">Basic Information</h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Company/Business Name *</label>
+                        <input type="text" placeholder="e.g., Sharma Auto Parts" class="input-field" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Contact Person Name *</label>
+                        <input type="text" placeholder="Full name" class="input-field" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Email Address *</label>
+                        <input type="email" placeholder="customer@example.com" class="input-field" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Phone Number *</label>
+                        <input type="tel" placeholder="+91 XXXXX XXXXX" class="input-field" />
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Website (Optional)</label>
+                        <input type="url" placeholder="https://example.com" class="input-field" />
+                    </div>
+                </div>
+            </div>
+
+            <!-- Address Information Section -->
+            <div class="card">
+                <h3 class="text-lg font-bold text-dark-900 mb-6">Address Information</h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Street Address *</label>
+                        <input type="text" placeholder="House No., Street Name" class="input-field" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">City *</label>
+                        <select class="input-field">
+                            <option selected>Select City</option>
+                            <option>Mumbai</option>
+                            <option>Delhi</option>
+                            <option>Bangalore</option>
+                            <option>Pune</option>
+                            <option>Chennai</option>
+                            <option>Kolkata</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">State *</label>
+                        <select class="input-field">
+                            <option selected>Select State</option>
+                            <option>Maharashtra</option>
+                            <option>Delhi</option>
+                            <option>Karnataka</option>
+                            <option>Tamil Nadu</option>
+                            <option>Uttar Pradesh</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Postal Code *</label>
+                        <input type="text" placeholder="123456" class="input-field" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Country *</label>
+                        <input type="text" value="India" class="input-field" disabled />
+                    </div>
+                </div>
+            </div>
+
+            <!-- Business Information Section -->
+            <div class="card">
+                <h3 class="text-lg font-bold text-dark-900 mb-6">Business Information</h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">GST Number (Optional)</label>
+                        <input type="text" placeholder="27AABCT1234C1Z5" class="input-field" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">PAN Number (Optional)</label>
+                        <input type="text" placeholder="AAAPA5055K" class="input-field" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Credit Limit (₹)</label>
+                        <input type="number" placeholder="0" class="input-field" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Payment Terms (Days)</label>
+                        <input type="number" placeholder="30" class="input-field" value="30" />
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Business Description (Optional)</label>
+                        <textarea rows="3" placeholder="Brief description of customer's business..." class="input-field"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bank Details Section -->
+            <div class="card">
+                <h3 class="text-lg font-bold text-dark-900 mb-6">Bank Details (For Payments)</h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Bank Name</label>
+                        <input type="text" placeholder="e.g., HDFC Bank" class="input-field" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Account Holder Name</label>
+                        <input type="text" placeholder="As per bank records" class="input-field" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Account Number</label>
+                        <input type="text" placeholder="Account number" class="input-field" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">IFSC Code</label>
+                        <input type="text" placeholder="HDFC0000001" class="input-field" />
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contact Details Section -->
+            <div class="card">
+                <h3 class="text-lg font-bold text-dark-900 mb-6">Additional Contact Details</h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Secondary Contact Person</label>
+                        <input type="text" placeholder="Name" class="input-field" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Secondary Phone Number</label>
+                        <input type="tel" placeholder="+91 XXXXX XXXXX" class="input-field" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Alternate Email</label>
+                        <input type="email" placeholder="alternate@example.com" class="input-field" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Fax Number (Optional)</label>
+                        <input type="tel" placeholder="Fax number" class="input-field" />
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="flex flex-col sm:flex-row gap-2 sm:gap-4">
+                <a href="/customers" class="btn-secondary flex items-center justify-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                    Cancel
+                </a>
+                <button type="submit" class="btn-primary flex items-center justify-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    Create Customer
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        // Initialize create customer form
+    }
+}

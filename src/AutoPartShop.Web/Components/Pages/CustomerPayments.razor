@@ -1,0 +1,335 @@
+@page "/customer-payments"
+
+<PageTitle>Customer Payments - AutoParts Shop</PageTitle>
+
+<div class="space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-dark-900">Customer Payments</h1>
+            <p class="text-dark-500 mt-1">Track and manage all customer payment transactions</p>
+        </div>
+        <a href="/customer-payments/create" class="btn-primary flex items-center justify-center flex-shrink-0">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+            Record Payment
+        </a>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Total Receivable -->
+        <div class="card">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-dark-500 font-medium">Total Receivable</p>
+                    <p class="text-3xl font-bold text-dark-900 mt-2">₹95.8L</p>
+                </div>
+                <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                    <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Overdue Amount -->
+        <div class="card">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-dark-500 font-medium">Overdue Amount</p>
+                    <p class="text-3xl font-bold text-red-600 mt-2">₹18.5L</p>
+                </div>
+                <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                    <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4v.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Received This Month -->
+        <div class="card">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-dark-500 font-medium">Received This Month</p>
+                    <p class="text-3xl font-bold text-green-600 mt-2">₹32.2L</p>
+                </div>
+                <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Avg Payment Days -->
+        <div class="card">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-dark-500 font-medium">Avg Payment Days</p>
+                    <p class="text-3xl font-bold text-primary-600 mt-2">12.5</p>
+                </div>
+                <div class="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
+                    <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Status Overview -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Pending Payments -->
+        <div class="card">
+            <h3 class="text-lg font-bold text-dark-900 mb-4">Pending Payments</h3>
+            <div class="space-y-3">
+                <div>
+                    <div class="flex justify-between mb-2">
+                        <p class="text-sm text-dark-600">Within Due Date</p>
+                        <p class="text-sm font-semibold text-dark-900">₹45.3L (12 invoices)</p>
+                    </div>
+                    <div class="w-full bg-dark-200 rounded-full h-2">
+                        <div class="bg-primary-600 h-2 rounded-full" style="width: 47%"></div>
+                    </div>
+                </div>
+                <div>
+                    <div class="flex justify-between mb-2">
+                        <p class="text-sm text-dark-600">Overdue</p>
+                        <p class="text-sm font-semibold text-red-600">₹18.5L (8 invoices)</p>
+                    </div>
+                    <div class="w-full bg-dark-200 rounded-full h-2">
+                        <div class="bg-red-600 h-2 rounded-full" style="width: 19%"></div>
+                    </div>
+                </div>
+                <div>
+                    <div class="flex justify-between mb-2">
+                        <p class="text-sm text-dark-600">Not Yet Due</p>
+                        <p class="text-sm font-semibold text-dark-900">₹32.0L (15 invoices)</p>
+                    </div>
+                    <div class="w-full bg-dark-200 rounded-full h-2">
+                        <div class="bg-warning-500 h-2 rounded-full" style="width: 33%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payment Methods Distribution -->
+        <div class="card">
+            <h3 class="text-lg font-bold text-dark-900 mb-4">Payment Methods (This Month)</h3>
+            <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-3 h-3 bg-primary-600 rounded-full"></div>
+                        <p class="text-sm text-dark-600">Bank Transfer</p>
+                    </div>
+                    <p class="text-sm font-semibold text-dark-900">₹18.5L (58%)</p>
+                </div>
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-3 h-3 bg-green-600 rounded-full"></div>
+                        <p class="text-sm text-dark-600">Check</p>
+                    </div>
+                    <p class="text-sm font-semibold text-dark-900">₹8.2L (25%)</p>
+                </div>
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-3 h-3 bg-sky-600 rounded-full"></div>
+                        <p class="text-sm text-dark-600">Credit Card</p>
+                    </div>
+                    <p class="text-sm font-semibold text-dark-900">₹3.9L (12%)</p>
+                </div>
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-3 h-3 bg-purple-600 rounded-full"></div>
+                        <p class="text-sm text-dark-600">Digital Wallet</p>
+                    </div>
+                    <p class="text-sm font-semibold text-dark-900">₹1.6L (5%)</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card">
+        <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-dark-900 mb-2">Search Customer</label>
+                <input type="text" placeholder="Customer name..." class="input-field" />
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-dark-900 mb-2">Payment Status</label>
+                <select class="input-field">
+                    <option>All Status</option>
+                    <option>Received</option>
+                    <option>Pending</option>
+                    <option>Overdue</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-dark-900 mb-2">Payment Method</label>
+                <select class="input-field">
+                    <option>All Methods</option>
+                    <option>Bank Transfer</option>
+                    <option>Check</option>
+                    <option>Credit Card</option>
+                    <option>Digital Wallet</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-dark-900 mb-2">Date Range</label>
+                <select class="input-field">
+                    <option>This Month</option>
+                    <option>Last Month</option>
+                    <option>Last 3 Months</option>
+                    <option>Custom Range</option>
+                </select>
+            </div>
+            <div class="flex items-end">
+                <button class="btn-primary w-full">
+                    <svg class="w-4 h-4 mr-2 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                    Filter
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customer Payments Table -->
+    <div class="card overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="border-b border-dark-200 bg-dark-50">
+                        <th class="text-left py-3 px-4 font-semibold text-dark-900">Payment ID</th>
+                        <th class="text-left py-3 px-4 font-semibold text-dark-900">Customer Name</th>
+                        <th class="text-left py-3 px-4 font-semibold text-dark-900">Invoice #</th>
+                        <th class="text-right py-3 px-4 font-semibold text-dark-900">Amount</th>
+                        <th class="text-left py-3 px-4 font-semibold text-dark-900">Payment Date</th>
+                        <th class="text-left py-3 px-4 font-semibold text-dark-900">Method</th>
+                        <th class="text-center py-3 px-4 font-semibold text-dark-900">Status</th>
+                        <th class="text-center py-3 px-4 font-semibold text-dark-900">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-dark-200">
+                    <!-- Payment 1 -->
+                    <tr class="hover:bg-dark-50 transition-colors">
+                        <td class="py-4 px-4 font-semibold text-dark-900">CPAY-2024-045</td>
+                        <td class="py-4 px-4 text-dark-700">Sharma Auto Parts</td>
+                        <td class="py-4 px-4 text-dark-700">INV-2024-089</td>
+                        <td class="text-right py-4 px-4 text-dark-700">₹45,000</td>
+                        <td class="py-4 px-4 text-dark-700">Dec 18, 2024</td>
+                        <td class="py-4 px-4"><span class="badge-info">Bank Transfer</span></td>
+                        <td class="text-center py-4 px-4"><span class="badge-success">Received</span></td>
+                        <td class="text-center py-4 px-4">
+                            <a href="/customer-payments/CPAY-2024-045/view" class="text-primary-600 hover:text-primary-700" title="View">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                </svg>
+                            </a>
+                        </td>
+                    </tr>
+
+                    <!-- Payment 2 -->
+                    <tr class="hover:bg-dark-50 transition-colors">
+                        <td class="py-4 px-4 font-semibold text-dark-900">CPAY-2024-044</td>
+                        <td class="py-4 px-4 text-dark-700">Tech Engine Solutions</td>
+                        <td class="py-4 px-4 text-dark-700">INV-2024-087</td>
+                        <td class="text-right py-4 px-4 text-dark-700">₹75,500</td>
+                        <td class="py-4 px-4 text-dark-700">Dec 16, 2024</td>
+                        <td class="py-4 px-4"><span class="badge-warning">Check</span></td>
+                        <td class="text-center py-4 px-4"><span class="badge-success">Received</span></td>
+                        <td class="text-center py-4 px-4">
+                            <a href="/customer-payments/CPAY-2024-044/view" class="text-primary-600 hover:text-primary-700" title="View">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                </svg>
+                            </a>
+                        </td>
+                    </tr>
+
+                    <!-- Payment 3 -->
+                    <tr class="hover:bg-dark-50 transition-colors">
+                        <td class="py-4 px-4 font-semibold text-dark-900">CPAY-2024-043</td>
+                        <td class="py-4 px-4 text-dark-700">Drive Forward Ltd</td>
+                        <td class="py-4 px-4 text-dark-700">INV-2024-085</td>
+                        <td class="text-right py-4 px-4 text-dark-700">₹1,20,000</td>
+                        <td class="py-4 px-4 text-dark-700">Dec 15, 2024</td>
+                        <td class="py-4 px-4"><span class="badge-success">Bank Transfer</span></td>
+                        <td class="text-center py-4 px-4"><span class="badge-success">Received</span></td>
+                        <td class="text-center py-4 px-4">
+                            <a href="/customer-payments/CPAY-2024-043/view" class="text-primary-600 hover:text-primary-700" title="View">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                </svg>
+                            </a>
+                        </td>
+                    </tr>
+
+                    <!-- Payment 4 - Overdue -->
+                    <tr class="hover:bg-dark-50 transition-colors">
+                        <td class="py-4 px-4 font-semibold text-dark-900">CPAY-2024-042</td>
+                        <td class="py-4 px-4 text-dark-700">Mechanic's Hub</td>
+                        <td class="py-4 px-4 text-dark-700">INV-2024-080</td>
+                        <td class="text-right py-4 px-4 text-dark-700">₹35,000</td>
+                        <td class="py-4 px-4 text-dark-700">Dec 5, 2024</td>
+                        <td class="py-4 px-4"><span class="badge-primary">Credit Card</span></td>
+                        <td class="text-center py-4 px-4"><span class="badge-danger">Overdue</span></td>
+                        <td class="text-center py-4 px-4">
+                            <a href="/customer-payments/CPAY-2024-042/view" class="text-primary-600 hover:text-primary-700" title="View">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                </svg>
+                            </a>
+                        </td>
+                    </tr>
+
+                    <!-- Payment 5 - Pending -->
+                    <tr class="hover:bg-dark-50 transition-colors">
+                        <td class="py-4 px-4 font-semibold text-dark-900">CPAY-2024-041</td>
+                        <td class="py-4 px-4 text-dark-700">Global Motors</td>
+                        <td class="py-4 px-4 text-dark-700">INV-2024-078</td>
+                        <td class="text-right py-4 px-4 text-dark-700">₹65,000</td>
+                        <td class="py-4 px-4 text-dark-700">Dec 20, 2024</td>
+                        <td class="py-4 px-4"><span class="badge-dark">Pending</span></td>
+                        <td class="text-center py-4 px-4"><span class="badge-warning">Pending</span></td>
+                        <td class="text-center py-4 px-4">
+                            <a href="/customer-payments/CPAY-2024-041/view" class="text-primary-600 hover:text-primary-700" title="View">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                </svg>
+                            </a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="border-t border-dark-200 px-4 py-4 flex items-center justify-between">
+            <p class="text-sm text-dark-600">Showing 1 to 5 of 156 payments</p>
+            <div class="flex gap-2">
+                <button class="px-3 py-2 border border-dark-200 rounded-lg text-dark-700 hover:bg-dark-50 transition-colors text-sm">Previous</button>
+                <button class="px-3 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm">1</button>
+                <button class="px-3 py-2 border border-dark-200 rounded-lg text-dark-700 hover:bg-dark-50 transition-colors text-sm">2</button>
+                <button class="px-3 py-2 border border-dark-200 rounded-lg text-dark-700 hover:bg-dark-50 transition-colors text-sm">3</button>
+                <button class="px-3 py-2 border border-dark-200 rounded-lg text-dark-700 hover:bg-dark-50 transition-colors text-sm">Next</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        // Load customer payments data
+    }
+}

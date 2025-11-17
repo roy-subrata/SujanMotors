@@ -1,0 +1,259 @@
+@page "/inventory/warehouses/create"
+
+<PageTitle>Create Warehouse - AutoParts Shop</PageTitle>
+
+<div class="space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-dark-900">Create Warehouse</h1>
+            <p class="text-dark-500 mt-1">Add a new warehouse location to your inventory network</p>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-2 flex-shrink-0">
+            <a href="/inventory/warehouses" class="btn-secondary flex items-center justify-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+                Cancel
+            </a>
+            <button class="btn-primary flex items-center justify-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                Create Warehouse
+            </button>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Left Sidebar -->
+        <div class="space-y-6">
+            <!-- Quick Guide Card -->
+            <div class="card">
+                <h3 class="text-lg font-bold text-dark-900 mb-4">Setup Guide</h3>
+                <div class="space-y-3 text-sm">
+                    <div class="flex items-start gap-3">
+                        <svg class="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span class="text-dark-700">Enter warehouse name and code</span>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <svg class="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span class="text-dark-700">Specify location and region</span>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <svg class="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span class="text-dark-700">Set storage capacity</span>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <svg class="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span class="text-dark-700">Add manager and contact info</span>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <svg class="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span class="text-dark-700">Enable automatic transfer alerts</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Info Card -->
+            <div class="card bg-blue-50 border-l-4 border-blue-500">
+                <h3 class="text-lg font-bold text-blue-900 mb-3">Warehouse Code</h3>
+                <p class="text-sm text-blue-800">Use a unique 5-character code like WH-009. This helps identify the warehouse in transfers and stock movements.</p>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Basic Information Section -->
+            <div class="card">
+                <h3 class="text-lg font-bold text-dark-900 mb-6">Basic Information</h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Warehouse Name *</label>
+                        <input type="text" placeholder="e.g., Main Warehouse" class="input-field" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Warehouse Code *</label>
+                        <input type="text" placeholder="e.g., WH-009" class="input-field" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Region *</label>
+                        <select class="input-field">
+                            <option selected>Select Region</option>
+                            <option>North</option>
+                            <option>South</option>
+                            <option>East</option>
+                            <option>West</option>
+                            <option>Central</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Status</label>
+                        <select class="input-field">
+                            <option selected>Active</option>
+                            <option>Inactive</option>
+                            <option>Maintenance</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Location Details Section -->
+            <div class="card">
+                <h3 class="text-lg font-bold text-dark-900 mb-6">Location Details</h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">City *</label>
+                        <input type="text" placeholder="e.g., New Delhi" class="input-field" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">State/Province *</label>
+                        <input type="text" placeholder="e.g., Delhi" class="input-field" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Postal Code</label>
+                        <input type="text" placeholder="e.g., 110001" class="input-field" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Country *</label>
+                        <input type="text" value="India" class="input-field" />
+                    </div>
+                </div>
+
+                <div class="mt-6">
+                    <label class="block text-sm font-medium text-dark-900 mb-2">Full Address *</label>
+                    <textarea rows="3" class="input-field" placeholder="Enter complete address including street and building details..."></textarea>
+                </div>
+            </div>
+
+            <!-- Warehouse Manager Section -->
+            <div class="card">
+                <h3 class="text-lg font-bold text-dark-900 mb-6">Warehouse Manager</h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Manager Name *</label>
+                        <input type="text" placeholder="e.g., Rajesh Kumar" class="input-field" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Contact Email</label>
+                        <input type="email" placeholder="e.g., rajesh@company.com" class="input-field" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Phone Number *</label>
+                        <input type="tel" placeholder="e.g., +91 9876543210" class="input-field" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Mobile Number</label>
+                        <input type="tel" placeholder="e.g., +91 9876543210" class="input-field" />
+                    </div>
+                </div>
+            </div>
+
+            <!-- Capacity & Operations Section -->
+            <div class="card">
+                <h3 class="text-lg font-bold text-dark-900 mb-6">Capacity & Operations</h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Total Capacity (Units) *</label>
+                        <input type="number" placeholder="e.g., 10000" class="input-field" />
+                        <p class="text-sm text-dark-500 mt-2">Maximum storage units this warehouse can hold</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Reorder Level *</label>
+                        <input type="number" placeholder="e.g., 1000" class="input-field" />
+                        <p class="text-sm text-dark-500 mt-2">Alert threshold for stock replenishment</p>
+                    </div>
+                </div>
+
+                <div class="mt-6">
+                    <label class="block text-sm font-medium text-dark-900 mb-2">Operating Hours</label>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-dark-600 mb-2">Opening Time</label>
+                            <input type="time" class="input-field" />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-dark-600 mb-2">Closing Time</label>
+                            <input type="time" class="input-field" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Special Features Section -->
+            <div class="card">
+                <h3 class="text-lg font-bold text-dark-900 mb-6">Special Features</h3>
+
+                <div class="space-y-3">
+                    <label class="flex items-center cursor-pointer">
+                        <input type="checkbox" class="w-4 h-4 rounded border-dark-300 text-primary-600" />
+                        <span class="ml-3 text-dark-900">Temperature Controlled Storage</span>
+                    </label>
+                    <label class="flex items-center cursor-pointer">
+                        <input type="checkbox" class="w-4 h-4 rounded border-dark-300 text-primary-600" />
+                        <span class="ml-3 text-dark-900">Security Cameras</span>
+                    </label>
+                    <label class="flex items-center cursor-pointer">
+                        <input type="checkbox" class="w-4 h-4 rounded border-dark-300 text-primary-600" />
+                        <span class="ml-3 text-dark-900">Fire Suppression System</span>
+                    </label>
+                    <label class="flex items-center cursor-pointer">
+                        <input type="checkbox" class="w-4 h-4 rounded border-dark-300 text-primary-600" />
+                        <span class="ml-3 text-dark-900">RFID Tracking System</span>
+                    </label>
+                    <label class="flex items-center cursor-pointer">
+                        <input type="checkbox" class="w-4 h-4 rounded border-dark-300 text-primary-600" checked />
+                        <span class="ml-3 text-dark-900">Enable Stock Alerts</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="flex flex-col sm:flex-row gap-2 sm:gap-4">
+                <a href="/inventory/warehouses" class="btn-secondary flex items-center justify-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                    Cancel
+                </a>
+                <button type="submit" class="btn-primary flex items-center justify-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    Create Warehouse
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        // Initialize create warehouse form
+    }
+}

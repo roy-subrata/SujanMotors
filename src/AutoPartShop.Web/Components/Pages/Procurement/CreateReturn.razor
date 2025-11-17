@@ -1,0 +1,275 @@
+@page "/procurement/returns/create"
+
+<PageTitle>Create Purchase Return - AutoParts Shop</PageTitle>
+
+<div class="space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-dark-900">Create Purchase Return</h1>
+            <p class="text-dark-500 mt-1">Process supplier returns and manage refunds</p>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-2 flex-shrink-0">
+            <button class="btn-secondary flex items-center justify-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+                Cancel
+            </button>
+            <button class="btn-primary flex items-center justify-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                Create Return
+            </button>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Left Sidebar -->
+        <div class="space-y-6">
+            <!-- Return Details -->
+            <div class="card">
+                <h3 class="text-lg font-bold text-dark-900 mb-4">Return Details</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Return Number *</label>
+                        <input type="text" placeholder="Auto-generated: RET-2024-XXX" class="input-field" disabled />
+                        <p class="text-xs text-dark-500 mt-1">Auto-generated on save</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Original PO *</label>
+                        <select class="input-field">
+                            <option>-- Select PO --</option>
+                            <option>PO-2024-001</option>
+                            <option>PO-2024-002</option>
+                            <option>PO-2024-003</option>
+                            <option>PO-2024-004</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Supplier *</label>
+                        <input type="text" placeholder="Auto-filled from PO" class="input-field" disabled />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Return Date *</label>
+                        <input type="date" class="input-field" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Return Reason *</label>
+                        <select class="input-field">
+                            <option>-- Select Reason --</option>
+                            <option>Defective</option>
+                            <option>Damage in Transit</option>
+                            <option>Quality Issue</option>
+                            <option>Wrong Item</option>
+                            <option>Over Delivery</option>
+                            <option>Expired/Obsolete</option>
+                            <option>Other</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Return Summary -->
+            <div class="card">
+                <h3 class="text-lg font-bold text-dark-900 mb-4">Return Summary</h3>
+                <div class="space-y-3 text-sm">
+                    <div class="flex items-center justify-between">
+                        <p class="text-dark-700">Subtotal</p>
+                        <p class="font-semibold text-dark-900">₹0</p>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <p class="text-dark-700">Tax (18%)</p>
+                        <p class="font-semibold text-dark-900">₹0</p>
+                    </div>
+                    <div class="border-t border-dark-200 pt-3 flex items-center justify-between">
+                        <p class="font-semibold text-dark-900">Refund Amount</p>
+                        <p class="text-lg font-bold text-primary-600">₹0</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notes -->
+            <div class="card">
+                <h3 class="text-lg font-bold text-dark-900 mb-4">Notes</h3>
+                <textarea rows="4" placeholder="Add any return comments or observations..." class="input-field"></textarea>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Return Items Section -->
+            <div class="card">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-bold text-dark-900">Items to Return</h3>
+                    <button class="btn-primary flex items-center justify-center text-sm">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        Add Item
+                    </button>
+                </div>
+
+                <div class="overflow-x-auto mb-6">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="border-b border-dark-200 bg-dark-50">
+                                <th class="text-left py-3 px-4 font-semibold text-dark-900">Part</th>
+                                <th class="text-right py-3 px-4 font-semibold text-dark-900">Qty Return</th>
+                                <th class="text-right py-3 px-4 font-semibold text-dark-900">Unit Price</th>
+                                <th class="text-right py-3 px-4 font-semibold text-dark-900">Refund Amount</th>
+                                <th class="text-center py-3 px-4 font-semibold text-dark-900">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-dark-200">
+                            <tr class="hover:bg-dark-50">
+                                <td class="py-4 px-4">
+                                    <select class="input-field text-sm">
+                                        <option>-- Select Part --</option>
+                                        <option>Engine Oil Filter (EOF-001)</option>
+                                        <option>Brake Pads Set (BPS-001)</option>
+                                        <option>Air Filter (AF-001)</option>
+                                    </select>
+                                </td>
+                                <td class="text-right py-4 px-4">
+                                    <input type="number" placeholder="0" class="input-field text-sm text-right w-20" />
+                                </td>
+                                <td class="text-right py-4 px-4">
+                                    <input type="number" placeholder="0.00" class="input-field text-sm text-right w-24" />
+                                </td>
+                                <td class="text-right py-4 px-4 font-semibold text-dark-900">₹0</td>
+                                <td class="text-center py-4 px-4">
+                                    <button class="text-red-600 hover:text-red-700 text-sm">Remove</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <p class="text-center text-dark-500 text-sm">Click "Add Item" to include more parts in this return</p>
+            </div>
+
+            <!-- Return Reason Details -->
+            <div class="card">
+                <h3 class="text-lg font-bold text-dark-900 mb-6">Return Reason Details</h3>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Detailed Description *</label>
+                        <textarea rows="4" placeholder="Describe the issue in detail. Include any relevant information..." class="input-field"></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-3">Issue Type *</label>
+                        <div className="space-y-2">
+                            <label className="flex items-center space-x-3 p-3 border border-dark-200 rounded-lg cursor-pointer hover:bg-dark-50">
+                                <input type="radio" name="issueType" value="quality" class="w-4 h-4" />
+                                <div>
+                                    <p className="font-semibold text-dark-900">Quality Issue</p>
+                                    <p className="text-xs text-dark-500">Defective or damaged goods</p>
+                                </div>
+                            </label>
+
+                            <label className="flex items-center space-x-3 p-3 border border-dark-200 rounded-lg cursor-pointer hover:bg-dark-50">
+                                <input type="radio" name="issueType" value="wrong" class="w-4 h-4" />
+                                <div>
+                                    <p className="font-semibold text-dark-900">Wrong Item/Quantity</p>
+                                    <p className="text-xs text-dark-500">Incorrect order received</p>
+                                </div>
+                            </label>
+
+                            <label className="flex items-center space-x-3 p-3 border border-dark-200 rounded-lg cursor-pointer hover:bg-dark-50">
+                                <input type="radio" name="issueType" value="other" class="w-4 h-4" checked />
+                                <div>
+                                    <p className="font-semibold text-dark-900">Other</p>
+                                    <p className="text-xs text-dark-500">Different reason</p>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Reference/Invoice Number</label>
+                        <input type="text" placeholder="e.g., Invoice #, RMA #, etc." class="input-field" />
+                    </div>
+                </div>
+            </div>
+
+            <!-- Refund Terms -->
+            <div class="card">
+                <h3 class="text-lg font-bold text-dark-900 mb-6">Refund Terms</h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Refund Method *</label>
+                        <select class="input-field">
+                            <option>Original Payment Method</option>
+                            <option>Bank Transfer</option>
+                            <option>Check</option>
+                            <option>Credit Note</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Refund Status</label>
+                        <select class="input-field">
+                            <option selected>Pending</option>
+                            <option>Approved</option>
+                            <option>Processed</option>
+                            <option>Rejected</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Expected Refund Date</label>
+                        <input type="date" class="input-field" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Return Shipping Cost</label>
+                        <input type="number" placeholder="0.00" class="input-field" />
+                    </div>
+                </div>
+
+                <div className="flex items-center space-x-2 mt-6">
+                    <input type="checkbox" class="w-4 h-4" />
+                    <label class="text-sm text-dark-900">Deduct shipping cost from refund</label>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="flex flex-col sm:flex-row gap-2 sm:gap-4">
+                <button type="button" class="btn-secondary flex items-center justify-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                    Cancel
+                </button>
+                <button type="button" class="btn-secondary flex items-center justify-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                    Save as Draft
+                </button>
+                <button type="submit" class="btn-primary flex items-center justify-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    Create Return
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        // Load PO and supplier data
+    }
+}

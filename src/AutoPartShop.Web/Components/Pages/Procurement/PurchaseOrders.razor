@@ -1,0 +1,173 @@
+@page "/procurement/purchase-orders"
+
+<PageTitle>Purchase Orders - AutoParts Shop</PageTitle>
+
+<div class="space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-dark-900">Purchase Orders</h1>
+            <p class="text-dark-500 mt-1">Manage supplier orders and deliveries</p>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-2 flex-shrink-0">
+            <button class="btn-secondary flex items-center justify-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                </svg>
+                Export
+            </button>
+            <button class="btn-primary flex items-center justify-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                Create PO
+            </button>
+        </div>
+    </div>
+
+    <!-- Filters Card -->
+    <div class="card">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-dark-900 mb-2">Search PO</label>
+                <input type="text" placeholder="Filter by PO #, Supplier, or Part..." class="input-field" />
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-dark-900 mb-2">Status</label>
+                <select class="input-field">
+                    <option>All Status</option>
+                    <option>Draft</option>
+                    <option>Sent</option>
+                    <option>Confirmed</option>
+                    <option>In Transit</option>
+                    <option>Delivered</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-dark-900 mb-2">Date Range</label>
+                <select class="input-field">
+                    <option>Last 7 Days</option>
+                    <option>Last 30 Days</option>
+                    <option>Last 3 Months</option>
+                    <option>Custom Range</option>
+                </select>
+            </div>
+            <div class="flex items-end">
+                <button class="btn-primary w-full">Apply Filters</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PO Statistics -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="card-sm">
+            <h4 class="font-semibold text-dark-900 mb-3">Total POs</h4>
+            <p class="text-3xl font-bold text-primary-600">42</p>
+            <p class="text-dark-500 text-xs mt-2">This month</p>
+        </div>
+
+        <div class="card-sm">
+            <h4 class="font-semibold text-dark-900 mb-3">Pending Delivery</h4>
+            <p class="text-3xl font-bold text-orange-600">15</p>
+            <p class="text-dark-500 text-xs mt-2">In transit or confirmed</p>
+        </div>
+
+        <div class="card-sm">
+            <h4 class="font-semibold text-dark-900 mb-3">Total Value</h4>
+            <p class="text-3xl font-bold text-green-600">₹48.5L</p>
+            <p class="text-dark-500 text-xs mt-2">This month</p>
+        </div>
+
+        <div class="card-sm">
+            <h4 class="font-semibold text-dark-900 mb-3">Avg Lead Time</h4>
+            <p class="text-3xl font-bold text-blue-600">5.2 days</p>
+            <p class="text-dark-500 text-xs mt-2">From confirmed to delivered</p>
+        </div>
+    </div>
+
+    <!-- PO List -->
+    <div class="card">
+        <h3 class="text-lg font-bold text-dark-900 mb-6">Purchase Orders</h3>
+
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="border-b border-dark-200">
+                        <th class="text-left py-4 px-4 font-semibold text-dark-900">PO #</th>
+                        <th class="text-left py-4 px-4 font-semibold text-dark-900">Supplier</th>
+                        <th class="text-left py-4 px-4 font-semibold text-dark-900">Part(s)</th>
+                        <th class="text-left py-4 px-4 font-semibold text-dark-900">Amount</th>
+                        <th class="text-left py-4 px-4 font-semibold text-dark-900">Status</th>
+                        <th class="text-left py-4 px-4 font-semibold text-dark-900">Due Date</th>
+                        <th class="text-left py-4 px-4 font-semibold text-dark-900">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-dark-200">
+                    <tr class="hover:bg-dark-50">
+                        <td class="py-4 px-4 font-semibold text-dark-900">PO-2024-001</td>
+                        <td class="py-4 px-4 text-dark-700">Parts Direct Inc.</td>
+                        <td class="py-4 px-4 text-dark-700">Engine Oil Filter</td>
+                        <td class="py-4 px-4 text-dark-700">₹15,000</td>
+                        <td class="py-4 px-4"><span class="badge-success">Delivered</span></td>
+                        <td class="py-4 px-4 text-sm text-dark-500">Nov 20, 2024</td>
+                        <td class="py-4 px-4">
+                            <a href="#" class="text-primary-600 hover:text-primary-700 font-semibold text-sm">View</a>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-dark-50">
+                        <td class="py-4 px-4 font-semibold text-dark-900">PO-2024-002</td>
+                        <td class="py-4 px-4 text-dark-700">Auto Components Ltd.</td>
+                        <td class="py-4 px-4 text-dark-700">Brake Pads Set</td>
+                        <td class="py-4 px-4 text-dark-700">₹8,500</td>
+                        <td class="py-4 px-4"><span class="badge-info">In Transit</span></td>
+                        <td class="py-4 px-4 text-sm text-dark-500">Nov 22, 2024</td>
+                        <td class="py-4 px-4">
+                            <a href="#" class="text-primary-600 hover:text-primary-700 font-semibold text-sm">View</a>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-dark-50">
+                        <td class="py-4 px-4 font-semibold text-dark-900">PO-2024-003</td>
+                        <td class="py-4 px-4 text-dark-700">Global Auto Parts</td>
+                        <td class="py-4 px-4 text-dark-700">Air Filter, Spark Plugs</td>
+                        <td class="py-4 px-4 text-dark-700">₹12,300</td>
+                        <td class="py-4 px-4"><span class="badge-warning">Confirmed</span></td>
+                        <td class="py-4 px-4 text-sm text-dark-500">Nov 25, 2024</td>
+                        <td class="py-4 px-4">
+                            <a href="#" class="text-primary-600 hover:text-primary-700 font-semibold text-sm">View</a>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-dark-50">
+                        <td class="py-4 px-4 font-semibold text-dark-900">PO-2024-004</td>
+                        <td class="py-4 px-4 text-dark-700">Parts Direct Inc.</td>
+                        <td class="py-4 px-4 text-dark-700">Transmission Fluid</td>
+                        <td class="py-4 px-4 text-dark-700">₹6,200</td>
+                        <td class="py-4 px-4"><span class="badge-secondary">Sent</span></td>
+                        <td class="py-4 px-4 text-sm text-dark-500">Nov 28, 2024</td>
+                        <td class="py-4 px-4">
+                            <a href="#" class="text-primary-600 hover:text-primary-700 font-semibold text-sm">View</a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="flex items-center justify-between mt-6 pt-6 border-t border-dark-200">
+            <p class="text-sm text-dark-500">Showing 1-4 of 42 Purchase Orders</p>
+            <div class="flex gap-2">
+                <button class="px-3 py-2 border border-dark-200 rounded-lg text-dark-700 hover:bg-dark-100">Previous</button>
+                <button class="px-3 py-2 bg-primary-600 text-white rounded-lg">1</button>
+                <button class="px-3 py-2 border border-dark-200 rounded-lg text-dark-700 hover:bg-dark-100">2</button>
+                <button class="px-3 py-2 border border-dark-200 rounded-lg text-dark-700 hover:bg-dark-100">3</button>
+                <button class="px-3 py-2 border border-dark-200 rounded-lg text-dark-700 hover:bg-dark-100">Next</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        // Load Purchase Order data
+    }
+}

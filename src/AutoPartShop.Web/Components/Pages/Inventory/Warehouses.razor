@@ -1,0 +1,286 @@
+@page "/inventory/warehouses"
+
+<PageTitle>Warehouses - AutoParts Shop</PageTitle>
+
+<div class="space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-dark-900">Warehouses</h1>
+            <p class="text-dark-500 mt-1">Manage warehouse locations, stock levels, and inventory distribution</p>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-2 flex-shrink-0">
+            <a href="/inventory/warehouse-transfers" class="btn-secondary flex items-center justify-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path>
+                </svg>
+                Stock Transfers
+            </a>
+            <a href="/inventory/warehouses/create" class="btn-primary flex items-center justify-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                Add Warehouse
+            </a>
+        </div>
+    </div>
+
+    <!-- Statistics -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <!-- Total Warehouses -->
+        <div class="card">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-dark-500 font-medium mb-1">Total Warehouses</p>
+                    <p class="text-2xl font-bold text-dark-900">8</p>
+                </div>
+                <div class="p-3 bg-primary-100 rounded-lg">
+                    <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"></path>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Warehouses -->
+        <div class="card">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-dark-500 font-medium mb-1">Active Warehouses</p>
+                    <p class="text-2xl font-bold text-dark-900">7</p>
+                </div>
+                <div class="p-3 bg-green-100 rounded-lg">
+                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Stock Value -->
+        <div class="card">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-dark-500 font-medium mb-1">Total Stock Value</p>
+                    <p class="text-2xl font-bold text-dark-900">₹156.8L</p>
+                </div>
+                <div class="p-3 bg-blue-100 rounded-lg">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Low Stock Items -->
+        <div class="card">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-dark-500 font-medium mb-1">Low Stock Items</p>
+                    <p class="text-2xl font-bold text-dark-900">12</p>
+                </div>
+                <div class="p-3 bg-yellow-100 rounded-lg">
+                    <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4v2m0 4v2M7 9h10a2 2 0 012 2v10a2 2 0 01-2 2H7a2 2 0 01-2-2V11a2 2 0 012-2z"></path>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card">
+        <h3 class="text-lg font-bold text-dark-900 mb-4">Filters</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-dark-900 mb-2">Search Warehouse</label>
+                <input type="text" placeholder="Search by name or code..." class="input-field" />
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-dark-900 mb-2">Region</label>
+                <select class="input-field">
+                    <option selected>All Regions</option>
+                    <option>North</option>
+                    <option>South</option>
+                    <option>East</option>
+                    <option>West</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-dark-900 mb-2">Status</label>
+                <select class="input-field">
+                    <option selected>All Status</option>
+                    <option>Active</option>
+                    <option>Inactive</option>
+                    <option>Maintenance</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Warehouses Table -->
+    <div class="card">
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-dark-200 bg-dark-50">
+                        <th class="text-left py-3 px-4 font-semibold text-dark-900">Warehouse Name</th>
+                        <th class="text-left py-3 px-4 font-semibold text-dark-900">Code</th>
+                        <th class="text-left py-3 px-4 font-semibold text-dark-900">Region</th>
+                        <th class="text-left py-3 px-4 font-semibold text-dark-900">Location</th>
+                        <th class="text-right py-3 px-4 font-semibold text-dark-900">Total Items</th>
+                        <th class="text-right py-3 px-4 font-semibold text-dark-900">Stock Value</th>
+                        <th class="text-center py-3 px-4 font-semibold text-dark-900">Capacity</th>
+                        <th class="text-center py-3 px-4 font-semibold text-dark-900">Status</th>
+                        <th class="text-center py-3 px-4 font-semibold text-dark-900">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-dark-200">
+                    <tr class="hover:bg-dark-50">
+                        <td class="py-4 px-4 font-semibold text-dark-900">Main Warehouse</td>
+                        <td class="py-4 px-4 text-dark-700">WH-001</td>
+                        <td class="py-4 px-4 text-dark-700">North</td>
+                        <td class="py-4 px-4 text-dark-700">New Delhi</td>
+                        <td class="text-right py-4 px-4 text-dark-700">4,251</td>
+                        <td class="text-right py-4 px-4 text-dark-700">₹52.3L</td>
+                        <td class="text-center py-4 px-4">
+                            <div class="w-full bg-dark-200 rounded-full h-2">
+                                <div class="bg-primary-600 h-2 rounded-full" style="width: 75%"></div>
+                            </div>
+                        </td>
+                        <td class="text-center py-4 px-4"><span class="badge-success">Active</span></td>
+                        <td class="text-center py-4 px-4">
+                            <a href="/inventory/warehouses/WH-001/edit" class="text-primary-600 hover:text-primary-700 text-xs font-medium">Edit</a>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-dark-50">
+                        <td class="py-4 px-4 font-semibold text-dark-900">South Regional Hub</td>
+                        <td class="py-4 px-4 text-dark-700">WH-002</td>
+                        <td class="py-4 px-4 text-dark-700">South</td>
+                        <td class="py-4 px-4 text-dark-700">Chennai</td>
+                        <td class="text-right py-4 px-4 text-dark-700">3,128</td>
+                        <td class="text-right py-4 px-4 text-dark-700">₹38.5L</td>
+                        <td class="text-center py-4 px-4">
+                            <div class="w-full bg-dark-200 rounded-full h-2">
+                                <div class="bg-primary-600 h-2 rounded-full" style="width: 60%"></div>
+                            </div>
+                        </td>
+                        <td class="text-center py-4 px-4"><span class="badge-success">Active</span></td>
+                        <td class="text-center py-4 px-4">
+                            <a href="/inventory/warehouses/WH-002/edit" class="text-primary-600 hover:text-primary-700 text-xs font-medium">Edit</a>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-dark-50">
+                        <td class="py-4 px-4 font-semibold text-dark-900">East Distribution Center</td>
+                        <td class="py-4 px-4 text-dark-700">WH-003</td>
+                        <td class="py-4 px-4 text-dark-700">East</td>
+                        <td class="py-4 px-4 text-dark-700">Kolkata</td>
+                        <td class="text-right py-4 px-4 text-dark-700">2,847</td>
+                        <td class="text-right py-4 px-4 text-dark-700">₹31.2L</td>
+                        <td class="text-center py-4 px-4">
+                            <div class="w-full bg-dark-200 rounded-full h-2">
+                                <div class="bg-primary-600 h-2 rounded-full" style="width: 50%"></div>
+                            </div>
+                        </td>
+                        <td class="text-center py-4 px-4"><span class="badge-success">Active</span></td>
+                        <td class="text-center py-4 px-4">
+                            <a href="/inventory/warehouses/WH-003/edit" class="text-primary-600 hover:text-primary-700 text-xs font-medium">Edit</a>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-dark-50">
+                        <td class="py-4 px-4 font-semibold text-dark-900">West Express Hub</td>
+                        <td class="py-4 px-4 text-dark-700">WH-004</td>
+                        <td class="py-4 px-4 text-dark-700">West</td>
+                        <td class="py-4 px-4 text-dark-700">Mumbai</td>
+                        <td class="text-right py-4 px-4 text-dark-700">3,956</td>
+                        <td class="text-right py-4 px-4 text-dark-700">₹45.8L</td>
+                        <td class="text-center py-4 px-4">
+                            <div class="w-full bg-dark-200 rounded-full h-2">
+                                <div class="bg-primary-600 h-2 rounded-full" style="width: 82%"></div>
+                            </div>
+                        </td>
+                        <td class="text-center py-4 px-4"><span class="badge-success">Active</span></td>
+                        <td class="text-center py-4 px-4">
+                            <a href="/inventory/warehouses/WH-004/edit" class="text-primary-600 hover:text-primary-700 text-xs font-medium">Edit</a>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-dark-50">
+                        <td class="py-4 px-4 font-semibold text-dark-900">Secondary Warehouse</td>
+                        <td class="py-4 px-4 text-dark-700">WH-005</td>
+                        <td class="py-4 px-4 text-dark-700">North</td>
+                        <td class="py-4 px-4 text-dark-700">Noida</td>
+                        <td class="text-right py-4 px-4 text-dark-700">1,523</td>
+                        <td class="text-right py-4 px-4 text-dark-700">₹18.9L</td>
+                        <td class="text-center py-4 px-4">
+                            <div class="w-full bg-dark-200 rounded-full h-2">
+                                <div class="bg-primary-600 h-2 rounded-full" style="width: 35%"></div>
+                            </div>
+                        </td>
+                        <td class="text-center py-4 px-4"><span class="badge-success">Active</span></td>
+                        <td class="text-center py-4 px-4">
+                            <a href="/inventory/warehouses/WH-005/edit" class="text-primary-600 hover:text-primary-700 text-xs font-medium">Edit</a>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-dark-50">
+                        <td class="py-4 px-4 font-semibold text-dark-900">Quick Ship Center</td>
+                        <td class="py-4 px-4 text-dark-700">WH-006</td>
+                        <td class="py-4 px-4 text-dark-700">South</td>
+                        <td class="py-4 px-4 text-dark-700">Bangalore</td>
+                        <td class="text-right py-4 px-4 text-dark-700">2,195</td>
+                        <td class="text-right py-4 px-4 text-dark-700">₹25.4L</td>
+                        <td class="text-center py-4 px-4">
+                            <div class="w-full bg-dark-200 rounded-full h-2">
+                                <div class="bg-primary-600 h-2 rounded-full" style="width: 48%"></div>
+                            </div>
+                        </td>
+                        <td class="text-center py-4 px-4"><span class="badge-success">Active</span></td>
+                        <td class="text-center py-4 px-4">
+                            <a href="/inventory/warehouses/WH-006/edit" class="text-primary-600 hover:text-primary-700 text-xs font-medium">Edit</a>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-dark-50">
+                        <td class="py-4 px-4 font-semibold text-dark-900">Cold Storage Unit</td>
+                        <td class="py-4 px-4 text-dark-700">WH-007</td>
+                        <td class="py-4 px-4 text-dark-700">West</td>
+                        <td class="py-4 px-4 text-dark-700">Pune</td>
+                        <td class="text-right py-4 px-4 text-dark-700">856</td>
+                        <td class="text-right py-4 px-4 text-dark-700">₹12.2L</td>
+                        <td class="text-center py-4 px-4">
+                            <div class="w-full bg-dark-200 rounded-full h-2">
+                                <div class="bg-primary-600 h-2 rounded-full" style="width: 28%"></div>
+                            </div>
+                        </td>
+                        <td class="text-center py-4 px-4"><span class="badge-warning">Maintenance</span></td>
+                        <td class="text-center py-4 px-4">
+                            <a href="/inventory/warehouses/WH-007/edit" class="text-primary-600 hover:text-primary-700 text-xs font-medium">Edit</a>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-dark-50">
+                        <td class="py-4 px-4 font-semibold text-dark-900">Spare Parts Depot</td>
+                        <td class="py-4 px-4 text-dark-700">WH-008</td>
+                        <td class="py-4 px-4 text-dark-700">East</td>
+                        <td class="py-4 px-4 text-dark-700">Guwahati</td>
+                        <td class="text-right py-4 px-4 text-dark-700">1,234</td>
+                        <td class="text-right py-4 px-4 text-dark-700">₹14.8L</td>
+                        <td class="text-center py-4 px-4">
+                            <div class="w-full bg-dark-200 rounded-full h-2">
+                                <div class="bg-primary-600 h-2 rounded-full" style="width: 38%"></div>
+                            </div>
+                        </td>
+                        <td class="text-center py-4 px-4"><span class="badge-danger">Inactive</span></td>
+                        <td class="text-center py-4 px-4">
+                            <a href="/inventory/warehouses/WH-008/edit" class="text-primary-600 hover:text-primary-700 text-xs font-medium">Edit</a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        // Load warehouses
+    }
+}

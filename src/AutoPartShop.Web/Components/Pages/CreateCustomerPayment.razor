@@ -1,0 +1,247 @@
+@page "/customer-payments/create"
+
+<PageTitle>Record Customer Payment - AutoParts Shop</PageTitle>
+
+<div class="space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-dark-900">Record Customer Payment</h1>
+            <p class="text-dark-500 mt-1">Log a new payment received from customer</p>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-2 flex-shrink-0">
+            <a href="/customer-payments" class="btn-secondary flex items-center justify-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+                Cancel
+            </a>
+            <button class="btn-primary flex items-center justify-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                Record Payment
+            </button>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Left Sidebar -->
+        <div class="space-y-6">
+            <!-- Payment Summary -->
+            <div class="card bg-blue-50 border-l-4 border-blue-500">
+                <h3 class="text-lg font-bold text-blue-900 mb-4">Payment Summary</h3>
+                <div class="space-y-3 text-sm">
+                    <div class="flex justify-between">
+                        <p class="text-blue-800">Total Amount</p>
+                        <p class="font-semibold text-blue-900">₹0</p>
+                    </div>
+                    <div class="flex justify-between">
+                        <p class="text-blue-800">Payment Date</p>
+                        <p class="font-semibold text-blue-900">-</p>
+                    </div>
+                    <div class="flex justify-between">
+                        <p class="text-blue-800">Payment Method</p>
+                        <p class="font-semibold text-blue-900">-</p>
+                    </div>
+                    <div className="border-t border-blue-200 pt-2 mt-2 flex justify-between">
+                        <p className="font-semibold text-blue-900">Reference #</p>
+                        <p className="font-semibold text-blue-900 text-xs">Auto-generated</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Info -->
+            <div class="card">
+                <h3 class="text-lg font-bold text-dark-900 mb-4">Quick Info</h3>
+                <div class="space-y-3 text-sm">
+                    <div class="flex items-start gap-3">
+                        <svg class="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span class="text-dark-700">Auto-generated Payment ID</span>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <svg class="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span class="text-dark-700">Select customer and invoices</span>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <svg class="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span class="text-dark-700">Specify payment amount & method</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Payment Details Section -->
+            <div class="card">
+                <h3 class="text-lg font-bold text-dark-900 mb-6">Payment Details</h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Customer *</label>
+                        <select class="input-field">
+                            <option selected>Select Customer</option>
+                            <option>Sharma Auto Parts</option>
+                            <option>Tech Engine Solutions</option>
+                            <option>Drive Forward Ltd</option>
+                            <option>Mechanic's Hub</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Payment Date *</label>
+                        <input type="date" class="input-field" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Payment Method *</label>
+                        <select class="input-field">
+                            <option selected>Select Method</option>
+                            <option>Bank Transfer</option>
+                            <option>Check</option>
+                            <option>Credit Card</option>
+                            <option>Digital Wallet</option>
+                            <option>Cash</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Currency</label>
+                        <input type="text" value="INR (₹)" class="input-field" disabled />
+                    </div>
+                </div>
+            </div>
+
+            <!-- Invoices Selection Section -->
+            <div class="card">
+                <h3 class="text-lg font-bold text-dark-900 mb-6">Select Invoices to Pay</h3>
+
+                <div class="overflow-x-auto mb-6">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="border-b border-dark-200 bg-dark-50">
+                                <th class="text-left py-3 px-4 font-semibold text-dark-900">
+                                    <input type="checkbox" class="w-4 h-4" />
+                                </th>
+                                <th class="text-left py-3 px-4 font-semibold text-dark-900">Invoice #</th>
+                                <th class="text-left py-3 px-4 font-semibold text-dark-900">Order #</th>
+                                <th class="text-right py-3 px-4 font-semibold text-dark-900">Invoice Amount</th>
+                                <th class="text-left py-3 px-4 font-semibold text-dark-900">Due Date</th>
+                                <th class="text-right py-3 px-4 font-semibold text-dark-900">Pay Amount</th>
+                                <th class="text-center py-3 px-4 font-semibold text-dark-900">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-dark-200">
+                            <tr class="hover:bg-dark-50">
+                                <td class="py-4 px-4"><input type="checkbox" class="w-4 h-4" /></td>
+                                <td class="py-4 px-4 font-semibold text-dark-900">INV-2024-089</td>
+                                <td class="py-4 px-4 text-dark-700">ORD-2024-045</td>
+                                <td class="text-right py-4 px-4 text-dark-700">₹45,000</td>
+                                <td class="py-4 px-4 text-dark-700">Dec 18, 2024</td>
+                                <td class="text-right py-4 px-4"><input type="number" placeholder="0" class="w-24 px-2 py-1 border border-dark-200 rounded text-right" /></td>
+                                <td class="text-center py-4 px-4"><span class="badge-danger">Overdue</span></td>
+                            </tr>
+                            <tr class="hover:bg-dark-50">
+                                <td class="py-4 px-4"><input type="checkbox" class="w-4 h-4" checked /></td>
+                                <td class="py-4 px-4 font-semibold text-dark-900">INV-2024-087</td>
+                                <td class="py-4 px-4 text-dark-700">ORD-2024-043</td>
+                                <td class="text-right py-4 px-4 text-dark-700">₹75,500</td>
+                                <td class="py-4 px-4 text-dark-700">Dec 16, 2024</td>
+                                <td class="text-right py-4 px-4"><input type="number" placeholder="0" class="w-24 px-2 py-1 border border-dark-200 rounded text-right" value="75500" /></td>
+                                <td class="text-center py-4 px-4"><span class="badge-warning">Pending</span></td>
+                            </tr>
+                            <tr class="hover:bg-dark-50">
+                                <td class="py-4 px-4"><input type="checkbox" class="w-4 h-4" /></td>
+                                <td class="py-4 px-4 font-semibold text-dark-900">INV-2024-085</td>
+                                <td class="py-4 px-4 text-dark-700">ORD-2024-041</td>
+                                <td class="text-right py-4 px-4 text-dark-700">₹1,20,000</td>
+                                <td class="py-4 px-4 text-dark-700">Dec 15, 2024</td>
+                                <td class="text-right py-4 px-4"><input type="number" placeholder="0" class="w-24 px-2 py-1 border border-dark-200 rounded text-right" /></td>
+                                <td class="text-center py-4 px-4"><span class="badge-info">Not Yet Due</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Payment Amount & Reference Section -->
+            <div class="card">
+                <h3 class="text-lg font-bold text-dark-900 mb-6">Payment Amount & Reference</h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Total Payment Amount *</label>
+                        <input type="number" placeholder="0.00" class="input-field" value="75500" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Reference/Transaction ID</label>
+                        <input type="text" placeholder="e.g., TXN123456789" class="input-field" />
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Payment Notes</label>
+                        <textarea rows="3" class="input-field" placeholder="Add any payment notes or remittance details..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bank/Payment Method Details Section -->
+            <div class="card">
+                <h3 class="text-lg font-bold text-dark-900 mb-6">Payment Method Details</h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Bank Name (For Bank Transfer)</label>
+                        <input type="text" placeholder="e.g., HDFC Bank" class="input-field" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Check Number (For Check)</label>
+                        <input type="text" placeholder="e.g., Check #1001" class="input-field" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Card Last 4 Digits (For Card)</label>
+                        <input type="text" placeholder="1234" class="input-field" maxlength="4" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Digital Wallet (e.g., Payment App)</label>
+                        <input type="text" placeholder="e.g., Google Pay, PhonePe" class="input-field" />
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="flex flex-col sm:flex-row gap-2 sm:gap-4">
+                <a href="/customer-payments" class="btn-secondary flex items-center justify-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                    Cancel
+                </a>
+                <button type="submit" class="btn-primary flex items-center justify-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    Record Payment
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        // Initialize create payment form
+    }
+}

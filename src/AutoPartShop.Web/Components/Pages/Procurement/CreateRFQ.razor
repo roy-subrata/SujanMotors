@@ -1,0 +1,241 @@
+@page "/procurement/rfq/create"
+
+<PageTitle>Create Request for Quote - AutoParts Shop</PageTitle>
+
+<div class="space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-dark-900">Create Request for Quote</h1>
+            <p class="text-dark-500 mt-1">Get quotes from multiple suppliers</p>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-2 flex-shrink-0">
+            <button class="btn-secondary flex items-center justify-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+                Cancel
+            </button>
+            <button class="btn-primary flex items-center justify-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                Save & Send RFQ
+            </button>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Left Sidebar -->
+        <div class="space-y-6">
+            <!-- RFQ Details -->
+            <div class="card">
+                <h3 class="text-lg font-bold text-dark-900 mb-4">RFQ Details</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">RFQ Number *</label>
+                        <input type="text" placeholder="Auto-generated: RFQ-2024-XXX" class="input-field" disabled />
+                        <p class="text-xs text-dark-500 mt-1">Auto-generated on save</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">RFQ Date *</label>
+                        <input type="date" class="input-field" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Quote Deadline *</label>
+                        <input type="date" class="input-field" />
+                        <p class="text-xs text-dark-500 mt-1">Suppliers must respond by this date</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Priority</label>
+                        <select class="input-field">
+                            <option>Normal</option>
+                            <option>Urgent</option>
+                            <option>Very Urgent</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notes -->
+            <div class="card">
+                <h3 class="text-lg font-bold text-dark-900 mb-4">Additional Notes</h3>
+                <textarea rows="4" placeholder="Add any special requirements or terms..." class="input-field"></textarea>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Parts/Items Section -->
+            <div class="card">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-bold text-dark-900">Items</h3>
+                    <button class="btn-primary flex items-center justify-center text-sm">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        Add Item
+                    </button>
+                </div>
+
+                <div class="space-y-4">
+                    <!-- Item 1 -->
+                    <div class="border border-dark-200 rounded-lg p-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label class="block text-sm font-medium text-dark-900 mb-2">Part *</label>
+                                <select class="input-field">
+                                    <option>-- Select Part --</option>
+                                    <option>Engine Oil Filter (EOF-001)</option>
+                                    <option>Brake Pads Set (BPS-001)</option>
+                                    <option>Air Filter (AF-001)</option>
+                                    <option>Spark Plugs (SP-001)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-dark-900 mb-2">Quantity *</label>
+                                <input type="number" placeholder="Enter quantity" class="input-field" />
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label class="block text-sm font-medium text-dark-900 mb-2">Unit</label>
+                                <select class="input-field">
+                                    <option>Units</option>
+                                    <option>Pieces</option>
+                                    <option>Boxes</option>
+                                    <option>Cartons</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-dark-900 mb-2">Current Stock</label>
+                                <input type="text" placeholder="195 units" class="input-field" disabled />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-dark-900 mb-2">Specifications</label>
+                            <textarea rows="2" placeholder="Add any specific requirements..." class="input-field"></textarea>
+                        </div>
+
+                        <div class="flex justify-end mt-4">
+                            <button class="text-red-600 hover:text-red-700 text-sm font-semibold">Remove Item</button>
+                        </div>
+                    </div>
+
+                    <!-- Add More Items Message -->
+                    <div class="text-center py-4 text-dark-500">
+                        Click "Add Item" to include more parts in this RFQ
+                    </div>
+                </div>
+            </div>
+
+            <!-- Supplier Selection -->
+            <div class="card">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-bold text-dark-900">Select Suppliers</h3>
+                    <span class="text-sm text-dark-500">3 selected</span>
+                </div>
+
+                <div class="space-y-3">
+                    <label class="flex items-center space-x-3 p-3 border border-dark-200 rounded-lg cursor-pointer hover:bg-dark-50">
+                        <input type="checkbox" class="w-4 h-4" checked />
+                        <div class="flex-1">
+                            <p class="font-semibold text-dark-900">Parts Direct Inc.</p>
+                            <p class="text-xs text-dark-500">Lead Time: 5 days</p>
+                        </div>
+                    </label>
+
+                    <label class="flex items-center space-x-3 p-3 border border-dark-200 rounded-lg cursor-pointer hover:bg-dark-50">
+                        <input type="checkbox" class="w-4 h-4" checked />
+                        <div class="flex-1">
+                            <p class="font-semibold text-dark-900">Auto Components Ltd.</p>
+                            <p class="text-xs text-dark-500">Lead Time: 7 days</p>
+                        </div>
+                    </label>
+
+                    <label class="flex items-center space-x-3 p-3 border border-dark-200 rounded-lg cursor-pointer hover:bg-dark-50">
+                        <input type="checkbox" class="w-4 h-4" checked />
+                        <div class="flex-1">
+                            <p class="font-semibold text-dark-900">Global Auto Parts</p>
+                            <p class="text-xs text-dark-500">Lead Time: 10 days</p>
+                        </div>
+                    </label>
+
+                    <label class="flex items-center space-x-3 p-3 border border-dark-200 rounded-lg cursor-pointer hover:bg-dark-50">
+                        <input type="checkbox" class="w-4 h-4" />
+                        <div class="flex-1">
+                            <p class="font-semibold text-dark-900">Premium Supplies Co.</p>
+                            <p class="text-xs text-dark-500">Lead Time: 6 days</p>
+                        </div>
+                    </label>
+                </div>
+
+                <p class="text-xs text-dark-500 mt-4">Select at least 1 supplier to proceed</p>
+            </div>
+
+            <!-- Delivery Terms -->
+            <div class="card">
+                <h3 class="text-lg font-bold text-dark-900 mb-4">Delivery Terms</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Preferred Delivery Location</label>
+                        <select class="input-field">
+                            <option>Main Warehouse</option>
+                            <option>Branch 1</option>
+                            <option>Branch 2</option>
+                            <option>Direct to Store</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Delivery Method</label>
+                        <select class="input-field">
+                            <option>Supplier's Choice</option>
+                            <option>Our Logistics</option>
+                            <option>Third Party</option>
+                        </select>
+                    </div>
+
+                    <div class="flex items-center space-x-2">
+                        <input type="checkbox" class="w-4 h-4" />
+                        <label class="text-sm text-dark-900">Include shipping costs in quote</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="flex flex-col sm:flex-row gap-2 sm:gap-4">
+                <button type="button" class="btn-secondary flex items-center justify-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                    Cancel
+                </button>
+                <button type="button" class="btn-secondary flex items-center justify-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                    Save as Draft
+                </button>
+                <button type="submit" class="btn-primary flex items-center justify-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    Save & Send RFQ
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        // Load suppliers and parts data
+    }
+}

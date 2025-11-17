@@ -1,0 +1,177 @@
+@page "/procurement/rfq"
+
+<PageTitle>Request for Quote - AutoParts Shop</PageTitle>
+
+<div class="space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-dark-900">Request for Quote</h1>
+            <p class="text-dark-500 mt-1">Create and manage supplier quotes</p>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-2 flex-shrink-0">
+            <button class="btn-secondary flex items-center justify-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                </svg>
+                Export
+            </button>
+            <button class="btn-primary flex items-center justify-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                Create RFQ
+            </button>
+        </div>
+    </div>
+
+    <!-- Filters Card -->
+    <div class="card">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-dark-900 mb-2">Search RFQ</label>
+                <input type="text" placeholder="Filter by RFQ #, Part, or Supplier..." class="input-field" />
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-dark-900 mb-2">Status</label>
+                <select class="input-field">
+                    <option>All Status</option>
+                    <option>Draft</option>
+                    <option>Sent</option>
+                    <option>Quoted</option>
+                    <option>Completed</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-dark-900 mb-2">Date Range</label>
+                <select class="input-field">
+                    <option>Last 7 Days</option>
+                    <option>Last 30 Days</option>
+                    <option>Last 3 Months</option>
+                    <option>Custom Range</option>
+                </select>
+            </div>
+            <div class="flex items-end">
+                <button class="btn-primary w-full">Apply Filters</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- RFQ Statistics -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="card-sm">
+            <h4 class="font-semibold text-dark-900 mb-3">Total RFQs</h4>
+            <p class="text-3xl font-bold text-primary-600">24</p>
+            <p class="text-dark-500 text-xs mt-2">This month</p>
+        </div>
+
+        <div class="card-sm">
+            <h4 class="font-semibold text-dark-900 mb-3">Pending Quotes</h4>
+            <p class="text-3xl font-bold text-orange-600">8</p>
+            <p class="text-dark-500 text-xs mt-2">Awaiting supplier response</p>
+        </div>
+
+        <div class="card-sm">
+            <h4 class="font-semibold text-dark-900 mb-3">Quoted</h4>
+            <p class="text-3xl font-bold text-green-600">12</p>
+            <p class="text-dark-500 text-xs mt-2">Ready for comparison</p>
+        </div>
+
+        <div class="card-sm">
+            <h4 class="font-semibold text-dark-900 mb-3">Avg Response Time</h4>
+            <p class="text-3xl font-bold text-blue-600">2.3 days</p>
+            <p class="text-dark-500 text-xs mt-2">Supplier average</p>
+        </div>
+    </div>
+
+    <!-- RFQ List -->
+    <div class="card">
+        <h3 class="text-lg font-bold text-dark-900 mb-6">Recent RFQs</h3>
+
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="border-b border-dark-200">
+                        <th class="text-left py-4 px-4 font-semibold text-dark-900">RFQ #</th>
+                        <th class="text-left py-4 px-4 font-semibold text-dark-900">Part(s)</th>
+                        <th class="text-left py-4 px-4 font-semibold text-dark-900">Suppliers</th>
+                        <th class="text-left py-4 px-4 font-semibold text-dark-900">Qty</th>
+                        <th class="text-left py-4 px-4 font-semibold text-dark-900">Status</th>
+                        <th class="text-left py-4 px-4 font-semibold text-dark-900">Responses</th>
+                        <th class="text-left py-4 px-4 font-semibold text-dark-900">Created</th>
+                        <th class="text-left py-4 px-4 font-semibold text-dark-900">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-dark-200">
+                    <tr class="hover:bg-dark-50">
+                        <td class="py-4 px-4 font-semibold text-dark-900">RFQ-2024-001</td>
+                        <td class="py-4 px-4 text-dark-700">Engine Oil Filter</td>
+                        <td class="py-4 px-4 text-dark-700">3 suppliers</td>
+                        <td class="py-4 px-4 text-dark-700">500 units</td>
+                        <td class="py-4 px-4"><span class="badge-success">Quoted</span></td>
+                        <td class="py-4 px-4 text-dark-700">3/3</td>
+                        <td class="py-4 px-4 text-sm text-dark-500">Nov 15, 2024</td>
+                        <td class="py-4 px-4">
+                            <a href="#" class="text-primary-600 hover:text-primary-700 font-semibold text-sm">Compare</a>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-dark-50">
+                        <td class="py-4 px-4 font-semibold text-dark-900">RFQ-2024-002</td>
+                        <td class="py-4 px-4 text-dark-700">Brake Pads Set</td>
+                        <td class="py-4 px-4 text-dark-700">2 suppliers</td>
+                        <td class="py-4 px-4 text-dark-700">200 units</td>
+                        <td class="py-4 px-4"><span class="badge-warning">Pending</span></td>
+                        <td class="py-4 px-4 text-dark-700">1/2</td>
+                        <td class="py-4 px-4 text-sm text-dark-500">Nov 14, 2024</td>
+                        <td class="py-4 px-4">
+                            <a href="#" class="text-primary-600 hover:text-primary-700 font-semibold text-sm">View</a>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-dark-50">
+                        <td class="py-4 px-4 font-semibold text-dark-900">RFQ-2024-003</td>
+                        <td class="py-4 px-4 text-dark-700">Air Filter</td>
+                        <td class="py-4 px-4 text-dark-700">4 suppliers</td>
+                        <td class="py-4 px-4 text-dark-700">300 units</td>
+                        <td class="py-4 px-4"><span class="badge-info">Sent</span></td>
+                        <td class="py-4 px-4 text-dark-700">2/4</td>
+                        <td class="py-4 px-4 text-sm text-dark-500">Nov 13, 2024</td>
+                        <td class="py-4 px-4">
+                            <a href="#" class="text-primary-600 hover:text-primary-700 font-semibold text-sm">View</a>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-dark-50">
+                        <td class="py-4 px-4 font-semibold text-dark-900">RFQ-2024-004</td>
+                        <td class="py-4 px-4 text-dark-700">Transmission Fluid</td>
+                        <td class="py-4 px-4 text-dark-700">2 suppliers</td>
+                        <td class="py-4 px-4 text-dark-700">100 units</td>
+                        <td class="py-4 px-4"><span class="badge-success">Completed</span></td>
+                        <td class="py-4 px-4 text-dark-700">2/2</td>
+                        <td class="py-4 px-4 text-sm text-dark-500">Nov 10, 2024</td>
+                        <td class="py-4 px-4">
+                            <a href="#" class="text-primary-600 hover:text-primary-700 font-semibold text-sm">PO Created</a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="flex items-center justify-between mt-6 pt-6 border-t border-dark-200">
+            <p class="text-sm text-dark-500">Showing 1-4 of 24 RFQs</p>
+            <div class="flex gap-2">
+                <button class="px-3 py-2 border border-dark-200 rounded-lg text-dark-700 hover:bg-dark-100">Previous</button>
+                <button class="px-3 py-2 bg-primary-600 text-white rounded-lg">1</button>
+                <button class="px-3 py-2 border border-dark-200 rounded-lg text-dark-700 hover:bg-dark-100">2</button>
+                <button class="px-3 py-2 border border-dark-200 rounded-lg text-dark-700 hover:bg-dark-100">3</button>
+                <button class="px-3 py-2 border border-dark-200 rounded-lg text-dark-700 hover:bg-dark-100">Next</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        // Load RFQ data
+    }
+}

@@ -1,0 +1,287 @@
+@page "/procurement/returns/{id}/edit"
+
+<PageTitle>Edit Purchase Return - AutoParts Shop</PageTitle>
+
+<div class="space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-dark-900">Edit Purchase Return</h1>
+            <p class="text-dark-500 mt-1">RET-2024-002 • Update return details</p>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-2 flex-shrink-0">
+            <button class="btn-secondary flex items-center justify-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+                Cancel
+            </button>
+            <button class="btn-primary flex items-center justify-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                Save Changes
+            </button>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Left Sidebar -->
+        <div class="space-y-6">
+            <!-- Return Status -->
+            <div class="card">
+                <h3 class="text-lg font-bold text-dark-900 mb-4">Return Status</h3>
+                <div class="space-y-4">
+                    <div>
+                        <p class="text-sm text-dark-500 font-medium mb-2">Current Status</p>
+                        <span class="badge-warning">In Transit</span>
+                    </div>
+
+                    <div>
+                        <p class="text-sm text-dark-500 font-medium mb-2">Return Number</p>
+                        <p class="text-dark-900 font-semibold">RET-2024-002</p>
+                    </div>
+
+                    <div>
+                        <p class="text-sm text-dark-500 font-medium mb-2">Created Date</p>
+                        <p class="text-dark-900 font-semibold">Nov 21, 2024</p>
+                    </div>
+
+                    <div>
+                        <p class="text-sm text-dark-500 font-medium mb-2">Original PO</p>
+                        <p class="text-dark-900 font-semibold">PO-2024-002</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Refund Summary -->
+            <div class="card bg-blue-50 border-l-4 border-blue-500">
+                <h3 class="text-lg font-bold text-blue-900 mb-3">Refund Summary</h3>
+                <div class="space-y-2 text-sm">
+                    <div class="flex items-center justify-between">
+                        <p class="text-blue-800">Subtotal</p>
+                        <p class="font-semibold text-blue-900">₹1,800</p>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <p class="text-blue-800">Shipping Deduction</p>
+                        <p class="font-semibold text-blue-900">-₹200</p>
+                    </div>
+                    <div className="border-t border-blue-200 pt-2 mt-2 flex items-center justify-between">
+                        <p className="font-semibold text-blue-900">Net Refund</p>
+                        <p className="text-lg font-bold text-blue-600">₹1,600</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Danger Zone -->
+            <div class="card bg-red-50 border-l-4 border-red-500">
+                <h3 class="text-lg font-bold text-red-900 mb-4">Danger Zone</h3>
+                <button class="w-full btn-danger flex items-center justify-center text-sm border border-red-300 bg-red-100 text-red-700 hover:bg-red-200">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                    </svg>
+                    Delete This Return
+                </button>
+                <p class="text-xs text-red-700 mt-2">This action cannot be undone. This will permanently delete the return.</p>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Return Details Section -->
+            <div class="card">
+                <h3 class="text-lg font-bold text-dark-900 mb-6">Return Details</h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Return Number</label>
+                        <input type="text" value="RET-2024-002" class="input-field" disabled />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Original PO</label>
+                        <input type="text" value="PO-2024-002" class="input-field" disabled />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Supplier</label>
+                        <input type="text" value="Auto Components Ltd." class="input-field" disabled />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Return Date *</label>
+                        <input type="date" value="2024-11-21" class="input-field" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Return Reason *</label>
+                        <select class="input-field">
+                            <option selected>Defective</option>
+                            <option>Damage in Transit</option>
+                            <option>Quality Issue</option>
+                            <option>Wrong Item</option>
+                            <option>Over Delivery</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Status</label>
+                        <select class="input-field">
+                            <option>Initiated</option>
+                            <option>Approved</option>
+                            <option selected>In Transit</option>
+                            <option>Received</option>
+                            <option>Refunded</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div className="mt-6">
+                    <label class="block text-sm font-medium text-dark-900 mb-2">Notes</label>
+                    <textarea rows="3" class="input-field">Brake pads have manufacturing defects. Friction material unevenly distributed.</textarea>
+                </div>
+            </div>
+
+            <!-- Return Items Section -->
+            <div class="card">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-bold text-dark-900">Items to Return</h3>
+                    <button class="btn-primary flex items-center justify-center text-sm">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        Add Item
+                    </button>
+                </div>
+
+                <div class="overflow-x-auto mb-6">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="border-b border-dark-200 bg-dark-50">
+                                <th class="text-left py-3 px-4 font-semibold text-dark-900">Part</th>
+                                <th class="text-right py-3 px-4 font-semibold text-dark-900">Qty Return</th>
+                                <th class="text-right py-3 px-4 font-semibold text-dark-900">Unit Price</th>
+                                <th class="text-right py-3 px-4 font-semibold text-dark-900">Refund</th>
+                                <th class="text-center py-3 px-4 font-semibold text-dark-900">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-dark-200">
+                            <tr class="hover:bg-dark-50">
+                                <td class="py-4 px-4">
+                                    <p class="font-semibold text-dark-900">Brake Pads Set</p>
+                                    <p class="text-xs text-dark-500">BPS-001</p>
+                                </td>
+                                <td class="text-right py-4 px-4">
+                                    <input type="number" value="25" class="input-field text-sm text-right w-20" />
+                                </td>
+                                <td class="text-right py-4 px-4">
+                                    <input type="number" value="72" class="input-field text-sm text-right w-24" />
+                                </td>
+                                <td class="text-right py-4 px-4 font-semibold text-dark-900">₹1,800</td>
+                                <td class="text-center py-4 px-4">
+                                    <button class="text-red-600 hover:text-red-700 text-sm">Remove</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <p class="text-center text-dark-500 text-sm">Click "Add Item" to include more parts in this return</p>
+            </div>
+
+            <!-- Return Reason Details -->
+            <div class="card">
+                <h3 class="text-lg font-bold text-dark-900 mb-6">Return Reason Details</h3>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Detailed Description *</label>
+                        <textarea rows="4" class="input-field">The brake pads received have manufacturing defects. The friction material is unevenly distributed and doesn't meet our quality standards. This issue was identified during quality inspection.</textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Issue Type *</label>
+                        <select class="input-field">
+                            <option>Quality Issue</option>
+                            <option>Wrong Item/Quantity</option>
+                            <option>Other</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Reference/Invoice Number</label>
+                        <input type="text" value="QI-2024-087" class="input-field" />
+                    </div>
+                </div>
+            </div>
+
+            <!-- Refund Terms -->
+            <div class="card">
+                <h3 class="text-lg font-bold text-dark-900 mb-6">Refund Terms</h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Refund Method *</label>
+                        <select class="input-field">
+                            <option selected>Original Payment Method</option>
+                            <option>Bank Transfer</option>
+                            <option>Check</option>
+                            <option>Credit Note</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Refund Status</label>
+                        <select class="input-field">
+                            <option>Pending</option>
+                            <option>Approved</option>
+                            <option>Processed</option>
+                            <option>Rejected</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Expected Refund Date</label>
+                        <input type="date" value="2024-11-30" class="input-field" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Return Shipping Cost</label>
+                        <input type="number" value="200" class="input-field" />
+                    </div>
+                </div>
+
+                <div className="flex items-center space-x-2 mt-6">
+                    <input type="checkbox" class="w-4 h-4" checked />
+                    <label class="text-sm text-dark-900">Deduct shipping cost from refund</label>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="flex flex-col sm:flex-row gap-2 sm:gap-4">
+                <button type="button" class="btn-secondary flex items-center justify-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                    Cancel
+                </button>
+                <button type="submit" class="btn-primary flex items-center justify-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string? Id { get; set; }
+
+    protected override void OnInitialized()
+    {
+        // Load return data for editing
+    }
+}

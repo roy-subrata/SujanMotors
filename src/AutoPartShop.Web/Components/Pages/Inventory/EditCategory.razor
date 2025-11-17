@@ -1,0 +1,261 @@
+@page "/inventory/categories/{id}/edit"
+
+<PageTitle>Edit Category - AutoParts Shop</PageTitle>
+
+<div class="space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-dark-900">Edit Category</h1>
+            <p class="text-dark-500 mt-1">Update category information and settings</p>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-2 flex-shrink-0">
+            <button class="btn-secondary flex items-center justify-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+                Cancel
+            </button>
+            <button class="btn-primary flex items-center justify-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                Save Changes
+            </button>
+        </div>
+    </div>
+
+    <!-- Edit Category Form -->
+    <form class="space-y-6">
+        <!-- Basic Information Section -->
+        <div class="card">
+            <h3 class="text-lg font-bold text-dark-900 mb-6">Basic Information</h3>
+            <div class="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Category Name *</label>
+                        <input type="text" value="Engine Components" class="input-field" required />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Category Code</label>
+                        <input type="text" value="CAT-001" class="input-field bg-dark-100" disabled />
+                        <p class="text-xs text-dark-500 mt-1">Cannot be changed</p>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Parent Category</label>
+                        <select class="input-field bg-dark-100" disabled>
+                            <option value="">-- No Parent (Root Category) --</option>
+                        </select>
+                        <p class="text-xs text-dark-500 mt-1">Cannot change parent for root categories</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Category Level</label>
+                        <input type="text" value="Root (Level 1)" class="input-field bg-dark-100" disabled />
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-dark-900 mb-2">Description</label>
+                    <textarea rows="4" class="input-field">Premium automotive engine components including spark plugs, air filters, oil filters, and ignition systems for gasoline and diesel engines.</textarea>
+                </div>
+
+                <div className="pt-4 border-t border-dark-200">
+                    <p class="text-sm text-dark-500 font-medium mb-2">Category Statistics</p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="bg-dark-50 p-3 rounded">
+                            <p class="text-xs text-dark-500">Subcategories</p>
+                            <p class="text-2xl font-bold text-dark-900 mt-1">3</p>
+                        </div>
+                        <div class="bg-dark-50 p-3 rounded">
+                            <p class="text-xs text-dark-500">Total Parts</p>
+                            <p class="text-2xl font-bold text-dark-900 mt-1">28</p>
+                        </div>
+                        <div class="bg-dark-50 p-3 rounded">
+                            <p class="text-xs text-dark-500">Created On</p>
+                            <p class="text-sm font-semibold text-dark-900 mt-1">Jan 15, 2024</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Display & Visibility Section -->
+        <div class="card">
+            <h3 class="text-lg font-bold text-dark-900 mb-6">Display & Visibility</h3>
+            <div className="space-y-6">
+                <div>
+                    <label class="block text-sm font-medium text-dark-900 mb-2">Display Name (for UI)</label>
+                    <input type="text" value="Engine Components" class="input-field" />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Category Icon</label>
+                        <select class="input-field">
+                            <option value="engine" selected>⚙️ Engine</option>
+                            <option value="brake">🛑 Brake</option>
+                            <option value="electrical">⚡ Electrical</option>
+                            <option value="suspension">🚗 Suspension</option>
+                            <option value="cooling">❄️ Cooling</option>
+                            <option value="transmission">🔧 Transmission</option>
+                            <option value="fluids">🧴 Fluids</option>
+                            <option value="exterior">🪟 Exterior</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Background Color</label>
+                        <div class="flex items-center gap-2">
+                            <input type="color" value="#8b5cf6" class="h-10 rounded border border-dark-200 cursor-pointer" />
+                            <input type="text" value="#8b5cf6" class="input-field" />
+                        </div>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="flex items-center space-x-3 cursor-pointer">
+                            <input type="checkbox" checked class="w-4 h-4 rounded border-dark-300" />
+                            <span class="text-sm font-medium text-dark-900">Visible in Menu</span>
+                        </label>
+                    </div>
+                    <div>
+                        <label class="flex items-center space-x-3 cursor-pointer">
+                            <input type="checkbox" checked class="w-4 h-4 rounded border-dark-300" />
+                            <span class="text-sm font-medium text-dark-900">Searchable</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="flex items-center space-x-3 cursor-pointer">
+                        <input type="checkbox" checked class="w-4 h-4 rounded border-dark-300" />
+                        <span class="text-sm font-medium text-dark-900">Active Category</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- SEO & Metadata Section -->
+        <div class="card">
+            <h3 class="text-lg font-bold text-dark-900 mb-6">SEO & Metadata</h3>
+            <div className="space-y-6">
+                <div>
+                    <label class="block text-sm font-medium text-dark-900 mb-2">Meta Title</label>
+                    <input type="text" value="Engine Components - AutoParts Shop" class="input-field" />
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-dark-900 mb-2">Meta Description</label>
+                    <textarea rows="3" class="input-field">Shop high-quality engine components including spark plugs, filters, ignition systems and more for all vehicle types.</textarea>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-dark-900 mb-2">URL Slug</label>
+                    <input type="text" value="engine-components" class="input-field" />
+                </div>
+            </div>
+        </div>
+
+        <!-- Permissions & Access Section -->
+        <div class="card">
+            <h3 class="text-lg font-bold text-dark-900 mb-6">Permissions & Access</h3>
+            <div className="space-y-6">
+                <div>
+                    <label class="block text-sm font-medium text-dark-900 mb-4">Who Can View This Category?</label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <label class="flex items-center space-x-3 cursor-pointer">
+                            <input type="radio" name="visibility" checked class="w-4 h-4" />
+                            <span class="text-sm font-medium text-dark-900">Everyone</span>
+                        </label>
+                        <label class="flex items-center space-x-3 cursor-pointer">
+                            <input type="radio" name="visibility" class="w-4 h-4" />
+                            <span class="text-sm font-medium text-dark-900">Registered Users Only</span>
+                        </label>
+                        <label class="flex items-center space-x-3 cursor-pointer">
+                            <input type="radio" name="visibility" class="w-4 h-4" />
+                            <span class="text-sm font-medium text-dark-900">Staff Only</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Additional Settings Section -->
+        <div class="card">
+            <h3 class="text-lg font-bold text-dark-900 mb-6">Additional Settings</h3>
+            <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Sort Order</label>
+                        <input type="number" value="1" class="input-field" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-dark-900 mb-2">Maximum Nesting Depth</label>
+                        <input type="number" value="3" class="input-field" />
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-dark-900 mb-2">Tags (comma separated)</label>
+                    <input type="text" value="engine, maintenance, parts, components" class="input-field" />
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-dark-900 mb-2">Related Categories</label>
+                    <input type="text" placeholder="Brake System, Transmission, Cooling System" class="input-field" />
+                </div>
+            </div>
+        </div>
+
+        <!-- Danger Zone Section -->
+        <div class="card border-l-4 border-red-500">
+            <h3 class="text-lg font-bold text-red-600 mb-6">Danger Zone</h3>
+            <div className="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-dark-900 mb-2">Delete This Category</label>
+                    <p class="text-sm text-dark-600 mb-4">Be careful! This action cannot be undone. Deleting this category will remove all its subcategories and reassign parts to parent categories.</p>
+                    <button type="button" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium">
+                        Delete Category
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="flex flex-col sm:flex-row gap-2 sm:gap-4 justify-between">
+            <button type="button" class="btn-secondary flex items-center justify-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+                Cancel
+            </button>
+            <div class="flex gap-2">
+                <button type="reset" class="btn-secondary flex items-center justify-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                    Reset
+                </button>
+                <button type="submit" class="btn-primary flex items-center justify-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    Save Changes
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+@code {
+    [Parameter]
+    public string? Id { get; set; }
+
+    protected override void OnInitialized()
+    {
+        // Load category data based on Id
+    }
+}
