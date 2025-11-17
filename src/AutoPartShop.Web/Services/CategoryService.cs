@@ -22,7 +22,7 @@ public class CategoryService : ICategoryService
         try
         {
             _logger.LogInformation("Fetching all categories");
-            var response = await _httpClient.GetFromJsonAsync<List<CategoryDto>>("categories", cancellationToken);
+            var response = await _httpClient.GetFromJsonAsync<List<CategoryDto>>("api/categories", cancellationToken);
             return response ?? new List<CategoryDto>();
         }
         catch (HttpRequestException ex)
@@ -42,7 +42,7 @@ public class CategoryService : ICategoryService
         try
         {
             _logger.LogInformation("Fetching active categories");
-            var response = await _httpClient.GetFromJsonAsync<List<CategoryDto>>("categories/active", cancellationToken);
+            var response = await _httpClient.GetFromJsonAsync<List<CategoryDto>>("api/categories/active", cancellationToken);
             return response ?? new List<CategoryDto>();
         }
         catch (Exception ex)
@@ -57,7 +57,7 @@ public class CategoryService : ICategoryService
         try
         {
             _logger.LogInformation("Fetching top-level categories");
-            var response = await _httpClient.GetFromJsonAsync<List<CategoryDto>>("categories/top-level", cancellationToken);
+            var response = await _httpClient.GetFromJsonAsync<List<CategoryDto>>("api/categories/top-level", cancellationToken);
             return response ?? new List<CategoryDto>();
         }
         catch (Exception ex)
@@ -72,7 +72,7 @@ public class CategoryService : ICategoryService
         try
         {
             _logger.LogInformation("Fetching category with ID: {CategoryId}", id);
-            var response = await _httpClient.GetFromJsonAsync<CategoryDto>($"categories/{id}", cancellationToken);
+            var response = await _httpClient.GetFromJsonAsync<CategoryDto>($"api/categories/{id}", cancellationToken);
             return response;
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -92,7 +92,7 @@ public class CategoryService : ICategoryService
         try
         {
             _logger.LogInformation("Fetching subcategories for parent: {ParentCategoryId}", parentCategoryId);
-            var response = await _httpClient.GetFromJsonAsync<List<CategoryDto>>($"categories/{parentCategoryId}/subcategories", cancellationToken);
+            var response = await _httpClient.GetFromJsonAsync<List<CategoryDto>>($"api/categories/{parentCategoryId}/subcategories", cancellationToken);
             return response ?? new List<CategoryDto>();
         }
         catch (Exception ex)
@@ -110,7 +110,7 @@ public class CategoryService : ICategoryService
                 throw new ArgumentException("Search term cannot be empty", nameof(searchTerm));
 
             _logger.LogInformation("Searching categories with term: {SearchTerm}", searchTerm);
-            var response = await _httpClient.GetFromJsonAsync<List<CategoryDto>>($"categories/search/{Uri.EscapeDataString(searchTerm)}", cancellationToken);
+            var response = await _httpClient.GetFromJsonAsync<List<CategoryDto>>($"api/categories/search/{Uri.EscapeDataString(searchTerm)}", cancellationToken);
             return response ?? new List<CategoryDto>();
         }
         catch (Exception ex)
@@ -126,7 +126,7 @@ public class CategoryService : ICategoryService
         {
             _logger.LogInformation("Fetching categories - Page {PageNumber}, Size {PageSize}", pageNumber, pageSize);
             var response = await _httpClient.GetFromJsonAsync<PaginatedResult<CategoryDto>>(
-                $"categories/paged?pageNumber={pageNumber}&pageSize={pageSize}",
+                $"api/categories/paged?pageNumber={pageNumber}&pageSize={pageSize}",
                 cancellationToken
             );
             return response ?? new PaginatedResult<CategoryDto>();
@@ -144,7 +144,7 @@ public class CategoryService : ICategoryService
         {
             _logger.LogInformation("Creating category: {CategoryName}", request.Name);
 
-            var response = await _httpClient.PostAsJsonAsync("categories", request, cancellationToken);
+            var response = await _httpClient.PostAsJsonAsync("api/categories", request, cancellationToken);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -179,7 +179,7 @@ public class CategoryService : ICategoryService
         {
             _logger.LogInformation("Updating category: {CategoryId}", id);
 
-            var response = await _httpClient.PutAsJsonAsync($"categories/{id}", request, cancellationToken);
+            var response = await _httpClient.PutAsJsonAsync($"api/categories/{id}", request, cancellationToken);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -209,7 +209,7 @@ public class CategoryService : ICategoryService
         {
             _logger.LogInformation("Deleting category: {CategoryId}", id);
 
-            var response = await _httpClient.DeleteAsync($"categories/{id}", cancellationToken);
+            var response = await _httpClient.DeleteAsync($"api/categories/{id}", cancellationToken);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -236,7 +236,7 @@ public class CategoryService : ICategoryService
         {
             _logger.LogInformation("Activating category: {CategoryId}", id);
 
-            var response = await _httpClient.PatchAsync($"categories/{id}/activate", null, cancellationToken);
+            var response = await _httpClient.PatchAsync($"api/categories/{id}/activate", null, cancellationToken);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -266,7 +266,7 @@ public class CategoryService : ICategoryService
         {
             _logger.LogInformation("Deactivating category: {CategoryId}", id);
 
-            var response = await _httpClient.PatchAsync($"categories/{id}/deactivate", null, cancellationToken);
+            var response = await _httpClient.PatchAsync($"api/categories/{id}/deactivate", null, cancellationToken);
 
             if (!response.IsSuccessStatusCode)
             {
