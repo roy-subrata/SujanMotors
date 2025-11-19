@@ -33,6 +33,45 @@
             </a>
         </div>
     </div>
+    <!-- Search & Filter Section -->
+    <div class="card">
+        <div class="space-y-4">
+            <h3 class="text-sm font-medium text-dark-900">Search & Filter</h3>
+            <div class="flex flex-col sm:flex-row gap-3">
+                <div class="flex-1">
+                    <div class="relative">
+                        <svg class="absolute left-3 top-3 w-5 h-5 text-dark-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                        <input type="text"
+                               @bind="SearchTerm"
+                               @oninput="@((ChangeEventArgs e) => OnSearchChanged(e))"
+                               placeholder="Search by name or code..."
+                               class="w-full pl-10 pr-4 py-2 border border-dark-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" />
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button @onclick="ClearSearch" disabled="@string.IsNullOrEmpty(SearchTerm)" class="px-4 py-2 border border-dark-300 text-dark-600 rounded-lg text-sm font-medium hover:bg-dark-100 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                        Clear
+                    </button>
+                </div>
+            </div>
+            @if (!string.IsNullOrEmpty(SearchTerm))
+            {
+                <div class="text-sm text-dark-500">
+                    Found <span class="font-semibold text-dark-900">@FilteredCategories.Count</span> matching categories
+                    @if (FilteredCategories.Count > 0)
+                    {
+                        <span>• Showing @(IsTreeView ? "in tree view" : "in list view")</span>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
     <!-- View Toggle -->
     <div class="card">
         <div class="flex items-center justify-between">
@@ -87,7 +126,7 @@
         </div>
     }
     <!-- Tree View -->
-    @if (!IsLoading && IsTreeView && CategoryList.Any())
+    @if (!IsLoading && IsTreeView && FilteredCategories.Any())
     {
         <div class="card">
             <div class="flex items-center justify-between mb-6">
@@ -100,7 +139,7 @@
             </div>
 
             <div class="space-y-2 max-h-[600px] overflow-y-auto pr-2">
-                @foreach (var category in CategoryList.Where(c => c.ParentCategoryId == null).OrderBy(c => c.DisplayOrder))
+                @foreach (var category in FilteredCategories.Where(c => c.ParentCategoryId == null).OrderBy(c => c.DisplayOrder))
                 {
                     @RenderCategoryNode(category, 0)
                 }
@@ -108,12 +147,12 @@
         </div>
     }
     <!-- List View with Infinite Scroll -->
-    @if (!IsLoading && !IsTreeView && CategoryList.Any())
+    @if (!IsLoading && !IsTreeView && FilteredCategories.Any())
     {
         <div class="card">
             <div class="flex items-center justify-between mb-6">
                 <h3 class="text-lg font-bold text-dark-900">All Categories</h3>
-                <div class="text-sm text-dark-500">Showing: @DisplayedCategoriesCount / @CategoryList.Count total</div>
+                <div class="text-sm text-dark-500">Showing: @DisplayedCategoriesCount / @FilteredCategories.Count @(string.IsNullOrEmpty(SearchTerm) ? "total" : "matching")</div>
             </div>
 
             <div class="overflow-x-auto">
@@ -128,7 +167,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var category in SortedCategories.Take(DisplayedCategoriesCount))
+                        @foreach (var category in FilteredCategories.Take(DisplayedCategoriesCount))
                         {
                             <tr class="border-b border-dark-100 hover:bg-dark-50 transition-colors">
                                 <td class="px-4 py-3">
@@ -178,11 +217,11 @@
             </div>
 
             <!-- Load More Section -->
-            @if (DisplayedCategoriesCount < CategoryList.Count)
+            @if (DisplayedCategoriesCount < FilteredCategories.Count)
             {
                 <div class="mt-6 flex flex-col items-center gap-4">
                     <div class="text-sm text-dark-500">
-                        Loading more... @DisplayedCategoriesCount of @CategoryList.Count
+                        Showing @DisplayedCategoriesCount of @FilteredCategories.Count @(string.IsNullOrEmpty(SearchTerm) ? "total" : "matching")
                     </div>
                     @if (IsLoadingMore)
                     {
@@ -287,11 +326,13 @@
 @code {
     private List<CategoryDto> CategoryList = new();
     private List<CategoryDto> SortedCategories = new();
+    private List<CategoryDto> FilteredCategories = new();
     private HashSet<Guid> ExpandedCategories = new();
     private bool IsLoading = true;
     private bool IsTreeView = true;
     private bool IsLoadingMore = false;
     private string ErrorMessage = string.Empty;
+    private string SearchTerm = string.Empty;
 
     // Pagination settings
     private const int InitialDisplayCount = 15;
@@ -312,6 +353,7 @@
             SortedCategories = new();
             ExpandedCategories.Clear();
             DisplayedCategoriesCount = InitialDisplayCount;
+            SearchTerm = string.Empty;
             StateHasChanged();
 
             var response = await CategoryService.GetAllCategoriesAsync();
@@ -320,6 +362,8 @@
                 CategoryList = response.ToList();
                 // Sort categories for list view
                 SortedCategories = CategoryList.OrderBy(c => c.DisplayOrder).ThenBy(c => c.Name).ToList();
+                // Initialize filtered categories with all categories
+                ApplyFilters();
 
                 // Expand first level by default
                 foreach (var category in CategoryList.Where(c => c.ParentCategoryId == null))
@@ -333,18 +377,55 @@
             ErrorMessage = $"Failed to load categories: {ex.Message}";
             CategoryList = new();
             SortedCategories = new();
+            FilteredCategories = new();
         }
         catch (Exception ex)
         {
             ErrorMessage = $"An error occurred: {ex.Message}";
             CategoryList = new();
             SortedCategories = new();
+            FilteredCategories = new();
         }
         finally
         {
             IsLoading = false;
             StateHasChanged();
         }
+    }
+
+    private void ApplyFilters()
+    {
+        if (string.IsNullOrWhiteSpace(SearchTerm))
+        {
+            FilteredCategories = CategoryList.ToList();
+        }
+        else
+        {
+            var searchLower = SearchTerm.ToLower();
+            FilteredCategories = CategoryList
+                .Where(c => c.Name.ToLower().Contains(searchLower) ||
+                           c.Code.ToLower().Contains(searchLower) ||
+                           c.Description?.ToLower().Contains(searchLower) == true ||
+                           (c.SubCategories?.Any(sc => sc.Name.ToLower().Contains(searchLower) ||
+                                                       sc.Code.ToLower().Contains(searchLower)) == true))
+                .ToList();
+        }
+
+        DisplayedCategoriesCount = InitialDisplayCount;
+    }
+
+    private void OnSearchChanged(ChangeEventArgs e)
+    {
+        SearchTerm = e.Value?.ToString() ?? string.Empty;
+        ApplyFilters();
+        StateHasChanged();
+    }
+
+    private void ClearSearch()
+    {
+        SearchTerm = string.Empty;
+        ApplyFilters();
+        StateHasChanged();
     }
 
     private async Task LoadMoreCategories()
