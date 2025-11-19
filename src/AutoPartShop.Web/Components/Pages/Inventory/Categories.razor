@@ -37,21 +37,22 @@
     <div class="card">
         <div class="space-y-4">
             <h3 class="text-sm font-medium text-dark-900">Search & Filter</h3>
-            <div class="flex flex-col sm:flex-row gap-3">
+            <div class="flex flex-col sm:flex-row gap-3 items-end">
                 <div class="flex-1">
+                    <label class="block text-xs font-medium text-dark-600 mb-2">Search Categories</label>
                     <div class="relative">
-                        <svg class="absolute left-3 top-3 w-5 h-5 text-dark-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-dark-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                         </svg>
                         <input type="text"
                                @bind="SearchTerm"
                                @oninput="@((ChangeEventArgs e) => OnSearchChanged(e))"
-                               placeholder="Search by name or code..."
+                               placeholder="Search by name, code, or description..."
                                class="w-full pl-10 pr-4 py-2 border border-dark-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" />
                     </div>
                 </div>
                 <div class="flex gap-2">
-                    <button @onclick="ClearSearch" disabled="@string.IsNullOrEmpty(SearchTerm)" class="px-4 py-2 border border-dark-300 text-dark-600 rounded-lg text-sm font-medium hover:bg-dark-100 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <button @onclick="ClearSearch" disabled="@string.IsNullOrEmpty(SearchTerm)" class="px-4 py-2 border border-dark-300 text-dark-600 rounded-lg text-sm font-medium hover:bg-dark-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
                         <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                         </svg>
@@ -61,11 +62,15 @@
             </div>
             @if (!string.IsNullOrEmpty(SearchTerm))
             {
-                <div class="text-sm text-dark-500">
+                <div class="text-sm text-dark-500 mt-2">
                     Found <span class="font-semibold text-dark-900">@FilteredCategories.Count</span> matching categories
                     @if (FilteredCategories.Count > 0)
                     {
                         <span>• Showing @(IsTreeView ? "in tree view" : "in list view")</span>
+                    }
+                    @if (FilteredCategories.Count == 0)
+                    {
+                        <span class="text-orange-600 font-medium">• No results found</span>
                     }
                 </div>
             }
@@ -239,7 +244,26 @@
             }
         </div>
     }
-    <!-- Empty State -->
+    <!-- No Search Results State -->
+    @if (!IsLoading && !string.IsNullOrEmpty(SearchTerm) && !FilteredCategories.Any())
+    {
+        <div class="card">
+            <div class="flex flex-col items-center justify-center py-12 text-center">
+                <svg class="w-16 h-16 text-orange-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+                <h3 class="text-lg font-semibold text-dark-900 mb-2">No matching categories</h3>
+                <p class="text-dark-500 mb-6">Your search "<span class="font-semibold text-dark-900">@SearchTerm</span>" didn't match any categories</p>
+                <button @onclick="ClearSearch" class="btn-secondary flex items-center justify-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                    Clear Search
+                </button>
+            </div>
+        </div>
+    }
+    <!-- Empty State - No Categories At All -->
     @if (!IsLoading && !string.IsNullOrEmpty(ErrorMessage) == false && !CategoryList.Any())
     {
         <div class="card">
@@ -539,7 +563,12 @@
         <div class="border border-dark-200 rounded-lg overflow-hidden mb-2" style="margin-left: @(depth * 16)px;">
             <div class="flex items-center hover:bg-primary-50 transition-colors">
                 <!-- Expand/Collapse Button -->
-                <button @onclick="() => ToggleExpand(category.Id)" class="p-3 text-dark-600 hover:text-dark-900 flex-shrink-0">
+                <button @onclick="() => ToggleExpand(category.Id)"
+                        disabled="@(category.SubCategories?.Any() != true ||
+                                   (!string.IsNullOrEmpty(SearchTerm) &&
+                                    !category.SubCategories.Any(sc => sc.Name.ToLower().Contains(SearchTerm.ToLower()) ||
+                                                                     sc.Code.ToLower().Contains(SearchTerm.ToLower()))))"
+                        class="p-3 text-dark-600 hover:text-dark-900 flex-shrink-0 disabled:opacity-40 disabled:cursor-not-allowed">
                     @if (category.SubCategories?.Any() == true)
                     {
                         <svg class="w-5 h-5 transition-transform @(ExpandedCategories?.Contains(category.Id) == true ? "rotate-90" : "")"
@@ -564,7 +593,32 @@
                         </div>
                         <div class="flex-1 min-w-0">
                             <p class="font-semibold text-dark-900">@category.Name</p>
-                            <p class="text-xs text-dark-500">@category.Code • @(category.SubCategories?.Count ?? 0) subcategories</p>
+                            <p class="text-xs text-dark-500">
+                                @category.Code
+                                @if (category.SubCategories?.Any() == true)
+                                {
+                                    var totalSubs = category.SubCategories.Count;
+                                    var visibleSubs = string.IsNullOrEmpty(SearchTerm)
+                                        ? totalSubs
+                                        : category.SubCategories.Count(sc =>
+                                            sc.Name.ToLower().Contains(SearchTerm.ToLower()) ||
+                                            sc.Code.ToLower().Contains(SearchTerm.ToLower()));
+
+                                    @if (visibleSubs == totalSubs)
+                                    {
+                                        <span>• @totalSubs subcategories</span>
+                                    }
+                                    else
+                                    {
+                                        <span>• @visibleSubs/@totalSubs subcategories</span>
+                                        <span class="text-orange-600 font-medium">(filtered)</span>
+                                    }
+                                }
+                                else
+                                {
+                                    <span>• No subcategories</span>
+                                }
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -592,12 +646,23 @@
             <!-- Subcategories (Recursive) -->
             @if (ExpandedCategories?.Contains(category.Id) == true && category.SubCategories?.Any() == true)
             {
-                <div class="bg-dark-50 border-t border-dark-200">
-                    @foreach (var subCategory in category.SubCategories.OrderBy(c => c.DisplayOrder))
-                    {
-                        @RenderCategoryNode(subCategory, depth + 1)
-                    }
-                </div>
+                var visibleSubCategories = string.IsNullOrEmpty(SearchTerm)
+                    ? category.SubCategories.OrderBy(c => c.DisplayOrder).ToList()
+                    : category.SubCategories
+                        .Where(sc => sc.Name.ToLower().Contains(SearchTerm.ToLower()) ||
+                                    sc.Code.ToLower().Contains(SearchTerm.ToLower()))
+                        .OrderBy(c => c.DisplayOrder)
+                        .ToList();
+
+                @if (visibleSubCategories.Any())
+                {
+                    <div class="bg-dark-50 border-t border-dark-200">
+                        @foreach (var subCategory in visibleSubCategories)
+                        {
+                            @RenderCategoryNode(subCategory, depth + 1)
+                        }
+                    </div>
+                }
             }
         </div>
     };
