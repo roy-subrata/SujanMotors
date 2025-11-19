@@ -99,32 +99,27 @@
                 </div>
             </div>
 
-            <div class="space-y-2">
+            <div class="space-y-2 max-h-[600px] overflow-y-auto pr-2">
                 @foreach (var category in CategoryList.Where(c => c.ParentCategoryId == null).OrderBy(c => c.DisplayOrder))
                 {
-                    <CategoryTreeItem Category="category"
-                    OnEdit="async (id) => await EditCategory(id)"
-                    OnDelete="async (id) => await DeleteCategory(id)"
-                    OnView="async (id) => await ViewCategory(id)"
-                    ExpandedCategories="ExpandedCategories"
-                    OnToggleExpand="async (id) => await ToggleExpand(id)" />
+                    @RenderCategoryNode(category, 0)
                 }
             </div>
         </div>
     }
-    <!-- List View -->
+    <!-- List View with Infinite Scroll -->
     @if (!IsLoading && !IsTreeView && CategoryList.Any())
     {
         <div class="card">
             <div class="flex items-center justify-between mb-6">
                 <h3 class="text-lg font-bold text-dark-900">All Categories</h3>
-                <div class="text-sm text-dark-500">Total: @CategoryList.Count</div>
+                <div class="text-sm text-dark-500">Showing: @DisplayedCategoriesCount / @CategoryList.Count total</div>
             </div>
 
             <div class="overflow-x-auto">
                 <table class="w-full">
                     <thead>
-                        <tr class="border-b border-dark-200">
+                        <tr class="border-b border-dark-200 sticky top-0 bg-white">
                             <th class="px-4 py-3 text-left text-sm font-semibold text-dark-900">Name</th>
                             <th class="px-4 py-3 text-left text-sm font-semibold text-dark-900">Code</th>
                             <th class="px-4 py-3 text-left text-sm font-semibold text-dark-900">Type</th>
@@ -133,7 +128,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var category in CategoryList.OrderBy(c => c.DisplayOrder).ThenBy(c => c.Name))
+                        @foreach (var category in SortedCategories.Take(DisplayedCategoriesCount))
                         {
                             <tr class="border-b border-dark-100 hover:bg-dark-50 transition-colors">
                                 <td class="px-4 py-3">
@@ -181,6 +176,28 @@
                     </tbody>
                 </table>
             </div>
+
+            <!-- Load More Section -->
+            @if (DisplayedCategoriesCount < CategoryList.Count)
+            {
+                <div class="mt-6 flex flex-col items-center gap-4">
+                    <div class="text-sm text-dark-500">
+                        Loading more... @DisplayedCategoriesCount of @CategoryList.Count
+                    </div>
+                    @if (IsLoadingMore)
+                    {
+                        <div class="flex items-center justify-center">
+                            <svg class="w-6 h-6 text-primary-600 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            </svg>
+                            <span class="ml-2 text-dark-600">Loading more categories...</span>
+                        </div>
+                    }
+                    <button @onclick="LoadMoreCategories" disabled="@IsLoadingMore" class="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                        Load More Categories
+                    </button>
+                </div>
+            }
         </div>
     }
     <!-- Empty State -->
@@ -269,10 +286,17 @@
 
 @code {
     private List<CategoryDto> CategoryList = new();
+    private List<CategoryDto> SortedCategories = new();
     private HashSet<Guid> ExpandedCategories = new();
     private bool IsLoading = true;
     private bool IsTreeView = true;
+    private bool IsLoadingMore = false;
     private string ErrorMessage = string.Empty;
+
+    // Pagination settings
+    private const int InitialDisplayCount = 15;
+    private const int LoadMoreCount = 10;
+    private int DisplayedCategoriesCount = InitialDisplayCount;
 
     protected override async Task OnInitializedAsync()
     {
@@ -285,13 +309,18 @@
             IsLoading = true;
             ErrorMessage = string.Empty;
             CategoryList = new();
+            SortedCategories = new();
             ExpandedCategories.Clear();
+            DisplayedCategoriesCount = InitialDisplayCount;
             StateHasChanged();
 
             var response = await CategoryService.GetAllCategoriesAsync();
             if (response != null)
             {
                 CategoryList = response.ToList();
+                // Sort categories for list view
+                SortedCategories = CategoryList.OrderBy(c => c.DisplayOrder).ThenBy(c => c.Name).ToList();
+
                 // Expand first level by default
                 foreach (var category in CategoryList.Where(c => c.ParentCategoryId == null))
                 {
@@ -303,17 +332,36 @@
         {
             ErrorMessage = $"Failed to load categories: {ex.Message}";
             CategoryList = new();
+            SortedCategories = new();
         }
         catch (Exception ex)
         {
             ErrorMessage = $"An error occurred: {ex.Message}";
             CategoryList = new();
+            SortedCategories = new();
         }
         finally
         {
             IsLoading = false;
             StateHasChanged();
         }
+    }
+
+    private async Task LoadMoreCategories()
+    {
+        IsLoadingMore = true;
+        StateHasChanged();
+
+        // Simulate loading delay
+        await Task.Delay(300);
+
+        DisplayedCategoriesCount = Math.Min(
+            DisplayedCategoriesCount + LoadMoreCount,
+            CategoryList.Count
+        );
+
+        IsLoadingMore = false;
+        StateHasChanged();
     }
 
     private void SwitchView(bool treeView)
@@ -401,4 +449,75 @@
             }
         }
     }
+
+    /// <summary>
+    /// Recursively renders category nodes with proper nesting for tree view
+    /// </summary>
+    private RenderFragment RenderCategoryNode(CategoryDto category, int depth) => __builder =>
+    {
+        <div class="border border-dark-200 rounded-lg overflow-hidden mb-2" style="margin-left: @(depth * 16)px;">
+            <div class="flex items-center hover:bg-primary-50 transition-colors">
+                <!-- Expand/Collapse Button -->
+                <button @onclick="() => ToggleExpand(category.Id)" class="p-3 text-dark-600 hover:text-dark-900 flex-shrink-0">
+                    @if (category.SubCategories?.Any() == true)
+                    {
+                        <svg class="w-5 h-5 transition-transform @(ExpandedCategories?.Contains(category.Id) == true ? "rotate-90" : "")"
+                             fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M7 10l5 5 5-5z"></path>
+                        </svg>
+                    }
+                    else
+                    {
+                        <span class="w-5 h-5 inline-block"></span>
+                    }
+                </button>
+
+                <!-- Category Content -->
+                <div class="flex-1 py-3 px-2">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 bg-gradient-to-br from-primary-400 to-primary-600 rounded flex items-center justify-center flex-shrink-0">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M20 7l-8-4-8 4m0 0l8-4 8 4m0 0v10l-8 4-8-4V7m8 4v10m-8-4l8 4 8-4"></path>
+                            </svg>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="font-semibold text-dark-900">@category.Name</p>
+                            <p class="text-xs text-dark-500">@category.Code • @(category.SubCategories?.Count ?? 0) subcategories</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Status Badge -->
+                <div class="px-2 flex-shrink-0">
+                    @if (category.IsActive)
+                    {
+                        <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">Active</span>
+                    }
+                    else
+                    {
+                        <span class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">Inactive</span>
+                    }
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="px-4 py-3 flex gap-2 flex-shrink-0">
+                    <button @onclick="async() => await ViewCategory(category.Id)" class="text-primary-600 hover:text-primary-700 font-medium text-sm" title="View Category">View</button>
+                    <button @onclick="async() => await EditCategory(category.Id)" class="text-blue-600 hover:text-blue-700 font-medium text-sm" title="Edit Category">Edit</button>
+                    <button @onclick="async() => await DeleteCategory(category.Id)" class="text-red-600 hover:text-red-700 font-medium text-sm" title="Delete Category">Delete</button>
+                </div>
+            </div>
+
+            <!-- Subcategories (Recursive) -->
+            @if (ExpandedCategories?.Contains(category.Id) == true && category.SubCategories?.Any() == true)
+            {
+                <div class="bg-dark-50 border-t border-dark-200">
+                    @foreach (var subCategory in category.SubCategories.OrderBy(c => c.DisplayOrder))
+                    {
+                        @RenderCategoryNode(subCategory, depth + 1)
+                    }
+                </div>
+            }
+        </div>
+    };
 }
