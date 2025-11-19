@@ -94,7 +94,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label class="block text-sm font-medium text-dark-900 mb-2">Parent Category</label>
-                        <select @bind="SelectedParentId" @bind:event="onchange" class="input-field">
+                        <select @onchange="OnParentCategoryChanged" value="@SelectedParentId" class="input-field">
                             <option value="">-- No Parent (Root Category) --</option>
                             @foreach (var cat in ParentCategories)
                             {
@@ -177,6 +177,11 @@
     protected override async Task OnInitializedAsync()
     {
         await LoadParentCategories();
+    }
+
+    private void OnParentCategoryChanged(ChangeEventArgs e)
+    {
+        SelectedParentId = e.Value?.ToString() ?? string.Empty;
     }
 
     private async Task LoadParentCategories()
