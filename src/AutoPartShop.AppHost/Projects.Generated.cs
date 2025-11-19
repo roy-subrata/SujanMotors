@@ -7,12 +7,12 @@ namespace Projects
     public sealed class AutoPartShop_Api : IProjectMetadata
     {
         // Absolute path to the API project file (resolved for this workspace)
-        public string ProjectPath => @"D:\\AI\\SujanMotors\\src\\AutoPartShop.Api\\AutoPartShop.Api.csproj";
+        public string ProjectPath => @"D:\AI\SujanMotors\src\AutoPartShop.Api\AutoPartShop.Api.csproj";
     }
 
     public sealed class AutoPartShop_Web : IProjectMetadata
     {
         // Absolute path to the Web project file (resolved for this workspace)
-        public string ProjectPath => @"D:\\AI\\SujanMotors\\src\\AutoPartShop.Web\\AutoPartShop.Web.csproj";
+        public string ProjectPath => @"D:\AI\SujanMotors\src\AutoPartShop.Web\AutoPartShop.Web.csproj";
     }
 }

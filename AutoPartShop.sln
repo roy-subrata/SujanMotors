@@ -5,19 +5,17 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{827E0CD3-B72D-47B6-A68D-7590B98EB39B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoPartsShop.Domain", "src\AutoPartShop.Domain\AutoPartShop.Domain.csproj", "{43C86421-6A4E-4D9F-BFE2-50C49033A04D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoPartShop.Domain", "src\AutoPartShop.Domain\AutoPartShop.Domain.csproj", "{43C86421-6A4E-4D9F-BFE2-50C49033A04D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoPartsShop.AppHost", "src\AutoPartShop.AppHost\AutoPartShop.AppHost.csproj", "{326FC2D1-C0A7-4B87-AEAB-3214F217356D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoPartShop.AppHost", "src\AutoPartShop.AppHost\AutoPartShop.AppHost.csproj", "{326FC2D1-C0A7-4B87-AEAB-3214F217356D}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AutoPartsShop.Application", "AutoPartShop.Application", "{F5F18768-9416-E75D-92CB-29FE0F94A2DA}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoPartShop.Application", "src\AutoPartShop.Application\AutoPartShop.csproj", "{31DD08AC-00D6-47B5-AD05-E0FC5B58D154}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoPartsShop", "src\AutoPartShop.Application\AutoPartShop.csproj", "{31DD08AC-00D6-47B5-AD05-E0FC5B58D154}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoPartShop.Web", "src\AutoPartShop.Web\AutoPartShop.Web.csproj", "{FC1DC0A5-1BA6-4B9F-B528-D7E80EFD60E4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoPartsShop.Web", "src\AutoPartShop.Web\AutoPartShop.Web.csproj", "{FC1DC0A5-1BA6-4B9F-B528-D7E80EFD60E4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoPartShop.Infrastructure", "src\AutoPartShop.Infrastructure\AutoPartShop.Infrastructure.csproj", "{7E12FD80-2B42-46C1-81DC-80456D07ED8B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoPartsShop.Infrastructure", "src\AutoPartShop.Infrastructure\AutoPartShop.Infrastructure.csproj", "{7E12FD80-2B42-46C1-81DC-80456D07ED8B}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoPartsShop.Api", "src\AutoPartShop.Api\AutoPartShop.Api.csproj", "{314F4647-83D5-4878-B59C-CF0E25206892}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoPartShop.Api", "src\AutoPartShop.Api\AutoPartShop.Api.csproj", "{314F4647-83D5-4878-B59C-CF0E25206892}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -108,10 +106,12 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{43C86421-6A4E-4D9F-BFE2-50C49033A04D} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{326FC2D1-C0A7-4B87-AEAB-3214F217356D} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
-		{F5F18768-9416-E75D-92CB-29FE0F94A2DA} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
-		{31DD08AC-00D6-47B5-AD05-E0FC5B58D154} = {F5F18768-9416-E75D-92CB-29FE0F94A2DA}
+		{31DD08AC-00D6-47B5-AD05-E0FC5B58D154} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{FC1DC0A5-1BA6-4B9F-B528-D7E80EFD60E4} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{7E12FD80-2B42-46C1-81DC-80456D07ED8B} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{314F4647-83D5-4878-B59C-CF0E25206892} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {7A69F750-22EB-4BB6-8F05-92DFB4C00C53}
 	EndGlobalSection
 EndGlobal

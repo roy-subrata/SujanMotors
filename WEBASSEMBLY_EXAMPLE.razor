@@ -1,0 +1,78 @@
+@*
+    This file demonstrates how your Categories page would work with InteractiveWebAssembly mode
+    DO NOT use this in production - keep InteractiveServer for your admin panel
+    This is just for educational purposes to show the differences
+*@
+
+@page "/inventory/categories-wasm"
+@rendermode InteractiveWebAssembly
+@using AutoPartShop.Web.Services
+@using MudBlazor
+@inject ICategoryService CategoryService
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject Microsoft.Extensions.Logging.ILogger<CategoriesWebAssembly> Logger
+
+<PageTitle>Categories - AutoParts Shop (WebAssembly)</PageTitle>
+
+<div class="space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-dark-900">Product Categories (WebAssembly Mode)</h1>
+            <p class="text-dark-500 mt-1">This page runs in the browser - instant responsiveness</p>
+        </div>
+    </div>
+
+    <!-- Test Component -->
+    <TestPage OnMessageReceived="HandleMessageFromChild" />
+
+    <!-- Display received message -->
+    @if (!string.IsNullOrEmpty(ErrorMessage))
+    {
+        <div class="card border-l-4 border-blue-500 bg-blue-50">
+            <h4 class="font-semibold text-blue-900">Message from Child:</h4>
+            <p class="text-blue-700">@ErrorMessage</p>
+        </div>
+    }
+
+    <!-- Performance Note -->
+    <div class="card border-l-4 border-yellow-500 bg-yellow-50">
+        <h4 class="font-semibold text-yellow-900">⚡ Performance Note:</h4>
+        <ul class="text-yellow-700 text-sm mt-2 space-y-1">
+            <li>✅ Button clicks respond INSTANTLY (no network delay)</li>
+            <li>❌ Initial page load is SLOWER (downloads .NET runtime ~2MB)</li>
+            <li>✅ App works OFFLINE after loaded</li>
+            <li>❌ Server-side code (CategoryService) requires API calls instead of injection</li>
+        </ul>
+    </div>
+</div>
+
+@code {
+    private string ErrorMessage = string.Empty;
+
+    /// <summary>
+    /// This handler is executed IN THE BROWSER via WebAssembly
+    /// No network roundtrip occurs - instant execution!
+    /// </summary>
+    private async Task HandleMessageFromChild(string message)
+    {
+        Logger.LogInformation($"[WebAssembly] Callback fired in browser: {message}");
+        Console.WriteLine($"[WebAssembly] Check browser console - code executed in browser!");
+
+        ErrorMessage = message;
+
+        // NOTE: StateHasChanged() is NOT needed in WebAssembly!
+        // The component automatically detects the state change and re-renders
+        // But it doesn't hurt to call it:
+        // StateHasChanged();
+
+        await Task.CompletedTask;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Logger.LogInformation("[WebAssembly] Component initialized in browser");
+        await base.OnInitializedAsync();
+    }
+}

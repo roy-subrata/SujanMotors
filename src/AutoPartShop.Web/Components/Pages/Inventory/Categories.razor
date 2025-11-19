@@ -1,7 +1,12 @@
 @page "/inventory/categories"
+@rendermode InteractiveServer
 @using AutoPartShop.Web.Services
+@using MudBlazor
 @inject ICategoryService CategoryService
 @inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject Microsoft.Extensions.Logging.ILogger<Categories> Logger
 
 <PageTitle>Categories - AutoParts Shop</PageTitle>
 
@@ -13,7 +18,7 @@
             <p class="text-dark-500 mt-1">Manage your multilevel product category hierarchy</p>
         </div>
         <div class="flex flex-col sm:flex-row gap-2 flex-shrink-0">
-            <button class="btn-secondary flex items-center justify-center">
+            <button class="btn-secondary flex items-center justify-center" @onclick="ImportCategories">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
                 </svg>
@@ -24,10 +29,10 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                 </svg>
                 Add Category
+
             </a>
         </div>
     </div>
-
     <!-- View Toggle -->
     <div class="card">
         <div class="flex items-center justify-between">
@@ -66,7 +71,7 @@
         </div>
     }
     <!-- Error State -->
-    else if (!string.IsNullOrEmpty(ErrorMessage))
+    @if (!IsLoading && !string.IsNullOrEmpty(ErrorMessage))
     {
         <div class="card border-l-4 border-red-500 bg-red-50">
             <div class="flex items-center gap-4">
@@ -82,7 +87,7 @@
         </div>
     }
     <!-- Tree View -->
-    else if (IsTreeView && CategoryList.Any())
+    @if (!IsLoading && IsTreeView && CategoryList.Any())
     {
         <div class="card">
             <div class="flex items-center justify-between mb-6">
@@ -98,14 +103,17 @@
                 @foreach (var category in CategoryList.Where(c => c.ParentCategoryId == null).OrderBy(c => c.DisplayOrder))
                 {
                     <CategoryTreeItem Category="category"
-                        OnEdit="EditCategory" OnDelete="DeleteCategory" OnView="ViewCategory"
-                        ExpandedCategories="ExpandedCategories" OnToggleExpand="ToggleExpand" />
+                    OnEdit="async (id) => await EditCategory(id)"
+                    OnDelete="async (id) => await DeleteCategory(id)"
+                    OnView="async (id) => await ViewCategory(id)"
+                    ExpandedCategories="ExpandedCategories"
+                    OnToggleExpand="async (id) => await ToggleExpand(id)" />
                 }
             </div>
         </div>
     }
     <!-- List View -->
-    else if (!IsTreeView && CategoryList.Any())
+    @if (!IsLoading && !IsTreeView && CategoryList.Any())
     {
         <div class="card">
             <div class="flex items-center justify-between mb-6">
@@ -141,7 +149,7 @@
                                     </div>
                                 </td>
                                 <td class="px-4 py-3 text-sm text-dark-600">@category.Code</td>
-                                <td class="px-4 py-3 text-sm text-dark-600">
+                                <td class="px-4 py-3 text-sm">
                                     @if (category.ParentCategoryId == null)
                                     {
                                         <span class="px-3 py-1 bg-primary-100 text-primary-700 rounded-full text-xs font-medium">Root</span>
@@ -161,10 +169,12 @@
                                         <span class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">Inactive</span>
                                     }
                                 </td>
-                                <td class="px-4 py-3 flex gap-2">
-                                    <button @onclick="() => ViewCategory(category.Id)" class="text-primary-600 hover:text-primary-700 text-sm font-medium">View</button>
-                                    <button @onclick="() => EditCategory(category.Id)" class="text-blue-600 hover:text-blue-700 text-sm font-medium">Edit</button>
-                                    <button @onclick="() => DeleteCategory(category.Id)" class="text-red-600 hover:text-red-700 text-sm font-medium">Delete</button>
+                                <td class="px-4 py-3 text-sm">
+                                    <div class="flex gap-2">
+                                        <button @onclick="async () => await ViewCategory(category.Id)" class="text-primary-600 hover:text-primary-700 font-medium">View</button>
+                                        <button @onclick="async () => await EditCategory(category.Id)" class="text-blue-600 hover:text-blue-700 font-medium">Edit</button>
+                                        <button @onclick="async () => await DeleteCategory(category.Id)" class="text-red-600 hover:text-red-700 font-medium">Delete</button>
+                                    </div>
                                 </td>
                             </tr>
                         }
@@ -174,44 +184,85 @@
         </div>
     }
     <!-- Empty State -->
-    else if (!IsLoading)
+    @if (!IsLoading && !string.IsNullOrEmpty(ErrorMessage) == false && !CategoryList.Any())
     {
         <div class="card">
-            <div class="flex flex-col items-center justify-center py-12">
+            <div class="flex flex-col items-center justify-center py-12 text-center">
                 <svg class="w-16 h-16 text-dark-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m0 0l8-4 8 4m0 0v10l-8 4-8-4V7m8 4v10m-8-4l8 4 8-4"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                 </svg>
-                <h4 class="text-lg font-semibold text-dark-900 mb-2">No Categories Found</h4>
-                <p class="text-dark-500 mb-6">Start by creating your first product category</p>
-                <a href="/inventory/categories/add" class="btn-primary">Create First Category</a>
+                <h3 class="text-lg font-semibold text-dark-900 mb-2">No categories found</h3>
+                <p class="text-dark-500 mb-6">Start by creating your first category to organize your products</p>
+                <a href="/inventory/categories/add" class="btn-primary flex items-center justify-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    Create First Category
+                </a>
             </div>
         </div>
     }
 
     <!-- Stats Section -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div class="card-sm border-l-4 border-primary-500">
-            <h4 class="font-semibold text-dark-900 mb-3">Total Categories</h4>
-            <p class="text-3xl font-bold text-primary-600">@CategoryList.Count</p>
-            <p class="text-dark-500 text-xs mt-2">Including all levels</p>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="card">
+            <div class="flex items-center">
+                <div class="flex-shrink-0 w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
+                    <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7a7 7 0 110 14 7 7 0 010-14z"></path>
+                    </svg>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm text-dark-500 font-medium">Total Categories</p>
+                    <p class="text-2xl font-bold text-dark-900">@CategoryList.Count</p>
+                    <p class="text-xs text-dark-500 mt-1">Including all levels</p>
+                </div>
+            </div>
         </div>
 
-        <div class="card-sm border-l-4 border-blue-500">
-            <h4 class="font-semibold text-dark-900 mb-3">Root Categories</h4>
-            <p class="text-3xl font-bold text-blue-600">@CategoryList.Count(c => c.ParentCategoryId == null)</p>
-            <p class="text-dark-500 text-xs mt-2">Top level items</p>
+        <div class="card">
+            <div class="flex items-center">
+                <div class="flex-shrink-0 w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4"></path>
+                    </svg>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm text-dark-500 font-medium">Root Categories</p>
+                    <p class="text-2xl font-bold text-dark-900">@CategoryList.Count(c => c.ParentCategoryId == null)</p>
+                    <p class="text-xs text-dark-500 mt-1">Top level items</p>
+                </div>
+            </div>
         </div>
 
-        <div class="card-sm border-l-4 border-green-500">
-            <h4 class="font-semibold text-dark-900 mb-3">Subcategories</h4>
-            <p class="text-3xl font-bold text-green-600">@CategoryList.Count(c => c.ParentCategoryId != null)</p>
-            <p class="text-dark-500 text-xs mt-2">Child categories</p>
+        <div class="card">
+            <div class="flex items-center">
+                <div class="flex-shrink-0 w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm text-dark-500 font-medium">Subcategories</p>
+                    <p class="text-2xl font-bold text-dark-900">@CategoryList.Count(c => c.ParentCategoryId != null)</p>
+                    <p class="text-xs text-dark-500 mt-1">Child categories</p>
+                </div>
+            </div>
         </div>
 
-        <div class="card-sm border-l-4 border-orange-500">
-            <h4 class="font-semibold text-dark-900 mb-3">Active</h4>
-            <p class="text-3xl font-bold text-orange-600">@CategoryList.Count(c => c.IsActive)</p>
-            <p class="text-dark-500 text-xs mt-2">Active categories</p>
+        <div class="card">
+            <div class="flex items-center">
+                <div class="flex-shrink-0 w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                    <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm text-dark-500 font-medium">Active</p>
+                    <p class="text-2xl font-bold text-dark-900">@CategoryList.Count(c => c.IsActive)</p>
+                    <p class="text-xs text-dark-500 mt-1">Active categories</p>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -227,7 +278,6 @@
     {
         await LoadCategories();
     }
-
     private async Task LoadCategories()
     {
         try
@@ -236,6 +286,7 @@
             ErrorMessage = string.Empty;
             CategoryList = new();
             ExpandedCategories.Clear();
+            StateHasChanged();
 
             var response = await CategoryService.GetAllCategoriesAsync();
             if (response != null)
@@ -251,20 +302,28 @@
         catch (ServiceException ex)
         {
             ErrorMessage = $"Failed to load categories: {ex.Message}";
+            CategoryList = new();
         }
         catch (Exception ex)
         {
             ErrorMessage = $"An error occurred: {ex.Message}";
+            CategoryList = new();
         }
         finally
         {
             IsLoading = false;
+            StateHasChanged();
         }
     }
 
     private void SwitchView(bool treeView)
     {
         IsTreeView = treeView;
+    }
+
+    private void ImportCategories()
+    {
+        Snackbar.Add("Import feature coming soon", Severity.Info);
     }
 
     private void ExpandAll()
@@ -280,7 +339,7 @@
         ExpandedCategories.Clear();
     }
 
-    private void ToggleExpand(Guid categoryId)
+    private Task ToggleExpand(Guid categoryId)
     {
         if (ExpandedCategories.Contains(categoryId))
         {
@@ -290,40 +349,56 @@
         {
             ExpandedCategories.Add(categoryId);
         }
+        return Task.CompletedTask;
     }
 
-    private void ViewCategory(Guid id)
+    private Task ViewCategory(Guid id)
     {
-        Navigation.NavigateTo($"/inventory/categories/view/{id}");
+        Logger.LogInformation($"[Categories] ViewCategory called for ID: {id}");
+        Console.WriteLine($"[Categories] ViewCategory called for ID: {id}");
+        Navigation.NavigateTo($"/inventory/categories/{id}");
+        return Task.CompletedTask;
     }
 
-    private void EditCategory(Guid id)
+    private Task EditCategory(Guid id)
     {
-        Navigation.NavigateTo($"/inventory/categories/edit/{id}");
+        Logger.LogInformation($"[Categories] EditCategory called for ID: {id}");
+        Console.WriteLine($"[Categories] EditCategory called for ID: {id}");
+        Navigation.NavigateTo($"/inventory/categories/{id}/edit");
+        return Task.CompletedTask;
     }
 
     private async Task DeleteCategory(Guid id)
     {
-        if (!await ConfirmDelete()) return;
+        Logger.LogInformation($"[Categories] DeleteCategory called for ID: {id}");
+        Console.WriteLine($"[Categories] DeleteCategory called for ID: {id}");
 
-        try
+        var parameters = new DialogParameters<ConfirmDeleteDialog>
         {
-            await CategoryService.DeleteCategoryAsync(id);
-            await LoadCategories();
-        }
-        catch (ServiceException ex)
-        {
-            ErrorMessage = $"Error deleting category: {ex.Message}";
-        }
-        catch (Exception ex)
-        {
-            ErrorMessage = $"An unexpected error occurred: {ex.Message}";
-        }
-    }
+            { nameof(ConfirmDeleteDialog.ContentText), "Are you sure you want to delete this category?" }
+        };
 
-    private async Task<bool> ConfirmDelete()
-    {
-        // In a real app, use a confirmation dialog
-        return await Task.FromResult(true);
+        var dialog = await DialogService.ShowAsync<ConfirmDeleteDialog>("Confirm Delete", parameters);
+        var result = await dialog.Result;
+
+        if (result?.Canceled != true)
+        {
+            try
+            {
+                await CategoryService.DeleteCategoryAsync(id);
+                Snackbar.Add("Category deleted successfully", Severity.Success);
+                await LoadCategories();
+            }
+            catch (ServiceException ex)
+            {
+                ErrorMessage = $"Error deleting category: {ex.Message}";
+                Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = $"An unexpected error occurred: {ex.Message}";
+                Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+            }
+        }
     }
 }

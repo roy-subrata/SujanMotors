@@ -15,15 +15,18 @@ public static class ServiceExtensions
         {
             // Get the API base address from configuration
             var config = provider.GetRequiredService<IConfiguration>();
-            var apiBaseUrl = config["Services:api:http"];
 
-            // Fallback to ApiBaseUrl if Aspire config not found
+            // Priority order:
+            // 1. ApiBaseUrl - direct localhost/IP address (for standalone/dev)
+            // 2. Services:api:http - Aspire service name (for AppHost)
+            // 3. http://localhost:5000 - fallback default
+            var apiBaseUrl = config["ApiBaseUrl"];
+
             if (string.IsNullOrWhiteSpace(apiBaseUrl))
             {
-                apiBaseUrl = config["ApiBaseUrl"];
+                apiBaseUrl = config["Services:api:http"];
             }
 
-            // Final fallback to localhost
             if (string.IsNullOrWhiteSpace(apiBaseUrl))
             {
                 apiBaseUrl = "http://localhost:5000";
@@ -45,7 +48,7 @@ public static class ServiceExtensions
             {
                 throw new InvalidOperationException(
                     $"Invalid API base URL configured: '{apiBaseUrl}'. " +
-                    $"Please check configuration keys 'Services:api:http' or 'ApiBaseUrl'.",
+                    $"Please check configuration keys 'ApiBaseUrl' or 'Services:api:http'.",
                     ex);
             }
         });

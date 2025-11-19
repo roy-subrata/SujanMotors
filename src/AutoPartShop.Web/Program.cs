@@ -1,5 +1,6 @@
-using AutoPartsShop.Web.Components;
+using AutoPartShop.Web.Components;
 using AutoPartShop.Web.Services;
+using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,6 +10,9 @@ var config = builder.Configuration;
 // Add services to the container
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+// Add MudBlazor services
+builder.Services.AddMudServices();
 
 // Add application services (Category service, etc.)
 builder.Services.AddApplicationServices(builder.Environment, builder.Configuration);

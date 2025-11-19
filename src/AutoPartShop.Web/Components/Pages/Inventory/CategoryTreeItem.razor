@@ -1,0 +1,177 @@
+@using System.Collections.Generic
+@using System.Linq
+@using AutoPartShop.Web.Services
+@inject Microsoft.Extensions.Logging.ILogger<CategoryTreeItem> Logger
+
+<div class="border border-dark-200 rounded-lg overflow-hidden">
+	<div class="flex items-center hover:bg-primary-50 transition-colors">
+		<!-- Expand/Collapse Button -->
+		<button @onclick="() => OnToggleExpand.InvokeAsync(Category.Id)" class="p-3 text-dark-600 hover:text-dark-900">
+			@if (Category.SubCategories?.Any() == true)
+			{
+				<svg class="w-5 h-5 transition-transform @(ExpandedCategories?.Contains(Category.Id) == true ? "rotate-90" : "")"
+					 fill="currentColor" viewBox="0 0 24 24">
+					<path d="M7 10l5 5 5-5z"></path>
+				</svg>
+			}
+			else
+			{
+				<span class="w-5 h-5"></span>
+			}
+		</button>
+		<!-- Category Content -->
+		<div class="flex-1 py-3 px-2">
+			<div class="flex items-center space-x-3">
+				<div class="w-8 h-8 bg-gradient-to-br from-primary-400 to-primary-600 rounded flex items-center justify-center">
+					<svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+							  d="M20 7l-8-4-8 4m0 0l8-4 8 4m0 0v10l-8 4-8-4V7m8 4v10m-8-4l8 4 8-4"></path>
+					</svg>
+				</div>
+				<div class="flex-1">
+					<p class="font-semibold text-dark-900">@Category.Name</p>
+					<p class="text-xs text-dark-500">@Category.Code • @(Category.SubCategories?.Count ?? 0) subcategories</p>
+				</div>
+			</div>
+		</div>
+
+		<!-- Status Badge -->
+		<div class="px-2">
+			@if (Category.IsActive)
+			{
+				<span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">Active</span>
+			}
+			else
+			{
+				<span class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">Inactive</span>
+			}
+		</div>
+
+
+		<!-- Action Buttons -->
+		<div class="px-4 py-3 flex gap-2 flex-shrink-0">
+			<button @onclick="async() => await ViewClick(Category.Id)" class="text-primary-600 hover:text-primary-700 font-medium text-sm" title="View Category">View</button>
+			<button @onclick="async() => await EditClick(Category.Id)" class="text-blue-600 hover:text-blue-700 font-medium text-sm" title="Edit Category">Edit</button>
+			<button @onclick="async() => await DeleteClick(Category.Id)" class="text-red-600 hover:text-red-700 font-medium text-sm" title="Delete Category">Delete</button>
+		</div>
+	</div>
+
+	<!-- Subcategories -->
+	@if (ExpandedCategories?.Contains(Category.Id) == true && Category.SubCategories?.Any() == true)
+	{
+		<div class="bg-dark-50 border-t border-dark-200">
+			@foreach (var subCategory in Category.SubCategories.OrderBy(c => c.DisplayOrder))
+			{
+				<div class="flex items-center hover:bg-primary-50 transition-colors ml-4">
+					<span class="p-3 text-dark-300 w-14"></span>
+					<div class="flex-1 py-3 px-2">
+						<div class="flex items-center space-x-3">
+							<div class="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
+								<svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+										  d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+								</svg>
+							</div>
+							<div class="flex-1">
+								<p class="font-medium text-dark-900">@subCategory.Name</p>
+								<p class="text-xs text-dark-500">@subCategory.Code</p>
+							</div>
+						</div>
+					</div>
+
+					<!-- Sub-status Badge -->
+					<div class="px-2">
+						@if (subCategory.IsActive)
+						{
+							<span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">Active</span>
+						}
+						else
+						{
+							<span class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">Inactive</span>
+						}
+					</div>
+
+					<div class="px-4 py-3 flex gap-2 flex-shrink-0">
+						<button @onclick="async () => await ViewClick(subCategory.Id)" class="text-primary-600 hover:text-primary-700 font-medium text-sm">View</button>
+						<button @onclick="async () => await EditClick(subCategory.Id)" class="text-blue-600 hover:text-blue-700 font-medium text-sm">Edit</button>
+						<button @onclick="async () => await DeleteClick(subCategory.Id)" class="text-red-600 hover:text-red-700 font-medium text-sm">Delete</button>
+					</div>
+				</div>
+			}
+		</div>
+	}
+</div>
+
+@code {
+	[Parameter]
+	public required CategoryDto Category { get; set; }
+
+	[Parameter]
+	public EventCallback<Guid> OnEdit { get; set; }
+
+	[Parameter]
+	public EventCallback<Guid> OnDelete { get; set; }
+
+	[Parameter]
+	public EventCallback<Guid> OnView { get; set; }
+
+	[Parameter]
+	public required HashSet<Guid> ExpandedCategories { get; set; }
+
+	[Parameter]
+	public EventCallback<Guid> OnToggleExpand { get; set; }
+
+	private async Task ViewClick(Guid id)
+	{
+		Logger.LogInformation($"[CategoryTreeItem] ViewClick triggered for ID: {id}");
+		Console.WriteLine($"[CategoryTreeItem] ViewClick triggered for ID: {id}");
+
+		if (OnView.HasDelegate)
+		{
+			Logger.LogInformation($"[CategoryTreeItem] OnView callback exists, invoking...");
+			Console.WriteLine($"[CategoryTreeItem] OnView callback exists, invoking...");
+			await OnView.InvokeAsync(id);
+		}
+		else
+		{
+			Logger.LogWarning($"[CategoryTreeItem] OnView callback is null or has no delegate");
+			Console.WriteLine($"[CategoryTreeItem] OnView callback is null or has no delegate");
+		}
+	}
+
+	private async Task EditClick(Guid id)
+	{
+		Logger.LogInformation($"[CategoryTreeItem] EditClick triggered for ID: {id}");
+		Console.WriteLine($"[CategoryTreeItem] EditClick triggered for ID: {id}");
+
+		if (OnEdit.HasDelegate)
+		{
+			Logger.LogInformation($"[CategoryTreeItem] OnEdit callback exists, invoking...");
+			Console.WriteLine($"[CategoryTreeItem] OnEdit callback exists, invoking...");
+			await OnEdit.InvokeAsync(id);
+		}
+		else
+		{
+			Logger.LogWarning($"[CategoryTreeItem] OnEdit callback is null or has no delegate");
+			Console.WriteLine($"[CategoryTreeItem] OnEdit callback is null or has no delegate");
+		}
+	}
+
+	private async Task DeleteClick(Guid id)
+	{
+		Logger.LogInformation($"[CategoryTreeItem] DeleteClick triggered for ID: {id}");
+		Console.WriteLine($"[CategoryTreeItem] DeleteClick triggered for ID: {id}");
+
+		if (OnDelete.HasDelegate)
+		{
+			Logger.LogInformation($"[CategoryTreeItem] OnDelete callback exists, invoking...");
+			Console.WriteLine($"[CategoryTreeItem] OnDelete callback exists, invoking...");
+			await OnDelete.InvokeAsync(id);
+		}
+		else
+		{
+			Logger.LogWarning($"[CategoryTreeItem] OnDelete callback is null or has no delegate");
+			Console.WriteLine($"[CategoryTreeItem] OnDelete callback is null or has no delegate");
+		}
+	}
+}

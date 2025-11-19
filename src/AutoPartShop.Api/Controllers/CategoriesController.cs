@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
-using AutoPartShop.Application.DTOs.CategoryDtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Infrastructure.Repositories;
+using AutoPartShop.Application.DTOs.CategoryDtos;
 
 namespace AutoPartShop.Api.Controllers;
 

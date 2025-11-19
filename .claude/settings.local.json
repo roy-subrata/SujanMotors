@@ -15,7 +15,22 @@
       "Bash(powershell -Command:*)",
       "Bash(dotnet clean:*)",
       "Bash(del \"nul\" 2)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(del \"d:\\AI\\SujanMotors\\src\\AutoPartShop.AppHost\\Projects.Generated.cs\")",
+      "Bash(dotnet restore:*)",
+      "Bash(dotnet add:*)",
+      "Bash(find:*)",
+      "Bash(xargs -I {} sh -c 'echo \"\"\"\"=== {} ===\"\"\"\" && head -5 \"\"\"\"{}\"\"\"\"')",
+      "Bash(for file in src/AutoPartShop.Web/Components/Pages/Inventory/*.razor)",
+      "Bash(do if grep -q \"@page\" \"$file\")",
+      "Bash(! grep -q \"@rendermode\" \"$file\")",
+      "Bash(then echo \"MISSING: $file\")",
+      "Bash(fi)",
+      "Bash(done)",
+      "Bash(for:*)",
+      "Bash(then basename \"$file\")",
+      "Bash(then echo \"STILL MISSING: $file\")",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
