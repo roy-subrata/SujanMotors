@@ -40,7 +40,18 @@ public class CategoryRepository : ICategoryRepository
         if (_categories.Any(c => c.Code == entity.Code && !c.Isdeleted))
             throw new InvalidOperationException($"Category with code '{entity.Code}' already exists");
 
+        // Add the category to the list
         _categories.Add(entity);
+
+        // If this category has a parent, add it to the parent's subcategories
+        if (entity.ParentCategoryId.HasValue)
+        {
+            var parentCategory = _categories.FirstOrDefault(c => c.Id == entity.ParentCategoryId && !c.Isdeleted);
+            if (parentCategory != null)
+            {
+                parentCategory.SubCategories.Add(entity);
+            }
+        }
     }
 
     public async Task UpdateAsync(Category entity, CancellationToken cancellationToken = default)

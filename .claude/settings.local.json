@@ -30,7 +30,8 @@
       "Bash(for:*)",
       "Bash(then basename \"$file\")",
       "Bash(then echo \"STILL MISSING: $file\")",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git checkout:*)"
     ],
     "deny": [],
     "ask": []

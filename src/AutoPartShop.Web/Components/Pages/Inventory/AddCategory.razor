@@ -94,11 +94,11 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label class="block text-sm font-medium text-dark-900 mb-2">Parent Category</label>
-                        <select @bind="NewCategory.ParentCategoryId" class="input-field">
+                        <select @bind="SelectedParentId" @bind:event="onchange" class="input-field">
                             <option value="">-- No Parent (Root Category) --</option>
                             @foreach (var cat in ParentCategories)
                             {
-                                <option value="@cat.Id">@cat.Name (@cat.Code)</option>
+                                <option value="@cat.Id.ToString()">@cat.Name (@cat.Code)</option>
                             }
                         </select>
                         <p class="text-xs text-dark-500 mt-1">Leave empty to create a root category</p>
@@ -169,6 +169,7 @@
 @code {
     private CreateCategoryRequest NewCategory = new() { IsActive = true };
     private List<CategoryDto> ParentCategories = new();
+    private string SelectedParentId = string.Empty;
     private bool IsSubmitting = false;
     private string ErrorMessage = string.Empty;
     private string SuccessMessage = string.Empty;
@@ -219,6 +220,16 @@
             ErrorMessage = string.Empty;
             SuccessMessage = string.Empty;
 
+            // Set ParentCategoryId from SelectedParentId
+            if (string.IsNullOrEmpty(SelectedParentId))
+            {
+                NewCategory.ParentCategoryId = null;
+            }
+            else if (Guid.TryParse(SelectedParentId, out var parentId))
+            {
+                NewCategory.ParentCategoryId = parentId;
+            }
+
             await CategoryService.CreateCategoryAsync(NewCategory);
             SuccessMessage = "Category created successfully!";
             await Task.Delay(1500);
@@ -241,6 +252,7 @@
     private void ResetForm()
     {
         NewCategory = new() { IsActive = true };
+        SelectedParentId = string.Empty;
         ErrorMessage = string.Empty;
         SuccessMessage = string.Empty;
     }
