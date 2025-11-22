@@ -36,7 +36,7 @@ public class CategoriesController : ControllerBase
         {
             _logger.LogInformation("Fetching all categories");
             var categories = await _categoryRepository.GetAllAsync(cancellationToken);
-            var response = categories.Select(MapToResponse).ToList();
+            var response = categories.Select(c => MapToResponse(c)).ToList();
 
             _logger.LogInformation("Successfully fetched {Count} categories", response.Count);
             return Ok(response);
@@ -62,7 +62,7 @@ public class CategoriesController : ControllerBase
         {
             _logger.LogInformation("Fetching active categories");
             var categories = await _categoryRepository.GetAllActiveAsync(cancellationToken);
-            var response = categories.Select(MapToResponse).ToList();
+            var response = categories.Select(c => MapToResponse(c)).ToList();
 
             _logger.LogInformation("Successfully fetched {Count} active categories", response.Count);
             return Ok(response);
@@ -88,7 +88,7 @@ public class CategoriesController : ControllerBase
         {
             _logger.LogInformation("Fetching top-level categories");
             var categories = await _categoryRepository.GetTopLevelCategoriesAsync(cancellationToken);
-            var response = categories.Select(MapToResponse).ToList();
+            var response = categories.Select(c => MapToResponse(c)).ToList();
 
             _logger.LogInformation("Successfully fetched {Count} top-level categories", response.Count);
             return Ok(response);
@@ -159,7 +159,7 @@ public class CategoriesController : ControllerBase
             }
 
             var subcategories = await _categoryRepository.GetSubcategoriesAsync(parentCategoryId, cancellationToken);
-            var response = subcategories.Select(MapToResponse).ToList();
+            var response = subcategories.Select(c => MapToResponse(c)).ToList();
 
             _logger.LogInformation("Successfully fetched {Count} subcategories for parent ID: {ParentCategoryId}", response.Count, parentCategoryId);
             return Ok(response);
@@ -193,7 +193,7 @@ public class CategoriesController : ControllerBase
 
             _logger.LogInformation("Searching categories with term: {SearchTerm}", searchTerm);
             var categories = await _categoryRepository.SearchAsync(searchTerm, cancellationToken);
-            var response = categories.Select(MapToResponse).ToList();
+            var response = categories.Select(c => MapToResponse(c)).ToList();
 
             _logger.LogInformation("Found {Count} categories matching search term: {SearchTerm}", response.Count, searchTerm);
             return Ok(response);
@@ -228,7 +228,7 @@ public class CategoriesController : ControllerBase
 
             _logger.LogInformation("Fetching categories with pagination: pageNumber={PageNumber}, pageSize={PageSize}", pageNumber, pageSize);
             var (items, totalCount) = await _categoryRepository.GetPagedAsync(pageNumber, pageSize, cancellationToken);
-            var response = items.Select(MapToResponse).ToList();
+            var response = items.Select(c => MapToResponse(c)).ToList();
 
             _logger.LogInformation("Successfully fetched page {PageNumber} with {Count} categories", pageNumber, response.Count);
             return Ok(new
@@ -528,7 +528,7 @@ public class CategoriesController : ControllerBase
             }
 
             var ancestors = await _categoryRepository.GetAncestorsAsync(categoryId, cancellationToken);
-            var response = ancestors.Select(MapToResponse).ToList();
+            var response = ancestors.Select(c => MapToResponse(c)).ToList();
 
             _logger.LogInformation("Retrieved {Count} ancestors for category: {CategoryId}", response.Count, categoryId);
             return Ok(response);
@@ -562,7 +562,7 @@ public class CategoriesController : ControllerBase
             }
 
             var descendants = await _categoryRepository.GetAllDescendantsAsync(categoryId, cancellationToken);
-            var response = descendants.Select(MapToResponse).ToList();
+            var response = descendants.Select(c => MapToResponse(c)).ToList();
 
             _logger.LogInformation("Retrieved {Count} descendants for category: {CategoryId}", response.Count, categoryId);
             return Ok(response);
@@ -661,8 +661,13 @@ public class CategoriesController : ControllerBase
     /// <summary>
     /// Map Category entity to CategoryResponse DTO
     /// </summary>
-    private static CategoryResponse MapToResponse(Category category)
+    private static CategoryResponse MapToResponse(Category category, int depth = 0, int maxDepth = 3)
     {
+        // Prevent deep recursion to avoid serialization issues
+        var subcategories = (depth < maxDepth && category.SubCategories != null)
+            ? category.SubCategories.Select(sc => MapToResponse(sc, depth + 1, maxDepth)).ToList()
+            : new List<CategoryResponse>();
+
         return new CategoryResponse
         {
             Id = category.Id,
@@ -677,7 +682,7 @@ public class CategoriesController : ControllerBase
             BreadcrumbPath = category.BreadcrumbPath,
             DepthLevel = category.DepthLevel,
             ChildCount = category.ChildCount,
-            SubCategories = category.SubCategories.Select(MapToResponse).ToList()
+            SubCategories = subcategories
         };
     }
 }

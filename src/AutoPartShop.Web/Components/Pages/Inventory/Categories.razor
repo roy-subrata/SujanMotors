@@ -213,9 +213,9 @@
                                 </td>
                                 <td class="px-4 py-3 text-sm">
                                     <div class="flex gap-2">
-                                        <button @onclick="async () => await ViewCategory(category.Id)" class="text-primary-600 hover:text-primary-700 font-medium">View</button>
-                                        <button @onclick="async () => await EditCategory(category.Id)" class="text-blue-600 hover:text-blue-700 font-medium">Edit</button>
-                                        <button @onclick="async () => await DeleteCategory(category.Id)" class="text-red-600 hover:text-red-700 font-medium">Delete</button>
+                                        <button type="button" @onclick="@(async () => await ViewCategory(category.Id))" class="text-primary-600 hover:text-primary-700 font-medium">View</button>
+                                        <button type="button" @onclick="@(async () => await EditCategory(category.Id))" class="text-blue-600 hover:text-blue-700 font-medium">Edit</button>
+                                        <button type="button" @onclick="@(async () => await DeleteCategory(category.Id))" class="text-red-600 hover:text-red-700 font-medium">Delete</button>
                                     </div>
                                 </td>
                             </tr>
@@ -591,24 +591,38 @@
         var dialog = await DialogService.ShowAsync<ConfirmDeleteDialog>("Confirm Delete", parameters);
         var result = await dialog.Result;
 
+        Logger.LogInformation($"[Categories] Delete dialog result - Canceled: {result?.Canceled}");
+        Console.WriteLine($"[Categories] Delete dialog result - Canceled: {result?.Canceled}");
+
         if (result?.Canceled != true)
         {
             try
             {
+                Logger.LogInformation($"[Categories] Proceeding with deletion for ID: {id}");
                 await CategoryService.DeleteCategoryAsync(id);
+                Logger.LogInformation($"[Categories] Category deleted successfully: {id}");
                 Snackbar.Add("Category deleted successfully", Severity.Success);
                 await LoadCategories();
+                StateHasChanged();
             }
             catch (ServiceException ex)
             {
                 ErrorMessage = $"Error deleting category: {ex.Message}";
+                Logger.LogError($"[Categories] ServiceException during deletion: {ex.Message}");
                 Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+                StateHasChanged();
             }
             catch (Exception ex)
             {
                 ErrorMessage = $"An unexpected error occurred: {ex.Message}";
+                Logger.LogError($"[Categories] Unexpected exception during deletion: {ex.Message}");
                 Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+                StateHasChanged();
             }
+        }
+        else
+        {
+            Logger.LogInformation($"[Categories] Delete operation canceled by user for ID: {id}");
         }
     }
 
@@ -694,9 +708,9 @@
 
                 <!-- Action Buttons -->
                 <div class="px-4 py-3 flex gap-2 flex-shrink-0">
-                    <button @onclick="async() => await ViewCategory(category.Id)" class="text-primary-600 hover:text-primary-700 font-medium text-sm" title="View Category">View</button>
-                    <button @onclick="async() => await EditCategory(category.Id)" class="text-blue-600 hover:text-blue-700 font-medium text-sm" title="Edit Category">Edit</button>
-                    <button @onclick="async() => await DeleteCategory(category.Id)" class="text-red-600 hover:text-red-700 font-medium text-sm" title="Delete Category">Delete</button>
+                    <button type="button" @onclick="@(async () => await ViewCategory(category.Id))" class="text-primary-600 hover:text-primary-700 font-medium text-sm" title="View Category">View</button>
+                    <button type="button" @onclick="@(async () => await EditCategory(category.Id))" class="text-blue-600 hover:text-blue-700 font-medium text-sm" title="Edit Category">Edit</button>
+                    <button type="button" @onclick="@(async () => await DeleteCategory(category.Id))" class="text-red-600 hover:text-red-700 font-medium text-sm" title="Delete Category">Delete</button>
                 </div>
             </div>
 

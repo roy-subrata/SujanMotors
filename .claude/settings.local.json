@@ -31,7 +31,9 @@
       "Bash(then basename \"$file\")",
       "Bash(then echo \"STILL MISSING: $file\")",
       "Bash(git commit:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(lsof:*)",
+      "Bash(xargs kill:*)"
     ],
     "deny": [],
     "ask": []
