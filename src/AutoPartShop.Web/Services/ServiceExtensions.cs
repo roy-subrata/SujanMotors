@@ -1,5 +1,8 @@
 namespace AutoPartShop.Web.Services;
 
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
 /// <summary>
 /// Extension methods for registering services in the Web project
 /// </summary>
@@ -10,6 +13,15 @@ public static class ServiceExtensions
     /// </summary>
     public static IServiceCollection AddCategoryService(this IServiceCollection services, IHostEnvironment environment)
     {
+        // Configure JSON serialization options to match API response format (camelCase)
+        var jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true, // Allow case-insensitive matching
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase, // Expect camelCase from API
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, // Ignore null values
+            WriteIndented = false // Compact JSON
+        };
+
         // Register HttpClient for API communication
         services.AddHttpClient<ICategoryService, CategoryService>((provider, client) =>
         {

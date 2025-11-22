@@ -1,4 +1,6 @@
 using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace AutoPartShop.Web.Services;
 
@@ -10,11 +12,21 @@ public class CategoryService : ICategoryService
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<CategoryService> _logger;
+    private readonly JsonSerializerOptions _jsonOptions;
 
     public CategoryService(HttpClient httpClient, ILogger<CategoryService> logger)
     {
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+
+        // Configure JSON options to handle API response format (camelCase)
+        _jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true, // Allow case-insensitive property matching
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase, // Expect camelCase from API
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, // Ignore null values
+            WriteIndented = false
+        };
     }
 
     public async Task<IEnumerable<CategoryDto>> GetAllCategoriesAsync(CancellationToken cancellationToken = default)
@@ -22,7 +34,7 @@ public class CategoryService : ICategoryService
         try
         {
             _logger.LogInformation("Fetching all categories");
-            var response = await _httpClient.GetFromJsonAsync<List<CategoryDto>>("api/categories", cancellationToken);
+            var response = await _httpClient.GetFromJsonAsync<List<CategoryDto>>("api/categories", _jsonOptions, cancellationToken);
             return response ?? new List<CategoryDto>();
         }
         catch (HttpRequestException ex)
@@ -42,7 +54,7 @@ public class CategoryService : ICategoryService
         try
         {
             _logger.LogInformation("Fetching active categories");
-            var response = await _httpClient.GetFromJsonAsync<List<CategoryDto>>("api/categories/active", cancellationToken);
+            var response = await _httpClient.GetFromJsonAsync<List<CategoryDto>>("api/categories/active", _jsonOptions, cancellationToken);
             return response ?? new List<CategoryDto>();
         }
         catch (Exception ex)
@@ -57,7 +69,7 @@ public class CategoryService : ICategoryService
         try
         {
             _logger.LogInformation("Fetching top-level categories");
-            var response = await _httpClient.GetFromJsonAsync<List<CategoryDto>>("api/categories/top-level", cancellationToken);
+            var response = await _httpClient.GetFromJsonAsync<List<CategoryDto>>("api/categories/top-level", _jsonOptions, cancellationToken);
             return response ?? new List<CategoryDto>();
         }
         catch (Exception ex)
@@ -72,7 +84,7 @@ public class CategoryService : ICategoryService
         try
         {
             _logger.LogInformation("Fetching category with ID: {CategoryId}", id);
-            var response = await _httpClient.GetFromJsonAsync<CategoryDto>($"api/categories/{id}", cancellationToken);
+            var response = await _httpClient.GetFromJsonAsync<CategoryDto>($"api/categories/{id}", _jsonOptions, cancellationToken);
             return response;
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -92,7 +104,7 @@ public class CategoryService : ICategoryService
         try
         {
             _logger.LogInformation("Fetching subcategories for parent: {ParentCategoryId}", parentCategoryId);
-            var response = await _httpClient.GetFromJsonAsync<List<CategoryDto>>($"api/categories/{parentCategoryId}/subcategories", cancellationToken);
+            var response = await _httpClient.GetFromJsonAsync<List<CategoryDto>>($"api/categories/{parentCategoryId}/subcategories", _jsonOptions, cancellationToken);
             return response ?? new List<CategoryDto>();
         }
         catch (Exception ex)
@@ -110,7 +122,7 @@ public class CategoryService : ICategoryService
                 throw new ArgumentException("Search term cannot be empty", nameof(searchTerm));
 
             _logger.LogInformation("Searching categories with term: {SearchTerm}", searchTerm);
-            var response = await _httpClient.GetFromJsonAsync<List<CategoryDto>>($"api/categories/search/{Uri.EscapeDataString(searchTerm)}", cancellationToken);
+            var response = await _httpClient.GetFromJsonAsync<List<CategoryDto>>($"api/categories/search/{Uri.EscapeDataString(searchTerm)}", _jsonOptions, cancellationToken);
             return response ?? new List<CategoryDto>();
         }
         catch (Exception ex)
@@ -127,6 +139,7 @@ public class CategoryService : ICategoryService
             _logger.LogInformation("Fetching categories - Page {PageNumber}, Size {PageSize}", pageNumber, pageSize);
             var response = await _httpClient.GetFromJsonAsync<PaginatedResult<CategoryDto>>(
                 $"api/categories/paged?pageNumber={pageNumber}&pageSize={pageSize}",
+                _jsonOptions,
                 cancellationToken
             );
             return response ?? new PaginatedResult<CategoryDto>();
@@ -157,7 +170,7 @@ public class CategoryService : ICategoryService
                 throw new ServiceException($"Failed to create category: {response.StatusCode}");
             }
 
-            var result = await response.Content.ReadFromJsonAsync<CategoryDto>(cancellationToken: cancellationToken);
+            var result = await response.Content.ReadFromJsonAsync<CategoryDto>(_jsonOptions, cancellationToken);
             _logger.LogInformation("Successfully created category: {CategoryId}", result?.Id);
 
             return result ?? throw new ServiceException("Failed to deserialize created category");
@@ -187,7 +200,7 @@ public class CategoryService : ICategoryService
                 throw new ServiceException($"Failed to update category: {response.StatusCode}");
             }
 
-            var result = await response.Content.ReadFromJsonAsync<CategoryDto>(cancellationToken: cancellationToken);
+            var result = await response.Content.ReadFromJsonAsync<CategoryDto>(_jsonOptions, cancellationToken);
             _logger.LogInformation("Successfully updated category: {CategoryId}", id);
 
             return result ?? throw new ServiceException("Failed to deserialize updated category");
@@ -244,7 +257,7 @@ public class CategoryService : ICategoryService
                 throw new ServiceException($"Failed to activate category: {response.StatusCode}");
             }
 
-            var result = await response.Content.ReadFromJsonAsync<CategoryDto>(cancellationToken: cancellationToken);
+            var result = await response.Content.ReadFromJsonAsync<CategoryDto>(_jsonOptions, cancellationToken);
             _logger.LogInformation("Successfully activated category: {CategoryId}", id);
 
             return result ?? throw new ServiceException("Failed to deserialize activated category");
@@ -274,7 +287,7 @@ public class CategoryService : ICategoryService
                 throw new ServiceException($"Failed to deactivate category: {response.StatusCode}");
             }
 
-            var result = await response.Content.ReadFromJsonAsync<CategoryDto>(cancellationToken: cancellationToken);
+            var result = await response.Content.ReadFromJsonAsync<CategoryDto>(_jsonOptions, cancellationToken);
             _logger.LogInformation("Successfully deactivated category: {CategoryId}", id);
 
             return result ?? throw new ServiceException("Failed to deserialize deactivated category");

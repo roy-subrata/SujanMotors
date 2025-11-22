@@ -67,7 +67,7 @@ public interface ICategoryService
 }
 
 /// <summary>
-/// Category Data Transfer Object
+/// Category Data Transfer Object with n-level hierarchy support
 /// </summary>
 public class CategoryDto
 {
@@ -81,6 +81,21 @@ public class CategoryDto
     public string CreatedBy { get; set; } = string.Empty;
     public string ModifiedBy { get; set; } = string.Empty;
     public List<CategoryDto> SubCategories { get; set; } = new();
+
+    /// <summary>
+    /// Breadcrumb path for navigation (e.g., "Engines > Diesel > Small")
+    /// </summary>
+    public string BreadcrumbPath { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Depth level in the hierarchy (0 = root, max 7)
+    /// </summary>
+    public int DepthLevel { get; set; } = 0;
+
+    /// <summary>
+    /// Count of direct child categories
+    /// </summary>
+    public int ChildCount { get; set; } = 0;
 }
 
 /// <summary>

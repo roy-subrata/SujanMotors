@@ -474,6 +474,191 @@ public class CategoriesController : ControllerBase
     }
 
     /// <summary>
+    /// Get breadcrumb path for a category (e.g., "Engines > Diesel > Small")
+    /// </summary>
+    /// <param name="categoryId">Category ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Breadcrumb path string</returns>
+    [HttpGet("{categoryId:guid}/breadcrumb")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult> GetCategoryBreadcrumb(Guid categoryId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var category = await _categoryRepository.GetByIdAsync(categoryId, cancellationToken);
+            if (category == null)
+            {
+                _logger.LogWarning("Category not found for breadcrumb: {CategoryId}", categoryId);
+                return NotFound(new { message = "Category not found" });
+            }
+
+            var breadcrumb = await _categoryRepository.GetBreadcrumbPathAsync(categoryId, cancellationToken);
+            _logger.LogInformation("Retrieved breadcrumb for category: {CategoryId}", categoryId);
+
+            return Ok(new { categoryId, breadcrumbPath = breadcrumb });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting breadcrumb for category: {CategoryId}", categoryId);
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while retrieving breadcrumb" });
+        }
+    }
+
+    /// <summary>
+    /// Get all ancestors of a category (path to root)
+    /// </summary>
+    /// <param name="categoryId">Category ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of ancestor categories</returns>
+    [HttpGet("{categoryId:guid}/ancestors")]
+    [ProducesResponseType(typeof(IEnumerable<CategoryResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<IEnumerable<CategoryResponse>>> GetCategoryAncestors(Guid categoryId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var category = await _categoryRepository.GetByIdAsync(categoryId, cancellationToken);
+            if (category == null)
+            {
+                _logger.LogWarning("Category not found for ancestors: {CategoryId}", categoryId);
+                return NotFound(new { message = "Category not found" });
+            }
+
+            var ancestors = await _categoryRepository.GetAncestorsAsync(categoryId, cancellationToken);
+            var response = ancestors.Select(MapToResponse).ToList();
+
+            _logger.LogInformation("Retrieved {Count} ancestors for category: {CategoryId}", response.Count, categoryId);
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting ancestors for category: {CategoryId}", categoryId);
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while retrieving ancestors" });
+        }
+    }
+
+    /// <summary>
+    /// Get all descendants of a category at all levels
+    /// </summary>
+    /// <param name="categoryId">Category ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of all descendant categories</returns>
+    [HttpGet("{categoryId:guid}/descendants")]
+    [ProducesResponseType(typeof(IEnumerable<CategoryResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<IEnumerable<CategoryResponse>>> GetCategoryDescendants(Guid categoryId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var category = await _categoryRepository.GetByIdAsync(categoryId, cancellationToken);
+            if (category == null)
+            {
+                _logger.LogWarning("Category not found for descendants: {CategoryId}", categoryId);
+                return NotFound(new { message = "Category not found" });
+            }
+
+            var descendants = await _categoryRepository.GetAllDescendantsAsync(categoryId, cancellationToken);
+            var response = descendants.Select(MapToResponse).ToList();
+
+            _logger.LogInformation("Retrieved {Count} descendants for category: {CategoryId}", response.Count, categoryId);
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting descendants for category: {CategoryId}", categoryId);
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while retrieving descendants" });
+        }
+    }
+
+    /// <summary>
+    /// Get the depth level of a category in the hierarchy
+    /// </summary>
+    /// <param name="categoryId">Category ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Depth level (0 = root)</returns>
+    [HttpGet("{categoryId:guid}/depth")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult> GetCategoryDepth(Guid categoryId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var category = await _categoryRepository.GetByIdAsync(categoryId, cancellationToken);
+            if (category == null)
+            {
+                _logger.LogWarning("Category not found for depth calculation: {CategoryId}", categoryId);
+                return NotFound(new { message = "Category not found" });
+            }
+
+            var depth = await _categoryRepository.GetDepthAsync(categoryId, cancellationToken);
+            _logger.LogInformation("Retrieved depth {Depth} for category: {CategoryId}", depth, categoryId);
+
+            return Ok(new { categoryId, depthLevel = depth, maxDepth = Category.MaxCategoryDepth });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting depth for category: {CategoryId}", categoryId);
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while calculating depth" });
+        }
+    }
+
+    /// <summary>
+    /// Check if moving a category to a new parent would create a circular reference
+    /// </summary>
+    /// <param name="categoryId">Category ID to move</param>
+    /// <param name="newParentId">Proposed new parent ID (null for root)</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Whether the move would create a circular reference</returns>
+    [HttpPost("{categoryId:guid}/check-circular-reference")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult> CheckCircularReference(Guid categoryId, [FromQuery] Guid? newParentId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var category = await _categoryRepository.GetByIdAsync(categoryId, cancellationToken);
+            if (category == null)
+            {
+                _logger.LogWarning("Category not found for circular reference check: {CategoryId}", categoryId);
+                return NotFound(new { message = "Category not found" });
+            }
+
+            if (newParentId.HasValue)
+            {
+                var parentExists = await _categoryRepository.ExistsAsync(newParentId.Value, cancellationToken);
+                if (!parentExists)
+                {
+                    _logger.LogWarning("Proposed parent category not found: {ParentId}", newParentId);
+                    return BadRequest(new { message = "Proposed parent category not found" });
+                }
+            }
+
+            var wouldCreateCircle = await _categoryRepository.WouldCreateCircularReferenceAsync(categoryId, newParentId, cancellationToken);
+            _logger.LogInformation("Circular reference check for category {CategoryId} with parent {ParentId}: {Result}", categoryId, newParentId, wouldCreateCircle);
+
+            return Ok(new
+            {
+                categoryId,
+                newParentId,
+                wouldCreateCircularReference = wouldCreateCircle,
+                message = wouldCreateCircle ? "Moving this category to the proposed parent would create a circular reference" : "Move is allowed"
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error checking circular reference for category: {CategoryId}", categoryId);
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while checking circular reference" });
+        }
+    }
+
+    /// <summary>
     /// Map Category entity to CategoryResponse DTO
     /// </summary>
     private static CategoryResponse MapToResponse(Category category)
@@ -489,6 +674,9 @@ public class CategoriesController : ControllerBase
             DisplayOrder = category.DisplayOrder,
             CreatedBy = category.CreatedBy,
             ModifiedBy = category.ModifiedBy,
+            BreadcrumbPath = category.BreadcrumbPath,
+            DepthLevel = category.DepthLevel,
+            ChildCount = category.ChildCount,
             SubCategories = category.SubCategories.Select(MapToResponse).ToList()
         };
     }

@@ -264,7 +264,7 @@
         </div>
     }
     <!-- Empty State - No Categories At All -->
-    @if (!IsLoading && !string.IsNullOrEmpty(ErrorMessage) == false && !CategoryList.Any())
+    @if (!IsLoading && string.IsNullOrEmpty(ErrorMessage) && !CategoryList.Any())
     {
         <div class="card">
             <div class="flex flex-col items-center justify-center py-12 text-center">
@@ -435,7 +435,61 @@
                 .ToList();
         }
 
+        // Sort to ensure parent categories appear before their subcategories
+        FilteredCategories = SortCategoriesByHierarchy(FilteredCategories);
         DisplayedCategoriesCount = InitialDisplayCount;
+    }
+
+    private List<CategoryDto> SortCategoriesByHierarchy(List<CategoryDto> categories)
+    {
+        var sorted = new List<CategoryDto>();
+        var categoriesById = categories.ToDictionary(c => c.Id);
+        var processed = new HashSet<Guid>();
+
+        // First add all root categories in order
+        var rootCategories = categories
+            .Where(c => c.ParentCategoryId == null)
+            .OrderBy(c => c.DisplayOrder)
+            .ThenBy(c => c.Name)
+            .ToList();
+
+        foreach (var root in rootCategories)
+        {
+            AddCategoryAndChildren(root, categories, sorted, processed);
+        }
+
+        // Add any orphaned categories (shouldn't happen, but safety check)
+        foreach (var category in categories)
+        {
+            if (!processed.Contains(category.Id))
+            {
+                sorted.Add(category);
+                processed.Add(category.Id);
+            }
+        }
+
+        return sorted;
+    }
+
+    private void AddCategoryAndChildren(CategoryDto category, List<CategoryDto> allCategories, List<CategoryDto> sorted, HashSet<Guid> processed)
+    {
+        if (processed.Contains(category.Id))
+            return;
+
+        sorted.Add(category);
+        processed.Add(category.Id);
+
+        // Add children in order
+        var children = allCategories
+            .Where(c => c.ParentCategoryId == category.Id)
+            .OrderBy(c => c.DisplayOrder)
+            .ThenBy(c => c.Name)
+            .ToList();
+
+        foreach (var child in children)
+        {
+            AddCategoryAndChildren(child, allCategories, sorted, processed);
+        }
     }
 
     private void OnSearchChanged(ChangeEventArgs e)

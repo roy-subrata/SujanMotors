@@ -1,29 +1,69 @@
 @page "/inventory/categories/{id}"
 @rendermode InteractiveServer
+@using AutoPartShop.Web.Services
+@using MudBlazor
+@inject ICategoryService CategoryService
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+@inject Microsoft.Extensions.Logging.ILogger<CategoryDetail> Logger
 
 <PageTitle>Category Details - AutoParts Shop</PageTitle>
 
 <div class="space-y-6">
-    <!-- Page Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <!-- Loading State -->
+    @if (IsLoading)
+    {
+        <div class="card">
+            <div class="flex items-center justify-center py-12">
+                <div class="text-center">
+                    <div class="inline-flex items-center justify-center w-12 h-12 bg-primary-100 rounded-full mb-4">
+                        <svg class="w-6 h-6 text-primary-600 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                    </div>
+                    <p class="text-dark-600 font-medium">Loading category...</p>
+                </div>
+            </div>
+        </div>
+    }
+    <!-- Error State -->
+    else if (!string.IsNullOrEmpty(ErrorMessage))
+    {
+        <div class="card border-l-4 border-red-500 bg-red-50">
+            <div class="flex items-center gap-4">
+                <svg class="w-6 h-6 text-red-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4v.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <div class="flex-1">
+                    <h4 class="font-semibold text-red-900">Error Loading Category</h4>
+                    <p class="text-red-700 text-sm">@ErrorMessage</p>
+                </div>
+                <button @onclick="RetryLoadCategory" class="btn-secondary text-sm">Retry</button>
+            </div>
+        </div>
+    }
+    else if (Category != null)
+    {
+        <!-- Page Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
             <h1 class="text-3xl font-bold text-dark-900">Category Details</h1>
             <p class="text-dark-500 mt-1">Complete information about this category</p>
         </div>
         <div class="flex flex-col sm:flex-row gap-2 flex-shrink-0">
-            <button class="btn-secondary flex items-center justify-center">
+            <button @onclick="HandlePrint" class="btn-secondary flex items-center justify-center" title="Print category details">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
                 </svg>
                 Print
             </button>
-            <button class="btn-secondary flex items-center justify-center">
+            <button @onclick="HandleExport" class="btn-secondary flex items-center justify-center" title="Export category data">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
                 </svg>
                 Export
             </button>
-            <button class="btn-primary flex items-center justify-center">
+            <button @onclick="HandleEdit" class="btn-primary flex items-center justify-center" title="Navigate to: /inventory/categories/{id}/edit">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H14v2.828a2 2 0 11-2.828-2.828l8.586-8.586z"></path>
                 </svg>
@@ -41,10 +81,12 @@
                 <div class="w-full bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg h-40 flex items-center justify-center mb-4">
                     <span class="text-6xl">⚙️</span>
                 </div>
-                <p class="text-center font-semibold text-dark-900">Engine Components</p>
-                <p class="text-center text-sm text-dark-500 mt-1">CAT-001</p>
+                <p class="text-center font-semibold text-dark-900">@Category?.Name</p>
+                <p class="text-center text-sm text-dark-500 mt-1">@Category?.Code</p>
                 <div class="mt-4 pt-4 border-t border-dark-200">
-                    <span class="badge-success">Active</span>
+                    <span class="@(Category?.IsActive == true ? "badge-success" : "badge-warning")">
+                        @(Category?.IsActive == true ? "Active" : "Inactive")
+                    </span>
                 </div>
             </div>
 
@@ -54,32 +96,40 @@
                 <div class="space-y-4">
                     <div>
                         <p class="text-sm text-dark-500 font-medium">Status</p>
-                        <p class="text-dark-900 font-semibold mt-1">Active</p>
+                        <p class="text-dark-900 font-semibold mt-1">@(Category?.IsActive == true ? "Active" : "Inactive")</p>
                     </div>
                     <div>
                         <p class="text-sm text-dark-500 font-medium">Category Level</p>
-                        <p class="text-dark-900 font-semibold mt-1">Root (Level 1)</p>
+                        <p class="text-dark-900 font-semibold mt-1">@GetCategoryLevel()</p>
                     </div>
                     <div>
-                        <p class="text-sm text-dark-500 font-medium">Created On</p>
-                        <p class="text-dark-900 font-semibold mt-1">Jan 15, 2024</p>
+                        <p class="text-sm text-dark-500 font-medium">Display Order</p>
+                        <p class="text-dark-900 font-semibold mt-1">@Category?.DisplayOrder</p>
                     </div>
                     <div>
-                        <p class="text-sm text-dark-500 font-medium">Last Updated</p>
-                        <p class="text-dark-900 font-semibold mt-1">Nov 15, 2024</p>
+                        <p class="text-sm text-dark-500 font-medium">Parent Category</p>
+                        <p class="text-dark-900 font-semibold mt-1">@GetParentCategoryDisplay()</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-dark-500 font-medium">Created By</p>
+                        <p class="text-dark-900 font-semibold mt-1">@Category?.CreatedBy</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-dark-500 font-medium">Last Modified By</p>
+                        <p class="text-dark-900 font-semibold mt-1">@(string.IsNullOrEmpty(Category?.ModifiedBy) ? Category?.CreatedBy : Category?.ModifiedBy)</p>
                     </div>
                 </div>
             </div>
 
             <!-- Actions Card -->
             <div class="card space-y-2">
-                <button class="w-full btn-primary flex items-center justify-center">
+                <button @onclick="HandleAddSubcategory" class="w-full btn-primary flex items-center justify-center" title="Navigate to: /inventory/categories/add?parent={id}">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                     </svg>
                     Add Subcategory
                 </button>
-                <button class="w-full btn-secondary">
+                <button @onclick="HandleViewParts" class="w-full btn-secondary" title="Navigate to: /inventory/products?category={id}">
                     <svg class="w-5 h-5 mr-2 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
                     </svg>
@@ -96,23 +146,15 @@
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <p class="text-sm text-dark-500 font-medium">Category Name</p>
-                        <p class="text-dark-900 font-semibold mt-2">Engine Components</p>
+                        <p class="text-dark-900 font-semibold mt-2">@Category?.Name</p>
                     </div>
                     <div>
                         <p class="text-sm text-dark-500 font-medium">Category Code</p>
-                        <p class="text-dark-900 font-semibold mt-2">CAT-001</p>
-                    </div>
-                    <div>
-                        <p class="text-sm text-dark-500 font-medium">Display Name</p>
-                        <p class="text-dark-900 font-semibold mt-2">Engine Components</p>
-                    </div>
-                    <div>
-                        <p class="text-sm text-dark-500 font-medium">URL Slug</p>
-                        <p class="text-dark-900 font-semibold mt-2">engine-components</p>
+                        <p class="text-dark-900 font-semibold mt-2">@Category?.Code</p>
                     </div>
                     <div className="md:col-span-2">
                         <p class="text-sm text-dark-500 font-medium">Description</p>
-                        <p class="text-dark-700 mt-2">Premium automotive engine components including spark plugs, air filters, oil filters, and ignition systems for gasoline and diesel engines.</p>
+                        <p class="text-dark-700 mt-2">@Category?.Description</p>
                     </div>
                 </div>
             </div>
@@ -124,36 +166,32 @@
                     <div className="flex items-center">
                         <span class="inline-flex items-center justify-center w-8 h-8 bg-purple-100 rounded-full text-purple-600 font-semibold text-sm">1</span>
                         <div class="ml-4 flex-1">
-                            <p class="font-semibold text-dark-900">Engine Components</p>
-                            <p class="text-xs text-dark-500">Root Category (Level 1)</p>
+                            <p class="font-semibold text-dark-900">@Category?.Name</p>
+                            <p class="text-xs text-dark-500">@GetCategoryLevel()</p>
                         </div>
                     </div>
 
-                    <div className="pl-8 border-l-2 border-dark-200 space-y-3">
-                        <div className="flex items-center">
-                            <span class="inline-flex items-center justify-center w-8 h-8 bg-blue-100 rounded-full text-blue-600 font-semibold text-sm">1.1</span>
-                            <div class="ml-4 flex-1">
-                                <p class="font-medium text-dark-900">Spark Plugs</p>
-                                <p class="text-xs text-dark-500">CAT-001-001 • 8 parts</p>
-                            </div>
+                    @if (Category?.SubCategories?.Any() == true)
+                    {
+                        <div className="pl-8 border-l-2 border-dark-200 space-y-3">
+                            @foreach (var (sub, index) in Category.SubCategories.Select((s, i) => (s, i + 1)))
+                            {
+                                <div className="flex items-center">
+                                    <span class="inline-flex items-center justify-center w-8 h-8 bg-blue-100 rounded-full text-blue-600 font-semibold text-sm">1.@index</span>
+                                    <div class="ml-4 flex-1">
+                                        <p class="font-medium text-dark-900">@sub.Name</p>
+                                        <p class="text-xs text-dark-500">@sub.Code</p>
+                                    </div>
+                                </div>
+                            }
                         </div>
-
-                        <div className="flex items-center">
-                            <span class="inline-flex items-center justify-center w-8 h-8 bg-blue-100 rounded-full text-blue-600 font-semibold text-sm">1.2</span>
-                            <div class="ml-4 flex-1">
-                                <p class="font-medium text-dark-900">Air Filters</p>
-                                <p class="text-xs text-dark-500">CAT-001-002 • 12 parts</p>
-                            </div>
+                    }
+                    else
+                    {
+                        <div className="pl-8 border-l-2 border-dark-200 py-3">
+                            <p class="text-sm text-dark-500">No subcategories</p>
                         </div>
-
-                        <div className="flex items-center">
-                            <span class="inline-flex items-center justify-center w-8 h-8 bg-blue-100 rounded-full text-blue-600 font-semibold text-sm">1.3</span>
-                            <div class="ml-4 flex-1">
-                                <p class="font-medium text-dark-900">Engine Oil Filters</p>
-                                <p class="text-xs text-dark-500">CAT-001-003 • 8 parts</p>
-                            </div>
-                        </div>
-                    </div>
+                    }
                 </div>
             </div>
 
@@ -163,104 +201,148 @@
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="border-b md:border-b-0 md:border-r border-dark-200 pb-6 md:pb-0 md:pr-6">
                         <p class="text-sm text-dark-500 font-medium">Total Subcategories</p>
-                        <p class="text-3xl font-bold text-dark-900 mt-2">3</p>
+                        <p class="text-3xl font-bold text-dark-900 mt-2">@(Category?.SubCategories?.Count ?? 0)</p>
                         <p class="text-xs text-dark-500 mt-1">Direct children only</p>
                     </div>
                     <div>
-                        <p class="text-sm text-dark-500 font-medium">Total Products</p>
-                        <p class="text-3xl font-bold text-dark-900 mt-2">28</p>
-                        <p class="text-xs text-dark-500 mt-1">Including all levels</p>
+                        <p class="text-sm text-dark-500 font-medium">Category Status</p>
+                        <p class="text-3xl font-bold text-dark-900 mt-2">@(Category?.IsActive == true ? "Active" : "Inactive")</p>
+                        <p class="text-xs text-dark-500 mt-1">Current visibility</p>
                     </div>
                 </div>
             </div>
 
-            <!-- Display & Visibility -->
-            <div class="card">
-                <h3 class="text-lg font-bold text-dark-900 mb-6">Display & Visibility</h3>
-                <div className="space-y-4">
-                    <div className="flex items-center justify-between py-2">
-                        <div>
-                            <p class="text-sm text-dark-500 font-medium">Visible in Menu</p>
-                            <p class="text-xs text-dark-500 mt-1">Shows in navigation</p>
-                        </div>
-                        <span class="badge-success">Yes</span>
-                    </div>
-                    <div className="flex items-center justify-between py-2 border-t border-dark-200">
-                        <div>
-                            <p class="text-sm text-dark-500 font-medium">Searchable</p>
-                            <p class="text-xs text-dark-500 mt-1">Included in search</p>
-                        </div>
-                        <span class="badge-success">Yes</span>
-                    </div>
-                    <div className="flex items-center justify-between py-2 border-t border-dark-200">
-                        <div>
-                            <p class="text-sm text-dark-500 font-medium">Category Icon</p>
-                            <p class="text-xs text-dark-500 mt-1">Visual representation</p>
-                        </div>
-                        <span class="text-2xl">⚙️</span>
-                    </div>
-                    <div className="flex items-center justify-between py-2 border-t border-dark-200">
-                        <div>
-                            <p class="text-sm text-dark-500 font-medium">Color</p>
-                            <p class="text-xs text-dark-500 mt-1">Background color</p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <div class="w-6 h-6 bg-purple-500 rounded"></div>
-                            <span class="text-dark-900 font-semibold">#8b5cf6</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- SEO Information -->
-            <div class="card">
-                <h3 class="text-lg font-bold text-dark-900 mb-6">SEO Information</h3>
-                <div className="space-y-4">
-                    <div>
-                        <p class="text-sm text-dark-500 font-medium">Meta Title</p>
-                        <p class="text-dark-900 font-semibold mt-1">Engine Components - AutoParts Shop</p>
-                    </div>
-                    <div>
-                        <p class="text-sm text-dark-500 font-medium">Meta Description</p>
-                        <p class="text-dark-700 mt-1">Shop high-quality engine components including spark plugs, filters, ignition systems and more for all vehicle types.</p>
-                    </div>
-                    <div>
-                        <p class="text-sm text-dark-500 font-medium">URL Slug</p>
-                        <a href="#" class="text-primary-600 hover:text-primary-700 font-semibold mt-1">engine-components</a>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Related Categories -->
-            <div class="card">
-                <h3 class="text-lg font-bold text-dark-900 mb-6">Related Categories</h3>
-                <div className="flex flex-wrap gap-2">
-                    <span class="badge-primary">Transmission</span>
-                    <span class="badge-primary">Cooling System</span>
-                    <span class="badge-primary">Electrical</span>
-                </div>
-            </div>
-
-            <!-- Access & Permissions -->
-            <div class="card">
-                <h3 class="text-lg font-bold text-dark-900 mb-6">Access & Permissions</h3>
-                <div className="space-y-4">
-                    <div>
-                        <p class="text-sm text-dark-500 font-medium mb-2">Visibility</p>
-                        <span class="badge-success">Everyone</span>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
+    }
 </div>
 
 @code {
     [Parameter]
     public string? Id { get; set; }
 
-    protected override void OnInitialized()
+    private CategoryDto? Category;
+    private bool IsLoading = true;
+    private string ErrorMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
     {
-        // Load category details based on Id
+        await LoadCategory();
+    }
+
+    private async Task LoadCategory()
+    {
+        try
+        {
+            IsLoading = true;
+            ErrorMessage = string.Empty;
+            StateHasChanged();
+
+            if (!Guid.TryParse(Id, out var categoryId))
+            {
+                ErrorMessage = "Invalid category ID format";
+                return;
+            }
+
+            var response = await CategoryService.GetCategoryByIdAsync(categoryId);
+            if (response != null)
+            {
+                Category = response;
+                ErrorMessage = string.Empty;  // ✅ Clear error message on success
+                Logger.LogInformation($"[CategoryDetail] Category '{response.Name}' (ID: {response.Id}) loaded successfully");
+            }
+            else
+            {
+                ErrorMessage = "Category not found";
+                Category = null;  // ✅ Clear category on error
+                Logger.LogWarning($"[CategoryDetail] Category with ID '{categoryId}' not found");
+            }
+        }
+        catch (ServiceException ex)
+        {
+            ErrorMessage = $"Failed to load category: {ex.Message}";
+            Logger.LogError($"[CategoryDetail] ServiceException: {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"An error occurred: {ex.Message}";
+            Logger.LogError($"[CategoryDetail] Exception: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task RetryLoadCategory()
+    {
+        await LoadCategory();
+    }
+
+    private void HandleEdit()
+    {
+        if (Category == null)
+            return;
+
+        Logger.LogInformation($"[CategoryDetail] Navigating to edit page for category '{Category.Name}'");
+        Navigation.NavigateTo($"/inventory/categories/{Category.Id}/edit");
+    }
+
+    private void HandleAddSubcategory()
+    {
+        if (Category == null)
+            return;
+
+        Logger.LogInformation($"[CategoryDetail] Navigating to add subcategory page for category '{Category.Name}'");
+        Navigation.NavigateTo($"/inventory/categories/add?parent={Category.Id}");
+    }
+
+    private void HandleViewParts()
+    {
+        if (Category == null)
+            return;
+
+        Logger.LogInformation($"[CategoryDetail] Navigating to parts list filtered by category '{Category.Name}'");
+        Navigation.NavigateTo($"/inventory/products?category={Category.Id}");
+    }
+
+    private void HandlePrint()
+    {
+        if (Category == null)
+            return;
+
+        Logger.LogInformation($"[CategoryDetail] Print triggered for category '{Category.Name}'");
+        Snackbar.Add("Print functionality is not yet implemented", Severity.Info);
+    }
+
+    private void HandleExport()
+    {
+        if (Category == null)
+            return;
+
+        Logger.LogInformation($"[CategoryDetail] Export triggered for category '{Category.Name}'");
+        Snackbar.Add("Export functionality is not yet implemented", Severity.Info);
+    }
+
+    private string GetCategoryLevel()
+    {
+        if (Category?.ParentCategoryId == null)
+        {
+            return "Root (Level 1)";
+        }
+
+        return "Level 2+";
+    }
+
+    private string GetParentCategoryDisplay()
+    {
+        if (Category == null || Category.ParentCategoryId == null)
+        {
+            return "Root Category";
+        }
+
+        var parentId = Category.ParentCategoryId.ToString() ?? "";
+        return parentId.Substring(0, Math.Min(8, parentId.Length)) + "...";
     }
 }

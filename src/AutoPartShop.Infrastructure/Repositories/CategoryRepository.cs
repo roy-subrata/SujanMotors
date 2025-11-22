@@ -40,18 +40,36 @@ public class CategoryRepository : ICategoryRepository
         if (_categories.Any(c => c.Code == entity.Code && !c.Isdeleted))
             throw new InvalidOperationException($"Category with code '{entity.Code}' already exists");
 
-        // Add the category to the list
-        _categories.Add(entity);
-
-        // If this category has a parent, add it to the parent's subcategories
+        // If this category has a parent, calculate depth level and breadcrumb path
         if (entity.ParentCategoryId.HasValue)
         {
             var parentCategory = _categories.FirstOrDefault(c => c.Id == entity.ParentCategoryId && !c.Isdeleted);
             if (parentCategory != null)
             {
+                // Calculate depth level: parent's depth + 1
+                var newDepthLevel = parentCategory.DepthLevel + 1;
+
+                // Validate depth doesn't exceed max
+                if (newDepthLevel > Category.MaxCategoryDepth - 1)
+                    throw new InvalidOperationException($"Cannot create subcategory! Parent is at level {parentCategory.DepthLevel + 1}. Maximum allowed level is {Category.MaxCategoryDepth}.");
+
+                // Update the entity's depth level
+                entity.UpdateDepthLevel(newDepthLevel);
+
+                // Calculate breadcrumb path: parent's breadcrumb + " > " + this category's name
+                var breadcrumb = string.IsNullOrEmpty(parentCategory.BreadcrumbPath)
+                    ? parentCategory.Name
+                    : $"{parentCategory.BreadcrumbPath} > {entity.Name}";
+                entity.UpdateBreadcrumbPath(breadcrumb);
+
+                // Add it to the parent's subcategories
                 parentCategory.SubCategories.Add(entity);
+                parentCategory.IncrementChildCount();
             }
         }
+
+        // Add the category to the list
+        _categories.Add(entity);
     }
 
     public async Task UpdateAsync(Category entity, CancellationToken cancellationToken = default)
@@ -182,5 +200,103 @@ public class CategoryRepository : ICategoryRepository
             .ToList();
 
         return (items, totalCount);
+    }
+
+    public async Task<IEnumerable<Category>> GetAncestorsAsync(Guid categoryId, CancellationToken cancellationToken = default)
+    {
+        await Task.Delay(0, cancellationToken);
+
+        var ancestors = new List<Category>();
+        var category = _categories.FirstOrDefault(c => c.Id == categoryId && !c.Isdeleted);
+
+        while (category?.ParentCategoryId.HasValue == true)
+        {
+            var parent = _categories.FirstOrDefault(c => c.Id == category.ParentCategoryId && !c.Isdeleted);
+            if (parent == null)
+                break;
+
+            ancestors.Add(parent);
+            category = parent;
+        }
+
+        return ancestors;
+    }
+
+    public async Task<IEnumerable<Category>> GetAllDescendantsAsync(Guid categoryId, CancellationToken cancellationToken = default)
+    {
+        await Task.Delay(0, cancellationToken);
+
+        var descendants = new List<Category>();
+        var queue = new Queue<Guid>(new[] { categoryId });
+
+        while (queue.Count > 0)
+        {
+            var currentId = queue.Dequeue();
+            var children = _categories.Where(c => c.ParentCategoryId == currentId && !c.Isdeleted).ToList();
+
+            foreach (var child in children)
+            {
+                descendants.Add(child);
+                queue.Enqueue(child.Id);
+            }
+        }
+
+        return descendants;
+    }
+
+    public async Task<bool> WouldCreateCircularReferenceAsync(Guid categoryId, Guid? newParentId, CancellationToken cancellationToken = default)
+    {
+        await Task.Delay(0, cancellationToken);
+
+        if (newParentId == null)
+            return false;
+
+        if (categoryId == newParentId)
+            return true;
+
+        // Check if newParent is a descendant of categoryId
+        var descendants = await GetAllDescendantsAsync(categoryId, cancellationToken);
+        return descendants.Any(d => d.Id == newParentId);
+    }
+
+    public async Task<int> GetDepthAsync(Guid categoryId, CancellationToken cancellationToken = default)
+    {
+        await Task.Delay(0, cancellationToken);
+
+        int depth = 0;
+        var category = _categories.FirstOrDefault(c => c.Id == categoryId && !c.Isdeleted);
+
+        while (category?.ParentCategoryId.HasValue == true)
+        {
+            depth++;
+            category = _categories.FirstOrDefault(c => c.Id == category.ParentCategoryId && !c.Isdeleted);
+            if (category == null)
+                break;
+        }
+
+        return depth;
+    }
+
+    public async Task<string> GetBreadcrumbPathAsync(Guid categoryId, CancellationToken cancellationToken = default)
+    {
+        await Task.Delay(0, cancellationToken);
+
+        var category = _categories.FirstOrDefault(c => c.Id == categoryId && !c.Isdeleted);
+        if (category == null)
+            return string.Empty;
+
+        var path = new Stack<string>();
+        var current = category;
+
+        while (current != null)
+        {
+            path.Push(current.Name);
+            if (!current.ParentCategoryId.HasValue)
+                break;
+
+            current = _categories.FirstOrDefault(c => c.Id == current.ParentCategoryId && !c.Isdeleted);
+        }
+
+        return string.Join(" > ", path);
     }
 }

@@ -56,4 +56,29 @@ public interface ICategoryRepository : IBaseRepository<Category>
     /// Get categories with pagination
     /// </summary>
     Task<(IEnumerable<Category> Items, int TotalCount)> GetPagedAsync(int pageNumber, int pageSize, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Get all ancestors of a category (path to root)
+    /// </summary>
+    Task<IEnumerable<Category>> GetAncestorsAsync(Guid categoryId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Get all descendants of a category at all levels
+    /// </summary>
+    Task<IEnumerable<Category>> GetAllDescendantsAsync(Guid categoryId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Check if moving a category to a new parent would create a circular reference
+    /// </summary>
+    Task<bool> WouldCreateCircularReferenceAsync(Guid categoryId, Guid? newParentId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Get the depth of a category (distance from root)
+    /// </summary>
+    Task<int> GetDepthAsync(Guid categoryId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Get full breadcrumb path for a category
+    /// </summary>
+    Task<string> GetBreadcrumbPathAsync(Guid categoryId, CancellationToken cancellationToken = default);
 }

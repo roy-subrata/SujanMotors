@@ -98,10 +98,13 @@
                             <option value="">-- No Parent (Root Category) --</option>
                             @foreach (var cat in ParentCategories)
                             {
-                                <option value="@cat.Id.ToString()">@cat.Name (@cat.Code)</option>
+                                var depth = cat.DepthLevel;
+                                var indent = new string(' ', depth * 2); // 2 spaces per level
+                                var depthIndicator = depth > 0 ? "└─ " : ""; // Visual indicator for nested items
+                                <option value="@cat.Id.ToString()">@($"{depthIndicator}{indent}{cat.Name} ({cat.Code}) - Level {depth + 1}")</option>
                             }
                         </select>
-                        <p class="text-xs text-dark-500 mt-1">Leave empty to create a root category</p>
+                        <p class="text-xs text-dark-500 mt-1">Leave empty to create a root category. Select any category to create a subcategory.</p>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-dark-900 mb-2">Display Order</label>
@@ -117,6 +120,52 @@
                 </div>
             </div>
         </div>
+
+        <!-- Parent Category Info Section -->
+        @if (!string.IsNullOrEmpty(SelectedParentId))
+        {
+            var selectedParent = ParentCategories.FirstOrDefault(c => c.Id.ToString() == SelectedParentId);
+            @if (selectedParent != null)
+            {
+                <div class="card bg-blue-50 border border-blue-200">
+                    <h3 class="text-lg font-bold text-blue-900 mb-4">Parent Category Information</h3>
+                    <div class="space-y-3">
+                        <div>
+                            <p class="text-sm text-blue-700 font-medium">Parent Category</p>
+                            <p class="text-dark-900 font-semibold">@selectedParent.Name</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-blue-700 font-medium">Breadcrumb Path</p>
+                            <p class="text-dark-900 font-semibold font-mono text-sm">@selectedParent.BreadcrumbPath</p>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-sm text-blue-700 font-medium">Current Level</p>
+                                <p class="text-dark-900 font-semibold">@(selectedParent.DepthLevel + 1) / 7</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-blue-700 font-medium">Child Categories</p>
+                                <p class="text-dark-900 font-semibold">@selectedParent.ChildCount</p>
+                            </div>
+                        </div>
+                        @if (selectedParent.DepthLevel >= 6)
+                        {
+                            <div class="p-3 bg-red-100 border border-red-300 rounded-lg">
+                                <p class="text-sm text-red-700 font-medium">⚠️ Cannot Create Subcategory</p>
+                                <p class="text-xs text-red-600">This parent category has reached the maximum depth level (7)</p>
+                            </div>
+                        }
+                        else if (selectedParent.DepthLevel >= 5)
+                        {
+                            <div class="p-3 bg-yellow-100 border border-yellow-300 rounded-lg">
+                                <p class="text-sm text-yellow-700 font-medium">⚠️ Approaching Maximum Depth</p>
+                                <p class="text-xs text-yellow-600">New category will be at level @(selectedParent.DepthLevel + 2) / 7</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        }
 
         <!-- Display & Visibility Section -->
         <div class="card">
@@ -188,10 +237,12 @@
     {
         try
         {
-            var response = await CategoryService.GetTopLevelCategoriesAsync();
+            // Load ALL categories (not just top-level) to enable recursive subcategory creation
+            var response = await CategoryService.GetAllCategoriesAsync();
             if (response != null)
             {
-                ParentCategories = response.ToList();
+                // Sort by hierarchy to show them indented in dropdown
+                ParentCategories = SortCategoriesByHierarchy(response.ToList());
             }
         }
         catch (ServiceException ex)
@@ -201,6 +252,56 @@
         catch (Exception ex)
         {
             ErrorMessage = $"An error occurred: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Sorts categories by hierarchy for proper dropdown display
+    /// </summary>
+    private List<CategoryDto> SortCategoriesByHierarchy(List<CategoryDto> categories)
+    {
+        var sorted = new List<CategoryDto>();
+        var processed = new HashSet<Guid>();
+
+        // First add all root categories
+        var roots = categories.Where(c => c.ParentCategoryId == null).OrderBy(c => c.DisplayOrder).ThenBy(c => c.Name).ToList();
+
+        foreach (var root in roots)
+        {
+            AddCategoryAndChildren(root, categories, sorted, processed);
+        }
+
+        // Add any orphaned categories (shouldn't happen)
+        foreach (var cat in categories.Where(c => !processed.Contains(c.Id)))
+        {
+            sorted.Add(cat);
+            processed.Add(cat.Id);
+        }
+
+        return sorted;
+    }
+
+    /// <summary>
+    /// Recursively adds a category and its children to the sorted list
+    /// </summary>
+    private void AddCategoryAndChildren(CategoryDto category, List<CategoryDto> allCategories, List<CategoryDto> sorted, HashSet<Guid> processed)
+    {
+        if (processed.Contains(category.Id))
+            return;
+
+        sorted.Add(category);
+        processed.Add(category.Id);
+
+        // Add children in order
+        var children = allCategories
+            .Where(c => c.ParentCategoryId == category.Id)
+            .OrderBy(c => c.DisplayOrder)
+            .ThenBy(c => c.Name)
+            .ToList();
+
+        foreach (var child in children)
+        {
+            AddCategoryAndChildren(child, allCategories, sorted, processed);
         }
     }
 
@@ -226,14 +327,25 @@
             SuccessMessage = string.Empty;
 
             // Set ParentCategoryId from SelectedParentId
-            if (string.IsNullOrEmpty(SelectedParentId))
+            Guid? parentId = null;
+            if (!string.IsNullOrEmpty(SelectedParentId) && Guid.TryParse(SelectedParentId, out var parsedParentId))
             {
-                NewCategory.ParentCategoryId = null;
+                parentId = parsedParentId;
+
+                // Validate depth - check if parent would exceed max depth
+                var parentCategory = ParentCategories.FirstOrDefault(c => c.Id == parsedParentId);
+                if (parentCategory != null)
+                {
+                    const int MaxCategoryDepth = 7;
+                    if (parentCategory.DepthLevel >= MaxCategoryDepth - 1)
+                    {
+                        ErrorMessage = $"Cannot create subcategory! Parent category is at level {parentCategory.DepthLevel + 1}. Maximum allowed level is 7.";
+                        return;
+                    }
+                }
             }
-            else if (Guid.TryParse(SelectedParentId, out var parentId))
-            {
-                NewCategory.ParentCategoryId = parentId;
-            }
+
+            NewCategory.ParentCategoryId = parentId;
 
             await CategoryService.CreateCategoryAsync(NewCategory);
             SuccessMessage = "Category created successfully!";
