@@ -1,0 +1,237 @@
+<div class="categories-container">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <div class="header-title">
+        <div class="icon-wrapper">
+          <i class="pi pi-sitemap"></i>
+        </div>
+        <div>
+          <h1>Product Categories</h1>
+          <p class="subtitle">Manage and organize your product hierarchy</p>
+        </div>
+      </div>
+    </div>
+    <div class="header-stats">
+      <div class="stat-item">
+        <span class="stat-label">Total Categories</span>
+        <span class="stat-value">{{ categories.length }}</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <span class="stat-label">Active</span>
+        <span class="stat-value">{{ activeCategoryCount }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <div class="search-box">
+        <i class="pi pi-search"></i>
+        <input
+          type="text"
+          [(ngModel)]="searchTerm"
+          (input)="onSearchChanged($event.target.value)"
+          placeholder="Search categories by name or description..."
+          class="search-input"
+        />
+        <button
+          *ngIf="searchTerm"
+          (click)="clearSearch()"
+          class="clear-btn"
+          title="Clear search"
+        >
+          <i class="pi pi-times"></i>
+        </button>
+      </div>
+    </div>
+    <div class="toolbar-right">
+      <button
+        pButton
+        type="button"
+        label="Add Category"
+        icon="pi pi-plus"
+        class="p-button-success btn-add-category"
+        (click)="openCreateDialog()"
+      ></button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="card loading-state">
+    <i class="pi pi-spin pi-spinner"></i>
+    <span>Loading categories...</span>
+  </div>
+
+  <!-- TreeTable View for Master-Child Categories -->
+  <div *ngIf="!loading && treeTableNodes.length > 0" class="table-section">
+    <p-treeTable [value]="treeTableNodes" styleClass="p-treetable-striped">
+      <ng-template pTemplate="header">
+        <tr>
+          <th>Code</th>
+          <th>Category Name</th>
+          <th>Description</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </ng-template>
+
+      <ng-template pTemplate="body" let-node="rowData" let-rowNode>
+        <tr [ttRow]="rowNode">
+          <td>
+            <p-treetable-toggler [rowNode]="rowNode" />
+            {{ node.code }}
+          </td>
+          <td>{{ node.name }}</td>
+          <td>{{ node.description }}</td>
+          <td>
+            <span class="status-badge" [class.active]="node.isActive">
+              <i
+                class="pi"
+                [class]="node.isActive ? 'pi-check' : 'pi-times'"
+              ></i>
+              {{ node.isActive ? "Active" : "Inactive" }}
+            </span>
+          </td>
+          <td>
+            <button
+              pButton
+              pRipple
+              type="button"
+              pTooltip="Edit"
+              icon="pi pi-pencil"
+              class="p-button-rounded p-button-text"
+              (click)="openEditDialog(node)"
+            ></button>
+            <button
+              pButton
+              pRipple
+              type="button"
+              [pTooltip]="node.isActive ? 'Deactivate' : 'Activate'"
+              [icon]="node.isActive ? 'pi pi-check-circle' : 'pi pi-circle'"
+              class="p-button-rounded p-button-text"
+              (click)="toggleCategoryStatus(node)"
+            ></button>
+            <button
+              pButton
+              pRipple
+              type="button"
+              pTooltip="Delete"
+              icon="pi pi-trash"
+              class="p-button-rounded p-button-text p-button-danger"
+              (click)="deleteCategory(node)"
+            ></button>
+          </td>
+        </tr>
+      </ng-template>
+    </p-treeTable>
+  </div>
+
+  <!-- Empty State -->
+  <div
+    *ngIf="!loading && categories.length === 0"
+    class="content-card empty-state"
+  >
+    <i class="pi pi-inbox"></i>
+    <h3>No categories yet</h3>
+    <p>Create your first category to get started</p>
+    <button
+      pButton
+      type="button"
+      label="Add Category"
+      icon="pi pi-plus"
+      class="p-button-success p-button-lg"
+    ></button>
+  </div>
+
+  <!-- Create/Edit Dialog -->
+  <p-dialog
+    [(visible)]="displayDialog"
+    [header]="isEditMode ? 'Edit Category' : 'New Category'"
+    [modal]="true"
+    [style]="{ width: '90%', maxWidth: '450px' }"
+    [blockScroll]="true"
+  >
+    <form class="dialog-form">
+      <div class="form-group">
+        <label for="code">Category Code</label>
+        <input
+          id="code"
+          [(ngModel)]="categoryForm.code"
+          name="code"
+          type="text"
+          placeholder="e.g., CAT-001"
+          class="form-input"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="name">Category Name</label>
+        <input
+          id="name"
+          [(ngModel)]="categoryForm.name"
+          name="name"
+          type="text"
+          placeholder="e.g., Electronics, Tools"
+          class="form-input"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="description">Description (Optional)</label>
+        <textarea
+          id="description"
+          [(ngModel)]="categoryForm.description"
+          name="description"
+          placeholder="Brief description"
+          rows="3"
+          class="form-input"
+        ></textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="parentId">Parent Category (Optional)</label>
+        <select
+          id="parentId"
+          [(ngModel)]="categoryForm.parentId"
+          name="parentId"
+          class="form-input"
+        >
+          <option value="">None - Top level category</option>
+          <option
+            *ngFor="let cat of categories"
+            [value]="cat.id"
+            [disabled]="isEditMode && cat.id === selectedCategory?.id"
+          >
+            {{ cat.name }}
+          </option>
+        </select>
+      </div>
+    </form>
+
+    <ng-template pTemplate="footer">
+      <button
+        pButton
+        type="button"
+        label="Cancel"
+        class="p-button-text"
+        (click)="displayDialog = false"
+      ></button>
+      <button
+        pButton
+        type="button"
+        label="Save"
+        class="p-button-success"
+        (click)="saveCategory()"
+      ></button>
+    </ng-template>
+  </p-dialog>
+
+  <!-- Toast for notifications -->
+  <p-toast position="top-right"></p-toast>
+
+  <!-- Confirmation Dialog -->
+  <p-confirmDialog></p-confirmDialog>
+</div>
