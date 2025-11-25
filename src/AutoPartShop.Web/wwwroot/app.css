@@ -58,3 +58,30 @@ h1:focus {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
 }
+
+/* MudBlazor Dialog Visibility Fix */
+.mud-dialog-container {
+    z-index: 9999 !important;
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+.mud-dialog {
+    z-index: 10000 !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+.mud-backdrop {
+    z-index: 9998 !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 0.5 !important;
+}
+
+/* Ensure MudBlazor components are not hidden by Tailwind */
+.mud-paper {
+    display: block !important;
+}

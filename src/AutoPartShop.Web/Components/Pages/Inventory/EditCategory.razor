@@ -382,12 +382,12 @@
 
         try
         {
-            var parameters = new DialogParameters<ConfirmDeleteDialog>
+            var parameters = new DialogParameters<ConfirmDialog>
             {
-                { nameof(ConfirmDeleteDialog.ContentText), $"Are you sure you want to delete the category '{Category.Name}'? This action cannot be undone." }
+                { nameof(ConfirmDialog.ContentText), $"Are you sure you want to delete the category '{Category.Name}'? This action cannot be undone." }
             };
 
-            var dialog = await DialogService.ShowAsync<ConfirmDeleteDialog>("Confirm Delete", parameters);
+            var dialog = await DialogService.ShowAsync<ConfirmDialog>("Confirm Delete", parameters);
             var result = await dialog.Result;
 
             if (result?.Canceled == true)

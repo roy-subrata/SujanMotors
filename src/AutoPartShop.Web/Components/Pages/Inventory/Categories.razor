@@ -18,9 +18,14 @@
             <p class="text-dark-500 mt-1">Manage your multilevel product category hierarchy</p>
         </div>
         <div class="flex flex-col sm:flex-row gap-2 flex-shrink-0">
+            <button type="button" class="btn-secondary flex items-center justify-center text-xs" @onclick="TestDialog"
+                title="Test Dialog System">
+                🧪 Test Dialog
+            </button>
             <button class="btn-secondary flex items-center justify-center" @onclick="ImportCategories">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
                 </svg>
                 Import
             </button>
@@ -41,20 +46,22 @@
                 <div class="flex-1">
                     <label class="block text-xs font-medium text-dark-600 mb-2">Search Categories</label>
                     <div class="relative">
-                        <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-dark-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-dark-400 pointer-events-none"
+                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                         </svg>
-                        <input type="text"
-                               @bind="SearchTerm"
-                               @oninput="@((ChangeEventArgs e) => OnSearchChanged(e))"
-                               placeholder="Search by name, code, or description..."
-                               class="w-full pl-10 pr-4 py-2 border border-dark-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" />
+                        <input type="text" @bind="SearchTerm" @oninput="@((ChangeEventArgs e) => OnSearchChanged(e))"
+                            placeholder="Search by name, code, or description..."
+                            class="w-full pl-10 pr-4 py-2 border border-dark-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" />
                     </div>
                 </div>
                 <div class="flex gap-2">
-                    <button @onclick="ClearSearch" disabled="@string.IsNullOrEmpty(SearchTerm)" class="px-4 py-2 border border-dark-300 text-dark-600 rounded-lg text-sm font-medium hover:bg-dark-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                    <button @onclick="ClearSearch" disabled="@string.IsNullOrEmpty(SearchTerm)"
+                        class="px-4 py-2 border border-dark-300 text-dark-600 rounded-lg text-sm font-medium hover:bg-dark-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
                         <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12"></path>
                         </svg>
                         Clear
                     </button>
@@ -82,15 +89,19 @@
         <div class="flex items-center justify-between">
             <h3 class="text-sm font-medium text-dark-900">View Options</h3>
             <div class="flex gap-2">
-                <button @onclick="() => SwitchView(true)" class="@(IsTreeView ? "px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium" : "px-4 py-2 border border-dark-300 text-dark-600 rounded-lg text-sm font-medium hover:bg-dark-100")">
+                <button @onclick="() => SwitchView(true)"
+                    class="@(IsTreeView ? "px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium" : "px-4 py-2 border border-dark-300 text-dark-600 rounded-lg text-sm font-medium hover:bg-dark-100")">
                     <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h12a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 6a2 2 0 012-2h12a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6z"></path>
                     </svg>
                     Tree View
                 </button>
-                <button @onclick="() => SwitchView(false)" class="@(!IsTreeView ? "px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium" : "px-4 py-2 border border-dark-300 text-dark-600 rounded-lg text-sm font-medium hover:bg-dark-100")">
+                <button @onclick="() => SwitchView(false)"
+                    class="@(!IsTreeView ? "px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium" : "px-4 py-2 border border-dark-300 text-dark-600 rounded-lg text-sm font-medium hover:bg-dark-100")">
                     <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 6h16M4 12h16M4 18h16"></path>
                     </svg>
                     List View
                 </button>
@@ -105,8 +116,11 @@
             <div class="flex items-center justify-center py-12">
                 <div class="text-center">
                     <div class="inline-flex items-center justify-center w-12 h-12 bg-primary-100 rounded-full mb-4">
-                        <svg class="w-6 h-6 text-primary-600 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        <svg class="w-6 h-6 text-primary-600 animate-spin" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                            </path>
                         </svg>
                     </div>
                     <p class="text-dark-600 font-medium">Loading categories...</p>
@@ -120,7 +134,8 @@
         <div class="card border-l-4 border-red-500 bg-red-50">
             <div class="flex items-center gap-4">
                 <svg class="w-6 h-6 text-red-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4v.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 8v4m0 4v.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
                 <div class="flex-1">
                     <h4 class="font-semibold text-red-900">Error Loading Categories</h4>
@@ -137,14 +152,17 @@
             <div class="flex items-center justify-between mb-6">
                 <h3 class="text-lg font-bold text-dark-900">Category Hierarchy</h3>
                 <div class="flex gap-2">
-                    <button @onclick="ExpandAll" class="text-sm text-dark-600 hover:text-dark-900 font-medium">Expand All</button>
+                    <button @onclick="ExpandAll" class="text-sm text-dark-600 hover:text-dark-900 font-medium">Expand
+                        All</button>
                     <span class="text-dark-300">|</span>
-                    <button @onclick="CollapseAll" class="text-sm text-dark-600 hover:text-dark-900 font-medium">Collapse All</button>
+                    <button @onclick="CollapseAll" class="text-sm text-dark-600 hover:text-dark-900 font-medium">Collapse
+                        All</button>
                 </div>
             </div>
 
             <div class="space-y-2 max-h-[600px] overflow-y-auto pr-2">
-                @foreach (var category in FilteredCategories.Where(c => c.ParentCategoryId == null).OrderBy(c => c.DisplayOrder))
+                @foreach (var category in FilteredCategories.Where(c => c.ParentCategoryId == null).OrderBy(c =>
+                            c.DisplayOrder))
                 {
                     @RenderCategoryNode(category, 0)
                 }
@@ -157,7 +175,8 @@
         <div class="card">
             <div class="flex items-center justify-between mb-6">
                 <h3 class="text-lg font-bold text-dark-900">All Categories</h3>
-                <div class="text-sm text-dark-500">Showing: @DisplayedCategoriesCount / @FilteredCategories.Count @(string.IsNullOrEmpty(SearchTerm) ? "total" : "matching")</div>
+                <div class="text-sm text-dark-500">Showing: @DisplayedCategoriesCount / @FilteredCategories.Count
+                    @(string.IsNullOrEmpty(SearchTerm) ? "total" : "matching")</div>
             </div>
 
             <div class="overflow-x-auto">
@@ -178,7 +197,9 @@
                             <tr class="border-b border-dark-100 hover:bg-dark-50 transition-colors">
                                 <td class="px-4 py-3">
                                     <div class="flex items-center space-x-2">
-                                        <div class="w-2 h-2 rounded-full @(category.ParentCategoryId == null ? "bg-primary-600" : "bg-blue-400")"></div>
+                                        <div
+                                            class="w-2 h-2 rounded-full @(category.ParentCategoryId == null ? "bg-primary-600" : "bg-blue-400")">
+                                        </div>
                                         <span class="font-medium text-dark-900">
                                             @if (category.ParentCategoryId.HasValue)
                                             {
@@ -193,7 +214,8 @@
                                     <span class="text-xs font-mono text-dark-500">@category.BreadcrumbPath</span>
                                 </td>
                                 <td class="px-4 py-3 text-sm">
-                                    <span class="px-3 py-1 @(category.ParentCategoryId == null ? "bg-primary-100 text-primary-700" : "bg-blue-100 text-blue-700") rounded-full text-xs font-medium">
+                                    <span
+                                        class="px-3 py-1 @(category.ParentCategoryId == null ? "bg-primary-100 text-primary-700" : "bg-blue-100 text-blue-700") rounded-full text-xs font-medium">
                                         L@(category.DepthLevel + 1)
                                         @if (category.ChildCount > 0)
                                         {
@@ -204,18 +226,23 @@
                                 <td class="px-4 py-3 text-sm">
                                     @if (category.IsActive)
                                     {
-                                        <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">Active</span>
+                                        <span
+                                            class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">Active</span>
                                     }
                                     else
                                     {
-                                        <span class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">Inactive</span>
+                                        <span
+                                            class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">Inactive</span>
                                     }
                                 </td>
                                 <td class="px-4 py-3 text-sm">
                                     <div class="flex gap-2">
-                                        <button type="button" @onclick="@(async () => await ViewCategory(category.Id))" class="text-primary-600 hover:text-primary-700 font-medium">View</button>
-                                        <button type="button" @onclick="@(async () => await EditCategory(category.Id))" class="text-blue-600 hover:text-blue-700 font-medium">Edit</button>
-                                        <button type="button" @onclick="@(async () => await HandleDeleteClick(category.Id))" class="text-red-600 hover:text-red-700 font-medium">Delete</button>
+                                        <button type="button" @onclick="@(async () => await ViewCategory(category.Id))"
+                                            class="text-primary-600 hover:text-primary-700 font-medium">View</button>
+                                        <button type="button" @onclick="@(async () => await EditCategory(category.Id))"
+                                            class="text-blue-600 hover:text-blue-700 font-medium">Edit</button>
+                                        <button type="button" @onclick="@(async () => await HandleDeleteClick(category.Id))"
+                                            class="text-red-600 hover:text-red-700 font-medium">Delete</button>
                                     </div>
                                 </td>
                             </tr>
@@ -229,18 +256,23 @@
             {
                 <div class="mt-6 flex flex-col items-center gap-4">
                     <div class="text-sm text-dark-500">
-                        Showing @DisplayedCategoriesCount of @FilteredCategories.Count @(string.IsNullOrEmpty(SearchTerm) ? "total" : "matching")
+                        Showing @DisplayedCategoriesCount of @FilteredCategories.Count @(string.IsNullOrEmpty(SearchTerm) ?
+                                        "total" : "matching")
                     </div>
                     @if (IsLoadingMore)
                     {
                         <div class="flex items-center justify-center">
-                            <svg class="w-6 h-6 text-primary-600 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            <svg class="w-6 h-6 text-primary-600 animate-spin" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                                </path>
                             </svg>
                             <span class="ml-2 text-dark-600">Loading more categories...</span>
                         </div>
                     }
-                    <button @onclick="LoadMoreCategories" disabled="@IsLoadingMore" class="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <button @onclick="LoadMoreCategories" disabled="@IsLoadingMore"
+                        class="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed">
                         Load More Categories
                     </button>
                 </div>
@@ -253,13 +285,16 @@
         <div class="card">
             <div class="flex flex-col items-center justify-center py-12 text-center">
                 <svg class="w-16 h-16 text-orange-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                 </svg>
                 <h3 class="text-lg font-semibold text-dark-900 mb-2">No matching categories</h3>
-                <p class="text-dark-500 mb-6">Your search "<span class="font-semibold text-dark-900">@SearchTerm</span>" didn't match any categories</p>
+                <p class="text-dark-500 mb-6">Your search "<span class="font-semibold text-dark-900">@SearchTerm</span>"
+                    didn't match any categories</p>
                 <button @onclick="ClearSearch" class="btn-secondary flex items-center justify-center">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
                     </svg>
                     Clear Search
                 </button>
@@ -272,7 +307,9 @@
         <div class="card">
             <div class="flex flex-col items-center justify-center py-12 text-center">
                 <svg class="w-16 h-16 text-dark-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                    </path>
                 </svg>
                 <h3 class="text-lg font-semibold text-dark-900 mb-2">No categories found</h3>
                 <p class="text-dark-500 mb-6">Start by creating your first category to organize your products</p>
@@ -292,7 +329,8 @@
             <div class="flex items-center">
                 <div class="flex-shrink-0 w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
                     <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7a7 7 0 110 14 7 7 0 010-14z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M7 7a7 7 0 110 14 7 7 0 010-14z"></path>
                     </svg>
                 </div>
                 <div class="ml-4">
@@ -322,7 +360,8 @@
             <div class="flex items-center">
                 <div class="flex-shrink-0 w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
                     <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                     </svg>
                 </div>
                 <div class="ml-4">
@@ -337,7 +376,8 @@
             <div class="flex items-center">
                 <div class="flex-shrink-0 w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
                     <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
                 </div>
                 <div class="ml-4">
@@ -430,12 +470,12 @@
         {
             var searchLower = SearchTerm.ToLower();
             FilteredCategories = CategoryList
-                .Where(c => c.Name.ToLower().Contains(searchLower) ||
-                           c.Code.ToLower().Contains(searchLower) ||
-                           c.Description?.ToLower().Contains(searchLower) == true ||
-                           (c.SubCategories?.Any(sc => sc.Name.ToLower().Contains(searchLower) ||
-                                                       sc.Code.ToLower().Contains(searchLower)) == true))
-                .ToList();
+            .Where(c => c.Name.ToLower().Contains(searchLower) ||
+            c.Code.ToLower().Contains(searchLower) ||
+            c.Description?.ToLower().Contains(searchLower) == true ||
+            (c.SubCategories?.Any(sc => sc.Name.ToLower().Contains(searchLower) ||
+            sc.Code.ToLower().Contains(searchLower)) == true))
+            .ToList();
         }
 
         // Sort to ensure parent categories appear before their subcategories
@@ -451,10 +491,10 @@
 
         // First add all root categories in order
         var rootCategories = categories
-            .Where(c => c.ParentCategoryId == null)
-            .OrderBy(c => c.DisplayOrder)
-            .ThenBy(c => c.Name)
-            .ToList();
+        .Where(c => c.ParentCategoryId == null)
+        .OrderBy(c => c.DisplayOrder)
+        .ThenBy(c => c.Name)
+        .ToList();
 
         foreach (var root in rootCategories)
         {
@@ -474,7 +514,8 @@
         return sorted;
     }
 
-    private void AddCategoryAndChildren(CategoryDto category, List<CategoryDto> allCategories, List<CategoryDto> sorted, HashSet<Guid> processed)
+    private void AddCategoryAndChildren(CategoryDto category, List<CategoryDto> allCategories, List<CategoryDto> sorted,
+    HashSet<Guid> processed)
     {
         if (processed.Contains(category.Id))
             return;
@@ -484,10 +525,10 @@
 
         // Add children in order
         var children = allCategories
-            .Where(c => c.ParentCategoryId == category.Id)
-            .OrderBy(c => c.DisplayOrder)
-            .ThenBy(c => c.Name)
-            .ToList();
+        .Where(c => c.ParentCategoryId == category.Id)
+        .OrderBy(c => c.DisplayOrder)
+        .ThenBy(c => c.Name)
+        .ToList();
 
         foreach (var child in children)
         {
@@ -518,8 +559,8 @@
         await Task.Delay(300);
 
         DisplayedCategoriesCount = Math.Min(
-            DisplayedCategoriesCount + LoadMoreCount,
-            CategoryList.Count
+        DisplayedCategoriesCount + LoadMoreCount,
+        CategoryList.Count
         );
 
         IsLoadingMore = false;
@@ -578,6 +619,26 @@
         return Task.CompletedTask;
     }
 
+    private async Task TestDialog()
+    {
+        Console.WriteLine("[Categories] TEST DIALOG BUTTON CLICKED");
+        Logger.LogInformation("[Categories] TEST DIALOG BUTTON CLICKED");
+
+        var parameters = new DialogParameters<ConfirmDialog>
+{
+{ nameof(ConfirmDialog.ContentText), "This is a TEST dialog. If you see this, the dialog system is working! Click Cancel to close." }
+};
+
+        Console.WriteLine("[Categories] TEST: Calling DialogService.ShowAsync...");
+        var dialog = await DialogService.ShowAsync<ConfirmDialog>("TEST Dialog", parameters);
+
+        Console.WriteLine("[Categories] TEST: Dialog shown, awaiting result...");
+        var result = await dialog.Result;
+
+        Console.WriteLine($"[Categories] TEST: Dialog result received. Canceled: {result?.Canceled}");
+        Snackbar.Add("Test dialog completed successfully!", Severity.Success);
+    }
+
     private async Task HandleDeleteClick(Guid id)
     {
         Console.WriteLine($"[Categories] Delete button clicked for ID: {id}");
@@ -592,17 +653,37 @@
 
         try
         {
-            var parameters = new DialogParameters<ConfirmDeleteDialog>
-            {
-                { nameof(ConfirmDeleteDialog.ContentText), "Are you sure you want to delete this category? This action cannot be undone." }
-            };
+            var parameters = new DialogParameters<ConfirmDialog>
+{
+{ nameof(ConfirmDialog.ContentText), "Are you sure you want to delete this category? This action cannot be undone." }
+};
 
             Console.WriteLine($"[Categories] Calling DialogService.ShowAsync...");
-            var dialog = await DialogService.ShowAsync<ConfirmDeleteDialog>("Confirm Delete", parameters);
+
+            if (DialogService == null)
+            {
+                Logger.LogError("[Categories] DialogService is null. Cannot show confirmation dialog.");
+                Console.WriteLine("[Categories] DialogService is null. Cannot show confirmation dialog.");
+                Snackbar.Add("Unable to show confirmation dialog.", Severity.Error);
+                return;
+            }
+
+            var dialog = await DialogService.ShowAsync<ConfirmDialog>("Confirm Delete", parameters);
+
+            if (dialog == null)
+            {
+                Logger.LogError("[Categories] DialogService returned a null dialog reference.");
+                Console.WriteLine("[Categories] DialogService returned a null dialog reference.");
+                Snackbar.Add("Failed to open confirmation dialog.", Severity.Error);
+                return;
+            }
 
             Console.WriteLine($"[Categories] Dialog shown, awaiting result...");
             var result = await dialog.Result;
 
+            Console.WriteLine($"[Categories] Dialog result object: {(result == null ? "NULL" : "NOT NULL")}");
+            Console.WriteLine($"[Categories] Dialog result.Canceled: {result?.Canceled}");
+            Console.WriteLine($"[Categories] Dialog result.Data: {result?.Data}");
             Logger.LogInformation($"[Categories] Delete dialog result - Canceled: {result?.Canceled}");
             Console.WriteLine($"[Categories] Delete dialog result - Canceled: {result?.Canceled}");
 
@@ -660,15 +741,15 @@
             <div class="flex items-center hover:bg-primary-50 transition-colors">
                 <!-- Expand/Collapse Button -->
                 <button @onclick="() => ToggleExpand(category.Id)"
-                        disabled="@(category.SubCategories?.Any() != true ||
-                                   (!string.IsNullOrEmpty(SearchTerm) &&
-                                    !category.SubCategories.Any(sc => sc.Name.ToLower().Contains(SearchTerm.ToLower()) ||
-                                                                     sc.Code.ToLower().Contains(SearchTerm.ToLower()))))"
-                        class="p-3 text-dark-600 hover:text-dark-900 flex-shrink-0 disabled:opacity-40 disabled:cursor-not-allowed">
+                    disabled="@(category.SubCategories?.Any() != true ||
+                                                                   (!string.IsNullOrEmpty(SearchTerm) &&
+                                                                    !category.SubCategories.Any(sc => sc.Name.ToLower().Contains(SearchTerm.ToLower()) ||
+                                                                                                     sc.Code.ToLower().Contains(SearchTerm.ToLower()))))"
+                    class="p-3 text-dark-600 hover:text-dark-900 flex-shrink-0 disabled:opacity-40 disabled:cursor-not-allowed">
                     @if (category.SubCategories?.Any() == true)
                     {
                         <svg class="w-5 h-5 transition-transform @(ExpandedCategories?.Contains(category.Id) == true ? "rotate-90" : "")"
-                             fill="currentColor" viewBox="0 0 24 24">
+                            fill="currentColor" viewBox="0 0 24 24">
                             <path d="M7 10l5 5 5-5z"></path>
                         </svg>
                     }
@@ -681,10 +762,11 @@
                 <!-- Category Content -->
                 <div class="flex-1 py-3 px-2">
                     <div class="flex items-center space-x-3">
-                        <div class="w-8 h-8 bg-gradient-to-br from-primary-400 to-primary-600 rounded flex items-center justify-center flex-shrink-0">
+                        <div
+                            class="w-8 h-8 bg-gradient-to-br from-primary-400 to-primary-600 rounded flex items-center justify-center flex-shrink-0">
                             <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                      d="M20 7l-8-4-8 4m0 0l8-4 8 4m0 0v10l-8 4-8-4V7m8 4v10m-8-4l8 4 8-4"></path>
+                                    d="M20 7l-8-4-8 4m0 0l8-4 8 4m0 0v10l-8 4-8-4V7m8 4v10m-8-4l8 4 8-4"></path>
                             </svg>
                         </div>
                         <div class="flex-1 min-w-0">
@@ -695,10 +777,10 @@
                                 {
                                     var totalSubs = category.SubCategories.Count;
                                     var visibleSubs = string.IsNullOrEmpty(SearchTerm)
-                                        ? totalSubs
-                                        : category.SubCategories.Count(sc =>
-                                            sc.Name.ToLower().Contains(SearchTerm.ToLower()) ||
-                                            sc.Code.ToLower().Contains(SearchTerm.ToLower()));
+                                ? totalSubs
+                                : category.SubCategories.Count(sc =>
+                                sc.Name.ToLower().Contains(SearchTerm.ToLower()) ||
+                                sc.Code.ToLower().Contains(SearchTerm.ToLower()));
 
                                     @if (visibleSubs == totalSubs)
                                     {
@@ -733,9 +815,12 @@
 
                 <!-- Action Buttons -->
                 <div class="px-4 py-3 flex gap-2 flex-shrink-0">
-                    <button type="button" @onclick="@(async () => await ViewCategory(category.Id))" class="text-primary-600 hover:text-primary-700 font-medium text-sm" title="View Category">View</button>
-                    <button type="button" @onclick="@(async () => await EditCategory(category.Id))" class="text-blue-600 hover:text-blue-700 font-medium text-sm" title="Edit Category">Edit</button>
-                    <button type="button" @onclick="@(async () => await HandleDeleteClick(category.Id))" class="text-red-600 hover:text-red-700 font-medium text-sm" title="Delete Category">Delete</button>
+                    <button type="button" @onclick="@(async () => await ViewCategory(category.Id))"
+                        class="text-primary-600 hover:text-primary-700 font-medium text-sm" title="View Category">View</button>
+                    <button type="button" @onclick="@(async () => await EditCategory(category.Id))"
+                        class="text-blue-600 hover:text-blue-700 font-medium text-sm" title="Edit Category">Edit</button>
+                    <button type="button" @onclick="@(async () => await HandleDeleteClick(category.Id))"
+                        class="text-red-600 hover:text-red-700 font-medium text-sm" title="Delete Category">Delete</button>
                 </div>
             </div>
 
@@ -743,12 +828,12 @@
             @if (ExpandedCategories?.Contains(category.Id) == true && category.SubCategories?.Any() == true)
             {
                 var visibleSubCategories = string.IsNullOrEmpty(SearchTerm)
-                    ? category.SubCategories.OrderBy(c => c.DisplayOrder).ToList()
-                    : category.SubCategories
-                        .Where(sc => sc.Name.ToLower().Contains(SearchTerm.ToLower()) ||
-                                    sc.Code.ToLower().Contains(SearchTerm.ToLower()))
-                        .OrderBy(c => c.DisplayOrder)
-                        .ToList();
+            ? category.SubCategories.OrderBy(c => c.DisplayOrder).ToList()
+            : category.SubCategories
+            .Where(sc => sc.Name.ToLower().Contains(SearchTerm.ToLower()) ||
+            sc.Code.ToLower().Contains(SearchTerm.ToLower()))
+            .OrderBy(c => c.DisplayOrder)
+            .ToList();
 
                 @if (visibleSubCategories.Any())
                 {
