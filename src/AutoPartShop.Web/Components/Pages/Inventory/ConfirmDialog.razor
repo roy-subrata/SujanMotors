@@ -1,3 +1,5 @@
+
+
 @using MudBlazor
 @rendermode InteractiveServer
 
@@ -6,8 +8,12 @@
         <MudText>@ContentText</MudText>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel">Cancel</MudButton>
-        <MudButton Color="Color.Error" Variant="Variant.Filled" OnClick="Delete">Delete</MudButton>
+        <button type="button" class="mud-button-base mud-button mud-button-text mud-button-text-default mud-button-text-size-medium" @onclick="Cancel">
+            Cancel
+        </button>
+        <button type="button" class="mud-button-base mud-button mud-button-filled mud-button-filled-error mud-button-filled-size-medium" @onclick="Delete" style="margin-left: 8px;">
+            Delete
+        </button>
     </DialogActions>
 </MudDialog>
 
