@@ -215,7 +215,7 @@
                                     <div class="flex gap-2">
                                         <button type="button" @onclick="@(async () => await ViewCategory(category.Id))" class="text-primary-600 hover:text-primary-700 font-medium">View</button>
                                         <button type="button" @onclick="@(async () => await EditCategory(category.Id))" class="text-blue-600 hover:text-blue-700 font-medium">Edit</button>
-                                        <button type="button" @onclick="@(async () => await DeleteCategory(category.Id))" class="text-red-600 hover:text-red-700 font-medium">Delete</button>
+                                        <button type="button" @onclick="@(async () => await HandleDeleteClick(category.Id))" class="text-red-600 hover:text-red-700 font-medium">Delete</button>
                                     </div>
                                 </td>
                             </tr>
@@ -578,51 +578,76 @@
         return Task.CompletedTask;
     }
 
+    private async Task HandleDeleteClick(Guid id)
+    {
+        Console.WriteLine($"[Categories] Delete button clicked for ID: {id}");
+        await DeleteCategory(id);
+    }
+
     private async Task DeleteCategory(Guid id)
     {
         Logger.LogInformation($"[Categories] DeleteCategory called for ID: {id}");
         Console.WriteLine($"[Categories] DeleteCategory called for ID: {id}");
+        Console.WriteLine($"[Categories] DialogService is: {(DialogService != null ? "NOT NULL" : "NULL")}");
 
-        var parameters = new DialogParameters<ConfirmDeleteDialog>
+        try
         {
-            { nameof(ConfirmDeleteDialog.ContentText), "Are you sure you want to delete this category?" }
-        };
-
-        var dialog = await DialogService.ShowAsync<ConfirmDeleteDialog>("Confirm Delete", parameters);
-        var result = await dialog.Result;
-
-        Logger.LogInformation($"[Categories] Delete dialog result - Canceled: {result?.Canceled}");
-        Console.WriteLine($"[Categories] Delete dialog result - Canceled: {result?.Canceled}");
-
-        if (result?.Canceled != true)
-        {
-            try
+            var parameters = new DialogParameters<ConfirmDeleteDialog>
             {
-                Logger.LogInformation($"[Categories] Proceeding with deletion for ID: {id}");
-                await CategoryService.DeleteCategoryAsync(id);
-                Logger.LogInformation($"[Categories] Category deleted successfully: {id}");
-                Snackbar.Add("Category deleted successfully", Severity.Success);
-                await LoadCategories();
-                StateHasChanged();
+                { nameof(ConfirmDeleteDialog.ContentText), "Are you sure you want to delete this category? This action cannot be undone." }
+            };
+
+            Console.WriteLine($"[Categories] Calling DialogService.ShowAsync...");
+            var dialog = await DialogService.ShowAsync<ConfirmDeleteDialog>("Confirm Delete", parameters);
+
+            Console.WriteLine($"[Categories] Dialog shown, awaiting result...");
+            var result = await dialog.Result;
+
+            Logger.LogInformation($"[Categories] Delete dialog result - Canceled: {result?.Canceled}");
+            Console.WriteLine($"[Categories] Delete dialog result - Canceled: {result?.Canceled}");
+
+            if (result?.Canceled != true)
+            {
+                try
+                {
+                    Logger.LogInformation($"[Categories] Proceeding with deletion for ID: {id}");
+                    Console.WriteLine($"[Categories] Calling DeleteCategoryAsync for ID: {id}");
+                    await CategoryService.DeleteCategoryAsync(id);
+                    Logger.LogInformation($"[Categories] Category deleted successfully: {id}");
+                    Console.WriteLine($"[Categories] Category deleted successfully: {id}");
+                    Snackbar.Add("Category deleted successfully", Severity.Success);
+                    await LoadCategories();
+                    StateHasChanged();
+                }
+                catch (ServiceException ex)
+                {
+                    ErrorMessage = $"Error deleting category: {ex.Message}";
+                    Logger.LogError($"[Categories] ServiceException during deletion: {ex.Message}");
+                    Console.WriteLine($"[Categories] ServiceException: {ex.Message}");
+                    Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+                    StateHasChanged();
+                }
+                catch (Exception ex)
+                {
+                    ErrorMessage = $"An unexpected error occurred: {ex.Message}";
+                    Logger.LogError($"[Categories] Unexpected exception during deletion: {ex.Message}");
+                    Console.WriteLine($"[Categories] Unexpected exception: {ex.GetType().Name} - {ex.Message}");
+                    Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+                    StateHasChanged();
+                }
             }
-            catch (ServiceException ex)
+            else
             {
-                ErrorMessage = $"Error deleting category: {ex.Message}";
-                Logger.LogError($"[Categories] ServiceException during deletion: {ex.Message}");
-                Snackbar.Add($"Error: {ex.Message}", Severity.Error);
-                StateHasChanged();
-            }
-            catch (Exception ex)
-            {
-                ErrorMessage = $"An unexpected error occurred: {ex.Message}";
-                Logger.LogError($"[Categories] Unexpected exception during deletion: {ex.Message}");
-                Snackbar.Add($"Error: {ex.Message}", Severity.Error);
-                StateHasChanged();
+                Logger.LogInformation($"[Categories] Delete operation canceled by user for ID: {id}");
+                Console.WriteLine($"[Categories] Delete operation canceled by user for ID: {id}");
             }
         }
-        else
+        catch (Exception ex)
         {
-            Logger.LogInformation($"[Categories] Delete operation canceled by user for ID: {id}");
+            Console.WriteLine($"[Categories] CRITICAL ERROR in DeleteCategory: {ex.GetType().Name} - {ex.Message}");
+            Logger.LogError($"[Categories] CRITICAL ERROR in DeleteCategory: {ex.Message}");
+            Snackbar.Add($"Error showing delete confirmation: {ex.Message}", Severity.Error);
+            StateHasChanged();
         }
     }
 
@@ -710,7 +735,7 @@
                 <div class="px-4 py-3 flex gap-2 flex-shrink-0">
                     <button type="button" @onclick="@(async () => await ViewCategory(category.Id))" class="text-primary-600 hover:text-primary-700 font-medium text-sm" title="View Category">View</button>
                     <button type="button" @onclick="@(async () => await EditCategory(category.Id))" class="text-blue-600 hover:text-blue-700 font-medium text-sm" title="Edit Category">Edit</button>
-                    <button type="button" @onclick="@(async () => await DeleteCategory(category.Id))" class="text-red-600 hover:text-red-700 font-medium text-sm" title="Delete Category">Delete</button>
+                    <button type="button" @onclick="@(async () => await HandleDeleteClick(category.Id))" class="text-red-600 hover:text-red-700 font-medium text-sm" title="Delete Category">Delete</button>
                 </div>
             </div>
 
