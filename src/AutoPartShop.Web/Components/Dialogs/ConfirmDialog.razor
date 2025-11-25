@@ -1,4 +1,5 @@
 @using MudBlazor
+@rendermode InteractiveServer
 
 <MudDialog>
     <DialogContent>
@@ -19,11 +20,31 @@
 
     private void Cancel()
     {
-        MudDialog?.Cancel();
+        Console.WriteLine("[ConfirmDialog] Cancel button clicked");
+        Console.WriteLine($"[ConfirmDialog] MudDialog is: {(MudDialog != null ? "NOT NULL" : "NULL")}");
+        if (MudDialog != null)
+        {
+            MudDialog.Cancel();
+            Console.WriteLine("[ConfirmDialog] MudDialog.Cancel() called successfully");
+        }
+        else
+        {
+            Console.WriteLine("[ConfirmDialog] ERROR: MudDialog is NULL, cannot cancel");
+        }
     }
 
     private void Delete()
     {
-        MudDialog?.Close(DialogResult.Ok(true));
+        Console.WriteLine("[ConfirmDialog] Delete button clicked");
+        Console.WriteLine($"[ConfirmDialog] MudDialog is: {(MudDialog != null ? "NOT NULL" : "NULL")}");
+        if (MudDialog != null)
+        {
+            MudDialog.Close(DialogResult.Ok(true));
+            Console.WriteLine("[ConfirmDialog] MudDialog.Close() called successfully");
+        }
+        else
+        {
+            Console.WriteLine("[ConfirmDialog] ERROR: MudDialog is NULL, cannot close");
+        }
     }
 }
