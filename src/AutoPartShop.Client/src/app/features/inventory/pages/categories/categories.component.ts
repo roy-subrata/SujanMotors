@@ -58,15 +58,22 @@ export class CategoriesComponent implements OnInit {
 
   loadCategories() {
     this.loading = true;
+    // Get all categories for dropdowns/search
     this.categoryService.getAll().subscribe({
-      next: (data) => {
-        this.categories = data;
-        // Filter only top-level categories and build tree from API's nested structure
-        const parentCategories = data.filter((c) => !c.parentCategoryId);
-        this.treeTableNodes = parentCategories.map((parent) => this.buildTreeNodeFromAPI(parent));
+      next: (allCategories) => {
+        this.categories = allCategories;
+      },
+    });
+
+    // Get only top-level categories for tree view (with nested children)
+    this.categoryService.getTopLevel().subscribe({
+      next: (topLevelCategories) => {
+        this.treeTableNodes = topLevelCategories.map((parent) =>
+          this.buildTreeNodeFromAPI(parent)
+        );
         this.loading = false;
       },
-      error: (error) => {
+      error: () => {
         this.messageService.add({
           severity: 'error',
           summary: 'Error',
@@ -136,7 +143,7 @@ export class CategoriesComponent implements OnInit {
             this.displayDialog = false;
             this.loadCategories();
           },
-          error: (error) => {
+          error: () => {
             this.messageService.add({
               severity: 'error',
               summary: 'Error',
@@ -155,7 +162,7 @@ export class CategoriesComponent implements OnInit {
           this.displayDialog = false;
           this.loadCategories();
         },
-        error: (error) => {
+        error: () => {
           this.messageService.add({
             severity: 'error',
             summary: 'Error',
@@ -181,7 +188,7 @@ export class CategoriesComponent implements OnInit {
             });
             this.loadCategories();
           },
-          error: (error) => {
+          error: () => {
             this.messageService.add({
               severity: 'error',
               summary: 'Error',
@@ -207,7 +214,7 @@ export class CategoriesComponent implements OnInit {
         });
         this.loadCategories();
       },
-      error: (error) => {
+      error: () => {
         this.messageService.add({
           severity: 'error',
           summary: 'Error',
