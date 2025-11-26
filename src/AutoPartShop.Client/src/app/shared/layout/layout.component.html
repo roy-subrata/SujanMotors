@@ -9,7 +9,7 @@
 
     <!-- Main Content Area with Responsive Padding -->
     <main
-      [class.lg:ml-[280px]="isDrawerOpen()"
+      [style.marginLeft.px]="isDrawerOpen() ? 280 : 0"
       class="flex-1 overflow-y-auto overflow-x-hidden transition-all duration-300 p-4 sm:p-6 lg:p-8">
       <router-outlet></router-outlet>
     </main>
