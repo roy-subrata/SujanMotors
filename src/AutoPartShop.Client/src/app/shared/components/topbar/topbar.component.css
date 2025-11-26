@@ -1,0 +1,36 @@
+/* Topbar Component Styles */
+/* Primary styling is handled by Tailwind CSS utility classes in the template.
+   This file is reserved for any component-scoped styles if needed. */
+
+/* Tooltip styling for dark mode */
+:host ::ng-deep .p-tooltip.dark\\:bg-gray-900 {
+  background-color: #111827;
+}
+
+:host ::ng-deep .p-tooltip.dark\\:bg-gray-900 .p-tooltip-text {
+  color: white;
+}
+
+/* Menu styling for dark mode */
+:host ::ng-deep .dark\\:bg-gray-800 {
+  background-color: #1f2937;
+}
+
+/* Button hover state refinement */
+:host ::ng-deep .p-button.p-button-rounded.p-button-text {
+  transition: all 0.2s ease;
+}
+
+:host ::ng-deep .p-button.p-button-rounded.p-button-text:hover {
+  transition: all 0.2s ease;
+}
+
+/* Avatar sizing */
+:host ::ng-deep p-avatar.w-8 {
+  width: 2rem;
+  height: 2rem;
+}
+
+:host ::ng-deep p-avatar.h-8 {
+  height: 2rem;
+}
