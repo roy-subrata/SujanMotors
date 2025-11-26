@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ButtonModule } from 'primeng/button';
 import { MenuModule } from 'primeng/menu';
@@ -6,6 +6,7 @@ import { AvatarModule } from 'primeng/avatar';
 import { MenuItem } from 'primeng/api';
 import { RippleModule } from 'primeng/ripple';
 import { TooltipModule } from 'primeng/tooltip';
+import { DrawerService } from '../../services/drawer.service';
 
 @Component({
   selector: 'app-topbar',
@@ -15,6 +16,12 @@ import { TooltipModule } from 'primeng/tooltip';
   styleUrls: ['./topbar.component.css']
 })
 export class TopbarComponent {
+  private drawerService = inject(DrawerService);
+
+  toggleDrawer() {
+    this.drawerService.toggleDrawer();
+  }
+
   userMenuItems: MenuItem[] = [
     {
       label: 'Profile',

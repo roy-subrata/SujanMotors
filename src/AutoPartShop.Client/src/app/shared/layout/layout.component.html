@@ -2,8 +2,17 @@
   <!-- Top Navigation Bar -->
   <app-topbar></app-topbar>
 
-  <!-- Main Content Area -->
-  <main class="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8">
-    <router-outlet></router-outlet>
-  </main>
+  <!-- Main Content with Drawer -->
+  <div class="flex flex-1 overflow-hidden">
+    <!-- Drawer/Sidebar -->
+    <app-drawer></app-drawer>
+
+    <!-- Main Content Area with Responsive Padding -->
+    <main
+      [class.lg:ml-[280px]="isDrawerOpen()"
+      class="flex-1 overflow-y-auto overflow-x-hidden transition-all duration-300 p-4 sm:p-6 lg:p-8">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
 </div>
+

@@ -1,0 +1,90 @@
+/* Drawer Component Styles */
+
+/* Desktop drawer - visible by default */
+aside {
+  width: 280px;
+  transform: translateX(0);
+}
+
+/* Collapsed state */
+aside.drawer-collapsed {
+  width: 80px;
+}
+
+aside.drawer-collapsed .menu-label {
+  display: none;
+}
+
+aside.drawer-collapsed .menu-section > button .pi-chevron-down {
+  display: none;
+}
+
+/* Mobile drawer - slides in from left */
+@media (max-width: 1023px) {
+  aside {
+    width: 280px;
+    transform: translateX(-100%);
+  }
+
+  aside.drawer-open {
+    transform: translateX(0);
+  }
+}
+
+/* Menu items styling */
+.menu-section a,
+.menu-section button {
+  outline: none;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.menu-section a:focus,
+.menu-section button:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: -2px;
+}
+
+/* Icon styling */
+.menu-section i {
+  min-width: 1.5rem;
+  text-align: center;
+}
+
+/* Label styling */
+.menu-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Submenu styling */
+.menu-section .ml-8 {
+  border-left: 2px solid;
+}
+
+/* Animation for chevron */
+.pi-chevron-down {
+  display: inline-block;
+}
+
+/* Dark mode adjustments */
+:host ::ng-deep .dark aside {
+  background: #1f2937;
+}
+
+:host ::ng-deep .dark .border-gray-200 {
+  border-color: #374151;
+}
+
+/* Smooth transitions */
+aside {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Ensure proper z-stacking */
+aside {
+  will-change: transform;
+}
