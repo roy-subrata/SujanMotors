@@ -1,35 +1,34 @@
-<!-- Drawer Overlay (Mobile) -->
-<div
-  *ngIf="isOpen()"
-  class="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden transition-opacity duration-300"
-  (click)="toggleDrawer()">
-</div>
+<!-- PrimeNG Drawer Component -->
+<p-drawer
+  [(visible)]="isDrawerOpen"
+  [modal]="true"
+  [showCloseIcon]="true"
+  position="left"
+  [style]="{'width': '280px'}"
+  styleClass="p-drawer-custom"
+  (visibleChange)="isDrawerOpen.set($event)">
 
-<!-- Drawer/Sidebar -->
-<aside
-  [class.drawer-open]="isOpen()"
-  [class.drawer-collapsed]="isCollapsed()"
-  class="fixed left-0 top-16 h-[calc(100vh-64px)] z-40 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 shadow-lg transition-all duration-300">
+  <!-- Drawer Header -->
+  <ng-template pTemplate="header">
+    <div class="flex items-center gap-2">
+      <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-600 dark:bg-blue-500">
+        <i class="pi pi-shopping-bag text-white text-sm"></i>
+      </div>
+      <h2 class="text-lg font-bold text-gray-900 dark:text-white">AutoPartShop</h2>
+    </div>
+  </ng-template>
 
-  <!-- Drawer Container -->
-  <div class="flex flex-col h-full">
-    <!-- Close Button (Mobile Only) -->
-    <button
-      (click)="toggleDrawer()"
-      class="lg:hidden absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
-      <i class="pi pi-times text-gray-600 dark:text-gray-300 text-lg"></i>
-    </button>
-
-    <!-- Navigation Content -->
-    <nav class="flex-1 overflow-y-auto pt-4">
-      <div class="space-y-2 px-3">
+  <!-- Drawer Content - Navigation Menu -->
+  <div class="flex flex-col h-full overflow-hidden">
+    <nav class="flex-1 overflow-y-auto pt-2">
+      <div class="space-y-2 px-2">
         <!-- Menu Items -->
         <div *ngFor="let item of menuItems" class="menu-section">
           <!-- Simple Menu Item (No Children) -->
           <a
             *ngIf="!item.children"
             [routerLink]="item.path"
-            (click)="onLinkClick()"
+            (click)="closeDrawer()"
             class="flex items-center gap-3 px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-lg transition-colors duration-200"
             [routerLinkActive]="'bg-blue-100 dark:bg-gray-700 text-blue-600 dark:text-blue-400'"
             [title]="item.label">
@@ -41,7 +40,7 @@
           <button
             *ngIf="item.children"
             (click)="toggleMenu(item)"
-            class="w-full flex items-center justify-between gap-3 px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-lg transition-colors duration-200"
+            class="w-full flex items-center justify-between gap-3 px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-lg transition-colors duration-200 border-none bg-transparent cursor-pointer"
             [title]="item.label">
             <div class="flex items-center gap-3 flex-1">
               <i [class]="'pi ' + item.icon + ' text-lg flex-shrink-0'"></i>
@@ -60,7 +59,7 @@
             <a
               *ngFor="let child of item.children"
               [routerLink]="child.path"
-              (click)="onLinkClick()"
+              (click)="closeDrawer()"
               class="flex items-center gap-3 px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-200 rounded-lg transition-colors duration-200"
               [routerLinkActive]="'bg-blue-100 dark:bg-gray-700 text-blue-600 dark:text-blue-400'"
               [title]="child.label">
@@ -72,12 +71,13 @@
       </div>
     </nav>
 
-    <!-- Bottom Section (Optional - for future use) -->
+    <!-- Drawer Footer -->
     <div class="border-t border-gray-200 dark:border-gray-700 p-3">
-      <button class="w-full flex items-center gap-3 px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors duration-200">
+      <button
+        class="w-full flex items-center gap-3 px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors duration-200 border-none bg-transparent cursor-pointer">
         <i class="pi pi-question-circle text-lg flex-shrink-0"></i>
         <span class="menu-label text-sm">Help</span>
       </button>
     </div>
   </div>
-</aside>
+</p-drawer>

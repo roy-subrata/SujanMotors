@@ -1,0 +1,84 @@
+/* Sidebar Component Styles */
+
+/* PrimeNG Drawer customization */
+:host ::ng-deep .p-drawer-custom {
+  background: white;
+}
+
+:host ::ng-deep .dark .p-drawer-custom {
+  background: #1f2937;
+}
+
+:host ::ng-deep .p-drawer-header {
+  border-bottom: 1px solid #e5e7eb;
+  padding: 1rem;
+}
+
+:host ::ng-deep .dark .p-drawer-header {
+  border-bottom-color: #374151;
+}
+
+:host ::ng-deep .p-drawer-content {
+  padding: 0;
+}
+
+/* Menu items styling */
+.menu-section a,
+.menu-section button {
+  outline: none;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.menu-section a:focus,
+.menu-section button:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: -2px;
+}
+
+/* Icon styling */
+.menu-section i {
+  min-width: 1.5rem;
+  text-align: center;
+}
+
+/* Label styling */
+.menu-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Submenu styling */
+.menu-section .ml-8 {
+  border-left: 2px solid;
+}
+
+/* Animation for chevron */
+.pi-chevron-down {
+  display: inline-block;
+  transition: transform 0.3s ease;
+}
+
+/* Drawer close button styling */
+:host ::ng-deep .p-drawer-close-icon {
+  width: 2rem;
+  height: 2rem;
+  color: #6b7280;
+}
+
+:host ::ng-deep .dark .p-drawer-close-icon {
+  color: #d1d5db;
+}
+
+/* Smooth transitions */
+:host ::ng-deep .p-drawer {
+  transition: all 0.3s ease;
+}
+
+/* Modal overlay */
+:host ::ng-deep .p-drawer-mask {
+  background: rgba(0, 0, 0, 0.5);
+}

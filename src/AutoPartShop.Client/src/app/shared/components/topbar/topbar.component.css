@@ -1,6 +1,4 @@
 /* Topbar Component Styles */
-/* Primary styling is handled by Tailwind CSS utility classes in the template.
-   This file is reserved for any component-scoped styles if needed. */
 
 /* Tooltip styling for dark mode */
 :host ::ng-deep .p-tooltip.dark\\:bg-gray-900 {
@@ -16,13 +14,44 @@
   background-color: #1f2937;
 }
 
-/* Button hover state refinement */
+/* Button styling */
+:host ::ng-deep .p-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 :host ::ng-deep .p-button.p-button-rounded.p-button-text {
   transition: all 0.2s ease;
+  color: inherit;
 }
 
 :host ::ng-deep .p-button.p-button-rounded.p-button-text:hover {
   transition: all 0.2s ease;
+}
+
+/* Icon visibility in buttons */
+:host ::ng-deep .p-button .p-icon {
+  display: inline-block;
+  color: inherit;
+  font-size: inherit;
+}
+
+:host ::ng-deep .p-button-rounded .p-icon {
+  color: inherit;
+  font-size: 1rem;
+}
+
+/* PrimeNG button icon */
+:host ::ng-deep .p-button-icon {
+  display: inline-block;
+  vertical-align: middle;
+  font-size: 1rem;
+}
+
+:host ::ng-deep .p-button-icon.pi {
+  font-family: 'primeicons';
+  display: inline-block;
 }
 
 /* Avatar sizing */
@@ -33,4 +62,11 @@
 
 :host ::ng-deep p-avatar.h-8 {
   height: 2rem;
+}
+
+/* Ensure icons are visible */
+:host ::ng-deep .pi {
+  font-size: inherit;
+  vertical-align: middle;
+  color: currentColor;
 }

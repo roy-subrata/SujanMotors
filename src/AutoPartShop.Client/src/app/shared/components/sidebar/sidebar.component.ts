@@ -2,6 +2,8 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { DrawerService } from '../../services/drawer.service';
+import { DrawerModule } from 'primeng/drawer';
+import { ButtonModule } from 'primeng/button';
 
 interface MenuItem {
   label: string;
@@ -12,17 +14,16 @@ interface MenuItem {
 }
 
 @Component({
-  selector: 'app-drawer',
+  selector: 'app-sidebar',
   standalone: true,
-  imports: [CommonModule, RouterModule],
-  templateUrl: './drawer.component.html',
-  styleUrls: ['./drawer.component.css']
+  imports: [CommonModule, RouterModule, DrawerModule, ButtonModule],
+  templateUrl: './sidebar.component.html',
+  styleUrls: ['./sidebar.component.css']
 })
-export class DrawerComponent implements OnInit {
+export class SidebarComponent implements OnInit {
   private drawerService = inject(DrawerService);
 
-  isOpen = this.drawerService.isOpen;
-  isCollapsed = this.drawerService.isCollapsed;
+  isDrawerOpen = this.drawerService.isOpen;
 
   menuItems: MenuItem[] = [
     {
@@ -69,13 +70,11 @@ export class DrawerComponent implements OnInit {
   ];
 
   ngOnInit() {
-    // Close drawer on smaller screens by default
+    // Initialize drawer state
     if (typeof window !== 'undefined' && window.innerWidth < 1024) {
       this.drawerService.closeDrawer();
-      this.drawerService.setCollapsed(true);
     } else {
       this.drawerService.openDrawer();
-      this.drawerService.setCollapsed(false);
     }
   }
 
@@ -85,12 +84,8 @@ export class DrawerComponent implements OnInit {
     }
   }
 
-  toggleDrawer() {
-    this.drawerService.toggleDrawer();
-  }
-
-  onLinkClick() {
-    // Close drawer on mobile when clicking a link
+  closeDrawer() {
+    // Close drawer on mobile when link is clicked
     if (typeof window !== 'undefined' && window.innerWidth < 1024) {
       this.drawerService.closeDrawer();
     }
