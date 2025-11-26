@@ -4,7 +4,7 @@ using AutoPartShop.Infrastructure.Repositories;
 var builder = WebApplication.CreateBuilder(args);
 
 // Configure CORS
-var corsPolicy = "AllowBlazorApp";
+var corsPolicy = "AllowAllApps";
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(corsPolicy, policy =>
@@ -20,6 +20,10 @@ builder.Services.AddCors(options =>
         {
             // For production, allow specific origins
             policy.WithOrigins(
+                // Angular App
+                "http://localhost:4200",  // Angular dev server
+                "https://localhost:4200", // Angular dev server HTTPS
+                // Blazor App
                 "http://localhost:5173",  // Blazor dev server default
                 "http://localhost:5174",  // Alternative Blazor port
                 "https://localhost:7173", // HTTPS Blazor dev
