@@ -4,18 +4,16 @@
     <ng-template pTemplate="left">
       <div class="flex items-center gap-2">
         <i class="pi pi-truck text-2xl text-blue-600"></i>
-        <h1 class="text-lg font-bold text-gray-800 dark:text-white hidden sm:block">AutoPartShop</h1>
+        <h1 class="text-lg font-bold text-gray-800 dark:text-white hidden sm:block">
+          AutoPartShop
+        </h1>
       </div>
     </ng-template>
 
     <!-- Center: Main Navigation Menu (visible on large screens) -->
     <ng-template pTemplate="center">
       <div class="hidden lg:flex">
-        <p-menu
-          [model]="items()"
-          [popup]="false"
-          orientation="horizontal"
-          class="topbar-menu">
+        <p-menu [model]="items()" [popup]="false" orientation="horizontal" class="topbar-menu">
         </p-menu>
       </div>
     </ng-template>
@@ -40,23 +38,18 @@
           class="p-button-rounded p-button-text p-button-plain"
           pBadge
           [value]="'5'"
-          badgeClass="p-badge-danger p-badge-overlap">
-        </button>
+          badgeClass="p-badge-danger p-badge-overlap"
+        ></button>
 
         <!-- User Menu -->
-        <p-menu
-          #userMenu
-          [model]="userMenuItems()"
-          [popup]="true"
-          appendTo="body">
-        </p-menu>
+        <p-menu #userMenu [model]="userMenuItems()" [popup]="true" appendTo="body"> </p-menu>
         <button
           pButton
           type="button"
           icon="pi pi-user"
           class="p-button-rounded p-button-text p-button-plain"
-          (click)="userMenu.toggle($event)">
-        </button>
+          (click)="userMenu.toggle($event)"
+        ></button>
       </div>
     </ng-template>
   </p-toolbar>

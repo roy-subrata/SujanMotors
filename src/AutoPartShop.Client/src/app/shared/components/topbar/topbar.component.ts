@@ -2,120 +2,122 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ButtonModule } from 'primeng/button';
 import { MenuModule } from 'primeng/menu';
+import { AvatarModule } from 'primeng/avatar';
 import { MenuItem } from 'primeng/api';
+import { RippleModule } from 'primeng/ripple';
 
 @Component({
   selector: 'app-topbar',
   standalone: true,
-  imports: [CommonModule, ButtonModule, MenuModule],
+  imports: [CommonModule, ButtonModule, MenuModule, AvatarModule, RippleModule],
   template: `
-    <div class="topbar">
-      <div class="topbar-left">
-        <button
-          pButton
-          type="button"
-          icon="pi pi-bars"
-          class="p-button-rounded p-button-text p-button-lg"
-          [style]="{'color': '#6b7280'}"
-          pRipple
-          pTooltip="Menu"
-          tooltipPosition="bottom">
-        </button>
-        <div class="logo-section">
-          <i class="pi pi-shopping-bag logo-icon"></i>
-          <h1 class="logo-text">AutoPartShop</h1>
+    <!-- Header -->
+    <header class="sticky top-0 z-40 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
+      <div class="px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between h-16">
+
+          <!-- Left Section: Logo and Brand -->
+          <div class="flex items-center gap-3 flex-1">
+            <button
+              pButton
+              type="button"
+              icon="pi pi-bars"
+              class="p-button-rounded p-button-text p-button-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+              pRipple
+              pTooltip="Menu"
+              tooltipPosition="bottom"
+              tooltipStyleClass="dark:bg-gray-900">
+            </button>
+
+            <div class="flex items-center gap-2">
+              <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-blue-600 dark:bg-blue-500 shadow-md">
+                <i class="pi pi-shopping-bag text-white text-lg"></i>
+              </div>
+              <div class="hidden sm:block">
+                <h1 class="text-lg font-bold text-gray-900 dark:text-white tracking-tight">AutoPartShop</h1>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Inventory Management</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Section: User Menu and Profile -->
+          <div class="flex items-center gap-2 sm:gap-4">
+            <!-- Notification Bell -->
+            <button
+              pButton
+              type="button"
+              icon="pi pi-bell"
+              class="p-button-rounded p-button-text text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 relative"
+              pRipple
+              pTooltip="Notifications"
+              tooltipPosition="bottom"
+              tooltipStyleClass="dark:bg-gray-900">
+              <span class="absolute top-2 right-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1 -translate-y-1 bg-red-600 rounded-full">3</span>
+            </button>
+
+            <!-- Divider -->
+            <div class="hidden sm:block w-px h-6 bg-gray-200 dark:bg-gray-700"></div>
+
+            <!-- User Profile Dropdown -->
+            <button
+              #userMenuBtn
+              pButton
+              type="button"
+              class="p-button-rounded p-button-text flex items-center gap-2 px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700"
+              (click)="userMenu.toggle($event)"
+              pRipple>
+              <p-avatar
+                image="https://primefaces.org/cdn/primeng/images/demo/avatar/amyelsner.png"
+                shape="circle"
+                size="normal"
+                styleClass="w-8 h-8">
+              </p-avatar>
+              <span class="hidden sm:inline text-sm font-medium text-gray-700 dark:text-gray-300">John Doe</span>
+              <i class="pi pi-chevron-down text-xs text-gray-500 dark:text-gray-400 hidden sm:inline"></i>
+            </button>
+
+            <p-menu
+              #userMenu
+              [model]="userMenuItems"
+              [popup]="true"
+              appendTo="body"
+              styleClass="dark:bg-gray-800">
+            </p-menu>
+          </div>
         </div>
       </div>
-
-      <div class="topbar-right">
-        <p-menu
-          #userMenu
-          [model]="userMenuItems"
-          [popup]="true"
-          appendTo="body">
-        </p-menu>
-        <button
-          pButton
-          type="button"
-          icon="pi pi-user"
-          class="p-button-rounded p-button-text p-button-lg"
-          [style]="{'color': '#6b7280'}"
-          (click)="userMenu.toggle($event)"
-          pRipple
-          pTooltip="Account"
-          tooltipPosition="bottom">
-        </button>
-      </div>
-    </div>
-  `,
-  styles: [`
-    .topbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0.75rem 1.5rem;
-      background: white;
-      border-bottom: 2px solid #e5e7eb;
-      height: 64px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-    }
-
-    :host ::ng-deep .dark .topbar {
-      background: #1f2937;
-      border-bottom-color: #374151;
-    }
-
-    .topbar-left,
-    .topbar-right {
-      display: flex;
-      align-items: center;
-      gap: 1.5rem;
-    }
-
-    .logo-section {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      font-weight: 700;
-      color: #111827;
-    }
-
-    .logo-icon {
-      font-size: 1.75rem;
-      color: #2563eb;
-    }
-
-    .logo-text {
-      margin: 0;
-      font-size: 1.125rem;
-      letter-spacing: -0.5px;
-      display: none;
-    }
-
-    @media (min-width: 640px) {
-      .logo-text {
-        display: block;
-      }
-    }
-
-    :host ::ng-deep .dark .logo-section {
-      color: white;
-    }
-
-    :host ::ng-deep .p-button-rounded.p-button-text:hover {
-      background: #f3f4f6;
-    }
-
-    :host ::ng-deep .dark .p-button-rounded.p-button-text:hover {
-      background: #374151;
-    }
-  `]
+    </header>
+  `
 })
 export class TopbarComponent {
   userMenuItems: MenuItem[] = [
-    { label: 'Profile', icon: 'pi pi-user', command: () => {} },
-    { label: 'Settings', icon: 'pi pi-cog', command: () => {} },
+    {
+      label: 'Profile',
+      icon: 'pi pi-user',
+      command: () => console.log('Profile clicked')
+    },
+    {
+      label: 'Settings',
+      icon: 'pi pi-cog',
+      command: () => console.log('Settings clicked')
+    },
+    {
+      label: 'Preferences',
+      icon: 'pi pi-sliders-h',
+      command: () => console.log('Preferences clicked')
+    },
     { separator: true },
-    { label: 'Logout', icon: 'pi pi-sign-out', command: () => {} }
+    {
+      label: 'Help & Support',
+      icon: 'pi pi-question-circle',
+      command: () => console.log('Help clicked')
+    },
+    { separator: true },
+    {
+      label: 'Logout',
+      icon: 'pi pi-sign-out',
+      styleClass: 'text-red-600 dark:text-red-400',
+      command: () => console.log('Logout clicked')
+    }
   ];
 }
