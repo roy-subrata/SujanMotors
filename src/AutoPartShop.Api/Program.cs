@@ -1,5 +1,6 @@
 using Microsoft.OpenApi;
 using AutoPartShop.Infrastructure.Repositories;
+using AutoPartShop.Application.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -40,6 +41,31 @@ builder.Services.AddCors(options =>
 
 // Register repositories
 builder.Services.AddSingleton<ICategoryRepository, CategoryRepository>();
+builder.Services.AddSingleton<IUnitRepository, UnitRepository>();
+builder.Services.AddSingleton<IUnitConversionRepository, UnitConversionRepository>();
+builder.Services.AddSingleton<IPartRepository, PartRepository>();
+builder.Services.AddSingleton<IVehicleRepository, VehicleRepository>();
+builder.Services.AddSingleton<IPartVehicleCompatibilityRepository, PartVehicleCompatibilityRepository>();
+builder.Services.AddSingleton<ISupplierRepository, SupplierRepository>();
+builder.Services.AddSingleton<IWarehouseRepository, WarehouseRepository>();
+builder.Services.AddSingleton<IStockLevelRepository, StockLevelRepository>();
+builder.Services.AddSingleton<IStockMovementRepository, StockMovementRepository>();
+builder.Services.AddSingleton<IPurchaseOrderRepository, PurchaseOrderRepository>();
+builder.Services.AddSingleton<IGoodsReceiptRepository, GoodsReceiptRepository>();
+builder.Services.AddSingleton<ISalesOrderRepository, SalesOrderRepository>();
+builder.Services.AddSingleton<IInvoiceRepository, InvoiceRepository>();
+builder.Services.AddSingleton<ISalesReturnRepository, SalesReturnRepository>();
+builder.Services.AddSingleton<IPriceHistoryRepository, PriceHistoryRepository>();
+builder.Services.AddSingleton<IPurchaseReturnRepository, PurchaseReturnRepository>();
+builder.Services.AddSingleton<ICustomerRepository, CustomerRepository>();
+builder.Services.AddSingleton<IPaymentProviderRepository, PaymentProviderRepository>();
+builder.Services.AddSingleton<ICustomerPaymentRepository, CustomerPaymentRepository>();
+builder.Services.AddSingleton<ISupplierPaymentRepository, SupplierPaymentRepository>();
+builder.Services.AddSingleton<IStockLotRepository, StockLotRepository>();
+builder.Services.AddSingleton<IStockLotMovementRepository, StockLotMovementRepository>();
+
+// Register application services
+builder.Services.AddScoped<StockManagementService>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -74,7 +100,12 @@ if (app.Environment.IsDevelopment())
 // Enable CORS
 app.UseCors(corsPolicy);
 
-app.UseHttpsRedirection();
+// Only redirect HTTPS in production
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
+
 app.UseRouting();
 app.MapControllers();
 
