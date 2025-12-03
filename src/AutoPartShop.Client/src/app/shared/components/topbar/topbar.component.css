@@ -69,4 +69,19 @@
   font-size: inherit;
   vertical-align: middle;
   color: currentColor;
+  font-family: 'primeicons' !important;
+  font-style: normal;
+  font-weight: normal;
+  font-variant: normal;
+  text-transform: none;
+  line-height: 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Make sure inline icons in buttons are visible */
+:host ::ng-deep button i.pi {
+  display: inline-block !important;
+  font-size: inherit;
+  color: currentColor;
 }

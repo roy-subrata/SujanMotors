@@ -2,12 +2,16 @@
   <!-- Top Navigation Bar -->
   <app-topbar></app-topbar>
 
-  <!-- Sidebar Drawer -->
-  <app-sidebar></app-sidebar>
+  <!-- Sidebar and Main Content Container -->
+  <div class="flex flex-1 overflow-hidden">
+    <!-- Sidebar Navigation -->
+    <app-sidebar></app-sidebar>
 
-  <!-- Main Content Area -->
-  <main class="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8">
-    <router-outlet></router-outlet>
-  </main>
+    <!-- Main Content Area with Dynamic Left Margin for Sidebar -->
+    <main
+      class="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 transition-all duration-300"
+      [style.marginLeft]="getMainContentMargin()">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
 </div>
-
