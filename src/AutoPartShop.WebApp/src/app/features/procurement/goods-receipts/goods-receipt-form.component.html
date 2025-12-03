@@ -1,0 +1,187 @@
+<div class="form-container">
+  <div class="form-header">
+    <h1>Create Goods Receipt</h1>
+    <button pButton type="button" icon="pi pi-arrow-left" class="p-button-text" (click)="goBack()"></button>
+  </div>
+
+  <p-card class="form-card">
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form">
+      <!-- Purchase Order Selection -->
+      <div class="form-group full">
+        <label for="purchaseOrder">Purchase Order <span class="required">*</span></label>
+        <p-autoComplete
+          id="purchaseOrder"
+          [(ngModel)]="selectedPO"
+          [ngModelOptions]="{standalone: true}"
+          [suggestions]="filteredPOs"
+          (completeMethod)="filterPOs($event)"
+          [dropdown]="true"
+          field="poNumber"
+          optionLabel="poNumber"
+          placeholder="Select a purchase order"
+          [class.ng-invalid]="!selectedPO"
+          (onSelect)="onPOSelected($any($event))">
+          <ng-template let-po pTemplate="item">
+            <div>
+              <div class="font-semibold">{{ po.poNumber }}</div>
+              <div class="text-sm text-gray-600">Supplier: {{ po.supplierName }} | Total: {{ formatCurrency(po.grandTotal) }}</div>
+            </div>
+          </ng-template>
+          <ng-template let-po pTemplate="selectedItem">
+            <div *ngIf="po">{{ po.poNumber }}</div>
+          </ng-template>
+        </p-autoComplete>
+      </div>
+
+      <!-- Warehouse Selection -->
+      <div class="form-group full">
+        <label for="warehouse">Warehouse <span class="required">*</span></label>
+        <p-autoComplete
+          id="warehouse"
+          [(ngModel)]="selectedWarehouse"
+          [ngModelOptions]="{standalone: true}"
+          [suggestions]="filteredWarehouses"
+          (completeMethod)="filterWarehouses($event)"
+          [dropdown]="true"
+          optionLabel="name"
+          placeholder="Select warehouse"
+          [class.ng-invalid]="!selectedWarehouse"
+          (onSelect)="onWarehouseSelected($any($event))">
+          <ng-template let-warehouse pTemplate="item">
+            <div>
+              <div class="font-semibold">{{ warehouse.name }}</div>
+              <div class="text-sm text-gray-600">{{ warehouse.location }}</div>
+            </div>
+          </ng-template>
+          <ng-template let-warehouse pTemplate="selectedItem">
+            <div *ngIf="warehouse">{{ warehouse.name }}</div>
+          </ng-template>
+        </p-autoComplete>
+        <small class="text-danger" *ngIf="!selectedWarehouse && form.touched">
+          Warehouse is required
+        </small>
+      </div>
+
+      <!-- Receipt Date & Notes -->
+      <div class="form-row">
+        <div class="form-group col">
+          <label for="receivedDate">Received Date <span class="required">*</span></label>
+          <input
+            pInputText
+            id="receivedDate"
+            type="date"
+            formControlName="receivedDate"
+            class="w-full"
+            [class.ng-invalid]="hasError('receivedDate')">
+          <small class="text-danger" *ngIf="hasError('receivedDate')">
+            {{ getErrorMessage('receivedDate') }}
+          </small>
+        </div>
+
+        <div class="form-group col">
+          <label for="notes">Notes</label>
+          <input
+            pInputText
+            id="notes"
+            type="text"
+            formControlName="notes"
+            placeholder="Additional notes"
+            class="w-full">
+        </div>
+      </div>
+
+      <!-- Receipt Items Section -->
+      <div class="items-section" *ngIf="selectedPO">
+        <div class="section-header">
+          <h3 class="section-title">Receipt Items</h3>
+          <span class="text-sm text-gray-600">Update received quantities and conditions</span>
+        </div>
+
+        <div class="items-table">
+          <table formArrayName="lineItems">
+            <thead>
+              <tr>
+                <th width="20%">Part ID</th>
+                <th width="10%">Unit</th>
+                <th width="12%">Ordered</th>
+                <th width="12%">Received <span class="required">*</span></th>
+                <th width="12%">Condition</th>
+                <th width="18%">Notes</th>
+                <th width="10%">Discrepancy</th>
+                <th width="6%"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let line of lineItemsArray.controls; let i = index" [formGroupName]="i">
+                <td>
+                  <span>{{ line.get('partId')?.value }}</span>
+                </td>
+                <td class="text-center">
+                  <span>{{ getPartUnit(line.get('partId')?.value) }}</span>
+                </td>
+                <td class="text-right">
+                  <span>{{ line.get('orderedQuantity')?.value }}</span>
+                </td>
+                <td>
+                  <p-inputNumber
+                    formControlName="receivedQuantity"
+                    [min]="0"
+                    placeholder="0"
+                    class="w-full small-input"
+                    [class.ng-invalid]="line.get('receivedQuantity')?.invalid">
+                  </p-inputNumber>
+                </td>
+                <td>
+                  <select formControlName="condition" class="w-full small-input">
+                    <option value="">Select</option>
+                    <option *ngFor="let cond of conditions" [value]="cond.value">
+                      {{ cond.label }}
+                    </option>
+                  </select>
+                </td>
+                <td>
+                  <input
+                    pInputText
+                    type="text"
+                    formControlName="notes"
+                    placeholder="Notes"
+                    class="w-full small-input">
+                </td>
+                <td class="text-center">
+                  <input
+                    type="checkbox"
+                    formControlName="hasDiscrepancy">
+                </td>
+                <td></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Summary -->
+      <div class="summary-section" *ngIf="selectedPO">
+        <div class="summary-row">
+          <span class="label">Total Items to Receive:</span>
+          <span class="value">{{ getTotalOrderedQuantity() }}</span>
+        </div>
+        <div class="summary-row">
+          <span class="label">Total Items Received:</span>
+          <span class="value">{{ getTotalReceivedQuantity() }}</span>
+        </div>
+        <div class="summary-row" *ngIf="getDiscrepancyCount() > 0">
+          <span class="label">Items with Discrepancies:</span>
+          <span class="value text-danger">{{ getDiscrepancyCount() }}</span>
+        </div>
+      </div>
+
+      <!-- Form Actions -->
+      <div class="form-actions">
+        <button pButton type="button" label="Cancel" class="p-button-text" (click)="goBack()"></button>
+        <button pButton type="submit" label="Create Goods Receipt" class="p-button-success" [loading]="isSubmitting" [disabled]="!form.valid || isSubmitting"></button>
+      </div>
+    </form>
+  </p-card>
+</div>
+
+<p-toast position="top-right"></p-toast>
