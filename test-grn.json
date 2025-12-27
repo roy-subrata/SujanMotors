@@ -1,0 +1,20 @@
+{
+  "purchaseOrderId": "d619fd3c-82a6-46d4-ae6a-f0467013b76c",
+  "warehouseId": "48ac7a39-fe3b-4dab-b85a-9e148443d4cf",
+  "receivedDate": "2025-12-11T00:00:00Z",
+  "deliveryDate": "2025-12-11T10:30:00Z",
+  "deliveryReference": "DEL-2025-001",
+  "carrierName": "Express Transport",
+  "driverName": "Ahmed Khan",
+  "deliveryNotes": "All items received in good condition",
+  "lines": [
+    {
+      "partId": "d1093786-0b8b-4b14-8297-436ead46d94d",
+      "receivedQuantity": 10,
+      "condition": "GOOD",
+      "unitCost": 455.00,
+      "currency": "INR",
+      "unitId": "46393907-5935-42b6-a8d3-5565f2d9f8c7"
+    }
+  ]
+}

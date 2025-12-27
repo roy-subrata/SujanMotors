@@ -1,0 +1,55 @@
+.location-manager {
+  padding: 1rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.form-group {
+  margin-bottom: 1.25rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #333;
+}
+
+.error {
+  display: block;
+  color: #dc3545;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+::ng-deep {
+  .p-datatable .p-datatable-tbody > tr > td {
+    padding: 0.75rem;
+  }
+
+  .p-datatable .p-datatable-thead > tr > th {
+    padding: 0.75rem;
+    background-color: #f8f9fa;
+  }
+}
+
+.text-center {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+}

@@ -1,0 +1,364 @@
+@use 'mixins' as *;
+
+.layout-topbar {
+    position: fixed;
+    height: 70px;
+    z-index: 998;
+    left: 280px;
+    top: 0;
+    right: 0;
+    padding: 0 2rem;
+    background-color: var(--surface-card);
+    border-bottom: 1px solid var(--surface-border);
+    transition: left 0.3s ease;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 1.5rem;
+
+    .layout-topbar-logo-container {
+        width: 18rem;
+        display: flex;
+        align-items: center;
+        padding: 0 1rem;
+    }
+
+    .layout-topbar-logo {
+        display: inline-flex;
+        align-items: center;
+        font-size: 1.5rem;
+        border-radius: var(--content-border-radius);
+        color: var(--text-color);
+        font-weight: 500;
+        gap: 0.5rem;
+
+        svg {
+            width: 3rem;
+        }
+
+        &:focus-visible {
+            @include focused();
+        }
+    }
+
+    .layout-topbar-action {
+        display: inline-flex;
+        justify-content: center;
+        align-items: center;
+        color: var(--text-color-secondary);
+        border-radius: 50%;
+        width: 2.5rem;
+        height: 2.5rem;
+        color: var(--text-color);
+        transition: background-color var(--element-transition-duration);
+        cursor: pointer;
+
+        &:hover {
+            background-color: var(--surface-hover);
+        }
+
+        &:focus-visible {
+            @include focused();
+        }
+
+        i {
+            font-size: 1.25rem;
+        }
+
+        span {
+            font-size: 1rem;
+            display: none;
+        }
+
+        &.layout-topbar-action-highlight {
+            background-color: var(--primary-color);
+            color: var(--primary-contrast-color);
+        }
+    }
+
+    .layout-menu-button {
+        margin-right: 0.5rem;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        color: var(--text-color);
+
+        &:hover {
+            background: var(--surface-hover);
+        }
+
+        i {
+            font-size: 1.25rem;
+            line-height: 1;
+        }
+    }
+
+    .layout-topbar-menu-button {
+        display: none;
+    }
+
+    .layout-topbar-actions {
+        margin-left: auto;
+        display: flex;
+        gap: 1rem;
+        padding: 0 1rem;
+    }
+
+    .layout-topbar-menu-content {
+        display: flex;
+        gap: 1rem;
+    }
+
+    .layout-config-menu {
+        display: flex;
+        gap: 1rem;
+    }
+
+    // New topbar elements
+    .topbar-title {
+        display: flex !important;
+        align-items: center !important;
+        height: 70px !important;
+        flex-shrink: 0;
+
+        h1 {
+            margin: 0 !important;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-color);
+            white-space: nowrap;
+            line-height: 1 !important;
+        }
+    }
+
+    .topbar-search {
+        flex: 1;
+        max-width: 500px;
+        position: relative;
+        display: flex !important;
+        align-items: center !important;
+        height: 70px !important;
+
+        .p-input-icon-left {
+            width: 100%;
+            position: relative;
+            display: flex !important;
+            align-items: center !important;
+        }
+
+        .search-input {
+            width: 100%;
+            padding-right: 3rem !important;
+        }
+
+        .keyboard-shortcut {
+            position: absolute;
+            right: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: var(--surface-100);
+            color: var(--text-color-secondary);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            pointer-events: none;
+        }
+    }
+
+    .topbar-actions {
+        display: flex !important;
+        align-items: center !important;
+        gap: 0.5rem;
+        height: 70px !important;
+        margin-left: auto;
+        flex-shrink: 0;
+    }
+
+    // Ensure all direct children are vertically centered
+    > * {
+        display: flex !important;
+        align-items: center !important;
+    }
+
+    .topbar-action-btn {
+        width: 40px;
+        height: 40px;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border-radius: 50%;
+        border: none;
+        background: transparent;
+        color: var(--text-color-secondary);
+        cursor: pointer;
+        transition: all 0.2s;
+        position: relative;
+        flex-shrink: 0;
+
+        &:hover {
+            background: var(--surface-hover);
+            color: var(--text-color);
+        }
+
+        i {
+            font-size: 1.25rem;
+            line-height: 1 !important;
+            display: block;
+        }
+    }
+
+    .notification-container,
+    .user-menu-container {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        height: 70px !important;
+    }
+
+    .user-menu-btn {
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        padding: 0;
+        border-radius: 50%;
+        transition: all 0.2s;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        height: 40px;
+
+        &:hover {
+            transform: scale(1.05);
+        }
+    }
+}
+
+// Collapsed sidebar state
+.layout-wrapper.layout-static-inactive .layout-topbar {
+    left: 70px;
+    transition: left 0.3s ease;
+}
+
+// PrimeNG Component Overrides for Alignment
+::ng-deep {
+    // Fix p-avatar vertical alignment
+    .layout-topbar .topbar-actions p-avatar {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        height: 40px !important;
+
+        .p-avatar {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            margin: 0 !important;
+        }
+    }
+
+    // Fix p-badge alignment on notification button
+    .layout-topbar .notification-container {
+        .p-badge {
+            margin: 0 !important;
+        }
+    }
+
+    // Ensure badge wrapper doesn't break alignment
+    .layout-topbar .topbar-action-btn.p-overlay-badge {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+
+    // Fix PrimeNG input icon left container
+    .layout-topbar .p-input-icon-left {
+        display: flex !important;
+        align-items: center !important;
+
+        > i {
+            margin-top: 0 !important;
+            top: 50% !important;
+            transform: translateY(-50%) !important;
+        }
+    }
+}
+
+@media (max-width: 768px) {
+    .layout-topbar {
+        left: 0 !important;
+        padding: 0 1rem;
+        gap: 1rem;
+
+        .topbar-title {
+            display: none;
+        }
+
+        .topbar-search {
+            flex: 1;
+            max-width: none;
+        }
+
+        .layout-topbar-logo-container {
+            width: auto;
+        }
+
+        .layout-menu-button {
+            margin-left: 0;
+            margin-right: 0.5rem;
+        }
+
+        .layout-topbar-menu-button {
+            display: inline-flex;
+        }
+
+        .layout-topbar-menu {
+            position: absolute;
+            background-color: var(--surface-overlay);
+            transform-origin: top;
+            box-shadow:
+                0px 3px 5px rgba(0, 0, 0, 0.02),
+                0px 0px 2px rgba(0, 0, 0, 0.05),
+                0px 1px 4px rgba(0, 0, 0, 0.08);
+            border-radius: var(--content-border-radius);
+            padding: 1rem;
+            right: 2rem;
+            top: 4rem;
+            min-width: 15rem;
+            border: 1px solid var(--surface-border);
+
+            .layout-topbar-menu-content {
+                gap: 0.5rem;
+            }
+
+            .layout-topbar-action {
+                display: flex;
+                width: 100%;
+                height: auto;
+                justify-content: flex-start;
+                border-radius: var(--content-border-radius);
+                padding: 0.5rem 1rem;
+
+                i {
+                    font-size: 1rem;
+                    margin-right: 0.5rem;
+                }
+
+                span {
+                    font-weight: medium;
+                    display: block;
+                }
+            }
+        }
+
+        .layout-topbar-menu-content {
+            flex-direction: column;
+        }
+    }
+}

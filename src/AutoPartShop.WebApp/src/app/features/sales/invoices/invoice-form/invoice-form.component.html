@@ -1,0 +1,242 @@
+<div class="invoice-view-page">
+  <p-toast></p-toast>
+  <p-confirmDialog></p-confirmDialog>
+
+  <!-- Header -->
+  <p-card styleClass="mb-4">
+    <ng-template pTemplate="header">
+      <div class="flex justify-between items-center px-4 md:px-6 py-3 md:py-4">
+        <div class="flex items-center gap-2 md:gap-3">
+          <i class="pi pi-file-invoice text-lg md:text-xl"></i>
+          <h2 class="text-lg md:text-xl lg:text-2xl font-semibold m-0">
+            {{ mode() === 'create' ? 'Create Invoice' : 'Invoice Details' }}
+          </h2>
+        </div>
+        <button pButton type="button" label="Back" icon="pi pi-arrow-left"
+          class="p-button-outlined text-sm md:text-base" (click)="cancel()"></button>
+      </div>
+    </ng-template>
+  </p-card>
+
+  <!-- Loading State -->
+  <div *ngIf="loading()" class="flex items-center justify-center py-12">
+    <i class="pi pi-spin pi-spinner text-blue-500 text-3xl md:text-4xl"></i>
+    <span class="ml-3 text-sm md:text-base text-gray-600">Loading invoice...</span>
+  </div>
+
+  <!-- View Mode: Invoice Details -->
+  <div *ngIf="mode() === 'view' && invoice() && !loading()">
+    <!-- Invoice Header -->
+    <p-card styleClass="mb-4">
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h2 class="text-xl md:text-2xl lg:text-3xl font-bold text-gray-800 m-0">{{ invoice()!.invoiceNumber }}</h2>
+          <p class="text-xs md:text-sm text-gray-600 mt-2">Invoice Date: {{ formatDate(invoice()!.invoiceDate) }}</p>
+        </div>
+        <div class="flex flex-col items-start md:items-end gap-2">
+          <p-tag [value]="invoice()!.status" [severity]="getStatusSeverity(invoice()!.status)"
+            styleClass="text-xs md:text-sm"></p-tag>
+          <span *ngIf="invoice()!.isOverdue" class="text-xs md:text-sm text-red-600 font-semibold">OVERDUE</span>
+        </div>
+      </div>
+    </p-card>
+
+    <!-- Invoice Summary -->
+    <p-card styleClass="mb-4">
+      <ng-template pTemplate="header">
+        <div class="px-4 md:px-6 py-3">
+          <h3 class="text-base md:text-lg lg:text-xl font-semibold m-0">Invoice Summary</h3>
+        </div>
+      </ng-template>
+      <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div>
+          <p class="text-xs md:text-sm text-gray-600 mb-1">Subtotal</p>
+          <p class="text-sm md:text-lg font-semibold">{{ formatCurrency(invoice()!.subTotal) }}</p>
+        </div>
+        <div>
+          <p class="text-xs md:text-sm text-gray-600 mb-1">Tax Amount</p>
+          <p class="text-sm md:text-lg font-semibold">{{ formatCurrency(invoice()!.taxAmount) }}</p>
+        </div>
+        <div>
+          <p class="text-xs md:text-sm text-gray-600 mb-1">Discount</p>
+          <p class="text-sm md:text-lg font-semibold">{{ formatCurrency(invoice()!.discountAmount) }}</p>
+        </div>
+        <div class="col-span-2 md:col-span-1">
+          <p class="text-xs md:text-sm text-gray-600 mb-1">Grand Total</p>
+          <p class="text-base md:text-xl lg:text-2xl font-bold text-blue-600">{{ formatCurrency(invoice()!.grandTotal)
+            }}</p>
+        </div>
+        <div>
+          <p class="text-xs md:text-sm text-gray-600 mb-1">Amount Paid</p>
+          <p class="text-sm md:text-lg font-semibold text-green-600">{{ formatCurrency(invoice()!.amountPaid) }}</p>
+        </div>
+        <div>
+          <p class="text-xs md:text-sm text-gray-600 mb-1">Outstanding Amount</p>
+          <p class="text-base md:text-xl lg:text-2xl font-bold text-red-600">{{
+            formatCurrency(invoice()!.outstandingAmount) }}</p>
+        </div>
+      </div>
+      <div class="mt-4 pt-4 border-t">
+        <p class="text-xs md:text-sm text-gray-600 mb-1">Due Date</p>
+        <p class="text-sm md:text-lg font-semibold">{{ formatDate(invoice()!.dueDate) }}</p>
+      </div>
+      <div class="mt-4" *ngIf="invoice()!.notes">
+        <p class="text-xs md:text-sm text-gray-600 mb-1">Notes</p>
+        <p class="text-xs md:text-sm text-gray-800">{{ invoice()!.notes }}</p>
+      </div>
+    </p-card>
+
+    <!-- Payment History -->
+    <p-card styleClass="mb-4" *ngIf="invoice()!.payments && invoice()!.payments.length > 0">
+      <ng-template pTemplate="header">
+        <div class="px-4 md:px-6 py-3">
+          <h3 class="text-base md:text-lg lg:text-xl font-semibold m-0">Payment History</h3>
+        </div>
+      </ng-template>
+      <p-table [value]="invoice()!.payments" styleClass="p-datatable-sm">
+        <ng-template pTemplate="header">
+          <tr>
+            <th class="text-xs md:text-sm">Date</th>
+            <th class="text-xs md:text-sm text-right">Amount</th>
+            <th class="text-xs md:text-sm">Method</th>
+            <th class="text-xs md:text-sm">Reference</th>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-payment>
+          <tr>
+            <td class="text-xs md:text-sm">{{ formatDate(payment.paymentDate) }}</td>
+            <td class="text-xs md:text-sm text-right font-semibold text-green-600">{{ formatCurrency(payment.amount) }}
+            </td>
+            <td class="text-xs md:text-sm">{{ payment.paymentMethod }}</td>
+            <td class="text-xs md:text-sm text-gray-600">{{ payment.referenceNumber || 'N/A' }}</td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </p-card>
+
+    <!-- Action Buttons -->
+    <div class="flex flex-col sm:flex-row justify-end gap-2 md:gap-4">
+      <button pButton type="button" label="Back to List" icon="pi pi-arrow-left"
+        class="p-button-outlined text-sm md:text-base" (click)="cancel()"></button>
+      <button *ngIf="invoice()!.status === 'DRAFT'" pButton type="button" label="Issue Invoice" icon="pi pi-send"
+        class="text-sm md:text-base" (click)="issueInvoice()"></button>
+      <button *ngIf="invoice()!.status !== 'DRAFT' && invoice()!.status !== 'PAID' && invoice()!.status !== 'CANCELLED'"
+        pButton type="button" label="Record Payment" icon="pi pi-dollar" class="p-button-success text-sm md:text-base"
+        (click)="openPaymentDialog()"></button>
+    </div>
+  </div>
+
+  <!-- Create Mode: Invoice Form -->
+  <form *ngIf="mode() === 'create' && !loading()" [formGroup]="invoiceForm" (ngSubmit)="onSubmit()">
+    <p-card styleClass="mb-4">
+      <ng-template pTemplate="header">
+        <div class="px-4 md:px-6 py-3">
+          <h3 class="text-base md:text-lg lg:text-xl font-semibold m-0">Invoice Information</h3>
+        </div>
+      </ng-template>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+        <!-- Sales Order -->
+        <div class="md:col-span-2">
+          <label class="block text-xs md:text-sm font-medium text-gray-700 mb-2">
+            Sales Order <span class="text-red-500">*</span>
+          </label>
+          <p-select appendTo="body" formControlName="salesOrderId" [options]="salesOrderOptions()" optionLabel="label"
+            optionValue="value" placeholder="Select a sales order..." styleClass="w-full"
+            (onChange)="onSalesOrderChange($event.value)">
+          </p-select>
+          <small *ngIf="invoiceForm.get('salesOrderId')?.invalid && invoiceForm.get('salesOrderId')?.touched"
+            class="p-error">Sales Order is required</small>
+        </div>
+
+        <!-- Subtotal -->
+        <div>
+          <label class="block text-xs md:text-sm font-medium text-gray-700 mb-2">
+            Subtotal <span class="text-red-500">*</span>
+          </label>
+          <p-inputNumber formControlName="subTotal" mode="currency" currency="INR" locale="en-IN"
+            styleClass="w-full"></p-inputNumber>
+          <small *ngIf="invoiceForm.get('subTotal')?.invalid && invoiceForm.get('subTotal')?.touched"
+            class="p-error">Subtotal is required</small>
+        </div>
+
+        <!-- Tax Amount -->
+        <div>
+          <label class="block text-xs md:text-sm font-medium text-gray-700 mb-2">Tax Amount</label>
+          <p-inputNumber formControlName="taxAmount" mode="currency" currency="INR" locale="en-IN"
+            styleClass="w-full"></p-inputNumber>
+        </div>
+
+        <!-- Due Date -->
+        <div>
+          <label class="block text-xs md:text-sm font-medium text-gray-700 mb-2">
+            Due Date <span class="text-red-500">*</span>
+          </label>
+          <p-datepicker appendTo="body" formControlName="dueDate" [showIcon]="true" dateFormat="yy-mm-dd"
+            styleClass="w-full"></p-datepicker>
+          <small *ngIf="invoiceForm.get('dueDate')?.invalid && invoiceForm.get('dueDate')?.touched" class="p-error">Due
+            date is required</small>
+        </div>
+
+        <!-- Notes -->
+        <div class="md:col-span-2">
+          <label class="block text-xs md:text-sm font-medium text-gray-700 mb-2">Notes</label>
+          <textarea id="notes" formControlName="notes" rows="3" pInputTextarea
+            placeholder="Add any additional notes or instructions for this purchase order..."
+            class="w-full textarea-input">
+        </textarea>
+       
+        </div>
+      </div>
+    </p-card>
+
+    <!-- Action Buttons -->
+    <div class=" flex flex-col sm:flex-row justify-end gap-2 md:gap-4">
+      <button pButton type="button" label="Cancel" icon="pi pi-times" class="p-button-outlined text-sm md:text-base"
+        (click)="cancel()"></button>
+      <button pButton type="submit" [label]="saving() ? 'Creating...' : 'Create Invoice'" icon="pi pi-check"
+        [disabled]="saving() || invoiceForm.invalid" class="text-sm md:text-base"></button>
+    </div>
+  </form>
+
+  <!-- Payment Dialog -->
+  <p-dialog header="Record Payment" [(visible)]="showPaymentDialog" [modal]="true"
+    [style]="{width: '90vw', maxWidth: '500px'}" [closable]="true" appendTo="body" *ngIf="invoice()">
+    <form [formGroup]="paymentForm" (ngSubmit)="recordPayment()">
+      <div class="space-y-4">
+        <!-- Outstanding Amount Info -->
+        <div class="bg-blue-50 p-3 rounded-lg border border-blue-200">
+          <p class="text-xs md:text-sm text-gray-600 mb-1">Outstanding Amount</p>
+          <p class="text-lg md:text-xl font-bold text-blue-600">{{ formatCurrency(invoice()!.outstandingAmount) }}</p>
+        </div>
+
+        <!-- Amount -->
+        <div>
+          <label class="block text-xs md:text-sm font-medium text-gray-700 mb-2">
+            Payment Amount <span class="text-red-500">*</span>
+          </label>
+          <p-inputNumber formControlName="amount" mode="currency" currency="INR" locale="en-IN"
+            [max]="invoice()!.outstandingAmount" [min]="0.01" styleClass="w-full"></p-inputNumber>
+          <small *ngIf="paymentForm.get('amount')?.invalid && paymentForm.get('amount')?.touched" class="p-error">Amount
+            is required</small>
+        </div>
+
+        <!-- Payment Date -->
+        <div>
+          <label class="block text-xs md:text-sm font-medium text-gray-700 mb-2">
+            Payment Date <span class="text-red-500">*</span>
+          </label>
+          <p-datepicker formControlName="paymentDate" [showIcon]="true" dateFormat="yy-mm-dd"
+            styleClass="w-full"></p-datepicker>
+          <small *ngIf="paymentForm.get('paymentDate')?.invalid && paymentForm.get('paymentDate')?.touched"
+            class="p-error">Payment date is required</small>
+        </div>
+      </div>
+    </form>
+
+    <ng-template pTemplate="footer">
+      <button pButton type="button" label="Cancel" class="p-button-outlined" (click)="closePaymentDialog()"></button>
+      <button pButton type="button" label="Record Payment" icon="pi pi-check" [disabled]="paymentForm.invalid"
+        (click)="recordPayment()"></button>
+    </ng-template>
+  </p-dialog>
+</div>

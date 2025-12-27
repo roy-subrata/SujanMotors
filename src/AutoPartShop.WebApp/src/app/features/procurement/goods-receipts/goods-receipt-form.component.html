@@ -6,7 +6,6 @@
 
   <p-card class="form-card">
     <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form">
-      <!-- Purchase Order Selection -->
       <div class="form-group full">
         <label for="purchaseOrder">Purchase Order <span class="required">*</span></label>
         <p-autoComplete
@@ -62,7 +61,7 @@
         </small>
       </div>
 
-      <!-- Receipt Date & Notes -->
+      <!-- Receipt Date -->
       <div class="form-row">
         <div class="form-group col">
           <label for="receivedDate">Received Date <span class="required">*</span></label>
@@ -77,17 +76,70 @@
             {{ getErrorMessage('receivedDate') }}
           </small>
         </div>
+      </div>
 
+      <!-- Delivery Information Section -->
+      <div class="section-divider">
+        <h3 class="section-title">Delivery Information</h3>
+        <p class="section-subtitle">Record delivery details and carrier information</p>
+      </div>
+
+      <div class="form-row">
         <div class="form-group col">
-          <label for="notes">Notes</label>
+          <label for="deliveryDate">Delivery Date</label>
           <input
             pInputText
-            id="notes"
-            type="text"
-            formControlName="notes"
-            placeholder="Additional notes"
+            id="deliveryDate"
+            type="date"
+            formControlName="deliveryDate"
             class="w-full">
         </div>
+
+        <div class="form-group col">
+          <label for="deliveryReference">Delivery Reference</label>
+          <input
+            pInputText
+            id="deliveryReference"
+            type="text"
+            formControlName="deliveryReference"
+            placeholder="Waybill, shipment ID, etc."
+            class="w-full">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group col">
+          <label for="carrierName">Carrier Name</label>
+          <input
+            pInputText
+            id="carrierName"
+            type="text"
+            formControlName="carrierName"
+            placeholder="Transport/courier company"
+            class="w-full">
+        </div>
+
+        <div class="form-group col">
+          <label for="driverName">Driver Name</label>
+          <input
+            pInputText
+            id="driverName"
+            type="text"
+            formControlName="driverName"
+            placeholder="Driver or contact person"
+            class="w-full">
+        </div>
+      </div>
+
+      <div class="form-group full">
+        <label for="deliveryNotes">Delivery Notes</label>
+        <input
+          pInputText
+          id="deliveryNotes"
+          type="text"
+          formControlName="deliveryNotes"
+          placeholder="Any delivery-related notes"
+          class="w-full">
       </div>
 
       <!-- Receipt Items Section -->
@@ -101,35 +153,55 @@
           <table formArrayName="lineItems">
             <thead>
               <tr>
-                <th width="20%">Part ID</th>
-                <th width="10%">Unit</th>
-                <th width="12%">Ordered</th>
-                <th width="12%">Received <span class="required">*</span></th>
-                <th width="12%">Condition</th>
-                <th width="18%">Notes</th>
-                <th width="10%">Discrepancy</th>
-                <th width="6%"></th>
+                <th width="10%">Part ID</th>
+                <th width="14%">Part Name</th>
+                <th width="5%">Unit</th>
+                <th width="7%">Ordered</th>
+                <th width="7%">Already Received</th>
+                <th width="7%">Remaining</th>
+                <th width="8%">Receiving Now <span class="required">*</span></th>
+                <th width="8%">Condition</th>
+                <th width="9%">Unit Cost <span class="required">*</span></th>
+                <th width="7%">Currency</th>
+                <th width="10%">Notes</th>
+                <th width="5%">Discrepancy</th>
               </tr>
             </thead>
             <tbody>
               <tr *ngFor="let line of lineItemsArray.controls; let i = index" [formGroupName]="i">
                 <td>
-                  <span>{{ line.get('partId')?.value }}</span>
+                  <span class="text-xs">{{ line.get('partId')?.value.substring(0, 8) }}...</span>
+                </td>
+                <td>
+                  <span class="font-medium">{{ getPartName(line.get('partId')?.value) }}</span>
                 </td>
                 <td class="text-center">
                   <span>{{ getPartUnit(line.get('partId')?.value) }}</span>
                 </td>
                 <td class="text-right">
-                  <span>{{ line.get('orderedQuantity')?.value }}</span>
+                  <span class="font-semibold">{{ line.get('orderedQuantity')?.value }}</span>
+                </td>
+                <td class="text-right">
+                  <span class="text-blue-600">{{ line.get('receivedQuantity')?.value || 0 }}</span>
+                </td>
+                <td class="text-right">
+                  <span class="font-semibold text-orange-600">{{ line.get('remainingQuantity')?.value || 0 }}</span>
                 </td>
                 <td>
                   <p-inputNumber
-                    formControlName="receivedQuantity"
-                    [min]="0"
+                    formControlName="receivingQuantity"
+                    [min]="1"
+                    [max]="line.get('remainingQuantity')?.value"
                     placeholder="0"
                     class="w-full small-input"
-                    [class.ng-invalid]="line.get('receivedQuantity')?.invalid">
+                    [class.ng-invalid]="line.get('receivingQuantity')?.invalid">
                   </p-inputNumber>
+                  <small class="text-danger" *ngIf="line.get('receivingQuantity')?.hasError('min')">
+                    Min 1
+                  </small>
+                  <small class="text-danger" *ngIf="line.get('receivingQuantity')?.hasError('max')">
+                    Max {{ line.get('remainingQuantity')?.value }}
+                  </small>
                 </td>
                 <td>
                   <select formControlName="condition" class="w-full small-input">
@@ -137,6 +209,26 @@
                     <option *ngFor="let cond of conditions" [value]="cond.value">
                       {{ cond.label }}
                     </option>
+                  </select>
+                </td>
+                <td>
+                  <p-inputNumber
+                    formControlName="unitCost"
+                    [min]="0"
+                    placeholder="0.00"
+                    class="w-full small-input"
+                    [class.ng-invalid]="line.get('unitCost')?.invalid"
+                    mode="decimal"
+                    [minFractionDigits]="2"
+                    [maxFractionDigits]="4">
+                  </p-inputNumber>
+                </td>
+                <td>
+                  <select formControlName="currency" class="w-full small-input">
+                    <option value="INR">INR</option>
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                    <option value="GBP">GBP</option>
                   </select>
                 </td>
                 <td>
@@ -152,22 +244,43 @@
                     type="checkbox"
                     formControlName="hasDiscrepancy">
                 </td>
-                <td></td>
               </tr>
             </tbody>
           </table>
         </div>
       </div>
 
+      <!-- Cost Summary Section -->
+      <div class="cost-summary-section" *ngIf="selectedPO">
+        <div class="section-header">
+          <h4>Cost Summary</h4>
+        </div>
+
+        <div class="cost-grid">
+          <div class="cost-item">
+            <label>Total Cost (All Items)</label>
+            <span class="cost-value">{{ getTotalCostAllItems() | currency:'INR':'symbol':'1.2-2' }}</span>
+          </div>
+          <div class="cost-item">
+            <label>Average Unit Cost</label>
+            <span class="cost-value">{{ getAverageUnitCost() | currency:'INR':'symbol':'1.2-2' }}</span>
+          </div>
+        </div>
+      </div>
+
       <!-- Summary -->
       <div class="summary-section" *ngIf="selectedPO">
         <div class="summary-row">
-          <span class="label">Total Items to Receive:</span>
+          <span class="label">Total Ordered:</span>
           <span class="value">{{ getTotalOrderedQuantity() }}</span>
         </div>
         <div class="summary-row">
-          <span class="label">Total Items Received:</span>
-          <span class="value">{{ getTotalReceivedQuantity() }}</span>
+          <span class="label">Already Received:</span>
+          <span class="value text-blue-600">{{ getTotalReceivedQuantity() }}</span>
+        </div>
+        <div class="summary-row">
+          <span class="label">Receiving Now (This GRN):</span>
+          <span class="value text-green-600 font-bold">{{ getTotalReceivingQuantity() }}</span>
         </div>
         <div class="summary-row" *ngIf="getDiscrepancyCount() > 0">
           <span class="label">Items with Discrepancies:</span>

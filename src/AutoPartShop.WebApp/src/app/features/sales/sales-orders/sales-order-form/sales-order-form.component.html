@@ -1,0 +1,440 @@
+<div class="container mx-auto px-4 py-6">
+  <!-- Header -->
+  <div class="mb-6">
+    <h1 class="text-3xl font-bold text-gray-800">
+      {{ mode() === 'create' ? 'Create' : mode() === 'edit' ? 'Edit' : 'View' }} Sales Order
+    </h1>
+    <p class="text-gray-600 mt-2">{{ mode() === 'create' ? 'Create a new sales order' : 'View or edit sales order details' }}</p>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading()" class="text-center py-12">
+    <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+    <p class="mt-4 text-gray-600">Loading sales order...</p>
+  </div>
+
+  <!-- Error Alert -->
+  <div *ngIf="error()" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-6">
+    {{ error() }}
+  </div>
+
+  <!-- Form -->
+  <form *ngIf="!loading()" [formGroup]="salesOrderForm" (ngSubmit)="onSubmit()">
+    <!-- Customer Information -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+      <h2 class="text-xl font-semibold text-gray-800 mb-4">Customer Information</h2>
+
+      <!-- Customer Autocomplete -->
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+          Select Customer <span class="text-red-500">*</span>
+        </label>
+        <div class="relative customer-autocomplete">
+          <input
+            type="text"
+            [(ngModel)]="customerSearchTerm"
+            [ngModelOptions]="{standalone: true}"
+            (input)="onCustomerSearchInput($event)"
+            (focus)="showCustomerDropdown = true"
+            placeholder="Search by name, email, or customer code..."
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            autocomplete="off"
+            [disabled]="mode() === 'view'"
+          />
+
+          <!-- Clear Button -->
+          <button
+            *ngIf="selectedCustomerId"
+            (click)="clearCustomerSelection()"
+            type="button"
+            class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+
+          <!-- Dropdown -->
+          <div
+            *ngIf="showCustomerDropdown && filteredCustomers().length > 0"
+            class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+          >
+            <div
+              *ngFor="let customer of filteredCustomers()"
+              (click)="selectCustomer(customer)"
+              class="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+            >
+              <div class="flex justify-between items-start">
+                <div>
+                  <div class="font-medium text-gray-900">
+                    {{ customer.firstName }} {{ customer.lastName }}
+                  </div>
+                  <div class="text-sm text-gray-600">{{ customer.email }}</div>
+                  <div class="text-xs text-gray-500">Code: {{ customer.customerCode }}</div>
+                </div>
+                <div class="text-right">
+                  <div class="text-sm font-medium text-gray-700">{{ customer.customerType }}</div>
+                  <div class="text-xs text-gray-500">{{ customer.city }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- No Results -->
+          <div
+            *ngIf="showCustomerDropdown && customerSearchTerm && filteredCustomers().length === 0"
+            class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-4 text-center text-gray-500"
+          >
+            No customers found
+          </div>
+        </div>
+        <p class="text-sm text-gray-500 mt-2">
+          <span *ngIf="loadingCustomers()">Loading customers...</span>
+          <span *ngIf="!loadingCustomers() && !selectedCustomerId">Type to search for a customer</span>
+          <span *ngIf="!loadingCustomers() && selectedCustomerId" class="text-green-600">✓ Customer selected</span>
+        </p>
+      </div>
+
+      <!-- Customer Details (Read-only, auto-filled) -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Customer Name -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            Customer Name <span class="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            formControlName="customerName"
+            placeholder="Auto-filled from customer selection"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50"
+            readonly
+          />
+          <p *ngIf="salesOrderForm.get('customerName')?.invalid && salesOrderForm.get('customerName')?.touched" class="mt-1 text-sm text-red-600">
+            Customer name is required (min 2 characters)
+          </p>
+        </div>
+
+        <!-- Customer Email -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            Email <span class="text-red-500">*</span>
+          </label>
+          <input
+            type="email"
+            formControlName="customerEmail"
+            placeholder="Auto-filled from customer selection"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50"
+            readonly
+          />
+          <p *ngIf="salesOrderForm.get('customerEmail')?.invalid && salesOrderForm.get('customerEmail')?.touched" class="mt-1 text-sm text-red-600">
+            Valid email is required
+          </p>
+        </div>
+
+        <!-- Customer Phone -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            Phone <span class="text-red-500">*</span>
+          </label>
+          <input
+            type="tel"
+            formControlName="customerPhone"
+            placeholder="Auto-filled from customer selection"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50"
+            readonly
+          />
+          <p *ngIf="salesOrderForm.get('customerPhone')?.invalid && salesOrderForm.get('customerPhone')?.touched" class="mt-1 text-sm text-red-600">
+            Phone is required
+          </p>
+        </div>
+
+        <!-- Customer City -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            City <span class="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            formControlName="customerCity"
+            placeholder="Auto-filled from customer selection"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50"
+            readonly
+          />
+          <p *ngIf="salesOrderForm.get('customerCity')?.invalid && salesOrderForm.get('customerCity')?.touched" class="mt-1 text-sm text-red-600">
+            City is required
+          </p>
+        </div>
+
+        <!-- Technician (Optional) -->
+        <div class="md:col-span-2">
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            Technician (Optional)
+          </label>
+          <p-autoComplete
+            [(ngModel)]="selectedTechnicianId"
+            [ngModelOptions]="{standalone: true}"
+            [suggestions]="filteredTechnicians()"
+            (completeMethod)="onTechnicianFilter($event)"
+            (onSelect)="selectTechnician($event)"
+            (onClear)="clearTechnicianSelection()"
+            field="name"
+            optionLabel="name"
+            [dropdown]="true"
+            [showClear]="true"
+            placeholder="Search by name, code, or shop..."
+            styleClass="w-full"
+            [disabled]="mode() === 'view'"
+            [appendTo]="'body'">
+            <ng-template let-technician pTemplate="item">
+              <div class="flex justify-between items-start py-2">
+                <div>
+                  <div class="font-medium text-gray-900">{{ technician.name }}</div>
+                  <div class="text-sm text-gray-600">{{ technician.phone }}</div>
+                  <div class="text-xs text-gray-500">Code: {{ technician.technicianCode }}</div>
+                </div>
+                <div class="text-right">
+                  <div class="text-sm font-medium text-gray-700">{{ technician.shopName }}</div>
+                  <div class="text-xs text-gray-500">{{ technician.city }}</div>
+                </div>
+              </div>
+            </ng-template>
+          </p-autoComplete>
+          <p class="text-sm text-gray-500 mt-2">
+            <span *ngIf="loadingTechnicians()">Loading technicians...</span>
+            <span *ngIf="!loadingTechnicians() && !selectedTechnicianId">Optional: Select a technician if this order was recommended by one</span>
+            <span *ngIf="!loadingTechnicians() && selectedTechnicianId" class="text-green-600">✓ Technician selected</span>
+          </p>
+        </div>
+
+        <!-- Delivery Date -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            Expected Delivery Date <span class="text-red-500">*</span>
+          </label>
+          <input
+            type="date"
+            formControlName="deliveryDate"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            [class.border-red-500]="salesOrderForm.get('deliveryDate')?.invalid && salesOrderForm.get('deliveryDate')?.touched"
+          />
+          <p *ngIf="salesOrderForm.get('deliveryDate')?.invalid && salesOrderForm.get('deliveryDate')?.touched" class="mt-1 text-sm text-red-600">
+            Delivery date is required
+          </p>
+        </div>
+
+        <!-- Notes -->
+        <div class="md:col-span-2">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Notes</label>
+          <textarea
+            formControlName="notes"
+            rows="3"
+            placeholder="Additional notes..."
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          ></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Line Items -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-semibold text-gray-800">Order Line Items</h2>
+        <button
+          type="button"
+          (click)="addLine()"
+          [disabled]="mode() === 'view'"
+          class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50"
+        >
+          + Add Line
+        </button>
+      </div>
+
+      <div formArrayName="lines" class="space-y-4">
+        <div *ngFor="let line of lines.controls; let i = index" [formGroupName]="i" class="border border-gray-200 rounded-lg p-4">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="font-medium text-gray-700">Line Item #{{ i + 1 }}</h3>
+            <button
+              type="button"
+              (click)="removeLine(i)"
+              [disabled]="lines.length === 1 || mode() === 'view'"
+              class="text-red-600 hover:text-red-800 disabled:opacity-50"
+            >
+              Remove
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <!-- Part Search & Selection -->
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 mb-2">
+                Part <span class="text-red-500">*</span>
+              </label>
+              <div class="relative part-autocomplete-{{ i }}">
+                <input
+                  type="text"
+                  [(ngModel)]="partSearchTerms[i]"
+                  [ngModelOptions]="{standalone: true}"
+                  (input)="onPartSearchInput($event, i)"
+                  (focus)="showPartDropdown[i] = true"
+                  placeholder="Search by name, part number, or SKU..."
+                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  autocomplete="off"
+                  [disabled]="mode() === 'view'"
+                />
+
+                <!-- Clear Button -->
+                <button
+                  *ngIf="selectedPartIds[i]"
+                  (click)="clearPartSelection(i)"
+                  type="button"
+                  class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+
+                <!-- Dropdown -->
+                <div
+                  *ngIf="isPartDropdownVisible(i) && getFilteredParts(i).length > 0"
+                  class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+                >
+                  <div
+                    *ngFor="let part of getFilteredParts(i)"
+                    (click)="selectPart(part, i)"
+                    class="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                  >
+                    <div class="font-medium text-gray-900">{{ part.name }}</div>
+                    <div class="text-sm text-gray-600">Part #: {{ part.partNumber }}</div>
+                    <div class="text-xs text-gray-500">SKU: {{ part.sku }} | Price: ${{ part.sellingPrice.toFixed(2) }}</div>
+                  </div>
+                </div>
+
+                <!-- No Results -->
+                <div
+                  *ngIf="isPartDropdownVisible(i) && getPartSearchTerm(i) && getFilteredParts(i).length === 0"
+                  class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-4 text-center text-gray-500"
+                >
+                  No parts found
+                </div>
+
+                <!-- Hidden field for partId -->
+                <input type="hidden" formControlName="partId" />
+              </div>
+              <p *ngIf="line.get('partId')?.invalid && line.get('partId')?.touched" class="mt-1 text-sm text-red-600">
+                Part is required
+              </p>
+              <p *ngIf="!selectedPartIds[i] && partSearchTerms[i]" class="mt-1 text-sm text-orange-600">
+                Please select a part from the dropdown
+              </p>
+              <p *ngIf="loadingParts()" class="text-xs text-gray-500 mt-1">Loading parts...</p>
+              <p *ngIf="!loadingParts() && selectedPartIds[i]" class="text-xs text-green-600 mt-1">✓ Part selected: {{ partSearchTerms[i] }}</p>
+            </div>
+
+            <!-- Quantity -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">
+                Quantity <span class="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                formControlName="quantity"
+                min="1"
+                placeholder="1"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                [class.border-red-500]="line.get('quantity')?.invalid && line.get('quantity')?.touched"
+              />
+              <p *ngIf="line.get('quantity')?.invalid && line.get('quantity')?.touched" class="mt-1 text-sm text-red-600">
+                Quantity must be at least 1
+              </p>
+            </div>
+
+            <!-- Unit Price -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">
+                Unit Price <span class="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                formControlName="unitPrice"
+                min="0"
+                step="0.01"
+                placeholder="0.00"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                [class.border-red-500]="line.get('unitPrice')?.invalid && line.get('unitPrice')?.touched"
+              />
+              <p *ngIf="line.get('unitPrice')?.invalid && line.get('unitPrice')?.touched" class="mt-1 text-sm text-red-600">
+                Unit price is required
+              </p>
+            </div>
+
+            <!-- Discount -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">
+                Discount %
+              </label>
+              <input
+                type="number"
+                formControlName="discount"
+                min="0"
+                max="100"
+                step="0.01"
+                placeholder="0"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                [class.border-red-500]="line.get('discount')?.invalid && line.get('discount')?.touched"
+              />
+            </div>
+          </div>
+
+          <!-- Line Total -->
+          <div class="mt-4 text-right">
+            <span class="text-sm font-medium text-gray-700">Line Total: </span>
+            <span class="text-lg font-bold text-blue-600">{{ formatCurrency(getLineTotal(i)) }}</span>
+          </div>
+        </div>
+
+        <p *ngIf="lines.length === 0" class="text-center text-gray-500 py-8">
+          No line items added. Click "Add Line" to add items.
+        </p>
+      </div>
+    </div>
+
+    <!-- Order Summary -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+      <h2 class="text-xl font-semibold text-gray-800 mb-4">Order Summary</h2>
+      <div class="space-y-2">
+        <div class="flex justify-between text-gray-700">
+          <span>Subtotal:</span>
+          <span class="font-medium">{{ formatCurrency(subTotal()) }}</span>
+        </div>
+        <div class="flex justify-between text-gray-700">
+          <span>Tax (10%):</span>
+          <span class="font-medium">{{ formatCurrency(taxAmount()) }}</span>
+        </div>
+        <div class="border-t border-gray-200 pt-2 flex justify-between text-lg font-bold text-gray-900">
+          <span>Grand Total:</span>
+          <span class="text-blue-600">{{ formatCurrency(grandTotal()) }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="flex justify-end gap-4">
+      <button
+        type="button"
+        (click)="cancel()"
+        class="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition duration-200"
+      >
+        {{ mode() === 'view' ? 'Back' : 'Cancel' }}
+      </button>
+      <button
+        *ngIf="mode() !== 'view'"
+        type="submit"
+        [disabled]="saving() || salesOrderForm.invalid"
+        class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {{ saving() ? 'Saving...' : (mode() === 'edit' ? 'Update Order' : 'Create Order') }}
+      </button>
+    </div>
+  </form>
+</div>

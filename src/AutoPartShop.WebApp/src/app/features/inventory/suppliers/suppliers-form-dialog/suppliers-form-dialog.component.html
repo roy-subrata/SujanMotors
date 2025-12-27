@@ -1,0 +1,246 @@
+<p-dialog
+  [(visible)]="visible"
+  (visibleChange)="visibleChange.emit($event)"
+  [header]="getDialogTitle()"
+  [modal]="true"
+  [style]="{ width: '90vw', maxWidth: '600px' }"
+  [resizable]="false"
+  [draggable]="false"
+  (onShow)="onDialogShow()">
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form">
+    <!-- Supplier Name & Code -->
+    <div class="form-row">
+      <div class="form-group col">
+        <label for="name">Name <span class="required">*</span></label>
+        <input
+          pInputText
+          id="name"
+          type="text"
+          formControlName="name"
+          placeholder="Supplier name"
+          class="w-full"
+          [class.ng-invalid]="hasError('name')">
+        <small class="text-danger" *ngIf="hasError('name')">
+          {{ getErrorMessage('name') }}
+        </small>
+      </div>
+
+      <div class="form-group col">
+        <label for="code">Code <span class="required">*</span></label>
+        <div class="code-input-wrapper">
+          <input
+            pInputText
+            id="code"
+            type="text"
+            formControlName="code"
+            placeholder="Auto-generated"
+            class="w-full uppercase"
+            [disabled]="true"
+            [class.ng-invalid]="hasError('code')">
+          <i *ngIf="generatingCode" class="pi pi-spin pi-spinner code-spinner"></i>
+        </div>
+        <small class="hint-text">Code is auto-generated</small>
+      </div>
+    </div>
+
+    <!-- Contact Person & Email -->
+    <div class="form-row">
+      <div class="form-group col">
+        <label for="contactPerson">Contact Person <span class="required">*</span></label>
+        <input
+          pInputText
+          id="contactPerson"
+          type="text"
+          formControlName="contactPerson"
+          placeholder="Contact person name"
+          class="w-full"
+          [class.ng-invalid]="hasError('contactPerson')">
+        <small class="text-danger" *ngIf="hasError('contactPerson')">
+          {{ getErrorMessage('contactPerson') }}
+        </small>
+      </div>
+
+      <div class="form-group col">
+        <label for="email">Email <span class="required">*</span></label>
+        <input
+          pInputText
+          id="email"
+          type="email"
+          formControlName="email"
+          placeholder="supplier@example.com"
+          class="w-full"
+          [class.ng-invalid]="hasError('email')">
+        <small class="text-danger" *ngIf="hasError('email')">
+          {{ getErrorMessage('email') }}
+        </small>
+      </div>
+    </div>
+
+    <!-- Phone Number -->
+    <div class="form-group">
+      <label for="phone">Phone <span class="required">*</span></label>
+      <input
+        pInputText
+        id="phone"
+        type="tel"
+        formControlName="phone"
+        placeholder="+91 XXXXX XXXXX or (123) 456-7890"
+        class="w-full"
+        [class.ng-invalid]="hasError('phone')">
+      <small class="text-danger" *ngIf="hasError('phone')">
+        {{ getErrorMessage('phone') }}
+      </small>
+    </div>
+
+    <!-- Address -->
+    <div class="form-group">
+      <label for="address">Address <span class="required">*</span></label>
+      <textarea
+        pInputTextarea
+        id="address"
+        formControlName="address"
+        rows="3"
+        placeholder="Full address (street, building, etc.)"
+        class="w-full"
+        [class.ng-invalid]="hasError('address')">
+      </textarea>
+      <small class="text-danger" *ngIf="hasError('address')">
+        {{ getErrorMessage('address') }}
+      </small>
+    </div>
+
+    <!-- City, State, Country -->
+    <div class="form-row">
+      <div class="form-group col">
+        <label for="city">City <span class="required">*</span></label>
+        <input
+          pInputText
+          id="city"
+          type="text"
+          formControlName="city"
+          placeholder="City"
+          class="w-full"
+          [class.ng-invalid]="hasError('city')">
+        <small class="text-danger" *ngIf="hasError('city')">
+          {{ getErrorMessage('city') }}
+        </small>
+      </div>
+
+      <div class="form-group col">
+        <label for="state">State <span class="required">*</span></label>
+        <input
+          pInputText
+          id="state"
+          type="text"
+          formControlName="state"
+          placeholder="State"
+          class="w-full"
+          [class.ng-invalid]="hasError('state')">
+        <small class="text-danger" *ngIf="hasError('state')">
+          {{ getErrorMessage('state') }}
+        </small>
+      </div>
+    </div>
+
+    <!-- Country & Postal Code -->
+    <div class="form-row">
+      <div class="form-group col">
+        <label for="country">Country <span class="required">*</span></label>
+        <p-autoComplete
+          id="country"
+          formControlName="country"
+          [suggestions]="filteredCountries"
+          (completeMethod)="onCountryFilter($event)"
+          field="label"
+          [dropdown]="true"
+          placeholder="Select or type country"
+          class="w-full"
+          [class.ng-invalid]="hasError('country')">
+          <ng-template let-option pTemplate="item">
+            <div>{{ option.label }}</div>
+          </ng-template>
+        </p-autoComplete>
+        <small class="text-danger" *ngIf="hasError('country')">
+          {{ getErrorMessage('country') }}
+        </small>
+      </div>
+
+      <div class="form-group col">
+        <label for="postalCode">Postal Code <span class="required">*</span></label>
+        <input
+          pInputText
+          id="postalCode"
+          type="text"
+          formControlName="postalCode"
+          placeholder="e.g., 400001"
+          class="w-full"
+          [class.ng-invalid]="hasError('postalCode')">
+        <small class="text-danger" *ngIf="hasError('postalCode')">
+          {{ getErrorMessage('postalCode') }}
+        </small>
+      </div>
+    </div>
+
+    <!-- Payment Terms & Credit Limit -->
+    <div class="form-row">
+      <div class="form-group col">
+        <label for="paymentTerms">Payment Terms</label>
+        <p-autoComplete
+          id="paymentTerms"
+          formControlName="paymentTerms"
+          [suggestions]="filteredPaymentTerms"
+          (completeMethod)="onPaymentTermsFilter($event)"
+          field="label"
+          [dropdown]="true"
+          placeholder="Select or type payment terms"
+          class="w-full">
+          <ng-template let-option pTemplate="item">
+            <div>{{ option.label }}</div>
+          </ng-template>
+        </p-autoComplete>
+      </div>
+
+      <div class="form-group col">
+        <label for="creditLimit">Credit Limit</label>
+        <p-inputNumber
+          id="creditLimit"
+          formControlName="creditLimit"
+          placeholder="0.00"
+          [currency]="'INR'"
+          [currencyDisplay]="'symbol'"
+          [minFractionDigits]="2"
+          [maxFractionDigits]="2"
+          class="w-full"
+          [class.ng-invalid]="hasError('creditLimit')">
+        </p-inputNumber>
+        <small class="text-danger" *ngIf="hasError('creditLimit')">
+          {{ getErrorMessage('creditLimit') }}
+        </small>
+      </div>
+    </div>
+  </form>
+
+  <!-- Dialog Footer -->
+  <ng-template pTemplate="footer">
+    <button
+      pButton
+      type="button"
+      label="Cancel"
+      icon="pi pi-times"
+      class="p-button-text"
+      (click)="closeDialog()"
+      [disabled]="isSubmitting">
+    </button>
+    <button
+      pButton
+      type="button"
+      [label]="getSubmitButtonLabel()"
+      icon="pi pi-check"
+      class="p-button-success"
+      (click)="onSubmit()"
+      [loading]="isSubmitting"
+      [disabled]="form.invalid || isSubmitting">
+    </button>
+  </ng-template>
+</p-dialog>

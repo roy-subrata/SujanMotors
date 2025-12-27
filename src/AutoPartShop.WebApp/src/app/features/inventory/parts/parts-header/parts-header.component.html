@@ -1,0 +1,25 @@
+<div class="header-wrapper">
+  <!-- Header Section -->
+
+  <div class="header-content">
+    <!-- Title and Subtitle -->
+    <div class="header-title-section">
+      <h1 class="header-title">Parts Management</h1>
+      <p class="header-subtitle">Manage your inventory parts and products</p>
+    </div>
+
+    <!-- Toolbar: Search and Action Button -->
+    <div class="toolbar">
+      <div class="search-container">
+        <i class="pi pi-search search-icon"></i>
+        <input type="text" placeholder="Search by name, code, email..." class="search-input"
+          (input)="onSearch(searchQuery)" [(ngModel)]="searchQuery">
+        <i *ngIf="searchQuery" class="pi pi-times clear-icon" (click)="clearSearch()">
+        </i>
+      </div>
+      <button pButton type="button" label="New Part" icon="pi pi-plus" class="p-button-success btn-create"
+        (click)="onCreateClick()">
+      </button>
+    </div>
+  </div>
+</div>

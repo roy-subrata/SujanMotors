@@ -1,0 +1,480 @@
+<!-- Create Dialog -->
+<p-dialog [(visible)]="displayCreateDialog" (visibleChange)="displayCreateDialogChange.emit($event)"
+  [header]="'Create New Part'" [modal]="true" [style]="{width: '100%', maxWidth: '600px'}" [draggable]="true"
+  [resizable]="false" (onHide)="onCreateDialogHide()">
+
+  <form [formGroup]="createForm" class="form-container">
+    <!-- Name Field -->
+    <div class="form-group">
+      <label for="create-name" class="form-label">
+        <span class="required">*</span> Part Name
+      </label>
+      <input
+        id="create-name"
+        pInputText
+        type="text"
+        formControlName="name"
+        placeholder="Enter part name"
+        [class.error]="hasError(createForm, 'name')"
+        [class.success]="isFieldValid(createForm, 'name')"
+        class="form-input" />
+      <small class="error-message" *ngIf="hasError(createForm, 'name')">
+        {{ getErrorMessage(createForm, 'name') }}
+      </small>
+    </div>
+
+    <!-- Part Number Field -->
+    <div class="form-group">
+      <label for="create-part-number" class="form-label">
+        <span class="required">*</span> Part Number
+      </label>
+      <input
+        id="create-part-number"
+        pInputText
+        type="text"
+        formControlName="partNumber"
+        placeholder="e.g., ABC123"
+        [class.error]="hasError(createForm, 'partNumber')"
+        [class.success]="isFieldValid(createForm, 'partNumber')"
+        class="form-input" />
+      <small class="error-message" *ngIf="hasError(createForm, 'partNumber')">
+        {{ getErrorMessage(createForm, 'partNumber') }}
+      </small>
+      <small class="hint-message">3-20 characters, must start with a letter</small>
+    </div>
+
+    <!-- SKU Field -->
+    <div class="form-group">
+      <label for="create-sku" class="form-label">
+        <span class="required">*</span> SKU
+      </label>
+      <input
+        id="create-sku"
+        pInputText
+        type="text"
+        formControlName="sku"
+        placeholder="Stock Keeping Unit"
+        [class.error]="hasError(createForm, 'sku')"
+        [class.success]="isFieldValid(createForm, 'sku')"
+        class="form-input" />
+      <small class="error-message" *ngIf="hasError(createForm, 'sku')">
+        {{ getErrorMessage(createForm, 'sku') }}
+      </small>
+    </div>
+
+    <!-- Category Field -->
+    <div class="form-group">
+      <label for="create-category" class="form-label">
+        <span class="required">*</span> Category
+      </label>
+      <p-autocomplete
+        id="create-category"
+        [suggestions]="filteredCategories"
+        [ngModel]="selectedCreateCategory"
+        (ngModelChange)="selectedCreateCategory = $event"
+        placeholder="Search by category name or code..."
+        [showEmptyMessage]="true"
+        emptyMessage="No categories found"
+        (onClear)="onCategoryCleared()"
+        (onSelect)="onCategorySelect($event.value)"
+        [dropdown]="true"
+        [disabled]="isSubmitting"
+        (completeMethod)="onCategoryEvent($event)"
+        optionLabel="name"
+        [ngModelOptions]="{standalone: true}">
+        <ng-template let-category #item>
+          <div class="category-autocomplete-item">
+            <div class="font-semibold">{{ category.name }}</div>
+            <div class="text-sm text-gray-500">{{ category.code }}</div>
+          </div>
+        </ng-template>
+      </p-autocomplete>
+      <small class="error-message" *ngIf="hasError(createForm, 'categoryId')">
+        {{ getErrorMessage(createForm, 'categoryId') }}
+      </small>
+    </div>
+
+    <!-- Unit Field -->
+    <div class="form-group">
+      <label for="create-unit" class="form-label">Unit</label>
+      <p-autocomplete
+        id="create-unit"
+        [suggestions]="filteredUnits"
+        [ngModel]="selectedCreateUnit"
+        (ngModelChange)="selectedCreateUnit = $event"
+        placeholder="Search by unit name or code..."
+        [showEmptyMessage]="true"
+        emptyMessage="No units found"
+        (onClear)="onUnitCleared()"
+        (onSelect)="onUnitSelect($event.value)"
+        [dropdown]="true"
+        [disabled]="isSubmitting"
+        (completeMethod)="onUnitEvent($event)"
+        optionLabel="name"
+        [ngModelOptions]="{standalone: true}">
+        <ng-template let-unit #item>
+          <div class="unit-autocomplete-item">
+            <div class="font-semibold">{{ unit.name }}</div>
+            <div class="text-sm text-gray-500">{{ unit.code }}</div>
+          </div>
+        </ng-template>
+      </p-autocomplete>
+    </div>
+
+    <!-- Brand Field -->
+    <div class="form-group">
+      <label for="create-brand" class="form-label">Brand</label>
+      <p-autocomplete
+        id="create-brand"
+        [suggestions]="filteredBrands"
+        [ngModel]="selectedCreateBrand"
+        (ngModelChange)="selectedCreateBrand = $event"
+        placeholder="Search by brand name or code..."
+        [showEmptyMessage]="true"
+        emptyMessage="No brands found"
+        (onClear)="onBrandCleared()"
+        (onSelect)="onBrandSelect($event.value)"
+        [dropdown]="true"
+        [disabled]="isSubmitting"
+        (completeMethod)="onBrandEvent($event)"
+        optionLabel="name"
+        [ngModelOptions]="{standalone: true}">
+        <ng-template let-brand #item>
+          <div class="brand-autocomplete-item">
+            <div class="font-semibold">{{ brand.name }}</div>
+            <div class="text-sm text-gray-500">{{ brand.code }}</div>
+          </div>
+        </ng-template>
+      </p-autocomplete>
+    </div>
+
+    <!-- Cost Price Field -->
+    <div class="form-group">
+      <label for="create-cost-price" class="form-label">
+        <span class="required">*</span> Cost Price
+      </label>
+      <p-inputNumber
+        inputId="create-cost-price"
+        formControlName="costPrice"
+        placeholder="0.00"
+        [min]="0"
+        [step]="0.01"
+        [minFractionDigits]="2"
+        [maxFractionDigits]="2"
+        mode="decimal"
+        [class.error]="hasError(createForm, 'costPrice')"
+        [class.success]="isFieldValid(createForm, 'costPrice')">
+      </p-inputNumber>
+      <small class="error-message" *ngIf="hasError(createForm, 'costPrice')">
+        {{ getErrorMessage(createForm, 'costPrice') }}
+      </small>
+    </div>
+
+    <!-- Selling Price Field -->
+    <div class="form-group">
+      <label for="create-selling-price" class="form-label">
+        <span class="required">*</span> Selling Price
+      </label>
+      <p-inputNumber
+        inputId="create-selling-price"
+        formControlName="sellingPrice"
+        placeholder="0.00"
+        [min]="0"
+        [step]="0.01"
+        [minFractionDigits]="2"
+        [maxFractionDigits]="2"
+        mode="decimal"
+        [class.error]="hasError(createForm, 'sellingPrice')"
+        [class.success]="isFieldValid(createForm, 'sellingPrice')">
+      </p-inputNumber>
+      <small class="error-message" *ngIf="hasError(createForm, 'sellingPrice')">
+        {{ getErrorMessage(createForm, 'sellingPrice') }}
+      </small>
+    </div>
+
+    <!-- Minimum Stock Field -->
+    <div class="form-group">
+      <label for="create-min-stock" class="form-label">
+        <span class="required">*</span> Minimum Stock
+      </label>
+      <p-inputNumber
+        inputId="create-min-stock"
+        formControlName="minimumStock"
+        placeholder="0"
+        [min]="0"
+        [step]="1"
+        [showButtons]="true"
+        [class.error]="hasError(createForm, 'minimumStock')"
+        [class.success]="isFieldValid(createForm, 'minimumStock')">
+      </p-inputNumber>
+      <small class="error-message" *ngIf="hasError(createForm, 'minimumStock')">
+        {{ getErrorMessage(createForm, 'minimumStock') }}
+      </small>
+      <small class="hint-message">Reorder level for inventory alerts</small>
+    </div>
+
+    <!-- Description Field -->
+    <div class="form-group">
+      <label for="create-description" class="form-label">Description</label>
+      <textarea
+        id="create-description"
+        pInputTextarea
+        formControlName="description"
+        placeholder="Optional description"
+        rows="3"
+        class="form-input"
+        [class.error]="hasError(createForm, 'description')"
+        [class.success]="isFieldValid(createForm, 'description')">
+      </textarea>
+    </div>
+  </form>
+
+  <ng-template pTemplate="footer">
+    <div class="dialog-footer">
+      <button pButton type="button" label="Cancel" icon="pi pi-times" class="p-button-text p-button-secondary"
+        (click)="onCreateDialogHide()" [disabled]="isSubmitting">
+      </button>
+      <button pButton type="button" label="Create" icon="pi pi-check" class="p-button p-button-success"
+        (click)="onCreateSubmit()" [loading]="isSubmitting" [disabled]="createForm.invalid || isSubmitting">
+      </button>
+    </div>
+  </ng-template>
+</p-dialog>
+
+<!-- Update Dialog -->
+<p-dialog [(visible)]="displayUpdateDialog" (visibleChange)="displayUpdateDialogChange.emit($event)"
+  [header]="'Edit Part'" [modal]="true" [style]="{width: '100%', maxWidth: '600px'}" [draggable]="true"
+  [resizable]="false" (onShow)="onUpdateDialogShow()" (onHide)="onUpdateDialogHide()">
+
+  <form [formGroup]="updateForm" class="form-container">
+    <!-- Name Field -->
+    <div class="form-group">
+      <label for="update-name" class="form-label">
+        <span class="required">*</span> Part Name
+      </label>
+      <input
+        id="update-name"
+        pInputText
+        type="text"
+        formControlName="name"
+        placeholder="Enter part name"
+        [class.error]="hasError(updateForm, 'name')"
+        [class.success]="isFieldValid(updateForm, 'name')"
+        class="form-input" />
+      <small class="error-message" *ngIf="hasError(updateForm, 'name')">
+        {{ getErrorMessage(updateForm, 'name') }}
+      </small>
+    </div>
+
+    <!-- SKU Field -->
+    <div class="form-group">
+      <label for="update-sku" class="form-label">
+        <span class="required">*</span> SKU
+      </label>
+      <input
+        id="update-sku"
+        pInputText
+        type="text"
+        formControlName="sku"
+        placeholder="Stock Keeping Unit"
+        [class.error]="hasError(updateForm, 'sku')"
+        [class.success]="isFieldValid(updateForm, 'sku')"
+        class="form-input" />
+      <small class="error-message" *ngIf="hasError(updateForm, 'sku')">
+        {{ getErrorMessage(updateForm, 'sku') }}
+      </small>
+    </div>
+
+    <!-- Category Field -->
+    <div class="form-group">
+      <label for="update-category" class="form-label">
+        <span class="required">*</span> Category
+      </label>
+      <p-autocomplete
+        id="update-category"
+        [suggestions]="filteredCategories"
+        [ngModel]="selectedUpdateCategory"
+        (ngModelChange)="selectedUpdateCategory = $event"
+        placeholder="Search by category name or code..."
+        [showEmptyMessage]="true"
+        emptyMessage="No categories found"
+        (onClear)="onUpdateCategoryCleared()"
+        (onSelect)="onUpdateCategorySelect($event.value)"
+        [dropdown]="true"
+        [disabled]="isSubmitting"
+        (completeMethod)="onUpdateCategoryEvent($event)"
+        optionLabel="name"
+        [ngModelOptions]="{standalone: true}">
+        <ng-template let-category #item>
+          <div class="category-autocomplete-item">
+            <div class="font-semibold">{{ category.name }}</div>
+            <div class="text-sm text-gray-500">{{ category.code }}</div>
+          </div>
+        </ng-template>
+      </p-autocomplete>
+      <small class="error-message" *ngIf="hasError(updateForm, 'categoryId')">
+        {{ getErrorMessage(updateForm, 'categoryId') }}
+      </small>
+    </div>
+
+    <!-- Unit Field -->
+    <div class="form-group">
+      <label for="update-unit" class="form-label">Unit</label>
+      <p-autocomplete
+        id="update-unit"
+        [suggestions]="filteredUnits"
+        [ngModel]="selectedUpdateUnit"
+        (ngModelChange)="selectedUpdateUnit = $event"
+        placeholder="Search by unit name or code..."
+        [showEmptyMessage]="true"
+        emptyMessage="No units found"
+        (onClear)="onUpdateUnitCleared()"
+        (onSelect)="onUpdateUnitSelect($event.value)"
+        [dropdown]="true"
+        [disabled]="isSubmitting"
+        (completeMethod)="onUpdateUnitEvent($event)"
+        optionLabel="name"
+        [ngModelOptions]="{standalone: true}">
+        <ng-template let-unit #item>
+          <div class="unit-autocomplete-item">
+            <div class="font-semibold">{{ unit.name }}</div>
+            <div class="text-sm text-gray-500">{{ unit.code }}</div>
+          </div>
+        </ng-template>
+      </p-autocomplete>
+    </div>
+
+    <!-- Brand Field -->
+    <div class="form-group">
+      <label for="update-brand" class="form-label">Brand</label>
+      <p-autocomplete
+        id="update-brand"
+        [suggestions]="filteredBrands"
+        [ngModel]="selectedUpdateBrand"
+        (ngModelChange)="selectedUpdateBrand = $event"
+        placeholder="Search by brand name or code..."
+        [showEmptyMessage]="true"
+        emptyMessage="No brands found"
+        (onClear)="onUpdateBrandCleared()"
+        (onSelect)="onUpdateBrandSelect($event.value)"
+        [dropdown]="true"
+        [disabled]="isSubmitting"
+        (completeMethod)="onUpdateBrandEvent($event)"
+        optionLabel="name"
+        [ngModelOptions]="{standalone: true}">
+        <ng-template let-brand #item>
+          <div class="brand-autocomplete-item">
+            <div class="font-semibold">{{ brand.name }}</div>
+            <div class="text-sm text-gray-500">{{ brand.code }}</div>
+          </div>
+        </ng-template>
+      </p-autocomplete>
+    </div>
+
+    <!-- Cost Price Field -->
+    <div class="form-group">
+      <label for="update-cost-price" class="form-label">
+        <span class="required">*</span> Cost Price
+      </label>
+      <p-inputNumber
+        inputId="update-cost-price"
+        formControlName="costPrice"
+        placeholder="0.00"
+        [min]="0"
+        [step]="0.01"
+        [minFractionDigits]="2"
+        [maxFractionDigits]="2"
+        mode="decimal"
+        [class.error]="hasError(updateForm, 'costPrice')"
+        [class.success]="isFieldValid(updateForm, 'costPrice')">
+      </p-inputNumber>
+      <small class="error-message" *ngIf="hasError(updateForm, 'costPrice')">
+        {{ getErrorMessage(updateForm, 'costPrice') }}
+      </small>
+    </div>
+
+    <!-- Selling Price Field -->
+    <div class="form-group">
+      <label for="update-selling-price" class="form-label">
+        <span class="required">*</span> Selling Price
+      </label>
+      <p-inputNumber
+        inputId="update-selling-price"
+        formControlName="sellingPrice"
+        placeholder="0.00"
+        [min]="0"
+        [step]="0.01"
+        [minFractionDigits]="2"
+        [maxFractionDigits]="2"
+        mode="decimal"
+        [class.error]="hasError(updateForm, 'sellingPrice')"
+        [class.success]="isFieldValid(updateForm, 'sellingPrice')">
+      </p-inputNumber>
+      <small class="error-message" *ngIf="hasError(updateForm, 'sellingPrice')">
+        {{ getErrorMessage(updateForm, 'sellingPrice') }}
+      </small>
+    </div>
+
+    <!-- Minimum Stock Field -->
+    <div class="form-group">
+      <label for="update-min-stock" class="form-label">
+        <span class="required">*</span> Minimum Stock
+      </label>
+      <p-inputNumber
+        inputId="update-min-stock"
+        formControlName="minimumStock"
+        placeholder="0"
+        [min]="0"
+        [step]="1"
+        [showButtons]="true"
+        [class.error]="hasError(updateForm, 'minimumStock')"
+        [class.success]="isFieldValid(updateForm, 'minimumStock')">
+      </p-inputNumber>
+      <small class="error-message" *ngIf="hasError(updateForm, 'minimumStock')">
+        {{ getErrorMessage(updateForm, 'minimumStock') }}
+      </small>
+    </div>
+
+    <!-- Description Field -->
+    <div class="form-group">
+      <label for="update-description" class="form-label">Description</label>
+      <textarea
+        id="update-description"
+        pInputTextarea
+        formControlName="description"
+        placeholder="Optional description"
+        rows="3"
+        class="form-input"
+        [class.error]="hasError(updateForm, 'description')"
+        [class.success]="isFieldValid(updateForm, 'description')">
+      </textarea>
+    </div>
+
+    <!-- Status Field -->
+    <div class="form-group">
+      <label for="update-status" class="form-label">Status</label>
+      <div class="status-toggle">
+        <input id="update-status" type="checkbox" formControlName="isActive" class="status-checkbox" />
+        <label for="update-status" class="status-label">
+          <span *ngIf="updateForm.get('isActive')?.value" class="status-active">
+            <i class="pi pi-check-circle"></i> Active
+          </span>
+          <span *ngIf="!updateForm.get('isActive')?.value" class="status-inactive">
+            <i class="pi pi-times-circle"></i> Inactive
+          </span>
+        </label>
+      </div>
+    </div>
+  </form>
+
+  <ng-template pTemplate="footer">
+    <div class="dialog-footer">
+      <button pButton type="button" label="Cancel" icon="pi pi-times" class="p-button-text p-button-secondary"
+        (click)="onUpdateDialogHide()" [disabled]="isSubmitting">
+      </button>
+      <button pButton type="button" label="Update" icon="pi pi-check" class="p-button p-button-info"
+        (click)="onUpdateSubmit()" [loading]="isSubmitting" [disabled]="updateForm.invalid || isSubmitting">
+      </button>
+    </div>
+  </ng-template>
+</p-dialog>

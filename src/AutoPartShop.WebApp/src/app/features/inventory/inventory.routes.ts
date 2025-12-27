@@ -1,0 +1,34 @@
+import { Routes } from '@angular/router';
+import { CategoriesComponent } from './categories/categories.component';
+import { BrandsComponent } from './brands/brands.component';
+import { UnitsComponent } from './units/units.component';
+import { PartsComponent } from './parts/parts.component';
+import { PartDetailsComponent } from './parts/part-details/part-details.component';
+import { SuppliersComponent } from './suppliers/suppliers.component';
+import { WarehousesComponent } from './warehouses/warehouses.component';
+import { WarehouseFormComponent } from './warehouses/warehouse-form.component';
+import { VehiclesComponent } from './vehicles/vehicles.component';
+import { VehicleFormComponent } from './vehicles/vehicle-form.component';
+import { VehicleCompatibilityComponent } from './vehicles/vehicle-compatibility.component';
+import { StockComponent } from './stock/stock.component';
+import { TestComponent } from './test/test.component';
+
+export const inventoryRoutes: Routes = [
+  { path: 'test', component: TestComponent },
+  { path: 'categories', component: CategoriesComponent },
+  { path: 'brands', component: BrandsComponent },
+  { path: 'units', component: UnitsComponent },
+  { path: 'parts', component: PartsComponent },
+  { path: 'parts/:id', component: PartDetailsComponent },
+  { path: 'suppliers', component: SuppliersComponent },
+  { path: 'warehouses', component: WarehousesComponent },
+  { path: 'warehouses/create', component: WarehouseFormComponent },
+  { path: 'warehouses/edit', component: WarehouseFormComponent },
+  { path: 'warehouses/view', component: WarehouseFormComponent },
+  { path: 'vehicles', component: VehiclesComponent },
+  { path: 'vehicles/create', component: VehicleFormComponent },
+  { path: 'vehicles/edit', component: VehicleFormComponent },
+  { path: 'vehicles/view', component: VehicleFormComponent },
+  { path: 'vehicles/compatibility', component: VehicleCompatibilityComponent },
+  { path: 'stock', component: StockComponent }
+];

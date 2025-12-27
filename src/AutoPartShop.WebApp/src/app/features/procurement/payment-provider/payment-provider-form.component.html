@@ -1,0 +1,133 @@
+<div class="container">
+  <p-toast></p-toast>
+
+  <!-- Header -->
+  <div class="form-header">
+    <div class="header-content">
+      <div>
+        <h1 class="form-title">
+          {{ isEditing ? 'Edit Payment Provider' : 'Create Payment Provider' }}
+        </h1>
+        <p class="form-subtitle">
+          {{ isEditing ? 'Update payment provider details and settings' : 'Configure a new payment gateway or provider' }}
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Form -->
+  <p-card class="form-card">
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form-content">
+    <div class="form-row">
+      <div class="form-group">
+        <label>Provider Name *</label>
+        <input pInputText formControlName="providerName" placeholder="e.g., Stripe, PayPal" />
+      </div>
+      <div class="form-group">
+        <label>Provider Type *</label>
+        <p-autoComplete [suggestions]="filteredProviderTypes" formControlName="providerType"
+        [dropdown]="true"  [forceSelection]="true" field="label" optionLabel="label" optionValue="value"
+          placeholder="Select Type" (completeMethod)="filterProviderTypes($event)"></p-autoComplete>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Bank Name</label>
+        <input pInputText formControlName="bankName" placeholder="Bank name" />
+      </div>
+      <div class="form-group">
+        <label>Account Number</label>
+        <input pInputText formControlName="bankAccountNumber" placeholder="Account number" />
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Routing Number</label>
+        <input pInputText formControlName="bankRoutingNumber" placeholder="Routing number" />
+      </div>
+      <div class="form-group">
+        <label>Beneficiary Name</label>
+        <input pInputText formControlName="beneficiaryName" placeholder="Beneficiary name" />
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>IBAN</label>
+        <input pInputText formControlName="bankIBAN" placeholder="IBAN" />
+      </div>
+      <div class="form-group">
+        <label>SWIFT Code</label>
+        <input pInputText formControlName="bankSWIFT" placeholder="SWIFT code" />
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>API Key</label>
+        <input pInputText formControlName="apiKey" placeholder="API key" type="password" />
+      </div>
+      <div class="form-group">
+        <label>Merchant ID</label>
+        <input pInputText formControlName="merchantId" placeholder="Merchant ID" />
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Fee Type</label>
+        <p-autoComplete [suggestions]="filteredFeeTypes" formControlName="transactionFeeType"
+        [dropdown]="true"  [forceSelection]="true" field="label" optionLabel="label" optionValue="value"
+          placeholder="Select Fee Type" (completeMethod)="filterFeeTypes($event)"></p-autoComplete>
+      </div>
+      <div class="form-group">
+        <label>Fee Amount</label>
+        <p-inputNumber formControlName="transactionFeeAmount" placeholder="0.00"></p-inputNumber>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Minimum Amount</label>
+        <p-inputNumber formControlName="minimumAmount" placeholder="0.00"></p-inputNumber>
+      </div>
+      <div class="form-group">
+        <label>Maximum Amount</label>
+        <p-inputNumber formControlName="maximumAmount" placeholder="0.00"></p-inputNumber>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Settlement Days</label>
+        <p-inputNumber formControlName="settlementDays" placeholder="1"></p-inputNumber>
+      </div>
+      <div class="form-group">
+        <label>Supported Currencies</label>
+        <input pInputText formControlName="supportedCurrencies" placeholder="USD,EUR,GBP" />
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group full">
+        <label>Webhook URL</label>
+        <input pInputText formControlName="webhookUrl" placeholder="https://example.com/webhook" />
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group full">
+        <label>Notes</label>
+        <textarea pInputText formControlName="notes" placeholder="Additional notes" rows="3"></textarea>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button pButton type="button" label="Cancel" icon="pi pi-times" class="p-button-outlined" (click)="onCancel()"></button>
+      <button pButton type="submit" label="Save Provider" icon="pi pi-check" class="p-button-primary" [loading]="loading"></button>
+    </div>
+  </form>
+  </p-card>
+</div>

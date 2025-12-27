@@ -1,0 +1,177 @@
+<p-toast></p-toast>
+
+<div class="price-history-container">
+  <!-- Filter -->
+  <p-card class="filters-card">
+    <div class="filters-row">
+      <div class="filter-group">
+        <label>Select Part</label>
+        <p-select
+          [options]="parts"
+          optionLabel="name"
+          optionValue="id"
+          [(ngModel)]="selectedPartId"
+          placeholder="Select a part"
+          (onChange)="onPartSelected()"
+          [showClear]="true">
+          <ng-template pTemplate="item" let-option>
+            <div>{{ option.name }} ({{ option.sku }})</div>
+          </ng-template>
+        </p-select>
+      </div>
+
+      <div class="filter-actions">
+        <button pButton type="button" icon="pi pi-search" label="Load History"
+          (click)="loadPriceHistory()"
+          [disabled]="!selectedPartId">
+        </button>
+      </div>
+    </div>
+  </p-card>
+
+  <!-- Price History Table -->
+  <p-card class="content-card" *ngIf="priceHistory">
+    <ng-template pTemplate="header">
+      <div class="card-header">
+        <div>
+          <h3>{{ priceHistory.partName }} ({{ priceHistory.partSKU }})</h3>
+          <p class="text-sm text-gray-600">Price tracking across {{ priceHistory.lots.length }} purchase(s)</p>
+        </div>
+      </div>
+    </ng-template>
+
+    <!-- Statistics -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <label>Latest Price</label>
+        <span class="stat-value">{{ priceHistory.latestPrice | currency:'INR':'symbol':'1.2-4' }}</span>
+      </div>
+      <div class="stat-card">
+        <label>Average Price</label>
+        <span class="stat-value">{{ priceHistory.averagePrice | currency:'INR':'symbol':'1.2-4' }}</span>
+      </div>
+      <div class="stat-card">
+        <label>Minimum Price</label>
+        <span class="stat-value text-green">{{ priceHistory.minPrice | currency:'INR':'symbol':'1.2-4' }}</span>
+      </div>
+      <div class="stat-card">
+        <label>Maximum Price</label>
+        <span class="stat-value text-red">{{ priceHistory.maxPrice | currency:'INR':'symbol':'1.2-4' }}</span>
+      </div>
+    </div>
+
+    <!-- Lots Table -->
+    <p-table
+      [value]="priceHistory.lots"
+      responsiveLayout="scroll"
+      styleClass="p-datatable-striped"
+      [tableStyle]="{ 'min-width': '60rem' }">
+
+      <!-- Header -->
+      <ng-template pTemplate="header">
+        <tr>
+          <th style="width: 15%">Lot Number</th>
+          <th style="width: 15%">Supplier</th>
+          <th style="width: 12%" class="text-right">Unit Price</th>
+          <th style="width: 10%" class="text-right">Qty Received</th>
+          <th style="width: 10%" class="text-right">Qty Available</th>
+          <th style="width: 18%">Receiving Date</th>
+          <th style="width: 10%">Expiry</th>
+          <th style="width: 10%">Status</th>
+        </tr>
+      </ng-template>
+
+      <!-- Data Rows -->
+      <ng-template pTemplate="body" let-lot>
+        <tr>
+          <td>
+            <span class="font-semibold">{{ lot.lotNumber }}</span>
+          </td>
+          <td>
+            <span class="text-sm">{{ lot.supplierName }}</span>
+          </td>
+          <td class="text-right">
+            <span class="font-semibold" [ngClass]="getPriceClass(lot.costPrice, priceHistory)">
+              {{ lot.costPrice | currency:'INR':'symbol':'1.2-4' }}
+            </span>
+          </td>
+          <td class="text-right">
+            <span>{{ lot.quantityReceived }}</span>
+          </td>
+          <td class="text-right">
+            <span [ngClass]="lot.quantityAvailable === 0 ? 'text-red-600' : 'text-green-600'">
+              {{ lot.quantityAvailable }}
+            </span>
+          </td>
+          <td>
+            <span class="text-sm">{{ lot.receivingDate | date:'dd-MMM-yyyy' }}</span>
+          </td>
+          <td>
+            <p-tag
+              *ngIf="lot.expiryDate"
+              [value]="getExpiryDisplay(lot)"
+              [severity]="lot.isExpired ? 'danger' : 'warning'">
+            </p-tag>
+            <span class="text-gray-500" *ngIf="!lot.expiryDate">N/A</span>
+          </td>
+          <td>
+            <p-tag
+              [value]="lot.quantityAvailable === 0 ? 'Consumed' : 'Available'"
+              [severity]="lot.quantityAvailable === 0 ? 'danger' : 'success'">
+            </p-tag>
+          </td>
+        </tr>
+      </ng-template>
+
+      <!-- Empty Message -->
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="8" class="text-center py-4">
+            <i class="pi pi-inbox mr-2"></i>
+            No price history found
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+
+    <!-- Insights -->
+    <div class="insights-section">
+      <h4>Price Insights</h4>
+      <ul class="insights-list">
+        <li *ngIf="getPriceVariation() > 0">
+          <i class="pi pi-arrow-up"></i>
+          Price increased by {{ getPriceVariation() | currency:'INR':'symbol':'1.2-2' }}
+          ({{ getPriceVariationPercent() }}%)
+        </li>
+        <li *ngIf="getPriceVariation() < 0">
+          <i class="pi pi-arrow-down"></i>
+          Price decreased by {{ Math.abs(getPriceVariation()) | currency:'INR':'symbol':'1.2-2' }}
+          ({{ Math.abs(getPriceVariationPercent()) }}%)
+        </li>
+        <li *ngIf="getPriceVariation() === 0">
+          <i class="pi pi-minus"></i>
+          Price remained constant
+        </li>
+        <li>
+          <i class="pi pi-chart-line"></i>
+          Total purchases: {{ priceHistory.lots.length }} lot(s)
+        </li>
+      </ul>
+    </div>
+  </p-card>
+
+  <!-- Empty State -->
+  <p-card class="content-card" *ngIf="!priceHistory && selectedPartId">
+    <div class="empty-state">
+      <i class="pi pi-inbox"></i>
+      <p>No price history found for this part</p>
+    </div>
+  </p-card>
+
+  <p-card class="content-card" *ngIf="!selectedPartId">
+    <div class="empty-state">
+      <i class="pi pi-inbox"></i>
+      <p>Select a part to view its price history</p>
+    </div>
+  </p-card>
+</div>

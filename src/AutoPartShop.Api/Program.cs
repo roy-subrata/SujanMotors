@@ -1,6 +1,14 @@
+using System.Text;
+using System.Text.Json.Serialization;
+using AutoPartShop.Api.Services;
+using AutoPartShop.Application;
+using AutoPartShop.Domain.Entities;
+using AutoPartShop.Infrastructure.Data;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
-using AutoPartShop.Infrastructure.Repositories;
-using AutoPartShop.Application.Services;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,7 +32,7 @@ builder.Services.AddCors(options =>
                 // Angular App
                 "http://localhost:4200",  // Angular dev server
                 "https://localhost:4200", // Angular dev server HTTPS
-                // Blazor App
+                                          // Blazor App
                 "http://localhost:5173",  // Blazor dev server default
                 "http://localhost:5174",  // Alternative Blazor port
                 "https://localhost:7173", // HTTPS Blazor dev
@@ -39,35 +47,76 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Register repositories
-builder.Services.AddSingleton<ICategoryRepository, CategoryRepository>();
-builder.Services.AddSingleton<IUnitRepository, UnitRepository>();
-builder.Services.AddSingleton<IUnitConversionRepository, UnitConversionRepository>();
-builder.Services.AddSingleton<IPartRepository, PartRepository>();
-builder.Services.AddSingleton<IVehicleRepository, VehicleRepository>();
-builder.Services.AddSingleton<IPartVehicleCompatibilityRepository, PartVehicleCompatibilityRepository>();
-builder.Services.AddSingleton<ISupplierRepository, SupplierRepository>();
-builder.Services.AddSingleton<IWarehouseRepository, WarehouseRepository>();
-builder.Services.AddSingleton<IStockLevelRepository, StockLevelRepository>();
-builder.Services.AddSingleton<IStockMovementRepository, StockMovementRepository>();
-builder.Services.AddSingleton<IPurchaseOrderRepository, PurchaseOrderRepository>();
-builder.Services.AddSingleton<IGoodsReceiptRepository, GoodsReceiptRepository>();
-builder.Services.AddSingleton<ISalesOrderRepository, SalesOrderRepository>();
-builder.Services.AddSingleton<IInvoiceRepository, InvoiceRepository>();
-builder.Services.AddSingleton<ISalesReturnRepository, SalesReturnRepository>();
-builder.Services.AddSingleton<IPriceHistoryRepository, PriceHistoryRepository>();
-builder.Services.AddSingleton<IPurchaseReturnRepository, PurchaseReturnRepository>();
-builder.Services.AddSingleton<ICustomerRepository, CustomerRepository>();
-builder.Services.AddSingleton<IPaymentProviderRepository, PaymentProviderRepository>();
-builder.Services.AddSingleton<ICustomerPaymentRepository, CustomerPaymentRepository>();
-builder.Services.AddSingleton<ISupplierPaymentRepository, SupplierPaymentRepository>();
-builder.Services.AddSingleton<IStockLotRepository, StockLotRepository>();
-builder.Services.AddSingleton<IStockLotMovementRepository, StockLotMovementRepository>();
+builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddApplication(builder.Configuration);
+
+// Configure ASP.NET Core Identity
+builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
+{
+    // Password settings
+    options.Password.RequireDigit = true;
+    options.Password.RequireLowercase = true;
+    options.Password.RequireUppercase = true;
+    options.Password.RequireNonAlphanumeric = true;
+    options.Password.RequiredLength = 8;
+
+    // Lockout settings
+    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+    options.Lockout.MaxFailedAccessAttempts = 5;
+    options.Lockout.AllowedForNewUsers = true;
+
+    // User settings
+    options.User.RequireUniqueEmail = true;
+    options.SignIn.RequireConfirmedEmail = false;
+})
+.AddEntityFrameworkStores<AutoPartDbContext>()
+.AddDefaultTokenProviders();
+
+// Configure JWT Authentication
+var jwtSettings = builder.Configuration.GetSection("JwtSettings");
+var secretKey = jwtSettings["SecretKey"] ?? "YourSuperSecretKeyForJWTTokenGenerationMustBe32Chars";
+var issuer = jwtSettings["Issuer"] ?? "AutoPartShopAPI";
+var audience = jwtSettings["Audience"] ?? "AutoPartShopClient";
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.SaveToken = true;
+    options.RequireHttpsMetadata = false;
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = issuer,
+        ValidAudience = audience,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
+        ClockSkew = TimeSpan.Zero
+    };
+});
+
+// Add Authorization
+builder.Services.AddAuthorization();
 
 // Register application services
 builder.Services.AddScoped<StockManagementService>();
+builder.Services.AddScoped<SupplierPaymentSummaryService>();
 
-builder.Services.AddControllers();
+// Configure JSON serialization to use camelCase
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+        options.JsonSerializerOptions.Converters.Add(
+           new JsonStringEnumConverter()
+       );
+    });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -83,9 +132,38 @@ builder.Services.AddSwaggerGen(options =>
         Version = "v1",
         Description = "AutoPart Shop API with Swagger & JWT"
     });
+
+    // Add JWT Authentication to Swagger
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Enter 'Bearer' [space] and then your valid token in the text input below.\n\nExample: \"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\""
+    });
+
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
 });
 
 var app = builder.Build();
+
+// Seed database with initial data
+await DatabaseSeeder.SeedAsync(app.Services);
 
 if (app.Environment.IsDevelopment())
 {
@@ -96,7 +174,7 @@ if (app.Environment.IsDevelopment())
         c.RoutePrefix = "docs"; // set swagger path to /docs
     });
 }
-
+await app.ApplyMigration();
 // Enable CORS
 app.UseCors(corsPolicy);
 
@@ -107,9 +185,17 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseRouting();
+app.UseAuthentication();
+app.UseAuthorization();
 app.MapControllers();
 
 // Ping the service is live or not
 app.MapGet("/live", () => "I am live");
 
 app.Run();
+
+internal class OpenApiReference
+{
+    public ReferenceType Type { get; set; }
+    public string Id { get; set; }
+}

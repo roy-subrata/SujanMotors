@@ -12,4 +12,15 @@
     <ProjectReference Include="../AutoPartShop.Domain/AutoPartShop.Domain.csproj" />
   </ItemGroup>
 
+<ItemGroup>
+  <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.3.0" />
+  <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.0" />
+  <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.*" />
+  <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.*" />
+  <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.*" />
+  <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.*" />
+  <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.0" />
+  <PackageReference Include="Microsoft.Extensions.ServiceDiscovery" Version="10.0.0" />
+</ItemGroup>
+
 </Project>

@@ -1,0 +1,41 @@
+<div class="categories-container">
+  <!-- Messages -->
+  <p-toast></p-toast>
+
+  <!-- Confirmation Dialog -->
+  <p-confirmDialog></p-confirmDialog>
+
+  <!-- Header Component -->
+  <app-categories-header
+    (createClick)="onNewCategoryClick()"
+    (searchChange)="onSearch($event)">
+  </app-categories-header>
+
+
+  
+
+  <!-- List Component -->
+  <app-categories-list
+    (nodeSelect)="onNodeSelect()"
+    (editCategory)="selectAndOpenUpdate($event)"
+    (deleteCategory)="selectAndDelete($event)"
+    (toggleCategoryStatus)="selectAndToggleStatus($event)"
+    (addSubcategory)="selectAndAddSubcategory($event)">
+  </app-categories-list>
+
+  <!-- Form Dialog Component -->
+  <app-categories-form-dialog
+    [displayCreateDialog]="displayCreateDialog"
+    [displayUpdateDialog]="displayUpdateDialog"
+    [selectedCategory]="selectedCategory"
+    [filteredParentCategories]="filteredParentCategories"
+    [selectedParentCategory]="selectedParentCategory"
+    (displayCreateDialogChange)="onDisplayCreateDialogChange($event)"
+    (displayUpdateDialogChange)="onDisplayUpdateDialogChange($event)"
+    (createSuccess)="onCreateSuccess()"
+    (updateSuccess)="onUpdateSuccess()"
+    (parentCategoryEvent)="onParentCategoryEvent($event)"
+    (parentCategorySelect)="onParentCategorySelect($event)"
+    (parentCategoryCleared)="onParentCategoryCleared()">
+  </app-categories-form-dialog>
+</div>

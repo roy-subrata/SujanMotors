@@ -1,0 +1,68 @@
+<p-toast></p-toast>
+
+<div class="grid grid-cols-12 gap-4">
+    <!-- Header Section -->
+    <div class="col-span-12">
+        <div class="card">
+            <div class="flex justify-between items-center mb-4">
+                <div>
+                    <h2 class="text-2xl font-bold">{{ supplierName }}</h2>
+                    <p class="text-gray-600 text-sm">Payment Summary</p>
+                </div>
+                <button pButton type="button" icon="pi pi-arrow-left" (click)="goBack()" [text]="true" label="Back">
+                </button>
+            </div>
+
+            <!-- Loading State -->
+            <div *ngIf="loading" class="space-y-4">
+                <p-skeleton height="2rem" styleClass="mb-2"></p-skeleton>
+                <p-skeleton height="2rem" styleClass="mb-2"></p-skeleton>
+                <p-skeleton height="2rem"></p-skeleton>
+            </div>
+
+            <!-- Error State -->
+            <div *ngIf="error && !loading" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+                {{ error }}
+            </div>
+
+            <!-- Metrics Section -->
+            <app-payment-metrics *ngIf="!loading && !error && summary" [summary]="summary">
+            </app-payment-metrics>
+        </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="col-span-12 lg:col-span-6">
+        <div class="card">
+            <app-payment-status-chart *ngIf="!loading && !error && summary && summary.statusBreakdown"
+                [statusBreakdown]="summary.statusBreakdown!">
+            </app-payment-status-chart>
+        </div>
+    </div>
+
+    <!-- Credit Info Section -->
+    <div class="col-span-12 lg:col-span-6">
+        <div class="card">
+            <app-credit-info *ngIf="!loading && !error && summary" [summary]="summary">
+            </app-credit-info>
+        </div>
+    </div>
+
+    <!-- Payment History Section -->
+    <div class="col-span-12">
+        <div class="card">
+            <app-payment-history-table *ngIf="!loading && !error && summary" [payments]="summary.paymentHistory"
+                [supplierName]="supplierName">
+            </app-payment-history-table>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="col-span-12">
+        <div class="card">
+            <app-payment-actions *ngIf="!loading && !error && summary" [supplierId]="supplierId"
+                [supplierName]="supplierName">
+            </app-payment-actions>
+        </div>
+    </div>
+</div>

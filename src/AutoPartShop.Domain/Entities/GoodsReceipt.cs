@@ -16,6 +16,13 @@ public class GoodsReceipt : AuditableEntity
     public string VerifiedBy { get; private set; } = string.Empty;
     public DateTime? VerificationDate { get; private set; }
 
+    // Delivery Information
+    public DateTime? DeliveryDate { get; private set; }  // Actual delivery/arrival date
+    public string DeliveryReference { get; private set; } = string.Empty;  // Waybill, shipment ID, etc.
+    public string CarrierName { get; private set; } = string.Empty;  // Transport/courier company
+    public string DriverName { get; private set; } = string.Empty;  // Driver or contact person
+    public string DeliveryNotes { get; private set; } = string.Empty;  // Delivery-related notes
+
     // Navigation properties
     public PurchaseOrder? PurchaseOrder { get; set; }
     public Warehouse? Warehouse { get; set; }
@@ -88,5 +95,15 @@ public class GoodsReceipt : AuditableEntity
     public void AddNotes(string notes)
     {
         Notes = notes?.Trim() ?? string.Empty;
+    }
+
+    public void SetDeliveryInformation(DateTime? deliveryDate, string deliveryReference = "",
+        string carrierName = "", string driverName = "", string deliveryNotes = "")
+    {
+        DeliveryDate = deliveryDate;
+        DeliveryReference = deliveryReference?.Trim() ?? string.Empty;
+        CarrierName = carrierName?.Trim() ?? string.Empty;
+        DriverName = driverName?.Trim() ?? string.Empty;
+        DeliveryNotes = deliveryNotes?.Trim() ?? string.Empty;
     }
 }

@@ -1,0 +1,92 @@
+<p-table
+  [value]="warehouses"
+  [rows]="rows"
+  [first]="(currentPage - 1) * rows"
+  [totalRecords]="totalRecords"
+  [loading]="loading"
+  [lazy]="true"
+  [paginator]="true"
+  [globalFilterFields]="['name', 'location']"
+  paginatorPosition="bottom"
+  [showCurrentPageReport]="true"
+  currentPageReportTemplate="Showing {first} to {last} of {totalRecords} warehouses"
+  (onLazyLoad)="onPageChange($event)"
+  responsiveLayout="scroll"
+  [tableStyle]="{ 'min-width': '50rem' }"
+  styleClass="p-datatable-striped">
+
+  <!-- Header Template -->
+  <ng-template pTemplate="header">
+    <tr>
+      <th pSortableColumn="name" style="width: 20%">
+        Name <p-sortIcon field="name"></p-sortIcon>
+      </th>
+      <th style="width: 25%">Location</th>
+      <th style="width: 15%">Capacity</th>
+      <th style="width: 15%">Current Stock</th>
+      <th style="width: 15%">Utilization</th>
+      <th style="width: 10%">Actions</th>
+    </tr>
+  </ng-template>
+
+  <!-- Data Rows -->
+  <ng-template pTemplate="body" let-warehouse>
+    <tr>
+      <td>
+        <span class="font-semibold">{{ warehouse.name }}</span>
+      </td>
+      <td>
+        <span class="text-gray-600">{{ warehouse.location }}</span>
+      </td>
+      <td class="text-right">
+        <span>{{ warehouse.capacity | number }}</span>
+      </td>
+      <td class="text-right">
+        <span>{{ warehouse.currentStock | number }}</span>
+      </td>
+      <td>
+        <div class="utilization-cell">
+          <p-tag
+            [value]="getUtilizationPercentage(warehouse) + '%'"
+            [severity]="getUtilizationSeverity(getUtilizationPercentage(warehouse))">
+          </p-tag>
+        </div>
+      </td>
+      <td>
+        <div class="action-buttons">
+          <button
+            pButton
+            pRipple
+            type="button"
+            icon="pi pi-ellipsis-v"
+            class="p-button-text p-button-sm"
+            pTooltip="Actions"
+            tooltipPosition="left"
+            (contextmenu)="showContextMenu($event, warehouse)"
+            (click)="showContextMenu($event, warehouse)">
+          </button>
+        </div>
+      </td>
+    </tr>
+  </ng-template>
+
+  <!-- Empty Message -->
+  <ng-template pTemplate="emptymessage">
+    <tr>
+      <td colspan="6" class="text-center py-4">
+        <i class="pi pi-inbox mr-2"></i>
+        No warehouses found.
+      </td>
+    </tr>
+  </ng-template>
+</p-table>
+
+<!-- Context Menu -->
+<p-contextMenu
+  #contextMenu
+  [model]="contextMenuItems"
+  [appendTo]="'body'">
+</p-contextMenu>
+
+<!-- Confirm Dialog -->
+<p-confirmDialog></p-confirmDialog>

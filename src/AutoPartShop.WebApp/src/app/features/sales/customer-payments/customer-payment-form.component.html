@@ -1,0 +1,145 @@
+<div class="container">
+  <p-toast></p-toast>
+
+  <!-- Header -->
+  <div class="form-header">
+    <div class="header-content">
+      <div>
+        <h1 class="form-title">
+          {{ isEditing ? 'Edit Customer Payment' : 'Create Customer Payment' }}
+        </h1>
+        <p class="form-subtitle">
+          {{ isEditing ? 'Update customer payment details and status' : 'Record a new payment from a customer' }}
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Form -->
+  <p-card class="form-card">
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form-content">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Customer *</label>
+          <p-autoComplete [suggestions]="filteredCustomers" formControlName="customerId" [forceSelection]="true"
+            field="customerCode" [dropdown]="true" placeholder="Search customer..."
+            optionLabel="firstName"
+            (completeMethod)="filterCustomers($event)" [disabled]="isEditing"
+            [appendTo]="'body'">
+            <ng-template let-customer pTemplate="item">
+              <div>
+                <div style="font-weight: 500;">{{ customer.firstName }} {{ customer.lastName }}</div>
+                <div style="font-size: 0.85rem; color: #666;">Code: {{ customer.customerCode }}</div>
+              </div>
+            </ng-template>
+          </p-autoComplete>
+        </div>
+        <div class="form-group">
+          <label>Payment Provider *</label>
+          <p-autoComplete [suggestions]="filteredPaymentProviders" formControlName="paymentProviderId"
+            [forceSelection]="true" field="providerName" optionLabel="providerName" optionValue="id" [dropdown]="true"
+            placeholder="Search provider..." (completeMethod)="filterPaymentProviders($event)" [disabled]="isEditing"
+            [appendTo]="'body'">
+            <ng-template let-provider pTemplate="item">
+              <div>
+                <div style="font-weight: 500;">{{ provider.providerName }}</div>
+                <div style="font-size: 0.85rem; color: #666;">{{ provider.providerType }}</div>
+              </div>
+            </ng-template>
+          </p-autoComplete>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Amount *</label>
+          <p-inputNumber formControlName="amount" mode="currency" currency="INR" locale="en-IN" placeholder="0.00"
+            [readonly]="isEditing"></p-inputNumber>
+        </div>
+        <div class="form-group">
+          <label>Payment Fee</label>
+          <p-inputNumber formControlName="paymentFee" mode="currency" currency="INR" locale="en-IN" placeholder="0.00"
+            [readonly]="isEditing"></p-inputNumber>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Payment Method *</label>
+          <p-select
+            formControlName="paymentMethod"
+            [options]="paymentMethods"
+            placeholder="Select payment method"
+            [disabled]="isEditing">
+            <ng-template let-method pTemplate="item">
+              <div class="flex align-items-center gap-2">
+                <i [class]="getPaymentMethodIcon(method.value)"></i>
+                <span>{{ method.label }}</span>
+                <p-tag
+                  *ngIf="isInstantPaymentMethod(method.value)"
+                  value="Auto-Confirm"
+                  severity="success"
+                  [style]="{'font-size': '0.7rem', 'margin-left': 'auto'}">
+                </p-tag>
+              </div>
+            </ng-template>
+          </p-select>
+        </div>
+        <div class="form-group">
+          <label>Payment Date *</label>
+          <p-datepicker formControlName="paymentDate" dateFormat="dd-M-yy" placeholder="Select date"
+            [disabled]="isEditing">
+          </p-datepicker>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Invoice (Optional)</label>
+          <p-autoComplete [suggestions]="filteredInvoices" formControlName="invoiceId" field="invoiceNumber"
+            [dropdown]="true" optionLabel="invoiceNumber" placeholder="Search invoice..." (completeMethod)="filterInvoices($event)"
+            [disabled]="isEditing"
+            [appendTo]="'body'">
+            <ng-template let-invoice pTemplate="item">
+              <div>
+                <div style="font-weight: 500;">{{ invoice.invoiceNumber }}</div>
+                <div style="font-size: 0.85rem; color: #666;">Amount: {{ invoice.grandTotal |
+                  currency:'INR':'symbol':'1.2-2' }}</div>
+              </div>
+            </ng-template>
+          </p-autoComplete>
+        </div>
+        <div class="form-group">
+          <label>Transaction Number</label>
+          <input pInputText formControlName="transactionNumber" placeholder="Transaction number"
+            [readonly]="isEditing" />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Reference Number</label>
+          <input pInputText formControlName="referenceNumber" placeholder="Reference number" />
+        </div>
+        <div class="form-group" *ngIf="isEditing">
+          <label>Authorization Code</label>
+          <input pInputText formControlName="authorizationCode" placeholder="Authorization code" />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group full">
+          <label>Notes</label>
+          <textarea pInputText formControlName="notes" placeholder="Additional notes" rows="3"></textarea>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button pButton type="button" label="Cancel" icon="pi pi-times" class="p-button-outlined"
+          (click)="onCancel()"></button>
+        <button pButton type="submit" label="Save Payment" icon="pi pi-check" class="p-button-primary"
+          [loading]="loading"></button>
+      </div>
+    </form>
+  </p-card>
+</div>

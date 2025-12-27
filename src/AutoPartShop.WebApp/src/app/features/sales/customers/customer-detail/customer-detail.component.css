@@ -1,0 +1,489 @@
+.customer-detail-container {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Page Header */
+.page-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 0;
+}
+
+.page-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0;
+  flex: 1;
+}
+
+.header-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+/* Profile Card */
+::ng-deep .profile-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+::ng-deep .profile-card .p-card-body {
+  padding: 1.25rem 1.5rem;
+}
+
+::ng-deep .profile-card .p-card-content {
+  padding: 0;
+  color: white;
+}
+
+/* Compact Layout */
+.profile-content-compact {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.compact-header {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.name-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.customer-name {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: white;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.customer-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.75rem;
+  background-color: rgba(255, 255, 255, 0.15);
+  border-radius: 1rem;
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.95);
+  font-weight: 500;
+}
+
+.code-company-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.customer-code {
+  font-family: 'Courier New', monospace;
+  font-size: 0.9375rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+}
+
+.separator {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.875rem;
+}
+
+.company-name {
+  font-size: 0.9375rem;
+  color: rgba(255, 255, 255, 0.85);
+  font-style: italic;
+}
+
+/* Compact Contact Row */
+.contact-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.contact-inline-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.contact-inline-item i {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.875rem;
+}
+
+.divider {
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 0.75rem;
+}
+
+/* Old profile content for loading skeleton */
+.profile-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.profile-header {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+}
+
+.profile-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Summary Cards */
+.summary-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+::ng-deep .summary-card {
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+::ng-deep .summary-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+::ng-deep .summary-card .p-card-body {
+  padding: 1.5rem;
+}
+
+::ng-deep .summary-card .p-card-content {
+  padding: 0;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.summary-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.75rem;
+  flex-shrink: 0;
+}
+
+.summary-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.summary-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.summary-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #1f2937;
+  line-height: 1;
+}
+
+.summary-sublabel {
+  font-size: 0.875rem;
+  color: #9ca3af;
+}
+
+/* Card Color Variants */
+.card-blue .summary-icon {
+  background-color: #dbeafe;
+  color: #3b82f6;
+}
+
+.card-orange .summary-icon {
+  background-color: #fed7aa;
+  color: #f59e0b;
+}
+
+.card-green .summary-icon {
+  background-color: #d1fae5;
+  color: #10b981;
+}
+
+.card-purple .summary-icon {
+  background-color: #e9d5ff;
+  color: #a855f7;
+}
+
+/* History Card */
+::ng-deep .history-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+::ng-deep .history-card .p-card-header {
+  background-color: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 1.5rem;
+}
+
+::ng-deep .history-card .p-card-body {
+  padding: 0;
+}
+
+::ng-deep .history-card .p-card-content {
+  padding: 0;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 2rem;
+}
+
+.header-title-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.card-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0;
+}
+
+.card-subtitle {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+.filters-section {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+::ng-deep .filter-dropdown,
+::ng-deep .filter-datepicker {
+  min-width: 200px;
+}
+
+/* Table Styles */
+::ng-deep .p-datatable .p-datatable-thead > tr > th {
+  background-color: #f9fafb;
+  font-weight: 700;
+  font-size: 0.875rem;
+  color: #374151;
+  padding: 1rem;
+  border-color: #e5e7eb;
+}
+
+::ng-deep .p-datatable .p-datatable-tbody > tr > td {
+  padding: 1rem;
+  font-size: 0.95rem;
+  color: #374151;
+  border-color: #f3f4f6;
+}
+
+::ng-deep .p-datatable .p-datatable-tbody > tr:hover {
+  background-color: #f9fafb;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.text-center {
+  text-align: center;
+}
+
+/* Table Cell Content */
+.payment-date {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.payment-time {
+  font-size: 0.8125rem;
+  color: #9ca3af;
+}
+
+.transaction-number,
+.invoice-number {
+  font-family: 'Courier New', monospace;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.amount {
+  font-family: 'Courier New', monospace;
+  font-weight: 600;
+  font-size: 1rem;
+  color: #1f2937;
+}
+
+.provider-name {
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+/* Empty State */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 3rem 1rem;
+}
+
+.empty-state i {
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.empty-state h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.empty-state p {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .card-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filters-section {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  ::ng-deep .filter-dropdown,
+  ::ng-deep .filter-datepicker {
+    width: 100%;
+  }
+
+  .summary-cards {
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .page-header {
+    flex-wrap: wrap;
+  }
+
+  .header-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .header-actions button {
+    width: 100%;
+  }
+
+  .compact-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .name-row {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .contact-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .divider {
+    display: none;
+  }
+
+  .contact-inline-item {
+    width: 100%;
+  }
+
+  .summary-cards {
+    grid-template-columns: 1fr;
+  }
+
+  ::ng-deep .p-datatable {
+    font-size: 0.875rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .customer-name {
+    font-size: 1.25rem;
+  }
+
+  .summary-value {
+    font-size: 1.5rem;
+  }
+
+  ::ng-deep .profile-card .p-card-body {
+    padding: 1rem;
+  }
+
+  ::ng-deep .summary-card .p-card-body,
+  ::ng-deep .history-card .p-card-header {
+    padding: 1rem;
+  }
+
+  .contact-inline-item {
+    font-size: 0.8125rem;
+  }
+}

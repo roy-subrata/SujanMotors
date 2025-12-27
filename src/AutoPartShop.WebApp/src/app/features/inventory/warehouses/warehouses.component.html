@@ -1,0 +1,56 @@
+<div class="warehouse-container">
+  <!-- Header Section -->
+  <div class="warehouse-header">
+    <div class="header-content">
+      <!-- Title and Subtitle -->
+      <div class="header-title-section">
+        <h1 class="header-title">Warehouses Management</h1>
+        <p class="header-subtitle">Organize and manage your warehouse locations</p>
+      </div>
+
+      <!-- Toolbar: Search and Action Button -->
+      <div class="toolbar">
+        <div class="search-container">
+          <i class="pi pi-search search-icon"></i>
+          <input
+            type="text"
+            placeholder="Search by name or location..."
+            class="search-input"
+            (keyup)="onSearch($event.target.value)"
+            [(ngModel)]="searchTerm">
+          <i
+            *ngIf="searchTerm"
+            class="pi pi-times clear-icon"
+            (click)="onSearchClear()">
+          </i>
+        </div>
+        <button
+          pButton
+          type="button"
+          label="New Warehouse"
+          icon="pi pi-plus"
+          class="p-button-success btn-create"
+          (click)="onCreateClick()">
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table Container -->
+  <div class="table-container">
+    <app-warehouses-list
+      [warehouses]="warehouses"
+      [loading]="loading"
+      [totalRecords]="totalRecords"
+      [rows]="rows"
+      [currentPage]="currentPage"
+      (viewClick)="onViewClick($event)"
+      (editClick)="onEditClick($event)"
+      (pageChange)="onPageChange($event)"
+      (warehouseDeleted)="onWarehouseDeleted()">
+    </app-warehouses-list>
+  </div>
+</div>
+
+<!-- Toast Messages -->
+<p-toast position="top-right"></p-toast>

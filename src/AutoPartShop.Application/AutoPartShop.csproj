@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../AutoPartShop.Domain/AutoPartShop.Domain.csproj" />
+    <ProjectReference Include="../AutoPartShop.Infrastructure/AutoPartShop.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

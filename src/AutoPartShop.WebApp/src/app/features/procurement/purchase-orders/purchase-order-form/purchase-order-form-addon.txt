@@ -1,0 +1,12 @@
+
+  /**
+   * Filter parts by name, SKU, or part number
+   */
+  onPartFilter(event: any): void {
+    const query = event.query.toLowerCase();
+    this.filteredParts = this.parts.filter(part =>
+      part.name.toLowerCase().includes(query) ||
+      part.sku.toLowerCase().includes(query) ||
+      part.partNumber.toLowerCase().includes(query)
+    );
+  }

@@ -1,0 +1,147 @@
+<div class="customers-container">
+  <p-toast></p-toast>
+  <p-confirmDialog></p-confirmDialog>
+
+
+  <!-- Header Section -->
+  <div class="customers-header">
+    <div class="header-content">
+      <!-- Title and Subtitle -->
+      <div class="header-title-section">
+        <h1 class="header-title">Customer Management</h1>
+        <p class="header-subtitle">Manage your customer credit limits, and account status</p>
+      </div>
+
+      <!-- Toolbar: Search and Action Button -->
+      <div class="toolbar">
+        <div class="search-container">
+          <i class="pi pi-search search-icon"></i>
+          <input type="text" placeholder="Search by name, code, email..." class="search-input"
+            (keyup)="onSearch($event.target.value)" [(ngModel)]="searchTerm">
+          <i *ngIf="searchTerm" class="pi pi-times clear-icon" (click)="clearSearch()">
+          </i>
+        </div>
+        <button pButton type="button" label="New Customer" icon="pi pi-plus" class="p-button-success btn-create"
+          (click)="createCustomer()">
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table Section -->
+  <div class="table-container">
+    <p-table #dt [value]="customers()" [rows]="pageSize()" [loading]="loading()" [lazy]="true" [paginator]="true"
+      [totalRecords]="totalCount()" [rowsPerPageOptions]="[10, 25, 50, 100]" [showCurrentPageReport]="true"
+      (onLazyLoad)="onLazyLoad($event)" [contextMenu]="contextMenu" [(contextMenuSelection)]="selectedCustomer"
+      (onContextMenuSelect)="onContextMenuSelect($event)" responsiveLayout="scroll"
+      [tableStyle]="{ 'min-width': '50rem' }" styleClass="p-datatable-striped" dataKey="id">
+
+      <!-- Table Header -->
+      <ng-template pTemplate="header">
+        <tr>
+          <th pSortableColumn="customerCode">
+            Code <p-sortIcon field="customerCode"></p-sortIcon>
+          </th>
+          <th pSortableColumn="fullName">
+            Customer Name <p-sortIcon field="fullName"></p-sortIcon>
+          </th>
+          <th>Contact</th>
+          <th>Type</th>
+          <th>Status</th>
+          <th class="text-right">Credit Limit</th>
+          <th class="text-right">Balance</th>
+          <th class="text-right">Advance</th>
+          <th>Credit Status</th>
+          <th class="text-center">Actions</th>
+        </tr>
+      </ng-template>
+
+      <!-- Table Body -->
+      <ng-template pTemplate="body" let-customer>
+        <tr [pContextMenuRow]="customer" class="customer-row">
+          <td>
+            <span class="customer-code" (click)="viewCustomer(customer)">{{ customer.customerCode }}</span>
+          </td>
+          <td>
+            <div class="customer-info">
+              <span class="customer-name">{{ customer.fullName || (customer.firstName + ' ' + customer.lastName)
+                }}</span>
+              <span class="customer-company" *ngIf="customer.companyName">{{ customer.companyName }}</span>
+            </div>
+          </td>
+          <td>
+            <div class="contact-info">
+              <span class="contact-email" pTooltip="{{ customer.email }}">
+                <i class="pi pi-envelope"></i> {{ customer.email | slice:0:20 }}{{ customer.email?.length > 20 ? '...' :
+                '' }}
+              </span>
+              <span class="contact-phone">
+                <i class="pi pi-phone"></i> {{ customer.phone }}
+              </span>
+            </div>
+          </td>
+          <td>
+            <p-tag [value]="customer.customerType" severity="info"></p-tag>
+          </td>
+          <td>
+            <p-tag [value]="customer.status" [severity]="getStatusSeverity(customer.status)"></p-tag>
+          </td>
+          <td class="text-right">
+            <span class="amount">{{ customer.creditLimit | currency:'INR':'symbol':'1.0-0' }}</span>
+          </td>
+          <td class="text-right">
+            <span class="amount" [class.text-danger]="customer.currentBalance > 0">
+              {{ customer.currentBalance | currency:'INR':'symbol':'1.2-2' }}
+            </span>
+          </td>
+          <td class="text-right">
+            <span class="amount" [class.text-success]="customer.advanceAmount > 0">
+              {{ customer.advanceAmount | currency:'INR':'symbol':'1.2-2' }}
+            </span>
+          </td>
+          <td>
+            <p-tag [value]="getCreditStatus(customer).text" [severity]="getCreditStatus(customer).severity"></p-tag>
+          </td>
+          <td class="text-center">
+            <button pButton pRipple type="button" icon="pi pi-ellipsis-v" class="p-button-text p-button-sm"
+              pTooltip="Actions" tooltipPosition="left" (contextmenu)="showContextMenu($event, customer)"
+              (click)="showContextMenu($event, customer)">
+            </button>
+          </td>
+        </tr>
+      </ng-template>
+
+      <!-- Empty State -->
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="10" class="empty-state">
+            <div class="empty-content">
+              <i class="pi pi-users empty-icon"></i>
+              <h3>No customers found</h3>
+              <p>{{ searchTerm() ? 'Try adjusting your search criteria' : 'Start by adding your first customer' }}</p>
+              <button pButton icon="pi pi-plus" label="Add Customer" class="p-button-primary" (click)="createCustomer()"
+                *ngIf="!searchTerm()">
+              </button>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+
+      <!-- Loading State -->
+      <ng-template pTemplate="loadingbody">
+        <tr>
+          <td colspan="10" class="loading-state">
+            <div class="loading-content">
+              <i class="pi pi-spin pi-spinner loading-spinner"></i>
+              <span>Loading customers...</span>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+  <!-- Context Menu -->
+  <p-contextMenu #contextMenu [model]="contextMenuItems" [appendTo]="'body'">
+  </p-contextMenu>
+
+</div>

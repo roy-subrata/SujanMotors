@@ -1,0 +1,380 @@
+/* Smooth scrolling */
+:host {
+  display: block;
+  width: 100%;
+}
+
+.admin-settings-container {
+  padding: 0;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+  scroll-behavior: smooth;
+}
+
+/* Page Header */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+}
+
+.page-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 0.5rem 0;
+  display: flex;
+  align-items: center;
+}
+
+.page-subtitle {
+  font-size: 1rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+/* Tabs */
+::ng-deep .p-tabs {
+  display: block !important;
+  visibility: visible !important;
+  margin-bottom: 1.5rem;
+}
+
+::ng-deep .p-tablist {
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  border-bottom: 2px solid #e5e7eb;
+  margin-bottom: 1.5rem;
+  padding: 0;
+  background: transparent;
+}
+
+::ng-deep .p-tablist-tab-list {
+  display: flex !important;
+  gap: 0.5rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+::ng-deep .p-tab {
+  display: flex !important;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  font-weight: 600;
+  color: #6b7280;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: -2px;
+}
+
+::ng-deep .p-tab:hover {
+  color: #667eea;
+  background-color: #f9fafb;
+}
+
+::ng-deep .p-tab-active {
+  color: #667eea !important;
+  border-bottom-color: #667eea !important;
+}
+
+::ng-deep .p-tabpanels {
+  display: block !important;
+  background: transparent;
+  padding: 0;
+}
+
+::ng-deep .p-tabs-panel {
+  display: block !important;
+}
+
+/* Tab Content */
+.tab-content {
+  padding: 1.5rem 0;
+}
+
+.tab-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+/* Tables */
+::ng-deep .p-datatable {
+  width: 100%;
+  overflow: visible;
+}
+
+::ng-deep .p-datatable-wrapper {
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+::ng-deep .p-datatable .p-datatable-thead > tr > th {
+  background-color: #f9fafb;
+  color: #374151;
+  font-weight: 700;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 1rem;
+  border-bottom: 2px solid #e5e7eb;
+  white-space: nowrap;
+}
+
+::ng-deep .p-datatable .p-datatable-tbody > tr > td {
+  padding: 1rem;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+::ng-deep .p-datatable .p-datatable-tbody > tr:hover {
+  background-color: #f9fafb;
+}
+
+::ng-deep .p-datatable .p-datatable-tbody > tr:last-child > td {
+  border-bottom: none;
+}
+
+/* Tags */
+::ng-deep .p-tag {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  font-weight: 600;
+}
+
+/* Forms */
+.form-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-field label {
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.875rem;
+}
+
+/* Dialog Footer */
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+/* Code Display */
+code {
+  background-color: #f3f4f6;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.875rem;
+  color: #667eea;
+}
+
+/* Action Buttons */
+::ng-deep .p-button-sm {
+  padding: 0.5rem;
+}
+
+::ng-deep .p-button-text:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+/* Empty State */
+.text-center {
+  text-align: center;
+}
+
+.text-gray-400 {
+  color: #9ca3af;
+}
+
+/* Multiselect */
+::ng-deep .p-multiselect {
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+
+::ng-deep .p-multiselect .p-multiselect-label {
+  padding: 0.75rem;
+  min-height: 44px;
+}
+
+::ng-deep .p-multiselect-panel {
+  max-height: 300px;
+}
+
+::ng-deep .p-multiselect-panel .p-multiselect-items {
+  padding: 0.5rem 0;
+}
+
+::ng-deep .p-multiselect-panel .p-multiselect-item {
+  padding: 0.75rem 1rem;
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  transition: background-color 0.2s;
+}
+
+::ng-deep .p-multiselect-panel .p-multiselect-item:hover {
+  background-color: #f3f4f6;
+}
+
+::ng-deep .p-multiselect-panel .p-multiselect-item.p-highlight {
+  background-color: #667eea;
+  color: white;
+}
+
+::ng-deep .p-multiselect-panel .p-multiselect-filter-container {
+  padding: 0.75rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+::ng-deep .p-multiselect-panel .p-multiselect-header {
+  padding: 0.75rem;
+  border-bottom: 1px solid #e5e7eb;
+  background-color: #f9fafb;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .admin-settings-container {
+    padding: 1.5rem;
+  }
+
+  .page-header {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .page-title {
+    font-size: 1.5rem;
+  }
+
+  ::ng-deep .p-datatable-wrapper {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-settings-container {
+    padding: 1rem;
+  }
+
+  ::ng-deep .p-dialog {
+    width: 95vw !important;
+  }
+
+  ::ng-deep .p-datatable {
+    font-size: 0.875rem;
+  }
+
+  ::ng-deep .p-datatable .p-datatable-thead > tr > th,
+  ::ng-deep .p-datatable .p-datatable-tbody > tr > td {
+    padding: 0.75rem 0.5rem;
+  }
+
+  .tab-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .tab-header button {
+    width: 100%;
+  }
+}
+
+/* Loading State */
+::ng-deep .p-datatable .p-datatable-loading-icon {
+  font-size: 2rem;
+}
+
+/* Success/Danger Colors */
+::ng-deep .p-tag.p-tag-success {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+::ng-deep .p-tag.p-tag-danger {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+::ng-deep .p-tag.p-tag-info {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+/* Password Field */
+::ng-deep .p-password {
+  width: 100%;
+}
+
+::ng-deep .p-password input {
+  width: 100%;
+}
+
+/* Checkbox Alignment */
+.flex {
+  display: flex;
+}
+
+.align-items-center {
+  align-items: center;
+}
+
+.ml-2 {
+  margin-left: 0.5rem;
+}
+
+.mr-1 {
+  margin-right: 0.25rem;
+}
+
+.mr-2 {
+  margin-right: 0.5rem;
+}
+
+.mr-3 {
+  margin-right: 0.75rem;
+}
+
+.mb-3 {
+  margin-bottom: 0.75rem;
+}
+
+.mb-4 {
+  margin-bottom: 1rem;
+}
+
+.w-full {
+  width: 100%;
+}
+
+.p-4 {
+  padding: 1rem;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}

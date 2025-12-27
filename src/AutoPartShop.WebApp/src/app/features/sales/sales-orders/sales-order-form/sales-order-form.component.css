@@ -1,0 +1,21 @@
+/* Sales Order Form Component Styles */
+
+.container {
+  max-width: 1200px;
+}
+
+/* Ensure form inputs are properly styled */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* Form validation error styles */
+.border-red-500 {
+  border-color: #ef4444 !important;
+}

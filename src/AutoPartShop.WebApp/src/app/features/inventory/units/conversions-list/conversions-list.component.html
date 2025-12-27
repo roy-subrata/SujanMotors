@@ -1,0 +1,67 @@
+<div class="conversions-list-container">
+  <p-table #conversionTable [value]="getFilteredConversions()" [rows]="10" [loading]="loading"
+    [globalFilterFields]="['fromUnitName', 'toUnitName', 'fromUnitCode', 'toUnitCode']"
+    [rowsPerPageOptions]="[5, 10, 20, 50]" [showCurrentPageReport]="true"
+    currentPageReportTemplate="Showing {first} to {last} of {totalRecords} conversions"
+    styleClass="p-datatable-striped p-datatable-sm" responsiveLayout="scroll" paginator="true">
+
+    <!-- Column: Checkbox Selection -->
+    <p-tableHeaderCheckbox></p-tableHeaderCheckbox>
+    <p-tableCheckbox></p-tableCheckbox>
+
+    <ng-template #header>
+      <tr>
+        <th>From Unit</th>
+        <th>To Unit</th>
+        <th>Conversion Factor</th>
+        <th>Description</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-conversion>
+      <tr>
+        <td>{{ conversion.fromUnitName }} ({{ conversion.fromUnitCode }})</td>
+        <td>{{ conversion.toUnitName }} ({{ conversion.toUnitCode }})</td>
+        <td>{{ conversion.conversionFactor }}</td>
+        <td>{{ conversion.description }}</td>
+        <td>{{ conversion.isActive }}</td>
+        <td>
+          <div class="flex gap-2 justify-center">
+            <!-- Edit Button -->
+            <button pButton type="button" icon="pi pi-pencil"
+              class="p-button-rounded p-button-info p-button-text p-button-sm" pTooltip="Edit" tooltipPosition="top"
+              (click)="onEdit(conversion)">
+            </button>
+
+            <!-- Delete Button -->
+            <button pButton type="button" icon="pi pi-trash"
+              class="p-button-rounded p-button-danger p-button-text p-button-sm" pTooltip="Delete" tooltipPosition="top"
+              (click)="onDelete(conversion)">
+            </button>
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+    <!-- Loading Template -->
+    <ng-template pTemplate="loadingbody">
+      <tr>
+        <td colspan="8" class="text-center py-8">
+          <i class="pi pi-spin pi-spinner text-4xl text-blue-500"></i>
+        </td>
+      </tr>
+    </ng-template>
+    <!-- Empty State -->
+    <ng-template pTemplate="emptymessage">
+      <tr>
+        <td colspan="8" class="text-center py-8">
+          <div class="flex flex-col items-center justify-center">
+            <i class="pi pi-inbox text-4xl text-gray-400 mb-4"></i>
+            <p class="text-gray-500 text-lg">No conversions found</p>
+            <p class="text-gray-400 text-sm">Create a new conversion to get started</p>
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>

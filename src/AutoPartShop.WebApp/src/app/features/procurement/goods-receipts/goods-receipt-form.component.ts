@@ -100,22 +100,39 @@ export class GoodsReceiptFormComponent implements OnInit {
         this.form.patchValue({
           warehouseId: matchingWarehouse || grn.warehouseId,
           receivedDate: grn.receivedDate,
-          notes: grn.notes
+          // Delivery Information
+          deliveryDate: grn.deliveryDate ? grn.deliveryDate.split('T')[0] : '',
+          deliveryReference: grn.deliveryReference,
+          carrierName: grn.carrierName,
+          driverName: grn.driverName,
+          deliveryNotes: grn.deliveryNotes
         });
 
-        // Populate line items
+        // Populate line items (get data from PO for ordered and remaining quantities)
         const linesArray = this.lineItemsArray;
         linesArray.clear();
 
         grn.lines?.forEach(line => {
+          // Find matching PO line to get ordered and remaining quantities
+          const poLine = matchingPO?.lines?.find(pl => pl.partId === line.partId);
+          const orderedQty = poLine?.quantity || 0;
+          const alreadyReceived = poLine?.receivedQuantity || 0;
+          const remainingQty = poLine?.remainingQuantity || (orderedQty - alreadyReceived);
+
           linesArray.push(
             this.fb.group({
               partId: [line.partId, Validators.required],
-              orderedQuantity: [0],  // We don't have ordered quantity from GRN response
-              receivedQuantity: [line.receivedQuantity, [Validators.required, Validators.min(0)]],
+              orderedQuantity: [orderedQty],
+              receivedQuantity: [alreadyReceived],
+              remainingQuantity: [remainingQty],
+              receivingQuantity: [line.receivedQuantity, [Validators.required, Validators.min(1), Validators.max(remainingQty + line.receivedQuantity)]],
               condition: [line.condition, Validators.required],
               notes: [line.notes],
-              hasDiscrepancy: [line.hasDiscrepancy]
+              hasDiscrepancy: [line.hasDiscrepancy],
+              // Cost Information
+              unitCost: [line.unitCost || 0, [Validators.required, Validators.min(0)]],
+              currency: [line.currency || 'INR', Validators.required],
+              unitId: [line.unitId || '']
             })
           );
         });
@@ -138,7 +155,12 @@ export class GoodsReceiptFormComponent implements OnInit {
     return this.fb.group({
       warehouseId: ['', Validators.required],
       receivedDate: [new Date().toISOString().split('T')[0], Validators.required],
-      notes: [''],
+      // Delivery Information
+      deliveryDate: [''],
+      deliveryReference: [''],
+      carrierName: [''],
+      driverName: [''],
+      deliveryNotes: [''],
       lineItems: this.fb.array([])
     });
   }
@@ -152,11 +174,15 @@ export class GoodsReceiptFormComponent implements OnInit {
 
   /**
    * Load purchase orders
+   * Only show CONFIRMED and PARTIAL orders (ready to receive goods)
    */
   private loadPurchaseOrders(): void {
     this.poService.getAllPurchaseOrders().subscribe({
       next: (pos) => {
-        this.purchaseOrders = pos.filter(po => po.status !== 'CANCELLED' && po.status !== 'DELIVERED');
+        // Only show purchase orders that are approved and ready to receive goods
+        this.purchaseOrders = pos.filter(po =>
+          po.status === 'CONFIRMED' || po.status === 'PARTIAL'
+        );
         this.filteredPOs = this.purchaseOrders;
       },
       error: (error) => {
@@ -248,14 +274,22 @@ export class GoodsReceiptFormComponent implements OnInit {
     linesArray.clear();
 
     this.selectedPO.lines?.forEach(line => {
+      const remainingQty = line.remainingQuantity || (line.quantity - line.receivedQuantity);
+
       linesArray.push(
         this.fb.group({
-          partId: [line.id, Validators.required],
+          partId: [line.partId, Validators.required],
           orderedQuantity: [line.quantity],
-          receivedQuantity: [0, [Validators.required, Validators.min(0)]],
+          receivedQuantity: [line.receivedQuantity || 0],
+          remainingQuantity: [remainingQty],
+          receivingQuantity: [0, [Validators.required, Validators.min(1), Validators.max(remainingQty)]],
           condition: ['GOOD', Validators.required],
           notes: [''],
-          hasDiscrepancy: [false]
+          hasDiscrepancy: [false],
+          // Cost Information
+          unitCost: [line.unitPrice || 0, [Validators.required, Validators.min(0)]],
+          currency: ['INR', Validators.required],
+          unitId: ['']
         })
       );
     });
@@ -270,6 +304,14 @@ export class GoodsReceiptFormComponent implements OnInit {
   }
 
   /**
+   * Get part name for a given partId
+   */
+  getPartName(partId: string): string {
+    const part = this.parts.find(p => p.id === partId);
+    return part?.name || '-';
+  }
+
+  /**
    * Get total ordered quantity
    */
   getTotalOrderedQuantity(): number {
@@ -277,7 +319,14 @@ export class GoodsReceiptFormComponent implements OnInit {
   }
 
   /**
-   * Get total received quantity
+   * Get total receiving quantity (for current GRN)
+   */
+  getTotalReceivingQuantity(): number {
+    return this.lineItemsArray.value.reduce((sum: number, line: any) => sum + (line.receivingQuantity || 0), 0);
+  }
+
+  /**
+   * Get total received quantity (already received)
    */
   getTotalReceivedQuantity(): number {
     return this.lineItemsArray.value.reduce((sum: number, line: any) => sum + (line.receivedQuantity || 0), 0);
@@ -288,6 +337,29 @@ export class GoodsReceiptFormComponent implements OnInit {
    */
   getDiscrepancyCount(): number {
     return this.lineItemsArray.value.filter((line: any) => line.hasDiscrepancy).length;
+  }
+
+  /**
+   * Get total cost for all items (receivingQuantity * unitCost)
+   */
+  getTotalCostAllItems(): number {
+    return this.lineItemsArray.value.reduce((sum: number, line: any) => {
+      const lineTotal = (line.receivingQuantity || 0) * (line.unitCost || 0);
+      return sum + lineTotal;
+    }, 0);
+  }
+
+  /**
+   * Get average unit cost across all line items
+   */
+  getAverageUnitCost(): number {
+    const lines = this.lineItemsArray.value;
+    if (lines.length === 0) return 0;
+
+    const totalCost = this.getTotalCostAllItems();
+    const totalQuantity = lines.reduce((sum: number, line: any) => sum + (line.receivingQuantity || 0), 0);
+
+    return totalQuantity > 0 ? totalCost / totalQuantity : 0;
   }
 
   /**
@@ -305,12 +377,30 @@ export class GoodsReceiptFormComponent implements OnInit {
 
     this.isSubmitting = true;
 
+    // Process line items to convert empty unitId strings to null
+    // and map receivingQuantity to receivedQuantity for API
+    const processedLines = this.lineItemsArray.value.map((line: any) => ({
+      partId: line.partId,
+      receivedQuantity: line.receivingQuantity || 0,
+      condition: line.condition,
+      notes: line.notes || '',
+      hasDiscrepancy: line.hasDiscrepancy || false,
+      unitCost: line.unitCost || 0,
+      currency: line.currency || 'INR',
+      unitId: line.unitId && line.unitId.trim() !== '' ? line.unitId : null
+    }));
+
     const request = {
       purchaseOrderId: this.selectedPO.id,
       warehouseId: this.form.value.warehouseId,
       receivedDate: this.form.value.receivedDate,
-      notes: this.form.value.notes,
-      lines: this.lineItemsArray.value
+      // Delivery Information
+      deliveryDate: this.form.value.deliveryDate || null,
+      deliveryReference: this.form.value.deliveryReference || '',
+      carrierName: this.form.value.carrierName || '',
+      driverName: this.form.value.driverName || '',
+      deliveryNotes: this.form.value.deliveryNotes || '',
+      lines: processedLines
     };
 
     if (this.isEditing && this.grnId) {

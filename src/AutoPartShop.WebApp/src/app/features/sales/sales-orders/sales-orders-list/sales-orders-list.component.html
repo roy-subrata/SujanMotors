@@ -1,0 +1,170 @@
+<p-toast></p-toast>
+<p-confirmDialog></p-confirmDialog>
+
+<div class="sales-orders-container">
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <div class="header-title-section">
+        <h1 class="header-title">
+          <i class="pi pi-shopping-cart mr-3"></i>
+          Sales Orders
+        </h1>
+        <p class="header-subtitle">Manage and track customer sales orders and deliveries</p>
+      </div>
+      <div class="header-actions">
+        <button pButton type="button" label="New Sales Order" icon="pi pi-plus" class="p-button-success" (click)="createSalesOrder()"></button>
+        <button pButton type="button" label="Export CSV" icon="pi pi-file" class="p-button-outlined" (click)="exportOrders('csv')"></button>
+        <button pButton type="button" label="Export JSON" icon="pi pi-file-export" class="p-button-outlined" (click)="exportOrders('json')"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters Card -->
+  <p-card styleClass="filters-card mb-4">
+    <div class="filters-container">
+      <!-- Search -->
+      <div class="filter-item search-filter">
+        <div class="search-container">
+          <i class="pi pi-search search-icon"></i>
+          <input type="text" [(ngModel)]="searchTerm" placeholder="Search by SO number, customer name, email, phone..."
+            class="search-input" (keyup.enter)="onSearch()">
+          <i *ngIf="searchTerm" class="pi pi-times clear-icon" (click)="clearSearch()"></i>
+        </div>
+      </div>
+
+      <!-- Status Filter -->
+      <div class="filter-item">
+        <p-select [options]="statusOptions" [(ngModel)]="filterStatus" placeholder="Status"
+          [showClear]="true" (onChange)="onFilterChange()" class="w-full"></p-select>
+      </div>
+
+      <!-- Date Range -->
+      <div class="filter-item date-filter">
+        <p-datepicker [(ngModel)]="dateRange" selectionMode="range" [showIcon]="true"
+          placeholder="Order date range" dateFormat="M dd, yy" [showButtonBar]="true"
+          (onSelect)="onFilterChange()" (onClear)="onFilterChange()" class="w-full"></p-datepicker>
+      </div>
+
+      <!-- Filter Actions -->
+      <div class="filter-actions">
+        <button pButton type="button" label="Search" icon="pi pi-search" (click)="onSearch()"></button>
+        <button pButton type="button" label="Clear" icon="pi pi-times" class="p-button-outlined" (click)="clearFilters()"></button>
+      </div>
+    </div>
+  </p-card>
+
+  <!-- Sales Orders Table -->
+  <div class="table-container">
+    <p-table
+      #dt
+      [value]="salesOrders"
+      [loading]="loading"
+      [lazy]="true"
+      [paginator]="false"
+      [rows]="pageSize"
+      [totalRecords]="totalRecords"
+      responsiveLayout="scroll"
+      styleClass="p-datatable-striped"
+      [tableStyle]="{ 'min-width': '50rem' }"
+      dataKey="id">
+
+      <ng-template pTemplate="header">
+        <tr>
+          <th pSortableColumn="soNumber">
+            SO Number <p-sortIcon field="soNumber"></p-sortIcon>
+          </th>
+          <th pSortableColumn="customerName">
+            Customer <p-sortIcon field="customerName"></p-sortIcon>
+          </th>
+          <th pSortableColumn="orderDate">
+            Order Date <p-sortIcon field="orderDate"></p-sortIcon>
+          </th>
+          <th pSortableColumn="deliveryDate">
+            Delivery Date <p-sortIcon field="deliveryDate"></p-sortIcon>
+          </th>
+          <th pSortableColumn="status">
+            Status <p-sortIcon field="status"></p-sortIcon>
+          </th>
+          <th class="text-right">Grand Total</th>
+          <th class="text-right">Outstanding</th>
+          <th class="text-center">Actions</th>
+        </tr>
+      </ng-template>
+
+      <ng-template pTemplate="body" let-order>
+        <tr class="order-row">
+          <td>
+            <div class="order-info">
+              <span class="order-number" (click)="viewSalesOrder(order)">{{ order.soNumber }}</span>
+              <span *ngIf="order.isOverdue" class="overdue-badge">Overdue</span>
+            </div>
+          </td>
+          <td>
+            <div class="customer-info">
+              <span class="customer-name">{{ order.customerName || '-' }}</span>
+              <span class="customer-email">{{ order.customerEmail }}</span>
+              <span class="customer-phone">{{ order.customerPhone }}</span>
+            </div>
+          </td>
+          <td>
+            <span class="timestamp">{{ formatDate(order.orderDate) }}</span>
+          </td>
+          <td>
+            <span class="timestamp" [class.text-danger]="order.isOverdue">
+              {{ formatDate(order.deliveryDate) }}
+            </span>
+          </td>
+          <td>
+            <p-tag [value]="order.status" [severity]="getStatusSeverity(order.status)"></p-tag>
+          </td>
+          <td class="text-right">
+            <span class="amount">{{ formatCurrency(order.grandTotal) }}</span>
+          </td>
+          <td class="text-right">
+            <span class="amount" [class.text-danger]="order.outstandingAmount > 0">
+              {{ formatCurrency(order.outstandingAmount) }}
+            </span>
+          </td>
+          <td class="text-center">
+            <div class="flex justify-center gap-1">
+              <button pButton type="button" icon="pi pi-eye" class="p-button-text p-button-sm"
+                (click)="viewSalesOrder(order)" pTooltip="View" tooltipPosition="left"></button>
+              <button *ngIf="order.status === 'DRAFT'" pButton type="button" icon="pi pi-pencil"
+                class="p-button-text p-button-sm" (click)="editSalesOrder(order)" pTooltip="Edit"
+                tooltipPosition="left"></button>
+              <button *ngIf="order.status === 'DRAFT'" pButton type="button" icon="pi pi-check-circle"
+                class="p-button-text p-button-success p-button-sm" (click)="confirmSalesOrder(order)" pTooltip="Confirm"
+                tooltipPosition="left"></button>
+              <button *ngIf="order.status === 'DRAFT'" pButton type="button" icon="pi pi-trash"
+                class="p-button-text p-button-danger p-button-sm" (click)="deleteSalesOrder(order)" pTooltip="Delete"
+                tooltipPosition="left"></button>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="8" class="text-center p-6">
+            <div class="empty-state">
+              <i class="pi pi-shopping-cart text-5xl text-gray-300 mb-3"></i>
+              <h3 class="text-gray-500 mb-2">No sales orders found</h3>
+              <p class="text-gray-400">{{ searchTerm ? 'Try adjusting your filters or search criteria' : 'Start by creating a new sales order' }}</p>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+
+    <!-- Paginator -->
+    <p-paginator
+      [rows]="pageSize"
+      [totalRecords]="totalRecords"
+      [rowsPerPageOptions]="pageSizeOptions"
+      [showCurrentPageReport]="true"
+      currentPageReportTemplate="Showing {first} to {last} of {totalRecords} sales orders"
+      (onPageChange)="onPageChange($event)">
+    </p-paginator>
+  </div>
+</div>

@@ -143,9 +143,9 @@ export class PurchaseOrderFormComponent implements OnInit {
         this.form.patchValue({
           supplierId: matchingSupplier || po.supplierId,
           deliveryDate: po.deliveryDate,
-          paymentTerms: paymentTermsOption || this.paymentTermsOptions[1],
-          currency: currencyOption || this.currencyOptions[0],
-          priority: priorityOption || this.priorityOptions[1],
+          paymentTerms: paymentTermsOption?.value || 'NET30',
+          currency: currencyOption?.value || 'INR',
+          priority: priorityOption?.value || 'MEDIUM',
           notes: po.notes,
           taxRate: po.taxPercentage || 0,
           discountPercentage: po.discountPercentage || 0
@@ -267,6 +267,14 @@ export class PurchaseOrderFormComponent implements OnInit {
   getPartUnit(partId: any): string {
     const part = this.parts.find(p => p.id === (typeof partId === 'string' ? partId : partId?.id));
     return part?.unitName || '-';
+  }
+
+  /**
+   * Get part name for a given partId
+   */
+  getPartName(partId: any): string {
+    const part = this.parts.find(p => p.id === (typeof partId === 'string' ? partId : partId?.id));
+    return part?.name || '-';
   }
 
   /**

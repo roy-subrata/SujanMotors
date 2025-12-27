@@ -1,0 +1,71 @@
+/* Invoice View Page Container */
+.invoice-view-page {
+  height: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  margin: -1.5rem;
+  padding: 1.5rem;
+}
+
+@media (min-width: 1200px) {
+  .invoice-view-page {
+    margin: -2rem;
+    padding: 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .invoice-view-page {
+    margin: -1rem;
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .invoice-view-page {
+    margin: -0.75rem;
+    padding: 0.75rem;
+  }
+}
+
+/* PrimeNG Card Header */
+:host ::ng-deep .p-card .p-card-header {
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 0;
+}
+
+:host ::ng-deep .p-card .p-card-body {
+  padding: 1.25rem;
+}
+
+@media (max-width: 768px) {
+  :host ::ng-deep .p-card .p-card-body {
+    padding: 1rem;
+  }
+}
+
+:host ::ng-deep .p-card .p-card-content {
+  padding: 0;
+}
+
+/* Payment History Table */
+:host ::ng-deep .p-datatable {
+  font-size: 0.875rem;
+}
+
+:host ::ng-deep .p-datatable th {
+  font-size: 0.75rem;
+  padding: 0.75rem;
+}
+
+@media (min-width: 768px) {
+  :host ::ng-deep .p-datatable th {
+    font-size: 0.875rem;
+  }
+}
+
+:host ::ng-deep .p-datatable td {
+  padding: 0.75rem;
+}

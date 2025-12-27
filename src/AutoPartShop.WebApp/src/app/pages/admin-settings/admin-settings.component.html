@@ -1,0 +1,355 @@
+<div class="admin-settings-container">
+  <p-toast></p-toast>
+  <p-confirmDialog></p-confirmDialog>
+
+  <!-- Tabs -->
+  <p-tabs [(value)]="activeTabIndex">
+    <p-tablist>
+      <p-tab [value]="0">
+        <i class="pi pi-users mr-2"></i>
+        Users
+      </p-tab>
+      <p-tab [value]="1">
+        <i class="pi pi-shield mr-2"></i>
+        Roles
+      </p-tab>
+      <p-tab [value]="2">
+        <i class="pi pi-key mr-2"></i>
+        Permissions
+      </p-tab>
+    </p-tablist>
+
+    <p-tabpanels>
+      <!-- Users Tab Panel -->
+      <p-tabpanel [value]="0">
+        <div class="tab-content">
+        <div class="tab-header">
+          <button pButton label="Add User" icon="pi pi-plus" (click)="openUserDialog()"></button>
+        </div>
+
+        <p-table [value]="users()" [loading]="usersLoading()" responsiveLayout="scroll"
+          [paginator]="true" [rows]="10" [rowsPerPageOptions]="[10, 25, 50]">
+          <ng-template pTemplate="header">
+            <tr>
+              <th>Username</th>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Roles</th>
+              <th>Status</th>
+              <th>Last Login</th>
+              <th style="width: 250px">Actions</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-user>
+            <tr>
+              <td>{{ user.username }}</td>
+              <td>{{ user.firstName }} {{ user.lastName }}</td>
+              <td>{{ user.email }}</td>
+              <td>
+                <p-tag *ngFor="let role of user.roles" [value]="role" class="mr-1"></p-tag>
+                <span *ngIf="user.roles.length === 0" class="text-gray-400">No roles</span>
+              </td>
+              <td>
+                <p-tag [value]="user.isActive ? 'Active' : 'Inactive'"
+                  [severity]="getStatusSeverity(user.isActive)"></p-tag>
+              </td>
+              <td>{{ user.lastLoginAt ? (user.lastLoginAt | date:'short') : 'Never' }}</td>
+              <td>
+                <button pButton icon="pi pi-user-edit" class="p-button-sm p-button-text"
+                  pTooltip="Assign Roles" (click)="openAssignRolesDialog(user)"></button>
+                <button pButton icon="pi pi-pencil" class="p-button-sm p-button-text"
+                  pTooltip="Edit User" (click)="openUserDialog(user)"></button>
+                <button pButton [icon]="user.isActive ? 'pi pi-ban' : 'pi pi-check'"
+                  class="p-button-sm p-button-text"
+                  [pTooltip]="user.isActive ? 'Deactivate' : 'Activate'"
+                  (click)="toggleUserStatus(user)"></button>
+              </td>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="emptymessage">
+            <tr>
+              <td colspan="7" class="text-center p-4">No users found</td>
+            </tr>
+          </ng-template>
+        </p-table>
+        </div>
+      </p-tabpanel>
+
+      <!-- Roles Tab Panel -->
+      <p-tabpanel [value]="1">
+        <div class="tab-content">
+        <div class="tab-header">
+          <button pButton label="Add Role" icon="pi pi-plus" (click)="openRoleDialog()"></button>
+        </div>
+
+        <p-table [value]="roles()" [loading]="rolesLoading()" responsiveLayout="scroll"
+          [paginator]="true" [rows]="10">
+          <ng-template pTemplate="header">
+            <tr>
+              <th>Name</th>
+              <th>Description</th>
+              <th>Status</th>
+              <th>Created Date</th>
+              <th style="width: 200px">Actions</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-role>
+            <tr>
+              <td><strong>{{ role.name }}</strong></td>
+              <td>{{ role.description || '-' }}</td>
+              <td>
+                <p-tag [value]="role.isActive ? 'Active' : 'Inactive'"
+                  [severity]="getStatusSeverity(role.isActive)"></p-tag>
+              </td>
+              <td>{{ role.createdAt | date:'short' }}</td>
+              <td>
+                <button pButton icon="pi pi-key" class="p-button-sm p-button-text"
+                  pTooltip="Manage Permissions" (click)="openAssignPermissionsDialog(role)"></button>
+                <button pButton icon="pi pi-pencil" class="p-button-sm p-button-text"
+                  pTooltip="Edit Role" (click)="openRoleDialog(role)"></button>
+                <button pButton icon="pi pi-trash" class="p-button-sm p-button-text p-button-danger"
+                  pTooltip="Delete Role" (click)="deleteRole(role)"></button>
+              </td>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="emptymessage">
+            <tr>
+              <td colspan="5" class="text-center p-4">No roles found</td>
+            </tr>
+          </ng-template>
+        </p-table>
+        </div>
+      </p-tabpanel>
+
+      <!-- Permissions Tab Panel -->
+      <p-tabpanel [value]="2">
+        <div class="tab-content">
+        <div class="tab-header">
+          <button pButton label="Add Permission" icon="pi pi-plus" (click)="openPermissionDialog()"></button>
+        </div>
+
+        <p-table [value]="permissions()" [loading]="permissionsLoading()" responsiveLayout="scroll"
+          [paginator]="true" [rows]="10">
+          <ng-template pTemplate="header">
+            <tr>
+              <th>Name</th>
+              <th>Display Name</th>
+              <th>Category</th>
+              <th>Description</th>
+              <th>Status</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-permission>
+            <tr>
+              <td><code>{{ permission.name }}</code></td>
+              <td>{{ permission.displayName }}</td>
+              <td><p-tag [value]="permission.category"></p-tag></td>
+              <td>{{ permission.description || '-' }}</td>
+              <td>
+                <p-tag [value]="permission.isActive ? 'Active' : 'Inactive'"
+                  [severity]="getStatusSeverity(permission.isActive)"></p-tag>
+              </td>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="emptymessage">
+            <tr>
+              <td colspan="5" class="text-center p-4">No permissions found</td>
+            </tr>
+          </ng-template>
+        </p-table>
+        </div>
+      </p-tabpanel>
+    </p-tabpanels>
+  </p-tabs>
+
+  <!-- User Dialog -->
+  <p-dialog [(visible)]="userDialogVisible" [header]="editingUser() ? 'Edit User' : 'Add User'"
+    [modal]="true" [style]="{width: '500px'}">
+    <form [formGroup]="userForm" (ngSubmit)="saveUser()">
+      <div class="form-grid">
+        <div class="form-field">
+          <label for="username">Username</label>
+          <input pInputText id="username" formControlName="username" class="w-full" />
+        </div>
+
+        <div class="form-field">
+          <label for="email">Email</label>
+          <input pInputText id="email" type="email" formControlName="email" class="w-full" />
+        </div>
+
+        <div class="form-field">
+          <label for="firstName">First Name</label>
+          <input pInputText id="firstName" formControlName="firstName" class="w-full" />
+        </div>
+
+        <div class="form-field">
+          <label for="lastName">Last Name</label>
+          <input pInputText id="lastName" formControlName="lastName" class="w-full" />
+        </div>
+
+        @if (!editingUser()) {
+          <div class="form-field">
+            <label for="password">Password</label>
+            <p-password id="password" formControlName="password" [toggleMask]="true"
+              styleClass="w-full" [inputStyle]="{width: '100%'}"></p-password>
+          </div>
+        }
+
+        <div class="form-field">
+          <div class="flex align-items-center">
+            <p-checkbox formControlName="isActive" inputId="isActive" [binary]="true"></p-checkbox>
+            <label for="isActive" class="ml-2">Active</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="dialog-footer">
+        <button pButton label="Cancel" icon="pi pi-times" class="p-button-text"
+          type="button" (click)="userDialogVisible.set(false)"></button>
+        <button pButton label="Save" icon="pi pi-check" type="submit"></button>
+      </div>
+    </form>
+  </p-dialog>
+
+  <!-- Role Dialog -->
+  <p-dialog [(visible)]="roleDialogVisible" [header]="editingRole() ? 'Edit Role' : 'Add Role'"
+    [modal]="true" [style]="{width: '500px'}">
+    <form [formGroup]="roleForm" (ngSubmit)="saveRole()">
+      <div class="form-grid">
+        <div class="form-field">
+          <label for="roleName">Role Name</label>
+          <input pInputText id="roleName" formControlName="name" class="w-full" />
+        </div>
+
+        <div class="form-field">
+          <label for="roleDescription">Description</label>
+          <input pInputText id="roleDescription" formControlName="description" class="w-full" />
+        </div>
+
+        @if (editingRole()) {
+          <div class="form-field">
+            <div class="flex align-items-center">
+              <p-checkbox formControlName="isActive" inputId="roleActive" [binary]="true"></p-checkbox>
+              <label for="roleActive" class="ml-2">Active</label>
+            </div>
+          </div>
+        }
+      </div>
+
+      <div class="dialog-footer">
+        <button pButton label="Cancel" icon="pi pi-times" class="p-button-text"
+          type="button" (click)="roleDialogVisible.set(false)"></button>
+        <button pButton label="Save" icon="pi pi-check" type="submit"></button>
+      </div>
+    </form>
+  </p-dialog>
+
+  <!-- Permission Dialog -->
+  <p-dialog [(visible)]="permissionDialogVisible" header="Add Permission"
+    [modal]="true" [style]="{width: '500px'}">
+    <form [formGroup]="permissionForm" (ngSubmit)="savePermission()">
+      <div class="form-grid">
+        <div class="form-field">
+          <label for="permissionName">Permission Name (code)</label>
+          <input pInputText id="permissionName" formControlName="name" class="w-full"
+            placeholder="e.g., users.create" />
+        </div>
+
+        <div class="form-field">
+          <label for="displayName">Display Name</label>
+          <input pInputText id="displayName" formControlName="displayName" class="w-full"
+            placeholder="e.g., Create Users" />
+        </div>
+
+        <div class="form-field">
+          <label for="category">Category</label>
+          <input pInputText id="category" formControlName="category" class="w-full"
+            placeholder="e.g., User Management" />
+        </div>
+
+        <div class="form-field">
+          <label for="permissionDescription">Description</label>
+          <input pInputText id="permissionDescription" formControlName="description" class="w-full" />
+        </div>
+      </div>
+
+      <div class="dialog-footer">
+        <button pButton label="Cancel" icon="pi pi-times" class="p-button-text"
+          type="button" (click)="permissionDialogVisible.set(false)"></button>
+        <button pButton label="Save" icon="pi pi-check" type="submit"></button>
+      </div>
+    </form>
+  </p-dialog>
+
+  <!-- Assign Roles Dialog -->
+  <p-dialog [(visible)]="assignRolesDialogVisible" header="Assign Roles"
+    [modal]="true" [style]="{width: '500px'}">
+    @if (selectedUserForRoles(); as user) {
+      <div class="mb-4">
+        <p class="mb-3" style="font-size: 0.95rem; color: #6b7280;">
+          Assign roles to user: <strong style="color: #374151;">{{ user.username }}</strong>
+        </p>
+
+        <div class="form-field">
+          <label for="userRoles">Select Roles</label>
+          <p-multiselect
+            id="userRoles"
+            [(ngModel)]="selectedUserRoles"
+            [options]="getRoleOptions()"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="Select roles"
+            [showClear]="true"
+            [filter]="false"
+            display="chip"
+            styleClass="w-full"
+          ></p-multiselect>
+        </div>
+      </div>
+
+      <div class="dialog-footer">
+        <button pButton label="Cancel" icon="pi pi-times" class="p-button-text"
+          (click)="assignRolesDialogVisible.set(false)"></button>
+        <button pButton label="Assign Roles" icon="pi pi-check" (click)="saveUserRoles()"></button>
+      </div>
+    }
+  </p-dialog>
+
+  <!-- Assign Permissions Dialog -->
+  <p-dialog [(visible)]="assignPermissionsDialogVisible" header="Assign Permissions"
+    [modal]="true" [style]="{width: '600px'}">
+    @if (selectedRoleForPermissions(); as role) {
+      <div class="mb-4">
+        <p class="mb-3" style="font-size: 0.95rem; color: #6b7280;">
+          Assign permissions to role: <strong style="color: #374151;">{{ role.name }}</strong>
+        </p>
+
+        <div class="form-field">
+          <label for="rolePermissions">Select Permissions</label>
+          <p-multiselect
+            id="rolePermissions"
+            [(ngModel)]="selectedPermissionIds"
+            [options]="getPermissionOptions()"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="Select permissions"
+            [showClear]="true"
+            [filter]="true"
+            filterPlaceholder="Search permissions"
+            display="chip"
+            styleClass="w-full"
+          ></p-multiselect>
+          <small style="color: #6b7280; margin-top: 0.5rem; display: block;">
+            Use the search box to quickly find permissions by name or category
+          </small>
+        </div>
+      </div>
+
+      <div class="dialog-footer">
+        <button pButton label="Cancel" icon="pi pi-times" class="p-button-text"
+          (click)="assignPermissionsDialogVisible.set(false)"></button>
+        <button pButton label="Assign Permissions" icon="pi pi-check" (click)="saveRolePermissions()"></button>
+      </div>
+    }
+  </p-dialog>
+</div>

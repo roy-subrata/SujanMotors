@@ -1,0 +1,120 @@
+.conversions-list-container {
+  padding: 1rem;
+  background-color: #ffffff;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+}
+
+.unit-display {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.unit-name {
+  font-size: 0.95rem;
+  color: #111827;
+}
+
+.unit-code {
+  font-size: 0.8rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.conversion-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.arrow-icon {
+  font-size: 1.5rem;
+  color: #667eea;
+  font-weight: bold;
+}
+
+.factor-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #667eea;
+  background-color: #f3f4f6;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+}
+
+.conversion-formula {
+  display: inline-block;
+  background-color: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 0.375rem;
+  padding: 0.5rem 0.75rem;
+}
+
+.formula-text {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.875rem;
+  color: #1e40af;
+  font-weight: 500;
+}
+
+:host ::ng-deep {
+  .p-datatable {
+    .p-datatable-thead > tr > th {
+      background-color: #f9fafb;
+      border-color: #e5e7eb;
+      font-weight: 600;
+      color: #374151;
+      padding: 1rem 1rem;
+    }
+
+    .p-datatable-tbody > tr > td {
+      padding: 1rem 1rem;
+      border-color: #f3f4f6;
+    }
+
+    .p-datatable-tbody > tr:hover {
+      background-color: #f9fafb;
+    }
+
+    .p-paginator {
+      border-color: #e5e7eb;
+      background-color: #f9fafb;
+    }
+
+    .p-paginator-current {
+      font-size: 0.875rem;
+      color: #6b7280;
+    }
+
+    .p-datatable-emptymessage > tr > td {
+      padding: 2rem 1rem;
+    }
+  }
+
+  .p-column-header-content {
+    padding: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .conversions-list-container {
+    padding: 0.5rem;
+  }
+
+  :host ::ng-deep {
+    .p-datatable-tbody > tr > td {
+      padding: 0.5rem;
+    }
+  }
+
+  .conversion-formula {
+    padding: 0.375rem 0.5rem;
+  }
+
+  .formula-text {
+    font-size: 0.75rem;
+  }
+}

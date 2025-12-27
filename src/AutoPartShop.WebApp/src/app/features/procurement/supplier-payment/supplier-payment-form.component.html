@@ -1,0 +1,129 @@
+<div class="container">
+    <p-toast></p-toast>
+
+    <!-- Header -->
+    <div class="form-header">
+        <div class="header-content">
+            <div>
+                <h1 class="form-title">
+                    {{ isEditing ? 'Edit Supplier Payment' : 'Create Supplier Payment' }}
+                </h1>
+                <p class="form-subtitle">
+                    {{ isEditing ? 'Update supplier payment details and status' : 'Record a new payment to a supplier'
+                    }}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Form -->
+    <p-card class="form-card">
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form-content">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Supplier *</label>
+                    <p-autoComplete [suggestions]="filteredSuppliers" formControlName="supplierId"
+                        [forceSelection]="true" field="name" optionLabel="name" optionValue="id" [dropdown]="true"
+                        placeholder="Search supplier..." (completeMethod)="filterSuppliers($event)"
+                        [disabled]="isEditing">
+                        <ng-template let-supplier pTemplate="item">
+                            <div>
+                                <div style="font-weight: 500;">{{ supplier.name }}</div>
+                                <div style="font-size: 0.85rem; color: #666;">Code: {{ supplier.code }}</div>
+                            </div>
+                        </ng-template>
+                    </p-autoComplete>
+                </div>
+                <div class="form-group">
+                    <label>Payment Provider *</label>
+                    <p-autoComplete [suggestions]="filteredPaymentProviders" formControlName="paymentProviderId"
+                        [forceSelection]="true" field="providerName" optionLabel="providerName" optionValue="id"
+                        [dropdown]="true" placeholder="Search provider..."
+                        (completeMethod)="filterPaymentProviders($event)" [disabled]="isEditing">
+                        <ng-template let-provider pTemplate="item">
+                            <div>
+                                <div style="font-weight: 500;">{{ provider.providerName }}</div>
+                                <div style="font-size: 0.85rem; color: #666;">{{ provider.providerType }}</div>
+                            </div>
+                        </ng-template>
+                    </p-autoComplete>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Amount *</label>
+                    <p-inputNumber formControlName="amount" placeholder="0.00" [readonly]="isEditing"></p-inputNumber>
+                </div>
+                <div class="form-group">
+                    <label>Payment Method *</label>
+                    <p-autoComplete
+                        [suggestions]="filteredPaymentMethods"
+                        formControlName="paymentMethod"
+                        [forceSelection]="true"
+                        field="label"
+                        optionLabel="label"
+                        optionValue="value"
+                        [dropdown]="true"
+                        placeholder="Select payment method..."
+                        (completeMethod)="filterPaymentMethods($event)"
+                        [disabled]="isEditing">
+                        <ng-template let-method pTemplate="item">
+                            <div>{{ method.label }}</div>
+                        </ng-template>
+                    </p-autoComplete>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Transaction Number</label>
+                    <input pInputText formControlName="transactionNumber" placeholder="Transaction number"
+                        [readonly]="isEditing" />
+                </div>
+                <div class="form-group">
+                    <label>Reference Number</label>
+                    <input pInputText formControlName="referenceNumber" placeholder="Reference number"
+                        [readonly]="isEditing" />
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group" *ngIf="isEditing">
+                    <label>Authorization Code</label>
+                    <input pInputText formControlName="authorizationCode" placeholder="Authorization code" />
+                </div>
+                <div class="form-group" [class.full]="!isEditing">
+                    <label>Invoice Number</label>
+                    <input pInputText formControlName="invoiceNumber" placeholder="Invoice number"
+                        [readonly]="isEditing" />
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Payment Date</label>
+                    <input pInputText type="date" formControlName="paymentDate" [readonly]="isEditing" />
+                </div>
+                <div class="form-group" *ngIf="!isEditing">
+                    <label>Purchase Order ID</label>
+                    <input pInputText formControlName="purchaseOrderId" placeholder="Purchase Order ID (optional)" />
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group full">
+                    <label>Notes</label>
+                    <textarea pInputText formControlName="notes" placeholder="Additional notes" rows="3"></textarea>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button pButton type="button" label="Cancel" icon="pi pi-times" class="p-button-outlined"
+                    (click)="onCancel()"></button>
+                <button pButton type="submit" label="Save Payment" icon="pi pi-check" class="p-button-primary"
+                    [loading]="loading"></button>
+            </div>
+        </form>
+    </p-card>
+</div>

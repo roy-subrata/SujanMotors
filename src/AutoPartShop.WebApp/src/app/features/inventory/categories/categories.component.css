@@ -1,0 +1,277 @@
+/* Main Container - Standard */
+.categories-container {
+  padding: 0;
+  margin: 0;
+  min-height: 100%;
+}
+
+/* Toast Notifications - Standard */
+:deep(.p-toast) {
+  top: 70px !important;
+  right: 1rem !important;
+  z-index: 9999;
+}
+
+:deep(.p-toast .p-toast-message) {
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+:deep(.p-toast-message.p-toast-message-success) {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+:deep(.p-toast-message.p-toast-message-error) {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+:deep(.p-toast-message.p-toast-message-warning) {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+
+:deep(.p-toast-message.p-toast-message-info) {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+}
+
+:deep(.p-toast-message .p-toast-message-content) {
+  color: white;
+  font-weight: 500;
+  padding: 1rem;
+}
+
+:deep(.p-toast-message .p-toast-summary) {
+  font-weight: 600;
+}
+
+/* Dialog Styling - Standard */
+:deep(.p-dialog) {
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  border: 1px solid #e5e7eb;
+}
+
+:deep(.p-dialog .p-dialog-header) {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-bottom: none;
+  padding: 1.25rem 1.5rem;
+}
+
+:deep(.p-dialog .p-dialog-title) {
+  font-weight: 600;
+  color: white;
+  font-size: 1.125rem;
+}
+
+:deep(.p-dialog .p-dialog-header-icon) {
+  color: white !important;
+}
+
+:deep(.p-dialog .p-dialog-header-icon:hover) {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+:deep(.p-dialog .p-dialog-content) {
+  padding: 1.5rem;
+}
+
+:deep(.p-dialog-footer) {
+  border-top: 1px solid #e5e7eb;
+  padding: 1rem 1.5rem;
+  background: #f9fafb;
+  gap: 0.75rem;
+}
+
+/* Confirm Dialog - Standard */
+:deep(.p-confirm-dialog .p-dialog-header) {
+  background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+}
+
+:deep(.p-confirm-dialog .p-dialog-title) {
+  color: #1f2937;
+}
+
+:deep(.p-confirm-dialog .p-dialog-header-icon) {
+  color: #6b7280 !important;
+}
+
+:deep(.p-confirm-dialog .p-confirm-dialog-icon) {
+  font-size: 2.5rem;
+  color: #f59e0b;
+}
+
+:deep(.p-confirm-dialog .p-confirm-dialog-message) {
+  color: #374151;
+  font-weight: 500;
+}
+
+/* Button Styling - Standard */
+:deep(.p-button) {
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  padding: 0.625rem 1.25rem;
+}
+
+:deep(.p-button-success) {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border: none;
+}
+
+:deep(.p-button-success:hover:not(:disabled)) {
+  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
+  transform: translateY(-1px);
+}
+
+:deep(.p-button-text) {
+  color: #6b7280;
+  background: transparent;
+}
+
+:deep(.p-button-text:hover:not(:disabled)) {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+:deep(.p-button-outlined) {
+  border: 1px solid #d1d5db;
+  color: #6b7280;
+  background: white;
+}
+
+:deep(.p-button-outlined:hover:not(:disabled)) {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
+:deep(.p-button:disabled) {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Form Controls - Standard */
+:deep(.p-inputtext),
+:deep(.p-autocomplete .p-autocomplete-input),
+:deep(.p-dropdown),
+:deep(.p-inputnumber-input) {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  font-size: 0.9375rem;
+  transition: border-color 0.15s ease;
+}
+
+:deep(.p-inputtext:focus),
+:deep(.p-autocomplete .p-autocomplete-input:focus),
+:deep(.p-dropdown:focus),
+:deep(.p-inputnumber-input:focus) {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+:deep(.p-float-label label) {
+  color: #6b7280;
+  font-weight: 500;
+}
+
+/* Responsive - Tablet */
+@media (max-width: 1024px) {
+  :deep(.p-dialog .p-dialog-header) {
+    padding: 1rem 1.25rem;
+  }
+
+  :deep(.p-dialog .p-dialog-content) {
+    padding: 1.25rem;
+  }
+
+  :deep(.p-dialog-footer) {
+    padding: 0.875rem 1.25rem;
+  }
+}
+
+/* Responsive - Mobile */
+@media (max-width: 768px) {
+  :deep(.p-toast) {
+    top: 65px !important;
+    right: 0.75rem !important;
+    left: 0.75rem !important;
+  }
+
+  :deep(.p-dialog) {
+    width: 95vw !important;
+    max-width: 95vw !important;
+  }
+
+  :deep(.p-dialog .p-dialog-header) {
+    padding: 1rem 1.25rem;
+  }
+
+  :deep(.p-dialog .p-dialog-title) {
+    font-size: 1rem;
+  }
+
+  :deep(.p-dialog .p-dialog-content) {
+    padding: 1.25rem;
+  }
+
+  :deep(.p-dialog-footer) {
+    padding: 0.875rem 1.25rem;
+    flex-direction: column;
+  }
+
+  :deep(.p-dialog-footer .p-button) {
+    width: 100%;
+  }
+
+  :deep(.p-button) {
+    padding: 0.625rem 1rem;
+  }
+}
+
+/* Responsive - Small Mobile */
+@media (max-width: 640px) {
+  :deep(.p-toast) {
+    top: 60px !important;
+    right: 0.5rem !important;
+    left: 0.5rem !important;
+  }
+
+  :deep(.p-toast .p-toast-message) {
+    border-radius: 6px;
+  }
+
+  :deep(.p-dialog) {
+    width: calc(100vw - 1rem) !important;
+    max-width: calc(100vw - 1rem) !important;
+    border-radius: 6px;
+  }
+
+  :deep(.p-dialog .p-dialog-header) {
+    padding: 0.875rem 1rem;
+  }
+
+  :deep(.p-dialog .p-dialog-title) {
+    font-size: 0.9375rem;
+  }
+
+  :deep(.p-dialog .p-dialog-content) {
+    padding: 1rem;
+  }
+
+  :deep(.p-dialog-footer) {
+    padding: 0.75rem 1rem;
+  }
+
+  :deep(.p-button) {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+  }
+
+  :deep(.p-inputtext),
+  :deep(.p-autocomplete .p-autocomplete-input),
+  :deep(.p-dropdown),
+  :deep(.p-inputnumber-input) {
+    padding: 0.625rem 0.875rem;
+    font-size: 0.875rem;
+  }
+}

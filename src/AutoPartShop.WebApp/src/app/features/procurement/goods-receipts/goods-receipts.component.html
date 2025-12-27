@@ -1,0 +1,71 @@
+<p-toast></p-toast>
+<p-confirmDialog></p-confirmDialog>
+
+<div class="goods-receipts-container">
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <div class="header-title-section">
+        <h1 class="header-title">
+          <i class="pi pi-inbox mr-3"></i>
+          Goods Receipts
+        </h1>
+        <p class="header-subtitle">Record and track incoming inventory from suppliers</p>
+      </div>
+      <div class="header-actions">
+        <button pButton type="button" label="New Goods Receipt" icon="pi pi-plus" class="p-button-success" (click)="onCreateClick()"></button>
+        <button pButton type="button" label="Export CSV" icon="pi pi-file" class="p-button-outlined" (click)="exportReceipts('csv')"></button>
+        <button pButton type="button" label="Export JSON" icon="pi pi-file-export" class="p-button-outlined" (click)="exportReceipts('json')"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters Card -->
+  <p-card styleClass="filters-card mb-4">
+    <div class="filters-container">
+      <!-- Search -->
+      <div class="filter-item search-filter">
+        <div class="search-container">
+          <i class="pi pi-search search-icon"></i>
+          <input type="text" [(ngModel)]="searchTerm" placeholder="Search by GRN number, PO number, warehouse..."
+            class="search-input" (keyup.enter)="onSearch()">
+          <i *ngIf="searchTerm" class="pi pi-times clear-icon" (click)="clearSearch()"></i>
+        </div>
+      </div>
+
+      <!-- Status Filter -->
+      <div class="filter-item">
+        <p-select [options]="statusOptions" [(ngModel)]="filterStatus" placeholder="Status"
+          [showClear]="true" (onChange)="onFilterChange()" class="w-full"></p-select>
+      </div>
+
+      <!-- Date Range -->
+      <div class="filter-item date-filter">
+        <p-datepicker [(ngModel)]="dateRange" selectionMode="range" [showIcon]="true"
+          placeholder="Received date range" dateFormat="M dd, yy" [showButtonBar]="true"
+          class="w-full"></p-datepicker>
+      </div>
+
+      <!-- Filter Actions -->
+      <div class="filter-actions">
+        <button pButton type="button" label="Search" icon="pi pi-search" (click)="onSearch()"></button>
+        <button pButton type="button" label="Clear" icon="pi pi-times" class="p-button-outlined" (click)="clearFilters()"></button>
+      </div>
+    </div>
+  </p-card>
+
+  <!-- Goods Receipts Table -->
+  <div class="table-container">
+    <app-goods-receipts-list
+      [goodsReceipts]="goodsReceipts"
+      [loading]="loading"
+      [totalRecords]="totalRecords"
+      [rows]="rows"
+      [currentPage]="currentPage"
+      [searchTerm]="searchTerm"
+      (pageChange)="onPageChange($event)"
+      (onGrnUpdated)="onGoodsReceiptUpdated()"
+      (grnDeleted)="onGoodsReceiptDeleted()">
+    </app-goods-receipts-list>
+  </div>
+</div>

@@ -1,0 +1,338 @@
+/* Form Container */
+.form-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 0;
+}
+
+/* Form Groups */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-label {
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.95rem;
+}
+
+.form-label .required {
+  color: #ef4444;
+  margin-right: 0.25rem;
+}
+
+.form-input,
+input[pInputText],
+input[pInputNumber],
+textarea[pInputTextarea],
+p-dropdown {
+  border-radius: 0.5rem;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+}
+
+.form-input:focus,
+input[pInputText]:focus,
+input[pInputNumber]:focus,
+textarea[pInputTextarea]:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-input.error,
+input[pInputText].error,
+input[pInputNumber].error,
+textarea[pInputTextarea].error {
+  border-color: #ef4444;
+  background-color: #fef2f2;
+}
+
+.form-input.success,
+input[pInputText].success,
+input[pInputNumber].success,
+textarea[pInputTextarea].success {
+  border-color: #10b981;
+  background-color: #f0fdf4;
+}
+
+/* Messages */
+.error-message {
+  color: #ef4444;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.hint-message {
+  color: #9ca3af;
+  font-size: 0.875rem;
+  font-style: italic;
+}
+
+/* Status Toggle */
+.status-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.status-checkbox {
+  width: 1.25rem;
+  height: 1.25rem;
+  cursor: pointer;
+}
+
+.status-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.status-active {
+  color: #10b981;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.status-inactive {
+  color: #6b7280;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+/* Autocomplete Item Styling */
+.category-autocomplete-item {
+  padding: 0.5rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.category-autocomplete-item .font-semibold {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.category-autocomplete-item .text-sm {
+  font-size: 0.875rem;
+}
+
+.category-autocomplete-item .text-gray-500 {
+  color: #9ca3af;
+}
+
+.unit-autocomplete-item {
+  padding: 0.5rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.unit-autocomplete-item .font-semibold {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.unit-autocomplete-item .text-sm {
+  font-size: 0.875rem;
+}
+
+.unit-autocomplete-item .text-gray-500 {
+  color: #9ca3af;
+}
+
+/* Dialog Footer */
+.dialog-footer {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  padding-top: 1.5rem;
+}
+
+:host ::ng-deep {
+  .p-dialog {
+    .p-dialog-header {
+      background-color: #f9fafb;
+      border-bottom: 1px solid #e5e7eb;
+      padding: 1.5rem;
+    }
+
+    .p-dialog-content {
+      padding: 1.5rem;
+    }
+
+    .p-dialog-footer {
+      padding: 1.5rem;
+      background-color: #f9fafb;
+      border-top: 1px solid #e5e7eb;
+      gap: 0.75rem;
+    }
+  }
+
+  .p-autocomplete {
+    width: 100%;
+
+    .p-autocomplete-input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 1px solid #d1d5db;
+      border-radius: 0.5rem;
+      font-size: 0.95rem;
+      transition: all 0.3s ease;
+      background-color: #ffffff;
+    }
+
+    .p-autocomplete-input:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .p-autocomplete-panel {
+      .p-autocomplete-items {
+        max-height: 300px;
+      }
+
+      .p-autocomplete-item {
+        padding: 0.5rem 1rem;
+        border-bottom: 1px solid #f3f4f6;
+
+        &:hover {
+          background-color: #f3f4f6;
+        }
+      }
+    }
+  }
+
+  .p-dropdown {
+    width: 100%;
+
+    .p-dropdown-trigger {
+      background-color: #ffffff;
+    }
+
+    .p-dropdown-items {
+      max-height: 300px;
+    }
+
+    .p-dropdown-item {
+      padding: 0.75rem 1rem;
+
+      &:hover {
+        background-color: #f3f4f6;
+      }
+    }
+  }
+
+  .p-inputnumber {
+    width: 100%;
+
+    .p-inputnumber-input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 1px solid #d1d5db;
+      border-radius: 0.5rem;
+      font-size: 0.95rem;
+      transition: all 0.3s ease;
+      background-color: #ffffff;
+
+      &:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      }
+    }
+
+    &.error .p-inputnumber-input {
+      border-color: #ef4444;
+      background-color: #fef2f2;
+    }
+
+    &.success .p-inputnumber-input {
+      border-color: #10b981;
+      background-color: #f0fdf4;
+    }
+
+    .p-inputnumber-button-group {
+      .p-button {
+        border-color: #d1d5db;
+        background-color: #f9fafb;
+        color: #6b7280;
+
+        &:hover {
+          background-color: #f3f4f6;
+          border-color: #d1d5db;
+        }
+      }
+    }
+  }
+
+  input[pInputText] {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+    background-color: #ffffff;
+
+    &:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+  }
+
+  textarea[pInputTextarea] {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    font-size: 0.95rem;
+    font-family: inherit;
+    transition: all 0.3s ease;
+    background-color: #ffffff;
+
+    &:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+  }
+
+  .p-button {
+    &.p-button-success {
+      background-color: #10b981;
+      border-color: #10b981;
+
+      &:hover:not(:disabled) {
+        background-color: #059669;
+        border-color: #059669;
+      }
+    }
+
+    &.p-button-info {
+      background-color: #3b82f6;
+      border-color: #3b82f6;
+
+      &:hover:not(:disabled) {
+        background-color: #2563eb;
+        border-color: #2563eb;
+      }
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+}

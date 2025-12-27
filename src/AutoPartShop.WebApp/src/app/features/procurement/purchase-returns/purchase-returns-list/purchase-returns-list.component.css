@@ -1,0 +1,17 @@
+:host {
+  display: block;
+}
+
+::ng-deep .p-datatable .p-datatable-thead > tr > th {
+  background-color: #f3f4f6;
+  padding: 1rem;
+  font-weight: 600;
+}
+
+::ng-deep .p-datatable .p-datatable-tbody > tr > td {
+  padding: 1rem;
+}
+
+::ng-deep .p-datatable .p-datatable-tbody > tr:hover {
+  background-color: #fafafa;
+}

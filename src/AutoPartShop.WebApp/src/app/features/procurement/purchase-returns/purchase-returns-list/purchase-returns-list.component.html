@@ -1,0 +1,108 @@
+<p-table
+  #dt
+  [value]="purchaseReturns"
+  [loading]="loading"
+  [lazy]="true"
+  [paginator]="false"
+  [rows]="rows"
+  [totalRecords]="totalRecords"
+  responsiveLayout="scroll"
+  styleClass="p-datatable-striped"
+  [tableStyle]="{ 'min-width': '50rem' }"
+  dataKey="id">
+
+  <ng-template pTemplate="header">
+    <tr>
+      <th pSortableColumn="returnNumber">
+        Return Number <p-sortIcon field="returnNumber"></p-sortIcon>
+      </th>
+      <th pSortableColumn="supplierName">
+        Supplier <p-sortIcon field="supplierName"></p-sortIcon>
+      </th>
+      <th pSortableColumn="returnDate">
+        Return Date <p-sortIcon field="returnDate"></p-sortIcon>
+      </th>
+      <th pSortableColumn="status">
+        Status <p-sortIcon field="status"></p-sortIcon>
+      </th>
+      <th class="text-right">Refund Amount</th>
+      <th class="text-center">Actions</th>
+    </tr>
+  </ng-template>
+
+  <ng-template pTemplate="body" let-pr>
+    <tr class="return-row">
+      <td>
+        <div class="return-info">
+          <span class="return-number" (click)="viewPurchaseReturn(pr)">{{ pr.returnNumber }}</span>
+        </div>
+      </td>
+      <td>
+        <div class="supplier-info">
+          <span class="supplier-name">{{ pr.supplierName || '-' }}</span>
+          <span class="supplier-email">{{ pr.supplierEmail }}</span>
+          <span class="supplier-phone">{{ pr.supplierPhone }}</span>
+        </div>
+      </td>
+      <td>
+        <span class="timestamp">{{ formatDate(pr.returnDate) }}</span>
+      </td>
+      <td>
+        <p-tag [value]="pr.status" [severity]="getStatusSeverity(pr.status)"></p-tag>
+      </td>
+      <td class="text-right">
+        <span class="amount">{{ formatCurrency(pr.refundAmount) }}</span>
+      </td>
+      <td class="text-center">
+        <div class="flex justify-center gap-1">
+          <button pButton type="button" icon="pi pi-eye" class="p-button-text p-button-sm"
+            (click)="viewPurchaseReturn(pr)" pTooltip="View" tooltipPosition="left"></button>
+          <button *ngIf="pr.status === 'DRAFT'" pButton type="button" icon="pi pi-pencil"
+            class="p-button-text p-button-sm" (click)="editPurchaseReturn(pr)" pTooltip="Edit"
+            tooltipPosition="left"></button>
+          <button *ngIf="pr.status === 'PENDING'" pButton type="button" icon="pi pi-check-circle"
+            class="p-button-text p-button-success p-button-sm" (click)="approvePurchaseReturn(pr)" pTooltip="Approve"
+            tooltipPosition="left"></button>
+          <button *ngIf="['DRAFT', 'PENDING'].includes(pr.status)" pButton type="button" icon="pi pi-ban"
+            class="p-button-text p-button-warning p-button-sm" (click)="rejectPurchaseReturn(pr)" pTooltip="Reject"
+            tooltipPosition="left"></button>
+          <button *ngIf="pr.status === 'DRAFT'" pButton type="button" icon="pi pi-trash"
+            class="p-button-text p-button-danger p-button-sm" (click)="deletePurchaseReturn(pr)" pTooltip="Delete"
+            tooltipPosition="left"></button>
+        </div>
+      </td>
+    </tr>
+  </ng-template>
+
+  <ng-template pTemplate="emptymessage">
+    <tr>
+      <td colspan="6" class="text-center p-6">
+        <div class="empty-state">
+          <i class="pi pi-replay text-5xl text-gray-300 mb-3"></i>
+          <h3 class="text-gray-500 mb-2">No purchase returns found</h3>
+          <p class="text-gray-400">{{ searchTerm ? 'Try adjusting your filters or search criteria' : 'Start by creating a new purchase return' }}</p>
+        </div>
+      </td>
+    </tr>
+  </ng-template>
+</p-table>
+
+<!-- Paginator -->
+<p-paginator
+  [rows]="rows"
+  [totalRecords]="totalRecords"
+  [rowsPerPageOptions]="pageSizeOptions"
+  [showCurrentPageReport]="true"
+  currentPageReportTemplate="Showing {first} to {last} of {totalRecords} purchase returns"
+  (onPageChange)="onPageChange($event)">
+</p-paginator>
+
+<!-- Context Menu -->
+<p-contextMenu
+  #contextMenu
+  [model]="contextMenuItems"
+  [appendTo]="'body'">
+</p-contextMenu>
+
+<!-- Confirm Dialog -->
+<p-confirmDialog></p-confirmDialog>

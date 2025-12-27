@@ -1,0 +1,250 @@
+<div class="customer-detail-container">
+  <p-toast></p-toast>
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <button pButton icon="pi pi-arrow-left" class="p-button-text p-button-plain"
+      (click)="goBack()" pTooltip="Back to Customers" tooltipPosition="bottom"></button>
+    <h1 class="page-title">Customer Details</h1>
+    <div class="header-actions">
+      <button pButton label="Record Payment" icon="pi pi-wallet" class="p-button-success"
+        (click)="recordPayment()"></button>
+      <button pButton label="Edit Customer" icon="pi pi-pencil" class="p-button-outlined"
+        (click)="editCustomer()"></button>
+    </div>
+  </div>
+
+  <!-- Section 1: Customer Profile Card -->
+  <p-card class="profile-card" *ngIf="customer() as cust">
+    <div class="profile-content-compact">
+      <!-- Compact Header: Avatar + Name + Status -->
+      <div class="compact-header">
+        <p-avatar [label]="getInitials(cust)" size="large" shape="circle"
+          [style]="{'background-color': '#667eea', 'color': '#ffffff', 'font-size': '1.5rem', 'width': '60px', 'height': '60px'}">
+        </p-avatar>
+        <div class="name-section">
+          <div class="name-row">
+            <h2 class="customer-name">{{ cust.firstName }} {{ cust.lastName }}</h2>
+            <p-tag [value]="cust.status" [severity]="getStatusSeverity(cust.status)"></p-tag>
+            <span class="customer-type-badge">
+              <i class="pi pi-tag"></i>
+              {{ cust.customerType }}
+            </span>
+          </div>
+          <div class="code-company-row">
+            <span class="customer-code">{{ cust.customerCode }}</span>
+            <span class="separator" *ngIf="cust.companyName">•</span>
+            <span class="company-name" *ngIf="cust.companyName">{{ cust.companyName }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Compact Contact Row -->
+      <div class="contact-row">
+        <div class="contact-inline-item">
+          <i class="pi pi-envelope"></i>
+          <span>{{ cust.email || 'N/A' }}</span>
+        </div>
+        <div class="divider">|</div>
+        <div class="contact-inline-item">
+          <i class="pi pi-phone"></i>
+          <span>{{ cust.phone || 'N/A' }}</span>
+        </div>
+        <div class="divider">|</div>
+        <div class="contact-inline-item">
+          <i class="pi pi-map-marker"></i>
+          <span>
+            <ng-container *ngIf="cust.billingAddress">{{ cust.billingAddress }}, </ng-container>
+            <ng-container *ngIf="cust.city || cust.state || cust.postalCode">
+              {{ cust.city }}{{ cust.city && (cust.state || cust.postalCode) ? ', ' : '' }}{{ cust.state }} {{ cust.postalCode }}
+            </ng-container>
+            <ng-container *ngIf="!cust.billingAddress && !cust.city && !cust.state && !cust.postalCode">N/A</ng-container>
+          </span>
+        </div>
+        <div class="divider">|</div>
+        <div class="contact-inline-item">
+          <i class="pi pi-calendar"></i>
+          <span>Member Since {{ cust.createdAt | date:'MMM dd, yyyy' }}</span>
+        </div>
+      </div>
+    </div>
+  </p-card>
+
+  <!-- Loading Skeleton -->
+  <p-card class="profile-card" *ngIf="loading()">
+    <div class="profile-content">
+      <div class="profile-header">
+        <p-skeleton shape="circle" size="100px"></p-skeleton>
+        <div class="profile-info" style="flex: 1;">
+          <p-skeleton width="200px" height="30px" styleClass="mb-2"></p-skeleton>
+          <p-skeleton width="150px" height="20px" styleClass="mb-2"></p-skeleton>
+          <p-skeleton width="180px" height="20px"></p-skeleton>
+        </div>
+      </div>
+    </div>
+  </p-card>
+
+  <!-- Section 2: Financial Summary Cards -->
+  <div class="summary-cards" *ngIf="paymentSummary() as summary">
+    <p-card class="summary-card card-blue">
+      <div class="summary-icon">
+        <i class="pi pi-dollar"></i>
+      </div>
+      <div class="summary-details">
+        <div class="summary-label">Total Paid</div>
+        <div class="summary-value">{{ summary.totalPaid | currency:'INR':'symbol':'1.0-0' }}</div>
+        <div class="summary-sublabel">{{ summary.completedPayments }} payments</div>
+      </div>
+    </p-card>
+
+    <p-card class="summary-card card-orange">
+      <div class="summary-icon">
+        <i class="pi pi-exclamation-triangle"></i>
+      </div>
+      <div class="summary-details">
+        <div class="summary-label">Outstanding Balance</div>
+        <div class="summary-value">{{ summary.totalOutstanding | currency:'INR':'symbol':'1.0-0' }}</div>
+        <div class="summary-sublabel">{{ summary.unpaidInvoices }} unpaid invoices</div>
+      </div>
+    </p-card>
+
+    <p-card class="summary-card card-green">
+      <div class="summary-icon">
+        <i class="pi pi-check-circle"></i>
+      </div>
+      <div class="summary-details">
+        <div class="summary-label">Available Credit</div>
+        <div class="summary-value" *ngIf="customer()">
+          {{ (customer()!.creditLimit - customer()!.currentBalance) | currency:'INR':'symbol':'1.0-0' }}
+        </div>
+        <div class="summary-sublabel">
+          <p-tag [value]="getCreditStatusText()" [severity]="getCreditStatusSeverity()"></p-tag>
+        </div>
+      </div>
+    </p-card>
+
+    <p-card class="summary-card card-purple">
+      <div class="summary-icon">
+        <i class="pi pi-credit-card"></i>
+      </div>
+      <div class="summary-details">
+        <div class="summary-label">Advance Balance</div>
+        <div class="summary-value">{{ summary.availableAdvance | currency:'INR':'symbol':'1.0-0' }}</div>
+        <div class="summary-sublabel">Prepaid amount</div>
+      </div>
+    </p-card>
+  </div>
+
+  <!-- Loading Skeletons for Summary Cards -->
+  <div class="summary-cards" *ngIf="loading()">
+    <p-card class="summary-card" *ngFor="let i of [1,2,3,4]">
+      <p-skeleton width="100%" height="80px"></p-skeleton>
+    </p-card>
+  </div>
+
+  <!-- Section 3: Payment History with Filters -->
+  <p-card class="history-card">
+    <ng-template pTemplate="header">
+      <div class="card-header">
+        <div class="header-title-section">
+          <h3 class="card-title">
+            <i class="pi pi-history"></i>
+            Payment History
+          </h3>
+          <p class="card-subtitle">View and filter all payment transactions</p>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters-section">
+          <p-select
+            [(ngModel)]="statusFilter"
+            [options]="statusOptions"
+            placeholder="Filter by Status"
+            [showClear]="true"
+            styleClass="filter-dropdown">
+          </p-select>
+
+          <p-datepicker
+            [(ngModel)]="dateRange"
+            selectionMode="range"
+            [showIcon]="true"
+            placeholder="Date Range"
+            dateFormat="M dd, yy"
+            [showButtonBar]="true"
+            styleClass="filter-datepicker">
+          </p-datepicker>
+
+          <button pButton label="Clear Filters" icon="pi pi-filter-slash"
+            class="p-button-outlined p-button-sm"
+            (click)="clearFilters()"
+            *ngIf="statusFilter() || dateRange().length > 0">
+          </button>
+        </div>
+      </div>
+    </ng-template>
+
+    <!-- Payment History Table -->
+    <p-table
+      [value]="filteredPayments"
+      [loading]="loading()"
+      [paginator]="true"
+      [rows]="10"
+      [rowsPerPageOptions]="[10, 25, 50]"
+      responsiveLayout="scroll"
+      styleClass="p-datatable-striped"
+      [tableStyle]="{ 'min-width': '50rem' }">
+
+      <ng-template pTemplate="header">
+        <tr>
+          <th>Date</th>
+          <th>Transaction #</th>
+          <th>Invoice #</th>
+          <th class="text-right">Amount</th>
+          <th>Method</th>
+          <th>Provider</th>
+          <th>Status</th>
+        </tr>
+      </ng-template>
+
+      <ng-template pTemplate="body" let-payment>
+        <tr>
+          <td>
+            <span class="payment-date">{{ payment.paymentDate | date:'MMM dd, yyyy' }}</span>
+            <br>
+            <span class="payment-time">{{ payment.paymentDate | date:'hh:mm a' }}</span>
+          </td>
+          <td>
+            <span class="transaction-number">{{ payment.transactionNumber || '-' }}</span>
+          </td>
+          <td>
+            <span class="invoice-number">{{ payment.invoiceNumber || '-' }}</span>
+          </td>
+          <td class="text-right">
+            <span class="amount">{{ payment.amount | currency:'INR':'symbol':'1.2-2' }}</span>
+          </td>
+          <td>
+            <p-tag [value]="payment.paymentMethod" severity="info"></p-tag>
+          </td>
+          <td>
+            <span class="provider-name">{{ payment.providerName || '-' }}</span>
+          </td>
+          <td>
+            <p-tag [value]="payment.status" [severity]="getPaymentStatusSeverity(payment.status)"></p-tag>
+          </td>
+        </tr>
+      </ng-template>
+
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="7" class="text-center p-4">
+            <div class="empty-state">
+              <i class="pi pi-inbox text-4xl text-gray-300 mb-3"></i>
+              <h3 class="text-gray-500 mb-2">No payment history</h3>
+              <p class="text-gray-400">This customer hasn't made any payments yet</p>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </p-card>
+</div>

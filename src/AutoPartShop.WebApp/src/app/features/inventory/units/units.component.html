@@ -1,0 +1,54 @@
+<div class="units-container">
+  <!-- Messages -->
+  <p-toast position="top-right"></p-toast>
+
+  <!-- Confirmation Dialog -->
+  <p-confirmDialog></p-confirmDialog>
+
+  <!-- Tab View -->
+  <p-tabs value="0" [style]="{'margin-top': '0'}">
+    <p-tablist>
+      <p-tab value="0">Units</p-tab>
+      <p-tab value="1">Units Conversion</p-tab>
+    </p-tablist>
+    <!-- Units Tab -->
+    <p-tabpanels>
+      <p-tabpanel value="0" header="Units" leftIcon="pi pi-th">
+        <!-- Header Component -->
+        <app-units-header (createClick)="onNewUnitClick()" (searchChange)="onSearch($event)"> </app-units-header>
+
+        <!-- List Component -->
+        <app-units-list (editUnit)="selectAndOpenUpdate($event)" (deleteUnit)="selectAndDelete($event)"
+          (toggleStatus)="selectAndToggleStatus($event)"> </app-units-list>
+
+        <!-- Form Dialog Component -->
+        <app-units-form-dialog [displayCreateDialog]="displayCreateDialog" [displayUpdateDialog]="displayUpdateDialog"
+          [selectedUnit]="selectedUnit" (displayCreateDialogChange)="onDisplayCreateDialogChange($event)"
+          (displayUpdateDialogChange)="onDisplayUpdateDialogChange($event)" (createSuccess)="onCreateSuccess()"
+          (updateSuccess)="onUpdateSuccess()">
+        </app-units-form-dialog>
+      </p-tabpanel>
+
+      <!-- Conversions Tab -->
+      <p-tabpanel value="1" header="Conversions" leftIcon="pi pi-arrows-h">
+        <!-- Header Component -->
+        <app-conversions-header (createClick)="onNewConversionClick()" (searchChange)="onConversionSearch($event)">
+        </app-conversions-header>
+
+        <!-- List Component -->
+        <app-conversions-list (editConversion)="selectAndOpenConversionUpdate($event)"
+          (deleteConversion)="selectAndDeleteConversion($event)"
+          (toggleStatus)="selectAndToggleConversionStatus($event)">
+        </app-conversions-list>
+
+        <!-- Form Dialog Component -->
+        <app-conversions-form-dialog [displayCreateDialog]="displayConversionCreateDialog"
+          [displayUpdateDialog]="displayConversionUpdateDialog" [selectedConversion]="selectedConversion"
+          [units]="units" (displayCreateDialogChange)="onDisplayConversionCreateDialogChange($event)"
+          (displayUpdateDialogChange)="onDisplayConversionUpdateDialogChange($event)"
+          (createSuccess)="onConversionCreateSuccess()" (updateSuccess)="onConversionUpdateSuccess()">
+        </app-conversions-form-dialog>
+      </p-tabpanel>
+    </p-tabpanels>
+  </p-tabs>
+</div>

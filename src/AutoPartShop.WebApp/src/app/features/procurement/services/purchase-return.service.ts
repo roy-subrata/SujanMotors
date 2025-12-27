@@ -1,0 +1,215 @@
+import { Injectable, inject } from '@angular/core';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
+
+export interface PurchaseReturnLineResponse {
+  id: string;
+  partId: string;
+  quantity: number;
+  rejectedQuantity: number;
+  unitPrice: number;
+  refundAmount: number;
+  condition: string; // UNOPENED, OPENED, DAMAGED, DEFECTIVE
+  notes?: string;
+}
+
+export interface PurchaseReturnResponse {
+  id: string;
+  returnNumber: string;
+  purchaseOrderId: string;
+  purchaseOrderNumber?: string;
+  supplierId: string;
+  supplierName?: string;
+  supplierCode?: string;
+  returnDate: string;
+  reason: string;
+  status: string; // PENDING, APPROVED, RETURNED, RECEIVED, REJECTED, CREDITED
+  refundAmount: number;
+  creditNoteAmount: number;
+  notes?: string;
+  approvedBy?: string;
+  approvedDate?: string;
+  receivedDate?: string;
+  receivedBy?: string;
+  lines: PurchaseReturnLineResponse[];
+  createdAt: string;
+}
+
+export interface CreatePurchaseReturnLineRequest {
+  purchaseOrderLineId: string;
+  partId: string;
+  quantity: number;
+  rejectedQuantity: number;
+  unitPrice: number;
+  condition: string; // UNOPENED, OPENED, DAMAGED, DEFECTIVE
+  notes?: string;
+}
+
+export interface CreatePurchaseReturnRequest {
+  purchaseOrderId: string;
+  supplierId: string;
+  returnDate: string;
+  reason: string;
+  notes?: string;
+  lines: CreatePurchaseReturnLineRequest[];
+}
+
+export interface UpdatePurchaseReturnRequest {
+  id: string;
+  purchaseOrderId: string;
+  supplierId: string;
+  returnDate: string;
+  reason: string;
+  notes?: string;
+  lines: CreatePurchaseReturnLineRequest[];
+}
+
+export interface PaginatedPurchaseReturnResponse {
+  items: PurchaseReturnResponse[];
+  pageNumber: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
+}
+
+@Injectable({
+  providedIn: 'root'
+})
+export class PurchaseReturnService {
+  private readonly http = inject(HttpClient);
+  private readonly apiUrl = 'http://localhost:5292/api/purchasereturn';
+
+  /**
+   * Get all purchase returns
+   */
+  getAllPurchaseReturns(): Observable<PurchaseReturnResponse[]> {
+    return this.http.get<PurchaseReturnResponse[]>(this.apiUrl);
+  }
+
+  /**
+   * Get paginated purchase returns with optional search
+   */
+  getPurchaseReturns(pageNumber: number, pageSize: number, searchTerm?: string): Observable<PaginatedPurchaseReturnResponse> {
+    let params = new HttpParams()
+      .set('pageNumber', pageNumber.toString())
+      .set('pageSize', pageSize.toString());
+
+    if (searchTerm) {
+      params = params.set('searchTerm', searchTerm);
+    }
+
+    return this.http.get<any>(`${this.apiUrl}/list`, { params }).pipe(
+      map(response => ({
+        items: response.data,
+        pageNumber: response.pagination.pageNumber,
+        pageSize: response.pagination.pageSize,
+        totalCount: response.pagination.totalCount,
+        totalPages: response.pagination.totalPages,
+        hasPreviousPage: response.pagination.pageNumber > 1,
+        hasNextPage: response.pagination.pageNumber < response.pagination.totalPages
+      }))
+    );
+  }
+
+  /**
+   * Get purchase return by ID
+   */
+  getPurchaseReturnById(id: string): Observable<PurchaseReturnResponse> {
+    return this.http.get<PurchaseReturnResponse>(`${this.apiUrl}/${id}`);
+  }
+
+  /**
+   * Get purchase return by return number
+   */
+  getPurchaseReturnByNumber(returnNumber: string): Observable<PurchaseReturnResponse> {
+    return this.http.get<PurchaseReturnResponse>(`${this.apiUrl}/number/${returnNumber}`);
+  }
+
+  /**
+   * Get purchase returns by purchase order
+   */
+  getPurchaseReturnsByPurchaseOrder(purchaseOrderId: string): Observable<PurchaseReturnResponse[]> {
+    return this.http.get<PurchaseReturnResponse[]>(`${this.apiUrl}/purchase-order/${purchaseOrderId}`);
+  }
+
+  /**
+   * Get purchase returns by supplier
+   */
+  getPurchaseReturnsBySupplier(supplierId: string): Observable<PurchaseReturnResponse[]> {
+    return this.http.get<PurchaseReturnResponse[]>(`${this.apiUrl}/supplier/${supplierId}`);
+  }
+
+  /**
+   * Get purchase returns by status
+   */
+  getPurchaseReturnsByStatus(status: string): Observable<PurchaseReturnResponse[]> {
+    return this.http.get<PurchaseReturnResponse[]>(`${this.apiUrl}/status/${status}`);
+  }
+
+  /**
+   * Get pending approvals
+   */
+  getPendingApprovals(): Observable<PurchaseReturnResponse[]> {
+    return this.http.get<PurchaseReturnResponse[]>(`${this.apiUrl}/pending-approvals`);
+  }
+
+  /**
+   * Create new purchase return
+   */
+  createPurchaseReturn(request: CreatePurchaseReturnRequest): Observable<PurchaseReturnResponse> {
+    return this.http.post<PurchaseReturnResponse>(this.apiUrl, request);
+  }
+
+  /**
+   * Update purchase return
+   */
+  updatePurchaseReturn(id: string, request: UpdatePurchaseReturnRequest): Observable<PurchaseReturnResponse> {
+    return this.http.put<PurchaseReturnResponse>(`${this.apiUrl}/${id}`, request);
+  }
+
+  /**
+   * Approve purchase return
+   */
+  approvePurchaseReturn(id: string, approvedBy: string): Observable<PurchaseReturnResponse> {
+    const params = new HttpParams().set('approvedBy', approvedBy);
+    return this.http.patch<PurchaseReturnResponse>(`${this.apiUrl}/${id}/approve?approvedBy=${approvedBy}`, {});
+  }
+
+  /**
+   * Mark purchase return as returned
+   */
+  markAsReturned(id: string): Observable<PurchaseReturnResponse> {
+    return this.http.patch<PurchaseReturnResponse>(`${this.apiUrl}/${id}/mark-returned`, {});
+  }
+
+  /**
+   * Mark purchase return as received
+   */
+  markAsReceived(id: string, receivedBy: string): Observable<PurchaseReturnResponse> {
+    return this.http.patch<PurchaseReturnResponse>(`${this.apiUrl}/${id}/mark-received?receivedBy=${receivedBy}`, {});
+  }
+
+  /**
+   * Issue credit note for purchase return
+   */
+  issueCreditNote(id: string, creditNoteAmount: number): Observable<PurchaseReturnResponse> {
+    return this.http.patch<PurchaseReturnResponse>(`${this.apiUrl}/${id}/issue-credit-note?creditAmount=${creditNoteAmount}`, {});
+  }
+
+  /**
+   * Reject purchase return
+   */
+  rejectPurchaseReturn(id: string, reason: string): Observable<PurchaseReturnResponse> {
+    return this.http.patch<PurchaseReturnResponse>(`${this.apiUrl}/${id}/reject?reason=${encodeURIComponent(reason)}`, {});
+  }
+
+  /**
+   * Delete purchase return
+   */
+  deletePurchaseReturn(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${id}`);
+  }
+}

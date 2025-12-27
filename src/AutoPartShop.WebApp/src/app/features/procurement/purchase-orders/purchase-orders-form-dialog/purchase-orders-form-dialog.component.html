@@ -1,0 +1,214 @@
+<p-dialog
+  [(visible)]="visible"
+  (visibleChange)="visibleChange.emit($event)"
+  [header]="getDialogTitle()"
+  [modal]="true"
+  [style]="{ width: '95vw', maxWidth: '1000px' }"
+  [resizable]="false"
+  [draggable]="false"
+  [maximizable]="true"
+  (onShow)="onDialogShow()">
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form">
+    <!-- Supplier Selection -->
+    <div class="form-group full">
+      <label for="supplier">Supplier <span class="required">*</span></label>
+      <p-autoComplete
+        id="supplier"
+        formControlName="supplierId"
+        [suggestions]="filteredSuppliers"
+        (completeMethod)="onSupplierFilter($event)"
+        field="name"
+        [dropdown]="true"
+        placeholder="Select supplier"
+        class="w-full"
+        [class.ng-invalid]="hasError('supplierId')">
+        <ng-template let-supplier pTemplate="item">
+          <div class="supplier-item">
+            <div class="supplier-name">{{ supplier.name }}</div>
+            <div class="supplier-code">{{ supplier.code }}</div>
+          </div>
+        </ng-template>
+      </p-autoComplete>
+      <small class="text-danger" *ngIf="hasError('supplierId')">
+        {{ getErrorMessage('supplierId') }}
+      </small>
+    </div>
+
+    <!-- Delivery Date & Tax Percentage -->
+    <div class="form-row">
+      <div class="form-group col">
+        <label for="deliveryDate">Delivery Date <span class="required">*</span></label>
+        <input
+          pInputText
+          id="deliveryDate"
+          type="date"
+          formControlName="deliveryDate"
+          class="w-full"
+          [class.ng-invalid]="hasError('deliveryDate')">
+        <small class="text-danger" *ngIf="hasError('deliveryDate')">
+          {{ getErrorMessage('deliveryDate') }}
+        </small>
+      </div>
+
+      <div class="form-group col">
+        <label for="taxPercentage">Tax Percentage <span class="required">*</span></label>
+        <p-inputNumber
+          id="taxPercentage"
+          formControlName="taxPercentage"
+          [min]="0"
+          [max]="100"
+          [minFractionDigits]="2"
+          [maxFractionDigits]="2"
+          placeholder="0.00"
+          class="w-full"
+          [class.ng-invalid]="hasError('taxPercentage')">
+        </p-inputNumber>
+        <small class="text-danger" *ngIf="hasError('taxPercentage')">
+          {{ getErrorMessage('taxPercentage') }}
+        </small>
+      </div>
+    </div>
+
+    <!-- Discount Percentage & Notes -->
+    <div class="form-row">
+      <div class="form-group col">
+        <label for="discountPercentage">Discount Percentage <span class="required">*</span></label>
+        <p-inputNumber
+          id="discountPercentage"
+          formControlName="discountPercentage"
+          [min]="0"
+          [max]="100"
+          [minFractionDigits]="2"
+          [maxFractionDigits]="2"
+          placeholder="0.00"
+          class="w-full"
+          [class.ng-invalid]="hasError('discountPercentage')">
+        </p-inputNumber>
+        <small class="text-danger" *ngIf="hasError('discountPercentage')">
+          {{ getErrorMessage('discountPercentage') }}
+        </small>
+      </div>
+
+      <div class="form-group col">
+        <label for="notes">Notes</label>
+        <input
+          pInputText
+          id="notes"
+          type="text"
+          formControlName="notes"
+          placeholder="Additional notes"
+          class="w-full">
+      </div>
+    </div>
+
+    <!-- Line Items Section -->
+    <div class="line-items-section">
+      <div class="section-header">
+        <h3 class="section-title">Line Items</h3>
+        <button
+          pButton
+          type="button"
+          label="Add Item"
+          icon="pi pi-plus"
+          class="p-button-sm p-button-success"
+          (click)="addLineItem()">
+        </button>
+      </div>
+
+      <!-- Line Items Table -->
+      <div class="line-items-table">
+        <table formArrayName="lines">
+          <thead>
+            <tr>
+              <th width="25%">Part ID</th>
+              <th width="20%">Quantity</th>
+              <th width="20%">Unit Price</th>
+              <th width="20%">Line Total</th>
+              <th width="15%">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let line of linesArray.controls; let i = index" [formGroupName]="i">
+              <td>
+                <input
+                  pInputText
+                  type="text"
+                  formControlName="partId"
+                  placeholder="Enter part ID"
+                  class="w-full small-input"
+                  [class.ng-invalid]="line.get('partId')?.invalid && line.get('partId')?.touched">
+              </td>
+              <td>
+                <p-inputNumber
+                  formControlName="quantity"
+                  [min]="1"
+                  [max]="9999"
+                  placeholder="0"
+                  class="w-full small-input"
+                  [class.ng-invalid]="line.get('quantity')?.invalid && line.get('quantity')?.touched">
+                </p-inputNumber>
+              </td>
+              <td>
+                <p-inputNumber
+                  formControlName="unitPrice"
+                  [min]="0"
+                  [max]="9999999"
+                  placeholder="0.00"
+                  [currency]="'INR'"
+                  [currencyDisplay]="'symbol'"
+                  [minFractionDigits]="2"
+                  [maxFractionDigits]="2"
+                  class="w-full small-input"
+                  [class.ng-invalid]="line.get('unitPrice')?.invalid && line.get('unitPrice')?.touched">
+                </p-inputNumber>
+              </td>
+              <td class="line-total">
+                {{ formatCurrency(getLineTotal(i)) }}
+              </td>
+              <td>
+                <button
+                  pButton
+                  type="button"
+                  icon="pi pi-trash"
+                  class="p-button-rounded p-button-text p-button-sm p-button-danger"
+                  (click)="removeLineItem(i)"
+                  [disabled]="linesArray.length === 1">
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Grand Total -->
+      <div class="grand-total-row">
+        <span class="grand-total-label">Grand Total:</span>
+        <span class="grand-total-amount">{{ formatCurrency(getGrandTotal()) }}</span>
+      </div>
+    </div>
+  </form>
+
+  <!-- Dialog Footer -->
+  <ng-template pTemplate="footer">
+    <button
+      pButton
+      type="button"
+      label="Cancel"
+      icon="pi pi-times"
+      class="p-button-text"
+      (click)="closeDialog()"
+      [disabled]="isSubmitting">
+    </button>
+    <button
+      pButton
+      type="button"
+      [label]="getSubmitButtonLabel()"
+      icon="pi pi-check"
+      class="p-button-success"
+      (click)="onSubmit()"
+      [loading]="isSubmitting"
+      [disabled]="form.invalid || isSubmitting">
+    </button>
+  </ng-template>
+</p-dialog>

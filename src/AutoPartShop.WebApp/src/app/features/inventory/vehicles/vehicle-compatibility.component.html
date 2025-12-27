@@ -1,0 +1,168 @@
+<div class="container">
+  <p-toast></p-toast>
+
+  <div class="page-header">
+    <button
+      pButton
+      pRipple
+      type="button"
+      icon="pi pi-arrow-left"
+      class="p-button-text"
+      label="Back to Vehicles"
+      (click)="goBack()">
+    </button>
+    <div class="vehicle-info" *ngIf="vehicle">
+      <h2>Vehicle Compatibility Management</h2>
+      <p class="vehicle-details">
+        <strong>{{ vehicle.make }} {{ vehicle.model }} {{ vehicle.year }}</strong>
+        <span class="separator">|</span>
+        <span class="engine-type">{{ vehicle.engineType }}</span>
+      </p>
+    </div>
+  </div>
+
+  <!-- Add Compatibility Form -->
+  <p-card header="Add Part Compatibility">
+    <form [formGroup]="addForm" (ngSubmit)="addCompatibility()">
+      <div class="add-form-grid">
+        <!-- Part Autocomplete -->
+        <div class="form-field">
+          <label for="part" class="required">Part</label>
+          <p-autoComplete
+            inputId="part"
+            [(ngModel)]="selectedPart"
+            [ngModelOptions]="{standalone: true}"
+            [suggestions]="filteredParts"
+            (completeMethod)="filterParts($event)"
+            (onSelect)="onPartSelected($event)"
+            [dropdown]="true"
+            field="name"
+            optionLabel="name"
+            placeholder="Search by part name or SKU"
+            [class.ng-invalid]="hasError('part')"
+            [class.ng-dirty]="hasError('part')">
+            <ng-template let-part pTemplate="item">
+              <div class="autocomplete-item">
+                <div class="part-name">{{ part.name }}</div>
+                <div class="part-sku">SKU: {{ part.sku }}</div>
+              </div>
+            </ng-template>
+          </p-autoComplete>
+          <small class="p-error" *ngIf="hasError('part')">
+            Part is required
+          </small>
+        </div>
+
+        <!-- Is Compatible Checkbox -->
+        <div class="form-field">
+          <label for="isCompatible">Compatibility Status</label>
+          <div class="checkbox-wrapper">
+            <p-checkbox
+              inputId="isCompatible"
+              formControlName="isCompatible"
+              [binary]="true"
+              label="Compatible">
+            </p-checkbox>
+          </div>
+        </div>
+
+        <!-- Notes Field -->
+        <div class="form-field form-field-full">
+          <label for="notes">Notes</label>
+          <textarea
+            pTextarea
+            id="notes"
+            formControlName="notes"
+            rows="3"
+            placeholder="Enter compatibility notes (optional)">
+          </textarea>
+        </div>
+
+        <!-- Add Button -->
+        <div class="form-actions">
+          <button
+            pButton
+            pRipple
+            type="submit"
+            label="Add Compatibility"
+            icon="pi pi-plus"
+            [loading]="isSubmitting"
+            [disabled]="!addForm.valid || isSubmitting">
+          </button>
+        </div>
+      </div>
+    </form>
+  </p-card>
+
+  <!-- Compatibilities List -->
+  <p-card header="Compatible Parts" styleClass="mt-3">
+    <p-table
+      [value]="compatibilities"
+      [loading]="loading"
+      responsiveLayout="scroll"
+      [tableStyle]="{ 'min-width': '50rem' }"
+      styleClass="p-datatable-striped">
+
+      <!-- Header Template -->
+      <ng-template pTemplate="header">
+        <tr>
+          <th style="width: 20%">Part Name</th>
+          <th style="width: 15%">SKU</th>
+          <th style="width: 15%">Status</th>
+          <th style="width: 35%">Notes</th>
+          <th style="width: 10%">Created By</th>
+          <th style="width: 5%">Actions</th>
+        </tr>
+      </ng-template>
+
+      <!-- Data Rows -->
+      <ng-template pTemplate="body" let-compatibility>
+        <tr>
+          <td>
+            <span class="font-semibold">{{ compatibility.partName }}</span>
+          </td>
+          <td>
+            <span class="text-gray-600">{{ compatibility.partSKU }}</span>
+          </td>
+          <td>
+            <p-tag
+              [value]="getCompatibilityLabel(compatibility.isCompatible)"
+              [severity]="getCompatibilitySeverity(compatibility.isCompatible)">
+            </p-tag>
+          </td>
+          <td>
+            <span class="text-sm">{{ compatibility.notes || 'N/A' }}</span>
+          </td>
+          <td>
+            <span class="text-sm text-gray-600">{{ compatibility.createdBy }}</span>
+          </td>
+          <td>
+            <button
+              pButton
+              pRipple
+              type="button"
+              icon="pi pi-trash"
+              class="p-button-text p-button-danger p-button-sm"
+              pTooltip="Remove"
+              tooltipPosition="left"
+              (click)="removeCompatibility(compatibility)">
+            </button>
+          </td>
+        </tr>
+      </ng-template>
+
+      <!-- Empty Message -->
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="6" class="text-center py-4">
+            <i class="pi pi-inbox mr-2"></i>
+            No compatible parts found. Add parts using the form above.
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </p-card>
+
+  <!-- Confirm Dialog -->
+  <p-confirmDialog></p-confirmDialog>
+</div>

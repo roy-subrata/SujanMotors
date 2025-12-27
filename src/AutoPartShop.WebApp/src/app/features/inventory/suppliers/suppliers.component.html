@@ -1,0 +1,68 @@
+<div class="suppliers-container">
+  <!-- Header Section -->
+  <div class="suppliers-header">
+    <div class="header-content">
+      <!-- Title and Subtitle -->
+      <div class="header-title-section">
+        <h1 class="header-title">Suppliers Management</h1>
+        <p class="header-subtitle">Manage your supplier relationships and contact information</p>
+      </div>
+
+      <!-- Toolbar: Search and Action Button -->
+      <div class="toolbar">
+        <div class="search-container">
+          <i class="pi pi-search search-icon"></i>
+          <input
+            type="text"
+            placeholder="Search by name, code, email..."
+            class="search-input"
+            (keyup)="onSearch($event.target.value)"
+            [(ngModel)]="searchTerm">
+          <i
+            *ngIf="searchTerm"
+            class="pi pi-times clear-icon"
+            (click)="onSearchClear()">
+          </i>
+        </div>
+        <button
+          pButton
+          type="button"
+          label="New Supplier"
+          icon="pi pi-plus"
+          class="p-button-success btn-create"
+          (click)="onCreateClick()">
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table Container -->
+  <div class="table-container">
+    <app-suppliers-list
+      [suppliers]="suppliers"
+      [loading]="loading"
+      [totalRecords]="totalRecords"
+      [rows]="rows"
+      [currentPage]="currentPage"
+      (editClick)="onEditClick($event)"
+      (pageChange)="onPageChange($event)"
+      (supplierDeleted)="onSupplierDeleted()">
+    </app-suppliers-list>
+  </div>
+</div>
+
+<!-- Create/Edit Supplier Dialog -->
+<app-suppliers-form-dialog
+  [(visible)]="displayCreateDialog"
+  [supplier]="null"
+  (submitted)="onSupplierCreated($event)">
+</app-suppliers-form-dialog>
+
+<app-suppliers-form-dialog
+  [(visible)]="displayUpdateDialog"
+  [supplier]="selectedSupplier"
+  (submitted)="onSupplierUpdated($event)">
+</app-suppliers-form-dialog>
+
+<!-- Toast Messages -->
+<p-toast position="top-right"></p-toast>

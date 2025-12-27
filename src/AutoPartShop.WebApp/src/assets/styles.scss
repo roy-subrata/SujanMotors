@@ -1,0 +1,81 @@
+/* You can add global styles to this file, and also import other style files */
+@use './tailwind.css';
+@use './layout/layout.scss';
+@use 'primeicons/primeicons.css';
+@use './demo/demo.scss';
+
+/* ========================================
+   CRITICAL LAYOUT ALIGNMENT OVERRIDES
+   These must be at the end to have highest priority
+   ======================================== */
+
+/* TOPBAR ALIGNMENT - Force all elements to be on same horizontal line */
+.layout-topbar {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    height: 70px !important;
+}
+
+.layout-topbar .topbar-title {
+    display: flex !important;
+    align-items: center !important;
+    height: 70px !important;
+}
+
+.layout-topbar .topbar-title h1 {
+    margin: 0 !important;
+    line-height: 1 !important;
+}
+
+.layout-topbar .topbar-search {
+    display: flex !important;
+    align-items: center !important;
+    height: 70px !important;
+}
+
+.layout-topbar .topbar-search .p-input-icon-left {
+    display: flex !important;
+    align-items: center !important;
+}
+
+.layout-topbar .topbar-actions {
+    display: flex !important;
+    align-items: center !important;
+    height: 70px !important;
+}
+
+.layout-topbar .topbar-action-btn {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.layout-topbar .notification-container,
+.layout-topbar .user-menu-container {
+    display: flex !important;
+    align-items: center !important;
+    height: 70px !important;
+}
+
+.layout-topbar .user-menu-btn {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+/* PrimeNG component overrides */
+.layout-topbar .topbar-actions p-avatar,
+.layout-topbar .topbar-actions p-avatar .p-avatar {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.layout-topbar .topbar-action-btn.p-overlay-badge {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+/* Sidebar toggle removed - use hamburger menu in topbar instead */

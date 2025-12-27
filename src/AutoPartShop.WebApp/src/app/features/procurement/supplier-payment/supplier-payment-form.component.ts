@@ -6,9 +6,12 @@ import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { AutoCompleteModule } from 'primeng/autocomplete';
+import { CardModule } from 'primeng/card';
 import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
 import { SupplierPaymentService, CreateSupplierPaymentRequest } from '../services/supplier-payment.service';
+import { SupplierService, SupplierResponse } from '../../inventory/services/supplier.service';
+import { PaymentProviderService, PaymentProviderResponse } from '../services/payment-provider.service';
 
 @Component({
   selector: 'app-supplier-payment-form',
@@ -20,128 +23,12 @@ import { SupplierPaymentService, CreateSupplierPaymentRequest } from '../service
     InputTextModule,
     InputNumberModule,
     AutoCompleteModule,
+    CardModule,
     ToastModule
   ],
   providers: [MessageService],
-  template: `
-    <p-toast></p-toast>
-    <div class="container">
-      <div class="header">
-        <h2>{{ isEditing ? 'Edit Supplier Payment' : 'Create Supplier Payment' }}</h2>
-      </div>
-
-      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form-container">
-        <div class="form-row">
-          <div class="form-group">
-            <label>Supplier ID *</label>
-            <input pInputText formControlName="supplierId" placeholder="Supplier ID (e.g., UUID)" [readonly]="isEditing" />
-          </div>
-          <div class="form-group">
-            <label>Payment Provider ID *</label>
-            <input pInputText formControlName="paymentProviderId" placeholder="Payment Provider ID (e.g., UUID)" [readonly]="isEditing" />
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label>Amount *</label>
-            <p-inputNumber formControlName="amount" placeholder="0.00" [readonly]="isEditing"></p-inputNumber>
-          </div>
-          <div class="form-group">
-            <label>Payment Method *</label>
-            <p-autoComplete [suggestions]="filteredPaymentMethods" formControlName="paymentMethod"
-              [forceSelection]="true" field="label" placeholder="Select Method"
-              (completeMethod)="filterPaymentMethods($event)" [disabled]="isEditing"></p-autoComplete>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label>Transaction Number</label>
-            <input pInputText formControlName="transactionNumber" placeholder="Transaction number" [readonly]="isEditing" />
-          </div>
-          <div class="form-group">
-            <label>Reference Number</label>
-            <input pInputText formControlName="referenceNumber" placeholder="Reference number" [readonly]="isEditing" />
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group" *ngIf="isEditing">
-            <label>Authorization Code</label>
-            <input pInputText formControlName="authorizationCode" placeholder="Authorization code" />
-          </div>
-          <div class="form-group" [class.full]="!isEditing">
-            <label>Invoice Number</label>
-            <input pInputText formControlName="invoiceNumber" placeholder="Invoice number" [readonly]="isEditing" />
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label>Payment Date</label>
-            <input pInputText type="date" formControlName="paymentDate" [readonly]="isEditing" />
-          </div>
-          <div class="form-group" *ngIf="!isEditing">
-            <label>Purchase Order ID</label>
-            <input pInputText formControlName="purchaseOrderId" placeholder="Purchase Order ID (optional)" />
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group full">
-            <label>Notes</label>
-            <textarea pInputText formControlName="notes" placeholder="Additional notes" rows="3"></textarea>
-          </div>
-        </div>
-
-        <div class="button-group">
-          <button pButton type="submit" label="Save" icon="pi pi-check" [loading]="loading"></button>
-          <button pButton type="button" label="Cancel" icon="pi pi-times" class="p-button-secondary" (click)="onCancel()"></button>
-        </div>
-      </form>
-    </div>
-  `,
-  styles: [`
-    .container {
-      padding: 2rem;
-    }
-    .header {
-      margin-bottom: 2rem;
-    }
-    .form-container {
-      max-width: 1000px;
-    }
-    .form-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1rem;
-      margin-bottom: 1rem;
-    }
-    .form-group {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-    }
-    .form-group.full {
-      grid-column: 1 / -1;
-    }
-    .form-group label {
-      font-weight: 500;
-      font-size: 0.875rem;
-    }
-    .button-group {
-      display: flex;
-      gap: 1rem;
-      margin-top: 2rem;
-    }
-    textarea {
-      padding: 0.5rem;
-      border: 1px solid #d0d0d0;
-      border-radius: 4px;
-      font-family: inherit;
-    }
-  `]
+  templateUrl: './supplier-payment-form.component.html',
+  styleUrls: ['./supplier-payment-form.component.css']
 })
 export class SupplierPaymentFormComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
@@ -149,21 +36,32 @@ export class SupplierPaymentFormComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly messageService = inject(MessageService);
   private readonly service = inject(SupplierPaymentService);
+  private readonly supplierService = inject(SupplierService);
+  private readonly paymentProviderService = inject(PaymentProviderService);
 
   form: FormGroup;
   loading = false;
   isEditing = false;
   paymentId: string | null = null;
 
-  paymentMethods = [
-    { label: 'Bank Transfer', value: 'BANK_TRANSFER' },
-    { label: 'Check', value: 'CHECK' },
-    { label: 'Cash', value: 'CASH' },
-    { label: 'Crypto', value: 'CRYPTO' },
-    { label: 'Other', value: 'OTHER' }
-  ];
+  suppliers: SupplierResponse[] = [];
+  filteredSuppliers: SupplierResponse[] = [];
+  paymentProviders: PaymentProviderResponse[] = [];
+  filteredPaymentProviders: PaymentProviderResponse[] = [];
 
+  paymentMethods = [
+    { label: 'Cash', value: 'Cash' },
+    { label: 'Check', value: 'Check' },
+    { label: 'Bank Transfer', value: 'BankTransfer' },
+    { label: 'Credit Card', value: 'CreditCard' },
+    { label: 'Debit Card', value: 'DebitCard' },
+    { label: 'Online Payment', value: 'OnlinePayment' },
+    { label: 'UPI', value: 'UPI' },
+    { label: 'NEFT/RTGS', value: 'NEFT_RTGS' },
+    { label: 'IMPS', value: 'IMPS' }
+  ];
   filteredPaymentMethods: any[] = [];
+
 
   constructor() {
     this.form = this.fb.group({
@@ -182,6 +80,11 @@ export class SupplierPaymentFormComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    // Load suppliers and payment providers
+    this.loadSuppliers();
+    this.loadPaymentProviders();
+    this.filteredPaymentMethods = this.paymentMethods;
+
     this.route.queryParams.subscribe(params => {
       if (params['id']) {
         this.paymentId = params['id'];
@@ -199,6 +102,67 @@ export class SupplierPaymentFormComponent implements OnInit {
         this.form.get('purchaseOrderId')?.disable();
       }
     });
+  }
+
+  /**
+   * Load suppliers for autocomplete
+   */
+  private loadSuppliers(): void {
+    this.supplierService.getAllSuppliers().subscribe({
+      next: (suppliers) => {
+        this.suppliers = Array.isArray(suppliers) ? suppliers : [];
+        this.filteredSuppliers = this.suppliers;
+      },
+      error: (error) => {
+        console.error('Error loading suppliers:', error);
+      }
+    });
+  }
+
+  /**
+   * Load payment providers for autocomplete
+   */
+  private loadPaymentProviders(): void {
+    this.paymentProviderService.getAllPaymentProviders().subscribe({
+      next: (providers) => {
+        this.paymentProviders = Array.isArray(providers) ? providers : [];
+        this.filteredPaymentProviders = this.paymentProviders;
+      },
+      error: (error) => {
+        console.error('Error loading payment providers:', error);
+      }
+    });
+  }
+
+  /**
+   * Filter suppliers
+   */
+  filterSuppliers(event: any): void {
+    const query = event.query.toLowerCase();
+    this.filteredSuppliers = this.suppliers.filter(supplier =>
+      supplier.name.toLowerCase().includes(query) ||
+      supplier.code.toLowerCase().includes(query)
+    );
+  }
+
+  /**
+   * Filter payment providers
+   */
+  filterPaymentProviders(event: any): void {
+    const query = event.query.toLowerCase();
+    this.filteredPaymentProviders = this.paymentProviders.filter(provider =>
+      provider.providerName.toLowerCase().includes(query)
+    );
+  }
+
+  /**
+   * Filter payment methods
+   */
+  filterPaymentMethods(event: any): void {
+    const query = event.query.toLowerCase();
+    this.filteredPaymentMethods = this.paymentMethods.filter(method =>
+      method.label.toLowerCase().includes(query)
+    );
   }
 
   loadPayment(): void {
@@ -271,11 +235,15 @@ export class SupplierPaymentFormComponent implements OnInit {
       });
     } else {
       // For create, send all required fields
+      const supplierId = this.form.get('supplierId')?.value;
+      const paymentProviderId = this.form.get('paymentProviderId')?.value;
+      const paymentMethod = this.form.get('paymentMethod')?.value;
+
       const createRequest: CreateSupplierPaymentRequest = {
-        supplierId: this.form.get('supplierId')?.value || '',
-        paymentProviderId: this.form.get('paymentProviderId')?.value || '',
+        supplierId: typeof supplierId === 'string' ? supplierId : supplierId?.id || '',
+        paymentProviderId: typeof paymentProviderId === 'string' ? paymentProviderId : paymentProviderId?.id || '',
         amount: this.form.get('amount')?.value || 0,
-        paymentMethod: this.form.get('paymentMethod')?.value || '',
+        paymentMethod: paymentMethod || '',
         transactionNumber: this.form.get('transactionNumber')?.value || '',
         referenceNumber: this.form.get('referenceNumber')?.value || '',
         invoiceNumber: this.form.get('invoiceNumber')?.value || '',
@@ -307,19 +275,4 @@ export class SupplierPaymentFormComponent implements OnInit {
     this.router.navigate(['/procurement/supplier-payments']);
   }
 
-  /**
-   * Filter payment methods based on user input
-   */
-  filterPaymentMethods(event: any): void {
-    const filtered: any[] = [];
-    const query = event.query.toLowerCase();
-
-    this.paymentMethods.forEach(method => {
-      if (method.label.toLowerCase().includes(query)) {
-        filtered.push(method);
-      }
-    });
-
-    this.filteredPaymentMethods = filtered;
-  }
 }

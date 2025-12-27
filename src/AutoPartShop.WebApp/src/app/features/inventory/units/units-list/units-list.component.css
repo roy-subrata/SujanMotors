@@ -1,0 +1,57 @@
+.units-list-container {
+  padding: 1rem;
+  background-color: #ffffff;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+}
+
+:host ::ng-deep {
+  .p-datatable {
+    .p-datatable-thead > tr > th {
+      background-color: #f9fafb;
+      border-color: #e5e7eb;
+      font-weight: 600;
+      color: #374151;
+      padding: 1rem 1rem;
+    }
+
+    .p-datatable-tbody > tr > td {
+      padding: 1rem 1rem;
+      border-color: #f3f4f6;
+    }
+
+    .p-datatable-tbody > tr:hover {
+      background-color: #f9fafb;
+    }
+
+    .p-paginator {
+      border-color: #e5e7eb;
+      background-color: #f9fafb;
+    }
+
+    .p-paginator-current {
+      font-size: 0.875rem;
+      color: #6b7280;
+    }
+
+    .p-datatable-emptymessage > tr > td {
+      padding: 2rem 1rem;
+    }
+  }
+
+  .p-column-header-content {
+    padding: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .units-list-container {
+    padding: 0.5rem;
+  }
+
+  :host ::ng-deep {
+    .p-datatable-tbody > tr > td {
+      padding: 0.5rem;
+    }
+  }
+}

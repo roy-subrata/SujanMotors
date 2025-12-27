@@ -1,0 +1,20 @@
+{
+  "purchaseOrderId": "0b474735-db84-4ff9-8a79-0738d334061e",
+  "warehouseId": "48ac7a39-fe3b-4dab-b85a-9e148443d4cf",
+  "receivedDate": "2025-12-11T00:00:00Z",
+  "deliveryDate": "2025-12-11T14:00:00Z",
+  "deliveryReference": "DEL-2025-002",
+  "carrierName": "Fast Logistics",
+  "driverName": "Karim Ahmed",
+  "deliveryNotes": "Stock Lot test delivery",
+  "lines": [
+    {
+      "partId": "97f92b3f-8672-4871-a413-d949e4397705",
+      "receivedQuantity": 10,
+      "condition": "GOOD",
+      "unitCost": 450.00,
+      "currency": "INR",
+      "unitId": "46393907-5935-42b6-a8d3-5565f2d9f8c7"
+    }
+  ]
+}

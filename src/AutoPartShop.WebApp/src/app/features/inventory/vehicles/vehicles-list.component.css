@@ -1,0 +1,30 @@
+.font-semibold {
+  font-weight: 600;
+}
+
+.text-gray-600 {
+  color: #666;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.text-sm {
+  font-size: 0.875rem;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.py-4 {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+
+.mr-2 {
+  margin-right: 0.5rem;
+}

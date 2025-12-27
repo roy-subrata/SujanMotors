@@ -1,0 +1,115 @@
+<p-table
+  #dt
+  [value]="goodsReceipts"
+  [loading]="loading"
+  [lazy]="true"
+  [paginator]="false"
+  [rows]="rows"
+  [totalRecords]="totalRecords"
+  responsiveLayout="scroll"
+  styleClass="p-datatable-striped"
+  [tableStyle]="{ 'min-width': '50rem' }"
+  dataKey="id">
+
+  <ng-template pTemplate="header">
+    <tr>
+      <th pSortableColumn="grnNumber">
+        GRN Number <p-sortIcon field="grnNumber"></p-sortIcon>
+      </th>
+      <th pSortableColumn="poNumber">
+        PO Number <p-sortIcon field="poNumber"></p-sortIcon>
+      </th>
+      <th>Warehouse</th>
+      <th pSortableColumn="receivedDate">
+        Received Date <p-sortIcon field="receivedDate"></p-sortIcon>
+      </th>
+      <th pSortableColumn="status">
+        Status <p-sortIcon field="status"></p-sortIcon>
+      </th>
+      <th class="text-center">Items / Discrepancies</th>
+      <th>Verified By</th>
+      <th class="text-center">Actions</th>
+    </tr>
+  </ng-template>
+
+  <ng-template pTemplate="body" let-grn>
+    <tr class="grn-row">
+      <td>
+        <div class="grn-info">
+          <span class="grn-number" (click)="viewGoodsReceipt(grn)">{{ grn.grnNumber }}</span>
+        </div>
+      </td>
+      <td>
+        <span class="po-number">{{ grn.poNumber || '-' }}</span>
+      </td>
+      <td>
+        <span class="warehouse-name">{{ grn.warehouseName || '-' }}</span>
+      </td>
+      <td>
+        <span class="timestamp">{{ formatDate(grn.receivedDate) }}</span>
+      </td>
+      <td>
+        <p-tag [value]="grn.status" [severity]="getStatusSeverity(grn.status)"></p-tag>
+      </td>
+      <td class="text-center">
+        <div class="flex items-center justify-center gap-2">
+          <span>{{ grn.totalItemsReceived || 0 }}</span>
+          <span *ngIf="grn.discrepancyCount > 0" class="p-badge p-badge-danger">{{ grn.discrepancyCount }}</span>
+        </div>
+      </td>
+      <td>
+        <span class="verified-by">{{ grn.verifiedBy || 'Pending' }}</span>
+      </td>
+      <td class="text-center">
+        <div class="flex justify-center gap-1">
+          <button pButton type="button" icon="pi pi-eye" class="p-button-text p-button-sm"
+            (click)="viewGoodsReceipt(grn)" pTooltip="View" tooltipPosition="left"></button>
+          <button *ngIf="grn.status === 'PENDING'" pButton type="button" icon="pi pi-check"
+            class="p-button-text p-button-sm p-button-success" (click)="verifyGrn(grn)" pTooltip="Verify"
+            tooltipPosition="left"></button>
+          <button *ngIf="grn.status === 'VERIFIED'" pButton type="button" icon="pi pi-check-circle"
+            class="p-button-text p-button-sm p-button-success" (click)="acceptGrn(grn)" pTooltip="Accept"
+            tooltipPosition="left"></button>
+          <button *ngIf="['PENDING', 'VERIFIED'].includes(grn.status)" pButton type="button" icon="pi pi-times-circle"
+            class="p-button-text p-button-sm p-button-danger" (click)="rejectGrn(grn)" pTooltip="Reject"
+            tooltipPosition="left"></button>
+          <button *ngIf="grn.status === 'PENDING'" pButton type="button" icon="pi pi-trash"
+            class="p-button-text p-button-danger p-button-sm" (click)="deleteGoodsReceipt(grn)" pTooltip="Delete"
+            tooltipPosition="left"></button>
+        </div>
+      </td>
+    </tr>
+  </ng-template>
+
+  <ng-template pTemplate="emptymessage">
+    <tr>
+      <td colspan="8" class="text-center p-6">
+        <div class="empty-state">
+          <i class="pi pi-inbox text-5xl text-gray-300 mb-3"></i>
+          <h3 class="text-gray-500 mb-2">No goods receipts found</h3>
+          <p class="text-gray-400">{{ searchTerm ? 'Try adjusting your filters or search criteria' : 'Start by creating a new goods receipt' }}</p>
+        </div>
+      </td>
+    </tr>
+  </ng-template>
+</p-table>
+
+<!-- Paginator -->
+<p-paginator
+  [rows]="rows"
+  [totalRecords]="totalRecords"
+  [rowsPerPageOptions]="pageSizeOptions"
+  [showCurrentPageReport]="true"
+  currentPageReportTemplate="Showing {first} to {last} of {totalRecords} goods receipts"
+  (onPageChange)="onPageChange($event)">
+</p-paginator>
+
+<!-- Context Menu -->
+<p-contextMenu
+  #contextMenu
+  [model]="contextMenuItems"
+  [appendTo]="'body'">
+</p-contextMenu>
+
+<!-- Confirm Dialog -->
+<p-confirmDialog></p-confirmDialog>

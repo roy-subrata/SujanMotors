@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run build:*)",
+      "Bash(dotnet build:*)",
+      "Bash(taskkill /PID 10320 /F)",
+      "Bash(Get-Process)",
+      "Bash(Where-Object {$_rocessName -eq \"AutoPartsShop.Api\"})",
+      "Bash(dotnet clean:*)",
+      "Bash(Remove-Item -Path \"d:\\AI\\SujanMotors\\src\\AutoPartShop.WebApp\\src\\app\\shared\\components\\confirmation-dialog\" -Recurse -Force)",
+      "Bash(dir:*)",
+      "Bash(git reset:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

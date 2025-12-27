@@ -1,0 +1,355 @@
+<div class="form-container">
+  <p-toast></p-toast>
+
+  <!-- Header -->
+  <div class="form-header">
+    <div class="header-content">
+      <div>
+        <h1 class="form-title">
+          {{ isEditing ? 'Edit Purchase Return' : 'Create Purchase Return' }}
+        </h1>
+        <p class="form-subtitle">
+          {{ isEditing ? 'Update the purchase return details' : 'Create a new purchase return for a supplier' }}
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Form -->
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form-content">
+    <!-- Basic Information Card -->
+    <p-card class="form-card">
+      <ng-template pTemplate="header">
+        <h2 class="card-title">Return Information</h2>
+      </ng-template>
+
+      <div class="form-grid">
+        <!-- Purchase Order Selection -->
+        <div class="form-field">
+          <label for="po" class="form-label">
+            Purchase Order <span class="required">*</span>
+          </label>
+          <p-autoComplete
+            formControlName="purchaseOrderId"
+            [suggestions]="filteredPurchaseOrders"
+            (completeMethod)="filterPurchaseOrders($event)"
+            [forceSelection]="true"
+            [showEmptyMessage]="true"
+            emptyMessage="No POs found"
+            field="poNumber"
+            optionLabel="poNumber"
+            placeholder="Select or search PO"
+            [dropdown]="true"
+            (onSelect)="onPurchaseOrderSelected($event.value)"
+            styleClass="w-full"
+          >
+            <ng-template let-po #item>
+              <div class="autocomplete-item">
+                <span>{{ po.poNumber }}</span>
+                <span class="item-detail">{{ po.supplierName }}</span>
+              </div>
+            </ng-template>
+          </p-autoComplete>
+          <small class="error-message" *ngIf="form.get('purchaseOrderId')?.hasError('required') && form.get('purchaseOrderId')?.touched">
+            Purchase order is required
+          </small>
+        </div>
+
+        <!-- Return Date -->
+        <div class="form-field">
+          <label for="returnDate" class="form-label">
+            Return Date <span class="required">*</span>
+          </label>
+          <input
+            pInputText
+            type="date"
+            formControlName="returnDate"
+            class="form-input"
+          />
+          <small class="error-message" *ngIf="form.get('returnDate')?.hasError('required') && form.get('returnDate')?.touched">
+            Return date is required
+          </small>
+        </div>
+
+        <!-- Reason -->
+        <div class="form-field">
+          <label for="reason" class="form-label">
+            Reason <span class="required">*</span>
+          </label>
+          <p-select
+            formControlName="reason"
+            [options]="reasonOptions"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="Select reason"
+            styleClass="w-full"
+            appendTo="body"
+          />
+          <small class="error-message" *ngIf="form.get('reason')?.hasError('required') && form.get('reason')?.touched">
+            Reason is required
+          </small>
+        </div>
+
+        <!-- Notes -->
+        <div class="form-field">
+          <label for="notes" class="form-label">Notes</label>
+          <textarea
+            pInputText
+            formControlName="notes"
+            placeholder="Additional notes"
+            rows="3"
+            class="form-input"
+          ></textarea>
+        </div>
+      </div>
+
+      <!-- PO and Supplier Information -->
+      <div *ngIf="selectedPurchaseOrder" style="margin-top: 1.5rem; padding: 1rem; background-color: #f3f4f6; border-radius: 0.5rem; border: 1px solid #e5e7eb;">
+        <h3 style="margin: 0 0 0.75rem 0; font-size: 0.9375rem; font-weight: 600; color: #374151;">Selected Purchase Order Details</h3>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+          <div>
+            <p style="margin: 0; font-size: 0.8125rem; color: #6b7280;">PO Number</p>
+            <p style="margin: 0.25rem 0 0 0; font-size: 0.9375rem; font-weight: 600; color: #1f2937;">{{ selectedPurchaseOrder.poNumber }}</p>
+          </div>
+          <div>
+            <p style="margin: 0; font-size: 0.8125rem; color: #6b7280;">Supplier</p>
+            <p style="margin: 0.25rem 0 0 0; font-size: 0.9375rem; font-weight: 600; color: #1f2937;">{{ selectedPurchaseOrder.supplierName || 'N/A' }}</p>
+            <p *ngIf="selectedPurchaseOrder.supplierCode" style="margin: 0.125rem 0 0 0; font-size: 0.8125rem; color: #6b7280;">Code: {{ selectedPurchaseOrder.supplierCode }}</p>
+          </div>
+          <div>
+            <p style="margin: 0; font-size: 0.8125rem; color: #6b7280;">PO Status</p>
+            <p style="margin: 0.25rem 0 0 0; font-size: 0.9375rem; font-weight: 600; color: #1f2937;">{{ selectedPurchaseOrder.status }}</p>
+          </div>
+        </div>
+      </div>
+    </p-card>
+
+    <!-- Line Items Card -->
+    <p-card class="form-card">
+      <ng-template pTemplate="header">
+        <div class="card-header">
+          <h2 class="card-title">Return Items</h2>
+          <div style="display: flex; gap: 0.5rem;">
+            <button
+              type="button"
+              pButton
+              label="Add All Items"
+              icon="pi pi-copy"
+              class="p-button-sm p-button-success"
+              (click)="addAllItemsFromPO()"
+              [disabled]="!availablePOItems.length"
+              pTooltip="Add all items from selected PO"
+            ></button>
+            <button
+              type="button"
+              pButton
+              label="Select Items"
+              icon="pi pi-list"
+              class="p-button-sm p-button-info"
+              (click)="showSelectItemsDialog()"
+              [disabled]="!availablePOItems.length"
+              pTooltip="Choose specific items to return"
+            ></button>
+            <button
+              type="button"
+              pButton
+              label="Add Item"
+              icon="pi pi-plus"
+              class="p-button-sm"
+              (click)="addLineItem()"
+              pTooltip="Manually add an item"
+            ></button>
+          </div>
+        </div>
+      </ng-template>
+
+      <div class="table-wrapper" *ngIf="lineItemsArray.length > 0">
+        <table class="items-table">
+          <thead>
+            <tr>
+              <th>Part ID</th>
+              <th>Quantity</th>
+              <th>Unit Price</th>
+              <th>Rejected Qty</th>
+              <th>Condition</th>
+              <th>Notes</th>
+              <th class="text-center">Action</th>
+            </tr>
+          </thead>
+          <tbody formArrayName="lineItems">
+            <tr *ngFor="let item of lineItemsArray.controls; let i = index" [formGroupName]="i">
+              <td>
+                <p-autoComplete
+                  formControlName="part"
+                  [suggestions]="filteredParts"
+                  (completeMethod)="filterParts($event, i)"
+                  (onSelect)="onPartSelected($event, i)"
+                  field="partNumber"
+                  optionLabel="name"
+                  [forceSelection]="true"
+                  [showEmptyMessage]="true"
+                  emptyMessage="No parts found"
+                  placeholder="Search by part number or name"
+                  [dropdown]="true"
+                  styleClass="w-full"
+                  appendTo="body"
+                >
+                  <ng-template let-part #item>
+                    <div class="autocomplete-item">
+                      <div style="display: flex; flex-direction: column;">
+                        <span style="font-weight: 500;">{{ part.partNumber }}</span>
+                        <span style="font-size: 0.85em; color: #666;">{{ part.name }}</span>
+                      </div>
+                    </div>
+                  </ng-template>
+                </p-autoComplete>
+              </td>
+              <td>
+                <p-inputNumber
+                  formControlName="quantity"
+                  [min]="1"
+                  placeholder="Qty"
+                  styleClass="table-input"
+                ></p-inputNumber>
+              </td>
+              <td>
+                <p-inputNumber
+                  formControlName="unitPrice"
+                  [min]="0"
+                  mode="currency"
+                  currency="INR"
+                  locale="en-IN"
+                  placeholder="Price"
+                  styleClass="table-input"
+                  [readonly]="true"
+                ></p-inputNumber>
+              </td>
+              <td>
+                <p-inputNumber
+                  formControlName="rejectedQuantity"
+                  [min]="0"
+                  placeholder="Rejected"
+                  styleClass="table-input"
+                ></p-inputNumber>
+              </td>
+              <td>
+                <p-select
+                  formControlName="condition"
+                  [options]="conditionOptions"
+                  optionLabel="label"
+                  optionValue="value"
+                  placeholder="Select"
+                  styleClass="table-input"
+                  appendTo="body"
+                />
+              </td>
+              <td>
+                <input
+                  pInputText
+                  formControlName="notes"
+                  type="text"
+                  placeholder="Notes"
+                />
+              </td>
+              <td class="text-center">
+                <button
+                  type="button"
+                  pButton
+                  icon="pi pi-trash"
+                  class="p-button-rounded p-button-danger p-button-text p-button-sm"
+                  (click)="removeLineItem(i)"
+                  pTooltip="Remove item"
+                  tooltipPosition="top"
+                ></button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div *ngIf="lineItemsArray.length === 0" class="empty-state">
+        <p>No items added. Click "Add Item" to start adding return items.</p>
+      </div>
+    </p-card>
+
+    <!-- Form Actions -->
+    <div class="form-actions">
+      <button
+        type="button"
+        pButton
+        label="Cancel"
+        icon="pi pi-times"
+        class="p-button-outlined"
+        (click)="onCancel()"
+      ></button>
+      <button
+        type="submit"
+        pButton
+        [label]="isEditing ? 'Update Return' : 'Create Return'"
+        icon="pi pi-check"
+        [loading]="isSubmitting"
+        class="p-button-primary"
+      ></button>
+    </div>
+  </form>
+
+  <!-- Item Selection Dialog -->
+  <p-dialog
+    header="Select Items to Return"
+    [(visible)]="showItemSelectionDialog"
+    [modal]="true"
+    [style]="{width: '50vw'}"
+    [draggable]="false"
+    [resizable]="false"
+  >
+    <div class="dialog-content">
+      <p style="margin-bottom: 1rem; color: #6b7280;">Select the items you want to return from this purchase order:</p>
+
+      <div *ngIf="availablePOItems.length === 0" class="empty-state">
+        <p>No items available</p>
+      </div>
+
+      <div *ngIf="availablePOItems.length > 0" style="max-height: 400px; overflow-y: auto;">
+        <div *ngFor="let item of availablePOItems; let i = index" class="item-checkbox" style="padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 0.375rem; margin-bottom: 0.5rem;">
+          <p-checkbox
+            [(ngModel)]="selectedPOItems"
+            [value]="item"
+            [inputId]="'item-' + i"
+            binary="false"
+          ></p-checkbox>
+          <label [for]="'item-' + i" style="margin-left: 0.5rem; cursor: pointer; flex: 1;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <div style="font-weight: 500;">{{ getPartName(item.partId) }}</div>
+                <div style="font-size: 0.875rem; color: #6b7280;">Quantity: {{ item.quantity }} | Unit Price: {{ item.unitPrice | currency:'INR':'symbol':'1.2-2' }}</div>
+              </div>
+              <div style="font-weight: 600; color: #374151;">
+                Total: {{ (item.quantity * item.unitPrice) | currency:'INR':'symbol':'1.2-2' }}
+              </div>
+            </div>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <ng-template pTemplate="footer">
+      <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+        <button
+          pButton
+          label="Cancel"
+          icon="pi pi-times"
+          class="p-button-outlined"
+          (click)="cancelItemSelection()"
+        ></button>
+        <button
+          pButton
+          label="Add Selected Items"
+          icon="pi pi-check"
+          class="p-button-primary"
+          (click)="confirmItemSelection()"
+          [disabled]="selectedPOItems.length === 0"
+        ></button>
+      </div>
+    </ng-template>
+  </p-dialog>
+</div>

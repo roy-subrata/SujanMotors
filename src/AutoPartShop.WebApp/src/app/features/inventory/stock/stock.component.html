@@ -1,0 +1,321 @@
+<div class="stock-page">
+  <p-toast></p-toast>
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="header-left">
+      <div class="header-icon">
+        <i class="pi pi-box"></i>
+      </div>
+      <div class="header-text">
+        <h1 class="page-title">Stock Management</h1>
+        <p class="page-subtitle">Monitor inventory levels and manage stock across warehouses</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button pButton type="button" label="Refresh" icon="pi pi-refresh" class="p-button-outlined" (click)="onRefresh()"
+        [loading]="loading"></button>
+      <button pButton type="button" label="Export" icon="pi pi-download" class="p-button-outlined"></button>
+    </div>
+  </div>
+
+
+
+  <!-- Content Wrapper -->
+  <div class="content-wrapper">
+    <!-- Toolbar -->
+    <div class="content-toolbar">
+      <div class="toolbar-left">
+        <div class="search-box">
+          <i class="pi pi-search search-icon"></i>
+          <input type="text" class="search-input" placeholder="Search parts, SKU, warehouse..." [(ngModel)]="searchTerm"
+            (input)="onSearchInput()">
+          <i *ngIf="searchTerm" class="pi pi-times clear-icon" (click)="onSearchClear()"></i>
+        </div>
+        <p-select [options]="warehouseOptions" [(ngModel)]="selectedWarehouse" placeholder="All Warehouses"
+          [showClear]="true" (onChange)="onWarehouseFilter()" class="warehouse-filter"></p-select>
+      </div>
+      <div class="toolbar-right">
+        <div class="toolbar-stats">
+          <div class="mini-stat">
+            <div class="mini-stat-icon stat-icon-blue">
+              <i class="pi pi-box"></i>
+            </div>
+            <div class="mini-stat-content">
+              <span class="mini-stat-value">{{ allStockLevels.length }}</span>
+              <span class="mini-stat-label">Total Items</span>
+            </div>
+          </div>
+
+          <div class="mini-stat mini-stat-warning" *ngIf="lowStockLevels.length > 0">
+            <div class="mini-stat-icon stat-icon-orange">
+              <i class="pi pi-exclamation-triangle"></i>
+            </div>
+            <div class="mini-stat-content">
+              <span class="mini-stat-value">{{ lowStockLevels.length }}</span>
+              <span class="mini-stat-label">Low Stock</span>
+            </div>
+          </div>
+
+          <div class="mini-stat">
+            <div class="mini-stat-icon stat-icon-green">
+              <i class="pi pi-check-circle"></i>
+            </div>
+            <div class="mini-stat-content">
+              <span class="mini-stat-value">{{ getTotalOnHand() | number }}</span>
+              <span class="mini-stat-label">On Hand</span>
+            </div>
+          </div>
+
+          <div class="mini-stat">
+            <div class="mini-stat-icon stat-icon-purple">
+              <i class="pi pi-lock"></i>
+            </div>
+            <div class="mini-stat-content">
+              <span class="mini-stat-value">{{ getTotalReserved() | number }}</span>
+              <span class="mini-stat-label">Reserved</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="toolbar-divider"></div>
+
+        <div class="result-count-wrapper">
+          <i class="pi pi-filter"></i>
+          <span class="result-count">{{ getFilteredStock(allStockLevels).length }}</span>
+          <span class="result-label">items</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab Navigation -->
+    <div class="tab-navigation">
+      <button class="tab-button" [class.active]="activeTab === 0" (click)="setActiveTab(0)">
+        <i class="pi pi-list"></i>
+        <span>All Stock</span>
+        <span class="tab-badge">{{ allStockLevels.length }}</span>
+      </button>
+      <button class="tab-button" [class.active]="activeTab === 1" (click)="setActiveTab(1)">
+        <i class="pi pi-exclamation-triangle"></i>
+        <span>Low Stock</span>
+        <span class="tab-badge" [class.tab-badge-danger]="lowStockLevels.length > 0">{{ lowStockLevels.length }}</span>
+      </button>
+      <button class="tab-button" [class.active]="activeTab === 2" (click)="setActiveTab(2)">
+        <i class="pi pi-history"></i>
+        <span>Movement History</span>
+      </button>
+      <button class="tab-button" [class.active]="activeTab === 3" (click)="setActiveTab(3)">
+        <i class="pi pi-building"></i>
+        <span>By Warehouse</span>
+      </button>
+      <button class="tab-button" [class.active]="activeTab === 4" (click)="setActiveTab(4)">
+        <i class="pi pi-dollar"></i>
+        <span>Price History</span>
+      </button>
+    </div>
+
+    <!-- Tab Content -->
+    <div class="tab-content">
+      <!-- Loading Overlay -->
+      <div class="loading-overlay" *ngIf="loading">
+        <div class="loading-spinner">
+          <i class="pi pi-spin pi-spinner"></i>
+          <span>Loading...</span>
+        </div>
+      </div>
+
+      <!-- All Stock Tab -->
+      <div class="tab-panel" *ngIf="activeTab === 0">
+        <p-table [value]="getFilteredStock(allStockLevels)" [rows]="10" [paginator]="true"
+          [rowsPerPageOptions]="[10, 25, 50]" [loading]="loading" [showCurrentPageReport]="true"
+          currentPageReportTemplate="Showing {first} to {last} of {totalRecords}" styleClass="stock-table"
+          responsiveLayout="scroll">
+
+          <ng-template pTemplate="header">
+            <tr>
+              <th pSortableColumn="partId">
+                <span class="th-content">Part <p-sortIcon field="partId"></p-sortIcon></span>
+              </th>
+              <th pSortableColumn="warehouseId">Warehouse</th>
+              <th pSortableColumn="quantity" class="text-right">
+                <span class="th-content th-right">On Hand <p-sortIcon field="quantity"></p-sortIcon></span>
+              </th>
+              <th class="text-right">Reserved</th>
+              <th pSortableColumn="availableQuantity" class="text-right">
+                <span class="th-content th-right">Available <p-sortIcon field="availableQuantity"></p-sortIcon></span>
+              </th>
+              <th>Status</th>
+              <th class="text-center">Actions</th>
+            </tr>
+          </ng-template>
+
+          <ng-template pTemplate="body" let-stock>
+            <tr [class.low-stock-row]="isLowStock(stock)">
+              <td>
+                <div class="part-cell">
+                  <div class="part-avatar" [class.warning]="isLowStock(stock)">
+                    <i class="pi pi-cog"></i>
+                  </div>
+                  <div class="part-info">
+                    <span class="part-name">{{ getPartName(stock.partId) }}</span>
+                    <span class="part-sku">{{ getPartSku(stock.partId) }}</span>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <div class="warehouse-cell">
+                  <i class="pi pi-building"></i>
+                  <span>{{ getWarehouseName(stock.warehouseId) }}</span>
+                </div>
+              </td>
+              <td class="text-right">
+                <span class="qty-value">{{ stock.quantity | number }}</span>
+              </td>
+              <td class="text-right">
+                <span class="qty-reserved" [class.has-reserved]="stock.reservedQuantity > 0">
+                  {{ stock.reservedQuantity | number }}
+                </span>
+              </td>
+              <td class="text-right">
+                <span class="qty-available" [class.qty-low]="isLowStock(stock)">
+                  {{ stock.availableQuantity | number }}
+                </span>
+              </td>
+              <td>
+                <div class="status-cell">
+                  <span class="status-badge" [ngClass]="getStatusClass(stock)">
+                    <i [ngClass]="getStatusIcon(stock)"></i>
+                    {{ getStockStatus(stock) }}
+                  </span>
+                </div>
+              </td>
+              <td>
+                <div class="actions-cell">
+                  <button pButton type="button" icon="pi pi-sliders-h"
+                    class="p-button-text p-button-rounded p-button-sm" pTooltip="Adjust Stock"
+                    (click)="onAdjustStock(stock)"></button>
+                  <button pButton type="button" icon="pi pi-history" class="p-button-text p-button-rounded p-button-sm"
+                    pTooltip="View History" (click)="viewStockHistory(stock)"></button>
+                </div>
+              </td>
+            </tr>
+          </ng-template>
+
+          <ng-template pTemplate="emptymessage">
+            <tr>
+              <td colspan="7">
+                <div class="empty-state">
+                  <i class="pi pi-inbox"></i>
+                  <h3>No stock items found</h3>
+                  <p>Try adjusting your search or filter criteria</p>
+                </div>
+              </td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </div>
+
+      <!-- Low Stock Tab -->
+      <div class="tab-panel" *ngIf="activeTab === 1">
+        <div class="alert-banner" *ngIf="lowStockLevels.length > 0">
+          <i class="pi pi-exclamation-triangle"></i>
+          <div class="alert-content">
+            <strong>{{ lowStockLevels.length }} items require attention</strong>
+            <span>These items are below their reorder levels and may need replenishment</span>
+          </div>
+          <button pButton type="button" label="Create Purchase Order" icon="pi pi-shopping-cart"
+            class="p-button-warning p-button-sm"></button>
+        </div>
+
+        <p-table [value]="lowStockLevels" [rows]="10" [paginator]="true" [loading]="loading" styleClass="stock-table"
+          responsiveLayout="scroll">
+
+          <ng-template pTemplate="header">
+            <tr>
+              <th>Part</th>
+              <th>Warehouse</th>
+              <th class="text-right">Available</th>
+              <th class="text-right">Reorder Level</th>
+              <th class="text-right">Shortage</th>
+              <th>Urgency</th>
+              <th class="text-center">Actions</th>
+            </tr>
+          </ng-template>
+
+          <ng-template pTemplate="body" let-stock>
+            <tr>
+              <td>
+                <div class="part-cell">
+                  <div class="part-avatar warning">
+                    <i class="pi pi-cog"></i>
+                  </div>
+                  <div class="part-info">
+                    <span class="part-name">{{ getPartName(stock.partId) }}</span>
+                    <span class="part-sku">{{ getPartSku(stock.partId) }}</span>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <div class="warehouse-cell">
+                  <i class="pi pi-building"></i>
+                  <span>{{ getWarehouseName(stock.warehouseId) }}</span>
+                </div>
+              </td>
+              <td class="text-right">
+                <span class="qty-value qty-critical">{{ stock.availableQuantity | number }}</span>
+              </td>
+              <td class="text-right">
+                <span class="reorder-point">{{ stock.reorderLevel | number }}</span>
+              </td>
+              <td class="text-right">
+                <span class="shortage-value">-{{ getShortage(stock) | number }}</span>
+              </td>
+              <td>
+                <span class="urgency-badge" [ngClass]="getUrgencyClass(stock)">
+                  {{ getUrgencyLevel(stock) }}
+                </span>
+              </td>
+              <td>
+                <div class="actions-cell">
+                  <button pButton type="button" icon="pi pi-sliders-h"
+                    class="p-button-text p-button-rounded p-button-sm" pTooltip="Adjust Stock"
+                    (click)="onAdjustStock(stock)"></button>
+                  <button pButton type="button" icon="pi pi-shopping-cart"
+                    class="p-button-text p-button-rounded p-button-sm" pTooltip="Create PO"
+                    (click)="createReorder(stock)"></button>
+                </div>
+              </td>
+            </tr>
+          </ng-template>
+
+          <ng-template pTemplate="emptymessage">
+            <tr>
+              <td colspan="7">
+                <div class="empty-state success-state">
+                  <i class="pi pi-check-circle"></i>
+                  <h3>All stock levels are healthy</h3>
+                  <p>No items are currently below their reorder levels</p>
+                </div>
+              </td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </div>
+
+      <!-- Movement History Tab -->
+      <div class="tab-panel" *ngIf="activeTab === 2">
+        <app-stock-movement-history></app-stock-movement-history>
+      </div>
+
+      <!-- By Warehouse Tab -->
+      <div class="tab-panel" *ngIf="activeTab === 3">
+        <app-stock-lots-by-warehouse></app-stock-lots-by-warehouse>
+      </div>
+
+      <!-- Price History Tab -->
+      <div class="tab-panel" *ngIf="activeTab === 4">
+        <app-stock-price-history></app-stock-price-history>
+      </div>
+    </div>
+  </div>
+</div>

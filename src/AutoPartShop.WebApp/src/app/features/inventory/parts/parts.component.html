@@ -1,0 +1,25 @@
+<div class="parts-container">
+  <p-toast position="top-right"></p-toast>
+
+  <!-- Header Section -->
+  <app-parts-header (createClick)="onCreateClick()" (searchChange)="onSearch($event)" (searchClear)="onSearchClear()">
+  </app-parts-header>
+
+  <!-- Table Section -->
+  <div class="table-container">
+    <app-parts-table [parts]="parts" [loading]="loading" [totalRecords]="totalRecords" [rows]="rows"
+      [currentPage]="currentPage" (editClick)="onEditClick($event)" (showBarcodeClick)="onShowBarcodeClick($event)"
+      (pageChange)="onPageChange($event)" (partDeleted)="onPartDeleted()">
+    </app-parts-table>
+  </div>
+
+  <!-- Create/Update Dialog -->
+  <ng-container *ngIf="displayCreateDialog || displayUpdateDialog">
+    <app-parts-form-dialog [displayCreateDialog]="displayCreateDialog" [displayUpdateDialog]="displayUpdateDialog"
+      [selectedPart]="selectedPart" (displayCreateDialogChange)="displayCreateDialog = $event"
+      (displayUpdateDialogChange)="displayUpdateDialog = $event" (partCreated)="onPartCreated($event)"
+      (partUpdated)="onPartUpdated($event)">
+    </app-parts-form-dialog>
+  </ng-container>
+
+</div>

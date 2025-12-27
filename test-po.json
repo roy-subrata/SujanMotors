@@ -1,0 +1,14 @@
+{
+  "supplierId": "c60eac87-cb8d-4b55-baf6-2e0de5865479",
+  "deliveryDate": "2025-12-20T00:00:00Z",
+  "taxPercentage": 18.0,
+  "discountPercentage": 0,
+  "notes": "Test PO for Stock Lot Verification",
+  "lineItems": [
+    {
+      "partId": "d1093786-0b8b-4b14-8297-436ead46d94d",
+      "quantity": 100,
+      "unitPrice": 455.00
+    }
+  ]
+}

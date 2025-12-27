@@ -1,0 +1,112 @@
+<!-- Toast Messages -->
+<p-toast></p-toast>
+
+<!-- Update Category Dialog -->
+<p-dialog
+    [(visible)]="displayUpdateDialog"
+    [header]="'Update Category: ' + (selectedCategory?.name || '')"
+    [modal]="true"
+    [style]="{ width: '50vw' }"
+    [breakpoints]="{ '960px': '75vw', '640px': '90vw' }"
+    [closable]="true"
+    [showHeader]="true"
+    (onHide)="onUpdateDialogHide()"
+    [closeOnEscape]="true"
+>
+    <form [formGroup]="updateForm">
+        <div class="form-group">
+            <label for="updateName">Name *</label>
+            <input id="updateName" type="text" pInputText formControlName="name" class="w-full" [disabled]="isUpdating()" />
+            <small class="error" *ngIf="updateForm.get('name')?.invalid && updateForm.get('name')?.touched"> Name is required and must be 3-100 characters </small>
+        </div>
+
+        <div class="form-group">
+            <label for="updateDescription">Description</label>
+            <textarea id="updateDescription" pInputTextarea formControlName="description" rows="4" class="w-full" [disabled]="isUpdating()"> </textarea>
+            <small class="error" *ngIf="updateForm.get('description')?.invalid && updateForm.get('description')?.touched"> Description must not exceed 500 characters </small>
+        </div>
+
+        <div class="form-group">
+            <label for="updateDisplayOrder">Display Order</label>
+            <input id="updateDisplayOrder" type="number" pInputText formControlName="displayOrder" class="w-full" [disabled]="isUpdating()" />
+            <small class="error" *ngIf="updateForm.get('displayOrder')?.invalid && updateForm.get('displayOrder')?.touched"> Display order must be a non-negative number </small>
+        </div>
+
+        <div class="form-group">
+            <label>
+                <input type="checkbox" formControlName="isActive" [disabled]="isUpdating()" />
+                Active
+            </label>
+        </div>
+    </form>
+
+    <ng-template pTemplate="footer">
+        <button type="button" pButton label="Cancel" (click)="onUpdateDialogHide()" [disabled]="isUpdating()" class="p-button-text"></button>
+        <button type="button" pButton label="Update" (click)="onUpdateSubmit()" [disabled]="updateForm.invalid || isUpdating()" [loading]="isUpdating()" class="p-button-success"></button>
+    </ng-template>
+</p-dialog>
+
+<!-- Create Category Dialog -->
+<p-dialog [(visible)]="displayCreateDialog" header="Create New Category" [modal]="true" [style]="{ width: '50vw' }" [breakpoints]="{ '960px': '75vw', '640px': '90vw' }" (onHide)="onCreateDialogHide()" (onShow)="onCreateDialogShow()" [showHeader]="true">
+    <form [formGroup]="createForm">
+        <div class="form-group">
+            <label for="parentCategory">Parent Category (Optional)</label>
+            <p-autocomplete
+                id="parentCategory"
+                formControlName="parentCategory"
+                [suggestions]="filteredParentCategories"
+                [(ngModel)]="selectedParentCategory"
+                placeholder="Search by name or code..."
+                [showEmptyMessage]="true"
+                emptyMessage="No categories found"
+                (onClear)="onParentCategoryCleared()"
+                (onSelect)="onParentCategorySelect($event.value)"
+                [virtualScroll]="true"
+                [virtualScrollItemSize]="34"
+                [lazy]="true"
+                (onLazyLoad)="onParentCategoryEvent($event)"
+                (completeMethod)="onParentCategoryEvent($event)"
+                optionLabel="name"
+                [dropdown]="true"
+                [disabled]="isCreating()"
+                ><ng-template let-category #item>
+                    <div class="category-autocomplete-item">
+                        <div class="font-semibold">{{ category.name }}</div>
+                        <div class="text-sm text-gray-500">{{ category.code }}</div>
+                    </div>
+                </ng-template>
+            </p-autocomplete>
+        </div>
+        <div class="form-group">
+            <label for="createName">Name *</label>
+            <input id="createName" type="text" pInputText formControlName="name" class="w-full" [disabled]="isCreating()" />
+            <small class="error" *ngIf="createForm.get('name')?.invalid && createForm.get('name')?.touched"> Name is required and must be 3-100 characters </small>
+        </div>
+
+        <div class="form-group">
+            <label for="createCode">Code *</label>
+            <div class="code-input-wrapper">
+                <input id="createCode" type="text" pInputText formControlName="code" class="w-full" placeholder="Auto-generated" [disabled]="true" />
+                <i *ngIf="generatingCode" class="pi pi-spin pi-spinner code-spinner"></i>
+            </div>
+            <small class="hint-text">Code is auto-generated and cannot be changed</small>
+        </div>
+
+        <div class="form-group">
+            <label for="createDescription">Description</label>
+            <textarea id="createDescription" pInputTextarea formControlName="description" rows="4" class="w-full" [disabled]="isCreating()"> </textarea>
+            <small class="error" *ngIf="createForm.get('description')?.invalid && createForm.get('description')?.touched"> Description must not exceed 500 characters </small>
+        </div>
+
+        <div class="form-group">
+            <label for="createDisplayOrder">Display Order</label>
+            <input id="createDisplayOrder" type="number" pInputText formControlName="displayOrder" class="w-full" value="0" [disabled]="isCreating()" />
+            <small class="error" *ngIf="createForm.get('displayOrder')?.invalid && createForm.get('displayOrder')?.touched"> Display order must be a non-negative number </small>
+        </div>
+    </form>
+
+    <ng-template pTemplate="footer">
+        <button type="button" pButton label="Cancel" (click)="onCreateDialogHide()" [disabled]="isCreating()" class="p-button-text"></button>
+        <button type="button" pButton label="Create" (click)="onCreateSubmit()" [disabled]="createForm.invalid || isCreating()" [loading]="isCreating()" class="p-button-success"></button>
+    </ng-template>
+</p-dialog>

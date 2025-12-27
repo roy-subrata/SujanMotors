@@ -1,0 +1,501 @@
+.brands-container {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    width: 100%;
+}
+
+.brands-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: none;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.header-title-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+.header-title {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: white;
+    line-height: 1.2;
+}
+
+.header-subtitle {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.875rem;
+    font-weight: 400;
+    line-height: 1.4;
+}
+
+.header-actions {
+    display: flex;
+    gap: 0.75rem;
+}
+
+/* Toolbar Section */
+.toolbar {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-top: 0;
+}
+
+.search-container {
+    flex: 1;
+    min-width: 300px;
+    max-width: 450px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    background-color: rgba(255, 255, 255, 0.9);
+    border: none;
+    border-radius: 0.5rem;
+    padding: 0 0.875rem;
+    transition: all 0.2s ease;
+}
+
+.search-container:focus-within {
+    background-color: #ffffff;
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3);
+}
+
+.search-icon {
+    color: #9ca3af;
+    font-size: 0.9375rem;
+    margin-right: 0.625rem;
+    flex-shrink: 0;
+}
+
+.search-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    padding: 0.6875rem 0;
+    font-size: 0.9375rem;
+    background: transparent;
+    font-family: inherit;
+    color: #1f2937;
+}
+
+.search-input::placeholder {
+    color: #9ca3af;
+}
+
+.clear-icon {
+    color: #d1d5db;
+    font-size: 0.8125rem;
+    margin-left: 0.5rem;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: color 0.2s ease;
+    padding: 0.25rem;
+}
+
+.clear-icon:hover {
+    color: #6b7280;
+}
+
+.btn-create {
+    white-space: nowrap;
+    font-weight: 600;
+    padding: 0.6875rem 1.25rem !important;
+    border-radius: 0.5rem !important;
+    background-color: rgba(255, 255, 255, 0.9) !important;
+    color: #667eea !important;
+    border: none !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+    transition: all 0.2s ease !important;
+}
+
+.btn-create:hover:not(:disabled) {
+    transform: translateY(-1px);
+    background-color: #ffffff !important;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Table Section */
+.table-section {
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+}
+
+:host ::ng-deep {
+    .p-datatable {
+        .p-datatable-thead > tr > th {
+            background-color: #f3f4f6;
+            font-weight: 700;
+            font-size: 0.875rem;
+            color: #1f2937;
+            padding: 1rem;
+            border-color: #e5e7eb;
+        }
+
+        .p-datatable-tbody > tr {
+            border-color: #f3f4f6;
+
+            > td {
+                padding: 1rem;
+                font-size: 0.95rem;
+                color: #374151;
+                vertical-align: middle;
+            }
+
+            &:hover {
+                background-color: #f0f9ff;
+                transition: background-color 0.2s ease;
+            }
+        }
+
+        .p-paginator {
+            background-color: #f9fafb;
+            border-color: #e5e7eb;
+            padding: 1rem;
+
+            .p-paginator-current {
+                color: #6b7280;
+                font-size: 0.875rem;
+            }
+        }
+    }
+}
+
+/* Brand Code */
+.brand-code {
+    font-weight: 600;
+    color: #1f2937;
+    font-family: monospace;
+    background-color: #f3f4f6;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+}
+
+/* Brand Name Cell */
+.brand-name-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.brand-logo {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+    border-radius: 0.25rem;
+}
+
+.brand-name {
+    font-weight: 500;
+    color: #1f2937;
+}
+
+/* Description */
+.description-text {
+    color: #6b7280;
+    font-size: 0.9rem;
+}
+
+/* Country Badge */
+.country-badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    background-color: #dbeafe;
+    color: #1e40af;
+    border-radius: 0.25rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+/* Contact Icons */
+.contact-icons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.contact-icons i {
+    color: #6b7280;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.contact-icons i:hover {
+    color: #3b82f6;
+}
+
+/* Text Muted */
+.text-muted {
+    color: #d1d5db;
+}
+
+/* Action Buttons */
+.action-buttons {
+    display: flex;
+    gap: 0.25rem;
+}
+
+/* Empty Message */
+.empty-message {
+    padding: 3rem !important;
+}
+
+.empty-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #9ca3af;
+}
+
+.empty-content i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.empty-content p {
+    font-size: 1.1rem;
+    font-weight: 500;
+    margin: 0 0 0.5rem 0;
+    color: #6b7280;
+}
+
+.empty-content span {
+    font-size: 0.9rem;
+}
+
+/* Form Styles */
+.form-container {
+    padding: 0.5rem 0;
+}
+
+.form-group {
+    margin-bottom: 1.25rem;
+}
+
+.form-group.half {
+    flex: 1;
+    min-width: 0;
+}
+
+.form-row {
+    display: flex;
+    gap: 1rem;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #374151;
+    font-size: 0.9rem;
+}
+
+.form-label .required {
+    color: #ef4444;
+    margin-right: 0.25rem;
+}
+
+.form-input {
+    width: 100%;
+}
+
+:host ::ng-deep {
+    .form-input-number .p-inputnumber-input {
+        width: 100%;
+    }
+}
+
+.hint-message {
+    display: block;
+    margin-top: 0.375rem;
+    color: #9ca3af;
+    font-size: 0.8rem;
+}
+
+/* Code Input Wrapper */
+.code-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.code-input-wrapper .form-input {
+    width: 100%;
+    background-color: #f3f4f6;
+}
+
+.code-spinner {
+    position: absolute;
+    right: 12px;
+    color: #6b7280;
+}
+
+/* Status Toggle */
+.status-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.status-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding-top: 0.25rem;
+}
+
+.status-label {
+    cursor: pointer;
+}
+
+.status-active {
+    color: #059669;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.status-inactive {
+    color: #dc2626;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+/* Dialog Footer */
+.dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    padding-top: 0.5rem;
+}
+
+/* Dialog Styling */
+:host ::ng-deep {
+    .p-dialog {
+        border-radius: 0.75rem;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+        border: none;
+    }
+
+    .p-dialog .p-dialog-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 0.75rem 0.75rem 0 0;
+        padding: 1.25rem 1.5rem;
+    }
+
+    .p-dialog .p-dialog-header .p-dialog-title {
+        font-weight: 600;
+        font-size: 1.1rem;
+    }
+
+    .p-dialog .p-dialog-header .p-dialog-header-icon {
+        color: white;
+    }
+
+    .p-dialog .p-dialog-header .p-dialog-header-icon:hover {
+        background: rgba(255, 255, 255, 0.2);
+    }
+
+    .p-dialog .p-dialog-content {
+        padding: 1.5rem;
+        background-color: #ffffff;
+    }
+
+    .p-dialog .p-dialog-footer {
+        padding: 1rem 1.5rem;
+        background-color: #f9fafb;
+        border-top: 1px solid #e5e7eb;
+        border-radius: 0 0 0.75rem 0.75rem;
+    }
+}
+
+/* Toast Styling */
+:host ::ng-deep {
+    .p-toast {
+        top: 64px !important;
+        right: 1rem !important;
+    }
+
+    .p-toast .p-toast-message {
+        border-radius: 0.5rem;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .header-section {
+        padding: 1rem;
+    }
+
+    .header-content {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .header-title h1 {
+        font-size: 1.5rem;
+    }
+
+    .toolbar {
+        gap: 0.75rem;
+    }
+
+    .search-container {
+        min-width: 200px;
+        max-width: 100%;
+    }
+
+    .form-row {
+        flex-direction: column;
+        gap: 0;
+    }
+}
+
+@media (max-width: 640px) {
+    .header-section {
+        padding: 0.875rem;
+    }
+
+    .header-title h1 {
+        font-size: 1.25rem;
+    }
+
+    .header-title .subtitle {
+        font-size: 0.8125rem;
+    }
+
+    .toolbar {
+        width: 100%;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .search-container {
+        min-width: auto;
+        width: 100%;
+    }
+
+    .btn-create {
+        width: 100% !important;
+    }
+}

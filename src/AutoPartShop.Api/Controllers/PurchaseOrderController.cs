@@ -1,8 +1,8 @@
+using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.PurchaseOrderDtos;
-using AutoPartShop.Application.Services;
 using AutoPartShop.Domain.Entities;
-using AutoPartShop.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Mvc;
+
 
 namespace AutoPartShop.Api.Controllers;
 
@@ -15,16 +15,19 @@ public class PurchaseOrderController : ControllerBase
     private readonly IGoodsReceiptRepository _goodsReceiptRepository;
     private readonly StockManagementService _stockManagementService;
     private readonly ILogger<PurchaseOrderController> _logger;
+    private readonly ICodeGenerateService _codeGenerateService;
 
     public PurchaseOrderController(
         IPurchaseOrderRepository purchaseOrderRepository,
         IGoodsReceiptRepository goodsReceiptRepository,
         StockManagementService stockManagementService,
+        ICodeGenerateService codeGenerateService,
         ILogger<PurchaseOrderController> logger)
     {
         _purchaseOrderRepository = purchaseOrderRepository;
         _goodsReceiptRepository = goodsReceiptRepository;
         _stockManagementService = stockManagementService;
+        _codeGenerateService = codeGenerateService;
         _logger = logger;
     }
 
@@ -197,6 +200,7 @@ public class PurchaseOrderController : ControllerBase
             order.ModifiedBy = "System";
 
             await _purchaseOrderRepository.AddAsync(order, cancellationToken);
+            await _codeGenerateService.SaveGenerateCodeAsync("PO", cancellationToken);
 
             return CreatedAtAction(nameof(GetById), new { id = order.Id }, MapToPurchaseOrderResponse(order));
         }
@@ -365,6 +369,11 @@ public class PurchaseOrderController : ControllerBase
             if (request.PurchaseOrderId == Guid.Empty || request.WarehouseId == Guid.Empty)
                 return BadRequest(new { message = "PurchaseOrderId and WarehouseId are required" });
 
+            // Get the purchase order to retrieve line items and their details
+            var purchaseOrder = await _purchaseOrderRepository.GetByIdAsync(request.PurchaseOrderId, cancellationToken);
+            if (purchaseOrder is null)
+                return NotFound(new { message = "Purchase order not found" });
+
             var grn = GoodsReceipt.Create(
                 $"GRN-{DateTime.UtcNow:yyyyMMddHHmmss}",
                 request.PurchaseOrderId,
@@ -374,8 +383,55 @@ public class PurchaseOrderController : ControllerBase
             grn.CreatedBy = "System";
             grn.ModifiedBy = "System";
 
-            await _goodsReceiptRepository.AddAsync(grn, cancellationToken);
+            // Set delivery information if provided
+            if (request.DeliveryDate.HasValue || !string.IsNullOrEmpty(request.DeliveryReference))
+            {
+                grn.SetDeliveryInformation(
+                    request.DeliveryDate,
+                    request.DeliveryReference,
+                    request.CarrierName,
+                    request.DriverName,
+                    request.DeliveryNotes
+                );
+            }
 
+            // Process line items from request
+            if (request.Lines?.Any() == true)
+            {
+                foreach (var lineRequest in request.Lines)
+                {
+                    // Find matching PO line to get OrderedQuantity and PurchaseOrderLineId
+                    var poLine = purchaseOrder.LineItems.FirstOrDefault(l => l.PartId == lineRequest.PartId);
+                    if (poLine is null)
+                        return BadRequest(new { message = $"Part {lineRequest.PartId} not found in purchase order" });
+
+                    // Create GRN line item with cost information
+                    var grnLine = GoodsReceiptLine.Create(
+                        grn.Id,
+                        poLine.Id,
+                        lineRequest.PartId,
+                        poLine.Quantity,  // OrderedQuantity from PO
+                        lineRequest.ReceivedQuantity,
+                        lineRequest.Condition,
+                        lineRequest.UnitCost,  // Actual unit cost received
+                        lineRequest.Currency,
+                        lineRequest.UnitId
+                    );
+
+                    if (!string.IsNullOrEmpty(lineRequest.Notes))
+                    {
+                        grnLine.RejectQuantity(0, lineRequest.Notes);
+                    }
+
+                    grn.LineItems.Add(grnLine);
+                }
+
+                // Update GRN counts
+                grn.UpdateCounts();
+            }
+
+            await _goodsReceiptRepository.AddAsync(grn, cancellationToken);
+            await _codeGenerateService.SaveGenerateCodeAsync("GRN", cancellationToken);
             return CreatedAtAction(nameof(GetGRNById), new { id = grn.Id }, MapToGoodsReceiptResponse(grn));
         }
         catch (ArgumentException ex)
@@ -468,6 +524,75 @@ public class PurchaseOrderController : ControllerBase
         }
     }
 
+    [HttpPut("grn/{id:guid}")]
+    public async Task<IActionResult> UpdateGRN(Guid id, CreateGoodsReceiptRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var grn = await _goodsReceiptRepository.GetByIdAsync(id, cancellationToken);
+            if (grn is null) return NotFound(new { message = "Goods receipt not found" });
+
+            // Only allow updates if GRN is still pending
+            if (grn.Status != "PENDING")
+                return BadRequest(new { message = "Only pending goods receipts can be edited" });
+
+            // Get the purchase order to retrieve line items and their details
+            var purchaseOrder = await _purchaseOrderRepository.GetByIdAsync(request.PurchaseOrderId, cancellationToken);
+            if (purchaseOrder is null)
+                return NotFound(new { message = "Purchase order not found" });
+
+            // Update basic GRN info
+            grn.ModifiedBy = "System";
+
+            // Clear and repopulate line items
+            grn.LineItems.Clear();
+
+            if (request.Lines?.Any() == true)
+            {
+                foreach (var lineRequest in request.Lines)
+                {
+                    // Find matching PO line to get OrderedQuantity and PurchaseOrderLineId
+                    var poLine = purchaseOrder.LineItems.FirstOrDefault(l => l.PartId == lineRequest.PartId);
+                    if (poLine is null)
+                        return BadRequest(new { message = $"Part {lineRequest.PartId} not found in purchase order" });
+
+                    // Create GRN line item
+                    var grnLine = GoodsReceiptLine.Create(
+                        grn.Id,
+                        poLine.Id,
+                        lineRequest.PartId,
+                        poLine.Quantity,  // OrderedQuantity from PO
+                        lineRequest.ReceivedQuantity,
+                        lineRequest.Condition
+                    );
+
+                    if (!string.IsNullOrEmpty(lineRequest.Notes))
+                    {
+                        grnLine.RejectQuantity(0, lineRequest.Notes);
+                    }
+
+                    grn.LineItems.Add(grnLine);
+                }
+
+                // Update GRN counts
+                grn.UpdateCounts();
+            }
+
+            await _goodsReceiptRepository.UpdateAsync(grn, cancellationToken);
+
+            return Ok(MapToGoodsReceiptResponse(grn));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating goods receipt: {GRNId}", id);
+            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while updating the goods receipt");
+        }
+    }
+
     [HttpPatch("grn/{id:guid}/verify")]
     public async Task<IActionResult> VerifyGRN(Guid id, [FromQuery] string verifiedBy, CancellationToken cancellationToken)
     {
@@ -511,6 +636,33 @@ public class PurchaseOrderController : ControllerBase
             grn.Accept();
             grn.ModifiedBy = "System";
             await _goodsReceiptRepository.UpdateAsync(grn, cancellationToken);
+
+            // Update purchase order line received quantities and status
+            var purchaseOrder = await _purchaseOrderRepository.GetByIdAsync(grn.PurchaseOrderId, cancellationToken);
+            if (purchaseOrder != null)
+            {
+                // Update received quantities for each line item
+                foreach (var grnLine in grn.LineItems)
+                {
+                    var poLine = purchaseOrder.LineItems.FirstOrDefault(l => l.PartId == grnLine.PartId);
+                    if (poLine != null)
+                    {
+                        // Calculate total accepted quantity for this part from all accepted GRNs
+                        var totalAcceptedForPart = purchaseOrder.GoodsReceipts
+                            .Where(gr => gr.Status == "ACCEPTED")
+                            .SelectMany(gr => gr.LineItems)
+                            .Where(l => l.PartId == grnLine.PartId)
+                            .Sum(l => l.AcceptedQuantity);
+
+                        poLine.UpdateReceivedQuantity(totalAcceptedForPart);
+                    }
+                }
+
+                // Update PO status (PARTIAL or DELIVERED)
+                purchaseOrder.UpdateReceiptStatus();
+                purchaseOrder.ModifiedBy = "System";
+                await _purchaseOrderRepository.UpdateAsync(purchaseOrder, cancellationToken);
+            }
 
             return Ok(MapToGoodsReceiptResponse(grn));
         }
@@ -590,9 +742,20 @@ public class PurchaseOrderController : ControllerBase
             Id = grn.Id,
             GRNNumber = grn.GRNNumber,
             PurchaseOrderId = grn.PurchaseOrderId,
+            PONumber = grn.PurchaseOrder?.PONumber ?? string.Empty,
             WarehouseId = grn.WarehouseId,
+            WarehouseName = grn.Warehouse?.Name ?? string.Empty,
             ReceivedDate = grn.ReceiptDate,
             Status = grn.Status,
+            TotalItemsReceived = grn.TotalItemsReceived,
+            DiscrepancyCount = grn.DiscrepancyCount,
+            VerifiedBy = grn.VerifiedBy,
+            VerificationDate = grn.VerificationDate,
+            DeliveryDate = grn.DeliveryDate,
+            DeliveryReference = grn.DeliveryReference,
+            CarrierName = grn.CarrierName,
+            DriverName = grn.DriverName,
+            DeliveryNotes = grn.DeliveryNotes,
             Lines = grn.LineItems.Select(l => new GoodsReceiptLineResponse
             {
                 Id = l.Id,
@@ -600,7 +763,13 @@ public class PurchaseOrderController : ControllerBase
                 ReceivedQuantity = l.ReceivedQuantity,
                 Condition = l.Condition,
                 Notes = l.Notes,
-                HasDiscrepancy = l.HasDiscrepancy
+                HasDiscrepancy = l.HasDiscrepancy,
+                UnitCost = l.UnitCost,
+                Currency = l.Currency,
+                TotalCost = l.TotalCost,
+                AcceptedQuantity = l.AcceptedQuantity,
+                AcceptedTotalCost = l.AcceptedTotalCost,
+                UnitId = l.UnitId
             }).ToList(),
             CreatedAt = DateTime.UtcNow
         };

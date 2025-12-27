@@ -1,0 +1,86 @@
+<!-- Loading state -->
+<div *ngIf="loading" class="loading-container">
+  <p-message severity="info" text="Loading categories..."></p-message>
+</div>
+
+<!-- Main content -->
+<div *ngIf="!loading" class="categories-content">
+  <!-- TreeTable component with pagination -->
+  <div class="treetable-wrapper">
+    <p-treeTable
+      [value]="treeData"
+      selectionMode="single"
+      [(selection)]="selectedRows"
+      (onNodeSelect)="onNodeSelect()"
+      [loading]="loading"
+      [lazy]="true"
+      (onLazyLoad)="onLazyLoad($event)"
+      [paginator]="true"
+      [rows]="rows"
+      [totalRecords]="totalRecords"
+      [tableStyle]="{'min-width':'50rem'}"
+      styleClass="p-datatable-striped">
+
+      <!-- Header -->
+      <ng-template #header>
+        <tr>
+          <th style="width: 30%">Category Name</th>
+          <th style="width: 15%">Code</th>
+          <th style="width: 12%">Level</th>
+          <th style="width: 15%">Status</th>
+          <th style="width: 12%">Order</th>
+          <th style="width: 8%; text-align: center;">Actions</th>
+        </tr>
+      </ng-template>
+
+      <!-- Body with tree structure -->
+      <ng-template #body let-rowNode let-rowData="rowData">
+        <tr [ttRow]="rowNode">
+          <!-- Name column with expand/collapse -->
+          <td style="width: 30%">
+            <p-treeTableToggler [rowNode]="rowNode"></p-treeTableToggler>
+            <span class="category-name">{{ rowData.name }}</span>
+          </td>
+          <!-- Code column -->
+          <td style="width: 15%">
+            <span class="code-badge">{{ rowData.code }}</span>
+          </td>
+          <!-- Level column -->
+          <td style="width: 12%">
+            <span class="level-badge">{{ rowData.levelDisplay }}</span>
+          </td>
+          <!-- Status column -->
+          <td style="width: 15%">
+            <span [class]="'status ' + (rowData.isActive ? 'active' : 'inactive')">
+              {{ rowData.isActive ? 'Active' : 'Inactive' }}
+            </span>
+          </td>
+          <!-- Display Order -->
+          <td style="width: 12%">{{ rowData.displayOrder }}</td>
+          <!-- Actions -->
+          <td style="width: 8%; text-align: center;">
+            <button
+              type="button"
+              pButton
+              pRipple
+              icon="pi pi-ellipsis-v"
+              class="p-button-text p-button-sm"
+              pTooltip="Actions"
+              tooltipPosition="left"
+              (contextmenu)="showContextMenu($event, rowData.category)"
+              (click)="showContextMenu($event, rowData.category)">
+            </button>
+          </td>
+        </tr>
+      </ng-template>
+
+    </p-treeTable>
+  </div>
+</div>
+
+<!-- Context Menu -->
+<p-contextMenu
+  #contextMenu
+  [model]="contextMenuItems"
+  [appendTo]="'body'">
+</p-contextMenu>

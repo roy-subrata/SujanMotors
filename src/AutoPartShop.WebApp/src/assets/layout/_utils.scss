@@ -1,0 +1,43 @@
+/* Utils */
+.clearfix:after {
+    content: ' ';
+    display: block;
+    clear: both;
+}
+
+.card {
+    background: var(--surface-card);
+    padding: 2rem;
+    margin-bottom: 2rem;
+    border-radius: var(--content-border-radius);
+
+    &:last-child {
+        margin-bottom: 0;
+    }
+}
+
+.p-toast {
+    &.p-toast-top-right,
+    &.p-toast-top-left,
+    &.p-toast-top-center {
+        top: 64px;
+    }
+}
+
+/* Ensure PrimeNG overlay panels (dropdowns, autocomplete, select) appear above dialogs/topbar */
+.p-overlay,
+.p-dropdown-panel,
+.p-selectpanel,
+.p-autocomplete-panel,
+.p-overlaypanel,
+.p-contextmenu,
+.p-datepicker,
+.p-overlaypanel .p-dropdown-panel {
+    z-index: 2000 !important;
+}
+
+/* Special case: make sure select/picklists used inside dialogs are not obscured */
+.p-dialog .p-dropdown-panel,
+.p-dialog .p-autocomplete-panel {
+    z-index: 3000 !important;
+}

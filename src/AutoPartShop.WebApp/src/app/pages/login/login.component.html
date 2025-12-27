@@ -1,0 +1,110 @@
+<div class="login-container">
+  <p-toast></p-toast>
+
+  <div class="login-card-wrapper">
+    <p-card class="login-card">
+      <!-- Logo and Title -->
+      <div class="login-header">
+        <div class="logo-container">
+          <i class="pi pi-car text-5xl"></i>
+        </div>
+        <h1 class="login-title">AutoPart Shop</h1>
+        <p class="login-subtitle">Sign in to your account</p>
+      </div>
+
+      <!-- Error Message -->
+      @if (errorMessage()) {
+        <p-message severity="error" [text]="errorMessage()!" styleClass="w-full mb-4"></p-message>
+      }
+
+      <!-- Login Form -->
+      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
+        <!-- Username/Email Field -->
+        <div class="form-field">
+          <label for="username" class="form-label">
+            <i class="pi pi-user mr-2"></i>
+            Username or Email
+          </label>
+          <input
+            pInputText
+            id="username"
+            formControlName="username"
+            placeholder="Enter your username or email"
+            class="w-full"
+            [class.ng-invalid]="isFieldInvalid('username')"
+            [class.ng-dirty]="isFieldInvalid('username')"
+            autocomplete="username"
+          />
+          @if (isFieldInvalid('username')) {
+            <small class="error-message">{{ getFieldError('username') }}</small>
+          }
+        </div>
+
+        <!-- Password Field -->
+        <div class="form-field">
+          <label for="password" class="form-label">
+            <i class="pi pi-lock mr-2"></i>
+            Password
+          </label>
+          <p-password
+            id="password"
+            formControlName="password"
+            placeholder="Enter your password"
+            [toggleMask]="true"
+            [feedback]="false"
+            styleClass="w-full"
+            [inputStyle]="{ width: '100%' }"
+            [class.ng-invalid]="isFieldInvalid('password')"
+            [class.ng-dirty]="isFieldInvalid('password')"
+            autocomplete="current-password"
+          ></p-password>
+          @if (isFieldInvalid('password')) {
+            <small class="error-message">{{ getFieldError('password') }}</small>
+          }
+        </div>
+
+        <!-- Remember Me & Forgot Password -->
+        <div class="form-options">
+          <div class="remember-me">
+            <p-checkbox
+              formControlName="rememberMe"
+              inputId="rememberMe"
+              [binary]="true"
+            ></p-checkbox>
+            <label for="rememberMe" class="ml-2 cursor-pointer">Remember me</label>
+          </div>
+          <a href="javascript:void(0)" class="forgot-password">Forgot password?</a>
+        </div>
+
+        <!-- Submit Button -->
+        <button
+          pButton
+          type="submit"
+          label="Sign In"
+          icon="pi pi-sign-in"
+          class="w-full"
+          [loading]="loading()"
+          [disabled]="loading()"
+        ></button>
+      </form>
+
+      <!-- Divider -->
+      <div class="login-divider">
+        <span>or</span>
+      </div>
+
+      <!-- Additional Options -->
+      <div class="additional-options">
+        <p class="text-center">
+          Don't have an account?
+          <a href="javascript:void(0)" class="register-link">Contact administrator</a>
+        </p>
+      </div>
+    </p-card>
+
+    <!-- Footer -->
+    <div class="login-footer">
+      <p>&copy; 2025 AutoPart Shop. All rights reserved.</p>
+    </div>
+  </div>
+</div>
