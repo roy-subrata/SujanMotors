@@ -74,9 +74,9 @@ export class SupplierPaymentFormComponent implements OnInit {
         this.form = this.fb.group({
             supplierId: ['', Validators.required],
             paymentProviderId: ['', Validators.required],
-            supplierPaymentAccountId: [''],  // Supplier's payment account (destination)
-            amount: [0, [Validators.required, Validators.min(0.01)]],
-            paymentMethod: [''],  // Auto-set from paymentProviderId's providerType
+            supplierPaymentAccountId: [''], // Supplier's payment account (destination)
+            amount: [0, [Validators.required, Validators.min(1)]],
+            paymentMethod: [''], // Auto-set from paymentProviderId's providerType
             paymentType: ['REGULAR', Validators.required],
             transactionNumber: [''],
             referenceNumber: [''],
@@ -85,7 +85,7 @@ export class SupplierPaymentFormComponent implements OnInit {
             purchaseOrderId: [''],
             paymentDate: [new Date()],
             notes: [''],
-            description: ['']  // For advance payments
+            description: [''] // For advance payments
         });
     }
 
@@ -111,6 +111,7 @@ export class SupplierPaymentFormComponent implements OnInit {
         // Watch for supplier changes to load their payment accounts
         this.form.get('supplierId')?.valueChanges.subscribe((value) => {
             if (value) {
+                debugger;
                 const supplierId = typeof value === 'string' ? value : value?.id;
                 if (supplierId) {
                     this.loadSupplierPaymentAccounts(supplierId);
@@ -125,10 +126,10 @@ export class SupplierPaymentFormComponent implements OnInit {
         // Watch for payment provider changes to auto-set payment method
         this.form.get('paymentProviderId')?.valueChanges.subscribe((value) => {
             if (value) {
-                const provider = typeof value === 'object' ? value : this.paymentProviders.find(p => p.id === value);
+                const provider = typeof value === 'object' ? value : this.paymentProviders.find((p) => p.id === value);
                 if (provider?.providerType) {
                     // Auto-set payment method based on provider type
-                    const matchingMethod = this.paymentMethods.find(m => m.value === provider.providerType);
+                    const matchingMethod = this.paymentMethods.find((m) => m.value === provider.providerType);
                     if (matchingMethod) {
                         this.form.patchValue({ paymentMethod: matchingMethod }, { emitEvent: false });
                     }
@@ -136,8 +137,31 @@ export class SupplierPaymentFormComponent implements OnInit {
             }
         });
 
+        this.form.get('purchaseOrderId')?.valueChanges.subscribe((purchase) => {
+            if (purchase && purchase.id) {
+                // Pre-select the purchase order after POs are loaded
+                this.poService.getPurchaseOrderById(purchase.id).subscribe({
+                    next: (po) => {
+                        if (po && po.outstandingAmount > 0) {
+                            this.form.get('amount')?.addValidators([Validators.max(po.outstandingAmount)]);
+                            this.form.patchValue({ amount: po.outstandingAmount });
+                        }
+                    },
+                    error: (error) => {
+                        console.error('Error loading purchase order:', error);
+                        this.messageService.add({
+                            severity: 'error',
+                            summary: 'Error',
+                            detail: 'Failed to load purchase order details'
+                        });
+                    }
+                });
+            }
+        });
+
         this.route.queryParams.subscribe((params) => {
             if (params['id']) {
+                debugger;
                 this.paymentId = params['id'];
                 this.isEditing = true;
                 this.loadPayment();
@@ -228,6 +252,8 @@ export class SupplierPaymentFormComponent implements OnInit {
                 this.form.get('purchaseOrderId')?.disable();
                 // Also set payment type to REGULAR since it's for a specific PO
                 this.form.patchValue({ paymentType: 'REGULAR' });
+                this.form.get('amount')?.addValidators([Validators.max(po.outstandingAmount)]);
+                this.form.patchValue({ amount: po.outstandingAmount });
             },
             error: (error) => {
                 console.error('Error loading purchase order:', error);
@@ -316,7 +342,7 @@ export class SupplierPaymentFormComponent implements OnInit {
                 this.supplierPaymentAccounts = Array.isArray(accounts) ? accounts : [];
                 this.filteredSupplierPaymentAccounts = this.supplierPaymentAccounts;
                 // Auto-select default account if available
-                const defaultAccount = this.supplierPaymentAccounts.find(a => a.isDefault);
+                const defaultAccount = this.supplierPaymentAccounts.find((a) => a.isDefault);
                 if (defaultAccount && !this.form.get('supplierPaymentAccountId')?.value) {
                     this.form.patchValue({ supplierPaymentAccountId: defaultAccount });
                 }
@@ -358,9 +384,7 @@ export class SupplierPaymentFormComponent implements OnInit {
      */
     filterSupplierPaymentAccounts(event: any): void {
         const query = event.query.toLowerCase();
-        this.filteredSupplierPaymentAccounts = this.supplierPaymentAccounts.filter(
-            (account) => account.accountName.toLowerCase().includes(query) || account.displayText.toLowerCase().includes(query)
-        );
+        this.filteredSupplierPaymentAccounts = this.supplierPaymentAccounts.filter((account) => account.accountName.toLowerCase().includes(query) || account.displayText.toLowerCase().includes(query));
     }
 
     filterPOs(event: { query: string }): void {

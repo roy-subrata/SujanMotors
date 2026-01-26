@@ -45,16 +45,9 @@
         <div class="form-row">
           <div class="form-group">
             <label>Supplier *</label>
-            <p-autoComplete
-              [suggestions]="filteredSuppliers"
-              formControlName="supplierId"
-              [forceSelection]="true"
-              field="name"
-              optionLabel="name"
-              [dropdown]="true"
-              placeholder="Search supplier..."
-              (completeMethod)="filterSuppliers($event)"
-              [disabled]="isEditing || isFromPurchaseOrder"
+            <p-autoComplete [suggestions]="filteredSuppliers" formControlName="supplierId" [forceSelection]="true"
+              field="name" optionLabel="name" [dropdown]="true" placeholder="Search supplier..."
+              (completeMethod)="filterSuppliers($event)" [disabled]="isEditing || isFromPurchaseOrder"
               [style]="{ width: '100%' }">
               <ng-template let-supplier pTemplate="item">
                 <div class="autocomplete-item">
@@ -67,7 +60,8 @@
               <i class="pi pi-info-circle"></i>
               Supplier is determined by the selected purchase order
             </small>
-            <small *ngIf="form.get('supplierId')?.invalid && form.get('supplierId')?.touched && !isFromPurchaseOrder" class="p-error">
+            <small *ngIf="form.get('supplierId')?.invalid && form.get('supplierId')?.touched && !isFromPurchaseOrder"
+              class="p-error">
               Supplier is required
             </small>
           </div>
@@ -85,16 +79,10 @@
         <div class="form-row" *ngIf="supplierPaymentAccounts.length > 0">
           <div class="form-group">
             <label>Send To *</label>
-            <p-autoComplete
-              [suggestions]="filteredSupplierPaymentAccounts"
-              formControlName="supplierPaymentAccountId"
-              [forceSelection]="true"
-              field="accountName"
-              optionLabel="accountName"
-              [dropdown]="true"
+            <p-autoComplete [suggestions]="filteredSupplierPaymentAccounts" formControlName="supplierPaymentAccountId"
+              [forceSelection]="true" field="accountName" optionLabel="accountName" [dropdown]="true"
               placeholder="Select supplier's receiving account..."
-              (completeMethod)="filterSupplierPaymentAccounts($event)"
-              [disabled]="isEditing"
+              (completeMethod)="filterSupplierPaymentAccounts($event)" [disabled]="isEditing"
               [style]="{ width: '100%' }">
               <ng-template let-account pTemplate="item">
                 <div class="provider-item">
@@ -132,7 +120,7 @@
             <strong>No payment accounts configured</strong>
             <p>This supplier has no payment accounts.
               <a [routerLink]="['/inventory/suppliers/payment-accounts']"
-                 [queryParams]="{supplierId: form.get('supplierId')?.value?.id || form.get('supplierId')?.value}">
+                [queryParams]="{supplierId: form.get('supplierId')?.value?.id || form.get('supplierId')?.value}">
                 Add payment account
               </a>
             </p>
@@ -147,18 +135,16 @@
           Payment Type
         </h3>
         <div class="payment-type-selector">
-          <div class="payment-type-option"
-               [class.selected]="form.get('paymentType')?.value === 'REGULAR'"
-               (click)="form.get('paymentType')?.setValue('REGULAR')">
+          <div class="payment-type-option" [class.selected]="form.get('paymentType')?.value === 'REGULAR'"
+            (click)="form.get('paymentType')?.setValue('REGULAR')">
             <p-radioButton name="paymentType" value="REGULAR" formControlName="paymentType"></p-radioButton>
             <div class="option-content">
               <span class="option-label">Regular Payment</span>
               <span class="option-desc">Payment for a specific purchase order</span>
             </div>
           </div>
-          <div class="payment-type-option"
-               [class.selected]="form.get('paymentType')?.value === 'ADVANCE'"
-               (click)="form.get('paymentType')?.setValue('ADVANCE')">
+          <div class="payment-type-option" [class.selected]="form.get('paymentType')?.value === 'ADVANCE'"
+            (click)="form.get('paymentType')?.setValue('ADVANCE')">
             <p-radioButton name="paymentType" value="ADVANCE" formControlName="paymentType"></p-radioButton>
             <div class="option-content">
               <span class="option-label">Advance Payment</span>
@@ -182,17 +168,10 @@
         <div class="form-row">
           <div class="form-group">
             <label>Pay From *</label>
-            <p-autoComplete
-              [suggestions]="filteredPaymentProviders"
-              formControlName="paymentProviderId"
-              [forceSelection]="true"
-              field="providerName"
-              optionLabel="providerName"
-              [dropdown]="true"
-              placeholder="Select your payment account..."
-              (completeMethod)="filterPaymentProviders($event)"
-              [disabled]="isEditing"
-              [style]="{ width: '100%' }">
+            <p-autoComplete [suggestions]="filteredPaymentProviders" formControlName="paymentProviderId"
+              [forceSelection]="true" field="providerName" optionLabel="providerName" [dropdown]="true"
+              placeholder="Select your payment account..." (completeMethod)="filterPaymentProviders($event)"
+              [disabled]="isEditing" [style]="{ width: '100%' }">
               <ng-template let-provider pTemplate="item">
                 <div class="provider-item">
                   <div class="provider-icon-wrapper" [ngClass]="provider.providerType?.toLowerCase()">
@@ -218,7 +197,8 @@
               <i class="pi pi-info-circle"></i>
               Your bank/mobile/cash account from which payment will be sent
             </small>
-            <small *ngIf="form.get('paymentProviderId')?.invalid && form.get('paymentProviderId')?.touched" class="p-error">
+            <small *ngIf="form.get('paymentProviderId')?.invalid && form.get('paymentProviderId')?.touched"
+              class="p-error">
               Payment provider is required
             </small>
           </div>
@@ -266,15 +246,9 @@
           <div class="form-group">
             <label>Amount *</label>
             <div class="amount-with-currency">
-              <p-select
-                [options]="currencies"
-                [(ngModel)]="selectedCurrency"
-                [ngModelOptions]="{standalone: true}"
-                optionLabel="code"
-                (onChange)="onCurrencyChange($event.value)"
-                [disabled]="isEditing"
-                [style]="{ width: '100px' }"
-                placeholder="Currency">
+              <p-select [options]="currencies" [(ngModel)]="selectedCurrency" [ngModelOptions]="{standalone: true}"
+                optionLabel="code" (onChange)="onCurrencyChange($event.value)" [disabled]="isEditing"
+                [style]="{ width: '100px' }" placeholder="Currency">
                 <ng-template let-currency pTemplate="selectedItem">
                   {{ currency?.symbol }} {{ currency?.code }}
                 </ng-template>
@@ -282,29 +256,31 @@
                   <span>{{ currency.symbol }} {{ currency.code }} - {{ currency.name }}</span>
                 </ng-template>
               </p-select>
-              <p-inputNumber
-                formControlName="amount"
-                placeholder="0.00"
-                [readonly]="isEditing"
-                [minFractionDigits]="2"
-                [maxFractionDigits]="2"
-                [style]="{ flex: '1' }">
+              <p-inputNumber formControlName="amount" placeholder="0.00" [readonly]="isEditing" [minFractionDigits]="2"
+                [maxFractionDigits]="2" [style]="{ flex: '1' }">
               </p-inputNumber>
             </div>
-            <small *ngIf="form.get('amount')?.invalid && form.get('amount')?.touched" class="p-error">
-              Amount is required and must be greater than 0
+            <small *ngIf="form.get('amount')?.touched && form.get('amount')?.invalid" class="p-error">
+              <span *ngIf="form.get('amount')?.hasError('required')">
+                Amount is required.
+              </span>
+
+              <span *ngIf="form.get('amount')?.hasError('min')">
+                Amount must be greater than 0.
+              </span>
+
+              <span *ngIf="form.get('amount')?.hasError('max')">
+                Amount cannot be more than outstanding balance.
+              </span>
             </small>
+
+
+
           </div>
           <div class="form-group">
             <label>Payment Date</label>
-            <p-datepicker
-              formControlName="paymentDate"
-              [showIcon]="true"
-              [iconDisplay]="'input'"
-              dateFormat="yy-mm-dd"
-              [disabled]="isEditing"
-              [style]="{ width: '100%' }"
-              placeholder="Select date">
+            <p-datepicker formControlName="paymentDate" [showIcon]="true" [iconDisplay]="'input'" dateFormat="yy-mm-dd"
+              [disabled]="isEditing" [style]="{ width: '100%' }" placeholder="Select date">
             </p-datepicker>
           </div>
         </div>
@@ -318,16 +294,9 @@
                 <i class="pi pi-lock"></i> Locked
               </span>
             </label>
-            <p-autoComplete
-              formControlName="purchaseOrderId"
-              [suggestions]="filteredPOs"
-              (completeMethod)="filterPOs($event)"
-              [dropdown]="true"
-              field="poNumber"
-              optionLabel="poNumber"
-              placeholder="Select purchase order..."
-              [disabled]="isFromPurchaseOrder"
-              [style]="{ width: '100%' }">
+            <p-autoComplete formControlName="purchaseOrderId" [suggestions]="filteredPOs"
+              (completeMethod)="filterPOs($event)" [dropdown]="true" field="poNumber" optionLabel="poNumber"
+              placeholder="Select purchase order..." [disabled]="isFromPurchaseOrder" [style]="{ width: '100%' }">
               <ng-template let-po pTemplate="item">
                 <div class="autocomplete-item">
                   <span class="item-name">{{ po.poNumber }}</span>
@@ -361,7 +330,8 @@
         <div class="form-row">
           <div class="form-group">
             <label>Transaction Number</label>
-            <input pInputText formControlName="transactionNumber" placeholder="Transaction number" [readonly]="isEditing" />
+            <input pInputText formControlName="transactionNumber" placeholder="Transaction number"
+              [readonly]="isEditing" />
           </div>
           <div class="form-group">
             <label>Reference Number</label>
@@ -389,15 +359,18 @@
         <div class="form-row">
           <div class="form-group full">
             <label>Notes</label>
-            <textarea pTextarea formControlName="notes" placeholder="Additional notes about this payment" rows="3"></textarea>
+            <textarea pTextarea formControlName="notes" placeholder="Additional notes about this payment"
+              rows="3"></textarea>
           </div>
         </div>
       </div>
 
       <!-- Form Actions -->
       <div class="form-actions">
-        <button pButton type="button" label="Cancel" icon="pi pi-times" class="p-button-outlined" (click)="onCancel()"></button>
-        <button pButton type="submit" [label]="isEditing ? 'Update Payment' : 'Record Payment'" icon="pi pi-check" class="p-button-primary" [loading]="loading"></button>
+        <button pButton type="button" label="Cancel" icon="pi pi-times" class="p-button-outlined"
+          (click)="onCancel()"></button>
+        <button pButton type="submit" [label]="isEditing ? 'Update Payment' : 'Record Payment'" icon="pi pi-check"
+          class="p-button-primary" [loading]="loading"></button>
       </div>
     </form>
   </p-card>
