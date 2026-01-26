@@ -47,6 +47,16 @@ internal class PaymentProviderConfiguration : IEntityTypeConfiguration<PaymentPr
         builder.Property(p => p.BeneficiaryName)
             .HasMaxLength(100);
 
+        // Mobile Banking fields
+        builder.Property(p => p.MobileNumber)
+            .HasMaxLength(20);
+
+        builder.Property(p => p.AccountHolderName)
+            .HasMaxLength(100);
+
+        builder.Property(p => p.AgentNumber)
+            .HasMaxLength(50);
+
         builder.Property(p => p.TransactionFeeType)
             .HasMaxLength(20);
 

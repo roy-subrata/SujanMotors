@@ -21,77 +21,78 @@ import { TechniciansListComponent } from './technicians/technicians-list/technic
 import { TechnicianFormComponent } from './technicians/technician-form/technician-form.component';
 
 export const salesRoutes: Routes = [
-  // Sales Orders
-  {
-    path: 'sales-orders',
-    component: SalesOrdersComponent,
-    children: [
-      { path: '', component: SalesOrdersListComponent },
-      { path: 'create', component: SalesOrderFormComponent },
-      { path: 'edit', component: SalesOrderFormComponent },
-      { path: 'view', component: SalesOrderFormComponent }
-    ]
-  },
+    // Sales Orders
+    {
+        path: 'sales-orders',
+        component: SalesOrdersComponent,
+        children: [
+            { path: '', component: SalesOrdersListComponent },
+            { path: 'create', component: SalesOrderFormComponent },
+            { path: 'edit', component: SalesOrderFormComponent },
+            { path: 'view', component: SalesOrderFormComponent }
+        ]
+    },
 
-  // Invoices
-  {
-    path: 'invoices',
-    component: InvoicesComponent,
-    children: [
-      { path: '', component: InvoicesListComponent },
-      { path: 'create', component: InvoiceFormComponent },
-      { path: 'view', component: InvoiceFormComponent }
-    ]
-  },
+    // Invoices
+    {
+        path: 'invoices',
+        component: InvoicesComponent,
+        children: [
+            { path: '', component: InvoicesListComponent },
+            { path: 'create', component: InvoiceFormComponent },
+            { path: 'view', component: InvoiceFormComponent }
+        ]
+    },
 
-  // Sales Returns
-  {
-    path: 'sales-returns',
-    component: SalesReturnsComponent,
-    children: [
-      { path: '', component: SalesReturnsListComponent },
-      { path: 'create', component: SalesReturnFormComponent },
-      { path: 'view', component: SalesReturnFormComponent }
-    ]
-  },
+    // Sales Returns
+    {
+        path: 'sales-returns',
+        component: SalesReturnsComponent,
+        children: [
+            { path: '', component: SalesReturnsListComponent },
+            { path: 'create', component: SalesReturnFormComponent },
+            { path: 'view', component: SalesReturnFormComponent }
+        ]
+    },
 
-  // Customer Payments
-  {
-    path: 'customer-payments',
-    component: CustomerPaymentsComponent,
-    children: [
-      { path: '', component: CustomerPaymentListComponent },
-      { path: 'new', component: CustomerPaymentFormComponent },
-      { path: 'edit', component: CustomerPaymentFormComponent },
-      { path: 'view', component: CustomerPaymentFormComponent }
-    ]
-  },
-  {
-    path: 'customer-payments/summary/:customerId',
-    component: CustomerPaymentSummaryComponent
-  },
+    // Customer Payments
+    {
+        path: 'customer-payments',
+        component: CustomerPaymentsComponent,
+        children: [
+            { path: '', component: CustomerPaymentListComponent },
+            { path: 'new', component: CustomerPaymentFormComponent },
+            { path: 'edit', component: CustomerPaymentFormComponent },
+            { path: 'view', component: CustomerPaymentFormComponent },
+            { path: ':customerId', component: CustomerPaymentListComponent }
+        ]
+    },
+    {
+        path: 'customer-payments/summary/:customerId',
+        component: CustomerPaymentSummaryComponent
+    },
 
-  // Customers
-  {
-    path: 'customers',
-    component: CustomersComponent,
-    children: [
-      { path: '', component: CustomersListComponent },
-      { path: 'create', component: CustomerFormComponent },
-      { path: 'edit', component: CustomerFormComponent },
-      { path: 'detail', component: CustomerDetailComponent }
-    ]
-  },
+    // Customers
+    {
+        path: 'customers',
+        component: CustomersComponent,
+        children: [
+            { path: '', component: CustomersListComponent },
+            { path: 'create', component: CustomerFormComponent },
+            { path: 'edit', component: CustomerFormComponent },
+            { path: 'detail', component: CustomerDetailComponent }
+        ]
+    },
 
-  // Technicians
-  {
-    path: 'technicians',
-    component: TechniciansComponent,
-    children: [
-      { path: '', component: TechniciansListComponent },
-      { path: 'create', component: TechnicianFormComponent },
-      { path: 'edit', component: TechnicianFormComponent },
-      { path: 'view', component: TechnicianFormComponent }
-    ]
-  }
+    // Technicians
+    {
+        path: 'technicians',
+        component: TechniciansComponent,
+        children: [
+            { path: '', component: TechniciansListComponent },
+            { path: 'create', component: TechnicianFormComponent },
+            { path: 'edit', component: TechnicianFormComponent },
+            { path: 'view', component: TechnicianFormComponent }
+        ]
+    }
 ];

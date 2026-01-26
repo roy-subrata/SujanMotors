@@ -1,3 +1,4 @@
+using AutoPartShop.Domain.Common;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
 
@@ -6,10 +7,17 @@ public interface IPartRepository : IBaseRepository<Part>
 {
     Task<IEnumerable<Part>> GetAllActiveAsync(CancellationToken cancellationToken = default);
     Task<(IEnumerable<Part> Parts, int TotalCount)> SearchPagedAsync(string searchTerm, int pageNumber, int pageSize, CancellationToken cancellationToken = default);
+    Task<(IEnumerable<Part> Parts, int TotalCount)> SearchPagedAsync(PartQuery query, CancellationToken cancellationToken = default);
     Task<bool> SKUExistsAsync(string sku, Guid? excludePartId = null, CancellationToken cancellationToken = default);
     Task<Part?> GetBySKUAsync(string sku, CancellationToken cancellationToken = default);
     Task<IEnumerable<Part>> GetByCategoryAsync(Guid categoryId, CancellationToken cancellationToken = default);
 }
+
+public class PartQuery : BaseQuery
+{
+    public bool? IsActive { get; set; } = true;
+}
+
 
 public interface IVehicleRepository : IBaseRepository<Vehicle>
 {

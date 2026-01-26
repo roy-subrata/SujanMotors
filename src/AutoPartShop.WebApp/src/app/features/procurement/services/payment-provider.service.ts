@@ -6,32 +6,45 @@ import { map } from 'rxjs/operators';
 export interface CreatePaymentProviderRequest {
   providerName: string;
   providerType: string;
+  // Bank Transfer fields
   bankName: string;
   bankAccountNumber: string;
   bankRoutingNumber: string;
   bankIBAN: string;
   bankSWIFT: string;
   beneficiaryName: string;
+  // Online Gateway fields
   apiKey: string;
   merchantId: string;
+  webhookUrl: string;
+  // Mobile Banking fields (bKash, Nagad, eZ Cash, etc.)
+  mobileNumber: string;
+  accountHolderName: string;
+  agentNumber: string;
+  // Fee Configuration
   transactionFeeType: string;
   transactionFeeAmount: number;
   minimumAmount: number;
   maximumAmount: number;
   settlementDays: number;
   supportedCurrencies: string;
-  webhookUrl: string;
   notes: string;
 }
 
 export interface UpdatePaymentProviderRequest {
   providerName: string;
+  // Bank Transfer fields
   bankName: string;
   bankAccountNumber: string;
   bankRoutingNumber: string;
   bankIBAN: string;
   bankSWIFT: string;
   beneficiaryName: string;
+  // Mobile Banking fields
+  mobileNumber: string;
+  accountHolderName: string;
+  agentNumber: string;
+  // Fee Configuration
   transactionFeeType: string;
   transactionFeeAmount: number;
   minimumAmount: number;
@@ -47,19 +60,28 @@ export interface PaymentProviderResponse {
   providerName: string;
   providerType: string;
   status: string;
+  // Bank Transfer fields
   bankName: string;
   bankAccountNumber: string;
   bankRoutingNumber: string;
   bankIBAN: string;
   bankSWIFT: string;
   beneficiaryName: string;
+  // Online Gateway fields
+  apiKey: string;
+  merchantId: string;
+  webhookUrl: string;
+  // Mobile Banking fields
+  mobileNumber: string;
+  accountHolderName: string;
+  agentNumber: string;
+  // Fee Configuration
   transactionFeeType: string;
   transactionFeeAmount: number;
   minimumAmount: number;
   maximumAmount: number;
   settlementDays: number;
   supportedCurrencies: string;
-  webhookUrl: string;
   isDefault: boolean;
   lastTestedDate?: string;
   notes: string;

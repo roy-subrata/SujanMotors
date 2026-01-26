@@ -13,13 +13,4 @@
     </app-parts-table>
   </div>
 
-  <!-- Create/Update Dialog -->
-  <ng-container *ngIf="displayCreateDialog || displayUpdateDialog">
-    <app-parts-form-dialog [displayCreateDialog]="displayCreateDialog" [displayUpdateDialog]="displayUpdateDialog"
-      [selectedPart]="selectedPart" (displayCreateDialogChange)="displayCreateDialog = $event"
-      (displayUpdateDialogChange)="displayUpdateDialog = $event" (partCreated)="onPartCreated($event)"
-      (partUpdated)="onPartUpdated($event)">
-    </app-parts-form-dialog>
-  </ng-container>
-
 </div>

@@ -76,8 +76,8 @@
                 <i [class]="getPaymentMethodIcon(method.value)"></i>
                 <span>{{ method.label }}</span>
                 <p-tag
-                  *ngIf="isInstantPaymentMethod(method.value)"
-                  value="Auto-Confirm"
+                  *ngIf="method.value === 'CASH'"
+                  value="Auto-Complete"
                   severity="success"
                   [style]="{'font-size': '0.7rem', 'margin-left': 'auto'}">
                 </p-tag>

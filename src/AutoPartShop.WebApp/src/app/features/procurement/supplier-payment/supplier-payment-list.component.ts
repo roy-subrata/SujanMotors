@@ -15,14 +15,16 @@ import { CardModule } from 'primeng/card';
 import { Select } from 'primeng/select';
 import { DatePicker } from 'primeng/datepicker';
 import { PaginatorModule } from 'primeng/paginator';
+import { TooltipModule } from 'primeng/tooltip';
 import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
-import { SupplierPaymentService, SupplierPaymentResponse, PaginatedSupplierPaymentResponse } from '../services/supplier-payment.service';
+import { SupplierPaymentService, SupplierPaymentResponse, PaginatedSupplierPaymentResponse, SupplierPaymentQuery } from '../services/supplier-payment.service';
 import { StatusBadgeComponent } from '../components/status-badge.component';
+import { CurrencyService } from '../../../shared/services/currency.service';
 
 @Component({
     selector: 'app-supplier-payment-list',
     standalone: true,
-    imports: [CommonModule, FormsModule, ButtonModule, TableModule, InputTextModule, ToastModule, ConfirmDialogModule, DialogModule, TagModule, ContextMenuModule, RippleModule, CardModule, Select, DatePicker, PaginatorModule, StatusBadgeComponent],
+    imports: [CommonModule, FormsModule, ButtonModule, TableModule, InputTextModule, ToastModule, ConfirmDialogModule, DialogModule, TagModule, ContextMenuModule, RippleModule, CardModule, Select, DatePicker, PaginatorModule, TooltipModule, StatusBadgeComponent],
     providers: [MessageService, ConfirmationService],
     templateUrl: './supplier-payment-list.component.html',
     styleUrls: ['./supplier-payment-list.component.css']
@@ -34,6 +36,7 @@ export class SupplierPaymentListComponent implements OnInit {
     private readonly messageService = inject(MessageService);
     private readonly confirmationService = inject(ConfirmationService);
     private readonly router = inject(Router);
+    private readonly currencyService = inject(CurrencyService);
 
     supplierPayments: SupplierPaymentResponse[] = [];
     searchTerm: string = '';
@@ -50,8 +53,9 @@ export class SupplierPaymentListComponent implements OnInit {
     statusOptions = [
         { label: 'All', value: null },
         { label: 'Pending', value: 'PENDING' },
-        { label: 'Confirmed', value: 'CONFIRMED' },
-        { label: 'Reconciled', value: 'RECONCILED' },
+        { label: 'Completed', value: 'COMPLETED' },
+        { label: 'Processing', value: 'PROCESSING' },
+        { label: 'Failed', value: 'FAILED' },
         { label: 'Cancelled', value: 'CANCELLED' }
     ];
 
@@ -71,15 +75,6 @@ export class SupplierPaymentListComponent implements OnInit {
                 command: () => {
                     if (this.selectedPayment) {
                         this.viewDetails(this.selectedPayment);
-                    }
-                }
-            },
-            {
-                label: 'View Summary',
-                icon: 'pi pi-chart-bar',
-                command: () => {
-                    if (this.selectedPayment) {
-                        this.viewPaymentSummary(this.selectedPayment);
                     }
                 }
             },
@@ -116,14 +111,14 @@ export class SupplierPaymentListComponent implements OnInit {
             },
             { separator: true },
             {
-                label: 'Confirm',
-                icon: 'pi pi-check',
+                label: 'Confirm Payment',
+                icon: 'pi pi-check-circle',
                 command: () => {
                     if (this.selectedPayment) {
                         this.confirmPayment(this.selectedPayment);
                     }
                 },
-                visible: this.selectedPayment ? this.selectedPayment.status === 'PENDING' : false
+                visible: this.selectedPayment ? (this.selectedPayment.status === 'PENDING' || this.selectedPayment.status === 'PROCESSING') : false
             },
             {
                 label: 'Reconcile',
@@ -173,10 +168,25 @@ export class SupplierPaymentListComponent implements OnInit {
      */
     loadSupplierPayments(): void {
         this.loading = true;
-        this.supplierPaymentService.getSupplierPayments(this.pageNumber, this.pageSize, this.searchTerm).subscribe({
+
+        // Build query object
+        const query: SupplierPaymentQuery = {
+            pageNumber: this.pageNumber,
+            pageSize: this.pageSize,
+            search: this.searchTerm || undefined,
+            status: this.filterStatus || undefined
+        };
+
+        // Add date range if selected
+        if (this.dateRange && this.dateRange.length === 2 && this.dateRange[0] && this.dateRange[1]) {
+            query.fromDate = this.formatDateForApi(this.dateRange[0]);
+            query.toDate = this.formatDateForApi(this.dateRange[1]);
+        }
+
+        this.supplierPaymentService.getSupplierPayments(query).subscribe({
             next: (response: PaginatedSupplierPaymentResponse) => {
-                this.supplierPayments = response.items;
-                this.totalCount = response.totalCount;
+                this.supplierPayments = response.data;
+                this.totalCount = response.pagination.totalCount;
                 this.loading = false;
             },
             error: (error) => {
@@ -189,6 +199,16 @@ export class SupplierPaymentListComponent implements OnInit {
                 this.loading = false;
             }
         });
+    }
+
+    /**
+     * Format date for API - returns YYYY-MM-DD string in local timezone
+     */
+    private formatDateForApi(date: Date): string {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
     }
 
     /**
@@ -218,13 +238,6 @@ export class SupplierPaymentListComponent implements OnInit {
      */
     viewDetails(payment: SupplierPaymentResponse): void {
         this.router.navigate(['/procurement/supplier-payments/view'], { queryParams: { id: payment.id } });
-    }
-
-    /**
-     * View supplier payment summary
-     */
-    viewPaymentSummary(payment: SupplierPaymentResponse): void {
-        this.router.navigate(['/procurement/supplier-payments/summary', payment.supplierId]);
     }
 
     /**
@@ -530,9 +543,7 @@ export class SupplierPaymentListComponent implements OnInit {
      * Format currency
      */
     formatCurrency(value: number): string {
-        return new Intl.NumberFormat('en-IN', {
-            style: 'currency',
-            currency: 'INR'
-        }).format(value);
+        const currency = this.currencyService.selectedCurrency() || 'BDT';
+        return this.currencyService.formatCurrency(value, currency);
     }
 }

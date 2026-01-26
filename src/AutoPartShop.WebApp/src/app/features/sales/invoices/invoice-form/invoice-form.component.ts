@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angula
 import { Router, ActivatedRoute } from '@angular/router';
 import { InvoiceService, InvoiceResponse, CreateInvoiceRequest, RecordPaymentRequest } from '../../services/invoice.service';
 import { SalesOrderService, SalesOrderResponse } from '../../services/sales-order.service';
+import { CurrencyService } from '../../../../shared/services/currency.service';
 import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
 import { ToastModule } from 'primeng/toast';
@@ -47,6 +48,7 @@ export class InvoiceFormComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly invoiceService = inject(InvoiceService);
   private readonly salesOrderService = inject(SalesOrderService);
+  private readonly currencyService = inject(CurrencyService);
   private readonly messageService = inject(MessageService);
   private readonly confirmationService = inject(ConfirmationService);
 
@@ -315,10 +317,8 @@ export class InvoiceFormComponent implements OnInit {
   }
 
   formatCurrency(amount: number): string {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR'
-    }).format(amount);
+    const currency = this.currencyService.selectedCurrency() || 'BDT';
+    return this.currencyService.formatCurrency(amount, currency);
   }
 
   formatDate(date: string): string {

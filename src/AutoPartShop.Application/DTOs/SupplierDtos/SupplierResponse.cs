@@ -15,6 +15,7 @@ public class SupplierResponse
     public string PostalCode { get; set; } = string.Empty;
     public string PaymentTerms { get; set; } = string.Empty;
     public decimal CreditLimit { get; set; }
+    public decimal CurrentBalance { get; set; }
     public string BankName { get; set; } = string.Empty;
     public string BankAccountNumber { get; set; } = string.Empty;
     public string BankIFSC { get; set; } = string.Empty;

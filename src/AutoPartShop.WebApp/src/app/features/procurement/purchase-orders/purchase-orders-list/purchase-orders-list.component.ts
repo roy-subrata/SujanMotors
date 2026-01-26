@@ -10,7 +10,10 @@ import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
 import { PaginatorModule } from 'primeng/paginator';
 import { ConfirmationService, MessageService, MenuItem } from 'primeng/api';
+import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { PurchaseOrderService, PurchaseOrderResponse } from '../../services/purchase-order.service';
+import { CurrencyService } from '../../../../shared/services/currency.service';
+import { ApplyAdvanceCreditDialogComponent } from '../apply-advance-credit/apply-advance-credit-dialog.component';
 
 @Component({
   selector: 'app-purchase-orders-list',
@@ -26,7 +29,7 @@ import { PurchaseOrderService, PurchaseOrderResponse } from '../../services/purc
     TooltipModule,
     PaginatorModule
   ],
-  providers: [ConfirmationService, MessageService],
+  providers: [ConfirmationService, MessageService, DialogService],
   templateUrl: './purchase-orders-list.component.html',
   styleUrls: ['./purchase-orders-list.component.css']
 })
@@ -49,9 +52,13 @@ export class PurchaseOrdersListComponent implements OnInit {
   pageSizeOptions = [10, 25, 50, 100];
 
   private readonly poService = inject(PurchaseOrderService);
+  private readonly currencyService = inject(CurrencyService);
   private readonly confirmationService = inject(ConfirmationService);
   private readonly messageService = inject(MessageService);
+  private readonly dialogService = inject(DialogService);
   private readonly router = inject(Router);
+
+  private dialogRef: DynamicDialogRef | undefined;
 
   ngOnInit(): void {
     this.initializeContextMenu();
@@ -63,15 +70,6 @@ export class PurchaseOrdersListComponent implements OnInit {
   private initializeContextMenu(): void {
     this.contextMenuItems = [
       {
-        label: 'Edit',
-        icon: 'pi pi-pencil',
-        command: () => {
-          if (this.selectedPurchaseOrder) {
-            this.onEditClick(this.selectedPurchaseOrder);
-          }
-        }
-      },
-      {
         label: 'View Details',
         icon: 'pi pi-eye',
         command: () => {
@@ -79,6 +77,16 @@ export class PurchaseOrdersListComponent implements OnInit {
             this.viewDetails(this.selectedPurchaseOrder);
           }
         }
+      },
+      {
+        label: 'Edit',
+        icon: 'pi pi-pencil',
+        command: () => {
+          if (this.selectedPurchaseOrder) {
+            this.onEditClick(this.selectedPurchaseOrder);
+          }
+        },
+        visible: this.selectedPurchaseOrder ? this.selectedPurchaseOrder.status === 'DRAFT' : false
       },
       { separator: true },
       {
@@ -93,7 +101,7 @@ export class PurchaseOrdersListComponent implements OnInit {
       },
       {
         label: 'Confirm',
-        icon: 'pi pi-check',
+        icon: 'pi pi-check-circle',
         command: () => {
           if (this.selectedPurchaseOrder) {
             this.confirmPurchaseOrder(this.selectedPurchaseOrder);
@@ -101,7 +109,30 @@ export class PurchaseOrdersListComponent implements OnInit {
         },
         visible: this.selectedPurchaseOrder ? this.selectedPurchaseOrder.status === 'SUBMITTED' : false
       },
-      { separator: true },
+      {
+        label: 'Apply Advance Credit',
+        icon: 'pi pi-credit-card',
+        command: () => {
+          if (this.selectedPurchaseOrder) {
+            this.openApplyCreditDialog(this.selectedPurchaseOrder);
+          }
+        },
+        visible: this.selectedPurchaseOrder ?
+          (['CONFIRMED', 'PARTIAL', 'DELIVERED'].includes(this.selectedPurchaseOrder.status) &&
+           this.selectedPurchaseOrder.outstandingAmount > 0) : false
+      },
+      {
+        label: 'Record Payment',
+        icon: 'pi pi-wallet',
+        command: () => {
+          if (this.selectedPurchaseOrder) {
+            this.recordPayment(this.selectedPurchaseOrder);
+          }
+        },
+        visible: this.selectedPurchaseOrder ?
+          (['CONFIRMED', 'PARTIAL', 'DELIVERED'].includes(this.selectedPurchaseOrder.status) &&
+           this.selectedPurchaseOrder.outstandingAmount > 0) : false
+      },
       {
         label: 'Cancel',
         icon: 'pi pi-ban',
@@ -112,6 +143,7 @@ export class PurchaseOrdersListComponent implements OnInit {
         },
         visible: this.selectedPurchaseOrder ? ['DRAFT', 'SUBMITTED'].includes(this.selectedPurchaseOrder.status) : false
       },
+      { separator: true },
       {
         label: 'Delete',
         icon: 'pi pi-trash',
@@ -120,6 +152,7 @@ export class PurchaseOrdersListComponent implements OnInit {
             this.onDeleteClick(this.selectedPurchaseOrder);
           }
         },
+        visible: this.selectedPurchaseOrder ? this.selectedPurchaseOrder.status === 'DRAFT' : false,
         styleClass: 'p-menuitem-danger'
       }
     ];
@@ -129,11 +162,11 @@ export class PurchaseOrdersListComponent implements OnInit {
    * Show context menu
    */
   showContextMenu(event: MouseEvent, po: PurchaseOrderResponse): void {
+    event.preventDefault();
+    event.stopPropagation();
     this.selectedPurchaseOrder = po;
     this.initializeContextMenu();
-    if (this.contextMenu) {
-      this.contextMenu.show(event);
-    }
+    this.contextMenu?.show(event);
   }
 
   /**
@@ -163,11 +196,7 @@ export class PurchaseOrdersListComponent implements OnInit {
    * View details
    */
   viewDetails(po: PurchaseOrderResponse): void {
-    this.messageService.add({
-      severity: 'info',
-      summary: 'Info',
-      detail: `PO #${po.poNumber} - Status: ${po.status}`
-    });
+    this.router.navigate(['/procurement/purchase-orders/view'], { queryParams: { id: po.id } });
   }
 
   /**
@@ -350,10 +379,8 @@ export class PurchaseOrdersListComponent implements OnInit {
    * Format currency
    */
   formatCurrency(value: number): string {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR'
-    }).format(value);
+    const currency = this.currencyService.selectedCurrency() || 'BDT';
+    return this.currencyService.formatCurrency(value, currency);
   }
 
   /**
@@ -361,5 +388,44 @@ export class PurchaseOrdersListComponent implements OnInit {
    */
   formatDate(date: string): string {
     return new Date(date).toLocaleDateString('en-IN');
+  }
+
+  /**
+   * Open dialog to apply advance credit to purchase order
+   */
+  openApplyCreditDialog(po: PurchaseOrderResponse): void {
+    this.dialogRef = this.dialogService.open(ApplyAdvanceCreditDialogComponent, {
+      header: 'Apply Advance Credit',
+      width: '850px',
+      data: {
+        supplierId: po.supplierId,
+        purchaseOrderId: po.id,
+        purchaseOrderAmount: po.outstandingAmount
+      }
+    });
+
+    this.dialogRef.onClose.subscribe((result) => {
+      if (result) {
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Success',
+          detail: 'Advance credit applied successfully. Purchase order updated.'
+        });
+        // Emit event to reload the list
+        this.poDeleted.emit();
+      }
+    });
+  }
+
+  /**
+   * Navigate to record payment for purchase order
+   */
+  recordPayment(po: PurchaseOrderResponse): void {
+    this.router.navigate(['/procurement/supplier-payments/new'], {
+      queryParams: {
+        supplierId: po.supplierId,
+        purchaseOrderId: po.id
+      }
+    });
   }
 }

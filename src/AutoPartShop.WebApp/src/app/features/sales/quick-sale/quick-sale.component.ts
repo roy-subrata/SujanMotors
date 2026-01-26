@@ -17,15 +17,18 @@ import { RadioButtonModule } from 'primeng/radiobutton';
 import { CheckboxModule } from 'primeng/checkbox';
 import { TooltipModule } from 'primeng/tooltip';
 import { DialogModule } from 'primeng/dialog';
+import { SelectModule } from 'primeng/select';
 import { MessageService, ConfirmationService } from 'primeng/api';
 
 // Services
 import { QuickSaleService, QuickSaleLineItem, PaymentDetail, PaymentMethod, PaymentResponsibility } from '../services/quick-sale.service';
 import { PaymentProviderService, PaymentProviderResponse } from '../../procurement/services/payment-provider.service';
 import { PartService, PartResponse } from '../../inventory/services/part.service';
+import { UnitService, UnitResponse } from '../../inventory/services/unit.service';
 import { CustomerService } from '../services/customer.service';
 import { TechnicianService, TechnicianResponse } from '../services/technician.service';
 import { InvoicePdfService, InvoicePdfData } from '../services/invoice-pdf.service';
+import { CurrencyService } from '../../../shared/services/currency.service';
 
 // Components
 import { QuickCustomerDialogComponent } from '../components/quick-customer-dialog.component';
@@ -50,6 +53,7 @@ import { InvoicePreviewComponent } from '../components/invoice-preview.component
     CheckboxModule,
     TooltipModule,
     DialogModule,
+    SelectModule,
     RouterLink,
     QuickCustomerDialogComponent,
     InvoicePreviewComponent
@@ -63,8 +67,10 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly quickSaleService = inject(QuickSaleService);
   private readonly partService = inject(PartService);
+  private readonly unitService = inject(UnitService);
   private readonly customerService = inject(CustomerService);
   private readonly technicianService = inject(TechnicianService);
+  private readonly currencyService = inject(CurrencyService);
   private readonly messageService = inject(MessageService);
   private readonly confirmationService = inject(ConfirmationService);
   private readonly invoicePdfService = inject(InvoicePdfService);
@@ -104,6 +110,11 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
   // Cart items
   cartItems = signal<QuickSaleLineItem[]>([]);
 
+  // Units
+  units = signal<UnitResponse[]>([]);
+  loadingUnits = signal(false);
+  // Map to store compatible units for each part (keyed by part ID)
+  compatibleUnitsMap = new Map<string, UnitResponse[]>();
 
   paymentProviders: PaymentProviderResponse[] = [];
   filteredPaymentProviders: PaymentProviderResponse[] = [];
@@ -290,7 +301,7 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
   loadInitialData(): void {
     this.loading.set(true);
     let loadedCount = 0;
-    const totalLoads = 4;
+    const totalLoads = 5;
 
     const checkComplete = () => {
       loadedCount++;
@@ -299,7 +310,7 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
         this.messageService.add({
           severity: 'success',
           summary: 'Ready',
-          detail: `Loaded ${this.parts().length} parts, ${this.customers().length} customers, ${this.technicians().length} technicians`,
+          detail: `Loaded ${this.parts().length} parts, ${this.customers().length} customers, ${this.technicians().length} technicians, ${this.units().length} units`,
           life: 3000
         });
       }
@@ -386,6 +397,27 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
           summary: 'VAT Config',
           detail: 'VAT is disabled by default',
           life: 3000
+        });
+        checkComplete();
+      }
+    });
+
+    // Load units
+    this.loadingUnits.set(true);
+    this.unitService.getActiveUnits().subscribe({
+      next: (units) => {
+        this.units.set(units);
+        this.loadingUnits.set(false);
+        checkComplete();
+      },
+      error: (err) => {
+        console.error('Error loading units:', err);
+        this.loadingUnits.set(false);
+        this.messageService.add({
+          severity: 'warn',
+          summary: 'Warning',
+          detail: 'Failed to load units. Unit selection may not work.',
+          life: 5000
         });
         checkComplete();
       }
@@ -498,12 +530,30 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // Load compatible units for the part
+    if (part.unitId) {
+      this.unitService.getCompatibleUnits(part.unitId).subscribe({
+        next: (compatibleUnits) => {
+          this.compatibleUnitsMap.set(part.id, compatibleUnits);
+        },
+        error: (err) => {
+          console.error('Error loading compatible units:', err);
+          // Fallback to all units if error occurs
+          this.compatibleUnitsMap.set(part.id, this.units());
+        }
+      });
+    } else {
+      // Part has no base unit, allow all units
+      this.compatibleUnitsMap.set(part.id, this.units());
+    }
+
     // Add to cart
     const newItem: QuickSaleLineItem = {
       partId: part.id,
       partName: part.name,
       partNumber: part.partNumber,
       sku: part.sku,
+      unitId: part.unitId || undefined, // Set part's base unit as default
       quantity: 1,
       unitPrice: part.sellingPrice,
       discount: 0,
@@ -552,8 +602,38 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
   }
 
   selectCustomer(event: any): void {
-    this.selectedCustomer.set(event);
-    this.selectedCustomerModel = event;
+    // Fetch fresh customer data from API to get latest balance information
+    if (event && event.id) {
+      this.customerService.getCustomerById(event.id).subscribe({
+        next: (freshCustomer) => {
+          this.selectedCustomer.set(freshCustomer);
+          this.selectedCustomerModel = freshCustomer;
+
+          // Update in customers list as well
+          this.customers.update(customers =>
+            customers.map(c => c.id === freshCustomer.id ? freshCustomer : c)
+          );
+          this.filteredCustomers.update(customers =>
+            customers.map(c => c.id === freshCustomer.id ? freshCustomer : c)
+          );
+        },
+        error: (err) => {
+          console.error('Error fetching customer details:', err);
+          // Fallback to cached data if API fails
+          this.selectedCustomer.set(event);
+          this.selectedCustomerModel = event;
+          this.messageService.add({
+            severity: 'warn',
+            summary: 'Warning',
+            detail: 'Using cached customer data. Balance may not be current.',
+            life: 3000
+          });
+        }
+      });
+    } else {
+      this.selectedCustomer.set(event);
+      this.selectedCustomerModel = event;
+    }
   }
 
   openQuickCustomerDialog(): void {
@@ -696,7 +776,12 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
       grandTotal: this.grandTotal(),
       paidAmount: this.paidAmount(),
       dueAmount: this.dueAmount(),
-      notes: this.saleNotes
+      notes: this.saleNotes,
+      // Advance payment support
+      useAdvanceBalance: this.useAdvanceBalance(),
+      advanceAmountToApply: this.advancePaidAmount(),
+      // Not a quotation
+      saveAsQuotation: false
     };
 
     // Store for invoice preview
@@ -706,6 +791,22 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
       next: (result) => {
         // Save as last sale for F3 recall
         this.quickSaleService.saveLastSale(result);
+
+        // Refresh customer data if a customer was selected
+        if (customer && customer.id) {
+          this.customerService.getCustomerById(customer.id).subscribe({
+            next: (freshCustomer) => {
+              // Update in customers list with fresh balance data
+              this.customers.update(customers =>
+                customers.map(c => c.id === freshCustomer.id ? freshCustomer : c)
+              );
+              this.filteredCustomers.update(customers =>
+                customers.map(c => c.id === freshCustomer.id ? freshCustomer : c)
+              );
+            },
+            error: (err) => console.error('Error refreshing customer data:', err)
+          });
+        }
 
         this.messageService.add({
           severity: 'success',
@@ -742,6 +843,85 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
           detail: err.error?.message || 'Failed to complete sale'
         });
         console.error('Error creating sale:', err);
+      }
+    });
+  }
+
+  processQuotation(): void {
+    // Validation
+    if (this.cartItems().length === 0) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'No Items',
+        detail: 'Please add at least one item to the quotation'
+      });
+      return;
+    }
+
+    if (!this.selectedCustomer()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Customer Required',
+        detail: 'Please select a customer for the quotation'
+      });
+      return;
+    }
+
+    this.saving.set(true);
+
+    const formValue = this.quickSaleForm.value;
+    const customer = this.selectedCustomer();
+
+    const request = {
+      customerId: customer?.id,
+      customerName: customer ? `${customer.firstName} ${customer.lastName}` : 'Guest',
+      customerPhone: formValue.customerPhone || customer?.phone || '',
+      customerEmail: customer?.email,
+      technicianId: this.selectedTechnician()?.id,
+      technicianName: this.selectedTechnician()?.name,
+      technicianNotes: formValue.technicianNotes,
+      paymentResponsibility: formValue.paymentResponsibility as PaymentResponsibility,
+      autoCreatePO: false,
+      items: this.cartItems(),
+      payments: [], // No payments for quotations
+      subtotal: this.subtotal(),
+      discountAmount: this.discountAmount(),
+      vatAmount: this.vatAmount(),
+      vatPercentage: this.vatPercentage(),
+      grandTotal: this.grandTotal(),
+      paidAmount: 0,
+      dueAmount: this.grandTotal(),
+      notes: this.saleNotes,
+      // Quotation flag
+      saveAsQuotation: true
+    };
+
+    this.quickSaleService.createQuickSale(request).subscribe({
+      next: (result) => {
+        this.saving.set(false);
+
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Quotation Created',
+          detail: `Quotation ${result.salesOrderNumber} created successfully`,
+          life: 5000
+        });
+
+        // Reset form
+        this.resetForm();
+        this.generateInvoiceNumber();
+
+        // Navigate to sales orders to view the quotation
+        this.router.navigate(['/sales/sales-orders']);
+      },
+      error: (err) => {
+        this.saving.set(false);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Quotation Failed',
+          detail: err.error?.message || 'Failed to create quotation'
+        });
+        console.error('Error creating quotation:', err);
       }
     });
   }
@@ -990,9 +1170,10 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
 
   // Utility methods
   formatCurrency(amount: number): string {
+    const currency = this.currencyService.selectedCurrency() || 'BDT';
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD'
+      currency: currency
     }).format(amount);
   }
 
@@ -1008,6 +1189,14 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
 
   removeCartItem(index: number): void {
     this.removeFromCart(index);
+  }
+
+  /**
+   * Get compatible units for a specific part
+   */
+  getCompatibleUnitsForPart(partId: string): UnitResponse[] {
+    if (!partId) return this.units();
+    return this.compatibleUnitsMap.get(partId) || this.units();
   }
 
   saveAndPrint(): void {

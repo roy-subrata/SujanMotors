@@ -41,6 +41,16 @@ public class CustomerPaymentConfiguration : IEntityTypeConfiguration<CustomerPay
         builder.Property(cp => cp.AuthorizationCode)
             .HasMaxLength(100);
 
+        // Advance payment tracking
+        builder.Property(cp => cp.PaymentType)
+            .HasConversion<int>()
+            .IsRequired()
+            .HasDefaultValue(CustomerPaymentType.REGULAR);
+
+        builder.Property(cp => cp.RemainingAmount)
+            .HasColumnType("decimal(18,2)")
+            .HasDefaultValue(0);
+
         // Relationships
         builder.HasOne(cp => cp.Customer)
             .WithMany(c => c.CustomerPayments)
@@ -59,10 +69,18 @@ public class CustomerPaymentConfiguration : IEntityTypeConfiguration<CustomerPay
             .OnDelete(DeleteBehavior.Restrict)
             .IsRequired(false);
 
+        // Self-referencing relationship for advance payments
+        builder.HasOne(cp => cp.SourceAdvancePayment)
+            .WithMany()
+            .HasForeignKey(cp => cp.SourceAdvancePaymentId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         // Indexes
         builder.HasIndex(cp => cp.TransactionNumber).IsUnique();
         builder.HasIndex(cp => cp.CustomerId);
         builder.HasIndex(cp => cp.Status);
         builder.HasIndex(cp => cp.PaymentDate);
+        builder.HasIndex(cp => cp.PaymentType);
+        builder.HasIndex(cp => cp.SourceAdvancePaymentId);
     }
 }

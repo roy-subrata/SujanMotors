@@ -1,6 +1,7 @@
+using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.CustomerDtos;
+using AutoPartShop.Domain.Common;
 using AutoPartShop.Domain.Entities;
-using AutoPartShop.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AutoPartShop.Api.Controllers;
@@ -12,14 +13,55 @@ public class CustomerController : ControllerBase
 {
     private readonly ICustomerRepository _customerRepository;
     private readonly ILogger<CustomerController> _logger;
-    
     private readonly ICodeGenerateService _codeGenerateService;
+    private readonly ICurrentUserService _currentUserService;
 
-    public CustomerController(ICustomerRepository customerRepository, ICodeGenerateService codeGenerateService, ILogger<CustomerController> logger)
+    public CustomerController(ICustomerRepository customerRepository, ICodeGenerateService codeGenerateService, ICurrentUserService currentUserService, ILogger<CustomerController> logger)
     {
         _customerRepository = customerRepository;
         _codeGenerateService = codeGenerateService;
+        _currentUserService = currentUserService;
         _logger = logger;
+    }
+
+
+
+    [HttpPost("list")]
+    public async Task<IActionResult> FindAll([FromBody] CustomerQuery query, CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (query is null)
+            {
+                return BadRequest("Request can not be empty");
+            }
+            if (query.PageNumber < 0)
+            {
+                return BadRequest($"Page number can not be {query.PageNumber}");
+            }
+            if (query.PageSize < 0)
+            {
+                return BadRequest($"Page size can not be {query.PageSize}");
+            }
+
+            ; var response = await _customerRepository.SearchPagedAsync(query, cancellationToken);
+            return Ok(new PaginatedResponse<CustomerResponse>
+            {
+                Data = response.customers.Select(MapToCustomerResponse).ToList(),
+                Pagination = new PaginationMeta
+                {
+                    PageNumber = query.PageNumber,
+                    PageSize = query.PageSize,
+                    TotalCount = response.totalCount,
+                    TotalPages = (int)Math.Ceiling(response.totalCount / (double)query.PageSize)
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting all customers");
+            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving customers");
+        }
     }
 
     [HttpGet]
@@ -38,32 +80,32 @@ public class CustomerController : ControllerBase
         }
     }
 
-    [HttpGet("list")]
-    public async Task<IActionResult> GetList(int pageNumber = 1, int pageSize = 10, string? searchTerm = null, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            if (pageNumber < 1) pageNumber = 1;
-            if (pageSize < 1) pageSize = 10;
-            if (pageSize > 100) pageSize = 100;
+    //[HttpGet("list")]
+    //public async Task<IActionResult> GetList(int pageNumber = 1, int pageSize = 10, string? searchTerm = null, CancellationToken cancellationToken = default)
+    //{
+    //    try
+    //    {
+    //        if (pageNumber < 1) pageNumber = 1;
+    //        if (pageSize < 1) pageSize = 10;
+    //        if (pageSize > 100) pageSize = 100;
 
-            var (customers, totalCount) = string.IsNullOrWhiteSpace(searchTerm)
-                ? await _customerRepository.GetPagedAsync(pageNumber, pageSize, cancellationToken)
-                : await _customerRepository.SearchPagedAsync(searchTerm, pageNumber, pageSize, cancellationToken);
+    //        var (customers, totalCount) = string.IsNullOrWhiteSpace(searchTerm)
+    //            ? await _customerRepository.GetPagedAsync(pageNumber, pageSize, cancellationToken)
+    //            : await _customerRepository.SearchPagedAsync(searchTerm, pageNumber, pageSize, cancellationToken);
 
-            var response = customers.Select(MapToCustomerResponse);
-            return Ok(new
-            {
-                data = response,
-                pagination = new { pageNumber, pageSize, totalCount, totalPages = (int)Math.Ceiling(totalCount / (double)pageSize) }
-            });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting customers list");
-            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving customers");
-        }
-    }
+    //        var response = customers.Select(MapToCustomerResponse);
+    //        return Ok(new
+    //        {
+    //            data = response,
+    //            pagination = new { pageNumber, pageSize, totalCount, totalPages = (int)Math.Ceiling(totalCount / (double)pageSize) }
+    //        });
+    //    }
+    //    catch (Exception ex)
+    //    {
+    //        _logger.LogError(ex, "Error getting customers list");
+    //        return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving customers");
+    //    }
+    //}
 
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
@@ -263,9 +305,8 @@ public class CustomerController : ControllerBase
 
             var creditInfo = new
             {
-                creditLimit = customer.CreditLimit,
-                usedCredit = customer.CurrentBalance,
-                availableCredit = customer.CreditLimit - customer.CurrentBalance,
+                currentBalance = customer.CurrentBalance,
+                advanceAmount = customer.AdvanceAmount,
                 dueBalance = customer.CurrentBalance
             };
 
@@ -304,19 +345,17 @@ public class CustomerController : ControllerBase
                 request.State,
                 request.PostalCode,
                 request.Country,
-                request.DateOfBirth,
                 request.CustomerType,
                 request.Notes
             );
 
-            customer.SetCreditLimit(request.CreditLimit);
-            customer.SetTaxId(request.TaxId);
             customer.SetPrimaryContactPerson(request.PrimaryContactPerson);
             if (!string.IsNullOrWhiteSpace(request.AlternatePhone))
                 customer.UpdateContactInfo(request.Email, request.Phone, request.AlternatePhone);
 
-            customer.CreatedBy = "System";
-            customer.ModifiedBy = "System";
+            var currentUser = _currentUserService.GetCurrentUsername();
+            customer.CreatedBy = currentUser;
+            customer.ModifiedBy = currentUser;
             await _codeGenerateService.SaveGenerateCodeAsync("CUST", cancellationToken);
             await _customerRepository.AddAsync(customer, cancellationToken);
 
@@ -342,18 +381,14 @@ public class CustomerController : ControllerBase
             if (customer is null) return NotFound(new { message = "Customer not found" });
 
             // Update contact info
-            customer.UpdateContactInfo(request.Email, request.Phone, request.AlternatePhone);
-
+            customer.UpdateContactInfo(request.Email, request.Phone, request.AlternatePhone, request.CustomerType);
             // Update address
             customer.UpdateAddress(request.BillingAddress, request.ShippingAddress, request.City, request.State, request.PostalCode, request.Country);
 
-            // Update other fields
-            customer.SetCreditLimit(request.CreditLimit);
-            customer.SetTaxId(request.TaxId);
             customer.SetPrimaryContactPerson(request.PrimaryContactPerson);
             customer.UpdateNotes(request.Notes);
 
-            customer.ModifiedBy = "System";
+            customer.ModifiedBy = _currentUserService.GetCurrentUsername();
             await _customerRepository.UpdateAsync(customer, cancellationToken);
 
             return Ok(MapToCustomerResponse(customer));
@@ -378,7 +413,7 @@ public class CustomerController : ControllerBase
             if (customer is null) return NotFound(new { message = "Customer not found" });
 
             customer.Activate();
-            customer.ModifiedBy = "System";
+            customer.ModifiedBy = _currentUserService.GetCurrentUsername();
             await _customerRepository.UpdateAsync(customer, cancellationToken);
 
             return Ok(MapToCustomerResponse(customer));
@@ -403,7 +438,7 @@ public class CustomerController : ControllerBase
             if (customer is null) return NotFound(new { message = "Customer not found" });
 
             customer.Deactivate();
-            customer.ModifiedBy = "System";
+            customer.ModifiedBy = _currentUserService.GetCurrentUsername();
             await _customerRepository.UpdateAsync(customer, cancellationToken);
 
             return Ok(MapToCustomerResponse(customer));
@@ -424,7 +459,7 @@ public class CustomerController : ControllerBase
             if (customer is null) return NotFound(new { message = "Customer not found" });
 
             customer.Suspend();
-            customer.ModifiedBy = "System";
+            customer.ModifiedBy = _currentUserService.GetCurrentUsername();
             await _customerRepository.UpdateAsync(customer, cancellationToken);
 
             return Ok(MapToCustomerResponse(customer));
@@ -445,7 +480,7 @@ public class CustomerController : ControllerBase
             if (customer is null) return NotFound(new { message = "Customer not found" });
 
             customer.Blacklist();
-            customer.ModifiedBy = "System";
+            customer.ModifiedBy = _currentUserService.GetCurrentUsername();
             await _customerRepository.UpdateAsync(customer, cancellationToken);
 
             return Ok(MapToCustomerResponse(customer));
@@ -494,16 +529,12 @@ public class CustomerController : ControllerBase
             State = customer.State,
             PostalCode = customer.PostalCode,
             Country = customer.Country,
-            DateOfBirth = customer.DateOfBirth,
             CustomerType = customer.CustomerType,
             Status = customer.Status,
-            CreditLimit = customer.CreditLimit,
             CurrentBalance = customer.CurrentBalance,
-            AdvanceAmount = customer.AccountBalance,  // Advance payments (not linked to invoices)
+            AdvanceAmount = customer.AdvanceAmount,  // Available advance credit (sum of RemainingAmount)
             DueAmount = customer.CurrentBalance,      // Outstanding balance (due)
-            AvailableCredit = customer.CreditLimit - customer.CurrentBalance,
             CanPlaceOrder = customer.CanPlaceOrder(),
-            TaxId = customer.TaxId,
             PrimaryContactPerson = customer.PrimaryContactPerson,
             LastPurchaseDate = customer.LastPurchaseDate,
             TotalPurchaseAmount = customer.TotalPurchaseAmount,

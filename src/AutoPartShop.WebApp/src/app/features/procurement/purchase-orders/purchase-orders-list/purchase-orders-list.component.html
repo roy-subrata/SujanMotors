@@ -1,15 +1,6 @@
-<p-table
-  #dt
-  [value]="purchaseOrders"
-  [loading]="loading"
-  [lazy]="true"
-  [paginator]="false"
-  [rows]="rows"
-  [totalRecords]="totalRecords"
-  responsiveLayout="scroll"
-  styleClass="p-datatable-striped"
-  [tableStyle]="{ 'min-width': '50rem' }"
-  dataKey="id">
+<p-table #dt [value]="purchaseOrders" [loading]="loading" [lazy]="true" [paginator]="false" [rows]="rows"
+  [totalRecords]="totalRecords" responsiveLayout="scroll" styleClass="p-datatable-striped"
+  [tableStyle]="{ 'min-width': '50rem' }" dataKey="id">
 
   <ng-template pTemplate="header">
     <tr>
@@ -30,6 +21,7 @@
       </th>
       <th class="text-right">Grand Total</th>
       <th class="text-right">Outstanding</th>
+      <th class="text-right">Payment Status</th>
       <th class="text-center">Actions</th>
     </tr>
   </ng-template>
@@ -68,26 +60,16 @@
           {{ formatCurrency(po.outstandingAmount) }}
         </span>
       </td>
+      <td class="text-right">
+        <span>
+          {{ po.paymentStatus }}
+        </span>
+      </td>
       <td class="text-center">
-        <div class="flex justify-center gap-1">
-          <button pButton type="button" icon="pi pi-eye" class="p-button-text p-button-sm"
-            (click)="viewPurchaseOrder(po)" pTooltip="View" tooltipPosition="left"></button>
-          <button *ngIf="po.status === 'DRAFT'" pButton type="button" icon="pi pi-pencil"
-            class="p-button-text p-button-sm" (click)="editPurchaseOrder(po)" pTooltip="Edit"
-            tooltipPosition="left"></button>
-          <button *ngIf="po.status === 'DRAFT'" pButton type="button" icon="pi pi-send"
-            class="p-button-text p-button-success p-button-sm" (click)="submitPurchaseOrder(po)" pTooltip="Submit"
-            tooltipPosition="left"></button>
-          <button *ngIf="po.status === 'SUBMITTED'" pButton type="button" icon="pi pi-check-circle"
-            class="p-button-text p-button-success p-button-sm" (click)="confirmPurchaseOrder(po)" pTooltip="Confirm"
-            tooltipPosition="left"></button>
-          <button *ngIf="['DRAFT', 'SUBMITTED'].includes(po.status)" pButton type="button" icon="pi pi-ban"
-            class="p-button-text p-button-warning p-button-sm" (click)="cancelPurchaseOrder(po)" pTooltip="Cancel"
-            tooltipPosition="left"></button>
-          <button *ngIf="po.status === 'DRAFT'" pButton type="button" icon="pi pi-trash"
-            class="p-button-text p-button-danger p-button-sm" (click)="deletePurchaseOrder(po)" pTooltip="Delete"
-            tooltipPosition="left"></button>
-        </div>
+        <button pButton pRipple type="button" icon="pi pi-ellipsis-v" class="p-button-text p-button-sm"
+          pTooltip="Actions" tooltipPosition="left" (contextmenu)="showContextMenu($event, po)"
+          (click)="showContextMenu($event, po)">
+        </button>
       </td>
     </tr>
   </ng-template>
@@ -98,7 +80,8 @@
         <div class="empty-state">
           <i class="pi pi-shopping-bag text-5xl text-gray-300 mb-3"></i>
           <h3 class="text-gray-500 mb-2">No purchase orders found</h3>
-          <p class="text-gray-400">{{ searchTerm ? 'Try adjusting your filters or search criteria' : 'Start by creating a new purchase order' }}</p>
+          <p class="text-gray-400">{{ searchTerm ? 'Try adjusting your filters or search criteria' : 'Start by creating
+            a new purchase order' }}</p>
         </div>
       </td>
     </tr>
@@ -106,20 +89,13 @@
 </p-table>
 
 <!-- Paginator -->
-<p-paginator
-  [rows]="rows"
-  [totalRecords]="totalRecords"
-  [rowsPerPageOptions]="pageSizeOptions"
-  [showCurrentPageReport]="true"
-  currentPageReportTemplate="Showing {first} to {last} of {totalRecords} purchase orders"
+<p-paginator [rows]="rows" [totalRecords]="totalRecords" [rowsPerPageOptions]="pageSizeOptions"
+  [showCurrentPageReport]="true" currentPageReportTemplate="Showing {first} to {last} of {totalRecords} purchase orders"
   (onPageChange)="onPageChange($event)">
 </p-paginator>
 
 <!-- Context Menu -->
-<p-contextMenu
-  #contextMenu
-  [model]="contextMenuItems"
-  [appendTo]="'body'">
+<p-contextMenu #contextMenu [model]="contextMenuItems" [appendTo]="'body'">
 </p-contextMenu>
 
 <!-- Confirm Dialog -->

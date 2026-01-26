@@ -32,6 +32,11 @@ namespace AutoPartsShop.Infrastructure.Data.Configurations
             builder.Property(p => p.TaxPercentage).HasColumnType("decimal(5,2)");
             builder.Property(p => p.DiscountPercentage).HasColumnType("decimal(5,2)");
 
+            builder.Property(p => p.Currency)
+                .IsRequired()
+                .HasMaxLength(3)
+                .HasDefaultValue("BDT");
+
             // Supplier
             builder.HasOne(p => p.Supplier)
                 .WithMany()
@@ -82,13 +87,20 @@ namespace AutoPartsShop.Infrastructure.Data.Configurations
             builder.HasOne(li => li.PurchaseOrder)
                 .WithMany(po => po.LineItems)
                 .HasForeignKey(li => li.PurchaseOrderId)
-                  .OnDelete(DeleteBehavior.NoAction);
+                .OnDelete(DeleteBehavior.Cascade);
 
             // Part
             builder.HasOne(li => li.Part)
                 .WithMany()
                 .HasForeignKey(li => li.PartId)
                 .OnDelete(DeleteBehavior.NoAction);
+
+            // Unit
+            builder.HasOne(li => li.Unit)
+                .WithMany()
+                .HasForeignKey(li => li.UnitId)
+                .OnDelete(DeleteBehavior.NoAction)
+                .IsRequired(false);
         }
     }
     public class GoodsReceiptConfiguration : IEntityTypeConfiguration<GoodsReceipt>

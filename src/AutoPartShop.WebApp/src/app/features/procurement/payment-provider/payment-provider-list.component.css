@@ -3,7 +3,8 @@
   margin: 0;
   display: flex;
   flex-direction: column;
-
+  width: 100%;
+  max-width: none;
 }
 
 .header {
@@ -132,10 +133,9 @@
   border: 1px solid #e5e7eb;
   overflow-x: auto;
   transition: box-shadow 0.3s ease;
-  margin-top: 2;
-  &:hover {
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  }
+  width: 100%;
+  max-width: none;
+  margin-top: 0;
 }
 
 :deep(.p-datatable) {

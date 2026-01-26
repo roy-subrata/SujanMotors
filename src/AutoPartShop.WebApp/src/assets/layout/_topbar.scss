@@ -4,7 +4,7 @@
     position: fixed;
     height: 70px;
     z-index: 998;
-    left: 280px;
+    left: var(--sidebar-width, 280px);
     top: 0;
     right: 0;
     padding: 0 2rem;
@@ -242,7 +242,7 @@
 
 // Collapsed sidebar state
 .layout-wrapper.layout-static-inactive .layout-topbar {
-    left: 70px;
+    left: var(--sidebar-width-collapsed, 70px);
     transition: left 0.3s ease;
 }
 

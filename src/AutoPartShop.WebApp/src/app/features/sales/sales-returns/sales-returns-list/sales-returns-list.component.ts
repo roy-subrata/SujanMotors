@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, ViewChild, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -6,7 +6,6 @@ import { SalesReturnService, SalesReturnResponse } from '../../services/sales-re
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
-import { Select } from 'primeng/select';
 import { DatePickerModule } from 'primeng/datepicker';
 import { CardModule } from 'primeng/card';
 import { TagModule } from 'primeng/tag';
@@ -14,7 +13,11 @@ import { TooltipModule } from 'primeng/tooltip';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { PaginatorModule, PaginatorState } from 'primeng/paginator';
-import { MessageService, ConfirmationService } from 'primeng/api';
+import { ContextMenuModule, ContextMenu } from 'primeng/contextmenu';
+import { RippleModule } from 'primeng/ripple';
+import { SelectModule } from 'primeng/select';
+import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
+import { CurrencyService } from '../../../../shared/services/currency.service';
 
 @Component({
   selector: 'app-sales-returns-list',
@@ -25,24 +28,29 @@ import { MessageService, ConfirmationService } from 'primeng/api';
     TableModule,
     ButtonModule,
     InputTextModule,
-    Select,
     DatePickerModule,
     CardModule,
     TagModule,
     TooltipModule,
     ToastModule,
     ConfirmDialogModule,
-    PaginatorModule
+    PaginatorModule,
+    ContextMenuModule,
+    RippleModule,
+    SelectModule
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: './sales-returns-list.component.html',
   styleUrls: ['./sales-returns-list.component.css']
 })
 export class SalesReturnsListComponent implements OnInit {
+  @ViewChild('contextMenu') contextMenu: ContextMenu | undefined;
+
   private readonly salesReturnService = inject(SalesReturnService);
   private readonly router = inject(Router);
   private readonly messageService = inject(MessageService);
   private readonly confirmationService = inject(ConfirmationService);
+  private readonly currencyService = inject(CurrencyService);
 
   salesReturns: SalesReturnResponse[] = [];
   loading = false;
@@ -56,6 +64,10 @@ export class SalesReturnsListComponent implements OnInit {
   filterStatus = '';
   dateRange: Date[] = [];
 
+  // Context menu
+  contextMenuItems: MenuItem[] = [];
+  selectedReturn: SalesReturnResponse | null = null;
+
   statusOptions = [
     { label: 'All Statuses', value: '' },
     { label: 'Pending', value: 'PENDING' },
@@ -67,6 +79,90 @@ export class SalesReturnsListComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadSalesReturns();
+    this.initializeContextMenu();
+  }
+
+  /**
+   * Initialize context menu items
+   */
+  private initializeContextMenu(): void {
+    this.contextMenuItems = [
+      {
+        label: 'View',
+        icon: 'pi pi-eye',
+        command: () => {
+          if (this.selectedReturn) {
+            this.viewReturn(this.selectedReturn);
+          }
+        }
+      },
+      { separator: true },
+      {
+        label: 'Approve',
+        icon: 'pi pi-check',
+        command: () => {
+          if (this.selectedReturn) {
+            this.approveReturn(this.selectedReturn, new Event('click'));
+          }
+        },
+        visible: this.selectedReturn ? this.selectedReturn.status === 'PENDING' : false
+      },
+      {
+        label: 'Reject',
+        icon: 'pi pi-times',
+        command: () => {
+          if (this.selectedReturn) {
+            this.rejectReturn(this.selectedReturn, new Event('click'));
+          }
+        },
+        visible: this.selectedReturn ? this.selectedReturn.status === 'PENDING' : false
+      },
+      {
+        label: 'Receive',
+        icon: 'pi pi-inbox',
+        command: () => {
+          if (this.selectedReturn) {
+            this.receiveReturn(this.selectedReturn, new Event('click'));
+          }
+        },
+        visible: this.selectedReturn ? this.selectedReturn.status === 'APPROVED' : false
+      },
+      {
+        label: 'Process',
+        icon: 'pi pi-cog',
+        command: () => {
+          if (this.selectedReturn) {
+            this.processReturn(this.selectedReturn, new Event('click'));
+          }
+        },
+        visible: this.selectedReturn ? this.selectedReturn.status === 'RECEIVED' : false
+      }
+    ];
+  }
+
+  /**
+   * Show context menu
+   */
+  showContextMenu(event: MouseEvent, salesReturn: SalesReturnResponse): void {
+    this.selectedReturn = salesReturn;
+    this.initializeContextMenu();
+    if (this.contextMenu) {
+      this.contextMenu.show(event);
+    }
+  }
+
+  /**
+   * Handle keyboard shortcuts
+   */
+  @HostListener('window:keydown', ['$event'])
+  handleKeyboardEvent(event: KeyboardEvent): void {
+    if (event.ctrlKey && event.key === 'n') {
+      event.preventDefault();
+      this.createReturn();
+    } else if (event.key === 'F5') {
+      event.preventDefault();
+      this.loadSalesReturns();
+    }
   }
 
   loadSalesReturns(): void {
@@ -242,11 +338,11 @@ export class SalesReturnsListComponent implements OnInit {
             });
             this.loadSalesReturns();
           },
-          error: () => {
+          error: (err) => {
             this.messageService.add({
               severity: 'error',
               summary: 'Error',
-              detail: 'Failed to approve return'
+              detail: err?.error?.message || 'Failed to approve return'
             });
           }
         });
@@ -270,11 +366,11 @@ export class SalesReturnsListComponent implements OnInit {
         });
         this.loadSalesReturns();
       },
-      error: () => {
+      error: (err) => {
         this.messageService.add({
           severity: 'error',
           summary: 'Error',
-          detail: 'Failed to reject return'
+          detail: err?.error?.message || 'Failed to reject return'
         });
       }
     });
@@ -297,11 +393,11 @@ export class SalesReturnsListComponent implements OnInit {
             });
             this.loadSalesReturns();
           },
-          error: () => {
+          error: (err) => {
             this.messageService.add({
               severity: 'error',
               summary: 'Error',
-              detail: 'Failed to mark return as received'
+              detail: err?.error?.message || 'Failed to mark return as received'
             });
           }
         });
@@ -326,11 +422,11 @@ export class SalesReturnsListComponent implements OnInit {
             });
             this.loadSalesReturns();
           },
-          error: () => {
+          error: (err) => {
             this.messageService.add({
               severity: 'error',
               summary: 'Error',
-              detail: 'Failed to process return'
+              detail: err?.error?.message || 'Failed to process return'
             });
           }
         });
@@ -340,7 +436,7 @@ export class SalesReturnsListComponent implements OnInit {
 
   getStatusSeverity(status: string): string {
     const severityMap: Record<string, string> = {
-      PENDING: 'warning',
+      PENDING: 'warn',
       APPROVED: 'info',
       RECEIVED: 'primary',
       REJECTED: 'danger',
@@ -350,10 +446,8 @@ export class SalesReturnsListComponent implements OnInit {
   }
 
   formatCurrency(amount: number): string {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR'
-    }).format(amount);
+    const currency = this.currencyService.selectedCurrency() || 'BDT';
+    return this.currencyService.formatCurrency(amount, currency);
   }
 
   formatDate(date: string): string {

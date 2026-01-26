@@ -3,13 +3,20 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, FormArray, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { AutoCompleteModule } from 'primeng/autocomplete';
+import { ToastModule } from 'primeng/toast';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { ButtonModule } from 'primeng/button';
+import { MessageService, ConfirmationService } from 'primeng/api';
 import { SalesReturnService, CreateSalesReturnRequest, SalesReturnResponse } from '../../services/sales-return.service';
 import { SalesOrderService, SalesOrderResponse } from '../../services/sales-order.service';
+import { WarehouseService, WarehouseResponse } from '../../../inventory/services/warehouse.service';
+import { CurrencyService } from '../../../../shared/services/currency.service';
 
 @Component({
   selector: 'app-sales-return-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, AutoCompleteModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, AutoCompleteModule, ToastModule, ConfirmDialogModule, ButtonModule],
+  providers: [MessageService, ConfirmationService],
   templateUrl: './sales-return-form.component.html',
   styleUrls: ['./sales-return-form.component.css']
 })
@@ -19,6 +26,10 @@ export class SalesReturnFormComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly salesReturnService = inject(SalesReturnService);
   private readonly salesOrderService = inject(SalesOrderService);
+  private readonly warehouseService = inject(WarehouseService);
+  private readonly currencyService = inject(CurrencyService);
+  private readonly messageService = inject(MessageService);
+  private readonly confirmationService = inject(ConfirmationService);
 
   salesReturnForm!: FormGroup;
   loading = signal(false);
@@ -30,9 +41,15 @@ export class SalesReturnFormComponent implements OnInit {
 
   // Sales Order selection
   salesOrders = signal<SalesOrderResponse[]>([]);
-  filteredSalesOrders = signal<SalesOrderResponse[]>([]);
+  filteredSalesOrders: SalesOrderResponse[] = [];
   selectedSalesOrder = signal<SalesOrderResponse | null>(null);
   loadingSalesOrders = signal(false);
+
+  // Warehouse selection
+  warehouses = signal<WarehouseResponse[]>([]);
+  filteredWarehouses: WarehouseResponse[] = [];
+  selectedWarehouse = signal<WarehouseResponse | null>(null);
+  loadingWarehouses = signal(false);
 
   // Computed total refund
   totalRefund = computed(() => {
@@ -48,6 +65,7 @@ export class SalesReturnFormComponent implements OnInit {
   ngOnInit(): void {
     this.initializeForm();
     this.loadSalesOrders();
+    this.loadWarehouses();
 
     // Check route params for view mode
     this.route.queryParams.subscribe(params => {
@@ -65,8 +83,9 @@ export class SalesReturnFormComponent implements OnInit {
   initializeForm(): void {
     this.salesReturnForm = this.fb.group({
       salesOrderId: ['', [Validators.required]],
-      warehouseId: ['00000000-0000-0000-0000-000000000000'], // Default warehouse
+      warehouseId: ['', [Validators.required]],
       reason: ['', [Validators.required]],
+      refundType: ['CASH_REFUND', [Validators.required]],
       notes: [''],
       lines: this.fb.array([])
     });
@@ -85,12 +104,27 @@ export class SalesReturnFormComponent implements OnInit {
           o.status === 'CONFIRMED' || o.status === 'DELIVERED' || o.status === 'PARTIALLY_SHIPPED'
         );
         this.salesOrders.set(validOrders);
-        this.filteredSalesOrders.set(validOrders);
+        this.filteredSalesOrders = validOrders;
         this.loadingSalesOrders.set(false);
       },
       error: (err) => {
         console.error('Error loading sales orders:', err);
         this.loadingSalesOrders.set(false);
+      }
+    });
+  }
+
+  loadWarehouses(): void {
+    this.loadingWarehouses.set(true);
+    this.warehouseService.getAllWarehouses().subscribe({
+      next: (warehouses) => {
+        this.warehouses.set(warehouses);
+        this.filteredWarehouses = warehouses;
+        this.loadingWarehouses.set(false);
+      },
+      error: (err) => {
+        console.error('Error loading warehouses:', err);
+        this.loadingWarehouses.set(false);
       }
     });
   }
@@ -115,6 +149,14 @@ export class SalesReturnFormComponent implements OnInit {
               notes: salesReturn.notes
             });
 
+            // Load warehouse if available
+            if (salesReturn.warehouseId) {
+              const warehouse = this.warehouses().find(w => w.id === salesReturn.warehouseId);
+              if (warehouse) {
+                this.selectedWarehouse.set(warehouse);
+              }
+            }
+
             // Populate line items
             this.lines.clear();
             salesReturn.lines.forEach(line => {
@@ -124,7 +166,11 @@ export class SalesReturnFormComponent implements OnInit {
                 quantity: [line.quantity],
                 unitPrice: [line.unitPrice],
                 condition: [line.condition],
-                notes: [line.notes]
+                notes: [line.notes],
+                // Read-only fields for display
+                maxQuantity: [line.quantity],
+                partName: [(line as any).partName || ''],
+                partSku: [(line as any).partSku || (line as any).sku || '']
               }));
             });
 
@@ -152,15 +198,31 @@ export class SalesReturnFormComponent implements OnInit {
   approve(): void {
     const current = this.currentSalesReturn();
     if (!current) return;
-    if (!confirm(`Approve sales return ${current.returnNumber}?`)) return;
-    this.salesReturnService.approveSalesReturn(current.id).subscribe({
-      next: (updated) => {
-        this.currentSalesReturn.set(updated);
-        this.loadSalesReturn(updated.id);
-      },
-      error: (err) => {
-        console.error('Error approving sales return', err);
-        alert('Failed to approve sales return');
+
+    this.confirmationService.confirm({
+      message: `Are you sure you want to approve return ${current.returnNumber}?`,
+      header: 'Confirm',
+      icon: 'pi pi-exclamation-triangle',
+      accept: () => {
+        this.salesReturnService.approveSalesReturn(current.id).subscribe({
+          next: (updated) => {
+            this.currentSalesReturn.set(updated);
+            this.messageService.add({
+              severity: 'success',
+              summary: 'Success',
+              detail: `Sales return ${current.returnNumber} approved successfully`
+            });
+            this.loadSalesReturn(updated.id);
+          },
+          error: (err) => {
+            this.messageService.add({
+              severity: 'error',
+              summary: 'Error',
+              detail: err?.error?.message || 'Failed to approve sales return'
+            });
+            console.error('Error approving sales return', err);
+          }
+        });
       }
     });
   }
@@ -168,16 +230,28 @@ export class SalesReturnFormComponent implements OnInit {
   reject(): void {
     const current = this.currentSalesReturn();
     if (!current) return;
+
+    // Using prompt for simplicity - could be replaced with a custom dialog
     const reason = prompt(`Enter reason to reject ${current.returnNumber}:`);
-    if (reason === null) return;
+    if (reason === null || reason.trim() === '') return;
+
     this.salesReturnService.rejectSalesReturn(current.id, reason).subscribe({
       next: (updated) => {
         this.currentSalesReturn.set(updated);
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Success',
+          detail: `Sales return ${current.returnNumber} rejected`
+        });
         this.loadSalesReturn(updated.id);
       },
       error: (err) => {
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: err?.error?.message || 'Failed to reject sales return'
+        });
         console.error('Error rejecting sales return', err);
-        alert('Failed to reject sales return');
       }
     });
   }
@@ -185,15 +259,31 @@ export class SalesReturnFormComponent implements OnInit {
   receive(): void {
     const current = this.currentSalesReturn();
     if (!current) return;
-    if (!confirm(`Mark ${current.returnNumber} as received?`)) return;
-    this.salesReturnService.receiveSalesReturn(current.id).subscribe({
-      next: (updated) => {
-        this.currentSalesReturn.set(updated);
-        this.loadSalesReturn(updated.id);
-      },
-      error: (err) => {
-        console.error('Error receiving sales return', err);
-        alert('Failed to mark as received');
+
+    this.confirmationService.confirm({
+      message: `Mark return ${current.returnNumber} as received?`,
+      header: 'Confirm',
+      icon: 'pi pi-exclamation-triangle',
+      accept: () => {
+        this.salesReturnService.receiveSalesReturn(current.id).subscribe({
+          next: (updated) => {
+            this.currentSalesReturn.set(updated);
+            this.messageService.add({
+              severity: 'success',
+              summary: 'Success',
+              detail: `Sales return ${current.returnNumber} marked as received`
+            });
+            this.loadSalesReturn(updated.id);
+          },
+          error: (err) => {
+            this.messageService.add({
+              severity: 'error',
+              summary: 'Error',
+              detail: err?.error?.message || 'Failed to mark as received'
+            });
+            console.error('Error receiving sales return', err);
+          }
+        });
       }
     });
   }
@@ -201,32 +291,70 @@ export class SalesReturnFormComponent implements OnInit {
   process(): void {
     const current = this.currentSalesReturn();
     if (!current) return;
-    if (!confirm(`Process ${current.returnNumber}? This will finalize the return.`)) return;
-    this.salesReturnService.processSalesReturn(current.id).subscribe({
-      next: (updated) => {
-        this.currentSalesReturn.set(updated);
-        this.loadSalesReturn(updated.id);
-      },
-      error: (err) => {
-        console.error('Error processing sales return', err);
-        alert('Failed to process sales return');
+
+    this.confirmationService.confirm({
+      message: `Process return ${current.returnNumber}? This will finalize the return.`,
+      header: 'Confirm',
+      icon: 'pi pi-exclamation-triangle',
+      accept: () => {
+        this.salesReturnService.processSalesReturn(current.id).subscribe({
+          next: (updated) => {
+            this.currentSalesReturn.set(updated);
+            this.messageService.add({
+              severity: 'success',
+              summary: 'Success',
+              detail: `Sales return ${current.returnNumber} processed successfully`
+            });
+            this.loadSalesReturn(updated.id);
+          },
+          error: (err) => {
+            this.messageService.add({
+              severity: 'error',
+              summary: 'Error',
+              detail: err?.error?.message || 'Failed to process sales return'
+            });
+            console.error('Error processing sales return', err);
+          }
+        });
       }
     });
   }
 
   onSalesOrderFilter(event: any): void {
-    const query = event.query.toLowerCase();
+    const query = event.query?.toLowerCase() || '';
 
-    if (!query) {
-      this.filteredSalesOrders.set(this.salesOrders());
+    if (!query || query.trim() === '') {
+      this.filteredSalesOrders = [...this.salesOrders()];
       return;
     }
 
-    const filtered = this.salesOrders().filter(o =>
+    this.filteredSalesOrders = this.salesOrders().filter(o =>
       o.soNumber.toLowerCase().includes(query) ||
       o.customerName.toLowerCase().includes(query)
     );
-    this.filteredSalesOrders.set(filtered);
+  }
+
+  onSalesOrderDropdownClick(): void {
+    this.filteredSalesOrders = [...this.salesOrders()];
+  }
+
+  onWarehouseFilter(event: any): void {
+    const query = event.query?.toLowerCase() || '';
+
+    if (!query || query.trim() === '') {
+      this.filteredWarehouses = [...this.warehouses()];
+      return;
+    }
+
+    this.filteredWarehouses = this.warehouses().filter(w =>
+      w.name.toLowerCase().includes(query) ||
+      w.code.toLowerCase().includes(query) ||
+      w.location.toLowerCase().includes(query)
+    );
+  }
+
+  onWarehouseDropdownClick(): void {
+    this.filteredWarehouses = [...this.warehouses()];
   }
 
   selectSalesOrder(event: any): void {
@@ -234,13 +362,31 @@ export class SalesReturnFormComponent implements OnInit {
     this.selectedSalesOrder.set(order);
 
     this.salesReturnForm.patchValue({
-      salesOrderId: order.id
+      salesOrderId: order.id,
+      warehouseId: order.warehouseId || ''
     });
+
+    // Auto-select warehouse if order has one
+    if (order.warehouseId) {
+      const warehouse = this.warehouses().find(w => w.id === order.warehouseId);
+      if (warehouse) {
+        this.selectedWarehouse.set(warehouse);
+      }
+    }
 
     // Clear existing lines and add order lines
     this.lines.clear();
     order.lines.forEach(line => {
       this.lines.push(this.createLineFromOrderLine(line));
+    });
+  }
+
+  selectWarehouse(event: any): void {
+    const warehouse = event as WarehouseResponse;
+    this.selectedWarehouse.set(warehouse);
+
+    this.salesReturnForm.patchValue({
+      warehouseId: warehouse.id
     });
   }
 
@@ -254,7 +400,8 @@ export class SalesReturnFormComponent implements OnInit {
       notes: [''],
       // Read-only fields for display
       maxQuantity: [orderLine.quantity],
-      partName: [orderLine.partName || '']
+      partName: [orderLine.partName || ''],
+      partSku: [orderLine.partSku || orderLine.sku || '']
     });
   }
 
@@ -267,6 +414,13 @@ export class SalesReturnFormComponent implements OnInit {
         }
       });
       this.error.set('Please fill in all required fields');
+      return;
+    }
+
+    // Validate that warehouseId is not empty
+    const warehouseId = this.salesReturnForm.get('warehouseId')?.value;
+    if (!warehouseId) {
+      this.error.set('The selected sales order does not have a warehouse assigned. Please select a different sales order.');
       return;
     }
 
@@ -285,6 +439,7 @@ export class SalesReturnFormComponent implements OnInit {
       salesOrderId: formValue.salesOrderId,
       warehouseId: formValue.warehouseId,
       reason: formValue.reason,
+      refundType: formValue.refundType,
       notes: formValue.notes,
       lines: validLines.map((line: any) => ({
         salesOrderLineId: line.value.salesOrderLineId,
@@ -298,14 +453,20 @@ export class SalesReturnFormComponent implements OnInit {
 
     this.salesReturnService.createSalesReturn(request).subscribe({
       next: () => {
-        alert('Sales return created successfully!');
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Success',
+          detail: 'Sales return created successfully'
+        });
         this.router.navigate(['/sales/sales-returns']);
       },
       error: (err) => {
-        let errorMessage = 'Failed to create sales return';
-        if (err.error?.message) {
-          errorMessage = err.error.message;
-        }
+        const errorMessage = err?.error?.message || 'Failed to create sales return';
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: errorMessage
+        });
         this.error.set(errorMessage);
         this.saving.set(false);
         console.error('Error creating sales return:', err);
@@ -318,9 +479,10 @@ export class SalesReturnFormComponent implements OnInit {
   }
 
   formatCurrency(amount: number): string {
+    const currency = this.currencyService.selectedCurrency() || 'BDT';
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD'
+      currency: currency
     }).format(amount);
   }
 }

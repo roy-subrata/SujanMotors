@@ -6,13 +6,14 @@ import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { TooltipModule } from 'primeng/tooltip';
 import { BadgeModule } from 'primeng/badge';
+import { TagModule } from 'primeng/tag';
 import { MessageService } from 'primeng/api';
 import { UnitConversionService, UnitConversionResponse } from '../../services/unit-conversion.service';
 
 @Component({
     selector: 'app-conversions-list',
     standalone: true,
-    imports: [CommonModule, TableModule, ButtonModule, InputTextModule, TooltipModule, BadgeModule, FormsModule],
+    imports: [CommonModule, TableModule, ButtonModule, InputTextModule, TooltipModule, BadgeModule, TagModule, FormsModule],
     templateUrl: './conversions-list.component.html',
     styleUrls: ['./conversions-list.component.css']
 })

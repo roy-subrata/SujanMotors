@@ -10,9 +10,11 @@
 
   <ItemGroup>
     <ProjectReference Include="../AutoPartShop.Domain/AutoPartShop.Domain.csproj" />
+    <ProjectReference Include="..\AutoPartShop.Application\AutoPartShop.csproj" />
   </ItemGroup>
 
 <ItemGroup>
+  <PackageReference Include="FluentResults" Version="4.0.0" />
   <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.3.0" />
   <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.0" />
   <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.*" />

@@ -14,6 +14,7 @@ public class CreatePurchaseReturnLineRequest
 {
     public Guid PurchaseOrderLineId { get; set; }
     public Guid PartId { get; set; }
+    public Guid? StockLotId { get; set; }  // Optional: specific lot to return from
     public int Quantity { get; set; }
     public int RejectedQuantity { get; set; } = 0;
     public decimal UnitPrice { get; set; }

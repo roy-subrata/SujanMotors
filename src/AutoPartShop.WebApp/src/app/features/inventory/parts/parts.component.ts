@@ -1,19 +1,19 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { DialogService } from 'primeng/dynamicdialog';
 import { PartsHeaderComponent } from './parts-header/parts-header.component';
 import { PartsTableComponent } from './parts-table/parts-table.component';
-import { PartsFormDialogComponent } from './parts-form-dialog/parts-form-dialog.component';
 import { BarcodeDialogComponent } from './barcode-dialog/barcode-dialog.component';
 import { PartService, PartResponse } from '../services/part.service';
 
 @Component({
     selector: 'app-parts',
     standalone: true,
-    imports: [CommonModule, ToastModule, ConfirmDialogModule, PartsHeaderComponent, PartsTableComponent, PartsFormDialogComponent],
+    imports: [CommonModule, ToastModule, ConfirmDialogModule, PartsHeaderComponent, PartsTableComponent],
     providers: [MessageService, ConfirmationService, DialogService],
     templateUrl: './parts.component.html',
     styleUrls: ['./parts.component.css']
@@ -22,11 +22,9 @@ export class PartsComponent implements OnInit {
     private readonly partService = inject(PartService);
     private readonly messageService = inject(MessageService);
     private readonly dialogService = inject(DialogService);
+    private readonly router = inject(Router);
 
     parts: PartResponse[] = [];
-    displayCreateDialog = false;
-    displayUpdateDialog = false;
-    selectedPart: PartResponse | null = null;
     loading = false;
     totalRecords = 0;
     rows = 10;
@@ -52,12 +50,17 @@ export class PartsComponent implements OnInit {
         }
 
         this.loading = true;
-        this.partService.getParts(pageNumber, pageSize, searchTerm).subscribe({
+        this.partService.getParts({
+            search: searchTerm,
+            pageNumber: pageNumber,
+            pageSize: pageNumber,
+            isActive: true
+        }).subscribe({
             next: (response) => {
-                this.parts = response.items;
-                this.totalRecords = response.totalCount;
-                this.rows = response.pageSize;
-                this.currentPage = response.pageNumber;
+                this.parts = response.data;
+                this.totalRecords = response.pagination.totalCount;
+                this.rows = response.pagination.pageSize;
+                this.currentPage = response.pagination.totalPages;
                 this.loading = false;
             },
             error: (error) => {
@@ -76,7 +79,7 @@ export class PartsComponent implements OnInit {
      * Handle create button click
      */
     onCreateClick(): void {
-        this.displayCreateDialog = true;
+        this.router.navigate(['/inventory/parts/create']);
     }
 
     /**
@@ -99,8 +102,9 @@ export class PartsComponent implements OnInit {
      * Handle edit click
      */
     onEditClick(part: PartResponse): void {
-        this.selectedPart = part;
-        this.displayUpdateDialog = true;
+        this.router.navigate(['/inventory/parts/edit'], {
+            queryParams: { id: part.id, mode: 'edit' }
+        });
     }
 
     /**
@@ -124,30 +128,6 @@ export class PartsComponent implements OnInit {
      */
     onPageChange(event: { page: number; rows: number }): void {
         this.loadParts(event.page, event.rows, this.searchTerm);
-    }
-
-    /**
-     * Handle part created
-     */
-    onPartCreated(part: PartResponse): void {
-        this.messageService.add({
-            severity: 'success',
-            summary: 'Success',
-            detail: `Part '${part.name}' created successfully`
-        });
-        this.loadParts(1, this.rows, this.searchTerm);
-    }
-
-    /**
-     * Handle part updated
-     */
-    onPartUpdated(part: PartResponse): void {
-        this.messageService.add({
-            severity: 'success',
-            summary: 'Success',
-            detail: `Part '${part.name}' updated successfully`
-        });
-        this.loadParts(this.currentPage, this.rows, this.searchTerm);
     }
 
     /**

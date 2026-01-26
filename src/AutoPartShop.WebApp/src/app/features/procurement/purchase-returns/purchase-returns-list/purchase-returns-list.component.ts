@@ -15,6 +15,7 @@ import { InputGroupAddonModule } from 'primeng/inputgroupaddon';
 import { InputTextModule } from 'primeng/inputtext';
 import { ConfirmationService, MessageService, MenuItem } from 'primeng/api';
 import { PurchaseReturnService, PurchaseReturnResponse } from '../../services/purchase-return.service';
+import { CurrencyService } from '../../../../shared/services/currency.service';
 
 @Component({
   selector: 'app-purchase-returns-list',
@@ -63,6 +64,7 @@ export class PurchaseReturnsListComponent implements OnInit {
   private readonly confirmationService = inject(ConfirmationService);
   private readonly messageService = inject(MessageService);
   private readonly router = inject(Router);
+  private readonly currencyService = inject(CurrencyService);
 
   ngOnInit(): void {
     this.initializeContextMenu();
@@ -459,10 +461,8 @@ export class PurchaseReturnsListComponent implements OnInit {
    * Format currency
    */
   formatCurrency(value: number): string {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR'
-    }).format(value);
+    const currency = this.currencyService.selectedCurrency() || 'BDT';
+    return this.currencyService.formatCurrency(value, currency);
   }
 
   /**

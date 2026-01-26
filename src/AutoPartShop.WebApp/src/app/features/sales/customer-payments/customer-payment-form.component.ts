@@ -16,6 +16,7 @@ import { CustomerPaymentService, CreateCustomerPaymentRequest } from '../service
 import { CustomerService, CustomerResponse } from '../services/customer.service';
 import { InvoiceService, InvoiceResponse } from '../services/invoice.service';
 import { PaymentProviderService, PaymentProviderResponse } from '../../procurement/services/payment-provider.service';
+import { CUSTOMER_PAYMENT_METHODS, PaymentMethodOption, getPaymentMethodIcon as getMethodIcon } from '../../../shared/constants/payment-methods.constants';
 
 @Component({
   selector: 'app-customer-payment-form',
@@ -59,18 +60,8 @@ export class CustomerPaymentFormComponent implements OnInit {
   paymentProviders: PaymentProviderResponse[] = [];
   filteredPaymentProviders: PaymentProviderResponse[] = [];
 
-  paymentMethods = [
-    { label: 'Cash', value: 'CASH', icon: 'pi-money-bill' },
-    { label: 'UPI', value: 'UPI', icon: 'pi-mobile' },
-    { label: 'Credit Card', value: 'CREDIT_CARD', icon: 'pi-credit-card' },
-    { label: 'Debit Card', value: 'DEBIT_CARD', icon: 'pi-credit-card' },
-    { label: 'Card', value: 'CARD', icon: 'pi-credit-card' },
-    { label: 'Cheque', value: 'CHEQUE', icon: 'pi-file-edit' },
-    { label: 'Bank Transfer', value: 'BANK_TRANSFER', icon: 'pi-building' },
-    { label: 'NEFT', value: 'NEFT', icon: 'pi-building' },
-    { label: 'RTGS', value: 'RTGS', icon: 'pi-building' },
-    { label: 'Demand Draft', value: 'DEMAND_DRAFT', icon: 'pi-file' }
-  ];
+  // Use shared payment methods from centralized constants
+  paymentMethods: PaymentMethodOption[] = CUSTOMER_PAYMENT_METHODS;
 
 
   constructor() {
@@ -148,7 +139,11 @@ export class CustomerPaymentFormComponent implements OnInit {
    * Load customers for autocomplete
    */
   private loadCustomers(): void {
-    this.customerService.getCustomers(1, 1000).subscribe({
+     this.customerService.getCustomers({
+                search: '',
+                pageNumber: 1,
+                pageSize: 100
+            }).subscribe({
       next: (response) => {
         this.customers = response.data || [];
         this.filteredCustomers = this.customers;
@@ -330,37 +325,30 @@ export class CustomerPaymentFormComponent implements OnInit {
         next: (createdPayment) => {
           const paymentMethod = this.form.get('paymentMethod')?.value?.toUpperCase() || '';
 
-          // Auto-confirm instant payment methods (CASH, UPI, CARD)
-          // Keep CHEQUE and BANK_TRANSFER as PENDING for manual verification
-          const instantPaymentMethods = ['CASH', 'UPI', 'CARD', 'CREDIT_CARD', 'DEBIT_CARD'];
-
-          if (instantPaymentMethods.includes(paymentMethod)) {
-            // Automatically confirm instant payments
-            this.service.confirmPayment(createdPayment.id).subscribe({
-              next: () => {
-                this.messageService.add({
-                  severity: 'success',
-                  summary: 'Success',
-                  detail: 'Payment created and confirmed successfully'
-                });
-                this.router.navigate(['/sales/customer-payments']);
-              },
-              error: (confirmError) => {
-                this.messageService.add({
-                  severity: 'warn',
-                  summary: 'Warning',
-                  detail: 'Payment created but auto-confirmation failed. Please confirm manually.'
-                });
-                this.router.navigate(['/sales/customer-payments']);
-              }
+          // Backend now auto-completes CASH payments
+          // Check the response status to determine if payment was auto-completed
+          if (createdPayment.status === 'COMPLETED') {
+            this.messageService.add({
+              severity: 'success',
+              summary: 'Success',
+              detail: 'Payment created and completed successfully'
             });
-          } else {
+            this.router.navigate(['/sales/customer-payments']);
+          } else if (createdPayment.status === 'PENDING') {
             // For CHEQUE, BANK_TRANSFER, etc., keep as PENDING for manual verification
             this.messageService.add({
               severity: 'success',
               summary: 'Success',
               detail: `Payment created successfully. ${paymentMethod} payments require manual confirmation.`,
               life: 5000
+            });
+            this.router.navigate(['/sales/customer-payments']);
+          } else {
+            // Unknown status - show generic success
+            this.messageService.add({
+              severity: 'success',
+              summary: 'Success',
+              detail: 'Payment created successfully'
             });
             this.router.navigate(['/sales/customer-payments']);
           }
@@ -382,18 +370,9 @@ export class CustomerPaymentFormComponent implements OnInit {
   }
 
   /**
-   * Check if payment method is instant (auto-confirm)
-   */
-  isInstantPaymentMethod(method: string): boolean {
-    const instantMethods = ['CASH', 'UPI', 'CARD', 'CREDIT_CARD', 'DEBIT_CARD'];
-    return instantMethods.includes(method);
-  }
-
-  /**
-   * Get icon for payment method
+   * Get icon for payment method (using shared helper)
    */
   getPaymentMethodIcon(method: string): string {
-    const methodObj = this.paymentMethods.find(m => m.value === method);
-    return methodObj ? `pi ${methodObj.icon}` : 'pi pi-money-bill';
+    return getMethodIcon(method);
   }
 }

@@ -1,3 +1,4 @@
+using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.WarehouseDtos;
 using AutoPartShop.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
@@ -11,11 +12,13 @@ public class WarehousesController : ControllerBase
 {
     private readonly IWarehouseRepository _warehouseRepository;
     private readonly ILogger<WarehousesController> _logger;
+    private readonly ICurrentUserService _currentUserService;
 
-    public WarehousesController(IWarehouseRepository warehouseRepository, ILogger<WarehousesController> logger)
+    public WarehousesController(IWarehouseRepository warehouseRepository, ICurrentUserService currentUserService, ILogger<WarehousesController> logger)
     {
         _warehouseRepository = warehouseRepository;
         _logger = logger;
+        _currentUserService = currentUserService;
     }
 
     [HttpGet]
@@ -153,8 +156,9 @@ public class WarehousesController : ControllerBase
             warehouse.StorageCapacity = request.StorageCapacity;
             warehouse.CapacityUnit = request.CapacityUnit;
             warehouse.Description = request.Description;
-            warehouse.CreatedBy = "System";
-            warehouse.ModifiedBy = "System";
+            var currentUser = _currentUserService.GetCurrentUsername();
+            warehouse.CreatedBy = currentUser;
+            warehouse.ModifiedBy = currentUser;
 
             await _warehouseRepository.AddAsync(warehouse, cancellationToken);
 
@@ -183,7 +187,7 @@ public class WarehousesController : ControllerBase
                 request.Country, request.PostalCode, request.Manager, request.ManagerEmail,
                 request.ManagerPhone, request.StorageCapacity, request.CapacityUnit,
                 request.Description, request.IsActive);
-            warehouse.ModifiedBy = "System";
+            warehouse.ModifiedBy = _currentUserService.GetCurrentUsername();
 
             await _warehouseRepository.UpdateAsync(warehouse, cancellationToken);
 
@@ -209,7 +213,7 @@ public class WarehousesController : ControllerBase
             if (warehouse is null) return NotFound(new { message = "Warehouse not found" });
 
             warehouse.Activate();
-            warehouse.ModifiedBy = "System";
+            warehouse.ModifiedBy = _currentUserService.GetCurrentUsername();
             await _warehouseRepository.UpdateAsync(warehouse, cancellationToken);
 
             return Ok(MapToResponse(warehouse));
@@ -230,7 +234,7 @@ public class WarehousesController : ControllerBase
             if (warehouse is null) return NotFound(new { message = "Warehouse not found" });
 
             warehouse.Deactivate();
-            warehouse.ModifiedBy = "System";
+            warehouse.ModifiedBy = _currentUserService.GetCurrentUsername();
             await _warehouseRepository.UpdateAsync(warehouse, cancellationToken);
 
             return Ok(MapToResponse(warehouse));

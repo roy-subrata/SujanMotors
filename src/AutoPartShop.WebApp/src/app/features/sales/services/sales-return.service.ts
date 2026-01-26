@@ -15,6 +15,7 @@ export interface CreateSalesReturnRequest {
   salesOrderId: string;
   warehouseId: string;
   reason: string; // DAMAGED, DEFECTIVE, WRONG_ITEM, EXCESS_STOCK
+  refundType: string; // CASH_REFUND, STORE_CREDIT
   notes: string;
   lines: SalesReturnLineRequest[];
 }
@@ -33,10 +34,12 @@ export interface SalesReturnResponse {
   id: string;
   returnNumber: string;
   salesOrderId: string;
+  salesOrderNumber?: string; // Sales Order Number
   warehouseId: string;
   reason: string;
   status: string; // PENDING, APPROVED, RECEIVED, REJECTED, PROCESSED
   totalRefundAmount: number;
+  refundType: string; // CASH_REFUND, STORE_CREDIT
   notes: string;
   lines: SalesReturnLineResponse[];
   createdAt: string;
@@ -55,7 +58,7 @@ export interface PaginatedResponse<T> {
 @Injectable({ providedIn: 'root' })
 export class SalesReturnService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = 'http://localhost:5292/api/salesorder/returns';
+  private readonly apiUrl = 'http://localhost:5292/api/SalesReturn';
 
   getAllSalesReturns(): Observable<SalesReturnResponse[]> {
     return this.http.get<SalesReturnResponse[]>(this.apiUrl);

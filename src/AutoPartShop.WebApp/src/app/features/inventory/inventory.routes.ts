@@ -3,8 +3,12 @@ import { CategoriesComponent } from './categories/categories.component';
 import { BrandsComponent } from './brands/brands.component';
 import { UnitsComponent } from './units/units.component';
 import { PartsComponent } from './parts/parts.component';
+import { PartFormComponent } from './parts/part-form/part-form.component';
 import { PartDetailsComponent } from './parts/part-details/part-details.component';
-import { SuppliersComponent } from './suppliers/suppliers.component';
+import { SuppliersListComponent } from './suppliers/suppliers-list/suppliers-list.component';
+import { SupplierFormComponent } from './suppliers/supplier-form/supplier-form.component';
+import { SupplierPaymentAccountListComponent } from './suppliers/supplier-payment-accounts/supplier-payment-account-list.component';
+import { SupplierPaymentAccountFormComponent } from './suppliers/supplier-payment-accounts/supplier-payment-account-form.component';
 import { WarehousesComponent } from './warehouses/warehouses.component';
 import { WarehouseFormComponent } from './warehouses/warehouse-form.component';
 import { VehiclesComponent } from './vehicles/vehicles.component';
@@ -19,8 +23,17 @@ export const inventoryRoutes: Routes = [
   { path: 'brands', component: BrandsComponent },
   { path: 'units', component: UnitsComponent },
   { path: 'parts', component: PartsComponent },
+  { path: 'parts/create', component: PartFormComponent },
+  { path: 'parts/edit', component: PartFormComponent },
+  { path: 'parts/view', component: PartFormComponent },
   { path: 'parts/:id', component: PartDetailsComponent },
-  { path: 'suppliers', component: SuppliersComponent },
+  { path: 'suppliers', component: SuppliersListComponent },
+  { path: 'suppliers/create', component: SupplierFormComponent },
+  { path: 'suppliers/edit', component: SupplierFormComponent },
+  { path: 'suppliers/view', component: SupplierFormComponent },
+  { path: 'suppliers/payment-accounts', component: SupplierPaymentAccountListComponent },
+  { path: 'suppliers/payment-accounts/new', component: SupplierPaymentAccountFormComponent },
+  { path: 'suppliers/payment-accounts/edit', component: SupplierPaymentAccountFormComponent },
   { path: 'warehouses', component: WarehousesComponent },
   { path: 'warehouses/create', component: WarehouseFormComponent },
   { path: 'warehouses/edit', component: WarehouseFormComponent },

@@ -1,6 +1,6 @@
+using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.UnitDtos;
 using AutoPartShop.Domain.Entities;
-using AutoPartShop.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AutoPartShop.Api.Controllers;
@@ -17,13 +17,15 @@ public class UnitsController : ControllerBase
     private readonly IUnitConversionRepository _conversionRepository;
     private readonly ILogger<UnitsController> _logger;
     private readonly ICodeGenerateService _codeGenerateService;
+    private readonly ICurrentUserService _currentUserService;
 
-    public UnitsController(IUnitRepository unitRepository, IUnitConversionRepository conversionRepository, ICodeGenerateService codeGenerateService, ILogger<UnitsController> logger)
+    public UnitsController(IUnitRepository unitRepository, IUnitConversionRepository conversionRepository, ICodeGenerateService codeGenerateService, ICurrentUserService currentUserService, ILogger<UnitsController> logger)
     {
         _unitRepository = unitRepository;
         _conversionRepository = conversionRepository;
         _logger = logger;
         _codeGenerateService = codeGenerateService;
+        _currentUserService = currentUserService;
     }
 
     /// <summary>
@@ -182,8 +184,9 @@ public class UnitsController : ControllerBase
             }
 
             var unit = Unit.Create(request.Name, request.Code, request.Symbol, request.Description);
-            unit.CreatedBy = "System";
-            unit.ModifiedBy = "System";
+            var currentUser = _currentUserService.GetCurrentUsername();
+            unit.CreatedBy = currentUser;
+            unit.ModifiedBy = currentUser;
 
             await _codeGenerateService.SaveGenerateCodeAsync("UNI", cancellationToken);
             await _unitRepository.AddAsync(unit, cancellationToken);
@@ -242,7 +245,7 @@ public class UnitsController : ControllerBase
             }
 
             unit.Update(request.Name, request.Code, request.Symbol, request.Description, request.IsActive, request.DisplayOrder);
-            unit.ModifiedBy = "System";
+            unit.ModifiedBy = _currentUserService.GetCurrentUsername();
 
             await _unitRepository.UpdateAsync(unit, cancellationToken);
 
@@ -281,7 +284,7 @@ public class UnitsController : ControllerBase
             }
 
             unit.Activate();
-            unit.ModifiedBy = "System";
+            unit.ModifiedBy = _currentUserService.GetCurrentUsername();
             await _unitRepository.UpdateAsync(unit, cancellationToken);
 
             var response = MapToResponse(unit);
@@ -314,7 +317,7 @@ public class UnitsController : ControllerBase
             }
 
             unit.Deactivate();
-            unit.ModifiedBy = "System";
+            unit.ModifiedBy = _currentUserService.GetCurrentUsername();
             await _unitRepository.UpdateAsync(unit, cancellationToken);
 
             var response = MapToResponse(unit);
@@ -377,7 +380,7 @@ public class UnitsController : ControllerBase
         {
             _logger.LogInformation("Getting all unit conversions");
             var conversions = await _conversionRepository.GetAllAsync(cancellationToken);
-            var response = conversions.Select(c => MapToConversionResponse(c));
+            var response = conversions.Select(c => MapToConversionResponse(c, c.FromUnit, c.ToUnit));
             return Ok(response);
         }
         catch (Exception ex)
@@ -407,7 +410,7 @@ public class UnitsController : ControllerBase
             }
 
             var conversions = await _conversionRepository.GetAllConversionsForUnitAsync(id, cancellationToken);
-            var response = conversions.Select(c => MapToConversionResponse(c));
+            var response = conversions.Select(c => MapToConversionResponse(c, c.FromUnit, c.ToUnit));
             return Ok(response);
         }
         catch (Exception ex)
@@ -483,8 +486,9 @@ public class UnitsController : ControllerBase
             }
 
             var conversion = UnitConversion.Create(request.FromUnitId, request.ToUnitId, request.ConversionFactor, request.Description);
-            conversion.CreatedBy = "System";
-            conversion.ModifiedBy = "System";
+            var currentUser = _currentUserService.GetCurrentUsername();
+            conversion.CreatedBy = currentUser;
+            conversion.ModifiedBy = currentUser;
 
             await _conversionRepository.AddAsync(conversion, cancellationToken);
 
@@ -532,11 +536,11 @@ public class UnitsController : ControllerBase
             }
 
             conversion.Update(request.ConversionFactor, request.Description, request.IsActive);
-            conversion.ModifiedBy = "System";
+            conversion.ModifiedBy = _currentUserService.GetCurrentUsername();
 
             await _conversionRepository.UpdateAsync(conversion, cancellationToken);
 
-            var response = MapToConversionResponse(conversion);
+            var response = MapToConversionResponse(conversion, conversion.FromUnit, conversion.ToUnit);
             return Ok(response);
         }
         catch (ArgumentException ex)
@@ -577,6 +581,53 @@ public class UnitsController : ControllerBase
         {
             _logger.LogError(ex, "Error deleting conversion: {ConversionId}", id);
             return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while deleting the conversion");
+        }
+    }
+
+    /// <summary>
+    /// Get compatible units for a given base unit
+    /// Returns the base unit itself plus all units that have conversions configured
+    /// </summary>
+    [HttpGet("{id:guid}/compatible-units")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<UnitResponse>))]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetCompatibleUnits(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            _logger.LogInformation("Getting compatible units for base unit: {UnitId}", id);
+
+            var baseUnit = await _unitRepository.GetByIdAsync(id, cancellationToken);
+            if (baseUnit is null)
+            {
+                _logger.LogWarning("Base unit not found: {UnitId}", id);
+                return NotFound(new { message = "Base unit not found" });
+            }
+
+            // Get all conversions for this unit
+            var conversions = await _conversionRepository.GetAllConversionsForUnitAsync(id, cancellationToken);
+
+            // Extract unique unit IDs from conversions (both from and to)
+            var compatibleUnitIds = new HashSet<Guid> { id }; // Start with base unit itself
+            foreach (var conversion in conversions.Where(c => c.IsActive))
+            {
+                if (conversion.FromUnitId == id)
+                    compatibleUnitIds.Add(conversion.ToUnitId);
+                else if (conversion.ToUnitId == id)
+                    compatibleUnitIds.Add(conversion.FromUnitId);
+            }
+
+            // Fetch all compatible units
+            var allUnits = await _unitRepository.GetAllAsync(cancellationToken);
+            var compatibleUnits = allUnits.Where(u => compatibleUnitIds.Contains(u.Id) && u.IsActive);
+
+            var response = compatibleUnits.Select(u => MapToResponse(u));
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting compatible units for unit: {UnitId}", id);
+            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving compatible units");
         }
     }
 

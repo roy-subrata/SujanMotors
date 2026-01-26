@@ -1,13 +1,92 @@
 import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SupplierPaymentHistorySummary } from '../../services/supplier-payment.service';
+import { SupplierLedgerSummaryDto } from '../../services/supplier-ledger.service';
 
 @Component({
   selector: 'app-payment-metrics',
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="grid grid-cols-12 gap-4" *ngIf="summary">
+    <!-- Ledger-based Metrics -->
+    <div class="grid grid-cols-12 gap-4" *ngIf="ledgerSummary">
+      <!-- Total Purchases Card -->
+      <div class="col-span-12 sm:col-span-6 md:col-span-3">
+        <div class="metric-card bg-red-50 border-l-4 border-red-500">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-gray-600 text-sm font-medium">Total Purchases</p>
+              <p class="text-2xl font-bold text-red-600">{{ ledgerSummary.totalPurchases | currency }}</p>
+            </div>
+            <i class="pi pi-shopping-cart text-red-500 text-3xl"></i>
+          </div>
+          <p class="text-xs text-gray-500 mt-2">Confirmed purchase orders</p>
+        </div>
+      </div>
+
+      <!-- Total Payments Card -->
+      <div class="col-span-12 sm:col-span-6 md:col-span-3">
+        <div class="metric-card bg-green-50 border-l-4 border-green-500">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-gray-600 text-sm font-medium">Total Payments</p>
+              <p class="text-2xl font-bold text-green-600">{{ ledgerSummary.totalPayments | currency }}</p>
+            </div>
+            <i class="pi pi-check-circle text-green-500 text-3xl"></i>
+          </div>
+          <p class="text-xs text-gray-500 mt-2">Completed payments</p>
+        </div>
+      </div>
+
+      <!-- Total Refunds Card -->
+      <div class="col-span-12 sm:col-span-6 md:col-span-3" *ngIf="ledgerSummary.totalRefunds > 0">
+        <div class="metric-card bg-purple-50 border-l-4 border-purple-500">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-gray-600 text-sm font-medium">Purchase Returns</p>
+              <p class="text-2xl font-bold text-purple-600">{{ ledgerSummary.totalRefunds | currency }}</p>
+            </div>
+            <i class="pi pi-replay text-purple-500 text-3xl"></i>
+          </div>
+          <p class="text-xs text-gray-500 mt-2">Settled refunds</p>
+        </div>
+      </div>
+
+      <!-- Available Advance Credit Card -->
+      <div class="col-span-12 sm:col-span-6 md:col-span-3" *ngIf="ledgerSummary.availableAdvanceCredit > 0">
+        <div class="metric-card bg-blue-50 border-l-4 border-blue-500">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-gray-600 text-sm font-medium">Advance Credit</p>
+              <p class="text-2xl font-bold text-blue-600">{{ ledgerSummary.availableAdvanceCredit | currency }}</p>
+            </div>
+            <i class="pi pi-wallet text-blue-500 text-3xl"></i>
+          </div>
+          <p class="text-xs text-gray-500 mt-2">Available to apply</p>
+        </div>
+      </div>
+
+      <!-- Current Balance Card (Calculated) -->
+      <div class="col-span-12 sm:col-span-6 md:col-span-3">
+        <div [ngClass]="getLedgerBalanceCardClass()">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-gray-600 text-sm font-medium">Current Balance</p>
+              <p [ngClass]="getLedgerBalanceTextColor()" class="text-2xl font-bold">
+                {{ ledgerSummary.currentBalance | currency }}
+              </p>
+            </div>
+            <i [ngClass]="getLedgerBalanceIcon()" class="text-3xl"></i>
+          </div>
+          <p class="text-xs text-gray-500 mt-2">
+            {{ ledgerSummary.currentBalance > 0 ? 'Amount owed to supplier' : 'Overpaid / Credit' }}
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Legacy Payment-based Metrics (fallback) -->
+    <div class="grid grid-cols-12 gap-4" *ngIf="!ledgerSummary && summary">
       <!-- Total Paid Card -->
       <div class="col-span-12 sm:col-span-6 md:col-span-3">
         <div class="metric-card bg-green-50 border-l-4 border-green-500">
@@ -50,12 +129,26 @@ import { SupplierPaymentHistorySummary } from '../../services/supplier-payment.s
         </div>
       </div>
 
+      <!-- Total Refunds Card -->
+      <div class="col-span-12 sm:col-span-6 md:col-span-3" *ngIf="summary.totalRefunds > 0 || summary.returnedPayments > 0">
+        <div class="metric-card bg-purple-50 border-l-4 border-purple-500">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-gray-600 text-sm font-medium">Purchase Returns</p>
+              <p class="text-2xl font-bold text-purple-600">{{ summary.totalRefunds | currency }}</p>
+            </div>
+            <i class="pi pi-replay text-purple-500 text-3xl"></i>
+          </div>
+          <p class="text-xs text-gray-500 mt-2">{{ summary.returnedPayments }} refunds processed</p>
+        </div>
+      </div>
+
       <!-- Payment Balance Card -->
       <div class="col-span-12 sm:col-span-6 md:col-span-3">
         <div [ngClass]="getBelanceCardClass()">
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-gray-600 text-sm font-medium">Balance</p>
+              <p class="text-gray-600 text-sm font-medium">Outstanding Balance</p>
               <p [ngClass]="getBalanceTextColor()" class="text-2xl font-bold">
                 {{ summary.paymentBalance | currency }}
               </p>
@@ -83,29 +176,59 @@ import { SupplierPaymentHistorySummary } from '../../services/supplier-payment.s
 })
 export class PaymentMetricsComponent {
   @Input() summary!: SupplierPaymentHistorySummary;
+  @Input() ledgerSummary?: SupplierLedgerSummaryDto;
 
+  // Legacy payment-based methods
   getBelanceCardClass(): string {
-    if (this.summary.paymentBalance > 0) {
+    if (this.summary?.paymentBalance > 0) {
       return 'metric-card bg-red-50 border-l-4 border-red-500';
-    } else if (this.summary.paymentBalance < 0) {
+    } else if (this.summary?.paymentBalance < 0) {
       return 'metric-card bg-green-50 border-l-4 border-green-500';
     }
     return 'metric-card bg-gray-50 border-l-4 border-gray-500';
   }
 
   getBalanceTextColor(): string {
-    if (this.summary.paymentBalance > 0) {
+    if (this.summary?.paymentBalance > 0) {
       return 'text-red-600';
-    } else if (this.summary.paymentBalance < 0) {
+    } else if (this.summary?.paymentBalance < 0) {
       return 'text-green-600';
     }
     return 'text-gray-600';
   }
 
   getBalanceIcon(): string {
-    if (this.summary.paymentBalance > 0) {
+    if (this.summary?.paymentBalance > 0) {
       return 'pi pi-exclamation-triangle text-red-500';
-    } else if (this.summary.paymentBalance < 0) {
+    } else if (this.summary?.paymentBalance < 0) {
+      return 'pi pi-check-circle text-green-500';
+    }
+    return 'pi pi-minus-circle text-gray-500';
+  }
+
+  // Ledger-based methods
+  getLedgerBalanceCardClass(): string {
+    if (this.ledgerSummary!.currentBalance > 0) {
+      return 'metric-card bg-red-50 border-l-4 border-red-500';
+    } else if (this.ledgerSummary!.currentBalance < 0) {
+      return 'metric-card bg-green-50 border-l-4 border-green-500';
+    }
+    return 'metric-card bg-gray-50 border-l-4 border-gray-500';
+  }
+
+  getLedgerBalanceTextColor(): string {
+    if (this.ledgerSummary!.currentBalance > 0) {
+      return 'text-red-600';
+    } else if (this.ledgerSummary!.currentBalance < 0) {
+      return 'text-green-600';
+    }
+    return 'text-gray-600';
+  }
+
+  getLedgerBalanceIcon(): string {
+    if (this.ledgerSummary!.currentBalance > 0) {
+      return 'pi pi-exclamation-triangle text-red-500';
+    } else if (this.ledgerSummary!.currentBalance < 0) {
       return 'pi pi-check-circle text-green-500';
     }
     return 'pi pi-minus-circle text-gray-500';

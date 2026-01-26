@@ -8,6 +8,7 @@ public class PurchaseReturnLine : AuditableEntity
     public Guid PurchaseReturnId { get; private set; }
     public Guid PurchaseOrderLineId { get; private set; }
     public Guid PartId { get; private set; }
+    public Guid? StockLotId { get; private set; }  // Optional: specific lot to return from
     public int Quantity { get; private set; }
     public int RejectedQuantity { get; private set; } = 0;  // Quantity rejected by supplier
     public decimal UnitPrice { get; private set; }
@@ -18,11 +19,12 @@ public class PurchaseReturnLine : AuditableEntity
     // Navigation properties
     public PurchaseReturn? PurchaseReturn { get; set; }
     public Part? Part { get; set; }
+    public StockLot? StockLot { get; set; }  // Navigation to specific lot
 
     private PurchaseReturnLine() { }
 
     public static PurchaseReturnLine Create(Guid purchaseReturnId, Guid purchaseOrderLineId, Guid partId,
-        int quantity, decimal unitPrice, string condition = "UNOPENED")
+        int quantity, decimal unitPrice, string condition = "UNOPENED", Guid? stockLotId = null)
     {
         if (purchaseReturnId == Guid.Empty)
             throw new ArgumentException("PurchaseReturnId cannot be empty", nameof(purchaseReturnId));
@@ -48,10 +50,19 @@ public class PurchaseReturnLine : AuditableEntity
             PurchaseReturnId = purchaseReturnId,
             PurchaseOrderLineId = purchaseOrderLineId,
             PartId = partId,
+            StockLotId = stockLotId,
             Quantity = quantity,
             UnitPrice = unitPrice,
             Condition = condition.ToUpper()
         };
+    }
+
+    /// <summary>
+    /// Set the specific stock lot to return from (optional)
+    /// </summary>
+    public void SetStockLot(Guid? stockLotId)
+    {
+        StockLotId = stockLotId;
     }
 
     public void RejectQuantity(int quantity)

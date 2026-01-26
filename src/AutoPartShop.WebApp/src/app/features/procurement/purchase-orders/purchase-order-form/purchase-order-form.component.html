@@ -1,386 +1,427 @@
-<div class="po-form-container">
+<div class="container">
+  <p-toast></p-toast>
+
   <!-- Header -->
   <div class="form-header">
     <div class="header-content">
-      <h1 class="page-title">{{ getPageTitle() }}</h1>
-      <p class="breadcrumb">
-        <a href="/procurement/purchase-orders">Purchase Orders</a> /
-        <span>{{ isEditing ? 'Edit' : 'Create New' }}</span>
-      </p>
-    </div>
-    <div class="header-actions">
-      <button pButton type="button" label="Cancel" icon="pi pi-times" class="p-button-outlined" (click)="onCancel()"></button>
-      <button pButton type="button" [label]="isEditing ? 'Update' : 'Create'" icon="pi pi-check" class="p-button-success" (click)="onSubmit()" [loading]="isSubmitting" [disabled]="isSubmitting"></button>
+      <div class="header-title-section">
+        <div class="breadcrumb">
+          <a (click)="onCancel()" class="breadcrumb-link">
+            <i class="pi pi-arrow-left"></i>
+            Purchase Orders
+          </a>
+          <span class="breadcrumb-separator">/</span>
+          <span class="breadcrumb-current">{{ mode === 'create' ? 'New' : mode === 'edit' ? 'Edit' : 'View' }}</span>
+        </div>
+        <h1 class="form-title">{{ getPageTitle() }}</h1>
+        <p class="form-subtitle">
+          {{ mode === 'create' ? 'Create a new purchase order for a supplier' : 'View or edit purchase order details' }}
+        </p>
+      </div>
     </div>
   </div>
 
-  <!-- Messages -->
-  <p-toast position="top-right"></p-toast>
+  <!-- Loading State -->
+  <div *ngIf="isSubmitting" class="loading-state">
+    <i class="pi pi-spin pi-spinner" style="font-size: 2rem;"></i>
+    <p>Processing...</p>
+  </div>
 
   <!-- Form -->
-  <form [formGroup]="form" class="po-form">
-    <!-- Section 1: Basic Information -->
-    <p-card class="form-section">
-      <ng-template pTemplate="header">
-        <div class="section-header-card">
-          <h2 class="section-title">
-            <i class="pi pi-info-circle"></i> Basic Information
-          </h2>
-        </div>
-      </ng-template>
+  <p-card class="form-card">
+    <form [formGroup]="form" class="form-content">
 
-      <div class="form-grid">
-        <!-- Supplier Selection -->
-        <div class="form-group">
-          <label for="supplier">Supplier <span class="required">*</span></label>
-          <p-autoComplete
-            id="supplier"
-            formControlName="supplierId"
-            [suggestions]="filteredSuppliers"
-            (completeMethod)="onSupplierFilter($event)"
-            field="name"
-            optionLabel="name"
-            optionValue="id"
-            [dropdown]="true"
-            placeholder="Select supplier"
-            class="w-full"
-            [appendTo]="'body'"
-            [class.ng-invalid]="hasError('supplierId')">
-            <ng-template let-supplier pTemplate="item">
-              <div class="supplier-item">
-                <div class="supplier-name">{{ supplier.name }}</div>
-                <div class="supplier-code">{{ supplier.code }}</div>
-              </div>
-            </ng-template>
-          </p-autoComplete>
-          <small class="text-danger" *ngIf="hasError('supplierId')">
-            {{ getErrorMessage('supplierId') }}
-          </small>
-        </div>
+      <!-- Section 1: Supplier Information -->
+      <div class="form-section">
+        <h3 class="section-title">
+          <i class="pi pi-truck section-icon"></i>
+          Supplier Information
+        </h3>
 
-        <!-- Delivery Date -->
-        <div class="form-group">
-          <label for="deliveryDate">Delivery Date <span class="required">*</span></label>
-          <input
-            pInputText
-            id="deliveryDate"
-            type="date"
-            formControlName="deliveryDate"
-            class="w-full"
-            [class.ng-invalid]="hasError('deliveryDate')">
-          <small class="text-danger" *ngIf="hasError('deliveryDate')">
-            {{ getErrorMessage('deliveryDate') }}
-          </small>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Supplier *</label>
+            <p-autoComplete
+              formControlName="supplier"
+              [suggestions]="filteredSuppliers"
+              (completeMethod)="onSupplierFilter($event)"
+              optionLabel="name"
+              dataKey="id"
+              [dropdown]="true"
+              placeholder="Select supplier..."
+              [disabled]="mode === 'view'"
+              appendTo="body"
+              [style]="{ width: '100%' }">
+              <ng-template let-supplier pTemplate="item">
+                <div class="autocomplete-item">
+                  <span class="item-name">{{ supplier.name }}</span>
+                  <span class="item-code">{{ supplier.code }}</span>
+                </div>
+              </ng-template>
+            </p-autoComplete>
+            <small *ngIf="hasError('supplier')" class="p-error">
+              {{ getErrorMessage('supplier') }}
+            </small>
+          </div>
+          <div class="form-group">
+            <label>Expected Delivery Date *</label>
+            <p-datepicker
+              formControlName="deliveryDate"
+              [showIcon]="true"
+              [showButtonBar]="true"
+              dateFormat="yy-mm-dd"
+              placeholder="Select date..."
+              [disabled]="mode === 'view'"
+              appendTo="body"
+              [style]="{ width: '100%' }">
+            </p-datepicker>
+            <small *ngIf="hasError('deliveryDate')" class="p-error">
+              {{ getErrorMessage('deliveryDate') }}
+            </small>
+          </div>
         </div>
 
-        <!-- Payment Terms -->
-        <div class="form-group">
-          <label for="paymentTerms">Payment Terms <span class="required">*</span></label>
-          <p-autoComplete
-            id="paymentTerms"
-            formControlName="paymentTerms"
-            [suggestions]="filteredPaymentTerms"
-            (completeMethod)="onPaymentTermsFilter($event)"
-            field="label"
-            optionLabel="label"
-            optionValue="value"
-            [dropdown]="true"
-            placeholder="Select or type payment terms"
-            class="w-full"
-            [appendTo]="'body'"
-            [class.ng-invalid]="hasError('paymentTerms')">
-            <ng-template let-option pTemplate="item">
-              <div>{{ option.label }}</div>
-            </ng-template>
-          </p-autoComplete>
-          <small class="text-danger" *ngIf="hasError('paymentTerms')">
-            {{ getErrorMessage('paymentTerms') }}
-          </small>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Payment Terms *</label>
+            <p-autoComplete
+              formControlName="paymentTerms"
+              [suggestions]="filteredPaymentTerms"
+              (completeMethod)="onPaymentTermsFilter($event)"
+              field="label"
+              optionLabel="label"
+              optionValue="value"
+              [dropdown]="true"
+              placeholder="Select payment terms..."
+              [disabled]="mode === 'view'"
+              appendTo="body"
+              [style]="{ width: '100%' }">
+              <ng-template let-option pTemplate="item">
+                <span>{{ option.label }}</span>
+              </ng-template>
+            </p-autoComplete>
+            <small *ngIf="hasError('paymentTerms')" class="p-error">
+              {{ getErrorMessage('paymentTerms') }}
+            </small>
+          </div>
+          <div class="form-group">
+            <label>Priority *</label>
+            <p-autoComplete
+              formControlName="priority"
+              [suggestions]="filteredPriorities"
+              (completeMethod)="onPriorityFilter($event)"
+              field="label"
+              optionLabel="label"
+              optionValue="value"
+              [dropdown]="true"
+              placeholder="Select priority..."
+              [disabled]="mode === 'view'"
+              appendTo="body"
+              [style]="{ width: '100%' }">
+              <ng-template let-option pTemplate="item">
+                <span>{{ option.label }}</span>
+              </ng-template>
+            </p-autoComplete>
+            <small *ngIf="hasError('priority')" class="p-error">
+              {{ getErrorMessage('priority') }}
+            </small>
+          </div>
         </div>
 
-        <!-- Currency -->
-        <div class="form-group">
-          <label for="currency">Currency <span class="required">*</span></label>
-          <p-autoComplete
-            id="currency"
-            formControlName="currency"
-            [suggestions]="filteredCurrencies"
-            (completeMethod)="onCurrencyFilter($event)"
-            field="label"
-            optionLabel="label"
-            optionValue="value"
-            [dropdown]="true"
-            placeholder="Select or type currency"
-            class="w-full"
-            [appendTo]="'body'"
-            [class.ng-invalid]="hasError('currency')">
-            <ng-template let-option pTemplate="item">
-              <div>{{ option.label }}</div>
-            </ng-template>
-          </p-autoComplete>
-          <small class="text-danger" *ngIf="hasError('currency')">
-            {{ getErrorMessage('currency') }}
-          </small>
-        </div>
-
-        <!-- Priority -->
-        <div class="form-group">
-          <label for="priority">Priority <span class="required">*</span></label>
-          <p-autoComplete
-            id="priority"
-            formControlName="priority"
-            [suggestions]="filteredPriorities"
-            (completeMethod)="onPriorityFilter($event)"
-            field="label"
-            optionLabel="label"
-            optionValue="value"
-            [dropdown]="true"
-            placeholder="Select or type priority"
-            class="w-full"
-            [appendTo]="'body'"
-            [class.ng-invalid]="hasError('priority')">
-            <ng-template let-option pTemplate="item">
-              <div>{{ option.label }}</div>
-            </ng-template>
-          </p-autoComplete>
-          <small class="text-danger" *ngIf="hasError('priority')">
-            {{ getErrorMessage('priority') }}
-          </small>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Currency *</label>
+            <app-currency-selector
+              formControlName="currency"
+              [disabled]="mode === 'view'"
+              [showLabel]="false"
+              placeholder="Select currency">
+            </app-currency-selector>
+            <small *ngIf="hasError('currency')" class="p-error">
+              {{ getErrorMessage('currency') }}
+            </small>
+          </div>
+          <div class="form-group">
+            <!-- Empty for alignment -->
+          </div>
         </div>
       </div>
-    </p-card>
 
-    <!-- Section 2: Line Items -->
-    <p-card class="form-section">
-      <ng-template pTemplate="header">
-        <div class="section-header-card">
-          <h2 class="section-title">
-            <i class="pi pi-list"></i> Line Items
-          </h2>
-          <button
-            pButton
-            type="button"
-            label="Add Item"
-            icon="pi pi-plus"
-            class="p-button-sm p-button-success"
-            (click)="addLineItem()">
-          </button>
-        </div>
-      </ng-template>
-
-      <!-- Line Items Table -->
-      <div class="table-wrapper">
-        <table class="line-items-table">
-          <thead>
-            <tr>
-              <th class="col-part">Part (Search)</th>
-              <th class="col-name">Part Name</th>
-              <th class="col-unit">Unit</th>
-              <th class="col-qty">Quantity</th>
-              <th class="col-price">Unit Price</th>
-              <th class="col-total">Line Total</th>
-              <th class="col-actions">Actions</th>
-            </tr>
-          </thead>
-          <tbody formArrayName="lines">
-            <tr *ngFor="let line of linesArray.controls; let i = index" [formGroupName]="i">
-              <td>
-                <p-autoComplete
-                  formControlName="partId"
-                  [suggestions]="filteredParts"
-                  (completeMethod)="onPartFilter($event)"
-                  field="name"
-                  optionLabel="name"
-                  optionValue="id"
-                  [dropdown]="true"
-                  placeholder="Search part..."
-                  class="w-full"
-                  [appendTo]="'body'"
-                  [class.ng-invalid]="line.get('partId')?.invalid && line.get('partId')?.touched">
-                  <ng-template let-part pTemplate="item">
-                    <div class="part-item">
-                      <div class="part-name">{{ part.name }}</div>
-                      <small class="part-details">SKU: {{ part.sku }} | PN: {{ part.partNumber }}</small>
-                    </div>
-                  </ng-template>
-                </p-autoComplete>
-              </td>
-              <td class="part-name-cell">
-                <span class="part-name-value">{{ getPartName(line.get('partId')?.value) }}</span>
-              </td>
-              <td class="unit-cell">
-                <span class="unit-value">{{ getPartUnit(line.get('partId')?.value) }}</span>
-              </td>
-              <td>
-                <p-inputNumber
-                  formControlName="quantity"
-                  [min]="1"
-                  [max]="9999"
-                  placeholder="0"
-                  class="w-full"
-                  [class.ng-invalid]="line.get('quantity')?.invalid && line.get('quantity')?.touched">
-                </p-inputNumber>
-              </td>
-              <td>
-                <p-inputNumber
-                  formControlName="unitPrice"
-                  [min]="0"
-                  [max]="9999999"
-                  placeholder="0.00"
-                  [currency]="form.get('currency')?.value"
-                  [currencyDisplay]="'symbol'"
-                  [minFractionDigits]="2"
-                  [maxFractionDigits]="2"
-                  class="w-full"
-                  [class.ng-invalid]="line.get('unitPrice')?.invalid && line.get('unitPrice')?.touched">
-                </p-inputNumber>
-              </td>
-              <td class="line-total-cell">
-                <span class="line-total">{{ formatCurrency(getLineTotal(i)) }}</span>
-              </td>
-              <td class="action-cell">
-                <button
-                  pButton
-                  type="button"
-                  icon="pi pi-trash"
-                  class="p-button-rounded p-button-text p-button-sm p-button-danger"
-                  (click)="removeLineItem(i)"
-                  [disabled]="linesArray.length === 1"
-                  pTooltip="Remove item"
-                  tooltipPosition="top">
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </p-card>
-
-    <!-- Section 3: Charges & Taxes -->
-    <p-card class="form-section">
-      <ng-template pTemplate="header">
-        <div class="section-header-card">
-          <h2 class="section-title">
-            <i class="pi pi-calculator"></i> Charges & Taxes
-          </h2>
-        </div>
-      </ng-template>
-
-      <div class="form-grid">
-        <!-- Tax Rate -->
-        <div class="form-group">
-          <label for="taxRate">Tax Rate (%) <span class="required">*</span></label>
-          <p-inputNumber
-            id="taxRate"
-            formControlName="taxRate"
-            [min]="0"
-            [max]="100"
-            placeholder="0"
-            [minFractionDigits]="0"
-            [maxFractionDigits]="2"
-            class="w-full"
-            [class.ng-invalid]="hasError('taxRate')">
-          </p-inputNumber>
-          <small class="text-danger" *ngIf="hasError('taxRate')">
-            {{ getErrorMessage('taxRate') }}
-          </small>
-        </div>
-
-        <!-- Discount -->
-        <div class="form-group">
-          <label for="discountPercentage">Discount (%) <span class="required">*</span></label>
-          <p-inputNumber
-            id="discountPercentage"
-            formControlName="discountPercentage"
-            [min]="0"
-            [max]="100"
-            placeholder="0"
-            [minFractionDigits]="0"
-            [maxFractionDigits]="2"
-            class="w-full"
-            [class.ng-invalid]="hasError('discountPercentage')">
-          </p-inputNumber>
-          <small class="text-danger" *ngIf="hasError('discountPercentage')">
-            {{ getErrorMessage('discountPercentage') }}
-          </small>
+      <!-- Section 2: Product Search (only in create/edit mode) -->
+      <div class="form-section" *ngIf="mode !== 'view'">
+        <h3 class="section-title">
+          <i class="pi pi-search section-icon"></i>
+          Add Products
+        </h3>
+        <div class="form-row">
+          <div class="form-group full">
+            <label>Search Product</label>
+            <p-autoComplete
+              [(ngModel)]="selectedPartToAdd"
+              [ngModelOptions]="{standalone: true}"
+              [suggestions]="filteredParts"
+              (completeMethod)="onPartFilter($event)"
+              (onSelect)="onPartSelectAndAdd($event.value)"
+              field="name"
+              [dropdown]="true"
+              placeholder="Search product by name, SKU, or part number to add..."
+              appendTo="body"
+              [style]="{ width: '100%' }">
+              <ng-template let-part pTemplate="item">
+                <div class="autocomplete-item part-item">
+                  <div class="part-main-info">
+                    <span class="item-name">{{ part.name }}</span>
+                    <span class="part-price">{{ formatCurrency(part.sellingPrice || 0) }}</span>
+                  </div>
+                  <div class="part-sub-info">
+                    <span class="item-code">SKU: {{ part.sku }} | PN: {{ part.partNumber }}</span>
+                    <span *ngIf="part.unitName"> | Unit: {{ part.unitName }}</span>
+                  </div>
+                </div>
+              </ng-template>
+            </p-autoComplete>
+            <small class="field-hint">
+              <i class="pi pi-info-circle"></i>
+              Type to search and select a product to add to the order
+            </small>
+          </div>
         </div>
       </div>
-    </p-card>
 
-    <!-- Section 4: Order Summary -->
-    <p-card class="form-section summary-card">
-      <ng-template pTemplate="header">
-        <div class="section-header-card">
-          <h2 class="section-title">
-            <i class="pi pi-chart-pie"></i> Order Summary
-          </h2>
+      <!-- Section 3: Order Line Items -->
+      <div class="form-section">
+        <div class="section-header">
+          <h3 class="section-title">
+            <i class="pi pi-list section-icon"></i>
+            Order Items
+            <span class="items-count" *ngIf="linesArray.length > 0">({{ linesArray.length }})</span>
+          </h3>
         </div>
-      </ng-template>
 
-      <div class="summary-grid">
-        <div class="summary-row">
-          <span class="summary-label">Subtotal:</span>
-          <span class="summary-value">{{ formatCurrency(getSubtotal()) }}</span>
+        <!-- Line Items Table -->
+        <div class="table-wrapper" *ngIf="linesArray.length > 0">
+          <table class="line-items-table">
+            <thead>
+              <tr>
+                <th class="col-name">Product</th>
+                <th class="col-unit">Unit</th>
+                <th class="col-qty">Quantity</th>
+                <th class="col-price">Unit Price</th>
+                <th class="col-total">Line Total</th>
+                <th class="col-actions" *ngIf="mode !== 'view'">Actions</th>
+              </tr>
+            </thead>
+            <tbody formArrayName="lines">
+              <tr *ngFor="let line of linesArray.controls; let i = index" [formGroupName]="i" class="line-item-row">
+                <td class="part-name-cell">
+                  <div class="part-name-wrapper" *ngIf="line.get('partId')?.value">
+                    <span class="part-name-value">{{ line.get('partId')?.value?.name }}</span>
+                    <button
+                      pButton
+                      type="button"
+                      icon="pi pi-warehouse"
+                      class="p-button-rounded p-button-text p-button-sm stock-nav-btn"
+                      (click)="navigateToStock(line.get('partId')?.value)"
+                      pTooltip="View stock in inventory"
+                      tooltipPosition="top">
+                    </button>
+                  </div>
+                  <span class="no-product" *ngIf="!line.get('partId')?.value">
+                    <i class="pi pi-exclamation-circle"></i> No product selected
+                  </span>
+                </td>
+                <td class="unit-cell">
+                  <p-select
+                    *ngIf="mode !== 'view'"
+                    formControlName="unitId"
+                    [options]="getCompatibleUnitsForLine(i)"
+                    optionLabel="name"
+                    dataKey="id"
+                    [filter]="true"
+                    filterPlaceholder="Search unit"
+                    placeholder="Select unit"
+                    appendTo="body"
+                    [style]="{ width: '100%' }"
+                    (onClick)="loadCompatibleUnitsForLine(i)"
+                    (onFilter)="onUnitFilter($event, i)">
+                    <ng-template let-unit pTemplate="selectedItem">
+                      <span>{{ unit?.name || '-' }}</span>
+                    </ng-template>
+                    <ng-template let-unit pTemplate="item">
+                      <div class="unit-option">
+                        <span>{{ unit.name }}</span>
+                        <small class="unit-symbol">({{ unit.symbol }})</small>
+                      </div>
+                    </ng-template>
+                  </p-select>
+                  <span *ngIf="mode === 'view'" class="unit-display">{{ line.get('unitId')?.value?.name || '-' }}</span>
+                </td>
+                <td class="qty-cell">
+                  <p-inputNumber
+                    *ngIf="mode !== 'view'"
+                    formControlName="quantity"
+                    [min]="1"
+                    [max]="9999"
+                    placeholder="0"
+                    [style]="{ width: '100%' }">
+                  </p-inputNumber>
+                  <span *ngIf="mode === 'view'" class="qty-display">{{ line.get('quantity')?.value }}</span>
+                </td>
+                <td class="price-cell">
+                  <p-inputNumber
+                    *ngIf="mode !== 'view'"
+                    formControlName="unitPrice"
+                    [min]="0"
+                    [max]="9999999"
+                    placeholder="0.00"
+                    [minFractionDigits]="2"
+                    [maxFractionDigits]="2"
+                    [style]="{ width: '100%' }">
+                  </p-inputNumber>
+                  <span *ngIf="mode === 'view'" class="price-display">{{ formatCurrency(line.get('unitPrice')?.value) }}</span>
+                </td>
+                <td class="line-total-cell">
+                  <span class="line-total">{{ formatCurrency(getLineTotal(i)) }}</span>
+                </td>
+                <td class="action-cell" *ngIf="mode !== 'view'">
+                  <button
+                    pButton
+                    type="button"
+                    icon="pi pi-trash"
+                    class="p-button-rounded p-button-text p-button-sm p-button-danger"
+                    (click)="removeLineItem(i)"
+                    pTooltip="Remove item"
+                    tooltipPosition="top">
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
-        <div class="summary-row">
-          <span class="summary-label">Tax ({{ form.get('taxRate')?.value || 0 }}%):</span>
-          <span class="summary-value">{{ formatCurrency(getTaxAmount()) }}</span>
-        </div>
-        <div class="summary-row">
-          <span class="summary-label">Discount ({{ form.get('discountPercentage')?.value || 0 }}%):</span>
-          <span class="summary-value discount">-{{ formatCurrency(getDiscountAmount()) }}</span>
-        </div>
-        <p-divider></p-divider>
-        <div class="summary-row grand-total">
-          <span class="summary-label">Grand Total:</span>
-          <span class="summary-value grand-total-value">{{ formatCurrency(getGrandTotal()) }}</span>
+
+        <!-- Empty State -->
+        <div class="empty-lines" *ngIf="linesArray.length === 0">
+          <i class="pi pi-shopping-cart"></i>
+          <p>No products added yet</p>
+          <small *ngIf="mode !== 'view'">Use the search section above to add products to this order</small>
+          <small *ngIf="mode === 'view'">This order has no products</small>
         </div>
       </div>
-    </p-card>
 
-    <!-- Section 5: Additional Notes -->
-    <p-card class="form-section">
-      <ng-template pTemplate="header">
-        <div class="section-header-card">
-          <h2 class="section-title">
-            <i class="pi pi-file-edit"></i> Additional Notes
-          </h2>
+      <!-- Section 4: Charges & Taxes -->
+      <div class="form-section">
+        <h3 class="section-title">
+          <i class="pi pi-percentage section-icon"></i>
+          Charges & Taxes
+        </h3>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Tax Rate (%) *</label>
+            <p-inputNumber
+              formControlName="taxRate"
+              [min]="0"
+              [max]="100"
+              placeholder="0"
+              [minFractionDigits]="0"
+              [maxFractionDigits]="2"
+              [disabled]="mode === 'view'"
+              [style]="{ width: '100%' }">
+            </p-inputNumber>
+            <small *ngIf="hasError('taxRate')" class="p-error">
+              {{ getErrorMessage('taxRate') }}
+            </small>
+          </div>
+          <div class="form-group">
+            <label>Discount (%) *</label>
+            <p-inputNumber
+              formControlName="discountPercentage"
+              [min]="0"
+              [max]="100"
+              placeholder="0"
+              [minFractionDigits]="0"
+              [maxFractionDigits]="2"
+              [disabled]="mode === 'view'"
+              [style]="{ width: '100%' }">
+            </p-inputNumber>
+            <small *ngIf="hasError('discountPercentage')" class="p-error">
+              {{ getErrorMessage('discountPercentage') }}
+            </small>
+          </div>
         </div>
-      </ng-template>
-
-      <div class="form-group full">
-        <label for="notes">Notes</label>
-        <textarea
-          id="notes"
-          formControlName="notes"
-          rows="4"
-          placeholder="Add any additional notes or instructions for this purchase order..."
-          class="w-full textarea-input">
-        </textarea>
       </div>
-    </p-card>
 
-    <!-- Action Buttons -->
-    <div class="form-actions">
-      <button
-        pButton
-        type="button"
-        label="Cancel"
-        icon="pi pi-times"
-        class="p-button-outlined p-button-lg"
-        (click)="onCancel()"
-        [disabled]="isSubmitting">
-      </button>
-      <button
-        pButton
-        type="button"
-        [label]="isEditing ? 'Update Purchase Order' : 'Create Purchase Order'"
-        icon="pi pi-check"
-        class="p-button-success p-button-lg"
-        (click)="onSubmit()"
-        [loading]="isSubmitting"
-        [disabled]="isSubmitting">
-      </button>
-    </div>
-  </form>
+      <!-- Section 5: Order Summary -->
+      <div class="form-section">
+        <h3 class="section-title">
+          <i class="pi pi-calculator section-icon"></i>
+          Order Summary
+        </h3>
+        <div class="order-summary">
+          <div class="summary-row">
+            <span class="summary-label">Subtotal:</span>
+            <span class="summary-value">{{ formatCurrency(getSubtotal()) }}</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-label">Tax ({{ form.get('taxRate')?.value || 0 }}%):</span>
+            <span class="summary-value">{{ formatCurrency(getTaxAmount()) }}</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-label">Discount ({{ form.get('discountPercentage')?.value || 0 }}%):</span>
+            <span class="summary-value discount">-{{ formatCurrency(getDiscountAmount()) }}</span>
+          </div>
+          <div class="summary-row grand-total">
+            <span class="summary-label">Grand Total:</span>
+            <span class="summary-value">{{ formatCurrency(getGrandTotal()) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 6: Additional Notes -->
+      <div class="form-section last">
+        <h3 class="section-title">
+          <i class="pi pi-file-edit section-icon"></i>
+          Additional Notes
+        </h3>
+        <div class="form-row">
+          <div class="form-group full">
+            <label>Notes</label>
+            <textarea
+              pInputTextarea
+              formControlName="notes"
+              rows="3"
+              placeholder="Add any additional notes or instructions for this purchase order..."
+              [disabled]="mode === 'view'">
+            </textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Form Actions -->
+      <div class="form-actions">
+        <button
+          pButton
+          type="button"
+          [label]="mode === 'view' ? 'Back' : 'Cancel'"
+          icon="pi pi-times"
+          class="p-button-outlined"
+          (click)="onCancel()">
+        </button>
+        <button
+          *ngIf="mode !== 'view'"
+          pButton
+          type="button"
+          [label]="mode === 'edit' ? 'Update Purchase Order' : 'Create Purchase Order'"
+          icon="pi pi-check"
+          class="p-button-primary"
+          (click)="onSubmit()"
+          [loading]="isSubmitting"
+          [disabled]="isSubmitting">
+        </button>
+      </div>
+    </form>
+  </p-card>
 </div>
+
+<!-- Confirm Dialog -->
+<p-confirmDialog></p-confirmDialog>

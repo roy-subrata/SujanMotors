@@ -1,0 +1,382 @@
+<p-toast></p-toast>
+
+<div class="financial-dashboard">
+  <!-- Header -->
+  <div class="dashboard-header">
+    <div class="header-content">
+      <div class="header-title-section">
+        <h1 class="header-title">
+          <i class="pi pi-chart-line mr-3"></i>
+          Financial Dashboard
+        </h1>
+        <p class="header-subtitle">Track revenue, expenses, and business performance across all periods</p>
+      </div>
+      <div class="header-actions">
+        <p-select
+          [(ngModel)]="selectedPeriod"
+          [options]="periodOptions"
+          optionLabel="label"
+          optionValue="value"
+          (onChange)="onPeriodChange()"
+          placeholder="Select Period"
+          class="period-dropdown">
+        </p-select>
+        @if (showCustomDateRange) {
+          <p-datepicker
+            [(ngModel)]="startDate"
+            placeholder="Start Date"
+            dateFormat="M dd, yy"
+            [showIcon]="true"
+            class="date-picker">
+          </p-datepicker>
+          <p-datepicker
+            [(ngModel)]="endDate"
+            placeholder="End Date"
+            dateFormat="M dd, yy"
+            [showIcon]="true"
+            class="date-picker">
+          </p-datepicker>
+          <button pButton type="button" label="Apply" icon="pi pi-check"
+            (click)="loadDashboard()" [loading]="loading()"></button>
+        }
+        <button pButton type="button" label="Refresh" icon="pi pi-refresh"
+          class="p-button-outlined" (click)="loadDashboard()"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <ng-container *ngIf="loading()">
+    <div class="grid grid-cols-12 gap-4 mb-4">
+      <div class="col-span-12 md:col-span-6 lg:col-span-3" *ngFor="let i of [1,2,3,4]">
+        <p-card>
+          <p-skeleton height="80px"></p-skeleton>
+        </p-card>
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- Dashboard Content -->
+  <ng-container *ngIf="!loading() && dashboardData()">
+    <!-- Revenue Metrics -->
+    <div class="grid grid-cols-12 gap-4 mb-4">
+      <div class="col-span-12 md:col-span-6 lg:col-span-3">
+        <p-card styleClass="stat-card stat-card-primary">
+          <div class="stat-content">
+            <div class="stat-icon">
+              <i class="pi pi-dollar"></i>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value">{{ formatCurrency(dashboardData()!.summary.totalSales) }}</span>
+              <span class="stat-label">Total Sales</span>
+              <span class="stat-sublabel">{{ dashboardData()!.summary.totalSalesCount }} orders</span>
+            </div>
+          </div>
+        </p-card>
+      </div>
+
+      <div class="col-span-12 md:col-span-6 lg:col-span-3">
+        <p-card styleClass="stat-card stat-card-success">
+          <div class="stat-content">
+            <div class="stat-icon">
+              <i class="pi pi-chart-line"></i>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value">{{ formatCurrency(dashboardData()!.summary.totalRevenue) }}</span>
+              <span class="stat-label">Total Revenue</span>
+              <span class="stat-sublabel">Cash + Payments</span>
+            </div>
+          </div>
+        </p-card>
+      </div>
+
+      <div class="col-span-12 md:col-span-6 lg:col-span-3">
+        <p-card styleClass="stat-card stat-card-info">
+          <div class="stat-content">
+            <div class="stat-icon">
+              <i class="pi pi-shopping-cart"></i>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value">{{ formatCurrency(dashboardData()!.summary.totalExpenses) }}</span>
+              <span class="stat-label">Total Expenses</span>
+              <span class="stat-sublabel">Purchases + Daily</span>
+            </div>
+          </div>
+        </p-card>
+      </div>
+
+      <div class="col-span-12 md:col-span-6 lg:col-span-3">
+        <p-card styleClass="stat-card" [ngClass]="dashboardData()!.summary.netProfit >= 0 ? 'stat-card-success' : 'stat-card-danger'">
+          <div class="stat-content">
+            <div class="stat-icon">
+              <i class="pi pi-chart-bar"></i>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value">{{ formatCurrency(dashboardData()!.summary.netProfit) }}</span>
+              <span class="stat-label">Net Profit</span>
+              <span class="stat-sublabel">{{ formatPercent(dashboardData()!.summary.profitMargin) }} margin</span>
+            </div>
+          </div>
+        </p-card>
+      </div>
+    </div>
+
+    <!-- Expense Breakdown -->
+    <div class="grid grid-cols-12 gap-4 mb-4">
+      <div class="col-span-12 md:col-span-6 lg:col-span-4">
+        <p-card styleClass="stat-card stat-card-warning">
+          <div class="stat-content">
+            <div class="stat-icon">
+              <i class="pi pi-box"></i>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value">{{ formatCurrency(dashboardData()!.summary.totalPurchases) }}</span>
+              <span class="stat-label">Inventory Purchases</span>
+              <span class="stat-sublabel">{{ dashboardData()!.summary.totalPurchasesCount }} purchase orders</span>
+            </div>
+          </div>
+        </p-card>
+      </div>
+
+      <div class="col-span-12 md:col-span-6 lg:col-span-4">
+        <p-card styleClass="stat-card stat-card-danger">
+          <div class="stat-content">
+            <div class="stat-icon">
+              <i class="pi pi-wallet"></i>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value">{{ formatCurrency(dashboardData()!.summary.dailyExpenses) }}</span>
+              <span class="stat-label">Daily Expenses</span>
+              <span class="stat-sublabel">{{ dashboardData()!.summary.dailyExpensesCount }} expense entries</span>
+            </div>
+          </div>
+        </p-card>
+      </div>
+
+      <div class="col-span-12 md:col-span-6 lg:col-span-4">
+        <p-card styleClass="stat-card stat-card-info">
+          <div class="stat-content">
+            <div class="stat-icon">
+              <i class="pi pi-send"></i>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value">{{ formatCurrency(dashboardData()!.summary.supplierPaymentsMade) }}</span>
+              <span class="stat-label">Supplier Payments</span>
+              <span class="stat-sublabel">Paid to vendors</span>
+            </div>
+          </div>
+        </p-card>
+      </div>
+    </div>
+
+    <!-- Outstanding & Cash Flow -->
+    <div class="grid grid-cols-12 gap-4 mb-4">
+      <div class="col-span-12 md:col-span-6 lg:col-span-3">
+        <p-card styleClass="stat-card stat-card-warning">
+          <div class="stat-content">
+            <div class="stat-icon">
+              <i class="pi pi-users"></i>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value">{{ formatCurrency(dashboardData()!.summary.customerDueAmount) }}</span>
+              <span class="stat-label">Customer Due</span>
+              <span class="stat-sublabel">{{ dashboardData()!.summary.customerDueCount }} customers</span>
+            </div>
+          </div>
+        </p-card>
+      </div>
+
+      <div class="col-span-12 md:col-span-6 lg:col-span-3">
+        <p-card styleClass="stat-card stat-card-danger">
+          <div class="stat-content">
+            <div class="stat-icon">
+              <i class="pi pi-exclamation-triangle"></i>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value">{{ formatCurrency(dashboardData()!.summary.customerOverdueAmount) }}</span>
+              <span class="stat-label">Customer Overdue</span>
+              <span class="stat-sublabel">{{ dashboardData()!.summary.customerOverdueCount }} customers</span>
+            </div>
+          </div>
+        </p-card>
+      </div>
+
+      <div class="col-span-12 md:col-span-6 lg:col-span-3">
+        <p-card styleClass="stat-card stat-card-info">
+          <div class="stat-content">
+            <div class="stat-icon">
+              <i class="pi pi-box"></i>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value">{{ formatCurrency(dashboardData()!.summary.inventoryValue) }}</span>
+              <span class="stat-label">Inventory Value</span>
+              <span class="stat-sublabel">Current stock</span>
+            </div>
+          </div>
+        </p-card>
+      </div>
+
+      <div class="col-span-12 md:col-span-6 lg:col-span-3">
+        <p-card styleClass="stat-card stat-card-primary">
+          <div class="stat-content">
+            <div class="stat-icon">
+              <i class="pi pi-wallet"></i>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value">{{ formatCurrency(dashboardData()!.summary.closingBalance) }}</span>
+              <span class="stat-label">Closing Balance</span>
+              <span class="stat-sublabel">Cash position</span>
+            </div>
+          </div>
+        </p-card>
+      </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="grid grid-cols-12 gap-4 mb-4">
+      <!-- Sales Trend Chart -->
+      <div class="col-span-12 lg:col-span-8">
+        <p-card header="Sales & Profit Trend" styleClass="chart-card">
+          <div class="chart-container">
+            <p-chart type="line" [data]="salesTrendChartData" [options]="salesTrendChartOptions" height="300px"></p-chart>
+          </div>
+        </p-card>
+      </div>
+
+      <!-- Cash Flow Summary -->
+      <div class="col-span-12 lg:col-span-4">
+        <p-card header="Cash Flow Summary" styleClass="chart-card">
+          <div class="cash-flow-summary">
+            <div class="flow-item flow-in">
+              <div class="flow-icon">
+                <i class="pi pi-arrow-down"></i>
+              </div>
+              <div class="flow-info">
+                <span class="flow-label">Cash Inflow</span>
+                <span class="flow-value">{{ formatCurrency(dashboardData()!.summary.cashInflow) }}</span>
+              </div>
+            </div>
+            <div class="flow-item flow-out">
+              <div class="flow-icon">
+                <i class="pi pi-arrow-up"></i>
+              </div>
+              <div class="flow-info">
+                <span class="flow-label">Cash Outflow</span>
+                <span class="flow-value">{{ formatCurrency(dashboardData()!.summary.cashOutflow) }}</span>
+              </div>
+            </div>
+            <div class="flow-divider"></div>
+            <div class="flow-item flow-balance">
+              <div class="flow-icon">
+                <i class="pi pi-wallet"></i>
+              </div>
+              <div class="flow-info">
+                <span class="flow-label">Net Cash Flow</span>
+                <span class="flow-value">{{ formatCurrency(dashboardData()!.summary.cashInflow - dashboardData()!.summary.cashOutflow) }}</span>
+              </div>
+            </div>
+          </div>
+        </p-card>
+      </div>
+    </div>
+
+    <!-- Tables Row -->
+    <div class="grid grid-cols-12 gap-4 mb-4">
+      <!-- Top Products -->
+      <div class="col-span-12 lg:col-span-6">
+        <p-card styleClass="list-card">
+          <ng-template pTemplate="header">
+            <div class="card-header">
+              <h3><i class="pi pi-star mr-2"></i>Top Products</h3>
+            </div>
+          </ng-template>
+          <p-table [value]="dashboardData()!.topProducts" styleClass="p-datatable-sm p-datatable-striped">
+            <ng-template pTemplate="header">
+              <tr>
+                <th>Rank</th>
+                <th>Product</th>
+                <th>Qty Sold</th>
+                <th>Revenue</th>
+                <th>Profit</th>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-product let-rowIndex="rowIndex">
+              <tr>
+                <td>
+                  <div class="rank-badge" [class.top-rank]="rowIndex < 3">{{ rowIndex + 1 }}</div>
+                </td>
+                <td>
+                  <div class="product-info">
+                    <span class="product-name">{{ product.partName }}</span>
+                    <span class="product-sku">{{ product.sku }}</span>
+                  </div>
+                </td>
+                <td>{{ formatNumber(product.quantitySold) }}</td>
+                <td>{{ formatCurrency(product.totalRevenue) }}</td>
+                <td [class.profit]="product.totalProfit > 0" [class.loss]="product.totalProfit < 0">
+                  {{ formatCurrency(product.totalProfit) }}
+                </td>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="emptymessage">
+              <tr>
+                <td colspan="5" class="text-center p-4">
+                  <i class="pi pi-inbox text-4xl text-gray-300 mb-2"></i>
+                  <p class="text-gray-500">No products data</p>
+                </td>
+              </tr>
+            </ng-template>
+          </p-table>
+        </p-card>
+      </div>
+
+      <!-- Top Customers -->
+      <div class="col-span-12 lg:col-span-6">
+        <p-card styleClass="list-card">
+          <ng-template pTemplate="header">
+            <div class="card-header">
+              <h3><i class="pi pi-users mr-2"></i>Top Customers</h3>
+            </div>
+          </ng-template>
+          <p-table [value]="dashboardData()!.topCustomers" styleClass="p-datatable-sm p-datatable-striped">
+            <ng-template pTemplate="header">
+              <tr>
+                <th>Rank</th>
+                <th>Customer</th>
+                <th>Orders</th>
+                <th>Revenue</th>
+                <th>Outstanding</th>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-customer let-rowIndex="rowIndex">
+              <tr>
+                <td>
+                  <div class="rank-badge" [class.top-rank]="rowIndex < 3">{{ rowIndex + 1 }}</div>
+                </td>
+                <td>
+                  <div class="customer-info">
+                    <span class="customer-name">{{ customer.customerName }}</span>
+                    <span class="customer-phone">{{ customer.phone }}</span>
+                  </div>
+                </td>
+                <td>{{ customer.totalOrders }}</td>
+                <td>{{ formatCurrency(customer.totalRevenue) }}</td>
+                <td [class.danger]="customer.outstandingAmount > 0">
+                  {{ formatCurrency(customer.outstandingAmount) }}
+                </td>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="emptymessage">
+              <tr>
+                <td colspan="5" class="text-center p-4">
+                  <i class="pi pi-inbox text-4xl text-gray-300 mb-2"></i>
+                  <p class="text-gray-500">No customers data</p>
+                </td>
+              </tr>
+            </ng-template>
+          </p-table>
+        </p-card>
+      </div>
+    </div>
+  </ng-container>
+</div>

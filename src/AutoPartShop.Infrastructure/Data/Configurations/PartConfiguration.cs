@@ -35,9 +35,39 @@ public class PartEntityConfiguration : IEntityTypeConfiguration<Part>
                .HasColumnType("decimal(18,2)")  // SQL column type
                .IsRequired();
 
+        builder.Property(p => p.CostPriceCurrency)
+               .HasMaxLength(3)
+               .IsRequired()
+               .HasDefaultValue("BDT");
+
         builder.Property(p => p.SellingPrice)
                      .HasColumnType("decimal(18,2)")  // SQL column type
                      .IsRequired();
+
+        builder.Property(p => p.SellingPriceCurrency)
+               .HasMaxLength(3)
+               .IsRequired()
+               .HasDefaultValue("BDT");
+
+        // Warranty Configuration
+        builder.Property(p => p.HasWarranty)
+               .IsRequired()
+               .HasDefaultValue(false);
+
+        builder.Property(p => p.WarrantyPeriodMonths)
+               .IsRequired(false);
+
+        builder.Property(p => p.WarrantyType)
+               .HasMaxLength(50)
+               .IsRequired(false);
+
+        builder.Property(p => p.WarrantyTerms)
+               .HasMaxLength(2000)
+               .IsRequired(false);
+
+        builder.Property(p => p.WarrantyCertificateTemplate)
+               .HasMaxLength(100)
+               .IsRequired(false);
 
         builder.HasMany(b => b.VehicleCompatibilities)
         .WithOne(p => p.Part)

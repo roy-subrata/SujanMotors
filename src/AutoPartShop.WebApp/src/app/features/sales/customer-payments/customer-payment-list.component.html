@@ -28,7 +28,7 @@
         <div class="search-container">
           <i class="pi pi-search search-icon"></i>
           <input type="text" [(ngModel)]="searchTerm" placeholder="Search by customer, invoice, transaction..."
-            class="search-input" (keyup.enter)="onSearch()">
+            class="search-input" (input)="onSearchInput()" />
           <i *ngIf="searchTerm" class="pi pi-times clear-icon" (click)="clearSearch()"></i>
         </div>
       </div>
@@ -43,14 +43,15 @@
       <div class="filter-item date-filter">
         <p-datepicker [(ngModel)]="dateRange" selectionMode="range" [showIcon]="true"
           placeholder="Payment date range" dateFormat="M dd, yy" [showButtonBar]="true"
-          (onSelect)="onFilterChange()" (onClear)="onFilterChange()" class="w-full"></p-datepicker>
+          (onSelect)="onDateRangeSelect()" (ngModelChange)="onDateRangeChange($event)" class="w-full"></p-datepicker>
       </div>
 
-      <!-- Filter Actions -->
-      <div class="filter-actions">
-        <button pButton type="button" label="Search" icon="pi pi-search" (click)="onSearch()"></button>
-        <button pButton type="button" label="Clear" icon="pi pi-times" class="p-button-outlined" (click)="clearFilters()"></button>
+      <!-- Reconciled Filter -->
+      <div class="filter-item">
+        <p-select [options]="reconciledOptions" [(ngModel)]="reconciledFilter" placeholder="Reconciled"
+          [showClear]="true" (onChange)="onFilterChange()" class="w-full"></p-select>
       </div>
+
     </div>
   </p-card>
 
@@ -208,6 +209,7 @@
 
     <!-- Paginator -->
     <p-paginator
+      [first]="first"
       [rows]="pageSize"
       [totalRecords]="totalCount"
       [rowsPerPageOptions]="pageSizeOptions"

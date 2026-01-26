@@ -73,7 +73,7 @@
           <th pSortableColumn="paymentDate">Payment Date <p-sortIcon field="paymentDate"></p-sortIcon></th>
           <th>Payment Method</th>
           <th pSortableColumn="status">Status <p-sortIcon field="status"></p-sortIcon></th>
-          <th>Provider</th>
+          <th>Payment Flow</th>
           <th>Invoice #</th>
           <th>Reconciled</th>
           <th class="actions-column">Actions</th>
@@ -106,13 +106,41 @@
           </td>
           <td>{{ payment.paymentDate | date:'dd-MMM-yyyy' }}</td>
           <td>
-            <span class="payment-method-badge">{{ payment.paymentMethod }}</span>
+            <div class="flex items-center gap-2">
+              <span class="payment-method-badge">{{ payment.paymentMethod }}</span>
+              <p-tag *ngIf="payment.paymentMethod === 'CASH' && payment.status === 'COMPLETED'"
+                     value="Auto"
+                     severity="success"
+                     [rounded]="true"
+                     pTooltip="Auto-confirmed cash payment"></p-tag>
+            </div>
           </td>
           <td>
-            <app-status-badge [status]="payment.status" type="payment"></app-status-badge>
+            <div class="flex items-center gap-2">
+              <app-status-badge [status]="payment.status" type="payment"></app-status-badge>
+              <button *ngIf="payment.status === 'PENDING' || payment.status === 'PROCESSING'"
+                      pButton
+                      pRipple
+                      type="button"
+                      icon="pi pi-check-circle"
+                      label="Confirm"
+                      class="p-button-sm p-button-success p-button-outlined"
+                      pTooltip="Confirm this payment"
+                      (click)="confirmPayment(payment)">
+              </button>
+            </div>
           </td>
           <td>
-            <span class="provider-name">{{ payment.providerName }}</span>
+            <div class="payment-accounts-cell">
+              <div class="account-info source" pTooltip="Your Account (Source)" tooltipPosition="top">
+                <i class="pi pi-arrow-up-right source-icon"></i>
+                <span class="account-name">{{ payment.providerName || 'N/A' }}</span>
+              </div>
+              <div class="account-info destination" *ngIf="payment.supplierPaymentAccountName" pTooltip="Supplier's Account (Destination)" tooltipPosition="top">
+                <i class="pi pi-arrow-down-left dest-icon"></i>
+                <span class="account-name">{{ payment.supplierPaymentAccountName }}</span>
+              </div>
+            </div>
           </td>
           <td>
             <span class="invoice-number">{{ payment.invoiceNumber || '-' }}</span>

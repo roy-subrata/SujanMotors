@@ -5,6 +5,7 @@ public class CreateSalesReturnRequest
     public Guid SalesOrderId { get; set; }
     public Guid WarehouseId { get; set; }
     public string Reason { get; set; } = string.Empty;
+    public string RefundType { get; set; } = "CASH_REFUND"; // CASH_REFUND, STORE_CREDIT
     public string Notes { get; set; } = string.Empty;
     public List<CreateSalesReturnLineRequest> Lines { get; set; } = new();
 }

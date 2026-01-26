@@ -244,6 +244,7 @@
                 <thead>
                   <tr>
                     <th class="col-product">Product</th>
+                    <th class="col-unit">Unit</th>
                     <th class="col-qty">Quantity</th>
                     <th class="col-price">Unit Price</th>
                     <th class="col-discount">Discount</th>
@@ -264,10 +265,26 @@
                         </div>
                       </div>
                     </td>
+                    <td class="col-unit">
+                      <p-select
+                        [(ngModel)]="item.unitId"
+                        [ngModelOptions]="{standalone: true}"
+                        [options]="getCompatibleUnitsForPart(item.partId)"
+                        optionLabel="name"
+                        optionValue="id"
+                        placeholder="Select Unit"
+                        [showClear]="true"
+                         appendTo="body"
+                        styleClass="w-full unit-select">
+                        <ng-template let-unit pTemplate="item">
+                          {{ unit.name }} ({{ unit.symbol }})
+                        </ng-template>
+                      </p-select>
+                    </td>
                     <td class="col-qty">
                       <div class="qty-control">
                         <button class="qty-btn" (click)="decrementQty(i)"><i class="pi pi-minus"></i></button>
-                        <input type="number" [(ngModel)]="item.quantity" [ngModelOptions]="{standalone: true}" 
+                        <input type="number" [(ngModel)]="item.quantity" [ngModelOptions]="{standalone: true}"
                           min="1" class="qty-input" />
                         <button class="qty-btn" (click)="incrementQty(i)"><i class="pi pi-plus"></i></button>
                       </div>
@@ -477,8 +494,8 @@
           <button class="secondary-btn" [disabled]="cartItems().length === 0" (click)="saveAndPrint()">
             <i class="pi pi-print"></i> Save & Print
           </button>
-          <button class="secondary-btn" [disabled]="cartItems().length === 0" (click)="generateQuote()">
-            <i class="pi pi-file"></i> Quote
+          <button class="secondary-btn quotation-btn" [disabled]="cartItems().length === 0 || saving()" (click)="processQuotation()">
+            <i class="pi pi-file-edit"></i> Save as Quotation
           </button>
         </div>
       </div>

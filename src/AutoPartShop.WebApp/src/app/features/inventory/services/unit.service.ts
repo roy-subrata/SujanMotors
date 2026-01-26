@@ -120,4 +120,12 @@ export class UnitService {
   deactivateUnit(id: string): Observable<UnitResponse> {
     return this.http.patch<UnitResponse>(`${this.apiUrl}/${id}/deactivate`, {});
   }
+
+  /**
+   * Get compatible units for a given base unit
+   * Returns the base unit itself plus all units that have conversions configured
+   */
+  getCompatibleUnits(baseUnitId: string): Observable<UnitResponse[]> {
+    return this.http.get<UnitResponse[]>(`${this.apiUrl}/${baseUnitId}/compatible-units`);
+  }
 }

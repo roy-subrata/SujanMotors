@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, OnInit, ViewChild, inject } from '@angular/core';
+import { Component, OnInit, ViewChild, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
@@ -7,14 +7,16 @@ import { TooltipModule } from 'primeng/tooltip';
 import { TagModule } from 'primeng/tag';
 import { ContextMenuModule, ContextMenu } from 'primeng/contextmenu';
 import { RippleModule } from 'primeng/ripple';
+import { ToastModule } from 'primeng/toast';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { MenuItem } from 'primeng/api';
 import { SupplierService, SupplierResponse } from '../../services/supplier.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-suppliers-list',
   standalone: true,
-  imports: [CommonModule, TableModule, ButtonModule, ConfirmDialogModule, TooltipModule, TagModule, ContextMenuModule, RippleModule],
+  imports: [CommonModule, TableModule, ButtonModule, ConfirmDialogModule, TooltipModule, TagModule, ContextMenuModule, RippleModule, ToastModule],
   providers: [ConfirmationService, MessageService],
   templateUrl: './suppliers-list.component.html',
   styleUrls: ['./suppliers-list.component.css']
@@ -22,16 +24,12 @@ import { SupplierService, SupplierResponse } from '../../services/supplier.servi
 export class SuppliersListComponent implements OnInit {
   @ViewChild('contextMenu') contextMenu: ContextMenu | undefined;
 
-  @Input() suppliers: SupplierResponse[] = [];
-  @Input() loading = false;
-  @Input() totalRecords = 0;
-  @Input() rows = 10;
-  @Input() currentPage = 1;
-
-  @Output() editClick = new EventEmitter<SupplierResponse>();
-  @Output() deleteClick = new EventEmitter<SupplierResponse>();
-  @Output() pageChange = new EventEmitter<{ page: number; rows: number }>();
-  @Output() supplierDeleted = new EventEmitter<void>();
+  suppliers: SupplierResponse[] = [];
+  loading = false;
+  totalRecords = 0;
+  rows = 10;
+  currentPage = 1;
+  searchTerm = '';
 
   contextMenuItems: MenuItem[] = [];
   selectedSupplier: SupplierResponse | null = null;
@@ -39,11 +37,72 @@ export class SuppliersListComponent implements OnInit {
   private readonly supplierService = inject(SupplierService);
   private readonly confirmationService = inject(ConfirmationService);
   private readonly messageService = inject(MessageService);
+  private readonly router = inject(Router);
 
   constructor() {}
 
   ngOnInit(): void {
+    this.loadSuppliers();
     this.initializeContextMenu();
+  }
+
+  /**
+   * Load suppliers from API
+   */
+  loadSuppliers(pageNumber: number = 1, pageSize: number = 10, searchTerm: string = ''): void {
+    if (!pageNumber || isNaN(pageNumber) || pageNumber < 1) {
+      pageNumber = 1;
+    }
+    if (!pageSize || isNaN(pageSize) || pageSize < 1) {
+      pageSize = 10;
+    }
+
+    this.loading = true;
+    this.supplierService.getSuppliers({
+      pageNumber: pageNumber,
+      pageSize: pageSize,
+      search: searchTerm
+    }).subscribe({
+      next: (response) => {
+        this.suppliers = response.data;
+        this.totalRecords = response.pagination.totalCount;
+        this.rows = response.pagination.pageSize;
+        this.currentPage = response.pagination.pageNumber;
+        this.loading = false;
+      },
+      error: (error) => {
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Failed to load suppliers'
+        });
+        console.error('Error loading suppliers:', error);
+        this.loading = false;
+      }
+    });
+  }
+
+  /**
+   * Navigate to create supplier page
+   */
+  onCreateClick(): void {
+    this.router.navigate(['/inventory/suppliers/create']);
+  }
+
+  /**
+   * Handle search
+   */
+  onSearch(query: string): void {
+    this.searchTerm = query;
+    this.loadSuppliers(1, this.rows, query);
+  }
+
+  /**
+   * Handle search clear
+   */
+  onSearchClear(): void {
+    this.searchTerm = '';
+    this.loadSuppliers(1, this.rows);
   }
 
   /**
@@ -65,7 +124,7 @@ export class SuppliersListComponent implements OnInit {
         icon: 'pi pi-eye',
         command: () => {
           if (this.selectedSupplier) {
-            this.onEditClick(this.selectedSupplier);
+            this.viewSupplier(this.selectedSupplier);
           }
         }
       },
@@ -89,6 +148,25 @@ export class SuppliersListComponent implements OnInit {
           }
         },
         visible: this.selectedSupplier ? this.selectedSupplier.isActive : false
+      },
+      { separator: true },
+      {
+        label: 'Payment Accounts',
+        icon: 'pi pi-credit-card',
+        command: () => {
+          if (this.selectedSupplier) {
+            this.viewPaymentAccounts(this.selectedSupplier);
+          }
+        }
+      },
+      {
+        label: 'View Payment Summary',
+        icon: 'pi pi-chart-bar',
+        command: () => {
+          if (this.selectedSupplier) {
+            this.viewPaymentSummary(this.selectedSupplier);
+          }
+        }
       },
       { separator: true },
       {
@@ -170,10 +248,17 @@ export class SuppliersListComponent implements OnInit {
   }
 
   /**
-   * Edit supplier
+   * Navigate to edit supplier page
    */
   onEditClick(supplier: SupplierResponse): void {
-    this.editClick.emit(supplier);
+    this.router.navigate(['/inventory/suppliers/edit'], { queryParams: { id: supplier.id, mode: 'edit' } });
+  }
+
+  /**
+   * Navigate to view supplier details page
+   */
+  viewSupplier(supplier: SupplierResponse): void {
+    this.router.navigate(['/inventory/suppliers/view'], { queryParams: { id: supplier.id, mode: 'view' } });
   }
 
   /**
@@ -201,7 +286,7 @@ export class SuppliersListComponent implements OnInit {
           summary: 'Success',
           detail: 'Supplier deleted successfully'
         });
-        this.supplierDeleted.emit();
+        this.loadSuppliers(this.currentPage, this.rows, this.searchTerm);
       },
       error: (error) => {
         this.messageService.add({
@@ -215,6 +300,27 @@ export class SuppliersListComponent implements OnInit {
   }
 
   /**
+   * Navigate to record payment for supplier
+   */
+  recordPayment(supplier: SupplierResponse): void {
+    this.router.navigate(['/procurement/supplier-payments/new'], { queryParams: { supplierId: supplier.id } });
+  }
+
+  /**
+   * Navigate to view payment summary for supplier
+   */
+  viewPaymentSummary(supplier: SupplierResponse): void {
+    this.router.navigate(['/procurement/supplier-payments/summary', supplier.id]);
+  }
+
+  /**
+   * Navigate to view payment accounts for supplier
+   */
+  viewPaymentAccounts(supplier: SupplierResponse): void {
+    this.router.navigate(['/inventory/suppliers/payment-accounts'], { queryParams: { supplierId: supplier.id } });
+  }
+
+  /**
    * Handle pagination change
    */
   onPageChange(event: any): void {
@@ -222,10 +328,7 @@ export class SuppliersListComponent implements OnInit {
       return;
     }
     const pageNumber = Math.floor(event.first / event.rows) + 1;
-    this.pageChange.emit({
-      page: pageNumber,
-      rows: event.rows
-    });
+    this.loadSuppliers(pageNumber, event.rows, this.searchTerm);
   }
 
   /**

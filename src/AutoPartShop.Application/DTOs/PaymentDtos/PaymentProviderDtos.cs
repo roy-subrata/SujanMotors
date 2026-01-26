@@ -12,6 +12,12 @@ public class CreatePaymentProviderRequest
     public string BeneficiaryName { get; set; } = string.Empty;
     public string ApiKey { get; set; } = string.Empty;
     public string MerchantId { get; set; } = string.Empty;
+
+    // Mobile Banking fields (bKash, Nagad, eZ Cash, etc.)
+    public string MobileNumber { get; set; } = string.Empty;
+    public string AccountHolderName { get; set; } = string.Empty;
+    public string AgentNumber { get; set; } = string.Empty;
+
     public string TransactionFeeType { get; set; } = "FIXED";
     public decimal TransactionFeeAmount { get; set; } = 0;
     public decimal MinimumAmount { get; set; } = 0;
@@ -31,6 +37,12 @@ public class UpdatePaymentProviderRequest
     public string BankIBAN { get; set; } = string.Empty;
     public string BankSWIFT { get; set; } = string.Empty;
     public string BeneficiaryName { get; set; } = string.Empty;
+
+    // Mobile Banking fields
+    public string MobileNumber { get; set; } = string.Empty;
+    public string AccountHolderName { get; set; } = string.Empty;
+    public string AgentNumber { get; set; } = string.Empty;
+
     public string TransactionFeeType { get; set; } = string.Empty;
     public decimal TransactionFeeAmount { get; set; }
     public decimal MinimumAmount { get; set; }
@@ -53,6 +65,12 @@ public class PaymentProviderResponse
     public string BankIBAN { get; set; } = string.Empty;
     public string BankSWIFT { get; set; } = string.Empty;
     public string BeneficiaryName { get; set; } = string.Empty;
+
+    // Mobile Banking fields
+    public string MobileNumber { get; set; } = string.Empty;
+    public string AccountHolderName { get; set; } = string.Empty;
+    public string AgentNumber { get; set; } = string.Empty;
+
     public string TransactionFeeType { get; set; } = string.Empty;
     public decimal TransactionFeeAmount { get; set; }
     public decimal MinimumAmount { get; set; }

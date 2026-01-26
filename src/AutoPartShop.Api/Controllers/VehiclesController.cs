@@ -1,3 +1,4 @@
+using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.VehicleDtos;
 using AutoPartShop.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
@@ -13,14 +14,15 @@ public class VehiclesController : ControllerBase
     private readonly IPartVehicleCompatibilityRepository _compatibilityRepository;
     private readonly IPartRepository _partRepository;
     private readonly ILogger<VehiclesController> _logger;
-    
+    private readonly ICurrentUserService _currentUserService;
 
     public VehiclesController(IVehicleRepository vehicleRepository, IPartVehicleCompatibilityRepository compatibilityRepository,
-        IPartRepository partRepository, ILogger<VehiclesController> logger)
+        IPartRepository partRepository, ICurrentUserService currentUserService, ILogger<VehiclesController> logger)
     {
         _vehicleRepository = vehicleRepository;
         _compatibilityRepository = compatibilityRepository;
         _partRepository = partRepository;
+        _currentUserService = currentUserService;
         _logger = logger;
     }
 
@@ -107,8 +109,9 @@ public class VehiclesController : ControllerBase
                 return BadRequest(new { message = "Make, Model, EngineType, and valid Year are required" });
 
             var vehicle = Vehicle.Create(request.Make, request.Model, request.Year, request.EngineType, request.Description);
-            vehicle.CreatedBy = "System";
-            vehicle.ModifiedBy = "System";
+            var currentUser = _currentUserService.GetCurrentUsername();
+            vehicle.CreatedBy = currentUser;
+            vehicle.ModifiedBy = currentUser;
 
             await _vehicleRepository.AddAsync(vehicle, cancellationToken);
 
@@ -134,7 +137,7 @@ public class VehiclesController : ControllerBase
             if (vehicle is null) return NotFound(new { message = "Vehicle not found" });
 
             vehicle.Update(request.Make, request.Model, request.Year, request.EngineType, request.Description, request.IsActive);
-            vehicle.ModifiedBy = "System";
+            vehicle.ModifiedBy = _currentUserService.GetCurrentUsername();
 
             await _vehicleRepository.UpdateAsync(vehicle, cancellationToken);
 
@@ -160,7 +163,7 @@ public class VehiclesController : ControllerBase
             if (vehicle is null) return NotFound(new { message = "Vehicle not found" });
 
             vehicle.Activate();
-            vehicle.ModifiedBy = "System";
+            vehicle.ModifiedBy = _currentUserService.GetCurrentUsername();
             await _vehicleRepository.UpdateAsync(vehicle, cancellationToken);
 
             return Ok(MapToResponse(vehicle));
@@ -181,7 +184,7 @@ public class VehiclesController : ControllerBase
             if (vehicle is null) return NotFound(new { message = "Vehicle not found" });
 
             vehicle.Deactivate();
-            vehicle.ModifiedBy = "System";
+            vehicle.ModifiedBy = _currentUserService.GetCurrentUsername();
             await _vehicleRepository.UpdateAsync(vehicle, cancellationToken);
 
             return Ok(MapToResponse(vehicle));
@@ -225,8 +228,9 @@ public class VehiclesController : ControllerBase
                 return Conflict(new { message = "Compatibility already exists" });
 
             var compatibility = PartVehicleCompatibility.Create(partId, vehicleId, request.IsCompatible, request.Notes);
-            compatibility.CreatedBy = "System";
-            compatibility.ModifiedBy = "System";
+            var currentUser = _currentUserService.GetCurrentUsername();
+            compatibility.CreatedBy = currentUser;
+            compatibility.ModifiedBy = currentUser;
 
             await _compatibilityRepository.AddAsync(compatibility, cancellationToken);
 

@@ -1,0 +1,358 @@
+<div class="container">
+  <p-toast></p-toast>
+
+  <!-- Header -->
+  <div class="form-header">
+    <div class="header-content">
+      <div class="header-title-section">
+        <div class="breadcrumb">
+          <a (click)="onCancel()" class="breadcrumb-link">
+            <i class="pi pi-arrow-left"></i>
+            Parts
+          </a>
+          <span class="breadcrumb-separator">/</span>
+          <span class="breadcrumb-current">{{ isEditMode ? 'Edit' : (isViewMode ? 'View' : 'New') }}</span>
+        </div>
+        <h1 class="form-title">{{ pageTitle }}</h1>
+        <p class="form-subtitle">
+          {{ isEditMode ? 'Update part information' : (isViewMode ? 'View part details' : 'Fill in the details to create a new part') }}
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isSubmitting || isLoading" class="loading-state">
+    <i class="pi pi-spin pi-spinner" style="font-size: 2rem;"></i>
+    <p>{{ isLoading ? 'Loading...' : 'Processing...' }}</p>
+  </div>
+
+  <!-- Form -->
+  <p-card class="form-card">
+    <form [formGroup]="partForm" (ngSubmit)="onSubmit()" class="form-content">
+
+      <!-- Section 1: Basic Information -->
+      <div class="form-section">
+        <h3 class="section-title">
+          <i class="pi pi-box section-icon"></i>
+          Basic Information
+        </h3>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Part Name *</label>
+            <input
+              pInputText
+              type="text"
+              formControlName="name"
+              placeholder="Enter part name"
+              [disabled]="isViewMode" />
+            <small *ngIf="hasError('name')" class="p-error">
+              {{ getErrorMessage('name') }}
+            </small>
+          </div>
+          <div class="form-group">
+            <label>Part Number *</label>
+            <input
+              pInputText
+              type="text"
+              formControlName="partNumber"
+              placeholder="e.g., ABC123"
+              [disabled]="isEditMode || isViewMode" />
+            <small *ngIf="hasError('partNumber')" class="p-error">
+              {{ getErrorMessage('partNumber') }}
+            </small>
+            <small class="field-hint">
+              <i class="pi pi-info-circle"></i>
+              3-20 characters, must start with a letter
+            </small>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>SKU *</label>
+            <input
+              pInputText
+              type="text"
+              formControlName="sku"
+              placeholder="Stock Keeping Unit"
+              [disabled]="isViewMode" />
+            <small *ngIf="hasError('sku')" class="p-error">
+              {{ getErrorMessage('sku') }}
+            </small>
+          </div>
+          <div class="form-group">
+            <label>Category *</label>
+            <p-autoComplete
+              [suggestions]="filteredCategories"
+              [(ngModel)]="selectedCategory"
+              placeholder="Search by category name or code..."
+              [showEmptyMessage]="true"
+              emptyMessage="No categories found"
+              (onClear)="onCategoryClear()"
+              (onSelect)="onCategorySelect($event)"
+              [dropdown]="true"
+              [disabled]="isSubmitting || isViewMode"
+              (completeMethod)="onCategorySearch($event)"
+              optionLabel="name"
+              [ngModelOptions]="{standalone: true}"
+              appendTo="body"
+              [style]="{ width: '100%' }">
+              <ng-template let-category pTemplate="item">
+                <div class="autocomplete-item">
+                  <span class="item-name">{{ category.name }}</span>
+                  <span class="item-code">{{ category.code }}</span>
+                </div>
+              </ng-template>
+            </p-autoComplete>
+            <small *ngIf="hasError('categoryId')" class="p-error">
+              {{ getErrorMessage('categoryId') }}
+            </small>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Unit</label>
+            <p-autoComplete
+              [suggestions]="filteredUnits"
+              [(ngModel)]="selectedUnit"
+              placeholder="Search by unit name or code..."
+              [showEmptyMessage]="true"
+              emptyMessage="No units found"
+              (onClear)="onUnitClear()"
+              (onSelect)="onUnitSelect($event)"
+              [dropdown]="true"
+              [disabled]="isSubmitting || isViewMode"
+              (completeMethod)="onUnitSearch($event)"
+              optionLabel="name"
+              [ngModelOptions]="{standalone: true}"
+              appendTo="body"
+              [style]="{ width: '100%' }">
+              <ng-template let-unit pTemplate="item">
+                <div class="autocomplete-item">
+                  <span class="item-name">{{ unit.name }}</span>
+                  <span class="item-code">{{ unit.code }}</span>
+                </div>
+              </ng-template>
+            </p-autoComplete>
+          </div>
+          <div class="form-group">
+            <label>Brand</label>
+            <p-autoComplete
+              [suggestions]="filteredBrands"
+              [(ngModel)]="selectedBrand"
+              placeholder="Search by brand name or code..."
+              [showEmptyMessage]="true"
+              emptyMessage="No brands found"
+              (onClear)="onBrandClear()"
+              (onSelect)="onBrandSelect($event)"
+              [dropdown]="true"
+              [disabled]="isSubmitting || isViewMode"
+              (completeMethod)="onBrandSearch($event)"
+              optionLabel="name"
+              [ngModelOptions]="{standalone: true}"
+              appendTo="body"
+              [style]="{ width: '100%' }">
+              <ng-template let-brand pTemplate="item">
+                <div class="autocomplete-item">
+                  <span class="item-name">{{ brand.name }}</span>
+                  <span class="item-code">{{ brand.code }}</span>
+                </div>
+              </ng-template>
+            </p-autoComplete>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 2: Pricing & Stock -->
+      <div class="form-section">
+        <h3 class="section-title">
+          <i class="pi pi-dollar section-icon"></i>
+          Pricing & Stock
+        </h3>
+
+        <div class="form-row three-columns">
+          <div class="form-group">
+            <label>Cost Price *</label>
+            <p-inputNumber
+              formControlName="costPrice"
+              placeholder="0.00"
+              [min]="0"
+              [step]="0.01"
+              [minFractionDigits]="2"
+              [maxFractionDigits]="2"
+              mode="decimal"
+              [disabled]="isViewMode"
+              [style]="{ width: '100%' }">
+            </p-inputNumber>
+            <small *ngIf="hasError('costPrice')" class="p-error">
+              {{ getErrorMessage('costPrice') }}
+            </small>
+          </div>
+          <div class="form-group">
+            <label>Selling Price *</label>
+            <p-inputNumber
+              formControlName="sellingPrice"
+              placeholder="0.00"
+              [min]="0"
+              [step]="0.01"
+              [minFractionDigits]="2"
+              [maxFractionDigits]="2"
+              mode="decimal"
+              [disabled]="isViewMode"
+              [style]="{ width: '100%' }">
+            </p-inputNumber>
+            <small *ngIf="hasError('sellingPrice')" class="p-error">
+              {{ getErrorMessage('sellingPrice') }}
+            </small>
+          </div>
+          <div class="form-group">
+            <label>Minimum Stock *</label>
+            <p-inputNumber
+              formControlName="minimumStock"
+              placeholder="0"
+              [min]="0"
+              [step]="1"
+              mode="decimal"
+              [disabled]="isViewMode"
+              [style]="{ width: '100%' }">
+            </p-inputNumber>
+            <small *ngIf="hasError('minimumStock')" class="p-error">
+              {{ getErrorMessage('minimumStock') }}
+            </small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 3: Warranty -->
+      <div class="form-section">
+        <h3 class="section-title">
+          <i class="pi pi-shield section-icon"></i>
+          Warranty Information
+        </h3>
+
+        <div class="form-row">
+          <div class="form-group full">
+            <div class="warranty-checkbox">
+              <p-checkbox
+                inputId="hasWarranty"
+                formControlName="hasWarranty"
+                [binary]="true"
+                [disabled]="isViewMode">
+              </p-checkbox>
+              <label for="hasWarranty" class="checkbox-label">
+                This part has warranty
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Warranty Fields (shown when hasWarranty is true) -->
+        <ng-container *ngIf="partForm.get('hasWarranty')?.value">
+          <div class="form-row three-columns">
+            <div class="form-group">
+              <label>Warranty Period (Months) *</label>
+              <p-inputNumber
+                formControlName="warrantyPeriodMonths"
+                placeholder="e.g., 12"
+                [min]="1"
+                [step]="1"
+                mode="decimal"
+                [disabled]="isViewMode"
+                [style]="{ width: '100%' }">
+              </p-inputNumber>
+              <small *ngIf="hasError('warrantyPeriodMonths')" class="p-error">
+                {{ getErrorMessage('warrantyPeriodMonths') }}
+              </small>
+            </div>
+            <div class="form-group">
+              <label>Warranty Type *</label>
+              <select
+                formControlName="warrantyType"
+                class="warranty-select"
+                [disabled]="isViewMode">
+                <option value="">Select warranty type</option>
+                <option *ngFor="let type of warrantyTypes" [value]="type.value">
+                  {{ type.label }}
+                </option>
+              </select>
+              <small *ngIf="hasError('warrantyType')" class="p-error">
+                {{ getErrorMessage('warrantyType') }}
+              </small>
+            </div>
+            <div class="form-group">
+              <label>Certificate Template</label>
+              <input
+                pInputText
+                type="text"
+                formControlName="warrantyCertificateTemplate"
+                placeholder="e.g., CERT"
+                [disabled]="isViewMode" />
+              <small class="field-hint">
+                <i class="pi pi-info-circle"></i>
+                Optional prefix for certificate numbers
+              </small>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group full">
+              <label>Warranty Terms & Conditions</label>
+              <textarea
+                pInputTextarea
+                formControlName="warrantyTerms"
+                placeholder="Enter warranty terms and conditions"
+                rows="3"
+                [disabled]="isViewMode">
+              </textarea>
+            </div>
+          </div>
+        </ng-container>
+      </div>
+
+      <!-- Section 4: Additional Notes -->
+      <div class="form-section last">
+        <h3 class="section-title">
+          <i class="pi pi-file-edit section-icon"></i>
+          Description
+        </h3>
+        <div class="form-row">
+          <div class="form-group full">
+            <label>Description</label>
+            <textarea
+              pInputTextarea
+              formControlName="description"
+              rows="3"
+              placeholder="Enter part description (optional)"
+              [disabled]="isViewMode">
+            </textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Form Actions -->
+      <div class="form-actions">
+        <button
+          pButton
+          type="button"
+          [label]="isViewMode ? 'Back' : 'Cancel'"
+          icon="pi pi-times"
+          class="p-button-outlined"
+          (click)="onCancel()">
+        </button>
+        <button
+          *ngIf="!isViewMode"
+          pButton
+          type="submit"
+          [label]="isEditMode ? 'Update Part' : 'Create Part'"
+          icon="pi pi-check"
+          class="p-button-primary"
+          [loading]="isSubmitting"
+          [disabled]="isSubmitting">
+        </button>
+      </div>
+    </form>
+  </p-card>
+</div>

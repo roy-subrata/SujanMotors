@@ -17,6 +17,7 @@ public class SalesOrderRepository : ISalesOrderRepository
     {
         return await _dbContext.SalesOrders
             .Include(x => x.LineItems)
+                .ThenInclude(li => li.Part)
             .Where(x => !x.Isdeleted)
             .OrderByDescending(x => x.SODate)
             .ToListAsync(cancellationToken);
@@ -26,6 +27,7 @@ public class SalesOrderRepository : ISalesOrderRepository
     {
         return await _dbContext.SalesOrders
             .Include(x => x.LineItems)
+                .ThenInclude(li => li.Part)
             .FirstOrDefaultAsync(x => x.Id == id && !x.Isdeleted, cancellationToken);
     }
 
@@ -75,6 +77,7 @@ public class SalesOrderRepository : ISalesOrderRepository
     {
         return await _dbContext.SalesOrders
             .Include(x => x.LineItems)
+                .ThenInclude(li => li.Part)
             .FirstOrDefaultAsync(x => x.SONumber == soNumber && !x.Isdeleted, cancellationToken);
     }
 
@@ -82,6 +85,7 @@ public class SalesOrderRepository : ISalesOrderRepository
     {
         return await _dbContext.SalesOrders
             .Include(x => x.LineItems)
+                .ThenInclude(li => li.Part)
             .Where(x => x.CustomerId == customerId && !x.Isdeleted)
             .OrderByDescending(x => x.SODate)
             .ToListAsync(cancellationToken);
@@ -91,6 +95,7 @@ public class SalesOrderRepository : ISalesOrderRepository
     {
         return await _dbContext.SalesOrders
             .Include(x => x.LineItems)
+                .ThenInclude(li => li.Part)
             .Where(x => x.Status == status && !x.Isdeleted)
             .OrderByDescending(x => x.SODate)
             .ToListAsync(cancellationToken);
@@ -100,6 +105,7 @@ public class SalesOrderRepository : ISalesOrderRepository
     {
         return await _dbContext.SalesOrders
             .Include(x => x.LineItems)
+                .ThenInclude(li => li.Part)
             .Where(x => x.DeliveryDate.HasValue && x.DeliveryDate < DateTime.UtcNow && x.Status != "DELIVERED" && x.Status != "CANCELLED" && !x.Isdeleted)
             .OrderByDescending(x => x.SODate)
             .ToListAsync(cancellationToken);
@@ -109,6 +115,7 @@ public class SalesOrderRepository : ISalesOrderRepository
     {
         var query = _dbContext.SalesOrders
             .Include(x => x.LineItems)
+                .ThenInclude(li => li.Part)
             .Where(x => !x.Isdeleted)
             .OrderByDescending(x => x.SODate);
 
@@ -126,6 +133,7 @@ public class SalesOrderRepository : ISalesOrderRepository
         var term = searchTerm.ToLower();
         var query = _dbContext.SalesOrders
             .Include(x => x.LineItems)
+                .ThenInclude(li => li.Part)
             .Where(x => !x.Isdeleted && (
                 x.SONumber.ToLower().Contains(term) ||
                 x.CustomerName.ToLower().Contains(term) ||

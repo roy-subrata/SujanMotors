@@ -1,7 +1,6 @@
+using AutoPartShop.Domain.Common;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
-
-
 
 public interface ICustomerPaymentRepository : IBaseRepository<CustomerPayment>
 {
@@ -17,5 +16,15 @@ public interface ICustomerPaymentRepository : IBaseRepository<CustomerPayment>
     Task<decimal> GetTotalByDateRangeAsync(DateTime startDate, DateTime endDate, CancellationToken cancellationToken = default);
     Task<(IEnumerable<CustomerPayment> payments, int totalCount)> GetPagedAsync(int pageNumber, int pageSize, CancellationToken cancellationToken = default);
     Task<(IEnumerable<CustomerPayment> payments, int totalCount)> SearchPagedAsync(string searchTerm, int pageNumber, int pageSize, CancellationToken cancellationToken = default);
+    Task<(IEnumerable<CustomerPayment> payments, int totalCount)> SearchPagedAsync(CustomerPaymentQuery query, CancellationToken cancellationToken = default);
     Task<(IEnumerable<CustomerPayment> payments, int totalCount)> GetByCustomerPagedAsync(Guid customerId, int pageNumber, int pageSize, CancellationToken cancellationToken = default);
+}
+
+public class CustomerPaymentQuery : BaseQuery
+{
+    public bool? IsReconciled { get; set; }
+    public string? CustomerId { get; set; }
+    public string? Status { get; set; }
+    public DateTime? FromDate { get; set; }
+    public DateTime? ToDate { get; set; }
 }

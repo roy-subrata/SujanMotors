@@ -1,0 +1,490 @@
+<p-toast />
+
+<div class="page-container">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="page-header-content">
+      <div class="page-title-section">
+        <h1 class="page-title">Warranty Claims</h1>
+        <p class="page-subtitle">View and manage warranty claims</p>
+      </div>
+      <div class="page-actions">
+        <button
+          pButton
+          type="button"
+          icon="pi pi-plus"
+          label="Create New Claim"
+          class="p-button-success"
+          (click)="openCreateDialog()"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <p-card styleClass="filter-card mb-3">
+    <div class="flex flex-wrap gap-3">
+      <div class="flex-1">
+        <span class="p-input-icon-left w-full">
+          <i class="pi pi-search"></i>
+          <input
+            pInputText
+            type="text"
+            [(ngModel)]="searchText"
+            (input)="onSearch()"
+            placeholder="Search by claim number, warranty number, part, or customer..."
+            class="w-full" />
+        </span>
+      </div>
+      <div>
+        <select [(ngModel)]="selectedStatus" (change)="onStatusChange()" class="form-input">
+          <option *ngFor="let status of statuses" [value]="status.value">
+            {{ status.label }}
+          </option>
+        </select>
+      </div>
+      <div>
+        <button
+          pButton
+          type="button"
+          icon="pi pi-refresh"
+          label="Refresh"
+          class="p-button-outlined"
+          (click)="loadClaims()"></button>
+      </div>
+    </div>
+  </p-card>
+
+  <!-- Claims Table -->
+  <p-card styleClass="table-card">
+    <p-table
+      [value]="filteredClaims"
+      [loading]="isLoading"
+      [paginator]="true"
+      [rows]="10"
+      [rowsPerPageOptions]="[10, 25, 50]"
+      [showCurrentPageReport]="true"
+      currentPageReportTemplate="Showing {first} to {last} of {totalRecords} claims"
+      styleClass="p-datatable-sm">
+      <ng-template #header>
+        <tr>
+          <th>Claim Number</th>
+          <th>Warranty</th>
+          <th>Part</th>
+          <th>Customer</th>
+          <th>Claim Date</th>
+          <th>Issue</th>
+          <th>Priority</th>
+          <th>Status</th>
+          <th>Resolution</th>
+          <th>Actions</th>
+        </tr>
+      </ng-template>
+      <ng-template #body let-claim>
+        <tr>
+          <td><strong>{{ claim.claimNumber }}</strong></td>
+          <td>
+            <div>{{ claim.warrantyNumber }}</div>
+            <div class="text-sm text-gray-500">{{ claim.salesOrderNumber }}</div>
+          </td>
+          <td>
+            <div>{{ claim.partName }}</div>
+            <div class="text-sm text-gray-500">{{ claim.partSKU }}</div>
+          </td>
+          <td>
+            <div>{{ claim.customerName }}</div>
+            <div class="text-sm text-gray-500">{{ claim.customerPhone }}</div>
+          </td>
+          <td>{{ formatDate(claim.claimDate) }}</td>
+          <td>
+            <div class="text-sm">{{ claim.issueDescription }}</div>
+          </td>
+          <td>
+            <p-tag [value]="claim.priority" [severity]="getPrioritySeverity(claim.priority)"></p-tag>
+          </td>
+          <td>
+            <p-tag [value]="claim.status" [severity]="getStatusSeverity(claim.status)"></p-tag>
+          </td>
+          <td>
+            <span *ngIf="claim.resolutionType" class="text-sm">
+              {{ claim.resolutionType }}
+            </span>
+            <span *ngIf="!claim.resolutionType" class="text-sm text-gray-400">
+              Pending
+            </span>
+          </td>
+          <td>
+            <div class="flex gap-1">
+              <!-- Approve Button -->
+              <button
+                *ngIf="canApprove(claim)"
+                pButton
+                type="button"
+                icon="pi pi-check"
+                class="p-button-sm p-button-success p-button-text"
+                pTooltip="Approve Claim"
+                tooltipPosition="top"
+                (click)="openApproveDialog(claim)"></button>
+
+              <!-- Reject Button -->
+              <button
+                *ngIf="canReject(claim)"
+                pButton
+                type="button"
+                icon="pi pi-times"
+                class="p-button-sm p-button-danger p-button-text"
+                pTooltip="Reject Claim"
+                tooltipPosition="top"
+                (click)="openRejectDialog(claim)"></button>
+
+              <!-- Assign Technician Button -->
+              <button
+                *ngIf="canAssignTechnician(claim)"
+                pButton
+                type="button"
+                icon="pi pi-user-plus"
+                class="p-button-sm p-button-info p-button-text"
+                pTooltip="Assign Technician"
+                tooltipPosition="top"
+                (click)="openAssignDialog(claim)"></button>
+
+              <!-- Status Update Buttons -->
+              <button
+                *ngIf="claim.status === 'APPROVED'"
+                pButton
+                type="button"
+                icon="pi pi-wrench"
+                class="p-button-sm p-button-warning p-button-text"
+                pTooltip="Mark as In Repair"
+                tooltipPosition="top"
+                (click)="updateStatus(claim, 'IN_REPAIR')"></button>
+
+              <button
+                *ngIf="claim.status === 'IN_REPAIR'"
+                pButton
+                type="button"
+                icon="pi pi-check-circle"
+                class="p-button-sm p-button-success p-button-text"
+                pTooltip="Mark as Repaired"
+                tooltipPosition="top"
+                (click)="updateStatus(claim, 'REPAIRED')"></button>
+
+              <button
+                *ngIf="claim.status === 'REPAIRED' || claim.status === 'REPLACED'"
+                pButton
+                type="button"
+                icon="pi pi-lock"
+                class="p-button-sm p-button-secondary p-button-text"
+                pTooltip="Close Claim"
+                tooltipPosition="top"
+                (click)="updateStatus(claim, 'CLOSED')"></button>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template #emptymessage>
+        <tr>
+          <td colspan="10" class="text-center p-4">
+            <i class="pi pi-inbox text-4xl text-gray-400 mb-3"></i>
+            <p class="text-gray-500">No warranty claims found</p>
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </p-card>
+</div>
+
+<!-- Approve Claim Dialog -->
+<p-dialog
+  [(visible)]="showApproveDialog"
+  header="Approve Warranty Claim"
+  [modal]="true"
+  [style]="{ width: '500px' }"
+  [draggable]="false"
+  [resizable]="false">
+  <div class="flex flex-column gap-3">
+    <div>
+      <strong>Claim:</strong> {{ selectedClaim?.claimNumber }}
+    </div>
+    <div>
+      <strong>Customer:</strong> {{ selectedClaim?.customerName }}
+    </div>
+
+    <div class="form-group">
+      <label for="approvalType" class="form-label">
+        <span class="required">*</span> Resolution Type
+      </label>
+      <select
+        id="approvalType"
+        [(ngModel)]="approvalType"
+        class="form-input w-full">
+        <option value="REPAIR">Repair</option>
+        <option value="REPLACEMENT">Replacement</option>
+        <option value="REFUND">Refund</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="estimatedCost" class="form-label">Estimated Cost</label>
+      <input
+        pInputText
+        id="estimatedCost"
+        type="number"
+        [(ngModel)]="estimatedCost"
+        placeholder="Enter estimated cost"
+        class="w-full" />
+    </div>
+
+    <div class="form-group">
+      <label for="approvalNotes" class="form-label">Approval Notes</label>
+      <textarea
+        pTextarea
+        id="approvalNotes"
+        [(ngModel)]="approvalNotes"
+        placeholder="Enter any approval notes..."
+        rows="3"
+        class="w-full"></textarea>
+    </div>
+  </div>
+
+  <ng-template #footer>
+    <button
+      pButton
+      type="button"
+      label="Cancel"
+      class="p-button-text"
+      (click)="showApproveDialog = false"></button>
+    <button
+      pButton
+      type="button"
+      label="Approve"
+      class="p-button-success"
+      (click)="approveClaim()"></button>
+  </ng-template>
+</p-dialog>
+
+<!-- Reject Claim Dialog -->
+<p-dialog
+  [(visible)]="showRejectDialog"
+  header="Reject Warranty Claim"
+  [modal]="true"
+  [style]="{ width: '500px' }"
+  [draggable]="false"
+  [resizable]="false">
+  <div class="flex flex-column gap-3">
+    <div>
+      <strong>Claim:</strong> {{ selectedClaim?.claimNumber }}
+    </div>
+    <div>
+      <strong>Customer:</strong> {{ selectedClaim?.customerName }}
+    </div>
+
+    <div class="form-group">
+      <label for="rejectReason" class="form-label">
+        <span class="required">*</span> Rejection Reason
+      </label>
+      <textarea
+        pTextarea
+        id="rejectReason"
+        [(ngModel)]="rejectReason"
+        placeholder="Enter reason for rejection..."
+        rows="4"
+        class="w-full"></textarea>
+    </div>
+  </div>
+
+  <ng-template #footer>
+    <button
+      pButton
+      type="button"
+      label="Cancel"
+      class="p-button-text"
+      (click)="showRejectDialog = false"></button>
+    <button
+      pButton
+      type="button"
+      label="Reject"
+      class="p-button-danger"
+      (click)="rejectClaim()"></button>
+  </ng-template>
+</p-dialog>
+
+<!-- Assign Technician Dialog -->
+<p-dialog
+  [(visible)]="showAssignDialog"
+  header="Assign Technician"
+  [modal]="true"
+  [style]="{ width: '500px' }"
+  [draggable]="false"
+  [resizable]="false">
+  <div class="flex flex-column gap-3">
+    <div>
+      <strong>Claim:</strong> {{ selectedClaim?.claimNumber }}
+    </div>
+    <div>
+      <strong>Customer:</strong> {{ selectedClaim?.customerName }}
+    </div>
+
+    <div class="form-group">
+      <label for="technicianId" class="form-label">
+        <span class="required">*</span> Technician ID
+      </label>
+      <input
+        pInputText
+        id="technicianId"
+        type="text"
+        [(ngModel)]="technicianId"
+        placeholder="Enter technician ID"
+        class="w-full" />
+    </div>
+
+    <div class="form-group">
+      <label for="assignmentNotes" class="form-label">Assignment Notes</label>
+      <textarea
+        pTextarea
+        id="assignmentNotes"
+        [(ngModel)]="assignmentNotes"
+        placeholder="Enter any assignment notes..."
+        rows="3"
+        class="w-full"></textarea>
+    </div>
+  </div>
+
+  <ng-template #footer>
+    <button
+      pButton
+      type="button"
+      label="Cancel"
+      class="p-button-text"
+      (click)="showAssignDialog = false"></button>
+    <button
+      pButton
+      type="button"
+      label="Assign"
+      class="p-button-info"
+      (click)="assignTechnician()"></button>
+  </ng-template>
+</p-dialog>
+
+<!-- Create New Claim Dialog -->
+<p-dialog
+  [(visible)]="showCreateDialog"
+  header="Create Warranty Claim"
+  [modal]="true"
+  [style]="{ width: '600px' }"
+  [draggable]="false"
+  [resizable]="false">
+  <div class="flex flex-column gap-3">
+    <div class="form-group">
+      <label for="warranty" class="form-label">
+        <span class="required">*</span> Warranty Registration
+      </label>
+      <p-autoComplete
+        [(ngModel)]="selectedWarranty"
+        [suggestions]="filteredWarranties"
+        (completeMethod)="searchWarranties($event)"
+        (onSelect)="onWarrantySelect($event)"
+        field="warrantyNumber"
+        optionLabel="warrantyNumber"
+        placeholder="Search by warranty number, part name, or customer..."
+        [dropdown]="true"
+        [forceSelection]="true"
+        styleClass="w-full">
+        <ng-template let-warranty pTemplate="item">
+          <div class="flex flex-column">
+            <div><strong>{{ warranty.warrantyNumber }}</strong> - {{ warranty.partName }}</div>
+            <div class="text-sm text-gray-500">
+              Customer: {{ warranty.customerName }} | Certificate: {{ warranty.certificateNumber }}
+            </div>
+            <div class="text-xs text-gray-400">
+              Valid until: {{ formatDate(warranty.warrantyExpiryDate) }}
+            </div>
+          </div>
+        </ng-template>
+      </p-autoComplete>
+      <small class="text-gray-500">Search and select an active warranty registration</small>
+    </div>
+
+    <div *ngIf="selectedWarranty" class="p-3 bg-gray-50 rounded">
+      <div class="grid grid-cols-2 gap-2 text-sm">
+        <div>
+          <strong>Warranty:</strong> {{ selectedWarranty.warrantyNumber }}
+        </div>
+        <div>
+          <strong>Certificate:</strong> {{ selectedWarranty.certificateNumber }}
+        </div>
+        <div>
+          <strong>Part:</strong> {{ selectedWarranty.partName }}
+        </div>
+        <div>
+          <strong>SKU:</strong> {{ selectedWarranty.partSKU }}
+        </div>
+        <div>
+          <strong>Customer:</strong> {{ selectedWarranty.customerName }}
+        </div>
+        <div>
+          <strong>Phone:</strong> {{ selectedWarranty.customerPhone }}
+        </div>
+        <div>
+          <strong>Type:</strong> {{ selectedWarranty.warrantyType }}
+        </div>
+        <div>
+          <strong>Expires:</strong> {{ formatDate(selectedWarranty.warrantyExpiryDate) }}
+        </div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="claimDate" class="form-label">
+        <span class="required">*</span> Claim Date
+      </label>
+      <p-datePicker
+        [(ngModel)]="newClaim.claimDate"
+        [showIcon]="true"
+        dateFormat="yy-mm-dd"
+        styleClass="w-full"></p-datePicker>
+    </div>
+
+    <div class="form-group">
+      <label for="serviceType" class="form-label">
+        <span class="required">*</span> Service Type
+      </label>
+      <p-select
+        [(ngModel)]="newClaim.serviceType"
+        [options]="serviceTypes"
+        optionLabel="label"
+        optionValue="value"
+        placeholder="Select service type"
+        styleClass="w-full"></p-select>
+    </div>
+
+    <div class="form-group">
+      <label for="issueDescription" class="form-label">
+        <span class="required">*</span> Issue Description
+      </label>
+      <textarea
+        pTextarea
+        id="issueDescription"
+        [(ngModel)]="newClaim.issueDescription"
+        placeholder="Describe the issue in detail..."
+        rows="5"
+        class="w-full"></textarea>
+      <small class="text-gray-500">Provide detailed information about the problem</small>
+    </div>
+  </div>
+
+  <ng-template #footer>
+    <button
+      pButton
+      type="button"
+      label="Cancel"
+      class="p-button-text"
+      (click)="showCreateDialog = false"></button>
+    <button
+      pButton
+      type="button"
+      label="Create Claim"
+      class="p-button-success"
+      [disabled]="!selectedWarranty || !newClaim.issueDescription.trim()"
+      (click)="createClaim()"></button>
+  </ng-template>
+</p-dialog>

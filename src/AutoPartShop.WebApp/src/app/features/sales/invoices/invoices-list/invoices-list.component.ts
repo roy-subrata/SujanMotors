@@ -4,6 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { InvoiceService, InvoiceResponse } from '../../services/invoice.service';
 import { PaymentProviderService } from '../../../procurement/services/payment-provider.service';
+import { CurrencyService } from '../../../../shared/services/currency.service';
 import { DialogModule } from 'primeng/dialog';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { Select } from 'primeng/select';
@@ -18,7 +19,9 @@ import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { CardModule } from 'primeng/card';
 import { PaginatorModule, PaginatorState } from 'primeng/paginator';
+import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { tap } from 'rxjs';
+import { ApplyCustomerAdvanceCreditDialogComponent } from '../../sales-orders/apply-advance-credit/apply-advance-credit-dialog.component';
 
 @Component({
     selector: 'app-invoices-list',
@@ -40,17 +43,21 @@ import { tap } from 'rxjs';
         CardModule,
         PaginatorModule
     ],
-    providers: [MessageService, ConfirmationService],
+    providers: [MessageService, ConfirmationService, DialogService],
     templateUrl: './invoices-list.component.html',
     styleUrls: ['./invoices-list.component.css']
 })
 export class InvoicesListComponent implements OnInit {
     private readonly router = inject(Router);
     private readonly invoiceService = inject(InvoiceService);
+    private readonly currencyService = inject(CurrencyService);
     private readonly messageService = inject(MessageService);
     private readonly confirmationService = inject(ConfirmationService);
     private readonly paymentProviderService = inject(PaymentProviderService);
+    private readonly dialogService = inject(DialogService);
     private activateRoute = inject(ActivatedRoute);
+
+    private dialogRef: DynamicDialogRef | undefined;
 
     invoices: InvoiceResponse[] = [];
     loading = false;
@@ -313,10 +320,8 @@ export class InvoicesListComponent implements OnInit {
     }
 
     formatCurrency(amount: number): string {
-        return new Intl.NumberFormat('en-IN', {
-            style: 'currency',
-            currency: 'INR'
-        }).format(amount);
+        const currency = this.currencyService.selectedCurrency() || 'BDT';
+        return this.currencyService.formatCurrency(amount, currency);
     }
 
     formatDate(date: string): string {
@@ -377,11 +382,16 @@ export class InvoicesListComponent implements OnInit {
                 paymentProviderId: providerId || undefined
             })
             .subscribe({
-                next: () => {
+                next: (response: any) => {
+                    // Backend returns payment status information
+                    const message = response.message || `Payment of ${this.formatCurrency(this.paymentAmount)} recorded successfully`;
+                    const severity = response.paymentStatus === 'PENDING' ? 'info' : 'success';
+
                     this.messageService.add({
-                        severity: 'success',
-                        summary: 'Payment Recorded',
-                        detail: `Payment of ${this.formatCurrency(this.paymentAmount)} recorded successfully`
+                        severity: severity,
+                        summary: response.paymentStatus === 'PENDING' ? 'Payment Created' : 'Payment Recorded',
+                        detail: message,
+                        life: response.paymentStatus === 'PENDING' ? 6000 : 3000
                     });
                     this.closePaymentDialog();
                     this.loadInvoices();
@@ -405,5 +415,47 @@ export class InvoicesListComponent implements OnInit {
         this.router.navigate(['/sales/sales-orders/view'], {
             queryParams: { id: invoice.salesOrderId }
         });
+    }
+
+    /**
+     * Navigate to customer payments to view and confirm payments
+     */
+    viewCustomerPayments(invoice: InvoiceResponse): void {
+        this.router.navigate(['/sales/customer-payments'], {
+            queryParams: { customerId: invoice.customerId }
+        });
+    }
+
+    /**
+     * Open dialog to apply customer advance credit to invoice
+     */
+    applyAdvanceCredit(invoice: InvoiceResponse): void {
+        this.dialogRef = this.dialogService.open(ApplyCustomerAdvanceCreditDialogComponent, {
+            header: `Apply Advance Credit - ${invoice.invoiceNumber}`,
+            width: '900px',
+            data: {
+                customerId: invoice.customerId,
+                invoiceId: invoice.id,
+                invoiceOutstandingAmount: invoice.outstandingAmount
+            }
+        });
+
+        this.dialogRef.onClose.subscribe((result) => {
+            if (result) {
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'Success',
+                    detail: result.message || 'Advance credit applied successfully'
+                });
+                this.loadInvoices();
+            }
+        });
+    }
+
+    /**
+     * Check if invoice can have advance credit applied
+     */
+    canApplyAdvanceCredit(invoice: InvoiceResponse): boolean {
+        return invoice.status !== 'CANCELLED' && invoice.status !== 'DRAFT' && invoice.outstandingAmount > 0;
     }
 }

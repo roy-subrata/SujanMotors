@@ -42,6 +42,13 @@ public class AutoPartDbContext : IdentityDbContext<ApplicationUser, ApplicationR
     public DbSet<Technician> Technicians { get; set; }
     public DbSet<AuditLog> AuditLogs { get; set; }
     public DbSet<ProductLocation> ProductLocations { get; set; }
+    public DbSet<DailyExpense> DailyExpenses { get; set; }
+    public DbSet<Currency> Currencies { get; set; }
+    public DbSet<ExchangeRate> ExchangeRates { get; set; }
+    public DbSet<ApplicationSettings> ApplicationSettings { get; set; }
+    public DbSet<WarrantyRegistration> WarrantyRegistrations { get; set; }
+    public DbSet<WarrantyClaim> WarrantyClaims { get; set; }
+    public DbSet<SupplierPaymentAccount> SupplierPaymentAccounts { get; set; }
 
     // Identity and Permission tables
     public DbSet<Permission> Permissions { get; set; }

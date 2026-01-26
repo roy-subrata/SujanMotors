@@ -9,6 +9,7 @@ public class SalesOrderResponse
     public string CustomerEmail { get; set; } = string.Empty;
     public string CustomerPhone { get; set; } = string.Empty;
     public string CustomerCity { get; set; } = string.Empty;
+    public Guid? WarehouseId { get; set; }
     public Guid? TechnicianId { get; set; }
     public string? TechnicianName { get; set; }
     public DateTime OrderDate { get; set; }
@@ -18,6 +19,7 @@ public class SalesOrderResponse
     public decimal TaxAmount { get; set; }
     public decimal Discount { get; set; }
     public decimal GrandTotal { get; set; }
+    public string Currency { get; set; } = string.Empty;
     public decimal AmountPaid { get; set; }
     public decimal OutstandingAmount { get; set; }
     public bool IsOverdue { get; set; }
@@ -30,8 +32,15 @@ public class SalesOrderLineResponse
 {
     public Guid Id { get; set; }
     public Guid PartId { get; set; }
+    public string PartName { get; set; } = string.Empty;
+    public string PartSku { get; set; } = string.Empty;
+    public Guid? UnitId { get; set; }
+    public string UnitName { get; set; } = string.Empty;
+    public string UnitSymbol { get; set; } = string.Empty;
     public int Quantity { get; set; }
+    public int QuantityInBaseUnit { get; set; }
     public int ShippedQuantity { get; set; }
+    public int ShippedQuantityInBaseUnit { get; set; }
     public decimal UnitPrice { get; set; }
     public decimal Discount { get; set; }
     public decimal LineTotal { get; set; }

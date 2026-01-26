@@ -17,16 +17,12 @@ public class CustomerResponse
     public string State { get; set; } = string.Empty;
     public string PostalCode { get; set; } = string.Empty;
     public string Country { get; set; } = string.Empty;
-    public DateTime DateOfBirth { get; set; }
     public string CustomerType { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
-    public decimal CreditLimit { get; set; }
     public decimal CurrentBalance { get; set; }
     public decimal AdvanceAmount { get; set; }
     public decimal DueAmount { get; set; }
-    public decimal AvailableCredit { get; set; }
     public bool CanPlaceOrder { get; set; }
-    public string TaxId { get; set; } = string.Empty;
     public string PrimaryContactPerson { get; set; } = string.Empty;
     public DateTime? LastPurchaseDate { get; set; }
     public decimal TotalPurchaseAmount { get; set; }

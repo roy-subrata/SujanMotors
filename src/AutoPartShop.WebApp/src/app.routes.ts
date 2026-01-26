@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { AppLayout } from './app/layout/component/app.layout';
 import { Dashboard } from './app/pages/dashboard/dashboard';
+import { DashboardComponent } from './app/features/dashboard/dashboard.component';
 import { Landing } from './app/pages/landing/landing';
 import { Notfound } from './app/pages/notfound/notfound';
 import { QuickSaleComponent } from './app/features/sales/quick-sale/quick-sale.component';
@@ -21,11 +22,14 @@ export const appRoutes: Routes = [
         component: AppLayout,
         canActivate: [authGuard],
         children: [
-            { path: '', component: Dashboard },
+            { path: '', component: DashboardComponent },
+            { path: 'financial-dashboard', component: Dashboard },
             { path: 'inventory', loadChildren: () => import('./app/features/inventory/inventory.routes').then(m => m.inventoryRoutes) },
             { path: 'procurement', loadChildren: () => import('./app/features/procurement/procurement.routes').then(m => m.procurementRoutes) },
             { path: 'sales', loadChildren: () => import('./app/features/sales/sales.routes').then(m => m.salesRoutes) },
+            { path: 'warranty', loadChildren: () => import('./app/features/warranty/warranty.routes').then(m => m.warrantyRoutes) },
             { path: 'audit', loadChildren: () => import('./app/features/audit/audit.routes').then(m => m.auditRoutes) },
+            { path: 'admin', loadChildren: () => import('./app/features/admin/admin.routes').then(m => m.adminRoutes) },
             {
                 path: 'admin-settings',
                 component: AdminSettingsComponent,

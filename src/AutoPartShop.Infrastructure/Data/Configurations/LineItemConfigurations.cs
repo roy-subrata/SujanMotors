@@ -24,6 +24,13 @@ public class SalesOrderLineConfiguration : IEntityTypeConfiguration<SalesOrderLi
             .WithMany()
             .HasForeignKey(l => l.PartId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // Unit relationship
+        builder.HasOne(l => l.Unit)
+            .WithMany()
+            .HasForeignKey(l => l.UnitId)
+            .OnDelete(DeleteBehavior.NoAction)
+            .IsRequired(false);
     }
 }
 
@@ -70,5 +77,12 @@ public class PurchaseReturnLineConfiguration : IEntityTypeConfiguration<Purchase
             .WithMany()
             .HasForeignKey(l => l.PartId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // Optional StockLot relationship - for specific lot selection
+        builder.HasOne(l => l.StockLot)
+            .WithMany()
+            .HasForeignKey(l => l.StockLotId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
     }
 }

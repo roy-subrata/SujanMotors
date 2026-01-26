@@ -22,6 +22,13 @@ public class QuickSaleRequest
     public decimal PaidAmount { get; set; }
     public decimal DueAmount { get; set; }
     public string Notes { get; set; } = string.Empty;
+
+    // Advance Payment Support
+    public bool UseAdvanceBalance { get; set; } = false;
+    public decimal AdvanceAmountToApply { get; set; } = 0;
+
+    // Quotation Support
+    public bool SaveAsQuotation { get; set; } = false;
 }
 
 public class QuickSaleLineItem
@@ -30,6 +37,7 @@ public class QuickSaleLineItem
     public string PartName { get; set; } = string.Empty;
     public string PartNumber { get; set; } = string.Empty;
     public string Sku { get; set; } = string.Empty;
+    public Guid? UnitId { get; set; }  // Optional: Unit in which to sell. If null, uses Part's base unit
     public int Quantity { get; set; }
     public decimal UnitPrice { get; set; }
     public decimal Discount { get; set; } = 0;
@@ -62,5 +70,6 @@ public class QuickSaleResponse
     public decimal PaidAmount { get; set; }
     public decimal DueAmount { get; set; }
     public string Status { get; set; } = string.Empty;
+    public bool IsQuotation { get; set; }
     public DateTime CreatedAt { get; set; }
 }

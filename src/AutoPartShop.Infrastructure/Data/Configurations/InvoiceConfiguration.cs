@@ -27,6 +27,11 @@ public class InvoiceConfiguration : IEntityTypeConfiguration<Invoice>
             .IsRequired()
             .HasMaxLength(20);
 
+        builder.Property(i => i.Currency)
+            .IsRequired()
+            .HasMaxLength(3)
+            .HasDefaultValue("BDT");
+
         // Ignore computed properties
         builder.Ignore(i => i.AmountPaid);
         builder.Ignore(i => i.TotalAmount);

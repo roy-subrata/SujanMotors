@@ -11,12 +11,14 @@ import { BadgeModule } from 'primeng/badge';
 import { InputTextModule } from 'primeng/inputtext';
 import { LayoutService } from '../service/layout.service';
 import { AuthService } from '../../shared/services/auth.service';
+import { I18nService } from '../../shared/services/i18n.service';
+import { LanguageSwitcherComponent } from '../../shared/components/language-switcher/language-switcher.component';
 import { filter } from 'rxjs/operators';
 
 @Component({
     selector: 'app-topbar',
     standalone: true,
-    imports: [RouterModule, CommonModule, FormsModule, StyleClassModule, TooltipModule, AvatarModule, MenuModule, BadgeModule, InputTextModule],
+    imports: [RouterModule, CommonModule, FormsModule, StyleClassModule, TooltipModule, AvatarModule, MenuModule, BadgeModule, InputTextModule, LanguageSwitcherComponent],
     template: ` <div class="layout-topbar">
         <!-- Mobile Menu Toggle -->
         <button class="layout-menu-button layout-topbar-action" (click)="layoutService.onMenuToggle()">
@@ -39,6 +41,9 @@ import { filter } from 'rxjs/operators';
                 tooltipPosition="bottom">
                 <i class="pi pi-shopping-cart"></i>
             </button>
+
+            <!-- Language Switcher -->
+            <app-language-switcher></app-language-switcher>
 
             <!-- Theme Toggle -->
             <button
@@ -316,105 +321,123 @@ export class AppTopbar {
     public layoutService = inject(LayoutService);
     private authService = inject(AuthService);
     private router = inject(Router);
+    private i18n = inject(I18nService);
 
     currentUser = computed(() => this.authService.currentUser());
     pageTitle = signal('Dashboard');
     notificationCount = signal(3);
     searchQuery = '';
 
-    notificationItems: MenuItem[] = [
-        {
-            label: 'New order received',
-            icon: 'pi-info-circle',
-            time: '5 minutes ago'
-        },
-        {
-            label: 'Low stock alert',
-            icon: 'pi-exclamation-triangle',
-            time: '1 hour ago',
-            severity: 'warning'
-        },
-        {
-            label: 'Purchase order approved',
-            icon: 'pi-check-circle',
-            time: '2 hours ago',
-            severity: 'success'
-        }
-    ];
-
-    userMenuItems: MenuItem[] = [
-        {
-            label: 'Profile',
-            icon: 'pi pi-user',
-            command: () => this.router.navigate(['/profile'])
-        },
-        {
-            label: 'Settings',
-            icon: 'pi pi-cog',
-            command: () => this.router.navigate(['/settings'])
-        },
-        {
-            separator: true
-        },
-        {
-            label: 'Documentation',
-            icon: 'pi pi-book',
-            command: () => window.open('/docs', '_blank')
-        },
-        {
-            label: 'Support',
-            icon: 'pi pi-headphones',
-            command: () => window.open('/support', '_blank')
-        },
-        {
-            separator: true
-        },
-        {
-            label: 'Logout',
-            icon: 'pi pi-sign-out',
-            command: () => this.logout()
-        }
-    ];
+    notificationItems: MenuItem[] = [];
+    userMenuItems: MenuItem[] = [];
 
     constructor() {
+        this.buildNotificationItems();
+        this.buildUserMenuItems();
         this.updatePageTitle();
+
         this.router.events.pipe(
             filter(event => event instanceof NavigationEnd)
         ).subscribe(() => {
             this.updatePageTitle();
         });
+
+        // Rebuild menus when language changes
+        this.i18n.translationsLoaded$.subscribe(() => {
+            this.buildNotificationItems();
+            this.buildUserMenuItems();
+            this.updatePageTitle();
+        });
+    }
+
+    private buildNotificationItems(): void {
+        this.notificationItems = [
+            {
+                label: 'New stock alert',
+                icon: 'pi-info-circle',
+                time: '5 minutes ago'
+            },
+            {
+                label: 'Low stock warning',
+                icon: 'pi-exclamation-triangle',
+                time: '1 hour ago',
+                severity: 'warning'
+            },
+            {
+                label: 'Order completed',
+                icon: 'pi-check-circle',
+                time: '2 hours ago',
+                severity: 'success'
+            }
+        ];
+    }
+
+    private buildUserMenuItems(): void {
+        this.userMenuItems = [
+            {
+                label: this.i18n.t('topbar.profile'),
+                icon: 'pi pi-user',
+                command: () => this.router.navigate(['/profile'])
+            },
+            {
+                label: this.i18n.t('topbar.settings'),
+                icon: 'pi pi-cog',
+                command: () => this.router.navigate(['/settings'])
+            },
+            {
+                separator: true
+            },
+            {
+                label: this.i18n.t('topbar.documentation'),
+                icon: 'pi pi-book',
+                command: () => window.open('/docs', '_blank')
+            },
+            {
+                label: this.i18n.t('topbar.support'),
+                icon: 'pi pi-headphones',
+                command: () => window.open('/support', '_blank')
+            },
+            {
+                separator: true
+            },
+            {
+                label: this.i18n.t('topbar.logout'),
+                icon: 'pi pi-sign-out',
+                command: () => this.logout()
+            }
+        ];
     }
 
     updatePageTitle() {
         const url = this.router.url;
-        const titleMap: { [key: string]: string } = {
-            '/': 'Dashboard',
-            '/inventory/categories': 'Categories',
-            '/inventory/brands': 'Brands',
-            '/inventory/units': 'Units',
-            '/inventory/parts': 'Parts',
-            '/inventory/suppliers': 'Suppliers',
-            '/inventory/warehouses': 'Warehouses',
-            '/inventory/vehicles': 'Vehicles',
-            '/inventory/stock': 'Stock Management',
-            '/procurement/purchase-orders': 'Purchase Orders',
-            '/procurement/purchase-returns': 'Purchase Returns',
-            '/procurement/goods-receipts': 'Goods Receipts',
-            '/procurement/payment-providers': 'Payment Providers',
-            '/procurement/supplier-payments': 'Supplier Payments',
-            '/sales/orders': 'Sales Orders',
-            '/sales/quick-sale': 'Quick Sale',
-            '/sales/invoices': 'Invoices',
-            '/sales/customers': 'Customers',
-            '/sales/technicians': 'Technicians',
-            '/sales/customer-payments': 'Customer Payments',
-            '/sales/returns': 'Sales Returns',
-            '/audit/dashboard': 'Audit Dashboard',
-            '/audit/logs': 'Activity Logs',
-            '/admin-settings': 'Admin Settings'
+        const titleKeyMap: { [key: string]: string } = {
+            '/': 'pageTitles.dashboard',
+            '/inventory/categories': 'pageTitles.categories',
+            '/inventory/brands': 'pageTitles.brands',
+            '/inventory/units': 'pageTitles.units',
+            '/inventory/parts': 'pageTitles.parts',
+            '/inventory/suppliers': 'pageTitles.suppliers',
+            '/inventory/warehouses': 'pageTitles.warehouses',
+            '/inventory/vehicles': 'pageTitles.vehicles',
+            '/inventory/stock': 'pageTitles.stockManagement',
+            '/procurement/purchase-orders': 'pageTitles.purchaseOrders',
+            '/procurement/purchase-returns': 'pageTitles.purchaseReturns',
+            '/procurement/goods-receipts': 'pageTitles.goodsReceipts',
+            '/procurement/payment-providers': 'pageTitles.paymentProviders',
+            '/procurement/supplier-payments': 'pageTitles.supplierPayments',
+            '/sales/sales-orders': 'pageTitles.salesOrders',
+            '/sales/invoices': 'pageTitles.invoices',
+            '/sales/customers': 'pageTitles.customers',
+            '/sales/technicians': 'pageTitles.technicians',
+            '/sales/customer-payments': 'pageTitles.customerPayments',
+            '/sales/sales-returns': 'pageTitles.salesReturns',
+            '/audit/dashboard': 'pageTitles.auditTrail',
+            '/audit/logs': 'pageTitles.auditTrail',
+            '/admin-settings': 'pageTitles.adminSettings'
         };
 
-        this.pageTitle.set(titleMap[url] || 'Auto Part Shop');
+        const key = titleKeyMap[url] || 'pageTitles.autoPartShop';
+        this.pageTitle.set(this.i18n.t(key));
     }
 
     toggleDarkMode() {

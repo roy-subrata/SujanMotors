@@ -5,11 +5,7 @@
     currentPageReportTemplate="Showing {first} to {last} of {totalRecords} conversions"
     styleClass="p-datatable-striped p-datatable-sm" responsiveLayout="scroll" paginator="true">
 
-    <!-- Column: Checkbox Selection -->
-    <p-tableHeaderCheckbox></p-tableHeaderCheckbox>
-    <p-tableCheckbox></p-tableCheckbox>
-
-    <ng-template #header>
+    <ng-template pTemplate="header">
       <tr>
         <th>From Unit</th>
         <th>To Unit</th>
@@ -19,13 +15,16 @@
         <th>Actions</th>
       </tr>
     </ng-template>
-    <ng-template #body let-conversion>
+    <ng-template pTemplate="body" let-conversion>
       <tr>
         <td>{{ conversion.fromUnitName }} ({{ conversion.fromUnitCode }})</td>
         <td>{{ conversion.toUnitName }} ({{ conversion.toUnitCode }})</td>
         <td>{{ conversion.conversionFactor }}</td>
         <td>{{ conversion.description }}</td>
-        <td>{{ conversion.isActive }}</td>
+        <td>
+          <p-tag [value]="conversion.isActive ? 'Active' : 'Inactive'"
+                 [severity]="conversion.isActive ? 'success' : 'danger'"></p-tag>
+        </td>
         <td>
           <div class="flex gap-2 justify-center">
             <!-- Edit Button -->

@@ -24,9 +24,24 @@ namespace AutoPartsShop.Infrastructure.Data.Configurations
                    .HasForeignKey(x => x.PurchaseOrderId)
                    .OnDelete(DeleteBehavior.SetNull);
 
+            builder.HasOne(x => x.GoodsReceipt)
+                   .WithMany()
+                   .HasForeignKey(x => x.GoodsReceiptId)
+                   .OnDelete(DeleteBehavior.NoAction);
+
             builder.HasOne(x => x.PaymentProvider)
                    .WithMany()
                    .HasForeignKey(x => x.PaymentProviderId)
+                   .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasOne(x => x.SupplierPaymentAccount)
+                   .WithMany()
+                   .HasForeignKey(x => x.SupplierPaymentAccountId)
+                   .OnDelete(DeleteBehavior.NoAction);
+
+            builder.HasOne(x => x.SourceAdvancePayment)
+                   .WithMany()
+                   .HasForeignKey(x => x.SourceAdvancePaymentId)
                    .OnDelete(DeleteBehavior.Restrict);
 
             // Required fields
@@ -85,6 +100,10 @@ namespace AutoPartsShop.Infrastructure.Data.Configurations
             builder.Property(x => x.NetAmount)
                    .HasColumnType("decimal(18,2)");
 
+            builder.Property(x => x.RemainingAmount)
+                   .HasColumnType("decimal(18,2)")
+                   .HasDefaultValue(0);
+
             // Boolean
             builder.Property(x => x.IsReconciled)
                    .HasDefaultValue(false);
@@ -95,6 +114,8 @@ namespace AutoPartsShop.Infrastructure.Data.Configurations
             builder.HasIndex(x => x.InvoiceNumber);
             builder.HasIndex(x => x.Status);
             builder.HasIndex(x => x.PaymentDate);
+            builder.HasIndex(x => x.SourceAdvancePaymentId);
+            builder.HasIndex(x => x.PaymentType);
         }
     }
 }

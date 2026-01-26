@@ -12,6 +12,7 @@ export interface QuickSaleLineItem {
   partName?: string;
   partNumber?: string;
   sku?: string;
+  unitId?: string;  // Optional: Unit in which to sell. If null, uses Part's base unit
   quantity: number;
   unitPrice: number;
   discount: number;
@@ -48,6 +49,11 @@ export interface QuickSaleRequest {
   paidAmount: number;
   dueAmount: number;
   notes?: string;
+  // Advance Payment Support
+  useAdvanceBalance?: boolean;
+  advanceAmountToApply?: number;
+  // Quotation Support
+  saveAsQuotation?: boolean;
 }
 
 export interface QuickSaleResponse {
@@ -67,6 +73,7 @@ export interface QuickSaleResponse {
   paidAmount: number;
   dueAmount: number;
   status: string;
+  isQuotation?: boolean;
   createdAt: string;
 }
 

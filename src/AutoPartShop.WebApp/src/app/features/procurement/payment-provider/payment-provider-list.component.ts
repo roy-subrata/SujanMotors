@@ -259,4 +259,38 @@ export class PaymentProviderListComponent implements OnInit {
         return 'info';
     }
   }
+
+  /**
+   * Get account/number display based on provider type
+   */
+  getAccountDisplay(provider: PaymentProviderResponse): string {
+    switch (provider.providerType?.toUpperCase()) {
+      case 'BANK_TRANSFER':
+        return provider.bankAccountNumber || '-';
+      case 'MOBILE_BANKING':
+        return provider.mobileNumber || '-';
+      case 'ONLINE_GATEWAY':
+      case 'CRYPTO':
+        return provider.merchantId || '-';
+      default:
+        return '-';
+    }
+  }
+
+  /**
+   * Get account label based on provider type
+   */
+  getAccountLabel(providerType: string): string {
+    switch (providerType?.toUpperCase()) {
+      case 'BANK_TRANSFER':
+        return 'Account';
+      case 'MOBILE_BANKING':
+        return 'Mobile';
+      case 'ONLINE_GATEWAY':
+      case 'CRYPTO':
+        return 'Merchant';
+      default:
+        return 'Account';
+    }
+  }
 }

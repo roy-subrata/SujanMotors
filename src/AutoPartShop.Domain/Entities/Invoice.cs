@@ -15,6 +15,7 @@ public class Invoice : AuditableEntity
     public decimal GrandTotal => SubTotal + TaxAmount - DiscountAmount;
     public string Status { get; private set; } = "DRAFT";  // DRAFT, ISSUED, PAID, PARTIALLY_PAID, OVERDUE, CANCELLED
     public string Notes { get; private set; } = string.Empty;
+    public string Currency { get; private set; } = "BDT";  // ISO 4217 currency code
 
     // Navigation properties
     public SalesOrder? SalesOrder { get; set; }
@@ -34,7 +35,7 @@ public class Invoice : AuditableEntity
     private Invoice() { }
 
     public static Invoice Create(string invoiceNumber, Guid salesOrderId,
-        decimal subTotal, decimal taxAmount, DateTime? dueDate = null, string notes = "")
+        decimal subTotal, decimal taxAmount, DateTime? dueDate = null, string notes = "", string currency = "BDT")
     {
         if (string.IsNullOrWhiteSpace(invoiceNumber))
             throw new ArgumentException("InvoiceNumber cannot be empty", nameof(invoiceNumber));
@@ -57,7 +58,8 @@ public class Invoice : AuditableEntity
             SubTotal = subTotal,
             TaxAmount = taxAmount,
             Status = "DRAFT",
-            Notes = notes?.Trim() ?? string.Empty
+            Notes = notes?.Trim() ?? string.Empty,
+            Currency = string.IsNullOrWhiteSpace(currency) ? "BDT" : currency.Trim().ToUpper()
         };
     }
 

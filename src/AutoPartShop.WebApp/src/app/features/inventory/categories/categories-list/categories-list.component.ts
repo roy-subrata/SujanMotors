@@ -1,4 +1,4 @@
-import { Component, Output, EventEmitter, ViewChild, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { Component, Output, EventEmitter, ViewChild, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TreeTableModule } from 'primeng/treetable';
 import { TableModule } from 'primeng/table';
@@ -11,6 +11,7 @@ import { TreeNode } from 'primeng/api';
 import { MenuItem } from 'primeng/api';
 import { CategoryService, CategoryResponse } from '../../services/category.service';
 import { MessageService } from 'primeng/api';
+import { I18nService } from '../../../../shared/services/i18n.service';
 
 @Component({
     selector: 'app-categories-list',
@@ -46,6 +47,8 @@ export class CategoriesListComponent implements OnInit {
     private categories: CategoryResponse[] = [];
     private searchQuery = '';
 
+    private i18n = inject(I18nService);
+
     constructor(
         private categoryService: CategoryService,
         private messageService: MessageService,
@@ -75,7 +78,11 @@ export class CategoriesListComponent implements OnInit {
                 this.cdr.markForCheck();
             },
             error: (err) => {
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load categories' });
+                this.messageService.add({
+                    severity: 'error',
+                    summary: this.i18n.t('common.messages.error'),
+                    detail: this.i18n.t('categories.messages.loadFailed')
+                });
                 this.loading = false;
                 this.cdr.markForCheck();
                 console.error(err);
@@ -114,7 +121,11 @@ export class CategoriesListComponent implements OnInit {
                 this.cdr.markForCheck();
             },
             error: (err) => {
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to search categories' });
+                this.messageService.add({
+                    severity: 'error',
+                    summary: this.i18n.t('common.messages.error'),
+                    detail: this.i18n.t('categories.messages.searchFailed')
+                });
                 this.loading = false;
                 this.cdr.markForCheck();
                 console.error(err);
@@ -147,7 +158,11 @@ export class CategoriesListComponent implements OnInit {
                 this.cdr.markForCheck();
             },
             error: (err) => {
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load more categories' });
+                this.messageService.add({
+                    severity: 'error',
+                    summary: this.i18n.t('common.messages.error'),
+                    detail: this.i18n.t('categories.messages.loadMoreFailed')
+                });
                 this.loadingMore = false;
                 this.cdr.markForCheck();
                 console.error(err);
@@ -216,14 +231,14 @@ export class CategoriesListComponent implements OnInit {
         this.selectedContextCategory = category;
         this.contextMenuItems = [
             {
-                label: 'Edit',
+                label: this.i18n.t('common.actions.edit'),
                 icon: 'pi pi-pencil',
                 command: () => {
                     this.editCategory.emit(category);
                 }
             },
             {
-                label: 'Add Subcategory',
+                label: this.i18n.t('common.actions.addSubcategory'),
                 icon: 'pi pi-plus',
                 command: () => {
                     this.addSubcategory.emit(category);
@@ -231,14 +246,14 @@ export class CategoriesListComponent implements OnInit {
             },
             { separator: true },
             {
-                label: category.isActive ? 'Deactivate' : 'Activate',
+                label: category.isActive ? this.i18n.t('common.actions.deactivate') : this.i18n.t('common.actions.activate'),
                 icon: category.isActive ? 'pi pi-times' : 'pi pi-check',
                 command: () => {
                     this.toggleCategoryStatus.emit(category);
                 }
             },
             {
-                label: 'Delete',
+                label: this.i18n.t('common.actions.delete'),
                 icon: 'pi pi-trash',
                 command: () => {
                     this.deleteCategory.emit(category);
@@ -259,7 +274,7 @@ export class CategoriesListComponent implements OnInit {
     }
 
     private getLevelDisplay(level: number): string {
-        return level === 0 ? 'Root' : 'Level ' + level;
+        return level === 0 ? this.i18n.t('common.labels.root') : this.i18n.t('common.labels.level') + ' ' + level;
     }
 
     /**

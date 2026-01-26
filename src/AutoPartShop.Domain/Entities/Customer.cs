@@ -18,12 +18,9 @@ public class Customer : AuditableEntity
     public string State { get; private set; } = string.Empty;
     public string PostalCode { get; private set; } = string.Empty;
     public string Country { get; private set; } = string.Empty;
-    public string TaxId { get; private set; } = string.Empty;  // Tax identification number
     public string Status { get; private set; } = "ACTIVE";  // ACTIVE, INACTIVE, SUSPENDED, BLACKLISTED
     public string CustomerType { get; private set; } = "RETAIL";  // RETAIL, WHOLESALE, CORPORATE
-    public decimal CreditLimit { get; private set; } = 0;
-    public decimal CurrentBalance { get; private set; } = 0;  // Outstanding balance
-    public DateTime DateOfBirth { get; private set; }
+    public decimal CurrentBalance { get; private set; } = 0;  // Outstanding balance (invoices - payments)
     public string Notes { get; private set; } = string.Empty;
     public DateTime? LastPurchaseDate { get; private set; }
     public decimal TotalPurchaseAmount { get; private set; } = 0;
@@ -34,15 +31,26 @@ public class Customer : AuditableEntity
     public ICollection<CustomerPayment> CustomerPayments { get; set; } = new List<CustomerPayment>();
 
     // Computed properties for payment tracking (Single Source of Truth)
+    // TotalPaid = ONLY new money received (excludes payments created from advance)
     public decimal TotalPaid =>
         CustomerPayments?
-            .Where(p => p.Status == "COMPLETED")
+            .Where(p => p.Status == "COMPLETED" &&
+                       (p.PaymentType == CustomerPaymentType.ADVANCE || // Original advance payments
+                        p.SourceAdvancePaymentId == null))              // New regular payments (not from advance)
             .Sum(p => p.Amount) ?? 0;
 
     public decimal AccountBalance =>
         CustomerPayments?
             .Where(p => p.Status == "COMPLETED" && p.InvoiceId == null)
             .Sum(p => p.Amount) ?? 0;
+
+    // Available advance balance (sum of remaining amounts from advance payments)
+    public decimal AdvanceAmount =>
+        CustomerPayments?
+            .Where(p => p.PaymentType == CustomerPaymentType.ADVANCE &&
+                       p.Status == "COMPLETED" &&
+                       p.RemainingAmount > 0)
+            .Sum(p => p.RemainingAmount) ?? 0;
 
     public int PendingPaymentsCount =>
         CustomerPayments?
@@ -53,7 +61,7 @@ public class Customer : AuditableEntity
     public static Customer Create(string customerCode, string firstName, string lastName,
         string email, string phone, string companyName, string billingAddress,
         string shippingAddress, string city, string state, string postalCode,
-        string country, DateTime dateOfBirth, string customerType = "RETAIL", string notes = "")
+        string country, string customerType = "RETAIL", string notes = "")
     {
         if (string.IsNullOrWhiteSpace(customerCode))
             throw new ArgumentException("CustomerCode cannot be empty", nameof(customerCode));
@@ -64,16 +72,13 @@ public class Customer : AuditableEntity
         if (string.IsNullOrWhiteSpace(lastName))
             throw new ArgumentException("LastName cannot be empty", nameof(lastName));
 
-        if (string.IsNullOrWhiteSpace(email))
-            throw new ArgumentException("Email cannot be empty", nameof(email));
+        //if (string.IsNullOrWhiteSpace(email))
+        //    throw new ArgumentException("Email cannot be empty", nameof(email));
 
         if (string.IsNullOrWhiteSpace(phone))
             throw new ArgumentException("Phone cannot be empty", nameof(phone));
 
-        if (dateOfBirth >= DateTime.UtcNow.Date)
-            throw new ArgumentException("Date of birth must be in the past", nameof(dateOfBirth));
-
-        var validCustomerTypes = new[] { "RETAIL", "WHOLESALE", "CORPORATE" };
+        var validCustomerTypes = new[] { "RETAIL", "WHOLESALE", "CORPORATE", "DISTRIBUTOR" };
         if (!validCustomerTypes.Contains(customerType.ToUpper()))
             throw new ArgumentException($"CustomerType must be one of: {string.Join(", ", validCustomerTypes)}", nameof(customerType));
 
@@ -91,7 +96,6 @@ public class Customer : AuditableEntity
             State = state?.Trim() ?? string.Empty,
             PostalCode = postalCode?.Trim() ?? string.Empty,
             Country = country?.Trim() ?? string.Empty,
-            DateOfBirth = dateOfBirth,
             CustomerType = customerType.ToUpper(),
             Status = "ACTIVE",
             Notes = notes?.Trim() ?? string.Empty
@@ -99,14 +103,6 @@ public class Customer : AuditableEntity
     }
 
     public string GetFullName() => $"{FirstName} {LastName}";
-
-    public void SetCreditLimit(decimal limit)
-    {
-        if (limit < 0)
-            throw new ArgumentException("Credit limit cannot be negative", nameof(limit));
-
-        CreditLimit = limit;
-    }
 
     public void UpdateBalance(decimal amount)
     {
@@ -126,13 +122,7 @@ public class Customer : AuditableEntity
 
     public bool CanPlaceOrder()
     {
-        if (Status != "ACTIVE")
-            return false;
-
-        if (CreditLimit > 0 && CurrentBalance >= CreditLimit)
-            return false;
-
-        return true;
+        return Status == "ACTIVE";
     }
 
     public void Activate()
@@ -158,10 +148,10 @@ public class Customer : AuditableEntity
         Status = "BLACKLISTED";
     }
 
-    public void UpdateContactInfo(string email, string phone, string alternatePhone = "")
+    public void UpdateContactInfo(string email, string phone, string alternatePhone = "",string customerType="")
     {
-        if (string.IsNullOrWhiteSpace(email))
-            throw new ArgumentException("Email cannot be empty", nameof(email));
+        //if (string.IsNullOrWhiteSpace(email))
+        //    throw new ArgumentException("Email cannot be empty", nameof(email));
 
         if (string.IsNullOrWhiteSpace(phone))
             throw new ArgumentException("Phone cannot be empty", nameof(phone));
@@ -169,6 +159,7 @@ public class Customer : AuditableEntity
         Email = email.Trim().ToLower();
         Phone = phone.Trim();
         AlternatePhone = alternatePhone?.Trim() ?? string.Empty;
+        CustomerType = customerType;
     }
 
     public void UpdateAddress(string billingAddress, string shippingAddress, string city, string state, string postalCode, string country)
@@ -184,11 +175,6 @@ public class Customer : AuditableEntity
     public void UpdateNotes(string notes)
     {
         Notes = notes?.Trim() ?? string.Empty;
-    }
-
-    public void SetTaxId(string taxId)
-    {
-        TaxId = taxId?.Trim() ?? string.Empty;
     }
 
     public void SetPrimaryContactPerson(string contactPerson)

@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 
 export interface SalesOrderLineRequest {
   partId: string;
+  unitId?: string;
   quantity: number;
   unitPrice: number;
   discount: number;
@@ -25,8 +26,15 @@ export interface CreateSalesOrderRequest {
 export interface SalesOrderLineResponse {
   id: string;
   partId: string;
+  partName?: string;
+  partSku?: string;
+  unitId?: string;
+  unitName?: string;
+  unitSymbol?: string;
   quantity: number;
+  quantityInBaseUnit: number;
   shippedQuantity: number;
+  shippedQuantityInBaseUnit: number;
   unitPrice: number;
   discount: number;
   lineTotal: number;
@@ -40,6 +48,7 @@ export interface SalesOrderResponse {
   customerEmail: string;
   customerPhone: string;
   customerCity: string;
+  warehouseId?: string;
   technicianId?: string;
   technicianName?: string;
   orderDate: string;

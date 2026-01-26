@@ -46,12 +46,20 @@ public class SupplierPaymentSummaryService
         var advancePayments = allPayments.Where(p => p.PaymentType == PaymentType.ADVANCE).ToList();
 
         // Calculate totals
-        decimal totalPaid = CalculateTotalPaid(regularPayments);
+        // IMPORTANT: Pass ALL payments to CalculateTotalPaid - it has internal logic to include both
+        // completed advance payments AND regular payments (excluding advance credit payments)
+        decimal totalPaid = CalculateTotalPaid(allPayments);
         decimal totalAdvance = CalculateTotalAdvanceAmount(advancePayments);
-        decimal totalDue = await CalculateTotalDueAsync(supplierId, totalPaid, cancellationToken);
 
-        // Calculate payment balance
-        decimal paymentBalance = totalDue - totalAdvance - totalPaid;
+        // For calculating total due, we need to pass only the regular payment amounts
+        // because advance payments don't reduce the PO balance directly
+        decimal regularPaymentAmount = CalculateTotalRegularPaymentAmount(regularPayments);
+        decimal totalDue = await CalculateTotalDueAsync(supplierId, regularPaymentAmount, cancellationToken);
+
+        // Calculate payment balance (Outstanding Balance)
+        // This shows the NET amount owed after considering available advance credit
+        // Outstanding = Total Due - Available Advance Credit
+        decimal paymentBalance = Math.Max(0, totalDue - totalAdvance);
 
         // Get payment history (last 10)
         var paymentHistory = GetPaymentHistory(allPayments, limit: 10);
@@ -59,15 +67,9 @@ public class SupplierPaymentSummaryService
         // Get status breakdown
         var statusBreakdown = GetStatusBreakdown(allPayments);
 
-        // Calculate credit utilization
-        decimal creditUtilization = supplier.CreditLimit > 0
-            ? (decimal)Math.Min(100, (totalDue / supplier.CreditLimit) * 100)
-            : 0;
-
         // Count outstanding invoices
         int outstandingInvoiceCount = regularPayments
-            .Where(p => p.Status != "COMPLETED" && p.Status != "CANCELLED")
-            .Count();
+            .Count(p => p.Status != "COMPLETED" && p.Status != "CANCELLED");
 
         // Count completed payments
         int completedPayments = allPayments.Count(p => p.Status == "COMPLETED");
@@ -75,6 +77,10 @@ public class SupplierPaymentSummaryService
         int failedPayments = allPayments.Count(p => p.Status == "FAILED");
         int processingPayments = allPayments.Count(p => p.Status == "PROCESSING");
         int cancelledPayments = allPayments.Count(p => p.Status == "CANCELLED");
+        int returnedPayments = allPayments.Count(p => p.Status == "RETURNED" || p.PaymentMethod == "REFUND");
+
+        // Calculate total refunds (from purchase returns)
+        decimal totalRefunds = CalculateTotalRefunds(allPayments);
 
         // Get last payment info
         var lastPayment = allPayments.OrderByDescending(p => p.PaymentDate).FirstOrDefault();
@@ -84,10 +90,9 @@ public class SupplierPaymentSummaryService
             SupplierId = supplierId,
             SupplierName = supplier.Name,
             SupplierCode = supplier.Code,
-            CreditLimit = supplier.CreditLimit,
-            CreditUtilization = creditUtilization,
             TotalPaid = totalPaid,
             TotalAdvanceAmount = totalAdvance,
+            TotalRefunds = totalRefunds,
             TotalDue = totalDue,
             PaymentBalance = paymentBalance,
             TotalFees = CalculateTotalFees(allPayments),
@@ -97,6 +102,7 @@ public class SupplierPaymentSummaryService
             FailedPayments = failedPayments,
             ProcessingPayments = processingPayments,
             CancelledPayments = cancelledPayments,
+            ReturnedPayments = returnedPayments,
             LastPaymentDate = lastPayment?.PaymentDate,
             LastPaymentAmount = lastPayment?.Amount ?? 0,
             StatusBreakdown = statusBreakdown,
@@ -142,16 +148,36 @@ public class SupplierPaymentSummaryService
 
     private decimal CalculateTotalPaid(IEnumerable<SupplierPayment> payments)
     {
+        // Only include COMPLETED payments that represent NEW money paid
+        // Excludes payments created from advance (to prevent double-counting)
+        // PENDING payments are commitments but not yet cleared
         return payments
+            .Where(p => p.Status == "COMPLETED" &&
+                       (p.PaymentType == PaymentType.ADVANCE ||  // Original advance payments
+                        p.SourceAdvancePaymentId == null))       // New regular payments (not from advance)
+            .Sum(p => p.Amount);
+    }
+
+    private decimal CalculateTotalRegularPaymentAmount(IEnumerable<SupplierPayment> regularPayments)
+    {
+        // Calculate total amount of completed regular payments for PO balance reduction
+        // Include ALL completed regular payments (including those from advance credit)
+        // because they ALL reduce the purchase order balance and supplier current balance
+        return regularPayments
             .Where(p => p.Status == "COMPLETED")
             .Sum(p => p.Amount);
     }
 
     private decimal CalculateTotalAdvanceAmount(IEnumerable<SupplierPayment> payments)
     {
+        // Only include COMPLETED advance payments with remaining balance
+        // PENDING advances should not reduce the balance until confirmed
+        // Use RemainingAmount instead of Amount to reflect actual available advance credit
         return payments
-            .Where(p => p.Status == "COMPLETED" && p.PaymentType == PaymentType.ADVANCE)
-            .Sum(p => p.Amount);
+            .Where(p => p.PaymentType == PaymentType.ADVANCE &&
+                       p.Status == "COMPLETED" &&
+                       p.RemainingAmount > 0)
+            .Sum(p => p.RemainingAmount);
     }
 
     private decimal CalculateTotalFees(IEnumerable<SupplierPayment> payments)
@@ -161,33 +187,36 @@ public class SupplierPaymentSummaryService
             .Sum(p => p.PaymentFee);
     }
 
+    private decimal CalculateTotalRefunds(IEnumerable<SupplierPayment> payments)
+    {
+        // Calculate total refunds from purchase returns
+        // Refund payments have PaymentMethod == "REFUND" and Status == "RETURNED"
+        return payments
+            .Where(p => p.PaymentMethod == "REFUND" || p.Status == "RETURNED")
+            .Sum(p => p.Amount);
+    }
+
     private async Task<decimal> CalculateTotalDueAsync(
         Guid supplierId,
-        decimal paidAmount,
+        decimal totalRegularPaymentsAmount,
         CancellationToken cancellationToken = default)
     {
         // Get all purchase orders for this supplier
+        // IMPORTANT: Only include CONFIRMED or later POs to match supplier balance accounting
+        // DRAFT and SUBMITTED POs are not yet committed and don't affect supplier balance
         var purchaseOrders = (await _purchaseOrderRepository.GetBySuppliersAsync(supplierId, cancellationToken))
-            .Where(po => po.Status != "CANCELLED" && po.Status != "CLOSED")
+            .Where(po => po.Status != "DRAFT" &&
+                        po.Status != "SUBMITTED" &&
+                        po.Status != "CANCELLED" &&
+                        po.Status != "CLOSED")
             .ToList();
 
-        decimal totalDue = 0;
+        // Calculate total amount from all confirmed/active purchase orders
+        decimal totalPOAmount = purchaseOrders.Sum(po => po.TotalAmount);
 
-        foreach (var po in purchaseOrders)
-        {
-            // Calculate PO total and paid amount
-            decimal poTotal = po.TotalAmount;
-
-            // Get payments linked to this PO
-            var poPayments = (await _paymentRepository.GetByPurchaseOrderAsync(po.Id, cancellationToken))
-                .Where(p => p.Status == "COMPLETED")
-                .ToList();
-
-            decimal poPaid = poPayments.Sum(p => p.Amount);
-            decimal poRemaining = Math.Max(0, poTotal - poPaid);
-
-            totalDue += poRemaining;
-        }
+        // Total due = Total PO amount - All regular payments (linked or unlinked)
+        // This ensures that payments made before linking to a PO are also counted
+        decimal totalDue = Math.Max(0, totalPOAmount - totalRegularPaymentsAmount);
 
         return totalDue;
     }
@@ -224,7 +253,15 @@ public class SupplierPaymentSummaryService
                 PaymentType = p.PaymentType,
                 InvoiceNumber = p.InvoiceNumber,
                 TransactionNumber = p.TransactionNumber,
-                ProviderName = p.PaymentProvider?.ProviderName ?? "N/A"
+                ProviderName = p.PaymentMethod == "ADVANCE_CREDIT"
+                    ? "Advance Credit"
+                    : (p.PaymentProvider?.ProviderName ?? "N/A"),
+                SourceAdvancePaymentId = p.SourceAdvancePaymentId,
+                SourceAdvanceTransactionNumber = p.SourceAdvancePayment?.TransactionNumber,
+                PurchaseOrderId = p.PurchaseOrderId,
+                PurchaseOrderNumber = p.PurchaseOrder?.PONumber,
+                GoodsReceiptId = p.GoodsReceiptId,
+                GoodsReceiptNumber = p.GoodsReceipt?.GRNNumber
             })
             .ToList();
     }

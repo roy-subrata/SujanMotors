@@ -267,12 +267,12 @@ export class StockAdjustmentDialogComponent implements OnInit {
   currentStock: StockLevelResponse | null = null;
 
   adjustmentTypes = [
-    { label: 'Stock In', value: 'IN' },
-    { label: 'Stock Out', value: 'OUT' },
-    { label: 'Adjustment', value: 'ADJUSTMENT' },
-    { label: 'Damage', value: 'DAMAGE' },
-    { label: 'Shrinkage', value: 'SHRINKAGE' },
-    { label: 'Count Correction', value: 'COUNT_CORRECTION' }
+    { label: 'Increase Stock (Found)', value: 'FOUND' },
+    { label: 'Decrease Stock (Damaged)', value: 'DAMAGED' },
+    { label: 'Decrease Stock (Expired)', value: 'EXPIRED' },
+    { label: 'Decrease Stock (Lost)', value: 'LOST' },
+    { label: 'Count Correction (Increase)', value: 'COUNT_CORRECTION_UP' },
+    { label: 'Count Correction (Decrease)', value: 'COUNT_CORRECTION_DOWN' }
   ];
 
   constructor() {
@@ -317,9 +317,12 @@ export class StockAdjustmentDialogComponent implements OnInit {
     const type = this.form.get('type')?.value;
     const quantity = this.form.get('quantity')?.value || 0;
 
-    if (type === 'IN' || type === 'COUNT_CORRECTION') {
+    // Positive adjustments (increase stock)
+    if (type === 'FOUND' || type === 'COUNT_CORRECTION_UP') {
       return this.currentStock.quantity + quantity;
-    } else {
+    }
+    // Negative adjustments (decrease stock)
+    else {
       return this.currentStock.quantity - quantity;
     }
   }
@@ -330,14 +333,23 @@ export class StockAdjustmentDialogComponent implements OnInit {
     }
 
     this.isSubmitting = true;
+    const type = this.form.get('type')?.value;
+    const quantity = this.form.get('quantity')?.value;
+
+    // Determine if this is a positive or negative adjustment
+    const isIncrease = type === 'FOUND' || type === 'COUNT_CORRECTION_UP';
+    const adjustmentQuantity = isIncrease ? quantity : -quantity;
+
     const request = {
       partId: this.currentStock.partId,
-      type: this.form.get('type')?.value,
-      quantity: this.form.get('quantity')?.value,
-      reference: `ADJUSTMENT-${new Date().getTime()}`
+      warehouseId: this.currentStock.warehouseId,
+      quantity: adjustmentQuantity,
+      reason: type,
+      reference: '',
+      notes: this.form.get('notes')?.value || ''
     };
 
-    this.stockService.createMovement(request).subscribe({
+    this.stockService.adjustStock(request).subscribe({
       next: () => {
         this.messageService.add({
           severity: 'success',

@@ -1,5 +1,5 @@
 using AutoPartShop.Domain.Entities;
-using AutoPartShop.Domain.Repositories;
+using AutoPartsShop.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace AutoPartShop.Infrastructure.Repositories;
@@ -134,10 +134,8 @@ public class CustomerRepository : ICustomerRepository
 
     public async Task<IEnumerable<Customer>> GetWithCreditLimitExceededAsync(CancellationToken cancellationToken = default)
     {
-        return await _dbContext.Customers
-            .Where(x => !x.Isdeleted && x.CreditLimit > 0 && x.CurrentBalance >= x.CreditLimit)
-            .OrderBy(x => x.CustomerCode)
-            .ToListAsync(cancellationToken);
+        // Credit limit feature removed - return empty list
+        return await Task.FromResult(Enumerable.Empty<Customer>());
     }
 
     public async Task<IEnumerable<Customer>> GetActiveAsync(CancellationToken cancellationToken = default)
@@ -149,6 +147,21 @@ public class CustomerRepository : ICustomerRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<(IEnumerable<Customer> customers, int totalCount)> GetPagedAsync(string searchTerm, int pageNumber, int pageSize, CancellationToken cancellationToken = default)
+    {
+        var query = _dbContext.Customers
+            .Include(x => x.CustomerPayments)
+            .Where(x => !x.Isdeleted)
+            .OrderBy(x => x.CustomerCode);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var items = await query
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        return (items, totalCount);
+    }
     public async Task<(IEnumerable<Customer> customers, int totalCount)> GetPagedAsync(int pageNumber, int pageSize, CancellationToken cancellationToken = default)
     {
         var query = _dbContext.Customers
@@ -165,24 +178,41 @@ public class CustomerRepository : ICustomerRepository
         return (items, totalCount);
     }
 
-    public async Task<(IEnumerable<Customer> customers, int totalCount)> SearchPagedAsync(string searchTerm, int pageNumber, int pageSize, CancellationToken cancellationToken = default)
+    public async Task<(IEnumerable<Customer> customers, int totalCount)> SearchPagedAsync(CustomerQuery query, CancellationToken cancellationToken = default)
     {
-        var term = searchTerm.ToLower();
-        var query = _dbContext.Customers
+        var term = query.Search.ToLower();
+        var customers = _dbContext.Customers
             .Include(x => x.CustomerPayments)
             .Where(x => !x.Isdeleted && (
-                x.FirstName.ToLower().Contains(term) ||
-                x.LastName.ToLower().Contains(term) ||
-                x.CompanyName.ToLower().Contains(term) ||
-                x.Email.ToLower().Contains(term) ||
-                x.CustomerCode.ToLower().Contains(term)
-            ))
-            .OrderBy(x => x.CustomerCode);
+             (EF.Functions.Like(x.FirstName, $"%{term}%") ||
+             EF.Functions.Like(x.LastName, $"%{term}%") ||
+             EF.Functions.Like(x.CompanyName, $"%{term}%") ||
+             EF.Functions.Like(x.Email, $"%{term}%") ||
+             EF.Functions.Like(x.CustomerCode, $"%{term}%") ||
+             EF.Functions.Like(x.CustomerType, $"%{term}%") ||
+             EF.Functions.Like(x.City, $"%{term}%")
+            )));
 
-        var totalCount = await query.CountAsync(cancellationToken);
-        var items = await query
-            .Skip((pageNumber - 1) * pageSize)
-            .Take(pageSize)
+        if (!string.IsNullOrWhiteSpace(query.CustomerType))
+        {
+            customers = customers.Where(x => x.CustomerType.Equals(query.CustomerType));
+        }
+
+        if (query.Sorts != null && query.Sorts.Any())
+        {
+            var sorts =
+                query.Sorts.Select(x => (x.Field, x.Direction == "asc" ? true : false)).ToArray();
+            customers = customers.OrderByMultiple(sorts);
+        }
+        else
+        {
+            customers = customers.OrderBy(x => x.CreatedDate);
+        }
+
+        var totalCount = await customers.CountAsync(cancellationToken);
+        var items = await customers
+            .Skip((query.PageNumber - 1) * query.PageSize)
+            .Take(query.PageSize)
             .ToListAsync(cancellationToken);
 
         return (items, totalCount);

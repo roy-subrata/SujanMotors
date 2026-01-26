@@ -48,7 +48,7 @@
         <th pSortableColumn="providerName">Provider Name <p-sortIcon field="providerName"></p-sortIcon></th>
         <th pSortableColumn="providerType">Type <p-sortIcon field="providerType"></p-sortIcon></th>
         <th pSortableColumn="status">Status <p-sortIcon field="status"></p-sortIcon></th>
-        <th>Bank Account</th>
+        <th>Account/Number</th>
         <th>Fee Type</th>
         <th>Settlement Days</th>
         <th>Default</th>
@@ -63,7 +63,7 @@
         <td>
           <p-tag [value]="provider.status" [severity]="getStatusSeverity(provider.status)"></p-tag>
         </td>
-        <td>{{ provider.bankAccountNumber || '-' }}</td>
+        <td>{{ getAccountDisplay(provider) }}</td>
         <td>{{ provider.transactionFeeType }} ({{ provider.transactionFeeAmount | currency:'INR' }})</td>
         <td>{{ provider.settlementDays }} days</td>
         <td>

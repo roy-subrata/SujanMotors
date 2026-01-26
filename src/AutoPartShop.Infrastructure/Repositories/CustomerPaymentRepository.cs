@@ -1,21 +1,19 @@
+using AutoPartShop.Domain.Common;
 using AutoPartShop.Domain.Entities;
-using AutoPartShop.Domain.Repositories;
+using AutoPartsShop.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace AutoPartShop.Infrastructure.Repositories;
 
-public class CustomerPaymentRepository : ICustomerPaymentRepository
+public class CustomerPaymentRepository(AutoPartDbContext _dbContext) : ICustomerPaymentRepository
 {
-    private readonly AutoPartDbContext _dbContext;
-
-    public CustomerPaymentRepository(AutoPartDbContext dbContext)
-    {
-        _dbContext = dbContext;
-    }
+    #region Base CRUD Operations
 
     public async Task<IEnumerable<CustomerPayment>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         return await _dbContext.CustomerPayments
+            .Include(x => x.Customer)
+            .Include(x => x.PaymentProvider)
             .Where(x => !x.Isdeleted)
             .OrderByDescending(x => x.PaymentDate)
             .ToListAsync(cancellationToken);
@@ -24,6 +22,7 @@ public class CustomerPaymentRepository : ICustomerPaymentRepository
     public async Task<CustomerPayment?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         return await _dbContext.CustomerPayments
+            .Include(x => x.Customer)
             .Include(x => x.Invoice)
             .Include(x => x.PaymentProvider)
             .FirstOrDefaultAsync(x => x.Id == id && !x.Isdeleted, cancellationToken);
@@ -65,6 +64,10 @@ public class CustomerPaymentRepository : ICustomerPaymentRepository
             .AnyAsync(x => x.Id == id && !x.Isdeleted, cancellationToken);
     }
 
+    #endregion
+
+    #region Query Methods
+
     public async Task<CustomerPayment?> GetByTransactionNumberAsync(string transactionNumber, CancellationToken cancellationToken = default)
     {
         return await _dbContext.CustomerPayments
@@ -76,6 +79,7 @@ public class CustomerPaymentRepository : ICustomerPaymentRepository
         return await _dbContext.CustomerPayments
             .Include(x => x.Invoice)
             .Include(x => x.PaymentProvider)
+            .Include(x => x.SourceAdvancePayment)
             .Where(x => x.CustomerId == customerId && !x.Isdeleted)
             .OrderByDescending(x => x.PaymentDate)
             .ToListAsync(cancellationToken);
@@ -84,6 +88,8 @@ public class CustomerPaymentRepository : ICustomerPaymentRepository
     public async Task<IEnumerable<CustomerPayment>> GetByInvoiceAsync(Guid invoiceId, CancellationToken cancellationToken = default)
     {
         return await _dbContext.CustomerPayments
+            .Include(x => x.Customer)
+            .Include(x => x.PaymentProvider)
             .Where(x => x.InvoiceId == invoiceId && !x.Isdeleted)
             .OrderByDescending(x => x.PaymentDate)
             .ToListAsync(cancellationToken);
@@ -92,6 +98,8 @@ public class CustomerPaymentRepository : ICustomerPaymentRepository
     public async Task<IEnumerable<CustomerPayment>> GetByStatusAsync(string status, CancellationToken cancellationToken = default)
     {
         return await _dbContext.CustomerPayments
+            .Include(x => x.Customer)
+            .Include(x => x.PaymentProvider)
             .Where(x => x.Status == status && !x.Isdeleted)
             .OrderByDescending(x => x.PaymentDate)
             .ToListAsync(cancellationToken);
@@ -100,6 +108,8 @@ public class CustomerPaymentRepository : ICustomerPaymentRepository
     public async Task<IEnumerable<CustomerPayment>> GetByDateRangeAsync(DateTime startDate, DateTime endDate, CancellationToken cancellationToken = default)
     {
         return await _dbContext.CustomerPayments
+            .Include(x => x.Customer)
+            .Include(x => x.PaymentProvider)
             .Where(x => x.PaymentDate >= startDate && x.PaymentDate <= endDate && !x.Isdeleted)
             .OrderByDescending(x => x.PaymentDate)
             .ToListAsync(cancellationToken);
@@ -108,52 +118,18 @@ public class CustomerPaymentRepository : ICustomerPaymentRepository
     public async Task<IEnumerable<CustomerPayment>> GetByPaymentMethodAsync(string paymentMethod, CancellationToken cancellationToken = default)
     {
         return await _dbContext.CustomerPayments
+            .Include(x => x.Customer)
+            .Include(x => x.PaymentProvider)
             .Where(x => x.PaymentMethod == paymentMethod && !x.Isdeleted)
             .OrderByDescending(x => x.PaymentDate)
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<(IEnumerable<CustomerPayment> payments, int totalCount)> GetPagedAsync(int pageNumber, int pageSize, CancellationToken cancellationToken = default)
-    {
-        var query = _dbContext.CustomerPayments
-            .Include(x => x.Invoice)
-            .Include(x => x.PaymentProvider)
-            .Where(x => !x.Isdeleted)
-            .OrderByDescending(x => x.PaymentDate);
-
-        var totalCount = await query.CountAsync(cancellationToken);
-        var items = await query
-            .Skip((pageNumber - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync(cancellationToken);
-
-        return (items, totalCount);
-    }
-
-    public async Task<(IEnumerable<CustomerPayment> payments, int totalCount)> SearchPagedAsync(string searchTerm, int pageNumber, int pageSize, CancellationToken cancellationToken = default)
-    {
-        var term = searchTerm.ToLower();
-        var query = _dbContext.CustomerPayments
-            .Include(x => x.Invoice)
-            .Include(x => x.PaymentProvider)
-            .Where(x => !x.Isdeleted && (
-                x.TransactionNumber.ToLower().Contains(term) ||
-                x.PaymentMethod.ToLower().Contains(term)
-            ))
-            .OrderByDescending(x => x.PaymentDate);
-
-        var totalCount = await query.CountAsync(cancellationToken);
-        var items = await query
-            .Skip((pageNumber - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync(cancellationToken);
-
-        return (items, totalCount);
-    }
-
     public async Task<IEnumerable<CustomerPayment>> GetPendingAsync(CancellationToken cancellationToken = default)
     {
         return await _dbContext.CustomerPayments
+            .Include(x => x.Customer)
+            .Include(x => x.PaymentProvider)
             .Where(x => x.Status == "PENDING" && !x.Isdeleted)
             .OrderByDescending(x => x.PaymentDate)
             .ToListAsync(cancellationToken);
@@ -162,10 +138,16 @@ public class CustomerPaymentRepository : ICustomerPaymentRepository
     public async Task<IEnumerable<CustomerPayment>> GetFailedAsync(CancellationToken cancellationToken = default)
     {
         return await _dbContext.CustomerPayments
+            .Include(x => x.Customer)
+            .Include(x => x.PaymentProvider)
             .Where(x => x.Status == "FAILED" && !x.Isdeleted)
             .OrderByDescending(x => x.PaymentDate)
             .ToListAsync(cancellationToken);
     }
+
+    #endregion
+
+    #region Aggregate Methods
 
     public async Task<decimal> GetTotalByCustomerAsync(Guid customerId, CancellationToken cancellationToken = default)
     {
@@ -181,18 +163,108 @@ public class CustomerPaymentRepository : ICustomerPaymentRepository
             .SumAsync(x => x.Amount, cancellationToken);
     }
 
+    #endregion
+
+    #region Pagination Methods
+
+    public async Task<(IEnumerable<CustomerPayment> payments, int totalCount)> GetPagedAsync(int pageNumber, int pageSize, CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.CustomerPayments
+            .Include(x => x.Customer)
+            .Include(x => x.Invoice)
+            .Include(x => x.PaymentProvider)
+            .Where(x => !x.Isdeleted)
+            .OrderByDescending(x => x.PaymentDate)
+            .ToPagedTupleAsync(pageNumber, pageSize, cancellationToken);
+    }
+
+    public async Task<(IEnumerable<CustomerPayment> payments, int totalCount)> SearchPagedAsync(string searchTerm, int pageNumber, int pageSize, CancellationToken cancellationToken = default)
+    {
+        var term = searchTerm.ToLower();
+        return await _dbContext.CustomerPayments
+            .Include(x => x.Customer)
+            .Include(x => x.Invoice)
+            .Include(x => x.PaymentProvider)
+            .Where(x => !x.Isdeleted && (
+                x.TransactionNumber.ToLower().Contains(term) ||
+                x.PaymentMethod.ToLower().Contains(term)
+            ))
+            .OrderByDescending(x => x.PaymentDate)
+            .ToPagedTupleAsync(pageNumber, pageSize, cancellationToken);
+    }
+
     public async Task<(IEnumerable<CustomerPayment> payments, int totalCount)> GetByCustomerPagedAsync(Guid customerId, int pageNumber, int pageSize, CancellationToken cancellationToken = default)
     {
-        var query = _dbContext.CustomerPayments
+        return await _dbContext.CustomerPayments
+            .Include(x => x.Invoice)
+            .Include(x => x.PaymentProvider)
             .Where(x => x.CustomerId == customerId && !x.Isdeleted)
-            .OrderByDescending(x => x.PaymentDate);
-
-        var totalCount = await query.CountAsync(cancellationToken);
-        var items = await query
-            .Skip((pageNumber - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync(cancellationToken);
-
-        return (items, totalCount);
+            .OrderByDescending(x => x.PaymentDate)
+            .ToPagedTupleAsync(pageNumber, pageSize, cancellationToken);
     }
+
+    public async Task<(IEnumerable<CustomerPayment> payments, int totalCount)> SearchPagedAsync(CustomerPaymentQuery query, CancellationToken cancellationToken = default)
+    {
+        var paymentsQuery = BuildSearchQuery(query);
+
+        // Apply sorting
+        paymentsQuery = paymentsQuery.ApplySorting(
+            query.Sorts,
+            x => x.PaymentDate,
+            defaultAscending: false
+        );
+
+        return await paymentsQuery.ToPagedTupleAsync(query, cancellationToken);
+    }
+
+    #endregion
+
+    #region Private Helper Methods
+
+    private IQueryable<CustomerPayment> BuildSearchQuery(CustomerPaymentQuery query)
+    {
+        var paymentsQuery = _dbContext.CustomerPayments
+            .Include(x => x.Invoice)
+            .Include(x => x.Customer)
+            .Include(x => x.PaymentProvider)
+            .Where(x => !x.Isdeleted);
+
+        // Apply search filter
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var term = query.Search.ToLower();
+            paymentsQuery = paymentsQuery.Where(x =>
+                EF.Functions.Like(x.TransactionNumber.ToLower(), $"%{term}%") ||
+                (x.Invoice != null && EF.Functions.Like(x.Invoice.InvoiceNumber.ToLower(), $"%{term}%")) ||
+                EF.Functions.Like(x.PaymentMethod.ToLower(), $"%{term}%") ||
+                (x.Customer != null && EF.Functions.Like(x.Customer.FirstName.ToLower(), $"%{term}%")) ||
+                (x.Customer != null && EF.Functions.Like(x.Customer.LastName.ToLower(), $"%{term}%"))
+            );
+        }
+
+        // Apply filters
+        if (query.IsReconciled.HasValue)
+        {
+            paymentsQuery = paymentsQuery.Where(x => x.IsReconciled == query.IsReconciled.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.CustomerId) && Guid.TryParse(query.CustomerId, out var customerId))
+        {
+            paymentsQuery = paymentsQuery.Where(x => x.CustomerId == customerId);
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.Status))
+        {
+            paymentsQuery = paymentsQuery.Where(x => x.Status == query.Status);
+        }
+
+        if (query.FromDate.HasValue && query.ToDate.HasValue)
+        {
+            paymentsQuery = paymentsQuery.Where(x => x.PaymentDate >= query.FromDate.Value && x.PaymentDate <= query.ToDate.Value);
+        }
+
+        return paymentsQuery;
+    }
+
+    #endregion
 }

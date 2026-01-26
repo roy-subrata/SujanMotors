@@ -6,12 +6,31 @@ import { map } from 'rxjs/operators';
 export interface PurchaseReturnLineResponse {
   id: string;
   partId: string;
+  partName?: string;
+  partSku?: string;
+  stockLotId?: string;
+  lotNumber?: string;
   quantity: number;
   rejectedQuantity: number;
   unitPrice: number;
   refundAmount: number;
   condition: string; // UNOPENED, OPENED, DAMAGED, DEFECTIVE
   notes?: string;
+}
+
+export interface AvailableLotForReturn {
+  lotId: string;
+  lotNumber: string;
+  partId: string;
+  partName: string;
+  partSku: string;
+  supplierId: string;
+  supplierName: string;
+  quantityAvailable: number;
+  costPrice: number;
+  receivingDate: string;
+  expiryDate?: string;
+  isFromSameSupplier: boolean;
 }
 
 export interface PurchaseReturnResponse {
@@ -39,6 +58,7 @@ export interface PurchaseReturnResponse {
 export interface CreatePurchaseReturnLineRequest {
   purchaseOrderLineId: string;
   partId: string;
+  stockLotId?: string; // Optional: specific lot to return from
   quantity: number;
   rejectedQuantity: number;
   unitPrice: number;
@@ -211,5 +231,18 @@ export class PurchaseReturnService {
    */
   deletePurchaseReturn(id: string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
+  }
+
+  /**
+   * Get available stock lots for a part (for return selection)
+   * @param partId The part ID
+   * @param supplierId Optional supplier ID to prioritize lots from same supplier
+   */
+  getAvailableLotsForReturn(partId: string, supplierId?: string): Observable<AvailableLotForReturn[]> {
+    let params = new HttpParams();
+    if (supplierId) {
+      params = params.set('supplierId', supplierId);
+    }
+    return this.http.get<AvailableLotForReturn[]>(`${this.apiUrl}/available-lots/${partId}`, { params });
   }
 }

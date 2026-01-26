@@ -17,6 +17,7 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
     {
         return await _dbContext.PurchaseReturns
             .Include(x => x.LineItems)
+                .ThenInclude(li => li.Part)
             .Include(x => x.Supplier)
             .Include(x => x.PurchaseOrder)
             .Where(x => !x.Isdeleted)
@@ -28,6 +29,7 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
     {
         return await _dbContext.PurchaseReturns
             .Include(x => x.LineItems)
+                .ThenInclude(li => li.Part)
             .Include(x => x.Supplier)
             .Include(x => x.PurchaseOrder)
             .FirstOrDefaultAsync(x => x.Id == id && !x.Isdeleted, cancellationToken);
@@ -73,6 +75,7 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
     {
         return await _dbContext.PurchaseReturns
             .Include(x => x.LineItems)
+                .ThenInclude(li => li.Part)
             .Include(x => x.Supplier)
             .Include(x => x.PurchaseOrder)
             .FirstOrDefaultAsync(x => x.ReturnNumber == returnNumber && !x.Isdeleted, cancellationToken);
@@ -82,6 +85,7 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
     {
         return await _dbContext.PurchaseReturns
             .Include(x => x.LineItems)
+                .ThenInclude(li => li.Part)
             .Include(x => x.Supplier)
             .Include(x => x.PurchaseOrder)
             .Where(x => x.PurchaseOrderId == purchaseOrderId && !x.Isdeleted)
@@ -93,6 +97,7 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
     {
         return await _dbContext.PurchaseReturns
             .Include(x => x.LineItems)
+                .ThenInclude(li => li.Part)
             .Include(x => x.Supplier)
             .Include(x => x.PurchaseOrder)
             .Where(x => x.SupplierId == supplierId && !x.Isdeleted)
@@ -104,6 +109,7 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
     {
         return await _dbContext.PurchaseReturns
             .Include(x => x.LineItems)
+                .ThenInclude(li => li.Part)
             .Include(x => x.Supplier)
             .Include(x => x.PurchaseOrder)
             .Where(x => x.Status == status && !x.Isdeleted)
@@ -115,6 +121,7 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
     {
         return await _dbContext.PurchaseReturns
             .Include(x => x.LineItems)
+                .ThenInclude(li => li.Part)
             .Include(x => x.Supplier)
             .Include(x => x.PurchaseOrder)
             .Where(x => x.Status == "PENDING" && !x.Isdeleted)
@@ -126,6 +133,7 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
     {
         var query = _dbContext.PurchaseReturns
             .Include(x => x.LineItems)
+                .ThenInclude(li => li.Part)
             .Include(x => x.Supplier)
             .Include(x => x.PurchaseOrder)
             .Where(x => !x.Isdeleted)
@@ -144,6 +152,7 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
     {
         var query = _dbContext.PurchaseReturns
             .Include(x => x.LineItems)
+                .ThenInclude(li => li.Part)
             .Include(x => x.Supplier)
             .Include(x => x.PurchaseOrder)
             .Where(x => !x.Isdeleted &&

@@ -14,6 +14,7 @@ import { PurchaseOrderService, PurchaseOrderResponse } from '../services/purchas
 import { GoodsReceiptService } from '../services/goods-receipt.service';
 import { WarehouseService, WarehouseResponse } from '../../inventory/services/warehouse.service';
 import { PartService, PartResponse } from '../../inventory/services/part.service';
+import { CurrencyService } from '../../../shared/services/currency.service';
 
 @Component({
   selector: 'app-goods-receipt-form',
@@ -40,6 +41,7 @@ export class GoodsReceiptFormComponent implements OnInit {
   private readonly grnService = inject(GoodsReceiptService);
   private readonly warehouseService = inject(WarehouseService);
   private readonly partService = inject(PartService);
+  private readonly currencyService = inject(CurrencyService);
   private readonly messageService = inject(MessageService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -131,7 +133,7 @@ export class GoodsReceiptFormComponent implements OnInit {
               hasDiscrepancy: [line.hasDiscrepancy],
               // Cost Information
               unitCost: [line.unitCost || 0, [Validators.required, Validators.min(0)]],
-              currency: [line.currency || 'INR', Validators.required],
+              currency: [line.currency || this.currencyService.selectedCurrency() || 'BDT', Validators.required],
               unitId: [line.unitId || '']
             })
           );
@@ -288,7 +290,7 @@ export class GoodsReceiptFormComponent implements OnInit {
           hasDiscrepancy: [false],
           // Cost Information
           unitCost: [line.unitPrice || 0, [Validators.required, Validators.min(0)]],
-          currency: ['INR', Validators.required],
+          currency: [this.currencyService.selectedCurrency() || 'BDT', Validators.required],
           unitId: ['']
         })
       );

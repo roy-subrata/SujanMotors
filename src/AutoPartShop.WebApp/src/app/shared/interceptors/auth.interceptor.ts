@@ -8,12 +8,15 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
   const router = inject(Router);
 
+  // Skip auth header for static assets (translation files, etc.)
+  const isAssetRequest = req.url.startsWith('/assets/') || req.url.includes('/assets/');
+
   // Get the auth token from the service
   const authToken = authService.getToken();
 
   // Clone the request and add the authorization header if token exists
   let authReq = req;
-  if (authToken) {
+  if (authToken && !isAssetRequest) {
     authReq = req.clone({
       setHeaders: {
         Authorization: `Bearer ${authToken}`

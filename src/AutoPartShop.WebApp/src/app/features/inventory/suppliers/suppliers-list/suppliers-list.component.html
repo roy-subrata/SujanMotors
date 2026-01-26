@@ -1,111 +1,119 @@
-<p-table
-  [value]="suppliers"
-  [rows]="rows"
-  [first]="(currentPage - 1) * rows"
-  [totalRecords]="totalRecords"
-  [loading]="loading"
-  [lazy]="true"
-  [paginator]="true"
-  [globalFilterFields]="['name', 'code', 'contactPerson', 'email']"
-  paginatorPosition="bottom"
-  [showCurrentPageReport]="true"
-  currentPageReportTemplate="Showing {first} to {last} of {totalRecords} suppliers"
-  (onLazyLoad)="onPageChange($event)"
-  responsiveLayout="scroll"
-  [tableStyle]="{ 'min-width': '50rem' }"
-  styleClass="p-datatable-striped">
+<div class="suppliers-container">
 
-  <!-- Header -->
-  <ng-template pTemplate="header">
-    <tr>
-      <th pSortableColumn="code" style="width: 10%">
-        Code <p-sortIcon field="code"></p-sortIcon>
-      </th>
-      <th pSortableColumn="name" style="width: 15%">
-        Name <p-sortIcon field="name"></p-sortIcon>
-      </th>
-      <th style="width: 12%">Contact Person</th>
-      <th style="width: 12%">Email</th>
-      <th style="width: 12%">Phone</th>
-      <th style="width: 12%">City</th>
-      <th style="width: 8%">Rating</th>
-      <th style="width: 10%">Status</th>
-      <th style="width: 12%">Actions</th>
-    </tr>
-  </ng-template>
-
-  <!-- Data Rows -->
-  <ng-template pTemplate="body" let-supplier>
-    <tr>
-      <td>
-        <span class="font-semibold">{{ supplier.code }}</span>
-      </td>
-      <td>
-        <div class="supplier-name">
-          {{ supplier.name }}
+  <!-- Filters Section -->
+  <div class="filters-card">
+    <div class="filters-container">
+      <!-- Search -->
+      <div class="filter-item search-filter">
+        <div class="search-container">
+          <i class="pi pi-search search-icon"></i>
+          <input type="text" [value]="searchTerm" placeholder="Search by supplier name, code, email, phone..."
+            (input)="onSearch($event.target.value)" class="search-input">
+          <i *ngIf="searchTerm" class="pi pi-times clear-icon" (click)="onSearchClear()"></i>
         </div>
-        <!-- <small class="text-gray-500">{{ supplier.address }}</small> -->
-      </td>
-      <td>{{ supplier.contactPerson }}</td>
-      <td>
-        <a [href]="'mailto:' + supplier.email" class="text-blue-600">
-          {{ supplier.email }}
-        </a>
-      </td>
-      <td>
-        <a [href]="'tel:' + supplier.phone" class="text-blue-600">
-          {{ supplier.phone }}
-        </a>
-      </td>
-      <td>
-        <span class="location-badge">{{ supplier.city }}, {{ supplier.state }}</span>
-      </td>
-      <td>
-        <span [class]="'rating-badge ' + getRatingClass(supplier.rating)">
-          <i class="pi pi-star-fill"></i> {{ supplier.rating }}/5
-        </span>
-      </td>
-      <td>
-        <p-tag
-          [value]="supplier.isActive ? 'Active' : 'Inactive'"
-          [severity]="getStatusSeverity(supplier.isActive)">
-        </p-tag>
-      </td>
-      <td>
-        <div class="action-buttons">
-          <button
-            pButton
-            pRipple
-            type="button"
-            icon="pi pi-ellipsis-v"
-            class="p-button-text p-button-sm"
-            pTooltip="Actions"
-            tooltipPosition="left"
-            (contextmenu)="showContextMenu($event, supplier)"
-            (click)="showContextMenu($event, supplier)">
-          </button>
-        </div>
-      </td>
-    </tr>
-  </ng-template>
+      </div>
 
-  <!-- Empty Message -->
-  <ng-template pTemplate="emptymessage">
-    <tr>
-      <td colspan="9" class="text-center py-4">
-        <i class="pi pi-inbox mr-2"></i>
-        No suppliers found. Click "New Supplier" to create one.
-      </td>
-    </tr>
-  </ng-template>
-</p-table>
+      <!-- New Supplier Button -->
+      <button pButton type="button" label="New Supplier" icon="pi pi-plus" class="p-button-success btn-create"
+        (click)="onCreateClick()">
+      </button>
+    </div>
+  </div>
+  <div class="table-container">
+    <p-table [value]="suppliers" [rows]="rows" [first]="(currentPage - 1) * rows" [totalRecords]="totalRecords"
+      [loading]="loading" [lazy]="true" [paginator]="true"
+      [globalFilterFields]="['name', 'code', 'contactPerson', 'email']" paginatorPosition="bottom"
+      [showCurrentPageReport]="true" currentPageReportTemplate="Showing {first} to {last} of {totalRecords} suppliers"
+      (onLazyLoad)="onPageChange($event)" responsiveLayout="scroll" [tableStyle]="{ 'min-width': '50rem' }"
+      styleClass="p-datatable-striped">
 
-<!-- Context Menu -->
-<p-contextMenu
-  #contextMenu
-  [model]="contextMenuItems"
-  [appendTo]="'body'">
-</p-contextMenu>
+      <!-- Header -->
+      <ng-template pTemplate="header">
+        <tr>
+          <th pSortableColumn="code" style="width: 10%">
+            Code <p-sortIcon field="code"></p-sortIcon>
+          </th>
+          <th pSortableColumn="name" style="width: 15%">
+            Name <p-sortIcon field="name"></p-sortIcon>
+          </th>
+          <th style="width: 12%">Contact Person</th>
+          <th style="width: 12%">Email</th>
+          <th style="width: 12%">Phone</th>
+          <th style="width: 12%">City</th>
+          <th style="width: 8%">Rating</th>
+          <th style="width: 10%">Status</th>
+          <th style="width: 12%">Actions</th>
+        </tr>
+      </ng-template>
 
-<!-- Confirm Dialog -->
-<p-confirmDialog></p-confirmDialog>
+      <!-- Data Rows -->
+      <ng-template pTemplate="body" let-supplier>
+        <tr>
+          <td>
+            <span class="font-semibold">{{ supplier.code }}</span>
+          </td>
+          <td>
+            <div class="supplier-name">
+              {{ supplier.name }}
+            </div>
+            <!-- <small class="text-gray-500">{{ supplier.address }}</small> -->
+          </td>
+          <td>{{ supplier.contactPerson }}</td>
+          <td>
+            <a [href]="'mailto:' + supplier.email" class="text-blue-600">
+              {{ supplier.email }}
+            </a>
+          </td>
+          <td>
+            <a [href]="'tel:' + supplier.phone" class="text-blue-600">
+              {{ supplier.phone }}
+            </a>
+          </td>
+          <td>
+            <span class="location-badge">{{ supplier.city }}, {{ supplier.state }}</span>
+          </td>
+          <td>
+            <span [class]="'rating-badge ' + getRatingClass(supplier.rating)">
+              <i class="pi pi-star-fill"></i> {{ supplier.rating }}/5
+            </span>
+          </td>
+          <td>
+            <p-tag [value]="supplier.isActive ? 'Active' : 'Inactive'"
+              [severity]="getStatusSeverity(supplier.isActive)">
+            </p-tag>
+          </td>
+          <td>
+            <div class="action-buttons">
+              <button pButton pRipple type="button" icon="pi pi-ellipsis-v" class="p-button-text p-button-sm"
+                pTooltip="Actions" tooltipPosition="left" (contextmenu)="showContextMenu($event, supplier)"
+                (click)="showContextMenu($event, supplier)">
+              </button>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+
+      <!-- Empty Message -->
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="9" class="text-center py-4">
+            <i class="pi pi-inbox mr-2"></i>
+            No suppliers found. Click "New Supplier" to create one.
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+
+  </div>
+
+
+  <!-- Context Menu -->
+  <p-contextMenu #contextMenu [model]="contextMenuItems" [appendTo]="'body'">
+  </p-contextMenu>
+
+  <!-- Confirm Dialog -->
+  <p-confirmDialog></p-confirmDialog>
+</div>
+
+<!-- Toast Messages -->
+<p-toast position="top-right"></p-toast>

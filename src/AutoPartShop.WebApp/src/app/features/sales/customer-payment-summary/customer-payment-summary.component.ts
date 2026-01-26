@@ -11,6 +11,7 @@ import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { Subject, takeUntil } from 'rxjs';
 import { CustomerPaymentService, CustomerPaymentHistorySummary } from '../services/customer-payment.service';
+import { CurrencyService } from '../../../shared/services/currency.service';
 
 @Component({
   selector: 'app-customer-payment-summary',
@@ -34,6 +35,7 @@ export class CustomerPaymentSummaryComponent implements OnInit, OnDestroy {
   private readonly activatedRoute = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly messageService = inject(MessageService);
+  private readonly currencyService = inject(CurrencyService);
   private readonly destroy$ = new Subject<void>();
 
   customerId: string = '';
@@ -89,15 +91,11 @@ export class CustomerPaymentSummaryComponent implements OnInit, OnDestroy {
   formatCurrency(value: number | undefined | null): string {
     const numValue = value ?? 0;
     if (isNaN(numValue)) {
-      return new Intl.NumberFormat('en-IN', {
-        style: 'currency',
-        currency: 'INR'
-      }).format(0);
+      const currency = this.currencyService.selectedCurrency() || 'BDT';
+      return this.currencyService.formatCurrency(0, currency);
     }
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR'
-    }).format(numValue);
+    const currency = this.currencyService.selectedCurrency() || 'BDT';
+    return this.currencyService.formatCurrency(numValue, currency);
   }
 
   formatDate(date: string | undefined): string {

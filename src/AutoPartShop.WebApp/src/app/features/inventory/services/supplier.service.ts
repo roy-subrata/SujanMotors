@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { PaginatedResponse } from '@/features/sales/services/customer.service';
 
 export interface SupplierResponse {
   id: string;
@@ -15,12 +15,7 @@ export interface SupplierResponse {
   state: string;
   country: string;
   postalCode: string;
-  paymentTerms: string;
-  creditLimit: number;
-  bankName: string;
-  bankAccountNumber: string;
-  bankIFSC: string;
-  taxID: string;
+  currentBalance: number;
   isActive: boolean;
   rating: number;
   createdBy: string;
@@ -68,6 +63,12 @@ export interface PaginatedSupplierResponse {
   hasNextPage: boolean;
 }
 
+export interface SupplierQuery {
+    search: string;
+    pageSize: number;
+    pageNumber: number;
+    customerType?: string;
+}
 @Injectable({
   providedIn: 'root'
 })
@@ -92,26 +93,8 @@ export class SupplierService {
   /**
    * Get paginated suppliers with optional search
    */
-  getSuppliers(pageNumber: number, pageSize: number, searchTerm?: string): Observable<PaginatedSupplierResponse> {
-    let params = new HttpParams()
-      .set('pageNumber', pageNumber.toString())
-      .set('pageSize', pageSize.toString());
-
-    if (searchTerm) {
-      params = params.set('searchTerm', searchTerm);
-    }
-
-    return this.http.get<any>(`${this.apiUrl}/list`, { params }).pipe(
-      map(response => ({
-        items: response.data,
-        pageNumber: response.pagination.pageNumber,
-        pageSize: response.pagination.pageSize,
-        totalCount: response.pagination.totalCount,
-        totalPages: response.pagination.totalPages,
-        hasPreviousPage: response.pagination.pageNumber > 1,
-        hasNextPage: response.pagination.pageNumber < response.pagination.totalPages
-      }))
-    );
+  getSuppliers(rQuery:SupplierQuery): Observable<PaginatedResponse<SupplierResponse>> {
+    return this.http.post<PaginatedResponse<SupplierResponse>>(`${this.apiUrl}/list`,rQuery);
   }
 
   /**

@@ -54,22 +54,10 @@
         <span class="amount">{{ formatCurrency(pr.refundAmount) }}</span>
       </td>
       <td class="text-center">
-        <div class="flex justify-center gap-1">
-          <button pButton type="button" icon="pi pi-eye" class="p-button-text p-button-sm"
-            (click)="viewPurchaseReturn(pr)" pTooltip="View" tooltipPosition="left"></button>
-          <button *ngIf="pr.status === 'DRAFT'" pButton type="button" icon="pi pi-pencil"
-            class="p-button-text p-button-sm" (click)="editPurchaseReturn(pr)" pTooltip="Edit"
-            tooltipPosition="left"></button>
-          <button *ngIf="pr.status === 'PENDING'" pButton type="button" icon="pi pi-check-circle"
-            class="p-button-text p-button-success p-button-sm" (click)="approvePurchaseReturn(pr)" pTooltip="Approve"
-            tooltipPosition="left"></button>
-          <button *ngIf="['DRAFT', 'PENDING'].includes(pr.status)" pButton type="button" icon="pi pi-ban"
-            class="p-button-text p-button-warning p-button-sm" (click)="rejectPurchaseReturn(pr)" pTooltip="Reject"
-            tooltipPosition="left"></button>
-          <button *ngIf="pr.status === 'DRAFT'" pButton type="button" icon="pi pi-trash"
-            class="p-button-text p-button-danger p-button-sm" (click)="deletePurchaseReturn(pr)" pTooltip="Delete"
-            tooltipPosition="left"></button>
-        </div>
+        <button pButton pRipple type="button" icon="pi pi-ellipsis-v" class="p-button-text p-button-sm"
+          pTooltip="Actions" tooltipPosition="left" (contextmenu)="showContextMenu($event, pr)"
+          (click)="showContextMenu($event, pr)">
+        </button>
       </td>
     </tr>
   </ng-template>
@@ -103,6 +91,3 @@
   [model]="contextMenuItems"
   [appendTo]="'body'">
 </p-contextMenu>
-
-<!-- Confirm Dialog -->
-<p-confirmDialog></p-confirmDialog>

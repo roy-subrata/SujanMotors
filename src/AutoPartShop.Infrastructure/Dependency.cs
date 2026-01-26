@@ -1,7 +1,9 @@
-
 using System.Threading.Tasks;
+using AutoPartShop.Application.PurchaseOrders;
+using AutoPartShop.Application.Services;
 using AutoPartShop.Domain.Repositories;
 using AutoPartShop.Infrastructure.Repositories;
+using AutoPartsShop.Infrastructure.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -74,11 +76,29 @@ public static class Dependency
         services.AddScoped<IPaymentProviderRepository, PaymentProviderRepository>();
         services.AddScoped<ICustomerPaymentRepository, CustomerPaymentRepository>();
         services.AddScoped<ISupplierPaymentRepository, SupplierPaymentRepository>();
+        services.AddScoped<ISupplierPaymentAccountRepository, SupplierPaymentAccountRepository>();
         services.AddScoped<IStockLotRepository, StockLotRepository>();
         services.AddScoped<IStockLotMovementRepository, StockLotMovementRepository>();
         services.AddScoped<ITechnicianRepository, TechnicianRepository>();
         services.AddScoped<IProductLocationRepository, ProductLocationRepository>();
+        services.AddScoped<IDailyExpenseRepository, DailyExpenseRepository>();
 
+        // Multi-currency repositories
+        services.AddScoped<ICurrencyRepository, CurrencyRepository>();
+        services.AddScoped<IExchangeRateRepository, ExchangeRateRepository>();
+        services.AddScoped<IApplicationSettingsRepository, ApplicationSettingsRepository>();
+
+        // Warranty repositories
+        services.AddScoped<IWarrantyRegistrationRepository, WarrantyRegistrationRepository>();
+        services.AddScoped<IWarrantyClaimRepository, WarrantyClaimRepository>();
+
+        //Application
+        services.AddScoped<IPurchaseOrderReadRepository, PurchaseOrderReadRepository>();
+
+
+        //Services
+        services.AddTransient<ICodeGenerateService, CodeGenerateService>();
+        services.AddScoped<IAuditLogService, AuditLogService>();
         return services;
     }
 }

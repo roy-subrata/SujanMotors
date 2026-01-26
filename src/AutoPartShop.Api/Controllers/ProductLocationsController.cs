@@ -1,3 +1,4 @@
+using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.ProductLocationDtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
@@ -14,16 +15,19 @@ public class ProductLocationsController : ControllerBase
     private readonly IPartRepository _partRepository;
     private readonly IWarehouseRepository _warehouseRepository;
     private readonly ILogger<ProductLocationsController> _logger;
+    private readonly ICurrentUserService _currentUserService;
 
     public ProductLocationsController(
         IProductLocationRepository locationRepository,
         IPartRepository partRepository,
         IWarehouseRepository warehouseRepository,
+        ICurrentUserService currentUserService,
         ILogger<ProductLocationsController> logger)
     {
         _locationRepository = locationRepository;
         _partRepository = partRepository;
         _warehouseRepository = warehouseRepository;
+        _currentUserService = currentUserService;
         _logger = logger;
     }
 
@@ -154,8 +158,9 @@ public class ProductLocationsController : ControllerBase
                 request.IsPrimary,
                 request.Notes);
 
-            location.CreatedBy = "System";
-            location.ModifiedBy = "System";
+            var currentUser = _currentUserService.GetCurrentUsername();
+            location.CreatedBy = currentUser;
+            location.ModifiedBy = currentUser;
 
             await _locationRepository.AddAsync(location, cancellationToken);
 
@@ -195,7 +200,7 @@ public class ProductLocationsController : ControllerBase
                 return Conflict(new { message = "A location with this section and shelf already exists for this part in this warehouse" });
 
             location.Update(request.Section, request.Shelf, request.IsPrimary, request.Notes);
-            location.ModifiedBy = "System";
+            location.ModifiedBy = _currentUserService.GetCurrentUsername();
 
             await _locationRepository.UpdateAsync(location, cancellationToken);
 

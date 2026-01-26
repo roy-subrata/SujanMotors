@@ -10,6 +10,7 @@ import { CardModule } from 'primeng/card';
 import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
 import { PaymentProviderService, CreatePaymentProviderRequest } from '../services/payment-provider.service';
+import { PROVIDER_TYPES, PaymentMethodOption } from '../../../shared/constants/payment-methods.constants';
 
 @Component({
   selector: 'app-payment-provider-form',
@@ -39,15 +40,10 @@ export class PaymentProviderFormComponent implements OnInit {
   loading = false;
   isEditing = false;
   providerId: string | null = null;
+  selectedProviderType: string = '';
 
-  providerTypes = [
-    { label: 'Online Gateway', value: 'ONLINE_GATEWAY' },
-    { label: 'Bank Transfer', value: 'BANK_TRANSFER' },
-    { label: 'Cash', value: 'CASH' },
-    { label: 'Check', value: 'CHECK' },
-    { label: 'Crypto', value: 'CRYPTO' },
-    { label: 'Other', value: 'OTHER' }
-  ];
+  // Use shared provider types from centralized constants
+  providerTypes: PaymentMethodOption[] = PROVIDER_TYPES;
 
   feeTypes = [
     { label: 'Fixed', value: 'FIXED' },
@@ -58,30 +54,67 @@ export class PaymentProviderFormComponent implements OnInit {
   filteredProviderTypes: any[] = [];
   filteredFeeTypes: any[] = [];
 
+  // Field visibility based on provider type
+  get showBankFields(): boolean {
+    return this.selectedProviderType === 'BANK_TRANSFER';
+  }
+
+  get showMobileBankingFields(): boolean {
+    return this.selectedProviderType === 'MOBILE_BANKING';
+  }
+
+  get showOnlineGatewayFields(): boolean {
+    return this.selectedProviderType === 'ONLINE_GATEWAY' || this.selectedProviderType === 'CRYPTO';
+  }
+
+  get showFeeFields(): boolean {
+    return !!this.selectedProviderType;
+  }
+
+  get showSettlementDays(): boolean {
+    return ['BANK_TRANSFER', 'ONLINE_GATEWAY', 'CHECK', 'CRYPTO', 'MOBILE_BANKING'].includes(this.selectedProviderType);
+  }
+
+  get showCurrencies(): boolean {
+    return ['ONLINE_GATEWAY', 'CRYPTO', 'BANK_TRANSFER'].includes(this.selectedProviderType);
+  }
+
   constructor() {
     this.form = this.fb.group({
       providerName: ['', Validators.required],
       providerType: ['', Validators.required],
+      // Bank Transfer fields
       bankName: [''],
       bankAccountNumber: [''],
       bankRoutingNumber: [''],
       beneficiaryName: [''],
       bankIBAN: [''],
       bankSWIFT: [''],
+      // Online Gateway fields
       apiKey: [''],
       merchantId: [''],
+      webhookUrl: [''],
+      // Mobile Banking fields
+      mobileNumber: [''],
+      accountHolderName: [''],
+      agentNumber: [''],
+      // Fee Configuration
       transactionFeeType: ['FIXED'],
       transactionFeeAmount: [0],
       minimumAmount: [0],
       maximumAmount: [0],
       settlementDays: [1],
       supportedCurrencies: [''],
-      webhookUrl: [''],
       notes: ['']
     });
   }
 
   ngOnInit(): void {
+    // Subscribe to provider type changes
+    this.form.get('providerType')?.valueChanges.subscribe(value => {
+      this.selectedProviderType = value || '';
+    });
+
     this.route.queryParams.subscribe(params => {
       if (params['id']) {
         this.providerId = params['id'];
@@ -96,6 +129,9 @@ export class PaymentProviderFormComponent implements OnInit {
     this.loading = true;
     this.service.getPaymentProviderById(this.providerId).subscribe({
       next: (provider) => {
+        // Set provider type first for field visibility
+        this.selectedProviderType = provider.providerType || '';
+
         this.form.patchValue({
           providerName: provider.providerName,
           providerType: provider.providerType,
@@ -105,13 +141,18 @@ export class PaymentProviderFormComponent implements OnInit {
           beneficiaryName: provider.beneficiaryName,
           bankIBAN: provider.bankIBAN,
           bankSWIFT: provider.bankSWIFT,
+          apiKey: provider.apiKey,
+          merchantId: provider.merchantId,
+          webhookUrl: provider.webhookUrl,
+          mobileNumber: provider.mobileNumber,
+          accountHolderName: provider.accountHolderName,
+          agentNumber: provider.agentNumber,
           transactionFeeType: provider.transactionFeeType,
           transactionFeeAmount: provider.transactionFeeAmount,
           minimumAmount: provider.minimumAmount,
           maximumAmount: provider.maximumAmount,
           settlementDays: provider.settlementDays,
           supportedCurrencies: provider.supportedCurrencies,
-          webhookUrl: provider.webhookUrl,
           notes: provider.notes
         });
         this.loading = false;

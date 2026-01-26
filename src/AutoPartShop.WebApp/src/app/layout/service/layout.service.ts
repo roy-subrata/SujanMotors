@@ -79,6 +79,17 @@ export class LayoutService {
     private initialized = false;
 
     constructor() {
+        // Load saved config
+        const savedConfig = localStorage.getItem('layoutConfig');
+        if (savedConfig) {
+            try {
+                const config = JSON.parse(savedConfig);
+                this.layoutConfig.set({ ...this._config, ...config });
+            } catch (e) {
+                console.error('Error loading config:', e);
+            }
+        }
+
         effect(() => {
             const config = this.layoutConfig();
             if (config) {
@@ -166,6 +177,8 @@ export class LayoutService {
     onConfigUpdate() {
         this._config = { ...this.layoutConfig() };
         this.configUpdate.next(this.layoutConfig());
+        // Save config to localStorage
+        localStorage.setItem('layoutConfig', JSON.stringify(this._config));
     }
 
     onMenuStateChange(event: MenuChangeEvent) {

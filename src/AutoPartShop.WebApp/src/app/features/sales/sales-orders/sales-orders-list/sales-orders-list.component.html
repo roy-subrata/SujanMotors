@@ -127,19 +127,11 @@
             </span>
           </td>
           <td class="text-center">
-            <div class="flex justify-center gap-1">
-              <button pButton type="button" icon="pi pi-eye" class="p-button-text p-button-sm"
-                (click)="viewSalesOrder(order)" pTooltip="View" tooltipPosition="left"></button>
-              <button *ngIf="order.status === 'DRAFT'" pButton type="button" icon="pi pi-pencil"
-                class="p-button-text p-button-sm" (click)="editSalesOrder(order)" pTooltip="Edit"
-                tooltipPosition="left"></button>
-              <button *ngIf="order.status === 'DRAFT'" pButton type="button" icon="pi pi-check-circle"
-                class="p-button-text p-button-success p-button-sm" (click)="confirmSalesOrder(order)" pTooltip="Confirm"
-                tooltipPosition="left"></button>
-              <button *ngIf="order.status === 'DRAFT'" pButton type="button" icon="pi pi-trash"
-                class="p-button-text p-button-danger p-button-sm" (click)="deleteSalesOrder(order)" pTooltip="Delete"
-                tooltipPosition="left"></button>
-            </div>
+            <button pButton pRipple type="button" icon="pi pi-ellipsis-v" class="p-button-text p-button-sm"
+              pTooltip="Actions" tooltipPosition="left"
+              (contextmenu)="showContextMenu($event, order)"
+              (click)="showContextMenu($event, order)">
+            </button>
           </td>
         </tr>
       </ng-template>
@@ -168,3 +160,6 @@
     </p-paginator>
   </div>
 </div>
+
+<!-- Context Menu -->
+<p-contextMenu #contextMenu [model]="contextMenuItems" [appendTo]="'body'"></p-contextMenu>

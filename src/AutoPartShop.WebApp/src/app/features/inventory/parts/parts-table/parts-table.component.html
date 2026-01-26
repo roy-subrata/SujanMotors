@@ -30,11 +30,12 @@
       <th style="width: 10%">Category</th>
       <th style="width: 10%">Brand</th>
       <th style="width: 8%">Unit</th>
-      <th style="width: 8%">Cost Price</th>
-      <th style="width: 8%">Selling Price</th>
-      <th style="width: 6%">Margin</th>
-      <th style="width: 6%">Min Stock</th>
-      <th style="width: 6%">Status</th>
+      <th style="width: 7%">Cost Price</th>
+      <th style="width: 7%">Selling Price</th>
+      <th style="width: 5%">Margin</th>
+      <th style="width: 5%">Min Stock</th>
+      <th style="width: 8%">Warranty</th>
+      <th style="width: 5%">Status</th>
       <th style="width: 10%">Actions</th>
     </tr>
   </ng-template>
@@ -79,6 +80,13 @@
         </span>
       </td>
       <td class="text-center">{{ part.minimumStock }}</td>
+      <td class="text-center">
+        <div *ngIf="part.hasWarranty" class="warranty-info">
+          <p-tag value="Yes" severity="success" icon="pi pi-shield"></p-tag>
+          <small class="block text-xs mt-1">{{ part.warrantyPeriodMonths }}mo</small>
+        </div>
+        <span *ngIf="!part.hasWarranty" class="text-gray-400">—</span>
+      </td>
       <td>
         <p-tag
           [value]="part.isActive ? 'Active' : 'Inactive'"
@@ -106,7 +114,7 @@
   <!-- Empty Message -->
   <ng-template pTemplate="emptymessage">
     <tr>
-      <td colspan="11" class="text-center py-4">
+      <td colspan="12" class="text-center py-4">
         <i class="pi pi-inbox mr-2"></i>
         No parts found. Click "New Part" to create one.
       </td>

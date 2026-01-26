@@ -1,3 +1,4 @@
+using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.BrandDtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
@@ -12,12 +13,14 @@ public class BrandsController : ControllerBase
     private readonly IBrandRepository _brandRepository;
     private readonly ILogger<BrandsController> _logger;
     private readonly ICodeGenerateService _codeGenerateService;
+    private readonly ICurrentUserService _currentUserService;
 
-    public BrandsController(IBrandRepository brandRepository, ILogger<BrandsController> logger, ICodeGenerateService codeGenerateService)
+    public BrandsController(IBrandRepository brandRepository, ILogger<BrandsController> logger, ICodeGenerateService codeGenerateService, ICurrentUserService currentUserService)
     {
         _brandRepository = brandRepository;
         _logger = logger;
         _codeGenerateService = codeGenerateService;
+        _currentUserService = currentUserService;
     }
 
     /// <summary>
@@ -116,9 +119,10 @@ public class BrandsController : ControllerBase
                 request.Description,
                 request.Country
             );
-            brand.CreatedBy = "System";
-            brand.ModifiedBy = "System";
-            
+            var currentUser = _currentUserService.GetCurrentUsername();
+            brand.CreatedBy = currentUser;
+            brand.ModifiedBy = currentUser;
+
             await _codeGenerateService.SaveGenerateCodeAsync("BRD", cancellationToken);
             await _brandRepository.AddAsync(brand, cancellationToken);
             return CreatedAtAction(nameof(GetById), new { id = brand.Id }, MapToResponse(brand));
@@ -168,7 +172,7 @@ public class BrandsController : ControllerBase
                 request.DisplayOrder,
                 request.IsActive
             );
-            brand.ModifiedBy = "System";
+            brand.ModifiedBy = _currentUserService.GetCurrentUsername();
 
             await _brandRepository.UpdateAsync(brand, cancellationToken);
 

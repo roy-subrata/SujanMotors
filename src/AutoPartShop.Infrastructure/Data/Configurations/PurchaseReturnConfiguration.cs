@@ -24,6 +24,22 @@ public class PurchaseReturnConfiguration : IEntityTypeConfiguration<PurchaseRetu
             .IsRequired()
             .HasMaxLength(20);
 
+        // Settlement tracking fields
+        builder.Property(pr => pr.SettlementStatus)
+            .IsRequired()
+            .HasMaxLength(20)
+            .HasDefaultValue("PENDING");
+
+        builder.Property(pr => pr.SettledAmount)
+            .HasPrecision(18, 2)
+            .HasDefaultValue(0);
+
+        builder.Property(pr => pr.SettlementMethod)
+            .HasMaxLength(50);
+
+        builder.Property(pr => pr.SettlementNotes)
+            .HasMaxLength(500);
+
         // Relationships - Use NoAction to avoid cascade paths
         builder.HasOne(pr => pr.PurchaseOrder)
             .WithMany()

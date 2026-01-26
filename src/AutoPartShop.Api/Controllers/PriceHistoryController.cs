@@ -1,3 +1,4 @@
+using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.PriceHistoryDtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Infrastructure.Repositories;
@@ -12,10 +13,12 @@ public class PriceHistoryController : ControllerBase
 {
     private readonly IPriceHistoryRepository _priceHistoryRepository;
     private readonly ILogger<PriceHistoryController> _logger;
+    private readonly ICurrentUserService _currentUserService;
 
-    public PriceHistoryController(IPriceHistoryRepository priceHistoryRepository, ILogger<PriceHistoryController> logger)
+    public PriceHistoryController(IPriceHistoryRepository priceHistoryRepository, ICurrentUserService currentUserService, ILogger<PriceHistoryController> logger)
     {
         _priceHistoryRepository = priceHistoryRepository;
+        _currentUserService = currentUserService;
         _logger = logger;
     }
 
@@ -176,8 +179,9 @@ public class PriceHistoryController : ControllerBase
                 request.Reason,
                 request.ChangedBy
             );
-            history.CreatedBy = "System";
-            history.ModifiedBy = "System";
+            var currentUser = _currentUserService.GetCurrentUsername();
+            history.CreatedBy = currentUser;
+            history.ModifiedBy = currentUser;
 
             await _priceHistoryRepository.AddAsync(history, cancellationToken);
 

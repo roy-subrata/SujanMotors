@@ -1,3 +1,4 @@
+using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.SalesOrderDtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
@@ -21,6 +22,9 @@ public class SalesOrderController : ControllerBase
     private readonly IStockLevelRepository _stockLevelRepository;
     private readonly ICustomerPaymentRepository _customerPaymentRepository;
     private readonly ICodeGenerateService _codeGenerateService;
+    private readonly IUnitConversionService _unitConversionService;
+    private readonly IWarrantyService _warrantyService;
+    private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<SalesOrderController> _logger;
     private readonly AutoPartDbContext _dbContext;
 
@@ -33,6 +37,9 @@ public class SalesOrderController : ControllerBase
         IStockLevelRepository stockLevelRepository,
         ICustomerPaymentRepository customerPaymentRepository,
         ICodeGenerateService codeGenerateService,
+        IUnitConversionService unitConversionService,
+        IWarrantyService warrantyService,
+        ICurrentUserService currentUserService,
         ILogger<SalesOrderController> logger,
         AutoPartDbContext dbContext)
     {
@@ -44,6 +51,9 @@ public class SalesOrderController : ControllerBase
         _stockLevelRepository = stockLevelRepository;
         _customerPaymentRepository = customerPaymentRepository;
         _codeGenerateService = codeGenerateService;
+        _unitConversionService = unitConversionService;
+        _warrantyService = warrantyService;
+        _currentUserService = currentUserService;
         _logger = logger;
         _dbContext = dbContext;
     }
@@ -198,20 +208,61 @@ public class SalesOrderController : ControllerBase
             int lineNumber = 1;
             foreach (var lineRequest in request.Lines)
             {
+                // Get part to determine base unit
+                var part = await _dbContext.Parts
+                    .FirstOrDefaultAsync(p => p.Id == lineRequest.PartId && !p.Isdeleted, cancellationToken);
+
+                if (part == null)
+                    return BadRequest(new { message = $"Part with ID {lineRequest.PartId} not found" });
+
+                // Calculate quantity in base unit
+                int quantityInBaseUnit = lineRequest.Quantity;
+                Guid? unitId = lineRequest.UnitId;
+
+                // If unitId is provided and part has no base unit, just use the provided unit
+                if (unitId.HasValue && !part.UnitId.HasValue)
+                {
+                    // Part has no base unit, use provided unit and quantity as-is
+                    quantityInBaseUnit = lineRequest.Quantity;
+                }
+                // If unitId is provided and different from part's base unit, convert
+                else if (unitId.HasValue && part.UnitId.HasValue && unitId.Value != part.UnitId.Value)
+                {
+                    try
+                    {
+                        quantityInBaseUnit = await _unitConversionService.ConvertQuantityAsync(
+                            lineRequest.Quantity,
+                            unitId.Value,
+                            part.UnitId.Value,
+                            cancellationToken);
+                    }
+                    catch (InvalidOperationException ex)
+                    {
+                        return BadRequest(new { message = $"Unit conversion not configured: {ex.Message}" });
+                    }
+                }
+                else if (!unitId.HasValue)
+                {
+                    // If no unit specified, use part's base unit
+                    unitId = part.UnitId;
+                }
+
                 var line = SalesOrderLine.Create(
                     order.Id,
                     lineRequest.PartId,
                     lineRequest.Quantity,
                     lineRequest.UnitPrice,
                     lineNumber,
-                    lineRequest.Discount
+                    unitId: unitId,
+                    quantityInBaseUnit: quantityInBaseUnit,
+                    discount: lineRequest.Discount
                 );
                 order.LineItems.Add(line);
                 lineNumber++;
             }
 
-            order.CreatedBy = "System";
-            order.ModifiedBy = "System";
+            order.CreatedBy = _currentUserService.GetCurrentUsername();
+            order.ModifiedBy = _currentUserService.GetCurrentUsername();
 
             await _codeGenerateService.SaveGenerateCodeAsync("SO", cancellationToken);
             await _salesOrderRepository.AddAsync(order, cancellationToken);
@@ -237,7 +288,7 @@ public class SalesOrderController : ControllerBase
             var order = await _salesOrderRepository.GetByIdAsync(id, cancellationToken);
             if (order is null) return NotFound(new { message = "Sales order not found" });
 
-            order.ModifiedBy = "System";
+            order.ModifiedBy = _currentUserService.GetCurrentUsername();
             await _salesOrderRepository.UpdateAsync(order, cancellationToken);
 
             return Ok(MapToSalesOrderResponse(order));
@@ -266,7 +317,7 @@ public class SalesOrderController : ControllerBase
             foreach (var line in order.LineItems)
             {
                 var stockLevel = await _stockLevelRepository.GetByPartAndWarehouseAsync(line.PartId, warehouseId, cancellationToken);
-                if (stockLevel == null || stockLevel.QuantityAvailable < line.Quantity)
+                if (stockLevel == null || stockLevel.QuantityAvailable < line.QuantityInBaseUnit)
                 {
                     var part = await _partRepository.GetByIdAsync(line.PartId, cancellationToken);
                     return BadRequest(new { message = $"Insufficient stock for part: {part?.Name ?? line.PartId.ToString()}" });
@@ -279,21 +330,21 @@ public class SalesOrderController : ControllerBase
                 var stockLevel = await _stockLevelRepository.GetByPartAndWarehouseAsync(line.PartId, warehouseId, cancellationToken);
                 if (stockLevel != null)
                 {
-                    stockLevel.ReserveStock(line.Quantity);
-                    stockLevel.RemoveStock(line.Quantity, $"Sales Order {order.SONumber}");
-                    stockLevel.ModifiedBy = "System";
+                    stockLevel.ReserveStock(line.QuantityInBaseUnit);
+                    stockLevel.RemoveStock(line.QuantityInBaseUnit, $"Sales Order {order.SONumber}");
+                    stockLevel.ModifiedBy = _currentUserService.GetCurrentUsername();
                     await _stockLevelRepository.UpdateAsync(stockLevel, cancellationToken);
 
                     // Create stock movement record
                     var stockMovement = StockMovement.Create(
                         stockLevel.Id,
                         "OUT",
-                        line.Quantity,
+                        line.QuantityInBaseUnit,
                         $"Sales Order {order.SONumber}",
                         order.SONumber
                     );
-                    stockMovement.CreatedBy = "System";
-                    stockMovement.ModifiedBy = "System";
+                    stockMovement.CreatedBy = _currentUserService.GetCurrentUsername();
+                    stockMovement.ModifiedBy = _currentUserService.GetCurrentUsername();
                     await _dbContext.StockMovements.AddAsync(stockMovement, cancellationToken);
 
                     // Create stock lot movement if using lot tracking
@@ -314,7 +365,7 @@ public class SalesOrderController : ControllerBase
 
                             int qtyToDeduct = Math.Min(lot.QuantityAvailable, remainingQty);
                             lot.RemoveStock(qtyToDeduct, $"Sales Order {order.SONumber}");
-                            lot.ModifiedBy = "System";
+                            lot.ModifiedBy = _currentUserService.GetCurrentUsername();
 
                             // Create lot movement
                             var lotMovement = StockLotMovement.Create(
@@ -327,8 +378,8 @@ public class SalesOrderController : ControllerBase
                                 lot.CostPrice,
                                 $"Sales Order {order.SONumber}"
                             );
-                            lotMovement.CreatedBy = "System";
-                            lotMovement.ModifiedBy = "System";
+                            lotMovement.CreatedBy = _currentUserService.GetCurrentUsername();
+                            lotMovement.ModifiedBy = _currentUserService.GetCurrentUsername();
                             await _dbContext.StockLotMovements.AddAsync(lotMovement, cancellationToken);
 
                             remainingQty -= qtyToDeduct;
@@ -343,9 +394,35 @@ public class SalesOrderController : ControllerBase
             }
 
             order.Confirm();
-            order.ModifiedBy = "System";
+            order.ModifiedBy = _currentUserService.GetCurrentUsername();
             await _salesOrderRepository.UpdateAsync(order, cancellationToken);
             await _dbContext.SaveChangesAsync(cancellationToken);
+
+            // Auto-create warranty registrations for parts with warranty
+            try
+            {
+                foreach (var line in order.LineItems)
+                {
+                    var part = await _partRepository.GetByIdAsync(line.PartId, cancellationToken);
+                    if (part != null && part.HasWarranty && part.WarrantyPeriodMonths.HasValue)
+                    {
+                        await _warrantyService.CreateWarrantyForSalesOrderLineAsync(
+                            line,
+                            order.Id,
+                            order.CustomerId,
+                            order.SODate,
+                            cancellationToken);
+
+                        _logger.LogInformation("Created warranty registration for part {PartName} in order {SONumber}",
+                            part.Name, order.SONumber);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not create warranty registrations for SO {SOId}. Warranties can be created manually.", id);
+                // Continue execution - warranty creation failure should not block order confirmation
+            }
 
             return Ok(MapToSalesOrderResponse(order));
         }
@@ -464,8 +541,8 @@ public class SalesOrderController : ControllerBase
                 request.DueDate,
                 request.Notes
             );
-            invoice.CreatedBy = "System";
-            invoice.ModifiedBy = "System";
+            invoice.CreatedBy = _currentUserService.GetCurrentUsername();
+            invoice.ModifiedBy = _currentUserService.GetCurrentUsername();
 
             await _invoiceRepository.AddAsync(invoice, cancellationToken);
 
@@ -533,11 +610,11 @@ public class SalesOrderController : ControllerBase
             if (customer is null) return NotFound(new { message = "Customer not found" });
 
             invoice.Issue();
-            invoice.ModifiedBy = "System";
+            invoice.ModifiedBy = _currentUserService.GetCurrentUsername();
 
             // Increase customer balance (invoice increases debt)
             customer.UpdateBalance(invoice.GrandTotal);
-            customer.ModifiedBy = "System";
+            customer.ModifiedBy = _currentUserService.GetCurrentUsername();
 
             await _invoiceRepository.UpdateAsync(invoice, cancellationToken);
             await _customerRepository.UpdateAsync(customer, cancellationToken);
@@ -582,40 +659,75 @@ public class SalesOrderController : ControllerBase
             // Link to invoice
             payment.LinkToInvoice(invoice.Id);
 
-            // Mark as completed
-            payment.MarkAsCompleted();
+            payment.CreatedBy = _currentUserService.GetCurrentUsername();
+            payment.ModifiedBy = _currentUserService.GetCurrentUsername();
 
-            // Save payment
-            payment.CreatedBy = "System";
-            payment.ModifiedBy = "System";
-            await _customerPaymentRepository.AddAsync(payment, cancellationToken);
+            // Get customer to update balance
+            var customer = await _customerRepository.GetByIdAsync(invoice.SalesOrder.CustomerId, cancellationToken);
+            if (customer is null)
+                return NotFound(new { message = "Customer not found" });
 
-            // Reload invoice with payments to calculate AmountPaid correctly
-            invoice = await _dbContext.Invoices
-                .Include(i => i.CustomerPayments)
-                .Include(i => i.SalesOrder)
-                .FirstOrDefaultAsync(i => i.Id == id, cancellationToken);
-
-            // Update invoice status based on payments
-            invoice!.UpdatePaymentStatus();
-            invoice.ModifiedBy = "System";
-            await _invoiceRepository.UpdateAsync(invoice, cancellationToken);
-
-            // Update sales order paid amount
-            var salesOrder = await _salesOrderRepository.GetByIdAsync(invoice.SalesOrderId, cancellationToken);
-            if (salesOrder != null)
+            // If payment method is CASH, automatically mark as completed and update customer balance
+            if (request.PaymentMethod?.Trim().ToUpper() == "CASH")
             {
-                salesOrder.RecordPayment(request.Amount);
-                salesOrder.ModifiedBy = "System";
-                await _salesOrderRepository.UpdateAsync(salesOrder, cancellationToken);
+                // Mark as completed
+                payment.MarkAsCompleted();
+
+                // Decrease customer balance (negative because payment reduces debt)
+                customer.UpdateBalance(-request.Amount);
+                customer.ModifiedBy = _currentUserService.GetCurrentUsername();
+
+                await _customerPaymentRepository.AddAsync(payment, cancellationToken);
+                await _customerRepository.UpdateAsync(customer, cancellationToken);
+
+                // Reload invoice with payments to calculate AmountPaid correctly
+                invoice = await _dbContext.Invoices
+                    .Include(i => i.CustomerPayments)
+                    .Include(i => i.SalesOrder)
+                    .FirstOrDefaultAsync(i => i.Id == id, cancellationToken);
+
+                // Update invoice status based on payments
+                invoice!.UpdatePaymentStatus();
+                invoice.ModifiedBy = _currentUserService.GetCurrentUsername();
+                await _invoiceRepository.UpdateAsync(invoice, cancellationToken);
+
+                // Update sales order paid amount
+                var salesOrder = await _salesOrderRepository.GetByIdAsync(invoice.SalesOrderId, cancellationToken);
+                if (salesOrder != null)
+                {
+                    salesOrder.RecordPayment(request.Amount);
+                    salesOrder.ModifiedBy = _currentUserService.GetCurrentUsername();
+                    await _salesOrderRepository.UpdateAsync(salesOrder, cancellationToken);
+                }
+            }
+            else
+            {
+                // For CHECK, BANK_TRANSFER, etc., keep as PENDING until manually marked as complete
+                // Customer balance will be updated when payment is marked as completed via the MarkCompleted endpoint
+                await _customerPaymentRepository.AddAsync(payment, cancellationToken);
+            }
+
+            // Reload invoice if not already reloaded (for non-cash payments)
+            if (request.PaymentMethod?.Trim().ToUpper() != "CASH")
+            {
+                invoice = await _dbContext.Invoices
+                    .Include(i => i.CustomerPayments)
+                    .Include(i => i.SalesOrder)
+                    .FirstOrDefaultAsync(i => i.Id == id, cancellationToken);
             }
 
             return Ok(new
             {
                 PaymentId = payment.Id,
-                InvoiceStatus = invoice.Status,
+                PaymentStatus = payment.Status,
+                PaymentMethod = payment.PaymentMethod,
+                InvoiceStatus = invoice!.Status,
                 AmountPaid = invoice.AmountPaid,
                 OutstandingAmount = invoice.OutstandingAmount,
+                CustomerBalance = customer.CurrentBalance,
+                Message = payment.Status == "COMPLETED"
+                    ? "Payment completed and customer balance updated"
+                    : "Payment created as PENDING. Mark as completed to update customer balance.",
                 Invoice = MapToInvoiceResponse(invoice)
             });
         }
@@ -648,6 +760,7 @@ public class SalesOrderController : ControllerBase
                 request.SalesOrderId,
                 null,  // InvoiceId - optional
                 request.Reason,
+                request.WarehouseId,
                 null,  // ReturnDate - will default to now
                 request.Notes
             );
@@ -667,8 +780,8 @@ public class SalesOrderController : ControllerBase
                 salesReturn.LineItems.Add(line);
             }
 
-            salesReturn.CreatedBy = "System";
-            salesReturn.ModifiedBy = "System";
+            salesReturn.CreatedBy = _currentUserService.GetCurrentUsername();
+            salesReturn.ModifiedBy = _currentUserService.GetCurrentUsername();
 
             await _salesReturnRepository.AddAsync(salesReturn, cancellationToken);
 
@@ -711,7 +824,7 @@ public class SalesOrderController : ControllerBase
             if (salesReturn is null) return NotFound(new { message = "Sales return not found" });
 
             salesReturn.Approve("Manager");
-            salesReturn.ModifiedBy = "System";
+            salesReturn.ModifiedBy = _currentUserService.GetCurrentUsername();
             await _salesReturnRepository.UpdateAsync(salesReturn, cancellationToken);
 
             return Ok(MapToSalesReturnResponse(salesReturn));
@@ -738,6 +851,7 @@ public class SalesOrderController : ControllerBase
             CustomerEmail = order.CustomerEmail,
             CustomerPhone = order.CustomerPhone,
             CustomerCity = order.DeliveryAddress,
+            WarehouseId = order.WarehouseId,
             TechnicianId = order.TechnicianId,
             TechnicianName = order.TechnicianName,
             OrderDate = order.SODate,
@@ -755,8 +869,15 @@ public class SalesOrderController : ControllerBase
             {
                 Id = l.Id,
                 PartId = l.PartId,
+                PartName = l.Part?.Name ?? string.Empty,
+                PartSku = l.Part?.SKU ?? string.Empty,
+                UnitId = l.UnitId,
+                UnitName = l.Unit?.Name ?? string.Empty,
+                UnitSymbol = l.Unit?.Symbol ?? string.Empty,
                 Quantity = l.Quantity,
+                QuantityInBaseUnit = l.QuantityInBaseUnit,
                 ShippedQuantity = l.ShippedQuantity,
+                ShippedQuantityInBaseUnit = l.ShippedQuantityInBaseUnit,
                 UnitPrice = l.UnitPrice,
                 Discount = l.Discount,
                 LineTotal = l.TotalPrice
@@ -912,6 +1033,45 @@ public class SalesOrderController : ControllerBase
             int lineNumber = 1;
             foreach (var item in request.Items)
             {
+                // Get part to determine base unit
+                var part = await _dbContext.Parts
+                    .FirstOrDefaultAsync(p => p.Id == item.PartId && !p.Isdeleted, cancellationToken);
+
+                if (part == null)
+                    return BadRequest(new { message = $"Part with ID {item.PartId} not found" });
+
+                // Calculate quantity in base unit
+                int quantityInBaseUnit = item.Quantity;
+                Guid? unitId = item.UnitId;
+
+                // If unitId is provided and part has no base unit, just use the provided unit
+                if (unitId.HasValue && !part.UnitId.HasValue)
+                {
+                    // Part has no base unit, use provided unit and quantity as-is
+                    quantityInBaseUnit = item.Quantity;
+                }
+                // If unitId is provided and different from part's base unit, convert
+                else if (unitId.HasValue && part.UnitId.HasValue && unitId.Value != part.UnitId.Value)
+                {
+                    try
+                    {
+                        quantityInBaseUnit = await _unitConversionService.ConvertQuantityAsync(
+                            item.Quantity,
+                            unitId.Value,
+                            part.UnitId.Value,
+                            cancellationToken);
+                    }
+                    catch (InvalidOperationException ex)
+                    {
+                        return BadRequest(new { message = $"Unit conversion not configured: {ex.Message}" });
+                    }
+                }
+                else if (!unitId.HasValue)
+                {
+                    // If no unit specified, use part's base unit
+                    unitId = part.UnitId;
+                }
+
                 var discountPerUnit = (item.UnitPrice * item.Discount) / 100;
                 var salesOrderLine = SalesOrderLine.Create(
                     salesOrder.Id,
@@ -919,8 +1079,10 @@ public class SalesOrderController : ControllerBase
                     item.Quantity,
                     item.UnitPrice,
                     lineNumber++,
-                    discountPerUnit,
-                    item.PartName
+                    unitId: unitId,
+                    quantityInBaseUnit: quantityInBaseUnit,
+                    discount: discountPerUnit,
+                    description: item.PartName
                 );
                 salesOrder.LineItems.Add(salesOrderLine);
             }
@@ -929,13 +1091,42 @@ public class SalesOrderController : ControllerBase
             salesOrder.CalculateTotal();
             salesOrder.SetTax(request.VatAmount);
 
-            // Confirm the order immediately
-            salesOrder.Confirm();
-            salesOrder.CreatedBy = "System";
-            salesOrder.ModifiedBy = "System";
+            // If SaveAsQuotation = true, keep as DRAFT. Otherwise, confirm the order
+            if (!request.SaveAsQuotation)
+            {
+                salesOrder.Confirm();
+            }
+            salesOrder.CreatedBy = _currentUserService.GetCurrentUsername();
+            salesOrder.ModifiedBy = _currentUserService.GetCurrentUsername();
 
             // Save sales order
             await _salesOrderRepository.AddAsync(salesOrder, cancellationToken);
+
+            // If quotation, skip invoice creation, stock updates, and payments - just return the quotation
+            if (request.SaveAsQuotation)
+            {
+                return Ok(new QuickSaleResponse
+                {
+                    Id = Guid.NewGuid(), // No invoice for quotations
+                    InvoiceNumber = "", // No invoice number
+                    SalesOrderId = salesOrder.Id,
+                    SalesOrderNumber = salesOrder.SONumber,
+                    CustomerId = request.CustomerId,
+                    CustomerName = request.CustomerName,
+                    TechnicianId = request.TechnicianId,
+                    TechnicianName = request.TechnicianName,
+                    PaymentResponsibility = request.PaymentResponsibility,
+                    Subtotal = request.Subtotal,
+                    DiscountAmount = request.DiscountAmount,
+                    VatAmount = request.VatAmount,
+                    GrandTotal = request.GrandTotal,
+                    PaidAmount = 0,
+                    DueAmount = request.GrandTotal,
+                    Status = "DRAFT",
+                    IsQuotation = true,
+                    CreatedAt = salesOrder.SODate
+                });
+            }
 
             // 6. Create Invoice
             var invoice = Invoice.Create(
@@ -950,14 +1141,74 @@ public class SalesOrderController : ControllerBase
             // Issue invoice immediately
             invoice.Issue();
 
-            invoice.CreatedBy = "System";
-            invoice.ModifiedBy = "System";
+            invoice.CreatedBy = _currentUserService.GetCurrentUsername();
+            invoice.ModifiedBy = _currentUserService.GetCurrentUsername();
 
             // Save invoice
             await _invoiceRepository.AddAsync(invoice, cancellationToken);
 
+            // 6a. Apply Advance Credit if requested
+            decimal advancePaymentAmount = 0;
+            if (request.UseAdvanceBalance && request.AdvanceAmountToApply > 0 && request.CustomerId.HasValue)
+            {
+                try
+                {
+                    // Find the advance payment to use
+                    var advancePayments = await _customerPaymentRepository.GetByCustomerAsync(request.CustomerId.Value, cancellationToken);
+                    var availableAdvance = advancePayments
+                        .Where(p => p.PaymentType == Domain.Entities.CustomerPaymentType.ADVANCE &&
+                                   p.Status == "COMPLETED" &&
+                                   p.RemainingAmount > 0)
+                        .OrderBy(p => p.PaymentDate)
+                        .FirstOrDefault();
+
+                    if (availableAdvance != null && availableAdvance.RemainingAmount >= request.AdvanceAmountToApply)
+                    {
+                        // Create a new payment from the advance
+                        var advancePayment = CustomerPayment.CreateFromAdvance(
+                            request.CustomerId.Value,
+                            invoice.Id,
+                            availableAdvance.Id,
+                            null, // PaymentProviderId
+                            request.AdvanceAmountToApply,
+                            $"Applied from advance {availableAdvance.TransactionNumber} - Quick Sale"
+                        );
+
+                        // Mark as completed since it's from advance
+                        advancePayment.MarkAsCompleted();
+                        advancePayment.MarkAsSettled("System");
+                        advancePayment.CreatedBy = _currentUserService.GetCurrentUsername();
+                        advancePayment.ModifiedBy = _currentUserService.GetCurrentUsername();
+
+                        // Reduce the advance payment's remaining amount
+                        availableAdvance.ReduceRemainingAmount(request.AdvanceAmountToApply);
+                        availableAdvance.ModifiedBy = _currentUserService.GetCurrentUsername();
+
+                        // Save both payments
+                        await _customerPaymentRepository.AddAsync(advancePayment, cancellationToken);
+                        await _customerPaymentRepository.UpdateAsync(availableAdvance, cancellationToken);
+
+                        // Track advance payment amount for later use
+                        advancePaymentAmount = request.AdvanceAmountToApply;
+
+                        _logger.LogInformation("Applied advance credit of {Amount} from payment {TransactionNumber} to invoice {InvoiceNumber}",
+                            request.AdvanceAmountToApply, availableAdvance.TransactionNumber, invoiceNumber);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Could not apply advance credit: insufficient advance balance or no advance payment found for customer {CustomerId}",
+                            request.CustomerId.Value);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error applying advance credit in quick sale for customer {CustomerId}", request.CustomerId.Value);
+                    // Continue with regular payments - don't fail the entire sale
+                }
+            }
+
             // 6b. Create CustomerPayment records and update customer balance
-            decimal totalPaymentAmount = 0;
+            decimal manualPaymentAmount = 0;
             if (request.CustomerId.HasValue && request.CustomerId.Value != Guid.Empty)
             {
                 // Get customer once for all balance updates
@@ -967,7 +1218,13 @@ public class SalesOrderController : ControllerBase
                     // Invoice increases customer balance (debt)
                     customerForBalance.UpdateBalance(invoice.GrandTotal);
 
-                    // Create payment records (SINGLE SOURCE OF TRUTH)
+                    // Decrease customer balance by advance payment (if any)
+                    if (advancePaymentAmount > 0)
+                    {
+                        customerForBalance.UpdateBalance(-advancePaymentAmount);
+                    }
+
+                    // Create manual payment records (SINGLE SOURCE OF TRUTH)
                     if (request.Payments != null && request.Payments.Any())
                     {
                         foreach (var payment in request.Payments.Where(p => p.Amount > 0 && p.Method != "DUE"))
@@ -977,65 +1234,88 @@ public class SalesOrderController : ControllerBase
                                 request.CustomerId.Value,
                                 null, // PaymentProviderId - can be enhanced later
                                 payment.Amount,
-                                payment.Method,
+                                payment.Method ?? "CASH",
                                 transactionNumber,
-                                payment.Reference,
+                                payment.Reference ?? "",
                                 DateTime.UtcNow
                             );
 
                             // Link to invoice
                             customerPayment.LinkToInvoice(invoice.Id);
 
-                            // Complete the payment immediately for quick sale
-                            customerPayment.MarkAsCompleted();
-                            customerPayment.MarkAsSettled("System");
+                            customerPayment.CreatedBy = _currentUserService.GetCurrentUsername();
+                            customerPayment.ModifiedBy = _currentUserService.GetCurrentUsername();
 
-                            customerPayment.CreatedBy = "System";
-                            customerPayment.ModifiedBy = "System";
+                            // CASH payments: Auto-complete and include in balance update
+                            // Other methods: Keep PENDING until manually confirmed
+                            if (payment.Method?.Trim().ToUpper() == "CASH")
+                            {
+                                // Complete the payment immediately for cash
+                                customerPayment.MarkAsCompleted();
+                                customerPayment.MarkAsSettled("System");
+                                manualPaymentAmount += payment.Amount;
+
+                                _logger.LogInformation("Created and completed CASH CustomerPayment {TransactionNumber} for amount {Amount}",
+                                    transactionNumber, payment.Amount);
+                            }
+                            else
+                            {
+                                // Keep as PENDING for CHECK, BANK_TRANSFER, etc.
+                                _logger.LogInformation("Created PENDING CustomerPayment {TransactionNumber} for amount {Amount} via {Method}",
+                                    transactionNumber, payment.Amount, payment.Method);
+                            }
 
                             await _customerPaymentRepository.AddAsync(customerPayment, cancellationToken);
-                            totalPaymentAmount += payment.Amount;
-
-                            _logger.LogInformation("Created CustomerPayment {TransactionNumber} for amount {Amount} via {Method}",
-                                transactionNumber, payment.Amount, payment.Method);
                         }
 
-                        // Decrease customer balance for payments
-                        if (totalPaymentAmount > 0)
+                        // Decrease customer balance only for completed (CASH) manual payments
+                        if (manualPaymentAmount > 0)
                         {
-                            customerForBalance.UpdateBalance(-totalPaymentAmount);
+                            customerForBalance.UpdateBalance(-manualPaymentAmount);
                         }
                     }
 
-                    customerForBalance.ModifiedBy = "System";
+                    customerForBalance.ModifiedBy = _currentUserService.GetCurrentUsername();
                     await _customerRepository.UpdateAsync(customerForBalance, cancellationToken);
+                }
+            }
 
-                    // Reload invoice with customer payments and update status
-                    invoice = await _dbContext.Invoices
-                        .Include(i => i.CustomerPayments)
-                        .FirstOrDefaultAsync(i => i.Id == invoice.Id, cancellationToken);
-                    if (invoice != null)
-                    {
-                        invoice.UpdatePaymentStatus();
-                        invoice.ModifiedBy = "System";
-                        await _invoiceRepository.UpdateAsync(invoice, cancellationToken);
-                    }
+            // 6c. Update invoice payment status and sales order (after ALL payments processed)
+            decimal totalPaymentAmount = advancePaymentAmount + manualPaymentAmount;
 
-                    // Update sales order paid amount
-                    if (totalPaymentAmount > 0)
-                    {
-                        salesOrder.RecordPayment(totalPaymentAmount);
-                        salesOrder.ModifiedBy = "System";
-                        await _salesOrderRepository.UpdateAsync(salesOrder, cancellationToken);
-                    }
+            // Always reload invoice and update status (even if no payments, to set correct initial status)
+            if (request.CustomerId.HasValue)
+            {
+                // Detach current invoice from tracking to force fresh reload
+                _dbContext.Entry(invoice).State = EntityState.Detached;
+
+                // Reload invoice with ALL customer payments and update status
+                var freshInvoice = await _dbContext.Invoices
+                    .Include(i => i.CustomerPayments)
+                    .FirstOrDefaultAsync(i => i.Id == invoice.Id, cancellationToken);
+
+                if (freshInvoice != null)
+                {
+                    freshInvoice.UpdatePaymentStatus();
+                    freshInvoice.ModifiedBy = _currentUserService.GetCurrentUsername();
+                    await _invoiceRepository.UpdateAsync(freshInvoice, cancellationToken);
+                    invoice = freshInvoice; // Update reference for response
+                }
+
+                // Update sales order paid amount with TOTAL (advance + manual)
+                if (totalPaymentAmount > 0)
+                {
+                    salesOrder.RecordPayment(totalPaymentAmount);
+                    salesOrder.ModifiedBy = _currentUserService.GetCurrentUsername();
+                    await _salesOrderRepository.UpdateAsync(salesOrder, cancellationToken);
                 }
             }
 
             // 7. Update stock levels with movement tracking
-            foreach (var item in request.Items)
+            foreach (var line in salesOrder.LineItems)
             {
-                var stockLevels = await _stockLevelRepository.GetByPartAsync(item.PartId, cancellationToken);
-                var remainingQty = item.Quantity;
+                var stockLevels = await _stockLevelRepository.GetByPartAsync(line.PartId, cancellationToken);
+                var remainingQty = line.QuantityInBaseUnit;
 
                 // Decrease from each warehouse that has stock, starting with the one with most stock
                 foreach (var stockLevel in stockLevels.OrderByDescending(sl => sl.QuantityAvailable))
@@ -1046,7 +1326,7 @@ public class SalesOrderController : ControllerBase
                     if (qtyToDecrease > 0)
                     {
                         stockLevel.RemoveStock(qtyToDecrease, "Quick Sale - " + invoiceNumber);
-                        stockLevel.ModifiedBy = "System";
+                        stockLevel.ModifiedBy = _currentUserService.GetCurrentUsername();
                         await _stockLevelRepository.UpdateAsync(stockLevel, cancellationToken);
 
                         // Create stock movement record for audit trail
@@ -1057,15 +1337,15 @@ public class SalesOrderController : ControllerBase
                             $"Quick Sale {invoiceNumber}",
                             invoiceNumber
                         );
-                        stockMovement.CreatedBy = "System";
-                        stockMovement.ModifiedBy = "System";
+                        stockMovement.CreatedBy = _currentUserService.GetCurrentUsername();
+                        stockMovement.ModifiedBy = _currentUserService.GetCurrentUsername();
                         await _dbContext.StockMovements.AddAsync(stockMovement, cancellationToken);
 
                         // Create stock lot movement for FIFO/LIFO tracking
                         try
                         {
                             var stockLots = await _dbContext.StockLots
-                                .Where(l => l.PartId == item.PartId &&
+                                .Where(l => l.PartId == line.PartId &&
                                            l.WarehouseId == stockLevel.WarehouseId &&
                                            l.QuantityAvailable > 0)
                                 .OrderBy(l => l.ReceivingDate) // FIFO
@@ -1078,7 +1358,7 @@ public class SalesOrderController : ControllerBase
 
                                 int qtyFromLot = Math.Min(lot.QuantityAvailable, lotRemainingQty);
                                 lot.RemoveStock(qtyFromLot, $"Quick Sale {invoiceNumber}");
-                                lot.ModifiedBy = "System";
+                                lot.ModifiedBy = _currentUserService.GetCurrentUsername();
 
                                 // Create lot movement
                                 var lotMovement = StockLotMovement.Create(
@@ -1091,8 +1371,8 @@ public class SalesOrderController : ControllerBase
                                     lot.CostPrice,
                                     $"Quick Sale {invoiceNumber}"
                                 );
-                                lotMovement.CreatedBy = "System";
-                                lotMovement.ModifiedBy = "System";
+                                lotMovement.CreatedBy = _currentUserService.GetCurrentUsername();
+                                lotMovement.ModifiedBy = _currentUserService.GetCurrentUsername();
                                 await _dbContext.StockLotMovements.AddAsync(lotMovement, cancellationToken);
 
                                 lotRemainingQty -= qtyFromLot;
@@ -1101,7 +1381,7 @@ public class SalesOrderController : ControllerBase
                         catch (Exception ex)
                         {
                             _logger.LogWarning(ex, "Could not create stock lot movements for quick sale {InvoiceNumber}, part {PartId}",
-                                invoiceNumber, item.PartId);
+                                invoiceNumber, line.PartId);
                             // Continue - stock movement is more important than lot tracking
                         }
 
@@ -1129,6 +1409,7 @@ public class SalesOrderController : ControllerBase
                 PaidAmount = request.PaidAmount,
                 DueAmount = request.DueAmount,
                 Status = "COMPLETED",
+                IsQuotation = false,
                 CreatedAt = DateTime.UtcNow
             };
 

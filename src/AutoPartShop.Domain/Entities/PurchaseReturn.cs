@@ -19,6 +19,13 @@ public class PurchaseReturn : AuditableEntity
     public DateTime? ReceivedDate { get; private set; }  // When supplier received the return
     public string ReceivedBy { get; private set; } = string.Empty;
 
+    // Settlement tracking fields - for financial reconciliation
+    public string SettlementStatus { get; private set; } = "PENDING";  // PENDING, SETTLED
+    public decimal SettledAmount { get; private set; } = 0;
+    public DateTime? SettledDate { get; private set; }
+    public string SettlementMethod { get; private set; } = string.Empty;  // CREDIT, CASH, BANK_TRANSFER
+    public string SettlementNotes { get; private set; } = string.Empty;
+
     // Navigation properties
     public PurchaseOrder? PurchaseOrder { get; set; }
     public Supplier? Supplier { get; set; }
@@ -97,6 +104,14 @@ public class PurchaseReturn : AuditableEntity
 
         CreditNoteAmount = creditAmount;
         Status = "CREDITED";
+
+        // Issuing a credit note IS the financial settlement (CREDIT method)
+        // This reduces the supplier balance in the ledger
+        SettlementStatus = "SETTLED";
+        SettledAmount = creditAmount;
+        SettledDate = DateTime.UtcNow;
+        SettlementMethod = "CREDIT";
+        SettlementNotes = $"Credit note issued for {creditAmount:C}";
     }
 
     public void Reject(string reason = "")
@@ -114,4 +129,36 @@ public class PurchaseReturn : AuditableEntity
     {
         Notes = notes?.Trim() ?? string.Empty;
     }
+
+    /// <summary>
+    /// Settle the return with the supplier - records the financial settlement
+    /// </summary>
+    /// <param name="amount">Amount being settled</param>
+    /// <param name="method">Settlement method: CREDIT, CASH, BANK_TRANSFER</param>
+    /// <param name="notes">Optional settlement notes</param>
+    public void SettleReturn(decimal amount, string method, string notes = "")
+    {
+        if (Status != "RETURNED" && Status != "RECEIVED" && Status != "CREDITED")
+            throw new InvalidOperationException("Only returned, received, or credited returns can be settled");
+
+        if (amount <= 0)
+            throw new ArgumentException("Settlement amount must be greater than 0", nameof(amount));
+
+        if (amount > RefundAmount)
+            throw new InvalidOperationException("Settlement amount cannot exceed refund amount");
+
+        if (string.IsNullOrWhiteSpace(method))
+            throw new ArgumentException("Settlement method cannot be empty", nameof(method));
+
+        SettlementStatus = "SETTLED";
+        SettledAmount = amount;
+        SettledDate = DateTime.UtcNow;
+        SettlementMethod = method.Trim().ToUpper();
+        SettlementNotes = notes?.Trim() ?? string.Empty;
+    }
+
+    /// <summary>
+    /// Check if this return has been financially settled
+    /// </summary>
+    public bool IsSettled => SettlementStatus == "SETTLED";
 }

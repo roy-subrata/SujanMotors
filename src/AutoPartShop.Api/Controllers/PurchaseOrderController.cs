@@ -1,5 +1,6 @@
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.PurchaseOrderDtos;
+using AutoPartShop.Application.PurchaseOrders;
 using AutoPartShop.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
 
@@ -12,22 +13,37 @@ namespace AutoPartShop.Api.Controllers;
 public class PurchaseOrderController : ControllerBase
 {
     private readonly IPurchaseOrderRepository _purchaseOrderRepository;
+    private readonly IPurchaseOrderReadRepository _purchaseOrderReadRepository;
     private readonly IGoodsReceiptRepository _goodsReceiptRepository;
+    private readonly ISupplierRepository _supplierRepository;
+    private readonly IPartRepository _partRepository;
     private readonly StockManagementService _stockManagementService;
+    private readonly IUnitConversionService _unitConversionService;
     private readonly ILogger<PurchaseOrderController> _logger;
     private readonly ICodeGenerateService _codeGenerateService;
+    private readonly ICurrentUserService _currentUserService;
 
     public PurchaseOrderController(
         IPurchaseOrderRepository purchaseOrderRepository,
+        IPurchaseOrderReadRepository purchaseOrderReadRepository,
         IGoodsReceiptRepository goodsReceiptRepository,
+        ISupplierRepository supplierRepository,
+        IPartRepository partRepository,
         StockManagementService stockManagementService,
+        IUnitConversionService unitConversionService,
         ICodeGenerateService codeGenerateService,
+        ICurrentUserService currentUserService,
         ILogger<PurchaseOrderController> logger)
     {
         _purchaseOrderRepository = purchaseOrderRepository;
         _goodsReceiptRepository = goodsReceiptRepository;
+        _supplierRepository = supplierRepository;
+        _partRepository = partRepository;
         _stockManagementService = stockManagementService;
+        _unitConversionService = unitConversionService;
         _codeGenerateService = codeGenerateService;
+        _currentUserService = currentUserService;
+        _purchaseOrderReadRepository = purchaseOrderReadRepository;
         _logger = logger;
     }
 
@@ -47,25 +63,13 @@ public class PurchaseOrderController : ControllerBase
         }
     }
 
-    [HttpGet("list")]
-    public async Task<IActionResult> GetList(int pageNumber = 1, int pageSize = 10, string? searchTerm = null, CancellationToken cancellationToken = default)
+    [HttpPost("list")]
+    public async Task<IActionResult> GetList(PurcahseQueryDto query, CancellationToken cancellationToken = default)
     {
         try
         {
-            if (pageNumber < 1) pageNumber = 1;
-            if (pageSize < 1) pageSize = 10;
-            if (pageSize > 100) pageSize = 100;
-
-            var (orders, totalCount) = string.IsNullOrWhiteSpace(searchTerm)
-                ? await _purchaseOrderRepository.GetPagedAsync(pageNumber, pageSize, cancellationToken)
-                : await _purchaseOrderRepository.SearchPagedAsync(searchTerm, pageNumber, pageSize, cancellationToken);
-
-            var response = orders.Select(MapToPurchaseOrderResponse);
-            return Ok(new
-            {
-                data = response,
-                pagination = new { pageNumber, pageSize, totalCount, totalPages = (int)Math.Ceiling(totalCount / (double)pageSize) }
-            });
+            var response = await _purchaseOrderReadRepository.GetPurchaseOrderAsync(query, cancellationToken);
+            return Ok(response);
         }
         catch (Exception ex)
         {
@@ -79,10 +83,10 @@ public class PurchaseOrderController : ControllerBase
     {
         try
         {
-            var order = await _purchaseOrderRepository.GetByIdAsync(id, cancellationToken);
+            var order = await _purchaseOrderReadRepository.GetPurchaseOrderByIdAsync(id, cancellationToken);
             if (order is null) return NotFound(new { message = "Purchase order not found" });
 
-            return Ok(MapToPurchaseOrderResponse(order));
+            return Ok(order);
         }
         catch (Exception ex)
         {
@@ -169,7 +173,8 @@ public class PurchaseOrderController : ControllerBase
                 request.SupplierId,
                 null,  // warehouseId - optional
                 request.DeliveryDate,
-                request.Notes
+                request.Notes,
+                request.Currency
             );
 
             // Set tax and discount percentages
@@ -182,12 +187,52 @@ public class PurchaseOrderController : ControllerBase
                 int lineNumber = 1;
                 foreach (var lineRequest in request.LineItems)
                 {
+                    // Get part to determine base unit using repository
+                    var part = await _partRepository.GetByIdAsync(lineRequest.PartId, cancellationToken);
+
+                    if (part == null)
+                        return BadRequest(new { message = $"Part with ID {lineRequest.PartId} not found" });
+
+                    // Calculate quantity in base unit
+                    int quantityInBaseUnit = lineRequest.Quantity;
+                    Guid? unitId = lineRequest.UnitId;
+
+                    // If unitId is provided and part has no base unit, just use the provided unit
+                    if (unitId.HasValue && !part.UnitId.HasValue)
+                    {
+                        // Part has no base unit, use provided unit and quantity as-is
+                        quantityInBaseUnit = lineRequest.Quantity;
+                    }
+                    // If unitId is provided and different from part's base unit, convert
+                    else if (unitId.HasValue && part.UnitId.HasValue && unitId.Value != part.UnitId.Value)
+                    {
+                        try
+                        {
+                            quantityInBaseUnit = await _unitConversionService.ConvertQuantityAsync(
+                                lineRequest.Quantity,
+                                unitId.Value,
+                                part.UnitId.Value,
+                                cancellationToken);
+                        }
+                        catch (InvalidOperationException ex)
+                        {
+                            return BadRequest(new { message = $"Unit conversion not configured: {ex.Message}" });
+                        }
+                    }
+                    else if (!unitId.HasValue)
+                    {
+                        // If no unit specified, use part's base unit
+                        unitId = part.UnitId;
+                    }
+
                     var line = PurchaseOrderLine.Create(
                         order.Id,
                         lineRequest.PartId,
                         lineRequest.Quantity,
                         lineRequest.UnitPrice,
-                        lineNumber++
+                        lineNumber++,
+                        unitId,
+                        quantityInBaseUnit
                     );
                     order.LineItems.Add(line);
                 }
@@ -196,13 +241,17 @@ public class PurchaseOrderController : ControllerBase
             // Calculate totals based on line items and tax/discount
             order.CalculateTotal();
 
-            order.CreatedBy = "System";
-            order.ModifiedBy = "System";
+            var currentUser = _currentUserService.GetCurrentUsername();
+            order.CreatedBy = currentUser;
+            order.ModifiedBy = currentUser;
 
             await _purchaseOrderRepository.AddAsync(order, cancellationToken);
             await _codeGenerateService.SaveGenerateCodeAsync("PO", cancellationToken);
 
-            return CreatedAtAction(nameof(GetById), new { id = order.Id }, MapToPurchaseOrderResponse(order));
+            // Reload the order with navigation properties using repository
+            var createdOrder = await _purchaseOrderReadRepository.GetPurchaseOrderByIdAsync(order.Id, cancellationToken);
+
+            return CreatedAtAction(nameof(GetById), new { id = order.Id }, createdOrder);
         }
         catch (ArgumentException ex)
         {
@@ -216,47 +265,87 @@ public class PurchaseOrderController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
-    public async Task<IActionResult> Update(Guid id, CreatePurchaseOrderRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Update(Guid id, UpdatePurchaseOrderRequest request, CancellationToken cancellationToken)
     {
         try
         {
+            // Get existing order with line items
             var order = await _purchaseOrderRepository.GetByIdAsync(id, cancellationToken);
-            if (order is null) return NotFound(new { message = "Purchase order not found" });
+            if (order is null)
+                return NotFound(new { message = "Purchase order not found" });
 
-            // Update tax and discount percentages
-            order.SetTaxPercentage(request.TaxPercentage);
-            order.SetDiscountPercentage(request.DiscountPercentage);
-
-            // Update line items if provided
-            if (request.LineItems?.Any() == true)
+            // Prepare line item data with unit conversion (application concern)
+            var lineItemDataList = new List<LineItemData>();
+            foreach (var lineRequest in request.LineItems)
             {
-                // Clear existing line items
-                order.LineItems.Clear();
+                // Get part to determine base unit using repository
+                var part = await _partRepository.GetByIdAsync(lineRequest.PartId, cancellationToken);
+                if (part == null)
+                    return BadRequest(new { message = $"Part with ID {lineRequest.PartId} not found" });
 
-                // Add new line items
-                int lineNumber = 1;
-                foreach (var lineRequest in request.LineItems)
+                // Calculate quantity in base unit
+                int quantityInBaseUnit = lineRequest.Quantity;
+                Guid? unitId = lineRequest.UnitId;
+
+                // Handle unit conversion
+                if (unitId.HasValue && !part.UnitId.HasValue)
                 {
-                    var line = PurchaseOrderLine.Create(
-                        order.Id,
-                        lineRequest.PartId,
-                        lineRequest.Quantity,
-                        lineRequest.UnitPrice,
-                        lineNumber++
-                    );
-                    order.LineItems.Add(line);
+                    quantityInBaseUnit = lineRequest.Quantity;
                 }
+                else if (unitId.HasValue && part.UnitId.HasValue && unitId.Value != part.UnitId.Value)
+                {
+                    try
+                    {
+                        quantityInBaseUnit = await _unitConversionService.ConvertQuantityAsync(
+                            lineRequest.Quantity,
+                            unitId.Value,
+                            part.UnitId.Value,
+                            cancellationToken);
+                    }
+                    catch (InvalidOperationException ex)
+                    {
+                        return BadRequest(new { message = $"Unit conversion not configured: {ex.Message}" });
+                    }
+                }
+                else if (!unitId.HasValue)
+                {
+                    unitId = part.UnitId;
+                }
+
+                lineItemDataList.Add(new LineItemData(
+                    lineRequest.Id,
+                    lineRequest.PartId,
+                    lineRequest.Quantity,
+                    lineRequest.UnitPrice,
+                    unitId,
+                    quantityInBaseUnit
+                ));
             }
 
-            // Recalculate totals
-            order.CalculateTotal();
+            // Update order properties
+            order.SetTaxPercentage(request.TaxPercentage);
+            order.SetDiscountPercentage(request.DiscountPercentage);
+            order.UpdateNotes(request.Notes);
+            order.UpdateExpectedDeliveryDate(request.DeliveryDate);
 
-            order.ModifiedBy = "System";
+            // Domain handles line item sync (business logic)
+            order.SyncLineItems(lineItemDataList);
+
+            order.ModifiedBy = _currentUserService.GetCurrentUsername();
+
+            // Repository handles persistence (EF change tracking does the rest)
             await _purchaseOrderRepository.UpdateAsync(order, cancellationToken);
 
-            return Ok(MapToPurchaseOrderResponse(order));
+            // Reload for response
+            var updatedOrder = await _purchaseOrderReadRepository.GetPurchaseOrderByIdAsync(order.Id, cancellationToken);
+
+            return Ok(updatedOrder);
         }
         catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
         {
             return BadRequest(new { message = ex.Message });
         }
@@ -276,7 +365,7 @@ public class PurchaseOrderController : ControllerBase
             if (order is null) return NotFound(new { message = "Purchase order not found" });
 
             order.Submit();
-            order.ModifiedBy = "System";
+            order.ModifiedBy = _currentUserService.GetCurrentUsername();
             await _purchaseOrderRepository.UpdateAsync(order, cancellationToken);
 
             return Ok(MapToPurchaseOrderResponse(order));
@@ -300,9 +389,16 @@ public class PurchaseOrderController : ControllerBase
             var order = await _purchaseOrderRepository.GetByIdAsync(id, cancellationToken);
             if (order is null) return NotFound(new { message = "Purchase order not found" });
 
-            order.Confirm("Manager");  // System approver
-            order.ModifiedBy = "System";
+            var currentUser = _currentUserService.GetCurrentUsername();
+            order.Confirm(currentUser);  // Approver
+            order.ModifiedBy = currentUser;
             await _purchaseOrderRepository.UpdateAsync(order, cancellationToken);
+
+            // NOTE: Supplier balance is NOT updated here.
+            // Balance is now calculated from transactions via SupplierLedgerService.
+            // The confirmed PO automatically contributes to the calculated balance.
+            _logger.LogInformation("Purchase order {PONumber} confirmed. Amount: {Amount}. Balance calculated from transactions.",
+                order.PONumber, order.TotalAmount);
 
             return Ok(MapToPurchaseOrderResponse(order));
         }
@@ -325,9 +421,25 @@ public class PurchaseOrderController : ControllerBase
             var order = await _purchaseOrderRepository.GetByIdAsync(id, cancellationToken);
             if (order is null) return NotFound(new { message = "Purchase order not found" });
 
+            // Track if order was confirmed before cancellation (for balance reversal)
+            bool wasConfirmed = order.Status == "CONFIRMED";
+            decimal orderTotal = order.TotalAmount;
+            Guid supplierId = order.SupplierId;
+
+            var currentUser = _currentUserService.GetCurrentUsername();
             order.Cancel();
-            order.ModifiedBy = "System";
+            order.ModifiedBy = currentUser;
             await _purchaseOrderRepository.UpdateAsync(order, cancellationToken);
+
+            // IMPORTANT: Reverse supplier balance if order was confirmed
+            // NOTE: Supplier balance is NOT updated here.
+            // Balance is now calculated from transactions via SupplierLedgerService.
+            // Cancelled POs are excluded from the calculated balance.
+            if (wasConfirmed)
+            {
+                _logger.LogInformation("Purchase order {PONumber} cancelled. Amount: {Amount}. Balance calculated from transactions.",
+                    order.PONumber, orderTotal);
+            }
 
             return Ok(MapToPurchaseOrderResponse(order));
         }
@@ -380,8 +492,9 @@ public class PurchaseOrderController : ControllerBase
                 request.WarehouseId,
                 request.ReceivedDate
             );
-            grn.CreatedBy = "System";
-            grn.ModifiedBy = "System";
+            var currentUser = _currentUserService.GetCurrentUsername();
+            grn.CreatedBy = currentUser;
+            grn.ModifiedBy = currentUser;
 
             // Set delivery information if provided
             if (request.DeliveryDate.HasValue || !string.IsNullOrEmpty(request.DeliveryReference))
@@ -542,7 +655,7 @@ public class PurchaseOrderController : ControllerBase
                 return NotFound(new { message = "Purchase order not found" });
 
             // Update basic GRN info
-            grn.ModifiedBy = "System";
+            grn.ModifiedBy = _currentUserService.GetCurrentUsername();
 
             // Clear and repopulate line items
             grn.LineItems.Clear();
@@ -602,7 +715,7 @@ public class PurchaseOrderController : ControllerBase
             if (grn is null) return NotFound(new { message = "Goods receipt not found" });
 
             grn.Verify(verifiedBy);
-            grn.ModifiedBy = "System";
+            grn.ModifiedBy = _currentUserService.GetCurrentUsername();
             await _goodsReceiptRepository.UpdateAsync(grn, cancellationToken);
 
             return Ok(MapToGoodsReceiptResponse(grn));
@@ -634,7 +747,7 @@ public class PurchaseOrderController : ControllerBase
 
             // Update GRN status to accepted
             grn.Accept();
-            grn.ModifiedBy = "System";
+            grn.ModifiedBy = _currentUserService.GetCurrentUsername();
             await _goodsReceiptRepository.UpdateAsync(grn, cancellationToken);
 
             // Update purchase order line received quantities and status
@@ -660,7 +773,7 @@ public class PurchaseOrderController : ControllerBase
 
                 // Update PO status (PARTIAL or DELIVERED)
                 purchaseOrder.UpdateReceiptStatus();
-                purchaseOrder.ModifiedBy = "System";
+                purchaseOrder.ModifiedBy = _currentUserService.GetCurrentUsername();
                 await _purchaseOrderRepository.UpdateAsync(purchaseOrder, cancellationToken);
             }
 
@@ -686,7 +799,7 @@ public class PurchaseOrderController : ControllerBase
             if (grn is null) return NotFound(new { message = "Goods receipt not found" });
 
             grn.Reject(reason);
-            grn.ModifiedBy = "System";
+            grn.ModifiedBy = _currentUserService.GetCurrentUsername();
             await _goodsReceiptRepository.UpdateAsync(grn, cancellationToken);
 
             return Ok(MapToGoodsReceiptResponse(grn));
@@ -709,6 +822,8 @@ public class PurchaseOrderController : ControllerBase
             Id = order.Id,
             PONumber = order.PONumber,
             SupplierId = order.SupplierId,
+            SupplierName = order.Supplier is not null ? order.Supplier.Name : string.Empty,
+            SupplierCode = order.Supplier is not null ? order.Supplier.Code : string.Empty,
             OrderDate = order.PODate,
             DeliveryDate = order.ExpectedDeliveryDate,
             Status = order.Status,
@@ -726,8 +841,13 @@ public class PurchaseOrderController : ControllerBase
             {
                 Id = l.Id,
                 PartId = l.PartId,
+                UnitId = l.UnitId,
+                UnitName = l.Unit?.Name ?? string.Empty,
+                UnitSymbol = l.Unit?.Symbol ?? string.Empty,
                 Quantity = l.Quantity,
+                QuantityInBaseUnit = l.QuantityInBaseUnit,
                 ReceivedQuantity = l.ReceivedQuantity,
+                ReceivedQuantityInBaseUnit = l.ReceivedQuantityInBaseUnit,
                 UnitPrice = l.UnitPrice,
                 LineTotal = l.TotalPrice
             }).ToList(),

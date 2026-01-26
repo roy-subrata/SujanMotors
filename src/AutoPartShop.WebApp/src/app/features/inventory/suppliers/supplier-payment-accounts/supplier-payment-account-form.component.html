@@ -1,0 +1,179 @@
+<div class="container">
+  <p-toast></p-toast>
+
+  <!-- Header -->
+  <div class="form-header">
+    <div class="header-content">
+      <div class="header-title-section">
+        <div class="breadcrumb">
+          <a (click)="onCancel()" class="breadcrumb-link">
+            <i class="pi pi-arrow-left"></i>
+            Payment Accounts
+          </a>
+          <span class="breadcrumb-separator">/</span>
+          <span class="breadcrumb-current">{{ isEditing ? 'Edit' : 'New' }}</span>
+        </div>
+        <h1 class="form-title">
+          {{ isEditing ? 'Edit Payment Account' : 'Add Payment Account' }}
+        </h1>
+        <p class="form-subtitle">
+          {{ isEditing ? 'Update payment account details for ' : 'Add a new payment account for ' }}{{ supplierName }}
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Form -->
+  <p-card class="form-card">
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form-content">
+      <!-- Basic Info - Always Visible -->
+      <div class="form-section">
+        <h3 class="section-title">Basic Information</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Account Name *</label>
+            <input pInputText formControlName="accountName" placeholder="e.g., Primary Bank Account, bKash Personal" />
+            <small *ngIf="form.get('accountName')?.invalid && form.get('accountName')?.touched" class="p-error">
+              Account name is required
+            </small>
+          </div>
+          <div class="form-group">
+            <label>Account Type *</label>
+            <p-select
+              [options]="accountTypes"
+              formControlName="accountType"
+              optionLabel="label"
+              optionValue="value"
+              placeholder="Select Type"
+              [style]="{ width: '100%' }"
+            ></p-select>
+            <small *ngIf="form.get('accountType')?.invalid && form.get('accountType')?.touched" class="p-error">
+              Account type is required
+            </small>
+          </div>
+        </div>
+
+        <div class="form-row" *ngIf="!isEditing">
+          <div class="form-group checkbox-group">
+            <p-checkbox formControlName="isDefault" [binary]="true" inputId="isDefault"></p-checkbox>
+            <label for="isDefault" class="checkbox-label">Set as default payment account</label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bank Transfer Fields -->
+      <div class="form-section" *ngIf="showBankFields">
+        <h3 class="section-title">Bank Details</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Bank Name *</label>
+            <input pInputText formControlName="bankName" placeholder="e.g., Bank of Ceylon, Commercial Bank" />
+            <small *ngIf="form.get('bankName')?.invalid && form.get('bankName')?.touched" class="p-error">
+              Bank name is required
+            </small>
+          </div>
+          <div class="form-group">
+            <label>Account Number *</label>
+            <input pInputText formControlName="bankAccountNumber" placeholder="Account number" />
+            <small *ngIf="form.get('bankAccountNumber')?.invalid && form.get('bankAccountNumber')?.touched" class="p-error">
+              Account number is required
+            </small>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Beneficiary Name *</label>
+            <input pInputText formControlName="beneficiaryName" placeholder="Account holder name" />
+            <small *ngIf="form.get('beneficiaryName')?.invalid && form.get('beneficiaryName')?.touched" class="p-error">
+              Beneficiary name is required
+            </small>
+          </div>
+          <div class="form-group">
+            <label>Branch Name</label>
+            <input pInputText formControlName="bankBranchName" placeholder="Branch name" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Branch Code</label>
+            <input pInputText formControlName="bankBranchCode" placeholder="Branch code" />
+          </div>
+          <div class="form-group">
+            <label>IBAN</label>
+            <input pInputText formControlName="bankIBAN" placeholder="International Bank Account Number" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>SWIFT Code</label>
+            <input pInputText formControlName="bankSWIFT" placeholder="SWIFT/BIC code" />
+          </div>
+          <div class="form-group"></div>
+        </div>
+      </div>
+
+      <!-- Mobile Banking Fields -->
+      <div class="form-section" *ngIf="showMobileBankingFields">
+        <h3 class="section-title">Mobile Wallet Details</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Mobile Provider *</label>
+            <p-select
+              [options]="mobileProviders"
+              formControlName="mobileProvider"
+              optionLabel="label"
+              optionValue="value"
+              placeholder="Select Provider"
+              [style]="{ width: '100%' }"
+            ></p-select>
+            <small *ngIf="form.get('mobileProvider')?.invalid && form.get('mobileProvider')?.touched" class="p-error">
+              Mobile provider is required
+            </small>
+          </div>
+          <div class="form-group">
+            <label>Mobile Number *</label>
+            <input pInputText formControlName="mobileNumber" placeholder="e.g., 01XXXXXXXXX" />
+            <small *ngIf="form.get('mobileNumber')?.invalid && form.get('mobileNumber')?.touched" class="p-error">
+              Mobile number is required
+            </small>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Account Holder Name</label>
+            <input pInputText formControlName="mobileAccountHolderName" placeholder="Name registered with wallet" />
+          </div>
+          <div class="form-group"></div>
+        </div>
+      </div>
+
+      <!-- Notes - Show after account type selected -->
+      <div class="form-section" *ngIf="showNotesField">
+        <h3 class="section-title">Additional Information</h3>
+        <div class="form-row">
+          <div class="form-group full">
+            <label>Notes</label>
+            <textarea pInputTextarea formControlName="notes" placeholder="Additional notes about this payment account" rows="3"></textarea>
+          </div>
+        </div>
+
+        <!-- Status toggle for editing -->
+        <div class="form-row" *ngIf="isEditing">
+          <div class="form-group checkbox-group">
+            <p-checkbox formControlName="isActive" [binary]="true" inputId="isActive"></p-checkbox>
+            <label for="isActive" class="checkbox-label">Account is active</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button pButton type="button" label="Cancel" icon="pi pi-times" class="p-button-outlined" (click)="onCancel()"></button>
+        <button pButton type="submit" [label]="isEditing ? 'Update Account' : 'Save Account'" icon="pi pi-check" class="p-button-primary" [loading]="loading"></button>
+      </div>
+    </form>
+  </p-card>
+</div>

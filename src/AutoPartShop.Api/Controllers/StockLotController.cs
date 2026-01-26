@@ -1,3 +1,4 @@
+using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.InventoryDtos;
 using AutoPartShop.Application.DTOs.PaymentDtos;
 using AutoPartShop.Domain.Entities;
@@ -16,16 +17,18 @@ public class StockLotController : ControllerBase
     private readonly IWarehouseRepository _warehouseRepository;
     private readonly ISupplierRepository _supplierRepository;
     private readonly ILogger<StockLotController> _logger;
+    private readonly ICurrentUserService _currentUserService;
 
     public StockLotController(IStockLotRepository repository, IStockLotMovementRepository movementRepository,
         IPartRepository partRepository, IWarehouseRepository warehouseRepository, ISupplierRepository supplierRepository,
-        ILogger<StockLotController> logger)
+        ICurrentUserService currentUserService, ILogger<StockLotController> logger)
     {
         _repository = repository;
         _movementRepository = movementRepository;
         _partRepository = partRepository;
         _warehouseRepository = warehouseRepository;
         _supplierRepository = supplierRepository;
+        _currentUserService = currentUserService;
         _logger = logger;
     }
 
@@ -281,8 +284,9 @@ public class StockLotController : ControllerBase
                 request.GoodsReceiptLineId, request.QuantityReceived, request.CostPrice, request.ReceivingDate,
                 request.ManufacturerLotNumber, request.ExpiryDate, request.Currency, request.Notes);
 
-            lot.CreatedBy = "System";
-            lot.ModifiedBy = "System";
+            var currentUser = _currentUserService.GetCurrentUsername();
+            lot.CreatedBy = currentUser;
+            lot.ModifiedBy = currentUser;
 
             await _repository.AddAsync(lot, cancellationToken);
             return CreatedAtAction(nameof(GetById), new { id = lot.Id }, await MapResponse(lot));
@@ -313,7 +317,7 @@ public class StockLotController : ControllerBase
             else
                 lot.UpdateNotes(request.Notes ?? lot.Notes);
 
-            lot.ModifiedBy = "System";
+            lot.ModifiedBy = _currentUserService.GetCurrentUsername();
             await _repository.UpdateAsync(lot, cancellationToken);
             return Ok(await MapResponse(lot));
         }

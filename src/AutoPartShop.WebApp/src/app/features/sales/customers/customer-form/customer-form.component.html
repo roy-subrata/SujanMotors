@@ -9,11 +9,8 @@
         <p class="form-subtitle">{{ getPageSubtitle() }}</p>
       </div>
       <div class="header-actions" *ngIf="mode() === 'view'">
-        <button pButton 
-                icon="pi pi-pencil" 
-                label="Edit" 
-                class="p-button-primary"
-                (click)="mode.set('edit'); customerForm.enable()">
+        <button pButton icon="pi pi-pencil" label="Edit" class="p-button-primary"
+          (click)="mode.set('edit'); customerForm.enable()">
         </button>
       </div>
     </div>
@@ -43,11 +40,13 @@
         <div class="form-group">
           <label>Customer Code <span class="required">*</span></label>
           <div class="code-input-wrapper">
-            <input pInputText formControlName="customerCode" placeholder="Auto-generated" [disabled]="mode() === 'create'" />
+            <input pInputText formControlName="customerCode" placeholder="Auto-generated"
+              [disabled]="mode() === 'create'" />
             <i *ngIf="generatingCode()" class="pi pi-spin pi-spinner code-spinner"></i>
           </div>
           <small class="hint-text" *ngIf="mode() === 'create'">Code is auto-generated and cannot be changed</small>
-          <small class="error-message" *ngIf="customerForm.get('customerCode')?.invalid && customerForm.get('customerCode')?.touched && mode() !== 'create'">
+          <small class="error-message"
+            *ngIf="customerForm.get('customerCode')?.invalid && customerForm.get('customerCode')?.touched && mode() !== 'create'">
             Customer code is required (min 3 characters)
           </small>
         </div>
@@ -55,11 +54,8 @@
         <!-- Customer Type -->
         <div class="form-group">
           <label>Customer Type <span class="required">*</span></label>
-          <p-select formControlName="customerType" 
-                    [options]="customerTypes" 
-                    optionLabel="label" 
-                    optionValue="value"
-                    placeholder="Select type">
+          <p-select formControlName="customerType" [options]="customerTypes" optionLabel="label" optionValue="value"
+            placeholder="Select type">
           </p-select>
         </div>
 
@@ -67,7 +63,8 @@
         <div class="form-group">
           <label>First Name <span class="required">*</span></label>
           <input pInputText formControlName="firstName" placeholder="e.g., John" />
-          <small class="error-message" *ngIf="customerForm.get('firstName')?.invalid && customerForm.get('firstName')?.touched">
+          <small class="error-message"
+            *ngIf="customerForm.get('firstName')?.invalid && customerForm.get('firstName')?.touched">
             First name is required (min 2 characters)
           </small>
         </div>
@@ -76,13 +73,21 @@
         <div class="form-group">
           <label>Last Name <span class="required">*</span></label>
           <input pInputText formControlName="lastName" placeholder="e.g., Doe" />
-          <small class="error-message" *ngIf="customerForm.get('lastName')?.invalid && customerForm.get('lastName')?.touched">
+          <small class="error-message"
+            *ngIf="customerForm.get('lastName')?.invalid && customerForm.get('lastName')?.touched">
             Last name is required (min 2 characters)
           </small>
         </div>
-
+        <!-- Phone -->
+        <div class="form-group">
+          <label>Phone <span class="required">*</span></label>
+          <input pInputText formControlName="phone" placeholder="e.g., +8801716625369" />
+          <small class="error-message" *ngIf="customerForm.get('phone')?.invalid && customerForm.get('phone')?.touched">
+            Phone is required
+          </small>
+        </div>
         <!-- Company Name -->
-        <div class="form-group full-width">
+        <div class="form-group">
           <label>Company Name</label>
           <input pInputText formControlName="companyName" placeholder="e.g., ABC Auto Parts Inc." />
         </div>
@@ -101,21 +106,14 @@
       <div class="form-grid">
         <!-- Email -->
         <div class="form-group">
-          <label>Email <span class="required">*</span></label>
+          <label>Email <span class="required"></span></label>
           <input pInputText formControlName="email" type="email" placeholder="e.g., customer@example.com" />
           <small class="error-message" *ngIf="customerForm.get('email')?.invalid && customerForm.get('email')?.touched">
             Valid email is required
           </small>
         </div>
 
-        <!-- Phone -->
-        <div class="form-group">
-          <label>Phone <span class="required">*</span></label>
-          <input pInputText formControlName="phone" placeholder="e.g., +91 98765 43210" />
-          <small class="error-message" *ngIf="customerForm.get('phone')?.invalid && customerForm.get('phone')?.touched">
-            Phone is required
-          </small>
-        </div>
+
 
         <!-- Alternate Phone -->
         <div class="form-group">
@@ -143,9 +141,10 @@
       <div class="form-grid">
         <!-- Billing Address -->
         <div class="form-group full-width">
-          <label>Billing Address <span class="required">*</span></label>
+          <label>Billing Address <span class="required"></span></label>
           <input pInputText formControlName="billingAddress" placeholder="e.g., 123 Main Street" />
-          <small class="error-message" *ngIf="customerForm.get('billingAddress')?.invalid && customerForm.get('billingAddress')?.touched">
+          <small class="error-message"
+            *ngIf="customerForm.get('billingAddress')?.invalid && customerForm.get('billingAddress')?.touched">
             Billing address is required
           </small>
         </div>
@@ -158,8 +157,8 @@
 
         <!-- City -->
         <div class="form-group">
-          <label>City <span class="required">*</span></label>
-          <input pInputText formControlName="city" placeholder="e.g., Mumbai" />
+          <label>City <span class="required"></span></label>
+          <input pInputText formControlName="city" placeholder="e.g., Tangail" />
           <small class="error-message" *ngIf="customerForm.get('city')?.invalid && customerForm.get('city')?.touched">
             City is required
           </small>
@@ -167,8 +166,8 @@
 
         <!-- State -->
         <div class="form-group">
-          <label>State <span class="required">*</span></label>
-          <input pInputText formControlName="state" placeholder="e.g., Maharashtra" />
+          <label>State <span class="required"></span></label>
+          <input pInputText formControlName="state" placeholder="e.g., Dhaka" />
           <small class="error-message" *ngIf="customerForm.get('state')?.invalid && customerForm.get('state')?.touched">
             State is required
           </small>
@@ -176,21 +175,19 @@
 
         <!-- Postal Code -->
         <div class="form-group">
-          <label>Postal Code <span class="required">*</span></label>
+          <label>Postal Code <span class="required"></span></label>
           <input pInputText formControlName="postalCode" placeholder="e.g., 400001" />
-          <small class="error-message" *ngIf="customerForm.get('postalCode')?.invalid && customerForm.get('postalCode')?.touched">
+          <small class="error-message"
+            *ngIf="customerForm.get('postalCode')?.invalid && customerForm.get('postalCode')?.touched">
             Postal code is required
           </small>
         </div>
 
         <!-- Country -->
         <div class="form-group">
-          <label>Country <span class="required">*</span></label>
-          <p-select formControlName="country" 
-                    [options]="countries" 
-                    optionLabel="label" 
-                    optionValue="value"
-                    placeholder="Select country">
+          <label>Country <span class="required"></span></label>
+          <p-select formControlName="country" [options]="countries" optionLabel="label" optionValue="value"
+            placeholder="Select country">
           </p-select>
         </div>
       </div>
@@ -206,43 +203,11 @@
       </ng-template>
 
       <div class="form-grid">
-        <!-- Date of Birth -->
-        <div class="form-group">
-          <label>Date of Birth <span class="required">*</span></label>
-          <p-datepicker formControlName="dateOfBirth" 
-                        dateFormat="dd-M-yy" 
-                        placeholder="Select date"
-                        [showIcon]="true">
-          </p-datepicker>
-          <small class="error-message" *ngIf="customerForm.get('dateOfBirth')?.invalid && customerForm.get('dateOfBirth')?.touched">
-            Date of birth is required
-          </small>
-        </div>
-
-        <!-- Credit Limit -->
-        <div class="form-group">
-          <label>Credit Limit</label>
-          <p-inputNumber formControlName="creditLimit" 
-                         mode="currency" 
-                         currency="INR" 
-                         locale="en-IN"
-                         placeholder="0">
-          </p-inputNumber>
-        </div>
-
-        <!-- Tax ID -->
-        <div class="form-group">
-          <label>Tax ID / GST Number</label>
-          <input pInputText formControlName="taxId" placeholder="e.g., GSTIN123456789" />
-        </div>
-
         <!-- Notes -->
         <div class="form-group full-width">
           <label>Notes</label>
-          <textarea pInputTextarea 
-                    formControlName="notes" 
-                    rows="3" 
-                    placeholder="Additional notes about this customer...">
+          <textarea pInputTextarea formControlName="notes" rows="3"
+            placeholder="Additional notes about this customer...">
           </textarea>
         </div>
       </div>
@@ -250,21 +215,12 @@
 
     <!-- Action Buttons -->
     <div class="form-actions">
-      <button pButton 
-              type="button" 
-              label="{{ mode() === 'view' ? 'Back' : 'Cancel' }}" 
-              icon="pi pi-times" 
-              class="p-button-outlined"
-              (click)="cancel()">
+      <button pButton type="button" label="{{ mode() === 'view' ? 'Back' : 'Cancel' }}" icon="pi pi-times"
+        class="p-button-outlined" (click)="cancel()">
       </button>
-      <button pButton 
-              *ngIf="mode() !== 'view'"
-              type="submit" 
-              [label]="saving() ? 'Saving...' : (mode() === 'edit' ? 'Update Customer' : 'Create Customer')"
-              icon="pi pi-check" 
-              class="p-button-primary"
-              [loading]="saving()"
-              [disabled]="saving() || customerForm.invalid">
+      <button pButton *ngIf="mode() !== 'view'" type="submit"
+        [label]="saving() ? 'Saving...' : (mode() === 'edit' ? 'Update Customer' : 'Create Customer')"
+        icon="pi pi-check" class="p-button-primary" [loading]="saving()" [disabled]="saving() || customerForm.invalid">
       </button>
     </div>
   </form>

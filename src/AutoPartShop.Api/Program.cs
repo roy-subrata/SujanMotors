@@ -104,9 +104,24 @@ builder.Services.AddAuthentication(options =>
 // Add Authorization
 builder.Services.AddAuthorization();
 
+// Register HttpContextAccessor (required for CurrentUserService)
+builder.Services.AddHttpContextAccessor();
+
 // Register application services
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<StockManagementService>();
 builder.Services.AddScoped<SupplierPaymentSummaryService>();
+builder.Services.AddScoped<ISupplierLedgerService, SupplierLedgerService>();
+builder.Services.AddScoped<IUnitConversionService, UnitConversionService>();
+builder.Services.AddScoped<IFinancialSummaryService, FinancialSummaryService>();
+builder.Services.AddScoped<IDailyExpenseService, DailyExpenseService>();
+
+// Register multi-currency services
+builder.Services.AddScoped<ICurrencyConversionService, CurrencyConversionService>();
+builder.Services.AddMemoryCache(); // Required for currency conversion caching
+
+// Register warranty services
+builder.Services.AddScoped<IWarrantyService, WarrantyService>();
 
 // Configure JSON serialization to use camelCase
 builder.Services.AddControllers()

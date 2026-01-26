@@ -13,4 +13,11 @@ public class UpdatePartRequest
     public decimal SellingPrice { get; set; } = 0;
     public int MinimumStock { get; set; } = 0;
     public bool IsActive { get; set; } = true;
+
+    // Warranty Information
+    public bool HasWarranty { get; set; } = false;
+    public int? WarrantyPeriodMonths { get; set; }
+    public string? WarrantyType { get; set; }
+    public string? WarrantyTerms { get; set; }
+    public string? WarrantyCertificateTemplate { get; set; }
 }

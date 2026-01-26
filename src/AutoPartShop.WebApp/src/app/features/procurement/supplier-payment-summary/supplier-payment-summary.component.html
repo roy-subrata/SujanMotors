@@ -26,33 +26,22 @@
             </div>
 
             <!-- Metrics Section -->
-            <app-payment-metrics *ngIf="!loading && !error && summary" [summary]="summary">
+            <app-payment-metrics *ngIf="!loading && !error && (summary || ledgerSummary)"
+                [summary]="summary!"
+                [ledgerSummary]="ledgerSummary ?? undefined">
             </app-payment-metrics>
         </div>
     </div>
 
-    <!-- Charts Section -->
-    <div class="col-span-12 lg:col-span-6">
-        <div class="card">
-            <app-payment-status-chart *ngIf="!loading && !error && summary && summary.statusBreakdown"
-                [statusBreakdown]="summary.statusBreakdown!">
-            </app-payment-status-chart>
-        </div>
-    </div>
-
-    <!-- Credit Info Section -->
-    <div class="col-span-12 lg:col-span-6">
-        <div class="card">
-            <app-credit-info *ngIf="!loading && !error && summary" [summary]="summary">
-            </app-credit-info>
-        </div>
-    </div>
-
-    <!-- Payment History Section -->
+    <!-- Transaction Ledger / Payment History Section -->
     <div class="col-span-12">
         <div class="card">
-            <app-payment-history-table *ngIf="!loading && !error && summary" [payments]="summary.paymentHistory"
-                [supplierName]="supplierName">
+            <app-payment-history-table *ngIf="!loading && !error && (summary || ledgerSummary)"
+                [payments]="summary?.paymentHistory || []"
+                [ledgerEntries]="ledgerSummary?.entries || []"
+                [supplierName]="supplierName"
+                [useLedger]="useLedgerView && !!ledgerSummary"
+                [entryLimit]="20">
             </app-payment-history-table>
         </div>
     </div>

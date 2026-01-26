@@ -120,110 +120,146 @@ public class UnitRepository(AutoPartDbContext dbContext) : IUnitRepository
 /// In-memory implementation of UnitConversion repository
 /// TODO: Replace with Entity Framework Core implementation when database is configured
 /// </summary>
-public class UnitConversionRepository : IUnitConversionRepository
+public class UnitConversionRepository(AutoPartDbContext dbContext) : IUnitConversionRepository
 {
-    private static readonly List<UnitConversion> _conversions = new();
-
-    static UnitConversionRepository()
-    {
-        InitializeDemoData();
-    }
-
-    private static void InitializeDemoData()
-    {
-        // We'll add conversions after units are created in the controller
-        // For now, leave empty
-    }
-
     public async Task<IEnumerable<UnitConversion>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        return await Task.FromResult(_conversions.Where(c => !c.Isdeleted).ToList());
+        return await dbContext.UnitConversions
+            .Include(c => c.FromUnit)
+            .Include(c => c.ToUnit)
+            .Where(c => !c.Isdeleted)
+            .ToListAsync(cancellationToken);
     }
 
     public async Task<UnitConversion?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        return await Task.FromResult(_conversions.FirstOrDefault(c => c.Id == id && !c.Isdeleted));
+        return await dbContext.UnitConversions
+            .Include(c => c.FromUnit)
+            .Include(c => c.ToUnit)
+            .FirstOrDefaultAsync(c => c.Id == id && !c.Isdeleted, cancellationToken);
     }
 
     public async Task AddAsync(UnitConversion entity, CancellationToken cancellationToken = default)
     {
-        _conversions.Add(entity);
-        await Task.CompletedTask;
+        await dbContext.UnitConversions.AddAsync(entity, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 
     public async Task UpdateAsync(UnitConversion entity, CancellationToken cancellationToken = default)
     {
-        var existing = _conversions.FirstOrDefault(c => c.Id == entity.Id);
+        var existing = await dbContext.UnitConversions.FirstOrDefaultAsync(c => c.Id == entity.Id, cancellationToken);
         if (existing != null)
         {
-            _conversions.Remove(existing);
-            _conversions.Add(entity);
+            dbContext.UnitConversions.Remove(existing);
+            dbContext.UnitConversions.Add(entity);
         }
-        await Task.CompletedTask;
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var conversion = _conversions.FirstOrDefault(c => c.Id == id);
+        var conversion = await dbContext.UnitConversions.FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
         if (conversion != null)
         {
-            _conversions.Remove(conversion);
+            dbContext.UnitConversions.Remove(conversion);
         }
-        await Task.CompletedTask;
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 
     public async Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        return await Task.FromResult(_conversions.Any(c => c.Id == id && !c.Isdeleted));
+        return await dbContext.UnitConversions.AnyAsync(c => c.Id == id && !c.Isdeleted, cancellationToken);
     }
 
     public async Task<IEnumerable<UnitConversion>> GetAllActiveAsync(CancellationToken cancellationToken = default)
     {
-        return await Task.FromResult(_conversions.Where(c => c.IsActive && !c.Isdeleted).ToList());
+        return await dbContext.UnitConversions
+            .Include(c => c.FromUnit)
+            .Include(c => c.ToUnit)
+            .Where(c => c.IsActive && !c.Isdeleted)
+            .ToListAsync(cancellationToken);
     }
 
     public async Task<(IEnumerable<UnitConversion> Conversions, int TotalCount)> GetPagedAsync(int pageNumber, int pageSize, CancellationToken cancellationToken = default)
     {
-        var query = _conversions.Where(c => !c.Isdeleted).AsEnumerable();
-        var totalCount = query.Count();
-        var conversions = query.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();
+        var query = dbContext.UnitConversions
+            .Include(c => c.FromUnit)
+            .Include(c => c.ToUnit)
+            .Where(c => !c.Isdeleted);
 
-        return await Task.FromResult((conversions.AsEnumerable(), totalCount));
+        var totalCount = await query.CountAsync(cancellationToken);
+        var conversions = await query
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        return (conversions, totalCount);
     }
 
     public async Task<IEnumerable<UnitConversion>> GetConversionsFromUnitAsync(Guid fromUnitId, CancellationToken cancellationToken = default)
     {
-        return await Task.FromResult(_conversions.Where(c => c.FromUnitId == fromUnitId && !c.Isdeleted).ToList());
+        return await dbContext.UnitConversions
+            .Include(c => c.FromUnit)
+            .Include(c => c.ToUnit)
+            .Where(c => c.FromUnitId == fromUnitId && !c.Isdeleted)
+            .ToListAsync(cancellationToken);
     }
 
     public async Task<IEnumerable<UnitConversion>> GetConversionsToUnitAsync(Guid toUnitId, CancellationToken cancellationToken = default)
     {
-        return await Task.FromResult(_conversions.Where(c => c.ToUnitId == toUnitId && !c.Isdeleted).ToList());
+        return await dbContext.UnitConversions
+            .Include(c => c.FromUnit)
+            .Include(c => c.ToUnit)
+            .Where(c => c.ToUnitId == toUnitId && !c.Isdeleted)
+            .ToListAsync(cancellationToken);
     }
 
     public async Task<UnitConversion?> GetConversionAsync(Guid fromUnitId, Guid toUnitId, CancellationToken cancellationToken = default)
     {
-        return await Task.FromResult(_conversions.FirstOrDefault(c => c.FromUnitId == fromUnitId && c.ToUnitId == toUnitId && !c.Isdeleted));
+        return await dbContext.UnitConversions
+            .Include(c => c.FromUnit)
+            .Include(c => c.ToUnit)
+            .FirstOrDefaultAsync(c => c.FromUnitId == fromUnitId && c.ToUnitId == toUnitId && !c.Isdeleted, cancellationToken);
     }
 
     public async Task<bool> ConversionExistsAsync(Guid fromUnitId, Guid toUnitId, CancellationToken cancellationToken = default)
     {
-        return await Task.FromResult(_conversions.Any(c => c.FromUnitId == fromUnitId && c.ToUnitId == toUnitId && !c.Isdeleted));
+        return await dbContext.UnitConversions
+            .AnyAsync(c => c.FromUnitId == fromUnitId && c.ToUnitId == toUnitId && !c.Isdeleted, cancellationToken);
     }
 
     public async Task<IEnumerable<UnitConversion>> GetAllConversionsForUnitAsync(Guid unitId, CancellationToken cancellationToken = default)
     {
-        return await Task.FromResult(_conversions
+        return await dbContext.UnitConversions
+            .Include(c => c.FromUnit)
+            .Include(c => c.ToUnit)
             .Where(c => (c.FromUnitId == unitId || c.ToUnitId == unitId) && !c.Isdeleted)
-            .ToList());
+            .ToListAsync(cancellationToken);
     }
 
     public async Task<(IEnumerable<UnitConversion> Conversions, int TotalCount)> SearchPagedAsync(string searchTerm, int pageNumber, int pageSize, CancellationToken cancellationToken = default)
     {
-        var query = _conversions.Where(c => !c.Isdeleted).AsEnumerable();
-        var totalCount = query.Count();
-        var conversions = query.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();
+        var query = dbContext.UnitConversions
+            .Include(c => c.FromUnit)
+            .Include(c => c.ToUnit)
+            .Where(c => !c.Isdeleted);
 
-        return await Task.FromResult((conversions.AsEnumerable(), totalCount));
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            var search = searchTerm.ToLower();
+            query = query.Where(c =>
+                (c.FromUnit != null && c.FromUnit.Name.ToLower().Contains(search)) ||
+                (c.ToUnit != null && c.ToUnit.Name.ToLower().Contains(search)) ||
+                (c.FromUnit != null && c.FromUnit.Code.ToLower().Contains(search)) ||
+                (c.ToUnit != null && c.ToUnit.Code.ToLower().Contains(search)));
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var conversions = await query
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        return (conversions, totalCount);
     }
 }

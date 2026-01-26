@@ -1,29 +1,35 @@
+using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.SalesOrderDtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
+using AutoPartShop.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
 
 namespace AutoPartShop.Api.Controllers
 {
-    // Support both /api/SalesReturn and /api/salesorder/returns
     [ApiController]
     [Route("api/[controller]")]
-    [Route("api/salesorder/returns")]
     public class SalesReturnController : ControllerBase
     {
         private readonly ISalesReturnRepository _salesReturnRepository;
         private readonly ISalesOrderRepository _salesOrderRepository;
+        private readonly ICustomerPaymentRepository _customerPaymentRepository;
+        private readonly ICurrentUserService _currentUserService;
         private readonly AutoPartDbContext _dbContext;
 
         public SalesReturnController(
             ISalesReturnRepository salesReturnRepository,
             ISalesOrderRepository salesOrderRepository,
+            ICustomerPaymentRepository customerPaymentRepository,
+            ICurrentUserService currentUserService,
             AutoPartDbContext dbContext)
         {
             _salesReturnRepository = salesReturnRepository;
             _salesOrderRepository = salesOrderRepository;
+            _customerPaymentRepository = customerPaymentRepository;
+            _currentUserService = currentUserService;
             _dbContext = dbContext;
         }
 
@@ -47,7 +53,8 @@ namespace AutoPartShop.Api.Controllers
                 return BadRequest("Sales order not found.");
 
             var returnNumber = $"SR-{DateTime.UtcNow:yyyyMMddHHmmss}-{Guid.NewGuid().ToString()[..8]}";
-            var salesReturn = SalesReturn.Create(returnNumber, request.SalesOrderId, null, request.Reason, DateTime.UtcNow, request.Notes);
+            var salesReturn = SalesReturn.Create(returnNumber, request.SalesOrderId, null, request.Reason, request.WarehouseId, DateTime.UtcNow, request.Notes);
+            salesReturn.SetRefundType(request.RefundType);
 
             foreach (var line in request.Lines)
             {
@@ -145,10 +152,11 @@ namespace AutoPartShop.Api.Controllers
                 return BadRequest("Only received returns can be processed.");
 
             // --- Stock Adjustment Logic ---
-            var salesOrder = await _salesOrderRepository.GetByIdAsync(salesReturn.SalesOrderId);
-            var warehouseId = salesOrder?.WarehouseId ?? Guid.Empty;
+            var warehouseId = salesReturn.WarehouseId;
             if (warehouseId == Guid.Empty)
                 return BadRequest("WarehouseId is required for stock adjustment.");
+
+            var salesOrder = await _salesOrderRepository.GetByIdAsync(salesReturn.SalesOrderId);
 
             foreach (var line in salesReturn.LineItems)
             {
@@ -156,22 +164,22 @@ namespace AutoPartShop.Api.Controllers
                 if (stockLevel == null)
                 {
                     stockLevel = Domain.Entities.StockLevel.Create(line.PartId, warehouseId);
-                    stockLevel.CreatedBy = "System";
+                    stockLevel.CreatedBy = _currentUserService.GetCurrentUsername();
                     _dbContext.StockLevels.Add(stockLevel);
                 }
                 stockLevel.AddStock(line.Quantity, $"Sales Return {salesReturn.ReturnNumber}");
-                stockLevel.ModifiedBy = "System";
+                stockLevel.ModifiedBy = _currentUserService.GetCurrentUsername();
 
-                // Create stock movement record
+                // Create stock movement record - RETURN type for customer returns
                 var stockMovement = Domain.Entities.StockMovement.Create(
                     stockLevel.Id,
-                    "IN",
+                    "RETURN",  // RETURN type to distinguish from regular incoming stock
                     line.Quantity,
-                    $"Sales Return {salesReturn.ReturnNumber}",
+                    $"Customer Return - {salesReturn.Reason}",
                     salesReturn.ReturnNumber
                 );
-                stockMovement.CreatedBy = "System";
-                stockMovement.ModifiedBy = "System";
+                stockMovement.CreatedBy = _currentUserService.GetCurrentUsername();
+                stockMovement.ModifiedBy = _currentUserService.GetCurrentUsername();
                 _dbContext.StockMovements.Add(stockMovement);
 
                 // Create stock lot movement - add back to a lot
@@ -190,7 +198,7 @@ namespace AutoPartShop.Api.Controllers
                     {
                         // Add to existing lot
                         existingLot.AddStock(line.Quantity, $"Sales Return {salesReturn.ReturnNumber}");
-                        existingLot.ModifiedBy = "System";
+                        existingLot.ModifiedBy = _currentUserService.GetCurrentUsername();
                         targetLot = existingLot;
                     }
                     else
@@ -212,8 +220,8 @@ namespace AutoPartShop.Api.Controllers
                             "USD",
                             $"Created from sales return {salesReturn.ReturnNumber}"
                         );
-                        targetLot.CreatedBy = "System";
-                        targetLot.ModifiedBy = "System";
+                        targetLot.CreatedBy = _currentUserService.GetCurrentUsername();
+                        targetLot.ModifiedBy = _currentUserService.GetCurrentUsername();
                         _dbContext.StockLots.Add(targetLot);
                         await _dbContext.SaveChangesAsync(); // Save to get the lot ID
                     }
@@ -229,8 +237,8 @@ namespace AutoPartShop.Api.Controllers
                         line.UnitPrice,
                         $"Sales Return {salesReturn.ReturnNumber}"
                     );
-                    lotMovement.CreatedBy = "System";
-                    lotMovement.ModifiedBy = "System";
+                    lotMovement.CreatedBy = _currentUserService.GetCurrentUsername();
+                    lotMovement.ModifiedBy = _currentUserService.GetCurrentUsername();
                     _dbContext.StockLotMovements.Add(lotMovement);
                 }
                 catch (Exception)
@@ -240,21 +248,71 @@ namespace AutoPartShop.Api.Controllers
             }
             await _dbContext.SaveChangesAsync();
 
-            // --- Customer Balance Update ---
-            // Decrease customer balance (refund reduces debt)
+            // --- Customer Balance Update & Refund Processing ---
             if (salesOrder != null && salesOrder.CustomerId != Guid.Empty)
             {
                 var customer = await _dbContext.Customers.FindAsync(salesOrder.CustomerId);
                 if (customer != null && salesReturn.RefundAmount > 0)
                 {
-                    customer.UpdateBalance(-salesReturn.RefundAmount);
-                    customer.ModifiedBy = "System";
-                    await _dbContext.SaveChangesAsync();
+                    if (salesReturn.RefundType == "CASH_REFUND")
+                    {
+                        // CASH REFUND: Give money back, reduce outstanding balance
+                        customer.UpdateBalance(-salesReturn.RefundAmount);
+                        customer.ModifiedBy = _currentUserService.GetCurrentUsername();
+                        await _dbContext.SaveChangesAsync();
+
+                        // Create CustomerPayment record with NEGATIVE amount and COMPLETED status
+                        // Negative amount reduces Total Paid correctly
+                        var refundPayment = CustomerPayment.Create(
+                            customerId: salesOrder.CustomerId,
+                            paymentProviderId: null,
+                            amount: -salesReturn.RefundAmount,  // NEGATIVE amount - money going OUT
+                            paymentMethod: "REFUND",
+                            transactionNumber: $"REFUND-{salesReturn.ReturnNumber}",
+                            referenceNumber: salesReturn.ReturnNumber,
+                            paymentDate: DateTime.UtcNow
+                        );
+
+                        if (salesReturn.InvoiceId.HasValue)
+                        {
+                            refundPayment.LinkToInvoice(salesReturn.InvoiceId.Value);
+                        }
+
+                        // Mark as COMPLETED (not REFUNDED) so it's included in Total Paid calculation
+                        refundPayment.MarkAsCompleted();
+                        refundPayment.CreatedBy = _currentUserService.GetCurrentUsername();
+                        refundPayment.ModifiedBy = _currentUserService.GetCurrentUsername();
+                        refundPayment.UpdateNotes($"Cash refund for sales return {salesReturn.ReturnNumber}. Reason: {salesReturn.Reason}");
+
+                        await _customerPaymentRepository.AddAsync(refundPayment, CancellationToken.None);
+                    }
+                    else if (salesReturn.RefundType == "STORE_CREDIT")
+                    {
+                        // STORE CREDIT: Create available credit for future purchases
+                        // Do NOT reduce current balance - this becomes available credit
+
+                        // Create CustomerPayment with COMPLETED status and NO invoice link
+                        // This makes it show up in AccountBalance as available credit
+                        var creditPayment = CustomerPayment.Create(
+                            customerId: salesOrder.CustomerId,
+                            paymentProviderId: null,
+                            amount: salesReturn.RefundAmount,
+                            paymentMethod: "STORE_CREDIT",
+                            transactionNumber: $"CREDIT-{salesReturn.ReturnNumber}",
+                            referenceNumber: salesReturn.ReturnNumber,
+                            paymentDate: DateTime.UtcNow
+                        );
+
+                        // DO NOT link to invoice - unlinked completed payments = available credit
+                        creditPayment.MarkAsCompleted();
+                        creditPayment.CreatedBy = _currentUserService.GetCurrentUsername();
+                        creditPayment.ModifiedBy = _currentUserService.GetCurrentUsername();
+                        creditPayment.UpdateNotes($"Store credit for sales return {salesReturn.ReturnNumber}. Reason: {salesReturn.Reason}. Can be applied to future purchases.");
+
+                        await _customerPaymentRepository.AddAsync(creditPayment, CancellationToken.None);
+                    }
                 }
             }
-
-            // --- Payment/Refund Logic ---
-            // TODO: Integrate with payment/refund service as needed
 
             salesReturn.Process();
             await _salesReturnRepository.UpdateAsync(salesReturn);
@@ -284,16 +342,20 @@ namespace AutoPartShop.Api.Controllers
                 Id = entity.Id,
                 ReturnNumber = entity.ReturnNumber,
                 SalesOrderId = entity.SalesOrderId,
-                WarehouseId = entity.SalesOrder?.WarehouseId ?? Guid.Empty,
+                SalesOrderNumber = entity.SalesOrder?.SONumber,
+                WarehouseId = entity.WarehouseId,
                 Reason = entity.Reason,
                 Status = entity.Status,
                 TotalRefundAmount = entity.RefundAmount,
+                RefundType = entity.RefundType,
                 Notes = entity.Notes,
                 CreatedAt = entity.CreatedDate,
                 Lines = entity.LineItems.Select(line => new SalesReturnLineResponse
                 {
                     Id = line.Id,
                     PartId = line.PartId,
+                    PartName = line.Part?.Name ?? string.Empty,
+                    PartSku = line.Part?.SKU ?? string.Empty,
                     Quantity = line.Quantity,
                     UnitPrice = line.UnitPrice,
                     RefundAmount = line.RefundAmount,

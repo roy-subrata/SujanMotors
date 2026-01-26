@@ -6,7 +6,7 @@ namespace AutoPartShop.Domain.Entities;
 public class PaymentProvider : AuditableEntity
 {
     public string ProviderName { get; private set; } = string.Empty;  // PayPal, Stripe, Bank Transfer, Cash, Check, etc.
-    public string ProviderType { get; private set; } = string.Empty;  // ONLINE_GATEWAY, BANK_TRANSFER, CASH, CHECK, CRYPTO, etc.
+    public string ProviderType { get; private set; } = string.Empty;  // ONLINE_GATEWAY, BANK_TRANSFER, CASH, CHECK, CRYPTO, MOBILE_BANKING, etc.
     public string Status { get; private set; } = "ACTIVE";  // ACTIVE, INACTIVE, SUSPENDED
     public string ApiKey { get; private set; } = string.Empty;  // Encrypted API key if needed
     public string MerchantId { get; private set; } = string.Empty;  // Merchant or account ID
@@ -16,6 +16,11 @@ public class PaymentProvider : AuditableEntity
     public string BankIBAN { get; private set; } = string.Empty;  // IBAN for international transfers
     public string BankSWIFT { get; private set; } = string.Empty;  // SWIFT code
     public string BeneficiaryName { get; private set; } = string.Empty;  // Account holder name
+
+    // Mobile Banking fields (bKash, Nagad, eZ Cash, FriMi, etc.)
+    public string MobileNumber { get; private set; } = string.Empty;  // Mobile wallet number
+    public string AccountHolderName { get; private set; } = string.Empty;  // Mobile wallet account holder
+    public string AgentNumber { get; private set; } = string.Empty;  // Agent/Merchant number for mobile banking
     public string TransactionFeeType { get; private set; } = "FIXED";  // FIXED, PERCENTAGE, TIERED
     public decimal TransactionFeeAmount { get; private set; } = 0;  // Fixed fee or percentage
     public decimal MinimumAmount { get; private set; } = 0;  // Minimum transaction amount
@@ -37,7 +42,7 @@ public class PaymentProvider : AuditableEntity
         if (string.IsNullOrWhiteSpace(providerType))
             throw new ArgumentException("ProviderType cannot be empty", nameof(providerType));
 
-        var validTypes = new[] { "ONLINE_GATEWAY", "BANK_TRANSFER", "CASH", "CHECK", "CRYPTO", "OTHER" };
+        var validTypes = new[] { "ONLINE_GATEWAY", "BANK_TRANSFER", "CASH", "CHECK", "CRYPTO", "MOBILE_BANKING", "OTHER" };
         if (!validTypes.Contains(providerType.ToUpper()))
             throw new ArgumentException($"ProviderType must be one of: {string.Join(", ", validTypes)}", nameof(providerType));
 
@@ -61,6 +66,13 @@ public class PaymentProvider : AuditableEntity
     {
         BankIBAN = iban?.Trim() ?? string.Empty;
         BankSWIFT = swift?.Trim() ?? string.Empty;
+    }
+
+    public void SetMobileBankingDetails(string mobileNumber, string accountHolderName, string agentNumber)
+    {
+        MobileNumber = mobileNumber?.Trim() ?? string.Empty;
+        AccountHolderName = accountHolderName?.Trim() ?? string.Empty;
+        AgentNumber = agentNumber?.Trim() ?? string.Empty;
     }
 
     public void SetTransactionFees(string feeType, decimal feeAmount, decimal minimumAmount = 0, decimal maximumAmount = 0)

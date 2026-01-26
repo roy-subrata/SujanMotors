@@ -1,3 +1,4 @@
+using AutoPartShop.Domain.Common;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
 
@@ -13,6 +14,7 @@ public interface ISupplierRepository : IBaseRepository<Supplier>
     /// Search suppliers with pagination
     /// </summary>
     Task<(IEnumerable<Supplier> Suppliers, int TotalCount)> SearchPagedAsync(string searchTerm, int pageNumber, int pageSize, CancellationToken cancellationToken = default);
+    Task<(IEnumerable<Supplier> Suppliers, int TotalCount)> SearchPagedAsync(SupplierQuery query, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Check if a supplier code already exists
@@ -23,4 +25,10 @@ public interface ISupplierRepository : IBaseRepository<Supplier>
     /// Get supplier by code
     /// </summary>
     Task<Supplier?> GetByCodeAsync(string code, CancellationToken cancellationToken = default);
+}
+
+
+public class SupplierQuery : BaseQuery
+{
+
 }

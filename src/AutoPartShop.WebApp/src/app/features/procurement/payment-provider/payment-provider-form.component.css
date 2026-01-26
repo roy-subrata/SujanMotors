@@ -4,6 +4,8 @@
   display: flex;
   flex-direction: column;
   gap: 2rem;
+  width: 100%;
+  max-width: none;
 }
 
 .form-header {
@@ -13,6 +15,8 @@
   border: 1px solid #e5e7eb;
   padding: 1.25rem;
   margin-bottom: 0;
+  width: 100%;
+  max-width: none;
 }
 
 .header-content {
@@ -57,11 +61,35 @@
   gap: 1.5rem;
 }
 
+.form-section {
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.form-section:last-of-type {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 1rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #3b82f6;
+  display: inline-block;
+}
+
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
   margin-bottom: 1rem;
+}
+
+.form-row:last-child {
+  margin-bottom: 0;
 }
 
 .form-group {

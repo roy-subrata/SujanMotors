@@ -1,15 +1,16 @@
 import { Component, ElementRef, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { AppMenu } from './app.menu';
+
 import { LayoutService } from '../service/layout.service';
 import { AuthService } from '../../shared/services/auth.service';
 import { AvatarModule } from 'primeng/avatar';
 import { TooltipModule } from 'primeng/tooltip';
+import { AppMenuComponent } from './app-menu/app.menu.component';
 
 @Component({
     selector: 'app-sidebar',
     standalone: true,
-    imports: [CommonModule, AppMenu, AvatarModule, TooltipModule],
+    imports: [CommonModule, AppMenuComponent, AvatarModule, TooltipModule],
     template: `
         <div class="layout-sidebar" [class.collapsed]="isCollapsed()">
             <!-- Logo and Toggle -->

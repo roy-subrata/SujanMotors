@@ -24,6 +24,7 @@ public class SalesOrder : AuditableEntity
     public decimal PaidAmount { get; private set; } = 0;
     public string DeliveryAddress { get; private set; } = string.Empty;
     public string Notes { get; private set; } = string.Empty;
+    public string Currency { get; private set; } = "BDT";  // ISO 4217 currency code
 
     // Navigation properties
     public Customer? Customer { get; set; }
@@ -37,7 +38,7 @@ public class SalesOrder : AuditableEntity
     public static SalesOrder Create(string soNumber, Guid customerId, string customerName,
         string customerEmail, string customerPhone, Guid? warehouseId = null,
         Guid? technicianId = null, string? technicianName = null,
-        string deliveryAddress = "", string notes = "")
+        string deliveryAddress = "", string notes = "", string currency = "BDT")
     {
         if (string.IsNullOrWhiteSpace(soNumber))
             throw new ArgumentException("SONumber cannot be empty", nameof(soNumber));
@@ -61,6 +62,7 @@ public class SalesOrder : AuditableEntity
             SODate = DateTime.UtcNow,
             DeliveryAddress = deliveryAddress?.Trim() ?? string.Empty,
             Notes = notes?.Trim() ?? string.Empty,
+            Currency = string.IsNullOrWhiteSpace(currency) ? "BDT" : currency.Trim().ToUpper(),
             Status = "DRAFT"
         };
     }

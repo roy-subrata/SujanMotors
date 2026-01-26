@@ -1,8 +1,12 @@
+using AutoPartShop.Api.Services;
+using AutoPartShop.Application.DTOs.CustomerDtos;
 using AutoPartShop.Application.DTOs.PartDtos;
+using AutoPartShop.Domain.Common;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
 using AutoPartsShop.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
+
 
 namespace AutoPartShop.Api.Controllers;
 
@@ -18,11 +22,13 @@ public class PartsController : ControllerBase
     private readonly IPriceHistoryRepository _priceHistoryRepository;
     private readonly ILogger<PartsController> _logger;
     private readonly ICodeGenerateService _codeGenerateService;
+    private readonly ICurrentUserService _currentUserService;
 
     public PartsController(IPartRepository partRepository, ICategoryRepository categoryRepository,
         IUnitRepository unitRepository, IPartVehicleCompatibilityRepository compatibilityRepository,
         IPriceHistoryRepository priceHistoryRepository,
         ICodeGenerateService codeGenerateService,
+        ICurrentUserService currentUserService,
         ILogger<PartsController> logger)
     {
         _partRepository = partRepository;
@@ -32,7 +38,49 @@ public class PartsController : ControllerBase
         _priceHistoryRepository = priceHistoryRepository;
         _logger = logger;
         _codeGenerateService = codeGenerateService;
+        _currentUserService = currentUserService;
     }
+
+
+    [HttpPost("list")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> FindAll([FromBody] PartQuery query, CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (query is null)
+            {
+                return BadRequest("Request can not be empty");
+            }
+            if (query.PageNumber < 0)
+            {
+                return BadRequest($"Page number can not be {query.PageNumber}");
+            }
+            if (query.PageSize < 0)
+            {
+                return BadRequest($"Page size can not be {query.PageSize}");
+            }
+
+            var response = await _partRepository.SearchPagedAsync(query, cancellationToken);
+            return Ok(new PaginatedResponse<PartResponse>
+            {
+                Data = response.Parts.Select(MapToResponse).ToList(),
+                Pagination = new PaginationMeta
+                {
+                    PageNumber = query.PageNumber,
+                    PageSize = query.PageSize,
+                    TotalCount = response.TotalCount,
+                    TotalPages = (int)Math.Ceiling(response.TotalCount / (double)query.PageSize)
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting all customers");
+            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving customers");
+        }
+    }
+
 
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<PartResponse>))]
@@ -70,45 +118,8 @@ public class PartsController : ControllerBase
         }
     }
 
-    [HttpGet("list")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetList(
-        [FromQuery] int pageNumber = 1,
-        [FromQuery] int pageSize = 10,
-        [FromQuery] string? searchTerm = null,
-        CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            if (pageNumber < 1) pageNumber = 1;
-            if (pageSize < 1) pageSize = 10;
-            if (pageSize > 100) pageSize = 100;
 
-            var hasSearch = !string.IsNullOrWhiteSpace(searchTerm);
-            _logger.LogInformation("Getting parts list - Page: {PageNumber}, Size: {PageSize}, Search: {SearchTerm}",
-                pageNumber, pageSize, hasSearch ? searchTerm : "none");
 
-            var (parts, totalCount) = await _partRepository.SearchPagedAsync(searchTerm ?? string.Empty, pageNumber, pageSize, cancellationToken);
-
-            var response = parts.Select(p => MapToResponse(p));
-            return Ok(new
-            {
-                data = response,
-                pagination = new
-                {
-                    pageNumber,
-                    pageSize,
-                    totalCount,
-                    totalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
-                }
-            });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting parts list");
-            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving parts");
-        }
-    }
 
     [HttpGet("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(PartResponse))]
@@ -160,9 +171,26 @@ public class PartsController : ControllerBase
 
             var partNumber = PartNumber.Create(request.PartNumber);
             var sku = await _codeGenerateService.GenerateAsync("SM", cancellationToken);
-            var part = Part.Create(request.Name, partNumber, request.SKU, request.CategoryId, request.BrandId, request.UnitId, request.Description);
-            part.CreatedBy = "System";
-            part.ModifiedBy = "System";
+            var part = Part.Create(
+                request.Name,
+                partNumber,
+                request.SKU,
+                request.CategoryId,
+                request.BrandId,
+                request.UnitId,
+                request.Description,
+                request.CostPrice,
+                request.SellingPrice,
+                request.MinimumStock,
+                request.HasWarranty,
+                request.WarrantyPeriodMonths,
+                request.WarrantyType,
+                request.WarrantyTerms,
+                request.WarrantyCertificateTemplate
+            );
+            var currentUser = _currentUserService.GetCurrentUsername();
+            part.CreatedBy = currentUser;
+            part.ModifiedBy = currentUser;
             await _codeGenerateService.SaveGenerateCodeAsync("SM", cancellationToken);
             await _partRepository.AddAsync(part, cancellationToken);
 
@@ -216,8 +244,10 @@ public class PartsController : ControllerBase
             var oldCostPrice = part.CostPrice;
 
             part.Update(request.Name, request.Description, request.SKU, request.CategoryId, request.BrandId, request.UnitId,
-                request.CostPrice, request.SellingPrice, request.MinimumStock, request.IsActive);
-            part.ModifiedBy = "System";
+                request.CostPrice, request.SellingPrice, request.MinimumStock, request.IsActive,
+                request.HasWarranty, request.WarrantyPeriodMonths, request.WarrantyType,
+                request.WarrantyTerms, request.WarrantyCertificateTemplate);
+            part.ModifiedBy = _currentUserService.GetCurrentUsername();
 
             await _partRepository.UpdateAsync(part, cancellationToken);
 
@@ -226,16 +256,17 @@ public class PartsController : ControllerBase
             {
                 try
                 {
+                    var currentUser = _currentUserService.GetCurrentUsername();
                     var priceHistory = PriceHistory.Create(
                         partId: part.Id,
                         oldPrice: oldSellingPrice,
                         newPrice: request.SellingPrice,
                         effectiveDate: DateTime.UtcNow,
                         reason: "PRICE_UPDATE",
-                        changedBy: "System"
+                        changedBy: currentUser
                     );
-                    priceHistory.CreatedBy = "System";
-                    priceHistory.ModifiedBy = "System";
+                    priceHistory.CreatedBy = currentUser;
+                    priceHistory.ModifiedBy = currentUser;
 
                     await _priceHistoryRepository.AddAsync(priceHistory, cancellationToken);
                     _logger.LogInformation("Price history recorded for part {PartId}: {OldPrice} -> {NewPrice}",
@@ -280,7 +311,7 @@ public class PartsController : ControllerBase
             }
 
             part.Activate();
-            part.ModifiedBy = "System";
+            part.ModifiedBy = _currentUserService.GetCurrentUsername();
             await _partRepository.UpdateAsync(part, cancellationToken);
 
             var response = MapToResponse(part);
@@ -310,7 +341,7 @@ public class PartsController : ControllerBase
             }
 
             part.Deactivate();
-            part.ModifiedBy = "System";
+            part.ModifiedBy = _currentUserService.GetCurrentUsername();
             await _partRepository.UpdateAsync(part, cancellationToken);
 
             var response = MapToResponse(part);
@@ -409,6 +440,11 @@ public class PartsController : ControllerBase
             SellingPrice = part.SellingPrice,
             MinimumStock = part.MinimumStock,
             IsActive = part.IsActive,
+            HasWarranty = part.HasWarranty,
+            WarrantyPeriodMonths = part.WarrantyPeriodMonths,
+            WarrantyType = part.WarrantyType,
+            WarrantyTerms = part.WarrantyTerms,
+            WarrantyCertificateTemplate = part.WarrantyCertificateTemplate,
             CreatedBy = part.CreatedBy,
             ModifiedBy = part.ModifiedBy
         };

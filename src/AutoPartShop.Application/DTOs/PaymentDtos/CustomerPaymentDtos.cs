@@ -1,4 +1,12 @@
+using AutoPartShop.Domain.Common;
+
 namespace AutoPartShop.Application.DTOs.PaymentDtos;
+
+public class CustomerPaymentQuery : BaseQuery
+{
+    public string? Status { get; set; }
+    public string? CustomerType { get; set; }
+}
 
 public class CreateCustomerPaymentRequest
 {
@@ -19,6 +27,16 @@ public class UpdateCustomerPaymentRequest
     public string ReferenceNumber { get; set; } = string.Empty;
     public string AuthorizationCode { get; set; } = string.Empty;
     public string Notes { get; set; } = string.Empty;
+}
+
+public class MarkAsCustomerPaymentAdvanceRequest
+{
+    public string Description { get; set; } = string.Empty;
+}
+
+public class MarkAsCustomerPaymentRegularRequest
+{
+    public string Description { get; set; } = string.Empty;
 }
 
 public class CustomerPaymentResponse
@@ -45,6 +63,9 @@ public class CustomerPaymentResponse
     public string SettledBy { get; set; } = string.Empty;
     public bool IsReconciled { get; set; }
     public DateTime? ReconciledDate { get; set; }
+    public string PaymentType { get; set; } = string.Empty;
+    public decimal RemainingAmount { get; set; }
+    public Guid? SourceAdvancePaymentId { get; set; }
     public DateTime CreatedAt { get; set; }
 }
 
@@ -72,4 +93,32 @@ public class CustomerPaymentHistorySummary
 
     // Advance/Available balance (unlinked payments)
     public decimal AvailableAdvance { get; set; }
+}
+
+public class AvailableCustomerAdvancePayment
+{
+    public Guid Id { get; set; }
+    public string TransactionNumber { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public decimal RemainingAmount { get; set; }
+    public decimal UsedAmount => Amount - RemainingAmount;
+    public DateTime PaymentDate { get; set; }
+    public string Description { get; set; } = string.Empty;
+}
+
+public class ApplyCustomerAdvanceCreditRequest
+{
+    public Guid InvoiceId { get; set; }
+    public Guid SourceAdvancePaymentId { get; set; }
+    public decimal Amount { get; set; }
+    public string? Description { get; set; }
+}
+
+public class ApplyCustomerAdvanceCreditResponse
+{
+    public Guid PaymentId { get; set; }
+    public string TransactionNumber { get; set; } = string.Empty;
+    public decimal AmountApplied { get; set; }
+    public decimal RemainingAdvanceBalance { get; set; }
+    public string Message { get; set; } = string.Empty;
 }

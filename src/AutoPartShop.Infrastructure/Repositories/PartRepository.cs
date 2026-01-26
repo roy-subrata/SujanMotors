@@ -1,4 +1,5 @@
 using AutoPartShop.Domain.Entities;
+using AutoPartsShop.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace AutoPartShop.Infrastructure.Repositories;
@@ -64,7 +65,39 @@ public class PartRepository(AutoPartDbContext _db) : IPartRepository
     {
         return await _db.Parts.Where(p => p.IsActive && !p.Isdeleted).ToListAsync(cancellationToken);
     }
+    public async Task<(IEnumerable<Part> Parts, int TotalCount)> SearchPagedAsync(PartQuery query, CancellationToken cancellationToken = default)
+    {
+        var term = query.Search.ToLower();
 
+        var parts = _db.Parts
+            .Include(p => p.Category)
+            .Include(p => p.Brand)
+            .Include(p => p.Unit)
+            .Where(x => !x.Isdeleted && x.IsActive == query.IsActive && (
+             (EF.Functions.Like(x.Name, $"%{term}%") ||
+             EF.Functions.Like(x.SKU, $"%{term}%")
+            )));
+
+
+        if (query.Sorts != null && query.Sorts.Any())
+        {
+            var sorts =
+                query.Sorts.Select(x => (x.Field, x.Direction == "asc" ? true : false)).ToArray();
+            parts = parts.OrderByMultiple(sorts);
+        }
+        else
+        {
+            parts = parts.OrderBy(x => x.CreatedDate);
+        }
+
+        var totalCount = await parts.CountAsync(cancellationToken);
+        var items = await parts
+            .Skip((query.PageNumber - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .ToListAsync(cancellationToken);
+
+        return (items, totalCount);
+    }
     public async Task<(IEnumerable<Part> Parts, int TotalCount)> SearchPagedAsync(string searchTerm, int pageNumber, int pageSize, CancellationToken cancellationToken = default)
     {
         var query = _db.Parts.Where(c => !c.Isdeleted);
@@ -102,6 +135,8 @@ public class PartRepository(AutoPartDbContext _db) : IPartRepository
     {
         return await _db.Parts.Where(p => p.CategoryId == categoryId && !p.Isdeleted).ToListAsync(cancellationToken);
     }
+
+
 }
 
 public class VehicleRepository(AutoPartDbContext _db) : IVehicleRepository
@@ -239,7 +274,7 @@ public class PartVehicleCompatibilityRepository(AutoPartDbContext _db) : IPartVe
     public async Task<IEnumerable<PartVehicleCompatibility>> GetCompatibilitiesByPartAsync(Guid partId, CancellationToken cancellationToken = default)
     {
         return await _db.PartVehicleCompatibilities
-            .Include(x=>x.Vehicle)
+            .Include(x => x.Vehicle)
             .Where(c => c.PartId == partId && !c.Isdeleted).ToListAsync(cancellationToken);
     }
 

@@ -2,169 +2,177 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { PaginatedResponse } from '../../sales/services/customer.service';
+import { SupplierQuery } from './supplier.service';
 
 export interface PartResponse {
-  id: string;
-  name: string;
-  description: string;
-  partNumber: string;
-  sku: string;
-  categoryId: string;
-  categoryName: string;
-  brandId: string | null;
-  brandName: string | null;
-  brandCode: string | null;
-  unitId: string | null;
-  unitName: string | null;
-  costPrice: number;
-  sellingPrice: number;
-  minimumStock: number;
-  isActive: boolean;
-  createdBy: string;
-  modifiedBy: string;
+    id: string;
+    name: string;
+    description: string;
+    partNumber: string;
+    sku: string;
+    categoryId: string;
+    categoryName: string;
+    brandId: string | null;
+    brandName: string | null;
+    brandCode: string | null;
+    unitId: string | null;
+    unitName: string | null;
+    costPrice: number;
+    sellingPrice: number;
+    minimumStock: number;
+    isActive: boolean;
+    createdBy: string;
+    modifiedBy: string;
+    hasWarranty: boolean;
+    warrantyPeriodMonths: number | null;
+    warrantyType: string | null;
+    warrantyTerms: string | null;
+    warrantyCertificateTemplate: string | null;
 }
 
 export interface CreatePartRequest {
-  name: string;
-  description: string;
-  partNumber: string;
-  sku: string;
-  categoryId: string;
-  brandId: string | null;
-  unitId: string | null;
-  costPrice: number;
-  sellingPrice: number;
-  minimumStock: number;
+    name: string;
+    description: string;
+    partNumber: string;
+    sku: string;
+    categoryId: string;
+    brandId: string | null;
+    unitId: string | null;
+    costPrice: number;
+    sellingPrice: number;
+    minimumStock: number;
+    hasWarranty: boolean;
+    warrantyPeriodMonths: number | null;
+    warrantyType: string | null;
+    warrantyTerms: string | null;
+    warrantyCertificateTemplate: string | null;
 }
 
 export interface UpdatePartRequest {
-  id: string;
-  name: string;
-  description: string;
-  sku: string;
-  categoryId: string;
-  brandId: string | null;
-  unitId: string | null;
-  costPrice: number;
-  sellingPrice: number;
-  minimumStock: number;
-  isActive: boolean;
+    id: string;
+    name: string;
+    description: string;
+    sku: string;
+    categoryId: string;
+    brandId: string | null;
+    unitId: string | null;
+    costPrice: number;
+    sellingPrice: number;
+    minimumStock: number;
+    isActive: boolean;
+    hasWarranty: boolean;
+    warrantyPeriodMonths: number | null;
+    warrantyType: string | null;
+    warrantyTerms: string | null;
+    warrantyCertificateTemplate: string | null;
 }
 
 export interface PaginatedPartResponse {
-  items: PartResponse[];
-  pageNumber: number;
-  pageSize: number;
-  totalCount: number;
-  totalPages: number;
-  hasPreviousPage: boolean;
-  hasNextPage: boolean;
+    items: PartResponse[];
+    pageNumber: number;
+    pageSize: number;
+    totalCount: number;
+    totalPages: number;
+    hasPreviousPage: boolean;
+    hasNextPage: boolean;
 }
 
 export interface VehicleCompatibilityResponse {
-  id: string;
-  partId: string;
-  vehicleId: string;
-  vehicleMake: string;
-  vehicleModel: string;
-  vehicleYear: number;
-  vehicleEngineType: string;
-  isCompatible: boolean;
-  notes: string;
+    id: string;
+    partId: string;
+    vehicleId: string;
+    vehicleMake: string;
+    vehicleModel: string;
+    vehicleYear: number;
+    vehicleEngineType: string;
+    isCompatible: boolean;
+    notes: string;
+}
+
+export interface PartsQuery {
+    search: string;
+    pageSize: number;
+    pageNumber: number;
+    isActive?: boolean;
 }
 
 @Injectable({
-  providedIn: 'root'
+    providedIn: 'root'
 })
 export class PartService {
-  private readonly http = inject(HttpClient);
-  private readonly apiUrl = 'http://localhost:5292/api/parts';
+    private readonly http = inject(HttpClient);
+    private readonly apiUrl = 'http://localhost:5292/api/parts';
 
-  /**
-   * Get all parts
-   */
-  getAllParts(): Observable<PartResponse[]> {
-    return this.http.get<PartResponse[]>(this.apiUrl);
-  }
-
-  /**
-   * Get all active parts
-   */
-  getActiveParts(): Observable<PartResponse[]> {
-    return this.http.get<PartResponse[]>(`${this.apiUrl}/active`);
-  }
-
-  /**
-   * Get paginated parts with optional search
-   */
-  getParts(pageNumber: number, pageSize: number, searchTerm?: string): Observable<PaginatedPartResponse> {
-    let params = new HttpParams()
-      .set('pageNumber', pageNumber.toString())
-      .set('pageSize', pageSize.toString());
-
-    if (searchTerm) {
-      params = params.set('searchTerm', searchTerm);
+    /**
+     * Get all parts
+     */
+    getAllParts(): Observable<PartResponse[]> {
+        return this.http.get<PartResponse[]>(this.apiUrl);
     }
 
-    return this.http.get<any>(`${this.apiUrl}/list`, { params }).pipe(
-      map(response => ({
-        items: response.data,
-        pageNumber: response.pagination.pageNumber,
-        pageSize: response.pagination.pageSize,
-        totalCount: response.pagination.totalCount,
-        totalPages: response.pagination.totalPages,
-        hasPreviousPage: response.pagination.pageNumber > 1,
-        hasNextPage: response.pagination.pageNumber < response.pagination.totalPages
-      }))
-    );
-  }
+    /**
+     * Get all active parts
+     */
 
-  /**
-   * Get part by ID
-   */
-  getPartById(id: string): Observable<PartResponse> {
-    return this.http.get<PartResponse>(`${this.apiUrl}/${id}`);
-  }
+    getActiveParts(): Observable<PartResponse[]> {
+        return this.http.get<PartResponse[]>(`${this.apiUrl}/active`);
+    }
 
-  /**
-   * Create new part
-   */
-  createPart(request: CreatePartRequest): Observable<PartResponse> {
-    return this.http.post<PartResponse>(this.apiUrl, request);
-  }
 
-  /**
-   * Update existing part
-   */
-  updatePart(id: string, request: UpdatePartRequest): Observable<PartResponse> {
-    return this.http.put<PartResponse>(`${this.apiUrl}/${id}`, request);
-  }
+    /**
+  * Get paginated suppliers with optional search
+  */
+    getParts(rQuery: PartsQuery): Observable<PaginatedResponse<PartResponse>> {
+        return this.http.post<PaginatedResponse<PartResponse>>(`${this.apiUrl}/list`, rQuery);
+    }
 
-  /**
-   * Activate part
-   */
-  activatePart(id: string): Observable<PartResponse> {
-    return this.http.patch<PartResponse>(`${this.apiUrl}/${id}/activate`, {});
-  }
+    /**
+     * Get part by ID
+     */
+    getPartById(id: string): Observable<PartResponse> {
+        return this.http.get<PartResponse>(`${this.apiUrl}/${id}`);
+    }
 
-  /**
-   * Deactivate part
-   */
-  deactivatePart(id: string): Observable<PartResponse> {
-    return this.http.patch<PartResponse>(`${this.apiUrl}/${id}/deactivate`, {});
-  }
+    /**
+     * Create new part
+     */
+    createPart(request: CreatePartRequest): Observable<PartResponse> {
+        return this.http.post<PartResponse>(this.apiUrl, request);
+    }
 
-  /**
-   * Delete part
-   */
-  deletePart(id: string): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/${id}`);
-  }
+    /**
+     * Update existing part
+     */
+    updatePart(id: string, request: UpdatePartRequest): Observable<PartResponse> {
+        return this.http.put<PartResponse>(`${this.apiUrl}/${id}`, request);
+    }
 
-  /**
-   * Get compatible vehicles for a part
-   */
-  getPartCompatibleVehicles(partId: string): Observable<VehicleCompatibilityResponse[]> {
-    return this.http.get<VehicleCompatibilityResponse[]>(`${this.apiUrl}/${partId}/compatible-vehicles`);
-  }
+    /**
+     * Activate part
+     */
+    activatePart(id: string): Observable<PartResponse> {
+        return this.http.patch<PartResponse>(`${this.apiUrl}/${id}/activate`, {});
+    }
+
+    /**
+     * Deactivate part
+     */
+    deactivatePart(id: string): Observable<PartResponse> {
+        return this.http.patch<PartResponse>(`${this.apiUrl}/${id}/deactivate`, {});
+    }
+
+    /**
+     * Delete part
+     */
+    deletePart(id: string): Observable<void> {
+        return this.http.delete<void>(`${this.apiUrl}/${id}`);
+    }
+
+    /**
+     * Get compatible vehicles for a part
+     */
+    getPartCompatibleVehicles(partId: string): Observable<VehicleCompatibilityResponse[]> {
+        return this.http.get<VehicleCompatibilityResponse[]>(`${this.apiUrl}/${partId}/compatible-vehicles`);
+    }
 }

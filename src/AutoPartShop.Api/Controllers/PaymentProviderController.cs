@@ -1,3 +1,4 @@
+using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.PaymentDtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Infrastructure.Repositories;
@@ -12,10 +13,12 @@ public class PaymentProviderController : ControllerBase
 {
     private readonly IPaymentProviderRepository _repository;
     private readonly ILogger<PaymentProviderController> _logger;
+    private readonly ICurrentUserService _currentUserService;
 
-    public PaymentProviderController(IPaymentProviderRepository repository, ILogger<PaymentProviderController> logger)
+    public PaymentProviderController(IPaymentProviderRepository repository, ICurrentUserService currentUserService, ILogger<PaymentProviderController> logger)
     {
         _repository = repository;
+        _currentUserService = currentUserService;
         _logger = logger;
     }
 
@@ -92,6 +95,8 @@ public class PaymentProviderController : ControllerBase
                 provider.SetBankDetails(request.BankName, request.BankAccountNumber, request.BankRoutingNumber, request.BeneficiaryName);
             if (!string.IsNullOrWhiteSpace(request.BankIBAN))
                 provider.SetInternationalDetails(request.BankIBAN, request.BankSWIFT);
+            if (!string.IsNullOrWhiteSpace(request.MobileNumber))
+                provider.SetMobileBankingDetails(request.MobileNumber, request.AccountHolderName, request.AgentNumber);
             if (request.TransactionFeeAmount >= 0)
                 provider.SetTransactionFees(request.TransactionFeeType, request.TransactionFeeAmount, request.MinimumAmount, request.MaximumAmount);
 
@@ -100,8 +105,9 @@ public class PaymentProviderController : ControllerBase
             provider.SetMerchantId(request.MerchantId);
             provider.SetWebhookUrl(request.WebhookUrl);
             provider.UpdateNotes(request.Notes);
-            provider.CreatedBy = "System";
-            provider.ModifiedBy = "System";
+            var currentUser = _currentUserService.GetCurrentUsername();
+            provider.CreatedBy = currentUser;
+            provider.ModifiedBy = currentUser;
 
             await _repository.AddAsync(provider, cancellationToken);
             return CreatedAtAction(nameof(GetById), new { id = provider.Id }, MapResponse(provider));
@@ -127,13 +133,15 @@ public class PaymentProviderController : ControllerBase
 
             if (!string.IsNullOrWhiteSpace(request.BankName))
                 provider.SetBankDetails(request.BankName, request.BankAccountNumber, request.BankRoutingNumber, request.BeneficiaryName);
+            if (!string.IsNullOrWhiteSpace(request.MobileNumber))
+                provider.SetMobileBankingDetails(request.MobileNumber, request.AccountHolderName, request.AgentNumber);
             if (request.TransactionFeeAmount >= 0)
                 provider.SetTransactionFees(request.TransactionFeeType, request.TransactionFeeAmount, request.MinimumAmount, request.MaximumAmount);
 
             provider.SetCurrencies(request.SupportedCurrencies);
             provider.SetWebhookUrl(request.WebhookUrl);
             provider.UpdateNotes(request.Notes);
-            provider.ModifiedBy = "System";
+            provider.ModifiedBy = _currentUserService.GetCurrentUsername();
 
             await _repository.UpdateAsync(provider, cancellationToken);
             return Ok(MapResponse(provider));
@@ -153,7 +161,7 @@ public class PaymentProviderController : ControllerBase
             var provider = await _repository.GetByIdAsync(id, cancellationToken);
             if (provider is null) return NotFound();
             provider.Activate();
-            provider.ModifiedBy = "System";
+            provider.ModifiedBy = _currentUserService.GetCurrentUsername();
             await _repository.UpdateAsync(provider, cancellationToken);
             return Ok(MapResponse(provider));
         }
@@ -172,7 +180,7 @@ public class PaymentProviderController : ControllerBase
             var provider = await _repository.GetByIdAsync(id, cancellationToken);
             if (provider is null) return NotFound();
             provider.Deactivate();
-            provider.ModifiedBy = "System";
+            provider.ModifiedBy = _currentUserService.GetCurrentUsername();
             await _repository.UpdateAsync(provider, cancellationToken);
             return Ok(MapResponse(provider));
         }
@@ -250,7 +258,7 @@ public class PaymentProviderController : ControllerBase
 
             // Set new default
             provider.SetAsDefault(true);
-            provider.ModifiedBy = "System";
+            provider.ModifiedBy = _currentUserService.GetCurrentUsername();
             await _repository.UpdateAsync(provider, cancellationToken);
 
             return Ok(MapResponse(provider));
@@ -320,6 +328,9 @@ public class PaymentProviderController : ControllerBase
         BankIBAN = p.BankIBAN,
         BankSWIFT = p.BankSWIFT,
         BeneficiaryName = p.BeneficiaryName,
+        MobileNumber = p.MobileNumber,
+        AccountHolderName = p.AccountHolderName,
+        AgentNumber = p.AgentNumber,
         TransactionFeeType = p.TransactionFeeType,
         TransactionFeeAmount = p.TransactionFeeAmount,
         MinimumAmount = p.MinimumAmount,

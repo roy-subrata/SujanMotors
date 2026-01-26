@@ -1,4 +1,7 @@
+using AutoPartShop.Api.Services;
+using AutoPartShop.Application.DTOs.CustomerDtos;
 using AutoPartShop.Application.DTOs.SupplierDtos;
+using AutoPartShop.Domain.Common;
 using AutoPartShop.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,14 +14,53 @@ public class SuppliersController : ControllerBase
 {
     private readonly ISupplierRepository _supplierRepository;
     private readonly ILogger<SuppliersController> _logger;
-
     private readonly ICodeGenerateService _codeGenerateService;
+    private readonly ICurrentUserService _currentUserService;
 
-    public SuppliersController(ISupplierRepository supplierRepository, ICodeGenerateService codeGenerateService, ILogger<SuppliersController> logger)
+    public SuppliersController(ISupplierRepository supplierRepository, ICodeGenerateService codeGenerateService, ICurrentUserService currentUserService, ILogger<SuppliersController> logger)
     {
         _supplierRepository = supplierRepository;
         _codeGenerateService = codeGenerateService;
+        _currentUserService = currentUserService;
         _logger = logger;
+    }
+    [HttpPost("list")]
+    public async Task<IActionResult> FindAll(SupplierQuery query, CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (query is null)
+            {
+                return BadRequest("Request can not be empty");
+            }
+            if (query.PageNumber < 0)
+            {
+                return BadRequest($"Page number can not be {query.PageNumber}");
+            }
+            if (query.PageSize < 0)
+            {
+                return BadRequest($"Page size can not be {query.PageSize}");
+            }
+
+            var response = await _supplierRepository.SearchPagedAsync(query, cancellationToken);
+            return Ok(new PaginatedResponse<SupplierResponse>
+            {
+                Data = response.Suppliers.Select(MapToResponse).ToList(),
+                Pagination = new PaginationMeta
+                {
+                    PageNumber = query.PageNumber,
+                    PageSize = query.PageSize,
+                    TotalCount = response.TotalCount,
+                    TotalPages = (int)Math.Ceiling(response.TotalCount / (double)query.PageSize)
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting all customers");
+            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving customers");
+        }
+
     }
 
     [HttpGet]
@@ -53,29 +95,6 @@ public class SuppliersController : ControllerBase
         }
     }
 
-    [HttpGet("list")]
-    public async Task<IActionResult> GetList(int pageNumber = 1, int pageSize = 10, string? searchTerm = null, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            if (pageNumber < 1) pageNumber = 1;
-            if (pageSize < 1) pageSize = 10;
-            if (pageSize > 100) pageSize = 100;
-
-            var (suppliers, totalCount) = await _supplierRepository.SearchPagedAsync(searchTerm ?? string.Empty, pageNumber, pageSize, cancellationToken);
-            var response = suppliers.Select(s => MapToResponse(s));
-            return Ok(new
-            {
-                data = response,
-                pagination = new { pageNumber, pageSize, totalCount, totalPages = (int)Math.Ceiling(totalCount / (double)pageSize) }
-            });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting suppliers list");
-            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving suppliers");
-        }
-    }
 
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
@@ -107,12 +126,12 @@ public class SuppliersController : ControllerBase
 
             var supplier = Supplier.Create(request.Name, request.Code, request.ContactPerson, request.Email, request.Phone,
                 request.Address, request.City, request.State, request.Country, request.PostalCode);
-            supplier.PaymentTerms = request.PaymentTerms;
-            supplier.CreditLimit = request.CreditLimit;
-            supplier.CreatedBy = "System";
-            supplier.ModifiedBy = "System";
 
-            await _codeGenerateService.SaveGenerateCodeAsync("SUP", cancellationToken);        
+            var currentUser = _currentUserService.GetCurrentUsername();
+            supplier.CreatedBy = currentUser;
+            supplier.ModifiedBy = currentUser;
+
+            await _codeGenerateService.SaveGenerateCodeAsync("SUP", cancellationToken);
             await _supplierRepository.AddAsync(supplier, cancellationToken);
 
             return CreatedAtAction(nameof(GetById), new { id = supplier.Id }, MapToResponse(supplier));
@@ -138,8 +157,8 @@ public class SuppliersController : ControllerBase
 
             supplier.Update(request.Name, request.ContactPerson, request.Email, request.Phone,
                 request.Address, request.City, request.State, request.Country, request.PostalCode,
-                request.PaymentTerms, request.CreditLimit, request.IsActive);
-            supplier.ModifiedBy = "System";
+              request.IsActive);
+            supplier.ModifiedBy = _currentUserService.GetCurrentUsername();
 
             await _supplierRepository.UpdateAsync(supplier, cancellationToken);
 
@@ -165,7 +184,7 @@ public class SuppliersController : ControllerBase
             if (supplier is null) return NotFound(new { message = "Supplier not found" });
 
             supplier.Activate();
-            supplier.ModifiedBy = "System";
+            supplier.ModifiedBy = _currentUserService.GetCurrentUsername();
             await _supplierRepository.UpdateAsync(supplier, cancellationToken);
 
             return Ok(MapToResponse(supplier));
@@ -186,7 +205,7 @@ public class SuppliersController : ControllerBase
             if (supplier is null) return NotFound(new { message = "Supplier not found" });
 
             supplier.Deactivate();
-            supplier.ModifiedBy = "System";
+            supplier.ModifiedBy = _currentUserService.GetCurrentUsername();
             await _supplierRepository.UpdateAsync(supplier, cancellationToken);
 
             return Ok(MapToResponse(supplier));
@@ -223,9 +242,7 @@ public class SuppliersController : ControllerBase
         {
             var supplier = await _supplierRepository.GetByIdAsync(id, cancellationToken);
             if (supplier is null) return NotFound(new { message = "Supplier not found" });
-
-            supplier.SetBankDetails(request.BankName, request.AccountNumber, request.TaxID);
-            supplier.ModifiedBy = "System";
+            supplier.ModifiedBy = _currentUserService.GetCurrentUsername();
             await _supplierRepository.UpdateAsync(supplier, cancellationToken);
 
             return Ok(MapToResponse(supplier));
@@ -246,7 +263,7 @@ public class SuppliersController : ControllerBase
             if (supplier is null) return NotFound(new { message = "Supplier not found" });
 
             supplier.SetRating(request.Rating);
-            supplier.ModifiedBy = "System";
+            supplier.ModifiedBy = _currentUserService.GetCurrentUsername();
             await _supplierRepository.UpdateAsync(supplier, cancellationToken);
 
             return Ok(MapToResponse(supplier));
@@ -277,11 +294,7 @@ public class SuppliersController : ControllerBase
             State = supplier.State,
             Country = supplier.Country,
             PostalCode = supplier.PostalCode,
-            PaymentTerms = supplier.PaymentTerms,
-            CreditLimit = supplier.CreditLimit,
-            BankName = supplier.BankName,
-            BankAccountNumber = supplier.BankAccountNumber,
-            TaxID = supplier.TaxID,
+            CurrentBalance = supplier.CurrentBalance,
             IsActive = supplier.IsActive,
             Rating = supplier.Rating,
             CreatedBy = supplier.CreatedBy,

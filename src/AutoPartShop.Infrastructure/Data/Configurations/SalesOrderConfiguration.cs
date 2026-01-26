@@ -34,6 +34,11 @@ public class SalesOrderConfiguration : IEntityTypeConfiguration<SalesOrder>
         builder.Property(so => so.TechnicianName)
             .HasMaxLength(200);
 
+        builder.Property(so => so.Currency)
+            .IsRequired()
+            .HasMaxLength(3)
+            .HasDefaultValue("BDT");
+
         // Relationships
         builder.HasOne(so => so.Customer)
             .WithMany(c => c.SalesOrders)

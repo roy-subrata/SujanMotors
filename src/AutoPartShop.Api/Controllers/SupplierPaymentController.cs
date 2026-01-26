@@ -1,5 +1,6 @@
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.PaymentDtos;
+using AutoPartShop.Domain.Common;
 using AutoPartShop.Domain.Entities;
 using iText.Kernel.Pdf;
 using iText.Layout;
@@ -17,6 +18,7 @@ public class SupplierPaymentController : ControllerBase
     private readonly ISupplierRepository _supplierRepository;
     private readonly IPurchaseOrderRepository _purchaseOrderRepository;
     private readonly SupplierPaymentSummaryService _summaryService;
+    private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<SupplierPaymentController> _logger;
 
     public SupplierPaymentController(
@@ -24,12 +26,14 @@ public class SupplierPaymentController : ControllerBase
         ISupplierRepository supplierRepository,
         IPurchaseOrderRepository purchaseOrderRepository,
         SupplierPaymentSummaryService summaryService,
+        ICurrentUserService currentUserService,
         ILogger<SupplierPaymentController> logger)
     {
         _repository = repository;
         _supplierRepository = supplierRepository;
         _purchaseOrderRepository = purchaseOrderRepository;
         _summaryService = summaryService;
+        _currentUserService = currentUserService;
         _logger = logger;
     }
 
@@ -49,47 +53,28 @@ public class SupplierPaymentController : ControllerBase
         }
     }
 
-    [HttpGet("list")]
-    public async Task<IActionResult> GetList([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10, [FromQuery] string? searchTerm = null, CancellationToken cancellationToken = default)
+    [HttpPost("list")]
+    public async Task<IActionResult> GetList([FromBody] SupplierPaymentQuery query, CancellationToken cancellationToken = default)
     {
         try
         {
-            if (pageNumber < 1) pageNumber = 1;
-            if (pageSize < 1) pageSize = 10;
-            if (pageSize > 100) pageSize = 100;
-
-            var (allPayments, totalCount) = await _repository.GetPagedAsync(pageNumber, pageSize, cancellationToken);
-
-            // Apply search filter if provided
-            if (!string.IsNullOrEmpty(searchTerm))
+            if (query == null)
             {
-                var filtered = allPayments.Where(p =>
-                    p.InvoiceNumber.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
-                    p.ReferenceNumber.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)
-                ).ToList();
-                allPayments = filtered;
-                totalCount = filtered.Count;
-            }
-            var responses = new List<SupplierPaymentResponse>();
-
-            foreach (var payment in allPayments)
-            {
-                responses.Add(await MapResponse(payment));
+                return BadRequest("Query parameters are required.");
             }
 
-            var response = new
+            if (query.PageNumber <= 0 || query.PageSize <= 0)
             {
-                data = responses,
-                pagination = new
-                {
-                    pageNumber,
-                    pageSize,
-                    totalCount,
-                    totalPages = (int)Math.Ceiling((double)totalCount / pageSize)
-                }
-            };
+                return BadRequest("Invalid pagination parameters.");
+            }
 
-            return Ok(response);
+            var (payments, totalCount) = await _repository.SearchPagedAsync(query, cancellationToken);
+
+            return Ok(PagedResult<SupplierPaymentResponse>.Create(
+                payments.Select(MapResponseSync),
+                totalCount,
+                query
+            ));
         }
         catch (Exception ex)
         {
@@ -385,13 +370,68 @@ public class SupplierPaymentController : ControllerBase
     {
         try
         {
+            // Validation: REGULAR payments MUST have a PurchaseOrderId
+            if (request.PaymentType == PaymentType.REGULAR && !request.PurchaseOrderId.HasValue)
+            {
+                return BadRequest(new { message = "Regular payments must be linked to a purchase order. Use ADVANCE payment type for prepayments without a specific order." });
+            }
+
             var payment = SupplierPayment.Create(request.SupplierId, request.PaymentProviderId, request.Amount, request.PaymentMethod, request.TransactionNumber, request.ReferenceNumber, request.PaymentDate);
+
             if (request.PurchaseOrderId.HasValue)
                 payment.LinkToPurchaseOrder(request.PurchaseOrderId.Value);
+            if (request.GoodsReceiptId.HasValue)
+                payment.LinkToGoodsReceipt(request.GoodsReceiptId.Value);
+            if (request.SupplierPaymentAccountId.HasValue)
+                payment.SetSupplierPaymentAccount(request.SupplierPaymentAccountId.Value);
             if (!string.IsNullOrEmpty(request.InvoiceNumber))
                 payment.SetInvoiceNumber(request.InvoiceNumber);
-            payment.CreatedBy = "System";
-            payment.ModifiedBy = "System";
+
+            // Set payment type based on request
+            if (request.PaymentType == PaymentType.ADVANCE)
+            {
+                payment.MarkAsAdvance();
+                if (!string.IsNullOrEmpty(request.Description))
+                    payment.UpdateNotes(request.Description);
+            }
+
+            var currentUser = _currentUserService.GetCurrentUsername();
+            payment.CreatedBy = currentUser;
+            payment.ModifiedBy = currentUser;
+
+            // Auto-confirm CASH payments since money is immediately in hand
+            if (request.PaymentMethod?.Equals("CASH", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                _logger.LogInformation("Auto-confirming CASH payment of {Amount} for supplier {SupplierId}, Type: {PaymentType}",
+                    request.Amount, request.SupplierId, request.PaymentType);
+                payment.MarkAsProcessed(currentUser + " - Auto-confirmed");
+                payment.ConfirmReceipt(currentUser + " - Cash Payment");
+
+                // For REGULAR payments: Update purchase order and supplier balance
+                if (request.PaymentType == PaymentType.REGULAR)
+                {
+                    // Update purchase order paid amount (required for REGULAR)
+                    var purchaseOrder = await _purchaseOrderRepository.GetByIdAsync(request.PurchaseOrderId!.Value, cancellationToken);
+                    if (purchaseOrder != null)
+                    {
+                        purchaseOrder.RecordPayment(payment.Amount);
+                        purchaseOrder.ModifiedBy = currentUser;
+                        await _purchaseOrderRepository.UpdateAsync(purchaseOrder, cancellationToken);
+                        _logger.LogInformation("Updated purchase order {PONumber} paid amount by {Amount}", purchaseOrder.PONumber, payment.Amount);
+                    }
+
+                    // NOTE: Supplier balance is NOT updated here.
+                    // Balance is now calculated from transactions via SupplierLedgerService.
+                    _logger.LogInformation("Payment {TxnNumber} completed for supplier. Amount: {Amount}. Balance calculated from transactions.",
+                        payment.TransactionNumber, payment.Amount);
+                }
+                // For ADVANCE payments: Balance is calculated from transactions
+                // Advances contribute to available credit, not direct balance reduction
+                else
+                {
+                    _logger.LogInformation("ADVANCE payment created. Supplier balance NOT updated - will be applied when used for a PO.");
+                }
+            }
 
             await _repository.AddAsync(payment, cancellationToken);
             return CreatedAtAction(nameof(GetById), new { id = payment.Id }, await MapResponse(payment));
@@ -415,20 +455,37 @@ public class SupplierPaymentController : ControllerBase
             var payment = await _repository.GetByIdAsync(id, cancellationToken);
             if (payment is null) return NotFound();
 
+            var currentUser = _currentUserService.GetCurrentUsername();
             payment.MarkAsProcessed(processedBy);
-            payment.ModifiedBy = "System";
+            payment.ModifiedBy = currentUser;
             await _repository.UpdateAsync(payment, cancellationToken);
 
-            // Update purchase order paid amount if linked
-            if (payment.PurchaseOrderId.HasValue)
+            // Only update PO and supplier balance for REGULAR payments
+            // ADVANCE payments don't affect balance until they're applied to a PO
+            if (payment.PaymentType == PaymentType.REGULAR)
             {
-                var purchaseOrder = await _purchaseOrderRepository.GetByIdAsync(payment.PurchaseOrderId.Value, cancellationToken);
-                if (purchaseOrder != null)
+                // Update purchase order paid amount if linked
+                if (payment.PurchaseOrderId.HasValue)
                 {
-                    purchaseOrder.RecordPayment(payment.Amount);
-                    purchaseOrder.ModifiedBy = "System";
-                    await _purchaseOrderRepository.UpdateAsync(purchaseOrder, cancellationToken);
+                    var purchaseOrder = await _purchaseOrderRepository.GetByIdAsync(payment.PurchaseOrderId.Value, cancellationToken);
+                    if (purchaseOrder != null)
+                    {
+                        purchaseOrder.RecordPayment(payment.Amount);
+                        purchaseOrder.ModifiedBy = currentUser;
+                        await _purchaseOrderRepository.UpdateAsync(purchaseOrder, cancellationToken);
+                        _logger.LogInformation("Updated purchase order {PONumber} paid amount by {Amount}", purchaseOrder.PONumber, payment.Amount);
+                    }
                 }
+
+                // NOTE: Supplier balance is NOT updated here.
+                // Balance is now calculated from transactions via SupplierLedgerService.
+                _logger.LogInformation("Payment {TxnNumber} marked as processed. Amount: {Amount}. Balance calculated from transactions.",
+                    payment.TransactionNumber, payment.Amount);
+            }
+            else
+            {
+                _logger.LogInformation("ADVANCE payment {TransactionNumber} processed. Balance calculated from transactions.",
+                    payment.TransactionNumber);
             }
 
             return Ok(await MapResponse(payment));
@@ -447,8 +504,10 @@ public class SupplierPaymentController : ControllerBase
         {
             var payment = await _repository.GetByIdAsync(id, cancellationToken);
             if (payment is null) return NotFound();
+
+            var currentUser = _currentUserService.GetCurrentUsername();
             payment.ConfirmReceipt(confirmedBy);
-            payment.ModifiedBy = "System";
+            payment.ModifiedBy = currentUser;
             await _repository.UpdateAsync(payment, cancellationToken);
             return Ok(await MapResponse(payment));
         }
@@ -486,22 +545,40 @@ public class SupplierPaymentController : ControllerBase
             var payment = await _repository.GetByIdAsync(id, cancellationToken);
             if (payment is null) return NotFound(new { message = "Supplier payment not found" });
 
+            var currentUser = _currentUserService.GetCurrentUsername();
+
             // Mark as processed and confirmed
-            payment.MarkAsProcessed("System");
-            payment.ConfirmReceipt("System");
-            payment.ModifiedBy = "System";
+            payment.MarkAsProcessed(currentUser);
+            payment.ConfirmReceipt(currentUser);
+            payment.ModifiedBy = currentUser;
             await _repository.UpdateAsync(payment, cancellationToken);
 
-            // Update purchase order paid amount if linked
-            if (payment.PurchaseOrderId.HasValue)
+            // Only update PO and supplier balance for REGULAR payments
+            // ADVANCE payments don't affect balance until they're applied to a PO
+            if (payment.PaymentType == PaymentType.REGULAR)
             {
-                var purchaseOrder = await _purchaseOrderRepository.GetByIdAsync(payment.PurchaseOrderId.Value, cancellationToken);
-                if (purchaseOrder != null)
+                // Update purchase order paid amount if linked
+                if (payment.PurchaseOrderId.HasValue)
                 {
-                    purchaseOrder.RecordPayment(payment.Amount);
-                    purchaseOrder.ModifiedBy = "System";
-                    await _purchaseOrderRepository.UpdateAsync(purchaseOrder, cancellationToken);
+                    var purchaseOrder = await _purchaseOrderRepository.GetByIdAsync(payment.PurchaseOrderId.Value, cancellationToken);
+                    if (purchaseOrder != null)
+                    {
+                        purchaseOrder.RecordPayment(payment.Amount);
+                        purchaseOrder.ModifiedBy = currentUser;
+                        await _purchaseOrderRepository.UpdateAsync(purchaseOrder, cancellationToken);
+                        _logger.LogInformation("Updated purchase order {PONumber} paid amount by {Amount}", purchaseOrder.PONumber, payment.Amount);
+                    }
                 }
+
+                // NOTE: Supplier balance is NOT updated here.
+                // Balance is now calculated from transactions via SupplierLedgerService.
+                _logger.LogInformation("Payment {TxnNumber} confirmed. Amount: {Amount}. Balance calculated from transactions.",
+                    payment.TransactionNumber, payment.Amount);
+            }
+            else
+            {
+                _logger.LogInformation("ADVANCE payment {TransactionNumber} confirmed. Balance calculated from transactions.",
+                    payment.TransactionNumber);
             }
 
             return Ok(await MapResponse(payment));
@@ -597,9 +674,26 @@ public class SupplierPaymentController : ControllerBase
             var payment = await _repository.GetByIdAsync(id, cancellationToken);
             if (payment is null) return NotFound(new { message = "Supplier payment not found" });
 
+            // If payment was already ADVANCE, nothing to do
+            if (payment.PaymentType == PaymentType.ADVANCE)
+                return Ok(await MapResponse(payment));
+
+            // Block conversion for COMPLETED payments - once applied, cannot be converted
+            // To "unapply" a payment, use proper reversal/refund process instead
+            if (payment.Status == "COMPLETED")
+            {
+                return BadRequest(new { message = "Cannot convert a completed REGULAR payment to ADVANCE. The payment has already been applied to the purchase order and supplier balance. Use a reversal or refund instead." });
+            }
+
+            var currentUser = _currentUserService.GetCurrentUsername();
+
             payment.MarkAsAdvance();
-            payment.ModifiedBy = "System";
+            payment.ModifiedBy = currentUser;
             await _repository.UpdateAsync(payment, cancellationToken);
+
+            _logger.LogInformation("Converted PENDING payment {TransactionNumber} from REGULAR to ADVANCE. Amount: {Amount}",
+                payment.TransactionNumber, payment.Amount);
+
             return Ok(await MapResponse(payment));
         }
         catch (Exception ex)
@@ -617,9 +711,46 @@ public class SupplierPaymentController : ControllerBase
             var payment = await _repository.GetByIdAsync(id, cancellationToken);
             if (payment is null) return NotFound(new { message = "Supplier payment not found" });
 
+            // If payment was already REGULAR, nothing to do
+            if (payment.PaymentType == PaymentType.REGULAR)
+                return Ok(await MapResponse(payment));
+
+            var currentUser = _currentUserService.GetCurrentUsername();
+
+            // If payment was ADVANCE and COMPLETED, we need to apply the remaining amount
+            // because converting to REGULAR means the money should be applied to PO/supplier
+            if (payment.Status == "COMPLETED")
+            {
+                // Apply the remaining advance amount to purchase order if linked
+                if (payment.PurchaseOrderId.HasValue && payment.RemainingAmount > 0)
+                {
+                    var purchaseOrder = await _purchaseOrderRepository.GetByIdAsync(payment.PurchaseOrderId.Value, cancellationToken);
+                    if (purchaseOrder != null)
+                    {
+                        purchaseOrder.RecordPayment(payment.RemainingAmount);
+                        purchaseOrder.ModifiedBy = currentUser;
+                        await _purchaseOrderRepository.UpdateAsync(purchaseOrder, cancellationToken);
+                        _logger.LogInformation("Applied remaining advance {Amount} to purchase order {PONumber} (converting to regular)",
+                            payment.RemainingAmount, purchaseOrder.PONumber);
+                    }
+                }
+
+                // NOTE: Supplier balance is NOT updated here.
+                // Balance is now calculated from transactions via SupplierLedgerService.
+                if (payment.RemainingAmount > 0)
+                {
+                    _logger.LogInformation("Advance payment {TxnNumber} converted to regular. Remaining amount: {Amount}. Balance calculated from transactions.",
+                        payment.TransactionNumber, payment.RemainingAmount);
+                }
+            }
+
             payment.MarkAsRegular();
-            payment.ModifiedBy = "System";
+            payment.ModifiedBy = currentUser;
             await _repository.UpdateAsync(payment, cancellationToken);
+
+            _logger.LogInformation("Converted payment {TransactionNumber} from ADVANCE to REGULAR. Amount: {Amount}",
+                payment.TransactionNumber, payment.Amount);
+
             return Ok(await MapResponse(payment));
         }
         catch (Exception ex)
@@ -638,8 +769,11 @@ public class SupplierPaymentController : ControllerBase
             SupplierId = p.SupplierId,
             SupplierName = supplier?.Name ?? "",
             PurchaseOrderId = p.PurchaseOrderId,
+            GoodsReceiptId = p.GoodsReceiptId,
             PaymentProviderId = p.PaymentProviderId,
-            ProviderName = "",
+            ProviderName = p.PaymentProvider?.ProviderName ?? "",
+            SupplierPaymentAccountId = p.SupplierPaymentAccountId,
+            SupplierPaymentAccountName = p.SupplierPaymentAccount?.GetDisplayText() ?? "",
             TransactionNumber = p.TransactionNumber,
             Amount = p.Amount,
             PaymentFee = p.PaymentFee,
@@ -660,7 +794,177 @@ public class SupplierPaymentController : ControllerBase
             ReconciledDate = p.ReconciledDate,
             CreatedAt = DateTime.UtcNow,
             PaymentType = p.PaymentType,
-            Description = p.Description
+            Description = p.Description,
+            RemainingAmount = p.RemainingAmount,
+            SourceAdvancePaymentId = p.SourceAdvancePaymentId
         };
+    }
+
+    /// <summary>
+    /// Sync version of MapResponse that uses already-loaded navigation properties
+    /// Used for paginated queries where Supplier is already included
+    /// </summary>
+    private SupplierPaymentResponse MapResponseSync(SupplierPayment p)
+    {
+        return new()
+        {
+            Id = p.Id,
+            SupplierId = p.SupplierId,
+            SupplierName = p.Supplier?.Name ?? "",
+            PurchaseOrderId = p.PurchaseOrderId,
+            GoodsReceiptId = p.GoodsReceiptId,
+            PaymentProviderId = p.PaymentProviderId,
+            ProviderName = p.PaymentProvider?.ProviderName ?? "",
+            SupplierPaymentAccountId = p.SupplierPaymentAccountId,
+            SupplierPaymentAccountName = p.SupplierPaymentAccount?.GetDisplayText() ?? "",
+            TransactionNumber = p.TransactionNumber,
+            Amount = p.Amount,
+            PaymentFee = p.PaymentFee,
+            NetAmount = p.NetAmount,
+            Currency = p.Currency,
+            PaymentDate = p.PaymentDate,
+            PaymentMethod = p.PaymentMethod,
+            Status = p.Status,
+            ReferenceNumber = p.ReferenceNumber,
+            AuthorizationCode = p.AuthorizationCode,
+            InvoiceNumber = p.InvoiceNumber,
+            Notes = p.Notes,
+            ProcessedDate = p.ProcessedDate,
+            ProcessedBy = p.ProcessedBy,
+            ConfirmedDate = p.ConfirmedDate,
+            ConfirmedBy = p.ConfirmedBy,
+            IsReconciled = p.IsReconciled,
+            ReconciledDate = p.ReconciledDate,
+            CreatedAt = p.CreatedDate,
+            PaymentType = p.PaymentType,
+            Description = p.Description,
+            RemainingAmount = p.RemainingAmount,
+            SourceAdvancePaymentId = p.SourceAdvancePaymentId
+        };
+    }
+
+    [HttpGet("supplier/{supplierId:guid}/available-advances")]
+    public async Task<IActionResult> GetAvailableAdvances(Guid supplierId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var payments = await _repository.GetBySupplierAsync(supplierId, cancellationToken);
+            var availableAdvances = payments
+                .Where(p => p.PaymentType == PaymentType.ADVANCE &&
+                           p.Status == "COMPLETED" &&
+                           p.RemainingAmount > 0)
+                .OrderByDescending(p => p.PaymentDate)
+                .Select(p => new AvailableAdvancePayment
+                {
+                    Id = p.Id,
+                    TransactionNumber = p.TransactionNumber,
+                    Amount = p.Amount,
+                    RemainingAmount = p.RemainingAmount,
+                    PaymentDate = p.PaymentDate,
+                    Description = p.Description
+                })
+                .ToList();
+
+            return Ok(availableAdvances);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting available advance payments for supplier: {SupplierId}", supplierId);
+            return StatusCode(500, new { message = "An error occurred while retrieving available advances" });
+        }
+    }
+
+    [HttpPost("apply-advance-credit")]
+    public async Task<IActionResult> ApplyAdvanceCredit(ApplyAdvanceCreditRequest request, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // Validate request
+            if (request.Amount <= 0)
+                return BadRequest(new { message = "Amount must be greater than 0" });
+
+            // Get the advance payment
+            var advancePayment = await _repository.GetByIdAsync(request.SourceAdvancePaymentId, cancellationToken);
+            if (advancePayment == null)
+                return NotFound(new { message = "Advance payment not found" });
+
+            if (advancePayment.PaymentType != PaymentType.ADVANCE)
+                return BadRequest(new { message = "Source payment is not an advance payment" });
+
+            if (advancePayment.RemainingAmount < request.Amount)
+                return BadRequest(new { message = $"Insufficient advance balance. Available: {advancePayment.RemainingAmount}, Requested: {request.Amount}" });
+
+            // Get the purchase order
+            var purchaseOrder = await _purchaseOrderRepository.GetByIdAsync(request.PurchaseOrderId, cancellationToken);
+            if (purchaseOrder == null)
+                return NotFound(new { message = "Purchase order not found" });
+
+            if (purchaseOrder.SupplierId != advancePayment.SupplierId)
+                return BadRequest(new { message = "Purchase order supplier does not match advance payment supplier" });
+
+            // Create new payment from advance
+            var description = string.IsNullOrWhiteSpace(request.Description)
+                ? $"Applied from advance payment {advancePayment.TransactionNumber}"
+                : request.Description;
+
+            var currentUser = _currentUserService.GetCurrentUsername();
+            var newPayment = SupplierPayment.CreateFromAdvance(
+                advancePayment.SupplierId,
+                request.PurchaseOrderId,
+                request.SourceAdvancePaymentId,
+                advancePayment.PaymentProviderId,
+                request.Amount,
+                description
+            );
+
+            newPayment.CreatedBy = currentUser;
+            newPayment.ModifiedBy = currentUser;
+
+            // Reduce remaining amount on advance payment
+            advancePayment.ReduceRemainingAmount(request.Amount);
+            advancePayment.ModifiedBy = currentUser;
+
+            // Update purchase order paid amount
+            purchaseOrder.RecordPayment(request.Amount);
+            purchaseOrder.ModifiedBy = currentUser;
+
+            // NOTE: Supplier balance is NOT updated here.
+            // Balance is now calculated from transactions via SupplierLedgerService.
+            _logger.LogInformation("Advance credit {Amount} applied to PO {PONumber}. Balance calculated from transactions.",
+                request.Amount, purchaseOrder.PONumber);
+
+            // Save all changes
+            await _repository.AddAsync(newPayment, cancellationToken);
+            await _repository.UpdateAsync(advancePayment, cancellationToken);
+            await _purchaseOrderRepository.UpdateAsync(purchaseOrder, cancellationToken);
+
+            _logger.LogInformation(
+                "Applied {Amount} from advance payment {AdvanceId} to purchase order {PONumber}. Remaining advance: {Remaining}",
+                request.Amount, advancePayment.Id, purchaseOrder.PONumber, advancePayment.RemainingAmount);
+
+            return Ok(new ApplyAdvanceCreditResponse
+            {
+                PaymentId = newPayment.Id,
+                TransactionNumber = newPayment.TransactionNumber,
+                AmountApplied = request.Amount,
+                RemainingAdvanceBalance = advancePayment.RemainingAmount,
+                Message = $"Successfully applied {request.Amount:C} from advance to PO {purchaseOrder.PONumber}"
+            });
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Invalid argument when applying advance credit");
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Invalid operation when applying advance credit");
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error applying advance credit");
+            return StatusCode(500, new { message = "An error occurred while applying advance credit" });
+        }
     }
 }

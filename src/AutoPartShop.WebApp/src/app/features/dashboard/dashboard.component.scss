@@ -1,0 +1,583 @@
+.financial-dashboard {
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  min-height: calc(100vh - 70px);
+
+  // Dashboard Header
+  .dashboard-header {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+
+      .header-title-section {
+        .header-title {
+          margin: 0;
+          font-size: 1.75rem;
+          font-weight: 700;
+          color: #2c3e50;
+          display: flex;
+          align-items: center;
+
+          i {
+            color: #3b82f6;
+          }
+        }
+
+        .header-subtitle {
+          margin: 0.5rem 0 0 0;
+          color: #64748b;
+          font-size: 0.95rem;
+        }
+      }
+
+      .header-actions {
+        display: flex;
+        gap: 0.75rem;
+        align-items: center;
+        flex-wrap: wrap;
+
+        .period-dropdown,
+        .date-picker {
+          min-width: 180px;
+        }
+      }
+    }
+  }
+
+  // Stat Cards
+  ::ng-deep .stat-card {
+    height: 100%;
+    border-radius: 12px;
+    border: none;
+    transition: all 0.3s ease;
+    overflow: hidden;
+    position: relative;
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, currentColor, transparent);
+      opacity: 0.6;
+    }
+
+    &:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15) !important;
+    }
+
+    .p-card-body {
+      padding: 1.25rem;
+    }
+
+    .stat-content {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+
+      .stat-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        flex-shrink: 0;
+      }
+
+      .stat-info {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        flex: 1;
+
+        .stat-value {
+          font-size: 1.5rem;
+          font-weight: 700;
+          line-height: 1.2;
+          color: #1e293b;
+        }
+
+        .stat-label {
+          font-size: 0.875rem;
+          color: #64748b;
+          font-weight: 500;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .stat-sublabel {
+          font-size: 0.8rem;
+          color: #94a3b8;
+        }
+      }
+    }
+
+    // Color variants
+    &.stat-card-primary {
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+
+      &::before {
+        color: #3b82f6;
+      }
+
+      .stat-icon {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        color: white;
+      }
+    }
+
+    &.stat-card-success {
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
+
+      &::before {
+        color: #10b981;
+      }
+
+      .stat-icon {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+      }
+    }
+
+    &.stat-card-info {
+      box-shadow: 0 4px 12px rgba(6, 182, 212, 0.15);
+
+      &::before {
+        color: #06b6d4;
+      }
+
+      .stat-icon {
+        background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+        color: white;
+      }
+    }
+
+    &.stat-card-warning {
+      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15);
+
+      &::before {
+        color: #f59e0b;
+      }
+
+      .stat-icon {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        color: white;
+      }
+    }
+
+    &.stat-card-danger {
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
+
+      &::before {
+        color: #ef4444;
+      }
+
+      .stat-icon {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        color: white;
+      }
+    }
+  }
+
+  // Chart Cards
+  ::ng-deep .chart-card {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+    .p-card-header {
+      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+      border-bottom: 1px solid #e2e8f0;
+      padding: 1rem 1.25rem;
+      font-weight: 600;
+      font-size: 1rem;
+      color: #1e293b;
+    }
+
+    .p-card-body {
+      padding: 1.5rem;
+    }
+
+    .chart-container {
+      position: relative;
+
+      &.pie-chart {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+    }
+  }
+
+  // Cash Flow Summary
+  .cash-flow-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+
+    .flow-item {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem;
+      border-radius: 8px;
+      background: #f8fafc;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: #f1f5f9;
+        transform: translateX(4px);
+      }
+
+      .flow-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        flex-shrink: 0;
+      }
+
+      .flow-info {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        flex: 1;
+
+        .flow-label {
+          font-size: 0.875rem;
+          color: #64748b;
+          font-weight: 500;
+        }
+
+        .flow-value {
+          font-size: 1.25rem;
+          font-weight: 700;
+          color: #1e293b;
+        }
+      }
+
+      &.flow-in {
+        .flow-icon {
+          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+          color: white;
+        }
+      }
+
+      &.flow-out {
+        .flow-icon {
+          background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+          color: white;
+        }
+      }
+
+      &.flow-balance {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+
+        .flow-icon {
+          background: rgba(255, 255, 255, 0.2);
+          color: white;
+        }
+
+        .flow-info {
+          .flow-label,
+          .flow-value {
+            color: white;
+          }
+        }
+      }
+    }
+
+    .flow-divider {
+      height: 1px;
+      background: #e2e8f0;
+      margin: 0.5rem 0;
+    }
+  }
+
+  // List Cards
+  ::ng-deep .list-card {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+    .p-card-body {
+      padding: 0;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 1.25rem;
+      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+      border-bottom: 1px solid #e2e8f0;
+
+      h3 {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1e293b;
+        display: flex;
+        align-items: center;
+      }
+    }
+
+    .p-datatable {
+      .p-datatable-thead > tr > th {
+        background: #f8fafc;
+        color: #475569;
+        font-weight: 600;
+        font-size: 0.8125rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 0.875rem 1rem;
+        border-bottom: 2px solid #e2e8f0;
+      }
+
+      .p-datatable-tbody > tr {
+        transition: all 0.2s ease;
+
+        &:hover {
+          background: #f8fafc !important;
+        }
+
+        > td {
+          padding: 0.875rem 1rem;
+          border-bottom: 1px solid #f1f5f9;
+          color: #334155;
+          font-size: 0.875rem;
+
+          &.profit {
+            color: #10b981;
+            font-weight: 600;
+          }
+
+          &.loss {
+            color: #ef4444;
+            font-weight: 600;
+          }
+
+          &.danger {
+            color: #ef4444;
+            font-weight: 600;
+          }
+        }
+      }
+    }
+
+    // Rank Badge
+    .rank-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: #f1f5f9;
+      color: #64748b;
+      font-weight: 700;
+      font-size: 0.875rem;
+
+      &.top-rank {
+        background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+        color: white;
+        box-shadow: 0 2px 8px rgba(251, 191, 36, 0.3);
+      }
+    }
+
+    // Product Info
+    .product-info,
+    .customer-info {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+
+      .product-name,
+      .customer-name {
+        font-weight: 600;
+        color: #1e293b;
+      }
+
+      .product-sku,
+      .customer-phone {
+        font-size: 0.75rem;
+        color: #94a3b8;
+      }
+    }
+  }
+
+  // Loading skeleton
+  ::ng-deep p-skeleton {
+    .p-skeleton {
+      background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+      background-size: 200% 100%;
+      animation: loading 1.5s ease-in-out infinite;
+    }
+  }
+
+  @keyframes loading {
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
+  }
+
+  // Responsive Design
+  @media (max-width: 1024px) {
+    .dashboard-header {
+      .header-content {
+        flex-direction: column;
+        align-items: stretch;
+
+        .header-title-section {
+          text-align: center;
+        }
+
+        .header-actions {
+          justify-content: center;
+        }
+      }
+    }
+  }
+
+  @media (max-width: 768px) {
+    padding: 1rem;
+
+    .dashboard-header {
+      .header-content {
+        .header-title-section {
+          .header-title {
+            font-size: 1.5rem;
+          }
+        }
+
+        .header-actions {
+          flex-direction: column;
+          width: 100%;
+
+          .period-dropdown,
+          .date-picker,
+          button {
+            width: 100%;
+          }
+        }
+      }
+    }
+
+    ::ng-deep .stat-card {
+      .stat-content {
+        .stat-info {
+          .stat-value {
+            font-size: 1.25rem;
+          }
+        }
+      }
+    }
+  }
+
+  @media (max-width: 480px) {
+    ::ng-deep .stat-card {
+      .stat-content {
+        flex-direction: column;
+        text-align: center;
+
+        .stat-icon {
+          margin: 0 auto;
+        }
+      }
+    }
+  }
+}
+
+// Global grid system (Tailwind-like)
+.grid {
+  display: grid;
+
+  &.grid-cols-12 {
+    grid-template-columns: repeat(12, 1fr);
+  }
+
+  &.gap-4 {
+    gap: 1rem;
+  }
+}
+
+.col-span-12 {
+  grid-column: span 12 / span 12;
+}
+
+@media (min-width: 768px) {
+  .md\:col-span-6 {
+    grid-column: span 6 / span 6;
+  }
+}
+
+@media (min-width: 1024px) {
+  .lg\:col-span-3 {
+    grid-column: span 3 / span 3;
+  }
+
+  .lg\:col-span-4 {
+    grid-column: span 4 / span 4;
+  }
+
+  .lg\:col-span-6 {
+    grid-column: span 6 / span 6;
+  }
+
+  .lg\:col-span-8 {
+    grid-column: span 8 / span 8;
+  }
+}
+
+.mb-4 {
+  margin-bottom: 1rem;
+}
+
+.mr-2 {
+  margin-right: 0.5rem;
+}
+
+.mr-3 {
+  margin-right: 0.75rem;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.p-4 {
+  padding: 1rem;
+}
+
+.text-4xl {
+  font-size: 2.25rem;
+  line-height: 2.5rem;
+}
+
+.text-gray-300 {
+  color: #d1d5db;
+}
+
+.text-gray-500 {
+  color: #6b7280;
+}

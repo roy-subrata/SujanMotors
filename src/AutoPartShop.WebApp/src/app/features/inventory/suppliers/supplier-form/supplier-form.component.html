@@ -1,0 +1,172 @@
+<div class="container">
+  <p-toast></p-toast>
+
+  <!-- Header Section -->
+  <div class="form-header">
+    <div class="header-content">
+      <div>
+        <h1 class="form-title">{{ getPageTitle() }}</h1>
+        <p class="form-subtitle">{{ getPageSubtitle() }}</p>
+      </div>
+      <div class="header-actions" *ngIf="mode() === 'view'">
+        <button pButton
+                icon="pi pi-pencil"
+                label="Edit"
+                class="p-button-primary"
+                (click)="mode.set('edit'); supplierForm.enable()">
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading()" class="loading-container">
+    <div class="loading-content">
+      <i class="pi pi-spin pi-spinner loading-spinner"></i>
+      <p>Loading supplier details...</p>
+    </div>
+  </div>
+
+  <!-- Form -->
+  <form *ngIf="!loading()" [formGroup]="supplierForm" (ngSubmit)="onSubmit()">
+    <!-- Basic Information Section -->
+    <p-card class="form-card">
+      <ng-template pTemplate="header">
+        <div class="card-header">
+          <i class="pi pi-building"></i>
+          <span>Basic Information</span>
+        </div>
+      </ng-template>
+
+      <div class="form-grid">
+        <!-- Supplier Code -->
+        <div class="form-group">
+          <label>Supplier Code <span class="required">*</span></label>
+          <div class="code-input-wrapper">
+            <input pInputText formControlName="code" placeholder="Auto-generated" [disabled]="mode() === 'create' || mode() === 'edit'" />
+            <i *ngIf="generatingCode()" class="pi pi-spin pi-spinner code-spinner"></i>
+          </div>
+          <small class="hint-text" *ngIf="mode() === 'create'">Code is auto-generated and cannot be changed</small>
+          <small class="error-message" *ngIf="supplierForm.get('code')?.invalid && supplierForm.get('code')?.touched && mode() !== 'create'">
+            Supplier code is required (min 2 characters)
+          </small>
+        </div>
+
+        <!-- Supplier Name -->
+        <div class="form-group">
+          <label>Supplier Name <span class="required">*</span></label>
+          <input pInputText formControlName="name" placeholder="e.g., ABC Auto Parts Ltd" />
+          <small class="error-message" *ngIf="supplierForm.get('name')?.invalid && supplierForm.get('name')?.touched">
+            Supplier name is required (min 2 characters)
+          </small>
+        </div>
+
+        <!-- Contact Person -->
+        <div class="form-group">
+          <label>Contact Person <span class="required">*</span></label>
+          <input pInputText formControlName="contactPerson" placeholder="e.g., John Smith" />
+          <small class="error-message" *ngIf="supplierForm.get('contactPerson')?.invalid && supplierForm.get('contactPerson')?.touched">
+            Contact person is required (min 2 characters)
+          </small>
+        </div>
+
+        <!-- Email -->
+        <div class="form-group">
+          <label>Email <span class="required">*</span></label>
+          <input pInputText type="email" formControlName="email" placeholder="e.g., contact@supplier.com" />
+          <small class="error-message" *ngIf="supplierForm.get('email')?.invalid && supplierForm.get('email')?.touched">
+            Valid email is required
+          </small>
+        </div>
+
+        <!-- Phone -->
+        <div class="form-group">
+          <label>Phone <span class="required">*</span></label>
+          <input pInputText formControlName="phone" placeholder="e.g., +91 98765 43210" />
+          <small class="error-message" *ngIf="supplierForm.get('phone')?.invalid && supplierForm.get('phone')?.touched">
+            Valid phone number is required
+          </small>
+        </div>
+      </div>
+    </p-card>
+
+    <!-- Address Information Section -->
+    <p-card class="form-card">
+      <ng-template pTemplate="header">
+        <div class="card-header">
+          <i class="pi pi-map-marker"></i>
+          <span>Address Information</span>
+        </div>
+      </ng-template>
+
+      <div class="form-grid">
+        <!-- Address -->
+        <div class="form-group full-width">
+          <label>Street Address <span class="required">*</span></label>
+          <input pInputText formControlName="address" placeholder="e.g., 123 Industrial Estate" />
+          <small class="error-message" *ngIf="supplierForm.get('address')?.invalid && supplierForm.get('address')?.touched">
+            Address is required (min 5 characters)
+          </small>
+        </div>
+
+        <!-- City -->
+        <div class="form-group">
+          <label>City <span class="required">*</span></label>
+          <input pInputText formControlName="city" placeholder="e.g., Mumbai" />
+          <small class="error-message" *ngIf="supplierForm.get('city')?.invalid && supplierForm.get('city')?.touched">
+            City is required
+          </small>
+        </div>
+
+        <!-- State -->
+        <div class="form-group">
+          <label>State/Province <span class="required">*</span></label>
+          <input pInputText formControlName="state" placeholder="e.g., Maharashtra" />
+          <small class="error-message" *ngIf="supplierForm.get('state')?.invalid && supplierForm.get('state')?.touched">
+            State is required
+          </small>
+        </div>
+
+        <!-- Country -->
+        <div class="form-group">
+          <label>Country <span class="required">*</span></label>
+          <p-select formControlName="country"
+                    [options]="countries"
+                    optionLabel="label"
+                    optionValue="value"
+                    placeholder="Select country">
+          </p-select>
+        </div>
+
+        <!-- Postal Code -->
+        <div class="form-group">
+          <label>Postal Code <span class="required">*</span></label>
+          <input pInputText formControlName="postalCode" placeholder="e.g., 400001" />
+          <small class="error-message" *ngIf="supplierForm.get('postalCode')?.invalid && supplierForm.get('postalCode')?.touched">
+            Valid postal code is required
+          </small>
+        </div>
+      </div>
+    </p-card>
+
+
+    <!-- Form Actions -->
+    <div class="form-actions">
+      <button pButton
+              type="button"
+              label="Cancel"
+              icon="pi pi-times"
+              class="p-button-outlined p-button-secondary"
+              (click)="onCancel()">
+      </button>
+      <button pButton
+              type="submit"
+              [label]="mode() === 'create' ? 'Create Supplier' : 'Save Changes'"
+              icon="pi pi-check"
+              class="p-button-primary"
+              [loading]="saving()"
+              [disabled]="supplierForm.invalid || saving()">
+      </button>
+    </div>
+  </form>
+</div>

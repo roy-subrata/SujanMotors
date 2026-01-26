@@ -1,0 +1,67 @@
+.apply-credit-dialog {
+    .section-title {
+        margin-bottom: 1rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--text-color);
+    }
+
+    .empty-state {
+        padding: 2rem;
+        text-align: center;
+
+        p {
+            margin-top: 1rem;
+            color: var(--text-color-secondary);
+        }
+    }
+
+    .payment-form {
+        .form-group {
+            margin-bottom: 1rem;
+
+            label {
+                display: block;
+                margin-bottom: 0.5rem;
+                font-weight: 500;
+
+                .required {
+                    color: var(--red-500);
+                }
+            }
+
+            small {
+                display: block;
+                margin-top: 0.25rem;
+
+                &.text-muted {
+                    color: var(--text-color-secondary);
+                }
+
+                &.text-danger {
+                    color: var(--red-500);
+                }
+            }
+        }
+
+        .summary-box {
+            .summary-row {
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 0.5rem;
+
+                &:last-child {
+                    margin-bottom: 0;
+                }
+
+                .text-primary {
+                    color: var(--primary-color);
+                }
+
+                .text-success {
+                    color: var(--green-500);
+                }
+            }
+        }
+    }
+}

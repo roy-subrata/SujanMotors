@@ -1,3 +1,4 @@
+using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.TechnicianDtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
@@ -11,16 +12,18 @@ public class TechnicianController : ControllerBase
 {
     private readonly ITechnicianRepository _technicianRepository;
     private readonly ILogger<TechnicianController> _logger;
-
     private readonly ICodeGenerateService _codeGenerateService;
+    private readonly ICurrentUserService _currentUserService;
 
     public TechnicianController(
         ITechnicianRepository technicianRepository,
         ICodeGenerateService codeGenerateService,
+        ICurrentUserService currentUserService,
         ILogger<TechnicianController> logger)
     {
         _technicianRepository = technicianRepository;
         _codeGenerateService = codeGenerateService;
+        _currentUserService = currentUserService;
         _logger = logger;
     }
 
@@ -133,8 +136,9 @@ public class TechnicianController : ControllerBase
                 request.Notes
             );
 
-            technician.CreatedBy = "System";
-            technician.ModifiedBy = "System";
+            var currentUser = _currentUserService.GetCurrentUsername();
+            technician.CreatedBy = currentUser;
+            technician.ModifiedBy = currentUser;
 
             await _codeGenerateService.SaveGenerateCodeAsync("TECH", cancellationToken);
             await _technicianRepository.AddAsync(technician, cancellationToken);
@@ -170,7 +174,7 @@ public class TechnicianController : ControllerBase
                 request.Notes
             );
 
-            technician.ModifiedBy = "System";
+            technician.ModifiedBy = _currentUserService.GetCurrentUsername();
 
             await _technicianRepository.UpdateAsync(technician, cancellationToken);
 
@@ -196,7 +200,7 @@ public class TechnicianController : ControllerBase
             if (technician is null) return NotFound();
 
             technician.Activate();
-            technician.ModifiedBy = "System";
+            technician.ModifiedBy = _currentUserService.GetCurrentUsername();
 
             await _technicianRepository.UpdateAsync(technician, cancellationToken);
 
@@ -218,7 +222,7 @@ public class TechnicianController : ControllerBase
             if (technician is null) return NotFound();
 
             technician.Deactivate();
-            technician.ModifiedBy = "System";
+            technician.ModifiedBy = _currentUserService.GetCurrentUsername();
 
             await _technicianRepository.UpdateAsync(technician, cancellationToken);
 

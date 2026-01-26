@@ -7,8 +7,11 @@ public class SalesOrderLine : AuditableEntity
 {
     public Guid SalesOrderId { get; private set; }
     public Guid PartId { get; private set; }
+    public Guid? UnitId { get; private set; }  // Unit in which the part is sold
     public int Quantity { get; private set; }
+    public int QuantityInBaseUnit { get; private set; }  // Converted to Part's base unit for stock
     public int ShippedQuantity { get; private set; } = 0;
+    public int ShippedQuantityInBaseUnit { get; private set; } = 0;
     public decimal UnitPrice { get; private set; }
     public decimal Discount { get; private set; } = 0;  // Discount per unit
     public decimal TotalPrice => (Quantity * UnitPrice) - (Quantity * Discount);
@@ -18,6 +21,7 @@ public class SalesOrderLine : AuditableEntity
     // Navigation properties
     public SalesOrder? SalesOrder { get; set; }
     public Part? Part { get; set; }
+    public Unit? Unit { get; set; }
 
     // Computed properties
     public bool IsFullyShipped => ShippedQuantity >= Quantity;
@@ -26,7 +30,7 @@ public class SalesOrderLine : AuditableEntity
     private SalesOrderLine() { }
 
     public static SalesOrderLine Create(Guid salesOrderId, Guid partId, int quantity,
-        decimal unitPrice, int lineNumber, decimal discount = 0, string description = "")
+        decimal unitPrice, int lineNumber, Guid? unitId = null, int quantityInBaseUnit = 0, decimal discount = 0, string description = "")
     {
         if (salesOrderId == Guid.Empty)
             throw new ArgumentException("SalesOrderId cannot be empty", nameof(salesOrderId));
@@ -46,11 +50,17 @@ public class SalesOrderLine : AuditableEntity
         if (lineNumber <= 0)
             throw new ArgumentException("LineNumber must be greater than 0", nameof(lineNumber));
 
+        // If no quantityInBaseUnit provided, assume quantity is already in base unit
+        if (quantityInBaseUnit == 0)
+            quantityInBaseUnit = quantity;
+
         return new SalesOrderLine
         {
             SalesOrderId = salesOrderId,
             PartId = partId,
+            UnitId = unitId,
             Quantity = quantity,
+            QuantityInBaseUnit = quantityInBaseUnit,
             UnitPrice = unitPrice,
             LineNumber = lineNumber,
             Discount = discount,
@@ -58,7 +68,7 @@ public class SalesOrderLine : AuditableEntity
         };
     }
 
-    public void UpdateShippedQuantity(int quantity)
+    public void UpdateShippedQuantity(int quantity, int quantityInBaseUnit = 0)
     {
         if (quantity < 0)
             throw new ArgumentException("Shipped quantity cannot be negative", nameof(quantity));
@@ -66,6 +76,11 @@ public class SalesOrderLine : AuditableEntity
         if (quantity > Quantity)
             throw new InvalidOperationException("Shipped quantity cannot exceed ordered quantity");
 
+        // If no quantityInBaseUnit provided, assume quantity is already in base unit
+        if (quantityInBaseUnit == 0)
+            quantityInBaseUnit = quantity;
+
         ShippedQuantity = quantity;
+        ShippedQuantityInBaseUnit = quantityInBaseUnit;
     }
 }

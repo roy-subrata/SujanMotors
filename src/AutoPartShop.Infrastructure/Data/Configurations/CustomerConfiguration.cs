@@ -36,9 +36,6 @@ public class CustomerConfiguration : IEntityTypeConfiguration<Customer>
         builder.Property(c => c.CompanyName)
             .HasMaxLength(200);
 
-        builder.Property(c => c.CreditLimit)
-            .HasPrecision(18, 2);
-
         builder.Property(c => c.CurrentBalance)
             .HasPrecision(18, 2);
 
@@ -56,6 +53,7 @@ public class CustomerConfiguration : IEntityTypeConfiguration<Customer>
         // Ignore computed properties
         builder.Ignore(c => c.TotalPaid);
         builder.Ignore(c => c.AccountBalance);
+        builder.Ignore(c => c.AdvanceAmount);
         builder.Ignore(c => c.PendingPaymentsCount);
 
         // Note: Relationships are configured from the dependent side

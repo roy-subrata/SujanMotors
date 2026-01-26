@@ -15,16 +15,22 @@ public class Supplier : AuditableEntity
     public string State { get; private set; } = string.Empty;
     public string Country { get; private set; } = string.Empty;
     public string PostalCode { get; private set; } = string.Empty;
-    public string PaymentTerms { get; set; } = string.Empty;  // e.g., "Net 30", "Net 60"
-    public decimal CreditLimit { get; set; } = 0;
-    public string BankName { get; private set; } = string.Empty;
-    public string BankAccountNumber { get; private set; } = string.Empty;
-    public string TaxID { get; private set; } = string.Empty;  // GST ID, VAT ID, etc.
+    public decimal CurrentBalance { get; private set; } = 0;  // Outstanding balance we owe to supplier
     public bool IsActive { get; private set; } = true;
     public int Rating { get; private set; } = 5;  // 1-5 star rating
 
     // Navigation properties
     public ICollection<SupplierPayment> SupplierPayments { get; set; } = [];
+    public ICollection<SupplierPaymentAccount> PaymentAccounts { get; set; } = [];
+
+    // Computed properties
+    // Available advance balance (sum of remaining amounts from advance payments)
+    public decimal AdvanceAmount =>
+        SupplierPayments?
+            .Where(p => p.PaymentType == PaymentType.ADVANCE &&
+                       p.Status == "COMPLETED" &&
+                       p.RemainingAmount > 0)
+            .Sum(p => p.RemainingAmount) ?? 0;
 
     private Supplier() { }
 
@@ -61,14 +67,11 @@ public class Supplier : AuditableEntity
     }
 
     public void Update(string name, string contactPerson, string email, string phone,
-        string address, string city, string state, string country, string postalCode,
-        string paymentTerms, decimal creditLimit, bool isActive)
+        string address, string city, string state, string country, string postalCode, bool isActive)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Name cannot be empty", nameof(name));
 
-        if (creditLimit < 0)
-            throw new ArgumentException("Credit limit cannot be negative", nameof(creditLimit));
 
         Name = name.Trim();
         ContactPerson = contactPerson?.Trim() ?? string.Empty;
@@ -79,16 +82,7 @@ public class Supplier : AuditableEntity
         State = state?.Trim() ?? string.Empty;
         Country = country?.Trim() ?? string.Empty;
         PostalCode = postalCode?.Trim() ?? string.Empty;
-        PaymentTerms = paymentTerms?.Trim() ?? string.Empty;
-        CreditLimit = creditLimit;
         IsActive = isActive;
-    }
-
-    public void SetBankDetails(string bankName, string accountNumber, string taxId)
-    {
-        BankName = bankName?.Trim() ?? string.Empty;
-        BankAccountNumber = accountNumber?.Trim() ?? string.Empty;
-        TaxID = taxId?.Trim() ?? string.Empty;
     }
 
     public void SetRating(int rating)
@@ -97,6 +91,19 @@ public class Supplier : AuditableEntity
             throw new ArgumentException("Rating must be between 1 and 5", nameof(rating));
 
         Rating = rating;
+    }
+
+    /// <summary>
+    /// Updates the stored balance.
+    /// DEPRECATED: Balance should be calculated from transactions via SupplierLedgerService.
+    /// This method is kept for backward compatibility during migration.
+    /// </summary>
+    [Obsolete("Use SupplierLedgerService.CalculateCurrentBalanceAsync() instead. Balance is now calculated from PurchaseOrders, SupplierPayments, and PurchaseReturns.")]
+    public void UpdateBalance(decimal amount)
+    {
+        CurrentBalance += amount;
+        if (CurrentBalance < 0)
+            CurrentBalance = 0;
     }
 
     public void Activate() => IsActive = true;

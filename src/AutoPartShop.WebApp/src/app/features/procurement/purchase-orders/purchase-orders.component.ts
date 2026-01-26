@@ -14,246 +14,258 @@ import { PurchaseOrderService, PurchaseOrderResponse } from '../services/purchas
 import { PurchaseOrdersFormDialogComponent } from './purchase-orders-form-dialog/purchase-orders-form-dialog.component';
 
 @Component({
-  selector: 'app-purchase-orders',
-  standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    ButtonModule,
-    ToastModule,
-    ConfirmDialogModule,
-    CardModule,
-    Select,
-    DatePicker,
-    PurchaseOrdersListComponent,
-    PurchaseOrdersFormDialogComponent
-  ],
-  providers: [MessageService, ConfirmationService],
-  templateUrl: './purchase-orders.component.html',
-  styleUrls: ['./purchase-orders.component.css']
+    selector: 'app-purchase-orders',
+    standalone: true,
+    imports: [CommonModule, FormsModule, ButtonModule, ToastModule, ConfirmDialogModule, CardModule, Select, DatePicker, PurchaseOrdersListComponent, PurchaseOrdersFormDialogComponent],
+    providers: [MessageService, ConfirmationService],
+    templateUrl: './purchase-orders.component.html',
+    styleUrls: ['./purchase-orders.component.css']
 })
 export class PurchaseOrdersComponent implements OnInit {
-  private readonly poService = inject(PurchaseOrderService);
-  private readonly messageService = inject(MessageService);
-  private readonly router = inject(Router);
+    private readonly poService = inject(PurchaseOrderService);
+    private readonly messageService = inject(MessageService);
+    private readonly router = inject(Router);
 
-  purchaseOrders: PurchaseOrderResponse[] = [];
-  displayCreateDialog = false;
-  displayUpdateDialog = false;
-  selectedPurchaseOrder: PurchaseOrderResponse | null = null;
-  loading = false;
-  totalRecords = 0;
-  rows = 10;
-  currentPage = 1;
-  searchTerm = '';
-  filterStatus: string | null = null;
-  dateRange: Date[] | null = null;
+    purchaseOrders: PurchaseOrderResponse[] = [];
+    displayCreateDialog = false;
+    displayUpdateDialog = false;
+    selectedPurchaseOrder: PurchaseOrderResponse | null = null;
+    loading = false;
+    totalRecords = 0;
+    rows = 10;
+    currentPage = 1;
+    searchTerm = '';
+    filterStatus: string | null = null;
+    dateRange: Date[] | null = null;
 
-  statusOptions = [
-    { label: 'All', value: null },
-    { label: 'Draft', value: 'DRAFT' },
-    { label: 'Submitted', value: 'SUBMITTED' },
-    { label: 'Confirmed', value: 'CONFIRMED' },
-    { label: 'Cancelled', value: 'CANCELLED' },
-    { label: 'Completed', value: 'COMPLETED' }
-  ];
+    statusOptions = [
+        { label: 'All', value: null },
+        { label: 'Draft', value: 'DRAFT' },
+        { label: 'Submitted', value: 'SUBMITTED' },
+        { label: 'Confirmed', value: 'CONFIRMED' },
+        { label: 'Cancelled', value: 'CANCELLED' },
+        { label: 'Completed', value: 'COMPLETED' }
+    ];
 
-  constructor() {}
+    constructor() {}
 
-  ngOnInit(): void {
-    this.loadPurchaseOrders();
-  }
-
-  /**
-   * Load purchase orders from API
-   */
-  loadPurchaseOrders(pageNumber: number = 1, pageSize: number = 10, searchTerm: string = ''): void {
-    if (!pageNumber || isNaN(pageNumber) || pageNumber < 1) {
-      pageNumber = 1;
-    }
-    if (!pageSize || isNaN(pageSize) || pageSize < 1) {
-      pageSize = 10;
+    ngOnInit(): void {
+        this.loadPurchaseOrders();
     }
 
-    this.loading = true;
-    this.poService.getPurchaseOrders(pageNumber, pageSize, searchTerm).subscribe({
-      next: (response) => {
-        this.purchaseOrders = response.items;
-        this.totalRecords = response.totalCount;
-        this.rows = response.pageSize;
-        this.currentPage = response.pageNumber;
-        this.loading = false;
-      },
-      error: (error) => {
+    /**
+     * Format date for API - returns YYYY-MM-DD string in local timezone
+     */
+    private formatDateForApi(date: Date): string {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+    /**
+     * Load purchase orders from API
+     */
+    loadPurchaseOrders(pageNumber: number = 1, pageSize: number = 10, searchTerm: string = ''): void {
+        if (!pageNumber || isNaN(pageNumber) || pageNumber < 1) {
+            pageNumber = 1;
+        }
+        if (!pageSize || isNaN(pageSize) || pageSize < 1) {
+            pageSize = 10;
+        }
+        let fromDateStr: string | undefined;
+        let toDateStr: string | undefined;
+
+        if (this.dateRange && this.dateRange.length === 2 && this.dateRange[0] && this.dateRange[1]) {
+            // Format as YYYY-MM-DD to preserve local date
+            fromDateStr = this.formatDateForApi(this.dateRange[0]);
+            toDateStr = this.formatDateForApi(this.dateRange[1]);
+        }
+
+        this.loading = true;
+        this.poService
+            .getPurchaseOrders({
+                search: searchTerm,
+                pageNumber: pageNumber,
+                pageSize: pageSize,
+                status: this.filterStatus ?? '',
+                fromDate: fromDateStr,
+                toDate: toDateStr
+            })
+            .subscribe({
+                next: (response) => {
+                    this.purchaseOrders = response.data;
+                    this.totalRecords = response.pagination.totalCount;
+                    this.rows = response.pagination.pageSize;
+                    this.currentPage = response.pagination.pageNumber;
+                    this.loading = false;
+                },
+                error: (error) => {
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail: 'Failed to load purchase orders'
+                    });
+                    console.error('Error loading purchase orders:', error);
+                    this.loading = false;
+                }
+            });
+    }
+
+    /**
+     * Handle create button click
+     */
+    onCreateClick(): void {
+        this.router.navigate(['/procurement/purchase-orders/create']);
+    }
+
+    /**
+     * Handle search
+     */
+    onSearch(): void {
+        this.loadPurchaseOrders(1, this.rows, this.searchTerm);
+    }
+
+    /**
+     * Handle search clear
+     */
+    clearSearch(): void {
+        this.searchTerm = '';
+        this.loadPurchaseOrders(1, this.rows);
+    }
+
+    /**
+     * Handle filter change
+     */
+    onFilterChange(): void {
+        // TODO: Implement filtering logic with status and date range
+        this.loadPurchaseOrders(1, this.rows, this.searchTerm);
+    }
+
+    /**
+     * Clear all filters
+     */
+    clearFilters(): void {
+        this.searchTerm = '';
+        this.filterStatus = null;
+        this.dateRange = null;
+        this.loadPurchaseOrders(1, this.rows);
+    }
+
+    /**
+     * Export orders to CSV or JSON
+     */
+    exportOrders(format: 'csv' | 'json'): void {
+        if (this.purchaseOrders.length === 0) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'No Data',
+                detail: 'No purchase orders to export'
+            });
+            return;
+        }
+
+        if (format === 'csv') {
+            this.exportToCSV();
+        } else {
+            this.exportToJSON();
+        }
+    }
+
+    /**
+     * Export to CSV
+     */
+    private exportToCSV(): void {
+        const headers = ['PO Number', 'Supplier', 'Order Date', 'Delivery Date', 'Status', 'Grand Total', 'Outstanding'];
+        const rows = this.purchaseOrders.map((po) => [
+            po.poNumber,
+            po.supplierName || '',
+            po.orderDate ? new Date(po.orderDate).toLocaleDateString() : '',
+            po.deliveryDate ? new Date(po.deliveryDate).toLocaleDateString() : '',
+            po.status,
+            po.grandTotal.toString(),
+            po.outstandingAmount.toString()
+        ]);
+
+        const csvContent = [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `purchase-orders-${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+
         this.messageService.add({
-          severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load purchase orders'
+            severity: 'success',
+            summary: 'Success',
+            detail: 'Purchase orders exported to CSV'
         });
-        console.error('Error loading purchase orders:', error);
-        this.loading = false;
-      }
-    });
-  }
-
-  /**
-   * Handle create button click
-   */
-  onCreateClick(): void {
-    this.router.navigate(['/procurement/purchase-orders/create']);
-  }
-
-  /**
-   * Handle search
-   */
-  onSearch(): void {
-    this.loadPurchaseOrders(1, this.rows, this.searchTerm);
-  }
-
-  /**
-   * Handle search clear
-   */
-  clearSearch(): void {
-    this.searchTerm = '';
-    this.loadPurchaseOrders(1, this.rows);
-  }
-
-  /**
-   * Handle filter change
-   */
-  onFilterChange(): void {
-    // TODO: Implement filtering logic with status and date range
-    this.loadPurchaseOrders(1, this.rows, this.searchTerm);
-  }
-
-  /**
-   * Clear all filters
-   */
-  clearFilters(): void {
-    this.searchTerm = '';
-    this.filterStatus = null;
-    this.dateRange = null;
-    this.loadPurchaseOrders(1, this.rows);
-  }
-
-  /**
-   * Export orders to CSV or JSON
-   */
-  exportOrders(format: 'csv' | 'json'): void {
-    if (this.purchaseOrders.length === 0) {
-      this.messageService.add({
-        severity: 'warn',
-        summary: 'No Data',
-        detail: 'No purchase orders to export'
-      });
-      return;
     }
 
-    if (format === 'csv') {
-      this.exportToCSV();
-    } else {
-      this.exportToJSON();
+    /**
+     * Export to JSON
+     */
+    private exportToJSON(): void {
+        const jsonContent = JSON.stringify(this.purchaseOrders, null, 2);
+        const blob = new Blob([jsonContent], { type: 'application/json' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `purchase-orders-${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+
+        this.messageService.add({
+            severity: 'success',
+            summary: 'Success',
+            detail: 'Purchase orders exported to JSON'
+        });
     }
-  }
 
-  /**
-   * Export to CSV
-   */
-  private exportToCSV(): void {
-    const headers = ['PO Number', 'Supplier', 'Order Date', 'Delivery Date', 'Status', 'Grand Total', 'Outstanding'];
-    const rows = this.purchaseOrders.map(po => [
-      po.poNumber,
-      po.supplierName || '',
-      po.orderDate ? new Date(po.orderDate).toLocaleDateString() : '',
-      po.deliveryDate ? new Date(po.deliveryDate).toLocaleDateString() : '',
-      po.status,
-      po.grandTotal.toString(),
-      po.outstandingAmount.toString()
-    ]);
+    /**
+     * Handle edit click
+     */
+    onEditClick(po: PurchaseOrderResponse): void {
+        this.selectedPurchaseOrder = po;
+        this.displayUpdateDialog = true;
+    }
 
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.join(','))
-    ].join('\n');
+    /**
+     * Handle page change
+     */
+    onPageChange(event: { page: number; rows: number }): void {
+        this.loadPurchaseOrders(event.page, event.rows, this.searchTerm);
+    }
 
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `purchase-orders-${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
+    /**
+     * Handle purchase order created
+     */
+    onPurchaseOrderCreated(po: PurchaseOrderResponse): void {
+        this.messageService.add({
+            severity: 'success',
+            summary: 'Success',
+            detail: `Purchase Order '${po.poNumber}' created successfully`
+        });
+        this.loadPurchaseOrders(1, this.rows, this.searchTerm);
+    }
 
-    this.messageService.add({
-      severity: 'success',
-      summary: 'Success',
-      detail: 'Purchase orders exported to CSV'
-    });
-  }
+    /**
+     * Handle purchase order updated
+     */
+    onPurchaseOrderUpdated(po: PurchaseOrderResponse): void {
+        this.messageService.add({
+            severity: 'success',
+            summary: 'Success',
+            detail: `Purchase Order '${po.poNumber}' updated successfully`
+        });
+        this.loadPurchaseOrders(this.currentPage, this.rows, this.searchTerm);
+    }
 
-  /**
-   * Export to JSON
-   */
-  private exportToJSON(): void {
-    const jsonContent = JSON.stringify(this.purchaseOrders, null, 2);
-    const blob = new Blob([jsonContent], { type: 'application/json' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `purchase-orders-${new Date().toISOString().split('T')[0]}.json`;
-    a.click();
-    window.URL.revokeObjectURL(url);
-
-    this.messageService.add({
-      severity: 'success',
-      summary: 'Success',
-      detail: 'Purchase orders exported to JSON'
-    });
-  }
-
-  /**
-   * Handle edit click
-   */
-  onEditClick(po: PurchaseOrderResponse): void {
-    this.selectedPurchaseOrder = po;
-    this.displayUpdateDialog = true;
-  }
-
-  /**
-   * Handle page change
-   */
-  onPageChange(event: { page: number; rows: number }): void {
-    this.loadPurchaseOrders(event.page, event.rows, this.searchTerm);
-  }
-
-  /**
-   * Handle purchase order created
-   */
-  onPurchaseOrderCreated(po: PurchaseOrderResponse): void {
-    this.messageService.add({
-      severity: 'success',
-      summary: 'Success',
-      detail: `Purchase Order '${po.poNumber}' created successfully`
-    });
-    this.loadPurchaseOrders(1, this.rows, this.searchTerm);
-  }
-
-  /**
-   * Handle purchase order updated
-   */
-  onPurchaseOrderUpdated(po: PurchaseOrderResponse): void {
-    this.messageService.add({
-      severity: 'success',
-      summary: 'Success',
-      detail: `Purchase Order '${po.poNumber}' updated successfully`
-    });
-    this.loadPurchaseOrders(this.currentPage, this.rows, this.searchTerm);
-  }
-
-  /**
-   * Handle purchase order deleted
-   */
-  onPurchaseOrderDeleted(): void {
-    this.loadPurchaseOrders(this.currentPage, this.rows, this.searchTerm);
-  }
+    /**
+     * Handle purchase order deleted
+     */
+    onPurchaseOrderDeleted(): void {
+        this.loadPurchaseOrders(this.currentPage, this.rows, this.searchTerm);
+    }
 }

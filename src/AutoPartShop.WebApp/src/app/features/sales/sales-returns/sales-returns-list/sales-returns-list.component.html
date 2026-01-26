@@ -69,81 +69,81 @@
       [tableStyle]="{ 'min-width': '50rem' }"
       dataKey="id">
 
-      <ng-template pTemplate="header">
-        <tr>
-          <th pSortableColumn="returnNumber">
-            Return # <p-sortIcon field="returnNumber"></p-sortIcon>
-          </th>
-          <th pSortableColumn="salesOrderId">
-            Sales Order <p-sortIcon field="salesOrderId"></p-sortIcon>
-          </th>
-          <th pSortableColumn="createdAt">
-            Date <p-sortIcon field="createdAt"></p-sortIcon>
-          </th>
-          <th pSortableColumn="reason">
-            Reason <p-sortIcon field="reason"></p-sortIcon>
-          </th>
-          <th class="text-right">Refund Amount</th>
-          <th pSortableColumn="status">
-            Status <p-sortIcon field="status"></p-sortIcon>
-          </th>
-          <th class="text-center">Actions</th>
-        </tr>
-      </ng-template>
+  <ng-template pTemplate="header">
+    <tr>
+      <th pSortableColumn="returnNumber">
+        Return # <p-sortIcon field="returnNumber"></p-sortIcon>
+      </th>
+      <th pSortableColumn="salesOrderId">
+        Sales Order <p-sortIcon field="salesOrderId"></p-sortIcon>
+      </th>
+      <th pSortableColumn="createdAt">
+        Date <p-sortIcon field="createdAt"></p-sortIcon>
+      </th>
+      <th pSortableColumn="reason">
+        Reason <p-sortIcon field="reason"></p-sortIcon>
+      </th>
+      <th class="text-right">Refund Amount</th>
+      <th pSortableColumn="status">
+        Status <p-sortIcon field="status"></p-sortIcon>
+      </th>
+      <th class="text-center">Actions</th>
+    </tr>
+  </ng-template>
 
-      <ng-template pTemplate="body" let-salesReturn>
-        <tr class="return-row" (click)="viewReturn(salesReturn)">
-          <td>
-            <span class="return-number">{{ salesReturn.returnNumber }}</span>
-          </td>
-          <td>
-            <span class="order-id">{{ salesReturn.salesOrderId }}</span>
-          </td>
-          <td>
-            <span class="timestamp">{{ formatDate(salesReturn.createdAt) }}</span>
-          </td>
-          <td>
-            <span class="return-reason">{{ salesReturn.reason }}</span>
-          </td>
-          <td class="text-right">
-            <span class="amount">{{ formatCurrency(salesReturn.totalRefundAmount) }}</span>
-          </td>
-          <td>
-            <p-tag [value]="salesReturn.status" [severity]="getStatusSeverity(salesReturn.status)"></p-tag>
-          </td>
-          <td class="text-center">
-            <div class="flex justify-center gap-1">
-              <button pButton type="button" icon="pi pi-eye" class="p-button-text p-button-sm"
-                (click)="viewReturn(salesReturn); $event.stopPropagation()" pTooltip="View" tooltipPosition="left"></button>
-              <button *ngIf="salesReturn.status === 'PENDING'" pButton type="button" icon="pi pi-check"
-                class="p-button-text p-button-success p-button-sm"
-                (click)="approveReturn(salesReturn, $event)" pTooltip="Approve" tooltipPosition="left"></button>
-              <button *ngIf="salesReturn.status === 'PENDING'" pButton type="button" icon="pi pi-times"
-                class="p-button-text p-button-danger p-button-sm"
-                (click)="rejectReturn(salesReturn, $event)" pTooltip="Reject" tooltipPosition="left"></button>
-              <button *ngIf="salesReturn.status === 'APPROVED'" pButton type="button" icon="pi pi-inbox"
-                class="p-button-text p-button-info p-button-sm"
-                (click)="receiveReturn(salesReturn, $event)" pTooltip="Receive" tooltipPosition="left"></button>
-              <button *ngIf="salesReturn.status === 'RECEIVED'" pButton type="button" icon="pi pi-cog"
-                class="p-button-text p-button-primary p-button-sm"
-                (click)="processReturn(salesReturn, $event)" pTooltip="Process" tooltipPosition="left"></button>
-            </div>
-          </td>
-        </tr>
-      </ng-template>
+  <ng-template pTemplate="body" let-salesReturn>
+    <tr class="return-row" (contextmenu)="showContextMenu($event, salesReturn)">
+      <td>
+        <span class="return-number" (click)="viewReturn(salesReturn)">{{ salesReturn.returnNumber }}</span>
+      </td>
+      <td>
+        <span class="order-id">{{ salesReturn.salesOrderNumber || salesReturn.salesOrderId }}</span>
+      </td>
+      <td>
+        <span class="timestamp">{{ formatDate(salesReturn.createdAt) }}</span>
+      </td>
+      <td>
+        <span class="return-reason">{{ salesReturn.reason }}</span>
+      </td>
+      <td class="text-right">
+        <span class="amount">{{ formatCurrency(salesReturn.totalRefundAmount) }}</span>
+      </td>
+      <td>
+        <p-tag [value]="salesReturn.status" [severity]="getStatusSeverity(salesReturn.status)"></p-tag>
+      </td>
+      <td class="text-center">
+        <div class="flex justify-center gap-1">
+          <button pButton type="button" icon="pi pi-eye" class="p-button-text p-button-sm"
+            (click)="viewReturn(salesReturn)" pTooltip="View" tooltipPosition="left"></button>
+          <button *ngIf="salesReturn.status === 'PENDING'" pButton type="button" icon="pi pi-check"
+            class="p-button-text p-button-success p-button-sm"
+            (click)="approveReturn(salesReturn, $event)" pTooltip="Approve" tooltipPosition="left"></button>
+          <button *ngIf="salesReturn.status === 'PENDING'" pButton type="button" icon="pi pi-times"
+            class="p-button-text p-button-danger p-button-sm"
+            (click)="rejectReturn(salesReturn, $event)" pTooltip="Reject" tooltipPosition="left"></button>
+          <button *ngIf="salesReturn.status === 'APPROVED'" pButton type="button" icon="pi pi-inbox"
+            class="p-button-text p-button-info p-button-sm"
+            (click)="receiveReturn(salesReturn, $event)" pTooltip="Receive" tooltipPosition="left"></button>
+          <button *ngIf="salesReturn.status === 'RECEIVED'" pButton type="button" icon="pi pi-cog"
+            class="p-button-text p-button-primary p-button-sm"
+            (click)="processReturn(salesReturn, $event)" pTooltip="Process" tooltipPosition="left"></button>
+        </div>
+      </td>
+    </tr>
+  </ng-template>
 
-      <ng-template pTemplate="emptymessage">
-        <tr>
-          <td colspan="7" class="text-center p-6">
-            <div class="empty-state">
-              <i class="pi pi-replay text-5xl text-gray-300 mb-3"></i>
-              <h3 class="text-gray-500 mb-2">No sales returns found</h3>
-              <p class="text-gray-400">{{ searchTerm ? 'Try adjusting your filters or search criteria' : 'Start by creating a new return' }}</p>
-            </div>
-          </td>
-        </tr>
-      </ng-template>
-    </p-table>
+  <ng-template pTemplate="emptymessage">
+    <tr>
+      <td colspan="7" class="text-center p-6">
+        <div class="empty-state">
+          <i class="pi pi-replay text-5xl text-gray-300 mb-3"></i>
+          <h3 class="text-gray-500 mb-2">No sales returns found</h3>
+          <p class="text-gray-400">{{ searchTerm ? 'Try adjusting your filters or search criteria' : 'Start by creating a new return' }}</p>
+        </div>
+      </td>
+    </tr>
+  </ng-template>
+</p-table>
 
     <!-- Paginator -->
     <p-paginator
@@ -156,3 +156,10 @@
     </p-paginator>
   </div>
 </div>
+
+<!-- Context Menu -->
+<p-contextMenu
+  #contextMenu
+  [model]="contextMenuItems"
+  [appendTo]="'body'">
+</p-contextMenu>

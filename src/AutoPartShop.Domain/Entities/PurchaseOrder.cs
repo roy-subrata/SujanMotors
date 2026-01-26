@@ -23,6 +23,7 @@ public class PurchaseOrder : AuditableEntity
     public string Notes { get; private set; } = string.Empty;
     public string ApprovedBy { get; private set; } = string.Empty;
     public DateTime? ApprovedDate { get; private set; }
+    public string Currency { get; private set; } = "BDT";  // ISO 4217 currency code
 
     // Navigation properties
     public Supplier? Supplier { get; set; }
@@ -34,7 +35,7 @@ public class PurchaseOrder : AuditableEntity
     private PurchaseOrder() { }
 
     public static PurchaseOrder Create(string poNumber, Guid supplierId, Guid? warehouseId,
-        DateTime expectedDeliveryDate, string notes = "")
+        DateTime expectedDeliveryDate, string notes = "", string currency = "BDT")
     {
         if (string.IsNullOrWhiteSpace(poNumber))
             throw new ArgumentException("PONumber cannot be empty", nameof(poNumber));
@@ -53,7 +54,8 @@ public class PurchaseOrder : AuditableEntity
             PODate = DateTime.UtcNow,
             ExpectedDeliveryDate = expectedDeliveryDate,
             Status = "DRAFT",
-            Notes = notes?.Trim() ?? string.Empty
+            Notes = notes?.Trim() ?? string.Empty,
+            Currency = string.IsNullOrWhiteSpace(currency) ? "BDT" : currency.Trim().ToUpper()
         };
     }
 
@@ -171,4 +173,132 @@ public class PurchaseOrder : AuditableEntity
     {
         Notes = notes?.Trim() ?? string.Empty;
     }
+
+    public void UpdateExpectedDeliveryDate(DateTime date)
+    {
+        ExpectedDeliveryDate = date;
+    }
+
+    /// <summary>
+    /// Clears all line items from the purchase order
+    /// </summary>
+    public void ClearLineItems()
+    {
+        LineItems.Clear();
+    }
+
+    /// <summary>
+    /// Removes a specific line item by ID
+    /// </summary>
+    public bool RemoveLineItem(Guid lineItemId)
+    {
+        var lineItem = LineItems.FirstOrDefault(l => l.Id == lineItemId);
+        if (lineItem != null)
+        {
+            return LineItems.Remove(lineItem);
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Gets a line item by ID
+    /// </summary>
+    public PurchaseOrderLine? GetLineItem(Guid lineItemId)
+    {
+        return LineItems.FirstOrDefault(l => l.Id == lineItemId);
+    }
+
+    /// <summary>
+    /// Updates the supplier ID (only allowed in DRAFT status)
+    /// </summary>
+    public void UpdateSupplier(Guid supplierId)
+    {
+        if (Status != "DRAFT")
+            throw new InvalidOperationException("Can only change supplier on draft POs");
+
+        if (supplierId == Guid.Empty)
+            throw new ArgumentException("SupplierId cannot be empty", nameof(supplierId));
+
+        SupplierId = supplierId;
+    }
+
+    /// <summary>
+    /// Synchronizes line items with the provided data (upsert pattern).
+    /// - Items with matching Id are updated
+    /// - Items without Id (or Id not found) are added as new
+    /// - Existing items not in the input list are removed
+    /// </summary>
+    public void SyncLineItems(IEnumerable<LineItemData> items)
+    {
+        if (Status != "DRAFT")
+            throw new InvalidOperationException("Can only modify line items on draft POs");
+
+        var itemsList = items.ToList();
+        var itemsById = itemsList
+            .Where(i => i.Id.HasValue && i.Id.Value != Guid.Empty)
+            .ToDictionary(i => i.Id!.Value);
+
+        // Remove items not in the new list
+        var toRemove = LineItems
+            .Where(l => !itemsById.ContainsKey(l.Id))
+            .ToList();
+
+        foreach (var item in toRemove)
+        {
+            LineItems.Remove(item);
+        }
+
+        // Update existing or add new
+        int lineNumber = 1;
+        foreach (var itemData in itemsList)
+        {
+            var existing = itemData.Id.HasValue && itemData.Id.Value != Guid.Empty
+                ? LineItems.FirstOrDefault(l => l.Id == itemData.Id.Value)
+                : null;
+
+            if (existing != null)
+            {
+                // Update existing line item
+                existing.Update(
+                    itemData.Quantity,
+                    itemData.UnitPrice,
+                    itemData.UnitId,
+                    itemData.QuantityInBaseUnit,
+                    itemData.Description
+                );
+            }
+            else
+            {
+                // Add new line item
+                var newLine = PurchaseOrderLine.Create(
+                    Id,
+                    itemData.PartId,
+                    itemData.Quantity,
+                    itemData.UnitPrice,
+                    lineNumber,
+                    itemData.UnitId,
+                    itemData.QuantityInBaseUnit,
+                    itemData.Description
+                );
+                LineItems.Add(newLine);
+            }
+            lineNumber++;
+        }
+
+        // Recalculate totals after sync
+        CalculateTotal();
+    }
 }
+
+/// <summary>
+/// Data transfer object for line item synchronization within the domain
+/// </summary>
+public record LineItemData(
+    Guid? Id,
+    Guid PartId,
+    int Quantity,
+    decimal UnitPrice,
+    Guid? UnitId,
+    int QuantityInBaseUnit,
+    string Description = ""
+);

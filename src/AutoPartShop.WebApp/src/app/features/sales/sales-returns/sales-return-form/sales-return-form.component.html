@@ -1,28 +1,37 @@
-<div class="container mx-auto px-4 py-6">
+<p-toast></p-toast>
+<p-confirmDialog></p-confirmDialog>
+
+<div class="sales-return-form-container">
   <!-- Header -->
-  <div class="mb-6">
-    <h1 class="text-3xl font-bold text-gray-800">
-      {{ mode() === 'create' ? 'Create Sales Return' : 'View Sales Return' }}
-    </h1>
-    <p class="text-gray-600 mt-2">{{ mode() === 'create' ? 'Process a customer return for a sales order' : 'Sales return details' }}</p>
+  <div class="page-header">
+    <div class="header-content">
+      <div class="header-title-section">
+        <h1 class="header-title">
+          <i class="pi pi-replay mr-3"></i>
+          {{ mode() === 'create' ? 'Create Sales Return' : 'View Sales Return' }}
+        </h1>
+        <p class="header-subtitle">{{ mode() === 'create' ? 'Process a customer return for a sales order' : 'Sales return details' }}</p>
+      </div>
+    </div>
   </div>
 
   <!-- Loading State -->
-  <div *ngIf="loading()" class="text-center py-12">
-    <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-    <p class="mt-4 text-gray-600">Loading sales return...</p>
+  <div *ngIf="loading()" class="loading-state">
+    <div class="spinner"></div>
+    <p class="loading-text">Loading sales return...</p>
   </div>
 
   <!-- Error Alert -->
-  <div *ngIf="error()" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-6">
+  <div *ngIf="error()" class="error-alert">
+    <i class="pi pi-exclamation-circle"></i>
     {{ error() }}
   </div>
 
   <!-- Form -->
   <form *ngIf="!loading()" [formGroup]="salesReturnForm" (ngSubmit)="onSubmit()">
     <!-- Sales Order Selection -->
-    <div *ngIf="mode() === 'create'" class="bg-white rounded-lg shadow-md p-6 mb-6">
-      <h2 class="text-xl font-semibold text-gray-800 mb-4">Select Sales Order</h2>
+    <div *ngIf="mode() === 'create'" class="form-card">
+      <h2 class="card-title">Select Sales Order</h2>
 
       <div class="mb-4">
         <label class="block text-sm font-medium text-gray-700 mb-2">
@@ -31,9 +40,10 @@
         <p-autoComplete
           [(ngModel)]="selectedSalesOrder"
           [ngModelOptions]="{standalone: true}"
-          [suggestions]="filteredSalesOrders()"
+          [suggestions]="filteredSalesOrders"
           (completeMethod)="onSalesOrderFilter($event)"
-          (onSelect)="selectSalesOrder($event)"
+          (onDropdownClick)="onSalesOrderDropdownClick()"
+          (onSelect)="selectSalesOrder($event.value)"
           field="soNumber"
           optionLabel="soNumber"
           [dropdown]="true"
@@ -55,11 +65,47 @@
           <span *ngIf="!loadingSalesOrders() && selectedSalesOrder()" class="text-green-600">✓ Sales order selected</span>
         </p>
       </div>
+
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+          Warehouse <span class="text-red-500">*</span>
+        </label>
+        <p-autoComplete
+          [(ngModel)]="selectedWarehouse"
+          [ngModelOptions]="{standalone: true}"
+          [suggestions]="filteredWarehouses"
+          (completeMethod)="onWarehouseFilter($event)"
+          (onDropdownClick)="onWarehouseDropdownClick()"
+          (onSelect)="selectWarehouse($event.value)"
+          field="name"
+          optionLabel="name"
+          [dropdown]="true"
+          [showClear]="true"
+          placeholder="Select warehouse..."
+          styleClass="w-full"
+          [appendTo]="'body'">
+          <ng-template let-warehouse pTemplate="item">
+            <div class="py-2">
+              <div class="font-medium text-gray-900">{{ warehouse.name }}</div>
+              <div class="text-sm text-gray-600">Code: {{ warehouse.code }}</div>
+              <div class="text-xs text-gray-500">Location: {{ warehouse.location }}</div>
+            </div>
+          </ng-template>
+        </p-autoComplete>
+        <p class="text-sm text-gray-500 mt-2">
+          <span *ngIf="loadingWarehouses()">Loading warehouses...</span>
+          <span *ngIf="!loadingWarehouses() && !selectedWarehouse()">Select a warehouse for the return</span>
+          <span *ngIf="!loadingWarehouses() && selectedWarehouse()" class="text-green-600">✓ Warehouse: {{ selectedWarehouse()?.name }}</span>
+        </p>
+        <p *ngIf="salesReturnForm.get('warehouseId')?.invalid && salesReturnForm.get('warehouseId')?.touched" class="text-red-500 text-xs mt-1">
+          Warehouse is required
+        </p>
+      </div>
     </div>
 
     <!-- Return Details -->
-    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-      <h2 class="text-xl font-semibold text-gray-800 mb-4">Return Information</h2>
+    <div class="form-card">
+      <h2 class="card-title">Return Information</h2>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <!-- Reason -->
@@ -83,6 +129,28 @@
           </p>
         </div>
 
+        <!-- Refund Type -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            Refund Type <span class="text-red-500">*</span>
+          </label>
+          <select
+            formControlName="refundType"
+            class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+            [class.border-red-500]="salesReturnForm.get('refundType')?.invalid && salesReturnForm.get('refundType')?.touched">
+            <option value="CASH_REFUND">Cash Refund</option>
+            <option value="STORE_CREDIT">Store Credit</option>
+          </select>
+          <p class="text-xs text-gray-500 mt-1">
+            <span *ngIf="salesReturnForm.get('refundType')?.value === 'CASH_REFUND'">
+              <i class="pi pi-money-bill mr-1"></i>Customer will receive cash back
+            </span>
+            <span *ngIf="salesReturnForm.get('refundType')?.value === 'STORE_CREDIT'">
+              <i class="pi pi-gift mr-1"></i>Customer will receive store credit for future purchases
+            </span>
+          </p>
+        </div>
+
         <!-- Notes -->
         <div class="md:col-span-2">
           <label class="block text-sm font-medium text-gray-700 mb-2">Notes</label>
@@ -96,8 +164,8 @@
     </div>
 
     <!-- Return Line Items -->
-    <div *ngIf="lines.length > 0" class="bg-white rounded-lg shadow-md p-6 mb-6">
-      <h2 class="text-xl font-semibold text-gray-800 mb-4">Return Items</h2>
+    <div *ngIf="lines.length > 0" class="form-card">
+      <h2 class="card-title">Return Items</h2>
 
       <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
@@ -114,8 +182,9 @@
           </thead>
           <tbody class="bg-white divide-y divide-gray-200" formArrayName="lines">
             <tr *ngFor="let line of lines.controls; let i = index" [formGroupName]="i">
-              <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                {{ line.get('partName')?.value || line.get('partId')?.value }}
+              <td class="px-4 py-4 text-sm text-gray-900">
+                <div class="font-medium">{{ line.get('partName')?.value || 'Unknown Part' }}</div>
+                <div class="text-xs text-gray-500">SKU: {{ line.get('partSku')?.value || 'N/A' }}</div>
               </td>
               <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                 {{ line.get('maxQuantity')?.value }}
@@ -168,28 +237,30 @@
     </div>
 
     <!-- Form Actions -->
-    <div class="flex justify-end gap-4">
+    <div class="form-actions">
       <button
+        pButton
         type="button"
-        (click)="cancel()"
-        class="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition duration-200">
-        Cancel
-      </button>
+        label="Cancel"
+        icon="pi pi-times"
+        class="p-button-outlined"
+        (click)="cancel()"></button>
       <button
         *ngIf="mode() === 'create'"
+        pButton
         type="submit"
-        [disabled]="saving()"
-        class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition duration-200">
-        {{ saving() ? 'Creating...' : 'Create Return' }}
-      </button>
+        [label]="saving() ? 'Creating...' : 'Create Return'"
+        icon="pi pi-check"
+        class="p-button-success"
+        [disabled]="saving()"></button>
 
       <!-- View mode actions -->
-      <div *ngIf="mode() === 'view' && currentSalesReturn()" class="flex gap-2 items-center">
-        <button *ngIf="currentSalesReturn()?.status === 'PENDING'" type="button" (click)="approve()" class="px-4 py-2 bg-blue-600 text-white rounded">Approve</button>
-        <button *ngIf="currentSalesReturn()?.status === 'PENDING'" type="button" (click)="reject()" class="px-4 py-2 bg-red-600 text-white rounded">Reject</button>
-        <button *ngIf="currentSalesReturn()?.status === 'APPROVED'" type="button" (click)="receive()" class="px-4 py-2 bg-green-600 text-white rounded">Receive</button>
-        <button *ngIf="currentSalesReturn()?.status === 'RECEIVED'" type="button" (click)="process()" class="px-4 py-2 bg-purple-600 text-white rounded">Process</button>
-      </div>
+      <ng-container *ngIf="mode() === 'view' && currentSalesReturn()">
+        <button *ngIf="currentSalesReturn()?.status === 'PENDING'" pButton type="button" label="Approve" icon="pi pi-check" class="p-button-info" (click)="approve()"></button>
+        <button *ngIf="currentSalesReturn()?.status === 'PENDING'" pButton type="button" label="Reject" icon="pi pi-times" class="p-button-danger" (click)="reject()"></button>
+        <button *ngIf="currentSalesReturn()?.status === 'APPROVED'" pButton type="button" label="Receive" icon="pi pi-inbox" class="p-button-success" (click)="receive()"></button>
+        <button *ngIf="currentSalesReturn()?.status === 'RECEIVED'" pButton type="button" label="Process" icon="pi pi-cog" class="p-button-primary" (click)="process()"></button>
+      </ng-container>
     </div>
   </form>
 </div>

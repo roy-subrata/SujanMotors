@@ -17,6 +17,11 @@ public class SalesReturnConfiguration : IEntityTypeConfiguration<SalesReturn>
         builder.Property(sr => sr.RefundAmount)
             .HasPrecision(18, 2);
 
+        builder.Property(sr => sr.RefundType)
+            .IsRequired()
+            .HasMaxLength(20)
+            .HasDefaultValue("CASH_REFUND");
+
         builder.Property(sr => sr.Status)
             .IsRequired()
             .HasMaxLength(20);

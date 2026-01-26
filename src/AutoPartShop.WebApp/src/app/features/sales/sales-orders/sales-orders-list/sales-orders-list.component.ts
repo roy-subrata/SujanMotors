@@ -1,8 +1,9 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, ViewChild, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { SalesOrderService, SalesOrderResponse } from '../../services/sales-order.service';
+import { CurrencyService } from '../../../../shared/services/currency.service';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -14,7 +15,11 @@ import { TooltipModule } from 'primeng/tooltip';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { PaginatorModule, PaginatorState } from 'primeng/paginator';
-import { MessageService, ConfirmationService } from 'primeng/api';
+import { ContextMenuModule, ContextMenu } from 'primeng/contextmenu';
+import { RippleModule } from 'primeng/ripple';
+import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
+import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
+
 
 @Component({
   selector: 'app-sales-orders-list',
@@ -32,17 +37,24 @@ import { MessageService, ConfirmationService } from 'primeng/api';
     TooltipModule,
     ToastModule,
     ConfirmDialogModule,
-    PaginatorModule
+    PaginatorModule,
+    ContextMenuModule,
+    RippleModule
   ],
-  providers: [MessageService, ConfirmationService],
+  providers: [MessageService, ConfirmationService, DialogService],
   templateUrl: './sales-orders-list.component.html',
   styleUrls: ['./sales-orders-list.component.css']
 })
 export class SalesOrdersListComponent implements OnInit {
+  @ViewChild('contextMenu') contextMenu: ContextMenu | undefined;
+
   private readonly salesOrderService = inject(SalesOrderService);
+  private readonly currencyService = inject(CurrencyService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly messageService = inject(MessageService);
   private readonly confirmationService = inject(ConfirmationService);
+  private readonly dialogService = inject(DialogService);
 
   salesOrders: SalesOrderResponse[] = [];
   loading = false;
@@ -50,6 +62,10 @@ export class SalesOrdersListComponent implements OnInit {
   pageNumber = 1;
   pageSize = 25;
   pageSizeOptions = [10, 25, 50, 100];
+
+  contextMenuItems: MenuItem[] = [];
+  selectedSalesOrder: SalesOrderResponse | null = null;
+  private dialogRef: DynamicDialogRef | undefined;
 
   // Filters
   searchTerm = '';
@@ -67,7 +83,15 @@ export class SalesOrdersListComponent implements OnInit {
   ];
 
   ngOnInit(): void {
+    // Check for query parameters
+    this.route.queryParams.subscribe(params => {
+      if (params['status']) {
+        this.filterStatus = params['status'];
+      }
+    });
+
     this.loadSalesOrders();
+    this.initializeContextMenu();
   }
 
   loadSalesOrders(): void {
@@ -298,13 +322,95 @@ export class SalesOrdersListComponent implements OnInit {
   }
 
   formatCurrency(amount: number): string {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR'
-    }).format(amount);
+    const currency = this.currencyService.selectedCurrency() || 'BDT';
+    return this.currencyService.formatCurrency(amount, currency);
   }
 
   formatDate(date: string): string {
     return new Date(date).toLocaleDateString('en-IN');
+  }
+
+  /**
+   * Initialize context menu items
+   */
+  private initializeContextMenu(): void {
+    this.contextMenuItems = [
+      {
+        label: 'View Details',
+        icon: 'pi pi-eye',
+        command: () => {
+          if (this.selectedSalesOrder) {
+            this.viewSalesOrder(this.selectedSalesOrder);
+          }
+        }
+      },
+      {
+        label: 'Edit',
+        icon: 'pi pi-pencil',
+        command: () => {
+          if (this.selectedSalesOrder) {
+            this.editSalesOrder(this.selectedSalesOrder);
+          }
+        },
+        visible: this.selectedSalesOrder ? this.selectedSalesOrder.status === 'DRAFT' : false
+      },
+      {
+        label: 'Confirm',
+        icon: 'pi pi-check-circle',
+        command: () => {
+          if (this.selectedSalesOrder) {
+            this.confirmSalesOrder(this.selectedSalesOrder);
+          }
+        },
+        visible: this.selectedSalesOrder ? this.selectedSalesOrder.status === 'DRAFT' : false
+      },
+      {
+        label: 'Record Payment',
+        icon: 'pi pi-wallet',
+        command: () => {
+          if (this.selectedSalesOrder) {
+            this.recordPayment(this.selectedSalesOrder);
+          }
+        },
+        visible: this.selectedSalesOrder ?
+          (['CONFIRMED', 'PARTIALLY_SHIPPED', 'SHIPPED', 'DELIVERED'].includes(this.selectedSalesOrder.status) &&
+           this.selectedSalesOrder.outstandingAmount > 0) : false
+      },
+      { separator: true },
+      {
+        label: 'Delete',
+        icon: 'pi pi-trash',
+        command: () => {
+          if (this.selectedSalesOrder) {
+            this.deleteSalesOrder(this.selectedSalesOrder);
+          }
+        },
+        visible: this.selectedSalesOrder ? this.selectedSalesOrder.status === 'DRAFT' : false,
+        styleClass: 'p-menuitem-danger'
+      }
+    ];
+  }
+
+  /**
+   * Show context menu
+   */
+  showContextMenu(event: MouseEvent, salesOrder: SalesOrderResponse): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.selectedSalesOrder = salesOrder;
+    this.initializeContextMenu();
+    this.contextMenu?.show(event);
+  }
+
+  /**
+   * Navigate to record payment for sales order
+   */
+  recordPayment(salesOrder: SalesOrderResponse): void {
+    this.router.navigate(['/sales/customer-payments/new'], {
+      queryParams: {
+        customerId: salesOrder.customerId,
+        salesOrderId: salesOrder.id
+      }
+    });
   }
 }

@@ -18,6 +18,14 @@ public class PartResponse
     public decimal SellingPrice { get; set; }
     public int MinimumStock { get; set; }
     public bool IsActive { get; set; }
+
+    // Warranty Information
+    public bool HasWarranty { get; set; }
+    public int? WarrantyPeriodMonths { get; set; }
+    public string? WarrantyType { get; set; }
+    public string? WarrantyTerms { get; set; }
+    public string? WarrantyCertificateTemplate { get; set; }
+
     public string CreatedBy { get; set; } = string.Empty;
     public string ModifiedBy { get; set; } = string.Empty;
 }

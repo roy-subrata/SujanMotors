@@ -238,6 +238,46 @@
     font-size: 0.875rem;
 }
 
+/* Payment Flow Cell (Source -> Destination) */
+.payment-accounts-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+}
+
+.account-info {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.8125rem;
+}
+
+.account-info.source {
+    color: #3b82f6;
+}
+
+.account-info.destination {
+    color: #10b981;
+}
+
+.source-icon {
+    font-size: 0.75rem;
+    color: #3b82f6;
+}
+
+.dest-icon {
+    font-size: 0.75rem;
+    color: #10b981;
+}
+
+.account-name {
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 150px;
+}
+
 .invoice-number {
     font-family: 'Courier New', monospace;
     color: #4b5563;

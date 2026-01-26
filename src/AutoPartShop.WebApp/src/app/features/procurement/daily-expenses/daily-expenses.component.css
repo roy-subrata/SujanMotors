@@ -1,0 +1,114 @@
+:host ::ng-deep {
+    .p-card .p-card-header {
+        padding: 0;
+    }
+
+    .p-dialog .p-dialog-header {
+        padding: 1.5rem;
+        background-color: #f8f9fa;
+    }
+
+    .p-dialog .p-dialog-content {
+        padding: 1.5rem;
+    }
+
+    .p-datatable .p-datatable-thead > tr > th {
+        background-color: #f8f9fa;
+        font-weight: 600;
+    }
+
+    .p-button-rounded {
+        width: 2rem;
+        height: 2rem;
+    }
+}
+
+.flex {
+    display: flex;
+}
+
+.flex-col {
+    flex-direction: column;
+}
+
+.justify-between {
+    justify-content: space-between;
+}
+
+.items-center {
+    align-items: center;
+}
+
+.gap-2 {
+    gap: 0.5rem;
+}
+
+.gap-4 {
+    gap: 1rem;
+}
+
+.p-4 {
+    padding: 1rem;
+}
+
+.text-2xl {
+    font-size: 1.5rem;
+}
+
+.font-bold {
+    font-weight: 700;
+}
+
+.font-semibold {
+    font-weight: 600;
+}
+
+.m-0 {
+    margin: 0;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.inline-flex {
+    display: inline-flex;
+}
+
+.px-2 {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+}
+
+.py-1 {
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+}
+
+.rounded {
+    border-radius: 0.25rem;
+}
+
+.text-sm {
+    font-size: 0.875rem;
+}
+
+.bg-blue-100 {
+    background-color: #dbeafe;
+}
+
+.text-blue-800 {
+    color: #1e40af;
+}
+
+.text-green-600 {
+    color: #16a34a;
+}
+
+.text-gray-400 {
+    color: #9ca3af;
+}
+
+.mr-2 {
+    margin-right: 0.5rem;
+}

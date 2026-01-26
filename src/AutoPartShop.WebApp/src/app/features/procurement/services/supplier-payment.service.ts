@@ -1,12 +1,15 @@
+
+
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
 
 export interface CreateSupplierPaymentRequest {
     supplierId: string;
     purchaseOrderId?: string;
+    goodsReceiptId?: string;
     paymentProviderId: string;
+    supplierPaymentAccountId?: string;  // Supplier's payment account (destination)
     amount: number;
     paymentMethod: string;
     transactionNumber: string;
@@ -14,6 +17,8 @@ export interface CreateSupplierPaymentRequest {
     invoiceNumber: string;
     paymentDate?: string;
     notes: string;
+    paymentType: 'REGULAR' | 'ADVANCE';
+    description?: string;  // For advance payments
 }
 
 export interface MarkPaymentAsAdvanceRequest {
@@ -34,8 +39,11 @@ export interface SupplierPaymentResponse {
     supplierId: string;
     supplierName: string;
     purchaseOrderId?: string;
+    goodsReceiptId?: string;
     paymentProviderId: string;
     providerName: string;
+    supplierPaymentAccountId?: string;
+    supplierPaymentAccountName: string;  // e.g., "BOC - 12345678"
     transactionNumber: string;
     amount: number;
     paymentFee: number;
@@ -57,6 +65,33 @@ export interface SupplierPaymentResponse {
     createdAt: string;
     paymentType: string;
     description: string;
+    remainingAmount: number;
+    sourceAdvancePaymentId?: string;
+}
+
+export interface AvailableAdvancePayment {
+    id: string;
+    transactionNumber: string;
+    amount: number;
+    remainingAmount: number;
+    usedAmount: number;
+    paymentDate: string;
+    description: string;
+}
+
+export interface ApplyAdvanceCreditRequest {
+    purchaseOrderId: string;
+    sourceAdvancePaymentId: string;
+    amount: number;
+    description: string;
+}
+
+export interface ApplyAdvanceCreditResponse {
+    paymentId: string;
+    transactionNumber: string;
+    amountApplied: number;
+    remainingAdvanceBalance: number;
+    message: string;
 }
 
 export interface SupplierPaymentHistorySummary {
@@ -67,6 +102,7 @@ export interface SupplierPaymentHistorySummary {
     creditUtilization: number;
     totalPaid: number;
     totalAdvanceAmount: number;
+    totalRefunds: number;  // Total refunds from purchase returns
     totalDue: number;
     paymentBalance: number;
     totalFees: number;
@@ -76,6 +112,7 @@ export interface SupplierPaymentHistorySummary {
     failedPayments: number;
     processingPayments: number;
     cancelledPayments: number;
+    returnedPayments: number;  // Count of refund payments
     lastPaymentDate?: string;
     lastPaymentAmount: number;
     statusBreakdown?: PaymentStatusBreakdown;
@@ -101,16 +138,34 @@ export interface PaymentHistoryItem {
     invoiceNumber: string;
     transactionNumber: string;
     providerName: string;
+    sourceAdvancePaymentId?: string;
+    sourceAdvanceTransactionNumber?: string;
+    purchaseOrderId?: string;
+    purchaseOrderNumber?: string;
+    goodsReceiptId?: string;
+    goodsReceiptNumber?: string;
 }
 
 export interface PaginatedSupplierPaymentResponse {
-    items: SupplierPaymentResponse[];
+    data: SupplierPaymentResponse[];
+    pagination: {
+        pageNumber: number;
+        pageSize: number;
+        totalCount: number;
+        totalPages: number;
+    };
+}
+
+export interface SupplierPaymentQuery {
     pageNumber: number;
     pageSize: number;
-    totalCount: number;
-    totalPages: number;
-    hasPreviousPage: boolean;
-    hasNextPage: boolean;
+    search?: string;
+    supplierId?: string;
+    status?: string;
+    fromDate?: string;
+    toDate?: string;
+    isReconciled?: boolean;
+    sorts?: Array<{ field: string; direction: string }>;
 }
 
 @Injectable({
@@ -130,24 +185,8 @@ export class SupplierPaymentService {
     /**
      * Get paginated supplier payments
      */
-    getSupplierPayments(pageNumber: number, pageSize: number, searchTerm?: string): Observable<PaginatedSupplierPaymentResponse> {
-        let params = new HttpParams().set('pageNumber', pageNumber.toString()).set('pageSize', pageSize.toString());
-
-        if (searchTerm) {
-            params = params.set('searchTerm', searchTerm);
-        }
-
-        return this.http.get<any>(`${this.apiUrl}/list`, { params }).pipe(
-            map((response) => ({
-                items: response.data,
-                pageNumber: response.pagination.pageNumber,
-                pageSize: response.pagination.pageSize,
-                totalCount: response.pagination.totalCount,
-                totalPages: response.pagination.totalPages,
-                hasPreviousPage: response.pagination.pageNumber > 1,
-                hasNextPage: response.pagination.pageNumber < response.pagination.totalPages
-            }))
-        );
+    getSupplierPayments(query: SupplierPaymentQuery): Observable<PaginatedSupplierPaymentResponse> {
+        return this.http.post<PaginatedSupplierPaymentResponse>(`${this.apiUrl}/list`, query);
     }
 
     /**
@@ -263,5 +302,19 @@ export class SupplierPaymentService {
         return this.http.get(`${this.apiUrl}/supplier/${supplierId}/report`, {
             responseType: 'blob'
         });
+    }
+
+    /**
+     * Get available advance payments for a supplier
+     */
+    getAvailableAdvances(supplierId: string): Observable<AvailableAdvancePayment[]> {
+        return this.http.get<AvailableAdvancePayment[]>(`${this.apiUrl}/supplier/${supplierId}/available-advances`);
+    }
+
+    /**
+     * Apply advance credit to a purchase order
+     */
+    applyAdvanceCredit(request: ApplyAdvanceCreditRequest): Observable<ApplyAdvanceCreditResponse> {
+        return this.http.post<ApplyAdvanceCreditResponse>(`${this.apiUrl}/apply-advance-credit`, request);
     }
 }

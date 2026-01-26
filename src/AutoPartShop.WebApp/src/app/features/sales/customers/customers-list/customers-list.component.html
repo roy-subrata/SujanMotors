@@ -3,36 +3,37 @@
   <p-confirmDialog></p-confirmDialog>
 
 
-  <!-- Header Section -->
-  <div class="customers-header">
-    <div class="header-content">
-      <!-- Title and Subtitle -->
-      <div class="header-title-section">
-        <h1 class="header-title">Customer Management</h1>
-        <p class="header-subtitle">Manage your customer credit limits, and account status</p>
-      </div>
 
-      <!-- Toolbar: Search and Action Button -->
-      <div class="toolbar">
+  <!-- Filters Card -->
+  <div styleClass="filters-card">
+    <div class="filters-container">
+      <!-- Search -->
+      <div class="filter-item search-filter">
         <div class="search-container">
           <i class="pi pi-search search-icon"></i>
-          <input type="text" placeholder="Search by name, code, email..." class="search-input"
-            (keyup)="onSearch($event.target.value)" [(ngModel)]="searchTerm">
-          <i *ngIf="searchTerm" class="pi pi-times clear-icon" (click)="clearSearch()">
-          </i>
+          <input type="text" [value]="searchTerm()" placeholder="Search by customer name,code, email, phone..."
+            (input)="onSearch($event)" class="search-input">
+          <i *ngIf="searchTerm()" class="pi pi-times clear-icon" (click)="clearSearch()"></i>
         </div>
-        <button pButton type="button" label="New Customer" icon="pi pi-plus" class="p-button-success btn-create"
-          (click)="createCustomer()">
-        </button>
       </div>
+
+      <!-- Status Filter -->
+      <div class="filter-item">
+        <p-select placeholder="Type" (onChange)="onFilterChange($event.value)" [options]="customerTypes"
+          [showClear]="true" optionLabel="label" optionValue="value" placeholder="Select type" class="w-full">
+        </p-select>
+      </div>
+      <button pButton type="button" label="New Customer" icon="pi pi-plus" class="p-button-success btn-create"
+        (click)="createCustomer()">
+      </button>
+      <!-- Filter Actions -->
+
     </div>
   </div>
-
   <!-- Table Section -->
   <div class="table-container">
-    <p-table #dt [value]="customers()" [rows]="pageSize()" [loading]="loading()" [lazy]="true" [paginator]="true"
-      [totalRecords]="totalCount()" [rowsPerPageOptions]="[10, 25, 50, 100]" [showCurrentPageReport]="true"
-      (onLazyLoad)="onLazyLoad($event)" [contextMenu]="contextMenu" [(contextMenuSelection)]="selectedCustomer"
+    <p-table #dt [value]="customers()" [rows]="pageSize" [loading]="loading()" [lazy]="true" [paginator]="false"
+      [totalRecords]="totalRecords" (onLazyLoad)="onLazyLoad($event)" [(contextMenuSelection)]="selectedCustomer"
       (onContextMenuSelect)="onContextMenuSelect($event)" responsiveLayout="scroll"
       [tableStyle]="{ 'min-width': '50rem' }" styleClass="p-datatable-striped" dataKey="id">
 
@@ -48,10 +49,7 @@
           <th>Contact</th>
           <th>Type</th>
           <th>Status</th>
-          <th class="text-right">Credit Limit</th>
-          <th class="text-right">Balance</th>
-          <th class="text-right">Advance</th>
-          <th>Credit Status</th>
+          <th>Balance Status</th>
           <th class="text-center">Actions</th>
         </tr>
       </ng-template>
@@ -86,21 +84,8 @@
           <td>
             <p-tag [value]="customer.status" [severity]="getStatusSeverity(customer.status)"></p-tag>
           </td>
-          <td class="text-right">
-            <span class="amount">{{ customer.creditLimit | currency:'INR':'symbol':'1.0-0' }}</span>
-          </td>
-          <td class="text-right">
-            <span class="amount" [class.text-danger]="customer.currentBalance > 0">
-              {{ customer.currentBalance | currency:'INR':'symbol':'1.2-2' }}
-            </span>
-          </td>
-          <td class="text-right">
-            <span class="amount" [class.text-success]="customer.advanceAmount > 0">
-              {{ customer.advanceAmount | currency:'INR':'symbol':'1.2-2' }}
-            </span>
-          </td>
           <td>
-            <p-tag [value]="getCreditStatus(customer).text" [severity]="getCreditStatus(customer).severity"></p-tag>
+            <p-tag [value]="getBalanceStatus(customer).text" [severity]="getBalanceStatus(customer).severity"></p-tag>
           </td>
           <td class="text-center">
             <button pButton pRipple type="button" icon="pi pi-ellipsis-v" class="p-button-text p-button-sm"
@@ -126,19 +111,12 @@
           </td>
         </tr>
       </ng-template>
-
-      <!-- Loading State -->
-      <ng-template pTemplate="loadingbody">
-        <tr>
-          <td colspan="10" class="loading-state">
-            <div class="loading-content">
-              <i class="pi pi-spin pi-spinner loading-spinner"></i>
-              <span>Loading customers...</span>
-            </div>
-          </td>
-        </tr>
-      </ng-template>
     </p-table>
+    <!-- Paginator -->
+    <p-paginator [rows]="pageSize" [totalRecords]="totalRecords" [rowsPerPageOptions]="pageSizeOptions" appendTo="body"
+      [showCurrentPageReport]="true" currentPageReportTemplate="Showing {first} to {last} of {totalRecords} customers"
+      (onPageChange)="onPageChange($event)">
+    </p-paginator>
   </div>
   <!-- Context Menu -->
   <p-contextMenu #contextMenu [model]="contextMenuItems" [appendTo]="'body'">

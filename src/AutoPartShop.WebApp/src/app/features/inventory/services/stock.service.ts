@@ -53,6 +53,61 @@ export interface CreateStockMovementRequest {
   reference: string;
 }
 
+export interface StockTransferRequest {
+  partId: string;
+  fromWarehouseId: string;
+  toWarehouseId: string;
+  quantity: number;
+  reference: string;
+  notes: string;
+}
+
+export interface StockTransferResponse {
+  id: string;
+  partId: string;
+  partName: string;
+  partCode: string;
+  fromWarehouseId: string;
+  fromWarehouseName: string;
+  fromWarehouseCode: string;
+  toWarehouseId: string;
+  toWarehouseName: string;
+  toWarehouseCode: string;
+  quantity: number;
+  reference: string;
+  notes: string;
+  status: string;
+  createdBy: string;
+  createdAt: string;
+}
+
+export interface StockAdjustmentRequest {
+  partId: string;
+  warehouseId: string;
+  quantity: number;
+  reason: string;
+  reference: string;
+  notes: string;
+}
+
+export interface StockAdjustmentResponse {
+  id: string;
+  partId: string;
+  partName: string;
+  partCode: string;
+  warehouseId: string;
+  warehouseName: string;
+  warehouseCode: string;
+  quantity: number;
+  previousQuantity: number;
+  newQuantity: number;
+  reason: string;
+  reference: string;
+  notes: string;
+  createdBy: string;
+  createdAt: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -135,5 +190,19 @@ export class StockService {
    */
   createMovement(request: CreateStockMovementRequest): Observable<StockMovementResponse> {
     return this.http.post<StockMovementResponse>(`${this.apiUrl}/movements`, request);
+  }
+
+  /**
+   * Transfer stock between warehouses
+   */
+  transferStock(request: StockTransferRequest): Observable<StockTransferResponse> {
+    return this.http.post<StockTransferResponse>(`${this.apiUrl}/transfer`, request);
+  }
+
+  /**
+   * Adjust stock quantity
+   */
+  adjustStock(request: StockAdjustmentRequest): Observable<StockAdjustmentResponse> {
+    return this.http.post<StockAdjustmentResponse>(`${this.apiUrl}/adjust`, request);
   }
 }

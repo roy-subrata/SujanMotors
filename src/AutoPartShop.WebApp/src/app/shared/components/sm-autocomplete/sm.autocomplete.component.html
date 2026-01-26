@@ -1,0 +1,53 @@
+<p-autoComplete
+            #autoComplete
+            [(ngModel)]="selectedItem"
+            [suggestions]="suggestions"
+            [placeholder]="placeholder"
+            [dropdown]="showDropdown"
+            [showClear]="showClear"
+            [disabled]="disabled"
+            [minLength]="minLength"
+            [delay]="searchDelay"
+            [forceSelection]="forceSelection"
+            [scrollHeight]="scrollHeight"
+            [virtualScroll]="true"
+            [virtualScrollItemSize]="virtualScrollItemSize"
+            [lazy]="true"
+            [optionLabel]="optionLabel"
+            [completeOnFocus]="completeOnFocus"
+            [inputStyleClass]="inputStyleClass"
+            [styleClass]="styleClass"
+            [panelStyleClass]="panelStyleClass + ' sm-autocomplete-panel'"
+            [appendTo]="'body'"
+            [autoOptionFocus]="false"
+            (completeMethod)="onSearch($event)"
+            (onSelect)="onItemSelect($event)"
+            (onClear)="onClear()"
+            (onLazyLoad)="onLazyLoad($event)"
+            (onBlur)="onTouched()"
+        >
+            <ng-template let-item pTemplate="item">
+                <ng-container *ngIf="itemTemplate; else defaultTemplate">
+                    <ng-container *ngTemplateOutlet="itemTemplate; context: { $implicit: item }"></ng-container>
+                </ng-container>
+                <ng-template #defaultTemplate>
+                    <div class="autocomplete-item">
+                        <span class="autocomplete-item-label">{{ getDisplayLabel(item) }}</span>
+                        <small *ngIf="getSubtitle(item)" class="autocomplete-item-subtitle">{{ getSubtitle(item) }}</small>
+                    </div>
+                </ng-template>
+            </ng-template>
+
+            <ng-template pTemplate="loader">
+                <div class="autocomplete-loader">
+                    <p-progressSpinner strokeWidth="4" [style]="{ width: '24px', height: '24px' }"></p-progressSpinner>
+                    <span>Loading more...</span>
+                </div>
+            </ng-template>
+
+            <ng-template pTemplate="empty">
+                <div class="autocomplete-empty">
+                    {{ loading ? 'Searching...' : emptyMessage }}
+                </div>
+            </ng-template>
+        </p-autoComplete>

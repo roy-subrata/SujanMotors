@@ -12,4 +12,11 @@ public class CreatePartRequest
     public decimal CostPrice { get; set; } = 0;
     public decimal SellingPrice { get; set; } = 0;
     public int MinimumStock { get; set; } = 0;
+
+    // Warranty Information
+    public bool HasWarranty { get; set; } = false;
+    public int? WarrantyPeriodMonths { get; set; }
+    public string? WarrantyType { get; set; }
+    public string? WarrantyTerms { get; set; }
+    public string? WarrantyCertificateTemplate { get; set; }
 }

@@ -7,33 +7,37 @@ import { CardModule } from 'primeng/card';
 import { SkeletonModule } from 'primeng/skeleton';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
-import { Subject, takeUntil } from 'rxjs';
+import { Subject, takeUntil, forkJoin } from 'rxjs';
 
 import { SupplierPaymentService, SupplierPaymentHistorySummary } from '../services/supplier-payment.service';
+import { SupplierLedgerService, SupplierLedgerSummaryDto } from '../services/supplier-ledger.service';
 import { PaymentMetricsComponent } from './components/payment-metrics.component';
-import { PaymentStatusChartComponent } from './components/payment-status-chart.component';
 import { PaymentHistoryTableComponent } from './components/payment-history-table.component';
-import { CreditInfoComponent } from './components/credit-info.component';
 import { PaymentActionsComponent } from './components/payment-actions.component';
+import { CurrencyService } from '../../../shared/services/currency.service';
 
 @Component({
     selector: 'app-supplier-payment-summary',
     standalone: true,
-    imports: [CommonModule, ButtonModule, CardModule, SkeletonModule, ToastModule, ConfirmDialogModule, PaymentMetricsComponent, PaymentStatusChartComponent, PaymentHistoryTableComponent, CreditInfoComponent, PaymentActionsComponent],
+    imports: [CommonModule, ButtonModule, CardModule, SkeletonModule, ToastModule, ConfirmDialogModule, PaymentMetricsComponent, PaymentHistoryTableComponent, PaymentActionsComponent],
     providers: [MessageService],
     templateUrl: './supplier-payment-summary.component.html',
     styleUrls: ['./supplier-payment-summary.component.css']
 })
 export class SupplierPaymentSummaryComponent implements OnInit, OnDestroy {
     private readonly supplierPaymentService = inject(SupplierPaymentService);
+    private readonly supplierLedgerService = inject(SupplierLedgerService);
     private readonly activatedRoute = inject(ActivatedRoute);
     private readonly router = inject(Router);
     private readonly messageService = inject(MessageService);
+    private readonly currencyService = inject(CurrencyService);
     private readonly destroy$ = new Subject<void>();
 
     supplierId: string = '';
     supplierName: string = 'Supplier';
     summary: SupplierPaymentHistorySummary | null = null;
+    ledgerSummary: SupplierLedgerSummaryDto | null = null;
+    useLedgerView = true;  // Use the new unified ledger view
     loading = true;
     error: string | null = null;
 
@@ -54,13 +58,17 @@ export class SupplierPaymentSummaryComponent implements OnInit, OnDestroy {
         this.loading = true;
         this.error = null;
 
-        this.supplierPaymentService
-            .getSupplierPaymentSummary(this.supplierId)
+        // Load both legacy payment summary and new ledger summary
+        forkJoin({
+            paymentSummary: this.supplierPaymentService.getSupplierPaymentSummary(this.supplierId),
+            ledgerSummary: this.supplierLedgerService.getLedgerSummary(this.supplierId, 20)
+        })
             .pipe(takeUntil(this.destroy$))
             .subscribe({
-                next: (data) => {
-                    this.summary = data;
-                    this.supplierName = data.supplierName;
+                next: ({ paymentSummary, ledgerSummary }) => {
+                    this.summary = paymentSummary;
+                    this.ledgerSummary = ledgerSummary;
+                    this.supplierName = ledgerSummary.supplierName || paymentSummary.supplierName;
                     this.loading = false;
                 },
                 error: (err) => {
@@ -79,6 +87,16 @@ export class SupplierPaymentSummaryComponent implements OnInit, OnDestroy {
 
     goBack(): void {
         this.router.navigate(['/procurement/supplier-payments']);
+    }
+
+    formatCurrency(value: number | undefined | null): string {
+        const numValue = value ?? 0;
+        if (isNaN(numValue)) {
+            const currency = this.currencyService.selectedCurrency() || 'BDT';
+            return this.currencyService.formatCurrency(0, currency);
+        }
+        const currency = this.currencyService.selectedCurrency() || 'BDT';
+        return this.currencyService.formatCurrency(numValue, currency);
     }
 
     ngOnDestroy(): void {

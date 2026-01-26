@@ -4,6 +4,9 @@
   display: flex;
   flex-direction: column;
   gap: 2rem;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 .form-header {
   background-color: #ffffff;

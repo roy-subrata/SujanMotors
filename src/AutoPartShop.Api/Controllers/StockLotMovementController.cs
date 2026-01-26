@@ -1,3 +1,4 @@
+using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.InventoryDtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Infrastructure.Repositories;
@@ -13,13 +14,15 @@ public class StockLotMovementController : ControllerBase
     private readonly IStockLotRepository _lotRepository;
     private readonly IPartRepository _partRepository;
     private readonly ILogger<StockLotMovementController> _logger;
+    private readonly ICurrentUserService _currentUserService;
 
     public StockLotMovementController(IStockLotMovementRepository repository, IStockLotRepository lotRepository,
-        IPartRepository partRepository, ILogger<StockLotMovementController> logger)
+        IPartRepository partRepository, ICurrentUserService currentUserService, ILogger<StockLotMovementController> logger)
     {
         _repository = repository;
         _lotRepository = lotRepository;
         _partRepository = partRepository;
+        _currentUserService = currentUserService;
         _logger = logger;
     }
 
@@ -62,7 +65,6 @@ public class StockLotMovementController : ControllerBase
         {
             var lot = await _lotRepository.GetByIdAsync(stockLotId, cancellationToken);
             if (lot is null) return NotFound("Stock lot not found");
-
             var part = await _partRepository.GetByIdAsync(lot.PartId, cancellationToken);
             var movements = await _repository.GetByStockLotAsync(stockLotId, cancellationToken);
             var sortedMovements = movements.OrderBy(m => m.MovementDate).ToList();
@@ -210,14 +212,15 @@ public class StockLotMovementController : ControllerBase
             var movement = StockLotMovement.Create(request.StockLotId, request.Quantity, request.MovementType,
                 request.ReferenceId, request.ReferenceType, request.MovementDate, request.CostAtMovement, request.Reason, request.Notes);
 
-            movement.CreatedBy = "System";
-            movement.ModifiedBy = "System";
+            var currentUser = _currentUserService.GetCurrentUsername();
+            movement.CreatedBy = currentUser;
+            movement.ModifiedBy = currentUser;
 
             // Update lot quantity if it's a removal (SALE, DAMAGE, RETURN)
             if (new[] { "SALE", "DAMAGE", "RETURN" }.Contains(request.MovementType.ToUpper()))
             {
                 lot.RemoveStock(request.Quantity, request.Reason);
-                lot.ModifiedBy = "System";
+                lot.ModifiedBy = currentUser;
                 await _lotRepository.UpdateAsync(lot, cancellationToken);
             }
 

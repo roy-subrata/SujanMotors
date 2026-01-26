@@ -1,0 +1,319 @@
+/* ===============================================
+   Supplier Form - Enterprise Grade Styling
+   =============================================== */
+
+.container {
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* ===============================================
+   Header Section
+   =============================================== */
+.form-header {
+  background-color: #ffffff;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+  padding: 1.25rem;
+  margin-bottom: 0;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.header-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.form-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 0.5rem 0;
+  line-height: 1.2;
+}
+
+.form-subtitle {
+  color: #6b7280;
+  font-size: 0.875rem;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* ===============================================
+   Loading State
+   =============================================== */
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
+  background: #ffffff;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+}
+
+.loading-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  color: #6b7280;
+}
+
+.loading-spinner {
+  font-size: 2.5rem;
+  color: #3b82f6;
+}
+
+/* ===============================================
+   Form Card Styles
+   =============================================== */
+::ng-deep .form-card {
+  background: #ffffff;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+  margin-bottom: 1.5rem;
+}
+
+::ng-deep .form-card .p-card-header {
+  padding: 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+::ng-deep .form-card .p-card-body {
+  padding: 1.25rem;
+}
+
+::ng-deep .form-card .p-card-content {
+  padding: 0;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  font-weight: 600;
+  font-size: 1rem;
+  color: #374151;
+  background: #f9fafb;
+}
+
+.card-header i {
+  color: #3b82f6;
+  font-size: 1.125rem;
+}
+
+/* ===============================================
+   Form Grid Layout
+   =============================================== */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.25rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group.full-width {
+  grid-column: 1 / -1;
+}
+
+.form-group label {
+  font-weight: 500;
+  color: #374151;
+  font-size: 0.875rem;
+}
+
+.required {
+  color: #dc2626;
+}
+
+.error-message {
+  color: #dc2626;
+  font-size: 0.75rem;
+}
+
+/* ===============================================
+   Form Input Styles
+   =============================================== */
+::ng-deep .form-group input[pInputText],
+::ng-deep .form-group textarea {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-family: inherit;
+  font-size: 0.9375rem;
+  color: #374151;
+  transition: all 0.2s ease;
+}
+
+::ng-deep .form-group input[pInputText]:focus,
+::ng-deep .form-group textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+::ng-deep .form-group input[pInputText]:disabled,
+::ng-deep .form-group textarea:disabled {
+  background-color: #f3f4f6;
+  cursor: not-allowed;
+}
+
+::ng-deep .form-group .p-select,
+::ng-deep .form-group .p-datepicker,
+::ng-deep .form-group .p-inputnumber {
+  width: 100%;
+}
+
+::ng-deep .form-group .p-inputnumber input {
+  width: 100%;
+}
+
+::ng-deep .form-group .ng-invalid.ng-touched input[pInputText] {
+  border-color: #dc2626;
+}
+
+/* ===============================================
+   Form Actions
+   =============================================== */
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 1.5rem 1.25rem;
+  background: #ffffff;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+}
+
+/* ===============================================
+   Toast Positioning
+   =============================================== */
+::ng-deep .p-toast {
+  z-index: 10004 !important;
+}
+
+/* ===============================================
+   Responsive Design
+   =============================================== */
+@media (max-width: 768px) {
+  .container {
+    gap: 1rem;
+  }
+
+  .form-header {
+    padding: 1rem;
+  }
+
+  .form-title {
+    font-size: 1.25rem;
+  }
+
+  .form-subtitle {
+    font-size: 0.8125rem;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  ::ng-deep .form-card .p-card-body {
+    padding: 1rem;
+  }
+
+  .card-header {
+    padding: 0.875rem 1rem;
+    font-size: 0.9375rem;
+  }
+
+  .form-actions {
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .container {
+    gap: 0.875rem;
+  }
+
+  .form-header {
+    padding: 0.875rem;
+  }
+
+  .header-content {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .header-actions {
+    width: 100%;
+  }
+
+  .header-actions button {
+    flex: 1;
+  }
+
+  .form-title {
+    font-size: 1.125rem;
+  }
+
+  ::ng-deep .form-card .p-card-body {
+    padding: 0.875rem;
+  }
+
+  .form-actions {
+    flex-direction: column-reverse;
+    padding: 0.875rem;
+  }
+
+  .form-actions button {
+    width: 100%;
+  }
+}
+
+/* ===============================================
+   Code Input Wrapper for Auto-generated Codes
+   =============================================== */
+.code-input-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.code-spinner {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #3b82f6;
+  font-size: 1rem;
+}
+
+.hint-text {
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-style: italic;
+}
