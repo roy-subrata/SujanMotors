@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, FormArray, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { Subject, debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs';
+import { map } from 'rxjs/operators';
 
 // PrimeNG Imports
 import { AutoCompleteModule } from 'primeng/autocomplete';
@@ -33,6 +34,7 @@ import { CurrencyService } from '../../../shared/services/currency.service';
 // Components
 import { QuickCustomerDialogComponent } from '../components/quick-customer-dialog.component';
 import { InvoicePreviewComponent } from '../components/invoice-preview.component';
+import { LazyAutocompleteComponent, LazyRequest, LazyResponse } from '../../../shared/components/lazy-autocomplete';
 
 @Component({
   selector: 'app-quick-sale',
@@ -56,7 +58,8 @@ import { InvoicePreviewComponent } from '../components/invoice-preview.component
     SelectModule,
     RouterLink,
     QuickCustomerDialogComponent,
-    InvoicePreviewComponent
+    InvoicePreviewComponent,
+    LazyAutocompleteComponent
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: './quick-sale.component.html',
@@ -86,6 +89,7 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
   // Invoice Preview
   showInvoicePreview = false;
   invoicePreviewData: InvoicePdfData | null = null;
+  showSummaryDialog = false;
 
   // Parts search
   parts = signal<PartResponse[]>([]);
@@ -93,6 +97,18 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
   selectedPart = signal<PartResponse | null>(null);
   selectedPartModel: PartResponse | null = null; // For ngModel binding
   searchingParts = signal(false);
+  fetchPartsLazy = (req: LazyRequest) =>
+    this.partService.getParts({
+      search: req.search || '',
+      pageNumber: req.pageNumber,
+      pageSize: req.pageSize,
+      isActive: true
+    }).pipe(
+      map((res) => ({
+        items: res.data ?? [],
+        totalCount: res.pagination?.totalCount ?? 0
+      }) as LazyResponse<PartResponse>)
+    );
 
   // Customer management
   customers = signal<any[]>([]);
@@ -106,9 +122,12 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
   filteredTechnicians = signal<TechnicianResponse[]>([]);
   selectedTechnician = signal<TechnicianResponse | null>(null);
   selectedTechnicianModel: TechnicianResponse | null = null; // For ngModel binding
+  loadingTechnicians = signal(false);
+  techniciansLoaded = signal(false);
 
   // Cart items
   cartItems = signal<QuickSaleLineItem[]>([]);
+  globalDiscount = 0;
 
   // Units
   units = signal<UnitResponse[]>([]);
@@ -361,15 +380,19 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
     });
 
     // Load active technicians
+    this.loadingTechnicians.set(true);
     this.technicianService.getAllTechnicians().subscribe({
       next: (technicians) => {
         const active = technicians.filter(t => t.status === 'ACTIVE');
         this.technicians.set(active);
         this.filteredTechnicians.set(active);
+        this.techniciansLoaded.set(true);
+        this.loadingTechnicians.set(false);
         checkComplete();
       },
       error: (err) => {
         console.error('Error loading technicians:', err);
+        this.loadingTechnicians.set(false);
         this.messageService.add({
           severity: 'warn',
           summary: 'Warning',
@@ -506,6 +529,7 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
     const part = event as PartResponse;
     this.selectedPart.set(part);
     this.selectedPartModel = part;
+    this.addPartToCart();
   }
 
   addPartToCart(): void {
@@ -655,13 +679,45 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
 
   // Technician management
   filterTechnicians(event: any): void {
-    const query = event.query.toLowerCase();
+    const query = event.query?.toLowerCase() || '';
+    if (!query) {
+      this.filteredTechnicians.set(this.technicians());
+      return;
+    }
     const filtered = this.technicians().filter(t =>
       t.name.toLowerCase().includes(query) ||
       t.technicianCode.toLowerCase().includes(query) ||
       t.phone.includes(query)
     );
     this.filteredTechnicians.set(filtered);
+  }
+
+  onTechnicianDropdownClick(): void {
+    if (this.techniciansLoaded()) {
+      this.filteredTechnicians.set(this.technicians());
+      return;
+    }
+
+    this.loadingTechnicians.set(true);
+    this.technicianService.getAllTechnicians().subscribe({
+      next: (technicians) => {
+        const active = technicians.filter(t => t.status === 'ACTIVE');
+        this.technicians.set(active);
+        this.filteredTechnicians.set(active);
+        this.techniciansLoaded.set(true);
+        this.loadingTechnicians.set(false);
+      },
+      error: (err) => {
+        console.error('Error loading technicians:', err);
+        this.loadingTechnicians.set(false);
+        this.messageService.add({
+          severity: 'warn',
+          summary: 'Warning',
+          detail: 'Failed to load technicians.',
+          life: 3000
+        });
+      }
+    });
   }
 
   onTechnicianSearch(event: any): void {
@@ -1170,7 +1226,7 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
 
   // Utility methods
   formatCurrency(amount: number): string {
-    const currency = this.currencyService.selectedCurrency() || 'BDT';
+    const currency = this.currencyService.selectedCurrency();
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: currency
@@ -1802,6 +1858,22 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
           detail: '5% discount applied to all items'
         });
       }
+    });
+  }
+
+  applyGlobalDiscount(): void {
+    const value = Math.max(0, Math.min(100, Number(this.globalDiscount || 0)));
+    this.globalDiscount = value;
+    if (this.cartItems().length === 0) {
+      return;
+    }
+    this.cartItems.update(items =>
+      items.map(item => ({ ...item, discount: value }))
+    );
+    this.messageService.add({
+      severity: 'success',
+      summary: 'Discount Applied',
+      detail: `${value}% discount applied to all items`
     });
   }
 

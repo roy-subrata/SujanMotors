@@ -37,6 +37,34 @@
         </p-select>
       </div>
 
+      <!-- Barcode Value Source -->
+      <div class="control-group">
+        <label>Barcode Value</label>
+        <p-select
+          [(ngModel)]="selectedValueSource"
+          [options]="valueSourceOptions"
+          optionLabel="label"
+          optionValue="value"
+          optionDisabled="disabled"
+          (onChange)="onValueSourceChange($event.value)"
+          styleClass="w-full">
+        </p-select>
+        <small class="helper-text">
+          Choose what gets encoded. QR can store full details; linear barcodes use the selected value.
+        </small>
+      </div>
+
+      <!-- Custom Value (if custom selected) -->
+      <div class="control-group" *ngIf="selectedValueSource === 'custom'">
+        <label>Custom Value</label>
+        <input
+          type="text"
+          [(ngModel)]="customValue"
+          (input)="onValueSourceChange('custom')"
+          class="form-input"
+          placeholder="Enter custom barcode value">
+      </div>
+
       <!-- Custom Width (if custom size) -->
       <div class="control-group" *ngIf="selectedSize === 'custom'">
         <label>Width (mm)</label>
@@ -96,8 +124,11 @@
 
     <!-- Linear Barcode Display -->
     <div class="barcode-preview linear-preview" *ngIf="selectedBarcodeType !== 'qrcode'">
-      <div class="linear-barcode-container" [innerHTML]="barcodeHTML" *ngIf="barcodeHTML"></div>
-      <p class="barcode-value-text" *ngIf="!barcodeHTML && !isGenerating">
+      <div class="linear-barcode-container" [innerHTML]="barcodeHTMLSafe" *ngIf="barcodeHTMLSafe"></div>
+      <p class="barcode-value-text" *ngIf="validationMessage && !isGenerating">
+        {{ validationMessage }}
+      </p>
+      <p class="barcode-value-text" *ngIf="!barcodeHTML && !isGenerating && !validationMessage">
         Unable to generate barcode. Please check the value.
       </p>
       <p class="barcode-loading" *ngIf="isGenerating">Generating barcode...</p>

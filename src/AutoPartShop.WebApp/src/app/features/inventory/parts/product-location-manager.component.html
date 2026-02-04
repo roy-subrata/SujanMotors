@@ -7,7 +7,7 @@
         <button pButton type="button" label="Add Location" icon="pi pi-plus" class="p-button-sm" (click)="openCreateDialog()"></button>
     </div>
 
-    <p-table [value]="locations" [loading]="loading" responsiveLayout="scroll" styleClass="p-datatable-sm">
+    <p-table [value]="locations" [loading]="loading" responsiveLayout="stack" breakpoint="768px" styleClass="p-datatable-sm">
         <ng-template pTemplate="header">
             <tr>
                 <th style="width: 30px"></th>
@@ -24,12 +24,28 @@
                 <td>
                     <p-tag *ngIf="location.isPrimary" [value]="'Primary'" [severity]="getSeverity(location.isPrimary)" [rounded]="true"></p-tag>
                 </td>
-                <td>{{ location.warehouseName }} ({{ location.warehouseCode }})</td>
-                <td>{{ location.section }}</td>
-                <td>{{ location.shelf }}</td>
-                <td><strong>{{ location.fullLocation }}</strong></td>
-                <td>{{ location.notes || '-' }}</td>
                 <td>
+                    <span class="p-column-title">Warehouse</span>
+                    {{ location.warehouseName }} ({{ location.warehouseCode }})
+                </td>
+                <td>
+                    <span class="p-column-title">Section</span>
+                    {{ location.section }}
+                </td>
+                <td>
+                    <span class="p-column-title">Shelf</span>
+                    {{ location.shelf }}
+                </td>
+                <td>
+                    <span class="p-column-title">Full Location</span>
+                    <strong>{{ location.fullLocation }}</strong>
+                </td>
+                <td>
+                    <span class="p-column-title">Notes</span>
+                    {{ location.notes || '-' }}
+                </td>
+                <td>
+                    <span class="p-column-title">Actions</span>
                     <div class="flex gap-2">
                         <button
                             *ngIf="!location.isPrimary"
@@ -104,7 +120,7 @@
 
         <div class="form-group">
             <label for="notes">Notes</label>
-            <p-textarea id="notes" formControlName="notes"  class="w-full" [disabled]="isSubmitting"></p-textarea>
+            <textarea id="notes" pInputTextarea formControlName="notes" class="w-full" [disabled]="isSubmitting"></textarea>
             <small class="error" *ngIf="hasError('notes')">Notes must not exceed 500 characters</small>
         </div>
     </form>

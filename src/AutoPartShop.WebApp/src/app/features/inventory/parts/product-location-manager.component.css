@@ -46,6 +46,14 @@
     padding: 0.75rem;
     background-color: #f8f9fa;
   }
+
+  .p-datatable .p-column-title {
+    font-weight: 600;
+    color: #6b7280;
+    display: inline-block;
+    min-width: 110px;
+    margin-right: 0.5rem;
+  }
 }
 
 .text-center {

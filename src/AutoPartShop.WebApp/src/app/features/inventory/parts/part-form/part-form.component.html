@@ -81,6 +81,10 @@
             <small *ngIf="hasError('sku')" class="p-error">
               {{ getErrorMessage('sku') }}
             </small>
+            <small class="field-hint">
+              <i class="pi pi-info-circle"></i>
+              Use a unique SKU for inventory tracking
+            </small>
           </div>
           <div class="form-group">
             <label>Category *</label>
@@ -312,7 +316,148 @@
         </ng-container>
       </div>
 
-      <!-- Section 4: Additional Notes -->
+      <!-- Section 4: Vehicle Compatibility -->
+      <div class="form-section">
+        <h3 class="section-title">
+          <i class="pi pi-car section-icon"></i>
+          Vehicle Compatibility
+        </h3>
+
+        <div *ngIf="!partId && !isViewMode" class="compatibility-note">
+          <i class="pi pi-info-circle"></i>
+          Compatibility entries will be saved after the part is created.
+        </div>
+
+        <div class="compatibility-form" [formGroup]="compatibilityForm">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Vehicle *</label>
+              <p-autoComplete
+                [suggestions]="filteredVehicles"
+                [(ngModel)]="selectedVehicle"
+                placeholder="Search by make, model, year..."
+                [showEmptyMessage]="true"
+                emptyMessage="No vehicles found"
+                (onClear)="onVehicleClear()"
+                (onSelect)="onVehicleSelect($event)"
+                [dropdown]="true"
+                [disabled]="isSubmitting || isViewMode"
+                (completeMethod)="onVehicleSearch($event)"
+                optionLabel="model"
+                [ngModelOptions]="{standalone: true}"
+                appendTo="body"
+                [style]="{ width: '100%' }">
+                <ng-template let-vehicle pTemplate="item">
+                  <div class="autocomplete-item">
+                    <span class="item-name">{{ vehicle.make }} {{ vehicle.model }} {{ vehicle.year }}</span>
+                    <span class="item-code">{{ vehicle.engineType }}</span>
+                  </div>
+                </ng-template>
+              </p-autoComplete>
+              <small *ngIf="compatibilityForm.get('vehicle')?.invalid && compatibilityForm.get('vehicle')?.touched" class="p-error">
+                Vehicle is required
+              </small>
+            </div>
+            <div class="form-group">
+              <label>Compatibility Status</label>
+              <div class="checkbox-wrapper">
+                <p-checkbox
+                  inputId="isCompatible"
+                  formControlName="isCompatible"
+                  [binary]="true"
+                  [disabled]="isViewMode">
+                </p-checkbox>
+                <label for="isCompatible" class="checkbox-label">Compatible</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group full">
+              <label>Notes</label>
+              <textarea
+                pInputTextarea
+                formControlName="notes"
+                placeholder="Compatibility notes (optional)"
+                rows="2"
+                [disabled]="isViewMode">
+              </textarea>
+            </div>
+          </div>
+
+          <div class="form-actions compatibility-actions">
+            <button
+              pButton
+              type="button"
+              label="Add Compatibility"
+              icon="pi pi-plus"
+              class="p-button-success p-button-sm"
+              (click)="addCompatibility()"
+              [disabled]="isViewMode || compatibilityForm.invalid || isCompatibilitySubmitting">
+            </button>
+          </div>
+        </div>
+
+        <div class="compatibility-list">
+          <p-table
+            [value]="getCompatibilityRows()"
+            [loading]="loadingCompatibilities"
+            responsiveLayout="scroll"
+            [tableStyle]="{ 'min-width': '50rem' }"
+            styleClass="p-datatable-striped">
+
+            <ng-template pTemplate="header">
+              <tr>
+                <th style="width: 35%">Vehicle</th>
+                <th style="width: 15%">Status</th>
+                <th style="width: 40%">Notes</th>
+                <th style="width: 10%">Actions</th>
+              </tr>
+            </ng-template>
+
+            <ng-template pTemplate="body" let-compatibility>
+              <tr>
+                <td>
+                  <span class="font-semibold">{{ compatibility.vehicleInfo }}</span>
+                  <span *ngIf="compatibility.isPending" class="pending-pill">Pending</span>
+                </td>
+                <td>
+                  <p-tag
+                    [value]="getCompatibilityLabel(compatibility.isCompatible)"
+                    [severity]="getCompatibilitySeverity(compatibility.isCompatible)">
+                  </p-tag>
+                </td>
+                <td>
+                  <span class="text-sm">{{ compatibility.notes || 'N/A' }}</span>
+                </td>
+                <td>
+                  <button
+                    pButton
+                    type="button"
+                    icon="pi pi-trash"
+                    class="p-button-text p-button-danger p-button-sm"
+                    pTooltip="Remove"
+                    tooltipPosition="left"
+                    [disabled]="isViewMode"
+                    (click)="removeCompatibility(compatibility)">
+                  </button>
+                </td>
+              </tr>
+            </ng-template>
+
+            <ng-template pTemplate="emptymessage">
+              <tr>
+                <td colspan="4" class="text-center py-4">
+                  <i class="pi pi-inbox mr-2"></i>
+                  No vehicle compatibilities added yet.
+                </td>
+              </tr>
+            </ng-template>
+          </p-table>
+        </div>
+      </div>
+
+      <!-- Section 5: Additional Notes -->
       <div class="form-section last">
         <h3 class="section-title">
           <i class="pi pi-file-edit section-icon"></i>
@@ -356,3 +501,5 @@
     </form>
   </p-card>
 </div>
+
+<p-confirmDialog></p-confirmDialog>

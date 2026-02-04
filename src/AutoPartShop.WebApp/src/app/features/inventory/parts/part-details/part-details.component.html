@@ -2,162 +2,207 @@
   <p-toast></p-toast>
 
   <!-- Header -->
-  <div class="header">
+  <div class="form-header">
     <div class="header-content">
       <div class="header-title-section">
-        <h1 class="header-title">Part Details</h1>
-        <p class="header-subtitle">View detailed information about this auto part</p>
+        <div class="breadcrumb">
+          <a (click)="onBack()" class="breadcrumb-link">
+            <i class="pi pi-arrow-left"></i>
+            Parts
+          </a>
+          <span class="breadcrumb-separator">/</span>
+          <span class="breadcrumb-current">Details</span>
+        </div>
+        <h1 class="form-title">Part Details</h1>
+        <p class="form-subtitle">View detailed information about this auto part</p>
       </div>
       <div class="header-actions">
-        <button pButton type="button" label="Back" icon="pi pi-arrow-left"
-                class="p-button-outlined" (click)="onBack()"></button>
-        <button pButton type="button" label="Edit Part" icon="pi pi-pencil"
-                class="p-button-primary" (click)="onEdit()"></button>
+        <button
+          pButton
+          type="button"
+          label="Back"
+          icon="pi pi-arrow-left"
+          class="p-button-outlined"
+          (click)="onBack()">
+        </button>
+        <button
+          pButton
+          type="button"
+          label="Edit Part"
+          icon="pi pi-pencil"
+          class="p-button-primary"
+          (click)="onEdit()">
+        </button>
       </div>
     </div>
   </div>
 
   <!-- Loading State -->
-  <div *ngIf="loading" class="loading-container">
+  <div *ngIf="loading" class="loading-state">
     <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
     <p>Loading part details...</p>
   </div>
 
   <!-- Part Details -->
   <div *ngIf="!loading && part" class="content">
-    <!-- Basic Information Card -->
-    <p-card class="info-card">
-      <ng-template pTemplate="header">
-        <div class="card-header">
-          <h2 class="card-title">Basic Information</h2>
-          <p-tag [value]="part.isActive ? 'Active' : 'Inactive'"
-                 [severity]="getStatusSeverity(part.isActive)"></p-tag>
-        </div>
-      </ng-template>
+    <p-card class="form-card">
+      <div class="form-content">
+        <!-- Section 1: Basic Information -->
+        <div class="form-section">
+          <div class="section-header">
+            <h3 class="section-title">
+              <i class="pi pi-box section-icon"></i>
+              Basic Information
+            </h3>
+            <p-tag
+              [value]="part.isActive ? 'Active' : 'Inactive'"
+              [severity]="getStatusSeverity(part.isActive)">
+            </p-tag>
+          </div>
 
-      <div class="info-grid">
-        <div class="info-item">
-          <label>Part Name</label>
-          <span class="value-text">{{ part.name }}</span>
+          <div class="info-grid">
+            <div class="info-item">
+              <label>Part Name</label>
+              <span class="value-text">{{ part.name }}</span>
+            </div>
+            <div class="info-item">
+              <label>Part Number</label>
+              <span class="value-text">{{ part.partNumber }}</span>
+            </div>
+            <div class="info-item">
+              <label>SKU</label>
+              <span class="value-text">{{ part.sku }}</span>
+            </div>
+            <div class="info-item">
+              <label>Category</label>
+              <span class="value-text">{{ part.categoryName }}</span>
+            </div>
+            <div class="info-item">
+              <label>Unit</label>
+              <span class="value-text">{{ part.unitName || 'N/A' }}</span>
+            </div>
+            <div class="info-item">
+              <label>Minimum Stock</label>
+              <span class="value-text">{{ part.minimumStock }}</span>
+            </div>
+            <div class="info-item full-width">
+              <label>Description</label>
+              <span class="value-text">{{ part.description || 'No description provided' }}</span>
+            </div>
+          </div>
         </div>
-        <div class="info-item">
-          <label>Part Number</label>
-          <span class="value-text">{{ part.partNumber }}</span>
+
+        <!-- Section 2: Pricing Information -->
+        <div class="form-section">
+          <h3 class="section-title">
+            <i class="pi pi-dollar section-icon"></i>
+            Pricing Information
+          </h3>
+
+          <div class="pricing-grid">
+            <div class="pricing-item">
+              <label>Cost Price</label>
+              <span class="price-value">{{ formatPrice(part.costPrice) }}</span>
+            </div>
+            <div class="pricing-item">
+              <label>Selling Price</label>
+              <span class="price-value">{{ formatPrice(part.sellingPrice) }}</span>
+            </div>
+            <div class="pricing-item">
+              <label>Profit Margin</label>
+              <span class="margin-value" [ngClass]="getMarginClass(part.costPrice, part.sellingPrice)">
+                {{ calculateMargin(part.costPrice, part.sellingPrice) }}
+              </span>
+            </div>
+          </div>
         </div>
-        <div class="info-item">
-          <label>SKU</label>
-          <span class="value-text">{{ part.sku }}</span>
+
+        <!-- Section 3: Vehicle Compatibility -->
+        <div class="form-section">
+          <div class="section-header">
+            <h3 class="section-title">
+              <i class="pi pi-car section-icon"></i>
+              Compatible Vehicles
+            </h3>
+            <span class="vehicle-count">{{ compatibleVehicles.length }} vehicle(s)</span>
+          </div>
+
+          <!-- Loading State -->
+          <div *ngIf="loadingVehicles" class="loading-vehicles">
+            <i class="pi pi-spin pi-spinner"></i>
+            <p>Loading compatible vehicles...</p>
+          </div>
+
+          <!-- Vehicles Table -->
+          <div *ngIf="!loadingVehicles" class="vehicles-table">
+            <p-table *ngIf="compatibleVehicles.length > 0"
+                     [value]="compatibleVehicles"
+                     responsiveLayout="stack"
+                     breakpoint="768px">
+              <ng-template pTemplate="header">
+                <tr>
+                  <th style="width: 20%">Make</th>
+                  <th style="width: 25%">Model</th>
+                  <th style="width: 10%">Year</th>
+                  <th style="width: 15%">Engine Type</th>
+                  <th style="width: 10%">Status</th>
+                  <th style="width: 20%">Notes</th>
+                </tr>
+              </ng-template>
+              <ng-template pTemplate="body" let-vehicle>
+                <tr>
+                  <td>
+                    <span class="p-column-title">Make</span>
+                    {{ vehicle.vehicleMake }}
+                  </td>
+                  <td>
+                    <span class="p-column-title">Model</span>
+                    {{ vehicle.vehicleModel }}
+                  </td>
+                  <td>
+                    <span class="p-column-title">Year</span>
+                    {{ vehicle.vehicleYear }}
+                  </td>
+                  <td>
+                    <span class="p-column-title">Engine Type</span>
+                    {{ vehicle.vehicleEngineType }}
+                  </td>
+                  <td>
+                    <span class="p-column-title">Status</span>
+                    <p-tag
+                      [value]="vehicle.isCompatible ? 'Compatible' : 'Not Compatible'"
+                      [severity]="getCompatibilitySeverity(vehicle.isCompatible)">
+                    </p-tag>
+                  </td>
+                  <td>
+                    <span class="p-column-title">Notes</span>
+                    {{ vehicle.notes || 'N/A' }}
+                  </td>
+                </tr>
+              </ng-template>
+            </p-table>
+
+            <!-- Empty State -->
+            <div *ngIf="compatibleVehicles.length === 0" class="empty-state">
+              <i class="pi pi-car"></i>
+              <p>No compatible vehicles found for this part.</p>
+            </div>
+          </div>
         </div>
-        <div class="info-item">
-          <label>Category</label>
-          <span class="value-text">{{ part.categoryName }}</span>
-        </div>
-        <div class="info-item">
-          <label>Unit</label>
-          <span class="value-text">{{ part.unitName || '—' }}</span>
-        </div>
-        <div class="info-item">
-          <label>Minimum Stock</label>
-          <span class="value-text">{{ part.minimumStock }}</span>
-        </div>
-        <div class="info-item full-width">
-          <label>Description</label>
-          <span class="value-text">{{ part.description || 'No description provided' }}</span>
+
+        <!-- Section 4: Storage Locations -->
+        <div class="form-section last">
+          <h3 class="section-title">
+            <i class="pi pi-map-marker section-icon"></i>
+            Storage Locations
+          </h3>
+
+          <app-product-location-manager
+            [partId]="partId!"
+            [partName]="part.name">
+          </app-product-location-manager>
         </div>
       </div>
-    </p-card>
-
-    <!-- Pricing Information Card -->
-    <p-card class="info-card">
-      <ng-template pTemplate="header">
-        <div class="card-header">
-          <h2 class="card-title">Pricing Information</h2>
-        </div>
-      </ng-template>
-
-      <div class="pricing-grid">
-        <div class="pricing-item">
-          <label>Cost Price</label>
-          <span class="price-value">{{ formatPrice(part.costPrice) }}</span>
-        </div>
-        <div class="pricing-item">
-          <label>Selling Price</label>
-          <span class="price-value">{{ formatPrice(part.sellingPrice) }}</span>
-        </div>
-        <div class="pricing-item">
-          <label>Profit Margin</label>
-          <span class="margin-value" [ngClass]="getMarginClass(part.costPrice, part.sellingPrice)">
-            {{ calculateMargin(part.costPrice, part.sellingPrice) }}
-          </span>
-        </div>
-      </div>
-    </p-card>
-
-    <!-- Compatible Vehicles Card -->
-    <p-card class="info-card">
-      <ng-template pTemplate="header">
-        <div class="card-header">
-          <h2 class="card-title">Compatible Vehicles</h2>
-          <span class="vehicle-count">{{ compatibleVehicles.length }} vehicle(s)</span>
-        </div>
-      </ng-template>
-
-      <!-- Loading State -->
-      <div *ngIf="loadingVehicles" class="loading-vehicles">
-        <i class="pi pi-spin pi-spinner"></i>
-        <p>Loading compatible vehicles...</p>
-      </div>
-
-      <!-- Vehicles Table -->
-      <div *ngIf="!loadingVehicles" class="vehicles-table">
-        <p-table *ngIf="compatibleVehicles.length > 0"
-                 [value]="compatibleVehicles"
-                 responsiveLayout="scroll">
-          <ng-template pTemplate="header">
-            <tr>
-              <th style="width: 20%">Make</th>
-              <th style="width: 25%">Model</th>
-              <th style="width: 10%">Year</th>
-              <th style="width: 15%">Engine Type</th>
-              <th style="width: 10%">Status</th>
-              <th style="width: 20%">Notes</th>
-            </tr>
-          </ng-template>
-          <ng-template pTemplate="body" let-vehicle>
-            <tr>
-              <td>{{ vehicle.vehicleMake }}</td>
-              <td>{{ vehicle.vehicleModel }}</td>
-              <td>{{ vehicle.vehicleYear }}</td>
-              <td>{{ vehicle.vehicleEngineType }}</td>
-              <td>
-                <p-tag [value]="vehicle.isCompatible ? 'Compatible' : 'Not Compatible'"
-                       [severity]="getCompatibilitySeverity(vehicle.isCompatible)"></p-tag>
-              </td>
-              <td>{{ vehicle.notes || '—' }}</td>
-            </tr>
-          </ng-template>
-        </p-table>
-
-        <!-- Empty State -->
-        <div *ngIf="compatibleVehicles.length === 0" class="empty-state">
-          <i class="pi pi-car"></i>
-          <p>No compatible vehicles found for this part.</p>
-        </div>
-      </div>
-    </p-card>
-
-    <!-- Product Locations Card -->
-    <p-card class="info-card">
-      <ng-template pTemplate="header">
-        <div class="card-header">
-          <h2 class="card-title">Storage Locations</h2>
-        </div>
-      </ng-template>
-
-      <app-product-location-manager
-        [partId]="partId!"
-        [partName]="part.name">
-      </app-product-location-manager>
     </p-card>
   </div>
 

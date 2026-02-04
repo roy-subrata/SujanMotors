@@ -1,4 +1,5 @@
 import { Component, OnInit, inject, ViewChild, ElementRef } from '@angular/core';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
@@ -38,11 +39,14 @@ export class BarcodeDialogComponent implements OnInit {
     private readonly messageService = inject(MessageService);
     private readonly dialogRef = inject(DynamicDialogRef);
     private readonly dialogConfig = inject(DynamicDialogConfig);
+    private readonly sanitizer = inject(DomSanitizer);
 
     public part: PartResponse | null = null;
     selectedBarcodeType: BarcodeType = 'qrcode';
     barcodeValue: string = '';
     barcodeHTML: string = '';
+    barcodeHTMLSafe: SafeHtml | null = null;
+    validationMessage: string = '';
     isGenerating = false;
     isDownloading = false;
 
@@ -58,11 +62,23 @@ export class BarcodeDialogComponent implements OnInit {
     quantity: number = 1;
     maxQuantity: number = 100;
 
+    // Barcode value source
+    selectedValueSource: string = 'sku';
+    customValue: string = '';
+
     barcodeTypes = [
         { label: 'QR Code', value: 'qrcode' },
         { label: 'Code128', value: 'code128' },
         { label: 'Code39', value: 'code39' },
         { label: 'EAN13', value: 'ean13' }
+    ];
+
+    barcodeValueSources = [
+        { label: 'SKU', value: 'sku' },
+        { label: 'Part Number', value: 'partNumber' },
+        { label: 'SKU + Part #', value: 'sku-part' },
+        { label: 'Custom', value: 'custom' },
+        { label: 'Full Details (QR Only)', value: 'details', disabled: true }
     ];
 
     barcodeSize = [
@@ -73,9 +89,17 @@ export class BarcodeDialogComponent implements OnInit {
     ];
 
     ngOnInit(): void {
-        this.initializeBarcode();
         this.part = this.dialogConfig.data.part;
-        console.log('Part data in dialog:', this.part);
+        if (!this.part) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Missing Data',
+                detail: 'No part data provided for barcode generation'
+            });
+            return;
+        }
+
+        this.initializeBarcode();
     }
 
     /**
@@ -99,39 +123,51 @@ export class BarcodeDialogComponent implements OnInit {
 
         this.selectedBarcodeType = type;
         this.isGenerating = true;
+        this.validationMessage = '';
 
         try {
             // Determine the barcode value based on type
             let value = '';
             switch (type) {
                 case 'qrcode':
-                    // QR code encodes part information as JSON
-                    value = JSON.stringify({
-                        id: this.part.id,
-                        sku: this.part.sku,
-                        name: this.part.name,
-                        partNumber: this.part.partNumber
-                    });
+                    if (this.selectedValueSource === 'details') {
+                        // QR code encodes part information as JSON
+                        value = JSON.stringify({
+                            id: this.part.id,
+                            sku: this.part.sku,
+                            name: this.part.name,
+                            partNumber: this.part.partNumber
+                        });
+                    } else {
+                        value = this.getBaseBarcodeValue();
+                    }
                     this.barcodeValue = value;
                     break;
 
                 case 'code128':
-                    // Code128 encodes SKU + Part ID
-                    value = `${this.part.sku}-${this.part.id.substring(0, 8)}`;
+                    value = this.getBaseBarcodeValue();
+                    if (!this.validateLinearValue(type, value)) {
+                        return;
+                    }
                     this.barcodeValue = value;
                     this.generateLinearBarcode({ type, value });
                     break;
 
                 case 'code39':
-                    // Code39 - simplified format
-                    value = this.part.sku;
+                    value = this.getBaseBarcodeValue();
+                    if (!this.validateLinearValue(type, value)) {
+                        return;
+                    }
                     this.barcodeValue = value;
                     this.generateLinearBarcode({ type, value });
                     break;
 
                 case 'ean13':
                     // EAN13 - generate from SKU
-                    value = this.barcodeService.generateEAN13FromSKU(this.part.sku);
+                    value = this.barcodeService.generateEAN13FromSKU(this.getBaseBarcodeValue());
+                    if (!this.validateLinearValue(type, value)) {
+                        return;
+                    }
                     this.barcodeValue = value;
                     this.generateLinearBarcode({ type, value });
                     break;
@@ -154,6 +190,84 @@ export class BarcodeDialogComponent implements OnInit {
         }
     }
 
+    onValueSourceChange(source: string): void {
+        this.selectedValueSource = source;
+        if (this.selectedValueSource === 'details' && this.selectedBarcodeType !== 'qrcode') {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'QR Only',
+                detail: 'Full details are only available for QR codes. Linear barcodes will use SKU.'
+            });
+        }
+        if (this.selectedBarcodeType === 'ean13') {
+            // EAN13 requires numeric input; regenerate through generator
+            this.generateBarcode(this.selectedBarcodeType);
+            return;
+        }
+        this.generateBarcode(this.selectedBarcodeType);
+    }
+
+    private getBaseBarcodeValue(): string {
+        if (!this.part) {
+            return '';
+        }
+
+        switch (this.selectedValueSource) {
+            case 'partNumber':
+                return this.part.partNumber || this.part.sku;
+            case 'sku-part':
+                return `${this.part.sku}-${this.part.partNumber}`;
+            case 'custom':
+                return this.customValue?.trim() || this.part.sku;
+            case 'details':
+                // Details are only used for QR codes; fall back to SKU for linear types
+                return this.part.sku;
+            case 'sku':
+            default:
+                return this.part.sku;
+        }
+    }
+
+    private validateLinearValue(type: BarcodeType, value: string): boolean {
+        const isValid = this.barcodeService.validateBarcodeValue(type, value);
+        if (isValid) {
+            this.validationMessage = '';
+            return true;
+        }
+
+        this.barcodeHTML = '';
+        this.barcodeHTMLSafe = null;
+        this.validationMessage = this.getValidationMessage(type, value);
+        this.messageService.add({
+            severity: 'warn',
+            summary: 'Invalid Barcode Value',
+            detail: this.validationMessage
+        });
+        return false;
+    }
+
+    private getValidationMessage(type: BarcodeType, value: string): string {
+        switch (type) {
+            case 'code39':
+                return 'Code39 supports A-Z, 0-9, space, and - . $ / + % (max 80 chars).';
+            case 'ean13':
+                return 'EAN13 must be exactly 13 digits. Try a different value source or custom value.';
+            case 'code128':
+                return value.length > 80 ? 'Code128 supports up to 80 characters.' : 'Invalid Code128 value.';
+            default:
+                return 'Invalid barcode value.';
+        }
+    }
+
+    get valueSourceOptions() {
+        const isQr = this.selectedBarcodeType === 'qrcode';
+        return this.barcodeValueSources.map(option =>
+            option.value === 'details'
+                ? { ...option, disabled: !isQr }
+                : option
+        );
+    }
+
     /**
      * Generate linear barcode (Code128, Code39, EAN13)
      */
@@ -165,9 +279,12 @@ export class BarcodeDialogComponent implements OnInit {
                 width: this.barcodeWidth,
                 height: this.barcodeHeight
             });
-            this.barcodeHTML = svg;
+            this.barcodeHTML = svg || '';
+            this.barcodeHTMLSafe = svg ? this.sanitizer.bypassSecurityTrustHtml(svg) : null;
         } catch (error) {
             console.error('Error generating linear barcode:', error);
+            this.barcodeHTML = '';
+            this.barcodeHTMLSafe = null;
         }
     }
 
@@ -349,12 +466,18 @@ export class BarcodeDialogComponent implements OnInit {
             let barcodesHTML = '';
 
             if (this.selectedBarcodeType === 'qrcode') {
-                // For QR codes, we'll use the current barcode container
+                const qrCanvas = this.barcodeContainer?.nativeElement?.querySelector('canvas') as HTMLCanvasElement | null;
+                const qrDataUrl = qrCanvas ? qrCanvas.toDataURL('image/png') : '';
+                if (!qrDataUrl) {
+                    throw new Error('Could not capture QR code canvas');
+                }
+
+                // For QR codes, embed the current canvas as an image
                 for (let i = 0; i < this.quantity; i++) {
                     barcodesHTML += `
             <div class="barcode-item">
               <p class="company-name">SM Motors</p>
-              <qrcode [qrdata]="barcodeValue" [width]="${this.qrCodeSize}"></qrcode>
+              <img src="${qrDataUrl}" width="${this.qrCodeSize}" height="${this.qrCodeSize}" alt="QR Code" />
               <p class="barcode-label">${this.part.name}</p>
               <p class="barcode-value">${this.barcodeValue}</p>
             </div>
