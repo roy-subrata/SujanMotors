@@ -142,8 +142,9 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
   `,
   styles: [`
     .adjustment-dialog {
-      padding: 1.5rem;
-      min-width: 500px;
+      padding: 1.25rem;
+      width: 100%;
+      min-width: 0;
     }
 
     .dialog-title {
@@ -159,7 +160,7 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
     .info-row {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 2rem;
+      gap: 1.5rem;
       margin-bottom: 1rem;
     }
 
@@ -242,12 +243,33 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
     .button-group {
       display: flex;
       gap: 1rem;
-      margin-top: 2rem;
+      margin-top: 1.5rem;
       justify-content: flex-end;
+      flex-wrap: wrap;
     }
 
     .w-full {
       width: 100%;
+    }
+
+    @media (max-width: 640px) {
+      .adjustment-dialog {
+        padding: 1rem;
+      }
+
+      .dialog-title {
+        font-size: 1.1rem;
+      }
+
+      .info-row {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+      }
+
+      .button-group {
+        flex-direction: column;
+        align-items: stretch;
+      }
     }
   `]
 })

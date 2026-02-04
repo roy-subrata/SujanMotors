@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from 'src/environments/environment';
 
 export interface ProductLocationResponse {
   id: string;
@@ -44,7 +45,7 @@ export interface SetPrimaryLocationRequest {
 })
 export class ProductLocationService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = 'http://localhost:5292/api/productlocations';
+  private readonly apiUrl = `${environment.apiUrl}/productlocations`;
 
   /**
    * Get all product locations

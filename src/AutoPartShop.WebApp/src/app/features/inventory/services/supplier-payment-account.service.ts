@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from 'src/environments/environment';
 
 export interface SupplierPaymentAccountResponse {
   id: string;
@@ -70,7 +71,7 @@ export interface UpdateSupplierPaymentAccountRequest {
 })
 export class SupplierPaymentAccountService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = 'http://localhost:5292/api/supplier-payment-accounts';
+  private readonly apiUrl = `${environment.apiUrl}/supplier-payment-accounts`;
 
   /**
    * Get all supplier payment accounts

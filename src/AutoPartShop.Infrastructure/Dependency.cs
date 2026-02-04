@@ -1,6 +1,16 @@
-using System.Threading.Tasks;
+
+using AutoPartShop.Application.Categories;
+using AutoPartShop.Application.Catgories;
+using AutoPartShop.Application.CustomerPayment;
+using AutoPartShop.Application.Customers;
+using AutoPartShop.Application.Parts;
 using AutoPartShop.Application.PurchaseOrders;
+using AutoPartShop.Application.SaleOrders;
 using AutoPartShop.Application.Services;
+using AutoPartShop.Application.Stock;
+using AutoPartShop.Application.Supplier;
+using AutoPartShop.Application.Suppliers;
+using AutoPartShop.Application.Technecians;
 using AutoPartShop.Domain.Repositories;
 using AutoPartShop.Infrastructure.Repositories;
 using AutoPartsShop.Infrastructure.Services;
@@ -99,6 +109,26 @@ public static class Dependency
         //Services
         services.AddTransient<ICodeGenerateService, CodeGenerateService>();
         services.AddScoped<IAuditLogService, AuditLogService>();
+
+        //Read Repository
+        services.AddScoped<ICustomerReadRepository, CustomerReadRepository>();
+        services.AddScoped<ICustomerPaymentReadRepository, CustomerPaymentReadRepository>();
+        services.AddScoped<ICategoryReadRepository, CategoryReadRepository>();
+
+        services.AddScoped<ISupplierReadRepository, SupplierReadRepository>();
+        services.AddScoped<ISupplierPaymentReadRespository, SupplierPaymentReadRespository>();
+
+        services.AddScoped<IPartReadRepository, PartReadRepository>();
+        services.AddScoped<IPurchaseOrderReadRepository, PurchaseOrderReadRepository>();
+
+        services.AddScoped<ISaleOrderReadRepository, SaleOrderReadRepository>();
+
+        services.AddScoped<IStockLevelReadRepository, StockLevelReadRepository>();
+        services.AddScoped<IStockMovementReadRepository, StockMovementReadRepository>();
+        services.AddScoped<IStockLotReadRepository, StockLotReadRepository>();
+
+        services.AddScoped<ITechnecianReadRepository, TechnecianReadRepository>();
+
         return services;
     }
 }

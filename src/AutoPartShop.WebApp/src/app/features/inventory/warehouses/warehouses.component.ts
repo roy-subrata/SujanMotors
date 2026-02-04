@@ -97,9 +97,8 @@ export class WarehousesComponent implements OnInit {
   /**
    * Handle search
    */
-  onSearch(query: string): void {
-    this.searchTerm = query;
-    this.loadWarehouses(1, this.rows, query);
+  onSearch(): void {
+    this.loadWarehouses(1, this.rows, this.searchTerm);
   }
 
   /**
@@ -108,6 +107,22 @@ export class WarehousesComponent implements OnInit {
   onSearchClear(): void {
     this.searchTerm = '';
     this.loadWarehouses(1, this.rows);
+  }
+
+  refreshData(): void {
+    this.loadWarehouses(this.currentPage, this.rows, this.searchTerm);
+  }
+
+  createWarehouse(): void {
+    this.onCreateClick();
+  }
+
+  clearFilters(): void {
+    this.onSearchClear();
+  }
+
+  hasActiveFilters(): boolean {
+    return !!this.searchTerm;
   }
 
   /**

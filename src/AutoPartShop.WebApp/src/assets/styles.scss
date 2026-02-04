@@ -5,6 +5,374 @@
 @use './demo/demo.scss';
 
 /* ========================================
+   RESPONSIVE TYPOGRAPHY
+   Font sizes adapt to different screen sizes
+   ======================================== */
+:root {
+    /* Base font sizes - Desktop (default) */
+    --font-size-xs: 0.75rem;      /* 12px */
+    --font-size-sm: 0.875rem;     /* 14px */
+    --font-size-base: 1rem;       /* 16px */
+    --font-size-lg: 1.125rem;     /* 18px */
+    --font-size-xl: 1.25rem;      /* 20px */
+    --font-size-2xl: 1.5rem;      /* 24px */
+    --font-size-3xl: 1.875rem;    /* 30px */
+    --font-size-4xl: 2.25rem;     /* 36px */
+}
+
+html {
+    font-size: 16px; /* Base for desktop */
+}
+
+/* Tablet (768px - 991px) */
+@media (max-width: 991px) and (min-width: 768px) {
+    html {
+        font-size: 15px;
+    }
+
+    :root {
+        --font-size-xs: 0.75rem;
+        --font-size-sm: 0.875rem;
+        --font-size-base: 1rem;
+        --font-size-lg: 1.0625rem;
+        --font-size-xl: 1.125rem;
+        --font-size-2xl: 1.375rem;
+        --font-size-3xl: 1.625rem;
+        --font-size-4xl: 2rem;
+    }
+
+    /* Input sizes for tablet */
+    .p-inputtext,
+    .p-dropdown,
+    .p-multiselect,
+    .p-calendar input,
+    .p-inputnumber input,
+    .p-autocomplete input {
+        font-size: var(--font-size-base) !important;
+        min-height: 40px !important;
+        padding: 0.5rem 0.75rem !important;
+    }
+
+    .p-button {
+        font-size: var(--font-size-base) !important;
+        min-height: 40px;
+    }
+}
+
+/* Mobile (< 768px) */
+@media (max-width: 767px) {
+    html {
+        font-size: 15px;
+    }
+
+    :root {
+        --font-size-xs: 0.75rem;
+        --font-size-sm: 0.875rem;
+        --font-size-base: 1rem;
+        --font-size-lg: 1.0625rem;
+        --font-size-xl: 1.125rem;
+        --font-size-2xl: 1.375rem;
+        --font-size-3xl: 1.625rem;
+        --font-size-4xl: 1.875rem;
+    }
+
+    /* Specific element adjustments for mobile */
+    h1 { font-size: var(--font-size-2xl) !important; }
+    h2 { font-size: var(--font-size-xl) !important; }
+    h3 { font-size: var(--font-size-lg) !important; }
+    h4 { font-size: var(--font-size-base) !important; }
+
+    /* Table font sizes */
+    .p-datatable .p-datatable-thead > tr > th,
+    .p-datatable .p-datatable-tbody > tr > td {
+        font-size: var(--font-size-sm) !important;
+        padding: 0.625rem !important;
+    }
+
+    /* Button font sizes - larger for touch targets */
+    .p-button {
+        font-size: var(--font-size-base) !important;
+        padding: 0.625rem 1rem !important;
+        min-height: 42px;
+    }
+
+    .p-button.p-button-sm {
+        font-size: var(--font-size-sm) !important;
+        padding: 0.5rem 0.75rem !important;
+        min-height: 36px;
+    }
+
+    /* Input sizes - larger for touch and readability */
+    .p-inputtext,
+    .p-dropdown,
+    .p-multiselect,
+    .p-calendar input,
+    .p-inputnumber input,
+    .p-autocomplete input {
+        font-size: var(--font-size-base) !important;
+        min-height: 42px !important;
+        padding: 0.625rem 0.875rem !important;
+    }
+
+    .p-dropdown .p-dropdown-label,
+    .p-multiselect .p-multiselect-label {
+        font-size: var(--font-size-base) !important;
+        padding: 0.625rem 0.875rem !important;
+    }
+
+    .p-dropdown-panel .p-dropdown-item,
+    .p-multiselect-panel .p-multiselect-item {
+        font-size: var(--font-size-base) !important;
+        padding: 0.75rem 1rem !important;
+    }
+
+    /* Card titles */
+    .p-card .p-card-title {
+        font-size: var(--font-size-lg) !important;
+    }
+
+    /* Dialog */
+    .p-dialog .p-dialog-header {
+        font-size: var(--font-size-lg) !important;
+        padding: 1rem !important;
+    }
+
+    .p-dialog .p-dialog-content {
+        font-size: var(--font-size-base) !important;
+        padding: 1rem !important;
+    }
+
+    /* Menu items */
+    .p-menuitem-text {
+        font-size: var(--font-size-base) !important;
+    }
+
+    /* Labels and form elements */
+    label {
+        font-size: var(--font-size-sm) !important;
+        margin-bottom: 0.375rem !important;
+    }
+
+    /* Sidebar menu */
+    .layout-sidebar .p-menuitem-text {
+        font-size: var(--font-size-base) !important;
+    }
+
+    /* Checkbox and radio - larger touch targets */
+    .p-checkbox .p-checkbox-box,
+    .p-radiobutton .p-radiobutton-box {
+        width: 22px !important;
+        height: 22px !important;
+    }
+
+    /* Toast messages */
+    .p-toast .p-toast-message {
+        font-size: var(--font-size-base) !important;
+    }
+}
+
+/* Small mobile (< 480px) */
+@media (max-width: 479px) {
+    html {
+        font-size: 14px;
+    }
+
+    :root {
+        --font-size-xs: 0.75rem;
+        --font-size-sm: 0.8125rem;
+        --font-size-base: 0.9375rem;
+        --font-size-lg: 1rem;
+        --font-size-xl: 1.0625rem;
+        --font-size-2xl: 1.25rem;
+        --font-size-3xl: 1.5rem;
+        --font-size-4xl: 1.75rem;
+    }
+
+    /* Table adjustments for very small screens */
+    .p-datatable .p-datatable-thead > tr > th,
+    .p-datatable .p-datatable-tbody > tr > td {
+        font-size: var(--font-size-sm) !important;
+        padding: 0.5rem !important;
+    }
+
+    /* Buttons - maintain touch-friendly size */
+    .p-button {
+        font-size: var(--font-size-sm) !important;
+        padding: 0.5rem 0.75rem !important;
+        min-height: 40px;
+    }
+
+    .p-button.p-button-sm {
+        font-size: var(--font-size-xs) !important;
+        padding: 0.4rem 0.6rem !important;
+        min-height: 34px;
+    }
+
+    /* Inputs - keep readable and touch-friendly */
+    .p-inputtext,
+    .p-dropdown,
+    .p-multiselect,
+    .p-calendar input,
+    .p-inputnumber input,
+    .p-autocomplete input {
+        font-size: var(--font-size-base) !important;
+        min-height: 40px !important;
+        padding: 0.5rem 0.75rem !important;
+    }
+
+    .p-dropdown .p-dropdown-label,
+    .p-multiselect .p-multiselect-label {
+        font-size: var(--font-size-base) !important;
+        padding: 0.5rem 0.75rem !important;
+    }
+
+    .p-dropdown-panel .p-dropdown-item,
+    .p-multiselect-panel .p-multiselect-item {
+        font-size: var(--font-size-base) !important;
+        padding: 0.625rem 0.875rem !important;
+    }
+
+    /* Labels */
+    label {
+        font-size: var(--font-size-sm) !important;
+    }
+
+    /* Dialog adjustments */
+    .p-dialog .p-dialog-content {
+        font-size: var(--font-size-base) !important;
+        padding: 0.875rem !important;
+    }
+
+    /* Checkbox and radio */
+    .p-checkbox .p-checkbox-box,
+    .p-radiobutton .p-radiobutton-box {
+        width: 20px !important;
+        height: 20px !important;
+    }
+}
+
+/* ========================================
+   MOBILE APP-LIKE BEHAVIOR
+   Prevents draggy/bouncy scrolling on mobile
+   ======================================== */
+html {
+    overflow: hidden;
+    height: 100%;
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
+}
+
+body {
+    overflow: hidden;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+}
+
+app-root {
+    display: block;
+    height: 100%;
+    overflow: hidden;
+}
+
+/* Main scrollable content area */
+.layout-main-container {
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    /* Desktop: calculate height based on viewport minus topbar */
+    height: calc(100vh - 70px);
+}
+
+.layout-main {
+    min-height: auto;
+}
+
+/* Mobile adjustments for layout-main */
+@media (max-width: 991px) {
+    .layout-main {
+        min-height: auto;
+        padding-top: 0 !important;
+    }
+}
+
+@media (max-width: 575px) {
+    .layout-main {
+        min-height: auto;
+    }
+}
+
+/* Sidebar scrollable area */
+.layout-sidebar .sidebar-content {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+}
+
+/* Prevent pull-to-refresh on mobile */
+@media (max-width: 991px) {
+    body {
+        position: fixed;
+        width: 100%;
+        height: 100%;
+    }
+
+    .layout-main-container {
+        height: calc(100vh - 70px);
+        position: fixed;
+        top: 70px;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        margin-top: 0 !important; /* Remove margin when using fixed positioning */
+        padding-top: 0 !important;
+    }
+
+    /* Form actions - scroll with content on mobile (not fixed) */
+    .form-actions {
+        position: static !important;
+        display: flex !important;
+        flex-direction: column-reverse !important;
+        background: #ffffff !important;
+        padding: 1rem !important;
+        margin-top: 1rem !important;
+        border-top: 1px solid #e5e7eb !important;
+        box-shadow: none !important;
+        gap: 0.75rem !important;
+    }
+
+    .form-actions button {
+        width: 100% !important;
+    }
+}
+
+/* Extra small devices - phones in portrait */
+@media (max-width: 575px) {
+    .layout-main-container {
+        height: calc(100vh - 60px);
+        top: 60px;
+    }
+
+    .layout-topbar {
+        height: 60px !important;
+    }
+
+    .layout-sidebar {
+        top: 60px !important;
+        height: calc(100vh - 60px) !important;
+    }
+
+    .form-actions {
+        padding: 0.875rem !important;
+    }
+}
+
+/* ========================================
    CRITICAL LAYOUT ALIGNMENT OVERRIDES
    These must be at the end to have highest priority
    ======================================== */
@@ -79,3 +447,355 @@
 }
 
 /* Sidebar toggle removed - use hamburger menu in topbar instead */
+
+/* ========================================
+   MOBILE/TABLET RESPONSIVE FIXES
+   ======================================== */
+@media (max-width: 991px) {
+    .layout-topbar {
+        left: 0 !important;
+        padding: 0 1rem !important;
+        height: 70px !important;
+    }
+
+    .layout-main-container {
+        margin-left: 0 !important;
+        margin-top: 0 !important;
+    }
+
+    .layout-sidebar {
+        transform: translateX(-100%);
+        left: 0 !important;
+        top: 70px !important;
+        height: calc(100vh - 70px) !important;
+        width: 280px !important;
+    }
+
+    .layout-wrapper.layout-mobile-active .layout-sidebar {
+        transform: translateX(0) !important;
+    }
+}
+
+/* Extra small devices (phones portrait) */
+@media (max-width: 575px) {
+    .layout-topbar {
+        height: 60px !important;
+        padding: 0 0.75rem !important;
+    }
+
+    .layout-sidebar {
+        top: 60px !important;
+        height: calc(100vh - 60px) !important;
+    }
+}
+
+/* ========================================
+   GLOBAL MOBILE RESPONSIVE STYLES
+   Apply to all pages and components
+   ======================================== */
+
+/* Forms and Cards - Tablet */
+@media (max-width: 991px) {
+    .form-header,
+    .page-header,
+    .dashboard-header {
+        padding: 0.875rem 1rem !important;
+        margin-bottom: 0.75rem !important;
+    }
+
+    .form-card,
+    .content-card,
+    .p-card {
+        border-radius: 0.375rem !important;
+    }
+
+    .form-content,
+    .p-card-body {
+        padding: 0.75rem !important;
+    }
+
+    .form-section {
+        margin-bottom: 1rem !important;
+        padding-bottom: 1rem !important;
+    }
+
+    .form-row {
+        gap: 0.75rem !important;
+    }
+
+    .form-actions {
+        position: static !important;
+        margin-top: 1rem !important;
+        padding-top: 1rem !important;
+        gap: 0.75rem !important;
+    }
+}
+
+/* Forms and Cards - Mobile */
+@media (max-width: 767px) {
+    .form-header,
+    .page-header,
+    .dashboard-header {
+        padding: 0.75rem !important;
+        margin-bottom: 0.5rem !important;
+    }
+
+    .form-title,
+    .page-title {
+        font-size: 1.125rem !important;
+    }
+
+    .form-subtitle,
+    .page-subtitle {
+        font-size: 0.8125rem !important;
+    }
+
+    .form-content,
+    .p-card-body {
+        padding: 0.5rem !important;
+    }
+
+    .form-section {
+        margin-bottom: 0.875rem !important;
+        padding-bottom: 0.875rem !important;
+    }
+
+    .section-title {
+        font-size: 0.875rem !important;
+        margin-bottom: 0.75rem !important;
+    }
+
+    .form-row {
+        grid-template-columns: 1fr !important;
+        gap: 0.625rem !important;
+    }
+
+    .form-group.full {
+        grid-column: span 1 !important;
+    }
+
+    .form-group label {
+        font-size: 0.8125rem !important;
+        margin-bottom: 0.25rem !important;
+    }
+
+    .form-actions {
+        position: static !important;
+        flex-direction: column-reverse !important;
+        gap: 0.5rem !important;
+        margin-top: 1rem !important;
+        padding: 1rem !important;
+        border-top: 1px solid #e5e7eb !important;
+        background: #f9fafb !important;
+        border-radius: 0.5rem !important;
+    }
+
+    .form-actions button,
+    .form-actions .p-button {
+        width: 100% !important;
+    }
+
+    /* Line items */
+    .line-item-card {
+        padding: 0.75rem !important;
+    }
+
+    .line-item-content {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 0.5rem !important;
+    }
+
+    .line-item-header {
+        margin-bottom: 0.75rem !important;
+        padding-bottom: 0.5rem !important;
+    }
+
+    /* Summary */
+    .order-summary {
+        padding: 0.75rem !important;
+    }
+
+    .summary-row {
+        padding: 0.375rem 0 !important;
+    }
+
+    .grand-total .summary-value {
+        font-size: 1.125rem !important;
+    }
+}
+
+/* Forms and Cards - Small Mobile */
+@media (max-width: 575px) {
+    .form-header,
+    .page-header,
+    .dashboard-header {
+        padding: 0.625rem !important;
+        margin-bottom: 0.375rem !important;
+        border-radius: 0.25rem !important;
+    }
+
+    .form-title,
+    .page-title {
+        font-size: 1rem !important;
+    }
+
+    .form-subtitle,
+    .page-subtitle {
+        font-size: 0.75rem !important;
+    }
+
+    .breadcrumb {
+        font-size: 0.75rem !important;
+    }
+
+    .form-content,
+    .p-card-body {
+        padding: 0.375rem !important;
+    }
+
+    .form-section {
+        margin-bottom: 0.75rem !important;
+        padding-bottom: 0.75rem !important;
+    }
+
+    .section-title {
+        font-size: 0.8125rem !important;
+        margin-bottom: 0.5rem !important;
+    }
+
+    .form-row {
+        gap: 0.5rem !important;
+    }
+
+    .form-group {
+        gap: 0.25rem !important;
+    }
+
+    .form-group label {
+        font-size: 0.75rem !important;
+    }
+
+    /* Line items */
+    .line-item-card {
+        padding: 0.5rem !important;
+    }
+
+    .line-item-content {
+        grid-template-columns: 1fr !important;
+        gap: 0.375rem !important;
+    }
+
+    .part-field {
+        grid-column: span 1 !important;
+    }
+
+    /* Summary */
+    .order-summary {
+        padding: 0.5rem !important;
+    }
+
+    .summary-label {
+        font-size: 0.8125rem !important;
+    }
+
+    .summary-value {
+        font-size: 0.875rem !important;
+    }
+
+    .grand-total .summary-value {
+        font-size: 1rem !important;
+    }
+}
+
+/* PrimeNG DataTable Mobile Responsive */
+@media (max-width: 767px) {
+    .p-datatable {
+        font-size: 0.8125rem !important;
+    }
+
+    .p-datatable .p-datatable-thead > tr > th {
+        padding: 0.5rem 0.375rem !important;
+        font-size: 0.75rem !important;
+    }
+
+    .p-datatable .p-datatable-tbody > tr > td {
+        padding: 0.5rem 0.375rem !important;
+    }
+
+    .p-paginator {
+        padding: 0.5rem !important;
+    }
+
+    .p-paginator .p-paginator-element {
+        min-width: 2rem !important;
+        height: 2rem !important;
+    }
+}
+
+@media (max-width: 575px) {
+    .p-datatable .p-datatable-thead > tr > th {
+        padding: 0.375rem 0.25rem !important;
+        font-size: 0.6875rem !important;
+    }
+
+    .p-datatable .p-datatable-tbody > tr > td {
+        padding: 0.375rem 0.25rem !important;
+        font-size: 0.75rem !important;
+    }
+
+    .p-paginator .p-paginator-element {
+        min-width: 1.75rem !important;
+        height: 1.75rem !important;
+        font-size: 0.75rem !important;
+    }
+}
+
+/* PrimeNG Dialog Mobile */
+@media (max-width: 767px) {
+    .p-dialog {
+        width: 95vw !important;
+        max-width: 95vw !important;
+        margin: 0.5rem !important;
+    }
+
+    .p-dialog .p-dialog-header {
+        padding: 0.75rem 1rem !important;
+    }
+
+    .p-dialog .p-dialog-content {
+        padding: 0.75rem !important;
+    }
+
+    .p-dialog .p-dialog-footer {
+        padding: 0.75rem 1rem !important;
+    }
+}
+
+@media (max-width: 575px) {
+    .p-dialog {
+        width: 100vw !important;
+        max-width: 100vw !important;
+        margin: 0 !important;
+        border-radius: 0 !important;
+    }
+
+    .p-dialog .p-dialog-header {
+        padding: 0.625rem 0.75rem !important;
+        font-size: 1rem !important;
+    }
+
+    .p-dialog .p-dialog-content {
+        padding: 0.5rem !important;
+    }
+
+    .p-dialog .p-dialog-footer {
+        padding: 0.5rem 0.75rem !important;
+        flex-direction: column-reverse !important;
+        gap: 0.5rem !important;
+    }
+
+    .p-dialog .p-dialog-footer button {
+        width: 100% !important;
+        margin: 0 !important;
+    }
+}

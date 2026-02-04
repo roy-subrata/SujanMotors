@@ -1,52 +1,158 @@
-<div class="units-container">
-  <!-- Messages -->
-  <p-toast position="top-right"></p-toast>
+<!-- ============================================================
+     UNITS - ENTERPRISE UI (MATCHES SALES ORDERS LAYOUT)
+     ============================================================ -->
 
-  <!-- Confirmation Dialog -->
-  <p-confirmDialog></p-confirmDialog>
+<p-toast position="top-right"></p-toast>
+<p-confirmDialog></p-confirmDialog>
 
-  <!-- Tab View -->
-  <p-tabs value="0" [style]="{'margin-top': '0'}">
+<div class="page-wrapper">
+  <!-- ==================== PAGE HEADER ==================== -->
+  <header class="page-header">
+    <div class="header-content">
+      <div class="header-left">
+        <h1 class="page-title">Units</h1>
+        <p class="page-subtitle">Manage measurement units and conversions</p>
+      </div>
+
+      <div class="header-actions">
+        <div class="stats-badge">
+          <i class="pi pi-th-large"></i>
+          <div class="stats-info">
+            <span class="stats-value">{{ unitsTotalRecords }}</span>
+            <span class="stats-label">units</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <p-tabs value="0">
     <p-tablist>
       <p-tab value="0">Units</p-tab>
       <p-tab value="1">Units Conversion</p-tab>
     </p-tablist>
-    <!-- Units Tab -->
+
     <p-tabpanels>
+      <!-- Units Tab -->
       <p-tabpanel value="0" header="Units" leftIcon="pi pi-th">
-        <!-- Header Component -->
-        <app-units-header (createClick)="onNewUnitClick()" (searchChange)="onSearch($event)"> </app-units-header>
+        <section class="filter-section">
+          <div class="filter-container">
+            <div class="filter-group search-group">
+              <div class="search-input-wrapper">
+                <i class="pi pi-search"></i>
+                <input
+                  type="text"
+                  [(ngModel)]="searchTerm"
+                  placeholder="Search by name, code, or symbol..."
+                  (keyup.enter)="onSearch(searchTerm)"
+                  class="search-input" />
+                <button *ngIf="searchTerm" class="search-clear" (click)="clearUnitsSearch()">
+                  <i class="pi pi-times"></i>
+                </button>
+              </div>
+            </div>
 
-        <!-- List Component -->
-        <app-units-list (editUnit)="selectAndOpenUpdate($event)" (deleteUnit)="selectAndDelete($event)"
-          (toggleStatus)="selectAndToggleStatus($event)"> </app-units-list>
+            <div class="filter-group filter-actions">
+              <button class="btn-search" (click)="onSearch(searchTerm)">
+                <i class="pi pi-search"></i>
+                Search
+              </button>
+              <button *ngIf="hasUnitsFilters()" class="btn-clear" (click)="clearUnitsSearch()">
+                <i class="pi pi-filter-slash"></i>
+                Clear
+              </button>
+              <button class="btn-primary" (click)="onNewUnitClick()">
+                <i class="pi pi-plus"></i>
+                <span>New Unit</span>
+              </button>
+            </div>
+          </div>
 
-        <!-- Form Dialog Component -->
-        <app-units-form-dialog [displayCreateDialog]="displayCreateDialog" [displayUpdateDialog]="displayUpdateDialog"
-          [selectedUnit]="selectedUnit" (displayCreateDialogChange)="onDisplayCreateDialogChange($event)"
-          (displayUpdateDialogChange)="onDisplayUpdateDialogChange($event)" (createSuccess)="onCreateSuccess()"
+          <div *ngIf="hasUnitsFilters()" class="active-filters">
+            <span class="active-filters-label">Active filters:</span>
+            <span class="filter-chip">
+              Search: "{{ searchTerm }}"
+              <i class="pi pi-times" (click)="clearUnitsSearch()"></i>
+            </span>
+          </div>
+        </section>
+
+        <app-units-list
+          (editUnit)="selectAndOpenUpdate($event)"
+          (deleteUnit)="selectAndDelete($event)"
+          (toggleStatus)="selectAndToggleStatus($event)">
+        </app-units-list>
+
+        <app-units-form-dialog
+          [displayCreateDialog]="displayCreateDialog"
+          [displayUpdateDialog]="displayUpdateDialog"
+          [selectedUnit]="selectedUnit"
+          (displayCreateDialogChange)="onDisplayCreateDialogChange($event)"
+          (displayUpdateDialogChange)="onDisplayUpdateDialogChange($event)"
+          (createSuccess)="onCreateSuccess()"
           (updateSuccess)="onUpdateSuccess()">
         </app-units-form-dialog>
       </p-tabpanel>
 
       <!-- Conversions Tab -->
       <p-tabpanel value="1" header="Conversions" leftIcon="pi pi-arrows-h">
-        <!-- Header Component -->
-        <app-conversions-header (createClick)="onNewConversionClick()" (searchChange)="onConversionSearch($event)">
-        </app-conversions-header>
+        <section class="filter-section">
+          <div class="filter-container">
+            <div class="filter-group search-group">
+              <div class="search-input-wrapper">
+                <i class="pi pi-search"></i>
+                <input
+                  type="text"
+                  [(ngModel)]="conversionSearchTerm"
+                  placeholder="Search by unit names or codes..."
+                  (keyup.enter)="onConversionSearch(conversionSearchTerm)"
+                  class="search-input" />
+                <button *ngIf="conversionSearchTerm" class="search-clear" (click)="clearConversionSearch()">
+                  <i class="pi pi-times"></i>
+                </button>
+              </div>
+            </div>
 
-        <!-- List Component -->
-        <app-conversions-list (editConversion)="selectAndOpenConversionUpdate($event)"
+            <div class="filter-group filter-actions">
+              <button class="btn-search" (click)="onConversionSearch(conversionSearchTerm)">
+                <i class="pi pi-search"></i>
+                Search
+              </button>
+              <button *ngIf="hasConversionFilters()" class="btn-clear" (click)="clearConversionSearch()">
+                <i class="pi pi-filter-slash"></i>
+                Clear
+              </button>
+              <button class="btn-primary" (click)="onNewConversionClick()">
+                <i class="pi pi-plus"></i>
+                <span>New Conversion</span>
+              </button>
+            </div>
+          </div>
+
+          <div *ngIf="hasConversionFilters()" class="active-filters">
+            <span class="active-filters-label">Active filters:</span>
+            <span class="filter-chip">
+              Search: "{{ conversionSearchTerm }}"
+              <i class="pi pi-times" (click)="clearConversionSearch()"></i>
+            </span>
+          </div>
+        </section>
+
+        <app-conversions-list
+          (editConversion)="selectAndOpenConversionUpdate($event)"
           (deleteConversion)="selectAndDeleteConversion($event)"
           (toggleStatus)="selectAndToggleConversionStatus($event)">
         </app-conversions-list>
 
-        <!-- Form Dialog Component -->
-        <app-conversions-form-dialog [displayCreateDialog]="displayConversionCreateDialog"
-          [displayUpdateDialog]="displayConversionUpdateDialog" [selectedConversion]="selectedConversion"
-          [units]="units" (displayCreateDialogChange)="onDisplayConversionCreateDialogChange($event)"
+        <app-conversions-form-dialog
+          [displayCreateDialog]="displayConversionCreateDialog"
+          [displayUpdateDialog]="displayConversionUpdateDialog"
+          [selectedConversion]="selectedConversion"
+          [units]="units"
+          (displayCreateDialogChange)="onDisplayConversionCreateDialogChange($event)"
           (displayUpdateDialogChange)="onDisplayConversionUpdateDialogChange($event)"
-          (createSuccess)="onConversionCreateSuccess()" (updateSuccess)="onConversionUpdateSuccess()">
+          (createSuccess)="onConversionCreateSuccess()"
+          (updateSuccess)="onConversionUpdateSuccess()">
         </app-conversions-form-dialog>
       </p-tabpanel>
     </p-tabpanels>

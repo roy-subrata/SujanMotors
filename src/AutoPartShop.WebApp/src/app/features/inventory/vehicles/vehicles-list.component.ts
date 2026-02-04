@@ -1,5 +1,6 @@
 import { Component, EventEmitter, Input, Output, ViewChild, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
@@ -10,19 +11,22 @@ import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmationService, MessageService, MenuItem } from 'primeng/api';
 import { VehicleService, VehicleResponse } from '../services/vehicle.service';
+import { Select } from 'primeng/select';
 
 @Component({
   selector: 'app-vehicles-list',
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     TableModule,
     ButtonModule,
     ConfirmDialogModule,
     ContextMenuModule,
     RippleModule,
     TagModule,
-    TooltipModule
+    TooltipModule,
+    Select
   ],
   providers: [ConfirmationService, MessageService],
   templateUrl: './vehicles-list.component.html',
@@ -44,6 +48,7 @@ export class VehiclesListComponent implements OnInit {
 
   contextMenuItems: MenuItem[] = [];
   selectedVehicle: VehicleResponse | null = null;
+  pageSizeOptions = [10, 20, 50];
 
   private readonly vehicleService = inject(VehicleService);
   private readonly confirmationService = inject(ConfirmationService);
@@ -207,5 +212,31 @@ export class VehiclesListComponent implements OnInit {
 
   getStatusSeverity(isActive: boolean): string {
     return isActive ? 'success' : 'danger';
+  }
+
+  get first(): number {
+    return Math.max(0, (this.currentPage - 1) * this.rows);
+  }
+
+  get pageNumber(): number {
+    if (!this.totalRecords) {
+      return 0;
+    }
+    return Math.floor(this.first / this.rows) + 1;
+  }
+
+  get totalPages(): number {
+    if (!this.totalRecords) {
+      return 0;
+    }
+    return Math.ceil(this.totalRecords / this.rows);
+  }
+
+  get pageSize(): number {
+    return this.rows;
+  }
+
+  set pageSize(value: number) {
+    this.rows = value;
   }
 }

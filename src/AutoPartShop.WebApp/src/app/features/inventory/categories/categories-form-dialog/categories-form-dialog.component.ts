@@ -45,14 +45,14 @@ export class CategoriesFormDialogComponent {
     updateForm = this.fb.group({
         id: [''],
         name: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(100)]],
-        description: ['', [Validators.maxLength(500)]],
+        description: [''],
         displayOrder: [0, [Validators.required, Validators.min(0)]],
         isActive: [true]
     });
 
     createForm = this.fb.group({
         name: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(100)]],
-        description: ['', [Validators.maxLength(500)]],
+        description: [''],
         code: ['', [Validators.required, Validators.minLength(1), Validators.maxLength(20)]],
         displayOrder: [0, [Validators.required, Validators.min(0)]],
         isActive: [true],
@@ -73,6 +73,21 @@ export class CategoriesFormDialogComponent {
                 });
             }
         });
+    }
+
+    /**
+     * Called when the update dialog is shown - populate form with selected category data
+     */
+    onUpdateDialogShow() {
+        if (this.selectedCategory) {
+            this.updateForm.patchValue({
+                id: this.selectedCategory.id,
+                name: this.selectedCategory.name,
+                description: this.selectedCategory.description,
+                displayOrder: this.selectedCategory.displayOrder,
+                isActive: this.selectedCategory.isActive
+            });
+        }
     }
 
     onCreateDialogShow() {

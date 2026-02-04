@@ -1,6 +1,8 @@
 using AutoPartShop.Api.Services;
+using AutoPartShop.Application.Common;
 using AutoPartShop.Application.DTOs.PaymentDtos;
-using AutoPartShop.Domain.Common;
+using AutoPartShop.Application.Supplier;
+using AutoPartShop.Application.SupplierPayment.Dtos;
 using AutoPartShop.Domain.Entities;
 using iText.Kernel.Pdf;
 using iText.Layout;
@@ -15,6 +17,7 @@ namespace AutoPartShop.Api.Controllers;
 public class SupplierPaymentController : ControllerBase
 {
     private readonly ISupplierPaymentRepository _repository;
+    public readonly ISupplierPaymentReadRespository _supplierPaymentReadRespository;
     private readonly ISupplierRepository _supplierRepository;
     private readonly IPurchaseOrderRepository _purchaseOrderRepository;
     private readonly SupplierPaymentSummaryService _summaryService;
@@ -23,6 +26,7 @@ public class SupplierPaymentController : ControllerBase
 
     public SupplierPaymentController(
         ISupplierPaymentRepository repository,
+        ISupplierPaymentReadRespository supplierPaymentReadRespository,
         ISupplierRepository supplierRepository,
         IPurchaseOrderRepository purchaseOrderRepository,
         SupplierPaymentSummaryService summaryService,
@@ -34,6 +38,7 @@ public class SupplierPaymentController : ControllerBase
         _purchaseOrderRepository = purchaseOrderRepository;
         _summaryService = summaryService;
         _currentUserService = currentUserService;
+        _supplierPaymentReadRespository = supplierPaymentReadRespository;
         _logger = logger;
     }
 
@@ -68,10 +73,10 @@ public class SupplierPaymentController : ControllerBase
                 return BadRequest("Invalid pagination parameters.");
             }
 
-            var (payments, totalCount) = await _repository.SearchPagedAsync(query, cancellationToken);
+            var (payments, totalCount) = await _supplierPaymentReadRespository.FindAllAsynce(query, cancellationToken);
 
             return Ok(PagedResult<SupplierPaymentResponse>.Create(
-                payments.Select(MapResponseSync),
+                payments,
                 totalCount,
                 query
             ));

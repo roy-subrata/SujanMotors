@@ -7,6 +7,7 @@ import { CurrencyService } from '../services/currency.service';
  * Usage:
  * {{ amount | appCurrency:'USD' }}
  * {{ 1000 | appCurrency:selectedCurrency }}
+ * {{ 1000 | appCurrency }} - Uses default currency from settings
  */
 @Pipe({
   name: 'appCurrency',
@@ -20,10 +21,9 @@ export class AppCurrencyPipe implements PipeTransform {
       return '';
     }
 
-    // If no currency code provided, use base currency or default
+    // If no currency code provided, use selected currency from settings
     if (!currencyCode) {
-      const baseCurrency = this.currencyService.baseCurrency$ | null;
-      currencyCode = baseCurrency ? 'BDT' : 'BDT'; // Fallback to BDT
+      currencyCode = this.currencyService.selectedCurrency();
     }
 
     return this.currencyService.formatCurrency(value, currencyCode);

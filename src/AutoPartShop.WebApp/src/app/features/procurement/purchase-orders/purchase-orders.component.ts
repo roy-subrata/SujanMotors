@@ -5,10 +5,11 @@ import { Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
-import { CardModule } from 'primeng/card';
 import { Select } from 'primeng/select';
 import { DatePicker } from 'primeng/datepicker';
-import { MessageService, ConfirmationService } from 'primeng/api';
+import { MenuModule } from 'primeng/menu';
+import { TooltipModule } from 'primeng/tooltip';
+import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
 import { PurchaseOrdersListComponent } from './purchase-orders-list/purchase-orders-list.component';
 import { PurchaseOrderService, PurchaseOrderResponse } from '../services/purchase-order.service';
 import { PurchaseOrdersFormDialogComponent } from './purchase-orders-form-dialog/purchase-orders-form-dialog.component';
@@ -16,7 +17,7 @@ import { PurchaseOrdersFormDialogComponent } from './purchase-orders-form-dialog
 @Component({
     selector: 'app-purchase-orders',
     standalone: true,
-    imports: [CommonModule, FormsModule, ButtonModule, ToastModule, ConfirmDialogModule, CardModule, Select, DatePicker, PurchaseOrdersListComponent, PurchaseOrdersFormDialogComponent],
+    imports: [CommonModule, FormsModule, ButtonModule, ToastModule, ConfirmDialogModule, Select, DatePicker, MenuModule, TooltipModule, PurchaseOrdersListComponent, PurchaseOrdersFormDialogComponent],
     providers: [MessageService, ConfirmationService],
     templateUrl: './purchase-orders.component.html',
     styleUrls: ['./purchase-orders.component.css']
@@ -45,6 +46,25 @@ export class PurchaseOrdersComponent implements OnInit {
         { label: 'Confirmed', value: 'CONFIRMED' },
         { label: 'Cancelled', value: 'CANCELLED' },
         { label: 'Completed', value: 'COMPLETED' }
+    ];
+
+    menuItems: MenuItem[] = [
+        {
+            label: 'Export CSV',
+            icon: 'pi pi-file',
+            command: () => this.exportOrders('csv')
+        },
+        {
+            label: 'Export JSON',
+            icon: 'pi pi-file-export',
+            command: () => this.exportOrders('json')
+        },
+        { separator: true },
+        {
+            label: 'Clear Filters',
+            icon: 'pi pi-filter-slash',
+            command: () => this.clearFilters()
+        }
     ];
 
     constructor() {}
@@ -116,6 +136,13 @@ export class PurchaseOrdersComponent implements OnInit {
      */
     onCreateClick(): void {
         this.router.navigate(['/procurement/purchase-orders/create']);
+    }
+
+    /**
+     * Check if any filter is active
+     */
+    hasActiveFilters(): boolean {
+        return !!(this.searchTerm || this.filterStatus || (this.dateRange && this.dateRange.length > 0));
     }
 
     /**

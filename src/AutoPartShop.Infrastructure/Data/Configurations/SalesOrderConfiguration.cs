@@ -17,6 +17,15 @@ public class SalesOrderConfiguration : IEntityTypeConfiguration<SalesOrder>
         builder.Property(so => so.TotalAmount)
             .HasPrecision(18, 2);
 
+        builder.Property(so => so.SubTotal)
+            .HasPrecision(18, 2);
+
+        builder.Property(so => so.DiscountPercentage)
+            .HasPrecision(18, 2);
+
+        builder.Property(so => so.DiscountAmount)
+            .HasPrecision(18, 2);
+
         builder.Property(so => so.TaxAmount)
             .HasPrecision(18, 2);
 

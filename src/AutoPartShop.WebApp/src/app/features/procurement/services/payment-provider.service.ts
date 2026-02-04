@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { environment } from 'src/environments/environment';
 
 export interface CreatePaymentProviderRequest {
   providerName: string;
@@ -103,7 +104,7 @@ export interface PaginatedPaymentProviderResponse {
 })
 export class PaymentProviderService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = 'http://localhost:5292/api/payment-provider';
+  private readonly apiUrl = `${environment.apiUrl}/payment-provider`;
 
   /**
    * Get all payment providers

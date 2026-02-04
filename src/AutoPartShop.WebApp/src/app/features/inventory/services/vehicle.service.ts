@@ -1,11 +1,13 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from 'src/environments/environment';
 
 export interface VehicleResponse {
   id: string;
   make: string;
   model: string;
+  trim?: string;
   year: number;
   engineType: string;
   description: string;
@@ -53,7 +55,7 @@ export interface CreatePartCompatibilityRequest {
 })
 export class VehicleService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = 'http://localhost:5292/api/vehicles';
+  private readonly apiUrl = `${environment.apiUrl}/vehicles`;
 
   /**
    * Get all vehicles

@@ -66,6 +66,7 @@ export class SupplierPaymentSummaryComponent implements OnInit, OnDestroy {
             .pipe(takeUntil(this.destroy$))
             .subscribe({
                 next: ({ paymentSummary, ledgerSummary }) => {
+                                    debugger;
                     this.summary = paymentSummary;
                     this.ledgerSummary = ledgerSummary;
                     this.supplierName = ledgerSummary.supplierName || paymentSummary.supplierName;
@@ -92,10 +93,10 @@ export class SupplierPaymentSummaryComponent implements OnInit, OnDestroy {
     formatCurrency(value: number | undefined | null): string {
         const numValue = value ?? 0;
         if (isNaN(numValue)) {
-            const currency = this.currencyService.selectedCurrency() || 'BDT';
+            const currency = this.currencyService.selectedCurrency();
             return this.currencyService.formatCurrency(0, currency);
         }
-        const currency = this.currencyService.selectedCurrency() || 'BDT';
+        const currency = this.currencyService.selectedCurrency();
         return this.currencyService.formatCurrency(numValue, currency);
     }
 

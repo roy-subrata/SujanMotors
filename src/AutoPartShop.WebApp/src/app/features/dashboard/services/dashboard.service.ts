@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from 'src/environments/environment';
 
 export interface FinancialSummaryRequest {
   startDate: Date;
@@ -105,7 +106,7 @@ export interface DashboardResponse {
 @Injectable({ providedIn: 'root' })
 export class DashboardService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = 'http://localhost:5292/api/dashboard';
+  private readonly apiUrl = `${environment.apiUrl}/dashboard`;
 
   /**
    * Get complete dashboard data including summary, trends, and top items

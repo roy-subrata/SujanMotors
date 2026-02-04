@@ -479,7 +479,7 @@ export class SalesReturnFormComponent implements OnInit {
   }
 
   formatCurrency(amount: number): string {
-    const currency = this.currencyService.selectedCurrency() || 'BDT';
+    const currency = this.currencyService.selectedCurrency();
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: currency

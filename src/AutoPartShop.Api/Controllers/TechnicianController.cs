@@ -1,5 +1,8 @@
 using AutoPartShop.Api.Services;
+using AutoPartShop.Application.Common;
 using AutoPartShop.Application.DTOs.TechnicianDtos;
+using AutoPartShop.Application.Technecians;
+using AutoPartShop.Application.Technecians.Dtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
 using Microsoft.AspNetCore.Mvc;
@@ -11,17 +14,20 @@ namespace AutoPartShop.Api.Controllers;
 public class TechnicianController : ControllerBase
 {
     private readonly ITechnicianRepository _technicianRepository;
+    private readonly ITechnecianReadRepository _technecianReadRepository;
     private readonly ILogger<TechnicianController> _logger;
     private readonly ICodeGenerateService _codeGenerateService;
     private readonly ICurrentUserService _currentUserService;
 
     public TechnicianController(
         ITechnicianRepository technicianRepository,
+        ITechnecianReadRepository technecianReadRepository,
         ICodeGenerateService codeGenerateService,
         ICurrentUserService currentUserService,
         ILogger<TechnicianController> logger)
     {
         _technicianRepository = technicianRepository;
+        _technecianReadRepository = technecianReadRepository;
         _codeGenerateService = codeGenerateService;
         _currentUserService = currentUserService;
         _logger = logger;
@@ -43,25 +49,27 @@ public class TechnicianController : ControllerBase
         }
     }
 
-    [HttpGet("list")]
-    public async Task<IActionResult> GetList(int pageNumber = 1, int pageSize = 10, string? searchTerm = null, CancellationToken cancellationToken = default)
+    [HttpPost("list")]
+    public async Task<IActionResult> GetList(TechnecianQuery query, CancellationToken cancellationToken = default)
     {
         try
         {
-            if (pageNumber < 1) pageNumber = 1;
-            if (pageSize < 1) pageSize = 10;
-            if (pageSize > 100) pageSize = 100;
-
-            var (technicians, totalCount) = string.IsNullOrWhiteSpace(searchTerm)
-                ? await _technicianRepository.GetPagedAsync(pageNumber, pageSize, cancellationToken)
-                : await _technicianRepository.SearchPagedAsync(searchTerm, pageNumber, pageSize, cancellationToken);
-
-            var response = technicians.Select(MapToResponse);
-            return Ok(new
+            if (query is null)
             {
-                data = response,
-                pagination = new { pageNumber, pageSize, totalCount, totalPages = (int)Math.Ceiling(totalCount / (double)pageSize) }
-            });
+                return BadRequest("Request can not be empty");
+            }
+            if (query.PageNumber < 0)
+            {
+                return BadRequest($"Page number can not be {query.PageNumber}");
+            }
+            if (query.PageSize < 0)
+            {
+                return BadRequest($"Page size can not be {query.PageSize}");
+            }
+
+            var (technicians, totalCount) = await _technecianReadRepository.FindAllQuery(query, cancellationToken);
+
+            return Ok(PagedResult<TechnicianResponse>.Create(technicians, totalCount, query));
         }
         catch (Exception ex)
         {

@@ -5,7 +5,7 @@ import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
 import { InputTextModule } from 'primeng/inputtext';
 import { ToastModule } from 'primeng/toast';
-import { TableModule } from 'primeng/table';
+import { TableLazyLoadEvent, TableModule } from 'primeng/table';
 import { TooltipModule } from 'primeng/tooltip';
 import { SelectModule } from 'primeng/select';
 import { DialogModule } from 'primeng/dialog';
@@ -55,13 +55,26 @@ export class StockComponent implements OnInit {
 
   loading = false;
   searchTerm = '';
-  rows = 10;
   activeTab = 0;
   viewMode: 'table' | 'grid' = 'table';
   selectedWarehouse: string | null = null;
   selectedStatus: string | null = null;
   showLowStockDialog = false;
   showHistoryDialog = false;
+
+  // Pagination state - All Stock
+  allTotalRecords = 0;
+  allPageNumber = 1;
+  allPageSize = 10;
+  allFirst = 0;
+
+  // Pagination state - Low Stock
+  lowTotalRecords = 0;
+  lowPageNumber = 1;
+  lowPageSize = 10;
+  lowFirst = 0;
+
+  pageSizeOptions = [10, 25, 50];
 
   // Warehouse filter options
   warehouseOptions: { label: string; value: string }[] = [];
@@ -98,9 +111,16 @@ export class StockComponent implements OnInit {
 
   loadAllStock(): void {
     this.loading = true;
-    this.stockService.getAllStockLevels().subscribe({
-      next: (levels) => {
-        this.allStockLevels = levels;
+    this.stockService.getStockLevels({
+      search: this.searchTerm,
+      pageNumber: this.allPageNumber,
+      pageSize: this.allPageSize,
+      warehouseId: this.selectedWarehouse || undefined,
+      status: this.selectedStatus || undefined
+    }).subscribe({
+      next: (response) => {
+        this.allStockLevels = response.data;
+        this.allTotalRecords = response.pagination.totalCount;
         this.loading = false;
       },
       error: (_error) => {
@@ -115,9 +135,17 @@ export class StockComponent implements OnInit {
   }
 
   loadLowStock(): void {
-    this.stockService.getLowStock().subscribe({
-      next: (levels) => {
-        this.lowStockLevels = levels;
+    this.stockService.getStockLevels({
+      search: this.searchTerm,
+      pageNumber: this.lowPageNumber,
+      pageSize: this.lowPageSize,
+      warehouseId: this.selectedWarehouse || undefined,
+      status: this.selectedStatus || undefined,
+      lowStockOnly: true
+    }).subscribe({
+      next: (response) => {
+        this.lowStockLevels = response.data;
+        this.lowTotalRecords = response.pagination.totalCount;
       },
       error: (_error) => {
         this.messageService.add({
@@ -134,7 +162,10 @@ export class StockComponent implements OnInit {
   }
 
   onSearch(): void {
-    // Trigger table filter refresh
+    this.resetAllPagination();
+    this.resetLowPagination();
+    this.loadAllStock();
+    this.loadLowStock();
   }
 
   onSearchInput(): void {
@@ -154,7 +185,12 @@ export class StockComponent implements OnInit {
   onAdjustStock(stock: StockLevelResponse): void {
     const dialogRef = this.dialogService.open(StockAdjustmentDialogComponent, {
       header: 'Stock Adjustment',
-      width: '600px',
+      width: '720px',
+      breakpoints: {
+        '960px': '95vw',
+        '640px': '100vw'
+      },
+      styleClass: 'stock-adjustment-dialog',
       modal: true,
       data: { stock }
     });
@@ -205,49 +241,60 @@ export class StockComponent implements OnInit {
     });
   }
 
-  /**
-   * Filter stock by search term, warehouse, and status
-   */
-  getFilteredStock(stockLevels: StockLevelResponse[]): StockLevelResponse[] {
-    let filtered = stockLevels;
-
-    // Filter by warehouse
-    if (this.selectedWarehouse) {
-      filtered = filtered.filter(s => s.warehouseId === this.selectedWarehouse);
-    }
-
-    // Filter by status
-    if (this.selectedStatus) {
-      filtered = filtered.filter(s => {
-        const status = this.getStatusDotClass(s);
-        return status === this.selectedStatus;
-      });
-    }
-
-    // Filter by search term
-    if (this.searchTerm) {
-      const term = this.searchTerm.toLowerCase();
-      filtered = filtered.filter(s => {
-        const partName = this.getPartName(s.partId).toLowerCase();
-        const partSku = this.getPartSku(s.partId).toLowerCase();
-        const warehouseName = this.getWarehouseName(s.warehouseId).toLowerCase();
-        return partName.includes(term) || partSku.includes(term) || warehouseName.includes(term);
-      });
-    }
-
-    return filtered;
-  }
-
   onWarehouseFilter(): void {
-    // Filtering is done reactively via getFilteredStock
+    this.onSearch();
   }
 
   onStatusFilter(): void {
-    // Filtering is done reactively via getFilteredStock
+    this.onSearch();
   }
 
   showAllLowStock(): void {
     this.showLowStockDialog = true;
+  }
+
+  onAllLazyLoad(event: TableLazyLoadEvent): void {
+    this.allFirst = event.first ?? 0;
+    this.allPageSize = event.rows ?? this.allPageSize;
+    this.allPageNumber = Math.floor(this.allFirst / this.allPageSize) + 1;
+    this.loadAllStock();
+  }
+
+  onLowLazyLoad(event: TableLazyLoadEvent): void {
+    this.lowFirst = event.first ?? 0;
+    this.lowPageSize = event.rows ?? this.lowPageSize;
+    this.lowPageNumber = Math.floor(this.lowFirst / this.lowPageSize) + 1;
+    this.loadLowStock();
+  }
+
+  goAllPrevPage(): void {
+    if (this.allFirst === 0) return;
+    this.onAllLazyLoad({ first: this.allFirst - this.allPageSize, rows: this.allPageSize } as TableLazyLoadEvent);
+  }
+
+  goAllNextPage(): void {
+    if (this.allFirst + this.allPageSize >= this.allTotalRecords) return;
+    this.onAllLazyLoad({ first: this.allFirst + this.allPageSize, rows: this.allPageSize } as TableLazyLoadEvent);
+  }
+
+  goLowPrevPage(): void {
+    if (this.lowFirst === 0) return;
+    this.onLowLazyLoad({ first: this.lowFirst - this.lowPageSize, rows: this.lowPageSize } as TableLazyLoadEvent);
+  }
+
+  goLowNextPage(): void {
+    if (this.lowFirst + this.lowPageSize >= this.lowTotalRecords) return;
+    this.onLowLazyLoad({ first: this.lowFirst + this.lowPageSize, rows: this.lowPageSize } as TableLazyLoadEvent);
+  }
+
+  private resetAllPagination(): void {
+    this.allFirst = 0;
+    this.allPageNumber = 1;
+  }
+
+  private resetLowPagination(): void {
+    this.lowFirst = 0;
+    this.lowPageNumber = 1;
   }
 
   /**

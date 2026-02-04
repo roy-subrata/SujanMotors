@@ -16,7 +16,8 @@ import { TooltipModule } from 'primeng/tooltip';
 import { DialogModule } from 'primeng/dialog';
 import { CheckboxModule } from 'primeng/checkbox';
 import { TagModule } from 'primeng/tag';
-import { MessageService } from 'primeng/api';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { MessageService, ConfirmationService } from 'primeng/api';
 import { PurchaseReturnService, PurchaseReturnResponse, AvailableLotForReturn } from '../../services/purchase-return.service';
 import { PurchaseOrderService, PurchaseOrderResponse } from '../../services/purchase-order.service';
 import { PartService, PartResponse } from '../../../inventory/services/part.service';
@@ -42,11 +43,12 @@ import { CurrencyService } from '../../../../shared/services/currency.service';
     TooltipModule,
     DialogModule,
     CheckboxModule,
-    TagModule
+    TagModule,
+    ConfirmDialogModule
   ],
   templateUrl: './purchase-returns-form.component.html',
   styleUrls: ['./purchase-returns-form.component.css'],
-  providers: [MessageService]
+  providers: [MessageService, ConfirmationService]
 })
 export class PurchaseReturnsFormComponent implements OnInit {
   form: FormGroup;
@@ -92,6 +94,7 @@ export class PurchaseReturnsFormComponent implements OnInit {
   private readonly partService = inject(PartService);
   private readonly currencyService = inject(CurrencyService);
   private readonly messageService = inject(MessageService);
+  private readonly confirmationService = inject(ConfirmationService);
   private readonly fb = inject(FormBuilder);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -101,10 +104,10 @@ export class PurchaseReturnsFormComponent implements OnInit {
   }
 
   /**
-   * Get current currency code
+   * Get current currency code from settings
    */
   get currencyCode(): string {
-    return this.currencyService.selectedCurrency() || 'BDT';
+    return this.currencyService.selectedCurrency();
   }
 
   ngOnInit(): void {
@@ -703,6 +706,167 @@ export class PurchaseReturnsFormComponent implements OnInit {
   }
 
   /**
+   * Approve purchase return
+   */
+  approveReturn(): void {
+    if (!this.currentReturn) return;
+
+    this.confirmationService.confirm({
+      message: `Are you sure you want to approve return #${this.currentReturn.returnNumber}?`,
+      header: 'Confirm Approval',
+      icon: 'pi pi-check',
+      accept: () => {
+        this.prService.approvePurchaseReturn(this.currentReturn!.id, 'System').subscribe({
+          next: (updated) => {
+            this.currentReturn = updated;
+            this.messageService.add({
+              severity: 'success',
+              summary: 'Success',
+              detail: `Purchase Return #${updated.returnNumber} approved successfully`
+            });
+          },
+          error: (error) => {
+            this.messageService.add({
+              severity: 'error',
+              summary: 'Error',
+              detail: error?.error?.message || 'Failed to approve purchase return'
+            });
+          }
+        });
+      }
+    });
+  }
+
+  /**
+   * Mark purchase return as returned
+   */
+  markAsReturned(): void {
+    if (!this.currentReturn) return;
+
+    this.confirmationService.confirm({
+      message: `Mark return #${this.currentReturn.returnNumber} as returned to supplier?`,
+      header: 'Confirm',
+      icon: 'pi pi-send',
+      accept: () => {
+        this.prService.markAsReturned(this.currentReturn!.id).subscribe({
+          next: (updated) => {
+            this.currentReturn = updated;
+            this.messageService.add({
+              severity: 'success',
+              summary: 'Success',
+              detail: `Purchase Return #${updated.returnNumber} marked as returned`
+            });
+          },
+          error: (error) => {
+            this.messageService.add({
+              severity: 'error',
+              summary: 'Error',
+              detail: error?.error?.message || 'Failed to mark as returned'
+            });
+          }
+        });
+      }
+    });
+  }
+
+  /**
+   * Mark purchase return as received by supplier
+   */
+  markAsReceived(): void {
+    if (!this.currentReturn) return;
+
+    this.confirmationService.confirm({
+      message: `Mark return #${this.currentReturn.returnNumber} as received by supplier?`,
+      header: 'Confirm',
+      icon: 'pi pi-inbox',
+      accept: () => {
+        this.prService.markAsReceived(this.currentReturn!.id, 'System').subscribe({
+          next: (updated) => {
+            this.currentReturn = updated;
+            this.messageService.add({
+              severity: 'success',
+              summary: 'Success',
+              detail: `Purchase Return #${updated.returnNumber} marked as received`
+            });
+          },
+          error: (error) => {
+            this.messageService.add({
+              severity: 'error',
+              summary: 'Error',
+              detail: error?.error?.message || 'Failed to mark as received'
+            });
+          }
+        });
+      }
+    });
+  }
+
+  /**
+   * Issue credit note for purchase return
+   */
+  issueCreditNote(): void {
+    if (!this.currentReturn) return;
+
+    this.confirmationService.confirm({
+      message: `Issue credit note of ${this.currencyService.formatCurrency(this.currentReturn.refundAmount, this.currencyCode)} for return #${this.currentReturn.returnNumber}?`,
+      header: 'Issue Credit Note',
+      icon: 'pi pi-file',
+      accept: () => {
+        this.prService.issueCreditNote(this.currentReturn!.id, this.currentReturn!.refundAmount).subscribe({
+          next: (updated) => {
+            this.currentReturn = updated;
+            this.messageService.add({
+              severity: 'success',
+              summary: 'Success',
+              detail: `Credit note issued for return #${updated.returnNumber}`
+            });
+          },
+          error: (error) => {
+            this.messageService.add({
+              severity: 'error',
+              summary: 'Error',
+              detail: error?.error?.message || 'Failed to issue credit note'
+            });
+          }
+        });
+      }
+    });
+  }
+
+  /**
+   * Reject purchase return
+   */
+  rejectReturn(): void {
+    if (!this.currentReturn) return;
+
+    this.confirmationService.confirm({
+      message: `Are you sure you want to reject return #${this.currentReturn.returnNumber}?`,
+      header: 'Confirm Rejection',
+      icon: 'pi pi-times',
+      acceptButtonStyleClass: 'p-button-danger',
+      accept: () => {
+        this.prService.rejectPurchaseReturn(this.currentReturn!.id, 'Rejected by user').subscribe({
+          next: (updated) => {
+            this.currentReturn = updated;
+            this.messageService.add({
+              severity: 'success',
+              summary: 'Success',
+              detail: `Purchase Return #${updated.returnNumber} rejected`
+            });
+          },
+          error: (error) => {
+            this.messageService.add({
+              severity: 'error',
+              summary: 'Error',
+              detail: error?.error?.message || 'Failed to reject purchase return'
+            });
+          }
+        });
+      }
+    });
+  }
+
+  /**
    * Print the purchase return
    */
   printReturn(): void {
@@ -733,14 +897,17 @@ export class PurchaseReturnsFormComponent implements OnInit {
    */
   private generatePrintContent(): string {
     const pr = this.currentReturn!;
-    const lineItemsHtml = pr.lines.map(line => `
+    const returnDate = pr.returnDate ? new Date(pr.returnDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '-';
+    const lineItemsHtml = (pr.lines || []).map(line => `
       <tr>
-        <td style="padding: 8px; border: 1px solid #ddd;">${line.partName || line.partSku || 'N/A'}</td>
-        <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${line.quantity}</td>
-        <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${line.rejectedQuantity}</td>
-        <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">${this.currencyService.formatCurrency(line.unitPrice, this.currencyCode)}</td>
-        <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">${this.currencyService.formatCurrency(line.refundAmount, this.currencyCode)}</td>
-        <td style="padding: 8px; border: 1px solid #ddd;">${line.condition}</td>
+        <td class="desc-cell">
+          <div class="item-name">${line.partName || line.partSku || 'N/A'}</div>
+          <div class="item-desc">${line.condition || '-'}</div>
+        </td>
+        <td class="num-cell">${line.quantity}</td>
+        <td class="num-cell">${line.rejectedQuantity}</td>
+        <td class="num-cell">${this.currencyService.formatCurrency(line.unitPrice, this.currencyCode)}</td>
+        <td class="num-cell">${this.currencyService.formatCurrency(line.refundAmount, this.currencyCode)}</td>
       </tr>
     `).join('');
 
@@ -750,95 +917,128 @@ export class PurchaseReturnsFormComponent implements OnInit {
       <head>
         <title>Purchase Return - ${pr.returnNumber}</title>
         <style>
-          body { font-family: Arial, sans-serif; margin: 20px; color: #333; }
-          .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; }
-          .header h1 { margin: 0 0 10px 0; color: #1d4ed8; }
-          .info-section { display: flex; justify-content: space-between; margin-bottom: 20px; }
-          .info-block { width: 48%; }
-          .info-block h3 { margin: 0 0 10px 0; color: #666; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
-          .info-row { display: flex; margin-bottom: 5px; }
-          .info-label { font-weight: bold; width: 120px; }
-          .info-value { flex: 1; }
-          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-          th { background: #f3f4f6; padding: 10px; border: 1px solid #ddd; text-align: left; }
-          .totals { text-align: right; margin-top: 20px; }
-          .total-row { display: flex; justify-content: flex-end; margin-bottom: 5px; }
-          .total-label { font-weight: bold; margin-right: 20px; }
-          .total-value { min-width: 120px; text-align: right; }
-          .grand-total { font-size: 1.2em; border-top: 2px solid #333; padding-top: 10px; margin-top: 10px; }
-          .footer { margin-top: 40px; border-top: 1px solid #ddd; padding-top: 20px; }
-          .signature-section { display: flex; justify-content: space-between; margin-top: 60px; }
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 12px; color: #333; padding: 20px; max-width: 800px; margin: 0 auto; }
+
+          .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+          .logo-section { display: flex; align-items: center; gap: 10px; }
+          .logo { width: 60px; height: 60px; background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; font-weight: bold; }
+          .company-name { font-size: 22px; font-weight: 700; color: #1976d2; }
+          .title-section { text-align: right; }
+          .title-section h1 { font-size: 28px; color: #1976d2; font-weight: 300; margin-bottom: 8px; }
+          .invoice-meta { font-size: 11px; color: #666; }
+          .invoice-meta span { display: inline-block; min-width: 90px; }
+          .invoice-meta .value { color: #333; font-weight: 500; }
+          .status-pill { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 10px; background: #e0e7ff; color: #1e40af; margin-top: 6px; }
+
+          .address-section { display: flex; justify-content: space-between; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #e0e0e0; }
+          .address-block { flex: 1; }
+          .address-block.right { text-align: right; }
+          .address-label { font-size: 10px; color: #999; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+          .address-name { font-size: 14px; font-weight: 600; color: #333; margin-bottom: 4px; }
+          .address-detail { font-size: 11px; color: #666; line-height: 1.5; }
+
+          .items-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+          .items-table th { background: #1976d2; color: white; padding: 10px 8px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500; }
+          .items-table th:first-child { text-align: left; border-radius: 4px 0 0 0; }
+          .items-table th:last-child { border-radius: 0 4px 0 0; }
+          .items-table th.num-col { text-align: right; }
+          .items-table td { padding: 10px 8px; border-bottom: 1px solid #eee; vertical-align: top; }
+          .desc-cell { width: 40%; }
+          .num-cell { text-align: right; width: 15%; }
+          .item-name { font-weight: 500; color: #333; }
+          .item-desc { font-size: 10px; color: #999; margin-top: 2px; }
+
+          .summary-section { display: flex; justify-content: space-between; margin-bottom: 20px; }
+          .payment-info { flex: 1; padding-right: 40px; }
+          .payment-info h4 { font-size: 11px; color: #999; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+          .payment-info p { font-size: 11px; color: #666; line-height: 1.6; }
+          .totals-box { width: 250px; }
+          .totals-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 11px; }
+          .totals-row.total { border-top: 2px solid #1976d2; margin-top: 8px; padding-top: 10px; font-size: 14px; font-weight: 600; color: #1976d2; }
+          .totals-label { color: #666; }
+          .totals-value { font-weight: 500; }
+
+          .footer { text-align: center; color: #999; font-size: 10px; padding-top: 10px; border-top: 1px solid #eee; }
+          .signature-section { display: flex; justify-content: space-between; margin-top: 50px; }
           .signature-box { width: 200px; text-align: center; }
-          .signature-line { border-top: 1px solid #333; margin-top: 40px; padding-top: 5px; }
-          .status-badge { display: inline-block; padding: 4px 12px; border-radius: 4px; font-weight: bold; }
-          .status-pending { background: #fef3c7; color: #92400e; }
-          .status-approved { background: #dbeafe; color: #1e40af; }
-          .status-returned { background: #e0e7ff; color: #3730a3; }
-          .status-received { background: #d1fae5; color: #065f46; }
-          .status-credited { background: #d1fae5; color: #065f46; }
-          .status-rejected { background: #fee2e2; color: #991b1b; }
-          @media print { body { margin: 0; } }
+          .signature-line { border-top: 1px solid #333; margin-top: 40px; padding-top: 5px; font-size: 11px; color: #666; }
+          @media print { body { padding: 10px; } }
         </style>
       </head>
       <body>
         <div class="header">
-          <h1>Purchase Return</h1>
-          <h2>${pr.returnNumber}</h2>
-          <span class="status-badge status-${pr.status.toLowerCase()}">${pr.status}</span>
+          <div class="logo-section">
+            <div class="logo">SM</div>
+            <div>
+              <div class="company-name">Sujan Motors</div>
+              <div class="address-detail">Auto Parts & Accessories</div>
+              <div class="address-detail">Dhaka, Bangladesh</div>
+            </div>
+          </div>
+          <div class="title-section">
+            <h1>Purchase Return</h1>
+            <div class="invoice-meta">
+              <div><span>Return no.:</span> <span class="value">${pr.returnNumber}</span></div>
+              <div><span>Return date:</span> <span class="value">${returnDate}</span></div>
+              <div><span>PO no.:</span> <span class="value">${pr.purchaseOrderNumber || '-'}</span></div>
+              <div><span>Reason:</span> <span class="value">${pr.reason || '-'}</span></div>
+            </div>
+            <div class="status-pill">${pr.status}</div>
+          </div>
         </div>
 
-        <div class="info-section">
-          <div class="info-block">
-            <h3>Return Details</h3>
-            <div class="info-row"><span class="info-label">Return Number:</span><span class="info-value">${pr.returnNumber}</span></div>
-            <div class="info-row"><span class="info-label">Return Date:</span><span class="info-value">${this.formatDate(pr.returnDate)}</span></div>
-            <div class="info-row"><span class="info-label">Reason:</span><span class="info-value">${pr.reason}</span></div>
-            <div class="info-row"><span class="info-label">Status:</span><span class="info-value">${pr.status}</span></div>
+        <div class="address-section">
+          <div class="address-block">
+            <div class="address-label">From</div>
+            <div class="address-name">Sujan Motors</div>
+            <div class="address-detail">
+              Auto Parts & Accessories<br>
+              Dhaka, Bangladesh
+            </div>
           </div>
-          <div class="info-block">
-            <h3>Supplier Details</h3>
-            <div class="info-row"><span class="info-label">Supplier:</span><span class="info-value">${pr.supplierName || 'N/A'}</span></div>
-            <div class="info-row"><span class="info-label">Supplier Code:</span><span class="info-value">${pr.supplierCode || 'N/A'}</span></div>
-            <div class="info-row"><span class="info-label">PO Number:</span><span class="info-value">${pr.purchaseOrderNumber || 'N/A'}</span></div>
+          <div class="address-block right">
+            <div class="address-label">Supplier</div>
+            <div class="address-name">${pr.supplierName || 'N/A'}</div>
+            <div class="address-detail">
+              ${pr.supplierCode ? `Supplier Code: ${pr.supplierCode}<br>` : ''}
+              PO Ref: ${pr.purchaseOrderNumber || '-'}
+            </div>
           </div>
         </div>
 
-        <h3>Return Items</h3>
-        <table>
+        <table class="items-table">
           <thead>
             <tr>
-              <th>Part</th>
-              <th style="text-align: center;">Quantity</th>
-              <th style="text-align: center;">Rejected</th>
-              <th style="text-align: right;">Unit Price</th>
-              <th style="text-align: right;">Refund Amount</th>
-              <th>Condition</th>
+              <th>Description</th>
+              <th class="num-col">Qty</th>
+              <th class="num-col">Rejected</th>
+              <th class="num-col">Unit Price</th>
+              <th class="num-col">Refund</th>
             </tr>
           </thead>
           <tbody>
-            ${lineItemsHtml}
+            ${lineItemsHtml || `<tr><td colspan="5" style="padding: 10px; text-align: center;">No items</td></tr>`}
           </tbody>
         </table>
 
-        <div class="totals">
-          <div class="total-row grand-total">
-            <span class="total-label">Total Refund Amount:</span>
-            <span class="total-value">${this.currencyService.formatCurrency(pr.refundAmount, this.currencyCode)}</span>
+        <div class="summary-section">
+          <div class="payment-info">
+            ${pr.notes ? `<h4>Notes</h4><p>${pr.notes}</p>` : ''}
           </div>
-          ${pr.creditNoteAmount > 0 ? `
-          <div class="total-row">
-            <span class="total-label">Credit Note Amount:</span>
-            <span class="total-value">${this.currencyService.formatCurrency(pr.creditNoteAmount, this.currencyCode)}</span>
+          <div class="totals-box">
+            <div class="totals-row total">
+              <span class="totals-label">Total Refund:</span>
+              <span class="totals-value">${this.currencyService.formatCurrency(pr.refundAmount, this.currencyCode)}</span>
+            </div>
+            ${pr.creditNoteAmount > 0 ? `
+            <div class="totals-row">
+              <span class="totals-label">Credit Note:</span>
+              <span class="totals-value">${this.currencyService.formatCurrency(pr.creditNoteAmount, this.currencyCode)}</span>
+            </div>
+            ` : ''}
           </div>
-          ` : ''}
         </div>
-
-        ${pr.notes ? `
-        <div class="footer">
-          <h3>Notes</h3>
-          <p>${pr.notes}</p>
-        </div>
-        ` : ''}
 
         <div class="signature-section">
           <div class="signature-box">
@@ -852,9 +1052,9 @@ export class PurchaseReturnsFormComponent implements OnInit {
           </div>
         </div>
 
-        <p style="text-align: center; margin-top: 30px; color: #666; font-size: 12px;">
-          Printed on ${new Date().toLocaleString()}
-        </p>
+        <div class="footer">
+          <p>Thank you for choosing Sujan Motors | Printed on ${new Date().toLocaleString()}</p>
+        </div>
       </body>
       </html>
     `;

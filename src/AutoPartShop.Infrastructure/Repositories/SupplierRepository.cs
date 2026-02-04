@@ -91,39 +91,6 @@ public class SupplierRepository(AutoPartDbContext _db) : ISupplierRepository
         return await _db.Suppliers.FirstOrDefaultAsync(s => s.Code == normalizedCode && !s.Isdeleted, cancellationToken);
     }
 
-    public async Task<(IEnumerable<Supplier> Suppliers, int TotalCount)> SearchPagedAsync(SupplierQuery query, CancellationToken cancellationToken = default)
-    {
-        var term = query.Search.ToLower();
-        var suppliers = _db.Suppliers
-            .Include(x => x.SupplierPayments)
-            .Where(x => !x.Isdeleted && (
-             (EF.Functions.Like(x.Name, $"%{term}%") ||
-             EF.Functions.Like(x.Country, $"%{term}%") ||
-             EF.Functions.Like(x.Phone, $"%{term}%") ||
-             EF.Functions.Like(x.Email, $"%{term}%") ||
-             EF.Functions.Like(x.City, $"%{term}%")
-            )));
-
-
-        if (query.Sorts != null && query.Sorts.Any())
-        {
-            var sorts =
-                query.Sorts.Select(x => (x.Field, x.Direction == "asc" ? true : false)).ToArray();
-            suppliers = suppliers.OrderByMultiple(sorts);
-        }
-        else
-        {
-            suppliers = suppliers.OrderBy(x => x.CreatedDate);
-        }
-
-        var totalCount = await suppliers.CountAsync(cancellationToken);
-        var items = await suppliers
-            .Skip((query.PageNumber - 1) * query.PageSize)
-            .Take(query.PageSize)
-            .ToListAsync(cancellationToken);
-
-        return (items, totalCount);
-    }
 }
 
 public class WarehouseRepository(AutoPartDbContext _db) : IWarehouseRepository

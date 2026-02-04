@@ -1,7 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { TableModule } from 'primeng/table';
+import { TableModule, TableLazyLoadEvent } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
@@ -15,6 +15,8 @@ import { CheckboxModule } from 'primeng/checkbox';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { BrandService, BrandResponse, CreateBrandRequest, UpdateBrandRequest } from '../services/brand.service';
 import { CodeGenerationService } from '@/shared/services/CodeGenerationService';
+import { CardModule } from 'primeng/card';
+import { Select } from 'primeng/select';
 
 @Component({
   selector: 'app-brands',
@@ -32,7 +34,9 @@ import { CodeGenerationService } from '@/shared/services/CodeGenerationService';
     TagModule,
     TooltipModule,
     InputNumberModule,
-    CheckboxModule
+    CheckboxModule,
+    CardModule,
+    Select
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: './brands.component.html',
@@ -46,12 +50,17 @@ export class BrandsComponent implements OnInit {
 
   brands: BrandResponse[] = [];
   filteredBrands: BrandResponse[] = [];
+  pagedBrands: BrandResponse[] = [];
   brand: any = {};
   brandDialog = false;
   editMode = false;
   loading = false;
   generatingCode = false;
   searchQuery = '';
+  totalRecords = 0;
+  rows = 10;
+  currentPage = 1;
+  pageSizeOptions = [10, 20, 50];
 
   ngOnInit(): void {
     this.loadBrands();
@@ -62,7 +71,7 @@ export class BrandsComponent implements OnInit {
     this.brandService.getAllBrands().subscribe({
       next: (brands) => {
         this.brands = brands;
-        this.filteredBrands = brands;
+        this.applyFilters();
         this.loading = false;
       },
       error: (error) => {
@@ -79,21 +88,45 @@ export class BrandsComponent implements OnInit {
 
   onSearchChange(query: string): void {
     this.searchQuery = query;
-    if (!query || query.trim() === '') {
-      this.filteredBrands = this.brands;
-    } else {
-      const lowerQuery = query.toLowerCase().trim();
-      this.filteredBrands = this.brands.filter(brand =>
-        brand.name?.toLowerCase().includes(lowerQuery) ||
-        brand.code?.toLowerCase().includes(lowerQuery) ||
-        brand.country?.toLowerCase().includes(lowerQuery)
-      );
-    }
+    this.currentPage = 1;
+    this.applyFilters();
   }
 
   clearSearch(): void {
     this.searchQuery = '';
-    this.filteredBrands = this.brands;
+    this.currentPage = 1;
+    this.applyFilters();
+  }
+
+  refreshData(): void {
+    this.loadBrands();
+  }
+
+  createBrand(): void {
+    this.openNew();
+  }
+
+  onSearch(): void {
+    this.onSearchChange(this.searchQuery);
+  }
+
+  clearFilters(): void {
+    this.clearSearch();
+  }
+
+  hasActiveFilters(): boolean {
+    return !!this.searchQuery;
+  }
+
+  onPageChange(event: TableLazyLoadEvent | { first: number; rows: number }): void {
+    const first = event?.first ?? 0;
+    const rows = event?.rows ?? this.rows;
+    if (typeof first !== 'number' || typeof rows !== 'number' || rows <= 0) {
+      return;
+    }
+    this.rows = rows;
+    this.currentPage = Math.floor(first / rows) + 1;
+    this.applyPagination();
   }
 
   openNew(): void {
@@ -233,6 +266,52 @@ export class BrandsComponent implements OnInit {
         });
       }
     });
+  }
+
+  get first(): number {
+    return Math.max(0, (this.currentPage - 1) * this.rows);
+  }
+
+  get pageNumber(): number {
+    if (!this.totalRecords) {
+      return 0;
+    }
+    return Math.floor(this.first / this.rows) + 1;
+  }
+
+  get totalPages(): number {
+    if (!this.totalRecords) {
+      return 0;
+    }
+    return Math.ceil(this.totalRecords / this.rows);
+  }
+
+  get pageSize(): number {
+    return this.rows;
+  }
+
+  set pageSize(value: number) {
+    this.rows = value;
+  }
+
+  private applyFilters(): void {
+    const query = this.searchQuery?.trim().toLowerCase();
+    if (!query) {
+      this.filteredBrands = [...this.brands];
+    } else {
+      this.filteredBrands = this.brands.filter(brand =>
+        brand.name?.toLowerCase().includes(query) ||
+        brand.code?.toLowerCase().includes(query) ||
+        brand.country?.toLowerCase().includes(query)
+      );
+    }
+    this.totalRecords = this.filteredBrands.length;
+    this.applyPagination();
+  }
+
+  private applyPagination(): void {
+    const startIndex = (this.currentPage - 1) * this.rows;
+    this.pagedBrands = this.filteredBrands.slice(startIndex, startIndex + this.rows);
   }
 }
 

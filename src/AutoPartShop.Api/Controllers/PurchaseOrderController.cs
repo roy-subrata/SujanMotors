@@ -1,4 +1,5 @@
 using AutoPartShop.Api.Services;
+using AutoPartShop.Application.Common;
 using AutoPartShop.Application.DTOs.PurchaseOrderDtos;
 using AutoPartShop.Application.PurchaseOrders;
 using AutoPartShop.Domain.Entities;
@@ -68,8 +69,10 @@ public class PurchaseOrderController : ControllerBase
     {
         try
         {
-            var response = await _purchaseOrderReadRepository.GetPurchaseOrderAsync(query, cancellationToken);
-            return Ok(response);
+            var (response, total) = await _purchaseOrderReadRepository.FindAllAsync(query, cancellationToken);
+            return Ok(
+                 PagedResult<PurchaseOrderResponse>.Create(response, total, query)
+                );
         }
         catch (Exception ex)
         {

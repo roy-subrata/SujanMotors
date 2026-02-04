@@ -1,9 +1,7 @@
 using AutoPartShop.Domain.Entities;
-using AutoPartsShop.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace AutoPartShop.Infrastructure.Repositories;
-
 public class CustomerRepository : ICustomerRepository
 {
     private readonly AutoPartDbContext _dbContext;
@@ -178,45 +176,6 @@ public class CustomerRepository : ICustomerRepository
         return (items, totalCount);
     }
 
-    public async Task<(IEnumerable<Customer> customers, int totalCount)> SearchPagedAsync(CustomerQuery query, CancellationToken cancellationToken = default)
-    {
-        var term = query.Search.ToLower();
-        var customers = _dbContext.Customers
-            .Include(x => x.CustomerPayments)
-            .Where(x => !x.Isdeleted && (
-             (EF.Functions.Like(x.FirstName, $"%{term}%") ||
-             EF.Functions.Like(x.LastName, $"%{term}%") ||
-             EF.Functions.Like(x.CompanyName, $"%{term}%") ||
-             EF.Functions.Like(x.Email, $"%{term}%") ||
-             EF.Functions.Like(x.CustomerCode, $"%{term}%") ||
-             EF.Functions.Like(x.CustomerType, $"%{term}%") ||
-             EF.Functions.Like(x.City, $"%{term}%")
-            )));
-
-        if (!string.IsNullOrWhiteSpace(query.CustomerType))
-        {
-            customers = customers.Where(x => x.CustomerType.Equals(query.CustomerType));
-        }
-
-        if (query.Sorts != null && query.Sorts.Any())
-        {
-            var sorts =
-                query.Sorts.Select(x => (x.Field, x.Direction == "asc" ? true : false)).ToArray();
-            customers = customers.OrderByMultiple(sorts);
-        }
-        else
-        {
-            customers = customers.OrderBy(x => x.CreatedDate);
-        }
-
-        var totalCount = await customers.CountAsync(cancellationToken);
-        var items = await customers
-            .Skip((query.PageNumber - 1) * query.PageSize)
-            .Take(query.PageSize)
-            .ToListAsync(cancellationToken);
-
-        return (items, totalCount);
-    }
 
     public async Task<IEnumerable<Customer>> GetRecentAsync(int limit, CancellationToken cancellationToken = default)
     {

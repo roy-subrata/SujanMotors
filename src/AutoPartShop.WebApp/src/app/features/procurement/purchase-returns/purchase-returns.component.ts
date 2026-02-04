@@ -8,7 +8,9 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { CardModule } from 'primeng/card';
 import { Select } from 'primeng/select';
 import { DatePicker } from 'primeng/datepicker';
-import { MessageService, ConfirmationService } from 'primeng/api';
+import { MenuModule } from 'primeng/menu';
+import { TooltipModule } from 'primeng/tooltip';
+import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
 import { PurchaseReturnsListComponent } from './purchase-returns-list/purchase-returns-list.component';
 import { PurchaseReturnService, PurchaseReturnResponse } from '../services/purchase-return.service';
 
@@ -24,6 +26,8 @@ import { PurchaseReturnService, PurchaseReturnResponse } from '../services/purch
     CardModule,
     Select,
     DatePicker,
+    MenuModule,
+    TooltipModule,
     PurchaseReturnsListComponent
   ],
   providers: [MessageService, ConfirmationService],
@@ -54,6 +58,25 @@ export class PurchaseReturnsComponent implements OnInit {
     { label: 'Approved', value: 'APPROVED' },
     { label: 'Rejected', value: 'REJECTED' },
     { label: 'Completed', value: 'COMPLETED' }
+  ];
+
+  menuItems: MenuItem[] = [
+    {
+      label: 'Export CSV',
+      icon: 'pi pi-file',
+      command: () => this.exportReturns('csv')
+    },
+    {
+      label: 'Export JSON',
+      icon: 'pi pi-file-export',
+      command: () => this.exportReturns('json')
+    },
+    { separator: true },
+    {
+      label: 'Clear Filters',
+      icon: 'pi pi-filter-slash',
+      command: () => this.clearFilters()
+    }
   ];
 
   constructor() {}
@@ -123,6 +146,13 @@ export class PurchaseReturnsComponent implements OnInit {
   clearSearch(): void {
     this.searchTerm = '';
     this.loadPurchaseReturns(1, this.rows);
+  }
+
+  /**
+   * Check if any filter is active
+   */
+  hasActiveFilters(): boolean {
+    return !!(this.searchTerm || this.filterStatus || (this.dateRange && this.dateRange.length > 0));
   }
 
   /**
@@ -233,18 +263,6 @@ export class PurchaseReturnsComponent implements OnInit {
       detail: 'Purchase Return created successfully'
     });
     this.loadPurchaseReturns(1, this.rows, this.searchTerm);
-  }
-
-  /**
-   * Handle purchase return updated
-   */
-  onPurchaseReturnUpdated(): void {
-    this.messageService.add({
-      severity: 'success',
-      summary: 'Success',
-      detail: 'Purchase Return updated successfully'
-    });
-    this.loadPurchaseReturns(this.currentPage, this.rows, this.searchTerm);
   }
 
   /**

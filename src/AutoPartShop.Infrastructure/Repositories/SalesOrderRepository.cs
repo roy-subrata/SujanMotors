@@ -51,7 +51,14 @@ public class SalesOrderRepository : ISalesOrderRepository
         if (entity == null)
             throw new ArgumentNullException(nameof(entity));
 
-        _dbContext.SalesOrders.Update(entity);
+        var entry = _dbContext.Entry(entity);
+        if (entry.State == EntityState.Detached)
+        {
+            _dbContext.SalesOrders.Attach(entity);
+            entry.State = EntityState.Modified;
+        }
+
+        // Preserve current tracked state for child entities (adds/deletes from the controller)
         await _dbContext.SaveChangesAsync(cancellationToken);
     }
 

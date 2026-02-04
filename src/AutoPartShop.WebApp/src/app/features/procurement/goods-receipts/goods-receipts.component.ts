@@ -8,6 +8,7 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { CardModule } from 'primeng/card';
 import { Select } from 'primeng/select';
 import { DatePicker } from 'primeng/datepicker';
+import { TooltipModule } from 'primeng/tooltip';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { GoodsReceiptsListComponent } from './goods-receipts-list.component';
 import { GoodsReceiptService, GoodsReceiptResponse } from '../services/goods-receipt.service';
@@ -24,6 +25,7 @@ import { GoodsReceiptService, GoodsReceiptResponse } from '../services/goods-rec
     CardModule,
     Select,
     DatePicker,
+    TooltipModule,
     GoodsReceiptsListComponent
   ],
   providers: [MessageService, ConfirmationService],
@@ -42,7 +44,7 @@ export class GoodsReceiptsComponent implements OnInit {
   currentPage = 1;
   searchTerm = '';
   filterStatus: string | null = null;
-  dateRange: Date[] | null = null;
+  dateRange: Date[] = [];
 
   statusOptions = [
     { label: 'All', value: null },
@@ -98,6 +100,13 @@ export class GoodsReceiptsComponent implements OnInit {
   }
 
   /**
+   * Refresh data
+   */
+  refreshData(): void {
+    this.loadGoodsReceipts(this.currentPage, this.rows, this.searchTerm);
+  }
+
+  /**
    * Handle search
    */
   onSearch(): void {
@@ -116,8 +125,14 @@ export class GoodsReceiptsComponent implements OnInit {
    * Handle filter change
    */
   onFilterChange(): void {
-    // TODO: Implement filtering logic with status and date range
     this.loadGoodsReceipts(1, this.rows, this.searchTerm);
+  }
+
+  /**
+   * Check if any filter is active
+   */
+  hasActiveFilters(): boolean {
+    return !!(this.searchTerm || this.filterStatus || (this.dateRange && this.dateRange.length > 0));
   }
 
   /**
@@ -126,7 +141,7 @@ export class GoodsReceiptsComponent implements OnInit {
   clearFilters(): void {
     this.searchTerm = '';
     this.filterStatus = null;
-    this.dateRange = null;
+    this.dateRange = [];
     this.loadGoodsReceipts(1, this.rows);
   }
 
@@ -210,18 +225,6 @@ export class GoodsReceiptsComponent implements OnInit {
    */
   onPageChange(event: { page: number; rows: number }): void {
     this.loadGoodsReceipts(event.page, event.rows, this.searchTerm);
-  }
-
-  /**
-   * Handle goods receipt updated
-   */
-  onGoodsReceiptUpdated(): void {
-    this.messageService.add({
-      severity: 'success',
-      summary: 'Success',
-      detail: 'Goods Receipt updated successfully'
-    });
-    this.loadGoodsReceipts(this.currentPage, this.rows, this.searchTerm);
   }
 
   /**

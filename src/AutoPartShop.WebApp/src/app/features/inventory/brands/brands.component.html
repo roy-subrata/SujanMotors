@@ -1,223 +1,461 @@
-<div class="brands-container">
-  <!-- Messages -->
-  <p-toast position="top-right"></p-toast>
+<!-- ============================================================
+     BRANDS LIST - ENTERPRISE UI (MATCHES SALES ORDERS LAYOUT)
+     ============================================================ -->
 
-  <!-- Confirmation Dialog -->
-  <p-confirmDialog></p-confirmDialog>
+<p-toast position="top-right"></p-toast>
+<p-confirmDialog></p-confirmDialog>
 
-  <div class="brands-header">
+<div class="page-wrapper">
+  <!-- ==================== PAGE HEADER ==================== -->
+  <header class="page-header">
     <div class="header-content">
-      <!-- Title and Subtitle -->
-      <div class="header-title-section">
-        <h1 class="header-title">Brands Management</h1>
-        <p class="header-subtitle">Manage part brands and manufacturers</p>
+      <div class="header-left">
+        <h1 class="page-title">Brands</h1>
+        <p class="page-subtitle">Manage part brands and manufacturers</p>
       </div>
 
-      <!-- Toolbar: Search and Action Button -->
-      <div class="toolbar">
-        <div class="search-container">
-          <i class="pi pi-search search-icon"></i>
-          <input type="text" placeholder="Search by name, code, email..." class="search-input"
-           (ngModelChange)="onSearchChange($event)"  [(ngModel)]="searchQuery">
-          <i *ngIf="searchQuery" class="pi pi-times clear-icon" (click)="clearSearch()">
-          </i>
+      <div class="header-actions">
+        <div class="stats-badge">
+          <i class="pi pi-tags"></i>
+          <div class="stats-info">
+            <span class="stats-value">{{ totalRecords }}</span>
+            <span class="stats-label">brands</span>
+          </div>
         </div>
-        <button pButton type="button" label="New Brand" icon="pi pi-plus" class="p-button-success btn-create"
-          (click)="openNew()">
+
+        <div class="action-buttons">
+          <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="refreshData()">
+            <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
+          </button>
+          <button class="btn-primary" (click)="createBrand()">
+            <i class="pi pi-plus"></i>
+            <span>New Brand</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================== FILTER SECTION ==================== -->
+  <section class="filter-section">
+    <div class="filter-container">
+      <div class="filter-group search-group">
+        <div class="search-input-wrapper">
+          <i class="pi pi-search"></i>
+          <input
+            type="text"
+            [(ngModel)]="searchQuery"
+            placeholder="Search by brand name, code, country..."
+            (keyup.enter)="onSearch()"
+            class="search-input" />
+          <button *ngIf="searchQuery" class="search-clear" (click)="clearSearch()">
+            <i class="pi pi-times"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="filter-group filter-actions">
+        <button class="btn-search" (click)="onSearch()">
+          <i class="pi pi-search"></i>
+          Search
+        </button>
+        <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
+          <i class="pi pi-filter-slash"></i>
+          Clear
         </button>
       </div>
     </div>
-  </div>
 
+    <div *ngIf="hasActiveFilters()" class="active-filters">
+      <span class="active-filters-label">Active filters:</span>
+      <span *ngIf="searchQuery" class="filter-chip">
+        Search: "{{ searchQuery }}"
+        <i class="pi pi-times" (click)="clearSearch()"></i>
+      </span>
+    </div>
+  </section>
 
-  <!-- Table Section -->
-  <div class="table-section">
-    <p-table [value]="filteredBrands" [rows]="10" [paginator]="true" [globalFilterFields]="['name', 'code', 'country']"
-      [loading]="loading" responsiveLayout="scroll" [showCurrentPageReport]="true"
-      currentPageReportTemplate="Showing {first} to {last} of {totalRecords} brands" styleClass="p-datatable-striped">
+  <!-- ==================== DATA TABLE (Desktop) ==================== -->
+  <section class="table-section desktop-only">
+    <div class="table-container">
+      <p-table
+        [value]="pagedBrands"
+        [lazy]="true"
+        [paginator]="false"
+        [rows]="pageSize"
+        [first]="first"
+        [totalRecords]="totalRecords"
+        [loading]="loading"
+        (onLazyLoad)="onPageChange($event)"
+        [rowHover]="true"
+        [scrollable]="true"
+        scrollHeight="flex"
+        styleClass="custom-table">
 
-      <ng-template pTemplate="header">
-        <tr>
-          <th pSortableColumn="code" style="width: 10%">
-            Code <p-sortIcon field="code"></p-sortIcon>
-          </th>
-          <th pSortableColumn="name" style="width: 20%">
-            Name <p-sortIcon field="name"></p-sortIcon>
-          </th>
-          <th style="width: 25%">Description</th>
-          <th pSortableColumn="country" style="width: 15%">
-            Country <p-sortIcon field="country"></p-sortIcon>
-          </th>
-          <th style="width: 10%">Contact</th>
-          <th pSortableColumn="isActive" style="width: 10%">
-            Status <p-sortIcon field="isActive"></p-sortIcon>
-          </th>
-          <th style="width: 10%">Actions</th>
-        </tr>
-      </ng-template>
+        <ng-template #header>
+          <tr>
+            <th class="col-so">Code</th>
+            <th class="col-customer">Brand</th>
+            <th class="col-date">Country</th>
+            <th class="col-date">Contact</th>
+            <th class="col-status">Status</th>
+            <th class="col-actions">Actions</th>
+          </tr>
+        </ng-template>
 
-      <ng-template pTemplate="body" let-brand>
-        <tr>
-          <td>
-            <span class="brand-code">{{ brand.code }}</span>
-          </td>
-          <td>
-            <div class="brand-name-cell">
-              <img *ngIf="brand.logoUrl" [src]="brand.logoUrl" [alt]="brand.name" class="brand-logo" />
-              <span class="brand-name">{{ brand.name }}</span>
-            </div>
-          </td>
-          <td>
-            <span class="description-text" [pTooltip]="brand.description" tooltipPosition="top">
-              {{ brand.description | slice:0:50 }}{{ brand.description?.length > 50 ? '...' : '' }}
-            </span>
-          </td>
-          <td>
-            <span *ngIf="brand.country" class="country-badge">{{ brand.country }}</span>
-            <span *ngIf="!brand.country" class="text-muted">—</span>
-          </td>
-          <td>
-            <div class="contact-icons" *ngIf="brand.contactEmail || brand.contactPhone">
-              <i class="pi pi-envelope" *ngIf="brand.contactEmail" [pTooltip]="brand.contactEmail"
-                tooltipPosition="top"></i>
-              <i class="pi pi-phone" *ngIf="brand.contactPhone" [pTooltip]="brand.contactPhone"
-                tooltipPosition="top"></i>
-            </div>
-            <span *ngIf="!brand.contactEmail && !brand.contactPhone" class="text-muted">—</span>
-          </td>
-          <td>
-            <p-tag [value]="brand.isActive ? 'Active' : 'Inactive'"
-              [severity]="brand.isActive ? 'success' : 'danger'"></p-tag>
-          </td>
-          <td>
-            <div class="action-buttons">
-              <button pButton icon="pi pi-pencil" class="p-button-rounded p-button-text p-button-info p-button-sm"
-                (click)="editBrand(brand)" pTooltip="Edit" tooltipPosition="left"></button>
-              <button pButton icon="pi pi-trash" class="p-button-rounded p-button-text p-button-danger p-button-sm"
-                (click)="deleteBrand(brand)" pTooltip="Delete" tooltipPosition="left"></button>
-            </div>
-          </td>
-        </tr>
-      </ng-template>
+        <ng-template #body let-brand>
+          <tr class="data-row">
+            <td class="col-so">
+              <div class="so-cell">
+                <span class="so-link">{{ brand.code }}</span>
+              </div>
+            </td>
 
-      <ng-template pTemplate="emptymessage">
-        <tr>
-          <td colspan="7" class="empty-message">
-            <div class="empty-content">
-              <i class="pi pi-inbox"></i>
-              <p>No brands found</p>
-              <span>Click "Add Brand" to create your first brand</span>
-            </div>
-          </td>
-        </tr>
-      </ng-template>
-    </p-table>
-  </div>
+            <td class="col-customer">
+              <div class="customer-cell">
+                <div class="customer-avatar">
+                  {{ (brand.name || 'B')[0].toUpperCase() }}
+                </div>
+                <div class="customer-info">
+                  <span class="customer-name">{{ brand.name }}</span>
+                  <span *ngIf="brand.description" class="customer-phone">{{ brand.description }}</span>
+                </div>
+              </div>
+            </td>
 
-  <!-- Brand Form Dialog -->
-  <p-dialog [(visible)]="brandDialog" [header]="editMode ? 'Edit Brand' : 'New Brand'" [modal]="true"
-    [style]="{width: '500px', maxWidth: '95vw'}" [draggable]="true" [resizable]="false" (onHide)="hideDialog()">
+            <td class="col-date">
+              <span class="date-text">{{ brand.country || '-' }}</span>
+            </td>
 
-    <div class="form-container">
-      <!-- Name Field -->
-      <div class="form-group">
-        <label for="name" class="form-label">
-          <span class="required">*</span> Brand Name
-        </label>
-        <input type="text" pInputText id="name" [(ngModel)]="brand.name" placeholder="Enter brand name"
-          class="form-input" />
-      </div>
+            <td class="col-date">
+              <span class="date-text">
+                {{ brand.contactEmail || brand.contactPhone || '-' }}
+              </span>
+            </td>
 
-      <!-- Code Field -->
-      <div class="form-group">
-        <label for="code" class="form-label">
-          <span class="required">*</span> Code
-        </label>
-        <div class="code-input-wrapper">
-          <input type="text" pInputText id="code" [(ngModel)]="brand.code" placeholder="Auto-generated"
-            class="form-input" [disabled]="true" style="text-transform: uppercase;" />
-          <i *ngIf="generatingCode" class="pi pi-spin pi-spinner code-spinner"></i>
-        </div>
-        <small class="hint-message">Code is auto-generated and cannot be changed</small>
-      </div>
+            <td class="col-status">
+              <span class="status-pill" [attr.data-status]="brand.isActive ? 'active' : 'inactive'">
+                {{ brand.isActive ? 'Active' : 'Inactive' }}
+              </span>
+            </td>
 
-      <!-- Description Field -->
-      <div class="form-group">
-        <label for="description" class="form-label">Description</label>
-        <textarea pInputTextarea id="description" [(ngModel)]="brand.description" rows="3"
-          placeholder="Enter description" class="form-input"></textarea>
-      </div>
+            <td class="col-actions">
+              <div class="action-cell">
+                <button class="btn-action" pTooltip="Edit" (click)="editBrand(brand)">
+                  <i class="pi pi-pencil"></i>
+                </button>
+                <button class="btn-action" pTooltip="Delete" (click)="deleteBrand(brand)">
+                  <i class="pi pi-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </ng-template>
 
-      <!-- Country Field -->
-      <div class="form-group">
-        <label for="country" class="form-label">Country</label>
-        <input type="text" pInputText id="country" [(ngModel)]="brand.country" placeholder="e.g., Japan"
-          class="form-input" />
-      </div>
-
-      <!-- Additional Fields for Edit Mode -->
-      <ng-container *ngIf="editMode">
-        <!-- Logo URL -->
-        <div class="form-group">
-          <label for="logoUrl" class="form-label">Logo URL</label>
-          <input type="text" pInputText id="logoUrl" [(ngModel)]="brand.logoUrl"
-            placeholder="https://example.com/logo.png" class="form-input" />
-        </div>
-
-        <!-- Website -->
-        <div class="form-group">
-          <label for="website" class="form-label">Website</label>
-          <input type="text" pInputText id="website" [(ngModel)]="brand.website" placeholder="https://www.example.com"
-            class="form-input" />
-        </div>
-
-        <!-- Contact Row -->
-        <div class="form-row">
-          <div class="form-group half">
-            <label for="contactEmail" class="form-label">Contact Email</label>
-            <input type="email" pInputText id="contactEmail" [(ngModel)]="brand.contactEmail"
-              placeholder="contact@example.com" class="form-input" />
-          </div>
-          <div class="form-group half">
-            <label for="contactPhone" class="form-label">Contact Phone</label>
-            <input type="text" pInputText id="contactPhone" [(ngModel)]="brand.contactPhone"
-              placeholder="+1 234 567 8900" class="form-input" />
-          </div>
-        </div>
-
-        <!-- Display Order & Status Row -->
-        <div class="form-row">
-          <div class="form-group half">
-            <label for="displayOrder" class="form-label">Display Order</label>
-            <p-inputNumber id="displayOrder" [(ngModel)]="brand.displayOrder" [min]="0" [showButtons]="true"
-              class="form-input-number"></p-inputNumber>
-          </div>
-          <div class="form-group half status-group">
-            <label class="form-label">Status</label>
-            <div class="status-toggle">
-              <p-checkbox [(ngModel)]="brand.isActive" [binary]="true" inputId="isActive"></p-checkbox>
-              <label for="isActive" class="status-label">
-                <span *ngIf="brand.isActive" class="status-active">
-                  <i class="pi pi-check-circle"></i> Active
-                </span>
-                <span *ngIf="!brand.isActive" class="status-inactive">
-                  <i class="pi pi-times-circle"></i> Inactive
-                </span>
-              </label>
-            </div>
-          </div>
-        </div>
-      </ng-container>
+        <ng-template #emptymessage>
+          <tr>
+            <td colspan="6">
+              <div class="empty-state">
+                <div class="empty-icon">
+                  <i class="pi pi-tags"></i>
+                </div>
+                <h3>No Brands Found</h3>
+                <p *ngIf="hasActiveFilters()">Try adjusting your filters or search criteria</p>
+                <p *ngIf="!hasActiveFilters()">Get started by creating your first brand</p>
+                <button *ngIf="!hasActiveFilters()" class="btn-primary" (click)="createBrand()">
+                  <i class="pi pi-plus"></i>
+                  Create Brand
+                </button>
+                <button *ngIf="hasActiveFilters()" class="btn-secondary" (click)="clearFilters()">
+                  <i class="pi pi-filter-slash"></i>
+                  Clear Filters
+                </button>
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
     </div>
 
-    <ng-template pTemplate="footer">
-      <div class="dialog-footer">
-        <button pButton type="button" label="Cancel" icon="pi pi-times" class="p-button-text p-button-secondary"
-          (click)="hideDialog()"></button>
-        <button pButton type="button" [label]="editMode ? 'Update' : 'Create'" icon="pi pi-check"
-          [class]="editMode ? 'p-button-info' : 'p-button-success'" (click)="saveBrand()"
-          [disabled]="!brand.name || !brand.code"></button>
+    <div class="pagination-section" *ngIf="totalRecords > 0">
+      <div class="pagination-info">
+        Showing <strong>{{ first + 1 }}</strong> to <strong>{{ first + pagedBrands.length }}</strong> of <strong>{{ totalRecords }}</strong> brands
       </div>
-    </ng-template>
-  </p-dialog>
+      <div class="pagination-controls">
+        <span class="page-size-label">Rows per page:</span>
+        <p-select
+          [options]="[{label: '10', value: 10}, {label: '20', value: 20}, {label: '50', value: 50}]"
+          [(ngModel)]="pageSize"
+          (onChange)="onPageChange({first: 0, rows: pageSize})"
+          styleClass="page-size-dropdown">
+        </p-select>
+        <div class="page-nav">
+          <button class="page-btn" [disabled]="first === 0" (click)="onPageChange({first: 0, rows: pageSize})">
+            <i class="pi pi-angle-double-left"></i>
+          </button>
+          <button class="page-btn" [disabled]="first === 0" (click)="onPageChange({first: first - pageSize, rows: pageSize})">
+            <i class="pi pi-angle-left"></i>
+          </button>
+          <span class="page-indicator">{{ pageNumber }} / {{ totalPages }}</span>
+          <button class="page-btn" [disabled]="first + pageSize >= totalRecords" (click)="onPageChange({first: first + pageSize, rows: pageSize})">
+            <i class="pi pi-angle-right"></i>
+          </button>
+          <button class="page-btn" [disabled]="first + pageSize >= totalRecords" (click)="onPageChange({first: (totalPages - 1) * pageSize, rows: pageSize})">
+            <i class="pi pi-angle-double-right"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== MOBILE CARDS ==================== -->
+  <section class="cards-section mobile-only">
+    <div *ngIf="loading" class="cards-grid">
+      <div *ngFor="let _ of [1,2,3,4]" class="order-card skeleton-card">
+        <div class="card-header">
+          <div class="skeleton skeleton-text"></div>
+          <div class="skeleton skeleton-badge"></div>
+        </div>
+        <div class="card-body">
+          <div class="skeleton skeleton-text-lg"></div>
+          <div class="skeleton skeleton-text-sm"></div>
+        </div>
+        <div class="card-footer">
+          <div class="skeleton skeleton-text-sm"></div>
+          <div class="skeleton skeleton-text-sm"></div>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="!loading && pagedBrands.length === 0" class="empty-state-mobile">
+      <div class="empty-icon">
+        <i class="pi pi-tags"></i>
+      </div>
+      <h3>No Brands</h3>
+      <p>{{ hasActiveFilters() ? 'Try different filters' : 'Create your first brand' }}</p>
+      <button class="btn-primary" (click)="hasActiveFilters() ? clearFilters() : createBrand()">
+        <i class="pi" [class.pi-plus]="!hasActiveFilters()" [class.pi-filter-slash]="hasActiveFilters()"></i>
+        {{ hasActiveFilters() ? 'Clear Filters' : 'New Brand' }}
+      </button>
+    </div>
+
+    <div *ngIf="!loading && pagedBrands.length > 0" class="cards-grid">
+      <div *ngFor="let brand of pagedBrands" class="order-card">
+        <div class="card-header">
+          <span class="card-so-number">{{ brand.code }}</span>
+          <span class="status-pill" [attr.data-status]="brand.isActive ? 'active' : 'inactive'">
+            {{ brand.isActive ? 'Active' : 'Inactive' }}
+          </span>
+        </div>
+
+        <div class="card-body">
+          <div class="card-customer">
+            <div class="customer-avatar small">
+              {{ (brand.name || 'B')[0].toUpperCase() }}
+            </div>
+            <span class="customer-name">{{ brand.name }}</span>
+          </div>
+          <div class="card-dates">
+            <span class="card-date">
+              <i class="pi pi-globe"></i>
+              {{ brand.country || '-' }}
+            </span>
+            <span class="card-date">
+              <i class="pi pi-envelope"></i>
+              {{ brand.contactEmail || '-' }}
+            </span>
+          </div>
+        </div>
+
+        <div class="card-footer">
+          <div class="card-amount">
+            <span class="amount-label">Contact</span>
+            <span class="amount-value">{{ brand.contactPhone || '-' }}</span>
+          </div>
+          <div class="action-cell">
+            <button class="btn-card-action" (click)="editBrand(brand)">
+              <i class="pi pi-pencil"></i>
+            </button>
+            <button class="btn-card-action" (click)="deleteBrand(brand)">
+              <i class="pi pi-trash"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="!loading && pagedBrands.length > 0" class="mobile-pagination">
+      <div class="pagination-info-mobile">
+        {{ first + 1 }}-{{ first + pagedBrands.length }} of {{ totalRecords }}
+      </div>
+      <div class="pagination-nav-mobile">
+        <button class="page-btn" [disabled]="first === 0" (click)="onPageChange({first: first - pageSize, rows: pageSize})">
+          <i class="pi pi-chevron-left"></i>
+        </button>
+        <button class="page-btn" [disabled]="first + pageSize >= totalRecords" (click)="onPageChange({first: first + pageSize, rows: pageSize})">
+          <i class="pi pi-chevron-right"></i>
+        </button>
+      </div>
+    </div>
+  </section>
 </div>
+
+<!-- Brand Form Dialog -->
+<p-dialog
+  [(visible)]="brandDialog"
+  [header]="editMode ? 'Edit Brand' : 'New Brand'"
+  [modal]="true"
+  [style]="{width: '500px', maxWidth: '95vw'}"
+  [draggable]="true"
+  [resizable]="false"
+  (onHide)="hideDialog()">
+
+  <div class="form-container">
+    <div class="form-group">
+      <label for="name" class="form-label">
+        <span class="required">*</span> Brand Name
+      </label>
+      <input
+        type="text"
+        pInputText
+        id="name"
+        [(ngModel)]="brand.name"
+        placeholder="Enter brand name"
+        class="form-input" />
+    </div>
+
+    <div class="form-group">
+      <label for="code" class="form-label">
+        <span class="required">*</span> Code
+      </label>
+      <div class="code-input-wrapper">
+        <input
+          type="text"
+          pInputText
+          id="code"
+          [(ngModel)]="brand.code"
+          placeholder="Auto-generated"
+          class="form-input"
+          [disabled]="true"
+          style="text-transform: uppercase;" />
+        <i *ngIf="generatingCode" class="pi pi-spin pi-spinner code-spinner"></i>
+      </div>
+      <small class="hint-message">Code is auto-generated and cannot be changed</small>
+    </div>
+
+    <div class="form-group">
+      <label for="description" class="form-label">Description</label>
+      <textarea
+        pInputTextarea
+        id="description"
+        [(ngModel)]="brand.description"
+        rows="3"
+        placeholder="Enter description"
+        class="form-input"></textarea>
+    </div>
+
+    <div class="form-group">
+      <label for="country" class="form-label">Country</label>
+      <input
+        type="text"
+        pInputText
+        id="country"
+        [(ngModel)]="brand.country"
+        placeholder="e.g., Japan"
+        class="form-input" />
+    </div>
+
+    <ng-container *ngIf="editMode">
+      <div class="form-group">
+        <label for="logoUrl" class="form-label">Logo URL</label>
+        <input
+          type="text"
+          pInputText
+          id="logoUrl"
+          [(ngModel)]="brand.logoUrl"
+          placeholder="https://example.com/logo.png"
+          class="form-input" />
+      </div>
+
+      <div class="form-group">
+        <label for="website" class="form-label">Website</label>
+        <input
+          type="text"
+          pInputText
+          id="website"
+          [(ngModel)]="brand.website"
+          placeholder="https://www.example.com"
+          class="form-input" />
+      </div>
+
+      <div class="form-row">
+        <div class="form-group half">
+          <label for="contactEmail" class="form-label">Contact Email</label>
+          <input
+            type="email"
+            pInputText
+            id="contactEmail"
+            [(ngModel)]="brand.contactEmail"
+            placeholder="contact@example.com"
+            class="form-input" />
+        </div>
+        <div class="form-group half">
+          <label for="contactPhone" class="form-label">Contact Phone</label>
+          <input
+            type="text"
+            pInputText
+            id="contactPhone"
+            [(ngModel)]="brand.contactPhone"
+            placeholder="+1 234 567 8900"
+            class="form-input" />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group half">
+          <label for="displayOrder" class="form-label">Display Order</label>
+          <p-inputNumber
+            id="displayOrder"
+            [(ngModel)]="brand.displayOrder"
+            [min]="0"
+            [showButtons]="true"
+            class="form-input-number"></p-inputNumber>
+        </div>
+        <div class="form-group half status-group">
+          <label class="form-label">Status</label>
+          <div class="status-toggle">
+            <p-checkbox [(ngModel)]="brand.isActive" [binary]="true" inputId="isActive"></p-checkbox>
+            <label for="isActive" class="status-label">
+              <span *ngIf="brand.isActive" class="status-active">
+                <i class="pi pi-check-circle"></i> Active
+              </span>
+              <span *ngIf="!brand.isActive" class="status-inactive">
+                <i class="pi pi-times-circle"></i> Inactive
+              </span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </ng-container>
+  </div>
+
+  <ng-template pTemplate="footer">
+    <div class="dialog-footer">
+      <button
+        pButton
+        type="button"
+        label="Cancel"
+        icon="pi pi-times"
+        class="p-button-text p-button-secondary"
+        (click)="hideDialog()"></button>
+      <button
+        pButton
+        type="button"
+        [label]="editMode ? 'Update' : 'Create'"
+        icon="pi pi-check"
+        [class]="editMode ? 'p-button-info' : 'p-button-success'"
+        (click)="saveBrand()"
+        [disabled]="!brand.name || !brand.code"></button>
+    </div>
+  </ng-template>
+</p-dialog>

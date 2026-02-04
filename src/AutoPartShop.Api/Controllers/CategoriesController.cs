@@ -1,7 +1,10 @@
-using Microsoft.AspNetCore.Mvc;
+
+using AutoPartShop.Application.Categories.Dtos;
+using AutoPartShop.Application.Catgories;
+using AutoPartShop.Application.Common;
 using AutoPartShop.Domain.Entities;
-using AutoPartShop.Application.DTOs.CategoryDtos;
 using AutoPartShop.Domain.Repositories;
+using Microsoft.AspNetCore.Mvc;
 
 namespace AutoPartShop.Api.Controllers;
 
@@ -11,18 +14,13 @@ namespace AutoPartShop.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
-public class CategoriesController : ControllerBase
+public class CategoriesController(
+    ILogger<CategoriesController> _logger,
+    ICategoryRepository _categoryRepository,
+    ICategoryReadRepository _categoryReadRepository,
+    ICodeGenerateService _codeGenerateService) : ControllerBase
 {
-    private readonly ICategoryRepository _categoryRepository;
-    private readonly ICodeGenerateService _codeGenerateService;
-    private readonly ILogger<CategoriesController> _logger;
 
-    public CategoriesController(ICategoryRepository categoryRepository, ICodeGenerateService codeGenerateService, ILogger<CategoriesController> logger)
-    {
-        _categoryRepository = categoryRepository ?? throw new ArgumentNullException(nameof(categoryRepository));
-        _codeGenerateService = codeGenerateService ?? throw new ArgumentNullException(nameof(codeGenerateService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     /// <summary>
     /// Get all categories
@@ -173,42 +171,24 @@ public class CategoriesController : ControllerBase
         }
     }
 
-    [HttpGet("paged")]
+    [HttpPost("list")]
     [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult> GetCategoriesPaged([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10, [FromQuery] string? searchTerm = null, CancellationToken cancellationToken = default)
+    public async Task<ActionResult> GetCategoriesPaged(CategoryQuery request, CancellationToken cancellationToken = default)
     {
         try
         {
-            if (pageNumber < 1 || pageSize < 1)
-            {
-                _logger.LogWarning("Invalid pagination parameters: pageNumber={PageNumber}, pageSize={PageSize}", pageNumber, pageSize);
-                return BadRequest(new { message = "Page number and page size must be greater than 0" });
-            }
+            _logger.LogInformation("Fetching categories with pagination: pageNumber={PageNumber}, pageSize={PageSize}, searchTerm={SearchTerm}", request.PageNumber, request.PageSize, request.Search ?? "none");
 
-            _logger.LogInformation("Fetching categories with pagination: pageNumber={PageNumber}, pageSize={PageSize}, searchTerm={SearchTerm}", pageNumber, pageSize, searchTerm ?? "none");
+            var (response, total) = await _categoryReadRepository.FindAllyAsync(request, cancellationToken);
 
-            // If search term is provided, search and paginate; otherwise get all paginated
+            return Ok(PagedResult<CategoryResponse>.Create(response, total, request));
 
-            var (items, totalCount) = await _categoryRepository.SearchPagedAsync(searchTerm ?? string.Empty, pageNumber, pageSize, cancellationToken);
-
-            var response = items.Select(c => MapToResponse(c)).ToList();
-
-            _logger.LogInformation("Successfully fetched page {PageNumber} with {Count} categories (total: {TotalCount})", pageNumber, response.Count, totalCount);
-            return Ok(new
-            {
-                items = response,
-                pageNumber,
-                pageSize,
-                totalCount,
-                totalPages = (int)Math.Ceiling(totalCount / (double)pageSize),
-                hasNextPage = (pageNumber * pageSize) < totalCount
-            });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error fetching paginated categories with searchTerm={SearchTerm}", searchTerm ?? "none");
+            _logger.LogError(ex, "Error fetching paginated categories with searchTerm={SearchTerm}", request.Search ?? "none");
             return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while fetching paginated categories" });
         }
     }
@@ -224,7 +204,7 @@ public class CategoriesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<CategoryResponse>> CreateCategory(CreateCategoryRequest request, CancellationToken cancellationToken = default)
+    public async Task<ActionResult<CategoryResponse>> CreateCategory(CreateCategory request, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -286,7 +266,7 @@ public class CategoriesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<CategoryResponse>> UpdateCategory(Guid id, UpdateCategoryRequest request, CancellationToken cancellationToken = default)
+    public async Task<ActionResult<CategoryResponse>> UpdateCategory(Guid id, UpdateCategory request, CancellationToken cancellationToken = default)
     {
         try
         {

@@ -1,6 +1,8 @@
 using AutoPartShop.Api.Services;
+using AutoPartShop.Application.Common;
+using AutoPartShop.Application.Customers;
+using AutoPartShop.Application.Customers.Dtos;
 using AutoPartShop.Application.DTOs.CustomerDtos;
-using AutoPartShop.Domain.Common;
 using AutoPartShop.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
 
@@ -12,15 +14,22 @@ namespace AutoPartShop.Api.Controllers;
 public class CustomerController : ControllerBase
 {
     private readonly ICustomerRepository _customerRepository;
+    private readonly ICustomerReadRepository _customerReadRepository;
     private readonly ILogger<CustomerController> _logger;
     private readonly ICodeGenerateService _codeGenerateService;
     private readonly ICurrentUserService _currentUserService;
 
-    public CustomerController(ICustomerRepository customerRepository, ICodeGenerateService codeGenerateService, ICurrentUserService currentUserService, ILogger<CustomerController> logger)
+    public CustomerController(
+        ICustomerRepository customerRepository, 
+        ICustomerReadRepository customerReadRepository,
+        ICodeGenerateService codeGenerateService,
+        ICurrentUserService currentUserService,
+        ILogger<CustomerController> logger)
     {
         _customerRepository = customerRepository;
         _codeGenerateService = codeGenerateService;
         _currentUserService = currentUserService;
+        _customerReadRepository = customerReadRepository;
         _logger = logger;
     }
 
@@ -44,18 +53,9 @@ public class CustomerController : ControllerBase
                 return BadRequest($"Page size can not be {query.PageSize}");
             }
 
-            ; var response = await _customerRepository.SearchPagedAsync(query, cancellationToken);
-            return Ok(new PaginatedResponse<CustomerResponse>
-            {
-                Data = response.customers.Select(MapToCustomerResponse).ToList(),
-                Pagination = new PaginationMeta
-                {
-                    PageNumber = query.PageNumber,
-                    PageSize = query.PageSize,
-                    TotalCount = response.totalCount,
-                    TotalPages = (int)Math.Ceiling(response.totalCount / (double)query.PageSize)
-                }
-            });
+
+            var (response,total) = await _customerReadRepository.FindAllyAsync(query, cancellationToken);
+            return Ok(PagedResult<CustomerResponse>.Create(response,total,query));
         }
         catch (Exception ex)
         {
@@ -80,32 +80,7 @@ public class CustomerController : ControllerBase
         }
     }
 
-    //[HttpGet("list")]
-    //public async Task<IActionResult> GetList(int pageNumber = 1, int pageSize = 10, string? searchTerm = null, CancellationToken cancellationToken = default)
-    //{
-    //    try
-    //    {
-    //        if (pageNumber < 1) pageNumber = 1;
-    //        if (pageSize < 1) pageSize = 10;
-    //        if (pageSize > 100) pageSize = 100;
 
-    //        var (customers, totalCount) = string.IsNullOrWhiteSpace(searchTerm)
-    //            ? await _customerRepository.GetPagedAsync(pageNumber, pageSize, cancellationToken)
-    //            : await _customerRepository.SearchPagedAsync(searchTerm, pageNumber, pageSize, cancellationToken);
-
-    //        var response = customers.Select(MapToCustomerResponse);
-    //        return Ok(new
-    //        {
-    //            data = response,
-    //            pagination = new { pageNumber, pageSize, totalCount, totalPages = (int)Math.Ceiling(totalCount / (double)pageSize) }
-    //        });
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        _logger.LogError(ex, "Error getting customers list");
-    //        return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving customers");
-    //    }
-    //}
 
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)

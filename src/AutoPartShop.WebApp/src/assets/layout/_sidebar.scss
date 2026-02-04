@@ -1,12 +1,5 @@
-@media (max-width: 768px) {
-    .layout-sidebar {
-        --sidebar-width: 0px !important;
-        --sidebar-width-collapsed: 0px !important;
-        width: 0 !important;
-        min-width: 0 !important;
-        display: none !important;
-    }
-}
+/* Mobile styles are handled in _responsive.scss */
+
 .layout-sidebar {
     position: fixed;
     left: 0;
@@ -204,3 +197,60 @@
 }
 
 // Sidebar toggle button hidden - use hamburger menu in topbar instead
+
+/* Mobile responsive adjustments */
+@media (max-width: 991px) {
+    .layout-sidebar {
+        position: fixed;
+        transform: translateX(-100%);
+        left: 0;
+        top: 70px;
+        height: calc(100vh - 70px);
+        width: 280px;
+        z-index: 999;
+
+        .sidebar-header {
+            height: 60px;
+            padding: 0 1rem;
+        }
+    }
+}
+
+/* Extra small devices */
+@media (max-width: 575px) {
+    .layout-sidebar {
+        top: 60px;
+        height: calc(100vh - 60px);
+        width: 260px;
+
+        .sidebar-header {
+            height: 50px;
+            padding: 0 0.75rem;
+        }
+
+        .logo-icon {
+            font-size: 1.25rem;
+        }
+
+        .logo-text {
+            font-size: 1rem;
+        }
+
+        .sidebar-footer {
+            padding: 0.5rem;
+        }
+
+        .user-profile {
+            padding: 0.5rem;
+            gap: 0.5rem;
+        }
+
+        .user-name {
+            font-size: 0.8125rem;
+        }
+
+        .user-email {
+            font-size: 0.6875rem;
+        }
+    }
+}

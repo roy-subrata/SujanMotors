@@ -185,6 +185,7 @@ export class SupplierPaymentListComponent implements OnInit {
 
         this.supplierPaymentService.getSupplierPayments(query).subscribe({
             next: (response: PaginatedSupplierPaymentResponse) => {
+                debugger;
                 this.supplierPayments = response.data;
                 this.totalCount = response.pagination.totalCount;
                 this.loading = false;
@@ -540,10 +541,10 @@ export class SupplierPaymentListComponent implements OnInit {
     }
 
     /**
-     * Format currency
+     * Format currency - uses default currency from settings
      */
     formatCurrency(value: number): string {
-        const currency = this.currencyService.selectedCurrency() || 'BDT';
+        const currency = this.currencyService.selectedCurrency();
         return this.currencyService.formatCurrency(value, currency);
     }
 }

@@ -63,6 +63,13 @@
     <!-- Lots Table -->
     <p-table
       [value]="priceHistory.lots"
+      [paginator]="true"
+      [lazy]="true"
+      [rows]="pageSize"
+      [totalRecords]="totalRecords"
+      [first]="first"
+      [rowsPerPageOptions]="pageSizeOptions"
+      (onLazyLoad)="onLazyLoad($event)"
       responsiveLayout="scroll"
       styleClass="p-datatable-striped"
       [tableStyle]="{ 'min-width': '60rem' }">

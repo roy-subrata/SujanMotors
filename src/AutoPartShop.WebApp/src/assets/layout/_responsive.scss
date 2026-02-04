@@ -78,9 +78,16 @@
     }
 
     .layout-wrapper {
+        .layout-topbar {
+            left: 0 !important;
+            padding: 0 1rem;
+            height: 70px;
+        }
+
         .layout-main-container {
             margin-left: 0 !important;
-            margin-top: 70px;
+            margin-top: 0 !important; /* Removed - handled by position: fixed + top in styles.scss */
+            padding-top: 0 !important;
         }
 
         .layout-sidebar {
@@ -119,6 +126,26 @@
             .layout-sidebar {
                 transform: translateX(-100%);
             }
+        }
+    }
+}
+
+/* Extra small devices adjustments */
+@media (max-width: 575px) {
+    .layout-wrapper {
+        .layout-topbar {
+            height: 60px !important;
+            padding: 0 0.75rem;
+        }
+
+        .layout-sidebar {
+            top: 60px !important;
+            height: calc(100vh - 60px) !important;
+        }
+
+        .layout-mask {
+            top: 60px !important;
+            height: calc(100% - 60px) !important;
         }
     }
 }

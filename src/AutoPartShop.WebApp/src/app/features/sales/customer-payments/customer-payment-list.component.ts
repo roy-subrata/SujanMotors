@@ -657,10 +657,10 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
     }
 
     /**
-     * Format currency
+     * Format currency - uses default currency from settings
      */
     formatCurrency(value: number): string {
-        const currency = this.currencyService.selectedCurrency() || 'BDT';
+        const currency = this.currencyService.selectedCurrency();
         return this.currencyService.formatCurrency(value, currency);
     }
 

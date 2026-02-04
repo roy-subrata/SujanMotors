@@ -1,6 +1,8 @@
 using AutoPartShop.Api.Services;
+using AutoPartShop.Application.Common;
+using AutoPartShop.Application.CustomerPayment;
+using AutoPartShop.Application.CustomerPayment.Dtos;
 using AutoPartShop.Application.DTOs.PaymentDtos;
-using AutoPartShop.Domain.Common;
 using AutoPartShop.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -12,6 +14,7 @@ namespace AutoPartShop.Api.Controllers;
 public class CustomerPaymentController : ControllerBase
 {
     private readonly ICustomerPaymentRepository _repository;
+    private readonly ICustomerPaymentReadRepository _customerPaymentReadRepository;
     private readonly ICustomerRepository _customerRepository;
     private readonly IInvoiceRepository _invoiceRepository;
     private readonly ISalesOrderRepository _salesOrderRepository;
@@ -21,6 +24,7 @@ public class CustomerPaymentController : ControllerBase
 
     public CustomerPaymentController(
         ICustomerPaymentRepository repository,
+        ICustomerPaymentReadRepository customerPaymentReadRepository,
         ICustomerRepository customerRepository,
         IInvoiceRepository invoiceRepository,
         ISalesOrderRepository salesOrderRepository,
@@ -30,6 +34,7 @@ public class CustomerPaymentController : ControllerBase
     {
         _repository = repository;
         _customerRepository = customerRepository;
+        _customerPaymentReadRepository = customerPaymentReadRepository;
         _invoiceRepository = invoiceRepository;
         _salesOrderRepository = salesOrderRepository;
         _dbContext = dbContext;
@@ -51,10 +56,10 @@ public class CustomerPaymentController : ControllerBase
             return BadRequest("Invalid pagination parameters.");
         }
 
-        var (payments, totalCount) = await _repository.SearchPagedAsync(query, cancellation);
+        var (payments, totalCount) = await _customerPaymentReadRepository.FindAllAsync(query, cancellation);
 
-        return Ok(PagedResult<CustomerPaymentResponse>.Create(
-            payments.Select(MapResponse),
+        return Ok(PagedResult<Application.CustomerPayment.Dtos.CustomerPaymentResponse>.Create(
+            payments.ToList(),
             totalCount,
             query
         ));
@@ -90,24 +95,24 @@ public class CustomerPaymentController : ControllerBase
             var customer = await _customerRepository.GetByIdAsync(customerId, cancellationToken);
             var customerName = customer?.GetFullName() ?? "";
 
-            var responses = paymentsList.Select(p => new CustomerPaymentResponse
+            var responses = paymentsList.Select(p => new Application.CustomerPayment.Dtos.CustomerPaymentResponse
             {
-                Id = p.Id,
-                CustomerId = p.CustomerId,
-                CustomerName = customerName,
-                InvoiceId = p.InvoiceId,
-                PaymentProviderId = p.PaymentProviderId,
-                ProviderName = p.PaymentProvider?.ProviderName ?? string.Empty,
-                InvoiceNumber = p.Invoice?.InvoiceNumber ?? string.Empty,
-                TransactionNumber = p.TransactionNumber,
-                Amount = p.Amount,
-                PaymentFee = p.PaymentFee,
-                NetAmount = p.NetAmount,
-                PaymentMethod = p.PaymentMethod,
-                PaymentDate = p.PaymentDate,
-                ReferenceNumber = p.ReferenceNumber,
-                Status = p.Status,
-                Notes = p.Notes
+                //Id = p.Id,
+                //CustomerId = p.CustomerId,
+                //CustomerName = customerName,
+                //InvoiceId = p.InvoiceId,
+                //PaymentProviderId = p.PaymentProviderId,
+                //ProviderName = p.PaymentProvider?.ProviderName ?? string.Empty,
+                //InvoiceNumber = p.Invoice?.InvoiceNumber ?? string.Empty,
+                //TransactionNumber = p.TransactionNumber,
+                //Amount = p.Amount,
+                //PaymentFee = p.PaymentFee,
+                //NetAmount = p.NetAmount,
+                //PaymentMethod = p.PaymentMethod,
+                //PaymentDate = p.PaymentDate,
+                //ReferenceNumber = p.ReferenceNumber,
+                //Status = p.Status,
+                //Notes = p.Notes
             }).ToList();
 
             return Ok(new { data = responses, totalCount });
@@ -485,36 +490,36 @@ public class CustomerPaymentController : ControllerBase
 
 
 
-    private CustomerPaymentResponse MapResponse(CustomerPayment p)
+    private Application.CustomerPayment.Dtos.CustomerPaymentResponse MapResponse(CustomerPayment p)
     {
         return new()
         {
-            Id = p.Id,
-            CustomerId = p.CustomerId,
-            CustomerName = p.Customer?.GetFullName() ?? "",
-            InvoiceId = p.InvoiceId,
-            InvoiceNumber = p.Invoice?.InvoiceNumber ?? string.Empty,
-            PaymentProviderId = p.PaymentProviderId,
-            ProviderName = p.PaymentProvider?.ProviderName ?? string.Empty,
-            TransactionNumber = p.TransactionNumber,
-            Amount = p.Amount,
-            PaymentFee = p.PaymentFee,
-            NetAmount = p.NetAmount,
-            Currency = p.Currency,
-            PaymentDate = p.PaymentDate,
-            PaymentMethod = p.PaymentMethod,
-            Status = p.Status,
-            ReferenceNumber = p.ReferenceNumber,
-            AuthorizationCode = p.AuthorizationCode,
-            Notes = p.Notes,
-            SettledDate = p.SettledDate,
-            SettledBy = p.SettledBy,
-            IsReconciled = p.IsReconciled,
-            ReconciledDate = p.ReconciledDate,
-            PaymentType = p.PaymentType.ToString(),
-            RemainingAmount = p.RemainingAmount,
-            SourceAdvancePaymentId = p.SourceAdvancePaymentId,
-            CreatedAt = DateTime.UtcNow
+            //Id = p.Id,
+            //CustomerId = p.CustomerId,
+            //CustomerName = p.Customer?.GetFullName() ?? "",
+            //InvoiceId = p.InvoiceId,
+            //InvoiceNumber = p.Invoice?.InvoiceNumber ?? string.Empty,
+            //PaymentProviderId = p.PaymentProviderId,
+            //ProviderName = p.PaymentProvider?.ProviderName ?? string.Empty,
+            //TransactionNumber = p.TransactionNumber,
+            //Amount = p.Amount,
+            //PaymentFee = p.PaymentFee,
+            //NetAmount = p.NetAmount,
+            //Currency = p.Currency,
+            //PaymentDate = p.PaymentDate,
+            //PaymentMethod = p.PaymentMethod,
+            //Status = p.Status,
+            //ReferenceNumber = p.ReferenceNumber,
+            //AuthorizationCode = p.AuthorizationCode,
+            //Notes = p.Notes,
+            //SettledDate = p.SettledDate,
+            //SettledBy = p.SettledBy,
+            //IsReconciled = p.IsReconciled,
+            //ReconciledDate = p.ReconciledDate,
+            //PaymentType = p.PaymentType.ToString(),
+            //RemainingAmount = p.RemainingAmount,
+            //SourceAdvancePaymentId = p.SourceAdvancePaymentId,
+            //CreatedAt = DateTime.UtcNow
         };
     }
 

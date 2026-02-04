@@ -52,13 +52,13 @@ export class PurchaseReturnsListComponent implements OnInit {
   @Output() onSearch = new EventEmitter<string>();
   @Output() onSearchClear = new EventEmitter<void>();
   @Output() onReturnCreated = new EventEmitter<void>();
-  @Output() onReturnUpdated = new EventEmitter<void>();
   @Output() onReturnDeleted = new EventEmitter<void>();
 
   contextMenuItems: MenuItem[] = [];
   selectedPurchaseReturn: PurchaseReturnResponse | null = null;
   searchValue = '';
   pageSizeOptions = [10, 25, 50, 100];
+  Math = Math;
 
   private readonly prService = inject(PurchaseReturnService);
   private readonly confirmationService = inject(ConfirmationService);
@@ -78,6 +78,15 @@ export class PurchaseReturnsListComponent implements OnInit {
 
     this.contextMenuItems = [
       {
+        label: 'View Details',
+        icon: 'pi pi-eye',
+        command: () => {
+          if (this.selectedPurchaseReturn) {
+            this.viewDetails(this.selectedPurchaseReturn);
+          }
+        }
+      },
+      {
         label: 'Edit',
         icon: 'pi pi-pencil',
         command: () => {
@@ -87,67 +96,7 @@ export class PurchaseReturnsListComponent implements OnInit {
         },
         visible: status === 'PENDING'
       },
-      {
-        label: 'View Details',
-        icon: 'pi pi-eye',
-        command: () => {
-          if (this.selectedPurchaseReturn) {
-            this.viewDetails(this.selectedPurchaseReturn);
-          }
-        }
-      },
       { separator: true },
-      {
-        label: 'Approve',
-        icon: 'pi pi-check',
-        command: () => {
-          if (this.selectedPurchaseReturn) {
-            this.approvePurchaseReturn(this.selectedPurchaseReturn);
-          }
-        },
-        visible: status === 'PENDING'
-      },
-      {
-        label: 'Mark as Returned',
-        icon: 'pi pi-send',
-        command: () => {
-          if (this.selectedPurchaseReturn) {
-            this.markAsReturned(this.selectedPurchaseReturn);
-          }
-        },
-        visible: status === 'APPROVED'
-      },
-      {
-        label: 'Mark as Received',
-        icon: 'pi pi-inbox',
-        command: () => {
-          if (this.selectedPurchaseReturn) {
-            this.markAsReceived(this.selectedPurchaseReturn);
-          }
-        },
-        visible: status === 'RETURNED'
-      },
-      {
-        label: 'Issue Credit Note',
-        icon: 'pi pi-file',
-        command: () => {
-          if (this.selectedPurchaseReturn) {
-            this.issueCreditNote(this.selectedPurchaseReturn);
-          }
-        },
-        visible: status === 'RECEIVED'
-      },
-      { separator: true },
-      {
-        label: 'Reject',
-        icon: 'pi pi-times',
-        command: () => {
-          if (this.selectedPurchaseReturn) {
-            this.rejectPurchaseReturn(this.selectedPurchaseReturn);
-          }
-        },
-        visible: status === 'PENDING'
-      },
       {
         label: 'Delete',
         icon: 'pi pi-trash',
@@ -199,161 +148,6 @@ export class PurchaseReturnsListComponent implements OnInit {
    */
   viewDetails(pr: PurchaseReturnResponse): void {
     this.viewPurchaseReturn(pr);
-  }
-
-  /**
-   * Approve purchase return
-   */
-  approvePurchaseReturn(pr: PurchaseReturnResponse): void {
-    this.confirmationService.confirm({
-      message: `Are you sure you want to approve return #${pr.returnNumber}?`,
-      header: 'Confirm',
-      icon: 'pi pi-exclamation-triangle',
-      accept: () => {
-        this.prService.approvePurchaseReturn(pr.id, 'System').subscribe({
-          next: () => {
-            this.messageService.add({
-              severity: 'success',
-              summary: 'Success',
-              detail: `Purchase Return #${pr.returnNumber} approved successfully`
-            });
-            this.onReturnUpdated.emit();
-          },
-          error: (error) => {
-            this.messageService.add({
-              severity: 'error',
-              summary: 'Error',
-              detail: error?.error?.message || 'Failed to approve purchase return'
-            });
-            console.error('Error approving purchase return:', error);
-          }
-        });
-      }
-    });
-  }
-
-  /**
-   * Mark purchase return as returned
-   */
-  markAsReturned(pr: PurchaseReturnResponse): void {
-    this.confirmationService.confirm({
-      message: `Mark return #${pr.returnNumber} as returned?`,
-      header: 'Confirm',
-      icon: 'pi pi-exclamation-triangle',
-      accept: () => {
-        this.prService.markAsReturned(pr.id).subscribe({
-          next: () => {
-            this.messageService.add({
-              severity: 'success',
-              summary: 'Success',
-              detail: `Purchase Return #${pr.returnNumber} marked as returned`
-            });
-            this.onReturnUpdated.emit();
-          },
-          error: (error) => {
-            this.messageService.add({
-              severity: 'error',
-              summary: 'Error',
-              detail: error?.error?.message || 'Failed to mark as returned'
-            });
-            console.error('Error marking return as returned:', error);
-          }
-        });
-      }
-    });
-  }
-
-  /**
-   * Mark purchase return as received
-   */
-  markAsReceived(pr: PurchaseReturnResponse): void {
-    this.confirmationService.confirm({
-      message: `Mark return #${pr.returnNumber} as received?`,
-      header: 'Confirm',
-      icon: 'pi pi-exclamation-triangle',
-      accept: () => {
-        this.prService.markAsReceived(pr.id, 'System').subscribe({
-          next: () => {
-            this.messageService.add({
-              severity: 'success',
-              summary: 'Success',
-              detail: `Purchase Return #${pr.returnNumber} marked as received`
-            });
-            this.onReturnUpdated.emit();
-          },
-          error: (error) => {
-            this.messageService.add({
-              severity: 'error',
-              summary: 'Error',
-              detail: error?.error?.message || 'Failed to mark as received'
-            });
-            console.error('Error marking return as received:', error);
-          }
-        });
-      }
-    });
-  }
-
-  /**
-   * Issue credit note
-   */
-  issueCreditNote(pr: PurchaseReturnResponse): void {
-    this.confirmationService.confirm({
-      message: `Issue credit note for return #${pr.returnNumber}?`,
-      header: 'Confirm',
-      icon: 'pi pi-exclamation-triangle',
-      accept: () => {
-        this.prService.issueCreditNote(pr.id, pr.refundAmount).subscribe({
-          next: () => {
-            this.messageService.add({
-              severity: 'success',
-              summary: 'Success',
-              detail: `Credit note issued for return #${pr.returnNumber}`
-            });
-            this.onReturnUpdated.emit();
-          },
-          error: (error) => {
-            this.messageService.add({
-              severity: 'error',
-              summary: 'Error',
-              detail: error?.error?.message || 'Failed to issue credit note'
-            });
-            console.error('Error issuing credit note:', error);
-          }
-        });
-      }
-    });
-  }
-
-  /**
-   * Reject purchase return
-   */
-  rejectPurchaseReturn(pr: PurchaseReturnResponse): void {
-    this.confirmationService.confirm({
-      message: `Are you sure you want to reject return #${pr.returnNumber}?`,
-      header: 'Confirm',
-      icon: 'pi pi-exclamation-triangle',
-      accept: () => {
-        this.prService.rejectPurchaseReturn(pr.id, 'Rejected by user').subscribe({
-          next: () => {
-            this.messageService.add({
-              severity: 'success',
-              summary: 'Success',
-              detail: `Purchase Return #${pr.returnNumber} rejected`
-            });
-            this.onReturnUpdated.emit();
-          },
-          error: (error) => {
-            this.messageService.add({
-              severity: 'error',
-              summary: 'Error',
-              detail: error?.error?.message || 'Failed to reject purchase return'
-            });
-            console.error('Error rejecting purchase return:', error);
-          }
-        });
-      }
-    });
   }
 
   /**
@@ -458,10 +252,10 @@ export class PurchaseReturnsListComponent implements OnInit {
   }
 
   /**
-   * Format currency
+   * Format currency - uses default currency from settings
    */
   formatCurrency(value: number): string {
-    const currency = this.currencyService.selectedCurrency() || 'BDT';
+    const currency = this.currencyService.selectedCurrency();
     return this.currencyService.formatCurrency(value, currency);
   }
 

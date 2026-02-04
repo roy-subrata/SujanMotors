@@ -1,9 +1,9 @@
 using AutoPartShop.Api.Services;
+using AutoPartShop.Application.Common;
 using AutoPartShop.Application.DTOs.SalesOrderDtos;
+using AutoPartShop.Application.SaleOrders;
+using AutoPartShop.Application.SaleOrders.Dtos;
 using AutoPartShop.Domain.Entities;
-using AutoPartShop.Domain.Repositories;
-using AutoPartShop.Infrastructure.Repositories;
-using AutoPartShop.Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,6 +15,7 @@ namespace AutoPartShop.Api.Controllers;
 public class SalesOrderController : ControllerBase
 {
     private readonly ISalesOrderRepository _salesOrderRepository;
+    private readonly ISaleOrderReadRepository _saleOrderReadRepository;
     private readonly IInvoiceRepository _invoiceRepository;
     private readonly ISalesReturnRepository _salesReturnRepository;
     private readonly ICustomerRepository _customerRepository;
@@ -30,6 +31,7 @@ public class SalesOrderController : ControllerBase
 
     public SalesOrderController(
         ISalesOrderRepository salesOrderRepository,
+        ISaleOrderReadRepository saleOrderReadRepository,
         IInvoiceRepository invoiceRepository,
         ISalesReturnRepository salesReturnRepository,
         ICustomerRepository customerRepository,
@@ -44,6 +46,7 @@ public class SalesOrderController : ControllerBase
         AutoPartDbContext dbContext)
     {
         _salesOrderRepository = salesOrderRepository;
+        _saleOrderReadRepository = saleOrderReadRepository;
         _invoiceRepository = invoiceRepository;
         _salesReturnRepository = salesReturnRepository;
         _customerRepository = customerRepository;
@@ -74,30 +77,32 @@ public class SalesOrderController : ControllerBase
         }
     }
 
-    [HttpGet("list")]
-    public async Task<IActionResult> GetList(int pageNumber = 1, int pageSize = 10, string? searchTerm = null, CancellationToken cancellationToken = default)
+    [HttpPost("list")]
+    public async Task<IActionResult> GetList(SaleOrderQuery query, CancellationToken cancellationToken = default)
     {
+        if (query is null)
+            return BadRequest("Request body is required.");
+
+        if (query.PageNumber < 1)
+            return BadRequest("PageNumber must be greater than 0.");
+
+        if (query.PageSize < 1)
+            return BadRequest("PageSize must be greater than 0.");
+
         try
         {
-            if (pageNumber < 1) pageNumber = 1;
-            if (pageSize < 1) pageSize = 10;
-            if (pageSize > 100) pageSize = 100;
+            var (saleOrders, totalCount) =
+                await _saleOrderReadRepository.FindAllQuery(query, cancellationToken);
 
-            var (orders, totalCount) = string.IsNullOrWhiteSpace(searchTerm)
-                ? await _salesOrderRepository.GetPagedAsync(pageNumber, pageSize, cancellationToken)
-                : await _salesOrderRepository.SearchPagedAsync(searchTerm, pageNumber, pageSize, cancellationToken);
+            var result = PagedResult<SaleOrderResponse>
+                .Create(saleOrders, totalCount, query);
 
-            var response = orders.Select(MapToSalesOrderResponse);
-            return Ok(new
-            {
-                data = response,
-                pagination = new { pageNumber, pageSize, totalCount, totalPages = (int)Math.Ceiling(totalCount / (double)pageSize) }
-            });
+            return Ok(result);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting sales orders list");
-            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving sales orders");
+            return StatusCode(500, "An error occurred while retrieving sales orders");
         }
     }
 
@@ -201,65 +206,22 @@ public class SalesOrderController : ControllerBase
                 request.TechnicianId,
                 request.TechnicianName,
                 request.CustomerCity,  // DeliveryAddress
-                request.Notes
+                request.Notes,
+                request.Currency
             );
 
             // Add lines
             int lineNumber = 1;
             foreach (var lineRequest in request.Lines)
             {
-                // Get part to determine base unit
-                var part = await _dbContext.Parts
-                    .FirstOrDefaultAsync(p => p.Id == lineRequest.PartId && !p.Isdeleted, cancellationToken);
-
-                if (part == null)
-                    return BadRequest(new { message = $"Part with ID {lineRequest.PartId} not found" });
-
-                // Calculate quantity in base unit
-                int quantityInBaseUnit = lineRequest.Quantity;
-                Guid? unitId = lineRequest.UnitId;
-
-                // If unitId is provided and part has no base unit, just use the provided unit
-                if (unitId.HasValue && !part.UnitId.HasValue)
-                {
-                    // Part has no base unit, use provided unit and quantity as-is
-                    quantityInBaseUnit = lineRequest.Quantity;
-                }
-                // If unitId is provided and different from part's base unit, convert
-                else if (unitId.HasValue && part.UnitId.HasValue && unitId.Value != part.UnitId.Value)
-                {
-                    try
-                    {
-                        quantityInBaseUnit = await _unitConversionService.ConvertQuantityAsync(
-                            lineRequest.Quantity,
-                            unitId.Value,
-                            part.UnitId.Value,
-                            cancellationToken);
-                    }
-                    catch (InvalidOperationException ex)
-                    {
-                        return BadRequest(new { message = $"Unit conversion not configured: {ex.Message}" });
-                    }
-                }
-                else if (!unitId.HasValue)
-                {
-                    // If no unit specified, use part's base unit
-                    unitId = part.UnitId;
-                }
-
-                var line = SalesOrderLine.Create(
-                    order.Id,
-                    lineRequest.PartId,
-                    lineRequest.Quantity,
-                    lineRequest.UnitPrice,
-                    lineNumber,
-                    unitId: unitId,
-                    quantityInBaseUnit: quantityInBaseUnit,
-                    discount: lineRequest.Discount
-                );
+                var line = await BuildSalesOrderLineAsync(order, lineRequest, lineNumber, cancellationToken);
                 order.LineItems.Add(line);
                 lineNumber++;
             }
+
+            order.UpdateDeliveryDate(request.DeliveryDate);
+            order.SetDiscountPercentage(request.Discount);
+            order.CalculateTotal();
 
             order.CreatedBy = _currentUserService.GetCurrentUsername();
             order.ModifiedBy = _currentUserService.GetCurrentUsername();
@@ -288,10 +250,86 @@ public class SalesOrderController : ControllerBase
             var order = await _salesOrderRepository.GetByIdAsync(id, cancellationToken);
             if (order is null) return NotFound(new { message = "Sales order not found" });
 
-            order.ModifiedBy = _currentUserService.GetCurrentUsername();
-            await _salesOrderRepository.UpdateAsync(order, cancellationToken);
+            if (order.Status != "DRAFT")
+                return BadRequest(new { message = "Only draft sales orders can be edited" });
 
-            return Ok(MapToSalesOrderResponse(order));
+            if (request.CustomerId == Guid.Empty || string.IsNullOrWhiteSpace(request.CustomerName) || request.DeliveryDate == default)
+                return BadRequest(new { message = "CustomerId, CustomerName and DeliveryDate are required" });
+
+            if (request.Lines == null || request.Lines.Count == 0)
+                return BadRequest(new { message = "Sales order must have at least one line item" });
+
+            var executionStrategy = _dbContext.Database.CreateExecutionStrategy();
+            SaleOrderResponse? response = null;
+
+            await executionStrategy.ExecuteAsync(async () =>
+            {
+                var newLines = new List<SalesOrderLine>();
+                int lineNumber = 1;
+                foreach (var lineRequest in request.Lines)
+                {
+                    var line = await BuildSalesOrderLineAsync(order, lineRequest, lineNumber, cancellationToken);
+                    newLines.Add(line);
+                    lineNumber++;
+                }
+
+                var subtotal = newLines.Sum(l => l.TotalPrice);
+                var discountPercentage = request.Discount;
+                var discountAmount = subtotal * (discountPercentage / 100);
+                var totalAmount = subtotal - discountAmount;
+                if (totalAmount < 0) totalAmount = 0;
+
+                await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+
+                var updated = await _dbContext.Set<SalesOrder>()
+                    .Where(so => so.Id == order.Id && !so.Isdeleted)
+                    .ExecuteUpdateAsync(setters => setters
+                        .SetProperty(so => so.CustomerId, request.CustomerId)
+                        .SetProperty(so => so.CustomerName, request.CustomerName)
+                        .SetProperty(so => so.CustomerEmail, request.CustomerEmail)
+                        .SetProperty(so => so.CustomerPhone, request.CustomerPhone)
+                        .SetProperty(so => so.DeliveryAddress, request.CustomerCity)
+                        .SetProperty(so => so.TechnicianId, request.TechnicianId)
+                        .SetProperty(so => so.TechnicianName, request.TechnicianName)
+                        .SetProperty(so => so.DeliveryDate, request.DeliveryDate)
+                        .SetProperty(so => so.Notes, request.Notes)
+                        .SetProperty(so => so.Currency, request.Currency)
+                        .SetProperty(so => so.SubTotal, subtotal)
+                        .SetProperty(so => so.DiscountPercentage, discountPercentage)
+                        .SetProperty(so => so.DiscountAmount, discountAmount)
+                        .SetProperty(so => so.TotalAmount, totalAmount)
+                        .SetProperty(so => so.TaxAmount, order.TaxAmount)
+                        .SetProperty(so => so.ModifiedBy, _currentUserService.GetCurrentUsername())
+                        .SetProperty(so => so.ModifiedDate, DateTime.UtcNow),
+                        cancellationToken);
+
+                if (updated == 0)
+                {
+                    await tx.RollbackAsync(cancellationToken);
+                    throw new DbUpdateConcurrencyException("Sales order update affected 0 rows.");
+                }
+
+                await _dbContext.Set<SalesOrderLine>()
+                    .Where(l => l.SalesOrderId == order.Id)
+                    .ExecuteDeleteAsync(cancellationToken);
+
+                await _dbContext.Set<SalesOrderLine>().AddRangeAsync(newLines, cancellationToken);
+                await _dbContext.SaveChangesAsync(cancellationToken);
+                await tx.CommitAsync(cancellationToken);
+
+                var updatedOrder = await _salesOrderRepository.GetByIdAsync(id, cancellationToken);
+                response = MapToSalesOrderResponse(updatedOrder!);
+            });
+
+            return Ok(response!);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return Conflict(new { message = "Sales order was modified or deleted by another user. Please reload and try again." });
         }
         catch (Exception ex)
         {
@@ -330,7 +368,7 @@ public class SalesOrderController : ControllerBase
                 var stockLevel = await _stockLevelRepository.GetByPartAndWarehouseAsync(line.PartId, warehouseId, cancellationToken);
                 if (stockLevel != null)
                 {
-                    stockLevel.ReserveStock(line.QuantityInBaseUnit);
+                    // Only call RemoveStock for confirmed sales - no need to reserve first
                     stockLevel.RemoveStock(line.QuantityInBaseUnit, $"Sales Order {order.SONumber}");
                     stockLevel.ModifiedBy = _currentUserService.GetCurrentUsername();
                     await _stockLevelRepository.UpdateAsync(stockLevel, cancellationToken);
@@ -840,9 +878,9 @@ public class SalesOrderController : ControllerBase
         }
     }
 
-    private SalesOrderResponse MapToSalesOrderResponse(SalesOrder order)
+    private SaleOrderResponse MapToSalesOrderResponse(SalesOrder order)
     {
-        return new SalesOrderResponse
+        return new SaleOrderResponse
         {
             Id = order.Id,
             SONumber = order.SONumber,
@@ -857,10 +895,11 @@ public class SalesOrderController : ControllerBase
             OrderDate = order.SODate,
             DeliveryDate = order.DeliveryDate ?? DateTime.MinValue,
             Status = order.Status,
-            SubTotal = order.TotalAmount,
+            SubTotal = order.SubTotal,
             TaxAmount = order.TaxAmount,
-            Discount = 0,  // SalesOrder doesn't track global discount
+            Discount = order.DiscountPercentage,
             GrandTotal = order.GrandTotal,
+            Currency = order.Currency,
             AmountPaid = order.PaidAmount,
             OutstandingAmount = order.GrandTotal - order.PaidAmount,
             IsOverdue = order.DeliveryDate.HasValue && DateTime.UtcNow > order.DeliveryDate.Value && order.Status != "DELIVERED" && order.Status != "CANCELLED",
@@ -879,11 +918,64 @@ public class SalesOrderController : ControllerBase
                 ShippedQuantity = l.ShippedQuantity,
                 ShippedQuantityInBaseUnit = l.ShippedQuantityInBaseUnit,
                 UnitPrice = l.UnitPrice,
-                Discount = l.Discount,
+                Discount = l.UnitPrice == 0 ? 0 : Math.Round((l.Discount / l.UnitPrice) * 100, 2),
                 LineTotal = l.TotalPrice
             }).ToList(),
             CreatedAt = DateTime.UtcNow
         };
+    }
+
+    private async Task<SalesOrderLine> BuildSalesOrderLineAsync(
+        SalesOrder order,
+        CreateSalesOrderLineRequest lineRequest,
+        int lineNumber,
+        CancellationToken cancellationToken)
+    {
+        var part = await _dbContext.Parts
+            .FirstOrDefaultAsync(p => p.Id == lineRequest.PartId && !p.Isdeleted, cancellationToken);
+
+        if (part == null)
+            throw new ArgumentException($"Part with ID {lineRequest.PartId} not found");
+
+        int quantityInBaseUnit = lineRequest.Quantity;
+        Guid? unitId = lineRequest.UnitId;
+
+        if (unitId.HasValue && !part.UnitId.HasValue)
+        {
+            quantityInBaseUnit = lineRequest.Quantity;
+        }
+        else if (unitId.HasValue && part.UnitId.HasValue && unitId.Value != part.UnitId.Value)
+        {
+            try
+            {
+                quantityInBaseUnit = await _unitConversionService.ConvertQuantityAsync(
+                    lineRequest.Quantity,
+                    unitId.Value,
+                    part.UnitId.Value,
+                    cancellationToken);
+            }
+            catch (InvalidOperationException ex)
+            {
+                throw new ArgumentException($"Unit conversion not configured: {ex.Message}");
+            }
+        }
+        else if (!unitId.HasValue)
+        {
+            unitId = part.UnitId;
+        }
+
+        var discountPerUnit = lineRequest.UnitPrice * (lineRequest.Discount / 100);
+
+        return SalesOrderLine.Create(
+            order.Id,
+            lineRequest.PartId,
+            lineRequest.Quantity,
+            lineRequest.UnitPrice,
+            lineNumber,
+            unitId: unitId,
+            quantityInBaseUnit: quantityInBaseUnit,
+            discount: discountPerUnit
+        );
     }
 
     private InvoiceResponse MapToInvoiceResponse(Invoice invoice)
@@ -1101,6 +1193,7 @@ public class SalesOrderController : ControllerBase
 
             // Save sales order
             await _salesOrderRepository.AddAsync(salesOrder, cancellationToken);
+            await _codeGenerateService.SaveGenerateCodeAsync("SO", cancellationToken);
 
             // If quotation, skip invoice creation, stock updates, and payments - just return the quotation
             if (request.SaveAsQuotation)
@@ -1146,6 +1239,7 @@ public class SalesOrderController : ControllerBase
 
             // Save invoice
             await _invoiceRepository.AddAsync(invoice, cancellationToken);
+            await _codeGenerateService.SaveGenerateCodeAsync("INV", cancellationToken);
 
             // 6a. Apply Advance Credit if requested
             decimal advancePaymentAmount = 0;
@@ -1389,6 +1483,9 @@ public class SalesOrderController : ControllerBase
                     }
                 }
             }
+
+            // Save all stock movements and lot movements
+            await _dbContext.SaveChangesAsync(cancellationToken);
 
             // 8. Return response
             var response = new QuickSaleResponse

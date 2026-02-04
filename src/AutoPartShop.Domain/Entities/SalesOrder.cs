@@ -17,6 +17,9 @@ public class SalesOrder : AuditableEntity
     public DateTime SODate { get; private set; }
     public DateTime? ConfirmedDate { get; private set; }
     public DateTime? DeliveryDate { get; private set; }
+    public decimal SubTotal { get; private set; } = 0;
+    public decimal DiscountPercentage { get; private set; } = 0;
+    public decimal DiscountAmount { get; private set; } = 0;
     public decimal TotalAmount { get; private set; } = 0;
     public decimal TaxAmount { get; private set; } = 0;
     public decimal GrandTotal => TotalAmount + TaxAmount;
@@ -105,7 +108,19 @@ public class SalesOrder : AuditableEntity
 
     public void CalculateTotal()
     {
-        TotalAmount = LineItems.Sum(l => l.TotalPrice);
+        SubTotal = LineItems.Sum(l => l.TotalPrice);
+
+        if (DiscountPercentage < 0)
+            DiscountPercentage = 0;
+
+        if (DiscountPercentage > 100)
+            DiscountPercentage = 100;
+
+        DiscountAmount = SubTotal * (DiscountPercentage / 100);
+
+        TotalAmount = SubTotal - DiscountAmount;
+        if (TotalAmount < 0)
+            TotalAmount = 0;
     }
 
     public void SetTax(decimal taxAmount)
@@ -114,6 +129,17 @@ public class SalesOrder : AuditableEntity
             throw new ArgumentException("Tax amount cannot be negative", nameof(taxAmount));
 
         TaxAmount = taxAmount;
+    }
+
+    public void SetDiscountPercentage(decimal discountPercentage)
+    {
+        if (discountPercentage < 0)
+            throw new ArgumentException("Discount percentage cannot be negative", nameof(discountPercentage));
+
+        if (discountPercentage > 100)
+            throw new ArgumentException("Discount percentage cannot exceed 100%", nameof(discountPercentage));
+
+        DiscountPercentage = discountPercentage;
     }
 
     public void RecordPayment(decimal amount)
@@ -133,9 +159,42 @@ public class SalesOrder : AuditableEntity
         Notes = notes?.Trim() ?? string.Empty;
     }
 
+    public void UpdateCustomer(Guid customerId, string customerName, string customerEmail, string customerPhone, string customerCity)
+    {
+        if (customerId == Guid.Empty)
+            throw new ArgumentException("CustomerId cannot be empty", nameof(customerId));
+
+        if (string.IsNullOrWhiteSpace(customerName))
+            throw new ArgumentException("CustomerName cannot be empty", nameof(customerName));
+
+        CustomerId = customerId;
+        CustomerName = customerName.Trim();
+        CustomerEmail = customerEmail?.Trim() ?? string.Empty;
+        CustomerPhone = customerPhone?.Trim() ?? string.Empty;
+        DeliveryAddress = customerCity?.Trim() ?? string.Empty;
+    }
+
+    public void UpdateDeliveryDate(DateTime? deliveryDate)
+    {
+        DeliveryDate = deliveryDate;
+    }
+
+    public void UpdateCurrency(string currency)
+    {
+        if (!string.IsNullOrWhiteSpace(currency))
+        {
+            Currency = currency.Trim().ToUpper();
+        }
+    }
+
     public void SetTechnician(Guid? technicianId, string? technicianName)
     {
         TechnicianId = technicianId;
         TechnicianName = technicianName?.Trim();
+    }
+
+    public void ClearLineItems()
+    {
+        LineItems.Clear();
     }
 }

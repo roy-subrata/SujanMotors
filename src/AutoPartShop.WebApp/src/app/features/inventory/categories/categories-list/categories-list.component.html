@@ -1,86 +1,247 @@
-<!-- Loading state -->
-<div *ngIf="loading" class="loading-container">
-  <p-message severity="info" text="Loading categories..."></p-message>
-</div>
-
-<!-- Main content -->
-<div *ngIf="!loading" class="categories-content">
-  <!-- TreeTable component with pagination -->
-  <div class="treetable-wrapper">
-    <p-treeTable
-      [value]="treeData"
-      selectionMode="single"
-      [(selection)]="selectedRows"
-      (onNodeSelect)="onNodeSelect()"
-      [loading]="loading"
-      [lazy]="true"
-      (onLazyLoad)="onLazyLoad($event)"
-      [paginator]="true"
-      [rows]="rows"
-      [totalRecords]="totalRecords"
-      [tableStyle]="{'min-width':'50rem'}"
-      styleClass="p-datatable-striped">
-
-      <!-- Header -->
-      <ng-template #header>
-        <tr>
-          <th style="width: 30%">Category Name</th>
-          <th style="width: 15%">Code</th>
-          <th style="width: 12%">Level</th>
-          <th style="width: 15%">Status</th>
-          <th style="width: 12%">Order</th>
-          <th style="width: 8%; text-align: center;">Actions</th>
-        </tr>
-      </ng-template>
-
-      <!-- Body with tree structure -->
-      <ng-template #body let-rowNode let-rowData="rowData">
-        <tr [ttRow]="rowNode">
-          <!-- Name column with expand/collapse -->
-          <td style="width: 30%">
-            <p-treeTableToggler [rowNode]="rowNode"></p-treeTableToggler>
-            <span class="category-name">{{ rowData.name }}</span>
-          </td>
-          <!-- Code column -->
-          <td style="width: 15%">
-            <span class="code-badge">{{ rowData.code }}</span>
-          </td>
-          <!-- Level column -->
-          <td style="width: 12%">
-            <span class="level-badge">{{ rowData.levelDisplay }}</span>
-          </td>
-          <!-- Status column -->
-          <td style="width: 15%">
-            <span [class]="'status ' + (rowData.isActive ? 'active' : 'inactive')">
-              {{ rowData.isActive ? 'Active' : 'Inactive' }}
-            </span>
-          </td>
-          <!-- Display Order -->
-          <td style="width: 12%">{{ rowData.displayOrder }}</td>
-          <!-- Actions -->
-          <td style="width: 8%; text-align: center;">
-            <button
-              type="button"
-              pButton
-              pRipple
-              icon="pi pi-ellipsis-v"
-              class="p-button-text p-button-sm"
-              pTooltip="Actions"
-              tooltipPosition="left"
-              (contextmenu)="showContextMenu($event, rowData.category)"
-              (click)="showContextMenu($event, rowData.category)">
-            </button>
-          </td>
-        </tr>
-      </ng-template>
-
-    </p-treeTable>
-  </div>
-</div>
+<!-- ============================================================
+     CATEGORIES LIST - ENTERPRISE UI (MATCHES SALES ORDERS LAYOUT)
+     ============================================================ -->
 
 <!-- Context Menu -->
-<p-contextMenu
-  #contextMenu
-  [model]="contextMenuItems"
-  [appendTo]="'body'">
-</p-contextMenu>
+<p-contextMenu #contextMenu [model]="contextMenuItems" [appendTo]="'body'"></p-contextMenu>
+
+<!-- ==================== DATA TABLE (Desktop) ==================== -->
+<section class="table-section desktop-only">
+  <div class="table-container">
+    <p-table
+      [value]="categories"
+      [lazy]="true"
+      [paginator]="false"
+      [rows]="pageSize"
+      [first]="first"
+      [totalRecords]="totalRecords"
+      [loading]="loading"
+      (onLazyLoad)="onPageChange($event)"
+      [rowHover]="true"
+      [scrollable]="true"
+      scrollHeight="flex"
+      styleClass="custom-table">
+
+      <!-- Table Header -->
+      <ng-template #header>
+        <tr>
+          <th class="col-name">Name</th>
+          <th class="col-code">Code</th>
+          <th class="col-breadcrumb">Breadcrumb</th>
+          <th class="col-level">Level</th>
+          <th class="col-status">Status</th>
+          <th class="col-order">Order</th>
+          <th class="col-actions">Actions</th>
+        </tr>
+      </ng-template>
+
+      <!-- Table Body -->
+      <ng-template #body let-category>
+        <tr class="data-row">
+          <!-- Name -->
+          <td class="col-name">
+            <div class="customer-cell">
+              <div class="customer-avatar">
+                {{ (category.name || 'C')[0].toUpperCase() }}
+              </div>
+              <div class="customer-info">
+                <span class="customer-name">{{ category.name }}</span>
+                <span *ngIf="category.description" class="customer-phone">{{ category.description }}</span>
+              </div>
+            </div>
+          </td>
+
+          <!-- Code -->
+          <td class="col-code">
+            <span class="code-badge">{{ category.code }}</span>
+          </td>
+
+          <!-- Breadcrumb -->
+          <td class="col-breadcrumb">
+            <span class="breadcrumb-path">{{ category.breadcrumbPath || '-' }}</span>
+          </td>
+
+          <!-- Level -->
+          <td class="col-level">
+            <span class="level-badge">{{ getLevelDisplay(category.depthLevel) }}</span>
+          </td>
+
+          <!-- Status -->
+          <td class="col-status">
+            <span class="status-pill" [attr.data-status]="category.isActive ? 'active' : 'inactive'">
+              {{ getStatusLabel(category.isActive) }}
+            </span>
+          </td>
+
+          <!-- Order -->
+          <td class="col-order">
+            <span class="amount-value">{{ category.displayOrder }}</span>
+          </td>
+
+          <!-- Actions -->
+          <td class="col-actions">
+            <div class="action-cell">
+              <button class="btn-action" pTooltip="More" (click)="showContextMenu($event, category)">
+                <i class="pi pi-ellipsis-v"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+
+      <!-- Empty State -->
+      <ng-template #emptymessage>
+        <tr>
+          <td colspan="7">
+            <div class="empty-state">
+              <div class="empty-icon">
+                <i class="pi pi-tags"></i>
+              </div>
+              <h3>No Categories Found</h3>
+              <p>Try adjusting your filters or create a new category</p>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+
+      <!-- Loading Skeleton -->
+      <ng-template #loadingbody>
+        <tr *ngFor="let _ of [1,2,3,4,5,6,7,8]" class="skeleton-row">
+          <td>
+            <div class="skeleton-customer">
+              <div class="skeleton skeleton-avatar"></div>
+              <div class="skeleton skeleton-text"></div>
+            </div>
+          </td>
+          <td><div class="skeleton skeleton-text-sm"></div></td>
+          <td><div class="skeleton skeleton-text-sm"></div></td>
+          <td><div class="skeleton skeleton-badge"></div></td>
+          <td><div class="skeleton skeleton-badge"></div></td>
+          <td><div class="skeleton skeleton-text-sm"></div></td>
+          <td><div class="skeleton skeleton-actions"></div></td>
+        </tr>
+      </ng-template>
+
+    </p-table>
+  </div>
+
+  <!-- Pagination -->
+  <div class="pagination-section" *ngIf="totalRecords > 0">
+    <div class="pagination-info">
+      Showing <strong>{{ first + 1 }}</strong> to <strong>{{ first + categories.length }}</strong> of <strong>{{ totalRecords }}</strong> categories
+    </div>
+    <div class="pagination-controls">
+      <span class="page-size-label">Rows per page:</span>
+      <p-select
+        [options]="[{label: '10', value: 10}, {label: '20', value: 20}, {label: '50', value: 50}]"
+        [(ngModel)]="pageSize"
+        (onChange)="onPageChange({first: 0, rows: pageSize})"
+        styleClass="page-size-dropdown">
+      </p-select>
+      <div class="page-nav">
+        <button class="page-btn" [disabled]="first === 0" (click)="onPageChange({first: 0, rows: pageSize})">
+          <i class="pi pi-angle-double-left"></i>
+        </button>
+        <button class="page-btn" [disabled]="first === 0" (click)="onPageChange({first: first - pageSize, rows: pageSize})">
+          <i class="pi pi-angle-left"></i>
+        </button>
+        <span class="page-indicator">{{ pageNumber }} / {{ totalPages }}</span>
+        <button class="page-btn" [disabled]="first + pageSize >= totalRecords" (click)="onPageChange({first: first + pageSize, rows: pageSize})">
+          <i class="pi pi-angle-right"></i>
+        </button>
+        <button class="page-btn" [disabled]="first + pageSize >= totalRecords" (click)="onPageChange({first: (totalPages - 1) * pageSize, rows: pageSize})">
+          <i class="pi pi-angle-double-right"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== MOBILE CARDS ==================== -->
+<section class="cards-section mobile-only">
+  <!-- Loading Skeleton -->
+  <div *ngIf="loading" class="cards-grid">
+    <div *ngFor="let _ of [1,2,3,4]" class="order-card skeleton-card">
+      <div class="card-header">
+        <div class="skeleton skeleton-text"></div>
+        <div class="skeleton skeleton-badge"></div>
+      </div>
+      <div class="card-body">
+        <div class="skeleton skeleton-text-lg"></div>
+        <div class="skeleton skeleton-text-sm"></div>
+      </div>
+      <div class="card-footer">
+        <div class="skeleton skeleton-text-sm"></div>
+        <div class="skeleton skeleton-text-sm"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!loading && categories.length === 0" class="empty-state-mobile">
+    <div class="empty-icon">
+      <i class="pi pi-tags"></i>
+    </div>
+    <h3>No Categories</h3>
+    <p>Try different filters or create a new category</p>
+  </div>
+
+  <!-- Category Cards -->
+  <div *ngIf="!loading && categories.length > 0" class="cards-grid">
+    <div *ngFor="let category of categories" class="order-card" (click)="editCategory.emit(category)">
+      <!-- Card Header -->
+      <div class="card-header">
+        <span class="card-so-number">{{ category.code }}</span>
+        <span class="status-pill" [attr.data-status]="category.isActive ? 'active' : 'inactive'">
+          {{ getStatusLabel(category.isActive) }}
+        </span>
+      </div>
+
+      <!-- Card Body -->
+      <div class="card-body">
+        <div class="card-customer">
+          <div class="customer-avatar small">
+            {{ (category.name || 'C')[0].toUpperCase() }}
+          </div>
+          <span class="customer-name">{{ category.name }}</span>
+        </div>
+        <div class="card-dates">
+          <span class="card-date">
+            <i class="pi pi-sitemap"></i>
+            {{ category.breadcrumbPath || '-' }}
+          </span>
+          <span class="card-date">
+            <i class="pi pi-layer-group"></i>
+            {{ getLevelDisplay(category.depthLevel) }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Card Footer -->
+      <div class="card-footer">
+        <div class="card-amount">
+          <span class="amount-label">Order</span>
+          <span class="amount-value">{{ category.displayOrder }}</span>
+        </div>
+        <button class="btn-card-action" (click)="showContextMenu($event, category); $event.stopPropagation()">
+          <i class="pi pi-ellipsis-h"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mobile Pagination -->
+  <div *ngIf="!loading && categories.length > 0" class="mobile-pagination">
+    <div class="pagination-info-mobile">
+      {{ first + 1 }}-{{ first + categories.length }} of {{ totalRecords }}
+    </div>
+    <div class="pagination-nav-mobile">
+      <button class="page-btn" [disabled]="first === 0" (click)="onPageChange({first: first - pageSize, rows: pageSize})">
+        <i class="pi pi-chevron-left"></i>
+      </button>
+      <button class="page-btn" [disabled]="first + pageSize >= totalRecords" (click)="onPageChange({first: first + pageSize, rows: pageSize})">
+        <i class="pi pi-chevron-right"></i>
+      </button>
+    </div>
+  </div>
+</section>

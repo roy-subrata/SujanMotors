@@ -1,7 +1,8 @@
 using AutoPartShop.Api.Services;
-using AutoPartShop.Application.DTOs.CustomerDtos;
+using AutoPartShop.Application.Common;
 using AutoPartShop.Application.DTOs.PartDtos;
-using AutoPartShop.Domain.Common;
+using AutoPartShop.Application.Parts;
+using AutoPartShop.Application.Parts.Dtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
 using AutoPartsShop.Domain.Entities;
@@ -16,6 +17,7 @@ namespace AutoPartShop.Api.Controllers;
 public class PartsController : ControllerBase
 {
     private readonly IPartRepository _partRepository;
+    private readonly IPartReadRepository _partReadRepository;
     private readonly ICategoryRepository _categoryRepository;
     private readonly IUnitRepository _unitRepository;
     private readonly IPartVehicleCompatibilityRepository _compatibilityRepository;
@@ -24,7 +26,10 @@ public class PartsController : ControllerBase
     private readonly ICodeGenerateService _codeGenerateService;
     private readonly ICurrentUserService _currentUserService;
 
-    public PartsController(IPartRepository partRepository, ICategoryRepository categoryRepository,
+    public PartsController(
+        IPartRepository partRepository,
+        IPartReadRepository partReadRepository,
+        ICategoryRepository categoryRepository,
         IUnitRepository unitRepository, IPartVehicleCompatibilityRepository compatibilityRepository,
         IPriceHistoryRepository priceHistoryRepository,
         ICodeGenerateService codeGenerateService,
@@ -32,6 +37,7 @@ public class PartsController : ControllerBase
         ILogger<PartsController> logger)
     {
         _partRepository = partRepository;
+        _partReadRepository = partReadRepository;
         _categoryRepository = categoryRepository;
         _unitRepository = unitRepository;
         _compatibilityRepository = compatibilityRepository;
@@ -61,18 +67,8 @@ public class PartsController : ControllerBase
                 return BadRequest($"Page size can not be {query.PageSize}");
             }
 
-            var response = await _partRepository.SearchPagedAsync(query, cancellationToken);
-            return Ok(new PaginatedResponse<PartResponse>
-            {
-                Data = response.Parts.Select(MapToResponse).ToList(),
-                Pagination = new PaginationMeta
-                {
-                    PageNumber = query.PageNumber,
-                    PageSize = query.PageSize,
-                    TotalCount = response.TotalCount,
-                    TotalPages = (int)Math.Ceiling(response.TotalCount / (double)query.PageSize)
-                }
-            });
+            var (response, total) = await _partReadRepository.FindAllAsync(query, cancellationToken);
+            return Ok(PagedResult<PartResponse>.Create(response, total, query));
         }
         catch (Exception ex)
         {

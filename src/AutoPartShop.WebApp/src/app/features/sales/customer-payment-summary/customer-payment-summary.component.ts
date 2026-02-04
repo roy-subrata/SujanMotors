@@ -91,10 +91,10 @@ export class CustomerPaymentSummaryComponent implements OnInit, OnDestroy {
   formatCurrency(value: number | undefined | null): string {
     const numValue = value ?? 0;
     if (isNaN(numValue)) {
-      const currency = this.currencyService.selectedCurrency() || 'BDT';
+      const currency = this.currencyService.selectedCurrency();
       return this.currencyService.formatCurrency(0, currency);
     }
-    const currency = this.currencyService.selectedCurrency() || 'BDT';
+    const currency = this.currencyService.selectedCurrency();
     return this.currencyService.formatCurrency(numValue, currency);
   }
 

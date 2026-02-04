@@ -148,7 +148,7 @@ public class Customer : AuditableEntity
         Status = "BLACKLISTED";
     }
 
-    public void UpdateContactInfo(string email, string phone, string alternatePhone = "",string customerType="")
+    public void UpdateContactInfo(string email, string phone, string alternatePhone = "", string customerType = "")
     {
         //if (string.IsNullOrWhiteSpace(email))
         //    throw new ArgumentException("Email cannot be empty", nameof(email));

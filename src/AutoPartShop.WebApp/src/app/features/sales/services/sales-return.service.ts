@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from 'src/environments/environment';
 
 export interface SalesReturnLineRequest {
   salesOrderLineId: string;
@@ -58,7 +59,7 @@ export interface PaginatedResponse<T> {
 @Injectable({ providedIn: 'root' })
 export class SalesReturnService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = 'http://localhost:5292/api/SalesReturn';
+  private readonly apiUrl = `${environment.apiUrl}/SalesReturn`;
 
   getAllSalesReturns(): Observable<SalesReturnResponse[]> {
     return this.http.get<SalesReturnResponse[]>(this.apiUrl);

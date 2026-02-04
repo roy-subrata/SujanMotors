@@ -1,14 +1,13 @@
 import { Component, inject, ViewChild, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { UnitService, UnitResponse } from '../services/unit.service';
 import { UnitConversionService, UnitConversionResponse } from '../services/unit-conversion.service';
-import { UnitsHeaderComponent } from './units-header/units-header.component';
 import { UnitsListComponent } from './units-list/units-list.component';
 import { UnitsFormDialogComponent } from './units-form-dialog/units-form-dialog.component';
-import { ConversionsHeaderComponent } from './conversions-header/conversions-header.component';
 import { ConversionsListComponent } from './conversions-list/conversions-list.component';
 import { ConversionsFormDialogComponent } from './conversions-form-dialog/conversions-form-dialog.component';
 import { TabsModule } from 'primeng/tabs';
@@ -18,13 +17,12 @@ import { TabsModule } from 'primeng/tabs';
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     ToastModule,
     ConfirmDialogModule,
     TabsModule,
-    UnitsHeaderComponent,
     UnitsListComponent,
     UnitsFormDialogComponent,
-    ConversionsHeaderComponent,
     ConversionsListComponent,
     ConversionsFormDialogComponent
   ],
@@ -47,12 +45,14 @@ export class UnitsComponent implements OnInit {
   selectedUnit: UnitResponse | null = null;
   displayCreateDialog = false;
   displayUpdateDialog = false;
+  searchTerm = '';
 
   // Conversions tab state
   selectedConversion: UnitConversionResponse | null = null;
   displayConversionCreateDialog = false;
   displayConversionUpdateDialog = false;
   units: UnitResponse[] = [];
+  conversionSearchTerm = '';
 
   ngOnInit(): void {
     // Initialize component if needed
@@ -72,6 +72,15 @@ export class UnitsComponent implements OnInit {
    */
   onSearch(query: string): void {
     this.listComponent.search(query);
+  }
+
+  clearUnitsSearch(): void {
+    this.searchTerm = '';
+    this.listComponent.clearSearch();
+  }
+
+  hasUnitsFilters(): boolean {
+    return !!this.searchTerm;
   }
 
   /**
@@ -241,6 +250,15 @@ export class UnitsComponent implements OnInit {
     this.conversionsListComponent.search(query);
   }
 
+  clearConversionSearch(): void {
+    this.conversionSearchTerm = '';
+    this.conversionsListComponent.clearSearch();
+  }
+
+  hasConversionFilters(): boolean {
+    return !!this.conversionSearchTerm;
+  }
+
   /**
    * Handle edit conversion
    */
@@ -372,5 +390,9 @@ export class UnitsComponent implements OnInit {
    */
   onConversionUpdateSuccess(): void {
     this.conversionsListComponent.reload();
+  }
+
+  get unitsTotalRecords(): number {
+    return this.listComponent?.totalRecords || 0;
   }
 }

@@ -71,7 +71,9 @@
       "Bash(cmd //c \"dir /b /o-d d:\\\\AI\\\\SujanMotors\\\\src\\\\AutoPartShop.Infrastructure\\\\Migrations\\\\*.cs | findstr /n . | findstr \"\"^1:\"\"\")",
       "Bash(test:*)",
       "Bash(Select-String -Pattern \"error\" -Context 0,2)",
-      "Bash(timeout 10 dotnet run:*)"
+      "Bash(timeout 10 dotnet run:*)",
+      "Bash(dotnet ef dbcontext script:*)",
+      "Bash(npx tsc:*)"
     ],
     "deny": [],
     "ask": []

@@ -4,8 +4,8 @@
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <AssemblyName>AutoPartsShop.Api</AssemblyName>
-    <RootNamespace>AutoPartsShop.Api</RootNamespace>
+    <AssemblyName>AutoPartShop.Api</AssemblyName>
+    <RootNamespace>AutoPartShop.Api</RootNamespace>
     <OutputType>Exe</OutputType>
   </PropertyGroup>
 
@@ -28,7 +28,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../AutoPartShop.Domain/AutoPartShop.Domain.csproj" />
-    <ProjectReference Include="../AutoPartShop.Application/AutoPartShop.csproj" />
+    <ProjectReference Include="../AutoPartShop.Application/AutoPartShop.Application.csproj" />
     <ProjectReference Include="../AutoPartShop.Infrastructure/AutoPartShop.Infrastructure.csproj" />
   </ItemGroup>
 

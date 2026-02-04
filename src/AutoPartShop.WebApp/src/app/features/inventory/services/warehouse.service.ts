@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from 'src/environments/environment';
 
 export interface WarehouseResponse {
   id: string;
@@ -18,7 +19,7 @@ export interface WarehouseResponse {
 })
 export class WarehouseService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = 'http://localhost:5292/api/warehouses';
+  private readonly apiUrl = `${environment.apiUrl}/warehouses`;
 
   /**
    * Get all warehouses

@@ -7,11 +7,13 @@ import { CardModule } from 'primeng/card';
 import { InputTextModule } from 'primeng/inputtext';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { AutoCompleteModule } from 'primeng/autocomplete';
-import { TableModule } from 'primeng/table';
-import { MessageService } from 'primeng/api';
+import { MessageService, ConfirmationService } from 'primeng/api';
 import { ToastModule } from 'primeng/toast';
+import { TagModule } from 'primeng/tag';
+import { TooltipModule } from 'primeng/tooltip';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { PurchaseOrderService, PurchaseOrderResponse } from '../services/purchase-order.service';
-import { GoodsReceiptService } from '../services/goods-receipt.service';
+import { GoodsReceiptService, GoodsReceiptResponse } from '../services/goods-receipt.service';
 import { WarehouseService, WarehouseResponse } from '../../inventory/services/warehouse.service';
 import { PartService, PartResponse } from '../../inventory/services/part.service';
 import { CurrencyService } from '../../../shared/services/currency.service';
@@ -28,10 +30,12 @@ import { CurrencyService } from '../../../shared/services/currency.service';
     InputTextModule,
     InputNumberModule,
     AutoCompleteModule,
-    TableModule,
-    ToastModule
+    ToastModule,
+    TagModule,
+    TooltipModule,
+    ConfirmDialogModule
   ],
-  providers: [MessageService],
+  providers: [MessageService, ConfirmationService],
   templateUrl: './goods-receipt-form.component.html',
   styleUrls: ['./goods-receipt-form.component.css']
 })
@@ -43,6 +47,7 @@ export class GoodsReceiptFormComponent implements OnInit {
   private readonly partService = inject(PartService);
   private readonly currencyService = inject(CurrencyService);
   private readonly messageService = inject(MessageService);
+  private readonly confirmationService = inject(ConfirmationService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
@@ -62,7 +67,10 @@ export class GoodsReceiptFormComponent implements OnInit {
   ];
   isSubmitting = false;
   isEditing = false;
+  isViewing = false;
+  mode: 'create' | 'edit' | 'view' = 'create';
   grnId: string | null = null;
+  currentGRN: GoodsReceiptResponse | null = null;
 
   constructor() {
     this.form = this.createForm();
@@ -76,32 +84,58 @@ export class GoodsReceiptFormComponent implements OnInit {
   }
 
   /**
-   * Check if editing existing GRN
+   * Check mode (create/edit/view)
    */
   private checkEditMode(): void {
+    const currentPath = this.route.snapshot.routeConfig?.path || '';
     this.grnId = this.route.snapshot.queryParamMap.get('id');
+
     if (this.grnId) {
-      this.isEditing = true;
+      if (currentPath.endsWith('/view') || currentPath === 'view') {
+        this.isViewing = true;
+        this.mode = 'view';
+      } else if (currentPath.endsWith('/edit') || currentPath === 'edit') {
+        this.isEditing = true;
+        this.mode = 'edit';
+      } else {
+        this.isEditing = true;
+        this.mode = 'edit';
+      }
       this.loadGoodsReceipt(this.grnId);
+    } else {
+      this.mode = 'create';
     }
   }
 
   /**
-   * Load existing goods receipt for editing
+   * Load existing goods receipt for editing/viewing
    */
   private loadGoodsReceipt(id: string): void {
     this.grnService.getGoodsReceiptById(id).subscribe({
       next: (grn) => {
+        this.currentGRN = grn;
+
         // Find matching PO and warehouse
         const matchingPO = this.purchaseOrders.find(po => po.id === grn.purchaseOrderId);
         const matchingWarehouse = this.warehouses.find(w => w.id === grn.warehouseId);
 
-        this.selectedPO = matchingPO || null;
-        this.selectedWarehouse = matchingWarehouse || null;
+        // If PO not found in filtered list, create a mock object for display
+        if (!matchingPO && grn.poNumber) {
+          this.selectedPO = { id: grn.purchaseOrderId, poNumber: grn.poNumber } as PurchaseOrderResponse;
+        } else {
+          this.selectedPO = matchingPO || null;
+        }
+
+        // If warehouse not found, create a mock object for display
+        if (!matchingWarehouse && grn.warehouseName) {
+          this.selectedWarehouse = { id: grn.warehouseId, name: grn.warehouseName } as WarehouseResponse;
+        } else {
+          this.selectedWarehouse = matchingWarehouse || null;
+        }
 
         this.form.patchValue({
-          warehouseId: matchingWarehouse || grn.warehouseId,
-          receivedDate: grn.receivedDate,
+          warehouseId: matchingWarehouse?.id || grn.warehouseId,
+          receivedDate: grn.receivedDate ? grn.receivedDate.split('T')[0] : '',
           // Delivery Information
           deliveryDate: grn.deliveryDate ? grn.deliveryDate.split('T')[0] : '',
           deliveryReference: grn.deliveryReference,
@@ -133,11 +167,16 @@ export class GoodsReceiptFormComponent implements OnInit {
               hasDiscrepancy: [line.hasDiscrepancy],
               // Cost Information
               unitCost: [line.unitCost || 0, [Validators.required, Validators.min(0)]],
-              currency: [line.currency || this.currencyService.selectedCurrency() || 'BDT', Validators.required],
+              currency: [line.currency || this.currencyService.selectedCurrency(), Validators.required],
               unitId: [line.unitId || '']
             })
           );
         });
+
+        // Disable form in view mode
+        if (this.isViewing) {
+          this.form.disable();
+        }
       },
       error: (error) => {
         this.messageService.add({
@@ -290,7 +329,7 @@ export class GoodsReceiptFormComponent implements OnInit {
           hasDiscrepancy: [false],
           // Cost Information
           unitCost: [line.unitPrice || 0, [Validators.required, Validators.min(0)]],
-          currency: [this.currencyService.selectedCurrency() || 'BDT', Validators.required],
+          currency: [this.currencyService.selectedCurrency(), Validators.required],
           unitId: ['']
         })
       );
@@ -388,7 +427,7 @@ export class GoodsReceiptFormComponent implements OnInit {
       notes: line.notes || '',
       hasDiscrepancy: line.hasDiscrepancy || false,
       unitCost: line.unitCost || 0,
-      currency: line.currency || 'INR',
+      currency: line.currency || this.currencyService.selectedCurrency(),
       unitId: line.unitId && line.unitId.trim() !== '' ? line.unitId : null
     }));
 
@@ -477,12 +516,140 @@ export class GoodsReceiptFormComponent implements OnInit {
   }
 
   /**
-   * Format currency
+   * Format currency - uses default currency from settings
    */
   formatCurrency(value: number): string {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR'
-    }).format(value);
+    const currency = this.currencyService.selectedCurrency();
+    return this.currencyService.formatCurrency(value, currency);
+  }
+
+  /**
+   * Get page title based on mode
+   */
+  getPageTitle(): string {
+    if (this.mode === 'view') return 'View Goods Receipt';
+    if (this.mode === 'edit') return 'Edit Goods Receipt';
+    return 'Create New Goods Receipt';
+  }
+
+  /**
+   * Get status severity for p-tag
+   */
+  getStatusSeverity(status: string): 'success' | 'secondary' | 'info' | 'warn' | 'danger' | 'contrast' | undefined {
+    switch (status?.toUpperCase()) {
+      case 'PENDING':
+        return 'warn';
+      case 'VERIFIED':
+        return 'info';
+      case 'ACCEPTED':
+        return 'success';
+      case 'REJECTED':
+        return 'danger';
+      default:
+        return 'secondary';
+    }
+  }
+
+  /**
+   * Verify goods receipt
+   */
+  verifyGoodsReceipt(): void {
+    if (!this.grnId || !this.currentGRN) return;
+
+    this.confirmationService.confirm({
+      message: `Are you sure you want to verify Goods Receipt ${this.currentGRN.grnNumber}?`,
+      header: 'Confirm Verification',
+      icon: 'pi pi-exclamation-triangle',
+      accept: () => {
+        // TODO: Get current user name from auth service
+        const verifiedBy = 'System User';
+        this.grnService.verifyGoodsReceipt(this.grnId!, verifiedBy).subscribe({
+          next: () => {
+            this.messageService.add({
+              severity: 'success',
+              summary: 'Success',
+              detail: `Goods Receipt ${this.currentGRN!.grnNumber} verified successfully`
+            });
+            this.loadGoodsReceipt(this.grnId!);
+          },
+          error: (error) => {
+            this.messageService.add({
+              severity: 'error',
+              summary: 'Error',
+              detail: error?.error?.message || 'Failed to verify goods receipt'
+            });
+            console.error('Error verifying GRN:', error);
+          }
+        });
+      }
+    });
+  }
+
+  /**
+   * Accept goods receipt
+   */
+  acceptGoodsReceipt(): void {
+    if (!this.grnId || !this.currentGRN) return;
+
+    this.confirmationService.confirm({
+      message: `Are you sure you want to accept Goods Receipt ${this.currentGRN.grnNumber}? This will update the inventory.`,
+      header: 'Confirm Acceptance',
+      icon: 'pi pi-exclamation-triangle',
+      acceptButtonStyleClass: 'p-button-success',
+      accept: () => {
+        this.grnService.acceptGoodsReceipt(this.grnId!).subscribe({
+          next: () => {
+            this.messageService.add({
+              severity: 'success',
+              summary: 'Success',
+              detail: `Goods Receipt ${this.currentGRN!.grnNumber} accepted successfully`
+            });
+            this.loadGoodsReceipt(this.grnId!);
+          },
+          error: (error) => {
+            this.messageService.add({
+              severity: 'error',
+              summary: 'Error',
+              detail: error?.error?.message || 'Failed to accept goods receipt'
+            });
+            console.error('Error accepting GRN:', error);
+          }
+        });
+      }
+    });
+  }
+
+  /**
+   * Reject goods receipt
+   */
+  rejectGoodsReceipt(): void {
+    if (!this.grnId || !this.currentGRN) return;
+
+    this.confirmationService.confirm({
+      message: `Are you sure you want to reject Goods Receipt ${this.currentGRN.grnNumber}?`,
+      header: 'Confirm Rejection',
+      icon: 'pi pi-exclamation-triangle',
+      acceptButtonStyleClass: 'p-button-danger',
+      accept: () => {
+        this.grnService.rejectGoodsReceipt(this.grnId!, 'Rejected by user').subscribe({
+          next: () => {
+            this.messageService.add({
+              severity: 'success',
+              summary: 'Success',
+              detail: `Goods Receipt ${this.currentGRN!.grnNumber} rejected`
+            });
+            this.loadGoodsReceipt(this.grnId!);
+          },
+          error: (error) => {
+            this.messageService.add({
+              severity: 'error',
+              summary: 'Error',
+              detail: error?.error?.message || 'Failed to reject goods receipt'
+            });
+            console.error('Error rejecting GRN:', error);
+          }
+        });
+      }
+    });
   }
 }

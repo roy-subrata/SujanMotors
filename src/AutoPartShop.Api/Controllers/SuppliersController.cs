@@ -1,7 +1,8 @@
 using AutoPartShop.Api.Services;
-using AutoPartShop.Application.DTOs.CustomerDtos;
+using AutoPartShop.Application.Common;
 using AutoPartShop.Application.DTOs.SupplierDtos;
-using AutoPartShop.Domain.Common;
+using AutoPartShop.Application.Suppliers;
+using AutoPartShop.Application.Suppliers.Dtos;
 using AutoPartShop.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,15 +14,19 @@ namespace AutoPartShop.Api.Controllers;
 public class SuppliersController : ControllerBase
 {
     private readonly ISupplierRepository _supplierRepository;
+    private readonly ISupplierReadRepository _supplierReadRepository;
     private readonly ILogger<SuppliersController> _logger;
     private readonly ICodeGenerateService _codeGenerateService;
     private readonly ICurrentUserService _currentUserService;
 
-    public SuppliersController(ISupplierRepository supplierRepository, ICodeGenerateService codeGenerateService, ICurrentUserService currentUserService, ILogger<SuppliersController> logger)
+    public SuppliersController(ISupplierRepository supplierRepository,
+        ISupplierReadRepository supplierReadRepository,
+        ICodeGenerateService codeGenerateService, ICurrentUserService currentUserService, ILogger<SuppliersController> logger)
     {
         _supplierRepository = supplierRepository;
         _codeGenerateService = codeGenerateService;
         _currentUserService = currentUserService;
+        _supplierReadRepository=supplierReadRepository;
         _logger = logger;
     }
     [HttpPost("list")]
@@ -42,18 +47,13 @@ public class SuppliersController : ControllerBase
                 return BadRequest($"Page size can not be {query.PageSize}");
             }
 
-            var response = await _supplierRepository.SearchPagedAsync(query, cancellationToken);
-            return Ok(new PaginatedResponse<SupplierResponse>
-            {
-                Data = response.Suppliers.Select(MapToResponse).ToList(),
-                Pagination = new PaginationMeta
-                {
-                    PageNumber = query.PageNumber,
-                    PageSize = query.PageSize,
-                    TotalCount = response.TotalCount,
-                    TotalPages = (int)Math.Ceiling(response.TotalCount / (double)query.PageSize)
-                }
-            });
+            var (response,total) = await _supplierReadRepository.FindAllAsynce(query, cancellationToken);
+
+            return Ok(PagedResult<SupplierResponse>.Create(
+                response.ToList(),
+                total,
+                query
+            ));
         }
         catch (Exception ex)
         {

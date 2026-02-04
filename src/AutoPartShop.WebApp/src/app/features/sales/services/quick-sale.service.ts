@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, BehaviorSubject } from 'rxjs';
 import { tap } from 'rxjs/operators';
+import { environment } from 'src/environments/environment';
 
 // Payment method types
 export type PaymentMethod = 'CASH' | 'MOBILE_BANKING' | 'CARD' | 'DUE' | 'PART_PAY';
@@ -106,7 +107,7 @@ export interface QuickSaleDraft {
 @Injectable({ providedIn: 'root' })
 export class QuickSaleService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = 'http://localhost:5292/api';
+  private readonly apiUrl = `${environment.apiUrl}`;
 
   // Draft management
   private readonly DRAFT_STORAGE_KEY = 'quickSaleDraft';

@@ -1,16 +1,378 @@
-<div class="parts-container">
-  <p-toast position="top-right"></p-toast>
+<!-- ============================================================
+     PARTS LIST - SALES ORDER STYLE UI
+     ============================================================ -->
 
-  <!-- Header Section -->
-  <app-parts-header (createClick)="onCreateClick()" (searchChange)="onSearch($event)" (searchClear)="onSearchClear()">
-  </app-parts-header>
+<!-- PrimeNG Global Components -->
+<p-toast position="top-right"></p-toast>
+<p-confirmDialog></p-confirmDialog>
+<p-menu #actionMenu [model]="actionMenuItems" [popup]="true" appendTo="body"></p-menu>
 
-  <!-- Table Section -->
-  <div class="table-container">
-    <app-parts-table [parts]="parts" [loading]="loading" [totalRecords]="totalRecords" [rows]="rows"
-      [currentPage]="currentPage" (editClick)="onEditClick($event)" (showBarcodeClick)="onShowBarcodeClick($event)"
-      (pageChange)="onPageChange($event)" (partDeleted)="onPartDeleted()">
-    </app-parts-table>
-  </div>
+<!-- Main Page Container -->
+<div class="page-wrapper">
+
+  <!-- ==================== PAGE HEADER ==================== -->
+  <header class="page-header">
+    <div class="header-content">
+      <!-- Left: Title & Subtitle -->
+      <div class="header-left">
+        <h1 class="page-title">Parts</h1>
+        <p class="page-subtitle">Manage and track all inventory parts</p>
+      </div>
+
+      <!-- Right: Actions -->
+      <div class="header-actions">
+        <!-- Stats Badge -->
+        <div class="stats-badge">
+          <i class="pi pi-box"></i>
+          <div class="stats-info">
+            <span class="stats-value">{{ totalRecords }}</span>
+            <span class="stats-label">parts</span>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+          <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="refreshData()">
+            <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
+          </button>
+          <button class="btn-primary" (click)="createPart()">
+            <i class="pi pi-plus"></i>
+            <span>New Part</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================== FILTER SECTION ==================== -->
+  <section class="filter-section">
+    <div class="filter-container">
+      <!-- Search Input -->
+      <div class="filter-group search-group">
+        <div class="search-input-wrapper">
+          <i class="pi pi-search"></i>
+          <input
+            type="text"
+            [(ngModel)]="searchTerm"
+            placeholder="Search by part name, SKU, or part number..."
+            (keyup.enter)="onSearch()"
+            class="search-input" />
+          <button *ngIf="searchTerm" class="search-clear" (click)="searchTerm = ''; onSearch()">
+            <i class="pi pi-times"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Status Filter -->
+      <div class="filter-group">
+        <label class="filter-label">Status</label>
+        <p-select
+          [options]="statusOptions"
+          [(ngModel)]="filterStatus"
+          placeholder="All Statuses"
+          [showClear]="true"
+          (onChange)="onFilterChange()"
+          appendTo="body"
+          styleClass="filter-dropdown">
+        </p-select>
+      </div>
+
+      <!-- Filter Actions -->
+      <div class="filter-group filter-actions">
+        <button class="btn-search" (click)="onSearch()">
+          <i class="pi pi-search"></i>
+          Search
+        </button>
+        <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
+          <i class="pi pi-filter-slash"></i>
+          Clear
+        </button>
+      </div>
+    </div>
+
+    <!-- Active Filters Display -->
+    <div *ngIf="hasActiveFilters()" class="active-filters">
+      <span class="active-filters-label">Active filters:</span>
+      <span *ngIf="searchTerm" class="filter-chip">
+        Search: "{{ searchTerm }}"
+        <i class="pi pi-times" (click)="searchTerm = ''; onSearch()"></i>
+      </span>
+      <span *ngIf="filterStatus" class="filter-chip">
+        Status: {{ filterStatus }}
+        <i class="pi pi-times" (click)="filterStatus = ''; onFilterChange()"></i>
+      </span>
+    </div>
+  </section>
+
+  <!-- ==================== DATA TABLE (Desktop) ==================== -->
+  <section class="table-section desktop-only">
+    <div class="table-container">
+      <p-table
+        [value]="parts"
+        [lazy]="true"
+        [paginator]="false"
+        [rows]="pageSize"
+        [totalRecords]="totalRecords"
+        [loading]="loading"
+        (onLazyLoad)="onLazyLoad($event)"
+        [rowHover]="true"
+        [scrollable]="true"
+        scrollHeight="flex"
+        styleClass="custom-table">
+
+        <!-- Table Header -->
+        <ng-template #header>
+          <tr>
+            <th class="col-part">Part</th>
+            <th class="col-category">Category</th>
+            <th class="col-brand">Brand</th>
+            <th class="col-price">Cost</th>
+            <th class="col-price">Selling</th>
+            <th class="col-stock">Min Stock</th>
+            <th class="col-warranty">Warranty</th>
+            <th class="col-status">Status</th>
+            <th class="col-actions">Actions</th>
+          </tr>
+        </ng-template>
+
+        <!-- Table Body -->
+        <ng-template #body let-part>
+          <tr class="data-row" [class.row-inactive]="!part.isActive" (dblclick)="viewPart(part)">
+            <!-- Part -->
+            <td class="col-part">
+              <div class="part-cell">
+                <div class="part-avatar" [class.inactive]="!part.isActive">
+                  {{ (part.name || 'P')[0].toUpperCase() }}
+                </div>
+                <div class="part-info">
+                  <span class="part-name">{{ part.name }}</span>
+                  <span class="part-sku">SKU: {{ part.sku }} | PN: {{ part.partNumber }}</span>
+                </div>
+              </div>
+            </td>
+
+            <!-- Category -->
+            <td class="col-category">
+              <span class="text-muted">{{ part.categoryName || '-' }}</span>
+            </td>
+
+            <!-- Brand -->
+            <td class="col-brand">
+              <span class="text-muted">{{ part.brandName || '-' }}</span>
+            </td>
+
+            <!-- Cost -->
+            <td class="col-price">
+              <span class="amount-value">{{ formatCurrency(part.costPrice) }}</span>
+            </td>
+
+            <!-- Selling -->
+            <td class="col-price">
+              <span class="amount-value">{{ formatCurrency(part.sellingPrice) }}</span>
+            </td>
+
+            <!-- Min Stock -->
+            <td class="col-stock">
+              <span class="amount-value">{{ part.minimumStock }}</span>
+            </td>
+
+            <!-- Warranty -->
+            <td class="col-warranty">
+              <span *ngIf="part.hasWarranty" class="warranty-pill">
+                Yes
+                <span class="warranty-meta">{{ part.warrantyPeriodMonths }}mo</span>
+              </span>
+              <span *ngIf="!part.hasWarranty" class="text-muted">-</span>
+            </td>
+
+            <!-- Status -->
+            <td class="col-status">
+              <span class="status-pill" [attr.data-status]="part.isActive ? 'active' : 'inactive'">
+                {{ formatStatus(part.isActive) }}
+              </span>
+            </td>
+
+            <!-- Actions -->
+            <td class="col-actions">
+              <div class="action-cell">
+                <button class="btn-action" pTooltip="More" (click)="showActionMenu($event, part)">
+                  <i class="pi pi-ellipsis-v"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+
+        <!-- Empty State -->
+        <ng-template #emptymessage>
+          <tr>
+            <td colspan="9">
+              <div class="empty-state">
+                <div class="empty-icon">
+                  <i class="pi pi-box"></i>
+                </div>
+                <h3>No Parts Found</h3>
+                <p *ngIf="hasActiveFilters()">Try adjusting your filters or search criteria</p>
+                <p *ngIf="!hasActiveFilters()">Get started by creating your first part</p>
+                <button *ngIf="!hasActiveFilters()" class="btn-primary" (click)="createPart()">
+                  <i class="pi pi-plus"></i>
+                  Create Part
+                </button>
+                <button *ngIf="hasActiveFilters()" class="btn-secondary" (click)="clearFilters()">
+                  <i class="pi pi-filter-slash"></i>
+                  Clear Filters
+                </button>
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+
+        <!-- Loading Skeleton -->
+        <ng-template #loadingbody>
+          <tr *ngFor="let _ of [1,2,3,4,5,6,7,8]" class="skeleton-row">
+            <td>
+              <div class="skeleton part-skeleton">
+                <div class="skeleton skeleton-avatar"></div>
+                <div class="skeleton skeleton-text"></div>
+              </div>
+            </td>
+            <td><div class="skeleton skeleton-text-sm"></div></td>
+            <td><div class="skeleton skeleton-text-sm"></div></td>
+            <td><div class="skeleton skeleton-text-sm"></div></td>
+            <td><div class="skeleton skeleton-text-sm"></div></td>
+            <td><div class="skeleton skeleton-text-sm"></div></td>
+            <td><div class="skeleton skeleton-badge"></div></td>
+            <td><div class="skeleton skeleton-badge"></div></td>
+            <td><div class="skeleton skeleton-actions"></div></td>
+          </tr>
+        </ng-template>
+
+      </p-table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination-section" *ngIf="totalRecords > 0">
+      <div class="pagination-info">
+        Showing <strong>{{ first + 1 }}</strong> to <strong>{{ first + parts.length }}</strong> of <strong>{{ totalRecords }}</strong> parts
+      </div>
+      <div class="pagination-controls">
+        <span class="page-size-label">Rows per page:</span>
+        <p-select
+          [options]="[{label: '10', value: 10}, {label: '20', value: 20}, {label: '50', value: 50}]"
+          [(ngModel)]="pageSize"
+          (onChange)="onPageChange({first: 0, rows: pageSize})"
+          styleClass="page-size-dropdown">
+        </p-select>
+        <div class="page-nav">
+          <button class="page-btn" [disabled]="first === 0" (click)="onPageChange({first: 0, rows: pageSize})">
+            <i class="pi pi-angle-double-left"></i>
+          </button>
+          <button class="page-btn" [disabled]="first === 0" (click)="onPageChange({first: first - pageSize, rows: pageSize})">
+            <i class="pi pi-angle-left"></i>
+          </button>
+          <span class="page-indicator">{{ pageNumber }} / {{ Math.ceil(totalRecords / pageSize) }}</span>
+          <button class="page-btn" [disabled]="first + pageSize >= totalRecords" (click)="onPageChange({first: first + pageSize, rows: pageSize})">
+            <i class="pi pi-angle-right"></i>
+          </button>
+          <button class="page-btn" [disabled]="first + pageSize >= totalRecords" (click)="onPageChange({first: (Math.ceil(totalRecords / pageSize) - 1) * pageSize, rows: pageSize})">
+            <i class="pi pi-angle-double-right"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== MOBILE CARDS ==================== -->
+  <section class="cards-section mobile-only">
+    <!-- Loading Skeleton -->
+    <div *ngIf="loading" class="cards-grid">
+      <div *ngFor="let _ of [1,2,3,4]" class="order-card skeleton-card">
+        <div class="card-header">
+          <div class="skeleton skeleton-text"></div>
+          <div class="skeleton skeleton-badge"></div>
+        </div>
+        <div class="card-body">
+          <div class="skeleton skeleton-text-lg"></div>
+          <div class="skeleton skeleton-text-sm"></div>
+        </div>
+        <div class="card-footer">
+          <div class="skeleton skeleton-text-sm"></div>
+          <div class="skeleton skeleton-text-sm"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="!loading && parts.length === 0" class="empty-state-mobile">
+      <div class="empty-icon">
+        <i class="pi pi-box"></i>
+      </div>
+      <h3>No Parts</h3>
+      <p>{{ hasActiveFilters() ? 'Try different filters' : 'Create your first part' }}</p>
+      <button class="btn-primary" (click)="hasActiveFilters() ? clearFilters() : createPart()">
+        <i class="pi" [class.pi-plus]="!hasActiveFilters()" [class.pi-filter-slash]="hasActiveFilters()"></i>
+        {{ hasActiveFilters() ? 'Clear Filters' : 'New Part' }}
+      </button>
+    </div>
+
+    <!-- Part Cards -->
+    <div *ngIf="!loading && parts.length > 0" class="cards-grid">
+      <div *ngFor="let part of parts" class="order-card" [class.card-inactive]="!part.isActive" (click)="viewPart(part)">
+        <!-- Card Header -->
+        <div class="card-header">
+          <span class="card-so-number">{{ part.partNumber }}</span>
+          <span class="status-pill" [attr.data-status]="part.isActive ? 'active' : 'inactive'">
+            {{ formatStatus(part.isActive) }}
+          </span>
+        </div>
+
+        <!-- Card Body -->
+        <div class="card-body">
+          <div class="card-customer">
+            <div class="customer-avatar small">
+              {{ (part.name || 'P')[0].toUpperCase() }}
+            </div>
+            <span class="customer-name">{{ part.name }}</span>
+          </div>
+          <div class="card-dates">
+            <span class="card-date">
+              <i class="pi pi-tag"></i>
+              SKU: {{ part.sku }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Card Footer -->
+        <div class="card-footer">
+          <div class="card-amount">
+            <span class="amount-label">Cost</span>
+            <span class="amount-value">{{ formatCurrency(part.costPrice) }}</span>
+          </div>
+          <div class="card-amount">
+            <span class="amount-label">Selling</span>
+            <span class="amount-value">{{ formatCurrency(part.sellingPrice) }}</span>
+          </div>
+          <button class="btn-card-action" (click)="showActionMenu($event, part); $event.stopPropagation()">
+            <i class="pi pi-ellipsis-h"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile Pagination -->
+    <div *ngIf="!loading && parts.length > 0" class="mobile-pagination">
+      <div class="pagination-info-mobile">
+        {{ first + 1 }}-{{ first + parts.length }} of {{ totalRecords }}
+      </div>
+      <div class="pagination-nav-mobile">
+        <button class="page-btn" [disabled]="first === 0" (click)="onPageChange({first: first - pageSize, rows: pageSize})">
+          <i class="pi pi-chevron-left"></i>
+        </button>
+        <button class="page-btn" [disabled]="first + pageSize >= totalRecords" (click)="onPageChange({first: first + pageSize, rows: pageSize})">
+          <i class="pi pi-chevron-right"></i>
+        </button>
+      </div>
+    </div>
+  </section>
 
 </div>

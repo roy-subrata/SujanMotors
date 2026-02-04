@@ -4,13 +4,13 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <AssemblyName>AutoPartsShop.Infrastructure</AssemblyName>
-    <RootNamespace>AutoPartsShop.Infrastructure</RootNamespace>
+    <AssemblyName>AutoPartShop.Infrastructure</AssemblyName>
+    <RootNamespace>AutoPartShop.Infrastructure</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="../AutoPartShop.Domain/AutoPartShop.Domain.csproj" />
-    <ProjectReference Include="..\AutoPartShop.Application\AutoPartShop.csproj" />
+    <ProjectReference Include="../AutoPartShop.Application/AutoPartShop.Application.csproj" />
   </ItemGroup>
 
 <ItemGroup>

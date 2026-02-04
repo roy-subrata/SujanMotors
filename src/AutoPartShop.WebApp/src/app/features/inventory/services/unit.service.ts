@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from 'src/environments/environment';
 
 export interface UnitResponse {
   id: string;
@@ -44,7 +45,7 @@ export interface UnitListResponse {
   providedIn: 'root'
 })
 export class UnitService {
-  private readonly apiUrl = 'http://localhost:5292/api/units';
+  private readonly apiUrl = `${environment.apiUrl}/units`;
 
   constructor(private http: HttpClient) {}
 

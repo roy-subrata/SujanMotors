@@ -1,3 +1,5 @@
+using AutoPartShop.Application.Common;
+
 namespace AutoPartShop.Application.DTOs.InventoryDtos;
 
 public class CreateStockLotRequest
@@ -59,6 +61,7 @@ public class StockLotPriceHistoryResponse
     public decimal MaxPrice { get; set; }
     public decimal AveragePrice { get; set; }
     public decimal LatestPrice { get; set; }
+    public PaginationMeta Pagination { get; set; } = new();
 }
 
 public class StockLotHistoryItem

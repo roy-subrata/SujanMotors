@@ -1,5 +1,8 @@
 using AutoPartShop.Api.Services;
+using AutoPartShop.Application.Common;
 using AutoPartShop.Application.DTOs.StockDtos;
+using AutoPartShop.Application.Stock;
+using AutoPartShop.Application.Stock.Dtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Mvc;
@@ -14,6 +17,8 @@ public class StockController : ControllerBase
 {
     private readonly IStockLevelRepository _stockLevelRepository;
     private readonly IStockMovementRepository _stockMovementRepository;
+    private readonly IStockLevelReadRepository _stockLevelReadRepository;
+    private readonly IStockMovementReadRepository _stockMovementReadRepository;
     private readonly AutoPartDbContext _dbContext;
     private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<StockController> _logger;
@@ -21,12 +26,16 @@ public class StockController : ControllerBase
     public StockController(
         IStockLevelRepository stockLevelRepository,
         IStockMovementRepository stockMovementRepository,
+        IStockLevelReadRepository stockLevelReadRepository,
+        IStockMovementReadRepository stockMovementReadRepository,
         AutoPartDbContext dbContext,
         ICurrentUserService currentUserService,
         ILogger<StockController> logger)
     {
         _stockLevelRepository = stockLevelRepository;
         _stockMovementRepository = stockMovementRepository;
+        _stockLevelReadRepository = stockLevelReadRepository;
+        _stockMovementReadRepository = stockMovementReadRepository;
         _dbContext = dbContext;
         _currentUserService = currentUserService;
         _logger = logger;
@@ -45,6 +54,35 @@ public class StockController : ControllerBase
         {
             _logger.LogError(ex, "Error getting all stock levels");
             return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving stock levels");
+        }
+    }
+
+    [HttpPost("levels/list")]
+    public async Task<IActionResult> GetStockLevelsList(StockLevelQuery query, CancellationToken cancellationToken = default)
+    {
+        if (query is null)
+            return BadRequest("Request body is required.");
+
+        if (query.PageNumber < 1)
+            return BadRequest("PageNumber must be greater than 0.");
+
+        if (query.PageSize < 1)
+            return BadRequest("PageSize must be greater than 0.");
+
+        try
+        {
+            var (levels, totalCount) =
+                await _stockLevelReadRepository.FindAllQuery(query, cancellationToken);
+
+            var result = PagedResult<StockLevelResponse>
+                .Create(levels, totalCount, query);
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting stock levels list");
+            return StatusCode(500, "An error occurred while retrieving stock levels");
         }
     }
 
@@ -201,6 +239,35 @@ public class StockController : ControllerBase
         {
             _logger.LogError(ex, "Error getting all stock movements");
             return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving stock movements");
+        }
+    }
+
+    [HttpPost("movements/list")]
+    public async Task<IActionResult> GetMovementsList(StockMovementQuery query, CancellationToken cancellationToken = default)
+    {
+        if (query is null)
+            return BadRequest("Request body is required.");
+
+        if (query.PageNumber < 1)
+            return BadRequest("PageNumber must be greater than 0.");
+
+        if (query.PageSize < 1)
+            return BadRequest("PageSize must be greater than 0.");
+
+        try
+        {
+            var (movements, totalCount) =
+                await _stockMovementReadRepository.FindAllQuery(query, cancellationToken);
+
+            var result = PagedResult<StockMovementResponse>
+                .Create(movements, totalCount, query);
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting stock movements list");
+            return StatusCode(500, "An error occurred while retrieving stock movements");
         }
     }
 

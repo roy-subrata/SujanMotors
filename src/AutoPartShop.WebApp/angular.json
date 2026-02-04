@@ -3,7 +3,7 @@
     "version": 1,
     "newProjectRoot": "projects",
     "projects": {
-        "sakai-ng": {
+        "autoweb": {
             "projectType": "application",
             "schematics": {
                 "@schematics/angular:component": {
@@ -17,7 +17,7 @@
                 "build": {
                     "builder": "@angular-devkit/build-angular:application",
                     "options": {
-                        "outputPath": "dist/sakai-ng",
+                        "outputPath": "dist/smauto",
                         "index": "src/index.html",
                         "browser": "src/main.ts",
                         "polyfills": ["zone.js", "@angular/localize/init"],
@@ -32,7 +32,9 @@
                                 "glob": "**/*",
                                 "input": "src/assets",
                                 "output": "assets"
-                            }
+                            },
+                            "src/manifest.webmanifest",
+                            "src/staticwebapp.config.json"
                         ],
                         "styles": ["src/assets/styles.scss"],
                         "scripts": [],
@@ -40,7 +42,8 @@
                     },
                     "configurations": {
                         "production": {
-                            "outputHashing": "all"
+                            "outputHashing": "all",
+                            "serviceWorker": "ngsw-config.json"
                         },
                         "development": {
                             "optimization": false,
@@ -54,10 +57,10 @@
                     "builder": "@angular-devkit/build-angular:dev-server",
                     "configurations": {
                         "production": {
-                            "buildTarget": "sakai-ng:build:production"
+                            "buildTarget": "autoweb:build:production"
                         },
                         "development": {
-                            "buildTarget": "sakai-ng:build:development"
+                            "buildTarget": "autoweb:build:development"
                         }
                     },
                     "defaultConfiguration": "development"

@@ -1,41 +1,132 @@
-<div class="categories-container">
-  <!-- Messages -->
-  <p-toast></p-toast>
+<!-- ============================================================
+     CATEGORIES LIST - ENTERPRISE UI (MATCHES SALES ORDERS LAYOUT)
+     ============================================================ -->
 
-  <!-- Confirmation Dialog -->
-  <p-confirmDialog></p-confirmDialog>
+<p-toast position="top-right"></p-toast>
+<p-confirmDialog></p-confirmDialog>
 
-  <!-- Header Component -->
-  <app-categories-header
-    (createClick)="onNewCategoryClick()"
-    (searchChange)="onSearch($event)">
-  </app-categories-header>
+<div class="page-wrapper">
+  <!-- ==================== PAGE HEADER ==================== -->
+  <header class="page-header">
+    <div class="header-content">
+      <!-- Left: Title & Subtitle -->
+      <div class="header-left">
+        <h1 class="page-title">Categories</h1>
+        <p class="page-subtitle">Manage product categories and subcategories</p>
+      </div>
 
+      <!-- Right: Actions -->
+      <div class="header-actions">
+        <!-- Stats Badge -->
+        <div class="stats-badge">
+          <i class="pi pi-tags"></i>
+          <div class="stats-info">
+            <span class="stats-value">{{ totalRecords }}</span>
+            <span class="stats-label">categories</span>
+          </div>
+        </div>
 
-  
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+          <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="refreshData()">
+            <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
+          </button>
+          <button class="btn-primary" (click)="createCategory()">
+            <i class="pi pi-plus"></i>
+            <span>New Category</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
 
-  <!-- List Component -->
+  <!-- ==================== FILTER SECTION ==================== -->
+  <section class="filter-section">
+    <div class="filter-container">
+      <!-- Search Input -->
+      <div class="filter-group search-group">
+        <div class="search-input-wrapper">
+          <i class="pi pi-search"></i>
+          <input
+            type="text"
+            [(ngModel)]="searchTerm"
+            placeholder="Search by name, code, description..."
+            (keyup.enter)="onSearch()"
+            class="search-input" />
+          <button *ngIf="searchTerm" class="search-clear" (click)="clearSearchInput(); onSearch()">
+            <i class="pi pi-times"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Status Filter -->
+      <div class="filter-group">
+        <label class="filter-label">Status</label>
+        <p-select
+          [options]="statusOptions"
+          [(ngModel)]="filterStatus"
+          placeholder="All Statuses"
+          [showClear]="true"
+          (onChange)="onFilterChange()"
+          appendTo="body"
+          styleClass="filter-dropdown">
+        </p-select>
+      </div>
+
+      <!-- Filter Actions -->
+      <div class="filter-group filter-actions">
+        <button class="btn-search" (click)="onSearch()">
+          <i class="pi pi-search"></i>
+          Search
+        </button>
+        <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
+          <i class="pi pi-filter-slash"></i>
+          Clear
+        </button>
+      </div>
+    </div>
+
+    <!-- Active Filters Display -->
+    <div *ngIf="hasActiveFilters()" class="active-filters">
+      <span class="active-filters-label">Active filters:</span>
+      <span *ngIf="searchTerm" class="filter-chip">
+        Search: "{{ searchTerm }}"
+        <i class="pi pi-times" (click)="clearSearchInput(); onSearch()"></i>
+      </span>
+      <span *ngIf="filterStatus !== null" class="filter-chip">
+        Status: {{ getStatusLabel(filterStatus) }}
+        <i class="pi pi-times" (click)="filterStatus = null; onFilterChange()"></i>
+      </span>
+    </div>
+  </section>
+
+  <!-- ==================== LIST SECTION ==================== -->
   <app-categories-list
-    (nodeSelect)="onNodeSelect()"
+    [categories]="categories"
+    [loading]="loading"
+    [totalRecords]="totalRecords"
+    [rows]="rows"
+    [currentPage]="currentPage"
     (editCategory)="selectAndOpenUpdate($event)"
     (deleteCategory)="selectAndDelete($event)"
     (toggleCategoryStatus)="selectAndToggleStatus($event)"
-    (addSubcategory)="selectAndAddSubcategory($event)">
+    (addSubcategory)="selectAndAddSubcategory($event)"
+    (pageChange)="onPageChange($event)">
   </app-categories-list>
-
-  <!-- Form Dialog Component -->
-  <app-categories-form-dialog
-    [displayCreateDialog]="displayCreateDialog"
-    [displayUpdateDialog]="displayUpdateDialog"
-    [selectedCategory]="selectedCategory"
-    [filteredParentCategories]="filteredParentCategories"
-    [selectedParentCategory]="selectedParentCategory"
-    (displayCreateDialogChange)="onDisplayCreateDialogChange($event)"
-    (displayUpdateDialogChange)="onDisplayUpdateDialogChange($event)"
-    (createSuccess)="onCreateSuccess()"
-    (updateSuccess)="onUpdateSuccess()"
-    (parentCategoryEvent)="onParentCategoryEvent($event)"
-    (parentCategorySelect)="onParentCategorySelect($event)"
-    (parentCategoryCleared)="onParentCategoryCleared()">
-  </app-categories-form-dialog>
 </div>
+
+<!-- ==================== FORM DIALOG ==================== -->
+<app-categories-form-dialog
+  [displayCreateDialog]="displayCreateDialog"
+  [displayUpdateDialog]="displayUpdateDialog"
+  [selectedCategory]="selectedCategory"
+  [filteredParentCategories]="filteredParentCategories"
+  [selectedParentCategory]="selectedParentCategory"
+  (displayCreateDialogChange)="onDisplayCreateDialogChange($event)"
+  (displayUpdateDialogChange)="onDisplayUpdateDialogChange($event)"
+  (createSuccess)="onCreateSuccess()"
+  (updateSuccess)="onUpdateSuccess()"
+  (parentCategoryEvent)="onParentCategoryEvent($event)"
+  (parentCategorySelect)="onParentCategorySelect($event)"
+  (parentCategoryCleared)="onParentCategoryCleared()">
+</app-categories-form-dialog>

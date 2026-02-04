@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from 'src/environments/environment';
 
 export enum SupplierLedgerTransactionType {
     PURCHASE = 'PURCHASE',       // PO confirmation (debit - increases debt)
@@ -64,7 +65,7 @@ export interface SettlePurchaseReturnRequest {
 })
 export class SupplierLedgerService {
     private readonly http = inject(HttpClient);
-    private readonly apiUrl = 'http://localhost:5292/api/supplier-ledger';
+    private readonly apiUrl = `${environment.apiUrl}/supplier-ledger`;
 
     /**
      * Get full ledger summary for a supplier including recent entries

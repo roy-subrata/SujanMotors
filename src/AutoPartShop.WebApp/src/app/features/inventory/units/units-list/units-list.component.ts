@@ -8,11 +8,12 @@ import { TooltipModule } from 'primeng/tooltip';
 import { BadgeModule } from 'primeng/badge';
 import { MessageService } from 'primeng/api';
 import { UnitService, UnitResponse } from '../../services/unit.service';
+import { Select } from 'primeng/select';
 
 @Component({
   selector: 'app-units-list',
   standalone: true,
-  imports: [CommonModule, TableModule, ButtonModule, InputTextModule, TooltipModule, BadgeModule, FormsModule],
+  imports: [CommonModule, TableModule, ButtonModule, InputTextModule, TooltipModule, BadgeModule, FormsModule, Select],
   templateUrl: './units-list.component.html',
   styleUrls: ['./units-list.component.css']
 })
@@ -31,6 +32,7 @@ export class UnitsListComponent implements OnInit {
   pageSize = 10;
   totalRecords = 0;
   searchTerm = '';
+  pageSizeOptions = [10, 20, 50];
 
   ngOnInit(): void {
     this.loadUnits();
@@ -64,7 +66,10 @@ export class UnitsListComponent implements OnInit {
    * Handle pagination change
    */
   onPageChange(event: any): void {
-    const pageNum = (event.first / event.rows) + 1;
+    if (!event || typeof event.first !== 'number' || typeof event.rows !== 'number') {
+      return;
+    }
+    const pageNum = Math.floor(event.first / event.rows) + 1;
     this.pageSize = event.rows;
     this.loadUnits(pageNum);
   }
@@ -115,5 +120,23 @@ export class UnitsListComponent implements OnInit {
     this.pageNumber = 1;
     this.searchTerm = '';
     this.loadUnits(1);
+  }
+
+  get first(): number {
+    return Math.max(0, (this.pageNumber - 1) * this.pageSize);
+  }
+
+  get pageNumberDisplay(): number {
+    if (!this.totalRecords) {
+      return 0;
+    }
+    return Math.floor(this.first / this.pageSize) + 1;
+  }
+
+  get totalPages(): number {
+    if (!this.totalRecords) {
+      return 0;
+    }
+    return Math.ceil(this.totalRecords / this.pageSize);
   }
 }

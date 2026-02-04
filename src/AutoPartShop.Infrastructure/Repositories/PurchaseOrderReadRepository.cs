@@ -1,7 +1,4 @@
-using AutoPartShop.Application.DTOs.CustomerDtos;
-using AutoPartShop.Application.DTOs.PurchaseOrderDtos;
 using AutoPartShop.Application.PurchaseOrders;
-using AutoPartShop.Domain.Common;
 using AutoPartsShop.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,7 +6,7 @@ namespace AutoPartShop.Infrastructure.Repositories;
 
 public class PurchaseOrderReadRepository(AutoPartDbContext _dbContext) : IPurchaseOrderReadRepository
 {
-    public async Task<PaginatedResponse<PurchaseOrderResponse>> GetPurchaseOrderAsync(PurcahseQueryDto query, CancellationToken cancellationToken = default)
+    public async Task<(IEnumerable<PurchaseOrderResponse> response, int total)> FindAllAsync(PurcahseQueryDto query, CancellationToken cancellationToken = default)
     {
         var purchaseOrders = _dbContext.PurchaseOrders
                .Include(x => x.Supplier)
@@ -51,7 +48,8 @@ public class PurchaseOrderReadRepository(AutoPartDbContext _dbContext) : IPurcha
         }
 
         var totalCount = await purchaseOrders.CountAsync(cancellationToken);
-        var porders = await purchaseOrders
+
+        var items = await purchaseOrders
             .Skip((query.PageNumber - 1) * query.PageSize)
             .Take(query.PageSize)
             .Select(po => new PurchaseOrderResponse
@@ -64,7 +62,7 @@ public class PurchaseOrderReadRepository(AutoPartDbContext _dbContext) : IPurcha
                 OrderDate = po.PODate,
                 DeliveryDate = po.ExpectedDeliveryDate,
                 Status = po.Status,
-                PaymentStatus=po.PaymentStatus,
+                PaymentStatus = po.PaymentStatus,
                 SubTotal = po.SubTotal,
                 TaxAmount = po.TaxAmount,
                 TaxPercentage = po.TaxPercentage,
@@ -94,17 +92,7 @@ public class PurchaseOrderReadRepository(AutoPartDbContext _dbContext) : IPurcha
             })
             .ToListAsync(cancellationToken);
 
-        return new PaginatedResponse<PurchaseOrderResponse>
-        {
-            Data = porders,
-            Pagination = new PaginationMeta
-            {
-                PageNumber = query.PageNumber,
-                PageSize = query.PageSize,
-                TotalCount = totalCount,
-                TotalPages = (int)Math.Ceiling(totalCount / (double)query.PageSize)
-            }
-        };
+        return (items, totalCount);
     }
 
     public async Task<PurchaseOrderDto?> GetPurchaseOrderByIdAsync(Guid id, CancellationToken cancellationToken = default)
@@ -155,7 +143,5 @@ public class PurchaseOrderReadRepository(AutoPartDbContext _dbContext) : IPurcha
              })
              .FirstOrDefaultAsync(cancellationToken);
     }
-
-
 
 }

@@ -1,75 +1,137 @@
-<p-toast></p-toast>
-<p-confirmDialog></p-confirmDialog>
+<!-- ============================================================
+     PURCHASE ORDERS LIST - PRODUCTION-READY ENTERPRISE UI
+     ============================================================ -->
 
-<div class="purchase-orders-container">
-  <!-- Header -->
-  <div class="page-header">
+<p-toast position="top-right"></p-toast>
+<p-confirmDialog></p-confirmDialog>
+<p-menu #menu [model]="menuItems" [popup]="true" appendTo="body"></p-menu>
+
+<div class="page-wrapper">
+  <!-- ==================== PAGE HEADER ==================== -->
+  <header class="page-header">
     <div class="header-content">
-      <div class="header-title-section">
-        <h1 class="header-title">
-          <i class="pi pi-shopping-bag mr-3"></i>
-          Purchase Orders
-        </h1>
-        <p class="header-subtitle">Manage and track supplier purchase orders and inventory</p>
+      <div class="header-left">
+        <h1 class="page-title">Purchase Orders</h1>
+        <p class="page-subtitle">Manage and track your purchase orders</p>
       </div>
+
       <div class="header-actions">
-        <button pButton type="button" label="New Purchase Order" icon="pi pi-plus" class="p-button-success" (click)="onCreateClick()"></button>
-        <button pButton type="button" label="Export CSV" icon="pi pi-file" class="p-button-outlined" (click)="exportOrders('csv')"></button>
-        <button pButton type="button" label="Export JSON" icon="pi pi-file-export" class="p-button-outlined" (click)="exportOrders('json')"></button>
+        <div class="stats-badge">
+          <i class="pi pi-shopping-bag"></i>
+          <div class="stats-info">
+            <span class="stats-value">{{ totalRecords }}</span>
+            <span class="stats-label">orders</span>
+          </div>
+        </div>
+
+        <div class="action-buttons">
+          <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="loadPurchaseOrders(currentPage, rows, searchTerm)">
+            <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
+          </button>
+          <button class="btn-icon" pTooltip="More options" tooltipPosition="bottom" (click)="menu.toggle($event)">
+            <i class="pi pi-ellipsis-v"></i>
+          </button>
+          <button class="btn-primary" (click)="onCreateClick()">
+            <i class="pi pi-plus"></i>
+            <span>New Order</span>
+          </button>
+        </div>
       </div>
     </div>
-  </div>
+  </header>
 
-  <!-- Filters Card -->
-  <p-card styleClass="filters-card mb-4">
-    <div class="filters-container">
-      <!-- Search -->
-      <div class="filter-item search-filter">
-        <div class="search-container">
-          <i class="pi pi-search search-icon"></i>
-          <input type="text" [(ngModel)]="searchTerm" placeholder="Search by PO number, supplier name, email, phone..."
-            class="search-input" (keyup.enter)="onSearch()">
-          <i *ngIf="searchTerm" class="pi pi-times clear-icon" (click)="clearSearch()"></i>
+  <!-- ==================== FILTER SECTION ==================== -->
+  <section class="filter-section">
+    <div class="filter-container">
+      <div class="filter-group search-group">
+        <div class="search-input-wrapper">
+          <i class="pi pi-search"></i>
+          <input
+            type="text"
+            [(ngModel)]="searchTerm"
+            placeholder="Search by PO number, supplier..."
+            (keyup.enter)="onSearch()"
+            class="search-input" />
+          <button *ngIf="searchTerm" class="search-clear" (click)="clearSearch()">
+            <i class="pi pi-times"></i>
+          </button>
         </div>
       </div>
 
-      <!-- Status Filter -->
-      <div class="filter-item">
-        <p-select [options]="statusOptions" [(ngModel)]="filterStatus" placeholder="Status"
-          [showClear]="true" (onChange)="onFilterChange()" class="w-full"></p-select>
+      <div class="filter-group">
+        <label class="filter-label">Status</label>
+        <p-select
+          [options]="statusOptions"
+          [(ngModel)]="filterStatus"
+          placeholder="All Statuses"
+          [showClear]="true"
+          (onChange)="onFilterChange()"
+          appendTo="body"
+          styleClass="filter-dropdown">
+        </p-select>
       </div>
 
-      <!-- Date Range -->
-      <div class="filter-item date-filter">
-        <p-datepicker [(ngModel)]="dateRange" selectionMode="range" [showIcon]="true"
-          placeholder="Order date range" dateFormat="M dd, yy" [showButtonBar]="true"
-          class="w-full"></p-datepicker>
+      <div class="filter-group">
+        <label class="filter-label">Order Date</label>
+        <p-datepicker
+          [(ngModel)]="dateRange"
+          selectionMode="range"
+          placeholder="Select date range"
+          dateFormat="dd M yy"
+          [showIcon]="true"
+          [showButtonBar]="true"
+          (onSelect)="onFilterChange()"
+          appendTo="body"
+          styleClass="filter-datepicker">
+        </p-datepicker>
       </div>
 
-      <!-- Filter Actions -->
-      <div class="filter-actions">
-        <button pButton type="button" label="Search" icon="pi pi-search" (click)="onSearch()"></button>
-        <button pButton type="button" label="Clear" icon="pi pi-times" class="p-button-outlined" (click)="clearFilters()"></button>
+      <div class="filter-group filter-actions">
+        <button class="btn-search" (click)="onSearch()">
+          <i class="pi pi-search"></i>
+          Search
+        </button>
+        <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
+          <i class="pi pi-filter-slash"></i>
+          Clear
+        </button>
       </div>
     </div>
-  </p-card>
 
-  <!-- Purchase Orders Table -->
-  <div class="table-container">
+    <div *ngIf="hasActiveFilters()" class="active-filters">
+      <span class="active-filters-label">Active filters:</span>
+      <span *ngIf="searchTerm" class="filter-chip">
+        Search: "{{ searchTerm }}"
+        <i class="pi pi-times" (click)="clearSearch()"></i>
+      </span>
+      <span *ngIf="filterStatus" class="filter-chip">
+        Status: {{ filterStatus }}
+        <i class="pi pi-times" (click)="filterStatus = null; onFilterChange()"></i>
+      </span>
+      <span *ngIf="dateRange && dateRange.length > 0" class="filter-chip">
+        Date Range
+        <i class="pi pi-times" (click)="dateRange = null; onFilterChange()"></i>
+      </span>
+    </div>
+  </section>
+
+  <!-- ==================== TABLE + CARDS ==================== -->
+  <section class="table-section">
     <app-purchase-orders-list
       [purchaseOrders]="purchaseOrders"
       [loading]="loading"
       [totalRecords]="totalRecords"
       [rows]="rows"
       [currentPage]="currentPage"
+      [searchTerm]="searchTerm"
       (editClick)="onEditClick($event)"
       (pageChange)="onPageChange($event)"
       (poDeleted)="onPurchaseOrderDeleted()">
     </app-purchase-orders-list>
-  </div>
+  </section>
 </div>
 
-<!-- Create/Edit Purchase Order Dialog -->
+<!-- Create/Edit Dialogs -->
 <app-purchase-orders-form-dialog
   [(visible)]="displayCreateDialog"
   [purchaseOrder]="null"
@@ -81,6 +143,3 @@
   [purchaseOrder]="selectedPurchaseOrder"
   (submitted)="onPurchaseOrderUpdated($any($event))">
 </app-purchase-orders-form-dialog>
-
-<!-- Toast Messages -->
-<p-toast position="top-right"></p-toast>

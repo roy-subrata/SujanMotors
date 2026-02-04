@@ -12,6 +12,7 @@ public class CreateSalesOrderRequest
     public DateTime DeliveryDate { get; set; }
     public string Notes { get; set; } = string.Empty;
     public string Currency { get; set; } = "BDT";
+    public decimal Discount { get; set; } = 0;
     public List<CreateSalesOrderLineRequest> Lines { get; set; } = new();
 }
 

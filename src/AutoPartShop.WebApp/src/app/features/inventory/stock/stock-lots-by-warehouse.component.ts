@@ -5,7 +5,7 @@ import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
 import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
-import { TableModule } from 'primeng/table';
+import { TableLazyLoadEvent, TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
@@ -49,6 +49,11 @@ export class StockLotsByWarehouseComponent implements OnInit {
   selectedWarehouseName: string = '';
 
   loading = false;
+  totalRecords = 0;
+  pageNumber = 1;
+  pageSize = 10;
+  first = 0;
+  pageSizeOptions = [10, 25, 50];
 
   ngOnInit(): void {
     this.loadParts();
@@ -82,6 +87,7 @@ export class StockLotsByWarehouseComponent implements OnInit {
       const part = this.parts.find(p => p.id === this.selectedPartId);
       this.selectedPartName = part ? `${part.name} (${part.sku})` : '';
     }
+    this.resetPagination();
   }
 
   onWarehouseSelected(): void {
@@ -89,6 +95,7 @@ export class StockLotsByWarehouseComponent implements OnInit {
       const warehouse = this.warehouses.find(w => w.id === this.selectedWarehouseId);
       this.selectedWarehouseName = warehouse?.name || '';
     }
+    this.resetPagination();
   }
 
   loadStockLots(): void {
@@ -97,9 +104,15 @@ export class StockLotsByWarehouseComponent implements OnInit {
     }
 
     this.loading = true;
-    this.stockLotService.getByPartAndWarehouse(this.selectedPartId, this.selectedWarehouseId).subscribe({
-      next: (lots) => {
-        this.stockLots = Array.isArray(lots) ? lots : [];
+    this.stockLotService.getStockLots({
+      partId: this.selectedPartId,
+      warehouseId: this.selectedWarehouseId,
+      pageNumber: this.pageNumber,
+      pageSize: this.pageSize
+    }).subscribe({
+      next: (response) => {
+        this.stockLots = response.data;
+        this.totalRecords = response.pagination.totalCount;
         this.loading = false;
       },
       error: (_error) => {
@@ -111,6 +124,18 @@ export class StockLotsByWarehouseComponent implements OnInit {
         this.loading = false;
       }
     });
+  }
+
+  onLazyLoad(event: TableLazyLoadEvent): void {
+    this.first = event.first ?? 0;
+    this.pageSize = event.rows ?? this.pageSize;
+    this.pageNumber = Math.floor(this.first / this.pageSize) + 1;
+    this.loadStockLots();
+  }
+
+  private resetPagination(): void {
+    this.first = 0;
+    this.pageNumber = 1;
   }
 
   getTotalCost(): number {

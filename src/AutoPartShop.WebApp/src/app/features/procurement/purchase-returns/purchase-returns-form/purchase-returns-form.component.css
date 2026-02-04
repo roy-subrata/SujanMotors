@@ -5,15 +5,19 @@
   flex-direction: column;
   width: 100%;
   max-width: none;
+  padding-bottom: 1rem;
 }
 
-/* Header with gradient */
+/* Header with gradient - sticky on scroll */
 .form-header {
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
   border-radius: 0.5rem;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   padding: 1.25rem 1.5rem;
   margin-bottom: 1.5rem;
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
 .header-content {
@@ -149,7 +153,7 @@
 }
 
 .section-icon {
-  color: #3b82f6;
+  color: #8b5cf6;
   font-size: 1rem;
 }
 
@@ -432,7 +436,7 @@
 
 .line-total {
   font-weight: 600;
-  color: #3b82f6;
+  color: #8b5cf6;
   font-size: 0.9375rem;
 }
 
@@ -504,7 +508,7 @@
 
 .grand-total .summary-value {
   font-weight: 700;
-  color: #3b82f6;
+  color: #8b5cf6;
   font-size: 1.25rem;
 }
 
@@ -599,7 +603,7 @@
 
 .item-total {
   font-weight: 600;
-  color: #3b82f6;
+  color: #8b5cf6;
   font-size: 0.9375rem;
   white-space: nowrap;
 }
@@ -682,11 +686,24 @@
 
 @media (max-width: 768px) {
   .form-header {
-    padding: 1rem;
+    padding: 0.75rem 1rem;
+    border-radius: 0;
+    margin-bottom: 1rem;
+    margin-left: -0.75rem;
+    margin-right: -0.75rem;
+    width: calc(100% + 1.5rem);
   }
 
   .form-title {
-    font-size: 1.25rem;
+    font-size: 1.125rem;
+  }
+
+  .form-subtitle {
+    display: none;
+  }
+
+  .breadcrumb {
+    margin-bottom: 0.25rem;
   }
 
   .form-row {
@@ -717,7 +734,13 @@
   }
 
   .form-actions {
+    position: static;
     flex-direction: column-reverse;
+    margin-top: 1.5rem;
+    padding: 1rem;
+    border-top: 1px solid #e5e7eb;
+    background: #f9fafb;
+    border-radius: 0.5rem;
   }
 
   .form-actions button {
@@ -735,32 +758,118 @@
 
   .header-actions {
     align-self: flex-start;
+    width: 100%;
+    flex-wrap: wrap;
   }
 }
 
 @media (max-width: 640px) {
   .form-header {
-    padding: 0.875rem;
+    padding: 0.625rem 0.75rem;
+    margin-left: -0.375rem;
+    margin-right: -0.375rem;
+    width: calc(100% + 0.75rem);
   }
 
   .form-title {
-    font-size: 1.125rem;
+    font-size: 1rem;
   }
 
-  .form-subtitle {
-    font-size: 0.8125rem;
+  .breadcrumb-link {
+    font-size: 0.75rem;
+  }
+
+  .breadcrumb-current {
+    font-size: 0.75rem;
   }
 
   .form-content {
     padding: 0.25rem;
+    padding-bottom: 0.5rem;
   }
 
   ::ng-deep .form-card .p-card-body {
     padding: 0.875rem;
   }
 
+  .form-actions {
+    padding: 0.875rem;
+    margin-top: 1rem;
+  }
+
   .line-items-table thead tr th.col-rejected,
   .line-items-table tbody tr td.rejected-cell {
     display: none;
+  }
+}
+
+/* Mobile card layout for line items */
+@media (max-width: 640px) {
+  .line-items-table thead {
+    display: none;
+  }
+
+  .line-items-table,
+  .line-items-table tbody,
+  .line-items-table tr,
+  .line-items-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .line-items-table tbody tr {
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 0.75rem;
+    background: #ffffff;
+  }
+
+  .line-items-table tbody tr td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px dashed #e5e7eb;
+  }
+
+  .line-items-table tbody tr td:last-child {
+    border-bottom: none;
+  }
+
+  .line-items-table tbody tr td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: #6b7280;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  .line-items-table tbody tr td > * {
+    margin-left: auto;
+    max-width: 60%;
+  }
+
+  .line-items-table tbody tr td .p-inputnumber,
+  .line-items-table tbody tr td .p-select,
+  .line-items-table tbody tr td .p-autocomplete {
+    width: 60%;
+  }
+
+  .line-items-table tbody tr td.action-cell {
+    justify-content: flex-end;
+  }
+
+  .line-items-table tbody tr td.action-cell::before {
+    display: none;
+  }
+
+  .line-items-table tbody tr td.lot-cell,
+  .line-items-table tbody tr td.price-cell,
+  .line-items-table tbody tr td.condition-cell,
+  .line-items-table tbody tr td.rejected-cell {
+    display: flex !important;
   }
 }

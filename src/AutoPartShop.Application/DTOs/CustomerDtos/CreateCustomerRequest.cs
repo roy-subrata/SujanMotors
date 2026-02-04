@@ -1,5 +1,3 @@
-using AutoPartShop.Domain.Common;
-
 namespace AutoPartShop.Application.DTOs.CustomerDtos;
 
 public class CreateCustomerRequest
@@ -25,11 +23,6 @@ public class CreateCustomerRequest
 
 
 
-public class PaginatedResponse<T>
-{
-    public IReadOnlyList<T> Data { get; set; } = [];
-    public PaginationMeta Pagination { get; set; } = new();
-}
 
 public class AuditLogFilterRequest
 {

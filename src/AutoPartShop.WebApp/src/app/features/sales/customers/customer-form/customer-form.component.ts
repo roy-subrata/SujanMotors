@@ -193,7 +193,8 @@ export class CustomerFormComponent implements OnInit {
         this.saving.set(true);
         this.error.set(null);
 
-        const formValue = this.customerForm.value;
+        // Use getRawValue() to include disabled fields like customerCode
+        const formValue = this.customerForm.getRawValue();
 
         const request: CreateCustomerRequest = {
             customerCode: formValue.customerCode,

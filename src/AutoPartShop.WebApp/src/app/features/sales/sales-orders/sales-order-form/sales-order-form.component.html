@@ -11,7 +11,8 @@
             Sales Orders
           </a>
           <span class="breadcrumb-separator">/</span>
-          <span class="breadcrumb-current">{{ mode() === 'create' ? 'New' : mode() === 'edit' ? 'Edit' : 'View' }}</span>
+          <span class="breadcrumb-current">{{ mode() === 'create' ? 'New' : mode() === 'edit' ? 'Edit' : 'View'
+            }}</span>
         </div>
         <h1 class="form-title">
           {{ mode() === 'create' ? 'Create Sales Order' : mode() === 'edit' ? 'Edit Sales Order' : 'View Sales Order' }}
@@ -50,62 +51,27 @@
         <div class="form-row">
           <div class="form-group full">
             <label>Select Customer *</label>
-            <div class="customer-search-container customer-autocomplete">
-              <input
-                pInputText
-                type="text"
-                [(ngModel)]="customerSearchTerm"
-                [ngModelOptions]="{standalone: true}"
-                (input)="onCustomerSearchInput($event)"
-                (focus)="showCustomerDropdown = true"
-                placeholder="Search by name, email, or customer code..."
-                [disabled]="mode() === 'view'"
-              />
-              <button
-                *ngIf="selectedCustomerId"
-                (click)="clearCustomerSelection()"
-                type="button"
-                class="clear-btn"
-              >
-                <i class="pi pi-times"></i>
-              </button>
-
-              <!-- Dropdown -->
-              <div
-                *ngIf="showCustomerDropdown && filteredCustomers().length > 0"
-                class="autocomplete-dropdown"
-              >
-                <div
-                  *ngFor="let customer of filteredCustomers()"
-                  (click)="selectCustomer(customer)"
-                  class="dropdown-item"
-                >
-                  <div class="dropdown-item-content">
-                    <div>
-                      <span class="item-name">{{ customer.firstName }} {{ customer.lastName }}</span>
-                      <span class="item-code">{{ customer.customerCode }}</span>
-                    </div>
-                    <div class="item-details">
-                      <span>{{ customer.email }}</span>
-                      <span>{{ customer.city }}</span>
-                    </div>
+            <app-lazy-autocomplete [fetchFn]="searchCustomers" [(ngModel)]="selectedCustomer"
+              [ngModelOptions]="{standalone: true}" optionLabel="fullName"
+              placeholder="Search by name, email, or customer code..." (onItemSelect)="onCustomerSelected($any($event))"
+              (onClearEvent)="onCustomerCleared()">
+              <ng-template let-customer>
+                <div class="customer-item">
+                  <div class="customer-item-name">
+                    {{ customer.firstName }} {{ customer.lastName }}<span class="customer-item-code">{{
+                      customer.customerCode }}</span>
+                  </div>
+                  <div class="customer-item-details">
+                    {{ customer.email }}<span *ngIf="customer.phone" class="separator">•</span><span
+                      *ngIf="customer.phone">{{ customer.phone }}</span>
                   </div>
                 </div>
-              </div>
-
-              <!-- No Results -->
-              <div
-                *ngIf="showCustomerDropdown && customerSearchTerm && filteredCustomers().length === 0"
-                class="autocomplete-dropdown no-results"
-              >
-                No customers found
-              </div>
-            </div>
+              </ng-template>
+            </app-lazy-autocomplete>
             <small class="field-hint">
               <i class="pi pi-info-circle"></i>
-              <span *ngIf="loadingCustomers()">Loading customers...</span>
-              <span *ngIf="!loadingCustomers() && !selectedCustomerId">Type to search for a customer</span>
-              <span *ngIf="!loadingCustomers() && selectedCustomerId" class="success-text">Customer selected</span>
+              <span *ngIf="!selectedCustomerId">Type to search for a customer</span>
+              <span *ngIf="selectedCustomerId" class="success-text">Customer selected</span>
             </small>
           </div>
         </div>
@@ -114,15 +80,19 @@
         <div class="form-row">
           <div class="form-group">
             <label>Customer Name *</label>
-            <input pInputText formControlName="customerName" placeholder="Auto-filled" readonly class="readonly-input" />
-            <small *ngIf="salesOrderForm.get('customerName')?.invalid && salesOrderForm.get('customerName')?.touched" class="p-error">
+            <input pInputText formControlName="customerName" placeholder="Auto-filled" readonly
+              class="readonly-input" />
+            <small *ngIf="salesOrderForm.get('customerName')?.invalid && salesOrderForm.get('customerName')?.touched"
+              class="p-error">
               Customer name is required
             </small>
           </div>
           <div class="form-group">
             <label>Email *</label>
-            <input pInputText type="email" formControlName="customerEmail" placeholder="Auto-filled" readonly class="readonly-input" />
-            <small *ngIf="salesOrderForm.get('customerEmail')?.invalid && salesOrderForm.get('customerEmail')?.touched" class="p-error">
+            <input pInputText type="email" formControlName="customerEmail" placeholder="Auto-filled" readonly
+              class="readonly-input" />
+            <small *ngIf="salesOrderForm.get('customerEmail')?.invalid && salesOrderForm.get('customerEmail')?.touched"
+              class="p-error">
               Valid email is required
             </small>
           </div>
@@ -131,15 +101,19 @@
         <div class="form-row">
           <div class="form-group">
             <label>Phone *</label>
-            <input pInputText type="tel" formControlName="customerPhone" placeholder="Auto-filled" readonly class="readonly-input" />
-            <small *ngIf="salesOrderForm.get('customerPhone')?.invalid && salesOrderForm.get('customerPhone')?.touched" class="p-error">
+            <input pInputText type="tel" formControlName="customerPhone" placeholder="Auto-filled" readonly
+              class="readonly-input" />
+            <small *ngIf="salesOrderForm.get('customerPhone')?.invalid && salesOrderForm.get('customerPhone')?.touched"
+              class="p-error">
               Phone is required
             </small>
           </div>
           <div class="form-group">
             <label>City *</label>
-            <input pInputText formControlName="customerCity" placeholder="Auto-filled" readonly class="readonly-input" />
-            <small *ngIf="salesOrderForm.get('customerCity')?.invalid && salesOrderForm.get('customerCity')?.touched" class="p-error">
+            <input pInputText formControlName="customerCity" placeholder="Auto-filled" readonly
+              class="readonly-input" />
+            <small *ngIf="salesOrderForm.get('customerCity')?.invalid && salesOrderForm.get('customerCity')?.touched"
+              class="p-error">
               City is required
             </small>
           </div>
@@ -156,27 +130,27 @@
         <div class="form-row">
           <div class="form-group">
             <label>Technician (Optional)</label>
-            <p-autoComplete
-              [(ngModel)]="selectedTechnicianId"
+            <app-lazy-autocomplete
+              [fetchFn]="searchTechnecian"
+              [(ngModel)]="selectedTechnecian"
               [ngModelOptions]="{standalone: true}"
-              [suggestions]="filteredTechnicians()"
-              (completeMethod)="onTechnicianFilter($event)"
-              (onSelect)="selectTechnician($event)"
-              (onClear)="clearTechnicianSelection()"
-              field="name"
               optionLabel="name"
-              [dropdown]="true"
-              [showClear]="true"
-              placeholder="Search technician..."
+              placeholder="Search technician by name or code..."
               [disabled]="mode() === 'view'"
-              [style]="{ width: '100%' }">
-              <ng-template let-technician pTemplate="item">
-                <div class="autocomplete-item">
-                  <span class="item-name">{{ technician.name }}</span>
-                  <span class="item-code">{{ technician.technicianCode }} | {{ technician.shopName }}</span>
+              (onItemSelect)="onTechnicianSelected($any($event))"
+              (onClearEvent)="onTechnicianCleared()">
+              <ng-template let-technician>
+                <div class="customer-item">
+                  <div class="customer-item-name">
+                    {{ technician.name }}<span class="customer-item-code">{{ technician.technicianCode }}</span>
+                  </div>
+                  <div class="customer-item-details">
+                    {{ technician.shopName }}<span *ngIf="technician.phone" class="separator">•</span>
+                    <span *ngIf="technician.phone">{{ technician.phone }}</span>
+                  </div>
                 </div>
               </ng-template>
-            </p-autoComplete>
+            </app-lazy-autocomplete>
             <small class="field-hint">
               <i class="pi pi-info-circle"></i>
               Select if this order was recommended by a technician
@@ -184,18 +158,15 @@
           </div>
           <div class="form-group">
             <label>Expected Delivery Date *</label>
-            <p-datepicker
-              formControlName="deliveryDate"
-              [showIcon]="true"
-              [showButtonBar]="true"
-              dateFormat="yy-mm-dd"
-              placeholder="Select date..."
-              [disabled]="mode() === 'view'"
+            <p-datepicker formControlName="deliveryDate" [showIcon]="true" [showButtonBar]="true" dateFormat="yy-mm-dd"
+              placeholder="Select date..." [disabled]="mode() === 'view'"
               [styleClass]="salesOrderForm.get('deliveryDate')?.invalid && salesOrderForm.get('deliveryDate')?.touched ? 'input-error' : ''"
-              appendTo="body"
-              [style]="{ width: '100%' }">
+              appendTo="body" [style]="{ width: '100%' }"
+    
+              >
             </p-datepicker>
-            <small *ngIf="salesOrderForm.get('deliveryDate')?.invalid && salesOrderForm.get('deliveryDate')?.touched" class="p-error">
+            <small *ngIf="salesOrderForm.get('deliveryDate')?.invalid && salesOrderForm.get('deliveryDate')?.touched"
+              class="p-error">
               Delivery date is required
             </small>
           </div>
@@ -204,13 +175,11 @@
         <div class="form-row">
           <div class="form-group">
             <label>Currency *</label>
-            <app-currency-selector
-              formControlName="currency"
-              [disabled]="mode() === 'view'"
-              [showLabel]="false"
+            <app-currency-selector formControlName="currency" [disabled]="mode() === 'view'" [showLabel]="false"
               placeholder="Select currency">
             </app-currency-selector>
-            <small *ngIf="salesOrderForm.get('currency')?.invalid && salesOrderForm.get('currency')?.touched" class="p-error">
+            <small *ngIf="salesOrderForm.get('currency')?.invalid && salesOrderForm.get('currency')?.touched"
+              class="p-error">
               Currency is required
             </small>
           </div>
@@ -228,29 +197,55 @@
             <i class="pi pi-list section-icon"></i>
             Order Line Items
           </h3>
-          <button
-            pButton
-            type="button"
-            label="Add Line"
-            icon="pi pi-plus"
-            class="p-button-success p-button-sm"
-            (click)="addLine()"
-            [disabled]="mode() === 'view'">
+          <button pButton type="button" label="Add Line" icon="pi pi-plus" class="p-button-success p-button-sm"
+            (click)="addLine()" [disabled]="mode() === 'view'">
           </button>
+        </div>
+
+        <!-- Quick Add Part -->
+        <div class="form-row">
+          <div class="form-group full">
+            <label>Quick Add Part</label>
+            <app-lazy-autocomplete
+              [fetchFn]="searchParts"
+              [(ngModel)]="selectedPartQuickAdd"
+              [ngModelOptions]="{standalone: true}"
+              optionLabel="name"
+              placeholder="Search part by name, code, or SKU..."
+              [disabled]="mode() === 'view'"
+              (onItemSelect)="onQuickAddPartSelected($any($event))"
+              (onClearEvent)="onQuickAddPartCleared()">
+              <ng-template let-part>
+                <div class="part-item">
+                  <div class="part-item-name">
+                    {{ part.name }}
+                    <span class="customer-item-code">{{ part.partNumber }}</span>
+                  </div>
+                  <div class="part-item-details">
+                    <span *ngIf="part.sku">SKU: {{ part.sku }}</span>
+                    <span *ngIf="part.brandName" class="separator">&bull;</span>
+                    <span *ngIf="part.brandName">{{ part.brandName }}</span>
+                    <span *ngIf="part.unitName" class="separator">&bull;</span>
+                    <span *ngIf="part.unitName">{{ part.unitName }}</span>
+                    <span class="separator">&bull;</span>
+                    <span>{{ formatCurrency(part.sellingPrice) }}</span>
+                  </div>
+                </div>
+              </ng-template>
+            </app-lazy-autocomplete>
+            <small class="field-hint">
+              <i class="pi pi-info-circle"></i>
+              Select a part to add it to the list. Selecting an existing part will increase its quantity by 1.
+            </small>
+          </div>
         </div>
 
         <div formArrayName="lines" class="line-items-container">
           <div *ngFor="let line of lines.controls; let i = index" [formGroupName]="i" class="line-item-card">
             <div class="line-item-header">
               <span class="line-number">Item #{{ i + 1 }}</span>
-              <button
-                pButton
-                type="button"
-                icon="pi pi-trash"
-                class="p-button-danger p-button-text p-button-sm"
-                (click)="removeLine(i)"
-                [disabled]="lines.length === 1 || mode() === 'view'"
-                pTooltip="Remove line">
+              <button pButton type="button" icon="pi pi-trash" class="p-button-danger p-button-text p-button-sm"
+                (click)="removeLine(i)" [disabled]="lines.length === 1 || mode() === 'view'" pTooltip="Remove line">
               </button>
             </div>
 
@@ -258,52 +253,42 @@
               <!-- Part Selection -->
               <div class="form-group part-field">
                 <label>Part *</label>
-                <div class="part-search-container part-autocomplete-{{i}}">
-                  <input
-                    pInputText
-                    type="text"
-                    [(ngModel)]="partSearchTerms[i]"
-                    [ngModelOptions]="{standalone: true}"
-                    (input)="onPartSearchInput($event, i)"
-                    (focus)="showPartDropdown[i] = true"
-                    placeholder="Search part..."
-                    [disabled]="mode() === 'view'"
-                  />
-                  <button
-                    *ngIf="selectedPartIds[i]"
-                    (click)="clearPartSelection(i)"
-                    type="button"
-                    class="clear-btn"
-                  >
-                    <i class="pi pi-times"></i>
-                  </button>
-
-                  <!-- Part Dropdown -->
-                  <div
-                    *ngIf="isPartDropdownVisible(i) && getFilteredParts(i).length > 0"
-                    class="autocomplete-dropdown"
-                  >
-                    <div
-                      *ngFor="let part of getFilteredParts(i)"
-                      (click)="selectPart(part, i)"
-                      class="dropdown-item"
-                    >
-                      <div class="dropdown-item-content">
-                        <span class="item-name">{{ part.name }}</span>
-                        <span class="item-code">{{ part.partNumber }} | {{ formatCurrency(part.sellingPrice) }}</span>
+                <app-lazy-autocomplete
+                  [fetchFn]="searchParts"
+                  formControlName="part"
+                  optionLabel="name"
+                  placeholder="Search part by name or code..."
+                  [disabled]="mode() === 'view'"
+                  (onItemSelect)="onPartSelected($any($event), i)"
+                  (onClearEvent)="onPartCleared(i)">
+                  <ng-template let-part>
+                    <div class="part-item">
+                      <div class="part-item-name">
+                        {{ part.name }}
+                        <span class="customer-item-code">{{ part.partNumber }}</span>
+                      </div>
+                      <div class="part-item-details">
+                        <span *ngIf="part.sku">SKU: {{ part.sku }}</span>
+                        <span *ngIf="part.brandName" class="separator">&bull;</span>
+                        <span *ngIf="part.brandName">{{ part.brandName }}</span>
+                        <span *ngIf="part.unitName" class="separator">&bull;</span>
+                        <span *ngIf="part.unitName">{{ part.unitName }}</span>
+                        <span class="separator">&bull;</span>
+                        <span>{{ formatCurrency(part.sellingPrice) }}</span>
                       </div>
                     </div>
-                  </div>
-
-                  <div
-                    *ngIf="isPartDropdownVisible(i) && getPartSearchTerm(i) && getFilteredParts(i).length === 0"
-                    class="autocomplete-dropdown no-results"
-                  >
-                    No parts found
-                  </div>
-                  <input type="hidden" formControlName="partId" />
-                </div>
-                <small *ngIf="line.get('partId')?.invalid && line.get('partId')?.touched" class="p-error">
+                  </ng-template>
+                </app-lazy-autocomplete>
+                <small class="field-hint" *ngIf="line.get('part')?.value as selectedPart">
+                  <span *ngIf="selectedPart.partNumber">Code: {{ selectedPart.partNumber }}</span>
+                  <span *ngIf="selectedPart.sku" class="separator">&bull;</span>
+                  <span *ngIf="selectedPart.sku">SKU: {{ selectedPart.sku }}</span>
+                  <span *ngIf="selectedPart.brandName" class="separator">&bull;</span>
+                  <span *ngIf="selectedPart.brandName">{{ selectedPart.brandName }}</span>
+                  <span *ngIf="selectedPart.unitName" class="separator">&bull;</span>
+                  <span *ngIf="selectedPart.unitName">{{ selectedPart.unitName }}</span>
+                </small>
+                <small *ngIf="line.get('part')?.invalid && line.get('part')?.touched" class="p-error">
                   Part is required
                 </small>
               </div>
@@ -311,16 +296,9 @@
               <!-- Unit -->
               <div class="form-group unit-field">
                 <label>Unit</label>
-                <p-select
-                  formControlName="unitId"
-                  [options]="getCompatibleUnitsForPart(line.get('partId')?.value)"
-                  optionLabel="name"
-                  optionValue="id"
-                  placeholder="Unit"
-                  [showClear]="true"
-                  [disabled]="mode() === 'view'"
-                  appendTo="body"
-                  [style]="{ width: '100%' }">
+                <p-select formControlName="unitId" [options]="getCompatibleUnitsForPart(line.get('part')?.value?.id)"
+                  optionLabel="name" optionValue="id" placeholder="Unit" [showClear]="true"
+                  [disabled]="mode() === 'view'" appendTo="body" [style]="{ width: '100%' }">
                   <ng-template let-unit pTemplate="item">
                     {{ unit.name }} ({{ unit.symbol }})
                   </ng-template>
@@ -330,14 +308,8 @@
               <!-- Quantity -->
               <div class="form-group qty-field">
                 <label>Qty *</label>
-                <input
-                  pInputText
-                  type="number"
-                  formControlName="quantity"
-                  min="1"
-                  placeholder="1"
-                  [class.input-error]="line.get('quantity')?.invalid && line.get('quantity')?.touched"
-                />
+                <input pInputText type="number" formControlName="quantity" min="1" placeholder="1"
+                  [class.input-error]="line.get('quantity')?.invalid && line.get('quantity')?.touched" />
                 <small *ngIf="line.get('quantity')?.invalid && line.get('quantity')?.touched" class="p-error">
                   Min 1
                 </small>
@@ -346,15 +318,8 @@
               <!-- Unit Price -->
               <div class="form-group price-field">
                 <label>Price *</label>
-                <input
-                  pInputText
-                  type="number"
-                  formControlName="unitPrice"
-                  min="0"
-                  step="0.01"
-                  placeholder="0.00"
-                  [class.input-error]="line.get('unitPrice')?.invalid && line.get('unitPrice')?.touched"
-                />
+                <input pInputText type="number" formControlName="unitPrice" min="0" step="0.01" placeholder="0.00"
+                  [class.input-error]="line.get('unitPrice')?.invalid && line.get('unitPrice')?.touched" />
                 <small *ngIf="line.get('unitPrice')?.invalid && line.get('unitPrice')?.touched" class="p-error">
                   Required
                 </small>
@@ -363,15 +328,8 @@
               <!-- Discount -->
               <div class="form-group discount-field">
                 <label>Disc %</label>
-                <input
-                  pInputText
-                  type="number"
-                  formControlName="discount"
-                  min="0"
-                  max="100"
-                  step="0.01"
-                  placeholder="0"
-                />
+                <input pInputText type="number" formControlName="discount" min="0" max="100" step="0.01"
+                  placeholder="0" />
               </div>
 
               <!-- Line Total -->
@@ -400,6 +358,22 @@
             <span class="summary-label">Subtotal:</span>
             <span class="summary-value">{{ formatCurrency(subTotal()) }}</span>
           </div>
+          <div class="summary-row">
+            <span class="summary-label">Order Discount %:</span>
+            <span class="summary-value">
+              <input pInputText type="number" formControlName="orderDiscount" min="0" max="100" step="0.01"
+                placeholder="0" [disabled]="mode() === 'view'"
+                [class.input-error]="salesOrderForm.get('orderDiscount')?.invalid && salesOrderForm.get('orderDiscount')?.touched" />
+            </span>
+          </div>
+          <div class="summary-row" *ngIf="salesOrderForm.get('orderDiscount')?.invalid && salesOrderForm.get('orderDiscount')?.touched">
+            <span class="summary-label"></span>
+            <span class="summary-value p-error">Discount must be between 0 and 100</span>
+          </div>
+          <div class="summary-row" *ngIf="orderDiscount() > 0">
+            <span class="summary-label">Discount ({{ orderDiscount() }}%):</span>
+            <span class="summary-value">-{{ formatCurrency(orderDiscountAmount()) }}</span>
+          </div>
           <div class="summary-row grand-total">
             <span class="summary-label">Grand Total:</span>
             <span class="summary-value">{{ formatCurrency(grandTotal()) }}</span>
@@ -409,26 +383,15 @@
 
       <!-- Form Actions -->
       <div class="form-actions">
-        <button pButton type="button" [label]="mode() === 'view' ? 'Back' : 'Cancel'" icon="pi pi-times" class="p-button-outlined" (click)="cancel()"></button>
-        <button
-          *ngIf="mode() !== 'view'"
-          pButton
-          type="button"
-          label="Print Proforma"
-          icon="pi pi-print"
-          class="p-button-outlined p-button-help"
-          (click)="printProformaInvoice()"
+        <button pButton type="button" [label]="mode() === 'view' ? 'Back' : 'Cancel'" icon="pi pi-times"
+          class="p-button-outlined" (click)="cancel()"></button>
+        <button *ngIf="mode() !== 'view'" pButton type="button" label="Print Proforma" icon="pi pi-print"
+          class="p-button-outlined p-button-help" (click)="printProformaInvoice()"
           [disabled]="salesOrderForm.invalid || lines.length === 0">
         </button>
-        <button
-          *ngIf="mode() !== 'view'"
-          pButton
-          type="submit"
-          [label]="saving() ? 'Saving...' : (mode() === 'edit' ? 'Update Order' : 'Create Order')"
-          icon="pi pi-check"
-          class="p-button-primary"
-          [loading]="saving()"
-          [disabled]="saving() || salesOrderForm.invalid">
+        <button *ngIf="mode() !== 'view'" pButton type="submit"
+          [label]="saving() ? 'Saving...' : (mode() === 'edit' ? 'Update Order' : 'Create Order')" icon="pi pi-check"
+          class="p-button-primary" [loading]="saving()" [disabled]="saving() || salesOrderForm.invalid">
         </button>
       </div>
     </form>

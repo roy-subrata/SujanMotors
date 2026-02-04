@@ -3,6 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { from, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { PaginatedResponse } from './customer.service';
+import { environment } from 'src/environments/environment';
 
 export interface CreateCustomerPaymentRequest {
     customerId: string;
@@ -141,7 +142,7 @@ export interface CustomerPaymentQuery {
 })
 export class CustomerPaymentService {
     private readonly http = inject(HttpClient);
-    private readonly apiUrl = 'http://localhost:5292/api/customerpayment';
+    private readonly apiUrl = `${environment.apiUrl}/customerpayment`;
 
     /**
      * Get all customer payments

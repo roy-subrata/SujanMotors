@@ -320,7 +320,7 @@ export class InvoicesListComponent implements OnInit {
     }
 
     formatCurrency(amount: number): string {
-        const currency = this.currencyService.selectedCurrency() || 'BDT';
+        const currency = this.currencyService.selectedCurrency();
         return this.currencyService.formatCurrency(amount, currency);
     }
 

@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 using System.Reflection;
-using AutoPartShop.Domain.Common;
+using AutoPartShop.Application.Common;
+
 using Microsoft.EntityFrameworkCore;
 
 namespace AutoPartsShop.Infrastructure.Extensions;

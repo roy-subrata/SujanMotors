@@ -1,6 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, BehaviorSubject, tap, catchError, of, map } from 'rxjs';
+import { environment } from 'src/environments/environment';
 
 export interface Currency {
   id: string;
@@ -85,7 +86,7 @@ export interface UpdateExchangeRateRequest {
 })
 export class CurrencyService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = 'http://localhost:5292/api';
+  private readonly apiUrl =`${environment.apiUrl}`; 
 
   // State management for currencies
   private currenciesSubject = new BehaviorSubject<Currency[]>([]);
@@ -100,15 +101,25 @@ export class CurrencyService {
   private defaultCurrencySubject = new BehaviorSubject<Currency | null>(null);
   public defaultCurrency$ = this.defaultCurrencySubject.asObservable();
 
-  // Signal for selected currency (used in forms)
+  // Signal for selected currency (used in forms) - will be updated when default currency loads
   public selectedCurrency = signal<string>('BDT');
   public defaultCurrencyId = signal<string | null>(null);
+
+  // Track if default currency has been loaded from settings
+  private defaultCurrencyLoaded = false;
 
   constructor() {
     // Load currencies on initialization
     this.loadActiveCurrencies();
     this.loadBaseCurrency();
     this.loadDefaultCurrency();
+
+    // Sync selectedCurrency with base currency if default currency is not set
+    this.baseCurrency$.subscribe(baseCurrency => {
+      if (baseCurrency && baseCurrency.code && !this.defaultCurrencyLoaded) {
+        this.selectedCurrency.set(baseCurrency.code);
+      }
+    });
   }
 
   // ============= Currency Management =============
@@ -211,7 +222,7 @@ export class CurrencyService {
   }
 
   /**
-   * Get default currency ID
+   * Get default currency ID from application settings
    */
   getDefaultCurrencyId(): Observable<string | null> {
     return this.http.get<{ defaultCurrencyId: string | null }>(`${this.apiUrl}/applicationsettings/default-currency`).pipe(
@@ -222,6 +233,7 @@ export class CurrencyService {
           this.getCurrencyById(id).subscribe(currency => {
             this.defaultCurrencySubject.next(currency);
             this.selectedCurrency.set(currency.code);
+            this.defaultCurrencyLoaded = true;
           });
         }
       }),

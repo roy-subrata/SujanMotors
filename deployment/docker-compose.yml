@@ -1,0 +1,33 @@
+services:
+  autopartshop.db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: autopartshop.db
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=YourStrong!Passw0rd
+      - MSSQL_PID=Developer
+    ports:
+      - "1433:1433"
+    volumes:
+      - autopart_mssql_data:/var/opt/mssql
+    restart: always
+    
+  autopartshop.api:
+    image: smapi:latest
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__AutoPartDb=Server=autopartshop.db,1433;Database=AutoPartShopDb;User=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=True;
+    ports:
+      - "5292:8080"
+    depends_on:
+      - autopartshop.db
+
+  autopartshop.web:
+   image: smweb:latest
+   ports:
+   - "4200:80"
+   depends_on:
+   - autopartshop.api
+  
+volumes:
+  autopart_mssql_data:

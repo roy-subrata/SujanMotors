@@ -15,6 +15,7 @@ public class DatabaseSeeder
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<ApplicationRole>>();
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<DatabaseSeeder>>();
+        var codeService = scope.ServiceProvider.GetRequiredService<ICodeGenerateService>();
 
         try
         {
@@ -29,6 +30,8 @@ public class DatabaseSeeder
 
             // Seed Permissions
             await SeedPermissionsAsync(context, logger);
+
+            await SeedCustomerAsync(context,codeService, logger);
 
             logger.LogInformation("Database seeding completed successfully");
         }
@@ -185,4 +188,30 @@ public class DatabaseSeeder
             logger.LogInformation("Permissions already exist, skipping seed");
         }
     }
+    private static async Task SeedCustomerAsync(AutoPartDbContext context,ICodeGenerateService codeGenerate, ILogger logger)
+    {
+        var numberOfCustomer = await context.Customers.CountAsync();
+        if (numberOfCustomer<20)
+        {
+            foreach (var index in Enumerable.Range(0, 100))
+            {
+                var code = await codeGenerate.GenerateAsync("CUST");
+                context.Customers.Add(
+                    Customer.Create(code, $"F-{index}", $"L-{index}",
+
+                    $"L{index}@gmail.com", $"0909${index}", $"Com{index}", "dsf", "sdf", "sdf", "sdf", "f", "sdf")
+                );
+            }
+
+
+            await context.SaveChangesAsync();
+
+          //  logger.LogInformation("Seeded {Count} permissions", customers.Length);
+        }
+        else
+        {
+            logger.LogInformation("Permissions already exist, skipping seed");
+        }
+    }
+
 }

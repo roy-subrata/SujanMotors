@@ -1,4 +1,3 @@
-using AutoPartShop.Domain.Common;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
 
@@ -14,13 +13,8 @@ public interface ICustomerRepository : IBaseRepository<Customer>
     Task<IEnumerable<Customer>> GetWithCreditLimitExceededAsync(CancellationToken cancellationToken = default);
     Task<IEnumerable<Customer>> GetActiveAsync(CancellationToken cancellationToken = default);
     Task<(IEnumerable<Customer> customers, int totalCount)> GetPagedAsync(int pageNumber, int pageSize, CancellationToken cancellationToken = default);
-    Task<(IEnumerable<Customer> customers, int totalCount)> SearchPagedAsync(CustomerQuery query, CancellationToken cancellationToken = default);
     Task<IEnumerable<Customer>> GetRecentAsync(int limit, CancellationToken cancellationToken = default);
     Task<Customer?> GetByPhoneAsync(string phone, CancellationToken cancellationToken = default);
 }
 
-public class CustomerQuery : BaseQuery
-{
-    public string? Status { get; set; }
-    public string? CustomerType { get; set; }
-}
+

@@ -63,6 +63,11 @@ public class CustomerPayment : AuditableEntity
         if (string.IsNullOrWhiteSpace(paymentMethod))
             throw new ArgumentException("PaymentMethod cannot be empty", nameof(paymentMethod));
 
+        // Auto-generate transaction number if not provided
+        var txnNumber = string.IsNullOrWhiteSpace(transactionNumber)
+            ? $"CPAY-{DateTime.UtcNow:yyyyMMddHHmmssfff}-{Guid.NewGuid().ToString()[..8].ToUpper()}"
+            : transactionNumber.Trim();
+
         return new CustomerPayment
         {
             CustomerId = customerId,
@@ -70,7 +75,7 @@ public class CustomerPayment : AuditableEntity
             Amount = amount,
             NetAmount = amount,
             PaymentMethod = method,
-            TransactionNumber = transactionNumber?.Trim() ?? string.Empty,
+            TransactionNumber = txnNumber,
             ReferenceNumber = referenceNumber?.Trim() ?? string.Empty,
             PaymentDate = paymentDate ?? DateTime.UtcNow,
             Status = "PENDING"

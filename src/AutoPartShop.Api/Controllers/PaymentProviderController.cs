@@ -1,7 +1,6 @@
 using AutoPartShop.Api.Services;
-using AutoPartShop.Application.DTOs.PaymentDtos;
+using AutoPartShop.Application.CustomerPayment.Dtos;
 using AutoPartShop.Domain.Entities;
-using AutoPartShop.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AutoPartShop.Api.Controllers;

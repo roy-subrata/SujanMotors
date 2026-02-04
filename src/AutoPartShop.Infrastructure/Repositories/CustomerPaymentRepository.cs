@@ -1,4 +1,3 @@
-using AutoPartShop.Domain.Common;
 using AutoPartShop.Domain.Entities;
 using AutoPartsShop.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
@@ -203,68 +202,6 @@ public class CustomerPaymentRepository(AutoPartDbContext _dbContext) : ICustomer
             .ToPagedTupleAsync(pageNumber, pageSize, cancellationToken);
     }
 
-    public async Task<(IEnumerable<CustomerPayment> payments, int totalCount)> SearchPagedAsync(CustomerPaymentQuery query, CancellationToken cancellationToken = default)
-    {
-        var paymentsQuery = BuildSearchQuery(query);
-
-        // Apply sorting
-        paymentsQuery = paymentsQuery.ApplySorting(
-            query.Sorts,
-            x => x.PaymentDate,
-            defaultAscending: false
-        );
-
-        return await paymentsQuery.ToPagedTupleAsync(query, cancellationToken);
-    }
-
-    #endregion
-
-    #region Private Helper Methods
-
-    private IQueryable<CustomerPayment> BuildSearchQuery(CustomerPaymentQuery query)
-    {
-        var paymentsQuery = _dbContext.CustomerPayments
-            .Include(x => x.Invoice)
-            .Include(x => x.Customer)
-            .Include(x => x.PaymentProvider)
-            .Where(x => !x.Isdeleted);
-
-        // Apply search filter
-        if (!string.IsNullOrWhiteSpace(query.Search))
-        {
-            var term = query.Search.ToLower();
-            paymentsQuery = paymentsQuery.Where(x =>
-                EF.Functions.Like(x.TransactionNumber.ToLower(), $"%{term}%") ||
-                (x.Invoice != null && EF.Functions.Like(x.Invoice.InvoiceNumber.ToLower(), $"%{term}%")) ||
-                EF.Functions.Like(x.PaymentMethod.ToLower(), $"%{term}%") ||
-                (x.Customer != null && EF.Functions.Like(x.Customer.FirstName.ToLower(), $"%{term}%")) ||
-                (x.Customer != null && EF.Functions.Like(x.Customer.LastName.ToLower(), $"%{term}%"))
-            );
-        }
-
-        // Apply filters
-        if (query.IsReconciled.HasValue)
-        {
-            paymentsQuery = paymentsQuery.Where(x => x.IsReconciled == query.IsReconciled.Value);
-        }
-
-        if (!string.IsNullOrWhiteSpace(query.CustomerId) && Guid.TryParse(query.CustomerId, out var customerId))
-        {
-            paymentsQuery = paymentsQuery.Where(x => x.CustomerId == customerId);
-        }
-
-        if (!string.IsNullOrWhiteSpace(query.Status))
-        {
-            paymentsQuery = paymentsQuery.Where(x => x.Status == query.Status);
-        }
-
-        if (query.FromDate.HasValue && query.ToDate.HasValue)
-        {
-            paymentsQuery = paymentsQuery.Where(x => x.PaymentDate >= query.FromDate.Value && x.PaymentDate <= query.ToDate.Value);
-        }
-
-        return paymentsQuery;
-    }
 
     #endregion
 }

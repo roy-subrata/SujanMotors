@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { environment } from 'src/environments/environment';
 
 export interface PurchaseReturnLineResponse {
   id: string;
@@ -100,7 +101,7 @@ export interface PaginatedPurchaseReturnResponse {
 })
 export class PurchaseReturnService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = 'http://localhost:5292/api/purchasereturn';
+  private readonly apiUrl = `${environment.apiUrl}/purchasereturn`;
 
   /**
    * Get all purchase returns

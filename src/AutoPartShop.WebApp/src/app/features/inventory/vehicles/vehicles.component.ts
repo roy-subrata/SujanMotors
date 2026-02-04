@@ -99,9 +99,8 @@ export class VehiclesComponent implements OnInit {
   /**
    * Handle search
    */
-  onSearch(query: string): void {
-    this.searchTerm = query;
-    this.loadVehicles(1, this.rows, query);
+  onSearch(): void {
+    this.loadVehicles(1, this.rows, this.searchTerm);
   }
 
   /**
@@ -110,6 +109,22 @@ export class VehiclesComponent implements OnInit {
   onSearchClear(): void {
     this.searchTerm = '';
     this.loadVehicles(1, this.rows);
+  }
+
+  refreshData(): void {
+    this.loadVehicles(this.currentPage, this.rows, this.searchTerm);
+  }
+
+  createVehicle(): void {
+    this.onCreateClick();
+  }
+
+  clearFilters(): void {
+    this.onSearchClear();
+  }
+
+  hasActiveFilters(): boolean {
+    return !!this.searchTerm;
   }
 
   /**

@@ -18,37 +18,41 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy(corsPolicy, policy =>
     {
-        if (builder.Environment.IsDevelopment())
-        {
-            // For development, allow any origin without credentials
-            policy.AllowAnyOrigin()
-                  .AllowAnyHeader()
-                  .AllowAnyMethod();
-        }
-        else
-        {
-            // For production, allow specific origins
-            policy.WithOrigins(
-                // Angular App
-                "http://localhost:4200",  // Angular dev server
-                "https://localhost:4200", // Angular dev server HTTPS
-                                          // Blazor App
-                "http://localhost:5173",  // Blazor dev server default
-                "http://localhost:5174",  // Alternative Blazor port
-                "https://localhost:7173", // HTTPS Blazor dev
-                "https://localhost:7174", // HTTPS Blazor dev alternative
-                "http://localhost:7020",  // Aspire Blazor app port
-                "https://localhost:5109"  // HTTPS Blazor dev alternative
-            )
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials();
-        }
+        policy.WithOrigins(
+               // Angular App
+               "https://polite-meadow-01b03a000.4.azurestaticapps.net",
+               "http://localhost:4200",  // Angular dev server
+               "https://localhost:4200" // Angular dev server HTTPS
+           )
+           .AllowAnyHeader()
+           .AllowAnyMethod()
+           .AllowCredentials();
+        //if (builder.Environment.IsDevelopment())
+        //{
+        //    // For development, allow any origin without credentials
+        //    policy.AllowAnyOrigin()
+        //          .AllowAnyHeader()
+        //          .AllowAnyMethod();
+        //}
+        //else
+        //{
+        //    // For production, allow specific origins
+        //    policy.WithOrigins(
+        //        // Angular App
+        //        "https://polite-meadow-01b03a000.4.azurestaticapps.net",
+        //        "http://localhost:4200",  // Angular dev server
+        //        "https://localhost:4200" // Angular dev server HTTPS
+        //    )
+        //    .AllowAnyHeader()
+        //    .AllowAnyMethod()
+        //    .AllowCredentials();
+        //}
     });
 });
 
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApplication(builder.Configuration);
+
 
 // Configure ASP.NET Core Identity
 builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
@@ -180,25 +184,26 @@ var app = builder.Build();
 // Seed database with initial data
 await DatabaseSeeder.SeedAsync(app.Services);
 
-if (app.Environment.IsDevelopment())
+//if (app.Environment.IsDevelopment())
+//{
+   
+//}
+app.UseSwagger();
+app.UseSwaggerUI(c =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "AutoPart Shop API V1");
-        c.RoutePrefix = "docs"; // set swagger path to /docs
-    });
-}
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "AutoPart Shop API V1");
+    c.RoutePrefix = "docs"; // set swagger path to /docs
+});
 await app.ApplyMigration();
 // Enable CORS
 app.UseCors(corsPolicy);
 
 // Only redirect HTTPS in production
-if (!app.Environment.IsDevelopment())
-{
-    app.UseHttpsRedirection();
-}
-
+//if (!app.Environment.IsDevelopment())
+//{
+   
+//}
+//app.UseHttpsRedirection();
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();

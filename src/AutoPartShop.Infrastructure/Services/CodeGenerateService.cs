@@ -26,12 +26,11 @@ namespace AutoPartsShop.Infrastructure.Services
                         Prefix = prefix,
                         LastNumber = 0
                     };
-                    _db.Add(sequence);
-                    await _db.SaveChangesAsync(cancellationToken);
+                    // Don't save here - just preview the code
                 }
 
                 sequence.LastNumber++;
-                await _db.SaveChangesAsync(cancellationToken);
+                // Don't save here - call SaveGenerateCodeAsync after record is created
 
                 int nextNumber = sequence.LastNumber;
                 int numberLength = Math.Max(minDigits, nextNumber.ToString().Length);

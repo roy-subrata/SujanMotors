@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from 'src/environments/environment';
 
 export interface UserResponse {
   id: string;
@@ -79,7 +80,7 @@ export interface AssignPermissionsRequest {
 })
 export class AdminService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = 'http://localhost:5292/api/admin';
+  private readonly apiUrl =`${environment.apiUrl}/admin`; 
 
   // User Management
   getAllUsers(): Observable<UserResponse[]> {

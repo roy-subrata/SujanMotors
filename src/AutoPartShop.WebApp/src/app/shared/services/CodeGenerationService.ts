@@ -1,15 +1,16 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable, map } from 'rxjs';
+import { environment } from 'src/environments/environment';
 
-export type CodeType = 'unit' | 'category' | 'brand' | 'part' | 'warehouse' | 'invoice' | 'sales-order' | 'customer' | 'supplier' | 'purchase-order';
+export type CodeType = 'unit' | 'category' | 'brand' | 'part' | 'warehouse' | 'invoice' | 'sales-order' | 'customer' | 'supplier' | 'purchase-order' | 'technician';
 
 @Injectable({
     providedIn: 'root'
 })
 export class CodeGenerationService {
     private readonly httpClient = inject(HttpClient);
-    private readonly apiUrl = 'http://localhost:5292/api/code-generate';
+    private readonly apiUrl = `${environment.apiUrl}/code-generate`;
 
     /**
      * Generate code for a specific entity type
@@ -28,7 +29,8 @@ export class CodeGenerationService {
             'SalesOrder': 'sales-order',
             'Customer': 'customer',
             'Supplier': 'supplier',
-            'PurchaseOrder': 'purchase-order'
+            'PurchaseOrder': 'purchase-order',
+            'Technician': 'technician'
         };
 
         const endpoint = typeMap[type] || type.toLowerCase();
@@ -115,5 +117,12 @@ export class CodeGenerationService {
      */
     generatePurchaseOrderNumber(): Observable<string> {
         return this.getCode('purchase-order');
+    }
+
+    /**
+     * Generate technician code
+     */
+    generateTechnicianCode(): Observable<string> {
+        return this.getCode('technician');
     }
 }

@@ -1,4 +1,3 @@
-using AutoPartShop.Domain.Common;
 using AutoPartShop.Domain.Entities;
 using AutoPartsShop.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
@@ -171,68 +170,8 @@ public class SupplierPaymentRepository(AutoPartDbContext _db) : ISupplierPayment
             .ToPagedTupleAsync(pageNumber, pageSize, cancellationToken);
     }
 
-    public async Task<(IEnumerable<SupplierPayment> payments, int totalCount)> SearchPagedAsync(SupplierPaymentQuery query, CancellationToken cancellationToken = default)
-    {
-        var paymentsQuery = BuildSearchQuery(query);
 
-        // Apply sorting
-        paymentsQuery = paymentsQuery.ApplySorting(
-            query.Sorts,
-            x => x.PaymentDate,
-            defaultAscending: false
-        );
-
-        return await paymentsQuery.ToPagedTupleAsync(query, cancellationToken);
-    }
 
     #endregion
 
-    #region Private Helper Methods
-
-    private IQueryable<SupplierPayment> BuildSearchQuery(SupplierPaymentQuery query)
-    {
-        var paymentsQuery = _db.SupplierPayments
-            .Include(x => x.Supplier)
-            .Include(x => x.GoodsReceipt)
-            .Include(x => x.PaymentProvider)
-            .Include(x => x.SupplierPaymentAccount)
-            .Where(x => !x.Isdeleted);
-
-        // Apply search filter
-        if (!string.IsNullOrWhiteSpace(query.Search))
-        {
-            var term = query.Search.ToLower();
-            paymentsQuery = paymentsQuery.Where(x =>
-                EF.Functions.Like(x.TransactionNumber.ToLower(), $"%{term}%") ||
-                (x.GoodsReceipt != null && EF.Functions.Like(x.GoodsReceipt.GRNNumber.ToLower(), $"%{term}%")) ||
-                EF.Functions.Like(x.PaymentMethod.ToLower(), $"%{term}%") ||
-                (x.Supplier != null && EF.Functions.Like(x.Supplier.Name.ToLower(), $"%{term}%"))
-            );
-        }
-
-        // Apply filters
-        if (query.IsReconciled.HasValue)
-        {
-            paymentsQuery = paymentsQuery.Where(x => x.IsReconciled == query.IsReconciled.Value);
-        }
-
-        if (!string.IsNullOrWhiteSpace(query.SupplierId) && Guid.TryParse(query.SupplierId, out var supplierId))
-        {
-            paymentsQuery = paymentsQuery.Where(x => x.SupplierId == supplierId);
-        }
-
-        if (!string.IsNullOrWhiteSpace(query.Status))
-        {
-            paymentsQuery = paymentsQuery.Where(x => x.Status == query.Status);
-        }
-
-        if (query.FromDate.HasValue && query.ToDate.HasValue)
-        {
-            paymentsQuery = paymentsQuery.Where(x => x.PaymentDate >= query.FromDate.Value && x.PaymentDate <= query.ToDate.Value);
-        }
-
-        return paymentsQuery;
-    }
-
-    #endregion
 }

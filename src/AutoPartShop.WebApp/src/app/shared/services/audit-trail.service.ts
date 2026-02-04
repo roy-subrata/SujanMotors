@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from 'src/environments/environment';
 
 export interface AuditLogResponse {
   id: string;
@@ -170,7 +171,7 @@ export interface AuditLogFilterRequest {
 })
 export class AuditTrailService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = 'http://localhost:5292/api/auditlog';
+  private readonly apiUrl = `${environment.apiUrl}/auditlog`;
 
   /**
    * Get paginated audit logs with filters

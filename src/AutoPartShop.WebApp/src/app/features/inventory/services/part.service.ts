@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { PaginatedResponse } from '../../sales/services/customer.service';
 import { SupplierQuery } from './supplier.service';
+import { environment } from 'src/environments/environment';
 
 export interface PartResponse {
     id: string;
@@ -102,7 +103,7 @@ export interface PartsQuery {
 })
 export class PartService {
     private readonly http = inject(HttpClient);
-    private readonly apiUrl = 'http://localhost:5292/api/parts';
+    private readonly apiUrl = `${environment.apiUrl}/parts`;
 
     /**
      * Get all parts

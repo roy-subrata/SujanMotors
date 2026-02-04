@@ -1,5 +1,6 @@
 import { Component, OnInit, ViewChild, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
@@ -8,6 +9,7 @@ import { TagModule } from 'primeng/tag';
 import { ContextMenuModule, ContextMenu } from 'primeng/contextmenu';
 import { RippleModule } from 'primeng/ripple';
 import { ToastModule } from 'primeng/toast';
+import { Select } from 'primeng/select';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { MenuItem } from 'primeng/api';
 import { SupplierService, SupplierResponse } from '../../services/supplier.service';
@@ -16,7 +18,7 @@ import { Router } from '@angular/router';
 @Component({
   selector: 'app-suppliers-list',
   standalone: true,
-  imports: [CommonModule, TableModule, ButtonModule, ConfirmDialogModule, TooltipModule, TagModule, ContextMenuModule, RippleModule, ToastModule],
+  imports: [CommonModule, FormsModule, TableModule, ButtonModule, ConfirmDialogModule, TooltipModule, TagModule, ContextMenuModule, RippleModule, ToastModule, Select],
   providers: [ConfirmationService, MessageService],
   templateUrl: './suppliers-list.component.html',
   styleUrls: ['./suppliers-list.component.css']
@@ -30,6 +32,7 @@ export class SuppliersListComponent implements OnInit {
   rows = 10;
   currentPage = 1;
   searchTerm = '';
+  pageSizeOptions = [10, 20, 50];
 
   contextMenuItems: MenuItem[] = [];
   selectedSupplier: SupplierResponse | null = null;
@@ -92,9 +95,8 @@ export class SuppliersListComponent implements OnInit {
   /**
    * Handle search
    */
-  onSearch(query: string): void {
-    this.searchTerm = query;
-    this.loadSuppliers(1, this.rows, query);
+  onSearch(): void {
+    this.loadSuppliers(1, this.rows, this.searchTerm);
   }
 
   /**
@@ -103,6 +105,34 @@ export class SuppliersListComponent implements OnInit {
   onSearchClear(): void {
     this.searchTerm = '';
     this.loadSuppliers(1, this.rows);
+  }
+
+  /**
+   * Refresh current page
+   */
+  refreshData(): void {
+    this.loadSuppliers(this.currentPage, this.rows, this.searchTerm);
+  }
+
+  /**
+   * Navigate to create supplier page (alias for header button)
+   */
+  createSupplier(): void {
+    this.onCreateClick();
+  }
+
+  /**
+   * Clear filters (search only)
+   */
+  clearFilters(): void {
+    this.onSearchClear();
+  }
+
+  /**
+   * Check if any filters are active
+   */
+  hasActiveFilters(): boolean {
+    return !!this.searchTerm;
   }
 
   /**
@@ -339,6 +369,13 @@ export class SuppliersListComponent implements OnInit {
   }
 
   /**
+   * Format status label
+   */
+  formatStatus(isActive: boolean): string {
+    return isActive ? 'Active' : 'Inactive';
+  }
+
+  /**
    * Get rating badge
    */
   getRatingClass(rating: number): string {
@@ -346,6 +383,32 @@ export class SuppliersListComponent implements OnInit {
     if (rating >= 3) return 'rating-good';
     if (rating >= 2) return 'rating-fair';
     return 'rating-poor';
+  }
+
+  get first(): number {
+    return Math.max(0, (this.currentPage - 1) * this.rows);
+  }
+
+  get pageNumber(): number {
+    if (!this.totalRecords) {
+      return 0;
+    }
+    return Math.floor(this.first / this.rows) + 1;
+  }
+
+  get totalPages(): number {
+    if (!this.totalRecords) {
+      return 0;
+    }
+    return Math.ceil(this.totalRecords / this.rows);
+  }
+
+  get pageSize(): number {
+    return this.rows;
+  }
+
+  set pageSize(value: number) {
+    this.rows = value;
   }
 
   /**

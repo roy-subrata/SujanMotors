@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { PaginatedResponse } from '@/features/sales/services/customer.service';
+import { environment } from 'src/environments/environment';
 
 export interface PurchaseOrderLineResponse {
     id: string;
@@ -94,7 +95,7 @@ export interface PurchaeOrderQuery {
 })
 export class PurchaseOrderService {
     private readonly http = inject(HttpClient);
-    private readonly apiUrl = 'http://localhost:5292/api/purchaseorder';
+    private readonly apiUrl = `${environment.apiUrl}/purchaseorder`;
 
     /**
      * Get all purchase orders

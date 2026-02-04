@@ -1,6 +1,6 @@
 
 
-using AutoPartShop.Domain.Common;
+using AutoPartShop.Application.Common;
 
 public class PurcahseQueryDto : BaseQuery
 {

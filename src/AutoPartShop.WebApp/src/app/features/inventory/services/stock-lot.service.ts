@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from 'src/environments/environment';
 
 export interface StockLotResponse {
   id: string;
@@ -49,6 +50,30 @@ export interface StockLotPriceHistoryResponse {
   maxPrice: number;
   averagePrice: number;
   latestPrice: number;
+  pagination: {
+    pageNumber: number;
+    pageSize: number;
+    totalCount: number;
+    totalPages: number;
+  };
+}
+
+export interface StockLotQuery {
+  search?: string;
+  pageSize: number;
+  pageNumber: number;
+  partId?: string;
+  warehouseId?: string;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  pagination: {
+    pageNumber: number;
+    pageSize: number;
+    totalCount: number;
+    totalPages: number;
+  };
 }
 
 @Injectable({
@@ -56,7 +81,7 @@ export interface StockLotPriceHistoryResponse {
 })
 export class StockLotService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = 'http://localhost:5292/api/stocklot';
+  private readonly apiUrl = `${environment.apiUrl}/stocklot`;
 
   /**
    * Get all lots for a specific part
@@ -68,8 +93,17 @@ export class StockLotService {
   /**
    * Get price history for a part (all lots sorted by date)
    */
-  getPriceHistory(partId: string): Observable<StockLotPriceHistoryResponse> {
-    return this.http.get<StockLotPriceHistoryResponse>(`${this.apiUrl}/price-history/${partId}`);
+  getPriceHistory(partId: string, pageNumber = 1, pageSize = 10): Observable<StockLotPriceHistoryResponse> {
+    return this.http.get<StockLotPriceHistoryResponse>(
+      `${this.apiUrl}/price-history/${partId}?pageNumber=${pageNumber}&pageSize=${pageSize}`
+    );
+  }
+
+  /**
+   * Get stock lots with pagination & filters
+   */
+  getStockLots(query: StockLotQuery): Observable<PaginatedResponse<StockLotResponse>> {
+    return this.http.post<PaginatedResponse<StockLotResponse>>(`${this.apiUrl}/list`, query);
   }
 
   /**

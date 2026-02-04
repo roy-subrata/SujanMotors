@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
 import { SelectModule } from 'primeng/select';
-import { TableModule } from 'primeng/table';
+import { TableLazyLoadEvent, TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
@@ -39,6 +39,11 @@ export class StockPriceHistoryComponent implements OnInit {
 
   loading = false;
   Math = Math;
+  totalRecords = 0;
+  pageNumber = 1;
+  pageSize = 10;
+  first = 0;
+  pageSizeOptions = [10, 25, 50];
 
   ngOnInit(): void {
     this.loadParts();
@@ -69,6 +74,7 @@ export class StockPriceHistoryComponent implements OnInit {
 
   onPartSelected(): void {
     this.priceHistory = null;
+    this.resetPagination();
   }
 
   loadPriceHistory(): void {
@@ -77,9 +83,10 @@ export class StockPriceHistoryComponent implements OnInit {
     }
 
     this.loading = true;
-    this.stockLotService.getPriceHistory(this.selectedPartId).subscribe({
+    this.stockLotService.getPriceHistory(this.selectedPartId, this.pageNumber, this.pageSize).subscribe({
       next: (history) => {
         this.priceHistory = history;
+        this.totalRecords = history.pagination?.totalCount ?? 0;
         this.loading = false;
       },
       error: (_error) => {
@@ -91,6 +98,18 @@ export class StockPriceHistoryComponent implements OnInit {
         this.loading = false;
       }
     });
+  }
+
+  onLazyLoad(event: TableLazyLoadEvent): void {
+    this.first = event.first ?? 0;
+    this.pageSize = event.rows ?? this.pageSize;
+    this.pageNumber = Math.floor(this.first / this.pageSize) + 1;
+    this.loadPriceHistory();
+  }
+
+  private resetPagination(): void {
+    this.first = 0;
+    this.pageNumber = 1;
   }
 
   getPriceVariation(): number {

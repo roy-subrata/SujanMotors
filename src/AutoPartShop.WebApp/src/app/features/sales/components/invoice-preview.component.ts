@@ -40,138 +40,129 @@ import { InvoicePdfService, InvoicePdfData } from '../services/invoice-pdf.servi
       <!-- Invoice Content -->
       <div class="invoice-container" id="invoice-print-area">
         <div class="invoice-paper" *ngIf="invoiceData">
-          <!-- Invoice Header -->
-          <div class="invoice-header">
-            <div class="company-section">
-              <div class="company-logo">
-                <i class="pi pi-car"></i>
-              </div>
-              <div class="company-info">
-                <h1 class="company-name">{{ invoiceData.companyName }}</h1>
-                <p>{{ invoiceData.companyAddress }}</p>
-                <p><i class="pi pi-phone"></i> {{ invoiceData.companyPhone }}</p>
-                <p><i class="pi pi-envelope"></i> {{ invoiceData.companyEmail }}</p>
-                <p class="tax-id" *ngIf="invoiceData.companyTaxId">{{ invoiceData.companyTaxId }}</p>
+          <!-- Header -->
+          <div class="header">
+            <div class="logo-section">
+              <div class="logo">SM</div>
+              <div class="company-block">
+                <div class="company-name">{{ invoiceData.companyName }}</div>
+                <div class="company-detail">{{ invoiceData.companyAddress }}</div>
+                <div class="company-detail">{{ invoiceData.companyPhone }}</div>
+                <div class="company-detail">{{ invoiceData.companyEmail }}</div>
+                <div class="company-tax" *ngIf="invoiceData.companyTaxId">{{ invoiceData.companyTaxId }}</div>
               </div>
             </div>
-            <div class="invoice-title-section">
-              <h2 class="invoice-title">TAX INVOICE</h2>
+            <div class="title-section">
+              <h1>Invoice</h1>
               <div class="invoice-meta">
-                <div class="meta-row">
-                  <span class="meta-label">Invoice No:</span>
-                  <span class="meta-value invoice-number">{{ invoiceData.invoiceNumber }}</span>
-                </div>
-                <div class="meta-row">
-                  <span class="meta-label">Date:</span>
-                  <span class="meta-value">{{ formatDate(invoiceData.invoiceDate) }}</span>
-                </div>
-                <div class="meta-row" *ngIf="invoiceData.dueDate">
-                  <span class="meta-label">Due Date:</span>
-                  <span class="meta-value">{{ formatDate(invoiceData.dueDate) }}</span>
-                </div>
-                <div class="meta-row" *ngIf="invoiceData.salesOrderNumber">
-                  <span class="meta-label">SO #:</span>
-                  <span class="meta-value">{{ invoiceData.salesOrderNumber }}</span>
-                </div>
+                <div><span>Invoice no.:</span> <span class="value">{{ invoiceData.invoiceNumber }}</span></div>
+                <div><span>Invoice date:</span> <span class="value">{{ formatDate(invoiceData.invoiceDate) }}</span></div>
+                <div *ngIf="invoiceData.dueDate"><span>Due date:</span> <span class="value">{{ formatDate(invoiceData.dueDate) }}</span></div>
+                <div *ngIf="invoiceData.salesOrderNumber"><span>SO #:</span> <span class="value">{{ invoiceData.salesOrderNumber }}</span></div>
               </div>
             </div>
           </div>
 
-          <!-- Customer & Technician Info -->
-          <div class="parties-section">
-            <div class="party-box customer-box">
-              <div class="party-header">
-                <i class="pi pi-user"></i>
-                <span>Bill To</span>
-              </div>
-              <div class="party-content">
-                <h4>{{ invoiceData.customerName }}</h4>
-                <p *ngIf="invoiceData.customerAddress">{{ invoiceData.customerAddress }}</p>
-                <p *ngIf="invoiceData.customerPhone"><i class="pi pi-phone"></i> {{ invoiceData.customerPhone }}</p>
-                <p *ngIf="invoiceData.customerEmail"><i class="pi pi-envelope"></i> {{ invoiceData.customerEmail }}</p>
+          <!-- Address Section -->
+          <div class="address-section">
+            <div class="address-block">
+              <div class="address-label">From</div>
+              <div class="address-name">{{ invoiceData.companyName }}</div>
+              <div class="address-detail">
+                {{ invoiceData.companyAddress }}<br>
+                {{ invoiceData.companyEmail }}<br>
+                {{ invoiceData.companyPhone }}
               </div>
             </div>
-            <div class="party-box technician-box" *ngIf="invoiceData.technicianName">
-              <div class="party-header">
-                <i class="pi pi-wrench"></i>
-                <span>Technician</span>
+            <div class="address-block right">
+              <div class="address-label">Bill to</div>
+              <div class="address-name">{{ invoiceData.customerName }}</div>
+              <div class="address-detail">
+                <span *ngIf="invoiceData.customerAddress">{{ invoiceData.customerAddress }}<br></span>
+                <span *ngIf="invoiceData.customerEmail">{{ invoiceData.customerEmail }}<br></span>
+                <span *ngIf="invoiceData.customerPhone">{{ invoiceData.customerPhone }}</span>
               </div>
-              <div class="party-content">
-                <h4>{{ invoiceData.technicianName }}</h4>
-                <p *ngIf="invoiceData.technicianPhone"><i class="pi pi-phone"></i> {{ invoiceData.technicianPhone }}</p>
+              <div class="tech-block" *ngIf="invoiceData.technicianName">
+                <div class="address-label">Technician</div>
+                <div class="address-detail">
+                  {{ invoiceData.technicianName }}<span *ngIf="invoiceData.technicianPhone"> | {{ invoiceData.technicianPhone }}</span>
+                </div>
               </div>
             </div>
           </div>
 
           <!-- Items Table -->
-          <div class="items-section">
-            <table class="items-table">
-              <thead>
-                <tr>
-                  <th class="col-sn">S.N.</th>
-                  <th class="col-code">Part Code</th>
-                  <th class="col-desc">Description</th>
-                  <th class="col-qty">Qty</th>
-                  <th class="col-rate">Rate</th>
-                  <th class="col-disc">Disc.</th>
-                  <th class="col-amount">Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let item of invoiceData.items; let i = index" [class.alt-row]="i % 2 === 1">
-                  <td class="col-sn">{{ item.slNo }}</td>
-                  <td class="col-code">{{ item.partNumber }}</td>
-                  <td class="col-desc">{{ item.description }}</td>
-                  <td class="col-qty">{{ item.quantity }}</td>
-                  <td class="col-rate">{{ formatCurrency(item.unitPrice) }}</td>
-                  <td class="col-disc">{{ formatCurrency(item.discount) }}</td>
-                  <td class="col-amount">{{ formatCurrency(item.total) }}</td>
-                </tr>
-                <!-- Empty rows for consistent look -->
-                <tr *ngFor="let empty of getEmptyRows()" class="empty-row">
-                  <td>&nbsp;</td>
-                  <td></td>
-                  <td></td>
-                  <td></td>
-                  <td></td>
-                  <td></td>
-                  <td></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th>Description</th>
+                <th class="num-col">Unit Price</th>
+                <th class="num-col">Qty</th>
+                <th class="num-col">Disc</th>
+                <th class="num-col">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of invoiceData.items; let i = index">
+                <td class="desc-cell">
+                  <div class="item-name">{{ item.description }}</div>
+                  <div class="item-desc">{{ item.partNumber || '-' }}</div>
+                </td>
+                <td class="num-cell">{{ formatCurrency(item.unitPrice) }}</td>
+                <td class="num-cell">{{ item.quantity }}</td>
+                <td class="num-cell">{{ item.discount > 0 ? item.discount + '%' : '-' }}</td>
+                <td class="num-cell">{{ formatCurrency(item.total) }}</td>
+              </tr>
+              <tr *ngFor="let empty of getEmptyRows()" class="empty-row">
+                <td>&nbsp;</td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+              </tr>
+            </tbody>
+          </table>
 
-          <!-- Totals & Payment Section -->
-          <div class="totals-payment-section">
-            <div class="amount-words">
-              <span class="words-label">Amount in Words:</span>
-              <span class="words-value">{{ amountInWords }}</span>
+          <!-- Summary Section -->
+          <div class="summary-section">
+            <div class="payment-info">
+              <div *ngIf="invoiceData.notes">
+                <h4>Notes</h4>
+                <p>{{ invoiceData.notes }}</p>
+              </div>
+              <div class="amount-words" *ngIf="amountInWords">
+                <h4>Amount in Words</h4>
+                <p>{{ amountInWords }}</p>
+              </div>
+              <div *ngIf="invoiceData.paymentTerms">
+                <h4>Payment Terms</h4>
+                <p>{{ invoiceData.paymentTerms }}</p>
+              </div>
             </div>
             <div class="totals-box">
-              <div class="total-row">
-                <span>Subtotal:</span>
-                <span>{{ formatCurrency(invoiceData.subtotal) }}</span>
+              <div class="totals-row">
+                <span class="totals-label">Subtotal:</span>
+                <span class="totals-value">{{ formatCurrency(invoiceData.subtotal) }}</span>
               </div>
-              <div class="total-row" *ngIf="invoiceData.discountAmount > 0">
-                <span>Discount:</span>
-                <span class="discount">-{{ formatCurrency(invoiceData.discountAmount) }}</span>
+              <div class="totals-row" *ngIf="invoiceData.discountAmount > 0">
+                <span class="totals-label">Discount:</span>
+                <span class="totals-value">-{{ formatCurrency(invoiceData.discountAmount) }}</span>
               </div>
-              <div class="total-row">
-                <span>VAT ({{ invoiceData.vatPercentage }}%):</span>
-                <span>{{ formatCurrency(invoiceData.vatAmount) }}</span>
+              <div class="totals-row">
+                <span class="totals-label">VAT ({{ invoiceData.vatPercentage }}%):</span>
+                <span class="totals-value">{{ formatCurrency(invoiceData.vatAmount) }}</span>
               </div>
-              <div class="total-row grand-total">
-                <span>Grand Total:</span>
-                <span>{{ formatCurrency(invoiceData.grandTotal) }}</span>
+              <div class="totals-row total">
+                <span class="totals-label">Total:</span>
+                <span class="totals-value">{{ formatCurrency(invoiceData.grandTotal) }}</span>
               </div>
-              <div class="divider"></div>
-              <div class="total-row paid">
-                <span>Paid Amount:</span>
-                <span>{{ formatCurrency(invoiceData.paidAmount) }}</span>
+              <div class="totals-row" *ngIf="invoiceData.paidAmount > 0">
+                <span class="totals-label">Paid:</span>
+                <span class="totals-value">{{ formatCurrency(invoiceData.paidAmount) }}</span>
               </div>
-              <div class="total-row due" *ngIf="invoiceData.dueAmount > 0">
-                <span>Balance Due:</span>
-                <span class="due-amount">{{ formatCurrency(invoiceData.dueAmount) }}</span>
+              <div class="totals-row" *ngIf="invoiceData.dueAmount > 0">
+                <span class="totals-label">Balance Due:</span>
+                <span class="totals-value due">{{ formatCurrency(invoiceData.dueAmount) }}</span>
               </div>
             </div>
           </div>
@@ -188,33 +179,9 @@ import { InvoicePdfService, InvoicePdfData } from '../services/invoice-pdf.servi
             </div>
           </div>
 
-          <!-- Notes Section -->
-          <div class="notes-section" *ngIf="invoiceData.notes">
-            <h4><i class="pi pi-info-circle"></i> Notes</h4>
-            <p>{{ invoiceData.notes }}</p>
-          </div>
-
           <!-- Footer -->
-          <div class="invoice-footer">
-            <div class="footer-left">
-              <div class="terms">
-                <h5>Terms & Conditions</h5>
-                <p>1. Goods once sold will not be taken back or exchanged.</p>
-                <p>2. All disputes subject to local jurisdiction only.</p>
-                <p>3. E.&O.E. (Errors and Omissions Excepted)</p>
-              </div>
-            </div>
-            <div class="footer-right">
-              <div class="signature-box">
-                <div class="signature-line"></div>
-                <span>Authorized Signature</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Print Footer -->
-          <div class="print-footer">
-            <p>Thank you for your business!</p>
+          <div class="footer">
+            <p>Thank you for choosing {{ invoiceData.companyName }}</p>
             <p class="generated-at">Generated on {{ currentDateTime }}</p>
           </div>
         </div>
@@ -324,415 +291,298 @@ import { InvoicePdfService, InvoicePdfData } from '../services/invoice-pdf.servi
       background: white;
       max-width: 800px;
       margin: 0 auto;
-      padding: 2rem;
+      padding: 20px;
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
       border-radius: 4px;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      color: #333;
     }
 
-    /* Invoice Header */
-    .invoice-header {
+    /* Header */
+    .header {
       display: flex;
       justify-content: space-between;
-      padding-bottom: 1.5rem;
-      border-bottom: 2px solid #1e3a5f;
-      margin-bottom: 1.5rem;
+      align-items: flex-start;
+      margin-bottom: 20px;
     }
 
-    .company-section {
+    .logo-section {
       display: flex;
-      gap: 1rem;
+      align-items: center;
+      gap: 10px;
     }
 
-    .company-logo {
-      width: 64px;
-      height: 64px;
-      background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%);
-      border-radius: 12px;
+    .logo {
+      width: 60px;
+      height: 60px;
+      background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+      border-radius: 8px;
       display: flex;
       align-items: center;
       justify-content: center;
-
-      i {
-        font-size: 2rem;
-        color: white;
-      }
+      color: white;
+      font-size: 24px;
+      font-weight: 700;
     }
 
-    .company-info {
-      .company-name {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: #1e3a5f;
-        margin-bottom: 0.25rem;
-      }
-
-      p {
-        font-size: 0.85rem;
-        color: #64748b;
-        margin: 0.15rem 0;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-
-        i { font-size: 0.8rem; color: #94a3b8; }
-      }
-
-      .tax-id {
-        font-weight: 600;
-        color: #475569;
-        margin-top: 0.5rem;
-      }
+    .company-name {
+      font-size: 22px;
+      font-weight: 700;
+      color: #1976d2;
+      margin-bottom: 2px;
     }
 
-    .invoice-title-section {
+    .company-detail {
+      font-size: 11px;
+      color: #666;
+      line-height: 1.4;
+    }
+
+    .company-tax {
+      margin-top: 4px;
+      font-size: 11px;
+      color: #333;
+      font-weight: 600;
+    }
+
+    .title-section {
       text-align: right;
     }
 
-    .invoice-title {
-      font-size: 1.75rem;
-      font-weight: 800;
-      color: #1e3a5f;
-      letter-spacing: 2px;
-      margin-bottom: 1rem;
+    .title-section h1 {
+      font-size: 28px;
+      color: #1976d2;
+      font-weight: 300;
+      margin-bottom: 8px;
     }
 
     .invoice-meta {
-      .meta-row {
-        display: flex;
-        justify-content: flex-end;
-        gap: 0.75rem;
-        margin-bottom: 0.35rem;
-
-        .meta-label {
-          font-size: 0.85rem;
-          color: #64748b;
-        }
-
-        .meta-value {
-          font-size: 0.85rem;
-          font-weight: 600;
-          color: #1e293b;
-          min-width: 100px;
-          text-align: left;
-
-          &.invoice-number {
-            color: #1e3a5f;
-            font-size: 1rem;
-          }
-        }
-      }
+      font-size: 11px;
+      color: #666;
+      line-height: 1.6;
     }
 
-    /* Parties Section */
-    .parties-section {
+    .invoice-meta .value {
+      color: #333;
+      font-weight: 500;
+    }
+
+    /* Address Section */
+    .address-section {
       display: flex;
-      gap: 1.5rem;
-      margin-bottom: 1.5rem;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid #e0e0e0;
     }
 
-    .party-box {
+    .address-block {
       flex: 1;
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
-      overflow: hidden;
-
-      .party-header {
-        background: #f8fafc;
-        padding: 0.5rem 1rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        font-weight: 600;
-        color: #475569;
-        border-bottom: 1px solid #e2e8f0;
-
-        i { color: #1e3a5f; }
-      }
-
-      .party-content {
-        padding: 1rem;
-
-        h4 {
-          font-size: 1rem;
-          font-weight: 600;
-          color: #1e293b;
-          margin-bottom: 0.5rem;
-        }
-
-        p {
-          font-size: 0.85rem;
-          color: #64748b;
-          margin: 0.25rem 0;
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-
-          i { font-size: 0.75rem; color: #94a3b8; }
-        }
-      }
     }
 
-    /* Items Table */
-    .items-section {
-      margin-bottom: 1.5rem;
+    .address-block.right {
+      text-align: right;
+    }
+
+    .address-label {
+      font-size: 10px;
+      color: #999;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+    .address-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 4px;
+    }
+
+    .address-detail {
+      font-size: 11px;
+      color: #666;
+      line-height: 1.5;
+    }
+
+    .tech-block {
+      margin-top: 10px;
     }
 
     .items-table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 0.85rem;
-
-      th {
-        background: #1e3a5f;
-        color: white;
-        padding: 0.75rem 0.5rem;
-        text-align: left;
-        font-weight: 600;
-        font-size: 0.8rem;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-
-        &:first-child { border-radius: 4px 0 0 0; }
-        &:last-child { border-radius: 0 4px 0 0; }
-      }
-
-      td {
-        padding: 0.65rem 0.5rem;
-        border-bottom: 1px solid #e2e8f0;
-        color: #475569;
-      }
-
-      .alt-row td {
-        background: #f8fafc;
-      }
-
-      .empty-row td {
-        height: 32px;
-        background: #fafafa;
-      }
-
-      .col-sn { width: 40px; text-align: center; }
-      .col-code { width: 100px; }
-      .col-desc { }
-      .col-qty { width: 60px; text-align: center; }
-      .col-rate, .col-disc, .col-amount { width: 100px; text-align: right; }
+      margin-bottom: 20px;
+      font-size: 11px;
     }
 
-    /* Totals Section */
-    .totals-payment-section {
+    .items-table th {
+      background: #1976d2;
+      color: white;
+      padding: 10px 8px;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 500;
+      text-align: left;
+    }
+
+    .items-table th.num-col {
+      text-align: right;
+    }
+
+    .items-table td {
+      padding: 10px 8px;
+      border-bottom: 1px solid #eee;
+      vertical-align: top;
+    }
+
+    .items-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .desc-cell {
+      width: 40%;
+    }
+
+    .num-cell {
+      text-align: right;
+      width: 15%;
+    }
+
+    .item-name {
+      font-weight: 500;
+      color: #333;
+    }
+
+    .item-desc {
+      font-size: 10px;
+      color: #999;
+      margin-top: 2px;
+    }
+
+    .empty-row td {
+      height: 28px;
+      border-bottom: 1px solid #eee;
+    }
+
+    /* Summary Section */
+    .summary-section {
       display: flex;
       gap: 1.5rem;
       margin-bottom: 1.5rem;
     }
 
-    .amount-words {
+    .payment-info {
       flex: 1;
-      padding: 1rem;
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
+      padding-right: 20px;
+    }
 
-      .words-label {
-        font-size: 0.75rem;
-        color: #64748b;
-        display: block;
-        margin-bottom: 0.5rem;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-      }
+    .payment-info h4 {
+      font-size: 11px;
+      color: #999;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
 
-      .words-value {
-        font-size: 0.9rem;
-        font-weight: 600;
-        color: #1e293b;
-        font-style: italic;
-      }
+    .payment-info p {
+      font-size: 11px;
+      color: #666;
+      line-height: 1.6;
+      margin-bottom: 10px;
     }
 
     .totals-box {
-      width: 280px;
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
-      padding: 1rem;
-      background: #fafafa;
+      width: 260px;
+    }
 
-      .total-row {
-        display: flex;
-        justify-content: space-between;
-        padding: 0.4rem 0;
-        font-size: 0.9rem;
+    .totals-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      font-size: 11px;
+    }
 
-        span:first-child { color: #64748b; }
-        span:last-child { font-weight: 600; color: #1e293b; }
+    .totals-row.total {
+      border-top: 2px solid #1976d2;
+      margin-top: 8px;
+      padding-top: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #1976d2;
+    }
 
-        &.grand-total {
-          padding: 0.75rem 0;
-          margin-top: 0.5rem;
-          border-top: 2px solid #1e3a5f;
+    .totals-label {
+      color: #666;
+    }
 
-          span:first-child { font-weight: 700; color: #1e3a5f; }
-          span:last-child { 
-            font-size: 1.1rem; 
-            font-weight: 700; 
-            color: #1e3a5f; 
-          }
-        }
+    .totals-value {
+      font-weight: 500;
+    }
 
-        &.due {
-          padding-top: 0.5rem;
-          border-top: 1px dashed #e2e8f0;
-
-          .due-amount {
-            color: #dc2626;
-            font-weight: 700;
-          }
-        }
-
-        .discount { color: #16a34a; }
-      }
-
-      .divider {
-        height: 1px;
-        background: #e2e8f0;
-        margin: 0.5rem 0;
-      }
+    .totals-value.due {
+      color: #d32f2f;
+      font-weight: 700;
     }
 
     /* Payment Details */
     .payment-details {
-      margin-bottom: 1.5rem;
-      padding: 1rem;
-      background: #f0fdf4;
-      border: 1px solid #bbf7d0;
-      border-radius: 8px;
-
-      h4 {
-        font-size: 0.9rem;
-        font-weight: 600;
-        color: #166534;
-        margin-bottom: 0.75rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-      }
-
-      .payment-list {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.75rem;
-      }
-
-      .payment-item {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.5rem 0.75rem;
-        background: white;
-        border-radius: 6px;
-        font-size: 0.85rem;
-
-        .payment-method {
-          color: #475569;
-          font-weight: 500;
-        }
-
-        .payment-amount {
-          font-weight: 700;
-          color: #166534;
-        }
-
-        .payment-ref {
-          color: #94a3b8;
-          font-size: 0.8rem;
-        }
-      }
+      margin-bottom: 15px;
+      padding: 12px;
+      background: #f9f9f9;
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
     }
 
-    /* Notes Section */
-    .notes-section {
-      margin-bottom: 1.5rem;
-      padding: 1rem;
-      background: #fef3c7;
-      border: 1px solid #fcd34d;
-      border-radius: 8px;
+    .payment-details h4 {
+      font-size: 11px;
+      color: #1976d2;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
 
-      h4 {
-        font-size: 0.9rem;
-        font-weight: 600;
-        color: #92400e;
-        margin-bottom: 0.5rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-      }
+    .payment-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
 
-      p {
-        font-size: 0.85rem;
-        color: #78350f;
-      }
+    .payment-item {
+      font-size: 11px;
+      color: #666;
+      background: white;
+      border: 1px solid #eee;
+      padding: 6px 8px;
+      border-radius: 4px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .payment-amount {
+      font-weight: 600;
+      color: #1976d2;
+    }
+
+    .payment-ref {
+      color: #999;
+      font-size: 10px;
     }
 
     /* Footer */
-    .invoice-footer {
-      display: flex;
-      justify-content: space-between;
-      padding-top: 1.5rem;
-      border-top: 1px solid #e2e8f0;
-      margin-top: 1rem;
-    }
-
-    .terms {
-      h5 {
-        font-size: 0.8rem;
-        font-weight: 600;
-        color: #475569;
-        margin-bottom: 0.5rem;
-      }
-
-      p {
-        font-size: 0.75rem;
-        color: #94a3b8;
-        margin: 0.15rem 0;
-      }
-    }
-
-    .signature-box {
+    .footer {
       text-align: center;
-      padding-top: 2rem;
-
-      .signature-line {
-        width: 180px;
-        height: 1px;
-        background: #1e293b;
-        margin-bottom: 0.5rem;
-      }
-
-      span {
-        font-size: 0.8rem;
-        color: #64748b;
-      }
+      color: #999;
+      font-size: 10px;
+      padding-top: 10px;
+      border-top: 1px solid #eee;
     }
 
-    .print-footer {
-      text-align: center;
-      padding-top: 1.5rem;
-      margin-top: 1rem;
-      border-top: 1px dashed #e2e8f0;
-
-      p {
-        font-size: 0.85rem;
-        color: #64748b;
-
-        &:first-child {
-          font-weight: 600;
-          color: #1e3a5f;
-        }
-      }
-
-      .generated-at {
-        font-size: 0.75rem;
-        margin-top: 0.5rem;
-      }
+    .footer .generated-at {
+      margin-top: 4px;
     }
 
     /* Print Styles */

@@ -1,98 +1,216 @@
-<p-table
-  [value]="vehicles"
-  [rows]="rows"
-  [first]="(currentPage - 1) * rows"
-  [totalRecords]="totalRecords"
-  [loading]="loading"
-  [lazy]="true"
-  [paginator]="true"
-  [globalFilterFields]="['make', 'model', 'year', 'engineType']"
-  paginatorPosition="bottom"
-  [showCurrentPageReport]="true"
-  currentPageReportTemplate="Showing {first} to {last} of {totalRecords} vehicles"
-  (onLazyLoad)="onPageChange($event)"
-  responsiveLayout="scroll"
-  [tableStyle]="{ 'min-width': '50rem' }"
-  styleClass="p-datatable-striped">
-
-  <!-- Header Template -->
-  <ng-template pTemplate="header">
-    <tr>
-      <th pSortableColumn="make" style="width: 15%">
-        Make <p-sortIcon field="make"></p-sortIcon>
-      </th>
-      <th pSortableColumn="model" style="width: 20%">
-        Model <p-sortIcon field="model"></p-sortIcon>
-      </th>
-      <th pSortableColumn="year" style="width: 10%">
-        Year <p-sortIcon field="year"></p-sortIcon>
-      </th>
-      <th style="width: 15%">Engine Type</th>
-      <th style="width: 25%">Description</th>
-      <th style="width: 10%">Status</th>
-      <th style="width: 5%">Actions</th>
-    </tr>
-  </ng-template>
-
-  <!-- Data Rows -->
-  <ng-template pTemplate="body" let-vehicle>
-    <tr>
-      <td>
-        <span class="font-semibold">{{ vehicle.make }}</span>
-      </td>
-      <td>
-        <span>{{ vehicle.model }}</span>
-      </td>
-      <td class="text-center">
-        <span>{{ vehicle.year }}</span>
-      </td>
-      <td>
-        <span class="text-gray-600">{{ vehicle.engineType }}</span>
-      </td>
-      <td>
-        <span class="text-sm text-gray-600">{{ vehicle.description || 'N/A' }}</span>
-      </td>
-      <td>
-        <p-tag
-          [value]="vehicle.isActive ? 'Active' : 'Inactive'"
-          [severity]="getStatusSeverity(vehicle.isActive)">
-        </p-tag>
-      </td>
-      <td>
-        <div class="action-buttons">
-          <button
-            pButton
-            pRipple
-            type="button"
-            icon="pi pi-ellipsis-v"
-            class="p-button-text p-button-sm"
-            pTooltip="Actions"
-            tooltipPosition="left"
-            (contextmenu)="showContextMenu($event, vehicle)"
-            (click)="showContextMenu($event, vehicle)">
-          </button>
-        </div>
-      </td>
-    </tr>
-  </ng-template>
-
-  <!-- Empty Message -->
-  <ng-template pTemplate="emptymessage">
-    <tr>
-      <td colspan="7" class="text-center py-4">
-        <i class="pi pi-inbox mr-2"></i>
-        No vehicles found.
-      </td>
-    </tr>
-  </ng-template>
-</p-table>
+<!-- ============================================================
+     VEHICLES LIST - ENTERPRISE UI (MATCHES SALES ORDERS LAYOUT)
+     ============================================================ -->
 
 <!-- Context Menu -->
-<p-contextMenu
-  #contextMenu
-  [model]="contextMenuItems"
-  [appendTo]="'body'">
-</p-contextMenu>
+<p-contextMenu #contextMenu [model]="contextMenuItems" [appendTo]="'body'"></p-contextMenu>
 
-<!-- Confirm Dialog -->
-<p-confirmDialog></p-confirmDialog>
+<!-- ==================== DATA TABLE (Desktop) ==================== -->
+<section class="table-section desktop-only">
+  <div class="table-container">
+    <p-table
+      [value]="vehicles"
+      [lazy]="true"
+      [paginator]="false"
+      [rows]="pageSize"
+      [first]="first"
+      [totalRecords]="totalRecords"
+      [loading]="loading"
+      (onLazyLoad)="onPageChange($event)"
+      [rowHover]="true"
+      [scrollable]="true"
+      scrollHeight="flex"
+      styleClass="custom-table">
+
+      <ng-template #header>
+        <tr>
+          <th class="col-name">Vehicle</th>
+          <th class="col-year">Year</th>
+          <th class="col-engine">Engine</th>
+          <th class="col-desc">Description</th>
+          <th class="col-status">Status</th>
+          <th class="col-actions">Actions</th>
+        </tr>
+      </ng-template>
+
+      <ng-template #body let-vehicle>
+        <tr class="data-row">
+          <td class="col-name">
+            <div class="customer-cell">
+              <div class="customer-avatar">
+                {{ (vehicle.make || 'V')[0].toUpperCase() }}
+              </div>
+              <div class="customer-info">
+                <span class="customer-name">{{ vehicle.make }} {{ vehicle.model }}</span>
+                <span *ngIf="vehicle.trim" class="customer-phone">{{ vehicle.trim }}</span>
+              </div>
+            </div>
+          </td>
+          <td class="col-year">
+            <span class="date-text">{{ vehicle.year }}</span>
+          </td>
+          <td class="col-engine">
+            <span class="date-text">{{ vehicle.engineType || '-' }}</span>
+          </td>
+          <td class="col-desc">
+            <span class="date-text">{{ vehicle.description || '-' }}</span>
+          </td>
+          <td class="col-status">
+            <span class="status-pill" [attr.data-status]="vehicle.isActive ? 'active' : 'inactive'">
+              {{ vehicle.isActive ? 'Active' : 'Inactive' }}
+            </span>
+          </td>
+          <td class="col-actions">
+            <div class="action-cell">
+              <button class="btn-action" pTooltip="More" (click)="showContextMenu($event, vehicle)">
+                <i class="pi pi-ellipsis-v"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+
+      <ng-template #emptymessage>
+        <tr>
+          <td colspan="6">
+            <div class="empty-state">
+              <div class="empty-icon">
+                <i class="pi pi-car"></i>
+              </div>
+              <h3>No Vehicles Found</h3>
+              <p>Try adjusting your filters or create a new vehicle</p>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+
+      <ng-template #loadingbody>
+        <tr *ngFor="let _ of [1,2,3,4,5,6,7,8]" class="skeleton-row">
+          <td>
+            <div class="skeleton-customer">
+              <div class="skeleton skeleton-avatar"></div>
+              <div class="skeleton skeleton-text"></div>
+            </div>
+          </td>
+          <td><div class="skeleton skeleton-text-sm"></div></td>
+          <td><div class="skeleton skeleton-text-sm"></div></td>
+          <td><div class="skeleton skeleton-text-sm"></div></td>
+          <td><div class="skeleton skeleton-badge"></div></td>
+          <td><div class="skeleton skeleton-actions"></div></td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+
+  <div class="pagination-section" *ngIf="totalRecords > 0">
+    <div class="pagination-info">
+      Showing <strong>{{ first + 1 }}</strong> to <strong>{{ first + vehicles.length }}</strong> of <strong>{{ totalRecords }}</strong> vehicles
+    </div>
+    <div class="pagination-controls">
+      <span class="page-size-label">Rows per page:</span>
+      <p-select
+        [options]="[{label: '10', value: 10}, {label: '20', value: 20}, {label: '50', value: 50}]"
+        [(ngModel)]="pageSize"
+        (onChange)="onPageChange({first: 0, rows: pageSize})"
+        styleClass="page-size-dropdown">
+      </p-select>
+      <div class="page-nav">
+        <button class="page-btn" [disabled]="first === 0" (click)="onPageChange({first: 0, rows: pageSize})">
+          <i class="pi pi-angle-double-left"></i>
+        </button>
+        <button class="page-btn" [disabled]="first === 0" (click)="onPageChange({first: first - pageSize, rows: pageSize})">
+          <i class="pi pi-angle-left"></i>
+        </button>
+        <span class="page-indicator">{{ pageNumber }} / {{ totalPages }}</span>
+        <button class="page-btn" [disabled]="first + pageSize >= totalRecords" (click)="onPageChange({first: first + pageSize, rows: pageSize})">
+          <i class="pi pi-angle-right"></i>
+        </button>
+        <button class="page-btn" [disabled]="first + pageSize >= totalRecords" (click)="onPageChange({first: (totalPages - 1) * pageSize, rows: pageSize})">
+          <i class="pi pi-angle-double-right"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== MOBILE CARDS ==================== -->
+<section class="cards-section mobile-only">
+  <div *ngIf="loading" class="cards-grid">
+    <div *ngFor="let _ of [1,2,3,4]" class="order-card skeleton-card">
+      <div class="card-header">
+        <div class="skeleton skeleton-text"></div>
+        <div class="skeleton skeleton-badge"></div>
+      </div>
+      <div class="card-body">
+        <div class="skeleton skeleton-text-lg"></div>
+        <div class="skeleton skeleton-text-sm"></div>
+      </div>
+      <div class="card-footer">
+        <div class="skeleton skeleton-text-sm"></div>
+        <div class="skeleton skeleton-text-sm"></div>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="!loading && vehicles.length === 0" class="empty-state-mobile">
+    <div class="empty-icon">
+      <i class="pi pi-car"></i>
+    </div>
+    <h3>No Vehicles</h3>
+    <p>Try different filters or create a new vehicle</p>
+  </div>
+
+  <div *ngIf="!loading && vehicles.length > 0" class="cards-grid">
+    <div *ngFor="let vehicle of vehicles" class="order-card" (click)="onViewClick(vehicle)">
+      <div class="card-header">
+        <span class="card-so-number">{{ vehicle.make }} {{ vehicle.model }}</span>
+        <span class="status-pill" [attr.data-status]="vehicle.isActive ? 'active' : 'inactive'">
+          {{ vehicle.isActive ? 'Active' : 'Inactive' }}
+        </span>
+      </div>
+
+      <div class="card-body">
+        <div class="card-customer">
+          <div class="customer-avatar small">
+            {{ (vehicle.make || 'V')[0].toUpperCase() }}
+          </div>
+          <span class="customer-name">{{ vehicle.year }}</span>
+        </div>
+        <div class="card-dates">
+          <span class="card-date">
+            <i class="pi pi-cog"></i>
+            {{ vehicle.engineType || '-' }}
+          </span>
+          <span class="card-date">
+            <i class="pi pi-info-circle"></i>
+            {{ vehicle.trim || '-' }}
+          </span>
+        </div>
+      </div>
+
+      <div class="card-footer">
+        <div class="card-amount">
+          <span class="amount-label">Description</span>
+          <span class="amount-value">{{ vehicle.description || '-' }}</span>
+        </div>
+        <button class="btn-card-action" (click)="showContextMenu($event, vehicle); $event.stopPropagation()">
+          <i class="pi pi-ellipsis-h"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="!loading && vehicles.length > 0" class="mobile-pagination">
+    <div class="pagination-info-mobile">
+      {{ first + 1 }}-{{ first + vehicles.length }} of {{ totalRecords }}
+    </div>
+    <div class="pagination-nav-mobile">
+      <button class="page-btn" [disabled]="first === 0" (click)="onPageChange({first: first - pageSize, rows: pageSize})">
+        <i class="pi pi-chevron-left"></i>
+      </button>
+      <button class="page-btn" [disabled]="first + pageSize >= totalRecords" (click)="onPageChange({first: first + pageSize, rows: pageSize})">
+        <i class="pi pi-chevron-right"></i>
+      </button>
+    </div>
+  </div>
+</section>

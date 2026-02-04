@@ -18,6 +18,65 @@
           {{ mode === 'create' ? 'Create a new purchase order for a supplier' : 'View or edit purchase order details' }}
         </p>
       </div>
+
+      <!-- Status Change Actions (View Mode Only) -->
+      <div class="header-actions" *ngIf="mode === 'view' && currentPO">
+        <div class="status-info">
+          <span class="status-label">Status:</span>
+          <p-tag [value]="currentPO.status" [severity]="getStatusSeverity(currentPO.status)"></p-tag>
+        </div>
+        <div class="action-buttons">
+          <button
+            pButton
+            type="button"
+            label="Print"
+            icon="pi pi-print"
+            class="p-button-outlined"
+            (click)="printPurchaseOrder()"
+            pTooltip="Print purchase order"
+            tooltipPosition="bottom">
+          </button>
+
+          <!-- Submit button - only for DRAFT status -->
+          <button
+            *ngIf="currentPO.status === 'DRAFT'"
+            pButton
+            type="button"
+            label="Submit"
+            icon="pi pi-send"
+            class="p-button-info"
+            (click)="submitPurchaseOrder()"
+            pTooltip="Submit this purchase order for approval"
+            tooltipPosition="bottom">
+          </button>
+
+          <!-- Confirm button - only for SUBMITTED status -->
+          <button
+            *ngIf="currentPO.status === 'SUBMITTED'"
+            pButton
+            type="button"
+            label="Confirm"
+            icon="pi pi-check-circle"
+            class="p-button-success"
+            (click)="confirmPurchaseOrder()"
+            pTooltip="Confirm this purchase order"
+            tooltipPosition="bottom">
+          </button>
+
+          <!-- Cancel button - only for DRAFT or SUBMITTED status -->
+          <button
+            *ngIf="currentPO.status === 'DRAFT' || currentPO.status === 'SUBMITTED'"
+            pButton
+            type="button"
+            label="Cancel"
+            icon="pi pi-ban"
+            class="p-button-warning"
+            (click)="cancelPurchaseOrder()"
+            pTooltip="Cancel this purchase order"
+            tooltipPosition="bottom">
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -213,7 +272,7 @@
             </thead>
             <tbody formArrayName="lines">
               <tr *ngFor="let line of linesArray.controls; let i = index" [formGroupName]="i" class="line-item-row">
-                <td class="part-name-cell">
+                <td class="part-name-cell" data-label="Product">
                   <div class="part-name-wrapper" *ngIf="line.get('partId')?.value">
                     <span class="part-name-value">{{ line.get('partId')?.value?.name }}</span>
                     <button
@@ -230,7 +289,7 @@
                     <i class="pi pi-exclamation-circle"></i> No product selected
                   </span>
                 </td>
-                <td class="unit-cell">
+                <td class="unit-cell" data-label="Unit">
                   <p-select
                     *ngIf="mode !== 'view'"
                     formControlName="unitId"
@@ -256,7 +315,7 @@
                   </p-select>
                   <span *ngIf="mode === 'view'" class="unit-display">{{ line.get('unitId')?.value?.name || '-' }}</span>
                 </td>
-                <td class="qty-cell">
+                <td class="qty-cell" data-label="Quantity">
                   <p-inputNumber
                     *ngIf="mode !== 'view'"
                     formControlName="quantity"
@@ -267,7 +326,7 @@
                   </p-inputNumber>
                   <span *ngIf="mode === 'view'" class="qty-display">{{ line.get('quantity')?.value }}</span>
                 </td>
-                <td class="price-cell">
+                <td class="price-cell" data-label="Unit Price">
                   <p-inputNumber
                     *ngIf="mode !== 'view'"
                     formControlName="unitPrice"
@@ -280,10 +339,10 @@
                   </p-inputNumber>
                   <span *ngIf="mode === 'view'" class="price-display">{{ formatCurrency(line.get('unitPrice')?.value) }}</span>
                 </td>
-                <td class="line-total-cell">
+                <td class="line-total-cell" data-label="Line Total">
                   <span class="line-total">{{ formatCurrency(getLineTotal(i)) }}</span>
                 </td>
-                <td class="action-cell" *ngIf="mode !== 'view'">
+                <td class="action-cell" *ngIf="mode !== 'view'" data-label="Actions">
                   <button
                     pButton
                     type="button"

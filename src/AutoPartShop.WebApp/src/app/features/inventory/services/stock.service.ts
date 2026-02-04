@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from 'src/environments/environment';
 
 export interface StockLevelResponse {
   id: string;
@@ -13,6 +14,16 @@ export interface StockLevelResponse {
   reorderQuantity: number;
   needsReorder: boolean;
   createdAt: string;
+}
+
+export interface StockLevelQuery {
+  search?: string;
+  pageSize: number;
+  pageNumber: number;
+  partId?: string;
+  warehouseId?: string;
+  status?: string;
+  lowStockOnly?: boolean;
 }
 
 export interface CreateStockLevelRequest {
@@ -44,6 +55,18 @@ export interface StockMovementResponse {
   approvedBy: string;
   approvedAt: string | null;
   createdAt: string;
+}
+
+export interface StockMovementQuery {
+  search?: string;
+  pageSize: number;
+  pageNumber: number;
+  partId?: string;
+  warehouseId?: string;
+  type?: string;
+  status?: string;
+  fromDate?: string;
+  toDate?: string;
 }
 
 export interface CreateStockMovementRequest {
@@ -108,18 +131,35 @@ export interface StockAdjustmentResponse {
   createdAt: string;
 }
 
+export interface PaginatedResponse<T> {
+  data: T[];
+  pagination: {
+    pageNumber: number;
+    pageSize: number;
+    totalCount: number;
+    totalPages: number;
+  };
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class StockService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = 'http://localhost:5292/api/stock';
+  private readonly apiUrl = `${environment.apiUrl}/stock`;
 
   /**
    * Get all stock levels
    */
   getAllStockLevels(): Observable<StockLevelResponse[]> {
     return this.http.get<StockLevelResponse[]>(`${this.apiUrl}/levels`);
+  }
+
+  /**
+   * Get stock levels with pagination & filters
+   */
+  getStockLevels(query: StockLevelQuery): Observable<PaginatedResponse<StockLevelResponse>> {
+    return this.http.post<PaginatedResponse<StockLevelResponse>>(`${this.apiUrl}/levels/list`, query);
   }
 
   /**
@@ -176,6 +216,13 @@ export class StockService {
    */
   getAllMovements(): Observable<StockMovementResponse[]> {
     return this.http.get<StockMovementResponse[]>(`${this.apiUrl}/movements`);
+  }
+
+  /**
+   * Get stock movements with pagination & filters
+   */
+  getStockMovements(query: StockMovementQuery): Observable<PaginatedResponse<StockMovementResponse>> {
+    return this.http.post<PaginatedResponse<StockMovementResponse>>(`${this.apiUrl}/movements/list`, query);
   }
 
   /**

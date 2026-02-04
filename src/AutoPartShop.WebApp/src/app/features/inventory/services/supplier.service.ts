@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { PaginatedResponse } from '@/features/sales/services/customer.service';
+import { environment } from 'src/environments/environment';
 
 export interface SupplierResponse {
   id: string;
@@ -74,7 +75,7 @@ export interface SupplierQuery {
 })
 export class SupplierService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = 'http://localhost:5292/api/suppliers';
+  private readonly apiUrl = `${environment.apiUrl}/suppliers`;
 
   /**
    * Get all suppliers

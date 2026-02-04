@@ -1,6 +1,9 @@
 using AutoPartShop.Api.Services;
+using AutoPartShop.Application.Common;
 using AutoPartShop.Application.DTOs.InventoryDtos;
 using AutoPartShop.Application.DTOs.PaymentDtos;
+using AutoPartShop.Application.Stock;
+using AutoPartShop.Application.Stock.Dtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Mvc;
@@ -13,6 +16,7 @@ public class StockLotController : ControllerBase
 {
     private readonly IStockLotRepository _repository;
     private readonly IStockLotMovementRepository _movementRepository;
+    private readonly IStockLotReadRepository _stockLotReadRepository;
     private readonly IPartRepository _partRepository;
     private readonly IWarehouseRepository _warehouseRepository;
     private readonly ISupplierRepository _supplierRepository;
@@ -20,11 +24,13 @@ public class StockLotController : ControllerBase
     private readonly ICurrentUserService _currentUserService;
 
     public StockLotController(IStockLotRepository repository, IStockLotMovementRepository movementRepository,
-        IPartRepository partRepository, IWarehouseRepository warehouseRepository, ISupplierRepository supplierRepository,
+        IStockLotReadRepository stockLotReadRepository, IPartRepository partRepository, IWarehouseRepository warehouseRepository,
+        ISupplierRepository supplierRepository,
         ICurrentUserService currentUserService, ILogger<StockLotController> logger)
     {
         _repository = repository;
         _movementRepository = movementRepository;
+        _stockLotReadRepository = stockLotReadRepository;
         _partRepository = partRepository;
         _warehouseRepository = warehouseRepository;
         _supplierRepository = supplierRepository;
@@ -80,8 +86,41 @@ public class StockLotController : ControllerBase
         }
     }
 
+    [HttpPost("list")]
+    public async Task<IActionResult> GetList(StockLotQuery query, CancellationToken cancellationToken = default)
+    {
+        if (query is null)
+            return BadRequest("Request body is required.");
+
+        if (query.PageNumber < 1)
+            return BadRequest("PageNumber must be greater than 0.");
+
+        if (query.PageSize < 1)
+            return BadRequest("PageSize must be greater than 0.");
+
+        try
+        {
+            var (lots, totalCount) =
+                await _stockLotReadRepository.FindAllQuery(query, cancellationToken);
+
+            var result = PagedResult<StockLotResponse>
+                .Create(lots, totalCount, query);
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting stock lots list");
+            return StatusCode(500, "An error occurred");
+        }
+    }
+
     [HttpGet("price-history/{partId:guid}")]
-    public async Task<IActionResult> GetPriceHistory(Guid partId, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetPriceHistory(
+        Guid partId,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10,
+        CancellationToken cancellationToken = default)
     {
         try
         {
@@ -90,6 +129,9 @@ public class StockLotController : ControllerBase
 
             var lots = await _repository.GetByPartAsync(partId, cancellationToken);
             var sortedLots = lots.OrderByDescending(l => l.ReceivingDate).ToList();
+            var totalCount = sortedLots.Count;
+            if (pageNumber < 1) pageNumber = 1;
+            if (pageSize < 1) pageSize = 10;
 
             // Supplier cache to avoid duplicate DB calls
             var supplierCache = new Dictionary<Guid, string>();
@@ -97,7 +139,9 @@ public class StockLotController : ControllerBase
             var lotItems = new List<StockLotHistoryItem>();
 
             // All EF DB calls happen sequentially (safe)
-            foreach (var l in sortedLots)
+            foreach (var l in sortedLots
+                         .Skip((pageNumber - 1) * pageSize)
+                         .Take(pageSize))
             {
                 string supplierName;
 
@@ -142,7 +186,14 @@ public class StockLotController : ControllerBase
                 MinPrice = prices.Any() ? prices.Min() : 0,
                 MaxPrice = prices.Any() ? prices.Max() : 0,
                 AveragePrice = prices.Any() ? prices.Average() : 0,
-                LatestPrice = sortedLots.FirstOrDefault()?.CostPrice ?? 0
+                LatestPrice = sortedLots.FirstOrDefault()?.CostPrice ?? 0,
+                Pagination = new PaginationMeta
+                {
+                    PageNumber = pageNumber,
+                    PageSize = pageSize,
+                    TotalCount = totalCount,
+                    TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+                }
             });
         }
         catch (Exception ex)

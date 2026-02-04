@@ -1,12 +1,5 @@
-using AutoPartShop.Domain.Common;
-
 namespace AutoPartShop.Application.DTOs.PaymentDtos;
 
-public class CustomerPaymentQuery : BaseQuery
-{
-    public string? Status { get; set; }
-    public string? CustomerType { get; set; }
-}
 
 public class CreateCustomerPaymentRequest
 {
@@ -47,7 +40,7 @@ public class CustomerPaymentResponse
     public Guid? InvoiceId { get; set; }
     public Guid? PaymentProviderId { get; set; }
     public string ProviderName { get; set; } = string.Empty;
-    public string InvoiceNumber { get; set; }=string.Empty;
+    public string InvoiceNumber { get; set; } = string.Empty;
     public string TransactionNumber { get; set; } = string.Empty;
     public decimal Amount { get; set; }
     public decimal PaymentFee { get; set; }

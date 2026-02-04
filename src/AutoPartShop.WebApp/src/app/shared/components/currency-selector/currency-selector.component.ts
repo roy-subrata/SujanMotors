@@ -99,9 +99,10 @@ export class CurrencySelectorComponent implements OnInit, ControlValueAccessor {
   filter = input<boolean>(true);
   showClear = input<boolean>(false);
 
-  // Internal value
-  value: string = 'BDT';
+  // Internal value - will be synced with default currency from settings
+  value: string = '';
   isDisabled: boolean = false;
+  private valueSetByParent = false;
 
   // Currencies list as signal
   currencies = toSignal(this.currencyService.activeCurrencies$, { initialValue: [] });
@@ -114,17 +115,32 @@ export class CurrencySelectorComponent implements OnInit, ControlValueAccessor {
     // Load active currencies
     this.currencyService.loadActiveCurrencies();
 
-    // Set initial currency to base currency if not already set
-    this.currencyService.baseCurrency$.subscribe(baseCurrency => {
-      if (baseCurrency && !this.value) {
-        this.value = baseCurrency.code;
+    // Set initial currency to default currency from settings if not already set by parent
+    this.currencyService.defaultCurrency$.subscribe(defaultCurrency => {
+      if (defaultCurrency && defaultCurrency.code && !this.valueSetByParent && !this.value) {
+        this.value = defaultCurrency.code;
+        this.onChange(this.value);
       }
     });
+
+    // Fallback to selected currency from service (which syncs with default currency)
+    if (!this.value && !this.valueSetByParent) {
+      const selectedCurrency = this.currencyService.selectedCurrency();
+      if (selectedCurrency) {
+        this.value = selectedCurrency;
+      }
+    }
   }
 
   // ControlValueAccessor implementation
   writeValue(value: string): void {
-    this.value = value || 'BDT';
+    if (value) {
+      this.valueSetByParent = true;
+      this.value = value;
+    } else {
+      // Use default currency from settings if no value provided
+      this.value = this.currencyService.selectedCurrency();
+    }
   }
 
   registerOnChange(fn: (value: string) => void): void {

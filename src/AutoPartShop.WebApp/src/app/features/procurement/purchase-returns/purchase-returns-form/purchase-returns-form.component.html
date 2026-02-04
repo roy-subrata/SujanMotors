@@ -1,5 +1,6 @@
 <div class="container">
   <p-toast></p-toast>
+  <p-confirmDialog></p-confirmDialog>
 
   <!-- Header -->
   <div class="form-header">
@@ -23,6 +24,19 @@
       </div>
       <div *ngIf="isViewMode && currentReturn" class="header-actions">
         <p-tag [value]="currentReturn.status" [severity]="getStatusSeverity(currentReturn.status)"></p-tag>
+
+        <!-- Status Change Actions -->
+        <button *ngIf="currentReturn.status === 'PENDING'" pButton type="button" label="Approve" icon="pi pi-check"
+          class="p-button-success p-button-sm" (click)="approveReturn()"></button>
+        <button *ngIf="currentReturn.status === 'APPROVED'" pButton type="button" label="Mark Returned" icon="pi pi-send"
+          class="p-button-info p-button-sm" (click)="markAsReturned()"></button>
+        <button *ngIf="currentReturn.status === 'RETURNED'" pButton type="button" label="Mark Received" icon="pi pi-inbox"
+          class="p-button-success p-button-sm" (click)="markAsReceived()"></button>
+        <button *ngIf="currentReturn.status === 'RECEIVED'" pButton type="button" label="Issue Credit Note" icon="pi pi-file"
+          class="p-button-help p-button-sm" (click)="issueCreditNote()"></button>
+        <button *ngIf="currentReturn.status === 'PENDING'" pButton type="button" label="Reject" icon="pi pi-times"
+          class="p-button-danger p-button-sm" (click)="rejectReturn()"></button>
+
         <button pButton type="button" label="Print" icon="pi pi-print" class="p-button-outlined p-button-sm" (click)="printReturn()"></button>
       </div>
     </div>
@@ -209,7 +223,7 @@
             </thead>
             <tbody formArrayName="lineItems">
               <tr *ngFor="let item of lineItemsArray.controls; let i = index" [formGroupName]="i" class="line-item-row">
-                <td class="part-name-cell">
+                <td class="part-name-cell" data-label="Product">
                   <div *ngIf="!isViewMode">
                     <p-autoComplete
                       formControlName="part"
@@ -237,7 +251,7 @@
                     <span class="part-name-value">{{ item.get('part')?.value?.name || 'N/A' }}</span>
                   </div>
                 </td>
-                <td class="lot-cell">
+                <td class="lot-cell" data-label="Stock Lot">
                   <p-select
                     *ngIf="!isViewMode"
                     formControlName="stockLotId"
@@ -265,7 +279,7 @@
                   </p-select>
                   <span *ngIf="isViewMode" class="lot-display">{{ item.get('stockLotId')?.value ? 'Selected' : 'Auto' }}</span>
                 </td>
-                <td class="qty-cell">
+                <td class="qty-cell" data-label="Quantity">
                   <p-inputNumber
                     *ngIf="!isViewMode"
                     formControlName="quantity"
@@ -276,7 +290,7 @@
                   </p-inputNumber>
                   <span *ngIf="isViewMode" class="qty-display">{{ item.get('quantity')?.value }}</span>
                 </td>
-                <td class="price-cell">
+                <td class="price-cell" data-label="Unit Price">
                   <p-inputNumber
                     *ngIf="!isViewMode"
                     formControlName="unitPrice"
@@ -288,7 +302,7 @@
                   </p-inputNumber>
                   <span *ngIf="isViewMode" class="price-display">{{ item.get('unitPrice')?.value | currency:currencyCode:'symbol':'1.2-2' }}</span>
                 </td>
-                <td class="rejected-cell">
+                <td class="rejected-cell" data-label="Rejected">
                   <p-inputNumber
                     *ngIf="!isViewMode"
                     formControlName="rejectedQuantity"
@@ -298,7 +312,7 @@
                   </p-inputNumber>
                   <span *ngIf="isViewMode" class="rejected-display">{{ item.get('rejectedQuantity')?.value || 0 }}</span>
                 </td>
-                <td class="condition-cell">
+                <td class="condition-cell" data-label="Condition">
                   <p-select
                     *ngIf="!isViewMode"
                     formControlName="condition"
@@ -311,10 +325,10 @@
                   </p-select>
                   <span *ngIf="isViewMode" class="condition-display">{{ item.get('condition')?.value }}</span>
                 </td>
-                <td class="line-total-cell">
+                <td class="line-total-cell" data-label="Refund">
                   <span class="line-total">{{ ((item.get('quantity')?.value - item.get('rejectedQuantity')?.value) * item.get('unitPrice')?.value) | currency:currencyCode:'symbol':'1.2-2' }}</span>
                 </td>
-                <td class="action-cell" *ngIf="!isViewMode">
+                <td class="action-cell" *ngIf="!isViewMode" data-label="Actions">
                   <button
                     pButton
                     type="button"

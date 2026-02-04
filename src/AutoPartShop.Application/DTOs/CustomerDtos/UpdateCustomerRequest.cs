@@ -16,7 +16,6 @@ public class UpdateCustomerRequest
     public string Country { get; set; } = string.Empty;
     public string CustomerType { get; set; } = string.Empty;
     public decimal CreditLimit { get; set; }
-    public string TaxId { get; set; } = string.Empty;
     public string PrimaryContactPerson { get; set; } = string.Empty;
     public string Notes { get; set; } = string.Empty;
 }

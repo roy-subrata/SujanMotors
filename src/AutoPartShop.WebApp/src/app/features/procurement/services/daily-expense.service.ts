@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from 'src/environments/environment';
 
 export interface CreateDailyExpenseRequest {
     expenseDate: string;
@@ -76,7 +77,7 @@ export interface ExpenseCategory {
 })
 export class DailyExpenseService {
     private readonly http = inject(HttpClient);
-    private readonly apiUrl = 'http://localhost:5292/api/daily-expense';
+    private readonly apiUrl = `${environment.apiUrl}/daily-expense`;
 
     getAll(): Observable<DailyExpenseResponse[]> {
         return this.http.get<DailyExpenseResponse[]>(this.apiUrl);
