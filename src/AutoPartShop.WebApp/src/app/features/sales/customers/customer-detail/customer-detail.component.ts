@@ -19,11 +19,12 @@ import { CustomerPaymentService, CustomerPaymentHistorySummary, PaymentHistoryIt
 import { CurrencyService } from '../../../../shared/services/currency.service';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
 import { PaginatorModule, PaginatorState } from 'primeng/paginator';
+import { AppCurrencyPipe } from '../../../../shared/pipes/app-currency.pipe';
 
 @Component({
     selector: 'app-customer-detail',
     standalone: true,
-    imports: [CommonModule, ReactiveFormsModule, FormsModule, PaginatorModule, ButtonModule, CardModule, TagModule, ToastModule, TabsModule, TableModule, SelectModule, DatePickerModule, TooltipModule, SkeletonModule, AvatarModule],
+    imports: [CommonModule, ReactiveFormsModule, FormsModule, PaginatorModule, ButtonModule, CardModule, TagModule, ToastModule, TabsModule, TableModule, SelectModule, DatePickerModule, TooltipModule, SkeletonModule, AvatarModule, AppCurrencyPipe],
     providers: [MessageService],
     templateUrl: './customer-detail.component.html',
     styleUrls: ['./customer-detail.component.css']

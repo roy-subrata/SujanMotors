@@ -26,6 +26,7 @@ public class SalesOrderController : ControllerBase
     private readonly IUnitConversionService _unitConversionService;
     private readonly IWarrantyService _warrantyService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IPricingValidationService _pricingValidationService;
     private readonly ILogger<SalesOrderController> _logger;
     private readonly AutoPartDbContext _dbContext;
 
@@ -42,6 +43,7 @@ public class SalesOrderController : ControllerBase
         IUnitConversionService unitConversionService,
         IWarrantyService warrantyService,
         ICurrentUserService currentUserService,
+        IPricingValidationService pricingValidationService,
         ILogger<SalesOrderController> logger,
         AutoPartDbContext dbContext)
     {
@@ -57,6 +59,7 @@ public class SalesOrderController : ControllerBase
         _unitConversionService = unitConversionService;
         _warrantyService = warrantyService;
         _currentUserService = currentUserService;
+        _pricingValidationService = pricingValidationService;
         _logger = logger;
         _dbContext = dbContext;
     }
@@ -396,7 +399,7 @@ public class SalesOrderController : ControllerBase
                             .ThenBy(sl => sl.CreatedDate)   // Then by creation date
                             .ToListAsync(cancellationToken);
 
-                        int remainingQty = line.Quantity;
+                        int remainingQty = line.QuantityInBaseUnit;
                         foreach (var lot in stockLots)
                         {
                             if (remainingQty <= 0) break;
@@ -937,32 +940,14 @@ public class SalesOrderController : ControllerBase
         if (part == null)
             throw new ArgumentException($"Part with ID {lineRequest.PartId} not found");
 
-        int quantityInBaseUnit = lineRequest.Quantity;
-        Guid? unitId = lineRequest.UnitId;
+        var (quantityInBaseUnit, unitId, baseUnitPrice) = await ResolveUnitPricingAsync(
+            part,
+            lineRequest.Quantity,
+            lineRequest.UnitId,
+            lineRequest.UnitPrice,
+            cancellationToken);
 
-        if (unitId.HasValue && !part.UnitId.HasValue)
-        {
-            quantityInBaseUnit = lineRequest.Quantity;
-        }
-        else if (unitId.HasValue && part.UnitId.HasValue && unitId.Value != part.UnitId.Value)
-        {
-            try
-            {
-                quantityInBaseUnit = await _unitConversionService.ConvertQuantityAsync(
-                    lineRequest.Quantity,
-                    unitId.Value,
-                    part.UnitId.Value,
-                    cancellationToken);
-            }
-            catch (InvalidOperationException ex)
-            {
-                throw new ArgumentException($"Unit conversion not configured: {ex.Message}");
-            }
-        }
-        else if (!unitId.HasValue)
-        {
-            unitId = part.UnitId;
-        }
+        _pricingValidationService.ValidateLinePricing(part, baseUnitPrice, lineRequest.Discount);
 
         var discountPerUnit = lineRequest.UnitPrice * (lineRequest.Discount / 100);
 
@@ -976,6 +961,44 @@ public class SalesOrderController : ControllerBase
             quantityInBaseUnit: quantityInBaseUnit,
             discount: discountPerUnit
         );
+    }
+
+    private async Task<(int quantityInBaseUnit, Guid? unitId, decimal baseUnitPrice)> ResolveUnitPricingAsync(
+        Part part,
+        int quantity,
+        Guid? unitId,
+        decimal unitPrice,
+        CancellationToken cancellationToken)
+    {
+        if (part.UnitId is null)
+        {
+            return (quantity, unitId, unitPrice);
+        }
+
+        if (!unitId.HasValue)
+        {
+            return (quantity, part.UnitId, unitPrice);
+        }
+
+        if (unitId.Value == part.UnitId.Value)
+        {
+            return (quantity, unitId, unitPrice);
+        }
+
+        try
+        {
+            var conversionFactor = await _unitConversionService.GetConversionFactorAsync(unitId.Value, part.UnitId.Value, cancellationToken);
+            if (conversionFactor <= 0)
+                throw new InvalidOperationException("Invalid unit conversion factor.");
+
+            var quantityInBaseUnit = (int)Math.Round(quantity * conversionFactor, MidpointRounding.AwayFromZero);
+            var baseUnitPrice = unitPrice / conversionFactor;
+            return (quantityInBaseUnit, unitId, baseUnitPrice);
+        }
+        catch (InvalidOperationException ex)
+        {
+            throw new ArgumentException($"Unit conversion not configured: {ex.Message}");
+        }
     }
 
     private InvoiceResponse MapToInvoiceResponse(Invoice invoice)
@@ -1088,10 +1111,18 @@ public class SalesOrderController : ControllerBase
             {
                 var stockLevels = await _stockLevelRepository.GetByPartAsync(item.PartId, cancellationToken);
                 var totalAvailable = stockLevels.Sum(sl => sl.QuantityAvailable);
-                if (totalAvailable < item.Quantity)
+
+                var part = parts.First(p => p.Id == item.PartId);
+                var (requiredBaseQty, _, _) = await ResolveUnitPricingAsync(
+                    part,
+                    item.Quantity,
+                    item.UnitId,
+                    item.UnitPrice,
+                    cancellationToken);
+
+                if (totalAvailable < requiredBaseQty)
                 {
-                    var part = parts.First(p => p.Id == item.PartId);
-                    insufficientStockMessage = $"Insufficient stock for {part.Name}. Available: {totalAvailable}, Required: {item.Quantity}";
+                    insufficientStockMessage = $"Insufficient stock for {part.Name}. Available: {totalAvailable}, Required: {requiredBaseQty}";
                     stockCheckFailed = true;
                     break;
                 }
@@ -1132,36 +1163,20 @@ public class SalesOrderController : ControllerBase
                 if (part == null)
                     return BadRequest(new { message = $"Part with ID {item.PartId} not found" });
 
-                // Calculate quantity in base unit
-                int quantityInBaseUnit = item.Quantity;
-                Guid? unitId = item.UnitId;
+                var (quantityInBaseUnit, unitId, baseUnitPrice) = await ResolveUnitPricingAsync(
+                    part,
+                    item.Quantity,
+                    item.UnitId,
+                    item.UnitPrice,
+                    cancellationToken);
 
-                // If unitId is provided and part has no base unit, just use the provided unit
-                if (unitId.HasValue && !part.UnitId.HasValue)
+                try
                 {
-                    // Part has no base unit, use provided unit and quantity as-is
-                    quantityInBaseUnit = item.Quantity;
+                    _pricingValidationService.ValidateLinePricing(part, baseUnitPrice, item.Discount);
                 }
-                // If unitId is provided and different from part's base unit, convert
-                else if (unitId.HasValue && part.UnitId.HasValue && unitId.Value != part.UnitId.Value)
+                catch (ArgumentException ex)
                 {
-                    try
-                    {
-                        quantityInBaseUnit = await _unitConversionService.ConvertQuantityAsync(
-                            item.Quantity,
-                            unitId.Value,
-                            part.UnitId.Value,
-                            cancellationToken);
-                    }
-                    catch (InvalidOperationException ex)
-                    {
-                        return BadRequest(new { message = $"Unit conversion not configured: {ex.Message}" });
-                    }
-                }
-                else if (!unitId.HasValue)
-                {
-                    // If no unit specified, use part's base unit
-                    unitId = part.UnitId;
+                    return BadRequest(new { message = ex.Message });
                 }
 
                 var discountPerUnit = (item.UnitPrice * item.Discount) / 100;
@@ -1514,6 +1529,14 @@ public class SalesOrderController : ControllerBase
                 invoiceNumber, soNumber);
 
             return CreatedAtAction(nameof(GetById), new { id = salesOrder.Id }, response);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
         }
         catch (Exception ex)
         {

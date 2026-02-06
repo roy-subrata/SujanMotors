@@ -490,9 +490,7 @@ public class WarrantyClaimsController : ControllerBase
 
     private WarrantyClaimResponse MapToResponse(WarrantyClaim claim)
     {
-        var daysOpen = claim.ClaimDate != null
-            ? (DateTime.UtcNow - claim.ClaimDate).Days
-            : 0;
+        var daysOpen = (DateTime.UtcNow - claim.ClaimDate).Days;
 
         return new WarrantyClaimResponse
         {

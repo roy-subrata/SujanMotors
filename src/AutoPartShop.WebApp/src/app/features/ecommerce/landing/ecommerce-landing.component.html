@@ -1,0 +1,104 @@
+<section class="hero">
+  <div class="hero-copy">
+    <p class="eyebrow">Performance Parts Marketplace</p>
+    <h1>Build faster. Drive smarter. Shop curated auto parts.</h1>
+    <p class="lead">
+      Discover premium parts with live stock visibility, clear specs, and compatibility-ready variants.
+    </p>
+    <div class="hero-actions">
+      <input type="text" pInputText placeholder="Search parts, brands, categories" [(ngModel)]="searchTerm" />
+      <a class="hero-link" [routerLink]="['/shop/category', landing?.categories?.[0]?.id]">Browse Categories</a>
+    </div>
+  </div>
+  <div class="hero-card">
+    <div class="hero-stat">
+      <span>Live inventory</span>
+      <strong>Stock-aware pricing</strong>
+    </div>
+    <div class="hero-stat">
+      <span>Smart filters</span>
+      <strong>Attribute-driven search</strong>
+    </div>
+    <div class="hero-stat">
+      <span>Compatibility</span>
+      <strong>Variant-level fitment</strong>
+    </div>
+  </div>
+</section>
+
+<section class="category-strip" *ngIf="landing?.categories?.length">
+  <div class="section-title">Shop by Category</div>
+  <div class="category-grid">
+    <a
+      *ngFor="let category of landing?.categories"
+      class="category-pill"
+      [routerLink]="['/shop/category', category.id]"
+    >
+      <div>
+        <h4>{{ category.name }}</h4>
+        <span>{{ category.childCount }} sub-categories</span>
+      </div>
+      <span class="arrow">→</span>
+    </a>
+  </div>
+</section>
+
+<section class="product-section" id="featured" *ngIf="landing?.featured?.length">
+  <div class="section-head">
+    <h2>Featured Picks</h2>
+    <p>Curated by your warehouse team.</p>
+  </div>
+  <div class="product-grid">
+    <article class="product-card" *ngFor="let item of landing?.featured; trackBy: trackById">
+      <div class="product-image">{{ item.name.charAt(0) }}</div>
+      <div class="product-info">
+        <h3>{{ item.name }}</h3>
+        <p>{{ item.categoryName }}</p>
+        <div class="price">
+          {{ item.currency }} {{ item.price | number: '1.0-0' }}
+        </div>
+        <a [routerLink]="['/shop/product', item.partId]">View details</a>
+      </div>
+    </article>
+  </div>
+</section>
+
+<section class="product-section" id="popular" *ngIf="landing?.popular?.length">
+  <div class="section-head">
+    <h2>Popular Now</h2>
+    <p>Fast-moving items across categories.</p>
+  </div>
+  <div class="product-grid">
+    <article class="product-card" *ngFor="let item of landing?.popular; trackBy: trackById">
+      <div class="product-image">{{ item.name.charAt(0) }}</div>
+      <div class="product-info">
+        <h3>{{ item.name }}</h3>
+        <p>{{ item.categoryName }}</p>
+        <div class="price">
+          {{ item.currency }} {{ item.price | number: '1.0-0' }}
+        </div>
+        <a [routerLink]="['/shop/product', item.partId]">View details</a>
+      </div>
+    </article>
+  </div>
+</section>
+
+<section class="product-section" *ngIf="landing?.latest?.length">
+  <div class="section-head">
+    <h2>Latest Arrivals</h2>
+    <p>New inventory hitting the shelves.</p>
+  </div>
+  <div class="product-grid">
+    <article class="product-card" *ngFor="let item of landing?.latest; trackBy: trackById">
+      <div class="product-image">{{ item.name.charAt(0) }}</div>
+      <div class="product-info">
+        <h3>{{ item.name }}</h3>
+        <p>{{ item.categoryName }}</p>
+        <div class="price">
+          {{ item.currency }} {{ item.price | number: '1.0-0' }}
+        </div>
+        <a [routerLink]="['/shop/product', item.partId]">View details</a>
+      </div>
+    </article>
+  </div>
+</section>

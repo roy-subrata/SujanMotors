@@ -73,6 +73,14 @@ export class DailyExpensesComponent implements OnInit {
         { label: 'Yearly', value: 'YEARLY' }
     ];
 
+    get currencyCode(): string {
+        return this.currencyService.selectedCurrency();
+    }
+
+    get currencyLocale(): string {
+        return this.currencyService.getSelectedCurrencyLocale();
+    }
+
     ngOnInit(): void {
         this.loadExpenses();
         this.loadCategories();
@@ -256,11 +264,7 @@ export class DailyExpensesComponent implements OnInit {
     }
 
     formatCurrency(value: number): string {
-        const currency = this.currencyService.selectedCurrency();
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: currency
-        }).format(value);
+        return this.currencyService.formatCurrency(value, this.currencyService.selectedCurrency());
     }
 
     formatDate(dateString: string): string {

@@ -280,6 +280,29 @@ app-root {
     overflow: hidden;
 }
 
+/* Allow storefront routes to use normal page scrolling */
+body.storefront-scroll {
+    overflow: auto;
+    height: auto;
+    position: static;
+}
+
+body.storefront-scroll app-root {
+    height: auto;
+    overflow: visible;
+}
+
+body.storefront-scroll .layout-main-container {
+    position: static;
+    height: auto;
+    overflow: visible;
+}
+
+html.storefront-scroll {
+    overflow: auto;
+    height: auto;
+}
+
 /* Main scrollable content area */
 .layout-main-container {
     overflow-y: auto;

@@ -15,6 +15,7 @@ import { DatePickerModule } from 'primeng/datepicker';
 import { SelectModule } from 'primeng/select';
 import { MessageService } from 'primeng/api';
 import { WarrantyService, WarrantyClaimResponse, WarrantyRegistrationResponse, CreateWarrantyClaimRequest } from '../services/warranty.service';
+import { CurrencyService } from '../../../shared/services/currency.service';
 
 @Component({
     selector: 'app-claims-list',
@@ -42,6 +43,7 @@ import { WarrantyService, WarrantyClaimResponse, WarrantyRegistrationResponse, C
 export class ClaimsListComponent implements OnInit {
     private readonly warrantyService = inject(WarrantyService);
     private readonly messageService = inject(MessageService);
+    private readonly currencyService = inject(CurrencyService);
 
     claims: WarrantyClaimResponse[] = [];
     filteredClaims: WarrantyClaimResponse[] = [];
@@ -416,7 +418,7 @@ export class ClaimsListComponent implements OnInit {
             claimDate: this.newClaim.claimDate,
             issueDescription: this.newClaim.issueDescription,
             serviceType: this.newClaim.serviceType,
-            serviceCostCurrency: 'BDT'
+            serviceCostCurrency: this.currencyService.selectedCurrency()
         };
 
         this.warrantyService.createClaim(request).subscribe({

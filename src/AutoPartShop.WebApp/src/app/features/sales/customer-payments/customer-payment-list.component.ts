@@ -22,6 +22,7 @@ import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
 import { CustomerPaymentService, CustomerPaymentResponse } from '../services/customer-payment.service';
 import { CustomerService, PaginatedResponse } from '../services/customer.service';
 import { CurrencyService } from '../../../shared/services/currency.service';
+import { AppCurrencyPipe } from '../../../shared/pipes/app-currency.pipe';
 
 @Component({
     selector: 'app-customer-payment-list',
@@ -42,7 +43,8 @@ import { CurrencyService } from '../../../shared/services/currency.service';
         TooltipModule,
         CardModule,
         DatePickerModule,
-        PaginatorModule
+        PaginatorModule,
+        AppCurrencyPipe
     ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './customer-payment-list.component.html',

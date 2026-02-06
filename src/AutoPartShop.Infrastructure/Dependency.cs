@@ -1,6 +1,7 @@
 
 using AutoPartShop.Application.Categories;
 using AutoPartShop.Application.Catgories;
+using AutoPartShop.Application.Catalog;
 using AutoPartShop.Application.CustomerPayment;
 using AutoPartShop.Application.Customers;
 using AutoPartShop.Application.Parts;
@@ -119,6 +120,7 @@ public static class Dependency
         services.AddScoped<ISupplierPaymentReadRespository, SupplierPaymentReadRespository>();
 
         services.AddScoped<IPartReadRepository, PartReadRepository>();
+        services.AddScoped<ICatalogReadRepository, CatalogReadRepository>();
         services.AddScoped<IPurchaseOrderReadRepository, PurchaseOrderReadRepository>();
 
         services.AddScoped<ISaleOrderReadRepository, SaleOrderReadRepository>();

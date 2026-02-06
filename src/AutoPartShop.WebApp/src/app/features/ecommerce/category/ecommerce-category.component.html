@@ -1,0 +1,86 @@
+<div class="category-layout">
+  <aside class="filters" *ngIf="filters">
+    <div class="filters-header">
+      <h2>Filters</h2>
+      <button pButton type="button" label="Clear" class="p-button-text" (click)="clearFilters()"></button>
+    </div>
+
+    <div class="filter-block">
+      <label>Search</label>
+      <input type="text" pInputText [(ngModel)]="searchTerm" placeholder="Search in category" />
+    </div>
+
+    <div class="filter-block">
+      <label>Price Range ({{ filters.priceRange.currency }})</label>
+      <div class="range-inputs">
+        <input type="number" pInputText [(ngModel)]="priceMin" placeholder="Min" />
+        <input type="number" pInputText [(ngModel)]="priceMax" placeholder="Max" />
+      </div>
+    </div>
+
+    <div class="filter-block">
+      <label>
+        <input type="checkbox" [(ngModel)]="inStockOnly" />
+        In stock only
+      </label>
+    </div>
+
+    <div class="filter-block" *ngFor="let filter of filters.filters">
+      <h4>{{ filter.name }}</h4>
+      <div *ngIf="filter.filterType === 'range' || filter.min !== null || filter.max !== null">
+        <div class="range-inputs">
+          <input
+            type="number"
+            pInputText
+            [ngModel]="rangeFilters[filter.attributeId]?.min"
+            (ngModelChange)="setRange(filter, $event, rangeFilters[filter.attributeId]?.max)"
+            placeholder="Min"
+          />
+          <input
+            type="number"
+            pInputText
+            [ngModel]="rangeFilters[filter.attributeId]?.max"
+            (ngModelChange)="setRange(filter, rangeFilters[filter.attributeId]?.min, $event)"
+            placeholder="Max"
+          />
+        </div>
+      </div>
+      <div class="filter-options" *ngIf="filter.options?.length">
+        <label *ngFor="let option of filter.options">
+          <input
+            type="checkbox"
+            [checked]="isOptionSelected(filter, option.value)"
+            (change)="toggleOption(filter, option.value)"
+          />
+          {{ option.value }} <span>({{ option.count }})</span>
+        </label>
+      </div>
+    </div>
+
+    <button pButton type="button" label="Apply Filters" class="apply-button" (click)="applyFilters()"></button>
+  </aside>
+
+  <section class="results">
+    <div class="results-header">
+      <div>
+        <h2>Category Results</h2>
+        <p>{{ totalCount }} items</p>
+      </div>
+      <button pButton type="button" label="Refresh" class="p-button-outlined" (click)="search()"></button>
+    </div>
+
+    <div class="product-grid">
+      <article class="product-card" *ngFor="let item of products">
+        <div class="product-image">{{ item.name.charAt(0) }}</div>
+        <div class="product-info">
+          <h3>{{ item.name }}</h3>
+          <p>{{ item.categoryName }}</p>
+          <div class="price">
+            {{ item.currency }} {{ item.price | number: '1.0-0' }}
+          </div>
+          <a [routerLink]="['/shop/product', item.partId]">View details</a>
+        </div>
+      </article>
+    </div>
+  </section>
+</div>

@@ -19,6 +19,8 @@ import { InputIconModule } from 'primeng/inputicon';
 import { IconFieldModule } from 'primeng/iconfield';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { Product, ProductService } from '../service/product.service';
+import { CurrencyService } from '../../shared/services/currency.service';
+import { AppCurrencyPipe } from '../../shared/pipes/app-currency.pipe';
 
 interface Column {
     field: string;
@@ -52,7 +54,8 @@ interface ExportColumn {
         TagModule,
         InputIconModule,
         IconFieldModule,
-        ConfirmDialogModule
+        ConfirmDialogModule,
+        AppCurrencyPipe
     ],
     template: `
         <p-toolbar styleClass="mb-6">
@@ -130,7 +133,7 @@ interface ExportColumn {
                     <td>
                         <img [src]="'https://primefaces.org/cdn/primeng/images/demo/product/' + product.image" [alt]="product.name" style="width: 64px" class="rounded" />
                     </td>
-                    <td>{{ product.price | currency: 'USD' }}</td>
+                    <td>{{ product.price | appCurrency }}</td>
                     <td>{{ product.category }}</td>
                     <td>
                         <p-rating [(ngModel)]="product.rating" [readonly]="true" />
@@ -190,7 +193,7 @@ interface ExportColumn {
                     <div class="grid grid-cols-12 gap-4">
                         <div class="col-span-6">
                             <label for="price" class="block font-bold mb-3">Price</label>
-                            <p-inputnumber id="price" [(ngModel)]="product.price" mode="currency" currency="USD" locale="en-US" fluid />
+                            <p-inputnumber id="price" [(ngModel)]="product.price" mode="currency" [currency]="currencyCode" [locale]="currencyLocale" fluid />
                         </div>
                         <div class="col-span-6">
                             <label for="quantity" class="block font-bold mb-3">Quantity</label>
@@ -232,8 +235,17 @@ export class Crud implements OnInit {
     constructor(
         private productService: ProductService,
         private messageService: MessageService,
-        private confirmationService: ConfirmationService
+        private confirmationService: ConfirmationService,
+        private currencyService: CurrencyService
     ) {}
+
+    get currencyCode(): string {
+        return this.currencyService.selectedCurrency();
+    }
+
+    get currencyLocale(): string {
+        return this.currencyService.getSelectedCurrencyLocale();
+    }
 
     exportCSV() {
         this.dt.exportCSV();

@@ -64,7 +64,7 @@
           <p-tag [value]="provider.status" [severity]="getStatusSeverity(provider.status)"></p-tag>
         </td>
         <td>{{ getAccountDisplay(provider) }}</td>
-        <td>{{ provider.transactionFeeType }} ({{ provider.transactionFeeAmount | currency:'INR' }})</td>
+        <td>{{ provider.transactionFeeType }} ({{ provider.transactionFeeAmount | appCurrency }})</td>
         <td>{{ provider.settlementDays }} days</td>
         <td>
           <ng-container *ngIf="provider.isDefault; else notDefault">

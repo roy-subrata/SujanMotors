@@ -4,11 +4,12 @@ import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { CommonModule } from '@angular/common';
 import { Product, ProductService } from '../../service/product.service';
+import { AppCurrencyPipe } from '../../../shared/pipes/app-currency.pipe';
 
 @Component({
     standalone: true,
     selector: 'app-recent-sales-widget',
-    imports: [CommonModule, TableModule, ButtonModule, RippleModule],
+    imports: [CommonModule, TableModule, ButtonModule, RippleModule, AppCurrencyPipe],
     template: `<div class="card mb-8!">
         <div class="font-semibold text-xl mb-4">Recent Sales</div>
         <p-table [value]="products" [paginator]="true" [rows]="5" responsiveLayout="scroll">
@@ -26,7 +27,7 @@ import { Product, ProductService } from '../../service/product.service';
                         <img src="https://primefaces.org/cdn/primevue/images/product/{{ product.image }}" class="shadow-lg" alt="{{ product.name }}" width="50" />
                     </td>
                     <td style="width: 35%; min-width: 7rem;">{{ product.name }}</td>
-                    <td style="width: 35%; min-width: 8rem;">{{ product.price | currency: 'USD' }}</td>
+                    <td style="width: 35%; min-width: 8rem;">{{ product.price | appCurrency }}</td>
                     <td style="width: 15%;">
                         <button pButton pRipple type="button" icon="pi pi-search" class="p-button p-component p-button-text p-button-icon-only"></button>
                     </td>

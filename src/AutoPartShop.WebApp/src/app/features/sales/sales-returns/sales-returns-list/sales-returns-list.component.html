@@ -1,165 +1,327 @@
-<p-toast></p-toast>
+<!-- ============================================================
+     SALES RETURNS LIST - UI MATCHED TO SALES ORDERS LIST
+     ============================================================ -->
+
+<p-toast position="top-right"></p-toast>
 <p-confirmDialog></p-confirmDialog>
+<p-menu #actionMenu [model]="actionMenuItems" [popup]="true" appendTo="body"></p-menu>
 
-<div class="sales-returns-container">
-  <!-- Header -->
-  <div class="page-header">
+<div class="page-wrapper">
+  <!-- ==================== PAGE HEADER ==================== -->
+  <header class="page-header">
     <div class="header-content">
-      <div class="header-title-section">
-        <h1 class="header-title">
-          <i class="pi pi-replay mr-3"></i>
-          Sales Returns
-        </h1>
-        <p class="header-subtitle">Manage customer product returns and refunds</p>
+      <div class="header-left">
+        <h1 class="page-title">Sales Returns</h1>
+        <p class="page-subtitle">Manage customer product returns and refunds</p>
       </div>
+
       <div class="header-actions">
-        <button pButton type="button" label="Create Return" icon="pi pi-plus" class="p-button-success" (click)="createReturn()"></button>
-        <button pButton type="button" label="Export CSV" icon="pi pi-file" class="p-button-outlined" (click)="exportReturns('csv')"></button>
-        <button pButton type="button" label="Export JSON" icon="pi pi-file-export" class="p-button-outlined" (click)="exportReturns('json')"></button>
+        <div class="stats-badge">
+          <i class="pi pi-replay"></i>
+          <div class="stats-info">
+            <span class="stats-value">{{ totalRecords }}</span>
+            <span class="stats-label">returns</span>
+          </div>
+        </div>
+
+        <div class="action-buttons">
+          <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="refreshData()">
+            <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
+          </button>
+          <button class="btn-primary" (click)="createReturn()">
+            <i class="pi pi-plus"></i>
+            <span>Create Return</span>
+          </button>
+        </div>
       </div>
     </div>
-  </div>
+  </header>
 
-  <!-- Filters Card -->
-  <p-card styleClass="filters-card mb-4">
-    <div class="filters-container">
-      <!-- Search -->
-      <div class="filter-item search-filter">
-        <div class="search-container">
-          <i class="pi pi-search search-icon"></i>
-          <input type="text" [(ngModel)]="searchTerm" placeholder="Search by return number or sales order..."
-            class="search-input" (keyup.enter)="onSearch()">
-          <i *ngIf="searchTerm" class="pi pi-times clear-icon" (click)="clearSearch()"></i>
+  <!-- ==================== FILTER SECTION ==================== -->
+  <section class="filter-section">
+    <div class="filter-container">
+      <div class="filter-group search-group">
+        <div class="search-input-wrapper">
+          <i class="pi pi-search"></i>
+          <input
+            type="text"
+            [(ngModel)]="searchTerm"
+            placeholder="Search by return number or sales order..."
+            (keyup.enter)="onSearch()"
+            class="search-input" />
+          <button *ngIf="searchTerm" class="search-clear" (click)="searchTerm = ''; onSearch()">
+            <i class="pi pi-times"></i>
+          </button>
         </div>
       </div>
 
-      <!-- Status Filter -->
-      <div class="filter-item">
-        <p-select [options]="statusOptions" [(ngModel)]="filterStatus" placeholder="Status"
-          [showClear]="true" (onChange)="onFilterChange()" class="w-full"></p-select>
+      <div class="filter-group">
+        <label class="filter-label">Status</label>
+        <p-select
+          [options]="statusOptions"
+          [(ngModel)]="filterStatus"
+          placeholder="All Statuses"
+          [showClear]="true"
+          (onChange)="onFilterChange()"
+          appendTo="body"
+          styleClass="filter-dropdown">
+        </p-select>
       </div>
 
-      <!-- Date Range -->
-      <div class="filter-item date-filter">
-        <p-datepicker [(ngModel)]="dateRange" selectionMode="range" [showIcon]="true"
-          placeholder="Return date range" dateFormat="M dd, yy" [showButtonBar]="true"
-          (onSelect)="onFilterChange()" (onClear)="onFilterChange()" class="w-full"></p-datepicker>
+      <div class="filter-group">
+        <label class="filter-label">Return Date</label>
+        <p-datepicker
+          [(ngModel)]="dateRange"
+          selectionMode="range"
+          placeholder="Select date range"
+          dateFormat="dd M yy"
+          [showIcon]="true"
+          [showButtonBar]="true"
+          (onSelect)="onFilterChange()"
+          appendTo="body"
+          styleClass="filter-datepicker">
+        </p-datepicker>
       </div>
 
-      <!-- Filter Actions -->
-      <div class="filter-actions">
-        <button pButton type="button" label="Search" icon="pi pi-search" (click)="onSearch()"></button>
-        <button pButton type="button" label="Clear" icon="pi pi-times" class="p-button-outlined" (click)="clearFilters()"></button>
+      <div class="filter-group filter-actions">
+        <button class="btn-search" (click)="onSearch()">
+          <i class="pi pi-search"></i>
+          Search
+        </button>
+        <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
+          <i class="pi pi-filter-slash"></i>
+          Clear
+        </button>
       </div>
     </div>
-  </p-card>
 
-  <!-- Sales Returns Table -->
-  <div class="table-container">
-    <p-table
-      #dt
-      [value]="salesReturns"
-      [loading]="loading"
-      [lazy]="true"
-      [paginator]="false"
-      [rows]="pageSize"
-      [totalRecords]="totalRecords"
-      responsiveLayout="scroll"
-      styleClass="p-datatable-striped"
-      [tableStyle]="{ 'min-width': '50rem' }"
-      dataKey="id">
+    <div *ngIf="hasActiveFilters()" class="active-filters">
+      <span class="active-filters-label">Active filters:</span>
+      <span *ngIf="searchTerm" class="filter-chip">
+        Search: "{{ searchTerm }}"
+        <i class="pi pi-times" (click)="searchTerm = ''; onSearch()"></i>
+      </span>
+      <span *ngIf="filterStatus" class="filter-chip">
+        Status: {{ filterStatus }}
+        <i class="pi pi-times" (click)="filterStatus = ''; onFilterChange()"></i>
+      </span>
+      <span *ngIf="dateRange && dateRange.length > 0" class="filter-chip">
+        Date Range
+        <i class="pi pi-times" (click)="dateRange = []; onFilterChange()"></i>
+      </span>
+    </div>
+  </section>
 
-  <ng-template pTemplate="header">
-    <tr>
-      <th pSortableColumn="returnNumber">
-        Return # <p-sortIcon field="returnNumber"></p-sortIcon>
-      </th>
-      <th pSortableColumn="salesOrderId">
-        Sales Order <p-sortIcon field="salesOrderId"></p-sortIcon>
-      </th>
-      <th pSortableColumn="createdAt">
-        Date <p-sortIcon field="createdAt"></p-sortIcon>
-      </th>
-      <th pSortableColumn="reason">
-        Reason <p-sortIcon field="reason"></p-sortIcon>
-      </th>
-      <th class="text-right">Refund Amount</th>
-      <th pSortableColumn="status">
-        Status <p-sortIcon field="status"></p-sortIcon>
-      </th>
-      <th class="text-center">Actions</th>
-    </tr>
-  </ng-template>
+  <!-- ==================== DATA TABLE (Desktop) ==================== -->
+  <section class="table-section desktop-only">
+    <div class="table-container">
+      <p-table
+        [value]="salesReturns"
+        [lazy]="true"
+        [paginator]="false"
+        [rows]="pageSize"
+        [totalRecords]="totalRecords"
+        [loading]="loading"
+        (onLazyLoad)="onLazyLoad($event)"
+        [rowHover]="true"
+        [scrollable]="true"
+        scrollHeight="flex"
+        styleClass="custom-table">
 
-  <ng-template pTemplate="body" let-salesReturn>
-    <tr class="return-row" (contextmenu)="showContextMenu($event, salesReturn)">
-      <td>
-        <span class="return-number" (click)="viewReturn(salesReturn)">{{ salesReturn.returnNumber }}</span>
-      </td>
-      <td>
-        <span class="order-id">{{ salesReturn.salesOrderNumber || salesReturn.salesOrderId }}</span>
-      </td>
-      <td>
-        <span class="timestamp">{{ formatDate(salesReturn.createdAt) }}</span>
-      </td>
-      <td>
-        <span class="return-reason">{{ salesReturn.reason }}</span>
-      </td>
-      <td class="text-right">
-        <span class="amount">{{ formatCurrency(salesReturn.totalRefundAmount) }}</span>
-      </td>
-      <td>
-        <p-tag [value]="salesReturn.status" [severity]="getStatusSeverity(salesReturn.status)"></p-tag>
-      </td>
-      <td class="text-center">
-        <div class="flex justify-center gap-1">
-          <button pButton type="button" icon="pi pi-eye" class="p-button-text p-button-sm"
-            (click)="viewReturn(salesReturn)" pTooltip="View" tooltipPosition="left"></button>
-          <button *ngIf="salesReturn.status === 'PENDING'" pButton type="button" icon="pi pi-check"
-            class="p-button-text p-button-success p-button-sm"
-            (click)="approveReturn(salesReturn, $event)" pTooltip="Approve" tooltipPosition="left"></button>
-          <button *ngIf="salesReturn.status === 'PENDING'" pButton type="button" icon="pi pi-times"
-            class="p-button-text p-button-danger p-button-sm"
-            (click)="rejectReturn(salesReturn, $event)" pTooltip="Reject" tooltipPosition="left"></button>
-          <button *ngIf="salesReturn.status === 'APPROVED'" pButton type="button" icon="pi pi-inbox"
-            class="p-button-text p-button-info p-button-sm"
-            (click)="receiveReturn(salesReturn, $event)" pTooltip="Receive" tooltipPosition="left"></button>
-          <button *ngIf="salesReturn.status === 'RECEIVED'" pButton type="button" icon="pi pi-cog"
-            class="p-button-text p-button-primary p-button-sm"
-            (click)="processReturn(salesReturn, $event)" pTooltip="Process" tooltipPosition="left"></button>
+        <ng-template #header>
+          <tr>
+            <th class="col-return">Return #</th>
+            <th class="col-order">Sales Order</th>
+            <th class="col-date">Date</th>
+            <th class="col-reason">Reason</th>
+            <th class="col-amount">Refund Amount</th>
+            <th class="col-status">Status</th>
+            <th class="col-actions">Actions</th>
+          </tr>
+        </ng-template>
+
+        <ng-template #body let-salesReturn>
+          <tr class="data-row" (dblclick)="viewReturn(salesReturn)">
+            <td class="col-return">
+              <div class="return-cell">
+                <a class="return-link" (click)="viewReturn(salesReturn)">{{ salesReturn.returnNumber }}</a>
+              </div>
+            </td>
+            <td class="col-order">
+              <span class="order-id">{{ salesReturn.salesOrderNumber || salesReturn.salesOrderId }}</span>
+            </td>
+            <td class="col-date">
+              <span class="date-text">{{ formatDate(salesReturn.createdAt) }}</span>
+            </td>
+            <td class="col-reason">
+              <span class="reason-text">{{ formatStatus(salesReturn.reason) }}</span>
+            </td>
+            <td class="col-amount">
+              <span class="amount-value">{{ formatCurrency(salesReturn.totalRefundAmount) }}</span>
+            </td>
+            <td class="col-status">
+              <span class="status-pill" [attr.data-status]="salesReturn.status.toLowerCase()">
+                {{ formatStatus(salesReturn.status) }}
+              </span>
+            </td>
+            <td class="col-actions">
+              <div class="action-cell">
+                <button class="btn-action" pTooltip="More" (click)="showActionMenu($event, salesReturn)">
+                  <i class="pi pi-ellipsis-v"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+
+        <ng-template #emptymessage>
+          <tr>
+            <td colspan="7">
+              <div class="empty-state">
+                <div class="empty-icon">
+                  <i class="pi pi-replay"></i>
+                </div>
+                <h3>No Sales Returns Found</h3>
+                <p *ngIf="hasActiveFilters()">Try adjusting your filters or search criteria</p>
+                <p *ngIf="!hasActiveFilters()">Get started by creating your first sales return</p>
+                <button *ngIf="!hasActiveFilters()" class="btn-primary" (click)="createReturn()">
+                  <i class="pi pi-plus"></i>
+                  Create Return
+                </button>
+                <button *ngIf="hasActiveFilters()" class="btn-secondary" (click)="clearFilters()">
+                  <i class="pi pi-filter-slash"></i>
+                  Clear Filters
+                </button>
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+
+        <ng-template #loadingbody>
+          <tr *ngFor="let _ of [1,2,3,4,5,6,7]">
+            <td><div class="skeleton skeleton-text"></div></td>
+            <td><div class="skeleton skeleton-text"></div></td>
+            <td><div class="skeleton skeleton-text-sm"></div></td>
+            <td><div class="skeleton skeleton-badge"></div></td>
+            <td><div class="skeleton skeleton-text-sm"></div></td>
+            <td><div class="skeleton skeleton-badge"></div></td>
+            <td><div class="skeleton skeleton-actions"></div></td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </div>
+
+    <div class="pagination-section" *ngIf="totalRecords > 0">
+      <div class="pagination-info">
+        Showing <strong>{{ first + 1 }}</strong> to <strong>{{ first + salesReturns.length }}</strong> of <strong>{{ totalRecords }}</strong> returns
+      </div>
+      <div class="pagination-controls">
+        <span class="page-size-label">Rows per page:</span>
+        <p-select
+          [options]="pageSizeSelectOptions"
+          [(ngModel)]="pageSize"
+          (onChange)="onPageChange({first: 0, rows: pageSize})"
+          styleClass="page-size-dropdown">
+        </p-select>
+        <div class="page-nav">
+          <button class="page-btn" [disabled]="first === 0" (click)="onPageChange({first: 0, rows: pageSize})">
+            <i class="pi pi-angle-double-left"></i>
+          </button>
+          <button class="page-btn" [disabled]="first === 0" (click)="onPageChange({first: first - pageSize, rows: pageSize})">
+            <i class="pi pi-angle-left"></i>
+          </button>
+          <span class="page-indicator">{{ pageNumber }} / {{ Math.ceil(totalRecords / pageSize) }}</span>
+          <button class="page-btn" [disabled]="first + pageSize >= totalRecords" (click)="onPageChange({first: first + pageSize, rows: pageSize})">
+            <i class="pi pi-angle-right"></i>
+          </button>
+          <button class="page-btn" [disabled]="first + pageSize >= totalRecords" (click)="onPageChange({first: (Math.ceil(totalRecords / pageSize) - 1) * pageSize, rows: pageSize})">
+            <i class="pi pi-angle-double-right"></i>
+          </button>
         </div>
-      </td>
-    </tr>
-  </ng-template>
+      </div>
+    </div>
+  </section>
 
-  <ng-template pTemplate="emptymessage">
-    <tr>
-      <td colspan="7" class="text-center p-6">
-        <div class="empty-state">
-          <i class="pi pi-replay text-5xl text-gray-300 mb-3"></i>
-          <h3 class="text-gray-500 mb-2">No sales returns found</h3>
-          <p class="text-gray-400">{{ searchTerm ? 'Try adjusting your filters or search criteria' : 'Start by creating a new return' }}</p>
+  <!-- ==================== MOBILE CARDS ==================== -->
+  <section class="cards-section mobile-only">
+    <div *ngIf="loading" class="cards-grid">
+      <div *ngFor="let _ of [1,2,3,4]" class="return-card skeleton-card">
+        <div class="card-header">
+          <div class="skeleton skeleton-text"></div>
+          <div class="skeleton skeleton-badge"></div>
         </div>
-      </td>
-    </tr>
-  </ng-template>
-</p-table>
+        <div class="card-body">
+          <div class="skeleton skeleton-text-lg"></div>
+          <div class="skeleton skeleton-text-sm"></div>
+        </div>
+        <div class="card-footer">
+          <div class="skeleton skeleton-text-sm"></div>
+          <div class="skeleton skeleton-text-sm"></div>
+        </div>
+      </div>
+    </div>
 
-    <!-- Paginator -->
-    <p-paginator
-      [rows]="pageSize"
-      [totalRecords]="totalRecords"
-      [rowsPerPageOptions]="pageSizeOptions"
-      [showCurrentPageReport]="true"
-      currentPageReportTemplate="Showing {first} to {last} of {totalRecords} returns"
-      (onPageChange)="onPageChange($event)">
-    </p-paginator>
-  </div>
+    <div *ngIf="!loading && salesReturns.length === 0" class="empty-state-mobile">
+      <div class="empty-icon">
+        <i class="pi pi-replay"></i>
+      </div>
+      <h3>No Sales Returns</h3>
+      <p>{{ hasActiveFilters() ? 'Try different filters' : 'Create your first return' }}</p>
+      <button class="btn-primary" (click)="hasActiveFilters() ? clearFilters() : createReturn()">
+        <i class="pi" [class.pi-plus]="!hasActiveFilters()" [class.pi-filter-slash]="hasActiveFilters()"></i>
+        {{ hasActiveFilters() ? 'Clear Filters' : 'New Return' }}
+      </button>
+    </div>
+
+    <div *ngIf="!loading && salesReturns.length > 0" class="cards-grid">
+      <div *ngFor="let salesReturn of salesReturns" class="return-card" (click)="viewReturn(salesReturn)">
+        <div class="card-header">
+          <span class="card-return-number">{{ salesReturn.returnNumber }}</span>
+          <span class="status-pill" [attr.data-status]="salesReturn.status.toLowerCase()">
+            {{ formatStatus(salesReturn.status) }}
+          </span>
+        </div>
+
+        <div class="card-body">
+          <div class="card-order">
+            <span class="order-id">{{ salesReturn.salesOrderNumber || salesReturn.salesOrderId }}</span>
+          </div>
+          <div class="card-dates">
+            <span class="card-date">
+              <i class="pi pi-calendar"></i>
+              {{ formatDate(salesReturn.createdAt) }}
+            </span>
+            <span class="card-reason">
+              <i class="pi pi-info-circle"></i>
+              {{ formatStatus(salesReturn.reason) }}
+            </span>
+          </div>
+        </div>
+
+        <div class="card-footer">
+          <div class="card-amount">
+            <span class="amount-label">Refund</span>
+            <span class="amount-value">{{ formatCurrency(salesReturn.totalRefundAmount) }}</span>
+          </div>
+          <button class="btn-card-action" (click)="showActionMenu($event, salesReturn); $event.stopPropagation()">
+            <i class="pi pi-ellipsis-h"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="!loading && salesReturns.length > 0" class="mobile-pagination">
+      <div class="pagination-info-mobile">
+        {{ first + 1 }}-{{ first + salesReturns.length }} of {{ totalRecords }}
+      </div>
+      <div class="pagination-nav-mobile">
+        <button class="page-btn" [disabled]="first === 0" (click)="onPageChange({first: first - pageSize, rows: pageSize})">
+          <i class="pi pi-chevron-left"></i>
+        </button>
+        <button class="page-btn" [disabled]="first + pageSize >= totalRecords" (click)="onPageChange({first: first + pageSize, rows: pageSize})">
+          <i class="pi pi-chevron-right"></i>
+        </button>
+      </div>
+    </div>
+  </section>
 </div>
-
-<!-- Context Menu -->
-<p-contextMenu
-  #contextMenu
-  [model]="contextMenuItems"
-  [appendTo]="'body'">
-</p-contextMenu>

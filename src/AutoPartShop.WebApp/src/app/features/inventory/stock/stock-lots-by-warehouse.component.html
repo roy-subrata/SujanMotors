@@ -145,15 +145,15 @@
     <div class="summary-section" *ngIf="stockLots.length > 0">
       <div class="summary-item">
         <label>Total Inventory Value (Available):</label>
-        <span class="summary-value">{{ getTotalAvailableCost() | currency:'INR':'symbol':'1.2-2' }}</span>
+        <span class="summary-value">{{ getTotalAvailableCost() | currency:currencyCode:'symbol':'1.2-2' }}</span>
       </div>
       <div class="summary-item">
         <label>Total Inventory Value (All):</label>
-        <span class="summary-value">{{ getTotalCost() | currency:'INR':'symbol':'1.2-2' }}</span>
+        <span class="summary-value">{{ getTotalCost() | currency:currencyCode:'symbol':'1.2-2' }}</span>
       </div>
       <div class="summary-item">
         <label>Average Cost per Unit:</label>
-        <span class="summary-value">{{ getAverageCostPerUnit() | currency:'INR':'symbol':'1.2-2' }}</span>
+        <span class="summary-value">{{ getAverageCostPerUnit() | currency:currencyCode:'symbol':'1.2-2' }}</span>
       </div>
     </div>
   </p-card>

@@ -1,0 +1,144 @@
+.category-layout {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 28px;
+  min-width: 0;
+}
+
+.filters {
+  background: var(--store-card);
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: var(--store-shadow);
+  border: 1px solid rgba(31, 30, 26, 0.08);
+  height: fit-content;
+}
+
+.filters-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.filter-block {
+  margin-bottom: 18px;
+  display: grid;
+  gap: 8px;
+}
+
+.filter-block label {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--store-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.filter-block h4 {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+
+.range-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.filter-options {
+  display: grid;
+  gap: 8px;
+  max-height: 180px;
+  overflow: auto;
+}
+
+.filter-options label {
+  text-transform: none;
+  font-weight: 500;
+  color: var(--store-ink);
+}
+
+.filter-options span {
+  color: var(--store-muted);
+  font-size: 12px;
+}
+
+.apply-button {
+  width: 100%;
+  border-radius: 999px;
+  background: var(--store-accent);
+  border: none;
+}
+
+.results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.results {
+  min-width: 0;
+}
+
+.results-header h2 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
+}
+
+.product-card {
+  background: var(--store-card);
+  border-radius: 20px;
+  padding: 18px;
+  display: grid;
+  gap: 12px;
+  border: 1px solid rgba(31, 30, 26, 0.08);
+  transition: transform 0.2s ease;
+}
+
+.product-card:hover {
+  transform: translateY(-3px);
+}
+
+.product-image {
+  height: 120px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(232, 122, 44, 0.25), rgba(31, 30, 26, 0.1));
+  display: grid;
+  place-items: center;
+  font-size: 36px;
+  font-weight: 700;
+}
+
+.product-info h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.product-info p {
+  color: var(--store-muted);
+  margin: 6px 0;
+}
+
+.price {
+  font-weight: 700;
+}
+
+.product-info a {
+  text-decoration: none;
+  color: var(--store-accent);
+  font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  .category-layout {
+    grid-template-columns: 1fr;
+  }
+}

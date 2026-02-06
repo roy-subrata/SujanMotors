@@ -13,6 +13,7 @@ import { MessageService } from 'primeng/api';
 import { StockLotService, StockLotResponse } from '../services/stock-lot.service';
 import { PartService, PartResponse } from '../services/part.service';
 import { WarehouseService, WarehouseResponse } from '../services/warehouse.service';
+import { CurrencyService } from '../../../shared/services/currency.service';
 
 @Component({
   selector: 'app-stock-lots-by-warehouse',
@@ -38,6 +39,7 @@ export class StockLotsByWarehouseComponent implements OnInit {
   private readonly partService = inject(PartService);
   private readonly warehouseService = inject(WarehouseService);
   private readonly messageService = inject(MessageService);
+  private readonly currencyService = inject(CurrencyService);
 
   parts: PartResponse[] = [];
   warehouses: WarehouseResponse[] = [];
@@ -54,6 +56,10 @@ export class StockLotsByWarehouseComponent implements OnInit {
   pageSize = 10;
   first = 0;
   pageSizeOptions = [10, 25, 50];
+
+  get currencyCode(): string {
+    return this.currencyService.selectedCurrency();
+  }
 
   ngOnInit(): void {
     this.loadParts();

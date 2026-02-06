@@ -77,6 +77,35 @@ public class PartsController : ControllerBase
         }
     }
 
+    [HttpPost("public/list")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> FindAllPublic([FromBody] PartQuery query, CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (query is null)
+            {
+                return BadRequest("Request can not be empty");
+            }
+            if (query.PageNumber < 0)
+            {
+                return BadRequest($"Page number can not be {query.PageNumber}");
+            }
+            if (query.PageSize < 0)
+            {
+                return BadRequest($"Page size can not be {query.PageSize}");
+            }
+
+            var (response, total) = await _partReadRepository.FindAllPublicAsync(query, cancellationToken);
+            return Ok(PagedResult<PartPublicResponse>.Create(response, total, query));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting public parts list");
+            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving parts");
+        }
+    }
+
 
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<PartResponse>))]
@@ -143,6 +172,50 @@ public class PartsController : ControllerBase
         }
     }
 
+    [HttpGet("public/{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(PartPublicResponse))]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetPublicById(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            _logger.LogInformation("Getting public part by ID: {PartId}", id);
+            var part = await _partRepository.GetByIdAsync(id, cancellationToken);
+
+            if (part is null)
+            {
+                _logger.LogWarning("Public part not found: {PartId}", id);
+                return NotFound(new { message = "Part not found" });
+            }
+
+            var response = MapToPublicResponse(part);
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting public part by ID: {PartId}", id);
+            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving the part");
+        }
+    }
+
+    [HttpGet("public/active")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<PartPublicResponse>))]
+    public async Task<IActionResult> GetPublicActive(CancellationToken cancellationToken)
+    {
+        try
+        {
+            _logger.LogInformation("Getting all public active parts");
+            var parts = await _partRepository.GetAllActiveAsync(cancellationToken);
+            var response = parts.Select(p => MapToPublicResponse(p));
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting public active parts");
+            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving active parts");
+        }
+    }
+
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(PartResponse))]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -166,7 +239,7 @@ public class PartsController : ControllerBase
                 return Conflict(new { message = $"Part SKU '{request.SKU}' already exists" });
 
             var partNumber = PartNumber.Create(request.PartNumber);
-            var sku = await _codeGenerateService.GenerateAsync("SM", cancellationToken);
+
             var part = Part.Create(
                 request.Name,
                 partNumber,
@@ -178,6 +251,8 @@ public class PartsController : ControllerBase
                 request.CostPrice,
                 request.SellingPrice,
                 request.MinimumStock,
+                request.MinMarginPercentOverride,
+                request.MaxDiscountPercentOverride,
                 request.HasWarranty,
                 request.WarrantyPeriodMonths,
                 request.WarrantyType,
@@ -187,7 +262,7 @@ public class PartsController : ControllerBase
             var currentUser = _currentUserService.GetCurrentUsername();
             part.CreatedBy = currentUser;
             part.ModifiedBy = currentUser;
-            await _codeGenerateService.SaveGenerateCodeAsync("SM", cancellationToken);
+            await _codeGenerateService.SaveGenerateCodeAsync("SKU", cancellationToken);
             await _partRepository.AddAsync(part, cancellationToken);
 
             var response = MapToResponse(part);
@@ -241,6 +316,7 @@ public class PartsController : ControllerBase
 
             part.Update(request.Name, request.Description, request.SKU, request.CategoryId, request.BrandId, request.UnitId,
                 request.CostPrice, request.SellingPrice, request.MinimumStock, request.IsActive,
+                request.MinMarginPercentOverride, request.MaxDiscountPercentOverride,
                 request.HasWarranty, request.WarrantyPeriodMonths, request.WarrantyType,
                 request.WarrantyTerms, request.WarrantyCertificateTemplate);
             part.ModifiedBy = _currentUserService.GetCurrentUsername();
@@ -436,6 +512,8 @@ public class PartsController : ControllerBase
             SellingPrice = part.SellingPrice,
             MinimumStock = part.MinimumStock,
             IsActive = part.IsActive,
+            MinMarginPercentOverride = part.MinMarginPercentOverride,
+            MaxDiscountPercentOverride = part.MaxDiscountPercentOverride,
             HasWarranty = part.HasWarranty,
             WarrantyPeriodMonths = part.WarrantyPeriodMonths,
             WarrantyType = part.WarrantyType,
@@ -443,6 +521,35 @@ public class PartsController : ControllerBase
             WarrantyCertificateTemplate = part.WarrantyCertificateTemplate,
             CreatedBy = part.CreatedBy,
             ModifiedBy = part.ModifiedBy
+        };
+    }
+
+    private PartPublicResponse MapToPublicResponse(Part part)
+    {
+        return new PartPublicResponse
+        {
+            Id = part.Id,
+            Name = part.Name,
+            Description = part.Description,
+            PartNumber = part.PartNumber.Value,
+            SKU = part.SKU,
+            CategoryId = part.CategoryId,
+            CategoryName = part.Category?.Name ?? string.Empty,
+            BrandId = part.BrandId,
+            BrandName = part.Brand?.Name,
+            BrandCode = part.Brand?.Code,
+            UnitId = part.UnitId,
+            UnitName = part.Unit?.Name,
+            SellingPrice = part.SellingPrice,
+            MinimumStock = part.MinimumStock,
+            IsActive = part.IsActive,
+            MinMarginPercentOverride = part.MinMarginPercentOverride,
+            MaxDiscountPercentOverride = part.MaxDiscountPercentOverride,
+            HasWarranty = part.HasWarranty,
+            WarrantyPeriodMonths = part.WarrantyPeriodMonths,
+            WarrantyType = part.WarrantyType,
+            WarrantyTerms = part.WarrantyTerms,
+            WarrantyCertificateTemplate = part.WarrantyCertificateTemplate
         };
     }
 }

@@ -1,0 +1,70 @@
+<div class="product-layout" *ngIf="product">
+  <div class="product-gallery">
+    <div class="primary-image">
+      <span>{{ product.name.charAt(0) }}</span>
+    </div>
+    <div class="media-strip">
+      <div class="media-thumb" *ngFor="let media of product.media">
+        <span>{{ product.name.charAt(0) }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="product-details">
+    <p class="eyebrow">{{ product.categoryName }}</p>
+    <h1>{{ product.name }}</h1>
+    <p class="short">{{ product.shortDescription || product.description }}</p>
+
+    <div class="price-line">
+      <span>{{ selectedVariant?.currency }}</span>
+      <strong>{{ selectedVariant?.price | number: '1.0-0' }}</strong>
+      <span class="stock" [class.in-stock]="product.inStock">
+        {{ product.inStock ? 'In stock' : 'Out of stock' }}
+      </span>
+    </div>
+
+    <div class="variants" *ngIf="product.variants?.length">
+      <h3>Choose Variant</h3>
+      <div class="variant-list">
+        <button
+          pButton
+          type="button"
+          class="variant-pill"
+          *ngFor="let variant of product.variants"
+          [class.active]="variant.variantId === selectedVariant?.variantId"
+          (click)="selectVariant(variant)"
+        >
+          {{ variant.name }}
+        </button>
+      </div>
+    </div>
+
+    <div class="specs" *ngIf="product.specifications?.length">
+      <h3>Specifications</h3>
+      <div class="spec-group" *ngFor="let group of product.specifications">
+        <h4>{{ group.groupName }}</h4>
+        <div class="spec-row" *ngFor="let attr of group.attributes">
+          <span>{{ attr.attributeName }}</span>
+          <span>{{ attr.value }} {{ attr.unit }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section class="related" *ngIf="product?.relatedProducts?.length">
+  <div class="section-head">
+    <h2>Related Products</h2>
+  </div>
+  <div class="related-grid">
+    <article class="product-card" *ngFor="let item of product?.relatedProducts">
+      <div class="product-image">{{ item.name.charAt(0) }}</div>
+      <div class="product-info">
+        <h3>{{ item.name }}</h3>
+        <p>{{ item.categoryName }}</p>
+        <div class="price">{{ item.currency }} {{ item.price | number: '1.0-0' }}</div>
+        <a [routerLink]="['/shop/product', item.partId]">View details</a>
+      </div>
+    </article>
+  </div>
+</section>

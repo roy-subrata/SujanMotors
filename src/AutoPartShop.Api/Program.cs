@@ -18,36 +18,43 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy(corsPolicy, policy =>
     {
-        policy.WithOrigins(
-               // Angular App
-               "https://polite-meadow-01b03a000.4.azurestaticapps.net",
-               "http://localhost:4200",  // Angular dev server
-               "https://localhost:4200" // Angular dev server HTTPS
-           )
-           .AllowAnyHeader()
-           .AllowAnyMethod()
-           .AllowCredentials();
-        //if (builder.Environment.IsDevelopment())
-        //{
-        //    // For development, allow any origin without credentials
-        //    policy.AllowAnyOrigin()
-        //          .AllowAnyHeader()
-        //          .AllowAnyMethod();
-        //}
-        //else
-        //{
-        //    // For production, allow specific origins
-        //    policy.WithOrigins(
-        //        // Angular App
-        //        "https://polite-meadow-01b03a000.4.azurestaticapps.net",
-        //        "http://localhost:4200",  // Angular dev server
-        //        "https://localhost:4200" // Angular dev server HTTPS
-        //    )
-        //    .AllowAnyHeader()
-        //    .AllowAnyMethod()
-        //    .AllowCredentials();
-        //}
+        policy.AllowAnyOrigin()   // Allows all origins (perfect for Quick Tunnels)
+              .AllowAnyHeader()   // Allows any headers (e.g., Content-Type, Authorization)
+              .AllowAnyMethod();   // Allows all HTTP methods (GET, POST, etc.)
     });
+    // options.AddPolicy(corsPolicy, policy =>
+    // {
+        
+    //     policy.WithOrigins(
+    //            // Angular App
+    //            "https://restaurant-theatre-gcc-stripes.trycloudflare.com",
+    //            "http://localhost:4200",  // Angular dev server
+    //            "https://localhost:4200" // Angular dev server HTTPS
+    //        )
+    //        .AllowAnyHeader()
+    //        .AllowAnyMethod()
+    //        .AllowCredentials();
+    //     //if (builder.Environment.IsDevelopment())
+    //     //{
+    //     //    // For development, allow any origin without credentials
+    //     //    policy.AllowAnyOrigin()
+    //     //          .AllowAnyHeader()
+    //     //          .AllowAnyMethod();
+    //     //}
+    //     //else
+    //     //{
+    //     //    // For production, allow specific origins
+    //     //    policy.WithOrigins(
+    //     //        // Angular App
+    //     //        "https://polite-meadow-01b03a000.4.azurestaticapps.net",
+    //     //        "http://localhost:4200",  // Angular dev server
+    //     //        "https://localhost:4200" // Angular dev server HTTPS
+    //     //    )
+    //     //    .AllowAnyHeader()
+    //     //    .AllowAnyMethod()
+    //     //    .AllowCredentials();
+    //     //}
+    // });
 });
 
 builder.Services.AddInfrastructure(builder.Configuration);
@@ -119,6 +126,8 @@ builder.Services.AddScoped<ISupplierLedgerService, SupplierLedgerService>();
 builder.Services.AddScoped<IUnitConversionService, UnitConversionService>();
 builder.Services.AddScoped<IFinancialSummaryService, FinancialSummaryService>();
 builder.Services.AddScoped<IDailyExpenseService, DailyExpenseService>();
+builder.Services.AddScoped<IPricingValidationService, PricingValidationService>();
+builder.Services.Configure<PricingRulesOptions>(builder.Configuration.GetSection("PricingRules"));
 
 // Register multi-currency services
 builder.Services.AddScoped<ICurrencyConversionService, CurrencyConversionService>();

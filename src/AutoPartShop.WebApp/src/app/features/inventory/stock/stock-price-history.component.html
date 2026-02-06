@@ -44,19 +44,19 @@
     <div class="stats-grid">
       <div class="stat-card">
         <label>Latest Price</label>
-        <span class="stat-value">{{ priceHistory.latestPrice | currency:'INR':'symbol':'1.2-4' }}</span>
+        <span class="stat-value">{{ priceHistory.latestPrice | currency:currencyCode:'symbol':'1.2-4' }}</span>
       </div>
       <div class="stat-card">
         <label>Average Price</label>
-        <span class="stat-value">{{ priceHistory.averagePrice | currency:'INR':'symbol':'1.2-4' }}</span>
+        <span class="stat-value">{{ priceHistory.averagePrice | currency:currencyCode:'symbol':'1.2-4' }}</span>
       </div>
       <div class="stat-card">
         <label>Minimum Price</label>
-        <span class="stat-value text-green">{{ priceHistory.minPrice | currency:'INR':'symbol':'1.2-4' }}</span>
+        <span class="stat-value text-green">{{ priceHistory.minPrice | currency:currencyCode:'symbol':'1.2-4' }}</span>
       </div>
       <div class="stat-card">
         <label>Maximum Price</label>
-        <span class="stat-value text-red">{{ priceHistory.maxPrice | currency:'INR':'symbol':'1.2-4' }}</span>
+        <span class="stat-value text-red">{{ priceHistory.maxPrice | currency:currencyCode:'symbol':'1.2-4' }}</span>
       </div>
     </div>
 
@@ -99,7 +99,7 @@
           </td>
           <td class="text-right">
             <span class="font-semibold" [ngClass]="getPriceClass(lot.costPrice, priceHistory)">
-              {{ lot.costPrice | currency:'INR':'symbol':'1.2-4' }}
+              {{ lot.costPrice | currency:currencyCode:'symbol':'1.2-4' }}
             </span>
           </td>
           <td class="text-right">
@@ -147,12 +147,12 @@
       <ul class="insights-list">
         <li *ngIf="getPriceVariation() > 0">
           <i class="pi pi-arrow-up"></i>
-          Price increased by {{ getPriceVariation() | currency:'INR':'symbol':'1.2-2' }}
+          Price increased by {{ getPriceVariation() | currency:currencyCode:'symbol':'1.2-2' }}
           ({{ getPriceVariationPercent() }}%)
         </li>
         <li *ngIf="getPriceVariation() < 0">
           <i class="pi pi-arrow-down"></i>
-          Price decreased by {{ Math.abs(getPriceVariation()) | currency:'INR':'symbol':'1.2-2' }}
+          Price decreased by {{ Math.abs(getPriceVariation()) | currency:currencyCode:'symbol':'1.2-2' }}
           ({{ Math.abs(getPriceVariationPercent()) }}%)
         </li>
         <li *ngIf="getPriceVariation() === 0">

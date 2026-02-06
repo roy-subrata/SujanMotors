@@ -185,6 +185,10 @@
   font-size: 0.75rem;
 }
 
+.field-hint.pricing-tooltip {
+  cursor: help;
+}
+
 .field-hint i {
   font-size: 0.75rem;
 }

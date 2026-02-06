@@ -208,7 +208,7 @@
       <div class="payment-form space-y-4">
         <div class="form-field">
           <label class="block text-sm font-medium text-gray-700 mb-2">Payment Amount</label>
-          <p-inputNumber [(ngModel)]="paymentAmount" mode="currency" currency="INR" locale="en-IN"
+          <p-inputNumber [(ngModel)]="paymentAmount" mode="currency" [currency]="currencyCode" [locale]="currencyLocale"
             [min]="0" styleClass="w-full">
           </p-inputNumber>
           <small class="text-gray-500 mt-1 block">You can enter more than the outstanding amount to create a credit balance</small>

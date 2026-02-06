@@ -13,6 +13,8 @@ public class UpdatePartRequest
     public decimal SellingPrice { get; set; } = 0;
     public int MinimumStock { get; set; } = 0;
     public bool IsActive { get; set; } = true;
+    public decimal? MinMarginPercentOverride { get; set; }
+    public decimal? MaxDiscountPercentOverride { get; set; }
 
     // Warranty Information
     public bool HasWarranty { get; set; } = false;

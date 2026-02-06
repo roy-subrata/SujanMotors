@@ -20,6 +20,8 @@ public class Part : AuditableEntity
     public string SellingPriceCurrency { get; private set; } = "BDT";  // ISO 4217 currency code for selling price
     public int MinimumStock { get; private set; } = 0;  // Reorder level
     public bool IsActive { get; private set; } = true;
+    public decimal? MinMarginPercentOverride { get; private set; } = null;
+    public decimal? MaxDiscountPercentOverride { get; private set; } = null;
 
     // Warranty Information
     public bool HasWarranty { get; private set; } = false;
@@ -33,11 +35,15 @@ public class Part : AuditableEntity
     public Brand? Brand { get; set; }
     public Unit? Unit { get; set; }
     public ICollection<PartVehicleCompatibility> VehicleCompatibilities { get; set; } = new List<PartVehicleCompatibility>();
+    public ICollection<ProductVariant> Variants { get; set; } = new List<ProductVariant>();
+    public ICollection<ProductMedia> Media { get; set; } = new List<ProductMedia>();
+    public ProductCatalogEntry? CatalogEntry { get; set; }
 
     private Part() { }
 
     public static Part Create(string name, PartNumber partNumber, string sku, Guid categoryId, Guid? brandId = null, Guid? unitId = null, string description = "",
         decimal costPrice = 0, decimal sellingPrice = 0, int minimumStock = 0,
+        decimal? minMarginPercentOverride = null, decimal? maxDiscountPercentOverride = null,
         bool hasWarranty = false, int? warrantyPeriodMonths = null, string? warrantyType = null,
         string? warrantyTerms = null, string? warrantyCertificateTemplate = null)
     {
@@ -68,6 +74,12 @@ public class Part : AuditableEntity
         if (minimumStock < 0)
             throw new ArgumentException("Minimum stock cannot be negative", nameof(minimumStock));
 
+        if (minMarginPercentOverride.HasValue && (minMarginPercentOverride.Value < 0 || minMarginPercentOverride.Value > 100))
+            throw new ArgumentException("Min margin percent must be between 0 and 100.", nameof(minMarginPercentOverride));
+
+        if (maxDiscountPercentOverride.HasValue && (maxDiscountPercentOverride.Value < 0 || maxDiscountPercentOverride.Value > 100))
+            throw new ArgumentException("Max discount percent must be between 0 and 100.", nameof(maxDiscountPercentOverride));
+
         // Warranty validation
         if (hasWarranty)
         {
@@ -91,6 +103,8 @@ public class Part : AuditableEntity
             SellingPrice = sellingPrice,
             MinimumStock = minimumStock,
             IsActive = true,
+            MinMarginPercentOverride = minMarginPercentOverride,
+            MaxDiscountPercentOverride = maxDiscountPercentOverride,
             HasWarranty = hasWarranty,
             WarrantyPeriodMonths = hasWarranty ? warrantyPeriodMonths : null,
             WarrantyType = hasWarranty ? warrantyType?.Trim().ToUpper() : null,
@@ -101,6 +115,7 @@ public class Part : AuditableEntity
 
     public void Update(string name, string description, string sku, Guid categoryId, Guid? brandId, Guid? unitId,
         decimal costPrice, decimal sellingPrice, int minimumStock, bool isActive,
+        decimal? minMarginPercentOverride = null, decimal? maxDiscountPercentOverride = null,
         bool hasWarranty = false, int? warrantyPeriodMonths = null, string? warrantyType = null,
         string? warrantyTerms = null, string? warrantyCertificateTemplate = null)
     {
@@ -122,6 +137,12 @@ public class Part : AuditableEntity
         if (minimumStock < 0)
             throw new ArgumentException("Minimum stock cannot be negative", nameof(minimumStock));
 
+        if (minMarginPercentOverride.HasValue && (minMarginPercentOverride.Value < 0 || minMarginPercentOverride.Value > 100))
+            throw new ArgumentException("Min margin percent must be between 0 and 100.", nameof(minMarginPercentOverride));
+
+        if (maxDiscountPercentOverride.HasValue && (maxDiscountPercentOverride.Value < 0 || maxDiscountPercentOverride.Value > 100))
+            throw new ArgumentException("Max discount percent must be between 0 and 100.", nameof(maxDiscountPercentOverride));
+
         // Warranty validation
         if (hasWarranty)
         {
@@ -142,6 +163,8 @@ public class Part : AuditableEntity
         SellingPrice = sellingPrice;
         MinimumStock = minimumStock;
         IsActive = isActive;
+        MinMarginPercentOverride = minMarginPercentOverride;
+        MaxDiscountPercentOverride = maxDiscountPercentOverride;
 
         // Update warranty fields
         HasWarranty = hasWarranty;

@@ -19,6 +19,16 @@ public class AutoPartDbContext : IdentityDbContext<ApplicationUser, ApplicationR
     public DbSet<Unit> Units { get; set; }
     public DbSet<UnitConversion> UnitConversions { get; set; }
     public DbSet<Part> Parts { get; set; }
+    public DbSet<ProductCatalogEntry> ProductCatalogEntries { get; set; }
+    public DbSet<ProductVariant> ProductVariants { get; set; }
+    public DbSet<ProductAttributeGroup> ProductAttributeGroups { get; set; }
+    public DbSet<ProductAttribute> ProductAttributes { get; set; }
+    public DbSet<ProductAttributeOption> ProductAttributeOptions { get; set; }
+    public DbSet<CategoryAttribute> CategoryAttributes { get; set; }
+    public DbSet<VariantAttributeValue> VariantAttributeValues { get; set; }
+    public DbSet<ProductMedia> ProductMedias { get; set; }
+    public DbSet<VariantStockLevel> VariantStockLevels { get; set; }
+    public DbSet<CompatibilityRule> CompatibilityRules { get; set; }
     public DbSet<Vehicle> Vehicles { get; set; }
     public DbSet<PartVehicleCompatibility> PartVehicleCompatibilities { get; set; }
     public DbSet<Supplier> Suppliers { get; set; }

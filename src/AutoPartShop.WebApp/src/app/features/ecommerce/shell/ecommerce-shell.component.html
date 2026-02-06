@@ -1,0 +1,32 @@
+<div class="storefront">
+  <header class="storefront-header">
+    <div class="brand">
+      <span class="brand-mark">SM</span>
+      <div>
+        <div class="brand-title">Sujan Motors</div>
+        <div class="brand-subtitle">E-commerce</div>
+      </div>
+    </div>
+    <nav class="storefront-nav">
+      <a routerLink="/shop" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Home</a>
+      <a routerLink="/shop" fragment="featured">Featured</a>
+      <a routerLink="/shop" fragment="popular">Popular</a>
+    </nav>
+    <div class="storefront-cta">
+      <a class="cta-link" routerLink="/">Back to POS</a>
+    </div>
+  </header>
+
+  <main class="storefront-content">
+    <router-outlet></router-outlet>
+  </main>
+
+  <footer class="storefront-footer">
+    <div>© Sujan Motors • Storefront</div>
+    <div class="footer-links">
+      <span>Privacy</span>
+      <span>Returns</span>
+      <span>Support</span>
+    </div>
+  </footer>
+</div>

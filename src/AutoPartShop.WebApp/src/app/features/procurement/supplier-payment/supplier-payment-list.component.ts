@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
-import { TableModule } from 'primeng/table';
+import { TableModule, TableLazyLoadEvent } from 'primeng/table';
 import { InputTextModule } from 'primeng/inputtext';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
@@ -42,13 +42,18 @@ export class SupplierPaymentListComponent implements OnInit {
     searchTerm: string = '';
     pageNumber: number = 1;
     pageSize: number = 10;
+    first: number = 0;
     totalCount: number = 0;
     loading: boolean = false;
     contextMenuItems: MenuItem[] = [];
     selectedPayment: SupplierPaymentResponse | null = null;
     filterStatus: string | null = null;
-    dateRange: Date[] | null = null;
+    dateRange: Date[] = [];
+    sortField: string | null = null;
+    sortOrder: number | null = null;
     pageSizeOptions = [10, 25, 50, 100];
+    pageSizeSelectOptions = this.pageSizeOptions.map((size) => ({ label: size.toString(), value: size }));
+    Math = Math;
 
     statusOptions = [
         { label: 'All', value: null },
@@ -183,9 +188,17 @@ export class SupplierPaymentListComponent implements OnInit {
             query.toDate = this.formatDateForApi(this.dateRange[1]);
         }
 
+        if (this.sortField && this.sortOrder) {
+            query.sorts = [
+                {
+                    field: this.sortField,
+                    direction: this.sortOrder === 1 ? 'ASC' : 'DESC'
+                }
+            ];
+        }
+
         this.supplierPaymentService.getSupplierPayments(query).subscribe({
             next: (response: PaginatedSupplierPaymentResponse) => {
-                debugger;
                 this.supplierPayments = response.data;
                 this.totalCount = response.pagination.totalCount;
                 this.loading = false;
@@ -216,7 +229,7 @@ export class SupplierPaymentListComponent implements OnInit {
      * Search supplier payments
      */
     onSearch(): void {
-        this.pageNumber = 1;
+        this.resetPagination();
         this.loadSupplierPayments();
     }
 
@@ -427,8 +440,21 @@ export class SupplierPaymentListComponent implements OnInit {
         if (!event || typeof event.first !== 'number' || typeof event.rows !== 'number') {
             return;
         }
+        this.first = event.first;
         this.pageNumber = event.first / event.rows + 1;
         this.pageSize = event.rows;
+        this.loadSupplierPayments();
+    }
+
+    /**
+     * Handle PrimeNG table lazy load event (pagination + sorting)
+     */
+    onLazyLoad(event: TableLazyLoadEvent): void {
+        this.first = event.first ?? 0;
+        this.pageSize = event.rows ?? this.pageSize;
+        this.pageNumber = Math.floor(this.first / this.pageSize) + 1;
+        this.sortField = (event.sortField as string) || null;
+        this.sortOrder = event.sortOrder ?? null;
         this.loadSupplierPayments();
     }
 
@@ -437,7 +463,7 @@ export class SupplierPaymentListComponent implements OnInit {
      */
     clearSearch(): void {
         this.searchTerm = '';
-        this.pageNumber = 1;
+        this.resetPagination();
         this.loadSupplierPayments();
     }
 
@@ -446,7 +472,7 @@ export class SupplierPaymentListComponent implements OnInit {
      */
     onFilterChange(): void {
         // TODO: Implement filtering logic with status and date range
-        this.pageNumber = 1;
+        this.resetPagination();
         this.loadSupplierPayments();
     }
 
@@ -456,9 +482,14 @@ export class SupplierPaymentListComponent implements OnInit {
     clearFilters(): void {
         this.searchTerm = '';
         this.filterStatus = null;
-        this.dateRange = null;
-        this.pageNumber = 1;
+        this.dateRange = [];
+        this.resetPagination();
         this.loadSupplierPayments();
+    }
+
+    private resetPagination(): void {
+        this.pageNumber = 1;
+        this.first = 0;
     }
 
     /**

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, FormArray, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { AutoCompleteModule } from 'primeng/autocomplete';
+import { CardModule } from 'primeng/card';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ButtonModule } from 'primeng/button';
@@ -15,7 +16,7 @@ import { CurrencyService } from '../../../../shared/services/currency.service';
 @Component({
   selector: 'app-sales-return-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, AutoCompleteModule, ToastModule, ConfirmDialogModule, ButtonModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, AutoCompleteModule, CardModule, ToastModule, ConfirmDialogModule, ButtonModule],
   providers: [MessageService, ConfirmationService],
   templateUrl: './sales-return-form.component.html',
   styleUrls: ['./sales-return-form.component.css']
@@ -479,10 +480,6 @@ export class SalesReturnFormComponent implements OnInit {
   }
 
   formatCurrency(amount: number): string {
-    const currency = this.currencyService.selectedCurrency();
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency
-    }).format(amount);
+    return this.currencyService.formatCurrency(amount, this.currencyService.selectedCurrency());
   }
 }

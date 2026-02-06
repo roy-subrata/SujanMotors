@@ -33,14 +33,15 @@
         pInputText
         type="text"
         formControlName="partNumber"
-        placeholder="e.g., ABC123"
+        placeholder="Auto-generated"
+        [readonly]="true"
         [class.error]="hasError(createForm, 'partNumber')"
         [class.success]="isFieldValid(createForm, 'partNumber')"
         class="form-input" />
       <small class="error-message" *ngIf="hasError(createForm, 'partNumber')">
         {{ getErrorMessage(createForm, 'partNumber') }}
       </small>
-      <small class="hint-message">3-20 characters, must start with a letter</small>
+      <small class="hint-message">Code is auto-generated and cannot be changed</small>
     </div>
 
     <!-- SKU Field -->
@@ -53,7 +54,8 @@
         pInputText
         type="text"
         formControlName="sku"
-        placeholder="Stock Keeping Unit"
+        placeholder="Auto-generated"
+        [readonly]="true"
         [class.error]="hasError(createForm, 'sku')"
         [class.success]="isFieldValid(createForm, 'sku')"
         class="form-input" />
@@ -213,6 +215,50 @@
       <small class="hint-message">Reorder level for inventory alerts</small>
     </div>
 
+    <!-- Min Margin Override -->
+    <div class="form-group">
+      <label for="create-min-margin" class="form-label">Min Margin (%)</label>
+      <p-inputNumber
+        inputId="create-min-margin"
+        formControlName="minMarginPercentOverride"
+        placeholder="Default"
+        [min]="0"
+        [max]="100"
+        [step]="0.01"
+        [minFractionDigits]="0"
+        [maxFractionDigits]="2"
+        mode="decimal"
+        [class.error]="hasError(createForm, 'minMarginPercentOverride')"
+        [class.success]="isFieldValid(createForm, 'minMarginPercentOverride')">
+      </p-inputNumber>
+      <small class="error-message" *ngIf="hasError(createForm, 'minMarginPercentOverride')">
+        {{ getErrorMessage(createForm, 'minMarginPercentOverride') }}
+      </small>
+      <small class="hint-message">Leave blank to use global rule</small>
+    </div>
+
+    <!-- Max Discount Override -->
+    <div class="form-group">
+      <label for="create-max-discount" class="form-label">Max Discount (%)</label>
+      <p-inputNumber
+        inputId="create-max-discount"
+        formControlName="maxDiscountPercentOverride"
+        placeholder="Default"
+        [min]="0"
+        [max]="100"
+        [step]="0.01"
+        [minFractionDigits]="0"
+        [maxFractionDigits]="2"
+        mode="decimal"
+        [class.error]="hasError(createForm, 'maxDiscountPercentOverride')"
+        [class.success]="isFieldValid(createForm, 'maxDiscountPercentOverride')">
+      </p-inputNumber>
+      <small class="error-message" *ngIf="hasError(createForm, 'maxDiscountPercentOverride')">
+        {{ getErrorMessage(createForm, 'maxDiscountPercentOverride') }}
+      </small>
+      <small class="hint-message">Leave blank to use global rule</small>
+    </div>
+
     <!-- Description Field -->
     <div class="form-group">
       <label for="create-description" class="form-label">Description</label>
@@ -276,7 +322,8 @@
         pInputText
         type="text"
         formControlName="sku"
-        placeholder="Stock Keeping Unit"
+        placeholder="Auto-generated"
+        [readonly]="true"
         [class.error]="hasError(updateForm, 'sku')"
         [class.success]="isFieldValid(updateForm, 'sku')"
         class="form-input" />
@@ -433,6 +480,50 @@
       <small class="error-message" *ngIf="hasError(updateForm, 'minimumStock')">
         {{ getErrorMessage(updateForm, 'minimumStock') }}
       </small>
+    </div>
+
+    <!-- Min Margin Override -->
+    <div class="form-group">
+      <label for="update-min-margin" class="form-label">Min Margin (%)</label>
+      <p-inputNumber
+        inputId="update-min-margin"
+        formControlName="minMarginPercentOverride"
+        placeholder="Default"
+        [min]="0"
+        [max]="100"
+        [step]="0.01"
+        [minFractionDigits]="0"
+        [maxFractionDigits]="2"
+        mode="decimal"
+        [class.error]="hasError(updateForm, 'minMarginPercentOverride')"
+        [class.success]="isFieldValid(updateForm, 'minMarginPercentOverride')">
+      </p-inputNumber>
+      <small class="error-message" *ngIf="hasError(updateForm, 'minMarginPercentOverride')">
+        {{ getErrorMessage(updateForm, 'minMarginPercentOverride') }}
+      </small>
+      <small class="hint-message">Leave blank to use global rule</small>
+    </div>
+
+    <!-- Max Discount Override -->
+    <div class="form-group">
+      <label for="update-max-discount" class="form-label">Max Discount (%)</label>
+      <p-inputNumber
+        inputId="update-max-discount"
+        formControlName="maxDiscountPercentOverride"
+        placeholder="Default"
+        [min]="0"
+        [max]="100"
+        [step]="0.01"
+        [minFractionDigits]="0"
+        [maxFractionDigits]="2"
+        mode="decimal"
+        [class.error]="hasError(updateForm, 'maxDiscountPercentOverride')"
+        [class.success]="isFieldValid(updateForm, 'maxDiscountPercentOverride')">
+      </p-inputNumber>
+      <small class="error-message" *ngIf="hasError(updateForm, 'maxDiscountPercentOverride')">
+        {{ getErrorMessage(updateForm, 'maxDiscountPercentOverride') }}
+      </small>
+      <small class="hint-message">Leave blank to use global rule</small>
     </div>
 
     <!-- Description Field -->

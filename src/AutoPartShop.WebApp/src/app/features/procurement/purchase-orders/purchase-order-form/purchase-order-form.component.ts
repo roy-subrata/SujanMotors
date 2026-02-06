@@ -18,11 +18,13 @@ import { PurchaseOrderService, PurchaseOrderResponse } from '../../services/purc
 import { SupplierService, SupplierResponse, SupplierQuery } from '../../../inventory/services/supplier.service';
 import { PartService, PartResponse, PartsQuery } from '../../../inventory/services/part.service';
 import { UnitService, UnitResponse } from '../../../inventory/services/unit.service';
+import { UnitConversionService } from '../../../inventory/services/unit-conversion.service';
 import { CurrencyService } from '../../../../shared/services/currency.service';
 import { CurrencySelectorComponent } from '../../../../shared/components/currency-selector/currency-selector.component';
 import { DatePicker } from 'primeng/datepicker';
 import { TextareaModule } from 'primeng/textarea';
-import { tap } from 'rxjs';
+import { tap, forkJoin, of } from 'rxjs';
+import { map } from 'rxjs/operators';
 
 @Component({
     selector: 'app-purchase-order-form',
@@ -68,6 +70,7 @@ export class PurchaseOrderFormComponent implements OnInit {
     compatibleUnitsMap = new Map<string, UnitResponse[]>();
     lineUnitsMap = new Map<number, UnitResponse[]>();
     loadingUnitsForLine = new Set<number>();
+    lineUnitSelection = new Map<number, string | null>();
 
     // Product search
     selectedPartToAdd: PartResponse | null = null;
@@ -91,6 +94,7 @@ export class PurchaseOrderFormComponent implements OnInit {
     private readonly supplierService = inject(SupplierService);
     private readonly partService = inject(PartService);
     private readonly unitService = inject(UnitService);
+    private readonly unitConversionService = inject(UnitConversionService);
     private readonly currencyService = inject(CurrencyService);
     private readonly messageService = inject(MessageService);
     private readonly confirmationService = inject(ConfirmationService);
@@ -186,6 +190,7 @@ export class PurchaseOrderFormComponent implements OnInit {
 
                     // Set current unit immediately so dropdown has options
                     this.lineUnitsMap.set(index, [matchingUnit]);
+                    this.lineUnitSelection.set(index, line.unitId || null);
 
                     // Load compatible units for each line
                     if (line.unitId) {
@@ -649,6 +654,7 @@ export class PurchaseOrderFormComponent implements OnInit {
 
             // Set current unit immediately so dropdown has options
             this.lineUnitsMap.set(newLineIndex, [selectedUnit]);
+            this.lineUnitSelection.set(newLineIndex, selectedUnit.id || null);
 
             if (selectedPart.unitId) {
                 this.unitService.getCompatibleUnits(selectedPart.unitId).subscribe({
@@ -684,6 +690,54 @@ export class PurchaseOrderFormComponent implements OnInit {
 
     getCompatibleUnitsForLine(lineIndex: number): UnitResponse[] {
         return this.lineUnitsMap.get(lineIndex) || [];
+    }
+
+    onUnitChanged(lineIndex: number): void {
+        const line = this.linesArray.at(lineIndex) as FormGroup | null;
+        if (!line) return;
+
+        const partValue = line.get('partId')?.value;
+        const part = typeof partValue === 'string' ? null : partValue;
+        if (!part?.unitId) {
+            this.lineUnitSelection.set(lineIndex, null);
+            return;
+        }
+
+        const currentUnitValue = line.get('unitId')?.value;
+        const currentUnitId = typeof currentUnitValue === 'string' ? currentUnitValue : currentUnitValue?.id;
+        const previousUnitId = this.lineUnitSelection.get(lineIndex) || part.unitId;
+        const nextUnitId = currentUnitId || part.unitId;
+        if (previousUnitId === nextUnitId) return;
+
+        const currentPrice = Number(line.get('unitPrice')?.value || 0);
+        const fromFactor$ = previousUnitId === part.unitId
+            ? of(1)
+            : this.unitConversionService.getConversion(previousUnitId, part.unitId).pipe(map(res => res.conversionFactor));
+        const toFactor$ = nextUnitId === part.unitId
+            ? of(1)
+            : this.unitConversionService.getConversion(nextUnitId, part.unitId).pipe(map(res => res.conversionFactor));
+
+        forkJoin({ fromFactor: fromFactor$, toFactor: toFactor$ }).subscribe({
+            next: ({ fromFactor, toFactor }) => {
+                const basePrice = fromFactor > 0 ? currentPrice / fromFactor : currentPrice;
+                const newPrice = basePrice * toFactor;
+                line.patchValue({ unitPrice: this.roundPrice(newPrice) }, { emitEvent: false });
+                this.lineUnitSelection.set(lineIndex, nextUnitId);
+            },
+            error: (err) => {
+                console.error('Error converting unit price:', err);
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'Unit Conversion Missing',
+                    detail: 'No conversion configured between the selected units.'
+                });
+                this.lineUnitSelection.set(lineIndex, nextUnitId);
+            }
+        });
+    }
+
+    private roundPrice(value: number): number {
+        return Math.round(value * 100) / 100;
     }
 
     loadCompatibleUnitsForLine(lineIndex: number): void {

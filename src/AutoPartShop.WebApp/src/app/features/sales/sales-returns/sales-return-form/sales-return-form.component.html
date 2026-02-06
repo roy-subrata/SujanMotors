@@ -1,266 +1,276 @@
-<p-toast></p-toast>
-<p-confirmDialog></p-confirmDialog>
+<div class="container">
+  <p-toast></p-toast>
+  <p-confirmDialog></p-confirmDialog>
 
-<div class="sales-return-form-container">
   <!-- Header -->
-  <div class="page-header">
+  <div class="form-header">
     <div class="header-content">
       <div class="header-title-section">
-        <h1 class="header-title">
-          <i class="pi pi-replay mr-3"></i>
+        <div class="breadcrumb">
+          <a (click)="cancel()" class="breadcrumb-link">
+            <i class="pi pi-arrow-left"></i>
+            Sales Returns
+          </a>
+          <span class="breadcrumb-separator">/</span>
+          <span class="breadcrumb-current">{{ mode() === 'create' ? 'New' : 'View' }}</span>
+        </div>
+        <h1 class="form-title">
           {{ mode() === 'create' ? 'Create Sales Return' : 'View Sales Return' }}
         </h1>
-        <p class="header-subtitle">{{ mode() === 'create' ? 'Process a customer return for a sales order' : 'Sales return details' }}</p>
+        <p class="form-subtitle">
+          {{ mode() === 'create' ? 'Process a customer return for a sales order' : 'Sales return details' }}
+        </p>
       </div>
     </div>
   </div>
 
   <!-- Loading State -->
   <div *ngIf="loading()" class="loading-state">
-    <div class="spinner"></div>
-    <p class="loading-text">Loading sales return...</p>
+    <i class="pi pi-spin pi-spinner" style="font-size: 2rem;"></i>
+    <p>Loading sales return...</p>
   </div>
 
   <!-- Error Alert -->
-  <div *ngIf="error()" class="error-alert">
+  <div *ngIf="error()" class="error-box">
     <i class="pi pi-exclamation-circle"></i>
-    {{ error() }}
+    <span>{{ error() }}</span>
   </div>
 
   <!-- Form -->
-  <form *ngIf="!loading()" [formGroup]="salesReturnForm" (ngSubmit)="onSubmit()">
-    <!-- Sales Order Selection -->
-    <div *ngIf="mode() === 'create'" class="form-card">
-      <h2 class="card-title">Select Sales Order</h2>
+  <p-card *ngIf="!loading()" class="form-card">
+    <form [formGroup]="salesReturnForm" (ngSubmit)="onSubmit()" class="form-content">
 
-      <div class="mb-4">
-        <label class="block text-sm font-medium text-gray-700 mb-2">
-          Sales Order <span class="text-red-500">*</span>
-        </label>
-        <p-autoComplete
-          [(ngModel)]="selectedSalesOrder"
-          [ngModelOptions]="{standalone: true}"
-          [suggestions]="filteredSalesOrders"
-          (completeMethod)="onSalesOrderFilter($event)"
-          (onDropdownClick)="onSalesOrderDropdownClick()"
-          (onSelect)="selectSalesOrder($event.value)"
-          field="soNumber"
-          optionLabel="soNumber"
-          [dropdown]="true"
-          [showClear]="true"
-          placeholder="Search by order number or customer..."
-          styleClass="w-full"
-          [appendTo]="'body'">
-          <ng-template let-order pTemplate="item">
-            <div class="py-2">
-              <div class="font-medium text-gray-900">{{ order.soNumber }}</div>
-              <div class="text-sm text-gray-600">Customer: {{ order.customerName }}</div>
-              <div class="text-xs text-gray-500">Date: {{ order.orderDate | date: 'short' }} | Total: {{ formatCurrency(order.grandTotal) }}</div>
-            </div>
-          </ng-template>
-        </p-autoComplete>
-        <p class="text-sm text-gray-500 mt-2">
-          <span *ngIf="loadingSalesOrders()">Loading sales orders...</span>
-          <span *ngIf="!loadingSalesOrders() && !selectedSalesOrder()">Select a sales order to create a return</span>
-          <span *ngIf="!loadingSalesOrders() && selectedSalesOrder()" class="text-green-600">✓ Sales order selected</span>
-        </p>
-      </div>
+      <!-- Section 1: Sales Order & Warehouse -->
+      <div class="form-section">
+        <h3 class="section-title">
+          <i class="pi pi-file section-icon"></i>
+          Sales Order & Warehouse
+        </h3>
 
-      <div class="mb-4">
-        <label class="block text-sm font-medium text-gray-700 mb-2">
-          Warehouse <span class="text-red-500">*</span>
-        </label>
-        <p-autoComplete
-          [(ngModel)]="selectedWarehouse"
-          [ngModelOptions]="{standalone: true}"
-          [suggestions]="filteredWarehouses"
-          (completeMethod)="onWarehouseFilter($event)"
-          (onDropdownClick)="onWarehouseDropdownClick()"
-          (onSelect)="selectWarehouse($event.value)"
-          field="name"
-          optionLabel="name"
-          [dropdown]="true"
-          [showClear]="true"
-          placeholder="Select warehouse..."
-          styleClass="w-full"
-          [appendTo]="'body'">
-          <ng-template let-warehouse pTemplate="item">
-            <div class="py-2">
-              <div class="font-medium text-gray-900">{{ warehouse.name }}</div>
-              <div class="text-sm text-gray-600">Code: {{ warehouse.code }}</div>
-              <div class="text-xs text-gray-500">Location: {{ warehouse.location }}</div>
-            </div>
-          </ng-template>
-        </p-autoComplete>
-        <p class="text-sm text-gray-500 mt-2">
-          <span *ngIf="loadingWarehouses()">Loading warehouses...</span>
-          <span *ngIf="!loadingWarehouses() && !selectedWarehouse()">Select a warehouse for the return</span>
-          <span *ngIf="!loadingWarehouses() && selectedWarehouse()" class="text-green-600">✓ Warehouse: {{ selectedWarehouse()?.name }}</span>
-        </p>
-        <p *ngIf="salesReturnForm.get('warehouseId')?.invalid && salesReturnForm.get('warehouseId')?.touched" class="text-red-500 text-xs mt-1">
-          Warehouse is required
-        </p>
-      </div>
-    </div>
-
-    <!-- Return Details -->
-    <div class="form-card">
-      <h2 class="card-title">Return Information</h2>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- Reason -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">
-            Reason for Return <span class="text-red-500">*</span>
-          </label>
-          <select
-            formControlName="reason"
-            class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-            [class.border-red-500]="salesReturnForm.get('reason')?.invalid && salesReturnForm.get('reason')?.touched">
-            <option value="">Select reason...</option>
-            <option value="DAMAGED">Damaged</option>
-            <option value="DEFECTIVE">Defective</option>
-            <option value="WRONG_ITEM">Wrong Item</option>
-            <option value="EXCESS_STOCK">Excess Stock</option>
-            <option value="OTHER">Other</option>
-          </select>
-          <p *ngIf="salesReturnForm.get('reason')?.invalid && salesReturnForm.get('reason')?.touched" class="text-red-500 text-xs mt-1">
-            Reason is required
-          </p>
+        <div class="form-row">
+          <div class="form-group full" *ngIf="mode() === 'create'">
+            <label>Sales Order *</label>
+            <p-autoComplete
+              [(ngModel)]="selectedSalesOrder"
+              [ngModelOptions]="{standalone: true}"
+              [suggestions]="filteredSalesOrders"
+              (completeMethod)="onSalesOrderFilter($event)"
+              (onDropdownClick)="onSalesOrderDropdownClick()"
+              (onSelect)="selectSalesOrder($event.value)"
+              field="soNumber"
+              optionLabel="soNumber"
+              [dropdown]="true"
+              [showClear]="true"
+              placeholder="Search by order number or customer..."
+              styleClass="w-full"
+              [appendTo]="'body'">
+              <ng-template let-order pTemplate="item">
+                <div class="customer-item">
+                  <div class="customer-item-name">
+                    {{ order.soNumber }}
+                    <span class="customer-item-code">{{ order.customerName }}</span>
+                  </div>
+                  <div class="customer-item-details">
+                    Date: {{ order.orderDate | date: 'short' }}
+                    <span class="separator">&bull;</span>
+                    {{ formatCurrency(order.grandTotal) }}
+                  </div>
+                </div>
+              </ng-template>
+            </p-autoComplete>
+            <small class="field-hint">
+              <i class="pi pi-info-circle"></i>
+              <span *ngIf="!selectedSalesOrder()">Select a sales order to create a return</span>
+              <span *ngIf="selectedSalesOrder()" class="success-text">Sales order selected</span>
+            </small>
+          </div>
         </div>
 
-        <!-- Refund Type -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">
-            Refund Type <span class="text-red-500">*</span>
-          </label>
-          <select
-            formControlName="refundType"
-            class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-            [class.border-red-500]="salesReturnForm.get('refundType')?.invalid && salesReturnForm.get('refundType')?.touched">
-            <option value="CASH_REFUND">Cash Refund</option>
-            <option value="STORE_CREDIT">Store Credit</option>
-          </select>
-          <p class="text-xs text-gray-500 mt-1">
-            <span *ngIf="salesReturnForm.get('refundType')?.value === 'CASH_REFUND'">
-              <i class="pi pi-money-bill mr-1"></i>Customer will receive cash back
-            </span>
-            <span *ngIf="salesReturnForm.get('refundType')?.value === 'STORE_CREDIT'">
-              <i class="pi pi-gift mr-1"></i>Customer will receive store credit for future purchases
-            </span>
-          </p>
-        </div>
-
-        <!-- Notes -->
-        <div class="md:col-span-2">
-          <label class="block text-sm font-medium text-gray-700 mb-2">Notes</label>
-          <textarea
-            formControlName="notes"
-            rows="3"
-            placeholder="Additional notes about this return..."
-            class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"></textarea>
+        <div class="form-row">
+          <div class="form-group full" *ngIf="mode() === 'create'">
+            <label>Warehouse *</label>
+            <p-autoComplete
+              [(ngModel)]="selectedWarehouse"
+              [ngModelOptions]="{standalone: true}"
+              [suggestions]="filteredWarehouses"
+              (completeMethod)="onWarehouseFilter($event)"
+              (onDropdownClick)="onWarehouseDropdownClick()"
+              (onSelect)="selectWarehouse($event.value)"
+              field="name"
+              optionLabel="name"
+              [dropdown]="true"
+              [showClear]="true"
+              placeholder="Select warehouse..."
+              styleClass="w-full"
+              [appendTo]="'body'">
+              <ng-template let-warehouse pTemplate="item">
+                <div class="customer-item">
+                  <div class="customer-item-name">
+                    {{ warehouse.name }}
+                    <span class="customer-item-code">{{ warehouse.code }}</span>
+                  </div>
+                  <div class="customer-item-details">
+                    {{ warehouse.location }}
+                  </div>
+                </div>
+              </ng-template>
+            </p-autoComplete>
+            <small class="field-hint">
+              <i class="pi pi-info-circle"></i>
+              <span *ngIf="!selectedWarehouse()">Select a warehouse for the return</span>
+              <span *ngIf="selectedWarehouse()" class="success-text">Warehouse: {{ selectedWarehouse()?.name }}</span>
+            </small>
+            <small *ngIf="salesReturnForm.get('warehouseId')?.invalid && salesReturnForm.get('warehouseId')?.touched" class="p-error">
+              Warehouse is required
+            </small>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- Return Line Items -->
-    <div *ngIf="lines.length > 0" class="form-card">
-      <h2 class="card-title">Return Items</h2>
+      <!-- Section 2: Return Information -->
+      <div class="form-section">
+        <h3 class="section-title">
+          <i class="pi pi-info-circle section-icon"></i>
+          Return Information
+        </h3>
 
-      <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gray-50">
-            <tr>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Part</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ordered Qty</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Return Qty</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Unit Price</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Condition</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Refund</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Notes</th>
-            </tr>
-          </thead>
-          <tbody class="bg-white divide-y divide-gray-200" formArrayName="lines">
-            <tr *ngFor="let line of lines.controls; let i = index" [formGroupName]="i">
-              <td class="px-4 py-4 text-sm text-gray-900">
-                <div class="font-medium">{{ line.get('partName')?.value || 'Unknown Part' }}</div>
-                <div class="text-xs text-gray-500">SKU: {{ line.get('partSku')?.value || 'N/A' }}</div>
-              </td>
-              <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                {{ line.get('maxQuantity')?.value }}
-              </td>
-              <td class="px-4 py-4 whitespace-nowrap">
-                <input
-                  type="number"
-                  formControlName="quantity"
-                  min="0"
-                  [max]="line.get('maxQuantity')?.value"
-                  class="w-20 px-2 py-1 border rounded focus:ring-2 focus:ring-blue-500"
-                  [class.border-red-500]="line.get('quantity')?.invalid && line.get('quantity')?.touched"
-                />
-              </td>
-              <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                {{ formatCurrency(line.get('unitPrice')?.value) }}
-              </td>
-              <td class="px-4 py-4 whitespace-nowrap">
-                <select
-                  formControlName="condition"
-                  class="px-2 py-1 border rounded focus:ring-2 focus:ring-blue-500 text-sm">
-                  <option value="UNOPENED">Unopened</option>
-                  <option value="OPENED">Opened</option>
-                  <option value="DAMAGED">Damaged</option>
-                </select>
-              </td>
-              <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                {{ formatCurrency((line.get('quantity')?.value || 0) * (line.get('unitPrice')?.value || 0)) }}
-              </td>
-              <td class="px-4 py-4 whitespace-nowrap">
-                <input
-                  type="text"
-                  formControlName="notes"
-                  placeholder="Notes..."
-                  class="w-32 px-2 py-1 border rounded focus:ring-2 focus:ring-blue-500 text-sm"
-                />
-              </td>
-            </tr>
-          </tbody>
-          <tfoot class="bg-gray-50">
-            <tr>
-              <td colspan="5" class="px-4 py-4 text-right font-semibold text-gray-700">Total Refund:</td>
-              <td colspan="2" class="px-4 py-4 font-bold text-lg text-gray-900">
-                {{ formatCurrency(totalRefund()) }}
-              </td>
-            </tr>
-          </tfoot>
-        </table>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Reason for Return *</label>
+            <select
+              formControlName="reason"
+              [class.input-error]="salesReturnForm.get('reason')?.invalid && salesReturnForm.get('reason')?.touched">
+              <option value="">Select reason...</option>
+              <option value="DAMAGED">Damaged</option>
+              <option value="DEFECTIVE">Defective</option>
+              <option value="WRONG_ITEM">Wrong Item</option>
+              <option value="EXCESS_STOCK">Excess Stock</option>
+              <option value="OTHER">Other</option>
+            </select>
+            <small *ngIf="salesReturnForm.get('reason')?.invalid && salesReturnForm.get('reason')?.touched" class="p-error">
+              Reason is required
+            </small>
+          </div>
+
+          <div class="form-group">
+            <label>Refund Type *</label>
+            <select
+              formControlName="refundType"
+              [class.input-error]="salesReturnForm.get('refundType')?.invalid && salesReturnForm.get('refundType')?.touched">
+              <option value="CASH_REFUND">Cash Refund</option>
+              <option value="STORE_CREDIT">Store Credit</option>
+            </select>
+            <small class="field-hint">
+              <i class="pi" [class.pi-money-bill]="salesReturnForm.get('refundType')?.value === 'CASH_REFUND'" [class.pi-gift]="salesReturnForm.get('refundType')?.value === 'STORE_CREDIT'"></i>
+              <span *ngIf="salesReturnForm.get('refundType')?.value === 'CASH_REFUND'">Customer will receive cash back</span>
+              <span *ngIf="salesReturnForm.get('refundType')?.value === 'STORE_CREDIT'">Customer will receive store credit</span>
+            </small>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group full">
+            <label>Notes</label>
+            <textarea
+              formControlName="notes"
+              rows="3"
+              placeholder="Additional notes about this return..."></textarea>
+          </div>
+        </div>
       </div>
-    </div>
 
-    <!-- Form Actions -->
-    <div class="form-actions">
-      <button
-        pButton
-        type="button"
-        label="Cancel"
-        icon="pi pi-times"
-        class="p-button-outlined"
-        (click)="cancel()"></button>
-      <button
-        *ngIf="mode() === 'create'"
-        pButton
-        type="submit"
-        [label]="saving() ? 'Creating...' : 'Create Return'"
-        icon="pi pi-check"
-        class="p-button-success"
-        [disabled]="saving()"></button>
+      <!-- Section 3: Return Line Items -->
+      <div class="form-section" *ngIf="lines.length > 0">
+        <h3 class="section-title">
+          <i class="pi pi-list section-icon"></i>
+          Return Items
+        </h3>
 
-      <!-- View mode actions -->
-      <ng-container *ngIf="mode() === 'view' && currentSalesReturn()">
-        <button *ngIf="currentSalesReturn()?.status === 'PENDING'" pButton type="button" label="Approve" icon="pi pi-check" class="p-button-info" (click)="approve()"></button>
-        <button *ngIf="currentSalesReturn()?.status === 'PENDING'" pButton type="button" label="Reject" icon="pi pi-times" class="p-button-danger" (click)="reject()"></button>
-        <button *ngIf="currentSalesReturn()?.status === 'APPROVED'" pButton type="button" label="Receive" icon="pi pi-inbox" class="p-button-success" (click)="receive()"></button>
-        <button *ngIf="currentSalesReturn()?.status === 'RECEIVED'" pButton type="button" label="Process" icon="pi pi-cog" class="p-button-primary" (click)="process()"></button>
-      </ng-container>
-    </div>
-  </form>
+        <div class="return-items-table-wrapper">
+          <table class="return-items-table" formArrayName="lines">
+            <thead>
+              <tr>
+                <th>Part</th>
+                <th>Ordered Qty</th>
+                <th>Return Qty</th>
+                <th>Unit Price</th>
+                <th>Condition</th>
+                <th>Refund</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let line of lines.controls; let i = index" [formGroupName]="i">
+                <td>
+                  <div class="item-name">{{ line.get('partName')?.value || 'Unknown Part' }}</div>
+                  <div class="item-sub">SKU: {{ line.get('partSku')?.value || 'N/A' }}</div>
+                </td>
+                <td>{{ line.get('maxQuantity')?.value }}</td>
+                <td>
+                  <input
+                    type="number"
+                    formControlName="quantity"
+                    min="0"
+                    [max]="line.get('maxQuantity')?.value"
+                    class="input-qty"
+                    [class.input-error]="line.get('quantity')?.invalid && line.get('quantity')?.touched" />
+                </td>
+                <td>{{ formatCurrency(line.get('unitPrice')?.value) }}</td>
+                <td>
+                  <select formControlName="condition">
+                    <option value="UNOPENED">Unopened</option>
+                    <option value="OPENED">Opened</option>
+                    <option value="DAMAGED">Damaged</option>
+                  </select>
+                </td>
+                <td class="text-right">
+                  {{ formatCurrency((line.get('quantity')?.value || 0) * (line.get('unitPrice')?.value || 0)) }}
+                </td>
+                <td>
+                  <input type="text" formControlName="notes" placeholder="Notes..." />
+                </td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colspan="5" class="text-right">Total Refund:</td>
+                <td colspan="2" class="total-value">{{ formatCurrency(totalRefund()) }}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      <!-- Section 4: Summary -->
+      <div class="form-section last">
+        <h3 class="section-title">
+          <i class="pi pi-calculator section-icon"></i>
+          Summary
+        </h3>
+        <div class="order-summary">
+          <div class="summary-row grand-total">
+            <span class="summary-label">Total Refund:</span>
+            <span class="summary-value">{{ formatCurrency(totalRefund()) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Form Actions -->
+      <div class="form-actions">
+        <button pButton type="button" [label]="mode() === 'view' ? 'Back' : 'Cancel'" icon="pi pi-times"
+          class="p-button-outlined" (click)="cancel()"></button>
+        <button *ngIf="mode() === 'create'" pButton type="submit"
+          [label]="saving() ? 'Creating...' : 'Create Return'" icon="pi pi-check"
+          class="p-button-primary" [loading]="saving()" [disabled]="saving()">
+        </button>
+
+        <ng-container *ngIf="mode() === 'view' && currentSalesReturn()">
+          <button *ngIf="currentSalesReturn()?.status === 'PENDING'" pButton type="button" label="Approve" icon="pi pi-check" class="p-button-info" (click)="approve()"></button>
+          <button *ngIf="currentSalesReturn()?.status === 'PENDING'" pButton type="button" label="Reject" icon="pi pi-times" class="p-button-danger" (click)="reject()"></button>
+          <button *ngIf="currentSalesReturn()?.status === 'APPROVED'" pButton type="button" label="Receive" icon="pi pi-inbox" class="p-button-success" (click)="receive()"></button>
+          <button *ngIf="currentSalesReturn()?.status === 'RECEIVED'" pButton type="button" label="Process" icon="pi pi-cog" class="p-button-primary" (click)="process()"></button>
+        </ng-container>
+      </div>
+    </form>
+  </p-card>
 </div>

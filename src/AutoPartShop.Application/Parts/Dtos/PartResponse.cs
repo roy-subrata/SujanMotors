@@ -18,6 +18,8 @@
         public decimal SellingPrice { get; set; }
         public int MinimumStock { get; set; }
         public bool IsActive { get; set; }
+        public decimal? MinMarginPercentOverride { get; set; }
+        public decimal? MaxDiscountPercentOverride { get; set; }
 
         // Warranty Information
         public bool HasWarranty { get; set; }

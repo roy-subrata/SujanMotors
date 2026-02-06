@@ -2,8 +2,8 @@ import { Component, OnInit, OnDestroy, inject, signal, computed, ViewChild, Host
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, FormArray, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { Subject, debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { Subject, debounceTime, distinctUntilChanged, switchMap, of, forkJoin } from 'rxjs';
+import { map, catchError } from 'rxjs/operators';
 
 // PrimeNG Imports
 import { AutoCompleteModule } from 'primeng/autocomplete';
@@ -24,12 +24,15 @@ import { MessageService, ConfirmationService } from 'primeng/api';
 // Services
 import { QuickSaleService, QuickSaleLineItem, PaymentDetail, PaymentMethod, PaymentResponsibility } from '../services/quick-sale.service';
 import { PaymentProviderService, PaymentProviderResponse } from '../../procurement/services/payment-provider.service';
-import { PartService, PartResponse } from '../../inventory/services/part.service';
+import { PublicPartService, PublicPartResponse } from '../services/public-part.service';
 import { UnitService, UnitResponse } from '../../inventory/services/unit.service';
+import { UnitConversionService } from '../../inventory/services/unit-conversion.service';
 import { CustomerService } from '../services/customer.service';
 import { TechnicianService, TechnicianResponse } from '../services/technician.service';
 import { InvoicePdfService, InvoicePdfData } from '../services/invoice-pdf.service';
 import { CurrencyService } from '../../../shared/services/currency.service';
+import { PricingValidationService } from '../../../shared/services/pricing-validation.service';
+import { PRICING_RULES } from '../../../shared/constants/pricing-rules';
 
 // Components
 import { QuickCustomerDialogComponent } from '../components/quick-customer-dialog.component';
@@ -69,14 +72,16 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
   private readonly quickSaleService = inject(QuickSaleService);
-  private readonly partService = inject(PartService);
+  private readonly partService = inject(PublicPartService);
   private readonly unitService = inject(UnitService);
+  private readonly unitConversionService = inject(UnitConversionService);
   private readonly customerService = inject(CustomerService);
   private readonly technicianService = inject(TechnicianService);
   private readonly currencyService = inject(CurrencyService);
   private readonly messageService = inject(MessageService);
   private readonly confirmationService = inject(ConfirmationService);
   private readonly invoicePdfService = inject(InvoicePdfService);
+  private readonly pricingValidationService = inject(PricingValidationService);
 
   @ViewChild(QuickCustomerDialogComponent) quickCustomerDialog!: QuickCustomerDialogComponent;
   @ViewChild('toolbarContainer') toolbarContainer!: ElementRef<HTMLDivElement>;
@@ -92,10 +97,10 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
   showSummaryDialog = false;
 
   // Parts search
-  parts = signal<PartResponse[]>([]);
-  filteredParts = signal<PartResponse[]>([]);
-  selectedPart = signal<PartResponse | null>(null);
-  selectedPartModel: PartResponse | null = null; // For ngModel binding
+  parts = signal<PublicPartResponse[]>([]);
+  filteredParts = signal<PublicPartResponse[]>([]);
+  selectedPart = signal<PublicPartResponse | null>(null);
+  selectedPartModel: PublicPartResponse | null = null; // For ngModel binding
   searchingParts = signal(false);
   fetchPartsLazy = (req: LazyRequest) =>
     this.partService.getParts({
@@ -107,7 +112,7 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
       map((res) => ({
         items: res.data ?? [],
         totalCount: res.pagination?.totalCount ?? 0
-      }) as LazyResponse<PartResponse>)
+      }) as LazyResponse<PublicPartResponse>)
     );
 
   // Customer management
@@ -134,6 +139,7 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
   loadingUnits = signal(false);
   // Map to store compatible units for each part (keyed by part ID)
   compatibleUnitsMap = new Map<string, UnitResponse[]>();
+  private cartUnitSelection = new Map<number, string | null>();
 
   paymentProviders: PaymentProviderResponse[] = [];
   filteredPaymentProviders: PaymentProviderResponse[] = [];
@@ -235,7 +241,10 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
   sendSmsNotification = false;
   autoCreatePO = false;
   saleNotes = '';
-  favoriteParts: PartResponse[] = [];
+  favoriteParts: PublicPartResponse[] = [];
+
+  pricingRules = PRICING_RULES;
+  pricingErrors = new Map<number, string>();
 
   // Dialog states
   showHeldSalesDialog = false;
@@ -456,6 +465,7 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
         icon: 'pi pi-question-circle',
         accept: () => {
           this.cartItems.set(draft.items || []);
+          this.syncCartUnitSelection();
           this.payments.set(draft.payments || []);
           if (draft.customerPhone) {
             this.quickSaleForm.patchValue({ customerPhone: draft.customerPhone });
@@ -526,7 +536,7 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
   }
 
   selectPart(event: any): void {
-    const part = event as PartResponse;
+    const part = event as PublicPartResponse;
     this.selectedPart.set(part);
     this.selectedPartModel = part;
     this.addPartToCart();
@@ -587,6 +597,7 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
     };
 
     this.cartItems.update(items => [...items, newItem]);
+    this.syncCartUnitSelection();
     this.selectedPart.set(null);
     this.selectedPartModel = null; // Clear the model as well
 
@@ -599,6 +610,8 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
 
   removeFromCart(index: number): void {
     this.cartItems.update(items => items.filter((_, i) => i !== index));
+    this.pricingErrors.clear();
+    this.syncCartUnitSelection();
   }
 
   updateCartItem(index: number, field: keyof QuickSaleLineItem, value: any): void {
@@ -607,6 +620,7 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
       newItems[index] = { ...newItems[index], [field]: value };
       return newItems;
     });
+    this.clearPricingError(index);
   }
 
   // Customer management
@@ -793,18 +807,20 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (this.dueAmount() > 0 && this.payments().length === 0) {
-      this.confirmationService.confirm({
-        message: `There is an outstanding amount of ${this.formatCurrency(this.dueAmount())}. Do you want to proceed?`,
-        header: 'Confirm Sale',
-        icon: 'pi pi-exclamation-triangle',
-        accept: () => {
-          this.processSale();
-        }
-      });
-    } else {
-      this.processSale();
-    }
+    this.validatePricingThen(() => {
+      if (this.dueAmount() > 0 && this.payments().length === 0) {
+        this.confirmationService.confirm({
+          message: `There is an outstanding amount of ${this.formatCurrency(this.dueAmount())}. Do you want to proceed?`,
+          header: 'Confirm Sale',
+          icon: 'pi pi-exclamation-triangle',
+          accept: () => {
+            this.processSale();
+          }
+        });
+      } else {
+        this.processSale();
+      }
+    });
   }
 
   processSale(): void {
@@ -923,63 +939,148 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.saving.set(true);
+    this.validatePricingThen(() => {
+      this.saving.set(true);
 
-    const formValue = this.quickSaleForm.value;
-    const customer = this.selectedCustomer();
+      const formValue = this.quickSaleForm.value;
+      const customer = this.selectedCustomer();
 
-    const request = {
-      customerId: customer?.id,
-      customerName: customer ? `${customer.firstName} ${customer.lastName}` : 'Guest',
-      customerPhone: formValue.customerPhone || customer?.phone || '',
-      customerEmail: customer?.email,
-      technicianId: this.selectedTechnician()?.id,
-      technicianName: this.selectedTechnician()?.name,
-      technicianNotes: formValue.technicianNotes,
-      paymentResponsibility: formValue.paymentResponsibility as PaymentResponsibility,
-      autoCreatePO: false,
-      items: this.cartItems(),
-      payments: [], // No payments for quotations
-      subtotal: this.subtotal(),
-      discountAmount: this.discountAmount(),
-      vatAmount: this.vatAmount(),
-      vatPercentage: this.vatPercentage(),
-      grandTotal: this.grandTotal(),
-      paidAmount: 0,
-      dueAmount: this.grandTotal(),
-      notes: this.saleNotes,
-      // Quotation flag
-      saveAsQuotation: true
-    };
+      const request = {
+        customerId: customer?.id,
+        customerName: customer ? `${customer.firstName} ${customer.lastName}` : 'Guest',
+        customerPhone: formValue.customerPhone || customer?.phone || '',
+        customerEmail: customer?.email,
+        technicianId: this.selectedTechnician()?.id,
+        technicianName: this.selectedTechnician()?.name,
+        technicianNotes: formValue.technicianNotes,
+        paymentResponsibility: formValue.paymentResponsibility as PaymentResponsibility,
+        autoCreatePO: false,
+        items: this.cartItems(),
+        payments: [], // No payments for quotations
+        subtotal: this.subtotal(),
+        discountAmount: this.discountAmount(),
+        vatAmount: this.vatAmount(),
+        vatPercentage: this.vatPercentage(),
+        grandTotal: this.grandTotal(),
+        paidAmount: 0,
+        dueAmount: this.grandTotal(),
+        notes: this.saleNotes,
+        // Quotation flag
+        saveAsQuotation: true
+      };
 
-    this.quickSaleService.createQuickSale(request).subscribe({
-      next: (result) => {
-        this.saving.set(false);
+      this.quickSaleService.createQuickSale(request).subscribe({
+        next: (result) => {
+          this.saving.set(false);
 
-        this.messageService.add({
-          severity: 'success',
-          summary: 'Quotation Created',
-          detail: `Quotation ${result.salesOrderNumber} created successfully`,
-          life: 5000
-        });
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Quotation Created',
+            detail: `Quotation ${result.salesOrderNumber} created successfully`,
+            life: 5000
+          });
 
-        // Reset form
-        this.resetForm();
-        this.generateInvoiceNumber();
+          // Reset form
+          this.resetForm();
+          this.generateInvoiceNumber();
 
-        // Navigate to sales orders to view the quotation
-        this.router.navigate(['/sales/sales-orders']);
+          // Navigate to sales orders to view the quotation
+          this.router.navigate(['/sales/sales-orders']);
+        },
+        error: (err) => {
+          this.saving.set(false);
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Quotation Failed',
+            detail: err.error?.message || 'Failed to create quotation'
+          });
+          console.error('Error creating quotation:', err);
+        }
+      });
+    });
+  }
+
+  private validatePricingThen(action: () => void): void {
+    this.validatePricingBeforeSubmit().subscribe({
+      next: (isValid) => {
+        if (!isValid) {
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Pricing Error',
+            detail: 'One or more items violate pricing rules.'
+          });
+          return;
+        }
+        action();
       },
-      error: (err) => {
-        this.saving.set(false);
+      error: () => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Quotation Failed',
-          detail: err.error?.message || 'Failed to create quotation'
+          summary: 'Pricing Error',
+          detail: 'Failed to validate pricing rules.'
         });
-        console.error('Error creating quotation:', err);
       }
     });
+  }
+
+  private getLocalPricingError(part: PublicPartResponse, unitPrice: number, discount: number, unitId?: string): string | null {
+    if (unitPrice <= 0) return 'Selling price must be greater than 0.';
+    if (discount < 0 || discount > 100) return 'Discount percentage must be between 0 and 100.';
+    if (part.sellingPrice <= 0) return 'MRP must be configured before sale.';
+    const isBaseUnit = !unitId || !part.unitId || unitId === part.unitId;
+    if (isBaseUnit && unitPrice > part.sellingPrice) return 'Selling price cannot exceed MRP.';
+    const maxDiscount = part.maxDiscountPercentOverride ?? this.pricingRules.maxDiscountPercent;
+    if (discount > maxDiscount) {
+      return `Discount cannot exceed ${maxDiscount}%.`;
+    }
+    return null;
+  }
+
+  private validatePricingBeforeSubmit() {
+    if (this.cartItems().length === 0) return of(true);
+
+    const validations = this.cartItems().map((item, index) => {
+      const part = this.parts().find(p => p.id === item.partId);
+      if (!part) {
+        this.pricingErrors.set(index, 'Part details not found.');
+        return of(false);
+      }
+
+      const unitPrice = Number(item.unitPrice || 0);
+      const discount = Number(item.discount || 0);
+      const localError = this.getLocalPricingError(part, unitPrice, discount, item.unitId);
+      if (localError) {
+        this.pricingErrors.set(index, localError);
+        return of(false);
+      }
+
+      return this.pricingValidationService.validateLine(item.partId, unitPrice, discount, item.unitId).pipe(
+        map(() => {
+          this.clearPricingError(index);
+          return true;
+        }),
+        catchError((err) => {
+          const message = err?.error?.message || 'Invalid pricing for this item.';
+          this.pricingErrors.set(index, message);
+          return of(false);
+        })
+      );
+    });
+
+    return forkJoin(validations).pipe(map((results) => results.every(Boolean)));
+  }
+
+  getPricingError(index: number): string | null {
+    return this.pricingErrors.get(index) || null;
+  }
+
+  clearPricingError(index: number): void {
+    this.pricingErrors.delete(index);
+  }
+
+  getMaxDiscountForItem(item: QuickSaleLineItem): number {
+    const part = this.parts().find(p => p.id === item.partId);
+    return part?.maxDiscountPercentOverride ?? this.pricingRules.maxDiscountPercent;
   }
 
   resetForm(): void {
@@ -995,8 +1096,60 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
     this.printReceipt = true;
     this.sendSmsNotification = false;
     this.quickSaleService.clearDraft();
+    this.pricingErrors.clear();
+    this.cartUnitSelection.clear();
     // Reset advance balance
     this.useAdvanceBalance.set(false);
+  }
+
+  onCartUnitChanged(item: QuickSaleLineItem, index: number): void {
+    const part = this.parts().find(p => p.id === item.partId);
+    if (!part?.unitId) {
+      this.cartUnitSelection.set(index, item.unitId || null);
+      return;
+    }
+
+    const previousUnitId = this.cartUnitSelection.get(index) || part.unitId;
+    const nextUnitId = item.unitId || part.unitId;
+    if (previousUnitId === nextUnitId) return;
+
+    const currentPrice = Number(item.unitPrice || 0);
+    const fromFactor$ = previousUnitId === part.unitId
+      ? of(1)
+      : this.unitConversionService.getConversion(previousUnitId, part.unitId).pipe(map(res => res.conversionFactor));
+    const toFactor$ = nextUnitId === part.unitId
+      ? of(1)
+      : this.unitConversionService.getConversion(nextUnitId, part.unitId).pipe(map(res => res.conversionFactor));
+
+    forkJoin({ fromFactor: fromFactor$, toFactor: toFactor$ }).subscribe({
+      next: ({ fromFactor, toFactor }) => {
+        const basePrice = fromFactor > 0 ? currentPrice / fromFactor : currentPrice;
+        const newPrice = basePrice * toFactor;
+        this.updateCartItem(index, 'unitPrice', this.roundPrice(newPrice));
+        this.cartUnitSelection.set(index, nextUnitId);
+      },
+      error: (err) => {
+        console.error('Error converting unit price:', err);
+        this.messageService.add({
+          severity: 'warn',
+          summary: 'Unit Conversion Missing',
+          detail: 'No conversion configured between the selected units.'
+        });
+        this.cartUnitSelection.set(index, nextUnitId);
+      }
+    });
+  }
+
+  private syncCartUnitSelection(): void {
+    const items = this.cartItems();
+    this.cartUnitSelection.clear();
+    items.forEach((item, index) => {
+      this.cartUnitSelection.set(index, item.unitId || null);
+    });
+  }
+
+  private roundPrice(value: number): number {
+    return Math.round(value * 100) / 100;
   }
 
   /**
@@ -1226,11 +1379,7 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
 
   // Utility methods
   formatCurrency(amount: number): string {
-    const currency = this.currencyService.selectedCurrency();
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency
-    }).format(amount);
+    return this.currencyService.formatCurrency(amount, this.currencyService.selectedCurrency());
   }
 
   canAddToCart(): boolean {
@@ -1293,8 +1442,7 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
         partNumber: found.partNumber,
         sku: found.sku,
         sellingPrice: found.sellingPrice,
-        stockLevel: found.minimumStock || 0,
-        costPrice: found.costPrice
+        stockLevel: found.minimumStock || 0
       };
     } else {
       this.messageService.add({
@@ -1430,6 +1578,7 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
     const recalled = this.quickSaleService.recallHeldSale(sale.draftId);
     if (recalled) {
       this.cartItems.set(recalled.items || []);
+      this.syncCartUnitSelection();
       this.payments.set(recalled.payments || []);
       if (recalled.customerPhone) {
         this.quickSaleForm.patchValue({ customerPhone: recalled.customerPhone });
@@ -1839,7 +1988,7 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
     this.useAdvanceBalance.set(false);
   }
 
-  quickAddPart(part: PartResponse): void {
+  quickAddPart(part: PublicPartResponse): void {
     this.selectedPartModel = part;
     this.addPartToCart();
   }
@@ -1852,6 +2001,7 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
         this.cartItems.update(items => 
           items.map(item => ({ ...item, discount: 5 }))
         );
+        this.pricingErrors.clear();
         this.messageService.add({
           severity: 'success',
           summary: 'Discount Applied',
@@ -1862,7 +2012,7 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
   }
 
   applyGlobalDiscount(): void {
-    const value = Math.max(0, Math.min(100, Number(this.globalDiscount || 0)));
+    const value = Math.max(0, Math.min(this.pricingRules.maxDiscountPercent, Number(this.globalDiscount || 0)));
     this.globalDiscount = value;
     if (this.cartItems().length === 0) {
       return;
@@ -1870,6 +2020,7 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
     this.cartItems.update(items =>
       items.map(item => ({ ...item, discount: value }))
     );
+    this.pricingErrors.clear();
     this.messageService.add({
       severity: 'success',
       summary: 'Discount Applied',
@@ -1883,6 +2034,7 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
       message: 'Are you sure you want to clear all items?',
       accept: () => {
         this.cartItems.set([]);
+        this.pricingErrors.clear();
         this.messageService.add({
           severity: 'info',
           summary: 'Cart Cleared',
@@ -1898,6 +2050,7 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
       newItems[index] = { ...newItems[index], quantity: newItems[index].quantity + 1 };
       return newItems;
     });
+    this.clearPricingError(index);
   }
 
   decrementQty(index: number): void {
@@ -1908,6 +2061,7 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
       }
       return newItems;
     });
+    this.clearPricingError(index);
   }
 
   toggleVat(): void {

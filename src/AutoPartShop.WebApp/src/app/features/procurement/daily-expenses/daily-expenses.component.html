@@ -157,7 +157,8 @@
                 id="amount"
                 [(ngModel)]="expenseForm.amount"
                 mode="currency"
-                currency="USD"
+                [currency]="currencyCode"
+                [locale]="currencyLocale"
                 [minFractionDigits]="2"
                 placeholder="0.00"
             />

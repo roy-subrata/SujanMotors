@@ -302,7 +302,8 @@
                     appendTo="body"
                     [style]="{ width: '100%' }"
                     (onClick)="loadCompatibleUnitsForLine(i)"
-                    (onFilter)="onUnitFilter($event, i)">
+                    (onFilter)="onUnitFilter($event, i)"
+                    (onChange)="onUnitChanged(i)">
                     <ng-template let-unit pTemplate="selectedItem">
                       <span>{{ unit?.name || '-' }}</span>
                     </ng-template>

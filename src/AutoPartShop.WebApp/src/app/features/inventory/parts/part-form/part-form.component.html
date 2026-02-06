@@ -57,14 +57,15 @@
               pInputText
               type="text"
               formControlName="partNumber"
-              placeholder="e.g., ABC123"
-              [disabled]="isEditMode || isViewMode" />
+              placeholder="Auto-generated"
+              [readonly]="true"
+              [disabled]="isViewMode" />
             <small *ngIf="hasError('partNumber')" class="p-error">
               {{ getErrorMessage('partNumber') }}
             </small>
             <small class="field-hint">
               <i class="pi pi-info-circle"></i>
-              3-20 characters, must start with a letter
+              Code is auto-generated and cannot be changed
             </small>
           </div>
         </div>
@@ -76,14 +77,15 @@
               pInputText
               type="text"
               formControlName="sku"
-              placeholder="Stock Keeping Unit"
+              placeholder="Auto-generated"
+              [readonly]="true"
               [disabled]="isViewMode" />
             <small *ngIf="hasError('sku')" class="p-error">
               {{ getErrorMessage('sku') }}
             </small>
             <small class="field-hint">
               <i class="pi pi-info-circle"></i>
-              Use a unique SKU for inventory tracking
+              SKU is auto-generated and cannot be changed
             </small>
           </div>
           <div class="form-group">
@@ -225,6 +227,65 @@
             </p-inputNumber>
             <small *ngIf="hasError('minimumStock')" class="p-error">
               {{ getErrorMessage('minimumStock') }}
+            </small>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Min Margin (%)</label>
+            <p-inputNumber
+              formControlName="minMarginPercentOverride"
+              placeholder="Default"
+              [min]="0"
+              [max]="100"
+              [step]="0.01"
+              [minFractionDigits]="0"
+              [maxFractionDigits]="2"
+              mode="decimal"
+              [disabled]="isViewMode"
+              [style]="{ width: '100%' }">
+            </p-inputNumber>
+            <small *ngIf="hasError('minMarginPercentOverride')" class="p-error">
+              {{ getErrorMessage('minMarginPercentOverride') }}
+            </small>
+            <small class="field-hint">
+              <i class="pi pi-info-circle"></i>
+              Leave blank to use global margin rule
+            </small>
+          </div>
+          <div class="form-group">
+            <label>Max Discount (%)</label>
+            <p-inputNumber
+              formControlName="maxDiscountPercentOverride"
+              placeholder="Default"
+              [min]="0"
+              [max]="100"
+              [step]="0.01"
+              [minFractionDigits]="0"
+              [maxFractionDigits]="2"
+              mode="decimal"
+              [disabled]="isViewMode"
+              [style]="{ width: '100%' }">
+            </p-inputNumber>
+            <small *ngIf="hasError('maxDiscountPercentOverride')" class="p-error">
+              {{ getErrorMessage('maxDiscountPercentOverride') }}
+            </small>
+            <small class="field-hint">
+              <i class="pi pi-info-circle"></i>
+              Leave blank to use global discount rule
+            </small>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group full">
+            <small
+              class="field-hint pricing-tooltip"
+              pTooltip="Min Allowed = Cost + (Cost * Min Margin%). Max Discounted = MRP - (MRP * Max Discount%)."
+              tooltipPosition="top">
+              <i class="pi pi-calculator"></i>
+              Min Allowed: {{ getMinAllowedPrice() | number:'1.2-2' }} •
+              Max Discounted: {{ getMaxDiscountedPrice() | number:'1.2-2' }}
             </small>
           </div>
         </div>

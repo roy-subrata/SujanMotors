@@ -9,6 +9,7 @@ import { AutoCompleteModule } from 'primeng/autocomplete';
 import { MessageService } from 'primeng/api';
 import { SupplierService, SupplierResponse, CreateSupplierRequest, UpdateSupplierRequest } from '../../services/supplier.service';
 import { CodeGenerationService } from '@/shared/services/CodeGenerationService';
+import { CurrencyService } from '../../../shared/services/currency.service';
 
 @Component({
   selector: 'app-suppliers-form-dialog',
@@ -67,8 +68,17 @@ export class SuppliersFormDialogComponent implements OnInit {
   private readonly messageService = inject(MessageService);
   private readonly fb = inject(FormBuilder);
   private readonly codeGenerationService = inject(CodeGenerationService);
+  private readonly currencyService = inject(CurrencyService);
 
   generatingCode = false;
+
+  get currencyCode(): string {
+    return this.currencyService.selectedCurrency();
+  }
+
+  get currencyLocale(): string {
+    return this.currencyService.getSelectedCurrencyLocale();
+  }
 
   constructor() {
     this.form = this.createForm();

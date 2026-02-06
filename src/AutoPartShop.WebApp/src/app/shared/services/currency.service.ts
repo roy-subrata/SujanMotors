@@ -343,9 +343,10 @@ export class CurrencyService {
    * Format amount with currency symbol
    */
   formatCurrency(amount: number, currencyCode: string): string {
-    const currency = this.activeCurrenciesSubject.value.find(c => c.code === currencyCode);
+    const code = currencyCode?.trim().toUpperCase();
+    const currency = this.activeCurrenciesSubject.value.find(c => c.code === code);
     if (!currency) {
-      return `${amount.toFixed(2)} ${currencyCode}`;
+      return `${amount.toFixed(2)} ${code || ''}`.trim();
     }
     return `${currency.symbol} ${amount.toFixed(currency.decimalPlaces)}`;
   }
@@ -364,6 +365,31 @@ export class CurrencyService {
   getCurrencyDecimalPlaces(currencyCode: string): number {
     const currency = this.activeCurrenciesSubject.value.find(c => c.code === currencyCode);
     return currency?.decimalPlaces || 2;
+  }
+
+  /**
+   * Get locale string for a currency code
+   */
+  getCurrencyLocale(currencyCode: string): string {
+    switch ((currencyCode || '').toUpperCase()) {
+      case 'BDT':
+        return 'en-BD';
+      case 'NPR':
+        return 'en-NP';
+      case 'INR':
+        return 'en-IN';
+      case 'USD':
+        return 'en-US';
+      default:
+        return 'en-US';
+    }
+  }
+
+  /**
+   * Get locale string for selected currency
+   */
+  getSelectedCurrencyLocale(): string {
+    return this.getCurrencyLocale(this.selectedCurrency());
   }
 
   /**

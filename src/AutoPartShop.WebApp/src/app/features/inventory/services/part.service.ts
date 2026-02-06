@@ -23,6 +23,8 @@ export interface PartResponse {
     sellingPrice: number;
     minimumStock: number;
     isActive: boolean;
+    minMarginPercentOverride?: number | null;
+    maxDiscountPercentOverride?: number | null;
     createdBy: string;
     modifiedBy: string;
     hasWarranty: boolean;
@@ -43,6 +45,8 @@ export interface CreatePartRequest {
     costPrice: number;
     sellingPrice: number;
     minimumStock: number;
+    minMarginPercentOverride?: number | null;
+    maxDiscountPercentOverride?: number | null;
     hasWarranty: boolean;
     warrantyPeriodMonths: number | null;
     warrantyType: string | null;
@@ -62,6 +66,8 @@ export interface UpdatePartRequest {
     sellingPrice: number;
     minimumStock: number;
     isActive: boolean;
+    minMarginPercentOverride?: number | null;
+    maxDiscountPercentOverride?: number | null;
     hasWarranty: boolean;
     warrantyPeriodMonths: number | null;
     warrantyType: string | null;

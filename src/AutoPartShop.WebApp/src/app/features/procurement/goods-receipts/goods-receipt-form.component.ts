@@ -59,6 +59,7 @@ export class GoodsReceiptFormComponent implements OnInit {
   filteredWarehouses: WarehouseResponse[] = [];
   warehouses: WarehouseResponse[] = [];
   parts: PartResponse[] = [];
+  activeCurrencies$ = this.currencyService.activeCurrencies$;
   conditions = [
     { label: 'Good', value: 'GOOD' },
     { label: 'Acceptable', value: 'ACCEPTABLE' },
@@ -80,6 +81,7 @@ export class GoodsReceiptFormComponent implements OnInit {
     this.loadPurchaseOrders();
     this.loadWarehouses();
     this.loadParts();
+    this.currencyService.loadActiveCurrencies();
     this.checkEditMode();
   }
 
@@ -168,7 +170,9 @@ export class GoodsReceiptFormComponent implements OnInit {
               // Cost Information
               unitCost: [line.unitCost || 0, [Validators.required, Validators.min(0)]],
               currency: [line.currency || this.currencyService.selectedCurrency(), Validators.required],
-              unitId: [line.unitId || '']
+              unitId: [line.unitId || poLine?.unitId || ''],
+              unitName: [poLine?.unitName || this.getPartUnit(line.partId)],
+              unitSymbol: [poLine?.unitSymbol || '']
             })
           );
         });
@@ -330,7 +334,9 @@ export class GoodsReceiptFormComponent implements OnInit {
           // Cost Information
           unitCost: [line.unitPrice || 0, [Validators.required, Validators.min(0)]],
           currency: [this.currencyService.selectedCurrency(), Validators.required],
-          unitId: ['']
+          unitId: [line.unitId || ''],
+          unitName: [line.unitName || this.getPartUnit(line.partId)],
+          unitSymbol: [line.unitSymbol || '']
         })
       );
     });

@@ -285,7 +285,8 @@
                       <span class="p-column-title">Unit</span>
                       <p-select [(ngModel)]="item.unitId" [ngModelOptions]="{standalone: true}"
                         [options]="getCompatibleUnitsForPart(item.partId)" optionLabel="name" optionValue="id"
-                        placeholder="Select Unit" [showClear]="true" appendTo="body" styleClass="w-full unit-select">
+                        placeholder="Select Unit" [showClear]="true" appendTo="body" styleClass="w-full unit-select"
+                        (onChange)="onCartUnitChanged(item, i)">
                         <ng-template let-unit pTemplate="item">
                           {{ unit.name }} ({{ unit.symbol }})
                         </ng-template>
@@ -303,19 +304,20 @@
                     <td class="col-price">
                       <span class="p-column-title">Unit Price</span>
                       <input type="number" [(ngModel)]="item.unitPrice" [ngModelOptions]="{standalone: true}"
-                        class="price-input" />
+                        class="price-input" (ngModelChange)="clearPricingError(i)" />
                     </td>
                     <td class="col-discount">
                       <span class="p-column-title">Discount</span>
                       <div class="discount-input-wrapper">
                         <input type="number" [(ngModel)]="item.discount" [ngModelOptions]="{standalone: true}" min="0"
-                          max="100" class="discount-input" />
+                          [attr.max]="getMaxDiscountForItem(item)" class="discount-input" (ngModelChange)="clearPricingError(i)" />
                         <span class="percent-symbol">%</span>
                       </div>
                     </td>
                     <td class="col-total">
                       <span class="p-column-title">Total</span>
                       <strong class="line-total">{{ formatCurrency(calculateLineTotal(item)) }}</strong>
+                      <small class="p-error" *ngIf="getPricingError(i)">{{ getPricingError(i) }}</small>
                     </td>
                     <td class="col-actions">
                       <span class="p-column-title">Actions</span>
@@ -341,7 +343,7 @@
                   <span class="totals-label">Global Discount:</span>
                   <div class="discount-inline">
                     <input type="number" [(ngModel)]="globalDiscount" (ngModelChange)="applyGlobalDiscount()"
-                      [ngModelOptions]="{standalone: true}" min="0" max="100" class="global-discount-input"
+                      [ngModelOptions]="{standalone: true}" min="0" [attr.max]="pricingRules.maxDiscountPercent" class="global-discount-input"
                       placeholder="0" />
                     <span class="unit-suffix">%</span>
                   </div>

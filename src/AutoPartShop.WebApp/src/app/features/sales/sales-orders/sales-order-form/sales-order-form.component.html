@@ -319,7 +319,8 @@
               <div class="form-group price-field">
                 <label>Price *</label>
                 <input pInputText type="number" formControlName="unitPrice" min="0" step="0.01" placeholder="0.00"
-                  [class.input-error]="line.get('unitPrice')?.invalid && line.get('unitPrice')?.touched" />
+                  [class.input-error]="line.get('unitPrice')?.invalid && line.get('unitPrice')?.touched"
+                  (input)="clearLinePricingError(i); scheduleLinePricingInfoRefresh(i)" />
                 <small *ngIf="line.get('unitPrice')?.invalid && line.get('unitPrice')?.touched" class="p-error">
                   Required
                 </small>
@@ -328,14 +329,33 @@
               <!-- Discount -->
               <div class="form-group discount-field">
                 <label>Disc %</label>
-                <input pInputText type="number" formControlName="discount" min="0" max="100" step="0.01"
-                  placeholder="0" />
+                <input pInputText type="number" formControlName="discount" min="0"
+                  [attr.max]="(line.get('part')?.value?.maxDiscountPercentOverride ?? pricingRules.maxDiscountPercent)"
+                  step="0.01"
+                  placeholder="0" (input)="clearLinePricingError(i); scheduleLinePricingInfoRefresh(i)" />
               </div>
 
               <!-- Line Total -->
               <div class="form-group total-field">
                 <label>Total</label>
                 <div class="line-total">{{ formatCurrency(getLineTotal(i)) }}</div>
+              </div>
+              <div class="form-group pricing-info" *ngIf="line.get('part')?.value as selectedPart">
+                <div class="pricing-info-row">
+                  <span>Min Margin: {{ getMinMarginPercentForPart(selectedPart) }}%</span>
+                  <span *ngIf="getLinePricingInfo(i) as info">Min Allowed: {{ formatCurrency(info.minAllowedPrice) }}</span>
+                </div>
+                <div class="pricing-info-row">
+                  <span>Max Discount: {{ getMaxDiscountPercentForPart(selectedPart) }}%</span>
+                  <span>Max Discounted: {{ formatCurrency(getMaxDiscountedPriceForPart(selectedPart)) }}</span>
+                </div>
+                <div class="pricing-info-row">
+                  <span>Effective Price: {{ formatCurrency(getEffectivePrice(i)) }}</span>
+                  <span *ngIf="getLinePricingInfo(i) as info" [class.invalid]="!info.isValid">{{ info.isValid ? 'Valid' : info.validationMessage }}</span>
+                </div>
+              </div>
+              <div class="form-group pricing-error" *ngIf="getLinePricingError(i)">
+                <small class="p-error">{{ getLinePricingError(i) }}</small>
               </div>
             </div>
           </div>

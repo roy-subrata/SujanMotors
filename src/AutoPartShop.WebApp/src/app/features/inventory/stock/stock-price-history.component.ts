@@ -10,6 +10,7 @@ import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
 import { StockLotService, StockLotPriceHistoryResponse, StockLotHistoryItem } from '../services/stock-lot.service';
 import { PartService, PartResponse } from '../services/part.service';
+import { CurrencyService } from '../../../shared/services/currency.service';
 
 @Component({
   selector: 'app-stock-price-history',
@@ -32,6 +33,7 @@ export class StockPriceHistoryComponent implements OnInit {
   private readonly stockLotService = inject(StockLotService);
   private readonly partService = inject(PartService);
   private readonly messageService = inject(MessageService);
+  private readonly currencyService = inject(CurrencyService);
 
   parts: PartResponse[] = [];
   priceHistory: StockLotPriceHistoryResponse | null = null;
@@ -44,6 +46,10 @@ export class StockPriceHistoryComponent implements OnInit {
   pageSize = 10;
   first = 0;
   pageSizeOptions = [10, 25, 50];
+
+  get currencyCode(): string {
+    return this.currencyService.selectedCurrency();
+  }
 
   ngOnInit(): void {
     this.loadParts();

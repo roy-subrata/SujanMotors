@@ -16,13 +16,17 @@ import { DatePickerModule } from 'primeng/datepicker';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { SalesOrderService, CreateSalesOrderRequest, SalesOrderResponse } from '../../services/sales-order.service';
 import { CustomerService, CustomerResponse } from '../../services/customer.service';
-import { PartService, PartResponse } from '../../../inventory/services/part.service';
+import { PublicPartService, PublicPartResponse } from '../../services/public-part.service';
 import { TechnicianService, TechnicianResponse } from '../../services/technician.service';
 import { UnitService, UnitResponse } from '../../../inventory/services/unit.service';
 import { CurrencyService } from '../../../../shared/services/currency.service';
 import { CurrencySelectorComponent } from '../../../../shared/components/currency-selector/currency-selector.component';
 import { LazyAutocompleteComponent, LazyRequest, LazyResponse } from '../../../../shared/components/lazy-autocomplete';
-import { Subject, takeUntil, map } from 'rxjs';
+import { PricingCalculationResponse, PricingValidationService } from '../../../../shared/services/pricing-validation.service';
+import { PRICING_RULES } from '../../../../shared/constants/pricing-rules';
+import { Subject, takeUntil, map, forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
+import { UnitConversionService } from '../../../inventory/services/unit-conversion.service';
 
 @Component({
     selector: 'app-sales-order-form',
@@ -55,19 +59,26 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
     private readonly route = inject(ActivatedRoute);
     private readonly salesOrderService = inject(SalesOrderService);
     private readonly customerService = inject(CustomerService);
-    private readonly partService = inject(PartService);
+    private readonly partService = inject(PublicPartService);
     private readonly technicianService = inject(TechnicianService);
     private readonly unitService = inject(UnitService);
     private readonly currencyService = inject(CurrencyService);
     private readonly messageService = inject(MessageService);
     private readonly confirmationService = inject(ConfirmationService);
+    private readonly pricingValidationService = inject(PricingValidationService);
+    private readonly unitConversionService = inject(UnitConversionService);
 
     // Subscription management
     private readonly destroy$ = new Subject<void>();
 
     selectedCustomer: CustomerResponse | null = null;
     selectedTechnecian: TechnicianResponse | null = null;
-    selectedPartQuickAdd: PartResponse | null = null;
+    selectedPartQuickAdd: PublicPartResponse | null = null;
+
+    pricingRules = PRICING_RULES;
+    linePricingErrors = new Map<number, string>();
+    linePricingInfo = new Map<number, PricingCalculationResponse>();
+    private readonly linePricingInfoTimers = new Map<number, ReturnType<typeof setTimeout>>();
 
     searchCustomers = (req: LazyRequest) => {
         return this.customerService
@@ -119,7 +130,7 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
                         ({
                             items: response.data,
                             totalCount: response.pagination.totalCount
-                        }) as LazyResponse<PartResponse>
+                        }) as LazyResponse<PublicPartResponse>
                 )
             );
     };
@@ -244,6 +255,8 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
         this.destroy$.complete();
         // Clear state objects
         this.compatibleUnitsMap.clear();
+        this.linePricingInfoTimers.forEach((timerId) => clearTimeout(timerId));
+        this.linePricingInfoTimers.clear();
     }
 
     loadUnits(): void {
@@ -274,7 +287,7 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
     }
 
     // Handle part selection from lazy autocomplete
-    onPartSelected(part: PartResponse, lineIndex: number): void {
+    onPartSelected(part: PublicPartResponse, lineIndex: number): void {
         if (!part?.id) return;
 
         // Merge duplicates: if the same part exists in another line, increase its quantity and remove this line
@@ -296,13 +309,15 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
         line.patchValue({
             unitPrice: part.sellingPrice
         });
+        this.clearLinePricingError(lineIndex);
+        this.scheduleLinePricingInfoRefresh(lineIndex);
 
         // Load compatible units for the selected part
         this.ensureCompatibleUnitsForLine(part, line, true);
     }
 
     // Quick-add part selection (single search above line items)
-    onQuickAddPartSelected(part: PartResponse): void {
+    onQuickAddPartSelected(part: PublicPartResponse): void {
         if (!part?.id) return;
 
         const existingIndex = this.lines.controls.findIndex((line) => line.get('part')?.value?.id === part.id);
@@ -341,6 +356,8 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
             unitPrice: 0,
             unitId: null
         });
+        this.clearLinePricingError(lineIndex);
+        this.linePricingInfo.delete(lineIndex);
     }
 
     /**
@@ -377,13 +394,15 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
     }
 
     createLine(data?: any): FormGroup {
-        return this.fb.group({
+        const lineGroup = this.fb.group({
             part: [data?.part || null, [Validators.required]], // Full part object for lazy autocomplete
             unitId: [data?.unitId || null], // Optional unit selection
             quantity: [data?.quantity || 1, [Validators.required, Validators.min(1)]],
             unitPrice: [data?.unitPrice || 0, [Validators.required, Validators.min(0)]],
-            discount: [data?.discount || 0, [Validators.min(0), Validators.max(100)]]
+            discount: [data?.discount || 0, [Validators.min(0), Validators.max(this.pricingRules.maxDiscountPercent)]]
         });
+        this.watchLineUnitChanges(lineGroup);
+        return lineGroup;
     }
 
     addLine(): void {
@@ -393,6 +412,7 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
     removeLine(index: number): void {
         if (this.lines.length > 1) {
             this.lines.removeAt(index);
+            this.linePricingErrors.clear();
         }
     }
 
@@ -461,6 +481,7 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
 
                     // Clear and add lines
                     this.lines.clear();
+                    this.linePricingErrors.clear();
                     order.lines.forEach((line) => {
                         // Create a minimal part object for the form control
                         const partObj = {
@@ -469,7 +490,7 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
                             partNumber: line.partSku || '',
                             sku: line.partSku || '',
                             unitName: line.unitName || ''
-                        } as PartResponse;
+                        } as PublicPartResponse;
 
                         this.lines.push(
                             this.createLine({
@@ -540,6 +561,21 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
             return;
         }
 
+        this.validatePricingBeforeSubmit().pipe(takeUntil(this.destroy$)).subscribe({
+            next: (isValid) => {
+                if (!isValid) {
+                    this.error.set('One or more line items violate pricing rules.');
+                    return;
+                }
+                this.submitSalesOrder();
+            },
+            error: () => {
+                this.error.set('Failed to validate pricing rules.');
+            }
+        });
+    }
+
+    private submitSalesOrder(): void {
         this.saving.set(true);
         this.error.set(null);
 
@@ -574,7 +610,9 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
             }))
         };
 
-        const operation = this.mode() === 'edit' && this.salesOrderId() ? this.salesOrderService.updateSalesOrder(this.salesOrderId()!, request) : this.salesOrderService.createSalesOrder(request);
+        const operation = this.mode() === 'edit' && this.salesOrderId()
+            ? this.salesOrderService.updateSalesOrder(this.salesOrderId()!, request)
+            : this.salesOrderService.createSalesOrder(request);
 
         operation.pipe(takeUntil(this.destroy$)).subscribe({
             next: () => {
@@ -602,6 +640,185 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
                 console.error(`Error ${this.mode() === 'edit' ? 'updating' : 'creating'} sales order:`, err);
             }
         });
+    }
+
+    getLinePricingError(index: number): string | null {
+        return this.linePricingErrors.get(index) || null;
+    }
+
+    clearLinePricingError(index: number): void {
+        this.linePricingErrors.delete(index);
+    }
+
+    getLinePricingInfo(index: number): PricingCalculationResponse | null {
+        return this.linePricingInfo.get(index) || null;
+    }
+
+    getMinMarginPercentForPart(part: PublicPartResponse | null): number {
+        if (!part) return this.pricingRules.minMarginPercent;
+        const override = part.minMarginPercentOverride;
+        return override === null || override === undefined ? this.pricingRules.minMarginPercent : Number(override);
+    }
+
+    getMaxDiscountPercentForPart(part: PublicPartResponse | null): number {
+        if (!part) return this.pricingRules.maxDiscountPercent;
+        const override = part.maxDiscountPercentOverride;
+        return override === null || override === undefined ? this.pricingRules.maxDiscountPercent : Number(override);
+    }
+
+    getMaxDiscountedPriceForPart(part: PublicPartResponse | null): number {
+        if (!part) return 0;
+        const mrp = this.parseNumber(part.sellingPrice);
+        if (mrp <= 0) return 0;
+        const maxDiscount = this.getMaxDiscountPercentForPart(part);
+        return mrp - (mrp * (maxDiscount / 100));
+    }
+
+    getEffectivePrice(index: number): number {
+        const line = this.lines.at(index);
+        if (!line) return 0;
+        const unitPrice = this.parseNumber(line.get('unitPrice')?.value);
+        const discount = this.parseNumber(line.get('discount')?.value);
+        const effective = unitPrice - (unitPrice * (discount / 100));
+        return effective < 0 ? 0 : effective;
+    }
+
+    scheduleLinePricingInfoRefresh(index: number): void {
+        const existing = this.linePricingInfoTimers.get(index);
+        if (existing) clearTimeout(existing);
+        const timerId = setTimeout(() => this.refreshLinePricingInfo(index), 250);
+        this.linePricingInfoTimers.set(index, timerId);
+    }
+
+    private watchLineUnitChanges(line: FormGroup): void {
+        let previousUnitId = line.get('unitId')?.value || null;
+        line.get('unitId')?.valueChanges.pipe(takeUntil(this.destroy$)).subscribe((nextUnitId) => {
+            const part = line.get('part')?.value as PublicPartResponse | null;
+            if (!part?.id || !part.unitId) {
+                previousUnitId = nextUnitId;
+                return;
+            }
+
+            this.updateLineUnitPrice(line, part, previousUnitId, nextUnitId);
+            previousUnitId = nextUnitId;
+        });
+    }
+
+    private updateLineUnitPrice(line: FormGroup, part: PublicPartResponse, previousUnitId: string | null, nextUnitId: string | null): void {
+        const baseUnitId = part.unitId;
+        if (!baseUnitId) return;
+
+        const fromUnitId = previousUnitId || baseUnitId;
+        const toUnitId = nextUnitId || baseUnitId;
+        if (fromUnitId === toUnitId) return;
+
+        const currentPrice = this.parseNumber(line.get('unitPrice')?.value);
+        const fromFactor$ = fromUnitId === baseUnitId
+            ? of(1)
+            : this.unitConversionService.getConversion(fromUnitId, baseUnitId).pipe(map((res) => res.conversionFactor));
+        const toFactor$ = toUnitId === baseUnitId
+            ? of(1)
+            : this.unitConversionService.getConversion(toUnitId, baseUnitId).pipe(map((res) => res.conversionFactor));
+
+            forkJoin({ fromFactor: fromFactor$, toFactor: toFactor$ })
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+                next: ({ fromFactor, toFactor }) => {
+                    const basePrice = fromFactor > 0 ? currentPrice / fromFactor : currentPrice;
+                    const newPrice = basePrice * toFactor;
+                    line.patchValue({ unitPrice: this.roundPrice(newPrice) }, { emitEvent: false });
+                    const lineIndex = this.lines.controls.indexOf(line);
+                    if (lineIndex >= 0) {
+                        this.scheduleLinePricingInfoRefresh(lineIndex);
+                    }
+                },
+                error: (err) => {
+                    console.error('Error converting unit price:', err);
+                    this.messageService.add({
+                        severity: 'warn',
+                        summary: 'Unit Conversion Missing',
+                        detail: 'No conversion configured between the selected units.'
+                    });
+                }
+            });
+    }
+
+    private roundPrice(value: number): number {
+        return Math.round(value * 100) / 100;
+    }
+
+    private refreshLinePricingInfo(index: number): void {
+        const line = this.lines.at(index);
+        if (!line) return;
+        const part = line.get('part')?.value as PublicPartResponse | null;
+        if (!part?.id) {
+            this.linePricingInfo.delete(index);
+            return;
+        }
+
+        const unitPrice = this.parseNumber(line.get('unitPrice')?.value);
+        const discount = this.parseNumber(line.get('discount')?.value);
+        const unitId = line.get('unitId')?.value || null;
+
+        this.pricingValidationService
+            .calculateLine(part.id, unitPrice, discount, unitId)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+                next: (result) => {
+                    this.linePricingInfo.set(index, result);
+                },
+                error: () => {
+                    this.linePricingInfo.delete(index);
+                }
+            });
+    }
+
+    private getLocalPricingError(part: PublicPartResponse, unitPrice: number, discount: number, unitId: string | null): string | null {
+        if (unitPrice <= 0) return 'Selling price must be greater than 0.';
+        if (discount < 0 || discount > 100) return 'Discount percentage must be between 0 and 100.';
+        if (part.sellingPrice <= 0) return 'MRP must be configured before sale.';
+        const isBaseUnit = !unitId || !part.unitId || unitId === part.unitId;
+        if (isBaseUnit && unitPrice > part.sellingPrice) return 'Selling price cannot exceed MRP.';
+        const maxDiscount = part.maxDiscountPercentOverride ?? this.pricingRules.maxDiscountPercent;
+        if (discount > maxDiscount) {
+            return `Discount cannot exceed ${maxDiscount}%.`;
+        }
+        return null;
+    }
+
+    private validatePricingBeforeSubmit() {
+        if (this.lines.length === 0) return of(true);
+
+        const validations = this.lines.controls.map((line, index) => {
+            const part = line.get('part')?.value as PublicPartResponse | null;
+            if (!part?.id) {
+                this.linePricingErrors.set(index, 'Please select a part.');
+                return of(false);
+            }
+
+            const unitPrice = this.parseNumber(line.get('unitPrice')?.value);
+            const discount = this.parseNumber(line.get('discount')?.value);
+            const unitId = line.get('unitId')?.value || null;
+            const localError = this.getLocalPricingError(part, unitPrice, discount, unitId);
+            if (localError) {
+                this.linePricingErrors.set(index, localError);
+                return of(false);
+            }
+
+            return this.pricingValidationService.validateLine(part.id, unitPrice, discount, unitId).pipe(
+                map(() => {
+                    this.clearLinePricingError(index);
+                    return true;
+                }),
+                catchError((err) => {
+                    const message = err?.error?.message || 'Invalid pricing for this item.';
+                    this.linePricingErrors.set(index, message);
+                    return of(false);
+                })
+            );
+        });
+
+        return forkJoin(validations).pipe(map((results) => results.every(Boolean)));
     }
 
     cancel(): void {
@@ -641,7 +858,7 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
 
         let lineItemsHTML = '';
         this.lines.controls.forEach((line) => {
-            const part = line.get('part')?.value as PartResponse | null;
+            const part = line.get('part')?.value as PublicPartResponse | null;
             const quantity = line.get('quantity')?.value || 0;
             const unitPrice = line.get('unitPrice')?.value || 0;
             const discount = line.get('discount')?.value || 0;
@@ -918,7 +1135,7 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
         return severityMap[status] || 'secondary';
     }
 
-    private ensureCompatibleUnitsForLine(part: PartResponse, line: FormGroup | null, preservePrice: boolean): void {
+    private ensureCompatibleUnitsForLine(part: PublicPartResponse, line: FormGroup | null, preservePrice: boolean): void {
         if (!line) return;
         if (part.unitId) {
             this.unitService
@@ -958,6 +1175,10 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
                                 const formLine = line as FormGroup;
                                 formLine.patchValue({ part: { ...current, ...part } }, { emitEvent: false });
                                 this.ensureCompatibleUnitsForLine(part, formLine, true);
+                                const index = this.lines.controls.indexOf(formLine);
+                                if (index >= 0) {
+                                    this.scheduleLinePricingInfoRefresh(index);
+                                }
                             }
                         });
                     },

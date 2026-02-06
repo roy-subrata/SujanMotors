@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { CurrencyService } from '../../../shared/services/currency.service';
 
 export interface InvoicePdfData {
   // Company Info
@@ -70,6 +71,7 @@ export interface InvoicePdfPayment {
 @Injectable({ providedIn: 'root' })
 export class InvoicePdfService {
   private readonly http = inject(HttpClient);
+  private readonly currencyService = inject(CurrencyService);
 
   // Company configuration - In real app, this would come from settings/API
   private readonly companyConfig = {
@@ -92,10 +94,14 @@ export class InvoicePdfService {
    * Format currency for display
    */
   formatCurrency(amount: number): string {
-    return new Intl.NumberFormat('en-NP', {
+    const currencyCode = this.currencyService.selectedCurrency();
+    const locale = this.currencyService.getCurrencyLocale(currencyCode);
+    const fractionDigits = this.currencyService.getCurrencyDecimalPlaces(currencyCode);
+    return new Intl.NumberFormat(locale, {
       style: 'currency',
-      currency: 'NPR',
-      minimumFractionDigits: 2
+      currency: currencyCode,
+      minimumFractionDigits: fractionDigits,
+      maximumFractionDigits: fractionDigits
     }).format(amount);
   }
 
@@ -182,13 +188,29 @@ export class InvoicePdfService {
     }
     words += convertLessThanThousand(intPart % 1000);
 
-    words = words.trim() + ' Rupees';
+    const currencyCode = this.currencyService.selectedCurrency();
+    const currencyWords = this.getCurrencyWords(currencyCode);
+    words = words.trim() + ` ${currencyWords.major}`;
 
     if (decPart > 0) {
-      words += ' and ' + convertLessThanThousand(decPart) + ' Paisa';
+      words += ' and ' + convertLessThanThousand(decPart) + ` ${currencyWords.minor}`;
     }
 
     return words + ' Only';
+  }
+
+  private getCurrencyWords(currencyCode: string): { major: string; minor: string } {
+    switch ((currencyCode || '').toUpperCase()) {
+      case 'USD':
+        return { major: 'Dollars', minor: 'Cents' };
+      case 'BDT':
+        return { major: 'Taka', minor: 'Paisa' };
+      case 'NPR':
+      case 'INR':
+        return { major: 'Rupees', minor: 'Paisa' };
+      default:
+        return { major: 'Units', minor: 'Subunits' };
+    }
   }
 
   /**

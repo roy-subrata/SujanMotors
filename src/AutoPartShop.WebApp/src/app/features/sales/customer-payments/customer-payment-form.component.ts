@@ -17,6 +17,8 @@ import { CustomerService, CustomerResponse } from '../services/customer.service'
 import { InvoiceService, InvoiceResponse } from '../services/invoice.service';
 import { PaymentProviderService, PaymentProviderResponse } from '../../procurement/services/payment-provider.service';
 import { CUSTOMER_PAYMENT_METHODS, PaymentMethodOption, getPaymentMethodIcon as getMethodIcon } from '../../../shared/constants/payment-methods.constants';
+import { CurrencyService } from '../../../shared/services/currency.service';
+import { AppCurrencyPipe } from '../../../shared/pipes/app-currency.pipe';
 
 @Component({
   selector: 'app-customer-payment-form',
@@ -32,7 +34,8 @@ import { CUSTOMER_PAYMENT_METHODS, PaymentMethodOption, getPaymentMethodIcon as 
     ToastModule,
     DatePickerModule,
     SelectModule,
-    TagModule
+    TagModule,
+    AppCurrencyPipe
   ],
   providers: [MessageService],
   templateUrl: './customer-payment-form.component.html',
@@ -47,6 +50,7 @@ export class CustomerPaymentFormComponent implements OnInit {
   private readonly customerService = inject(CustomerService);
   private readonly invoiceService = inject(InvoiceService);
   private readonly paymentProviderService = inject(PaymentProviderService);
+  private readonly currencyService = inject(CurrencyService);
 
   form: FormGroup;
   loading = false;
@@ -62,6 +66,14 @@ export class CustomerPaymentFormComponent implements OnInit {
 
   // Use shared payment methods from centralized constants
   paymentMethods: PaymentMethodOption[] = CUSTOMER_PAYMENT_METHODS;
+
+  get currencyCode(): string {
+    return this.currencyService.selectedCurrency();
+  }
+
+  get currencyLocale(): string {
+    return this.currencyService.getSelectedCurrencyLocale();
+  }
 
 
   constructor() {

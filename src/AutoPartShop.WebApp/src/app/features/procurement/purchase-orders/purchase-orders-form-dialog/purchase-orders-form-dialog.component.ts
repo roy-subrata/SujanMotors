@@ -10,6 +10,7 @@ import { TableModule } from 'primeng/table';
 import { MessageService } from 'primeng/api';
 import { PurchaseOrderService, PurchaseOrderResponse, CreatePurchaseOrderRequest, UpdatePurchaseOrderRequest } from '../../services/purchase-order.service';
 import { SupplierService, SupplierResponse } from '../../../inventory/services/supplier.service';
+import { CurrencyService } from '../../../../shared/services/currency.service';
 
 @Component({
   selector: 'app-purchase-orders-form-dialog',
@@ -46,6 +47,7 @@ export class PurchaseOrdersFormDialogComponent implements OnInit {
   private readonly supplierService = inject(SupplierService);
   private readonly messageService = inject(MessageService);
   private readonly fb = inject(FormBuilder);
+  private readonly currencyService = inject(CurrencyService);
 
   constructor() {
     this.form = this.createForm();
@@ -372,9 +374,10 @@ export class PurchaseOrdersFormDialogComponent implements OnInit {
    * Format currency
    */
   formatCurrency(value: number): string {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR'
-    }).format(value);
+    return this.currencyService.formatCurrency(value, this.currencyService.selectedCurrency());
+  }
+
+  get currencyCode(): string {
+    return this.currencyService.selectedCurrency();
   }
 }

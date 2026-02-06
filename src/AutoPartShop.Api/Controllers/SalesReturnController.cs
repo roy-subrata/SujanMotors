@@ -17,6 +17,7 @@ namespace AutoPartShop.Api.Controllers
         private readonly ISalesOrderRepository _salesOrderRepository;
         private readonly ICustomerPaymentRepository _customerPaymentRepository;
         private readonly ICurrentUserService _currentUserService;
+        private readonly ICodeGenerateService _codeGenerateService;
         private readonly AutoPartDbContext _dbContext;
 
         public SalesReturnController(
@@ -24,12 +25,14 @@ namespace AutoPartShop.Api.Controllers
             ISalesOrderRepository salesOrderRepository,
             ICustomerPaymentRepository customerPaymentRepository,
             ICurrentUserService currentUserService,
+            ICodeGenerateService codeGenerateService,
             AutoPartDbContext dbContext)
         {
             _salesReturnRepository = salesReturnRepository;
             _salesOrderRepository = salesOrderRepository;
             _customerPaymentRepository = customerPaymentRepository;
             _currentUserService = currentUserService;
+            _codeGenerateService = codeGenerateService;
             _dbContext = dbContext;
         }
 
@@ -52,7 +55,7 @@ namespace AutoPartShop.Api.Controllers
             if (salesOrder == null)
                 return BadRequest("Sales order not found.");
 
-            var returnNumber = $"SR-{DateTime.UtcNow:yyyyMMddHHmmss}-{Guid.NewGuid().ToString()[..8]}";
+            var returnNumber = await _codeGenerateService.GenerateAsync("SR");
             var salesReturn = SalesReturn.Create(returnNumber, request.SalesOrderId, null, request.Reason, request.WarehouseId, DateTime.UtcNow, request.Notes);
             salesReturn.SetRefundType(request.RefundType);
 
@@ -72,6 +75,7 @@ namespace AutoPartShop.Api.Controllers
             salesReturn.CalculateRefund();
 
             await _salesReturnRepository.AddAsync(salesReturn);
+            await _codeGenerateService.SaveGenerateCodeAsync("SR");
 
             return CreatedAtAction(nameof(Get), new { id = salesReturn.Id }, MapToResponse(salesReturn));
         }

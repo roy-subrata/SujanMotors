@@ -279,7 +279,7 @@ public class FinancialSummaryService : IFinancialSummaryService
                 Sku = g.Key.SKU,
                 QuantitySold = g.Sum(sol => sol.Quantity),
                 TotalRevenue = g.Sum(sol => (sol.Quantity * sol.UnitPrice) - (sol.Quantity * sol.Discount)),
-                TotalProfit = g.Sum(sol => ((sol.Quantity * sol.UnitPrice) - (sol.Quantity * sol.Discount)) - (sol.Quantity * sol.Part!.CostPrice))
+                TotalProfit = g.Sum(sol => ((sol.Quantity * sol.UnitPrice) - (sol.Quantity * sol.Discount)) - (sol.QuantityInBaseUnit * sol.Part!.CostPrice))
             })
             .OrderByDescending(p => p.TotalRevenue)
             .Take(10)

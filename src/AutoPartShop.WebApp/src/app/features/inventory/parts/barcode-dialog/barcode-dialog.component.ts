@@ -533,18 +533,6 @@ export class BarcodeDialogComponent implements OnInit {
                 text-transform: uppercase;
                 letter-spacing: 0.5px;
               }
-              .barcode-label {
-                margin: 8px 0 4px 0;
-                font-size: 12px;
-                font-weight: bold;
-                word-break: break-word;
-              }
-              .barcode-value {
-                margin: 0;
-                font-size: 9px;
-                color: #666;
-                word-break: break-all;
-              }
               @media print {
                 body {
                   background: white;

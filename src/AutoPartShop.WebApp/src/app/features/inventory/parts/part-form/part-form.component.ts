@@ -23,6 +23,7 @@ import { CodeGenerationService } from '@/shared/services/CodeGenerationService';
 import { VehicleService, VehicleResponse, CreatePartCompatibilityRequest } from '../../services/vehicle.service';
 import { forkJoin, of, tap } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
+import { PRICING_RULES } from '@/shared/constants/pricing-rules';
 
 @Component({
     selector: 'app-part-form',
@@ -88,6 +89,7 @@ export class PartFormComponent implements OnInit {
 
     compatibleVehicles: VehicleCompatibilityResponse[] = [];
     pendingCompatibilities: Array<{ vehicle: VehicleResponse; isCompatible: boolean; notes: string }> = [];
+    pricingRules = PRICING_RULES;
 
     warrantyTypes = [
         { label: 'Manufacturer', value: 'MANUFACTURER' },
@@ -186,6 +188,8 @@ export class PartFormComponent implements OnInit {
             costPrice: part.costPrice,
             sellingPrice: part.sellingPrice,
             minimumStock: part.minimumStock,
+            minMarginPercentOverride: part.minMarginPercentOverride ?? null,
+            maxDiscountPercentOverride: part.maxDiscountPercentOverride ?? null,
             isActive: part.isActive,
             // Warranty fields
             hasWarranty: part.hasWarranty || false,
@@ -210,6 +214,8 @@ export class PartFormComponent implements OnInit {
             costPrice: [0, [Validators.required, Validators.min(0)]],
             sellingPrice: [0, [Validators.required, Validators.min(0)]],
             minimumStock: [0, [Validators.required, Validators.min(0)]],
+            minMarginPercentOverride: [null, [Validators.min(0), Validators.max(100)]],
+            maxDiscountPercentOverride: [null, [Validators.min(0), Validators.max(100)]],
             isActive: [true],
             // Warranty fields
             hasWarranty: [false],
@@ -218,6 +224,8 @@ export class PartFormComponent implements OnInit {
             warrantyTerms: [''],
             warrantyCertificateTemplate: ['']
         });
+
+        this.attachPricingValidators();
 
         // Add conditional validators for warranty fields
         this.partForm.get('hasWarranty')?.valueChanges.subscribe(hasWarranty => {
@@ -235,6 +243,43 @@ export class PartFormComponent implements OnInit {
             warrantyPeriodControl?.updateValueAndValidity();
             warrantyTypeControl?.updateValueAndValidity();
         });
+    }
+
+    private attachPricingValidators(): void {
+        const costControl = this.partForm.get('costPrice');
+        const sellingControl = this.partForm.get('sellingPrice');
+        const minMarginOverrideControl = this.partForm.get('minMarginPercentOverride');
+        if (!costControl || !sellingControl) return;
+
+        const validate = () => this.updateMinMarginValidation();
+        costControl.valueChanges.subscribe(validate);
+        sellingControl.valueChanges.subscribe(validate);
+        minMarginOverrideControl?.valueChanges.subscribe(validate);
+        this.updateMinMarginValidation();
+    }
+
+    private updateMinMarginValidation(): void {
+        const cost = Number(this.partForm.get('costPrice')?.value || 0);
+        const selling = Number(this.partForm.get('sellingPrice')?.value || 0);
+        const overrideValue = this.partForm.get('minMarginPercentOverride')?.value;
+        const minMargin = overrideValue === null || overrideValue === undefined || overrideValue === '' ? this.pricingRules.minMarginPercent : Number(overrideValue);
+        const minAllowed = cost + (cost * (minMargin / 100));
+
+        const control = this.partForm.get('sellingPrice');
+        if (!control) return;
+
+        const errors = { ...(control.errors || {}) };
+        if (cost > 0 && selling < minAllowed) {
+            errors['minMargin'] = { minAllowed };
+        } else {
+            delete errors['minMargin'];
+        }
+
+        if (Object.keys(errors).length === 0) {
+            control.setErrors(null);
+        } else {
+            control.setErrors(errors);
+        }
     }
 
     private initializeCompatibilityForm(): void {
@@ -588,6 +633,8 @@ export class PartFormComponent implements OnInit {
             costPrice: this.partForm.value.costPrice || 0,
             sellingPrice: this.partForm.value.sellingPrice || 0,
             minimumStock: this.partForm.value.minimumStock || 0,
+            minMarginPercentOverride: this.partForm.value.minMarginPercentOverride ?? null,
+            maxDiscountPercentOverride: this.partForm.value.maxDiscountPercentOverride ?? null,
             // Warranty fields
             hasWarranty: this.partForm.value.hasWarranty || false,
             warrantyPeriodMonths: this.partForm.value.hasWarranty ? this.partForm.value.warrantyPeriodMonths : null,
@@ -643,6 +690,8 @@ export class PartFormComponent implements OnInit {
             sellingPrice: this.partForm.value.sellingPrice || 0,
             minimumStock: this.partForm.value.minimumStock || 0,
             isActive: this.partForm.value.isActive,
+            minMarginPercentOverride: this.partForm.value.minMarginPercentOverride ?? null,
+            maxDiscountPercentOverride: this.partForm.value.maxDiscountPercentOverride ?? null,
             // Warranty fields
             hasWarranty: this.partForm.value.hasWarranty || false,
             warrantyPeriodMonths: this.partForm.value.hasWarranty ? this.partForm.value.warrantyPeriodMonths : null,
@@ -726,6 +775,13 @@ export class PartFormComponent implements OnInit {
         if (control?.hasError('min')) {
             return `${this.getFieldLabel(fieldName)} must be at least ${control.getError('min')?.min}`;
         }
+        if (control?.hasError('minMargin') && fieldName === 'sellingPrice') {
+            const minAllowed = control.getError('minMargin')?.minAllowed ?? 0;
+            return `Selling Price must be at least ${minAllowed}`;
+        }
+        if (control?.hasError('max') && (fieldName === 'minMarginPercentOverride' || fieldName === 'maxDiscountPercentOverride')) {
+            return `${this.getFieldLabel(fieldName)} must be at most ${control.getError('max')?.max}`;
+        }
         if (control?.hasError('pattern') && fieldName === 'partNumber') {
             return 'Part Number must start with a letter';
         }
@@ -740,6 +796,8 @@ export class PartFormComponent implements OnInit {
             categoryId: 'Category',
             costPrice: 'Cost Price',
             sellingPrice: 'Selling Price',
+            minMarginPercentOverride: 'Min Margin (%)',
+            maxDiscountPercentOverride: 'Max Discount (%)',
             minimumStock: 'Minimum Stock',
             warrantyPeriodMonths: 'Warranty Period',
             warrantyType: 'Warranty Type'
@@ -764,6 +822,34 @@ export class PartFormComponent implements OnInit {
 
     getCompatibilityLabel(isCompatible: boolean): string {
         return isCompatible ? 'Compatible' : 'Not Compatible';
+    }
+
+    getMinMarginPercent(): number {
+        const overrideValue = this.partForm.get('minMarginPercentOverride')?.value;
+        return overrideValue === null || overrideValue === undefined || overrideValue === ''
+            ? this.pricingRules.minMarginPercent
+            : Number(overrideValue);
+    }
+
+    getMaxDiscountPercent(): number {
+        const overrideValue = this.partForm.get('maxDiscountPercentOverride')?.value;
+        return overrideValue === null || overrideValue === undefined || overrideValue === ''
+            ? this.pricingRules.maxDiscountPercent
+            : Number(overrideValue);
+    }
+
+    getMinAllowedPrice(): number {
+        const cost = Number(this.partForm.get('costPrice')?.value || 0);
+        const minMargin = this.getMinMarginPercent();
+        if (cost <= 0) return 0;
+        return cost + (cost * (minMargin / 100));
+    }
+
+    getMaxDiscountedPrice(): number {
+        const mrp = Number(this.partForm.get('sellingPrice')?.value || 0);
+        const maxDiscount = this.getMaxDiscountPercent();
+        if (mrp <= 0) return 0;
+        return mrp - (mrp * (maxDiscount / 100));
     }
 
     private syncSelectedLookups(): void {

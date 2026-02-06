@@ -13,6 +13,7 @@ import { RippleModule } from 'primeng/ripple';
 import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
 import { PaymentProviderService, PaymentProviderResponse, PaginatedPaymentProviderResponse } from '../services/payment-provider.service';
 import { TagModule } from 'primeng/tag';
+import { AppCurrencyPipe } from '../../../shared/pipes/app-currency.pipe';
 
 @Component({
   selector: 'app-payment-provider-list',
@@ -28,7 +29,8 @@ import { TagModule } from 'primeng/tag';
     DialogModule,
     ContextMenuModule,
     RippleModule,
-    TagModule
+    TagModule,
+    AppCurrencyPipe
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: './payment-provider-list.component.html',

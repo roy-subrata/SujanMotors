@@ -67,8 +67,8 @@ export class SupplierPaymentFormComponent implements OnInit {
     defaultCurrency: Currency | null = null;
     currencies: Currency[] = [];
     selectedCurrency: Currency | null = null;
-    currencyCode = 'LKR';
-    currencySymbol = 'Rs';
+    currencyCode = this.currencyService.selectedCurrency();
+    currencySymbol = '';
 
     constructor() {
         this.form = this.fb.group({
@@ -331,6 +331,7 @@ export class SupplierPaymentFormComponent implements OnInit {
         this.selectedCurrency = currency;
         this.currencyCode = currency.code;
         this.currencySymbol = currency.symbol;
+        this.currencyService.setSelectedCurrency(currency.code);
     }
 
     /**
@@ -532,10 +533,7 @@ export class SupplierPaymentFormComponent implements OnInit {
         this.router.navigate(['/procurement/supplier-payments']);
     }
     formatCurrency(value: number): string {
-        return new Intl.NumberFormat('en-IN', {
-            style: 'currency',
-            currency: 'INR'
-        }).format(value);
+        return this.currencyService.formatCurrency(value, this.currencyService.selectedCurrency());
     }
 
     /**

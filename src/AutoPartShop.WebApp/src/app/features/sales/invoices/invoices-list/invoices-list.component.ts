@@ -82,6 +82,14 @@ export class InvoicesListComponent implements OnInit {
     paymentProviders: { label: string; value: string; id: string }[] = [];
     paymentMethods: { label: string; value: string }[] = [];
 
+    get currencyCode(): string {
+        return this.currencyService.selectedCurrency();
+    }
+
+    get currencyLocale(): string {
+        return this.currencyService.getSelectedCurrencyLocale();
+    }
+
     statusOptions = [
         { label: 'All Statuses', value: '' },
         { label: 'Draft', value: 'DRAFT' },

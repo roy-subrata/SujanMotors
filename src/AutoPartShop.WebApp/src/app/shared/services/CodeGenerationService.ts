@@ -3,7 +3,7 @@ import { inject, Injectable } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { environment } from 'src/environments/environment';
 
-export type CodeType = 'unit' | 'category' | 'brand' | 'part' | 'warehouse' | 'invoice' | 'sales-order' | 'customer' | 'supplier' | 'purchase-order' | 'technician';
+export type CodeType = 'unit' | 'category' | 'brand' | 'part' | 'warehouse' | 'invoice' | 'sales-order' | 'customer' | 'supplier' | 'purchase-order' | 'technician' | 'goods-receipt' | 'sales-return';
 
 @Injectable({
     providedIn: 'root'
@@ -30,7 +30,9 @@ export class CodeGenerationService {
             'Customer': 'customer',
             'Supplier': 'supplier',
             'PurchaseOrder': 'purchase-order',
-            'Technician': 'technician'
+            'Technician': 'technician',
+            'GoodsReceipt': 'goods-receipt',
+            'SalesReturn': 'sales-return'
         };
 
         const endpoint = typeMap[type] || type.toLowerCase();
@@ -124,5 +126,19 @@ export class CodeGenerationService {
      */
     generateTechnicianCode(): Observable<string> {
         return this.getCode('technician');
+    }
+
+    /**
+     * Generate goods receipt number
+     */
+    generateGoodsReceiptNumber(): Observable<string> {
+        return this.getCode('goods-receipt');
+    }
+
+    /**
+     * Generate sales return number
+     */
+    generateSalesReturnNumber(): Observable<string> {
+        return this.getCode('sales-return');
     }
 }

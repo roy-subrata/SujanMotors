@@ -31,7 +31,7 @@ namespace AutoPartsShop.Api.Controllers
         [HttpGet("part")]
         public async Task<IActionResult> GeneratePartCode(CancellationToken cancellationToken = default)
         {
-            var code = await _codeGenerator.GenerateAsync("SM", cancellationToken);
+            var code = await _codeGenerator.GenerateAsync("SKU", cancellationToken);
             return Ok(code);
         }
 
@@ -83,6 +83,13 @@ namespace AutoPartsShop.Api.Controllers
             var goodsReceiptNumber = await _codeGenerator.GenerateAsync("GRN", cancellationToken);
             return Ok(new { goodsReceiptNumber });
         }   
+
+        [HttpGet("sales-return")]
+        public async Task<IActionResult> GenerateSalesReturnNumber(CancellationToken cancellationToken = default)
+        {
+            var salesReturnNumber = await _codeGenerator.GenerateAsync("SR", cancellationToken);
+            return Ok(new { salesReturnNumber });
+        }
         
         [HttpGet("technician")]
         public async Task<IActionResult> GenerateTechnicianCode(CancellationToken cancellationToken = default)

@@ -65,6 +65,14 @@ export class InvoiceFormComponent implements OnInit {
   loadingSalesOrders = signal(false);
   showPaymentDialog = signal(false);
 
+  get currencyCode(): string {
+    return this.currencyService.selectedCurrency();
+  }
+
+  get currencyLocale(): string {
+    return this.currencyService.getSelectedCurrencyLocale();
+  }
+
   // Computed property for p-select options
   salesOrderOptions = computed(() => {
     return this.salesOrders().map(order => ({

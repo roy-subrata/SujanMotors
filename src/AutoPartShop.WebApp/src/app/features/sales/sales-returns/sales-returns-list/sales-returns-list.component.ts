@@ -1,21 +1,23 @@
-import { Component, OnInit, inject, ViewChild, HostListener } from '@angular/core';
+import { Component, OnInit, inject, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { SalesReturnService, SalesReturnResponse } from '../../services/sales-return.service';
-import { TableModule } from 'primeng/table';
+import { TableModule, TableLazyLoadEvent } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
+import { Select } from 'primeng/select';
 import { DatePickerModule } from 'primeng/datepicker';
+import { PanelModule } from 'primeng/panel';
 import { CardModule } from 'primeng/card';
-import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { PaginatorModule, PaginatorState } from 'primeng/paginator';
-import { ContextMenuModule, ContextMenu } from 'primeng/contextmenu';
-import { RippleModule } from 'primeng/ripple';
-import { SelectModule } from 'primeng/select';
+import { MenuModule, Menu } from 'primeng/menu';
+import { TagModule } from 'primeng/tag';
+import { InputGroupModule } from 'primeng/inputgroup';
+import { InputGroupAddonModule } from 'primeng/inputgroupaddon';
 import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
 import { CurrencyService } from '../../../../shared/services/currency.service';
 
@@ -28,23 +30,25 @@ import { CurrencyService } from '../../../../shared/services/currency.service';
     TableModule,
     ButtonModule,
     InputTextModule,
+    Select,
     DatePickerModule,
+    PanelModule,
     CardModule,
-    TagModule,
     TooltipModule,
     ToastModule,
     ConfirmDialogModule,
     PaginatorModule,
-    ContextMenuModule,
-    RippleModule,
-    SelectModule
+    MenuModule,
+    TagModule,
+    InputGroupModule,
+    InputGroupAddonModule
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: './sales-returns-list.component.html',
   styleUrls: ['./sales-returns-list.component.css']
 })
 export class SalesReturnsListComponent implements OnInit {
-  @ViewChild('contextMenu') contextMenu: ContextMenu | undefined;
+  @ViewChild('actionMenu') actionMenu!: Menu;
 
   private readonly salesReturnService = inject(SalesReturnService);
   private readonly router = inject(Router);
@@ -56,16 +60,19 @@ export class SalesReturnsListComponent implements OnInit {
   loading = false;
   totalRecords = 0;
   pageNumber = 1;
-  pageSize = 25;
-  pageSizeOptions = [10, 25, 50, 100];
+  pageSize = 10;
+  first = 0;
+  pageSizeOptions = [10, 20, 50];
+  pageSizeSelectOptions = this.pageSizeOptions.map((size) => ({ label: size.toString(), value: size }));
+  Math = Math;
 
   // Filters
   searchTerm = '';
   filterStatus = '';
   dateRange: Date[] = [];
 
-  // Context menu
-  contextMenuItems: MenuItem[] = [];
+  // Action menu
+  actionMenuItems: MenuItem[] = [];
   selectedReturn: SalesReturnResponse | null = null;
 
   statusOptions = [
@@ -79,90 +86,47 @@ export class SalesReturnsListComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadSalesReturns();
-    this.initializeContextMenu();
   }
 
   /**
-   * Initialize context menu items
+   * Show action menu
    */
-  private initializeContextMenu(): void {
-    this.contextMenuItems = [
+  showActionMenu(event: Event, salesReturn: SalesReturnResponse): void {
+    this.selectedReturn = salesReturn;
+    this.actionMenuItems = [
       {
         label: 'View',
         icon: 'pi pi-eye',
-        command: () => {
-          if (this.selectedReturn) {
-            this.viewReturn(this.selectedReturn);
-          }
-        }
+        command: () => this.viewReturn(salesReturn)
       },
       { separator: true },
       {
         label: 'Approve',
         icon: 'pi pi-check',
-        command: () => {
-          if (this.selectedReturn) {
-            this.approveReturn(this.selectedReturn, new Event('click'));
-          }
-        },
-        visible: this.selectedReturn ? this.selectedReturn.status === 'PENDING' : false
+        command: () => this.approveReturn(salesReturn, new Event('click')),
+        visible: salesReturn.status === 'PENDING'
       },
       {
         label: 'Reject',
         icon: 'pi pi-times',
-        command: () => {
-          if (this.selectedReturn) {
-            this.rejectReturn(this.selectedReturn, new Event('click'));
-          }
-        },
-        visible: this.selectedReturn ? this.selectedReturn.status === 'PENDING' : false
+        command: () => this.rejectReturn(salesReturn, new Event('click')),
+        visible: salesReturn.status === 'PENDING'
       },
       {
         label: 'Receive',
         icon: 'pi pi-inbox',
-        command: () => {
-          if (this.selectedReturn) {
-            this.receiveReturn(this.selectedReturn, new Event('click'));
-          }
-        },
-        visible: this.selectedReturn ? this.selectedReturn.status === 'APPROVED' : false
+        command: () => this.receiveReturn(salesReturn, new Event('click')),
+        visible: salesReturn.status === 'APPROVED'
       },
       {
         label: 'Process',
         icon: 'pi pi-cog',
-        command: () => {
-          if (this.selectedReturn) {
-            this.processReturn(this.selectedReturn, new Event('click'));
-          }
-        },
-        visible: this.selectedReturn ? this.selectedReturn.status === 'RECEIVED' : false
+        command: () => this.processReturn(salesReturn, new Event('click')),
+        visible: salesReturn.status === 'RECEIVED'
       }
     ];
-  }
 
-  /**
-   * Show context menu
-   */
-  showContextMenu(event: MouseEvent, salesReturn: SalesReturnResponse): void {
-    this.selectedReturn = salesReturn;
-    this.initializeContextMenu();
-    if (this.contextMenu) {
-      this.contextMenu.show(event);
-    }
-  }
-
-  /**
-   * Handle keyboard shortcuts
-   */
-  @HostListener('window:keydown', ['$event'])
-  handleKeyboardEvent(event: KeyboardEvent): void {
-    if (event.ctrlKey && event.key === 'n') {
-      event.preventDefault();
-      this.createReturn();
-    } else if (event.key === 'F5') {
-      event.preventDefault();
-      this.loadSalesReturns();
-    }
+    this.actionMenu.toggle(event);
   }
 
   loadSalesReturns(): void {
@@ -217,18 +181,18 @@ export class SalesReturnsListComponent implements OnInit {
   }
 
   onSearch(): void {
-    this.pageNumber = 1;
+    this.resetPagination();
     this.loadSalesReturns();
   }
 
   onFilterChange(): void {
-    this.pageNumber = 1;
+    this.resetPagination();
     this.loadSalesReturns();
   }
 
   clearSearch(): void {
     this.searchTerm = '';
-    this.pageNumber = 1;
+    this.resetPagination();
     this.loadSalesReturns();
   }
 
@@ -236,14 +200,35 @@ export class SalesReturnsListComponent implements OnInit {
     this.searchTerm = '';
     this.filterStatus = '';
     this.dateRange = [];
-    this.pageNumber = 1;
+    this.resetPagination();
     this.loadSalesReturns();
   }
 
+  hasActiveFilters(): boolean {
+    return !!(this.searchTerm || this.filterStatus || (this.dateRange && this.dateRange.length > 0));
+  }
+
   onPageChange(event: PaginatorState): void {
-    this.pageNumber = (event.page ?? 0) + 1;
-    this.pageSize = event.rows ?? this.pageSize;
+    this.first = event.first ?? 0;
+    this.pageSize = event.rows ?? 10;
+    this.pageNumber = Math.floor(this.first / this.pageSize) + 1;
     this.loadSalesReturns();
+  }
+
+  onLazyLoad(event: TableLazyLoadEvent): void {
+    this.first = event.first ?? 0;
+    this.pageSize = event.rows ?? 10;
+    this.pageNumber = Math.floor(this.first / this.pageSize) + 1;
+    this.loadSalesReturns();
+  }
+
+  refreshData(): void {
+    this.loadSalesReturns();
+  }
+
+  private resetPagination(): void {
+    this.pageNumber = 1;
+    this.first = 0;
   }
 
   exportReturns(format: 'csv' | 'json'): void {
@@ -451,6 +436,19 @@ export class SalesReturnsListComponent implements OnInit {
   }
 
   formatDate(date: string): string {
-    return new Date(date).toLocaleDateString('en-IN');
+    if (!date) return '-';
+    return new Date(date).toLocaleDateString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    });
+  }
+
+  formatStatus(status: string): string {
+    if (!status) return '-';
+    return status
+      .split('_')
+      .map((word) => word.charAt(0) + word.slice(1).toLowerCase())
+      .join(' ');
   }
 }

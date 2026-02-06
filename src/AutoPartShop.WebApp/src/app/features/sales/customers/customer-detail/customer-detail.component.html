@@ -47,21 +47,21 @@
           <div class="stat-icon"><i class="pi pi-dollar"></i></div>
           <div class="stat-content">
             <span class="stat-label">Total Paid</span>
-            <span class="stat-value">{{ summary.totalPaid | currency:'INR':'symbol':'1.0-0' }}</span>
+            <span class="stat-value">{{ summary.totalPaid | appCurrency }}</span>
           </div>
         </div>
         <div class="stat-item stat-orange">
           <div class="stat-icon"><i class="pi pi-exclamation-triangle"></i></div>
           <div class="stat-content">
             <span class="stat-label">Outstanding</span>
-            <span class="stat-value">{{ summary.totalOutstanding | currency:'INR':'symbol':'1.0-0' }}</span>
+            <span class="stat-value">{{ summary.totalOutstanding | appCurrency }}</span>
           </div>
         </div>
         <div class="stat-item stat-purple">
           <div class="stat-icon"><i class="pi pi-credit-card"></i></div>
           <div class="stat-content">
             <span class="stat-label">Advance</span>
-            <span class="stat-value">{{ summary.availableAdvance | currency:'INR':'symbol':'1.0-0' }}</span>
+            <span class="stat-value">{{ summary.availableAdvance | appCurrency }}</span>
           </div>
         </div>
       </div>
@@ -165,7 +165,7 @@
             <span class="invoice-number">{{ payment.invoiceNumber || '-' }}</span>
           </td>
           <td class="text-right">
-            <span class="amount">{{ payment.amount | currency:'INR':'symbol':'1.2-2' }}</span>
+            <span class="amount">{{ payment.amount | appCurrency }}</span>
           </td>
           <td>
             <p-tag [value]="payment.paymentMethod" severity="info"></p-tag>

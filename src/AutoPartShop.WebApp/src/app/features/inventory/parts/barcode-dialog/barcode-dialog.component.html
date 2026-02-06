@@ -4,7 +4,9 @@
   <!-- Header -->
   <div class="dialog-header">
     <h2 class="dialog-title" *ngIf="part">Barcode: {{ part.name }}</h2>
-    <p class="dialog-subtitle" *ngIf="part">SKU: {{ part.sku }} | Part #: {{ part.partNumber }}</p>
+    <p class="dialog-subtitle" *ngIf="part">
+      SKU: {{ part.sku }} | Part #: {{ part.partNumber }}
+    </p>
   </div>
 
   <!-- Barcode Controls -->
@@ -133,6 +135,7 @@
       </p>
       <p class="barcode-loading" *ngIf="isGenerating">Generating barcode...</p>
     </div>
+
   </div>
 
   <!-- Barcode Information Section -->

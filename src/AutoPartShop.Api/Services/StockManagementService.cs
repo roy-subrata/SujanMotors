@@ -15,6 +15,7 @@ public class StockManagementService
     private readonly IPartRepository _partRepository;
     private readonly IPurchaseOrderRepository _purchaseOrderRepository;
     private readonly ICodeGenerateService _codeGenerateService;
+    private readonly IUnitConversionService _unitConversionService;
 
     public StockManagementService(
         IStockLevelRepository stockLevelRepository,
@@ -22,7 +23,8 @@ public class StockManagementService
         IStockLotRepository stockLotRepository,
         IPartRepository partRepository,
         IPurchaseOrderRepository purchaseOrderRepository,
-        ICodeGenerateService codeGenerateService)
+        ICodeGenerateService codeGenerateService,
+        IUnitConversionService unitConversionService)
     {
         _stockLevelRepository = stockLevelRepository;
         _stockMovementRepository = stockMovementRepository;
@@ -30,6 +32,7 @@ public class StockManagementService
         _partRepository = partRepository;
         _purchaseOrderRepository = purchaseOrderRepository;
         _codeGenerateService = codeGenerateService;
+        _unitConversionService = unitConversionService;
     }
 
     /// <summary>
@@ -49,10 +52,34 @@ public class StockManagementService
 
             foreach (var grnLine in goodsReceipt.LineItems)
             {
+                var part = await _partRepository.GetByIdAsync(grnLine.PartId, cancellationToken);
+                if (part == null)
+                    throw new InvalidOperationException($"Part not found for goods receipt line {grnLine.Id}");
+
                 // Calculate accepted quantity (received - rejected)
                 int acceptedQuantity = grnLine.ReceivedQuantity - grnLine.RejectedQuantity;
                 if (acceptedQuantity <= 0)
                     continue;
+
+                // Normalize quantities and unit cost to base unit if needed
+                var receivedBaseQuantity = grnLine.ReceivedQuantity;
+                var acceptedBaseQuantity = acceptedQuantity;
+                var baseUnitCost = grnLine.UnitCost;
+
+                if (part.UnitId.HasValue && grnLine.UnitId.HasValue && grnLine.UnitId.Value != part.UnitId.Value)
+                {
+                    var conversionFactor = await _unitConversionService.GetConversionFactorAsync(
+                        grnLine.UnitId.Value,
+                        part.UnitId.Value,
+                        cancellationToken);
+
+                    if (conversionFactor <= 0)
+                        throw new InvalidOperationException("Invalid unit conversion factor.");
+
+                    receivedBaseQuantity = (int)Math.Round(grnLine.ReceivedQuantity * conversionFactor, MidpointRounding.AwayFromZero);
+                    acceptedBaseQuantity = (int)Math.Round(acceptedQuantity * conversionFactor, MidpointRounding.AwayFromZero);
+                    baseUnitCost = grnLine.UnitCost / conversionFactor;
+                }
 
                 // Get or create stock level for this part in this warehouse
                 var stockLevel = await GetOrCreateStockLevelAsync(
@@ -61,14 +88,14 @@ public class StockManagementService
                     cancellationToken);
 
                 // Update stock level
-                stockLevel.AddStock(acceptedQuantity, "GRN");
+                stockLevel.AddStock(acceptedBaseQuantity, "GRN");
                 await _stockLevelRepository.UpdateAsync(stockLevel, cancellationToken);
 
                 // Create stock movement audit record
                 var movement = StockMovement.Create(
                     stockLevelId: stockLevel.Id,
                     movementType: "IN",
-                    quantity: acceptedQuantity,
+                    quantity: acceptedBaseQuantity,
                     reason: "GRN",
                     referenceNumber: goodsReceipt.GRNNumber,
                     movementDate: DateTime.UtcNow);
@@ -85,8 +112,8 @@ public class StockManagementService
                     warehouseId: goodsReceipt.WarehouseId,
                     supplierId: purchaseOrder.SupplierId,
                     goodsReceiptLineId: grnLine.Id,
-                    quantityReceived: grnLine.ReceivedQuantity,
-                    costPrice: grnLine.UnitCost,
+                    quantityReceived: receivedBaseQuantity,
+                    costPrice: baseUnitCost,
                     receivingDate: goodsReceipt.ReceiptDate,
                     manufacturerLotNumber: grnLine.SerialNumbers, // Using serial numbers field for mfr lot
                     expiryDate: null, // Can be set later if needed
@@ -118,9 +145,27 @@ public class StockManagementService
         {
             foreach (var grnLine in goodsReceipt.LineItems)
             {
+                var part = await _partRepository.GetByIdAsync(grnLine.PartId, cancellationToken);
+                if (part == null)
+                    throw new InvalidOperationException($"Part not found for goods receipt line {grnLine.Id}");
+
                 int acceptedQuantity = grnLine.ReceivedQuantity - grnLine.RejectedQuantity;
                 if (acceptedQuantity <= 0)
                     continue;
+
+                var acceptedBaseQuantity = acceptedQuantity;
+                if (part.UnitId.HasValue && grnLine.UnitId.HasValue && grnLine.UnitId.Value != part.UnitId.Value)
+                {
+                    var conversionFactor = await _unitConversionService.GetConversionFactorAsync(
+                        grnLine.UnitId.Value,
+                        part.UnitId.Value,
+                        cancellationToken);
+
+                    if (conversionFactor <= 0)
+                        throw new InvalidOperationException("Invalid unit conversion factor.");
+
+                    acceptedBaseQuantity = (int)Math.Round(acceptedQuantity * conversionFactor, MidpointRounding.AwayFromZero);
+                }
 
                 var stockLevel = await GetOrCreateStockLevelAsync(
                     grnLine.PartId,
@@ -128,16 +173,16 @@ public class StockManagementService
                     cancellationToken);
 
                 // Remove the stock that was added
-                if (acceptedQuantity <= stockLevel.QuantityOnHand)
+                if (acceptedBaseQuantity <= stockLevel.QuantityOnHand)
                 {
-                    stockLevel.RemoveStock(acceptedQuantity, "GRN Reversal");
+                    stockLevel.RemoveStock(acceptedBaseQuantity, "GRN Reversal");
                     await _stockLevelRepository.UpdateAsync(stockLevel, cancellationToken);
 
                     // Create reversal movement record
                     var movement = StockMovement.Create(
                         stockLevelId: stockLevel.Id,
                         movementType: "OUT",
-                        quantity: acceptedQuantity,
+                        quantity: acceptedBaseQuantity,
                         reason: "GRN Reversal",
                         referenceNumber: goodsReceipt.GRNNumber,
                         movementDate: DateTime.UtcNow);

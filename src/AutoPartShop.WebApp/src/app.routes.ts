@@ -17,6 +17,9 @@ export const appRoutes: Routes = [
     // Quick Sale - standalone layout (no sidebar/header)
     { path: 'quick-sale', component: QuickSaleComponent },
 
+    // E-commerce storefront - public module
+    { path: 'shop', loadChildren: () => import('./app/features/ecommerce/ecommerce.routes').then(m => m.ecommerceRoutes) },
+
     {
         path: '',
         component: AppLayout,

@@ -60,8 +60,9 @@
   <!-- Table Container -->
   <div class="table-container">
     <p-table [value]="supplierPayments" [paginator]="false" [rows]="pageSize" [totalRecords]="totalCount"
-      [loading]="loading" [lazy]="false" responsiveLayout="scroll"
-      styleClass="p-datatable-striped" [globalFilterFields]="['supplierName', 'status', 'invoiceNumber']">
+      [loading]="loading" [lazy]="true" (onLazyLoad)="onLazyLoad($event)"
+      responsiveLayout="stack" [breakpoint]="'960px'"
+      styleClass="p-datatable-striped stack-table" [globalFilterFields]="['supplierName', 'status', 'invoiceNumber']">
 
       <ng-template pTemplate="header">
         <tr>
@@ -82,30 +83,30 @@
 
       <ng-template pTemplate="body" let-payment>
         <tr>
-          <td>
+          <td data-p-label="Supplier">
             <div class="supplier-info">
               <div class="supplier-name">{{ payment.supplierName }}</div>
               <div class="supplier-meta" *ngIf="payment.description">{{ payment.description }}</div>
             </div>
           </td>
-          <td>
+          <td data-p-label="Payment Type">
             <p-tag *ngIf="payment.paymentType === 'ADVANCE'" value="ADVANCE" severity="info" [rounded]="true"></p-tag>
             <p-tag *ngIf="payment.paymentType === 'REGULAR'" value="REGULAR" severity="success"
               [rounded]="true"></p-tag>
             <p-tag *ngIf="!payment.paymentType || payment.paymentType === ''" value="N/A" severity="secondary"
               [rounded]="true"></p-tag>
           </td>
-          <td class="text-right amount-column">
+          <td data-p-label="Gross Amount" class="text-right amount-column">
             <span class="amount-value">{{ formatCurrency(payment.amount) }}</span>
           </td>
-          <td class="text-right fee-column">
+          <td data-p-label="Payment Fee" class="text-right fee-column">
             <span class="fee-value">{{ formatCurrency(payment.paymentFee || 0) }}</span>
           </td>
-          <td class="text-right net-amount-column">
+          <td data-p-label="Net Amount" class="text-right net-amount-column">
             <span class="net-amount-value">{{ formatCurrency(payment.netAmount || payment.amount) }}</span>
           </td>
-          <td>{{ payment.paymentDate | date:'dd-MMM-yyyy' }}</td>
-          <td>
+          <td data-p-label="Payment Date">{{ payment.paymentDate | date:'dd-MMM-yyyy' }}</td>
+          <td data-p-label="Payment Method">
             <div class="flex items-center gap-2">
               <span class="payment-method-badge">{{ payment.paymentMethod }}</span>
               <p-tag *ngIf="payment.paymentMethod === 'CASH' && payment.status === 'COMPLETED'"
@@ -115,7 +116,7 @@
                      pTooltip="Auto-confirmed cash payment"></p-tag>
             </div>
           </td>
-          <td>
+          <td data-p-label="Status">
             <div class="flex items-center gap-2">
               <app-status-badge [status]="payment.status" type="payment"></app-status-badge>
               <button *ngIf="payment.status === 'PENDING' || payment.status === 'PROCESSING'"
@@ -130,7 +131,7 @@
               </button>
             </div>
           </td>
-          <td>
+          <td data-p-label="Payment Flow">
             <div class="payment-accounts-cell">
               <div class="account-info source" pTooltip="Your Account (Source)" tooltipPosition="top">
                 <i class="pi pi-arrow-up-right source-icon"></i>
@@ -142,10 +143,10 @@
               </div>
             </div>
           </td>
-          <td>
+          <td data-p-label="Invoice #">
             <span class="invoice-number">{{ payment.invoiceNumber || '-' }}</span>
           </td>
-          <td>
+          <td data-p-label="Reconciled">
             <div class="status-cell">
               <app-status-badge [status]="payment.isReconciled?'YES':'NO'" type="goods-receipt">
               </app-status-badge>
@@ -160,7 +161,7 @@
               </div>
             </div>
           </td>
-          <td class="actions-column">
+          <td data-p-label="Actions" class="actions-column">
             <button pButton pRipple type="button" icon="pi pi-ellipsis-v" class="p-button-text p-button-sm"
               pTooltip="Actions" tooltipPosition="left" (contextmenu)="showContextMenu($event, payment)"
               (click)="showContextMenu($event, payment)">
@@ -179,15 +180,36 @@
       </ng-template>
     </p-table>
 
-    <!-- Paginator -->
-    <p-paginator
-      [rows]="pageSize"
-      [totalRecords]="totalCount"
-      [rowsPerPageOptions]="pageSizeOptions"
-      [showCurrentPageReport]="true"
-      currentPageReportTemplate="Showing {first} to {last} of {totalRecords} supplier payments"
-      (onPageChange)="onPageChange($event)">
-    </p-paginator>
+    <!-- Pagination -->
+    <div class="pagination-section" *ngIf="totalCount > 0">
+      <div class="pagination-info">
+        Showing <strong>{{ first + 1 }}</strong> to <strong>{{ first + supplierPayments.length }}</strong> of <strong>{{ totalCount }}</strong> payments
+      </div>
+      <div class="pagination-controls">
+        <span class="page-size-label">Rows per page:</span>
+        <p-select
+          [options]="pageSizeSelectOptions"
+          [(ngModel)]="pageSize"
+          (onChange)="onPageChange({ first: 0, rows: pageSize })"
+          styleClass="page-size-dropdown">
+        </p-select>
+        <div class="page-nav">
+          <button class="page-btn" [disabled]="first === 0" (click)="onPageChange({ first: 0, rows: pageSize })">
+            <i class="pi pi-angle-double-left"></i>
+          </button>
+          <button class="page-btn" [disabled]="first === 0" (click)="onPageChange({ first: first - pageSize, rows: pageSize })">
+            <i class="pi pi-angle-left"></i>
+          </button>
+          <span class="page-indicator">{{ pageNumber }} / {{ Math.ceil(totalCount / pageSize) }}</span>
+          <button class="page-btn" [disabled]="first + pageSize >= totalCount" (click)="onPageChange({ first: first + pageSize, rows: pageSize })">
+            <i class="pi pi-angle-right"></i>
+          </button>
+          <button class="page-btn" [disabled]="first + pageSize >= totalCount" (click)="onPageChange({ first: (Math.ceil(totalCount / pageSize) - 1) * pageSize, rows: pageSize })">
+            <i class="pi pi-angle-double-right"></i>
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Context Menu -->

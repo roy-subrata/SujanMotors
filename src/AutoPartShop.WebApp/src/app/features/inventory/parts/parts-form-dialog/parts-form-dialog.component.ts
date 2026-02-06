@@ -14,6 +14,7 @@ import { BrandService, BrandResponse } from '../../services/brand.service';
 import { AutoCompleteModule } from 'primeng/autocomplete';
 import { CodeGenerationService } from '@/shared/services/CodeGenerationService';
 import { tap } from 'rxjs';
+import { PRICING_RULES } from '@/shared/constants/pricing-rules';
 
 @Component({
     selector: 'app-parts-form-dialog',
@@ -45,6 +46,7 @@ export class PartsFormDialogComponent implements OnInit {
     categories: CategoryResponse[] = [];
     units: UnitResponse[] = [];
     brands: BrandResponse[] = [];
+    pricingRules = PRICING_RULES;
 
     // Autocomplete properties for Create dialog
     filteredCategories: CategoryResponse[] = [];
@@ -165,7 +167,9 @@ export class PartsFormDialogComponent implements OnInit {
             unitId: [null],
             costPrice: [0, [Validators.required, Validators.min(0)]],
             sellingPrice: [0, [Validators.required, Validators.min(0)]],
-            minimumStock: [0, [Validators.required, Validators.min(0)]]
+            minimumStock: [0, [Validators.required, Validators.min(0)]],
+            minMarginPercentOverride: [null, [Validators.min(0), Validators.max(100)]],
+            maxDiscountPercentOverride: [null, [Validators.min(0), Validators.max(100)]]
         });
 
         this.updateForm = this.formBuilder.group({
@@ -179,8 +183,50 @@ export class PartsFormDialogComponent implements OnInit {
             costPrice: [0, [Validators.required, Validators.min(0)]],
             sellingPrice: [0, [Validators.required, Validators.min(0)]],
             minimumStock: [0, [Validators.required, Validators.min(0)]],
+            minMarginPercentOverride: [null, [Validators.min(0), Validators.max(100)]],
+            maxDiscountPercentOverride: [null, [Validators.min(0), Validators.max(100)]],
             isActive: [true]
         });
+
+        this.attachPricingValidators(this.createForm);
+        this.attachPricingValidators(this.updateForm);
+    }
+
+    private attachPricingValidators(form: FormGroup): void {
+        const costControl = form.get('costPrice');
+        const sellingControl = form.get('sellingPrice');
+        const minMarginOverrideControl = form.get('minMarginPercentOverride');
+        if (!costControl || !sellingControl) return;
+
+        const validate = () => this.updateMinMarginValidation(form);
+        costControl.valueChanges.subscribe(validate);
+        sellingControl.valueChanges.subscribe(validate);
+        minMarginOverrideControl?.valueChanges.subscribe(validate);
+        this.updateMinMarginValidation(form);
+    }
+
+    private updateMinMarginValidation(form: FormGroup): void {
+        const cost = Number(form.get('costPrice')?.value || 0);
+        const selling = Number(form.get('sellingPrice')?.value || 0);
+        const overrideValue = form.get('minMarginPercentOverride')?.value;
+        const minMargin = overrideValue === null || overrideValue === undefined || overrideValue === '' ? this.pricingRules.minMarginPercent : Number(overrideValue);
+        const minAllowed = cost + (cost * (minMargin / 100));
+
+        const control = form.get('sellingPrice');
+        if (!control) return;
+
+        const errors = { ...(control.errors || {}) };
+        if (cost > 0 && selling < minAllowed) {
+            errors['minMargin'] = { minAllowed };
+        } else {
+            delete errors['minMargin'];
+        }
+
+        if (Object.keys(errors).length === 0) {
+            control.setErrors(null);
+        } else {
+            control.setErrors(errors);
+        }
     }
 
     /**
@@ -204,6 +250,8 @@ export class PartsFormDialogComponent implements OnInit {
                 costPrice: this.selectedPart.costPrice,
                 sellingPrice: this.selectedPart.sellingPrice,
                 minimumStock: this.selectedPart.minimumStock,
+                minMarginPercentOverride: this.selectedPart.minMarginPercentOverride ?? null,
+                maxDiscountPercentOverride: this.selectedPart.maxDiscountPercentOverride ?? null,
                 isActive: this.selectedPart.isActive
             });
         }
@@ -399,7 +447,9 @@ export class PartsFormDialogComponent implements OnInit {
             unitId: this.selectedCreateUnit?.id ?? null,
             costPrice: this.createForm.get('costPrice')?.value ?? 0,
             sellingPrice: this.createForm.get('sellingPrice')?.value ?? 0,
-            minimumStock: this.createForm.get('minimumStock')?.value ?? 0
+            minimumStock: this.createForm.get('minimumStock')?.value ?? 0,
+            minMarginPercentOverride: this.createForm.get('minMarginPercentOverride')?.value ?? null,
+            maxDiscountPercentOverride: this.createForm.get('maxDiscountPercentOverride')?.value ?? null
         };
 
         this.partService.createPart(request).subscribe({
@@ -451,6 +501,8 @@ export class PartsFormDialogComponent implements OnInit {
             costPrice: this.updateForm.get('costPrice')?.value ?? 0,
             sellingPrice: this.updateForm.get('sellingPrice')?.value ?? 0,
             minimumStock: this.updateForm.get('minimumStock')?.value ?? 0,
+            minMarginPercentOverride: this.updateForm.get('minMarginPercentOverride')?.value ?? null,
+            maxDiscountPercentOverride: this.updateForm.get('maxDiscountPercentOverride')?.value ?? null,
             isActive: this.updateForm.get('isActive')?.value ?? true
         };
 
@@ -502,6 +554,13 @@ export class PartsFormDialogComponent implements OnInit {
         if (control?.hasError('min')) {
             return `${this.getFieldLabel(fieldName)} must be at least ${control.getError('min')?.min}`;
         }
+        if (control?.hasError('max') && (fieldName === 'minMarginPercentOverride' || fieldName === 'maxDiscountPercentOverride')) {
+            return `${this.getFieldLabel(fieldName)} must be at most ${control.getError('max')?.max}`;
+        }
+        if (control?.hasError('minMargin') && fieldName === 'sellingPrice') {
+            const minAllowed = control.getError('minMargin')?.minAllowed ?? 0;
+            return `Selling Price must be at least ${minAllowed}`;
+        }
         return 'Invalid value';
     }
 
@@ -516,6 +575,8 @@ export class PartsFormDialogComponent implements OnInit {
             categoryId: 'Category',
             costPrice: 'Cost Price',
             sellingPrice: 'Selling Price',
+            minMarginPercentOverride: 'Min Margin (%)',
+            maxDiscountPercentOverride: 'Max Discount (%)',
             minimumStock: 'Minimum Stock'
         };
         return labels[fieldName] || fieldName;

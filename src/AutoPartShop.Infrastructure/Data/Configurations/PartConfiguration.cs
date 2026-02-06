@@ -49,6 +49,14 @@ public class PartEntityConfiguration : IEntityTypeConfiguration<Part>
                .IsRequired()
                .HasDefaultValue("BDT");
 
+        builder.Property(p => p.MinMarginPercentOverride)
+               .HasColumnType("decimal(5,2)")
+               .IsRequired(false);
+
+        builder.Property(p => p.MaxDiscountPercentOverride)
+               .HasColumnType("decimal(5,2)")
+               .IsRequired(false);
+
         // Warranty Configuration
         builder.Property(p => p.HasWarranty)
                .IsRequired()

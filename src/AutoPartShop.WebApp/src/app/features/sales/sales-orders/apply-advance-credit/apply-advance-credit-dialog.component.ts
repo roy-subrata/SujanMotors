@@ -8,6 +8,7 @@ import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { MessageService } from 'primeng/api';
 import { ApplyCustomerAdvanceCreditRequest, ApplyCustomerAdvanceCreditResponse, AvailableCustomerAdvancePayment, CustomerPaymentService } from '../../services/customer-payment.service';
+import { CurrencyService } from '../../../../shared/services/currency.service';
 
 @Component({
     selector: 'app-apply-customer-advance-credit-dialog',
@@ -21,6 +22,7 @@ export class ApplyCustomerAdvanceCreditDialogComponent implements OnInit {
     private readonly dialogRef: DynamicDialogRef = inject(DynamicDialogRef);
     private readonly config: DynamicDialogConfig = inject(DynamicDialogConfig);
     private readonly messageService: MessageService = inject(MessageService);
+    private readonly currencyService: CurrencyService = inject(CurrencyService);
 
     availableAdvances: AvailableCustomerAdvancePayment[] = [];
     selectedAdvance: AvailableCustomerAdvancePayment | null = null;
@@ -109,11 +111,15 @@ export class ApplyCustomerAdvanceCreditDialogComponent implements OnInit {
     }
 
     formatCurrency(value: number): string {
-        return new Intl.NumberFormat('en-BD', {
-            style: 'currency',
-            currency: 'BDT',
-            minimumFractionDigits: 2
-        }).format(value);
+        return this.currencyService.formatCurrency(value, this.currencyService.selectedCurrency());
+    }
+
+    get currencyCode(): string {
+        return this.currencyService.selectedCurrency();
+    }
+
+    get currencyLocale(): string {
+        return this.currencyService.getSelectedCurrencyLocale();
     }
 
     formatDate(date: string): string {

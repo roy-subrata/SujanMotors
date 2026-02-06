@@ -171,8 +171,9 @@ public class PurchaseOrderController : ControllerBase
             if (request.SupplierId == Guid.Empty || request.DeliveryDate == default)
                 return BadRequest(new { message = "SupplierId and DeliveryDate are required" });
 
+            var purchaseOrderNumber = await _codeGenerateService.GenerateAsync("PO", cancellationToken);
             var order = PurchaseOrder.Create(
-                $"PO-{DateTime.UtcNow:yyyyMMddHHmmss}",
+                purchaseOrderNumber,
                 request.SupplierId,
                 null,  // warehouseId - optional
                 request.DeliveryDate,
@@ -489,8 +490,9 @@ public class PurchaseOrderController : ControllerBase
             if (purchaseOrder is null)
                 return NotFound(new { message = "Purchase order not found" });
 
+            var grnNumber = await _codeGenerateService.GenerateAsync("GRN", cancellationToken);
             var grn = GoodsReceipt.Create(
-                $"GRN-{DateTime.UtcNow:yyyyMMddHHmmss}",
+                grnNumber,
                 request.PurchaseOrderId,
                 request.WarehouseId,
                 request.ReceivedDate

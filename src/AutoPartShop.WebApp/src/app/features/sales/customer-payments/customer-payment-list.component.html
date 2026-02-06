@@ -103,7 +103,7 @@
             </div>
           </td>
           <td class="text-right">
-            <span class="amount">{{ payment.amount | currency:'INR':'symbol':'1.2-2' }}</span>
+            <span class="amount">{{ payment.amount | appCurrency }}</span>
           </td>
           <td>
             <span class="timestamp">{{ payment.paymentDate | date:'MMM dd, yyyy' }}</span>

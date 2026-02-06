@@ -98,6 +98,7 @@ export class CurrencySelectorComponent implements OnInit, ControlValueAccessor {
   disabled = input<boolean>(false);
   filter = input<boolean>(true);
   showClear = input<boolean>(false);
+  syncWithGlobal = input<boolean>(true);
 
   // Internal value - will be synced with default currency from settings
   value: string = '';
@@ -160,5 +161,9 @@ export class CurrencySelectorComponent implements OnInit, ControlValueAccessor {
     this.value = value;
     this.onChange(value);
     this.onTouched();
+
+    if (this.syncWithGlobal()) {
+      this.currencyService.setSelectedCurrency(value);
+    }
   }
 }

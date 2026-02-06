@@ -45,8 +45,7 @@
           <div class="form-group">
             <label>Customer Code <span class="required">*</span></label>
             <div class="code-input-wrapper">
-              <input pInputText formControlName="customerCode" placeholder="Auto-generated"
-                [disabled]="mode() === 'create'" />
+              <input pInputText formControlName="customerCode" placeholder="Auto-generated" [disabled]="true" />
               <i *ngIf="generatingCode()" class="pi pi-spin pi-spinner code-spinner"></i>
             </div>
             <small class="field-hint" *ngIf="mode() === 'create'">
