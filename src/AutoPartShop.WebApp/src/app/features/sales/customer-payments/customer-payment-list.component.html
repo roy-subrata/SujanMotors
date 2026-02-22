@@ -20,6 +20,16 @@
     </div>
   </div>
 
+  <!-- Active Customer Filter Banner -->
+  <div *ngIf="customerFilter" class="customer-filter-banner">
+    <div class="customer-filter-info">
+      <i class="pi pi-user"></i>
+      <span>Showing payments for: <strong>{{ customerFilterName || 'Loading...' }}</strong></span>
+    </div>
+    <button pButton type="button" icon="pi pi-times" label="Show All Payments"
+      class="p-button-sm p-button-outlined" (click)="clearCustomerFilter()"></button>
+  </div>
+
   <!-- Filters Card -->
   <p-card styleClass="filters-card mb-4">
     <div class="filters-container">

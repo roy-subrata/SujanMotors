@@ -93,10 +93,10 @@ export class WarrantiesListComponent implements OnInit {
         this.applyFilters();
     }
 
-    getStatusSeverity(status: string): string {
+    getStatusSeverity(status: string): 'success' | 'warn' | 'info' | 'danger' | 'secondary' {
         switch (status) {
             case 'ACTIVE': return 'success';
-            case 'EXPIRED': return 'warning';
+            case 'EXPIRED': return 'warn';
             case 'CLAIMED': return 'info';
             case 'VOID': return 'danger';
             default: return 'secondary';

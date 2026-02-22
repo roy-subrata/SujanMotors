@@ -1,66 +1,88 @@
-import { Component, OnInit, inject, signal, ViewChild } from '@angular/core';
+import { Component, OnInit, ViewChild, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { CustomerService, CustomerResponse } from '../../services/customer.service';
-import { TableModule, Table } from 'primeng/table';
+
+import { TableModule, TableLazyLoadEvent } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
+import { Select } from 'primeng/select';
+import { TagModule } from 'primeng/tag';
+import { MenuModule, Menu } from 'primeng/menu';
+import { TooltipModule } from 'primeng/tooltip';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
-import { ContextMenuModule, ContextMenu } from 'primeng/contextmenu';
-import { TagModule } from 'primeng/tag';
-import { TooltipModule } from 'primeng/tooltip';
-import { RippleModule } from 'primeng/ripple';
-import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
-import { I18nService } from '../../../../shared/services/i18n.service';
-import { DatePickerModule } from 'primeng/datepicker';
-import { CardModule } from 'primeng/card';
-import { SelectModule } from 'primeng/select';
-import { CustomerTypeService, ItemResponse } from '@/shared/services/CountryService';
-import { tap } from 'rxjs';
 import { PaginatorModule, PaginatorState } from 'primeng/paginator';
+
+import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
+
+import { CustomerService, CustomerResponse } from '../../services/customer.service';
+import { CustomerTypeService, ItemResponse } from '@/shared/services/CountryService';
+import { CurrencyService } from '../../../../shared/services/currency.service';
+import { tap } from 'rxjs';
 
 @Component({
     selector: 'app-customers-list',
     standalone: true,
-    imports: [CommonModule, FormsModule, TableModule, CardModule, PaginatorModule, SelectModule, ButtonModule, InputTextModule, ToastModule, ConfirmDialogModule, ContextMenuModule, TagModule, TooltipModule, RippleModule, DatePickerModule],
+    imports: [
+        CommonModule,
+        FormsModule,
+        TableModule,
+        ButtonModule,
+        InputTextModule,
+        Select,
+        TagModule,
+        MenuModule,
+        TooltipModule,
+        ToastModule,
+        ConfirmDialogModule,
+        PaginatorModule
+    ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './customers-list.component.html',
     styleUrls: ['./customers-list.component.css']
 })
 export class CustomersListComponent implements OnInit {
-    @ViewChild('dt') dt!: Table;
-    @ViewChild('contextMenu') contextMenu: ContextMenu | undefined;
-
     private readonly customerService = inject(CustomerService);
+    private readonly currencyService = inject(CurrencyService);
     private readonly router = inject(Router);
     private readonly messageService = inject(MessageService);
     private readonly confirmationService = inject(ConfirmationService);
     private readonly customerTypeService = inject(CustomerTypeService);
-    readonly i18n = inject(I18nService);
 
-    customers = signal<CustomerResponse[]>([]);
-    loading = signal(false);
-    error = signal<string | null>(null);
+    @ViewChild('actionMenu') actionMenu!: Menu;
 
-    searchTerm = signal('');
-    customerType = signal('');
-
+    // Data state
+    customers: CustomerResponse[] = [];
     selectedCustomer: CustomerResponse | null = null;
-    contextMenuItems: MenuItem[] = [];
-    customerTypes: ItemResponse[] = [];
+    loading = false;
+
+    // Pagination state
     totalRecords = 0;
     pageNumber = 1;
-    pageSize = 25;
-    pageSizeOptions = [10, 25, 50, 100];
+    pageSize = 10;
+    first = 0;
+    pageSizeOptions = [10, 20, 50];
+
+    // Filter state
+    searchTerm = '';
+    filterType = '';
+
+    // Dropdown options
+    customerTypes: ItemResponse[] = [];
+
+    // Action menu items
+    actionMenuItems: MenuItem[] = [];
+
+    // Expose Math for template
+    Math = Math;
 
     ngOnInit(): void {
         this.loadCustomerTypes();
-        this.initContextMenu();
+        this.loadData();
     }
 
-    private loadCustomerTypes() {
+    private loadCustomerTypes(): void {
         this.customerTypeService
             .findAll({ query: '', page: 1, pageSize: 100 })
             .pipe(
@@ -69,116 +91,139 @@ export class CustomersListComponent implements OnInit {
                         this.customerTypes = value.items;
                     },
                     error: (error) => {
-                        console.error('Failed to call customer types list:', error);
-                        this.messageService.add({ severity: 'warn', summary: 'Warning', detail: 'Could not load customer types.' });
+                        console.error('Failed to load customer types:', error);
                     }
                 })
             )
             .subscribe();
     }
 
-    initContextMenu(): void {
-        this.contextMenuItems = [
-            {
-                label: this.i18n.t('customers.editCustomer'),
-                icon: 'pi pi-pencil',
-                command: () => this.editCustomer(this.selectedCustomer!)
-            },
-            {
-                label: this.i18n.t('common.actions.viewDetails'),
-                icon: 'pi pi-eye',
-                command: () => this.viewCustomer(this.selectedCustomer!)
-            },
-            { separator: true },
-            {
-                label: this.i18n.t('common.actions.activate'),
-                icon: 'pi pi-check-circle',
-                command: () => this.activateCustomer(this.selectedCustomer!),
-                visible: this.selectedCustomer?.status !== 'ACTIVE'
-            },
-            {
-                label: this.i18n.t('common.actions.deactivate'),
-                icon: 'pi pi-times-circle',
-                command: () => this.deactivateCustomer(this.selectedCustomer!),
-                visible: this.selectedCustomer?.status === 'ACTIVE'
-            },
-            {
-                label: this.i18n.t('common.actions.suspend'),
-                icon: 'pi pi-ban',
-                command: () => this.suspendCustomer(this.selectedCustomer!),
-                visible: this.selectedCustomer?.status !== 'SUSPENDED'
-            },
-            { separator: true },
-            {
-                label: this.i18n.t('common.actions.delete'),
-                icon: 'pi pi-trash',
-                styleClass: 'p-menuitem-danger',
-                command: () => this.confirmDelete(this.selectedCustomer!)
-            }
-        ];
-    }
-
-    loadCustomers(): void {
-        this.loading.set(true);
-        this.error.set(null);
+    loadData(): void {
+        this.loading = true;
 
         this.customerService
             .getCustomers({
-                search: this.searchTerm(),
+                search: this.searchTerm,
                 pageNumber: this.pageNumber,
                 pageSize: this.pageSize,
-                customerType: this.customerType()
+                customerType: this.filterType
             })
             .subscribe({
                 next: (response) => {
-                    this.customers.set(response.data);
+                    this.customers = response.data;
                     this.totalRecords = response.pagination.totalCount;
-                    this.loading.set(false);
+                    this.loading = false;
                 },
                 error: (err) => {
-                    this.error.set(this.i18n.t('customers.messages.loadFailed'));
-                    this.loading.set(false);
+                    console.error('Error loading customers:', err);
                     this.messageService.add({
                         severity: 'error',
-                        summary: this.i18n.t('common.messages.error'),
-                        detail: this.i18n.t('customers.messages.loadFailed')
+                        summary: 'Error',
+                        detail: 'Failed to load customers'
                     });
-                    console.error('Error loading customers:', err);
+                    this.loading = false;
                 }
             });
     }
 
-    onSearch(event: any): void {
-        this.searchTerm.set(event.target.value);
+    onLazyLoad(event: TableLazyLoadEvent): void {
+        this.first = event.first ?? 0;
+        this.pageSize = event.rows ?? 10;
+        this.pageNumber = Math.floor(this.first / this.pageSize) + 1;
+        this.loadData();
+    }
+
+    // Filter methods
+    hasActiveFilters(): boolean {
+        return !!(this.searchTerm || this.filterType);
+    }
+
+    onSearch(): void {
+        this.resetPagination();
+        this.loadData();
+    }
+
+    onFilterChange(): void {
+        this.resetPagination();
+        this.loadData();
+    }
+
+    clearFilters(): void {
+        this.searchTerm = '';
+        this.filterType = '';
+        this.resetPagination();
+        this.loadData();
+    }
+
+    private resetPagination(): void {
         this.pageNumber = 1;
-        this.loadCustomers();
+        this.first = 0;
     }
 
-    onFilterChange(value: string) {
-        this.customerType.set(value);
-        this.loadCustomers();
-    }
-
+    // Pagination
     onPageChange(event: PaginatorState): void {
-        this.pageNumber = (event.page ?? 0) + 1;
-        this.pageSize = event.rows ?? this.pageSize;
-        this.loadCustomers();
+        this.first = event.first ?? 0;
+        this.pageSize = event.rows ?? 10;
+        this.pageNumber = Math.floor(this.first / this.pageSize) + 1;
+        this.loadData();
     }
 
-    clearSearch(): void {
-        this.searchTerm.set('');
-        this.pageNumber = 1;
-        this.customerType.set('');
-        this.loadCustomers();
+    // Action menu
+    showActionMenu(event: Event, customer: CustomerResponse): void {
+        this.selectedCustomer = customer;
+
+        this.actionMenuItems = [
+            {
+                label: 'View Details',
+                icon: 'pi pi-eye',
+                command: () => this.viewCustomer(customer)
+            },
+            {
+                label: 'Edit Customer',
+                icon: 'pi pi-pencil',
+                command: () => this.editCustomer(customer)
+            },
+            { separator: true },
+            ...(customer.status !== 'ACTIVE'
+                ? [{
+                    label: 'Activate',
+                    icon: 'pi pi-check-circle',
+                    command: () => this.activateCustomer(customer)
+                }]
+                : []),
+            ...(customer.status === 'ACTIVE'
+                ? [{
+                    label: 'Deactivate',
+                    icon: 'pi pi-times-circle',
+                    command: () => this.deactivateCustomer(customer)
+                }]
+                : []),
+            ...(customer.status !== 'SUSPENDED'
+                ? [{
+                    label: 'Suspend',
+                    icon: 'pi pi-ban',
+                    command: () => this.suspendCustomer(customer)
+                }]
+                : []),
+            { separator: true },
+            {
+                label: 'Record Payment',
+                icon: 'pi pi-wallet',
+                command: () => this.recordPayment(customer)
+            },
+            { separator: true },
+            {
+                label: 'Delete',
+                icon: 'pi pi-trash',
+                command: () => this.confirmDelete(customer),
+                styleClass: 'text-red-600'
+            }
+        ];
+
+        this.actionMenu.toggle(event);
     }
 
-    onLazyLoad(event: any): void {
-        const page = Math.floor((event.first || 0) / (event.rows || 10)) + 1;
-        this.pageNumber = page;
-        this.pageSize = event.rows || 10;
-        this.loadCustomers();
-    }
-
+    // CRUD operations
     createCustomer(): void {
         this.router.navigate(['/sales/customers/create']);
     }
@@ -204,11 +249,10 @@ export class CustomersListComponent implements OnInit {
                 this.customerService.activateCustomer(customer.id).subscribe({
                     next: () => {
                         this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Customer activated successfully' });
-                        this.loadCustomers();
+                        this.loadData();
                     },
-                    error: (err) => {
+                    error: () => {
                         this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to activate customer' });
-                        console.error('Error activating customer:', err);
                     }
                 });
             }
@@ -224,11 +268,10 @@ export class CustomersListComponent implements OnInit {
                 this.customerService.deactivateCustomer(customer.id).subscribe({
                     next: () => {
                         this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Customer deactivated successfully' });
-                        this.loadCustomers();
+                        this.loadData();
                     },
-                    error: (err) => {
+                    error: () => {
                         this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to deactivate customer' });
-                        console.error('Error deactivating customer:', err);
                     }
                 });
             }
@@ -244,11 +287,10 @@ export class CustomersListComponent implements OnInit {
                 this.customerService.suspendCustomer(customer.id).subscribe({
                     next: () => {
                         this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Customer suspended successfully' });
-                        this.loadCustomers();
+                        this.loadData();
                     },
-                    error: (err) => {
+                    error: () => {
                         this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to suspend customer' });
-                        console.error('Error suspending customer:', err);
                     }
                 });
             }
@@ -265,101 +307,42 @@ export class CustomersListComponent implements OnInit {
                 this.customerService.deleteCustomer(customer.id).subscribe({
                     next: () => {
                         this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Customer deleted successfully' });
-                        this.loadCustomers();
+                        this.loadData();
                     },
-                    error: (err) => {
+                    error: () => {
                         this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to delete customer' });
-                        console.error('Error deleting customer:', err);
                     }
                 });
             }
         });
     }
 
-    /**
-     * Show context menu programmatically
-     */
-    showContextMenu(event: MouseEvent, customer: CustomerResponse): void {
-        event.preventDefault();
-        event.stopPropagation();
-        this.selectedCustomer = customer;
-        this.updateContextMenuItems(customer);
-        this.contextMenu?.show(event);
+    refreshData(): void {
+        this.loadData();
     }
 
-    onContextMenuSelect(event: any): void {
-        const customer = event.data as CustomerResponse;
-        this.selectedCustomer = customer;
-        this.updateContextMenuItems(customer);
+    // Utility methods
+    formatCurrency(amount: number): string {
+        const currency = this.currencyService.selectedCurrency();
+        return this.currencyService.formatCurrency(amount, currency);
     }
 
-    /**
-     * Update context menu items based on customer status
-     */
-    private updateContextMenuItems(customer: CustomerResponse): void {
-        this.contextMenuItems = [
-            {
-                label: 'Edit Customer',
-                icon: 'pi pi-pencil',
-                command: () => this.editCustomer(customer)
-            },
-            {
-                label: 'View Details',
-                icon: 'pi pi-eye',
-                command: () => this.viewCustomer(customer)
-            },
-            { separator: true },
-            ...(customer.status !== 'ACTIVE'
-                ? [
-                      {
-                          label: 'Activate',
-                          icon: 'pi pi-check-circle',
-                          command: () => this.activateCustomer(customer)
-                      }
-                  ]
-                : []),
-            ...(customer.status === 'ACTIVE'
-                ? [
-                      {
-                          label: 'Deactivate',
-                          icon: 'pi pi-times-circle',
-                          command: () => this.deactivateCustomer(customer)
-                      }
-                  ]
-                : []),
-            ...(customer.status !== 'SUSPENDED'
-                ? [
-                      {
-                          label: 'Suspend',
-                          icon: 'pi pi-ban',
-                          command: () => this.suspendCustomer(customer)
-                      }
-                  ]
-                : []),
-            { separator: true },
-            {
-                label: 'Record Payment',
-                icon: 'pi pi-wallet',
-                command: () => this.recordPayment(customer)
-            },
-            { separator: true },
-            {
-                label: 'Delete',
-                icon: 'pi pi-trash',
-                styleClass: 'p-menuitem-danger',
-                command: () => this.confirmDelete(customer)
-            }
-        ];
-    }
-
-    getStatusSeverity(status: string): 'success' | 'secondary' | 'info' | 'warn' | 'danger' | 'contrast' {
-        const severities: Record<string, 'success' | 'secondary' | 'info' | 'warn' | 'danger' | 'contrast'> = {
+    getStatusSeverity(status: string): 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' {
+        const severityMap: Record<string, 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast'> = {
             ACTIVE: 'success',
             INACTIVE: 'secondary',
             SUSPENDED: 'warn',
             BLACKLISTED: 'danger'
         };
-        return severities[status] || 'secondary';
+        return severityMap[status] || 'secondary';
+    }
+
+    formatStatus(status: string): string {
+        if (!status) return '-';
+        return status
+            .split('_')
+            .map((word) => word.charAt(0) + word.slice(1).toLowerCase())
+            .join(' ');
     }
 
     getBalanceStatus(customer: CustomerResponse): { severity: 'success' | 'warn' | 'danger'; text: string } {

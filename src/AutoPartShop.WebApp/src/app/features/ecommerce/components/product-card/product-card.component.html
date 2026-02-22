@@ -1,0 +1,56 @@
+<a class="card" [routerLink]="['/shop/product', product().partId]">
+  <!-- Image -->
+  <div class="card-image">
+    <img *ngIf="product().primaryImageUrl" [src]="product().primaryImageUrl" [alt]="product().name" />
+    <div *ngIf="!product().primaryImageUrl" class="card-image-placeholder">
+      <i class="pi pi-box"></i>
+    </div>
+    <!-- Badges -->
+    <span class="badge-sale" *ngIf="product().isOnSale">
+      {{ ((1 - (product().price / (product().originalPrice || product().price))) * 100) | number:'1.0-0' }}%
+    </span>
+    <span class="badge-stock" [class.out]="!product().inStock">
+      {{ product().inStock ? 'In Stock' : 'Out of Stock' }}
+    </span>
+    <button class="wish-btn" type="button" title="Wishlist" (click)="$event.preventDefault()">
+      <i class="pi pi-heart"></i>
+    </button>
+    <!-- Hover actions -->
+    <div class="card-actions">
+      <button class="action-btn" title="Quick View"><i class="pi pi-eye"></i></button>
+      <button class="action-btn" title="Wishlist"><i class="pi pi-heart"></i></button>
+    </div>
+  </div>
+
+  <!-- Info -->
+  <div class="card-body">
+    <span class="card-category">{{ product().categoryName }}</span>
+    <h3 class="card-title">{{ product().name }}</h3>
+    <div class="card-brand" *ngIf="product().brandName">{{ product().brandName }}</div>
+    <!-- Rating placeholder -->
+    <div class="card-rating">
+      <i class="pi pi-star-fill"></i>
+      <i class="pi pi-star-fill"></i>
+      <i class="pi pi-star-fill"></i>
+      <i class="pi pi-star-fill"></i>
+      <i class="pi pi-star"></i>
+      <span class="rating-count">1 review</span>
+    </div>
+    <!-- Price -->
+    <div class="card-price">
+      <span *ngIf="product().isOnSale && product().originalPrice" class="old-price">
+        {{ product().currency }} {{ product().originalPrice | number:'1.0-0' }}
+      </span>
+      <strong>{{ product().currency }} {{ product().price | number:'1.0-0' }}</strong>
+    </div>
+    <!-- Add to Cart -->
+    <button
+      class="btn-add-cart"
+      [disabled]="!product().inStock"
+      (click)="onAddToCart($event)"
+    >
+      <i class="pi pi-shopping-cart"></i>
+      Add to Cart
+    </button>
+  </div>
+</a>

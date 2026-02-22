@@ -117,7 +117,7 @@
             <p-tag
               *ngIf="lot.expiryDate"
               [value]="getExpiryDisplay(lot)"
-              [severity]="lot.isExpired ? 'danger' : 'warning'">
+              [severity]="lot.isExpired ? 'danger' : 'warn'">
             </p-tag>
             <span class="text-gray-500" *ngIf="!lot.expiryDate">N/A</span>
           </td>

@@ -1,0 +1,37 @@
+<!-- Breadcrumb -->
+<div class="breadcrumb">
+  <a routerLink="/shop"><i class="pi pi-home"></i> Home</a>
+  <i class="pi pi-angle-right"></i>
+  <span>Sale</span>
+</div>
+
+<div class="sale-container">
+  <div class="sale-hero">
+    <div>
+      <span class="sale-badge"><i class="pi pi-bolt"></i> Flash Sale</span>
+      <h1>All Sale Products</h1>
+      <p>Limited-time pricing across top categories.</p>
+    </div>
+    <a class="btn-primary" routerLink="/shop">Continue Shopping</a>
+  </div>
+
+  <div *ngIf="loading" class="loading-state">
+    <i class="pi pi-spin pi-spinner"></i>
+    <span>Loading sale products...</span>
+  </div>
+
+  <div *ngIf="!loading && products.length === 0" class="empty-state">
+    <i class="pi pi-search"></i>
+    <h3>No sale products found</h3>
+    <p>Please check back later.</p>
+    <a class="btn-primary" routerLink="/shop">Browse Products</a>
+  </div>
+
+  <div *ngIf="!loading && products.length > 0" class="product-grid">
+    <app-product-card
+      *ngFor="let item of products; trackBy: trackById"
+      [product]="item"
+      (addToCart)="onAddToCart($event)"
+    ></app-product-card>
+  </div>
+</div>

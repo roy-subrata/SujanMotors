@@ -672,11 +672,11 @@ export class PurchaseReturnsFormComponent implements OnInit {
   /**
    * Get status severity for display
    */
-  getStatusSeverity(status: string): string {
+  getStatusSeverity(status: string): 'warn' | 'info' | 'success' | 'danger' | 'secondary' {
     switch (status?.toUpperCase()) {
-      case 'PENDING': return 'warning';
+      case 'PENDING': return 'warn';
       case 'APPROVED': return 'info';
-      case 'RETURNED': return 'primary';
+      case 'RETURNED': return 'info';
       case 'RECEIVED': return 'success';
       case 'CREDITED': return 'success';
       case 'REJECTED': return 'danger';

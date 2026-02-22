@@ -1,70 +1,160 @@
-<div class="product-layout" *ngIf="product">
-  <div class="product-gallery">
-    <div class="primary-image">
-      <span>{{ product.name.charAt(0) }}</span>
+<!-- Breadcrumb -->
+<div class="breadcrumb" *ngIf="product">
+  <a routerLink="/shop"><i class="pi pi-home"></i> Home</a>
+  <i class="pi pi-angle-right"></i>
+  <span>{{ product.categoryName }}</span>
+  <i class="pi pi-angle-right"></i>
+  <span>{{ product.name }}</span>
+</div>
+
+<!-- Loading -->
+<div *ngIf="loading" class="loading-state">
+  <i class="pi pi-spin pi-spinner"></i> Loading...
+</div>
+
+<!-- Product layout -->
+<div class="product-container" *ngIf="product && !loading">
+  <div class="product-layout">
+    <!-- Gallery -->
+    <div class="product-gallery">
+      <div class="primary-image">
+        <img *ngIf="product.primaryImageUrl" [src]="product.primaryImageUrl" [alt]="product.name" />
+        <i *ngIf="!product.primaryImageUrl" class="pi pi-box"></i>
+      </div>
+      <div class="media-strip">
+        <div
+          class="media-thumb"
+          *ngFor="let media of product.media; let i = index"
+          [class.active]="i === 0"
+        >
+          <img *ngIf="media.url" [src]="media.url" [alt]="product.name" />
+          <i *ngIf="!media.url" class="pi pi-image"></i>
+        </div>
+      </div>
     </div>
-    <div class="media-strip">
-      <div class="media-thumb" *ngFor="let media of product.media">
-        <span>{{ product.name.charAt(0) }}</span>
+
+    <!-- Details -->
+    <div class="product-details">
+      <span class="detail-category">{{ product.categoryName }}</span>
+      <h1>{{ product.name }}</h1>
+      <div class="detail-brand" *ngIf="product.brandName">
+        <i class="pi pi-tag"></i> {{ product.brandName }}
+      </div>
+
+      <!-- Rating -->
+      <div class="detail-rating">
+        <i class="pi pi-star-fill"></i>
+        <i class="pi pi-star-fill"></i>
+        <i class="pi pi-star-fill"></i>
+        <i class="pi pi-star-fill"></i>
+        <i class="pi pi-star"></i>
+        <span>(24 reviews)</span>
+      </div>
+
+      <p class="detail-short">{{ product.shortDescription || product.description }}</p>
+
+      <!-- Price -->
+      <div class="price-block">
+        <span class="price-currency">{{ currentCurrency }}</span>
+        <span class="price-amount">{{ currentPrice | number:'1.0-0' }}</span>
+        <span class="price-old" *ngIf="showSale">
+          {{ currentCurrency }} {{ product.originalPrice | number:'1.0-0' }}
+        </span>
+        <span class="price-tag" *ngIf="showSale">Sale</span>
+        <span class="stock-badge" [class.in-stock]="selectedVariant?.inStock">
+          <i class="pi" [class.pi-check-circle]="selectedVariant?.inStock" [class.pi-times-circle]="!selectedVariant?.inStock"></i>
+          {{ selectedVariant?.inStock ? 'In Stock' : 'Out of Stock' }}
+        </span>
+      </div>
+
+      <!-- Variants -->
+      <div class="variants" *ngIf="product.variants?.length">
+        <label>Select Variant:</label>
+        <div class="variant-list">
+          <button
+            *ngFor="let variant of product.variants"
+            class="variant-pill"
+            [class.active]="variant.variantId === selectedVariant?.variantId"
+            (click)="selectVariant(variant)"
+          >
+            {{ variant.name }}
+            <span class="variant-price">{{ variant.currency }} {{ variant.price | number:'1.0-0' }}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Quantity + Add to Cart -->
+      <div class="cart-actions">
+        <div class="qty-control">
+          <button (click)="quantity > 1 ? quantity = quantity - 1 : null">-</button>
+          <input type="number" [(ngModel)]="quantity" min="1" max="99" />
+          <button (click)="quantity = quantity + 1">+</button>
+        </div>
+        <button class="btn-add-cart" [disabled]="!selectedVariant?.inStock" (click)="addToCart()">
+          <i class="pi" [class.pi-shopping-cart]="!addedToCart" [class.pi-check]="addedToCart"></i>
+          {{ addedToCart ? 'Added!' : 'Add to Cart' }}
+        </button>
+        <button class="btn-buy-now" [disabled]="!selectedVariant?.inStock" (click)="buyNow()">
+          <i class="pi pi-bolt"></i> Buy Now
+        </button>
+      </div>
+
+      <!-- Features -->
+      <div class="detail-features">
+        <div class="feature"><i class="pi pi-truck"></i> Free shipping on orders over BDT 5,000</div>
+        <div class="feature"><i class="pi pi-replay"></i> 30-day return policy</div>
+        <div class="feature"><i class="pi pi-shield"></i> 12-month warranty</div>
       </div>
     </div>
   </div>
 
-  <div class="product-details">
-    <p class="eyebrow">{{ product.categoryName }}</p>
-    <h1>{{ product.name }}</h1>
-    <p class="short">{{ product.shortDescription || product.description }}</p>
-
-    <div class="price-line">
-      <span>{{ selectedVariant?.currency }}</span>
-      <strong>{{ selectedVariant?.price | number: '1.0-0' }}</strong>
-      <span class="stock" [class.in-stock]="product.inStock">
-        {{ product.inStock ? 'In stock' : 'Out of stock' }}
-      </span>
+  <!-- Tabs -->
+  <div class="product-tabs">
+    <div class="tab-nav">
+      <button [class.active]="activeTab === 'description'" (click)="activeTab = 'description'">Description</button>
+      <button [class.active]="activeTab === 'specs'" (click)="activeTab = 'specs'">Specifications</button>
+      <button [class.active]="activeTab === 'reviews'" (click)="activeTab = 'reviews'">Reviews</button>
     </div>
 
-    <div class="variants" *ngIf="product.variants?.length">
-      <h3>Choose Variant</h3>
-      <div class="variant-list">
-        <button
-          pButton
-          type="button"
-          class="variant-pill"
-          *ngFor="let variant of product.variants"
-          [class.active]="variant.variantId === selectedVariant?.variantId"
-          (click)="selectVariant(variant)"
-        >
-          {{ variant.name }}
-        </button>
+    <div class="tab-content">
+      <!-- Description -->
+      <div *ngIf="activeTab === 'description'" class="tab-panel">
+        <p>{{ product.description }}</p>
       </div>
-    </div>
 
-    <div class="specs" *ngIf="product.specifications?.length">
-      <h3>Specifications</h3>
-      <div class="spec-group" *ngFor="let group of product.specifications">
-        <h4>{{ group.groupName }}</h4>
-        <div class="spec-row" *ngFor="let attr of group.attributes">
-          <span>{{ attr.attributeName }}</span>
-          <span>{{ attr.value }} {{ attr.unit }}</span>
+      <!-- Specifications -->
+      <div *ngIf="activeTab === 'specs'" class="tab-panel">
+        <div class="spec-group" *ngFor="let group of product.specifications">
+          <h4>{{ group.groupName }}</h4>
+          <table class="spec-table">
+            <tr *ngFor="let attr of group.attributes">
+              <td class="spec-name">{{ attr.attributeName }}</td>
+              <td class="spec-value">{{ attr.value }} {{ attr.unit }}</td>
+            </tr>
+          </table>
+        </div>
+        <div *ngIf="!product.specifications?.length" class="empty-tab">No specifications available.</div>
+      </div>
+
+      <!-- Reviews -->
+      <div *ngIf="activeTab === 'reviews'" class="tab-panel">
+        <div class="empty-tab">
+          <i class="pi pi-comments"></i>
+          <p>No reviews yet. Be the first to review this product!</p>
         </div>
       </div>
     </div>
   </div>
-</div>
 
-<section class="related" *ngIf="product?.relatedProducts?.length">
-  <div class="section-head">
+  <!-- Related Products -->
+  <section class="related" *ngIf="product.relatedProducts?.length">
     <h2>Related Products</h2>
-  </div>
-  <div class="related-grid">
-    <article class="product-card" *ngFor="let item of product?.relatedProducts">
-      <div class="product-image">{{ item.name.charAt(0) }}</div>
-      <div class="product-info">
-        <h3>{{ item.name }}</h3>
-        <p>{{ item.categoryName }}</p>
-        <div class="price">{{ item.currency }} {{ item.price | number: '1.0-0' }}</div>
-        <a [routerLink]="['/shop/product', item.partId]">View details</a>
-      </div>
-    </article>
-  </div>
-</section>
+    <div class="related-grid">
+      <app-product-card
+        *ngFor="let item of product.relatedProducts"
+        [product]="item"
+        (addToCart)="onRelatedAddToCart($event)"
+      ></app-product-card>
+    </div>
+  </section>
+</div>

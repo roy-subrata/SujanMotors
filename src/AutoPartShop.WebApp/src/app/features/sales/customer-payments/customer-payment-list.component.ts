@@ -73,6 +73,10 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
     totalCount: number = 0;
     first: number = 0;
 
+    // Customer filter (from query params when navigating from customer detail)
+    customerFilter: string | null = null;
+    customerFilterName: string = '';
+
     // Computed page number for API (1-based)
     get pageNumber(): number {
         return Math.floor(this.first / this.pageSize) + 1;
@@ -102,6 +106,14 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
     ngOnInit(): void {
         this.initializeContextMenu();
         this.setupSearchDebounce();
+
+        // Check for customer filter from query params (e.g., from customer detail page)
+        const customerId = this.route.snapshot.queryParamMap.get('customerId');
+        if (customerId) {
+            this.customerFilter = customerId;
+            this.loadCustomerName(customerId);
+        }
+
         this.loadCustomerPayments();
     }
 
@@ -257,6 +269,7 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
             .getCustomerPayments({
                 search: this.searchTerm,
                 status: this.statusFilter || undefined,
+                customerId: this.customerFilter || undefined,
                 fromDate: fromDateStr,
                 toDate: toDateStr,
                 isReconciled: this.reconciledFilter ?? undefined,
@@ -319,9 +332,36 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
         this.statusFilter = null;
         this.dateRange = [];
         this.reconciledFilter = null;
+        this.customerFilter = null;
+        this.customerFilterName = '';
         this.first = 0;
         this.router.navigate(['/sales/customer-payments']); // Clear query params
         this.loadCustomerPayments();
+    }
+
+    /**
+     * Clear just the customer filter
+     */
+    clearCustomerFilter(): void {
+        this.customerFilter = null;
+        this.customerFilterName = '';
+        this.first = 0;
+        this.router.navigate(['/sales/customer-payments']); // Clear query params
+        this.loadCustomerPayments();
+    }
+
+    /**
+     * Load customer name for the filter chip display
+     */
+    private loadCustomerName(customerId: string): void {
+        this.customerService.getCustomerById(customerId).subscribe({
+            next: (customer) => {
+                this.customerFilterName = `${customer.firstName} ${customer.lastName}`;
+            },
+            error: () => {
+                this.customerFilterName = 'Selected Customer';
+            }
+        });
     }
 
     /**

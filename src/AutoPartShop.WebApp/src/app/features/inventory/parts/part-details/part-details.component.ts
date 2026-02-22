@@ -132,14 +132,14 @@ export class PartDetailsComponent implements OnInit {
     /**
      * Get status badge severity
      */
-    getStatusSeverity(isActive: boolean): string {
+    getStatusSeverity(isActive: boolean): 'success' | 'danger' {
         return isActive ? 'success' : 'danger';
     }
 
     /**
      * Get compatibility badge severity
      */
-    getCompatibilitySeverity(isCompatible: boolean): string {
-        return isCompatible ? 'success' : 'warning';
+    getCompatibilitySeverity(isCompatible: boolean): 'success' | 'warn' {
+        return isCompatible ? 'success' : 'warn';
     }
 }

@@ -5,6 +5,7 @@ import { DashboardComponent } from './app/features/dashboard/dashboard.component
 import { Landing } from './app/pages/landing/landing';
 import { Notfound } from './app/pages/notfound/notfound';
 import { QuickSaleComponent } from './app/features/sales/quick-sale/quick-sale.component';
+import { QuickSaleShortcutComponent } from './app/features/sales/quick-sale-shortcut/quick-sale-shortcut.component';
 import { LoginComponent } from './app/pages/login/login.component';
 import { AdminSettingsComponent } from './app/pages/admin-settings/admin-settings.component';
 import { authGuard } from './app/shared/guards/auth.guard';
@@ -16,6 +17,7 @@ export const appRoutes: Routes = [
 
     // Quick Sale - standalone layout (no sidebar/header)
     { path: 'quick-sale', component: QuickSaleComponent },
+    { path: 'quick-sale-shortcut', component: QuickSaleShortcutComponent },
 
     // E-commerce storefront - public module
     { path: 'shop', loadChildren: () => import('./app/features/ecommerce/ecommerce.routes').then(m => m.ecommerceRoutes) },

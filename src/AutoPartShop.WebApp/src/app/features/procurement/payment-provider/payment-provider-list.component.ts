@@ -249,12 +249,12 @@ export class PaymentProviderListComponent implements OnInit {
   /**
    * Get status badge severity
    */
-  getStatusSeverity(status: string): string {
+  getStatusSeverity(status: string): 'success' | 'warn' | 'danger' | 'info' {
     switch (status?.toUpperCase()) {
       case 'ACTIVE':
         return 'success';
       case 'INACTIVE':
-        return 'warning';
+        return 'warn';
       case 'DISABLED':
         return 'danger';
       default:

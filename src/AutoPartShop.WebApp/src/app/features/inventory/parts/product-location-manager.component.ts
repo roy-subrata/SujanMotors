@@ -278,7 +278,7 @@ export class ProductLocationManagerComponent implements OnInit {
     return !!(field && field.invalid && field.touched);
   }
 
-  getSeverity(isPrimary: boolean): string {
+  getSeverity(isPrimary: boolean): 'success' | 'info' {
     return isPrimary ? 'success' : 'info';
   }
 }

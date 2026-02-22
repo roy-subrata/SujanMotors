@@ -188,29 +188,61 @@ public class DatabaseSeeder
             logger.LogInformation("Permissions already exist, skipping seed");
         }
     }
-    private static async Task SeedCustomerAsync(AutoPartDbContext context,ICodeGenerateService codeGenerate, ILogger logger)
+
+    private static async Task SeedCustomerAsync(AutoPartDbContext context, ICodeGenerateService codeGenerate, ILogger logger)
     {
-        var numberOfCustomer = await context.Customers.CountAsync();
-        if (numberOfCustomer<20)
+        // Check if customers have already been seeded
+        var existingCustomersCount = await context.Customers.CountAsync();
+        if (existingCustomersCount > 0)
         {
-            foreach (var index in Enumerable.Range(0, 100))
+            logger.LogInformation("Customers already exist ({Count}), skipping seed", existingCustomersCount);
+            return;
+        }
+
+        try
+        {
+            var customersToAdd = new List<Customer>();
+            
+            // Generate 20 customers with unique codes
+            for (int i = 1; i <= 20; i++)
             {
                 var code = await codeGenerate.GenerateAsync("CUST");
-                context.Customers.Add(
-                    Customer.Create(code, $"F-{index}", $"L-{index}",
-
-                    $"L{index}@gmail.com", $"0909${index}", $"Com{index}", "dsf", "sdf", "sdf", "sdf", "f", "sdf")
+                var customer = Customer.Create(
+                    code, 
+                    $"FirstName-{i}", 
+                    $"LastName-{i}",
+                    $"customer{i}@example.com", 
+                    $"0909{i:D6}", 
+                    $"Company-{i}", 
+                    $"City-{i}", 
+                    $"State-{i}", 
+                    $"Address-{i}", 
+                    $"PostalCode-{i}", 
+                    $"Country-{i}", 
+                    $"Notes-{i}"
                 );
+                customersToAdd.Add(customer);
             }
 
+            // Add all customers to context
+            foreach (var customer in customersToAdd)
+            {
+                context.Customers.Add(customer);
+            }
 
+            // Save changes
             await context.SaveChangesAsync();
-
-          //  logger.LogInformation("Seeded {Count} permissions", customers.Length);
+            logger.LogInformation("Successfully seeded {Count} customers", customersToAdd.Count);
         }
-        else
+        catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("duplicate key") == true)
         {
-            logger.LogInformation("Permissions already exist, skipping seed");
+            logger.LogWarning(ex, "Duplicate customer codes detected during seeding. Database may have been seeded previously.");
+            // Don't throw - allow application to continue if seed data already exists
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "An unexpected error occurred while seeding customers");
+            throw;
         }
     }
 

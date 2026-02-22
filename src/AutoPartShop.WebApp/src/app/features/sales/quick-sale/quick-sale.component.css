@@ -4052,6 +4052,15 @@
     font-size: 0.75rem;
   }
 
+  .sale-content {
+    padding-bottom: calc(0.85rem + 132px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .cart-totals .checkout-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
   .static-footer {
     position: sticky;
     bottom: 0;
@@ -4071,5 +4080,9 @@
 
   .section-card {
     border-radius: 8px;
+  }
+
+  .sale-content {
+    padding-bottom: calc(0.75rem + 150px + env(safe-area-inset-bottom, 0px));
   }
 }

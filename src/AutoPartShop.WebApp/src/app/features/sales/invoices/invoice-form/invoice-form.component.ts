@@ -312,11 +312,11 @@ export class InvoiceFormComponent implements OnInit {
     this.router.navigate(['/sales/invoices']);
   }
 
-  getStatusSeverity(status: string): string {
-    const severityMap: Record<string, string> = {
+  getStatusSeverity(status: string): 'secondary' | 'info' | 'warn' | 'success' | 'danger' {
+    const severityMap: Record<string, 'secondary' | 'info' | 'warn' | 'success' | 'danger'> = {
       DRAFT: 'secondary',
       ISSUED: 'info',
-      PARTIALLY_PAID: 'warning',
+      PARTIALLY_PAID: 'warn',
       PAID: 'success',
       OVERDUE: 'danger',
       CANCELLED: 'secondary'

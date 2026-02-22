@@ -571,7 +571,7 @@ export class StockMovementHistoryComponent implements OnInit {
     return types[type] || type;
   }
 
-  getMovementTypeSeverity(type: string): string {
+  getMovementTypeSeverity(type: string): 'success' | 'info' | 'danger' | 'warn' {
     switch (type) {
       case 'IN':
       case 'COUNT_CORRECTION':
@@ -585,16 +585,16 @@ export class StockMovementHistoryComponent implements OnInit {
         return 'info';
       case 'ADJUST':
       case 'ADJUSTMENT':
-        return 'warning';
+        return 'warn';
       default:
         return 'info';
     }
   }
 
-  getStatusSeverity(status: string): string {
+  getStatusSeverity(status: string): 'success' | 'info' | 'danger' | 'warn' {
     switch (status) {
       case 'PENDING':
-        return 'warning';
+        return 'warn';
       case 'APPROVED':
         return 'success';
       case 'REJECTED':

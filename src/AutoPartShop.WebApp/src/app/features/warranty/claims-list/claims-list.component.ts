@@ -162,13 +162,13 @@ export class ClaimsListComponent implements OnInit {
         });
     }
 
-    getStatusSeverity(status: string): 'success' | 'info' | 'warning' | 'danger' {
-        const severityMap: { [key: string]: 'success' | 'info' | 'warning' | 'danger' } = {
+    getStatusSeverity(status: string): 'success' | 'info' | 'warn' | 'danger' {
+        const severityMap: { [key: string]: 'success' | 'info' | 'warn' | 'danger' } = {
             'PENDING': 'info',
             'INVESTIGATING': 'info',
             'APPROVED': 'success',
             'REJECTED': 'danger',
-            'IN_REPAIR': 'warning',
+            'IN_REPAIR': 'warn',
             'REPAIRED': 'success',
             'REPLACED': 'success',
             'CLOSED': 'success',
@@ -177,11 +177,11 @@ export class ClaimsListComponent implements OnInit {
         return severityMap[status] || 'info';
     }
 
-    getPrioritySeverity(priority: string): 'success' | 'info' | 'warning' | 'danger' {
-        const severityMap: { [key: string]: 'success' | 'info' | 'warning' | 'danger' } = {
+    getPrioritySeverity(priority: string): 'success' | 'info' | 'warn' | 'danger' {
+        const severityMap: { [key: string]: 'success' | 'info' | 'warn' | 'danger' } = {
             'LOW': 'success',
             'MEDIUM': 'info',
-            'HIGH': 'warning',
+            'HIGH': 'warn',
             'URGENT': 'danger'
         };
         return severityMap[priority] || 'info';

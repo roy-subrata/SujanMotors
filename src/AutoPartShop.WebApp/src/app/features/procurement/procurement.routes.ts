@@ -10,6 +10,7 @@ import { PaymentProviderFormComponent } from './payment-provider/payment-provide
 import { SupplierPaymentListComponent } from './supplier-payment/supplier-payment-list.component';
 import { SupplierPaymentFormComponent } from './supplier-payment/supplier-payment-form.component';
 import { SupplierPaymentSummaryComponent } from './supplier-payment-summary/supplier-payment-summary.component';
+import { SupplierAccountSummaryComponent } from './supplier-account-summary/supplier-account-summary.component';
 import { DailyExpensesComponent } from './daily-expenses/daily-expenses.component';
 
 export const procurementRoutes: Routes = [
@@ -43,6 +44,9 @@ export const procurementRoutes: Routes = [
   { path: 'supplier-payments/edit', component: SupplierPaymentFormComponent },
   { path: 'supplier-payments/view', component: SupplierPaymentListComponent },
   { path: 'supplier-payments/summary/:supplierId', component: SupplierPaymentSummaryComponent },
+
+  // Supplier Account Summary
+  { path: 'supplier-account-summary', component: SupplierAccountSummaryComponent },
 
   // Daily Expenses
   { path: 'daily-expenses', component: DailyExpensesComponent }

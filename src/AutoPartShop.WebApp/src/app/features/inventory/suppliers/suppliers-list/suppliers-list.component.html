@@ -1,13 +1,7 @@
-<!-- ============================================================
-     SUPPLIERS LIST - ENTERPRISE UI (MATCHES SALES ORDERS LAYOUT)
-     ============================================================ -->
-
 <!-- PrimeNG Global Components -->
 <p-toast position="top-right"></p-toast>
 <p-confirmDialog></p-confirmDialog>
-
-<!-- Context Menu -->
-<p-contextMenu #contextMenu [model]="contextMenuItems" [appendTo]="'body'"></p-contextMenu>
+<p-menu #actionMenu [model]="actionMenuItems" [popup]="true" appendTo="body"></p-menu>
 
 <!-- Main Page Container -->
 <div class="page-wrapper">
@@ -96,7 +90,6 @@
         [lazy]="true"
         [paginator]="false"
         [rows]="pageSize"
-        [first]="first"
         [totalRecords]="totalRecords"
         [loading]="loading"
         (onLazyLoad)="onPageChange($event)"
@@ -108,13 +101,12 @@
         <!-- Table Header -->
         <ng-template #header>
           <tr>
-            <th class="col-so">Code</th>
-            <th class="col-customer">Supplier</th>
-            <th class="col-date">Contact</th>
-            <th class="col-date">Email</th>
-            <th class="col-date">Phone</th>
-            <th class="col-date">City</th>
-            <th class="col-amount">Rating</th>
+            <th class="col-code">Code</th>
+            <th class="col-customer">Supplier Name</th>
+            <th class="col-contact">Contact</th>
+            <th class="col-city">City</th>
+            <th class="col-rating">Rating</th>
+            <th class="col-balance">Balance</th>
             <th class="col-status">Status</th>
             <th class="col-actions">Actions</th>
           </tr>
@@ -122,15 +114,13 @@
 
         <!-- Table Body -->
         <ng-template #body let-supplier>
-          <tr class="data-row">
+          <tr class="data-row" (dblclick)="viewSupplier(supplier)">
             <!-- Code -->
-            <td class="col-so">
-              <div class="so-cell">
-                <a class="so-link" (click)="viewSupplier(supplier)">{{ supplier.code }}</a>
-              </div>
+            <td class="col-code">
+              <a class="code-link" (click)="viewSupplier(supplier)">{{ supplier.code }}</a>
             </td>
 
-            <!-- Supplier -->
+            <!-- Supplier Name -->
             <td class="col-customer">
               <div class="customer-cell">
                 <div class="customer-avatar">
@@ -144,28 +134,39 @@
             </td>
 
             <!-- Contact -->
-            <td class="col-date">
-              <span class="date-text">{{ supplier.contactPerson || '-' }}</span>
-            </td>
-
-            <!-- Email -->
-            <td class="col-date">
-              <span class="date-text">{{ supplier.email || '-' }}</span>
-            </td>
-
-            <!-- Phone -->
-            <td class="col-date">
-              <span class="date-text">{{ supplier.phone || '-' }}</span>
+            <td class="col-contact">
+              <div class="contact-cell">
+                <span *ngIf="supplier.email" class="contact-line">
+                  <i class="pi pi-envelope"></i>
+                  {{ supplier.email }}
+                </span>
+                <span *ngIf="supplier.phone" class="contact-line">
+                  <i class="pi pi-phone"></i>
+                  {{ supplier.phone }}
+                </span>
+              </div>
             </td>
 
             <!-- City -->
-            <td class="col-date">
+            <td class="col-city">
               <span class="date-text">{{ supplier.city || '-' }}</span>
             </td>
 
             <!-- Rating -->
-            <td class="col-amount">
-              <span class="amount-value">{{ supplier.rating }}/5</span>
+            <td class="col-rating">
+              <span class="rating-badge" [ngClass]="getRatingClass(supplier.rating)">
+                <i class="pi pi-star-fill"></i>
+                {{ supplier.rating }}/5
+              </span>
+            </td>
+
+            <!-- Balance -->
+            <td class="col-balance">
+              <div class="balance-cell">
+                <span class="amount-value" [class.text-danger]="supplier.currentBalance > 0">
+                  {{ formatCurrency(supplier.currentBalance || 0) }}
+                </span>
+              </div>
             </td>
 
             <!-- Status -->
@@ -178,7 +179,7 @@
             <!-- Actions -->
             <td class="col-actions">
               <div class="action-cell">
-                <button class="btn-action" pTooltip="More" (click)="showContextMenu($event, supplier)">
+                <button class="btn-action" pTooltip="More" (click)="showActionMenu($event, supplier)">
                   <i class="pi pi-ellipsis-v"></i>
                 </button>
               </div>
@@ -189,7 +190,7 @@
         <!-- Empty State -->
         <ng-template #emptymessage>
           <tr>
-            <td colspan="9">
+            <td colspan="8">
               <div class="empty-state">
                 <div class="empty-icon">
                   <i class="pi pi-truck"></i>
@@ -222,8 +223,7 @@
             </td>
             <td><div class="skeleton skeleton-text-sm"></div></td>
             <td><div class="skeleton skeleton-text-sm"></div></td>
-            <td><div class="skeleton skeleton-text-sm"></div></td>
-            <td><div class="skeleton skeleton-text-sm"></div></td>
+            <td><div class="skeleton skeleton-badge"></div></td>
             <td><div class="skeleton skeleton-text-sm"></div></td>
             <td><div class="skeleton skeleton-badge"></div></td>
             <td><div class="skeleton skeleton-actions"></div></td>
@@ -253,11 +253,11 @@
           <button class="page-btn" [disabled]="first === 0" (click)="onPageChange({first: first - pageSize, rows: pageSize})">
             <i class="pi pi-angle-left"></i>
           </button>
-          <span class="page-indicator">{{ pageNumber }} / {{ totalPages }}</span>
+          <span class="page-indicator">{{ pageNumber }} / {{ Math.ceil(totalRecords / pageSize) }}</span>
           <button class="page-btn" [disabled]="first + pageSize >= totalRecords" (click)="onPageChange({first: first + pageSize, rows: pageSize})">
             <i class="pi pi-angle-right"></i>
           </button>
-          <button class="page-btn" [disabled]="first + pageSize >= totalRecords" (click)="onPageChange({first: (totalPages - 1) * pageSize, rows: pageSize})">
+          <button class="page-btn" [disabled]="first + pageSize >= totalRecords" (click)="onPageChange({first: (Math.ceil(totalRecords / pageSize) - 1) * pageSize, rows: pageSize})">
             <i class="pi pi-angle-double-right"></i>
           </button>
         </div>
@@ -315,16 +315,19 @@
             <div class="customer-avatar small">
               {{ (supplier.name || 'S')[0].toUpperCase() }}
             </div>
-            <span class="customer-name">{{ supplier.name }}</span>
+            <div class="card-customer-info">
+              <span class="customer-name">{{ supplier.name }}</span>
+              <span *ngIf="supplier.contactPerson" class="customer-phone">{{ supplier.contactPerson }}</span>
+            </div>
           </div>
-          <div class="card-dates">
-            <span class="card-date">
-              <i class="pi pi-user"></i>
-              {{ supplier.contactPerson || 'N/A' }}
-            </span>
-            <span class="card-date">
+          <div class="card-contact">
+            <span *ngIf="supplier.phone" class="card-contact-item">
               <i class="pi pi-phone"></i>
-              {{ supplier.phone || '-' }}
+              {{ supplier.phone }}
+            </span>
+            <span *ngIf="supplier.email" class="card-contact-item">
+              <i class="pi pi-envelope"></i>
+              {{ supplier.email }}
             </span>
           </div>
         </div>
@@ -336,10 +339,10 @@
             <span class="amount-value">{{ supplier.rating }}/5</span>
           </div>
           <div class="card-amount">
-            <span class="amount-label">City</span>
-            <span class="amount-value">{{ supplier.city || '-' }}</span>
+            <span class="amount-label">Balance</span>
+            <span class="amount-value" [class.text-danger]="supplier.currentBalance > 0">{{ formatCurrency(supplier.currentBalance || 0) }}</span>
           </div>
-          <button class="btn-card-action" (click)="showContextMenu($event, supplier); $event.stopPropagation()">
+          <button class="btn-card-action" (click)="showActionMenu($event, supplier); $event.stopPropagation()">
             <i class="pi pi-ellipsis-h"></i>
           </button>
         </div>

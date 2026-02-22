@@ -21,6 +21,9 @@ export interface CatalogProductListItem {
   categoryName: string;
   brandName?: string | null;
   price: number;
+  salePrice?: number | null;
+  originalPrice?: number | null;
+  isOnSale?: boolean;
   currency: string;
   inStock: boolean;
   slug: string;
@@ -89,6 +92,9 @@ export interface CatalogProductDetail {
   inStock: boolean;
   slug: string;
   primaryImageUrl: string;
+  salePrice?: number | null;
+  originalPrice?: number | null;
+  isOnSale?: boolean;
   variants: CatalogVariant[];
   specifications: CatalogAttributeGroup[];
   media: CatalogMedia[];

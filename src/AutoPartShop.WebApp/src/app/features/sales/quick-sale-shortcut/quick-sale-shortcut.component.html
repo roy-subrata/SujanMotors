@@ -1,0 +1,279 @@
+<div class="qs-page">
+  <p-toast></p-toast>
+  <p-confirmDialog></p-confirmDialog>
+  <app-quick-customer-dialog (customerCreated)="onCustomerCreated($event)"></app-quick-customer-dialog>
+  <app-invoice-preview [(visible)]="showInvoicePreview" [invoiceData]="invoicePreviewData" (onPrint)="onInvoicePrint()"
+    (onDownload)="onInvoiceDownload()"></app-invoice-preview>
+
+  <!-- HEADER -->
+  <div class="qs-header">
+    <div class="qs-header-left">
+      <button pButton class="p-button-text p-button-rounded" pTooltip="Back" routerLink="/">
+        <i class="pi pi-arrow-left"></i>
+      </button>
+      <h2 class="qs-title">Quick Sale</h2>
+    </div>
+    <div class="qs-header-right">
+      <button pButton type="button" icon="pi pi-box" class="p-button-text p-button-rounded" pTooltip="Stock"
+        (click)="showStockPageDialog = true"></button>
+      <button pButton class="p-button-outlined p-button-rounded p-button-secondary" pTooltip="Reset Sale"
+        (click)="resetShortcut()">
+        <i class="pi pi-refresh"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- INFO BAR -->
+  <div class="qs-info-bar">
+    <span class="info-item"><i class="pi pi-hashtag"></i> {{ invoiceNumber() }}</span>
+    <span class="info-item"><i class="pi pi-calendar"></i> {{ currentDate }}</span>
+  </div>
+
+  <!-- PRODUCT SEARCH -->
+  <div class="qs-search-bar">
+    <div class="qs-search-input">
+      <i class="pi pi-search search-icon"></i>
+      <app-lazy-autocomplete [(ngModel)]="selectedPartModel" [ngModelOptions]="{standalone: true}"
+        [fetchFn]="fetchPartsLazy" optionLabel="name" placeholder="Search part name, SKU or number..."
+        [showClear]="true" [minLength]="1" (onItemSelect)="selectPart($event)">
+        <ng-template let-part>
+          <div class="part-suggestion">
+            <strong>{{ part.name }}</strong>
+            <span class="part-meta">{{ part.partNumber }} &bull; {{ part.sku }}</span>
+          </div>
+        </ng-template>
+      </app-lazy-autocomplete>
+    </div>
+  </div>
+
+  <!-- PRODUCT LIST -->
+  <div class="qs-product-list">
+    <div *ngIf="cartItems().length === 0" class="qs-empty-state">
+      <i class="pi pi-shopping-cart"></i>
+      <p>No items added yet</p>
+      <span>Search and add parts to start a sale</span>
+    </div>
+
+    <!-- Desktop Table -->
+    <div *ngIf="cartItems().length > 0" class="desktop-view">
+      <div class="qs-list-header">
+        <span class="col-num">#</span>
+        <span class="col-part">Part</span>
+        <span class="col-qty">Qty</span>
+        <span class="col-price">Price</span>
+        <span class="col-total">Total</span>
+        <span class="col-action"></span>
+      </div>
+      <div class="qs-list-body">
+        <div class="qs-list-item" *ngFor="let item of cartItems(); let i = index">
+          <div class="col-num">{{ i + 1 }}</div>
+          <div class="col-part">
+            <div class="item-name">{{ item.partName }}</div>
+            <div class="item-meta"> {{ item.sku || '-' }} &bull; {{
+              getBrandName(item.partId) }}</div>
+          </div>
+          <div class="col-qty">
+            <p-inputNumber [(ngModel)]="item.quantity" [ngModelOptions]="{standalone: true}" [min]="1"
+              [showButtons]="true" inputStyleClass="compact-input" buttonLayout="horizontal"
+              incrementButtonIcon="pi pi-plus" decrementButtonIcon="pi pi-minus"
+              incrementButtonClass="p-button-text p-button-sm"
+              decrementButtonClass="p-button-text p-button-sm"></p-inputNumber>
+          </div>
+          <div class="col-price">
+            <p-inputNumber [(ngModel)]="item.unitPrice" [ngModelOptions]="{standalone: true}" [min]="0"
+              [showButtons]="false" inputStyleClass="compact-input" mode="decimal"></p-inputNumber>
+          </div>
+          <div class="col-total">
+            {{ formatCurrency(calculateLineTotal(item)) }}
+          </div>
+          <div class="col-action">
+            <button pButton type="button" icon="pi pi-times" class="p-button-text p-button-danger p-button-sm"
+              (click)="removeFromCart(i)"></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile Cards -->
+    <div *ngIf="cartItems().length > 0" class="mobile-view">
+      <div class="qs-mobile-card" *ngFor="let item of cartItems(); let i = index">
+        <div class="mobile-card-header">
+          <div class="mobile-card-title">
+            <span class="mobile-num">{{ i + 1 }}</span>
+            <div>
+              <div class="item-name">{{ item.partName }}</div>
+              <div class="item-meta">{{ item.partNumber || '-' }} &bull; {{ item.sku || '-' }}</div>
+            </div>
+          </div>
+          <button pButton type="button" icon="pi pi-times" class="p-button-text p-button-danger p-button-sm"
+            (click)="removeFromCart(i)"></button>
+        </div>
+        <div class="mobile-card-body">
+          <div class="mobile-field">
+            <label>Qty</label>
+            <p-inputNumber [(ngModel)]="item.quantity" [ngModelOptions]="{standalone: true}" [min]="1"
+              [showButtons]="true" inputStyleClass="compact-input"></p-inputNumber>
+          </div>
+          <div class="mobile-field">
+            <label>Price</label>
+            <p-inputNumber [(ngModel)]="item.unitPrice" [ngModelOptions]="{standalone: true}" [min]="0"
+              [showButtons]="false" inputStyleClass="compact-input"></p-inputNumber>
+          </div>
+          <div class="mobile-field total">
+            <label>Total</label>
+            <strong>{{ formatCurrency(calculateLineTotal(item)) }}</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATIC FOOTER -->
+  <div class="qs-footer">
+    <div class="qs-footer-summary">
+      <div class="summary-row">
+        <span>Subtotal</span>
+        <span class="value">{{ formatCurrency(subtotal()) }}</span>
+      </div>
+      <div class="summary-row discount-row">
+        <span>Discount %</span>
+        <div class="discount-input-wrap">
+          <p-inputNumber [(ngModel)]="shortcutDiscount" [ngModelOptions]="{standalone: true}" [min]="0" [max]="100"
+            suffix="%" inputStyleClass="discount-input" (onInput)="applyShortcutDiscount()"></p-inputNumber>
+        </div>
+      </div>
+      <div class="summary-row total-row">
+        <span>Total</span>
+        <span class="value total-value">{{ formatCurrency(grandTotal()) }}</span>
+      </div>
+    </div>
+    <button pButton class="checkout-btn" (click)="openCheckout()" [disabled]="cartItems().length === 0 || saving()">
+      <i class="pi pi-shopping-bag"></i>
+      <span>Checkout</span>
+    </button>
+  </div>
+
+  <!-- CHECKOUT DIALOG -->
+  <p-dialog header="Complete Sale" [(visible)]="showCheckoutDialog" [modal]="true" [style]="{width: '560px'}"
+    [closable]="true" [draggable]="false" styleClass="checkout-dialog">
+    <div class="checkout-body">
+      <!-- Customer + Phone -->
+      <div class="checkout-section">
+        <label class="checkout-label">Customer</label>
+        <div class="input-with-action">
+          <app-lazy-autocomplete [(ngModel)]="selectedCustomerModel" [ngModelOptions]="{standalone: true}"
+            [fetchFn]="fetchCustomersLazy" optionLabel="fullName" placeholder="Search customer..."
+            [showClear]="true" [minLength]="0" (onItemSelect)="selectCustomer($event)">
+            <ng-template let-customer>
+              <div class="customer-option">
+                <span class="name">{{ customer.fullName }}</span>
+                <span class="phone">{{ customer.phone }}</span>
+              </div>
+            </ng-template>
+          </app-lazy-autocomplete>
+          <button pButton type="button" icon="pi pi-user-plus" class="p-button-outlined p-button-sm"
+            pTooltip="New Customer" (click)="openQuickCustomerDialog()"></button>
+        </div>
+        <input pInputText [formControl]="$any(quickSaleForm.controls['customerPhone'])" placeholder="Phone number"
+          class="phone-input" />
+        <div class="customer-balance-hint" *ngIf="selectedCustomer()">
+          <span>Balance: <strong>{{ formatCurrency(selectedCustomer()?.dueAmount || 0) }}</strong></span>
+          <span *ngIf="customerCreditInfo" class="credit-info">Credit: {{ formatCurrency(customerCreditInfo.availableCredit) }}</span>
+        </div>
+      </div>
+
+      <!-- Car No & Technician -->
+      <div class="checkout-grid">
+        <div class="checkout-section">
+          <label class="checkout-label">Car No</label>
+          <input pInputText [(ngModel)]="vehicleNumber" [ngModelOptions]="{standalone: true}"
+            placeholder="BA 1 PA 1234" />
+        </div>
+        <div class="checkout-section">
+          <label class="checkout-label">Technician</label>
+          <app-lazy-autocomplete [(ngModel)]="selectedTechnicianModel" [ngModelOptions]="{standalone: true}"
+            [fetchFn]="fetchTechniciansLazy" optionLabel="name" placeholder="Search technician..."
+            [showClear]="true" [minLength]="0" (onItemSelect)="selectTechnician($event)">
+            <ng-template let-tech>
+              <div class="tech-option">
+                <span class="name">{{ tech.name }}</span>
+                <span class="code">{{ tech.technicianCode }}</span>
+              </div>
+            </ng-template>
+          </app-lazy-autocomplete>
+        </div>
+      </div>
+
+      <!-- Payment -->
+      <div class="checkout-grid">
+        <div class="checkout-section">
+          <label class="checkout-label">Payment Method</label>
+          <p-select [options]="paymentMethodOptions" [(ngModel)]="checkoutPaymentMethod"
+            [ngModelOptions]="{standalone: true}" optionLabel="label" optionValue="value"
+            placeholder="Select method"></p-select>
+        </div>
+        <div class="checkout-section">
+          <label class="checkout-label">Amount</label>
+          <p-inputNumber [(ngModel)]="checkoutPaymentAmount" [ngModelOptions]="{standalone: true}" [min]="0"
+            inputStyleClass="compact-input" mode="decimal"></p-inputNumber>
+        </div>
+      </div>
+
+      <!-- Note -->
+      <div class="checkout-section">
+        <label class="checkout-label">Note</label>
+        <textarea pTextarea [(ngModel)]="shortcutNotes" [ngModelOptions]="{standalone: true}" rows="2"
+          placeholder="Add a note..." class="extra-note-input"></textarea>
+      </div>
+
+      <!-- Dialog Total -->
+      <div class="checkout-total-bar">
+        <span>Total Payable</span>
+        <strong>{{ formatCurrency(grandTotal()) }}</strong>
+      </div>
+    </div>
+
+    <ng-template pTemplate="footer">
+      <button pButton label="Cancel" class="p-button-text" (click)="showCheckoutDialog = false"></button>
+      <button pButton label="Complete Sale" icon="pi pi-check" (click)="confirmCheckout()"></button>
+    </ng-template>
+  </p-dialog>
+
+  <!-- PRICE CHECK DIALOG -->
+  <p-dialog header="Price Check" [(visible)]="showPriceCheckDialog" [modal]="true" [style]="{width: '450px'}"
+    [closable]="true" [draggable]="false">
+    <div class="dialog-body">
+      <div class="dialog-field">
+        <label>Part Number / SKU</label>
+        <div class="dialog-input-row">
+          <input type="text" pInputText [(ngModel)]="priceCheckCode" placeholder="Enter SKU or part number..."
+            (keydown.enter)="searchPrice()" />
+          <button pButton icon="pi pi-search" (click)="searchPrice()" class="p-button-outlined"></button>
+        </div>
+      </div>
+      <div class="dialog-result" *ngIf="priceCheckResult">
+        <h4>{{ priceCheckResult.name }}</h4>
+        <p class="muted">{{ priceCheckResult.partNumber }} &bull; {{ priceCheckResult.sku }}</p>
+        <div class="dialog-line">
+          <span>Price:</span>
+          <strong>{{ formatCurrency(priceCheckResult.sellingPrice) }}</strong>
+        </div>
+        <div class="dialog-line">
+          <span>In Stock:</span>
+          <strong>{{ priceCheckResult.stockLevel }} units</strong>
+        </div>
+        <button pButton label="Add to Cart" icon="pi pi-cart-plus" (click)="addPriceCheckToCart()"></button>
+      </div>
+    </div>
+    <ng-template pTemplate="footer">
+      <button pButton label="Close" class="p-button-text" (click)="closePriceCheckDialog()"></button>
+    </ng-template>
+  </p-dialog>
+
+  <!-- STOCK PAGE DIALOG -->
+  <p-dialog header="Stock" [(visible)]="showStockPageDialog" [modal]="true"
+    [style]="{width: '90vw', maxWidth: '1200px', height: '80vh'}" [closable]="true" [draggable]="false"
+    styleClass="stock-page-dialog">
+    <app-stock *ngIf="showStockPageDialog"></app-stock>
+  </p-dialog>
+</div>

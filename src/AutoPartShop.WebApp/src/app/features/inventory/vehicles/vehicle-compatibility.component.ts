@@ -246,8 +246,8 @@ export class VehicleCompatibilityComponent implements OnInit {
     return !!(field && field.invalid && field.touched);
   }
 
-  getCompatibilitySeverity(isCompatible: boolean): string {
-    return isCompatible ? 'success' : 'warning';
+  getCompatibilitySeverity(isCompatible: boolean): 'success' | 'warn' {
+    return isCompatible ? 'success' : 'warn';
   }
 
   getCompatibilityLabel(isCompatible: boolean): string {

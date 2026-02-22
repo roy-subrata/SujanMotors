@@ -97,105 +97,31 @@
     </div>
   </div>
 
-
-  <!-- Section 3: Payment History with Filters -->
-  <p-card class="history-card">
-    <ng-template pTemplate="header">
-      <div class="card-header">
-        <div class="header-title-section">
-          <h3 class="card-title">
-            <i class="pi pi-history"></i>
-            Payment History
-          </h3>
-          <p class="card-subtitle">View and filter all payment transactions</p>
-        </div>
-
-        <!-- Filters -->
-        <form [formGroup]="filterForm">
-          <div class="filters-section">
-            <div class="filter-item search-filter">
-              <div class="search-container">
-                <i class="pi pi-search search-icon"></i>
-                <input type="text" formControlName="search" placeholder="Search by customer, invoice, transaction..."
-                  class="search-input" />
-                <i *ngIf="filterForm.get('search')?.value" class="pi pi-times clear-icon" (click)="clearSearch()"></i>
-              </div>
-            </div>
-            <p-select formControlName="status" [options]="statusOptions" placeholder="Filter by Status"
-              [showClear]="true" styleClass="filter-dropdown">
-            </p-select>
-
-            <p-datepicker formControlName="dates" selectionMode="range" [showIcon]="true" placeholder="Date Range"
-              dateFormat="M dd, yy" [showButtonBar]="true" styleClass="filter-datepicker">
-            </p-datepicker>
-          </div>
-        </form>
+  <!-- Quick Links Section -->
+  <div class="quick-links-section" *ngIf="customer()">
+    <div class="quick-link-card" (click)="viewPayments()">
+      <div class="quick-link-icon ql-blue"><i class="pi pi-wallet"></i></div>
+      <div class="quick-link-content">
+        <span class="quick-link-title">View Payments</span>
+        <span class="quick-link-desc">Payment history & transactions</span>
       </div>
-    </ng-template>
-
-    <!-- Payment History Table -->
-    <p-table [value]="paymentHistory()" [loading]="loading()" [paginator]="false" [rows]="pageSize"
-      [totalRecords]="totalCount" responsiveLayout="scroll" styleClass="p-datatable-striped"
-      [tableStyle]="{ 'min-width': '50rem' }">
-
-      <ng-template pTemplate="header">
-        <tr>
-          <th>Date</th>
-          <th>Transaction #</th>
-          <th>Invoice #</th>
-          <th class="text-right">Amount</th>
-          <th>Method</th>
-          <th>Provider</th>
-          <th>Status</th>
-          <th>Reconciled</th>
-        </tr>
-      </ng-template>
-
-      <ng-template pTemplate="body" let-payment>
-        <tr>
-          <td>
-            <span class="payment-date">{{ payment.paymentDate | date:'MMM dd, yyyy' }}</span>
-            <br>
-            <span class="payment-time">{{ payment.paymentDate | date:'hh:mm a' }}</span>
-          </td>
-          <td>
-            <span class="transaction-number">{{ payment.transactionNumber || '-' }}</span>
-          </td>
-          <td>
-            <span class="invoice-number">{{ payment.invoiceNumber || '-' }}</span>
-          </td>
-          <td class="text-right">
-            <span class="amount">{{ payment.amount | appCurrency }}</span>
-          </td>
-          <td>
-            <p-tag [value]="payment.paymentMethod" severity="info"></p-tag>
-          </td>
-          <td>
-            <span class="provider-name">{{ payment.providerName || '-' }}</span>
-          </td>
-          <td>
-            <p-tag [value]="payment.status" [severity]="getPaymentStatusSeverity(payment.status)"></p-tag>
-          </td>
-          <td>{{payment.isReconciled? "Yes":"No"}}</td>
-        </tr>
-      </ng-template>
-
-      <ng-template pTemplate="emptymessage">
-        <tr>
-          <td colspan="7" class="text-center p-4">
-            <div class="empty-state">
-              <i class="pi pi-inbox text-4xl text-gray-300 mb-3"></i>
-              <h3 class="text-gray-500 mb-2">No payment history</h3>
-              <p class="text-gray-400">This customer hasn't made any payments yet</p>
-            </div>
-          </td>
-        </tr>
-      </ng-template>
-    </p-table>
-    <p-paginator [first]="first" [rows]="pageSize" [totalRecords]="totalCount" [rowsPerPageOptions]="pageSizeOptions"
-      [showCurrentPageReport]="true" currentPageReportTemplate="Showing {first} to {last} of {totalRecords} payments"
-      (onPageChange)="onPageChange($event)">
-    </p-paginator>
-
-  </p-card>
+      <i class="pi pi-arrow-right quick-link-arrow"></i>
+    </div>
+    <div class="quick-link-card" (click)="viewAccountSummary()">
+      <div class="quick-link-icon ql-purple"><i class="pi pi-file-check"></i></div>
+      <div class="quick-link-content">
+        <span class="quick-link-title">Account Summary</span>
+        <span class="quick-link-desc">Purchase items & due report</span>
+      </div>
+      <i class="pi pi-arrow-right quick-link-arrow"></i>
+    </div>
+    <div class="quick-link-card" (click)="viewPaymentSummary()">
+      <div class="quick-link-icon ql-green"><i class="pi pi-chart-bar"></i></div>
+      <div class="quick-link-content">
+        <span class="quick-link-title">Payment Summary</span>
+        <span class="quick-link-desc">Financial overview & analytics</span>
+      </div>
+      <i class="pi pi-arrow-right quick-link-arrow"></i>
+    </div>
+  </div>
 </div>

@@ -214,8 +214,8 @@ export class TechniciansListComponent implements OnInit {
         });
     }
 
-    getStatusSeverity(status: string): string {
-        const severityMap: Record<string, string> = {
+    getStatusSeverity(status: string): 'success' | 'secondary' {
+        const severityMap: Record<string, 'success' | 'secondary'> = {
             ACTIVE: 'success',
             INACTIVE: 'secondary'
         };

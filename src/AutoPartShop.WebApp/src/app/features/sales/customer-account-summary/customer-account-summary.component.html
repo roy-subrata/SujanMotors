@@ -1,0 +1,310 @@
+<div class="as-page">
+    <p-toast></p-toast>
+
+    <!-- HEADER -->
+    <div class="as-header">
+        <div class="as-header-left">
+            <button pButton class="p-button-text p-button-rounded" pTooltip="Back" (click)="goBack()">
+                <i class="pi pi-arrow-left"></i>
+            </button>
+            <h2 class="as-title">Account Summary</h2>
+        </div>
+        <div class="as-header-right" *ngIf="summary()">
+            <button pButton type="button" icon="pi pi-file-pdf" class="p-button-text p-button-rounded"
+                pTooltip="Download PDF" [loading]="pdfLoading()" (click)="onDownloadPdf()"></button>
+            <button pButton type="button" icon="pi pi-print" class="p-button-text p-button-rounded"
+                pTooltip="Print" [loading]="pdfLoading()" (click)="onPrint()"></button>
+        </div>
+    </div>
+
+    <!-- FILTER BAR -->
+    <div class="as-filter-bar">
+        <div class="filter-field customer-field">
+            <label class="filter-label">Customer</label>
+            <sm-autocomplete
+                [dataSource]="customerDataSource"
+                placeholder="Search customer..."
+                (itemSelected)="onCustomerSelected($event)"
+                (cleared)="onCustomerCleared()">
+            </sm-autocomplete>
+        </div>
+        <div class="filter-field date-field">
+            <label class="filter-label">From</label>
+            <p-datepicker
+                [(ngModel)]="fromDate"
+                [showIcon]="true"
+                dateFormat="dd M yy"
+                placeholder="Start date"
+                styleClass="w-full">
+            </p-datepicker>
+        </div>
+        <div class="filter-field date-field">
+            <label class="filter-label">To</label>
+            <p-datepicker
+                [(ngModel)]="toDate"
+                [showIcon]="true"
+                dateFormat="dd M yy"
+                placeholder="End date"
+                styleClass="w-full">
+            </p-datepicker>
+        </div>
+        <button pButton type="button" icon="pi pi-search" label="Generate"
+            class="generate-btn" (click)="generateReport()" [loading]="loading()"></button>
+    </div>
+
+    <!-- INFO BAR (shown when customer is loaded) -->
+    <div class="as-info-bar" *ngIf="summary()">
+        <span class="info-item"><i class="pi pi-user"></i> {{ summary()!.customerName }}</span>
+        <span class="info-item"><i class="pi pi-hashtag"></i> {{ summary()!.customerCode }}</span>
+        <span class="info-item"><i class="pi pi-phone"></i> {{ summary()!.customerPhone }}</span>
+        <span class="info-item" *ngIf="summary()!.customerType"><i class="pi pi-tag"></i> {{ summary()!.customerType }}</span>
+        <span class="info-item"><i class="pi pi-calendar"></i> {{ formatDate(summary()!.reportDate) }}</span>
+    </div>
+
+    <!-- CONTENT AREA -->
+    <div class="as-content">
+        <!-- Empty State -->
+        <div *ngIf="!loading() && !summary()" class="as-empty-state">
+            <i class="pi pi-file-check"></i>
+            <p>No report generated</p>
+            <span>Select a customer and click Generate to view account summary</span>
+        </div>
+
+        <!-- Loading State -->
+        <div *ngIf="loading()" class="as-loading-state">
+            <p-skeleton height="2rem" styleClass="mb-2"></p-skeleton>
+            <p-skeleton height="2rem" styleClass="mb-2"></p-skeleton>
+            <p-skeleton height="2rem" styleClass="mb-2"></p-skeleton>
+            <p-skeleton height="10rem"></p-skeleton>
+        </div>
+
+        <!-- Error State -->
+        <div *ngIf="error() && !loading()" class="as-error-state">
+            <i class="pi pi-exclamation-circle"></i>
+            <span>{{ error() }}</span>
+        </div>
+
+        <!-- Report Content -->
+        @if (!loading() && !error() && summary()) {
+            <!-- Metrics Row -->
+            <div class="as-metrics">
+                <div class="metric-card metric-primary">
+                    <div class="metric-icon"><i class="pi pi-shopping-cart"></i></div>
+                    <div class="metric-body">
+                        <span class="metric-label">Total Purchase</span>
+                        <span class="metric-value">{{ formatCurrency(summary()!.totalPurchaseAmount) }}</span>
+                        <span class="metric-helper">{{ summary()!.totalInvoices }} invoice(s)</span>
+                    </div>
+                </div>
+                <div class="metric-card metric-success">
+                    <div class="metric-icon"><i class="pi pi-check-circle"></i></div>
+                    <div class="metric-body">
+                        <span class="metric-label">Total Paid</span>
+                        <span class="metric-value">{{ formatCurrency(summary()!.totalPaidAmount) }}</span>
+                    </div>
+                </div>
+                <div class="metric-card" [ngClass]="summary()!.currentDue > 0 ? 'metric-danger' : 'metric-success'">
+                    <div class="metric-icon"><i class="pi pi-exclamation-triangle"></i></div>
+                    <div class="metric-body">
+                        <span class="metric-label">Current Due</span>
+                        <span class="metric-value">{{ formatCurrency(summary()!.currentDue) }}</span>
+                        <span class="metric-helper" *ngIf="summary()!.currentDue <= 0">All paid up!</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Purchase Items Table -->
+            <div class="as-table-section">
+                <div class="table-header-row">
+                    <h3 class="table-title">Purchase Items</h3>
+                    <span class="table-count">{{ summary()!.purchaseItemsTotalCount }} items</span>
+                </div>
+
+                <!-- Desktop Table -->
+                <div class="desktop-view">
+                    <div class="as-list-header">
+                        <span class="col-date">Invoice Date</span>
+                        <span class="col-invoice">Invoice #</span>
+                        <span class="col-status">Status</span>
+                        <span class="col-item">Item Name</span>
+                        <span class="col-part">Part #</span>
+                        <span class="col-qty">Qty</span>
+                        <span class="col-price">Unit Price</span>
+                        <span class="col-disc">Discount</span>
+                        <span class="col-total">Line Total</span>
+                    </div>
+                    <div class="as-list-body">
+                        <div class="as-list-item" *ngFor="let item of summary()!.purchaseItems">
+                            <div class="col-date">{{ formatDate(item.invoiceDate) }}</div>
+                            <div class="col-invoice mono">{{ item.invoiceNumber }}</div>
+                            <div class="col-status">
+                                <span class="status-pill" [attr.data-status]="item.invoiceStatus.toLowerCase()">
+                                    {{ item.invoiceStatus }}
+                                </span>
+                            </div>
+                            <div class="col-item">{{ item.itemName }}</div>
+                            <div class="col-part mono muted">{{ item.partNumber || item.sku || '-' }}</div>
+                            <div class="col-qty">{{ item.quantity }}</div>
+                            <div class="col-price">{{ formatCurrency(item.unitPrice) }}</div>
+                            <div class="col-disc">{{ formatCurrency(item.discount) }}</div>
+                            <div class="col-total bold">{{ formatCurrency(item.lineTotal) }}</div>
+                        </div>
+                        <div *ngIf="summary()!.purchaseItems.length === 0" class="as-list-empty">
+                            No purchase items found for the selected criteria
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mobile Cards -->
+                <div class="mobile-view">
+                    <div class="as-mobile-card" *ngFor="let item of summary()!.purchaseItems">
+                        <div class="mobile-card-header">
+                            <div class="mobile-card-title">
+                                <div class="item-name">{{ item.itemName }}</div>
+                                <div class="item-meta">{{ item.partNumber || item.sku || '-' }}</div>
+                            </div>
+                            <span class="status-pill" [attr.data-status]="item.invoiceStatus.toLowerCase()">
+                                {{ item.invoiceStatus }}
+                            </span>
+                        </div>
+                        <div class="mobile-card-body">
+                            <div class="mobile-field">
+                                <label>Invoice</label>
+                                <span class="mono">{{ item.invoiceNumber }}</span>
+                            </div>
+                            <div class="mobile-field">
+                                <label>Date</label>
+                                <span>{{ formatDate(item.invoiceDate) }}</span>
+                            </div>
+                            <div class="mobile-field">
+                                <label>Qty</label>
+                                <span>{{ item.quantity }}</span>
+                            </div>
+                            <div class="mobile-field">
+                                <label>Price</label>
+                                <span>{{ formatCurrency(item.unitPrice) }}</span>
+                            </div>
+                            <div class="mobile-field total">
+                                <label>Total</label>
+                                <strong>{{ formatCurrency(item.lineTotal) }}</strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div *ngIf="summary()!.purchaseItems.length === 0" class="as-list-empty">
+                        No purchase items found
+                    </div>
+                </div>
+
+                <!-- Paginator -->
+                <div class="as-paginator" *ngIf="summary()!.purchaseItemsTotalCount > pageSize">
+                    <p-paginator
+                        [rows]="pageSize"
+                        [totalRecords]="summary()!.purchaseItemsTotalCount"
+                        [first]="first"
+                        [rowsPerPageOptions]="[10, 20, 50]"
+                        (onPageChange)="onPageChange($event)">
+                    </p-paginator>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- STICKY FOOTER (shown when report loaded) -->
+    <div class="as-footer" *ngIf="summary()">
+        <div class="as-footer-summary">
+            <div class="summary-row">
+                <span>Total Purchase</span>
+                <span class="value">{{ formatCurrency(summary()!.totalPurchaseAmount) }}</span>
+            </div>
+            <div class="summary-row">
+                <span>Total Paid</span>
+                <span class="value paid">{{ formatCurrency(summary()!.totalPaidAmount) }}</span>
+            </div>
+            <div class="summary-row total-row" [class.due]="summary()!.currentDue > 0">
+                <span>Current Due</span>
+                <span class="value total-value">{{ formatCurrency(summary()!.currentDue) }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== HIDDEN PRINT-OPTIMIZED SECTION ==================== -->
+@if (allItemsLoaded() && summary()) {
+    <div id="account-summary-print" class="print-container">
+        <div class="print-header">
+            <div class="print-company-name">{{ companyConfig.companyName }}</div>
+            <div class="print-company-info">
+                {{ companyConfig.companyAddress }} | {{ companyConfig.companyPhone }} | {{ companyConfig.companyEmail }}
+            </div>
+            <div class="print-title">Customer Account Summary</div>
+        </div>
+        <div class="print-customer-info">
+            <div>
+                <div class="print-customer-name">{{ summary()!.customerName }}</div>
+                <div>Code: {{ summary()!.customerCode }}</div>
+                <div>Phone: {{ summary()!.customerPhone }}</div>
+                <div *ngIf="summary()!.customerType">Type: {{ summary()!.customerType }}</div>
+            </div>
+            <div style="text-align: right;">
+                <div>Report Date: {{ formatDate(summary()!.reportDate) }}</div>
+                <div *ngIf="summary()!.fromDate">From: {{ formatDate(summary()!.fromDate!) }}</div>
+                <div *ngIf="summary()!.toDate">To: {{ formatDate(summary()!.toDate!) }}</div>
+            </div>
+        </div>
+        <div class="print-metrics">
+            <div class="print-metric">
+                <div class="print-metric-label">Total Purchase</div>
+                <div class="print-metric-value">{{ formatCurrency(summary()!.totalPurchaseAmount) }}</div>
+            </div>
+            <div class="print-metric paid">
+                <div class="print-metric-label">Total Paid</div>
+                <div class="print-metric-value">{{ formatCurrency(summary()!.totalPaidAmount) }}</div>
+            </div>
+            <div class="print-metric" [class.due]="summary()!.currentDue > 0">
+                <div class="print-metric-label">Current Due</div>
+                <div class="print-metric-value">{{ formatCurrency(summary()!.currentDue) }}</div>
+            </div>
+        </div>
+        <div class="print-table-title">Purchase Item Details ({{ allItems().length }} items)</div>
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 5%;">#</th>
+                    <th style="width: 12%;">Invoice Date</th>
+                    <th style="width: 12%;">Invoice #</th>
+                    <th>Item Name</th>
+                    <th style="width: 10%;">Part #</th>
+                    <th class="text-right" style="width: 6%;">Qty</th>
+                    <th class="text-right" style="width: 12%;">Unit Price</th>
+                    <th class="text-right" style="width: 9%;">Discount</th>
+                    <th class="text-right" style="width: 12%;">Line Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                @for (item of allItems(); track item.salesOrderLineId; let i = $index) {
+                    <tr>
+                        <td>{{ i + 1 }}</td>
+                        <td>{{ formatDate(item.invoiceDate) }}</td>
+                        <td>{{ item.invoiceNumber }}</td>
+                        <td>{{ item.itemName }}</td>
+                        <td>{{ item.partNumber || item.sku || '-' }}</td>
+                        <td class="text-right">{{ item.quantity }}</td>
+                        <td class="text-right">{{ formatCurrency(item.unitPrice) }}</td>
+                        <td class="text-right">{{ formatCurrency(item.discount) }}</td>
+                        <td class="text-right font-bold">{{ formatCurrency(item.lineTotal) }}</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        @if (summary()!.currentDue > 0) {
+            <div class="print-due-box">
+                <span class="label">Total Amount Due: </span>
+                <span class="value">{{ formatCurrency(summary()!.currentDue) }}</span>
+            </div>
+        }
+        <div class="print-footer">
+            <p>This is a computer-generated document. Generated on {{ formatDate(summary()!.reportDate) }} by {{ companyConfig.companyName }}.</p>
+            <p style="margin-top: 4px;">Thank you for your business!</p>
+        </div>
+    </div>
+}

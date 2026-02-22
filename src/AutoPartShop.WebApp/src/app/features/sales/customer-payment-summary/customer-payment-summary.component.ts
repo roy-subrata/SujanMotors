@@ -107,7 +107,7 @@ export class CustomerPaymentSummaryComponent implements OnInit, OnDestroy {
     });
   }
 
-  getStatusSeverity(status: string): string {
+  getStatusSeverity(status: string): 'secondary' | 'info' | 'success' | 'danger' | 'warn' {
     switch (status) {
       case 'PENDING':
         return 'secondary';
@@ -120,7 +120,7 @@ export class CustomerPaymentSummaryComponent implements OnInit, OnDestroy {
       case 'CANCELLED':
         return 'danger';
       case 'REFUNDED':
-        return 'warning';
+        return 'warn';
       default:
         return 'info';
     }

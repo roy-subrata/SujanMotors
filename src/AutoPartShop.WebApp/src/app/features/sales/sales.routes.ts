@@ -12,6 +12,7 @@ import { CustomerPaymentsComponent } from './customer-payments/customer-payments
 import { CustomerPaymentListComponent } from './customer-payments/customer-payment-list.component';
 import { CustomerPaymentFormComponent } from './customer-payments/customer-payment-form.component';
 import { CustomerPaymentSummaryComponent } from './customer-payment-summary/customer-payment-summary.component';
+import { CustomerAccountSummaryComponent } from './customer-account-summary/customer-account-summary.component';
 import { CustomersComponent } from './customers/customers.component';
 import { CustomersListComponent } from './customers/customers-list/customers-list.component';
 import { CustomerFormComponent } from './customers/customer-form/customer-form.component';
@@ -70,6 +71,12 @@ export const salesRoutes: Routes = [
     {
         path: 'customer-payments/summary/:customerId',
         component: CustomerPaymentSummaryComponent
+    },
+
+    // Customer Account Summary Report
+    {
+        path: 'customer-account-summary',
+        component: CustomerAccountSummaryComponent
     },
 
     // Customers

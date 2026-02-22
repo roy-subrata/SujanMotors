@@ -7,6 +7,7 @@ import { PartFormComponent } from './parts/part-form/part-form.component';
 import { PartDetailsComponent } from './parts/part-details/part-details.component';
 import { SuppliersListComponent } from './suppliers/suppliers-list/suppliers-list.component';
 import { SupplierFormComponent } from './suppliers/supplier-form/supplier-form.component';
+import { SupplierDetailComponent } from './suppliers/supplier-detail/supplier-detail.component';
 import { SupplierPaymentAccountListComponent } from './suppliers/supplier-payment-accounts/supplier-payment-account-list.component';
 import { SupplierPaymentAccountFormComponent } from './suppliers/supplier-payment-accounts/supplier-payment-account-form.component';
 import { WarehousesComponent } from './warehouses/warehouses.component';
@@ -28,6 +29,7 @@ export const inventoryRoutes: Routes = [
   { path: 'parts/view', component: PartFormComponent },
   { path: 'parts/:id', component: PartDetailsComponent },
   { path: 'suppliers', component: SuppliersListComponent },
+  { path: 'suppliers/detail', component: SupplierDetailComponent },
   { path: 'suppliers/create', component: SupplierFormComponent },
   { path: 'suppliers/edit', component: SupplierFormComponent },
   { path: 'suppliers/view', component: SupplierFormComponent },

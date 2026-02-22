@@ -80,7 +80,7 @@ export class PurchaseOrdersListComponent implements OnInit {
   private readonly dialogService = inject(DialogService);
   private readonly router = inject(Router);
 
-  private dialogRef: DynamicDialogRef | undefined;
+  private dialogRef: DynamicDialogRef | null | undefined;
 
   /* ===================== COMPUTED PROPERTIES ===================== */
 
@@ -495,16 +495,18 @@ export class PurchaseOrdersListComponent implements OnInit {
       }
     });
 
-    this.dialogRef.onClose.subscribe((result) => {
-      if (result) {
-        this.messageService.add({
-          severity: 'success',
-          summary: 'Success',
-          detail: 'Advance credit applied successfully. Purchase order updated.'
-        });
-        this.poDeleted.emit();
-      }
-    });
+    if (this.dialogRef) {
+      this.dialogRef.onClose.subscribe((result) => {
+        if (result) {
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Success',
+            detail: 'Advance credit applied successfully. Purchase order updated.'
+          });
+          this.poDeleted.emit();
+        }
+      });
+    }
   }
 
   /**

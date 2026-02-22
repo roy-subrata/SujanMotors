@@ -41,6 +41,15 @@ import { filter } from 'rxjs/operators';
                 tooltipPosition="bottom">
                 <i class="pi pi-shopping-cart"></i>
             </button>
+            <!-- Quick Sale Shortcut -->
+            <button
+                type="button"
+                class="topbar-action-btn quick-sale-shortcut-btn"
+                (click)="navigateToQuickSaleShortcut()"
+                pTooltip="Quick Sale Shortcut"
+                tooltipPosition="bottom">
+                <i class="pi pi-bolt"></i>
+            </button>
 
             <!-- Language Switcher -->
             <app-language-switcher></app-language-switcher>
@@ -315,6 +324,20 @@ import { filter } from 'rxjs/operators';
         .quick-sale-btn i {
             color: white !important;
         }
+
+        .quick-sale-shortcut-btn {
+            background: #0ea5e9 !important;
+            color: white !important;
+        }
+
+        .quick-sale-shortcut-btn:hover {
+            background: #0284c7 !important;
+            transform: scale(1.05);
+        }
+
+        .quick-sale-shortcut-btn i {
+            color: white !important;
+        }
     `]
 })
 export class AppTopbar {
@@ -446,6 +469,10 @@ export class AppTopbar {
 
     navigateToQuickSale() {
         this.router.navigate(['/quick-sale']);
+    }
+
+    navigateToQuickSaleShortcut() {
+        this.router.navigate(['/quick-sale-shortcut']);
     }
 
     getUserInitials(): string {

@@ -452,30 +452,119 @@
 }
 
 /* Column Styles */
-.col-so { min-width: 120px; }
+.col-code { min-width: 120px; }
 .col-customer { min-width: 220px; }
-.col-date { min-width: 140px; }
+.col-contact { min-width: 200px; }
+.col-city { min-width: 120px; }
+.col-rating { min-width: 100px; }
+.col-balance { min-width: 130px; text-align: right; }
 .col-status { min-width: 120px; }
-.col-amount { min-width: 120px; text-align: right; }
 .col-actions { width: 100px; text-align: center; }
 
 /* Cell Styles */
-.so-cell {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.so-link {
+.code-link {
   font-weight: 600;
   color: var(--color-primary);
   cursor: pointer;
   transition: color var(--transition-fast);
 }
 
-.so-link:hover {
+.code-link:hover {
   color: var(--color-primary-hover);
   text-decoration: underline;
+}
+
+.contact-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.contact-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.contact-line i {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.balance-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.text-danger {
+  color: var(--color-danger) !important;
+}
+
+.text-success {
+  color: var(--color-success) !important;
+}
+
+.rating-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.rating-badge i {
+  font-size: 11px;
+}
+
+.rating-excellent {
+  background: var(--color-success-light);
+  color: #047857;
+}
+
+.rating-good {
+  background: var(--color-info-light);
+  color: #1D4ED8;
+}
+
+.rating-fair {
+  background: var(--color-warning-light);
+  color: #92400E;
+}
+
+.rating-poor {
+  background: var(--color-danger-light);
+  color: #B91C1C;
+}
+
+/* Mobile card contact */
+.card-customer-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.card-contact {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.card-contact-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.card-contact-item i {
+  font-size: 12px;
 }
 
 .customer-cell {
@@ -967,11 +1056,11 @@
     box-shadow: var(--shadow-lg);
   }
 
-  .p-contextmenu {
+  .p-menu {
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-lg);
     border: 1px solid var(--color-border);
-    min-width: 180px;
+    min-width: 200px;
   }
 
   .p-menuitem-link {

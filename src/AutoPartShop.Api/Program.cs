@@ -123,6 +123,7 @@ builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<StockManagementService>();
 builder.Services.AddScoped<SupplierPaymentSummaryService>();
 builder.Services.AddScoped<ISupplierLedgerService, SupplierLedgerService>();
+builder.Services.AddScoped<ICustomerAccountSummaryService, CustomerAccountSummaryService>();
 builder.Services.AddScoped<IUnitConversionService, UnitConversionService>();
 builder.Services.AddScoped<IFinancialSummaryService, FinancialSummaryService>();
 builder.Services.AddScoped<IDailyExpenseService, DailyExpenseService>();

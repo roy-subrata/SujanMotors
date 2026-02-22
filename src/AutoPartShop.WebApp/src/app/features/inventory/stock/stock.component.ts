@@ -195,7 +195,7 @@ export class StockComponent implements OnInit {
       data: { stock }
     });
 
-    dialogRef.onClose.subscribe((result: any) => {
+    dialogRef!.onClose.subscribe((result: any) => {
       if (result?.success) {
         this.messageService.add({
           severity: 'success',

@@ -6,71 +6,61 @@ import { ButtonModule } from 'primeng/button';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { TooltipModule } from 'primeng/tooltip';
 import { TagModule } from 'primeng/tag';
-import { ContextMenuModule, ContextMenu } from 'primeng/contextmenu';
+import { MenuModule, Menu } from 'primeng/menu';
 import { RippleModule } from 'primeng/ripple';
 import { ToastModule } from 'primeng/toast';
 import { Select } from 'primeng/select';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { MenuItem } from 'primeng/api';
 import { SupplierService, SupplierResponse } from '../../services/supplier.service';
+import { CurrencyService } from '../../../../shared/services/currency.service';
 import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-suppliers-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, TableModule, ButtonModule, ConfirmDialogModule, TooltipModule, TagModule, ContextMenuModule, RippleModule, ToastModule, Select],
+  imports: [CommonModule, FormsModule, TableModule, ButtonModule, ConfirmDialogModule, TooltipModule, TagModule, MenuModule, RippleModule, ToastModule, Select],
   providers: [ConfirmationService, MessageService],
   templateUrl: './suppliers-list.component.html',
   styleUrls: ['./suppliers-list.component.css']
 })
 export class SuppliersListComponent implements OnInit {
-  @ViewChild('contextMenu') contextMenu: ContextMenu | undefined;
+  @ViewChild('actionMenu') actionMenu!: Menu;
 
   suppliers: SupplierResponse[] = [];
   loading = false;
   totalRecords = 0;
-  rows = 10;
-  currentPage = 1;
+  pageSize = 10;
+  pageNumber = 1;
+  first = 0;
   searchTerm = '';
   pageSizeOptions = [10, 20, 50];
 
-  contextMenuItems: MenuItem[] = [];
+  actionMenuItems: MenuItem[] = [];
   selectedSupplier: SupplierResponse | null = null;
 
+  Math = Math;
+
   private readonly supplierService = inject(SupplierService);
+  private readonly currencyService = inject(CurrencyService);
   private readonly confirmationService = inject(ConfirmationService);
   private readonly messageService = inject(MessageService);
   private readonly router = inject(Router);
 
-  constructor() {}
-
   ngOnInit(): void {
-    this.loadSuppliers();
-    this.initializeContextMenu();
+    this.loadData();
   }
 
-  /**
-   * Load suppliers from API
-   */
-  loadSuppliers(pageNumber: number = 1, pageSize: number = 10, searchTerm: string = ''): void {
-    if (!pageNumber || isNaN(pageNumber) || pageNumber < 1) {
-      pageNumber = 1;
-    }
-    if (!pageSize || isNaN(pageSize) || pageSize < 1) {
-      pageSize = 10;
-    }
-
+  loadData(): void {
     this.loading = true;
     this.supplierService.getSuppliers({
-      pageNumber: pageNumber,
-      pageSize: pageSize,
-      search: searchTerm
+      pageNumber: this.pageNumber,
+      pageSize: this.pageSize,
+      search: this.searchTerm
     }).subscribe({
       next: (response) => {
         this.suppliers = response.data;
         this.totalRecords = response.pagination.totalCount;
-        this.rows = response.pagination.pageSize;
-        this.currentPage = response.pagination.pageNumber;
         this.loading = false;
       },
       error: (error) => {
@@ -85,336 +75,187 @@ export class SuppliersListComponent implements OnInit {
     });
   }
 
-  /**
-   * Navigate to create supplier page
-   */
-  onCreateClick(): void {
-    this.router.navigate(['/inventory/suppliers/create']);
-  }
-
-  /**
-   * Handle search
-   */
-  onSearch(): void {
-    this.loadSuppliers(1, this.rows, this.searchTerm);
-  }
-
-  /**
-   * Handle search clear
-   */
-  onSearchClear(): void {
-    this.searchTerm = '';
-    this.loadSuppliers(1, this.rows);
-  }
-
-  /**
-   * Refresh current page
-   */
-  refreshData(): void {
-    this.loadSuppliers(this.currentPage, this.rows, this.searchTerm);
-  }
-
-  /**
-   * Navigate to create supplier page (alias for header button)
-   */
-  createSupplier(): void {
-    this.onCreateClick();
-  }
-
-  /**
-   * Clear filters (search only)
-   */
-  clearFilters(): void {
-    this.onSearchClear();
-  }
-
-  /**
-   * Check if any filters are active
-   */
+  // Filter methods
   hasActiveFilters(): boolean {
     return !!this.searchTerm;
   }
 
-  /**
-   * Initialize context menu items
-   */
-  private initializeContextMenu(): void {
-    this.contextMenuItems = [
-      {
-        label: 'Edit',
-        icon: 'pi pi-pencil',
-        command: () => {
-          if (this.selectedSupplier) {
-            this.onEditClick(this.selectedSupplier);
-          }
-        }
-      },
+  onSearch(): void {
+    this.resetPagination();
+    this.loadData();
+  }
+
+  onSearchClear(): void {
+    this.searchTerm = '';
+    this.resetPagination();
+    this.loadData();
+  }
+
+  clearFilters(): void {
+    this.searchTerm = '';
+    this.resetPagination();
+    this.loadData();
+  }
+
+  private resetPagination(): void {
+    this.pageNumber = 1;
+    this.first = 0;
+  }
+
+  refreshData(): void {
+    this.loadData();
+  }
+
+  // Pagination
+  onPageChange(event: any): void {
+    if (!event || typeof event.first !== 'number' || typeof event.rows !== 'number') {
+      return;
+    }
+    this.first = event.first;
+    this.pageSize = event.rows;
+    this.pageNumber = Math.floor(this.first / this.pageSize) + 1;
+    this.loadData();
+  }
+
+  // Action menu
+  showActionMenu(event: Event, supplier: SupplierResponse): void {
+    this.selectedSupplier = supplier;
+
+    this.actionMenuItems = [
       {
         label: 'View Details',
         icon: 'pi pi-eye',
-        command: () => {
-          if (this.selectedSupplier) {
-            this.viewSupplier(this.selectedSupplier);
-          }
-        }
+        command: () => this.viewSupplier(supplier)
+      },
+      {
+        label: 'Edit Supplier',
+        icon: 'pi pi-pencil',
+        command: () => this.onEditClick(supplier)
       },
       { separator: true },
-      {
-        label: 'Activate',
-        icon: 'pi pi-check',
-        command: () => {
-          if (this.selectedSupplier && !this.selectedSupplier.isActive) {
-            this.activateSupplier(this.selectedSupplier.id);
-          }
-        },
-        visible: this.selectedSupplier ? !this.selectedSupplier.isActive : false
-      },
-      {
-        label: 'Deactivate',
-        icon: 'pi pi-times',
-        command: () => {
-          if (this.selectedSupplier && this.selectedSupplier.isActive) {
-            this.deactivateSupplier(this.selectedSupplier.id);
-          }
-        },
-        visible: this.selectedSupplier ? this.selectedSupplier.isActive : false
-      },
+      ...(supplier.isActive
+        ? [{
+            label: 'Deactivate',
+            icon: 'pi pi-times-circle',
+            command: () => this.deactivateSupplier(supplier.id)
+          }]
+        : [{
+            label: 'Activate',
+            icon: 'pi pi-check-circle',
+            command: () => this.activateSupplier(supplier.id)
+          }]),
       { separator: true },
       {
         label: 'Payment Accounts',
         icon: 'pi pi-credit-card',
-        command: () => {
-          if (this.selectedSupplier) {
-            this.viewPaymentAccounts(this.selectedSupplier);
-          }
-        }
+        command: () => this.viewPaymentAccounts(supplier)
       },
       {
-        label: 'View Payment Summary',
+        label: 'Record Payment',
+        icon: 'pi pi-wallet',
+        command: () => this.recordPayment(supplier)
+      },
+      {
+        label: 'Payment Summary',
         icon: 'pi pi-chart-bar',
-        command: () => {
-          if (this.selectedSupplier) {
-            this.viewPaymentSummary(this.selectedSupplier);
-          }
-        }
+        command: () => this.viewPaymentSummary(supplier)
       },
       { separator: true },
       {
         label: 'Delete',
         icon: 'pi pi-trash',
-        command: () => {
-          if (this.selectedSupplier) {
-            this.onDeleteClick(this.selectedSupplier);
-          }
-        },
-        styleClass: 'p-menuitem-danger'
+        command: () => this.onDeleteClick(supplier),
+        styleClass: 'text-red-600'
       }
     ];
+
+    this.actionMenu.toggle(event);
   }
 
-  /**
-   * Show context menu for supplier
-   */
-  showContextMenu(event: MouseEvent, supplier: SupplierResponse): void {
-    this.selectedSupplier = supplier;
-    this.initializeContextMenu();
-    if (this.contextMenu) {
-      this.contextMenu.show(event);
-    }
+  // Navigation
+  createSupplier(): void {
+    this.router.navigate(['/inventory/suppliers/create']);
   }
 
-  /**
-   * Activate supplier
-   */
-  private activateSupplier(supplierId: string): void {
-    this.supplierService.activateSupplier(supplierId).subscribe({
-      next: (updatedSupplier) => {
-        this.messageService.add({
-          severity: 'success',
-          summary: 'Success',
-          detail: 'Supplier activated successfully'
-        });
-        const index = this.suppliers.findIndex(s => s.id === supplierId);
-        if (index !== -1) {
-          this.suppliers[index] = updatedSupplier;
-          this.suppliers = [...this.suppliers];
-        }
-      },
-      error: (error) => {
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Error',
-          detail: error?.error?.message || 'Failed to activate supplier'
-        });
-      }
-    });
+  viewSupplier(supplier: SupplierResponse): void {
+    this.router.navigate(['/inventory/suppliers/detail'], { queryParams: { id: supplier.id } });
   }
 
-  /**
-   * Deactivate supplier
-   */
-  private deactivateSupplier(supplierId: string): void {
-    this.supplierService.deactivateSupplier(supplierId).subscribe({
-      next: (updatedSupplier) => {
-        this.messageService.add({
-          severity: 'success',
-          summary: 'Success',
-          detail: 'Supplier deactivated successfully'
-        });
-        const index = this.suppliers.findIndex(s => s.id === supplierId);
-        if (index !== -1) {
-          this.suppliers[index] = updatedSupplier;
-          this.suppliers = [...this.suppliers];
-        }
-      },
-      error: (error) => {
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Error',
-          detail: error?.error?.message || 'Failed to deactivate supplier'
-        });
-      }
-    });
-  }
-
-  /**
-   * Navigate to edit supplier page
-   */
   onEditClick(supplier: SupplierResponse): void {
     this.router.navigate(['/inventory/suppliers/edit'], { queryParams: { id: supplier.id, mode: 'edit' } });
   }
 
-  /**
-   * Navigate to view supplier details page
-   */
-  viewSupplier(supplier: SupplierResponse): void {
-    this.router.navigate(['/inventory/suppliers/view'], { queryParams: { id: supplier.id, mode: 'view' } });
+  recordPayment(supplier: SupplierResponse): void {
+    this.router.navigate(['/procurement/supplier-payments/new'], { queryParams: { supplierId: supplier.id } });
   }
 
-  /**
-   * Confirm and delete supplier
-   */
+  viewPaymentSummary(supplier: SupplierResponse): void {
+    this.router.navigate(['/procurement/supplier-payments/summary', supplier.id]);
+  }
+
+  viewPaymentAccounts(supplier: SupplierResponse): void {
+    this.router.navigate(['/inventory/suppliers/payment-accounts'], { queryParams: { supplierId: supplier.id } });
+  }
+
+  // CRUD
   onDeleteClick(supplier: SupplierResponse): void {
     this.confirmationService.confirm({
       message: `Are you sure you want to delete supplier '${supplier.name}'? This action cannot be undone.`,
       header: 'Delete Confirmation',
       icon: 'pi pi-exclamation-triangle',
+      acceptButtonStyleClass: 'p-button-danger',
       accept: () => {
-        this.deleteSupplier(supplier.id);
+        this.supplierService.deleteSupplier(supplier.id).subscribe({
+          next: () => {
+            this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Supplier deleted successfully' });
+            this.loadData();
+          },
+          error: (error) => {
+            this.messageService.add({ severity: 'error', summary: 'Error', detail: error?.error?.message || 'Failed to delete supplier' });
+          }
+        });
       }
     });
   }
 
-  /**
-   * Delete supplier from API
-   */
-  private deleteSupplier(supplierId: string): void {
-    this.supplierService.deleteSupplier(supplierId).subscribe({
+  private activateSupplier(supplierId: string): void {
+    this.supplierService.activateSupplier(supplierId).subscribe({
       next: () => {
-        this.messageService.add({
-          severity: 'success',
-          summary: 'Success',
-          detail: 'Supplier deleted successfully'
-        });
-        this.loadSuppliers(this.currentPage, this.rows, this.searchTerm);
+        this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Supplier activated successfully' });
+        this.loadData();
       },
       error: (error) => {
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Error',
-          detail: error?.error?.message || 'Failed to delete supplier'
-        });
-        console.error('Error deleting supplier:', error);
+        this.messageService.add({ severity: 'error', summary: 'Error', detail: error?.error?.message || 'Failed to activate supplier' });
       }
     });
   }
 
-  /**
-   * Navigate to record payment for supplier
-   */
-  recordPayment(supplier: SupplierResponse): void {
-    this.router.navigate(['/procurement/supplier-payments/new'], { queryParams: { supplierId: supplier.id } });
+  private deactivateSupplier(supplierId: string): void {
+    this.supplierService.deactivateSupplier(supplierId).subscribe({
+      next: () => {
+        this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Supplier deactivated successfully' });
+        this.loadData();
+      },
+      error: (error) => {
+        this.messageService.add({ severity: 'error', summary: 'Error', detail: error?.error?.message || 'Failed to deactivate supplier' });
+      }
+    });
   }
 
-  /**
-   * Navigate to view payment summary for supplier
-   */
-  viewPaymentSummary(supplier: SupplierResponse): void {
-    this.router.navigate(['/procurement/supplier-payments/summary', supplier.id]);
-  }
-
-  /**
-   * Navigate to view payment accounts for supplier
-   */
-  viewPaymentAccounts(supplier: SupplierResponse): void {
-    this.router.navigate(['/inventory/suppliers/payment-accounts'], { queryParams: { supplierId: supplier.id } });
-  }
-
-  /**
-   * Handle pagination change
-   */
-  onPageChange(event: any): void {
-    if (!event || typeof event.first !== 'number' || typeof event.rows !== 'number') {
-      return;
-    }
-    const pageNumber = Math.floor(event.first / event.rows) + 1;
-    this.loadSuppliers(pageNumber, event.rows, this.searchTerm);
-  }
-
-  /**
-   * Get status badge severity
-   */
-  getStatusSeverity(isActive: boolean): string {
-    return isActive ? 'success' : 'danger';
-  }
-
-  /**
-   * Format status label
-   */
+  // Utility methods
   formatStatus(isActive: boolean): string {
     return isActive ? 'Active' : 'Inactive';
   }
 
-  /**
-   * Get rating badge
-   */
+  formatCurrency(amount: number): string {
+    const currency = this.currencyService.selectedCurrency();
+    return this.currencyService.formatCurrency(amount, currency);
+  }
+
   getRatingClass(rating: number): string {
     if (rating >= 4) return 'rating-excellent';
     if (rating >= 3) return 'rating-good';
     if (rating >= 2) return 'rating-fair';
     return 'rating-poor';
-  }
-
-  get first(): number {
-    return Math.max(0, (this.currentPage - 1) * this.rows);
-  }
-
-  get pageNumber(): number {
-    if (!this.totalRecords) {
-      return 0;
-    }
-    return Math.floor(this.first / this.rows) + 1;
-  }
-
-  get totalPages(): number {
-    if (!this.totalRecords) {
-      return 0;
-    }
-    return Math.ceil(this.totalRecords / this.rows);
-  }
-
-  get pageSize(): number {
-    return this.rows;
-  }
-
-  set pageSize(value: number) {
-    this.rows = value;
-  }
-
-  /**
-   * Format credit limit for display
-   */
-  formatCreditLimit(creditLimit: number): string {
-    return `₹${creditLimit.toFixed(2)}`;
   }
 }

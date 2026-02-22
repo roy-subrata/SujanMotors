@@ -1,44 +1,105 @@
+<!-- Breadcrumb -->
+<div class="breadcrumb">
+  <a routerLink="/shop"><i class="pi pi-home"></i> Home</a>
+  <i class="pi pi-angle-right"></i>
+  <span>{{ categoryName || 'Category' }}</span>
+</div>
+
 <div class="category-layout">
+  <!-- Filters sidebar -->
   <aside class="filters" *ngIf="filters">
     <div class="filters-header">
-      <h2>Filters</h2>
-      <button pButton type="button" label="Clear" class="p-button-text" (click)="clearFilters()"></button>
+      <h3><i class="pi pi-filter"></i> Filters</h3>
+      <button class="clear-btn" (click)="clearFilters()">Clear All</button>
     </div>
 
+    <!-- Vehicle Fitment -->
     <div class="filter-block">
-      <label>Search</label>
-      <input type="text" pInputText [(ngModel)]="searchTerm" placeholder="Search in category" />
+      <label>Vehicle Fitment</label>
+      <p-select
+        [options]="vehicleMakes"
+        [(ngModel)]="vehicleMake"
+        placeholder="Select Make"
+        styleClass="fitment-select"
+      ></p-select>
+      <p-select
+        [options]="modelsForMake"
+        [(ngModel)]="vehicleModel"
+        [disabled]="!vehicleMake"
+        [placeholder]="vehicleMake ? 'Select Model' : 'Select make first'"
+        styleClass="fitment-select"
+      ></p-select>
+      <p-select
+        [options]="vehicleYears"
+        [(ngModel)]="vehicleYear"
+        placeholder="Select Year"
+        styleClass="fitment-select"
+      ></p-select>
+      <p-select
+        [options]="bodyStyles"
+        [(ngModel)]="vehicleBodyStyle"
+        placeholder="Select Body Style"
+        styleClass="fitment-select"
+      ></p-select>
     </div>
 
-    <div class="filter-block">
-      <label>Price Range ({{ filters.priceRange.currency }})</label>
-      <div class="range-inputs">
-        <input type="number" pInputText [(ngModel)]="priceMin" placeholder="Min" />
-        <input type="number" pInputText [(ngModel)]="priceMax" placeholder="Max" />
+    <!-- Categories -->
+    <div class="filter-block category-tree" *ngIf="flatCategories.length">
+      <label>Categories</label>
+      <div class="category-list">
+        <a
+          *ngFor="let cat of flatCategories; trackBy: trackByCategory"
+          [routerLink]="['/shop/category', cat.id]"
+          [class.active]="cat.id === categoryId"
+          [style.paddingLeft.px]="cat.depthLevel * 14"
+        >
+          {{ cat.name }}
+        </a>
       </div>
     </div>
 
+    <!-- Search -->
     <div class="filter-block">
-      <label>
+      <label>Search</label>
+      <div class="filter-input">
+        <i class="pi pi-search"></i>
+        <input type="text" [(ngModel)]="searchTerm" placeholder="Search in category" />
+      </div>
+    </div>
+
+    <!-- Price Range -->
+    <div class="filter-block">
+      <label>Price Range ({{ filters.priceRange.currency }})</label>
+      <div class="range-inputs">
+        <input type="number" [(ngModel)]="priceMin" placeholder="Min" />
+        <span class="range-sep">-</span>
+        <input type="number" [(ngModel)]="priceMax" placeholder="Max" />
+      </div>
+    </div>
+
+    <!-- Availability -->
+    <div class="filter-block">
+      <label class="checkbox-label">
         <input type="checkbox" [(ngModel)]="inStockOnly" />
+        <span class="checkmark"></span>
         In stock only
       </label>
     </div>
 
+    <!-- Dynamic filters -->
     <div class="filter-block" *ngFor="let filter of filters.filters">
-      <h4>{{ filter.name }}</h4>
+      <label>{{ filter.name }}</label>
       <div *ngIf="filter.filterType === 'range' || filter.min !== null || filter.max !== null">
         <div class="range-inputs">
           <input
             type="number"
-            pInputText
             [ngModel]="rangeFilters[filter.attributeId]?.min"
             (ngModelChange)="setRange(filter, $event, rangeFilters[filter.attributeId]?.max)"
             placeholder="Min"
           />
+          <span class="range-sep">-</span>
           <input
             type="number"
-            pInputText
             [ngModel]="rangeFilters[filter.attributeId]?.max"
             (ngModelChange)="setRange(filter, rangeFilters[filter.attributeId]?.min, $event)"
             placeholder="Max"
@@ -46,41 +107,88 @@
         </div>
       </div>
       <div class="filter-options" *ngIf="filter.options?.length">
-        <label *ngFor="let option of filter.options">
+        <label class="checkbox-label" *ngFor="let option of filter.options">
           <input
             type="checkbox"
             [checked]="isOptionSelected(filter, option.value)"
             (change)="toggleOption(filter, option.value)"
           />
-          {{ option.value }} <span>({{ option.count }})</span>
+          <span class="checkmark"></span>
+          {{ option.value }}
+          <span class="option-count">({{ option.count }})</span>
         </label>
       </div>
     </div>
 
-    <button pButton type="button" label="Apply Filters" class="apply-button" (click)="applyFilters()"></button>
+    <button class="apply-btn" (click)="applyFilters()">
+      <i class="pi pi-search"></i> Apply Filters
+    </button>
   </aside>
 
+  <!-- Results -->
   <section class="results">
-    <div class="results-header">
-      <div>
-        <h2>Category Results</h2>
-        <p>{{ totalCount }} items</p>
+    <!-- Toolbar -->
+    <div class="results-toolbar">
+      <div class="results-info">
+        <h2>{{ categoryName || 'Products' }}</h2>
+        <span class="results-count">{{ totalCount }} items found</span>
       </div>
-      <button pButton type="button" label="Refresh" class="p-button-outlined" (click)="search()"></button>
+      <div class="toolbar-actions">
+        <!-- Sort -->
+        <div class="sort-control">
+          <label>Sort by:</label>
+          <select [(ngModel)]="sortBy" (ngModelChange)="onSortChange()">
+            <option value="relevance">Relevance</option>
+            <option value="price_asc">Price: Low to High</option>
+            <option value="price_desc">Price: High to Low</option>
+            <option value="name">Name A-Z</option>
+          </select>
+        </div>
+        <!-- View toggle -->
+        <div class="view-toggle">
+          <button [class.active]="viewMode === 'grid'" (click)="viewMode = 'grid'"><i class="pi pi-th-large"></i></button>
+          <button [class.active]="viewMode === 'list'" (click)="viewMode = 'list'"><i class="pi pi-list"></i></button>
+        </div>
+      </div>
     </div>
 
-    <div class="product-grid">
-      <article class="product-card" *ngFor="let item of products">
-        <div class="product-image">{{ item.name.charAt(0) }}</div>
-        <div class="product-info">
-          <h3>{{ item.name }}</h3>
-          <p>{{ item.categoryName }}</p>
-          <div class="price">
-            {{ item.currency }} {{ item.price | number: '1.0-0' }}
-          </div>
-          <a [routerLink]="['/shop/product', item.partId]">View details</a>
-        </div>
-      </article>
+    <!-- Loading -->
+    <div *ngIf="loading" class="loading-state">
+      <i class="pi pi-spin pi-spinner"></i>
+      <span>Loading products...</span>
+    </div>
+
+    <!-- Empty state -->
+    <div *ngIf="!loading && products.length === 0" class="empty-state">
+      <i class="pi pi-search"></i>
+      <h3>No products found</h3>
+      <p>Try adjusting your filters or search term</p>
+      <button class="apply-btn" (click)="clearFilters()">Clear Filters</button>
+    </div>
+
+    <!-- Product grid -->
+    <div *ngIf="!loading && products.length > 0" class="product-grid" [class.list-view]="viewMode === 'list'">
+      <app-product-card
+        *ngFor="let item of products; trackBy: trackById"
+        [product]="item"
+        (addToCart)="onAddToCart($event)"
+      ></app-product-card>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination" *ngIf="totalPages > 1">
+      <button class="page-btn" [disabled]="pageNumber === 1" (click)="goToPage(pageNumber - 1)">
+        <i class="pi pi-angle-left"></i>
+      </button>
+      <button
+        *ngFor="let p of pages"
+        class="page-btn"
+        [class.active]="p === pageNumber"
+        (click)="goToPage(p)"
+      >{{ p }}</button>
+      <button class="page-btn" [disabled]="pageNumber === totalPages" (click)="goToPage(pageNumber + 1)">
+        <i class="pi pi-angle-right"></i>
+      </button>
     </div>
   </section>
 </div>

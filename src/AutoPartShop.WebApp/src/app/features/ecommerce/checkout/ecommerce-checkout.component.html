@@ -1,0 +1,121 @@
+<!-- Breadcrumb -->
+<div class="breadcrumb">
+  <a routerLink="/shop"><i class="pi pi-home"></i> Home</a>
+  <i class="pi pi-angle-right"></i>
+  <a routerLink="/shop/cart">Cart</a>
+  <i class="pi pi-angle-right"></i>
+  <span>Checkout</span>
+</div>
+
+<div class="checkout-container">
+  <h1>Checkout</h1>
+
+  <!-- Empty cart redirect -->
+  <div *ngIf="cartService.isEmpty()" class="empty-state">
+    <i class="pi pi-shopping-cart"></i>
+    <h3>Your cart is empty</h3>
+    <a class="btn-primary" routerLink="/shop">Go Shopping</a>
+  </div>
+
+  <div *ngIf="!cartService.isEmpty()" class="checkout-layout">
+    <!-- Forms -->
+    <div class="checkout-forms">
+      <!-- Customer info -->
+      <div class="form-section">
+        <h3><i class="pi pi-user"></i> Customer Information</h3>
+        <div class="form-grid">
+          <div class="form-field full">
+            <label>Full Name *</label>
+            <input type="text" [(ngModel)]="form.customer.fullName" placeholder="John Doe" [class.error]="errors['fullName']" />
+            <span class="field-error" *ngIf="errors['fullName']">{{ errors['fullName'] }}</span>
+          </div>
+          <div class="form-field">
+            <label>Email *</label>
+            <input type="email" [(ngModel)]="form.customer.email" placeholder="john@example.com" [class.error]="errors['email']" />
+            <span class="field-error" *ngIf="errors['email']">{{ errors['email'] }}</span>
+          </div>
+          <div class="form-field">
+            <label>Phone *</label>
+            <input type="tel" [(ngModel)]="form.customer.phone" placeholder="+880 1234-567890" [class.error]="errors['phone']" />
+            <span class="field-error" *ngIf="errors['phone']">{{ errors['phone'] }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Shipping -->
+      <div class="form-section">
+        <h3><i class="pi pi-truck"></i> Shipping Address</h3>
+        <div class="form-grid">
+          <div class="form-field full">
+            <label>Address *</label>
+            <input type="text" [(ngModel)]="form.shipping.address" placeholder="Street address" [class.error]="errors['address']" />
+            <span class="field-error" *ngIf="errors['address']">{{ errors['address'] }}</span>
+          </div>
+          <div class="form-field">
+            <label>City *</label>
+            <input type="text" [(ngModel)]="form.shipping.city" placeholder="Dhaka" [class.error]="errors['city']" />
+            <span class="field-error" *ngIf="errors['city']">{{ errors['city'] }}</span>
+          </div>
+          <div class="form-field">
+            <label>Postal Code</label>
+            <input type="text" [(ngModel)]="form.shipping.postalCode" placeholder="1205" />
+          </div>
+          <div class="form-field full">
+            <label>Order Notes (optional)</label>
+            <textarea [(ngModel)]="form.shipping.notes" placeholder="Special instructions for delivery..." rows="3"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Payment -->
+      <div class="form-section">
+        <h3><i class="pi pi-credit-card"></i> Payment Method</h3>
+        <div class="payment-methods">
+          <label
+            class="payment-option"
+            *ngFor="let method of paymentMethods"
+            [class.selected]="form.paymentMethod === method.value"
+          >
+            <input type="radio" name="paymentMethod" [value]="method.value" [(ngModel)]="form.paymentMethod" />
+            <i class="pi" [ngClass]="method.icon || 'pi-money-bill'"></i>
+            <span>{{ method.label }}</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Order summary -->
+    <div class="order-summary">
+      <h3>Order Summary</h3>
+      <div class="summary-items">
+        <div class="summary-item" *ngFor="let item of cartService.items()">
+          <div class="summary-item-info">
+            <span class="summary-item-name">{{ item.name }}</span>
+            <span class="summary-item-qty">x{{ item.quantity }}</span>
+          </div>
+          <span class="summary-item-price">{{ item.currency }} {{ item.price * item.quantity | number:'1.0-0' }}</span>
+        </div>
+      </div>
+      <div class="summary-divider"></div>
+      <div class="summary-row">
+        <span>Subtotal</span>
+        <strong>{{ cartService.currency() }} {{ cartService.subtotal() | number:'1.0-0' }}</strong>
+      </div>
+      <div class="summary-row">
+        <span>Shipping</span>
+        <span class="free">Free</span>
+      </div>
+      <div class="summary-divider"></div>
+      <div class="summary-row total">
+        <span>Total</span>
+        <strong>{{ cartService.currency() }} {{ cartService.subtotal() | number:'1.0-0' }}</strong>
+      </div>
+      <button class="btn-place-order" (click)="placeOrder()">
+        <i class="pi pi-check"></i> Place Order
+      </button>
+      <a routerLink="/shop/cart" class="back-to-cart">
+        <i class="pi pi-arrow-left"></i> Back to Cart
+      </a>
+    </div>
+  </div>
+</div>

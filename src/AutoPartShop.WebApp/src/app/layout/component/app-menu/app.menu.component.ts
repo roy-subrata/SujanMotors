@@ -182,6 +182,11 @@ export class AppMenuComponent implements OnInit {
                                 label: this.i18n.t('menu.customerPayments'),
                                 icon: 'pi pi-dollar',
                                 routerLink: ['/sales/customer-payments']
+                            },
+                            {
+                                label: 'Account Summary',
+                                icon: 'pi pi-file-check',
+                                routerLink: ['/sales/customer-account-summary']
                             }
                         ]
                     },

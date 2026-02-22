@@ -1,0 +1,79 @@
+<!-- Top Bar -->
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="topbar-left">
+      <span><i class="pi pi-phone"></i> +880 1234-567890</span>
+      <span><i class="pi pi-envelope"></i> info&#64;sujanmotors.com</span>
+    </div>
+    <div class="topbar-right">
+      <a routerLink="/" class="topbar-link"><i class="pi pi-arrow-left"></i> Back to POS</a>
+    </div>
+  </div>
+</div>
+
+<!-- Main Header -->
+<div class="main-header">
+  <div class="header-inner">
+    <!-- Logo -->
+    <a routerLink="/shop" class="logo">
+      <span class="logo-mark">SM</span>
+      <div class="logo-text">
+        <span class="logo-title">Sujan Motors</span>
+        <span class="logo-sub">Auto Parts Store</span>
+      </div>
+    </a>
+
+    <!-- Search Bar -->
+    <div class="search-bar">
+      <i class="pi pi-search search-icon"></i>
+      <input
+        type="text"
+        placeholder="Search parts, brands, categories..."
+        [(ngModel)]="searchTerm"
+        (keyup.enter)="onSearch()"
+      />
+      <button class="search-btn" (click)="onSearch()">Search</button>
+    </div>
+
+    <!-- Header Actions -->
+    <div class="header-actions">
+      <button class="action-icon" title="My Account">
+        <i class="pi pi-user"></i>
+      </button>
+      <button class="action-icon cart-icon" (click)="onCartClick()">
+        <i class="pi pi-shopping-cart"></i>
+        <span class="cart-badge" *ngIf="cartService.itemCount() > 0">
+          {{ cartService.itemCount() }}
+        </span>
+      </button>
+    </div>
+
+    <!-- Mobile menu toggle -->
+    <button class="mobile-toggle" (click)="mobileMenuOpen = !mobileMenuOpen">
+      <i class="pi" [class.pi-bars]="!mobileMenuOpen" [class.pi-times]="mobileMenuOpen"></i>
+    </button>
+  </div>
+</div>
+
+<!-- Navigation -->
+<nav class="nav-bar" [class.mobile-open]="mobileMenuOpen">
+  <div class="nav-inner">
+    <a routerLink="/shop" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" (click)="mobileMenuOpen = false">
+      <i class="pi pi-home"></i> Home
+    </a>
+    <a
+      *ngFor="let cat of categories()"
+      [routerLink]="['/shop/category', cat.id]"
+      routerLinkActive="active"
+      (click)="mobileMenuOpen = false"
+    >
+      {{ cat.name }}
+    </a>
+    <a routerLink="/shop/sale" routerLinkActive="active" (click)="mobileMenuOpen = false">
+      <i class="pi pi-bolt"></i> Sale
+    </a>
+    <a routerLink="/shop/cart" routerLinkActive="active" class="nav-cart-link" (click)="mobileMenuOpen = false">
+      <i class="pi pi-shopping-cart"></i> Cart
+    </a>
+  </div>
+</nav>

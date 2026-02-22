@@ -1,0 +1,85 @@
+<!-- Breadcrumb -->
+<div class="breadcrumb">
+  <a routerLink="/shop"><i class="pi pi-home"></i> Home</a>
+  <i class="pi pi-angle-right"></i>
+  <span>Shopping Cart</span>
+</div>
+
+<div class="cart-container">
+  <h1>Shopping Cart</h1>
+
+  <!-- Empty state -->
+  <div *ngIf="cartService.isEmpty()" class="empty-cart">
+    <i class="pi pi-shopping-cart"></i>
+    <h3>Your cart is empty</h3>
+    <p>Looks like you haven't added any items to your cart yet.</p>
+    <a class="btn-primary" routerLink="/shop">Start Shopping</a>
+  </div>
+
+  <!-- Cart content -->
+  <div *ngIf="!cartService.isEmpty()" class="cart-layout">
+    <!-- Items -->
+    <div class="cart-items">
+      <div class="cart-table-header">
+        <span class="col-product">Product</span>
+        <span class="col-price">Price</span>
+        <span class="col-qty">Quantity</span>
+        <span class="col-total">Total</span>
+        <span class="col-action"></span>
+      </div>
+
+      <div class="cart-row" *ngFor="let item of cartService.items()">
+        <div class="col-product">
+          <div class="item-image"><i class="pi pi-box"></i></div>
+          <div class="item-info">
+            <a [routerLink]="['/shop/product', item.partId]" class="item-name">{{ item.name }}</a>
+            <span class="item-variant" *ngIf="item.variantName">{{ item.variantName }}</span>
+            <span class="item-category">{{ item.categoryName }}</span>
+          </div>
+        </div>
+        <div class="col-price">
+          <span>{{ item.currency }} {{ item.price | number:'1.0-0' }}</span>
+        </div>
+        <div class="col-qty">
+          <div class="qty-control">
+            <button (click)="decrement(item)">-</button>
+            <span>{{ item.quantity }}</span>
+            <button (click)="increment(item)">+</button>
+          </div>
+        </div>
+        <div class="col-total">
+          <strong>{{ item.currency }} {{ item.price * item.quantity | number:'1.0-0' }}</strong>
+        </div>
+        <div class="col-action">
+          <button class="remove-btn" (click)="remove(item)" title="Remove"><i class="pi pi-trash"></i></button>
+        </div>
+      </div>
+
+      <div class="cart-bottom-actions">
+        <a routerLink="/shop" class="btn-outline"><i class="pi pi-arrow-left"></i> Continue Shopping</a>
+        <button class="btn-clear" (click)="clearCart()"><i class="pi pi-trash"></i> Clear Cart</button>
+      </div>
+    </div>
+
+    <!-- Order summary -->
+    <div class="order-summary">
+      <h3>Order Summary</h3>
+      <div class="summary-row">
+        <span>Subtotal ({{ cartService.itemCount() }} items)</span>
+        <strong>{{ cartService.currency() }} {{ cartService.subtotal() | number:'1.0-0' }}</strong>
+      </div>
+      <div class="summary-row">
+        <span>Shipping</span>
+        <span class="free-shipping">Free</span>
+      </div>
+      <div class="summary-divider"></div>
+      <div class="summary-row total">
+        <span>Total</span>
+        <strong>{{ cartService.currency() }} {{ cartService.subtotal() | number:'1.0-0' }}</strong>
+      </div>
+      <a class="btn-checkout" routerLink="/shop/checkout">
+        <i class="pi pi-lock"></i> Proceed to Checkout
+      </a>
+    </div>
+  </div>
+</div>

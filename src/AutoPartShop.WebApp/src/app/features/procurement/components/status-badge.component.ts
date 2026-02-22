@@ -28,7 +28,7 @@ export class StatusBadgeComponent {
   @Input() status: string = '';
   @Input() type: StatusType = 'purchase-order';
 
-  getSeverity(): string {
+  getSeverity(): 'secondary' | 'info' | 'success' | 'warn' | 'danger' {
     if (this.type === 'purchase-order') {
       return this.getPOSeverity(this.status);
     } else if (this.type === 'goods-receipt') {
@@ -39,16 +39,16 @@ export class StatusBadgeComponent {
     return 'info';
   }
 
-  private getPOSeverity(status: string): string {
+  private getPOSeverity(status: string): 'secondary' | 'info' | 'success' | 'warn' | 'danger' {
     switch (status) {
       case 'DRAFT':
         return 'secondary';
       case 'SUBMITTED':
         return 'info';
       case 'CONFIRMED':
-        return 'warning';
+        return 'warn';
       case 'PARTIAL':
-        return 'warning';
+        return 'warn';
       case 'DELIVERED':
         return 'success';
       case 'CANCELLED':
@@ -58,7 +58,7 @@ export class StatusBadgeComponent {
     }
   }
 
-  private getGRNSeverity(status: string): string {
+  private getGRNSeverity(status: string): 'secondary' | 'info' | 'success' | 'warn' | 'danger' {
     switch (status) {
       case 'PENDING':
         return 'secondary';
@@ -73,14 +73,14 @@ export class StatusBadgeComponent {
     }
   }
 
-  private getPaymentSeverity(status: string): string {
+  private getPaymentSeverity(status: string): 'secondary' | 'info' | 'success' | 'warn' | 'danger' {
     switch (status) {
       case 'PENDING':
         return 'secondary';
       case 'PROCESSING':
         return 'info';
       case 'CONFIRMED':
-        return 'warning';
+        return 'warn';
       case 'RECONCILED':
         return 'success';
       case 'FAILED':
