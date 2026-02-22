@@ -2,7 +2,6 @@ import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, FormArray, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
-import { AutoCompleteModule } from 'primeng/autocomplete';
 import { CardModule } from 'primeng/card';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
@@ -12,11 +11,13 @@ import { SalesReturnService, CreateSalesReturnRequest, SalesReturnResponse } fro
 import { SalesOrderService, SalesOrderResponse } from '../../services/sales-order.service';
 import { WarehouseService, WarehouseResponse } from '../../../inventory/services/warehouse.service';
 import { CurrencyService } from '../../../../shared/services/currency.service';
+import { LazyAutocompleteComponent, LazyRequest, LazyResponse } from '../../../../shared/components/lazy-autocomplete';
+import { map } from 'rxjs/operators';
 
 @Component({
   selector: 'app-sales-return-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, AutoCompleteModule, CardModule, ToastModule, ConfirmDialogModule, ButtonModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, CardModule, ToastModule, ConfirmDialogModule, ButtonModule, LazyAutocompleteComponent],
   providers: [MessageService, ConfirmationService],
   templateUrl: './sales-return-form.component.html',
   styleUrls: ['./sales-return-form.component.css']
@@ -41,16 +42,44 @@ export class SalesReturnFormComponent implements OnInit {
   currentSalesReturn = signal<SalesReturnResponse | null>(null);
 
   // Sales Order selection
-  salesOrders = signal<SalesOrderResponse[]>([]);
-  filteredSalesOrders: SalesOrderResponse[] = [];
   selectedSalesOrder = signal<SalesOrderResponse | null>(null);
-  loadingSalesOrders = signal(false);
 
   // Warehouse selection
   warehouses = signal<WarehouseResponse[]>([]);
-  filteredWarehouses: WarehouseResponse[] = [];
   selectedWarehouse = signal<WarehouseResponse | null>(null);
   loadingWarehouses = signal(false);
+
+  // Lazy fetch functions
+  fetchSalesOrdersLazy = (req: LazyRequest) =>
+    this.salesOrderService.getSalesOrders({
+      search: req.search,
+      pageNumber: req.pageNumber,
+      pageSize: req.pageSize,
+      status: 'CONFIRMED'
+    }).pipe(
+      map(res => ({
+        items: res.data.filter(o =>
+          o.status === 'CONFIRMED' || o.status === 'DELIVERED' || o.status === 'PARTIALLY_SHIPPED'
+        ),
+        totalCount: res.pagination.totalCount
+      } as LazyResponse<SalesOrderResponse>))
+    );
+
+  fetchWarehousesLazy = (req: LazyRequest) => {
+    const filtered = this.warehouses().filter(w =>
+      !req.search || 
+      w.name.toLowerCase().includes(req.search.toLowerCase()) ||
+      w.code.toLowerCase().includes(req.search.toLowerCase()) ||
+      w.location.toLowerCase().includes(req.search.toLowerCase())
+    );
+    
+    return {
+      subscribe: (fn: any) => {
+        fn.next({ items: filtered, totalCount: filtered.length });
+        return { unsubscribe: () => {} };
+      }
+    } as any;
+  };
 
   // Computed total refund
   totalRefund = computed(() => {
@@ -65,7 +94,6 @@ export class SalesReturnFormComponent implements OnInit {
 
   ngOnInit(): void {
     this.initializeForm();
-    this.loadSalesOrders();
     this.loadWarehouses();
 
     // Check route params for view mode
@@ -96,31 +124,11 @@ export class SalesReturnFormComponent implements OnInit {
     return this.salesReturnForm.get('lines') as FormArray;
   }
 
-  loadSalesOrders(): void {
-    this.loadingSalesOrders.set(true);
-    this.salesOrderService.getAllSalesOrders().subscribe({
-      next: (orders) => {
-        // Only show CONFIRMED or DELIVERED orders
-        const validOrders = orders.filter(o =>
-          o.status === 'CONFIRMED' || o.status === 'DELIVERED' || o.status === 'PARTIALLY_SHIPPED'
-        );
-        this.salesOrders.set(validOrders);
-        this.filteredSalesOrders = validOrders;
-        this.loadingSalesOrders.set(false);
-      },
-      error: (err) => {
-        console.error('Error loading sales orders:', err);
-        this.loadingSalesOrders.set(false);
-      }
-    });
-  }
-
   loadWarehouses(): void {
     this.loadingWarehouses.set(true);
     this.warehouseService.getAllWarehouses().subscribe({
       next: (warehouses) => {
         this.warehouses.set(warehouses);
-        this.filteredWarehouses = warehouses;
         this.loadingWarehouses.set(false);
       },
       error: (err) => {
@@ -321,44 +329,7 @@ export class SalesReturnFormComponent implements OnInit {
     });
   }
 
-  onSalesOrderFilter(event: any): void {
-    const query = event.query?.toLowerCase() || '';
-
-    if (!query || query.trim() === '') {
-      this.filteredSalesOrders = [...this.salesOrders()];
-      return;
-    }
-
-    this.filteredSalesOrders = this.salesOrders().filter(o =>
-      o.soNumber.toLowerCase().includes(query) ||
-      o.customerName.toLowerCase().includes(query)
-    );
-  }
-
-  onSalesOrderDropdownClick(): void {
-    this.filteredSalesOrders = [...this.salesOrders()];
-  }
-
-  onWarehouseFilter(event: any): void {
-    const query = event.query?.toLowerCase() || '';
-
-    if (!query || query.trim() === '') {
-      this.filteredWarehouses = [...this.warehouses()];
-      return;
-    }
-
-    this.filteredWarehouses = this.warehouses().filter(w =>
-      w.name.toLowerCase().includes(query) ||
-      w.code.toLowerCase().includes(query) ||
-      w.location.toLowerCase().includes(query)
-    );
-  }
-
-  onWarehouseDropdownClick(): void {
-    this.filteredWarehouses = [...this.warehouses()];
-  }
-
-  selectSalesOrder(event: any): void {
+  selectSalesOrder(event: SalesOrderResponse): void {
     const order = event as SalesOrderResponse;
     this.selectedSalesOrder.set(order);
 
@@ -382,7 +353,7 @@ export class SalesReturnFormComponent implements OnInit {
     });
   }
 
-  selectWarehouse(event: any): void {
+  selectWarehouse(event: WarehouseResponse): void {
     const warehouse = event as WarehouseResponse;
     this.selectedWarehouse.set(warehouse);
 

@@ -66,7 +66,7 @@ export class QuickSaleShortcutComponent extends QuickSaleComponent {
   checkoutPaymentMethod: 'CASH' | 'CARD' | 'MOBILE_BANKING' | 'DUE' = 'CASH';
   checkoutPaymentAmount: number | null = null;
 
-  fetchCustomersLazy = (req: LazyRequest) =>
+  override fetchCustomersLazy = (req: LazyRequest) =>
     this.shortcutCustomerService.getCustomers({
       search: req.search,
       pageNumber: req.pageNumber,
@@ -78,7 +78,7 @@ export class QuickSaleShortcutComponent extends QuickSaleComponent {
       } as LazyResponse<CustomerResponse>))
     );
 
-  fetchTechniciansLazy = (req: LazyRequest) =>
+  override fetchTechniciansLazy = (req: LazyRequest) =>
     this.shortcutTechnicianService.getTechnicians({
       search: req.search,
       pageNumber: req.pageNumber,

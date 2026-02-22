@@ -6,7 +6,6 @@ import { Subject, debounceTime, distinctUntilChanged, switchMap, of, forkJoin } 
 import { map, catchError } from 'rxjs/operators';
 
 // PrimeNG Imports
-import { AutoCompleteModule } from 'primeng/autocomplete';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { InputNumberModule } from 'primeng/inputnumber';
@@ -46,7 +45,6 @@ import { LazyAutocompleteComponent, LazyRequest, LazyResponse } from '../../../s
     CommonModule,
     ReactiveFormsModule,
     FormsModule,
-    AutoCompleteModule,
     ButtonModule,
     InputTextModule,
     InputNumberModule,
@@ -115,20 +113,65 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
       }) as LazyResponse<PublicPartResponse>)
     );
 
-  // Customer management
-  customers = signal<any[]>([]);
-  filteredCustomers = signal<any[]>([]);
+  // Customer management  
   selectedCustomer = signal<any | null>(null);
   selectedCustomerModel: any | null = null; // For ngModel binding
-  searchingCustomers = signal(false);
+  
+  fetchCustomersLazy = (req: LazyRequest) =>
+    this.customerService.getCustomers({
+      search: req.search,
+      pageNumber: req.pageNumber,
+      pageSize: req.pageSize
+    }).pipe(
+      map(res => ({
+        items: res.data,
+        totalCount: res.pagination.totalCount
+      } as LazyResponse<any>))
+    );
 
   // Technician management
-  technicians = signal<TechnicianResponse[]>([]);
-  filteredTechnicians = signal<TechnicianResponse[]>([]);
   selectedTechnician = signal<TechnicianResponse | null>(null);
   selectedTechnicianModel: TechnicianResponse | null = null; // For ngModel binding
-  loadingTechnicians = signal(false);
-  techniciansLoaded = signal(false);
+  
+  fetchTechniciansLazy = (req: LazyRequest) =>
+    this.technicianService.getTechnicians({
+      search: req.search,
+      pageNumber: req.pageNumber,
+      pageSize: req.pageSize
+    }).pipe(
+      map(res => ({
+        items: res.data.filter(t => t.status === 'ACTIVE'),
+        totalCount: res.pagination.totalCount
+      } as LazyResponse<TechnicianResponse>))
+    );
+
+  // Lazy fetch for payment providers (static list from API)
+  private _paymentProvidersLoaded = signal(false);
+  fetchPaymentProvidersLazy = (req: LazyRequest) => {
+    // If not loaded yet, load from API
+    if (!this._paymentProvidersLoaded()) {
+      return this.paymentProviderService.getAllPaymentProviders().pipe(
+        map(providers => {
+          this.paymentProviders = Array.isArray(providers) ? providers : [];
+          this._paymentProvidersLoaded.set(true);
+          return {
+            items: this.paymentProviders.filter(p =>
+              !req.search || p.providerName.toLowerCase().includes(req.search.toLowerCase())
+            ),
+            totalCount: this.paymentProviders.length
+          } as LazyResponse<PaymentProviderResponse>;
+        })
+      );
+    } else {
+      // Return cached list
+      return of({
+        items: this.paymentProviders.filter(p =>
+          !req.search || p.providerName.toLowerCase().includes(req.search.toLowerCase())
+        ),
+        totalCount: this.paymentProviders.length
+      } as LazyResponse<PaymentProviderResponse>);
+    }
+  };
 
   // Cart items
   cartItems = signal<QuickSaleLineItem[]>([]);
@@ -338,7 +381,7 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
         this.messageService.add({
           severity: 'success',
           summary: 'Ready',
-          detail: `Loaded ${this.parts().length} parts, ${this.customers().length} customers, ${this.technicians().length} technicians, ${this.units().length} units`,
+          detail: `Loaded ${this.parts().length} parts and ${this.units().length} units`,
           life: 3000
         });
       }
@@ -366,51 +409,9 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
       }
     });
 
-    // Load recent customers
-    this.searchingCustomers.set(true);
-    this.quickSaleService.getRecentCustomers().subscribe({
-      next: (customers) => {
-        this.customers.set(customers);
-        this.filteredCustomers.set(customers);
-        this.searchingCustomers.set(false);
-        checkComplete();
-      },
-      error: (err) => {
-        console.error('Error loading customers:', err);
-        this.searchingCustomers.set(false);
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load customers. Please refresh the page.',
-          life: 5000
-        });
-        checkComplete();
-      }
-    });
-
-    // Load active technicians
-    this.loadingTechnicians.set(true);
-    this.technicianService.getAllTechnicians().subscribe({
-      next: (technicians) => {
-        const active = technicians.filter(t => t.status === 'ACTIVE');
-        this.technicians.set(active);
-        this.filteredTechnicians.set(active);
-        this.techniciansLoaded.set(true);
-        this.loadingTechnicians.set(false);
-        checkComplete();
-      },
-      error: (err) => {
-        console.error('Error loading technicians:', err);
-        this.loadingTechnicians.set(false);
-        this.messageService.add({
-          severity: 'warn',
-          summary: 'Warning',
-          detail: 'Failed to load technicians. Technician selection may not work.',
-          life: 5000
-        });
-        checkComplete();
-      }
-    });
+    // Load recent customers for possible quick access patterns (optional)
+    // Customers will be loaded lazily via autocomplete
+    // Technicians will be loaded lazily via autocomplete
 
     // Load VAT configuration
     this.quickSaleService.getVATConfig().subscribe({
@@ -625,18 +626,11 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
 
   // Customer management
   filterCustomers(event: any): void {
-    const query = event.query.toLowerCase();
-    const filtered = this.customers().filter(c =>
-      c.firstName.toLowerCase().includes(query) ||
-      c.lastName.toLowerCase().includes(query) ||
-      c.phone.includes(query) ||
-      c.customerCode.toLowerCase().includes(query)
-    );
-    this.filteredCustomers.set(filtered);
+    // No longer needed - filtering is handled by lazy autocomplete
   }
 
   onCustomerSearch(event: any): void {
-    this.filterCustomers(event);
+    // No longer needed - searching is handled by lazy autocomplete
   }
 
   selectCustomer(event: any): void {
@@ -646,14 +640,6 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
         next: (freshCustomer) => {
           this.selectedCustomer.set(freshCustomer);
           this.selectedCustomerModel = freshCustomer;
-
-          // Update in customers list as well
-          this.customers.update(customers =>
-            customers.map(c => c.id === freshCustomer.id ? freshCustomer : c)
-          );
-          this.filteredCustomers.update(customers =>
-            customers.map(c => c.id === freshCustomer.id ? freshCustomer : c)
-          );
         },
         error: (err) => {
           console.error('Error fetching customer details:', err);
@@ -682,7 +668,6 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
     this.selectedCustomer.set(customer);
     this.selectedCustomerModel = customer;
     this.quickSaleForm.patchValue({ customerPhone: customer.phone });
-    this.customers.update(customers => [customer, ...customers]);
 
     this.messageService.add({
       severity: 'success',
@@ -693,49 +678,15 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
 
   // Technician management
   filterTechnicians(event: any): void {
-    const query = event.query?.toLowerCase() || '';
-    if (!query) {
-      this.filteredTechnicians.set(this.technicians());
-      return;
-    }
-    const filtered = this.technicians().filter(t =>
-      t.name.toLowerCase().includes(query) ||
-      t.technicianCode.toLowerCase().includes(query) ||
-      t.phone.includes(query)
-    );
-    this.filteredTechnicians.set(filtered);
+    // No longer needed - filtering is handled by lazy autocomplete
   }
 
   onTechnicianDropdownClick(): void {
-    if (this.techniciansLoaded()) {
-      this.filteredTechnicians.set(this.technicians());
-      return;
-    }
-
-    this.loadingTechnicians.set(true);
-    this.technicianService.getAllTechnicians().subscribe({
-      next: (technicians) => {
-        const active = technicians.filter(t => t.status === 'ACTIVE');
-        this.technicians.set(active);
-        this.filteredTechnicians.set(active);
-        this.techniciansLoaded.set(true);
-        this.loadingTechnicians.set(false);
-      },
-      error: (err) => {
-        console.error('Error loading technicians:', err);
-        this.loadingTechnicians.set(false);
-        this.messageService.add({
-          severity: 'warn',
-          summary: 'Warning',
-          detail: 'Failed to load technicians.',
-          life: 3000
-        });
-      }
-    });
+    // No longer needed - loading is handled by lazy autocomplete
   }
 
   onTechnicianSearch(event: any): void {
-    this.filterTechnicians(event);
+    // No longer needed - searching is handled by lazy autocomplete
   }
 
   selectTechnician(event: any): void {
@@ -868,13 +819,11 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
         if (customer && customer.id) {
           this.customerService.getCustomerById(customer.id).subscribe({
             next: (freshCustomer) => {
-              // Update in customers list with fresh balance data
-              this.customers.update(customers =>
-                customers.map(c => c.id === freshCustomer.id ? freshCustomer : c)
-              );
-              this.filteredCustomers.update(customers =>
-                customers.map(c => c.id === freshCustomer.id ? freshCustomer : c)
-              );
+              // Customer refreshed - update selected customer if it matches
+              if (this.selectedCustomer()?.id === freshCustomer.id) {
+                this.selectedCustomer.set(freshCustomer);
+                this.selectedCustomerModel = freshCustomer;
+              }
             },
             error: (err) => console.error('Error refreshing customer data:', err)
           });

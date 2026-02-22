@@ -50,21 +50,17 @@
         <div class="form-row">
           <div class="form-group full" *ngIf="mode() === 'create'">
             <label>Sales Order *</label>
-            <p-autoComplete
+            <app-lazy-autocomplete
               [(ngModel)]="selectedSalesOrder"
               [ngModelOptions]="{standalone: true}"
-              [suggestions]="filteredSalesOrders"
-              (completeMethod)="onSalesOrderFilter($event)"
-              (onDropdownClick)="onSalesOrderDropdownClick()"
-              (onSelect)="selectSalesOrder($event.value)"
+              [fetchFn]="fetchSalesOrdersLazy"
               field="soNumber"
               optionLabel="soNumber"
-              [dropdown]="true"
               [showClear]="true"
               placeholder="Search by order number or customer..."
-              styleClass="w-full"
-              [appendTo]="'body'">
-              <ng-template let-order pTemplate="item">
+              [minLength]="0"
+              (onItemSelect)="selectSalesOrder($event)">
+              <ng-template let-order>
                 <div class="customer-item">
                   <div class="customer-item-name">
                     {{ order.soNumber }}
@@ -77,7 +73,7 @@
                   </div>
                 </div>
               </ng-template>
-            </p-autoComplete>
+            </app-lazy-autocomplete>
             <small class="field-hint">
               <i class="pi pi-info-circle"></i>
               <span *ngIf="!selectedSalesOrder()">Select a sales order to create a return</span>
@@ -89,21 +85,17 @@
         <div class="form-row">
           <div class="form-group full" *ngIf="mode() === 'create'">
             <label>Warehouse *</label>
-            <p-autoComplete
+            <app-lazy-autocomplete
               [(ngModel)]="selectedWarehouse"
               [ngModelOptions]="{standalone: true}"
-              [suggestions]="filteredWarehouses"
-              (completeMethod)="onWarehouseFilter($event)"
-              (onDropdownClick)="onWarehouseDropdownClick()"
-              (onSelect)="selectWarehouse($event.value)"
+              [fetchFn]="fetchWarehousesLazy"
               field="name"
               optionLabel="name"
-              [dropdown]="true"
               [showClear]="true"
               placeholder="Select warehouse..."
-              styleClass="w-full"
-              [appendTo]="'body'">
-              <ng-template let-warehouse pTemplate="item">
+              [minLength]="0"
+              (onItemSelect)="selectWarehouse($event)">
+              <ng-template let-warehouse>
                 <div class="customer-item">
                   <div class="customer-item-name">
                     {{ warehouse.name }}
@@ -114,7 +106,7 @@
                   </div>
                 </div>
               </ng-template>
-            </p-autoComplete>
+            </app-lazy-autocomplete>
             <small class="field-hint">
               <i class="pi pi-info-circle"></i>
               <span *ngIf="!selectedWarehouse()">Select a warehouse for the return</span>

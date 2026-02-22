@@ -100,24 +100,23 @@
         <div class="form-row">
           <div class="form-group">
             <label>Supplier *</label>
-            <p-autoComplete
+            <app-lazy-autocomplete
               formControlName="supplier"
-              [suggestions]="filteredSuppliers"
-              (completeMethod)="onSupplierFilter($event)"
+              [fetchFn]="fetchSuppliersLazy"
               optionLabel="name"
               dataKey="id"
-              [dropdown]="true"
               placeholder="Select supplier..."
               [disabled]="mode === 'view'"
-              appendTo="body"
+              [minLength]="0"
+              [showClear]="true"
               [style]="{ width: '100%' }">
-              <ng-template let-supplier pTemplate="item">
+              <ng-template let-supplier>
                 <div class="autocomplete-item">
                   <span class="item-name">{{ supplier.name }}</span>
                   <span class="item-code">{{ supplier.code }}</span>
                 </div>
               </ng-template>
-            </p-autoComplete>
+            </app-lazy-autocomplete>
             <small *ngIf="hasError('supplier')" class="p-error">
               {{ getErrorMessage('supplier') }}
             </small>
@@ -143,44 +142,30 @@
         <div class="form-row">
           <div class="form-group">
             <label>Payment Terms *</label>
-            <p-autoComplete
+            <p-select
               formControlName="paymentTerms"
-              [suggestions]="filteredPaymentTerms"
-              (completeMethod)="onPaymentTermsFilter($event)"
-              field="label"
+              [options]="paymentTermsOptions"
               optionLabel="label"
               optionValue="value"
-              [dropdown]="true"
               placeholder="Select payment terms..."
               [disabled]="mode === 'view'"
-              appendTo="body"
               [style]="{ width: '100%' }">
-              <ng-template let-option pTemplate="item">
-                <span>{{ option.label }}</span>
-              </ng-template>
-            </p-autoComplete>
+            </p-select>
             <small *ngIf="hasError('paymentTerms')" class="p-error">
               {{ getErrorMessage('paymentTerms') }}
             </small>
           </div>
           <div class="form-group">
             <label>Priority *</label>
-            <p-autoComplete
+            <p-select
               formControlName="priority"
-              [suggestions]="filteredPriorities"
-              (completeMethod)="onPriorityFilter($event)"
-              field="label"
+              [options]="priorityOptions"
               optionLabel="label"
               optionValue="value"
-              [dropdown]="true"
               placeholder="Select priority..."
               [disabled]="mode === 'view'"
-              appendTo="body"
               [style]="{ width: '100%' }">
-              <ng-template let-option pTemplate="item">
-                <span>{{ option.label }}</span>
-              </ng-template>
-            </p-autoComplete>
+            </p-select>
             <small *ngIf="hasError('priority')" class="p-error">
               {{ getErrorMessage('priority') }}
             </small>
@@ -215,18 +200,17 @@
         <div class="form-row">
           <div class="form-group full">
             <label>Search Product</label>
-            <p-autoComplete
+            <app-lazy-autocomplete
               [(ngModel)]="selectedPartToAdd"
               [ngModelOptions]="{standalone: true}"
-              [suggestions]="filteredParts"
-              (completeMethod)="onPartFilter($event)"
-              (onSelect)="onPartSelectAndAdd($event.value)"
+              [fetchFn]="fetchPartsLazy"
+              (onItemSelect)="onPartSelectAndAdd($event)"
               field="name"
-              [dropdown]="true"
               placeholder="Search product by name, SKU, or part number to add..."
-              appendTo="body"
+              [minLength]="0"
+              [showClear]="true"
               [style]="{ width: '100%' }">
-              <ng-template let-part pTemplate="item">
+              <ng-template let-part>
                 <div class="autocomplete-item part-item">
                   <div class="part-main-info">
                     <span class="item-name">{{ part.name }}</span>
@@ -238,7 +222,7 @@
                   </div>
                 </div>
               </ng-template>
-            </p-autoComplete>
+            </app-lazy-autocomplete>
             <small class="field-hint">
               <i class="pi pi-info-circle"></i>
               Type to search and select a product to add to the order

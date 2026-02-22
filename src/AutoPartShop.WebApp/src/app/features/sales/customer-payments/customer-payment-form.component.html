@@ -21,32 +21,40 @@
       <div class="form-row">
         <div class="form-group">
           <label>Customer *</label>
-          <p-autoComplete [suggestions]="filteredCustomers" formControlName="customerId" [forceSelection]="true"
-            field="customerCode" [dropdown]="true" placeholder="Search customer..."
+          <app-lazy-autocomplete 
+            formControlName="customerId" 
+            [fetchFn]="fetchCustomersLazy"
+            field="customerCode" 
             optionLabel="firstName"
-            (completeMethod)="filterCustomers($event)" [disabled]="isEditing"
-            [appendTo]="'body'">
-            <ng-template let-customer pTemplate="item">
+            placeholder="Search customer..."
+            [minLength]="0"
+            [disabled]="isEditing">
+            <ng-template let-customer>
               <div>
                 <div style="font-weight: 500;">{{ customer.firstName }} {{ customer.lastName }}</div>
                 <div style="font-size: 0.85rem; color: #666;">Code: {{ customer.customerCode }}</div>
               </div>
             </ng-template>
-          </p-autoComplete>
+          </app-lazy-autocomplete>
         </div>
         <div class="form-group">
           <label>Payment Provider *</label>
-          <p-autoComplete [suggestions]="filteredPaymentProviders" formControlName="paymentProviderId"
-            [forceSelection]="true" field="providerName" optionLabel="providerName" optionValue="id" [dropdown]="true"
-            placeholder="Search provider..." (completeMethod)="filterPaymentProviders($event)" [disabled]="isEditing"
-            [appendTo]="'body'">
-            <ng-template let-provider pTemplate="item">
+          <app-lazy-autocomplete 
+            formControlName="paymentProviderId"
+            [fetchFn]="fetchPaymentProvidersLazy"
+            field="providerName" 
+            optionLabel="providerName" 
+            optionValue="id" 
+            placeholder="Search provider..." 
+            [minLength]="0"
+            [disabled]="isEditing">
+            <ng-template let-provider>
               <div>
                 <div style="font-weight: 500;">{{ provider.providerName }}</div>
                 <div style="font-size: 0.85rem; color: #666;">{{ provider.providerType }}</div>
               </div>
             </ng-template>
-          </p-autoComplete>
+          </app-lazy-autocomplete>
         </div>
       </div>
 
@@ -96,17 +104,21 @@
       <div class="form-row">
         <div class="form-group">
           <label>Invoice (Optional)</label>
-          <p-autoComplete [suggestions]="filteredInvoices" formControlName="invoiceId" field="invoiceNumber"
-            [dropdown]="true" optionLabel="invoiceNumber" placeholder="Search invoice..." (completeMethod)="filterInvoices($event)"
+          <p-select 
+            formControlName="invoiceId" 
+            [options]="invoices" 
+            optionLabel="invoiceNumber" 
+            optionValue="id"
+            placeholder="Select invoice..."
             [disabled]="isEditing"
-            [appendTo]="'body'">
+            [showClear]="true">
             <ng-template let-invoice pTemplate="item">
-              <div>
+              <div *ngIf="invoice">
                 <div style="font-weight: 500;">{{ invoice.invoiceNumber }}</div>
                 <div style="font-size: 0.85rem; color: #666;">Amount: {{ invoice.grandTotal | appCurrency }}</div>
               </div>
             </ng-template>
-          </p-autoComplete>
+          </p-select>
         </div>
         <div class="form-group">
           <label>Transaction Number</label>

@@ -67,12 +67,12 @@
 
               </div>
               <div class="block-content">
-                <p-autoComplete [(ngModel)]="selectedCustomerModel" [ngModelOptions]="{standalone: true}"
-                  [suggestions]="filteredCustomers()" (completeMethod)="filterCustomers($event)"
-                  (onSelect)="selectCustomer($event.value)" optionLabel="fullName" dataKey="id"
-                  placeholder="Search by name or phone..." [dropdown]="true" [showClear]="true"
-                  styleClass="compact-autocomplete" appendTo="body">
-                  <ng-template let-customer pTemplate="item">
+                <app-lazy-autocomplete [(ngModel)]="selectedCustomerModel" [ngModelOptions]="{standalone: true}"
+                  [fetchFn]="fetchCustomersLazy"
+                  (onItemSelect)="selectCustomer($event)" optionLabel="fullName" dataKey="id"
+                  placeholder="Search by name or phone..." [showClear]="true" [minLength]="0"
+                  styleClass="compact-autocomplete">
+                  <ng-template let-customer>
                     <div class="customer-dropdown-item-sm">
                       <span class="customer-name">{{ customer.fullName }}</span>
                       <span class="customer-phone">{{ customer.phone }}</span>
@@ -80,7 +80,7 @@
                         formatCurrency(customer.dueBalance || 0) }}</span>
                     </div>
                   </ng-template>
-                </p-autoComplete>
+                </app-lazy-autocomplete>
                 <!-- Selected Customer Badge -->
                 <div class="selected-customer-badge" *ngIf="selectedCustomer()">
                   <div class="customer-badge-avatar">{{ selectedCustomer().fullName?.charAt(0) }}</div>
@@ -114,27 +114,18 @@
               </div>
               <div class="block-content">
                 <div class="technician-autocomplete-wrapper">
-                  <p-autoComplete [(ngModel)]="selectedTechnicianModel" [ngModelOptions]="{standalone: true}"
-                    [suggestions]="filteredTechnicians()" (completeMethod)="filterTechnicians($event)"
-                    (onSelect)="selectTechnician($event.value)" (onDropdownClick)="onTechnicianDropdownClick()"
-                    field="name" optionLabel="name" placeholder="Search technician..." [dropdown]="true"
-                    [showClear]="true" styleClass="compact-autocomplete" appendTo="body">
-                    <ng-template let-technician pTemplate="item">
+                  <app-lazy-autocomplete [(ngModel)]="selectedTechnicianModel" [ngModelOptions]="{standalone: true}"
+                    [fetchFn]="fetchTechniciansLazy"
+                    (onItemSelect)="selectTechnician($event)"
+                    field="name" optionLabel="name" placeholder="Search technician..." [showClear]="true" [minLength]="0"
+                    styleClass="compact-autocomplete">
+                    <ng-template let-technician>
                       <div class="autocomplete-item">
                         <span class="item-name">{{ technician.name }}</span>
                         <span class="item-code">{{ technician.technicianCode }} | {{ technician.shopName }}</span>
                       </div>
                     </ng-template>
-                    <ng-template pTemplate="empty">
-                      <div class="autocomplete-empty" *ngIf="loadingTechnicians()">
-                        <i class="pi pi-spin pi-spinner"></i> Loading...
-                      </div>
-                      <div class="autocomplete-empty" *ngIf="!loadingTechnicians()">
-                        No technicians found
-                      </div>
-                    </ng-template>
-                  </p-autoComplete>
-                  <i *ngIf="loadingTechnicians()" class="pi pi-spin pi-spinner technician-loading-spinner"></i>
+                  </app-lazy-autocomplete>
                 </div>
                 <div class="responsibility-toggle">
                   <div class="toggle-option"
@@ -477,17 +468,18 @@
             </div>
             <div *ngFor="let payment of payments(); let i = index" class="payment-entry-block">
               <div class="payment-entry-row">
-                <p-autoComplete [suggestions]="filteredPaymentProviders" [ngModel]="payment.method"
-                  (ngModelChange)="updatePayment(i, 'method', $event)" (completeMethod)="filterPaymentProviders($event)"
-                  field="providerName" [dropdown]="true" [optionLabel]="'providerName'"
-                  [ngModelOptions]="{standalone: true}" class="payment-select" placeholder="Payment Method">
-                  <ng-template let-provider pTemplate="item">
+                <app-lazy-autocomplete [ngModel]="payment.method"
+                  (ngModelChange)="updatePayment(i, 'method', $event)"
+                  [fetchFn]="fetchPaymentProvidersLazy"
+                  field="providerName" [optionLabel]="'providerName'"
+                  [ngModelOptions]="{standalone: true}" class="payment-select" placeholder="Payment Method" [minLength]="0">
+                  <ng-template let-provider>
                     <div>
                       <div style="font-weight: 500;">{{ provider.providerName }}</div>
                       <div style="font-size: 0.85rem; color: #666;">{{ provider.providerType }}</div>
                     </div>
                   </ng-template>
-                </p-autoComplete>
+                </app-lazy-autocomplete>
                 <div class="payment-amount-input">
                   <span class="currency">Rs</span>
                   <input type="number" [ngModel]="payment.amount" (ngModelChange)="updatePayment(i, 'amount', $event)"

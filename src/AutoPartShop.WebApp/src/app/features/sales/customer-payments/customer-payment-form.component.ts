@@ -5,7 +5,6 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { InputNumberModule } from 'primeng/inputnumber';
-import { AutoCompleteModule } from 'primeng/autocomplete';
 import { CardModule } from 'primeng/card';
 import { ToastModule } from 'primeng/toast';
 import { DatePickerModule } from 'primeng/datepicker';
@@ -19,6 +18,9 @@ import { PaymentProviderService, PaymentProviderResponse } from '../../procureme
 import { CUSTOMER_PAYMENT_METHODS, PaymentMethodOption, getPaymentMethodIcon as getMethodIcon } from '../../../shared/constants/payment-methods.constants';
 import { CurrencyService } from '../../../shared/services/currency.service';
 import { AppCurrencyPipe } from '../../../shared/pipes/app-currency.pipe';
+import { LazyAutocompleteComponent, LazyRequest, LazyResponse } from '../../../shared/components/lazy-autocomplete';
+import { map } from 'rxjs/operators';
+import { of } from 'rxjs';
 
 @Component({
   selector: 'app-customer-payment-form',
@@ -29,13 +31,13 @@ import { AppCurrencyPipe } from '../../../shared/pipes/app-currency.pipe';
     ButtonModule,
     InputTextModule,
     InputNumberModule,
-    AutoCompleteModule,
     CardModule,
     ToastModule,
     DatePickerModule,
     SelectModule,
     TagModule,
-    AppCurrencyPipe
+    AppCurrencyPipe,
+    LazyAutocompleteComponent
   ],
   providers: [MessageService],
   templateUrl: './customer-payment-form.component.html',
@@ -57,15 +59,31 @@ export class CustomerPaymentFormComponent implements OnInit {
   isEditing = false;
   paymentId: string | null = null;
 
-  customers: CustomerResponse[] = [];
-  filteredCustomers: CustomerResponse[] = [];
   invoices: InvoiceResponse[] = [];
-  filteredInvoices: InvoiceResponse[] = [];
   paymentProviders: PaymentProviderResponse[] = [];
-  filteredPaymentProviders: PaymentProviderResponse[] = [];
 
   // Use shared payment methods from centralized constants
   paymentMethods: PaymentMethodOption[] = CUSTOMER_PAYMENT_METHODS;
+
+  // Lazy fetch function
+  fetchCustomersLazy = (req: LazyRequest) =>
+    this.customerService.getCustomers({
+      search: req.search,
+      pageNumber: req.pageNumber,
+      pageSize: req.pageSize
+    }).pipe(
+      map(res => ({
+        items: res.data,
+        totalCount: res.pagination.totalCount
+      } as LazyResponse<CustomerResponse>))
+    );
+
+  fetchPaymentProvidersLazy = (req: LazyRequest) => of({
+    items: this.paymentProviders.filter(p => 
+      !req.search || p.providerName.toLowerCase().includes(req.search.toLowerCase())
+    ),
+    totalCount: this.paymentProviders.length
+  } as LazyResponse<PaymentProviderResponse>);
 
   get currencyCode(): string {
     return this.currencyService.selectedCurrency();
@@ -93,8 +111,7 @@ export class CustomerPaymentFormComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    // Load customers and payment providers
-    this.loadCustomers();
+    // Load payment providers
     this.loadPaymentProviders();
 
     this.route.queryParams.subscribe(params => {
@@ -148,32 +165,12 @@ export class CustomerPaymentFormComponent implements OnInit {
   }
 
   /**
-   * Load customers for autocomplete
-   */
-  private loadCustomers(): void {
-     this.customerService.getCustomers({
-                search: '',
-                pageNumber: 1,
-                pageSize: 100
-            }).subscribe({
-      next: (response) => {
-        this.customers = response.data || [];
-        this.filteredCustomers = this.customers;
-      },
-      error: (error) => {
-        console.error('Error loading customers:', error);
-      }
-    });
-  }
-
-  /**
    * Load payment providers for autocomplete
    */
   private loadPaymentProviders(): void {
     this.paymentProviderService.getAllPaymentProviders().subscribe({
       next: (providers) => {
         this.paymentProviders = Array.isArray(providers) ? providers : [];
-        this.filteredPaymentProviders = this.paymentProviders;
       },
       error: (error) => {
         console.error('Error loading payment providers:', error);
@@ -188,47 +185,12 @@ export class CustomerPaymentFormComponent implements OnInit {
     this.invoiceService.getInvoicesByCustomer(customerId).subscribe({
       next: (invoices) => {
         this.invoices = invoices || [];
-        this.filteredInvoices = this.invoices;
       },
       error: (error) => {
         console.error('Error loading invoices:', error);
         this.invoices = [];
-        this.filteredInvoices = [];
       }
     });
-  }
-
-  /**
-   * Filter customers
-   */
-  filterCustomers(event: any): void {
-    const query = event.query.toLowerCase();
-    this.filteredCustomers = this.customers.filter(customer => {
-      const fullName = customer.firstName + ' ' + customer.lastName;
-      return fullName.toLowerCase().includes(query) ||
-             customer.customerCode.toLowerCase().includes(query) ||
-             (customer.email && customer.email.toLowerCase().includes(query));
-    });
-  }
-
-  /**
-   * Filter invoices
-   */
-  filterInvoices(event: any): void {
-    const query = event.query.toLowerCase();
-    this.filteredInvoices = this.invoices.filter(invoice =>
-      invoice.invoiceNumber.toLowerCase().includes(query)
-    );
-  }
-
-  /**
-   * Filter payment providers
-   */
-  filterPaymentProviders(event: any): void {
-    const query = event.query.toLowerCase();
-    this.filteredPaymentProviders = this.paymentProviders.filter(provider =>
-      provider.providerName.toLowerCase().includes(query)
-    );
   }
 
   /**

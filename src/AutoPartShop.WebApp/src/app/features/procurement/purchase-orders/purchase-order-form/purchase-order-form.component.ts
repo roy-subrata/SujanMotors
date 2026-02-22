@@ -5,7 +5,6 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { InputNumberModule } from 'primeng/inputnumber';
-import { AutoCompleteModule } from 'primeng/autocomplete';
 import { SelectModule } from 'primeng/select';
 import { CardModule } from 'primeng/card';
 import { DividerModule } from 'primeng/divider';
@@ -21,6 +20,7 @@ import { UnitService, UnitResponse } from '../../../inventory/services/unit.serv
 import { UnitConversionService } from '../../../inventory/services/unit-conversion.service';
 import { CurrencyService } from '../../../../shared/services/currency.service';
 import { CurrencySelectorComponent } from '../../../../shared/components/currency-selector/currency-selector.component';
+import { LazyAutocompleteComponent, LazyRequest, LazyResponse } from '../../../../shared/components/lazy-autocomplete';
 import { DatePicker } from 'primeng/datepicker';
 import { TextareaModule } from 'primeng/textarea';
 import { tap, forkJoin, of } from 'rxjs';
@@ -36,7 +36,6 @@ import { map } from 'rxjs/operators';
         ButtonModule,
         InputTextModule,
         InputNumberModule,
-        AutoCompleteModule,
         SelectModule,
         CardModule,
         DividerModule,
@@ -46,7 +45,8 @@ import { map } from 'rxjs/operators';
         ConfirmDialogModule,
         TooltipModule,
         TextareaModule,
-        TagModule
+        TagModule,
+        LazyAutocompleteComponent
     ],
     templateUrl: './purchase-order-form.component.html',
     styleUrls: ['./purchase-order-form.component.css'],
@@ -61,11 +61,32 @@ export class PurchaseOrderFormComponent implements OnInit {
     poId: string | null = null;
     currentPO: PurchaseOrderResponse | null = null;
 
+    // Lazy load functions
+    fetchSuppliersLazy = (req: LazyRequest) =>
+      this.supplierService.getSuppliers({
+        search: req.search,
+        pageNumber: req.pageNumber,
+        pageSize: req.pageSize
+      } as SupplierQuery).pipe(
+        map(res => ({
+          items: res.data,
+          totalCount: res.pagination.totalCount
+        } as LazyResponse<SupplierResponse>))
+      );
+
+    fetchPartsLazy = (req: LazyRequest) =>
+      this.partService.getParts({
+        search: req.search,
+        pageNumber: req.pageNumber,
+        pageSize: req.pageSize
+      } as PartsQuery).pipe(
+        map(res => ({
+          items: res.data,
+          totalCount: res.pagination.totalCount
+        } as LazyResponse<PartResponse>))
+      );
+
     // Autocomplete data
-    filteredSuppliers: SupplierResponse[] = [];
-    filteredPaymentTerms: any[] = [];
-    filteredPriorities: any[] = [];
-    filteredParts: PartResponse[] = [];
     units: UnitResponse[] = [];
     compatibleUnitsMap = new Map<string, UnitResponse[]>();
     lineUnitsMap = new Map<number, UnitResponse[]>();
@@ -107,9 +128,6 @@ export class PurchaseOrderFormComponent implements OnInit {
     }
 
     ngOnInit(): void {
-        this.filteredPaymentTerms = this.paymentTermsOptions;
-        this.filteredPriorities = this.priorityOptions;
-
         this.route.queryParams.pipe(
             tap({
                 next: (params) => {
@@ -139,20 +157,6 @@ export class PurchaseOrderFormComponent implements OnInit {
         ).subscribe();
     }
 
-    private loadParts(query: PartsQuery): void {
-        this.partService.getParts(query)
-            .pipe(
-                tap({
-                    next: (response) => {
-                        this.filteredParts = response.data;
-                    },
-                    error: (error) => {
-                        console.error('Error loading parts:', error);
-                    }
-                })
-            )
-            .subscribe();
-    }
 
     private loadPurchaseOrder(id: string): void {
         this.poService.getPurchaseOrderById(id).subscribe({
@@ -290,49 +294,6 @@ export class PurchaseOrderFormComponent implements OnInit {
     formatCurrency(value: number): string {
         const currencyCode = this.form.get('currency')?.value || this.currencyService.selectedCurrency();
         return this.currencyService.formatCurrency(value, currencyCode);
-    }
-
-    onSupplierFilter(event: any): void {
-        const search = event.query.toLowerCase();
-        this.loadSuppliers({ search, pageNumber: 1, pageSize: 100 });
-    }
-
-    private loadSuppliers(query: SupplierQuery) {
-        this.supplierService.getSuppliers(query)
-            .pipe(
-                tap({
-                    next: (response) => {
-                        this.filteredSuppliers = response.data;
-                    },
-                    error: () => {
-                        console.log("error loading suppliers!");
-                    }
-                })
-            ).subscribe();
-    }
-
-    onPartFilter(event: any): void {
-        const search = event.query.toLowerCase();
-        this.loadParts({
-            search,
-            pageNumber: 1,
-            pageSize: 100,
-            isActive: true
-        });
-    }
-
-    onPaymentTermsFilter(event: any): void {
-        const query = event.query.toLowerCase();
-        this.filteredPaymentTerms = this.paymentTermsOptions.filter(term =>
-            term.label.toLowerCase().includes(query) || term.value.toLowerCase().includes(query)
-        );
-    }
-
-    onPriorityFilter(event: any): void {
-        const query = event.query.toLowerCase();
-        this.filteredPriorities = this.priorityOptions.filter(priority =>
-            priority.label.toLowerCase().includes(query) || priority.value.toLowerCase().includes(query)
-        );
     }
 
     onSubmit(): void {
