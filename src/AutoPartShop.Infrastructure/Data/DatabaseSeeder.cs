@@ -55,8 +55,7 @@ public class DatabaseSeeder
             new { Name = "Admin", Description = "Full system access with all permissions" },
             new { Name = "Manager", Description = "Department manager with limited administrative access" },
             new { Name = "User", Description = "Standard user with basic access" },
-            new { Name = "Viewer", Description = "Read-only access to the system" },
-            new { Name = "Customer", Description = "Online shop customer — can place orders via the e-commerce channel" }
+            new { Name = "Viewer", Description = "Read-only access to the system" }
         };
 
         foreach (var role in roles)
