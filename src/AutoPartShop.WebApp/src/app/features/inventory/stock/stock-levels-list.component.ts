@@ -28,14 +28,7 @@ export class StockLevelsListComponent implements OnChanges {
   @Input() getPartInfo: ((partId: string) => string) | null = null;
   @Input() getWarehouseName: ((warehouseId: string) => string) | null = null;
 
-  ngOnChanges(changes: SimpleChanges): void {
-    if (changes['stockLevels']) {
-      console.log('📋 TABLE received new stockLevels:', this.stockLevels.length, 'items');
-      if (this.stockLevels.length > 0) {
-        console.log('First item ID:', this.stockLevels[0].id.substring(0, 8) + '...');
-      }
-    }
-  }
+  ngOnChanges(_changes: SimpleChanges): void { }
 
   @Output() adjustClick = new EventEmitter<StockLevelResponse>();
   @Output() pageChange = new EventEmitter<{ page: number; rows: number }>();
@@ -57,13 +50,13 @@ export class StockLevelsListComponent implements OnChanges {
 
   getStockSeverity(stock: StockLevelResponse): string {
     if (stock.needsReorder) return 'danger';
-    if (stock.availableQuantity < stock.reorderLevel * 1.5) return 'warning';
+    if (stock.availableQuantityInBaseUnit < stock.reorderLevel * 1.5) return 'warning';
     return 'success';
   }
 
   getStockStatus(stock: StockLevelResponse): string {
     if (stock.needsReorder) return 'Low Stock';
-    if (stock.availableQuantity < stock.reorderLevel * 1.5) return 'Warning';
+    if (stock.availableQuantityInBaseUnit < stock.reorderLevel * 1.5) return 'Warning';
     return 'In Stock';
   }
 }

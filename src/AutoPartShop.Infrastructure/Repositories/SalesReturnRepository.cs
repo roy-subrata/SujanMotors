@@ -117,17 +117,29 @@ public class SalesReturnRepository : ISalesReturnRepository
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<(IEnumerable<SalesReturn> returns, int totalCount)> GetPagedAsync(int pageNumber, int pageSize, CancellationToken cancellationToken = default)
+    public async Task<(IEnumerable<SalesReturn> returns, int totalCount)> GetPagedAsync(int pageNumber, int pageSize, string? searchTerm = null, CancellationToken cancellationToken = default)
     {
-        var query = _dbContext.SalesReturns
+        IQueryable<SalesReturn> query = _dbContext.SalesReturns
             .Include(x => x.LineItems)
                 .ThenInclude(li => li.Part)
             .Include(x => x.SalesOrder)
-            .Where(x => !x.Isdeleted)
-            .OrderByDescending(x => x.ReturnDate);
+            .Where(x => !x.Isdeleted);
+
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            var term = searchTerm.Trim().ToLower();
+            query = query.Where(x =>
+                x.ReturnNumber.ToLower().Contains(term) ||
+                x.Reason.ToLower().Contains(term) ||
+                (x.SalesOrder != null && (
+                    x.SalesOrder.SONumber.ToLower().Contains(term) ||
+                    x.SalesOrder.CustomerName.ToLower().Contains(term)
+                )));
+        }
 
         var totalCount = await query.CountAsync(cancellationToken);
         var items = await query
+            .OrderByDescending(x => x.ReturnDate)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(cancellationToken);

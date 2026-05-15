@@ -19,9 +19,13 @@ public class SalesReturn : AuditableEntity
     public string ApprovedBy { get; private set; } = string.Empty;
     public DateTime? ApprovedDate { get; private set; }
 
+    // Credit note tracking
+    public Guid? CustomerCreditNoteId { get; private set; }
+
     // Navigation properties
     public SalesOrder? SalesOrder { get; set; }
     public Invoice? Invoice { get; set; }
+    public CustomerCreditNote? CustomerCreditNote { get; set; }
     public ICollection<SalesReturnLine> LineItems { get; set; } = new List<SalesReturnLine>();
 
     private SalesReturn() { }
@@ -78,7 +82,13 @@ public class SalesReturn : AuditableEntity
     public void Reject(string reason = "")
     {
         Status = "REJECTED";
-        Notes = reason?.Trim() ?? string.Empty;
+        var trimmedReason = reason?.Trim() ?? string.Empty;
+        if (!string.IsNullOrEmpty(trimmedReason))
+        {
+            Notes = string.IsNullOrEmpty(Notes)
+                ? $"Rejected: {trimmedReason}"
+                : $"{Notes} | Rejected: {trimmedReason}";
+        }
     }
 
     public void Process()
@@ -107,33 +117,16 @@ public class SalesReturn : AuditableEntity
 
         RefundType = refundType.ToUpper();
     }
-    /// <summary>
-    /// Adjusts stock for all returned items. Call this when processing the return.
-    /// </summary>
-    public void AdjustStock(Func<Guid, Guid, StockLevel?> getStockLevel, Action<StockLevel> updateStock)
-    {
-        foreach (var line in LineItems)
-        {
-            // Find or create stock level for the part in the warehouse (assume Invoice.WarehouseId or pass as param)
-       //     var warehouseId = Invoice?.WarehouseId ?? Guid.Empty;
-            //if (warehouseId == Guid.Empty)
-              //  throw new InvalidOperationException("WarehouseId is required for stock adjustment");
-
-         //   var stockLevel = getStockLevel(line.PartId, warehouseId);
-            //if (stockLevel == null)
-                //throw new InvalidOperationException($"StockLevel not found for Part {line.PartId} in Warehouse {warehouseId}");
-
-            //stockLevel.AddStock(line.Quantity, $"Sales Return {ReturnNumber}");
-            //updateStock(stockLevel);
-        }
-    }
 
     /// <summary>
-    /// Placeholder for payment/refund adjustment logic. Integrate with payment module as needed.
+    /// Link a customer credit note to this return
     /// </summary>
-    public void AdjustPaymentOrRefund(Action<decimal, string> processRefund)
+    public void SetCustomerCreditNote(Guid customerCreditNoteId)
     {
-        // Example: processRefund(RefundAmount, ReturnNumber);
-        // Implement actual payment/refund logic in application layer
+        if (customerCreditNoteId == Guid.Empty)
+            throw new ArgumentException("Customer credit note ID cannot be empty", nameof(customerCreditNoteId));
+
+        CustomerCreditNoteId = customerCreditNoteId;
     }
+
 }

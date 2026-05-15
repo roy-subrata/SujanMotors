@@ -156,9 +156,9 @@ export class SuppliersListComponent implements OnInit {
         command: () => this.recordPayment(supplier)
       },
       {
-        label: 'Payment Summary',
-        icon: 'pi pi-chart-bar',
-        command: () => this.viewPaymentSummary(supplier)
+        label: 'Account Summary',
+        icon: 'pi pi-chart-line',
+        command: () => this.viewAccountSummary(supplier)
       },
       { separator: true },
       {
@@ -189,8 +189,8 @@ export class SuppliersListComponent implements OnInit {
     this.router.navigate(['/procurement/supplier-payments/new'], { queryParams: { supplierId: supplier.id } });
   }
 
-  viewPaymentSummary(supplier: SupplierResponse): void {
-    this.router.navigate(['/procurement/supplier-payments/summary', supplier.id]);
+  viewAccountSummary(supplier: SupplierResponse): void {
+    this.router.navigate(['/procurement/supplier-account-summary'], { queryParams: { supplierId: supplier.id } });
   }
 
   viewPaymentAccounts(supplier: SupplierResponse): void {

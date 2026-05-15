@@ -10,43 +10,68 @@ export interface PartResponse {
     id: string;
     name: string;
     description: string;
+    richDescription?: string | null;
     partNumber: string;
     sku: string;
+    barcode?: string | null;
     categoryId: string;
     categoryName: string;
     brandId: string | null;
     brandName: string | null;
     brandCode: string | null;
+    baseUnitId: string | null;
+    baseUnitName: string | null;
+    baseUnitCode: string | null;
     unitId: string | null;
     unitName: string | null;
+    unitCode: string | null;
     costPrice: number;
     sellingPrice: number;
     minimumStock: number;
     isActive: boolean;
-    minMarginPercentOverride?: number | null;
-    maxDiscountPercentOverride?: number | null;
-    createdBy: string;
-    modifiedBy: string;
+    // Universal product fields
+    tags?: string | null;
+    productType: string;
+    isPerishable: boolean;
+    weightKg?: number | null;
+    widthCm?: number | null;
+    heightCm?: number | null;
+    depthCm?: number | null;
+    taxCode?: string | null;
+    // Warranty
     hasWarranty: boolean;
     warrantyPeriodMonths: number | null;
     warrantyType: string | null;
     warrantyTerms: string | null;
     warrantyCertificateTemplate: string | null;
+    createdBy: string;
+    modifiedBy: string;
 }
 
 export interface CreatePartRequest {
     name: string;
     description: string;
+    richDescription?: string | null;
     partNumber: string;
     sku: string;
+    barcode?: string | null;
     categoryId: string;
     brandId: string | null;
+    baseUnitId: string | null;
     unitId: string | null;
     costPrice: number;
     sellingPrice: number;
     minimumStock: number;
-    minMarginPercentOverride?: number | null;
-    maxDiscountPercentOverride?: number | null;
+    // Universal product fields
+    tags?: string | null;
+    productType: string;
+    isPerishable: boolean;
+    weightKg?: number | null;
+    widthCm?: number | null;
+    heightCm?: number | null;
+    depthCm?: number | null;
+    taxCode?: string | null;
+    // Warranty
     hasWarranty: boolean;
     warrantyPeriodMonths: number | null;
     warrantyType: string | null;
@@ -58,16 +83,27 @@ export interface UpdatePartRequest {
     id: string;
     name: string;
     description: string;
+    richDescription?: string | null;
     sku: string;
+    barcode?: string | null;
     categoryId: string;
     brandId: string | null;
+    baseUnitId: string | null;
     unitId: string | null;
     costPrice: number;
     sellingPrice: number;
     minimumStock: number;
     isActive: boolean;
-    minMarginPercentOverride?: number | null;
-    maxDiscountPercentOverride?: number | null;
+    // Universal product fields
+    tags?: string | null;
+    productType: string;
+    isPerishable: boolean;
+    weightKg?: number | null;
+    widthCm?: number | null;
+    heightCm?: number | null;
+    depthCm?: number | null;
+    taxCode?: string | null;
+    // Warranty
     hasWarranty: boolean;
     warrantyPeriodMonths: number | null;
     warrantyType: string | null;

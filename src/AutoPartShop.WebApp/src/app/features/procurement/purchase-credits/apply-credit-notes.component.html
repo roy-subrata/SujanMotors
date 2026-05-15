@@ -1,0 +1,123 @@
+<p-toast></p-toast>
+<p-confirmDialog></p-confirmDialog>
+
+<p-card>
+  <ng-template pTemplate="header">
+    <div class="card-header">
+      <h3>Available Credits from Supplier</h3>
+      <div class="credit-summary" *ngIf="totalAvailableCredit > 0">
+        <span class="credit-label">Total Available:</span>
+        <span class="credit-value">{{ totalAvailableCredit | currency }}</span>
+      </div>
+    </div>
+  </ng-template>
+
+  <!-- Available Credits Table -->
+  <p-table
+    [value]="availableCredits"
+    [loading]="loading"
+    [paginator]="false"
+    styleClass="credit-table"
+    responsiveLayout="scroll"
+    *ngIf="availableCredits.length > 0">
+
+    <ng-template pTemplate="header">
+      <tr>
+        <th style="width: 120px">Credit Note #</th>
+        <th>Return #</th>
+        <th style="width: 100px" class="text-right">Total</th>
+        <th style="width: 100px" class="text-right">Used</th>
+        <th style="width: 100px" class="text-right">Available</th>
+        <th style="width: 120px">Issue Date</th>
+        <th style="width: 100px">Action</th>
+      </tr>
+    </ng-template>
+
+    <ng-template pTemplate="body" let-credit>
+      <tr [class.selected]="selectedCreditNote?.id === credit.id">
+        <td>
+          <span class="credit-number">{{ credit.creditNoteNumber }}</span>
+        </td>
+        <td>{{ credit.returnNumber || '-' }}</td>
+        <td class="text-right">{{ credit.totalAmount | currency }}</td>
+        <td class="text-right">{{ credit.usedAmount | currency }}</td>
+        <td class="text-right">
+          <span class="available-amount">{{ credit.availableAmount | currency }}</span>
+        </td>
+        <td>{{ credit.issueDate | date:'dd-MMM-yyyy' }}</td>
+        <td>
+          <button
+            pButton
+            type="button"
+            icon="pi pi-plus"
+            label="Apply"
+            class="p-button-sm p-button-success"
+            (click)="selectCredit(credit)"
+            [disabled]="credit.availableAmount <= 0">
+          </button>
+        </td>
+      </tr>
+    </ng-template>
+
+    <ng-template pTemplate="emptymessage">
+      <tr>
+        <td colspan="7" class="text-center">
+          <div class="empty-state">
+            <i class="pi pi-info-circle"></i>
+            <p>No available credits from this supplier</p>
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+
+  <!-- Apply Credit Form -->
+  <div class="apply-section" *ngIf="selectedCreditNote">
+    <div class="apply-form">
+      <h4>Apply Credit from {{ selectedCreditNote.creditNoteNumber }}</h4>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Available Credit</label>
+          <div class="value-display">{{ selectedCreditNote.availableAmount | currency }}</div>
+        </div>
+
+        <div class="form-group">
+          <label>Outstanding PO Amount</label>
+          <div class="value-display">{{ getOutstandingAmount() | currency }}</div>
+        </div>
+
+        <div class="form-group">
+          <label>Amount to Apply</label>
+          <p-inputNumber
+            [(ngModel)]="amountToApply"
+            [min]="0"
+            [max]="selectedCreditNote.availableAmount"
+            placeholder="Enter amount"
+            styleClass="amount-input">
+          </p-inputNumber>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button
+          pButton
+          type="button"
+          label="Cancel"
+          icon="pi pi-times"
+          class="p-button-text p-button-secondary"
+          (click)="resetSelection()">
+        </button>
+        <button
+          pButton
+          type="button"
+          label="Apply Credit"
+          icon="pi pi-check"
+          class="p-button-success"
+          [disabled]="!amountToApply || amountToApply <= 0"
+          (click)="applyCredit()">
+        </button>
+      </div>
+    </div>
+  </div>
+</p-card>

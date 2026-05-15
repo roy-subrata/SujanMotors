@@ -34,7 +34,16 @@ public class SalesOrderConfiguration : IEntityTypeConfiguration<SalesOrder>
 
         builder.Property(so => so.Status)
             .IsRequired()
-            .HasMaxLength(20);
+            .HasMaxLength(30);
+
+        builder.Property(so => so.PaidDate)
+            .IsRequired(false);
+
+        builder.Property(so => so.PackedDate)
+            .IsRequired(false);
+
+        builder.Property(so => so.CompletedDate)
+            .IsRequired(false);
 
         builder.Property(so => so.PaymentStatus)
             .IsRequired()
@@ -47,6 +56,13 @@ public class SalesOrderConfiguration : IEntityTypeConfiguration<SalesOrder>
             .IsRequired()
             .HasMaxLength(3)
             .HasDefaultValue("BDT");
+
+        builder.Property(so => so.Channel)
+            .IsRequired()
+            .HasMaxLength(20)
+            .HasDefaultValue("POS");
+
+        builder.HasIndex(so => so.Channel);
 
         // Relationships
         builder.HasOne(so => so.Customer)

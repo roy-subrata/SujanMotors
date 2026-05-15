@@ -2,203 +2,428 @@
   <p-toast></p-toast>
   <p-confirmDialog></p-confirmDialog>
 
-  <!-- Tabs -->
-  <p-tabs [(value)]="activeTabIndex">
-    <p-tablist>
-      <p-tab [value]="0">
-        <i class="pi pi-users mr-2"></i>
-        Users
-      </p-tab>
-      <p-tab [value]="1">
-        <i class="pi pi-shield mr-2"></i>
-        Roles
-      </p-tab>
-      <p-tab [value]="2">
-        <i class="pi pi-key mr-2"></i>
-        Permissions
-      </p-tab>
-    </p-tablist>
-
-    <p-tabpanels>
-      <!-- Users Tab Panel -->
-      <p-tabpanel [value]="0">
-        <div class="tab-content">
-        <div class="tab-header">
-          <button pButton label="Add User" icon="pi pi-plus" (click)="openUserDialog()"></button>
+  <!-- ==================== PAGE HEADER ==================== -->
+  <header class="page-header">
+    <div class="header-content">
+      <div class="header-left">
+        <h1 class="page-title">
+          <i class="pi pi-cog"></i>
+          Settings
+        </h1>
+        <p class="page-subtitle">Manage users, roles, permissions & configuration</p>
+      </div>
+      <div class="header-actions">
+        <div class="stats-badge">
+          <i class="pi pi-users"></i>
+          <span class="stats-value">{{ users().length }}</span>
+          <span class="stats-label">users</span>
         </div>
-
-        <p-table [value]="users()" [loading]="usersLoading()" responsiveLayout="scroll"
-          [paginator]="true" [rows]="10" [rowsPerPageOptions]="[10, 25, 50]">
-          <ng-template pTemplate="header">
-            <tr>
-              <th>Username</th>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Roles</th>
-              <th>Status</th>
-              <th>Last Login</th>
-              <th style="width: 250px">Actions</th>
-            </tr>
-          </ng-template>
-          <ng-template pTemplate="body" let-user>
-            <tr>
-              <td>{{ user.username }}</td>
-              <td>{{ user.firstName }} {{ user.lastName }}</td>
-              <td>{{ user.email }}</td>
-              <td>
-                <p-tag *ngFor="let role of user.roles" [value]="role" class="mr-1"></p-tag>
-                <span *ngIf="user.roles.length === 0" class="text-gray-400">No roles</span>
-              </td>
-              <td>
-                <p-tag [value]="user.isActive ? 'Active' : 'Inactive'"
-                  [severity]="getStatusSeverity(user.isActive)"></p-tag>
-              </td>
-              <td>{{ user.lastLoginAt ? (user.lastLoginAt | date:'short') : 'Never' }}</td>
-              <td>
-                <button pButton icon="pi pi-user-edit" class="p-button-sm p-button-text"
-                  pTooltip="Assign Roles" (click)="openAssignRolesDialog(user)"></button>
-                <button pButton icon="pi pi-pencil" class="p-button-sm p-button-text"
-                  pTooltip="Edit User" (click)="openUserDialog(user)"></button>
-                <button pButton [icon]="user.isActive ? 'pi pi-ban' : 'pi pi-check'"
-                  class="p-button-sm p-button-text"
-                  [pTooltip]="user.isActive ? 'Deactivate' : 'Activate'"
-                  (click)="toggleUserStatus(user)"></button>
-              </td>
-            </tr>
-          </ng-template>
-          <ng-template pTemplate="emptymessage">
-            <tr>
-              <td colspan="7" class="text-center p-4">No users found</td>
-            </tr>
-          </ng-template>
-        </p-table>
+        <div class="stats-badge">
+          <i class="pi pi-shield"></i>
+          <span class="stats-value">{{ roles().length }}</span>
+          <span class="stats-label">roles</span>
         </div>
-      </p-tabpanel>
+      </div>
+    </div>
+  </header>
 
-      <!-- Roles Tab Panel -->
-      <p-tabpanel [value]="1">
-        <div class="tab-content">
-        <div class="tab-header">
-          <button pButton label="Add Role" icon="pi pi-plus" (click)="openRoleDialog()"></button>
-        </div>
+  <!-- ==================== TABS ==================== -->
+  <div class="settings-body">
+    <p-tabs [(value)]="activeTabIndex">
+      <p-tablist>
+        <p-tab [value]="0">
+          <i class="pi pi-users mr-2"></i>
+          Users
+        </p-tab>
+        <p-tab [value]="1">
+          <i class="pi pi-shield mr-2"></i>
+          Roles
+        </p-tab>
+        <p-tab [value]="2">
+          <i class="pi pi-key mr-2"></i>
+          Permissions
+        </p-tab>
+        <p-tab [value]="3">
+          <i class="pi pi-lock mr-2"></i>
+          Price Code
+        </p-tab>
+      </p-tablist>
 
-        <p-table [value]="roles()" [loading]="rolesLoading()" responsiveLayout="scroll"
-          [paginator]="true" [rows]="10">
-          <ng-template pTemplate="header">
-            <tr>
-              <th>Name</th>
-              <th>Description</th>
-              <th>Status</th>
-              <th>Created Date</th>
-              <th style="width: 200px">Actions</th>
-            </tr>
-          </ng-template>
-          <ng-template pTemplate="body" let-role>
-            <tr>
-              <td><strong>{{ role.name }}</strong></td>
-              <td>{{ role.description || '-' }}</td>
-              <td>
-                <p-tag [value]="role.isActive ? 'Active' : 'Inactive'"
-                  [severity]="getStatusSeverity(role.isActive)"></p-tag>
-              </td>
-              <td>{{ role.createdAt | date:'short' }}</td>
-              <td>
-                <button pButton icon="pi pi-key" class="p-button-sm p-button-text"
-                  pTooltip="Manage Permissions" (click)="openAssignPermissionsDialog(role)"></button>
-                <button pButton icon="pi pi-pencil" class="p-button-sm p-button-text"
-                  pTooltip="Edit Role" (click)="openRoleDialog(role)"></button>
-                <button pButton icon="pi pi-trash" class="p-button-sm p-button-text p-button-danger"
-                  pTooltip="Delete Role" (click)="deleteRole(role)"></button>
-              </td>
-            </tr>
-          </ng-template>
-          <ng-template pTemplate="emptymessage">
-            <tr>
-              <td colspan="5" class="text-center p-4">No roles found</td>
-            </tr>
-          </ng-template>
-        </p-table>
-        </div>
-      </p-tabpanel>
+      <p-tabpanels>
+        <!-- ==================== USERS TAB ==================== -->
+        <p-tabpanel [value]="0">
+          <div class="tab-content">
+            <div class="tab-toolbar">
+              <div class="toolbar-left">
+                <span class="section-title">User Accounts</span>
+                <span class="section-count">{{ users().length }} total</span>
+              </div>
+              <button class="btn-add" (click)="openUserDialog()">
+                <i class="pi pi-plus"></i>
+                <span>Add User</span>
+              </button>
+            </div>
 
-      <!-- Permissions Tab Panel -->
-      <p-tabpanel [value]="2">
-        <div class="tab-content">
-        <div class="tab-header">
-          <button pButton label="Add Permission" icon="pi pi-plus" (click)="openPermissionDialog()"></button>
-        </div>
+            <div class="table-card">
+              <p-table [value]="users()" [loading]="usersLoading()" responsiveLayout="scroll"
+                [paginator]="true" [rows]="10" [rowsPerPageOptions]="[10, 25, 50]"
+                [rowHover]="true" styleClass="settings-table">
+                <ng-template pTemplate="header">
+                  <tr>
+                    <th>User</th>
+                    <th>Email</th>
+                    <th>Roles</th>
+                    <th>Status</th>
+                    <th>Last Login</th>
+                    <th class="col-actions">Actions</th>
+                  </tr>
+                </ng-template>
+                <ng-template pTemplate="body" let-user>
+                  <tr>
+                    <td>
+                      <div class="user-cell">
+                        <div class="user-avatar">{{ (user.firstName || user.username)[0].toUpperCase() }}</div>
+                        <div class="user-info">
+                          <span class="user-name">{{ user.firstName }} {{ user.lastName }}</span>
+                          <span class="user-username">&#64;{{ user.username }}</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td><span class="text-secondary">{{ user.email }}</span></td>
+                    <td>
+                      <div class="role-tags">
+                        <span *ngFor="let role of user.roles" class="role-chip">{{ role }}</span>
+                        <span *ngIf="user.roles.length === 0" class="text-muted">No roles</span>
+                      </div>
+                    </td>
+                    <td>
+                      <span class="status-pill" [attr.data-status]="user.isActive ? 'active' : 'inactive'">
+                        {{ user.isActive ? 'Active' : 'Inactive' }}
+                      </span>
+                    </td>
+                    <td><span class="text-muted">{{ user.lastLoginAt ? (user.lastLoginAt | date:'short') : 'Never' }}</span></td>
+                    <td class="col-actions">
+                      <div class="action-btns">
+                        <button class="btn-action" pTooltip="Assign Roles" (click)="openAssignRolesDialog(user)">
+                          <i class="pi pi-user-edit"></i>
+                        </button>
+                        <button class="btn-action" pTooltip="Edit" (click)="openUserDialog(user)">
+                          <i class="pi pi-pencil"></i>
+                        </button>
+                        <button class="btn-action" [class.btn-danger]="user.isActive"
+                          [pTooltip]="user.isActive ? 'Deactivate' : 'Activate'"
+                          (click)="toggleUserStatus(user)">
+                          <i class="pi" [ngClass]="user.isActive ? 'pi-ban' : 'pi-check'"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </ng-template>
+                <ng-template pTemplate="emptymessage">
+                  <tr>
+                    <td colspan="6">
+                      <div class="empty-state">
+                        <i class="pi pi-users"></i>
+                        <p>No users found</p>
+                      </div>
+                    </td>
+                  </tr>
+                </ng-template>
+              </p-table>
+            </div>
+          </div>
+        </p-tabpanel>
 
-        <p-table [value]="permissions()" [loading]="permissionsLoading()" responsiveLayout="scroll"
-          [paginator]="true" [rows]="10">
-          <ng-template pTemplate="header">
-            <tr>
-              <th>Name</th>
-              <th>Display Name</th>
-              <th>Category</th>
-              <th>Description</th>
-              <th>Status</th>
-            </tr>
-          </ng-template>
-          <ng-template pTemplate="body" let-permission>
-            <tr>
-              <td><code>{{ permission.name }}</code></td>
-              <td>{{ permission.displayName }}</td>
-              <td><p-tag [value]="permission.category"></p-tag></td>
-              <td>{{ permission.description || '-' }}</td>
-              <td>
-                <p-tag [value]="permission.isActive ? 'Active' : 'Inactive'"
-                  [severity]="getStatusSeverity(permission.isActive)"></p-tag>
-              </td>
-            </tr>
-          </ng-template>
-          <ng-template pTemplate="emptymessage">
-            <tr>
-              <td colspan="5" class="text-center p-4">No permissions found</td>
-            </tr>
-          </ng-template>
-        </p-table>
+        <!-- ==================== ROLES TAB ==================== -->
+        <p-tabpanel [value]="1">
+          <div class="tab-content">
+            <div class="tab-toolbar">
+              <div class="toolbar-left">
+                <span class="section-title">Roles</span>
+                <span class="section-count">{{ roles().length }} total</span>
+              </div>
+              <button class="btn-add" (click)="openRoleDialog()">
+                <i class="pi pi-plus"></i>
+                <span>Add Role</span>
+              </button>
+            </div>
+
+            <div class="table-card">
+              <p-table [value]="roles()" [loading]="rolesLoading()" responsiveLayout="scroll"
+                [paginator]="true" [rows]="10" [rowHover]="true" styleClass="settings-table">
+                <ng-template pTemplate="header">
+                  <tr>
+                    <th>Role</th>
+                    <th>Description</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th class="col-actions">Actions</th>
+                  </tr>
+                </ng-template>
+                <ng-template pTemplate="body" let-role>
+                  <tr>
+                    <td>
+                      <div class="role-cell">
+                        <div class="role-icon"><i class="pi pi-shield"></i></div>
+                        <span class="role-name">{{ role.name }}</span>
+                      </div>
+                    </td>
+                    <td><span class="text-secondary">{{ role.description || '-' }}</span></td>
+                    <td>
+                      <span class="status-pill" [attr.data-status]="role.isActive ? 'active' : 'inactive'">
+                        {{ role.isActive ? 'Active' : 'Inactive' }}
+                      </span>
+                    </td>
+                    <td><span class="text-muted">{{ role.createdAt | date:'mediumDate' }}</span></td>
+                    <td class="col-actions">
+                      <div class="action-btns">
+                        <button class="btn-action" pTooltip="Permissions" (click)="openAssignPermissionsDialog(role)">
+                          <i class="pi pi-key"></i>
+                        </button>
+                        <button class="btn-action" pTooltip="Edit" (click)="openRoleDialog(role)">
+                          <i class="pi pi-pencil"></i>
+                        </button>
+                        <button class="btn-action btn-danger" pTooltip="Delete" (click)="deleteRole(role)">
+                          <i class="pi pi-trash"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </ng-template>
+                <ng-template pTemplate="emptymessage">
+                  <tr>
+                    <td colspan="5">
+                      <div class="empty-state">
+                        <i class="pi pi-shield"></i>
+                        <p>No roles found</p>
+                      </div>
+                    </td>
+                  </tr>
+                </ng-template>
+              </p-table>
+            </div>
+          </div>
+        </p-tabpanel>
+
+        <!-- ==================== PERMISSIONS TAB ==================== -->
+        <p-tabpanel [value]="2">
+          <div class="tab-content">
+            <div class="tab-toolbar">
+              <div class="toolbar-left">
+                <span class="section-title">Permissions</span>
+                <span class="section-count">{{ permissions().length }} total</span>
+              </div>
+              <button class="btn-add" (click)="openPermissionDialog()">
+                <i class="pi pi-plus"></i>
+                <span>Add Permission</span>
+              </button>
+            </div>
+
+            <div class="table-card">
+              <p-table [value]="permissions()" [loading]="permissionsLoading()" responsiveLayout="scroll"
+                [paginator]="true" [rows]="10" [rowHover]="true" styleClass="settings-table">
+                <ng-template pTemplate="header">
+                  <tr>
+                    <th>Permission</th>
+                    <th>Display Name</th>
+                    <th>Category</th>
+                    <th>Description</th>
+                    <th>Status</th>
+                  </tr>
+                </ng-template>
+                <ng-template pTemplate="body" let-permission>
+                  <tr>
+                    <td><code class="permission-code">{{ permission.name }}</code></td>
+                    <td><span class="text-primary-bold">{{ permission.displayName }}</span></td>
+                    <td><span class="category-chip">{{ permission.category }}</span></td>
+                    <td><span class="text-secondary">{{ permission.description || '-' }}</span></td>
+                    <td>
+                      <span class="status-pill" [attr.data-status]="permission.isActive ? 'active' : 'inactive'">
+                        {{ permission.isActive ? 'Active' : 'Inactive' }}
+                      </span>
+                    </td>
+                  </tr>
+                </ng-template>
+                <ng-template pTemplate="emptymessage">
+                  <tr>
+                    <td colspan="5">
+                      <div class="empty-state">
+                        <i class="pi pi-key"></i>
+                        <p>No permissions found</p>
+                      </div>
+                    </td>
+                  </tr>
+                </ng-template>
+              </p-table>
+            </div>
+          </div>
+        </p-tabpanel>
+
+        <!-- ==================== PRICE CODE TAB ==================== -->
+        <p-tabpanel [value]="3">
+          <div class="tab-content">
+            <div class="price-code-section">
+            <!-- Header -->
+            <div class="price-code-header">
+              <i class="pi pi-lock" style="font-size: 1.75rem; color: #6366f1;"></i>
+              <div>
+                <h3 style="margin: 0; font-size: 1.15rem; font-weight: 600;">Price Code Configuration</h3>
+                <p style="margin: 0.25rem 0 0; color: #6b7280; font-size: 0.875rem;">
+                  Encode cost prices using a secret word. Each of the 10 letters maps to a digit (1–9, 0). Only users who know the word can read the price.
+                </p>
+              </div>
+            </div>
+
+            <!-- Two-column layout -->
+            <div class="price-code-layout">
+              <!-- Left: Form inputs -->
+              <div class="price-code-form-panel">
+                <div class="form-field">
+                  <label for="priceCodeWord">Magic Word (10 unique letters)</label>
+                  <input pInputText id="priceCodeWord"
+                    [(ngModel)]="priceCodeWord"
+                    class="w-full"
+                    maxlength="10"
+                    placeholder="e.g. SUJANMOTER"
+                    style="text-transform: uppercase; letter-spacing: 0.15em; font-weight: 600; font-size: 1.1rem;" />
+                  <small style="color: #6b7280; display: block; margin-top: 0.35rem;">
+                    Each letter represents a digit: 1st→1, 2nd→2, ... 10th→0. Length: {{ priceCodeWord.length }}/10
+                  </small>
+                  @if (priceCodeWord.length > 0 && !getPriceCodeValidation().valid) {
+                    <small style="color: #ef4444; display: block; margin-top: 0.25rem;">
+                      <i class="pi pi-exclamation-circle" style="font-size: 0.75rem;"></i>
+                      {{ getPriceCodeValidation().error }}
+                    </small>
+                  }
+                </div>
+
+                <div class="prefix-suffix-row">
+                  <div class="form-field">
+                    <label for="priceCodePrefix">Prefix <span style="color: #9ca3af; font-weight: normal;">(optional)</span></label>
+                    <input pInputText id="priceCodePrefix"
+                      [(ngModel)]="priceCodePrefix"
+                      class="w-full"
+                      maxlength="5"
+                      placeholder="e.g. #, *, XX" />
+                    <small style="color: #6b7280; display: block; margin-top: 0.25rem;">Prepended to encoded price</small>
+                  </div>
+                  <div class="form-field">
+                    <label for="priceCodeSuffix">Suffix <span style="color: #9ca3af; font-weight: normal;">(optional)</span></label>
+                    <input pInputText id="priceCodeSuffix"
+                      [(ngModel)]="priceCodeSuffix"
+                      class="w-full"
+                      maxlength="5"
+                      placeholder="e.g. /, **, ZZ" />
+                    <small style="color: #6b7280; display: block; margin-top: 0.25rem;">Appended to encoded price</small>
+                  </div>
+                </div>
+
+                <div class="price-code-actions">
+                  <button pButton label="Save Price Code" icon="pi pi-save"
+                    (click)="savePriceCode()"
+                    [disabled]="!getPriceCodeValidation().valid || priceCodeSaving()"
+                    [loading]="priceCodeSaving()"></button>
+                  <button pButton label="Reset" icon="pi pi-refresh" class="p-button-text"
+                    (click)="initPriceCode()"></button>
+                  @if (priceCodeService.isConfigured()) {
+                    <button pButton label="Clear" icon="pi pi-trash" class="p-button-danger p-button-text"
+                      (click)="clearPriceCode()"
+                      [disabled]="priceCodeSaving()"
+                      pTooltip="Remove price code and show plain numbers"></button>
+                  }
+                </div>
+              </div>
+
+              <!-- Right: Preview panel -->
+              <div class="price-code-preview-panel">
+                @if (getPriceCodeValidation().valid) {
+                  <div class="price-code-preview">
+                    <h4 style="margin: 0 0 0.75rem; font-size: 0.95rem; color: #374151; font-weight: 600;">
+                      <i class="pi pi-table" style="margin-right: 0.4rem; color: #6366f1;"></i>Digit → Letter Mapping
+                    </h4>
+                    <div class="preview-mapping">
+                      @for (digit of [1,2,3,4,5,6,7,8,9,0]; track digit) {
+                        <div class="mapping-item">
+                          <span class="digit">{{ digit }}</span>
+                          <i class="pi pi-arrow-right" style="font-size: 0.65rem; color: #9ca3af;"></i>
+                          <span class="letter">{{ priceCodeWord[digit === 0 ? 9 : digit - 1]?.toUpperCase() }}</span>
+                        </div>
+                      }
+                    </div>
+                    <div class="preview-example">
+                      <span class="example-label">৳1,250 →</span>
+                      <span class="example-code">{{ priceCodePrefix }}{{ priceCodeWord[0]?.toUpperCase() }}{{ priceCodeWord[1]?.toUpperCase() }}{{ priceCodeWord[4]?.toUpperCase() }}{{ priceCodeWord[9]?.toUpperCase() }}{{ priceCodeSuffix }}</span>
+                    </div>
+                  </div>
+                } @else {
+                  <div class="price-code-preview" style="display: flex; align-items: center; justify-content: center; min-height: 180px; color: #9ca3af;">
+                    <div style="text-align: center;">
+                      <i class="pi pi-eye-slash" style="font-size: 2rem; display: block; margin-bottom: 0.5rem;"></i>
+                      <span style="font-size: 0.9rem;">Enter a valid 10-letter word to see the preview</span>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- Status bar -->
+            @if (priceCodeService.isConfigured()) {
+              <div class="price-code-status">
+                <i class="pi pi-check-circle" style="color: #22c55e;"></i>
+                <span>Price code is <strong>active</strong>. Cost prices are displayed as encoded letters across all inventory views.</span>
+              </div>
+            } @else {
+              <div class="price-code-status inactive">
+                <i class="pi pi-info-circle" style="color: #f59e0b;"></i>
+                <span>No price code configured. Cost prices are shown as plain numbers.</span>
+              </div>
+            }
+          </div>
         </div>
       </p-tabpanel>
     </p-tabpanels>
   </p-tabs>
+  </div>
 
   <!-- User Dialog -->
   <p-dialog [(visible)]="userDialogVisible" [header]="editingUser() ? 'Edit User' : 'Add User'"
-    [modal]="true" [style]="{width: '500px'}">
+    [modal]="true" [style]="{width: '480px'}" styleClass="settings-dialog">
     <form [formGroup]="userForm" (ngSubmit)="saveUser()">
-      <div class="form-grid">
-        <div class="form-field">
-          <label for="username">Username</label>
-          <input pInputText id="username" formControlName="username" class="w-full" />
+      <div class="dialog-form">
+        <div class="form-row">
+          <div class="form-field">
+            <label for="username">Username</label>
+            <input pInputText id="username" formControlName="username" class="w-full" placeholder="Enter username" />
+          </div>
+          <div class="form-field">
+            <label for="email">Email</label>
+            <input pInputText id="email" type="email" formControlName="email" class="w-full" placeholder="user@example.com" />
+          </div>
         </div>
 
-        <div class="form-field">
-          <label for="email">Email</label>
-          <input pInputText id="email" type="email" formControlName="email" class="w-full" />
-        </div>
-
-        <div class="form-field">
-          <label for="firstName">First Name</label>
-          <input pInputText id="firstName" formControlName="firstName" class="w-full" />
-        </div>
-
-        <div class="form-field">
-          <label for="lastName">Last Name</label>
-          <input pInputText id="lastName" formControlName="lastName" class="w-full" />
+        <div class="form-row">
+          <div class="form-field">
+            <label for="firstName">First Name</label>
+            <input pInputText id="firstName" formControlName="firstName" class="w-full" placeholder="First name" />
+          </div>
+          <div class="form-field">
+            <label for="lastName">Last Name</label>
+            <input pInputText id="lastName" formControlName="lastName" class="w-full" placeholder="Last name" />
+          </div>
         </div>
 
         @if (!editingUser()) {
           <div class="form-field">
             <label for="password">Password</label>
             <p-password id="password" formControlName="password" [toggleMask]="true"
-              styleClass="w-full" [inputStyle]="{width: '100%'}"></p-password>
+              styleClass="w-full" [inputStyle]="{width: '100%'}" placeholder="Minimum 8 characters"></p-password>
           </div>
         }
 
         <div class="form-field">
-          <div class="flex align-items-center">
+          <div class="checkbox-row">
             <p-checkbox formControlName="isActive" inputId="isActive" [binary]="true"></p-checkbox>
-            <label for="isActive" class="ml-2">Active</label>
+            <label for="isActive">Active</label>
           </div>
         </div>
       </div>
@@ -213,24 +438,24 @@
 
   <!-- Role Dialog -->
   <p-dialog [(visible)]="roleDialogVisible" [header]="editingRole() ? 'Edit Role' : 'Add Role'"
-    [modal]="true" [style]="{width: '500px'}">
+    [modal]="true" [style]="{width: '450px'}" styleClass="settings-dialog">
     <form [formGroup]="roleForm" (ngSubmit)="saveRole()">
-      <div class="form-grid">
+      <div class="dialog-form">
         <div class="form-field">
           <label for="roleName">Role Name</label>
-          <input pInputText id="roleName" formControlName="name" class="w-full" />
+          <input pInputText id="roleName" formControlName="name" class="w-full" placeholder="e.g. Manager, Cashier" />
         </div>
 
         <div class="form-field">
           <label for="roleDescription">Description</label>
-          <input pInputText id="roleDescription" formControlName="description" class="w-full" />
+          <input pInputText id="roleDescription" formControlName="description" class="w-full" placeholder="Brief description of the role" />
         </div>
 
         @if (editingRole()) {
           <div class="form-field">
-            <div class="flex align-items-center">
+            <div class="checkbox-row">
               <p-checkbox formControlName="isActive" inputId="roleActive" [binary]="true"></p-checkbox>
-              <label for="roleActive" class="ml-2">Active</label>
+              <label for="roleActive">Active</label>
             </div>
           </div>
         }
@@ -246,30 +471,33 @@
 
   <!-- Permission Dialog -->
   <p-dialog [(visible)]="permissionDialogVisible" header="Add Permission"
-    [modal]="true" [style]="{width: '500px'}">
+    [modal]="true" [style]="{width: '480px'}" styleClass="settings-dialog">
     <form [formGroup]="permissionForm" (ngSubmit)="savePermission()">
-      <div class="form-grid">
-        <div class="form-field">
-          <label for="permissionName">Permission Name (code)</label>
-          <input pInputText id="permissionName" formControlName="name" class="w-full"
-            placeholder="e.g., users.create" />
+      <div class="dialog-form">
+        <div class="form-row">
+          <div class="form-field">
+            <label for="permissionName">Permission Name (code)</label>
+            <input pInputText id="permissionName" formControlName="name" class="w-full"
+              placeholder="e.g., users.create" />
+          </div>
+          <div class="form-field">
+            <label for="displayName">Display Name</label>
+            <input pInputText id="displayName" formControlName="displayName" class="w-full"
+              placeholder="e.g., Create Users" />
+          </div>
         </div>
 
-        <div class="form-field">
-          <label for="displayName">Display Name</label>
-          <input pInputText id="displayName" formControlName="displayName" class="w-full"
-            placeholder="e.g., Create Users" />
-        </div>
-
-        <div class="form-field">
-          <label for="category">Category</label>
-          <input pInputText id="category" formControlName="category" class="w-full"
-            placeholder="e.g., User Management" />
-        </div>
-
-        <div class="form-field">
-          <label for="permissionDescription">Description</label>
-          <input pInputText id="permissionDescription" formControlName="description" class="w-full" />
+        <div class="form-row">
+          <div class="form-field">
+            <label for="category">Category</label>
+            <input pInputText id="category" formControlName="category" class="w-full"
+              placeholder="e.g., User Management" />
+          </div>
+          <div class="form-field">
+            <label for="permissionDescription">Description</label>
+            <input pInputText id="permissionDescription" formControlName="description" class="w-full"
+              placeholder="Optional description" />
+          </div>
         </div>
       </div>
 
@@ -283,12 +511,13 @@
 
   <!-- Assign Roles Dialog -->
   <p-dialog [(visible)]="assignRolesDialogVisible" header="Assign Roles"
-    [modal]="true" [style]="{width: '500px'}">
+    [modal]="true" [style]="{width: '480px'}" styleClass="settings-dialog">
     @if (selectedUserForRoles(); as user) {
-      <div class="mb-4">
-        <p class="mb-3" style="font-size: 0.95rem; color: #6b7280;">
-          Assign roles to user: <strong style="color: #374151;">{{ user.username }}</strong>
-        </p>
+      <div class="dialog-form">
+        <div class="assign-info">
+          <i class="pi pi-user"></i>
+          <span>Assign roles to <strong>{{ user.username }}</strong></span>
+        </div>
 
         <div class="form-field">
           <label for="userRoles">Select Roles</label>
@@ -317,38 +546,69 @@
 
   <!-- Assign Permissions Dialog -->
   <p-dialog [(visible)]="assignPermissionsDialogVisible" header="Assign Permissions"
-    [modal]="true" [style]="{width: '600px'}">
+    [modal]="true" [style]="{width: '780px'}" styleClass="settings-dialog permissions-dialog">
     @if (selectedRoleForPermissions(); as role) {
-      <div class="mb-4">
-        <p class="mb-3" style="font-size: 0.95rem; color: #6b7280;">
-          Assign permissions to role: <strong style="color: #374151;">{{ role.name }}</strong>
-        </p>
+      <div class="permissions-dialog-content">
+        <!-- Header info -->
+        <div class="perm-dialog-header">
+          <div class="assign-info">
+            <i class="pi pi-shield"></i>
+            <span>Manage permissions for role <strong>{{ role.name }}</strong></span>
+          </div>
+          <div class="perm-summary">
+            <span class="perm-count">{{ selectedPermissionIds().length }}</span>
+            <span class="perm-count-label">of {{ permissions().length }} selected</span>
+          </div>
+        </div>
 
-        <div class="form-field">
-          <label for="rolePermissions">Select Permissions</label>
-          <p-multiselect
-            id="rolePermissions"
-            [(ngModel)]="selectedPermissionIds"
-            [options]="getPermissionOptions()"
-            optionLabel="label"
-            optionValue="value"
-            placeholder="Select permissions"
-            [showClear]="true"
-            [filter]="true"
-            filterPlaceholder="Search permissions"
-            display="chip"
-            styleClass="w-full"
-          ></p-multiselect>
-          <small style="color: #6b7280; margin-top: 0.5rem; display: block;">
-            Use the search box to quickly find permissions by name or category
-          </small>
+        <!-- Quick actions -->
+        <div class="perm-actions-bar">
+          <button class="perm-quick-btn" (click)="selectAllPermissions()">
+            <i class="pi pi-check-square"></i> Select All
+          </button>
+          <button class="perm-quick-btn" (click)="clearAllPermissions()">
+            <i class="pi pi-stop"></i> Clear All
+          </button>
+        </div>
+
+        <!-- Grouped permissions -->
+        <div class="perm-groups-container">
+          @for (group of getGroupedPermissions(); track group.category) {
+            <div class="perm-group">
+              <div class="perm-group-header" (click)="toggleCategoryPermissions(group.category)">
+                <div class="perm-group-check">
+                  <i class="pi" [ngClass]="{
+                    'pi-check-square': isCategoryAllSelected(group.category),
+                    'pi-minus': isCategoryPartial(group.category),
+                    'pi-stop': !isCategoryAllSelected(group.category) && !isCategoryPartial(group.category)
+                  }"></i>
+                </div>
+                <span class="perm-group-title">{{ group.category }}</span>
+                <span class="perm-group-badge">{{ group.permissions.length }}</span>
+              </div>
+              <div class="perm-group-items">
+                @for (perm of group.permissions; track perm.id) {
+                  <label class="perm-item" [class.perm-item-selected]="isPermissionSelected(perm.id)">
+                    <input type="checkbox" [checked]="isPermissionSelected(perm.id)" (change)="togglePermission(perm.id)" />
+                    <div class="perm-item-info">
+                      <span class="perm-item-name">{{ perm.displayName }}</span>
+                      @if (perm.description) {
+                        <span class="perm-item-desc">{{ perm.description }}</span>
+                      }
+                    </div>
+                    <code class="perm-item-code">{{ perm.name }}</code>
+                  </label>
+                }
+              </div>
+            </div>
+          }
         </div>
       </div>
 
       <div class="dialog-footer">
         <button pButton label="Cancel" icon="pi pi-times" class="p-button-text"
           (click)="assignPermissionsDialogVisible.set(false)"></button>
-        <button pButton label="Assign Permissions" icon="pi pi-check" (click)="saveRolePermissions()"></button>
+        <button pButton label="Save Permissions" icon="pi pi-check" (click)="saveRolePermissions()"></button>
       </div>
     }
   </p-dialog>

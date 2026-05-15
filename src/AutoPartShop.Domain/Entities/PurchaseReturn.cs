@@ -25,10 +25,12 @@ public class PurchaseReturn : AuditableEntity
     public DateTime? SettledDate { get; private set; }
     public string SettlementMethod { get; private set; } = string.Empty;  // CREDIT, CASH, BANK_TRANSFER
     public string SettlementNotes { get; private set; } = string.Empty;
+    public Guid? CreditNoteId { get; private set; }  // Link to created credit note
 
     // Navigation properties
     public PurchaseOrder? PurchaseOrder { get; set; }
     public Supplier? Supplier { get; set; }
+    public CreditNote? CreditNote { get; set; }
     public ICollection<PurchaseReturnLine> LineItems { get; set; } = new List<PurchaseReturnLine>();
 
     private PurchaseReturn() { }
@@ -155,6 +157,17 @@ public class PurchaseReturn : AuditableEntity
         SettledDate = DateTime.UtcNow;
         SettlementMethod = method.Trim().ToUpper();
         SettlementNotes = notes?.Trim() ?? string.Empty;
+    }
+
+    /// <summary>
+    /// Link a credit note to this return
+    /// </summary>
+    public void SetCreditNote(Guid creditNoteId)
+    {
+        if (creditNoteId == Guid.Empty)
+            throw new ArgumentException("Credit note ID cannot be empty", nameof(creditNoteId));
+
+        CreditNoteId = creditNoteId;
     }
 
     /// <summary>

@@ -1,7 +1,8 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { PaymentHistoryItem } from '../../services/supplier-payment.service';
 import { SupplierLedgerEntryDto, SupplierLedgerTransactionType } from '../../services/supplier-ledger.service';
+import { CurrencyService } from '../../../../shared/services/currency.service';
 
 @Component({
   selector: 'app-payment-history-table',
@@ -45,13 +46,13 @@ import { SupplierLedgerEntryDto, SupplierLedgerTransactionType } from '../../ser
                   <div class="text-xs text-gray-500 mt-1">{{ entry.description }}</div>
                 </td>
                 <td class="py-3 px-3 text-sm text-right font-semibold text-red-600">
-                  {{ entry.debitAmount > 0 ? (entry.debitAmount | currency) : '' }}
+                  {{ entry.debitAmount > 0 ? formatCurrency(entry.debitAmount) : '' }}
                 </td>
                 <td class="py-3 px-3 text-sm text-right font-semibold text-green-600">
-                  {{ entry.creditAmount > 0 ? (entry.creditAmount | currency) : '' }}
+                  {{ entry.creditAmount > 0 ? formatCurrency(entry.creditAmount) : '' }}
                 </td>
                 <td class="py-3 px-3 text-sm text-right font-semibold" [ngClass]="entry.runningBalance > 0 ? 'text-red-600' : 'text-green-600'">
-                  {{ entry.runningBalance | currency }}
+                  {{ formatCurrency(entry.runningBalance) }}
                 </td>
                 <td class="py-3 px-3 text-sm">
                   <span [ngClass]="getStatusBadgeClass(entry.status)">
@@ -86,7 +87,7 @@ import { SupplierLedgerEntryDto, SupplierLedgerTransactionType } from '../../ser
               <tr *ngFor="let payment of payments" class="border-b border-gray-200 hover:bg-gray-50">
                 <td class="py-3 px-3 text-sm">{{ formatDate(payment.paymentDate) }}</td>
                 <td class="py-3 px-3 text-sm font-semibold" [class.text-purple-600]="isRefundPayment(payment)">
-                  {{ isRefundPayment(payment) ? '-' : '' }}{{ payment.amount | currency }}
+                  {{ isRefundPayment(payment) ? '-' : '' }}{{ formatCurrency(payment.amount) }}
                 </td>
                 <td class="py-3 px-3 text-sm">
                   <span [ngClass]="getPaymentTypeClass(isRefundPayment(payment) ? 'REFUND' : payment.paymentType)">
@@ -144,6 +145,12 @@ export class PaymentHistoryTableComponent {
   @Input() supplierName: string = '';
   @Input() useLedger: boolean = false;  // Set to true to use ledger view
   @Input() entryLimit: number = 10;
+
+  private readonly currencyService = inject(CurrencyService);
+
+  formatCurrency(value: number): string {
+    return this.currencyService.formatCurrency(value ?? 0, this.currencyService.selectedCurrency());
+  }
 
   formatDate(dateString: string): string {
     const date = new Date(dateString);

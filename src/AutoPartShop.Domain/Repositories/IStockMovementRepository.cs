@@ -8,5 +8,6 @@ public interface IStockMovementRepository : IBaseRepository<StockMovement>
     Task<IEnumerable<StockMovement>> GetByTypeAsync(string movementType, CancellationToken cancellationToken = default);
     Task<IEnumerable<StockMovement>> GetByStatusAsync(string status, CancellationToken cancellationToken = default);
     Task<IEnumerable<StockMovement>> GetPendingApprovalsAsync(CancellationToken cancellationToken = default);
+    Task<IEnumerable<StockMovement>> GetByReferenceNumberAsync(string referenceNumber, CancellationToken cancellationToken = default);
     Task<(IEnumerable<StockMovement> movements, int totalCount)> GetPagedAsync(int pageNumber, int pageSize, CancellationToken cancellationToken = default);
 }

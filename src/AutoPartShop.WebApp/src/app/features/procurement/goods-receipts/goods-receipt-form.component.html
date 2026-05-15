@@ -1,419 +1,869 @@
 <div class="container">
   <p-toast></p-toast>
+  <p-confirmDialog></p-confirmDialog>
 
-  <!-- Header -->
   <div class="form-header">
     <div class="header-content">
       <div class="header-title-section">
         <div class="breadcrumb">
-          <a (click)="goBack()" class="breadcrumb-link">
+          <a (click)="goBack()" class="breadcrumb-link" aria-label="Back to goods receipt list">
             <i class="pi pi-arrow-left"></i>
             Goods Receipts
           </a>
           <span class="breadcrumb-separator">/</span>
-          <span class="breadcrumb-current">{{ mode === 'create' ? 'New' : mode === 'edit' ? 'Edit' : 'View' }}</span>
+          <span class="breadcrumb-current">{{ mode === 'create' ? 'Create' : mode === 'edit' ? 'Edit' : 'View' }}</span>
         </div>
         <h1 class="form-title">{{ getPageTitle() }}</h1>
         <p class="form-subtitle">
-          {{ mode === 'create' ? 'Create a new goods receipt for a purchase order' : 'View or edit goods receipt details' }}
+          {{
+            mode === 'create'
+              ? 'Complete all three steps to create a goods receipt.'
+              : mode === 'edit'
+                ? 'Update pending receipt details before verification.'
+                : 'Track status, review receipt details, and perform workflow actions.'
+          }}
         </p>
       </div>
 
-      <!-- Status Change Actions (View Mode Only) -->
-      <div class="header-actions" *ngIf="mode === 'view' && currentGRN">
-        <div class="status-info">
-          <span class="status-label">Status:</span>
-          <p-tag [value]="currentGRN.status" [severity]="getStatusSeverity(currentGRN.status)"></p-tag>
-        </div>
-        <div class="action-buttons">
-          <!-- Verify button - only for PENDING status -->
-          <button
-            *ngIf="currentGRN.status === 'PENDING'"
-            pButton
-            type="button"
-            label="Verify"
-            icon="pi pi-check"
-            class="p-button-info"
-            (click)="verifyGoodsReceipt()"
-            pTooltip="Verify this goods receipt"
-            tooltipPosition="bottom">
-          </button>
-
-          <!-- Accept button - only for VERIFIED status -->
-          <button
-            *ngIf="currentGRN.status === 'VERIFIED'"
-            pButton
-            type="button"
-            label="Accept"
-            icon="pi pi-check-circle"
-            class="p-button-success"
-            (click)="acceptGoodsReceipt()"
-            pTooltip="Accept this goods receipt"
-            tooltipPosition="bottom">
-          </button>
-
-          <!-- Reject button - only for PENDING or VERIFIED status -->
-          <button
-            *ngIf="currentGRN.status === 'PENDING' || currentGRN.status === 'VERIFIED'"
-            pButton
-            type="button"
-            label="Reject"
-            icon="pi pi-times-circle"
-            class="p-button-danger"
-            (click)="rejectGoodsReceipt()"
-            pTooltip="Reject this goods receipt"
-            tooltipPosition="bottom">
-          </button>
-        </div>
+      <div class="header-status" *ngIf="currentGRN">
+        <span class="status-label">Current Status</span>
+        <p-tag [value]="currentGRN.status" [severity]="getStatusSeverity(currentGRN.status)"></p-tag>
       </div>
     </div>
   </div>
 
-  <!-- Loading State -->
-  <div *ngIf="isSubmitting" class="loading-state">
-    <i class="pi pi-spin pi-spinner" style="font-size: 2rem;"></i>
-    <p>Processing...</p>
+  <div class="workflow-banner" *ngIf="mode === 'view' && currentGRN">
+    <div class="workflow-track">
+      <div
+        class="workflow-step"
+        *ngFor="let step of workflowSteps; let i = index"
+        [class.workflow-step-active]="getWorkflowStatusIndex(currentGRN.status) === i"
+        [class.workflow-step-complete]="getWorkflowStatusIndex(currentGRN.status) > i">
+        <span class="workflow-index">{{ i + 1 }}</span>
+        <span class="workflow-label">{{ formatWorkflowStatus(step) }}</span>
+      </div>
+    </div>
+    <small class="workflow-hint" *ngIf="currentGRN.status === 'REJECTED'">This receipt is rejected and cannot continue in the normal flow.</small>
   </div>
 
-  <!-- Form -->
-  <p-card class="form-card">
-    <form [formGroup]="form" class="form-content">
+  <div *ngIf="isSubmitting" class="loading-state">
+    <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
+    <p>Processing goods receipt...</p>
+  </div>
 
-      <!-- Section 1: Purchase Order Selection -->
-      <div class="form-section">
+  <p-card class="form-card">
+    <form [formGroup]="form" class="form-content" *ngIf="isCreateMode; else nonCreateTemplate">
+      <div class="wizard-stepper" role="tablist" aria-label="Goods receipt creation steps">
+        <button
+          type="button"
+          class="wizard-step"
+          *ngFor="let step of createSteps"
+          [class.active]="createStep === step.index"
+          [class.complete]="createStep > step.index"
+          (click)="goToCreateStep(step.index)">
+          <span class="step-circle">{{ step.index }}</span>
+          <span class="step-text">{{ step.label }}</span>
+        </button>
+      </div>
+
+      <section class="form-section" *ngIf="createStep === 1">
         <h3 class="section-title">
           <i class="pi pi-file section-icon"></i>
-          Purchase Order
+          Step 1: Purchase Order & Warehouse
         </h3>
 
         <div class="form-row">
           <div class="form-group full">
-            <label>Purchase Order *</label>
-            <p-autoComplete
+            <label for="po">Purchase Order *</label>
+            <app-lazy-autocomplete
+              id="po"
               [(ngModel)]="selectedPO"
-              [ngModelOptions]="{standalone: true}"
-              [suggestions]="filteredPOs"
-              (completeMethod)="filterPOs($event)"
-              [dropdown]="true"
-              field="poNumber"
+              [ngModelOptions]="{ standalone: true }"
+              [fetchFn]="fetchPurchaseOrdersLazy"
               optionLabel="poNumber"
               placeholder="Select a purchase order..."
-              [disabled]="mode === 'view'"
-              appendTo="body"
-              [style]="{ width: '100%' }"
-              (onSelect)="onPOSelected($any($event))">
-              <ng-template let-po pTemplate="item">
+              [minLength]="0"
+              [showClear]="true"
+              (onItemSelect)="onPOSelected($event)"
+              (onClearEvent)="onPOCleared()">
+              <ng-template let-po>
                 <div class="autocomplete-item">
                   <span class="item-name">{{ po.poNumber }}</span>
                   <span class="item-code">Supplier: {{ po.supplierName }} | Total: {{ formatCurrency(po.grandTotal) }}</span>
                 </div>
               </ng-template>
-            </p-autoComplete>
-            <small *ngIf="!selectedPO && form.touched" class="p-error">
-              Purchase Order is required
-            </small>
+            </app-lazy-autocomplete>
+            <small class="p-error" *ngIf="!selectedPO && createStep === 1">Purchase Order is required.</small>
           </div>
         </div>
-      </div>
 
-      <!-- Section 2: Warehouse & Receipt Date -->
-      <div class="form-section">
-        <h3 class="section-title">
-          <i class="pi pi-warehouse section-icon"></i>
-          Receipt Information
-        </h3>
+        <div class="po-summary" *ngIf="selectedPO">
+          <div class="summary-chip"><span>Supplier</span><strong>{{ selectedPO.supplierName }}</strong></div>
+          <div class="summary-chip"><span>PO</span><strong>{{ selectedPO.poNumber }}</strong></div>
+          <div class="summary-chip"><span>Total</span><strong>{{ formatCurrency(selectedPO.grandTotal) }}</strong></div>
+          <div class="summary-chip"><span>Status</span><strong>{{ selectedPO.status }}</strong></div>
+        </div>
 
         <div class="form-row">
           <div class="form-group">
-            <label>Warehouse *</label>
-            <p-autoComplete
+            <label for="warehouse">Warehouse *</label>
+            <app-lazy-autocomplete
+              id="warehouse"
               [(ngModel)]="selectedWarehouse"
-              [ngModelOptions]="{standalone: true}"
-              [suggestions]="filteredWarehouses"
-              (completeMethod)="filterWarehouses($event)"
-              [dropdown]="true"
+              [ngModelOptions]="{ standalone: true }"
+              [fetchFn]="fetchWarehousesLazy"
               optionLabel="name"
               placeholder="Select warehouse..."
-              [disabled]="mode === 'view'"
-              appendTo="body"
-              [style]="{ width: '100%' }"
-              (onSelect)="onWarehouseSelected($any($event))">
-              <ng-template let-warehouse pTemplate="item">
+              [minLength]="0"
+              [showClear]="true"
+              (onItemSelect)="onWarehouseSelected($event)"
+              (onClearEvent)="onWarehouseCleared()">
+              <ng-template let-warehouse>
                 <div class="autocomplete-item">
                   <span class="item-name">{{ warehouse.name }}</span>
                   <span class="item-code">{{ warehouse.location }}</span>
                 </div>
               </ng-template>
-            </p-autoComplete>
-            <small *ngIf="!selectedWarehouse && form.touched" class="p-error">
-              Warehouse is required
-            </small>
+            </app-lazy-autocomplete>
+            <small class="p-error" *ngIf="!selectedWarehouse && createStep === 1">Warehouse is required.</small>
           </div>
-          <div class="form-group">
-            <label>Received Date *</label>
-            <input
-              pInputText
-              type="date"
-              formControlName="receivedDate"
-              [disabled]="mode === 'view'"
-              [style]="{ width: '100%' }">
-            <small *ngIf="hasError('receivedDate')" class="p-error">
-              {{ getErrorMessage('receivedDate') }}
-            </small>
-          </div>
-        </div>
-      </div>
 
-      <!-- Section 3: Delivery Information -->
-      <div class="form-section">
-        <h3 class="section-title">
-          <i class="pi pi-truck section-icon"></i>
-          Delivery Information
-        </h3>
-
-        <div class="form-row">
           <div class="form-group">
-            <label>Delivery Date</label>
-            <input
-              pInputText
-              type="date"
-              formControlName="deliveryDate"
-              [disabled]="mode === 'view'"
-              [style]="{ width: '100%' }">
-          </div>
-          <div class="form-group">
-            <label>Delivery Reference</label>
-            <input
-              pInputText
-              type="text"
-              formControlName="deliveryReference"
-              placeholder="Waybill, shipment ID, etc."
-              [disabled]="mode === 'view'"
-              [style]="{ width: '100%' }">
+            <label for="receivedDate">Received Date *</label>
+            <input id="receivedDate" pInputText type="date" formControlName="receivedDate" [style]="{ width: '100%' }" />
+            <small *ngIf="hasError('receivedDate')" class="p-error">{{ getErrorMessage('receivedDate') }}</small>
           </div>
         </div>
 
-        <div class="form-row">
-          <div class="form-group">
-            <label>Carrier Name</label>
-            <input
-              pInputText
-              type="text"
-              formControlName="carrierName"
-              placeholder="Transport/courier company"
-              [disabled]="mode === 'view'"
-              [style]="{ width: '100%' }">
+        <!-- Supplier Invoice section -->
+        <div class="invoice-section">
+          <h4 class="invoice-section-title">
+            <i class="pi pi-receipt"></i> Supplier Invoice
+          </h4>
+
+          <div class="invoice-no-invoice-row">
+            <p-checkbox formControlName="invoiceNotProvided" [binary]="true" inputId="invoiceNotProvided"></p-checkbox>
+            <label for="invoiceNotProvided" class="invoice-no-label">
+              No invoice provided by supplier
+              <small class="invoice-hint">(walk-in purchase, cash receipt, or supplier omitted invoice)</small>
+            </label>
           </div>
-          <div class="form-group">
-            <label>Driver Name</label>
-            <input
-              pInputText
-              type="text"
-              formControlName="driverName"
-              placeholder="Driver or contact person"
-              [disabled]="mode === 'view'"
-              [style]="{ width: '100%' }">
+
+          <div class="form-row" *ngIf="!form.get('invoiceNotProvided')?.value">
+            <div class="form-group">
+              <label>Invoice Number *</label>
+              <input pInputText type="text" formControlName="supplierInvoiceNumber"
+                placeholder="e.g. INV-2026-00123"
+                [style]="{ width: '100%' }" />
+              <small class="field-hint"><i class="pi pi-info-circle"></i> The number printed on the supplier's bill/invoice</small>
+            </div>
+            <div class="form-group">
+              <label>Invoice Date</label>
+              <input type="date" formControlName="supplierInvoiceDate" class="p-inputtext" [style]="{ width: '100%' }" />
+              <small class="field-hint"><i class="pi pi-info-circle"></i> Date printed on the supplier invoice</small>
+            </div>
+          </div>
+
+          <div *ngIf="form.get('invoiceNotProvided')?.value" class="no-invoice-note">
+            <i class="pi pi-info-circle"></i>
+            The GRN number <strong>{{ '(auto-generated)' }}</strong> will be used as the reference for this receipt.
           </div>
         </div>
 
-        <div class="form-row">
-          <div class="form-group full">
-            <label>Delivery Notes</label>
-            <input
-              pInputText
-              type="text"
-              formControlName="deliveryNotes"
-              placeholder="Any delivery-related notes"
-              [disabled]="mode === 'view'"
-              [style]="{ width: '100%' }">
+        <div class="delivery-toggle">
+          <button type="button" pButton class="p-button-text" [label]="showDeliverySection ? 'Hide Delivery Information' : 'Add Delivery Information'" [icon]="showDeliverySection ? 'pi pi-chevron-up' : 'pi pi-chevron-down'" (click)="toggleDeliverySection()"></button>
+        </div>
+
+        <div class="delivery-panel" *ngIf="showDeliverySection">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="deliveryDate">Delivery Date</label>
+              <input id="deliveryDate" pInputText type="date" formControlName="deliveryDate" [style]="{ width: '100%' }" />
+            </div>
+            <div class="form-group">
+              <label for="deliveryRef">Delivery Reference</label>
+              <input id="deliveryRef" pInputText type="text" formControlName="deliveryReference" placeholder="Waybill, shipment ID, etc." [style]="{ width: '100%' }" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="carrier">Carrier Name</label>
+              <input id="carrier" pInputText type="text" formControlName="carrierName" placeholder="Transport/courier company" [style]="{ width: '100%' }" />
+            </div>
+            <div class="form-group">
+              <label for="driver">Driver Name</label>
+              <input id="driver" pInputText type="text" formControlName="driverName" placeholder="Driver or contact person" [style]="{ width: '100%' }" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group full">
+              <label for="deliveryNotes">Delivery Notes</label>
+              <input id="deliveryNotes" pInputText type="text" formControlName="deliveryNotes" placeholder="Any delivery notes" [style]="{ width: '100%' }" />
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- Section 4: Receipt Items -->
-      <div class="form-section" *ngIf="selectedPO">
+        <div class="form-actions">
+          <button pButton type="button" label="Cancel" icon="pi pi-times" class="p-button-outlined" (click)="goBack()"></button>
+          <button pButton type="button" label="Next: Items" icon="pi pi-arrow-right" iconPos="right" (click)="nextCreateStep()"></button>
+        </div>
+      </section>
+
+      <section class="form-section" *ngIf="createStep === 2">
         <div class="section-header-row">
           <h3 class="section-title">
             <i class="pi pi-list section-icon"></i>
-            Receipt Items
+            Step 2: Receipt Items
             <span class="items-count" *ngIf="lineItemsArray.length > 0">({{ lineItemsArray.length }})</span>
           </h3>
-          <span class="section-hint">Update received quantities and conditions</span>
+          <span class="section-hint">Receiving quantities are pre-filled with remaining quantities.</span>
         </div>
 
-        <!-- Line Items Cards -->
         <div *ngIf="lineItemsArray.length > 0" formArrayName="lineItems" class="line-items-container">
-          <div *ngFor="let line of lineItemsArray.controls; let i = index" [formGroupName]="i" class="line-item-card">
+          <div
+            *ngFor="let line of lineItemsArray.controls; let i = index"
+            [formGroupName]="i"
+            class="line-item-card"
+            [class.line-fully-received]="isFullyReceived(line)">
+
             <div class="line-item-header">
-              <span class="line-number">Item #{{ i + 1 }}</span>
+              <div class="line-header-left">
+                <span class="line-number">Item #{{ i + 1 }}</span>
+                <span *ngIf="isFullyReceived(line)" class="fully-received-badge">
+                  <i class="pi pi-check-circle"></i> Fully Received
+                </span>
+              </div>
+              <button
+                type="button"
+                class="details-toggle-btn"
+                [class.details-has-data]="hasDetails(line)"
+                (click)="toggleDetails(i)"
+                [title]="isDetailOpen(i) ? 'Close details' : 'Set sell price, warranty, expiry, notes'">
+                <i class="pi" [class.pi-sliders-h]="!isDetailOpen(i)" [class.pi-chevron-up]="isDetailOpen(i)"></i>
+                <span>{{ isDetailOpen(i) ? 'Close' : 'Details' }}</span>
+                <span *ngIf="hasDetails(line) && !isDetailOpen(i)" class="details-dot"></span>
+              </button>
             </div>
 
             <div class="line-item-content">
-              <div class="form-group part-field">
-                <label>Part Name</label>
-                <span class="part-name-value">{{ getPartName(line.get('partId')?.value) }}</span>
-              </div>
 
-              <div class="form-group unit-field">
-                <label>Unit</label>
-                <span>
-                  {{ line.get('unitName')?.value || getPartUnit(line.get('partId')?.value) }}
-                  <span *ngIf="line.get('unitSymbol')?.value">({{ line.get('unitSymbol')?.value }})</span>
+              <!-- Col 1: Item name + unit sub-text -->
+              <div class="li-col">
+                <label class="li-label">Item</label>
+                <span class="part-name-value">{{ line.get('partName')?.value }}</span>
+                <span class="part-unit-sub" *ngIf="line.get('unitName')?.value">
+                  {{ line.get('unitName')?.value }}<span *ngIf="line.get('unitSymbol')?.value"> ({{ line.get('unitSymbol')?.value }})</span>
+                </span>
+                <span *ngIf="line.get('hasDiscrepancy')?.value" class="discrepancy-badge">
+                  <i class="pi pi-exclamation-triangle"></i> Discrepancy
                 </span>
               </div>
 
-              <div class="form-group ordered-field">
-                <label>Ordered</label>
-                <span class="font-semibold">{{ line.get('orderedQuantity')?.value }}</span>
+              <!-- Col 2: Qty summary (ordered / received / remaining) -->
+              <div class="li-col">
+                <label class="li-label">Quantities</label>
+                <div class="qty-stack">
+                  <div class="qty-row"><span class="qty-lbl">Ordered</span><span class="qty-val">{{ line.get('orderedQuantity')?.value }}</span></div>
+                  <div class="qty-row"><span class="qty-lbl">Received</span><span class="qty-val text-blue">{{ line.get('receivedQuantity')?.value || 0 }}</span></div>
+                  <div class="qty-row"><span class="qty-lbl">Remaining</span><span class="qty-val text-orange font-semibold">{{ line.get('remainingQuantity')?.value || 0 }}</span></div>
+                </div>
               </div>
 
-              <div class="form-group received-field">
-                <label>Already Received</label>
-                <span class="text-blue-600">{{ line.get('receivedQuantity')?.value || 0 }}</span>
+              <!-- Col 3: Receiving Now -->
+              <div class="li-col">
+                <label class="li-label">Receiving Now *</label>
+                <p-inputNumber formControlName="receivingQuantity" [min]="0" [max]="line.get('maxReceivableQuantity')?.value" [showButtons]="true" (onInput)="onReceivingQuantityChanged(i)" [style]="{ width: '100%' }"></p-inputNumber>
+                <small class="p-error" *ngIf="line.get('receivingQuantity')?.hasError('max')">Cannot exceed {{ line.get('maxReceivableQuantity')?.value }}.</small>
               </div>
 
-              <div class="form-group remaining-field">
-                <label>Remaining</label>
-                <span class="font-semibold text-orange-600">{{ line.get('remainingQuantity')?.value || 0 }}</span>
+              <!-- Col 4: Condition -->
+              <div class="li-col">
+                <label class="li-label">Condition *</label>
+                <p-select formControlName="condition" [options]="conditions" optionLabel="label" optionValue="value" placeholder="Condition" appendTo="body" styleClass="w-full" (onChange)="onConditionChanged()"></p-select>
               </div>
 
-              <div class="form-group qty-field">
-                <label>Receiving Now *</label>
-                <p-inputNumber
-                  *ngIf="mode !== 'view'"
-                  formControlName="receivingQuantity"
-                  [min]="1"
-                  [max]="line.get('remainingQuantity')?.value"
-                  placeholder="0"
-                  [style]="{ width: '100%' }">
-                </p-inputNumber>
-                <span *ngIf="mode === 'view'" class="qty-display">{{ line.get('receivingQuantity')?.value }}</span>
-                <small class="p-error" *ngIf="line.get('receivingQuantity')?.hasError('min')">Min 1</small>
-                <small class="p-error" *ngIf="line.get('receivingQuantity')?.hasError('max')">Max {{ line.get('remainingQuantity')?.value }}</small>
+              <!-- Col 5: Supplier Batch No. -->
+              <div class="li-col">
+                <label class="li-label">Supplier Batch No.</label>
+                <input pInputText type="text" formControlName="batchNumber" placeholder="From packaging label / delivery note" [style]="{ width: '100%' }" />
+                <small class="field-hint"><i class="pi pi-info-circle"></i> Supplier's physical batch ID → saved as Manufacturer Lot No. in stock</small>
               </div>
 
-              <div class="form-group condition-field">
-                <label>Condition</label>
-                <select *ngIf="mode !== 'view'" formControlName="condition" class="condition-select">
-                  <option value="">Select</option>
-                  <option *ngFor="let cond of conditions" [value]="cond.value">{{ cond.label }}</option>
-                </select>
-                <span *ngIf="mode === 'view'" class="condition-display">{{ line.get('condition')?.value }}</span>
+              <!-- Col 6: Unit Cost only (Currency moves to Details panel) -->
+              <div class="li-col">
+                <label class="li-label">Unit Cost *</label>
+                <p-inputNumber formControlName="unitCost" [min]="0" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="4" [style]="{ width: '100%' }" (onInput)="onUnitCostChanged(i)"></p-inputNumber>
+                <small class="field-hint"><i class="pi pi-info-circle"></i> Currency &amp; sell price → Details</small>
               </div>
 
-              <div class="form-group cost-field">
-                <label>Unit Cost *</label>
-                <p-inputNumber
-                  *ngIf="mode !== 'view'"
-                  formControlName="unitCost"
-                  [min]="0"
-                  placeholder="0.00"
-                  mode="decimal"
-                  [minFractionDigits]="2"
-                  [maxFractionDigits]="4"
-                  [style]="{ width: '100%' }">
-                </p-inputNumber>
-                <span *ngIf="mode === 'view'" class="cost-display">{{ formatCurrency(line.get('unitCost')?.value) }}</span>
-              </div>
+            </div>
 
-              <div class="form-group currency-field">
-                <label>Currency</label>
-                <select *ngIf="mode !== 'view'" formControlName="currency" class="currency-select">
-                  <option *ngFor="let currency of (activeCurrencies$ | async) ?? []" [value]="currency.code">
-                    {{ currency.code }}
-                  </option>
-                </select>
-                <span *ngIf="mode === 'view'" class="currency-display">{{ line.get('currency')?.value }}</span>
-              </div>
+            <!-- ── Details panel ──────────────────────────────────────────── -->
+            <div class="line-details-panel" *ngIf="isDetailOpen(i)">
+              <div class="details-panel-grid">
 
-              <div class="form-group discrepancy-field">
-                <label>Discrepancy</label>
-                <input
-                  type="checkbox"
-                  formControlName="hasDiscrepancy"
-                  [disabled]="mode === 'view'">
+                <!-- Row 1: Currency | Sell Price -->
+                <div class="details-field">
+                  <div class="dl-label-wrap">
+                    <span class="dl-title"><i class="pi pi-globe"></i> Currency</span>
+                    <span class="dl-hint">for this lot's cost &amp; sell price</span>
+                  </div>
+                  <p-select formControlName="currency" [options]="(activeCurrencies$ | async) ?? []"
+                    optionLabel="code" optionValue="code" appendTo="body" [style]="{ width: '100%' }">
+                  </p-select>
+                </div>
+
+                <div class="details-field">
+                  <div class="dl-label-wrap">
+                    <span class="dl-title"><i class="pi pi-tag"></i> Sell Price <span class="dl-stored-badge">saved</span></span>
+                    <span class="dl-hint">Lot-level MRP override → falls back to Part default if left blank</span>
+                  </div>
+                  <div class="sell-price-row">
+                    <p-inputNumber
+                      formControlName="sellingPrice"
+                      [min]="0" [minFractionDigits]="2" [maxFractionDigits]="2"
+                      mode="decimal" placeholder="0.00"
+                      [style]="{ flex: '1' }"
+                      (onInput)="onSellingPriceChanged(i)">
+                    </p-inputNumber>
+                    <div class="margin-calc-group"
+                      pTooltip="Calculator only — not saved. Change to compute Sell Price from margin %."
+                      tooltipPosition="top">
+                      <p-inputNumber
+                        formControlName="sellingMarginPercent"
+                        [minFractionDigits]="1" [maxFractionDigits]="2"
+                        mode="decimal" placeholder="—"
+                        [style]="{ width: '80px' }"
+                        (onInput)="onMarginPercentChanged(i)">
+                      </p-inputNumber>
+                      <span class="margin-pct-label">%</span>
+                    </div>
+                    <button pButton type="button" icon="pi pi-refresh"
+                      class="p-button-outlined p-button-sm p-button-secondary recalc-btn"
+                      pTooltip="Apply margin % to cost → update sell price"
+                      (click)="recalculateSellingPrice(i)">
+                    </button>
+                  </div>
+                  <small class="dl-hint margin-calc-note">
+                    <i class="pi pi-calculator"></i>
+                    Margin % is a calculator — only Sell Price is saved to this lot
+                  </small>
+                </div>
+
+                <!-- Row 2: Expiry Date | Warranty (months) -->
+                <div class="details-field">
+                  <div class="dl-label-wrap">
+                    <span class="dl-title"><i class="pi pi-calendar"></i> Expiry Date</span>
+                    <span class="dl-hint">grocery, pharmacy, dated items</span>
+                  </div>
+                  <input type="date" formControlName="expiryDate" class="p-inputtext w-full" />
+                </div>
+
+                <div class="details-field">
+                  <div class="dl-label-wrap">
+                    <span class="dl-title"><i class="pi pi-shield"></i> Warranty (months)</span>
+                    <span class="dl-hint">0 = no warranty for this lot</span>
+                  </div>
+                  <p-inputNumber formControlName="warrantyPeriodMonths" [min]="0"
+                    [step]="1" mode="decimal" placeholder="e.g. 12" [style]="{ width: '100%' }">
+                  </p-inputNumber>
+                </div>
+
+                <!-- Row 3: Warranty Type | (spacer) -->
+                <div class="details-field">
+                  <div class="dl-label-wrap">
+                    <span class="dl-title"><i class="pi pi-info-circle"></i> Warranty Type</span>
+                    <span class="dl-hint">&nbsp;</span>
+                  </div>
+                  <p-select formControlName="warrantyType" [options]="warrantyTypeOptions"
+                    optionLabel="label" optionValue="value" placeholder="Select..."
+                    [showClear]="true" appendTo="body" [style]="{ width: '100%' }">
+                  </p-select>
+                </div>
+
+                <div class="details-field" *ngIf="line.get('warrantyPeriodMonths')?.value > 0">
+                  <div class="dl-label-wrap">
+                    <span class="dl-title"><i class="pi pi-file-edit"></i> Warranty Terms</span>
+                    <span class="dl-hint">&nbsp;</span>
+                  </div>
+                  <textarea pTextarea formControlName="warrantyTerms" rows="2"
+                    placeholder="Terms & conditions..." class="w-full"></textarea>
+                </div>
+
+                <!-- Notes: full width -->
+                <div class="details-field details-field-full">
+                  <div class="dl-label-wrap">
+                    <span class="dl-title"><i class="pi pi-pencil"></i> Notes</span>
+                    <span class="dl-hint">condition notes, damage, special handling</span>
+                  </div>
+                  <textarea pTextarea formControlName="notes" rows="2"
+                    placeholder="Enter any notes about this lot..." class="w-full"></textarea>
+                </div>
+
+              </div>
+            </div>
+            <!-- ── end details panel ──────────────────────────────────────── -->
+
+          </div>
+        </div>
+
+        <div class="empty-lines" *ngIf="lineItemsArray.length === 0">
+          <i class="pi pi-inbox"></i>
+          <p>No items available</p>
+          <small>Select a purchase order first.</small>
+        </div>
+
+        <div class="warning-list" *ngIf="lineItemWarnings.length > 0">
+          <div class="warning-item" *ngFor="let warning of lineItemWarnings">
+            <i class="pi pi-exclamation-triangle"></i>
+            <span>{{ warning }}</span>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button pButton type="button" label="Back" icon="pi pi-arrow-left" class="p-button-outlined" (click)="previousCreateStep()"></button>
+          <button pButton type="button" label="Next: Review" icon="pi pi-arrow-right" iconPos="right" (click)="nextCreateStep()" [disabled]="lineItemsArray.length === 0"></button>
+        </div>
+      </section>
+
+      <section class="form-section" *ngIf="createStep === 3">
+        <h3 class="section-title">
+          <i class="pi pi-check-square section-icon"></i>
+          Step 3: Review & Create
+        </h3>
+
+        <div class="combined-summary-card">
+          <div class="summary-grid">
+            <div class="summary-row"><span>Purchase Order</span><strong>{{ selectedPO?.poNumber }}</strong></div>
+            <div class="summary-row"><span>Warehouse</span><strong>{{ selectedWarehouse?.name }}</strong></div>
+            <div class="summary-row"><span>Total Ordered</span><strong>{{ getTotalOrderedQuantity() }}</strong></div>
+            <div class="summary-row"><span>Already Received</span><strong>{{ getTotalReceivedQuantity() }}</strong></div>
+            <div class="summary-row"><span>Receiving Now</span><strong>{{ getTotalReceivingQuantity() }}</strong></div>
+            <div class="summary-row"><span>Items Being Received</span><strong>{{ totalLinesWithReceivingQty }}</strong></div>
+            <div class="summary-row"><span>Discrepancies</span><strong [class.text-danger]="getDiscrepancyCount() > 0">{{ getDiscrepancyCount() }}</strong></div>
+            <div class="summary-row"><span>Total Cost</span><strong [class.coded-price]="priceCodeService.getDisplayPrice(getTotalCostAllItems()) !== null">{{ formatCostPrice(getTotalCostAllItems()) }}</strong></div>
+            <div class="summary-row"><span>Average Unit Cost</span><strong [class.coded-price]="priceCodeService.getDisplayPrice(getAverageUnitCost()) !== null">{{ formatCostPrice(getAverageUnitCost()) }}</strong></div>
+          </div>
+        </div>
+
+        <div class="review-table-wrapper" *ngIf="lineItemsArray.length > 0">
+          <table class="review-table">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Qty</th>
+                <th>Condition</th>
+                <th>Supplier Batch No.</th>
+                <th>Expiry</th>
+                <th>Unit Cost</th>
+                <th>Discrepancy</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let line of lineItemsArray.controls">
+                <td>{{ line.get('partName')?.value }}</td>
+                <td>{{ line.get('receivingQuantity')?.value }}</td>
+                <td>{{ line.get('condition')?.value }}</td>
+                <td>
+                  <span *ngIf="line.get('batchNumber')?.value" class="batch-chip">{{ line.get('batchNumber')?.value }}</span>
+                  <span *ngIf="!line.get('batchNumber')?.value" class="text-secondary">—</span>
+                </td>
+                <td>
+                  <span *ngIf="line.get('expiryDate')?.value">{{ line.get('expiryDate')?.value }}</span>
+                  <span *ngIf="!line.get('expiryDate')?.value" class="text-secondary">—</span>
+                </td>
+                <td>{{ line.get('unitCost')?.value | number: '1.2-2' }}</td>
+                <td>
+                  <span [class.text-danger]="line.get('hasDiscrepancy')?.value">
+                    {{ line.get('hasDiscrepancy')?.value ? '⚠ Yes' : 'No' }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="warning-list" *ngIf="lineItemWarnings.length > 0">
+          <div class="warning-item" *ngFor="let warning of lineItemWarnings">
+            <i class="pi pi-exclamation-triangle"></i>
+            <span>{{ warning }}</span>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button pButton type="button" label="Back" icon="pi pi-arrow-left" class="p-button-outlined" (click)="previousCreateStep()"></button>
+          <button pButton type="button" label="Create Goods Receipt" icon="pi pi-check" class="p-button-success" (click)="onSubmit()" [loading]="isSubmitting" [disabled]="isSubmitting"></button>
+        </div>
+      </section>
+    </form>
+
+    <ng-template #nonCreateTemplate>
+      <form [formGroup]="form" class="form-content">
+        <div class="form-section">
+          <h3 class="section-title">
+            <i class="pi pi-file section-icon"></i>
+            Purchase Order
+          </h3>
+
+          <div class="form-row">
+            <div class="form-group full">
+              <label>Purchase Order *</label>
+              <app-lazy-autocomplete
+                [(ngModel)]="selectedPO"
+                [ngModelOptions]="{ standalone: true }"
+                [fetchFn]="fetchPurchaseOrdersLazy"
+                optionLabel="poNumber"
+                placeholder="Select a purchase order..."
+                [disabled]="mode === 'view'"
+                [minLength]="0"
+                [showClear]="true"
+                (onItemSelect)="onPOSelected($event)"
+                (onClearEvent)="onPOCleared()">
+                <ng-template let-po>
+                  <div class="autocomplete-item">
+                    <span class="item-name">{{ po.poNumber }}</span>
+                    <span class="item-code">Supplier: {{ po.supplierName }} | Total: {{ formatCurrency(po.grandTotal) }}</span>
+                  </div>
+                </ng-template>
+              </app-lazy-autocomplete>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h3 class="section-title">
+            <i class="pi pi-warehouse section-icon"></i>
+            Receipt Information
+          </h3>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Warehouse *</label>
+              <app-lazy-autocomplete
+                [(ngModel)]="selectedWarehouse"
+                [ngModelOptions]="{ standalone: true }"
+                [fetchFn]="fetchWarehousesLazy"
+                optionLabel="name"
+                placeholder="Select warehouse..."
+                [disabled]="mode === 'view'"
+                [minLength]="0"
+                [showClear]="true"
+                (onItemSelect)="onWarehouseSelected($event)"
+                (onClearEvent)="onWarehouseCleared()">
+                <ng-template let-warehouse>
+                  <div class="autocomplete-item">
+                    <span class="item-name">{{ warehouse.name }}</span>
+                    <span class="item-code">{{ warehouse.location }}</span>
+                  </div>
+                </ng-template>
+              </app-lazy-autocomplete>
+            </div>
+
+            <div class="form-group">
+              <label>Received Date *</label>
+              <input pInputText type="date" formControlName="receivedDate" [disabled]="mode === 'view'" [style]="{ width: '100%' }" />
+            </div>
+          </div>
+
+          <!-- Supplier Invoice (edit/view mode) -->
+          <div class="invoice-section">
+            <h4 class="invoice-section-title"><i class="pi pi-receipt"></i> Supplier Invoice</h4>
+
+            <div class="invoice-no-invoice-row" *ngIf="mode !== 'view'">
+              <p-checkbox formControlName="invoiceNotProvided" [binary]="true" inputId="invoiceNotProvidedEdit"></p-checkbox>
+              <label for="invoiceNotProvidedEdit" class="invoice-no-label">
+                No invoice provided
+                <small class="invoice-hint">(walk-in / cash / no invoice)</small>
+              </label>
+            </div>
+
+            <div class="form-row" *ngIf="!form.get('invoiceNotProvided')?.value || mode === 'view'">
+              <div class="form-group">
+                <label>Invoice Number</label>
+                <input *ngIf="mode !== 'view'" pInputText type="text" formControlName="supplierInvoiceNumber" placeholder="e.g. INV-2026-00123" [style]="{ width: '100%' }" />
+                <span *ngIf="mode === 'view'" class="view-text font-semibold">
+                  {{ form.get('invoiceNotProvided')?.value ? '— Not provided' : (form.get('supplierInvoiceNumber')?.value || '—') }}
+                </span>
+              </div>
+              <div class="form-group">
+                <label>Invoice Date</label>
+                <input *ngIf="mode !== 'view'" type="date" formControlName="supplierInvoiceDate" class="p-inputtext" [style]="{ width: '100%' }" />
+                <span *ngIf="mode === 'view'" class="view-text">{{ form.get('supplierInvoiceDate')?.value || '—' }}</span>
+              </div>
+            </div>
+
+            <div *ngIf="form.get('invoiceNotProvided')?.value && mode !== 'view'" class="no-invoice-note">
+              <i class="pi pi-info-circle"></i> GRN number will be used as reference for this receipt.
+            </div>
+          </div>
+
+          <div class="delivery-toggle" *ngIf="mode !== 'view'">
+            <button type="button" pButton class="p-button-text" [label]="showDeliverySection ? 'Hide Delivery Information' : 'Add Delivery Information'" [icon]="showDeliverySection ? 'pi pi-chevron-up' : 'pi pi-chevron-down'" (click)="toggleDeliverySection()"></button>
+          </div>
+
+          <div class="delivery-panel" *ngIf="showDeliverySection || mode === 'view'">
+            <div class="form-row">
+              <div class="form-group">
+                <label>Delivery Date</label>
+                <input pInputText type="date" formControlName="deliveryDate" [disabled]="mode === 'view'" [style]="{ width: '100%' }" />
+              </div>
+              <div class="form-group">
+                <label>Delivery Reference</label>
+                <input pInputText type="text" formControlName="deliveryReference" [disabled]="mode === 'view'" [style]="{ width: '100%' }" />
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Carrier Name</label>
+                <input pInputText type="text" formControlName="carrierName" [disabled]="mode === 'view'" [style]="{ width: '100%' }" />
+              </div>
+              <div class="form-group">
+                <label>Driver Name</label>
+                <input pInputText type="text" formControlName="driverName" [disabled]="mode === 'view'" [style]="{ width: '100%' }" />
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group full">
+                <label>Delivery Notes</label>
+                <input pInputText type="text" formControlName="deliveryNotes" [disabled]="mode === 'view'" [style]="{ width: '100%' }" />
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Empty State -->
-        <div class="empty-lines" *ngIf="lineItemsArray.length === 0">
-          <i class="pi pi-inbox"></i>
-          <p>No items to receive</p>
-          <small>Select a purchase order to load items</small>
-        </div>
-      </div>
+        <div class="form-section" *ngIf="selectedPO">
+          <div class="section-header-row">
+            <h3 class="section-title">
+              <i class="pi pi-list section-icon"></i>
+              Receipt Items
+              <span class="items-count" *ngIf="lineItemsArray.length > 0">({{ lineItemsArray.length }})</span>
+            </h3>
+          </div>
 
-      <!-- Section 5: Cost Summary -->
-      <div class="form-section" *ngIf="selectedPO && lineItemsArray.length > 0">
-        <h3 class="section-title">
-          <i class="pi pi-calculator section-icon"></i>
-          Cost Summary
-        </h3>
-        <div class="order-summary cost-summary-bg">
-          <div class="summary-row">
-            <span class="summary-label">Total Cost (All Items):</span>
-            <span class="summary-value cost-highlight">{{ formatCurrency(getTotalCostAllItems()) }}</span>
+          <div *ngIf="lineItemsArray.length > 0" formArrayName="lineItems" class="line-items-container">
+            <div *ngFor="let line of lineItemsArray.controls; let i = index" [formGroupName]="i" class="line-item-card">
+              <div class="line-item-header">
+                <span class="line-number">Item #{{ i + 1 }}</span>
+              </div>
+
+              <div class="line-item-content" [class.line-item-view]="mode === 'view'">
+
+                <!-- Col 1: Item + unit sub-text -->
+                <div class="li-col">
+                  <label class="li-label">Item</label>
+                  <span class="part-name-value">{{ line.get('partName')?.value }}</span>
+                  <span class="part-unit-sub" *ngIf="line.get('unitName')?.value">
+                    {{ line.get('unitName')?.value }}<span *ngIf="line.get('unitSymbol')?.value"> ({{ line.get('unitSymbol')?.value }})</span>
+                  </span>
+                  <span *ngIf="line.get('hasDiscrepancy')?.value" class="discrepancy-badge">
+                    <i class="pi pi-exclamation-triangle"></i> Discrepancy
+                  </span>
+                </div>
+
+                <!-- Col 2: Qty summary -->
+                <div class="li-col">
+                  <label class="li-label">Quantities</label>
+                  <div class="qty-stack">
+                    <div class="qty-row"><span class="qty-lbl">Ordered</span><span class="qty-val">{{ line.get('orderedQuantity')?.value }}</span></div>
+                    <div class="qty-row"><span class="qty-lbl">Received</span><span class="qty-val text-blue">{{ line.get('receivedQuantity')?.value || 0 }}</span></div>
+                    <div class="qty-row"><span class="qty-lbl">Remaining</span><span class="qty-val text-orange font-semibold">{{ line.get('remainingQuantity')?.value || 0 }}</span></div>
+                  </div>
+                </div>
+
+                <!-- Col 3: Receiving Now / qty display -->
+                <div class="li-col">
+                  <label class="li-label">Receiving Now</label>
+                  <p-inputNumber *ngIf="mode !== 'view'" formControlName="receivingQuantity" [min]="0" [max]="line.get('maxReceivableQuantity')?.value" [showButtons]="true" (onInput)="onReceivingQuantityChanged(i)" [style]="{ width: '100%' }"></p-inputNumber>
+                  <span *ngIf="mode === 'view'" class="qty-display font-semibold">{{ line.get('receivingQuantity')?.value }}</span>
+                </div>
+
+                <!-- Col 4: Condition -->
+                <div class="li-col">
+                  <label class="li-label">Condition</label>
+                  <p-select *ngIf="mode !== 'view'" formControlName="condition" [options]="conditions" optionLabel="label" optionValue="value" appendTo="body" styleClass="w-full" (onChange)="onConditionChanged()"></p-select>
+                  <span *ngIf="mode === 'view'" class="view-text">{{ line.get('condition')?.value }}</span>
+                </div>
+
+                <!-- Col 5: Supplier Batch No. -->
+                <div class="li-col">
+                  <label class="li-label">Supplier Batch No.</label>
+                  <input *ngIf="mode !== 'view'" pInputText type="text" formControlName="batchNumber" placeholder="From packaging label / delivery note" [style]="{ width: '100%' }" />
+                  <span *ngIf="mode === 'view'" class="view-text font-semibold">{{ line.get('batchNumber')?.value || '—' }}</span>
+                  <small *ngIf="mode !== 'view'" class="field-hint"><i class="pi pi-info-circle"></i> Saved as Manufacturer Lot No. in stock</small>
+                </div>
+
+                <!-- Col 6: Unit Cost only (Currency in Details panel) -->
+                <div class="li-col">
+                  <label class="li-label">Unit Cost</label>
+                  <p-inputNumber *ngIf="mode !== 'view'" formControlName="unitCost" [min]="0" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="4" [style]="{ width: '100%' }"></p-inputNumber>
+                  <span *ngIf="mode === 'view'" class="view-text font-semibold">
+                    {{ line.get('unitCost')?.value | number:'1.2-2' }}
+                    <span class="text-secondary"> {{ line.get('currency')?.value }}</span>
+                  </span>
+                </div>
+
+              </div>
+
+              <!-- Details panel for edit mode (same structure as create) -->
+              <div class="line-details-panel" *ngIf="isDetailOpen(i) && mode !== 'view'">
+                <div class="details-panel-grid">
+
+                  <div class="details-field">
+                    <div class="dl-label-wrap">
+                      <span class="dl-title"><i class="pi pi-globe"></i> Currency</span>
+                      <span class="dl-hint">for this lot's cost &amp; sell price</span>
+                    </div>
+                    <p-select formControlName="currency" [options]="(activeCurrencies$ | async) ?? []"
+                      optionLabel="code" optionValue="code" appendTo="body" [style]="{ width: '100%' }"></p-select>
+                  </div>
+
+                  <div class="details-field">
+                    <div class="dl-label-wrap">
+                      <span class="dl-title"><i class="pi pi-tag"></i> Sell Price</span>
+                      <span class="dl-hint">Cost: {{ line.get('unitCost')?.value | number:'1.2-2' }} · Margin: {{ line.get('partMinMarginPercent')?.value }}%</span>
+                    </div>
+                    <div class="sell-price-row">
+                      <p-inputNumber formControlName="sellingPrice" [min]="0" [minFractionDigits]="2" [maxFractionDigits]="2" mode="decimal" placeholder="0.00" [style]="{ width: '100%' }"></p-inputNumber>
+                      <button pButton type="button" icon="pi pi-refresh" class="p-button-outlined p-button-sm p-button-secondary recalc-btn" pTooltip="Recalculate: Cost × (1 + Margin%)" (click)="recalculateSellingPrice(i)"></button>
+                    </div>
+                  </div>
+
+                  <div class="details-field">
+                    <div class="dl-label-wrap">
+                      <span class="dl-title"><i class="pi pi-calendar"></i> Expiry Date</span>
+                      <span class="dl-hint">grocery, pharmacy, dated items</span>
+                    </div>
+                    <input type="date" formControlName="expiryDate" class="p-inputtext w-full" />
+                  </div>
+
+                  <div class="details-field">
+                    <div class="dl-label-wrap">
+                      <span class="dl-title"><i class="pi pi-shield"></i> Warranty (months)</span>
+                      <span class="dl-hint">0 = no warranty for this lot</span>
+                    </div>
+                    <p-inputNumber formControlName="warrantyPeriodMonths" [min]="0" [step]="1" mode="decimal" placeholder="e.g. 12" [style]="{ width: '100%' }"></p-inputNumber>
+                  </div>
+
+                  <div class="details-field">
+                    <div class="dl-label-wrap">
+                      <span class="dl-title"><i class="pi pi-info-circle"></i> Warranty Type</span>
+                      <span class="dl-hint">&nbsp;</span>
+                    </div>
+                    <p-select formControlName="warrantyType" [options]="warrantyTypeOptions" optionLabel="label" optionValue="value" placeholder="Select..." [showClear]="true" appendTo="body" [style]="{ width: '100%' }"></p-select>
+                  </div>
+
+                  <div class="details-field details-field-full">
+                    <div class="dl-label-wrap">
+                      <span class="dl-title"><i class="pi pi-pencil"></i> Notes</span>
+                      <span class="dl-hint">condition notes, damage, special handling</span>
+                    </div>
+                    <textarea pTextarea formControlName="notes" rows="2" placeholder="Enter any notes about this lot..." class="w-full"></textarea>
+                  </div>
+
+                </div>
+              </div>
+
+              <!-- View-only details summary -->
+              <div class="line-view-details" *ngIf="mode === 'view'">
+                <span *ngIf="line.get('sellingPrice')?.value" class="view-detail-chip">
+                  <i class="pi pi-tag"></i> Sell: {{ line.get('sellingPrice')?.value | number:'1.2-2' }}
+                </span>
+                <span *ngIf="line.get('warrantyPeriodMonths')?.value > 0" class="view-detail-chip warranty-chip">
+                  <i class="pi pi-shield"></i> {{ line.get('warrantyPeriodMonths')?.value }}m {{ line.get('warrantyType')?.value }}
+                </span>
+                <span *ngIf="line.get('expiryDate')?.value" class="view-detail-chip expiry-chip">
+                  <i class="pi pi-calendar"></i> Exp: {{ line.get('expiryDate')?.value }}
+                </span>
+                <span *ngIf="line.get('notes')?.value" class="view-detail-chip notes-chip">
+                  <i class="pi pi-pencil"></i> {{ line.get('notes')?.value }}
+                </span>
+              </div>
+
+            </div>
           </div>
-          <div class="summary-row">
-            <span class="summary-label">Average Unit Cost:</span>
-            <span class="summary-value">{{ formatCurrency(getAverageUnitCost()) }}</span>
+
+          <div class="empty-lines" *ngIf="lineItemsArray.length === 0">
+            <i class="pi pi-inbox"></i>
+            <p>No items to receive</p>
+            <small>Select a purchase order to load items.</small>
+          </div>
+
+          <div class="warning-list" *ngIf="lineItemWarnings.length > 0">
+            <div class="warning-item" *ngFor="let warning of lineItemWarnings">
+              <i class="pi pi-exclamation-triangle"></i>
+              <span>{{ warning }}</span>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- Section 6: Receipt Summary -->
-      <div class="form-section last" *ngIf="selectedPO && lineItemsArray.length > 0">
-        <h3 class="section-title">
-          <i class="pi pi-chart-bar section-icon"></i>
-          Receipt Summary
-        </h3>
-        <div class="order-summary">
-          <div class="summary-row">
-            <span class="summary-label">Total Ordered:</span>
-            <span class="summary-value">{{ getTotalOrderedQuantity() }}</span>
-          </div>
-          <div class="summary-row">
-            <span class="summary-label">Already Received:</span>
-            <span class="summary-value text-blue-600">{{ getTotalReceivedQuantity() }}</span>
-          </div>
-          <div class="summary-row grand-total">
-            <span class="summary-label">Receiving Now (This GRN):</span>
-            <span class="summary-value">{{ getTotalReceivingQuantity() }}</span>
-          </div>
-          <div class="summary-row" *ngIf="getDiscrepancyCount() > 0">
-            <span class="summary-label">Items with Discrepancies:</span>
-            <span class="summary-value text-danger">{{ getDiscrepancyCount() }}</span>
+        <div class="form-section" *ngIf="selectedPO && lineItemsArray.length > 0">
+          <h3 class="section-title">
+            <i class="pi pi-chart-bar section-icon"></i>
+            Receipt & Cost Summary
+          </h3>
+
+          <div class="combined-summary-card">
+            <div class="summary-grid">
+              <div class="summary-row"><span>Total Ordered</span><strong>{{ getTotalOrderedQuantity() }}</strong></div>
+              <div class="summary-row"><span>Already Received</span><strong>{{ getTotalReceivedQuantity() }}</strong></div>
+              <div class="summary-row"><span>Receiving Now</span><strong>{{ getTotalReceivingQuantity() }}</strong></div>
+              <div class="summary-row"><span>Discrepancies</span><strong [class.text-danger]="getDiscrepancyCount() > 0">{{ getDiscrepancyCount() }}</strong></div>
+              <div class="summary-row"><span>Total Cost</span><strong [class.coded-price]="priceCodeService.getDisplayPrice(getTotalCostAllItems()) !== null">{{ formatCostPrice(getTotalCostAllItems()) }}</strong></div>
+              <div class="summary-row"><span>Average Unit Cost</span><strong [class.coded-price]="priceCodeService.getDisplayPrice(getAverageUnitCost()) !== null">{{ formatCostPrice(getAverageUnitCost()) }}</strong></div>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- Form Actions -->
-      <div class="form-actions">
-        <button
-          pButton
-          type="button"
-          [label]="mode === 'view' ? 'Back' : 'Cancel'"
-          icon="pi pi-times"
-          class="p-button-outlined"
-          (click)="goBack()">
-        </button>
-        <button
-          *ngIf="mode !== 'view'"
-          pButton
-          type="button"
-          [label]="mode === 'edit' ? 'Update Goods Receipt' : 'Create Goods Receipt'"
-          icon="pi pi-check"
-          class="p-button-success"
-          (click)="onSubmit()"
-          [loading]="isSubmitting"
-          [disabled]="!form.valid || isSubmitting">
-        </button>
-      </div>
-    </form>
+        <div class="form-actions">
+          <button pButton type="button" [label]="mode === 'view' ? 'Back' : 'Cancel'" icon="pi pi-times" class="p-button-outlined" (click)="goBack()"></button>
+          <button *ngIf="mode !== 'view'" pButton type="button" [label]="mode === 'edit' ? 'Update Goods Receipt' : 'Create Goods Receipt'" icon="pi pi-check" class="p-button-success" (click)="onSubmit()" [loading]="isSubmitting" [disabled]="isSubmitting"></button>
+        </div>
+
+        <div class="workflow-actions" *ngIf="mode === 'view' && currentGRN">
+          <h4 class="workflow-actions-title">Workflow Actions</h4>
+          <div class="workflow-actions-row">
+            <button
+              *ngIf="currentGRN.status === 'PENDING'"
+              pButton
+              type="button"
+              label="Verify Receipt"
+              icon="pi pi-check"
+              class="p-button-info"
+              (click)="verifyGoodsReceipt()"
+              pTooltip="Mark this receipt as verified after quantity and condition checks."
+              tooltipPosition="top">
+            </button>
+
+            <button
+              *ngIf="currentGRN.status === 'VERIFIED'"
+              pButton
+              type="button"
+              label="Accept & Update Stock"
+              icon="pi pi-check-circle"
+              class="p-button-success"
+              (click)="acceptGoodsReceipt()"
+              pTooltip="Accept this receipt and update inventory stock."
+              tooltipPosition="top">
+            </button>
+
+            <button
+              *ngIf="currentGRN.status === 'PENDING' || currentGRN.status === 'VERIFIED'"
+              pButton
+              type="button"
+              label="Reject Receipt"
+              icon="pi pi-times-circle"
+              class="p-button-danger"
+              (click)="rejectGoodsReceipt()"
+              pTooltip="Reject this receipt when issues cannot be resolved."
+              tooltipPosition="top">
+            </button>
+          </div>
+        </div>
+      </form>
+    </ng-template>
   </p-card>
 </div>
-
-<!-- Confirm Dialog -->
-<p-confirmDialog></p-confirmDialog>

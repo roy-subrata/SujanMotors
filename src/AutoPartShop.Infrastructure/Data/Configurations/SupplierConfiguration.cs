@@ -51,6 +51,16 @@ namespace AutoPartsShop.Infrastructure.Data.Configurations
                .HasMaxLength(50)
                .IsRequired(false);
 
+            builder.Property(x => x.PaymentTerms)
+                .HasMaxLength(20)
+                .HasDefaultValue("NET30")
+                .IsRequired(false);
+
+            builder.Property(x => x.CreditLimit)
+                .HasColumnType("decimal(18,2)")
+                .HasDefaultValue(0m)
+                .IsRequired(true);
+
             builder.Property(x => x.CurrentBalance)
                 .HasColumnType("decimal(18,2)")
                 .IsRequired(true);

@@ -9,8 +9,10 @@ import { CardModule } from 'primeng/card';
 import { ToastModule } from 'primeng/toast';
 import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
+import { DatePicker } from 'primeng/datepicker';
 import { MessageService } from 'primeng/api';
 import { forkJoin } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { StockService, StockMovementResponse } from '../services/stock.service';
 import { PartService, PartResponse } from '../services/part.service';
 import { WarehouseService, WarehouseResponse } from '../services/warehouse.service';
@@ -28,7 +30,8 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
     CardModule,
     ToastModule,
     InputTextModule,
-    SelectModule
+    SelectModule,
+    DatePicker
   ],
   providers: [MessageService],
   template: `
@@ -52,11 +55,10 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
         </div>
 
         <div class="filter-group">
-          <label class="filter-label">Type</label>
           <p-select
             [options]="movementTypeOptions"
             [(ngModel)]="filterType"
-            placeholder="All Types"
+            placeholder="Type"
             [showClear]="true"
             (onChange)="onFilterChange()"
             appendTo="body"
@@ -65,11 +67,10 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
         </div>
 
         <div class="filter-group">
-          <label class="filter-label">Status</label>
           <p-select
             [options]="statusOptions"
             [(ngModel)]="filterStatus"
-            placeholder="All Statuses"
+            placeholder="Status"
             [showClear]="true"
             (onChange)="onFilterChange()"
             appendTo="body"
@@ -77,15 +78,30 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
           </p-select>
         </div>
 
-        <div class="filter-group filter-actions">
-          <button class="btn-search" (click)="onSearch()">
-            <i class="pi pi-search"></i>
-            Search
-          </button>
-          <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
-            <i class="pi pi-filter-slash"></i>
-            Clear
-          </button>
+        <div class="filter-group date-range-group">
+          <p-datePicker
+            [(ngModel)]="dateRange"
+            selectionMode="range"
+            [showIcon]="true"
+            [showButtonBar]="true"
+            dateFormat="dd-M-yy"
+            placeholder="Date range"
+            [maxDate]="today"
+            (onSelect)="onDateChange()"
+            (onClearButtonClick)="onClearDateRange()"
+            styleClass="date-picker-range">
+          </p-datePicker>
+        </div>
+
+        <div class="filter-group filter-actions-group">
+          <div class="filter-actions">
+            <button class="btn-search" (click)="onSearch()">
+              <i class="pi pi-search"></i>
+            </button>
+            <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
+              <i class="pi pi-filter-slash"></i>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -102,6 +118,14 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
         <span *ngIf="filterStatus" class="filter-chip">
           Status: {{ filterStatus }}
           <i class="pi pi-times" (click)="filterStatus = ''; onFilterChange()"></i>
+        </span>
+        <span *ngIf="dateRange && dateRange[0]" class="filter-chip">
+          From: {{ dateRange[0] | date:'dd-MMM-yyyy' }}
+          <i class="pi pi-times" (click)="onClearDateRange()"></i>
+        </span>
+        <span *ngIf="dateRange && dateRange[1]" class="filter-chip">
+          To: {{ dateRange[1] | date:'dd-MMM-yyyy' }}
+          <i class="pi pi-times" (click)="onClearDateRange()"></i>
         </span>
       </div>
 
@@ -143,11 +167,17 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
               <span class="text-gray-600">{{ getWarehouseDisplay(movement) }}</span>
             </td>
             <td class="text-right">
-              <span
-                class="font-semibold"
-                [ngClass]="getQuantityClass(movement.type)">
-                {{ getQuantityDisplay(movement.type, movement.quantity) }}
-              </span>
+              <div class="dual-unit-cell">
+                <span
+                  class="display-qty"
+                  [ngClass]="getQuantityClass(movement.type)">
+                  {{ getQuantityDisplay(movement.type, movement.quantity) }}
+                </span>
+                <span class="display-unit" *ngIf="movement.unitSymbol">{{ movement.unitSymbol }}</span>
+                <span class="base-qty" *ngIf="movement.quantityInBaseUnit && movement.unitSymbol">
+                  ({{ formatBaseQuantity(movement) }} {{ movement.baseUnitSymbol || movement.unitSymbol }})
+                </span>
+              </div>
             </td>
             <td>
               <p-tag
@@ -187,30 +217,33 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
   styles: [`
     .filters-row {
       display: flex;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
       gap: 0.75rem;
       align-items: flex-end;
       margin-bottom: 1rem;
+      overflow-x: auto;
+      padding-bottom: 0.5rem;
     }
 
     .filter-group {
       display: flex;
       flex-direction: column;
-      gap: 0.25rem;
-      min-width: 180px;
+      gap: 0;
+      min-width: 140px;
+      flex-shrink: 0;
     }
 
     .filter-group.search-group {
-      min-width: 280px;
+      min-width: 220px;
       flex: 1;
     }
 
-    .filter-label {
-      font-size: 0.75rem;
-      color: #6b7280;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
+    .filter-group.date-range-group {
+      min-width: 180px;
+    }
+
+    .filter-group.filter-actions-group {
+      min-width: auto;
     }
 
     .filter-actions {
@@ -219,6 +252,32 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
       align-items: center;
     }
 
+    :host ::ng-deep .date-picker-range {
+      .p-inputtext {
+        min-height: 34px;
+        border-radius: 8px;
+        border-color: #e5e7eb;
+        font-size: 0.8125rem;
+      }
+
+      .p-inputtext:focus {
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        border-color: #3b82f6;
+      }
+
+      .p-datepicker-trigger {
+        background: #f9fafb;
+        border-color: #e5e7eb;
+      }
+
+      .p-datepicker-trigger:hover {
+        background: #f3f4f6;
+      }
+    }
+
+    :host ::ng-deep .filter-dropdown .p-dropdown {
+      min-height: 34px;
+    }
     .search-input-wrapper {
       position: relative;
       display: flex;
@@ -227,20 +286,69 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
       border: 1px solid #e5e7eb;
       border-radius: 8px;
       padding: 0 0.75rem;
-      min-height: 38px;
+      min-height: 34px;
     }
 
     .search-input-wrapper i {
       color: #9ca3af;
       margin-right: 0.5rem;
+      font-size: 0.875rem;
     }
 
     .search-input {
       border: none;
       outline: none;
-      flex: 1;
+      font-size: 0.8125rem;
+      width: 100%;
+    }
+
+    .search-clear {
+      background: none;
+      border: none;
+      color: #9ca3af;
+      cursor: pointer;
+      padding: 0;
+      margin-left: 0.5rem;
       font-size: 0.875rem;
-      background: transparent;
+    }
+
+    .search-clear:hover {
+      color: #374151;
+    }
+
+    .btn-search,
+    .btn-clear {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      border: 1px solid #e5e7eb;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 0.875rem;
+    }
+
+    .btn-search {
+      background: #3b82f6;
+      border-color: #3b82f6;
+      color: #fff;
+    }
+
+    .btn-search:hover {
+      background: #2563eb;
+      border-color: #2563eb;
+    }
+
+    .btn-clear {
+      background: #fff;
+      color: #6b7280;
+    }
+
+    .btn-clear:hover {
+      background: #f3f4f6;
+      border-color: #d1d5db;
     }
 
     .search-clear {
@@ -248,30 +356,6 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
       background: transparent;
       cursor: pointer;
       color: #9ca3af;
-    }
-
-    .btn-search,
-    .btn-clear {
-      border: 1px solid #e5e7eb;
-      background: #fff;
-      border-radius: 8px;
-      padding: 0.5rem 0.75rem;
-      font-size: 0.8125rem;
-      font-weight: 600;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 0.375rem;
-    }
-
-    .btn-search {
-      background: #3b82f6;
-      border-color: #2563eb;
-      color: #fff;
-    }
-
-    .btn-clear {
-      color: #374151;
     }
 
     .active-filters {
@@ -369,6 +453,37 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
     .text-orange {
       color: #ea580c;
     }
+
+    /* Dual Unit Display Styles */
+    .dual-unit-cell {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      align-items: flex-end;
+    }
+
+    .display-qty {
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .display-unit {
+      font-size: 11px;
+      color: #64748b;
+      font-weight: 500;
+    }
+
+    .base-qty {
+      font-size: 11px;
+      color: #94a3b8;
+      font-weight: 400;
+    }
+
+    @media (max-width: 768px) {
+      .dual-unit-cell {
+        align-items: flex-start;
+      }
+    }
   `]
 })
 export class StockMovementHistoryComponent implements OnInit {
@@ -389,6 +504,8 @@ export class StockMovementHistoryComponent implements OnInit {
   searchTerm = '';
   filterType = '';
   filterStatus = '';
+  dateRange: Date[] = [];
+  today = new Date();
 
   movementTypeOptions = [
     { label: 'All Types', value: '' },
@@ -396,10 +513,7 @@ export class StockMovementHistoryComponent implements OnInit {
     { label: 'Stock Out', value: 'OUT' },
     { label: 'Return', value: 'RETURN' },
     { label: 'Adjustment', value: 'ADJUST' },
-    { label: 'Transfer', value: 'TRANSFER' },
-    { label: 'Damage', value: 'DAMAGE' },
-    { label: 'Shrinkage', value: 'SHRINKAGE' },
-    { label: 'Count Correction', value: 'COUNT_CORRECTION' }
+    { label: 'Transfer', value: 'TRANSFER' }
   ];
 
   statusOptions = [
@@ -410,32 +524,20 @@ export class StockMovementHistoryComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadAllData();
-
-    // Auto-refresh movement history every 30 seconds
-    setInterval(() => {
-      this.refreshMovements();
-    }, 30000);
-  }
-
-  private refreshMovements(): void {
-    // Only refresh if not currently loading
-    if (!this.loading) {
-      this.loadMovements();
-    }
   }
 
   private loadAllData(): void {
     this.loading = true;
-    // Load parts and warehouses in parallel, then load movements
     forkJoin({
-      parts: this.partService.getAllParts(),
-      warehouses: this.warehouseService.getAllWarehouses()
+      parts: this.partService.getParts({ search: '', pageNumber: 1, pageSize: 500, isActive: true })
+        .pipe(map(res => res.data ?? [])),
+      warehouses: this.warehouseService
+        .getWarehouses({ search: '', pageNumber: 1, pageSize: 1000, sorts: [{ field: 'name', direction: 'asc' }] })
+        .pipe(map(res => res.data ?? []))
     }).subscribe({
       next: (result) => {
-        this.parts = Array.isArray(result.parts) ? result.parts : [];
-        this.warehouses = Array.isArray(result.warehouses) ? result.warehouses : [];
-        console.log('Loaded parts:', this.parts.length, 'warehouses:', this.warehouses.length);
-        // Now load movements after parts and warehouses are ready
+        this.parts = result.parts;
+        this.warehouses = result.warehouses;
         this.loadMovements();
       },
       error: (error) => {
@@ -452,12 +554,17 @@ export class StockMovementHistoryComponent implements OnInit {
 
   loadMovements(): void {
     this.loading = true;
+    const fromDate = this.dateRange && this.dateRange.length > 0 ? this.dateRange[0] : null;
+    const toDate = this.dateRange && this.dateRange.length > 1 ? this.dateRange[1] : null;
+    
     this.stockService.getStockMovements({
       search: this.searchTerm,
       pageNumber: this.pageNumber,
       pageSize: this.pageSize,
       type: this.filterType || undefined,
-      status: this.filterStatus || undefined
+      status: this.filterStatus || undefined,
+      fromDate: fromDate ? fromDate.toISOString() : undefined,
+      toDate: toDate ? toDate.toISOString() : undefined
     }).subscribe({
       next: (response) => {
         this.movements = response.data;
@@ -483,7 +590,7 @@ export class StockMovementHistoryComponent implements OnInit {
   }
 
   hasActiveFilters(): boolean {
-    return !!(this.searchTerm || this.filterType || this.filterStatus);
+    return !!(this.searchTerm || this.filterType || this.filterStatus || (this.dateRange && this.dateRange.length > 0));
   }
 
   onSearch(): void {
@@ -496,10 +603,22 @@ export class StockMovementHistoryComponent implements OnInit {
     this.loadMovements();
   }
 
+  onDateChange(): void {
+    this.resetPagination();
+    this.loadMovements();
+  }
+
+  onClearDateRange(): void {
+    this.dateRange = [];
+    this.resetPagination();
+    this.loadMovements();
+  }
+
   clearFilters(): void {
     this.searchTerm = '';
     this.filterType = '';
     this.filterStatus = '';
+    this.dateRange = [];
     this.resetPagination();
     this.loadMovements();
   }
@@ -617,6 +736,16 @@ export class StockMovementHistoryComponent implements OnInit {
     } else {
       return `-${quantity}`;
     }
+  }
+
+  formatBaseQuantity(movement: StockMovementResponse): string {
+    const qty = movement.quantityInBaseUnit || 0;
+    if (movement.type === 'IN' || movement.type === 'COUNT_CORRECTION') {
+      return `+${qty}`;
+    } else if (movement.type === 'OUT' || movement.type === 'DAMAGE' || movement.type === 'SHRINKAGE') {
+      return `-${qty}`;
+    }
+    return `${qty}`;
   }
 
   getQuantityClass(type: string): string {

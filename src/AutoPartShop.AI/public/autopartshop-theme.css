@@ -1,0 +1,340 @@
+/* AutoPartShop AI Theme */
+:root {
+  /* Auto Parts Shop Brand Colors */
+  --aps-primary: #d32f2f;        /* Bold Red - Primary CTA */
+  --aps-secondary: #ff6f00;      /* Orange - Highlights */
+  --aps-dark: #1a1a1a;           /* Dark background */
+  --aps-light: #f5f5f5;          /* Light text background */
+  --aps-accent: #ffb300;         /* Gold accent */
+  --aps-success: #2e7d32;        /* Green for success */
+  --aps-warning: #f57c00;        /* Orange for warning */
+  --aps-error: #c62828;          /* Dark red for errors */
+}
+
+/* Main Theme */
+body {
+  --bg-light: var(--aps-dark);
+  --bg-darker: #0d0d0d;
+  --text-primary: #ffffff;
+  --text-secondary: #b0b0b0;
+  --accent: var(--aps-primary);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Header Styling */
+.cl-appbar {
+  background: linear-gradient(90deg, var(--aps-dark) 0%, #2a2a2a 100%);
+  border-bottom: 3px solid var(--aps-primary);
+  box-shadow: 0 4px 12px rgba(211, 47, 47, 0.3);
+}
+
+/* Assistant Name Header */
+.cl-appbar h1,
+.cl-header-title {
+  color: var(--aps-accent);
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+/* Chat Container */
+.cl-chat-main {
+  background: var(--aps-dark);
+}
+
+.cl-message {
+  border-radius: 12px;
+  margin: 12px 0;
+}
+
+/* User Message */
+.cl-message.user {
+  background: linear-gradient(135deg, var(--aps-primary) 0%, #e63946 100%);
+  border-left: 4px solid var(--aps-accent);
+}
+
+/* Assistant Message */
+.cl-message.assistant {
+  background: #2a2a2a;
+  border-left: 4px solid var(--aps-secondary);
+}
+
+/* Input Area */
+.cl-input-group {
+  background: #1a1a1a;
+  border: 2px solid var(--aps-primary);
+  border-radius: 12px;
+  margin: 16px;
+  box-shadow: 0 2px 8px rgba(211, 47, 47, 0.2);
+}
+
+.cl-input-group:focus-within {
+  border-color: var(--aps-accent);
+  box-shadow: 0 4px 12px rgba(255, 179, 0, 0.3);
+}
+
+/* Buttons */
+.cl-button,
+button[type="submit"] {
+  background: linear-gradient(90deg, var(--aps-primary) 0%, var(--aps-secondary) 100%);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.cl-button:hover,
+button[type="submit"]:hover {
+  background: linear-gradient(90deg, var(--aps-secondary) 0%, var(--aps-primary) 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(211, 47, 47, 0.4);
+}
+
+.cl-button:active {
+  transform: translateY(0);
+}
+
+/* Secondary Buttons */
+.cl-button-secondary {
+  background: var(--aps-dark);
+  border: 2px solid var(--aps-primary);
+  color: var(--aps-accent);
+}
+
+.cl-button-secondary:hover {
+  background: var(--aps-primary);
+  color: white;
+}
+
+/* Sidebar */
+.cl-sidebar {
+  background: #1a1a1a;
+  border-right: 2px solid var(--aps-primary);
+}
+
+.cl-sidebar-header {
+  background: linear-gradient(135deg, var(--aps-primary) 0%, var(--aps-secondary) 100%);
+  color: white;
+  padding: 16px;
+  border-bottom: 3px solid var(--aps-accent);
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+/* Links and Interactions */
+a {
+  color: var(--aps-accent);
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  color: var(--aps-secondary);
+  text-decoration: underline;
+}
+
+/* Form Inputs */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+textarea,
+select {
+  background: #2a2a2a;
+  border: 1px solid var(--aps-primary);
+  border-radius: 6px;
+  color: var(--aps-light);
+  padding: 10px 12px;
+  transition: all 0.3s ease;
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--aps-accent);
+  outline: none;
+  box-shadow: 0 0 8px rgba(255, 179, 0, 0.3);
+  background: #333;
+}
+
+/* Tags and Badges */
+.cl-tag,
+.badge {
+  background: var(--aps-primary);
+  color: white;
+  border-radius: 16px;
+  padding: 4px 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.cl-tag.secondary {
+  background: var(--aps-secondary);
+}
+
+/* Tool Call Display */
+.cl-tool-call,
+.tool-message {
+  background: #2a2a2a;
+  border-left: 4px solid var(--aps-secondary);
+  border-radius: 8px;
+  padding: 12px;
+  margin: 8px 0;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+}
+
+/* Loading Animation */
+.cl-loading {
+  color: var(--aps-accent);
+}
+
+.cl-spinner {
+  border-color: rgba(211, 47, 47, 0.3);
+  border-top-color: var(--aps-primary);
+}
+
+/* Success State */
+.cl-success {
+  color: var(--aps-success);
+  background: rgba(46, 125, 50, 0.1);
+  border-left: 4px solid var(--aps-success);
+}
+
+/* Error State */
+.cl-error {
+  color: var(--aps-error);
+  background: rgba(198, 40, 40, 0.1);
+  border-left: 4px solid var(--aps-error);
+}
+
+/* Warning State */
+.cl-warning {
+  color: var(--aps-warning);
+  background: rgba(245, 124, 0, 0.1);
+  border-left: 4px solid var(--aps-warning);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--aps-dark);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--aps-primary);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--aps-secondary);
+}
+
+/* Modal/Dialog */
+.cl-modal {
+  background: var(--aps-dark);
+  border: 2px solid var(--aps-primary);
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+}
+
+.cl-modal-header {
+  background: linear-gradient(90deg, var(--aps-primary) 0%, var(--aps-secondary) 100%);
+  color: white;
+  border-bottom: none;
+  border-radius: 10px 10px 0 0;
+}
+
+.cl-modal-close {
+  color: var(--aps-accent);
+}
+
+.cl-modal-close:hover {
+  color: white;
+}
+
+/* Authentication Page */
+.auth-page {
+  background: linear-gradient(135deg, var(--aps-dark) 0%, #2a2a2a 100%);
+}
+
+.auth-container {
+  background: #1a1a1a;
+  border: 2px solid var(--aps-primary);
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(211, 47, 47, 0.3);
+}
+
+.auth-title {
+  color: var(--aps-accent);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+/* Code Blocks */
+code,
+.code-block {
+  background: #1a1a1a;
+  border-left: 3px solid var(--aps-secondary);
+  border-radius: 4px;
+  padding: 8px 12px;
+  color: var(--aps-accent);
+  font-family: 'Courier New', monospace;
+}
+
+pre {
+  background: #0d0d0d;
+  border: 1px solid var(--aps-primary);
+  border-radius: 8px;
+  padding: 12px;
+  overflow-x: auto;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .cl-appbar {
+    padding: 12px;
+  }
+
+  .cl-input-group {
+    margin: 12px 8px;
+  }
+
+  .cl-button {
+    padding: 10px 16px;
+    font-size: 0.9rem;
+  }
+}
+
+/* Animation - Pulse for important elements */
+@keyframes pulse-red {
+  0% {
+    box-shadow: 0 0 0 0 rgba(211, 47, 47, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(211, 47, 47, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(211, 47, 47, 0);
+  }
+}
+
+.cl-button-primary {
+  animation: pulse-red 2s infinite;
+}
+
+/* Gradient Text */
+.gradient-text {
+  background: linear-gradient(90deg, var(--aps-primary) 0%, var(--aps-secondary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}

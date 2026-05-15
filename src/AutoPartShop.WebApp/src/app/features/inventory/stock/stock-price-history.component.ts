@@ -3,14 +3,17 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
-import { SelectModule } from 'primeng/select';
 import { TableLazyLoadEvent, TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
+import { TooltipModule } from 'primeng/tooltip';
 import { MessageService } from 'primeng/api';
 import { StockLotService, StockLotPriceHistoryResponse, StockLotHistoryItem } from '../services/stock-lot.service';
 import { PartService, PartResponse } from '../services/part.service';
 import { CurrencyService } from '../../../shared/services/currency.service';
+import { PriceCodeService } from '../../../shared/services/price-code.service';
+import { LazyAutocompleteComponent, LazyRequest, LazyResponse } from '../../../shared/components/lazy-autocomplete';
+import { map } from 'rxjs';
 
 @Component({
   selector: 'app-stock-price-history',
@@ -20,10 +23,11 @@ import { CurrencyService } from '../../../shared/services/currency.service';
     FormsModule,
     ButtonModule,
     CardModule,
-    SelectModule,
     TableModule,
     TagModule,
-    ToastModule
+    ToastModule,
+    TooltipModule,
+    LazyAutocompleteComponent
   ],
   providers: [MessageService],
   templateUrl: './stock-price-history.component.html',
@@ -34,10 +38,10 @@ export class StockPriceHistoryComponent implements OnInit {
   private readonly partService = inject(PartService);
   private readonly messageService = inject(MessageService);
   private readonly currencyService = inject(CurrencyService);
+  readonly priceCodeService = inject(PriceCodeService);
 
-  parts: PartResponse[] = [];
   priceHistory: StockLotPriceHistoryResponse | null = null;
-  selectedPartId: string | null = null;
+  selectedPart: PartResponse | null = null;
 
   loading = false;
   Math = Math;
@@ -51,45 +55,41 @@ export class StockPriceHistoryComponent implements OnInit {
     return this.currencyService.selectedCurrency();
   }
 
+  // Lazy autocomplete fetch function for parts
+  fetchPartsLazy = (req: LazyRequest) =>
+    this.partService.getParts({
+      search: req.search || '',
+      pageNumber: req.pageNumber,
+      pageSize: req.pageSize,
+      isActive: true
+    }).pipe(
+      map((res) => ({
+        items: res.data ?? [],
+        totalCount: res.pagination?.totalCount ?? 0
+      }) as LazyResponse<PartResponse>)
+    );
+
   ngOnInit(): void {
-    this.loadParts();
-
-    // Auto-refresh price history every 30 seconds when a part is selected
-    setInterval(() => {
-      this.refreshPriceHistory();
-    }, 30000);
+    // Intentionally no timer-based polling. Data loads on user action.
   }
 
-  private refreshPriceHistory(): void {
-    // Only refresh if a part is selected and not currently loading
-    if (this.selectedPartId && !this.loading) {
-      this.loadPriceHistory();
+  onPartSelected(part: PartResponse | null): void {
+    if (part) {
+      this.selectedPart = part;
+    } else {
+      this.selectedPart = null;
     }
-  }
-
-  private loadParts(): void {
-    this.partService.getAllParts().subscribe({
-      next: (parts) => {
-        this.parts = Array.isArray(parts) ? parts : [];
-      },
-      error: (_error) => {
-        console.error('Error loading parts:', _error);
-      }
-    });
-  }
-
-  onPartSelected(): void {
     this.priceHistory = null;
     this.resetPagination();
   }
 
   loadPriceHistory(): void {
-    if (!this.selectedPartId) {
+    if (!this.selectedPart) {
       return;
     }
 
     this.loading = true;
-    this.stockLotService.getPriceHistory(this.selectedPartId, this.pageNumber, this.pageSize).subscribe({
+    this.stockLotService.getPriceHistory(this.selectedPart.id, this.pageNumber, this.pageSize).subscribe({
       next: (history) => {
         this.priceHistory = history;
         this.totalRecords = history.pagination?.totalCount ?? 0;

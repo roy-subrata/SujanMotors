@@ -30,75 +30,10 @@
 
   <!-- ==================== CONTENT WRAPPER ==================== -->
   <div class="content-wrapper">
-    <!-- Toolbar -->
-    <div class="content-toolbar">
-      <div class="toolbar-left">
-        <div class="search-box">
-          <i class="pi pi-search search-icon"></i>
-          <input type="text" class="search-input" placeholder="Search parts, SKU, warehouse..." [(ngModel)]="searchTerm"
-            (input)="onSearchInput()">
-          <i *ngIf="searchTerm" class="pi pi-times clear-icon" (click)="onSearchClear()"></i>
-        </div>
-        <p-select [options]="warehouseOptions" [(ngModel)]="selectedWarehouse" placeholder="All Warehouses"
-          [showClear]="true" (onChange)="onWarehouseFilter()" class="warehouse-filter"></p-select>
-      </div>
-      <div class="toolbar-right">
-        <div class="toolbar-stats">
-          <div class="mini-stat">
-            <div class="mini-stat-icon stat-icon-blue">
-              <i class="pi pi-box"></i>
-            </div>
-            <div class="mini-stat-content">
-              <span class="mini-stat-value">{{ allTotalRecords }}</span>
-              <span class="mini-stat-label">Total Items</span>
-            </div>
-          </div>
-
-          <div class="mini-stat mini-stat-warning" *ngIf="lowStockLevels.length > 0">
-            <div class="mini-stat-icon stat-icon-orange">
-              <i class="pi pi-exclamation-triangle"></i>
-            </div>
-            <div class="mini-stat-content">
-              <span class="mini-stat-value">{{ lowTotalRecords }}</span>
-              <span class="mini-stat-label">Low Stock</span>
-            </div>
-          </div>
-
-          <div class="mini-stat">
-            <div class="mini-stat-icon stat-icon-green">
-              <i class="pi pi-check-circle"></i>
-            </div>
-            <div class="mini-stat-content">
-              <span class="mini-stat-value">{{ getTotalOnHand() | number }}</span>
-              <span class="mini-stat-label">On Hand</span>
-            </div>
-          </div>
-
-          <div class="mini-stat">
-            <div class="mini-stat-icon stat-icon-purple">
-              <i class="pi pi-lock"></i>
-            </div>
-            <div class="mini-stat-content">
-              <span class="mini-stat-value">{{ getTotalReserved() | number }}</span>
-              <span class="mini-stat-label">Reserved</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="toolbar-divider"></div>
-
-        <div class="result-count-wrapper">
-          <i class="pi pi-filter"></i>
-          <span class="result-count">{{ activeTab === 1 ? lowTotalRecords : allTotalRecords }}</span>
-          <span class="result-label">items</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Tab Navigation -->
+    <!-- Tab Navigation - MOVED TO TOP LEVEL -->
     <div class="tab-navigation">
       <button class="tab-button" [class.active]="activeTab === 0" (click)="setActiveTab(0)">
-        <i class="pi pi-list"></i>
+        <i class="pi pi-box"></i>
         <span>All Stock</span>
         <span class="tab-badge">{{ allTotalRecords }}</span>
       </button>
@@ -123,16 +58,37 @@
 
     <!-- Tab Content -->
     <div class="tab-content">
-      <!-- Loading Overlay -->
-      <div class="loading-overlay" *ngIf="loading">
-        <div class="loading-spinner">
-          <i class="pi pi-spin pi-spinner"></i>
-          <span>Loading...</span>
-        </div>
-      </div>
-
-      <!-- All Stock Tab -->
+      <!-- ==================== ALL STOCK TAB ==================== -->
       <div class="tab-panel" *ngIf="activeTab === 0">
+        <!-- Tab-specific toolbar -->
+        <div class="tab-toolbar">
+          <div class="toolbar-left">
+            <div class="search-input-wrapper">
+              <i class="pi pi-search"></i>
+              <input type="text" class="search-input" placeholder="Search parts, SKU..." [(ngModel)]="allStockFilters.search"
+                (keyup.enter)="onAllStockSearch()"
+                (input)="onAllStockSearchInput()" />
+              <button *ngIf="allStockFilters.search" class="search-clear" (click)="onAllStockSearchClear()">
+                <i class="pi pi-times"></i>
+              </button>
+            </div>
+            <p-select [options]="warehouseOptions" [(ngModel)]="allStockFilters.warehouseId"
+              placeholder="Warehouse" [showClear]="true"
+              (onChange)="onAllStockFilterChange()" class="filter-select"></p-select>
+            <p-select [options]="stockStatusOptions" [(ngModel)]="allStockFilters.status"
+              placeholder="Status" [showClear]="true"
+              (onChange)="onAllStockFilterChange()" class="filter-select"></p-select>
+          </div>
+          <div class="toolbar-right">
+            <div class="result-count-wrapper">
+              <i class="pi pi-filter"></i>
+              <span class="result-count">{{ allTotalRecords }}</span>
+              <span class="result-label">items</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- All Stock Table -->
         <section class="table-section desktop-only">
         <p-table [value]="allStockLevels" [rows]="allPageSize" [paginator]="true" [lazy]="true"
           [rowsPerPageOptions]="pageSizeOptions" [loading]="loading" [showCurrentPageReport]="true"
@@ -178,17 +134,35 @@
                 </div>
               </td>
               <td class="text-right">
-                <span class="qty-value">{{ stock.quantity | number }}</span>
+                <div class="dual-unit-cell">
+                  <span class="qty-value">{{ stock.quantity | number }}</span>
+                  <span class="display-unit">{{ stock.unitSymbol || '-' }}</span>
+                  <span class="base-qty" *ngIf="stock.baseUnitSymbol">
+                    ({{ stock.quantityInBaseUnit | number }} {{ stock.baseUnitSymbol }})
+                  </span>
+                </div>
               </td>
               <td class="text-right">
-                <span class="qty-reserved" [class.has-reserved]="stock.reservedQuantity > 0">
-                  {{ stock.reservedQuantity | number }}
-                </span>
+                <div class="dual-unit-cell">
+                  <span class="qty-reserved" [class.has-reserved]="stock.reservedQuantity > 0">
+                    {{ stock.reservedQuantity | number }}
+                  </span>
+                  <span class="display-unit">{{ stock.unitSymbol || '-' }}</span>
+                  <span class="base-qty" *ngIf="stock.baseUnitSymbol">
+                    ({{ stock.reservedQuantityInBaseUnit | number }} {{ stock.baseUnitSymbol }})
+                  </span>
+                </div>
               </td>
               <td class="text-right">
-                <span class="qty-available" [class.qty-low]="isLowStock(stock)">
-                  {{ stock.availableQuantity | number }}
-                </span>
+                <div class="dual-unit-cell">
+                  <span class="qty-available" [class.qty-low]="isLowStock(stock)">
+                    {{ stock.availableQuantity | number }}
+                  </span>
+                  <span class="display-unit">{{ stock.unitSymbol || '-' }}</span>
+                  <span class="base-qty" *ngIf="stock.baseUnitSymbol">
+                    ({{ stock.availableQuantityInBaseUnit | number }} {{ stock.baseUnitSymbol }})
+                  </span>
+                </div>
               </td>
               <td>
                 <div class="status-cell">
@@ -299,8 +273,9 @@
         </section>
       </div>
 
-      <!-- Low Stock Tab -->
+      <!-- ==================== LOW STOCK TAB ==================== -->
       <div class="tab-panel" *ngIf="activeTab === 1">
+        <!-- Low Stock Alert Banner -->
         <div class="alert-banner" *ngIf="lowTotalRecords > 0">
           <i class="pi pi-exclamation-triangle"></i>
           <div class="alert-content">
@@ -311,6 +286,32 @@
             class="p-button-warning p-button-sm"></button>
         </div>
 
+        <!-- Tab-specific toolbar -->
+        <div class="tab-toolbar">
+          <div class="toolbar-left">
+            <div class="search-input-wrapper">
+              <i class="pi pi-search"></i>
+              <input type="text" class="search-input" placeholder="Search parts, SKU..." [(ngModel)]="lowStockFilters.search"
+                (keyup.enter)="onLowStockSearch()"
+                (input)="onLowStockSearchInput()" />
+              <button *ngIf="lowStockFilters.search" class="search-clear" (click)="onLowStockSearchClear()">
+                <i class="pi pi-times"></i>
+              </button>
+            </div>
+            <p-select [options]="warehouseOptions" [(ngModel)]="lowStockFilters.warehouseId"
+              placeholder="Warehouse" [showClear]="true"
+              (onChange)="onLowStockFilterChange()" class="filter-select"></p-select>
+          </div>
+          <div class="toolbar-right">
+            <div class="result-count-wrapper">
+              <i class="pi pi-exclamation-triangle"></i>
+              <span class="result-count">{{ lowTotalRecords }}</span>
+              <span class="result-label">low stock items</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Low Stock Table -->
         <section class="table-section desktop-only">
         <p-table [value]="lowStockLevels" [rows]="lowPageSize" [paginator]="true" [lazy]="true"
           [rowsPerPageOptions]="pageSizeOptions" [loading]="loading" [totalRecords]="lowTotalRecords"
@@ -349,7 +350,13 @@
                 </div>
               </td>
               <td class="text-right">
-                <span class="qty-value qty-critical">{{ stock.availableQuantity | number }}</span>
+                <div class="dual-unit-cell">
+                  <span class="qty-value qty-critical">{{ stock.availableQuantity | number }}</span>
+                  <span class="display-unit">{{ stock.unitSymbol || '-' }}</span>
+                  <span class="base-qty" *ngIf="stock.baseUnitSymbol">
+                    ({{ stock.availableQuantityInBaseUnit | number }} {{ stock.baseUnitSymbol }})
+                  </span>
+                </div>
               </td>
               <td class="text-right">
                 <span class="reorder-point">{{ stock.reorderLevel | number }}</span>
@@ -464,17 +471,17 @@
         </section>
       </div>
 
-      <!-- Movement History Tab -->
+      <!-- ==================== MOVEMENT HISTORY TAB ==================== -->
       <div class="tab-panel" *ngIf="activeTab === 2">
         <app-stock-movement-history></app-stock-movement-history>
       </div>
 
-      <!-- By Warehouse Tab -->
+      <!-- ==================== BY WAREHOUSE TAB ==================== -->
       <div class="tab-panel" *ngIf="activeTab === 3">
         <app-stock-lots-by-warehouse></app-stock-lots-by-warehouse>
       </div>
 
-      <!-- Price History Tab -->
+      <!-- ==================== PRICE HISTORY TAB ==================== -->
       <div class="tab-panel" *ngIf="activeTab === 4">
         <app-stock-price-history></app-stock-price-history>
       </div>

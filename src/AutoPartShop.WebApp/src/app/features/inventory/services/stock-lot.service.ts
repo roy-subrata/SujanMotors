@@ -14,8 +14,20 @@ export interface StockLotResponse {
   supplierId: string;
   supplierName: string;
   quantityReceived: number;
+  quantityReceivedInBaseUnit: number;
   quantityAvailable: number;
+  quantityAvailableInBaseUnit: number;
+  unitId: string | null;
+  unitName: string | null;
+  unitCode: string | null;
+  baseUnitName: string | null;
+  baseUnitCode: string | null;
   costPrice: number;
+  sellingPrice: number;
+  hasWarranty: boolean;
+  warrantyPeriodMonths: number | null;
+  warrantyType: string | null;
+  warrantyTerms: string | null;
   currency: string;
   totalCost: number;
   availableCost: number;
@@ -28,6 +40,19 @@ export interface StockLotResponse {
   createdAt: string;
 }
 
+export interface FifoLotInfoResponse {
+  hasAvailableLot: boolean;
+  lotId: string | null;
+  lotNumber: string;
+  sellingPrice: number;
+  hasWarranty: boolean;
+  warrantyPeriodMonths: number | null;
+  warrantyType: string | null;
+  warrantyTerms: string | null;
+  quantityAvailable: number;
+  receivingDate: string;
+}
+
 export interface StockLotHistoryItem {
   lotId: string;
   lotNumber: string;
@@ -36,6 +61,10 @@ export interface StockLotHistoryItem {
   quantityReceived: number;
   quantityAvailable: number;
   costPrice: number;
+  sellingPrice: number;
+  hasWarranty: boolean;
+  warrantyPeriodMonths: number | null;
+  warrantyType: string | null;
   receivingDate: string;
   expiryDate: string | null;
   isExpired: boolean;
@@ -146,5 +175,14 @@ export class StockLotService {
    */
   getByLotNumber(lotNumber: string): Observable<StockLotResponse> {
     return this.http.get<StockLotResponse>(`${this.apiUrl}/by-lot/${lotNumber}`);
+  }
+
+  /**
+   * Get FIFO lot info (oldest available lot) for a part in a warehouse.
+   * Returns lot-level selling price and warranty — used as default when adding
+   * a line item to a sales order or quick sale.
+   */
+  getFifoLotInfo(partId: string, warehouseId: string): Observable<FifoLotInfoResponse> {
+    return this.http.get<FifoLotInfoResponse>(`${this.apiUrl}/fifo-info/${partId}/${warehouseId}`);
   }
 }

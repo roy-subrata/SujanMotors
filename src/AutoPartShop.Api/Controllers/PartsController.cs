@@ -22,6 +22,9 @@ public class PartsController : ControllerBase
     private readonly IUnitRepository _unitRepository;
     private readonly IPartVehicleCompatibilityRepository _compatibilityRepository;
     private readonly IPriceHistoryRepository _priceHistoryRepository;
+    private readonly IProductVariantPriceHistoryRepository _variantPriceHistoryRepository;
+    private readonly IWarrantyRegistrationRepository _warrantyRegistrationRepository;
+    private readonly IStockLotRepository _stockLotRepository;
     private readonly ILogger<PartsController> _logger;
     private readonly ICodeGenerateService _codeGenerateService;
     private readonly ICurrentUserService _currentUserService;
@@ -30,8 +33,12 @@ public class PartsController : ControllerBase
         IPartRepository partRepository,
         IPartReadRepository partReadRepository,
         ICategoryRepository categoryRepository,
-        IUnitRepository unitRepository, IPartVehicleCompatibilityRepository compatibilityRepository,
+        IUnitRepository unitRepository,
+        IPartVehicleCompatibilityRepository compatibilityRepository,
         IPriceHistoryRepository priceHistoryRepository,
+        IProductVariantPriceHistoryRepository variantPriceHistoryRepository,
+        IWarrantyRegistrationRepository warrantyRegistrationRepository,
+        IStockLotRepository stockLotRepository,
         ICodeGenerateService codeGenerateService,
         ICurrentUserService currentUserService,
         ILogger<PartsController> logger)
@@ -42,6 +49,9 @@ public class PartsController : ControllerBase
         _unitRepository = unitRepository;
         _compatibilityRepository = compatibilityRepository;
         _priceHistoryRepository = priceHistoryRepository;
+        _variantPriceHistoryRepository = variantPriceHistoryRepository;
+        _warrantyRegistrationRepository = warrantyRegistrationRepository;
+        _stockLotRepository = stockLotRepository;
         _logger = logger;
         _codeGenerateService = codeGenerateService;
         _currentUserService = currentUserService;
@@ -216,6 +226,108 @@ public class PartsController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Search a part by SKU, barcode, or part number and return its current FIFO lot selling price.
+    /// Falls back to Part.SellingPrice when no active lot has a price set.
+    /// Used by barcode scanning and price-check dialogs in the POS.
+    /// </summary>
+    [HttpGet("search-by-code")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> SearchByCode([FromQuery] string code, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(code))
+            return BadRequest(new { message = "code is required" });
+
+        try
+        {
+            var normalizedCode = code.Trim().ToUpperInvariant();
+            var part = await _partRepository.GetBySKUAsync(normalizedCode, cancellationToken)
+                       ?? (await _partRepository.GetAllActiveAsync(cancellationToken))
+                           .FirstOrDefault(p =>
+                               (p.Barcode != null && p.Barcode.ToUpperInvariant() == normalizedCode) ||
+                               (p.PartNumber != null && p.PartNumber.Value.ToUpperInvariant() == normalizedCode));
+
+            if (part is null)
+                return NotFound(new { message = $"No part found for code '{code}'" });
+
+            var lotPrice = await GetFifoLotSellingPriceAsync(part.Id, cancellationToken);
+            var totalStock = await GetTotalAvailableStockAsync(part.Id, cancellationToken);
+
+            return Ok(new
+            {
+                partId = part.Id,
+                name = part.Name,
+                sku = part.SKU,
+                partNumber = part.PartNumber?.Value ?? string.Empty,
+                sellingPrice = lotPrice > 0 ? lotPrice : part.SellingPrice,
+                fallbackSellingPrice = part.SellingPrice,
+                hasLotPrice = lotPrice > 0,
+                stockLevel = totalStock,
+                unitId = part.UnitId,
+                unitName = part.Unit?.Name
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error searching part by code: {Code}", code);
+            return StatusCode(500, "An error occurred while searching for the part");
+        }
+    }
+
+    /// <summary>
+    /// Get the current FIFO lot selling price for a part (oldest active lot with price set).
+    /// Returns the lot price and the fallback Part.SellingPrice.
+    /// </summary>
+    [HttpGet("public/{id:guid}/lot-price")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetLotPrice(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var part = await _partRepository.GetByIdAsync(id, cancellationToken);
+            if (part is null)
+                return NotFound(new { message = "Part not found" });
+
+            var lotPrice = await GetFifoLotSellingPriceAsync(id, cancellationToken);
+            var totalStock = await GetTotalAvailableStockAsync(id, cancellationToken);
+
+            return Ok(new
+            {
+                partId = id,
+                sellingPrice = lotPrice > 0 ? lotPrice : part.SellingPrice,
+                lotSellingPrice = lotPrice > 0 ? (decimal?)lotPrice : null,
+                fallbackSellingPrice = part.SellingPrice,
+                hasLotPrice = lotPrice > 0,
+                stockAvailable = totalStock
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting lot price for part: {PartId}", id);
+            return StatusCode(500, "An error occurred while retrieving the lot price");
+        }
+    }
+
+    // Returns the selling price from the oldest active FIFO stock lot (0 if none set)
+    private async Task<decimal> GetFifoLotSellingPriceAsync(Guid partId, CancellationToken cancellationToken)
+    {
+        var lots = await _stockLotRepository.GetByPartAsync(partId, cancellationToken);
+        var activeLot = lots
+            .Where(l => l.QuantityAvailable > 0 && !l.IsExpired)
+            .OrderBy(l => l.ReceivingDate)
+            .FirstOrDefault(l => l.SellingPrice > 0);
+        return activeLot?.SellingPrice ?? 0m;
+    }
+
+    // Returns total available quantity across all warehouses for a part
+    private async Task<int> GetTotalAvailableStockAsync(Guid partId, CancellationToken cancellationToken)
+    {
+        var lots = await _stockLotRepository.GetByPartAsync(partId, cancellationToken);
+        return lots.Where(l => !l.IsExpired).Sum(l => l.QuantityAvailable);
+    }
+
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(PartResponse))]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -246,24 +358,51 @@ public class PartsController : ControllerBase
                 request.SKU,
                 request.CategoryId,
                 request.BrandId,
+                request.BaseUnitId,
                 request.UnitId,
                 request.Description,
+                request.RichDescription,
                 request.CostPrice,
                 request.SellingPrice,
                 request.MinimumStock,
-                request.MinMarginPercentOverride,
-                request.MaxDiscountPercentOverride,
                 request.HasWarranty,
                 request.WarrantyPeriodMonths,
                 request.WarrantyType,
                 request.WarrantyTerms,
-                request.WarrantyCertificateTemplate
+                request.WarrantyCertificateTemplate,
+                request.Barcode,
+                request.Tags,
+                request.ProductType,
+                request.IsPerishable,
+                request.WeightKg,
+                request.WidthCm,
+                request.HeightCm,
+                request.DepthCm,
+                request.TaxCode
             );
             var currentUser = _currentUserService.GetCurrentUsername();
             part.CreatedBy = currentUser;
             part.ModifiedBy = currentUser;
             await _codeGenerateService.SaveGenerateCodeAsync("SKU", cancellationToken);
             await _partRepository.AddAsync(part, cancellationToken);
+
+            // Record initial price in ProductVariantPriceHistory when selling price is set
+            if (request.SellingPrice > 0)
+            {
+                try
+                {
+                    var initialPrice = ProductVariantPriceHistory.Create(
+                        part.Id, request.SellingPrice, DateTime.UtcNow, null,
+                        part.SellingPriceCurrency, "INITIAL_PRICE");
+                    initialPrice.CreatedBy = currentUser;
+                    initialPrice.ModifiedBy = currentUser;
+                    await _variantPriceHistoryRepository.AddAsync(initialPrice, cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to create initial price history for part {PartId}", part.Id);
+                }
+            }
 
             var response = MapToResponse(part);
             return CreatedAtAction(nameof(GetById), new { id = part.Id }, response);
@@ -313,41 +452,72 @@ public class PartsController : ControllerBase
             // Store old prices for history tracking
             var oldSellingPrice = part.SellingPrice;
             var oldCostPrice = part.CostPrice;
+            var oldHasWarranty = part.HasWarranty;
+            var oldWarrantyPeriodMonths = part.WarrantyPeriodMonths;
+            var oldWarrantyType = part.WarrantyType;
+            var oldWarrantyTerms = part.WarrantyTerms;
+            var oldWarrantyCertificateTemplate = part.WarrantyCertificateTemplate;
 
-            part.Update(request.Name, request.Description, request.SKU, request.CategoryId, request.BrandId, request.UnitId,
+            part.Update(request.Name, request.Description, request.SKU, request.CategoryId, request.BrandId,
+                request.BaseUnitId, request.UnitId,
                 request.CostPrice, request.SellingPrice, request.MinimumStock, request.IsActive,
-                request.MinMarginPercentOverride, request.MaxDiscountPercentOverride,
                 request.HasWarranty, request.WarrantyPeriodMonths, request.WarrantyType,
-                request.WarrantyTerms, request.WarrantyCertificateTemplate);
+                request.WarrantyTerms, request.WarrantyCertificateTemplate,
+                request.Barcode, request.Tags, request.ProductType,
+                request.IsPerishable, request.WeightKg,
+                request.WidthCm, request.HeightCm, request.DepthCm,
+                request.TaxCode, request.RichDescription);
             part.ModifiedBy = _currentUserService.GetCurrentUsername();
 
             await _partRepository.UpdateAsync(part, cancellationToken);
 
-            // Create price history if selling price changed
+            var warrantySettingsChanged =
+                oldHasWarranty != part.HasWarranty ||
+                oldWarrantyPeriodMonths != part.WarrantyPeriodMonths ||
+                !string.Equals(oldWarrantyType, part.WarrantyType, StringComparison.OrdinalIgnoreCase) ||
+                !string.Equals(oldWarrantyTerms, part.WarrantyTerms, StringComparison.Ordinal) ||
+                !string.Equals(oldWarrantyCertificateTemplate, part.WarrantyCertificateTemplate, StringComparison.Ordinal);
+
+            if (warrantySettingsChanged)
+            {
+                await SyncWarrantyRegistrationsWithPartAsync(part, cancellationToken);
+            }
+
+            // Create price history records if selling price changed
             if (oldSellingPrice != request.SellingPrice)
             {
+                var currentUser = _currentUserService.GetCurrentUsername();
                 try
                 {
-                    var currentUser = _currentUserService.GetCurrentUsername();
+                    // Simple audit log (old → new)
                     var priceHistory = PriceHistory.Create(
-                        partId: part.Id,
-                        oldPrice: oldSellingPrice,
-                        newPrice: request.SellingPrice,
-                        effectiveDate: DateTime.UtcNow,
-                        reason: "PRICE_UPDATE",
-                        changedBy: currentUser
-                    );
+                        partId: part.Id, oldPrice: oldSellingPrice, newPrice: request.SellingPrice,
+                        effectiveDate: DateTime.UtcNow, reason: "PRICE_UPDATE", changedBy: currentUser);
                     priceHistory.CreatedBy = currentUser;
                     priceHistory.ModifiedBy = currentUser;
-
                     await _priceHistoryRepository.AddAsync(priceHistory, cancellationToken);
-                    _logger.LogInformation("Price history recorded for part {PartId}: {OldPrice} -> {NewPrice}",
-                        part.Id, oldSellingPrice, request.SellingPrice);
                 }
                 catch (Exception ex)
                 {
                     _logger.LogWarning(ex, "Failed to create price history for part {PartId}", part.Id);
-                    // Don't fail the update if price history fails
+                }
+
+                // Sync ProductVariantPriceHistory (used by Pricing tab + price resolution)
+                if (request.SellingPrice > 0)
+                {
+                    try
+                    {
+                        var vph = ProductVariantPriceHistory.Create(
+                            part.Id, request.SellingPrice, DateTime.UtcNow, null,
+                            part.SellingPriceCurrency, "PRICE_UPDATE");
+                        vph.CreatedBy = currentUser;
+                        vph.ModifiedBy = currentUser;
+                        await _variantPriceHistoryRepository.SetNewPriceAsync(vph, cancellationToken);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to sync variant price history for part {PartId}", part.Id);
+                    }
                 }
             }
 
@@ -499,6 +669,7 @@ public class PartsController : ControllerBase
             Id = part.Id,
             Name = part.Name,
             Description = part.Description,
+            RichDescription = part.RichDescription,
             PartNumber = part.PartNumber.Value,
             SKU = part.SKU,
             CategoryId = part.CategoryId,
@@ -506,19 +677,29 @@ public class PartsController : ControllerBase
             BrandId = part.BrandId,
             BrandName = part.Brand?.Name,
             BrandCode = part.Brand?.Code,
+            BaseUnitId = part.BaseUnitId,
+            BaseUnitName = part.BaseUnit?.Name,
+            BaseUnitCode = part.BaseUnit?.Code,
             UnitId = part.UnitId,
             UnitName = part.Unit?.Name,
             CostPrice = part.CostPrice,
             SellingPrice = part.SellingPrice,
             MinimumStock = part.MinimumStock,
             IsActive = part.IsActive,
-            MinMarginPercentOverride = part.MinMarginPercentOverride,
-            MaxDiscountPercentOverride = part.MaxDiscountPercentOverride,
             HasWarranty = part.HasWarranty,
             WarrantyPeriodMonths = part.WarrantyPeriodMonths,
             WarrantyType = part.WarrantyType,
             WarrantyTerms = part.WarrantyTerms,
             WarrantyCertificateTemplate = part.WarrantyCertificateTemplate,
+            Barcode = part.Barcode,
+            Tags = part.Tags,
+            ProductType = part.ProductType,
+            IsPerishable = part.IsPerishable,
+            WeightKg = part.WeightKg,
+            WidthCm = part.WidthCm,
+            HeightCm = part.HeightCm,
+            DepthCm = part.DepthCm,
+            TaxCode = part.TaxCode,
             CreatedBy = part.CreatedBy,
             ModifiedBy = part.ModifiedBy
         };
@@ -531,6 +712,7 @@ public class PartsController : ControllerBase
             Id = part.Id,
             Name = part.Name,
             Description = part.Description,
+            RichDescription = part.RichDescription,
             PartNumber = part.PartNumber.Value,
             SKU = part.SKU,
             CategoryId = part.CategoryId,
@@ -538,18 +720,58 @@ public class PartsController : ControllerBase
             BrandId = part.BrandId,
             BrandName = part.Brand?.Name,
             BrandCode = part.Brand?.Code,
+            BaseUnitId = part.BaseUnitId,
+            BaseUnitName = part.BaseUnit?.Name,
+            BaseUnitCode = part.BaseUnit?.Code,
             UnitId = part.UnitId,
             UnitName = part.Unit?.Name,
             SellingPrice = part.SellingPrice,
             MinimumStock = part.MinimumStock,
             IsActive = part.IsActive,
-            MinMarginPercentOverride = part.MinMarginPercentOverride,
-            MaxDiscountPercentOverride = part.MaxDiscountPercentOverride,
             HasWarranty = part.HasWarranty,
             WarrantyPeriodMonths = part.WarrantyPeriodMonths,
             WarrantyType = part.WarrantyType,
             WarrantyTerms = part.WarrantyTerms,
-            WarrantyCertificateTemplate = part.WarrantyCertificateTemplate
+            WarrantyCertificateTemplate = part.WarrantyCertificateTemplate,
+            Barcode = part.Barcode,
+            Tags = part.Tags,
+            ProductType = part.ProductType,
+            IsPerishable = part.IsPerishable,
+            WeightKg = part.WeightKg,
+            WidthCm = part.WidthCm,
+            HeightCm = part.HeightCm,
+            DepthCm = part.DepthCm,
+            TaxCode = part.TaxCode
         };
+    }
+
+    private async Task SyncWarrantyRegistrationsWithPartAsync(Part part, CancellationToken cancellationToken)
+    {
+        var warranties = (await _warrantyRegistrationRepository.GetByPartIdAsync(part.Id, cancellationToken)).ToList();
+        if (warranties.Count == 0)
+        {
+            return;
+        }
+
+        var currentUser = _currentUserService.GetCurrentUsername();
+
+        foreach (var warranty in warranties)
+        {
+            warranty.SyncFromPartWarranty(
+                hasWarranty: part.HasWarranty,
+                warrantyPeriodMonths: part.WarrantyPeriodMonths,
+                warrantyType: part.WarrantyType,
+                warrantyTerms: part.WarrantyTerms,
+                warrantyCertificateTemplate: part.WarrantyCertificateTemplate,
+                modifiedBy: currentUser,
+                voidReason: "Part warranty was disabled during part update");
+
+            await _warrantyRegistrationRepository.UpdateAsync(warranty, cancellationToken);
+        }
+
+        _logger.LogInformation(
+            "Synchronized {Count} warranty registrations for part {PartId}",
+            warranties.Count,
+            part.Id);
     }
 }

@@ -1,8 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, RouterModule } from '@angular/router';
-import { CartService } from '../services/cart.service';
-import { Order } from '../models/cart.model';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { OrderService, EcommerceCheckoutResponse } from '../services/order.service';
 
 @Component({
   selector: 'app-order-confirmation',
@@ -13,14 +12,43 @@ import { Order } from '../models/cart.model';
 })
 export class OrderConfirmationComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
-  private readonly cartService = inject(CartService);
+  private readonly router = inject(Router);
+  private readonly orderService = inject(OrderService);
 
-  order?: Order;
+  order?: EcommerceCheckoutResponse;
+  soNumber?: string;
+  loading = false;
+  notFound = false;
 
   ngOnInit(): void {
-    const orderId = this.route.snapshot.paramMap.get('orderId');
-    if (orderId) {
-      this.order = this.cartService.getOrder(orderId);
+    // Primary path: router state from checkout (works on first navigation)
+    const nav = this.router.getCurrentNavigation();
+    const state = nav?.extras?.state as { order?: EcommerceCheckoutResponse } | undefined;
+
+    if (state?.order) {
+      this.order = state.order;
+      this.soNumber = state.order.soNumber;
+      return;
+    }
+
+    // Fallback: fetch order from API by SO number in URL (page refresh / direct link)
+    const soFromUrl = this.route.snapshot.paramMap.get('orderId');
+    if (soFromUrl) {
+      this.soNumber = soFromUrl;
+      this.loading = true;
+      this.orderService.getOrderBySoNumber(soFromUrl).subscribe({
+        next: data => {
+          this.order = data ?? undefined;
+          this.notFound = !data;
+          this.loading = false;
+        },
+        error: () => {
+          this.notFound = true;
+          this.loading = false;
+        },
+      });
+    } else {
+      this.notFound = true;
     }
   }
 }

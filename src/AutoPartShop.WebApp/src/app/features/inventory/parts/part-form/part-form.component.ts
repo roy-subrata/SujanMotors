@@ -1,7 +1,7 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormGroup, FormBuilder, Validators } from '@angular/forms';
-import { Router, ActivatedRoute } from '@angular/router';
+import { Router, ActivatedRoute, RouterModule } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { InputNumberModule } from 'primeng/inputnumber';
@@ -12,18 +12,23 @@ import { ToastModule } from 'primeng/toast';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { CheckboxModule } from 'primeng/checkbox';
+import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { MessageService, ConfirmationService } from 'primeng/api';
+import { AutoCompleteModule } from 'primeng/autocomplete';
+import { Select } from 'primeng/select';
+
 import { PartService, PartResponse, CreatePartRequest, UpdatePartRequest, VehicleCompatibilityResponse } from '../../services/part.service';
 import { CategoryService, CategoryResponse } from '../../services/category.service';
 import { UnitService, UnitResponse } from '../../services/unit.service';
 import { BrandService, BrandResponse } from '../../services/brand.service';
-import { AutoCompleteModule } from 'primeng/autocomplete';
-import { CheckboxModule } from 'primeng/checkbox';
-import { CodeGenerationService } from '@/shared/services/CodeGenerationService';
 import { VehicleService, VehicleResponse, CreatePartCompatibilityRequest } from '../../services/vehicle.service';
+import { CatalogEntryService, CatalogEntryResponse, UpsertCatalogEntryRequest } from '../../services/catalog-entry.service';
+import { ProductVariantManagerComponent } from '../product-variant-manager/product-variant-manager.component';
+import { CodeGenerationService } from '@/shared/services/CodeGenerationService';
+
 import { forkJoin, of, tap } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
-import { PRICING_RULES } from '@/shared/constants/pricing-rules';
 
 @Component({
     selector: 'app-part-form',
@@ -38,7 +43,11 @@ import { PRICING_RULES } from '@/shared/constants/pricing-rules';
         TextareaModule,
         AutoCompleteModule,
         CheckboxModule,
+        ToggleSwitchModule,
+        Select,
         TooltipModule,
+        ProductVariantManagerComponent,
+        RouterModule,
         CardModule,
         ToastModule,
         TableModule,
@@ -55,6 +64,7 @@ export class PartFormComponent implements OnInit {
     private readonly unitService = inject(UnitService);
     private readonly brandService = inject(BrandService);
     private readonly vehicleService = inject(VehicleService);
+    private readonly catalogEntryService = inject(CatalogEntryService);
     private readonly messageService = inject(MessageService);
     private readonly confirmationService = inject(ConfirmationService);
     private readonly formBuilder = inject(FormBuilder);
@@ -63,7 +73,9 @@ export class PartFormComponent implements OnInit {
     private readonly route = inject(ActivatedRoute);
 
     partForm!: FormGroup;
+    catalogEntryForm!: FormGroup;
     compatibilityForm!: FormGroup;
+
     isEditMode = false;
     isViewMode = false;
     partId: string | null = null;
@@ -74,22 +86,24 @@ export class PartFormComponent implements OnInit {
 
     categories: CategoryResponse[] = [];
     units: UnitResponse[] = [];
+    baseUnits: UnitResponse[] = [];
     brands: BrandResponse[] = [];
     vehicles: VehicleResponse[] = [];
 
     filteredCategories: CategoryResponse[] = [];
     filteredUnits: UnitResponse[] = [];
+    filteredBaseUnits: UnitResponse[] = [];
     filteredBrands: BrandResponse[] = [];
     filteredVehicles: VehicleResponse[] = [];
 
     selectedCategory: CategoryResponse | null = null;
+    selectedBaseUnit: UnitResponse | null = null;
     selectedUnit: UnitResponse | null = null;
     selectedBrand: BrandResponse | null = null;
     selectedVehicle: VehicleResponse | null = null;
 
     compatibleVehicles: VehicleCompatibilityResponse[] = [];
     pendingCompatibilities: Array<{ vehicle: VehicleResponse; isCompatible: boolean; notes: string }> = [];
-    pricingRules = PRICING_RULES;
 
     warrantyTypes = [
         { label: 'Manufacturer', value: 'MANUFACTURER' },
@@ -97,8 +111,22 @@ export class PartFormComponent implements OnInit {
         { label: 'Extended', value: 'EXTENDED' }
     ];
 
+    productTypes = [
+        { label: 'Physical', value: 'PHYSICAL' },
+        { label: 'Digital', value: 'DIGITAL' },
+        { label: 'Service', value: 'SERVICE' }
+    ];
+
+    taxCodes = [
+        { label: 'Standard', value: 'STANDARD' },
+        { label: 'Food', value: 'FOOD' },
+        { label: 'Medicine', value: 'MEDICINE' },
+        { label: 'Exempt', value: 'EXEMPT' }
+    ];
+
     constructor() {
         this.initializeForm();
+        this.initializeCatalogEntryForm();
         this.initializeCompatibilityForm();
     }
 
@@ -111,7 +139,6 @@ export class PartFormComponent implements OnInit {
     }
 
     private checkRouteParams(): void {
-        // Check if we're in view/edit mode
         this.route.queryParams.subscribe(params => {
             this.partId = params['id'];
             this.isViewMode = params['mode'] === 'view';
@@ -120,14 +147,14 @@ export class PartFormComponent implements OnInit {
             if (this.partId) {
                 this.loadPart(this.partId);
                 this.loadCompatibleVehicles();
+                this.loadCatalogEntry(this.partId);
             } else {
-                // Create mode - generate code
                 this.generateCode();
             }
 
-            // Disable form if in view mode
             if (this.isViewMode) {
                 this.partForm.disable();
+                this.catalogEntryForm.disable();
                 this.compatibilityForm.disable();
             }
         });
@@ -139,15 +166,10 @@ export class PartFormComponent implements OnInit {
                 tap({
                     next: (code) => {
                         if (code) {
-                            this.partForm.patchValue({
-                                partNumber: code,
-                                sku: code
-                            });
+                            this.partForm.patchValue({ partNumber: code, sku: code });
                         }
                     },
-                    error: (err) => {
-                        console.error('Error generating code:', err);
-                    }
+                    error: (err) => console.error('Error generating code:', err)
                 })
             )
             .subscribe();
@@ -156,47 +178,64 @@ export class PartFormComponent implements OnInit {
     private loadPart(id: string): void {
         this.isLoading = true;
         this.partService.getPartById(id).subscribe({
-            next: (part) => {
-                this.populateForm(part);
-                this.isLoading = false;
-            },
-            error: (error) => {
-                this.messageService.add({
-                    severity: 'error',
-                    summary: 'Error',
-                    detail: 'Failed to load part'
-                });
-                console.error('Error loading part:', error);
+            next: (part) => { this.populateForm(part); this.isLoading = false; },
+            error: () => {
+                this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load part' });
                 this.isLoading = false;
             }
         });
     }
 
+    private loadCatalogEntry(partId: string): void {
+        this.catalogEntryService.get(partId).subscribe({
+            next: (entry) => {
+                if (entry) {
+                    this.catalogEntryForm.patchValue({
+                        slug: entry.slug,
+                        shortDescription: entry.shortDescription,
+                        isPublished: entry.isPublished,
+                        isFeatured: entry.isFeatured,
+                        featuredRank: entry.featuredRank,
+                        metaTitle: entry.metaTitle ?? '',
+                        metaDescription: entry.metaDescription ?? ''
+                    });
+                }
+            },
+            error: () => { /* catalog entry is optional, silently ignore */ }
+        });
+    }
+
     private populateForm(part: PartResponse): void {
         this.selectedCategory = this.categories.find(c => c.id === part.categoryId) || null;
+        this.selectedBaseUnit = this.units.find(u => u.id === part.baseUnitId) || null;
         this.selectedUnit = this.units.find(u => u.id === part.unitId) || null;
         this.selectedBrand = this.brands.find(b => b.id === part.brandId) || null;
 
         this.partForm.patchValue({
             name: part.name,
             description: part.description,
+            richDescription: part.richDescription || '',
             partNumber: part.partNumber,
             sku: part.sku,
+            barcode: part.barcode || '',
             categoryId: part.categoryId,
             brandId: part.brandId,
+            baseUnitId: part.baseUnitId,
             unitId: part.unitId,
             costPrice: part.costPrice,
-            sellingPrice: part.sellingPrice,
+            sellingPrice: part.sellingPrice ?? 0,
             minimumStock: part.minimumStock,
-            minMarginPercentOverride: part.minMarginPercentOverride ?? null,
-            maxDiscountPercentOverride: part.maxDiscountPercentOverride ?? null,
             isActive: part.isActive,
-            // Warranty fields
             hasWarranty: part.hasWarranty || false,
             warrantyPeriodMonths: part.warrantyPeriodMonths || null,
             warrantyType: part.warrantyType || '',
             warrantyTerms: part.warrantyTerms || '',
-            warrantyCertificateTemplate: part.warrantyCertificateTemplate || ''
+            warrantyCertificateTemplate: part.warrantyCertificateTemplate || '',
+            tags: part.tags || '',
+            productType: part.productType || 'PHYSICAL',
+            isPerishable: part.isPerishable || false,
+            weightKg: part.weightKg ?? null,
+            taxCode: part.taxCode || ''
         });
 
         this.syncSelectedLookups();
@@ -206,80 +245,81 @@ export class PartFormComponent implements OnInit {
         this.partForm = this.formBuilder.group({
             name: ['', [Validators.required, Validators.maxLength(200)]],
             description: [''],
+            richDescription: [''],
             partNumber: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(20), Validators.pattern(/^[A-Za-z]/)]],
             sku: ['', [Validators.required, Validators.maxLength(50)]],
             categoryId: ['', [Validators.required]],
             brandId: [null],
+            baseUnitId: [null],
             unitId: [null],
             costPrice: [0, [Validators.required, Validators.min(0)]],
             sellingPrice: [0, [Validators.required, Validators.min(0)]],
             minimumStock: [0, [Validators.required, Validators.min(0)]],
-            minMarginPercentOverride: [null, [Validators.min(0), Validators.max(100)]],
-            maxDiscountPercentOverride: [null, [Validators.min(0), Validators.max(100)]],
             isActive: [true],
-            // Warranty fields
             hasWarranty: [false],
             warrantyPeriodMonths: [null],
             warrantyType: [''],
             warrantyTerms: [''],
-            warrantyCertificateTemplate: ['']
+            warrantyCertificateTemplate: [''],
+            barcode: [''],
+            tags: [''],
+            productType: ['PHYSICAL'],
+            isPerishable: [false],
+            weightKg: [null],
+            taxCode: ['']
         });
 
-        this.attachPricingValidators();
-
-        // Add conditional validators for warranty fields
         this.partForm.get('hasWarranty')?.valueChanges.subscribe(hasWarranty => {
-            const warrantyPeriodControl = this.partForm.get('warrantyPeriodMonths');
-            const warrantyTypeControl = this.partForm.get('warrantyType');
-
+            const periodCtrl = this.partForm.get('warrantyPeriodMonths');
+            const typeCtrl = this.partForm.get('warrantyType');
             if (hasWarranty) {
-                warrantyPeriodControl?.setValidators([Validators.required, Validators.min(1)]);
-                warrantyTypeControl?.setValidators([Validators.required]);
+                periodCtrl?.setValidators([Validators.required, Validators.min(1)]);
+                typeCtrl?.setValidators([Validators.required]);
             } else {
-                warrantyPeriodControl?.clearValidators();
-                warrantyTypeControl?.clearValidators();
+                periodCtrl?.clearValidators();
+                typeCtrl?.clearValidators();
             }
+            periodCtrl?.updateValueAndValidity();
+            typeCtrl?.updateValueAndValidity();
+        });
 
-            warrantyPeriodControl?.updateValueAndValidity();
-            warrantyTypeControl?.updateValueAndValidity();
+        // Auto-generate slug from part name
+        this.partForm.get('name')?.valueChanges.subscribe(name => {
+            if (!this.isEditMode) {
+                this.autoUpdateSlug(name);
+            }
+        });
+
+        // Auto-update slug when category changes (for context)
+        this.partForm.get('categoryId')?.valueChanges.subscribe(() => {
+            if (!this.isEditMode) {
+                const name = this.partForm.get('name')?.value;
+                if (name) this.autoUpdateSlug(name);
+            }
         });
     }
 
-    private attachPricingValidators(): void {
-        const costControl = this.partForm.get('costPrice');
-        const sellingControl = this.partForm.get('sellingPrice');
-        const minMarginOverrideControl = this.partForm.get('minMarginPercentOverride');
-        if (!costControl || !sellingControl) return;
-
-        const validate = () => this.updateMinMarginValidation();
-        costControl.valueChanges.subscribe(validate);
-        sellingControl.valueChanges.subscribe(validate);
-        minMarginOverrideControl?.valueChanges.subscribe(validate);
-        this.updateMinMarginValidation();
+    private initializeCatalogEntryForm(): void {
+        this.catalogEntryForm = this.formBuilder.group({
+            slug: ['', [Validators.maxLength(200), Validators.pattern(/^[a-z0-9-]*$/)]],
+            shortDescription: ['', [Validators.maxLength(300)]],
+            isPublished: [true],
+            isFeatured: [false],
+            featuredRank: [0, [Validators.min(0)]],
+            metaTitle: ['', [Validators.maxLength(70)]],
+            metaDescription: ['', [Validators.maxLength(160)]]
+        });
     }
 
-    private updateMinMarginValidation(): void {
-        const cost = Number(this.partForm.get('costPrice')?.value || 0);
-        const selling = Number(this.partForm.get('sellingPrice')?.value || 0);
-        const overrideValue = this.partForm.get('minMarginPercentOverride')?.value;
-        const minMargin = overrideValue === null || overrideValue === undefined || overrideValue === '' ? this.pricingRules.minMarginPercent : Number(overrideValue);
-        const minAllowed = cost + (cost * (minMargin / 100));
-
-        const control = this.partForm.get('sellingPrice');
-        if (!control) return;
-
-        const errors = { ...(control.errors || {}) };
-        if (cost > 0 && selling < minAllowed) {
-            errors['minMargin'] = { minAllowed };
-        } else {
-            delete errors['minMargin'];
-        }
-
-        if (Object.keys(errors).length === 0) {
-            control.setErrors(null);
-        } else {
-            control.setErrors(errors);
-        }
+    private autoUpdateSlug(name: string): void {
+        if (!name) return;
+        const slug = name.trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9\s-]/g, '')
+            .replace(/\s+/g, '-')
+            .replace(/-+/g, '-')
+            .replace(/^-|-$/g, '');
+        this.catalogEntryForm.patchValue({ slug }, { emitEvent: false });
     }
 
     private initializeCompatibilityForm(): void {
@@ -297,14 +337,7 @@ export class PartFormComponent implements OnInit {
                 this.filteredCategories = response;
                 this.syncSelectedLookups();
             },
-            error: (error) => {
-                this.messageService.add({
-                    severity: 'error',
-                    summary: 'Error',
-                    detail: 'Failed to load categories'
-                });
-                console.error('Error loading categories:', error);
-            }
+            error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load categories' })
         });
     }
 
@@ -312,17 +345,12 @@ export class PartFormComponent implements OnInit {
         this.unitService.getAllUnits().subscribe({
             next: (response) => {
                 this.units = response;
+                this.baseUnits = response;
                 this.filteredUnits = response;
+                this.filteredBaseUnits = response;
                 this.syncSelectedLookups();
             },
-            error: (error) => {
-                this.messageService.add({
-                    severity: 'error',
-                    summary: 'Error',
-                    detail: 'Failed to load units'
-                });
-                console.error('Error loading units:', error);
-            }
+            error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load units' })
         });
     }
 
@@ -333,145 +361,108 @@ export class PartFormComponent implements OnInit {
                 this.filteredBrands = response;
                 this.syncSelectedLookups();
             },
-            error: (error) => {
-                this.messageService.add({
-                    severity: 'error',
-                    summary: 'Error',
-                    detail: 'Failed to load brands'
-                });
-                console.error('Error loading brands:', error);
-            }
+            error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load brands' })
         });
     }
 
     private loadVehicles(): void {
         this.vehicleService.getActiveVehicles().subscribe({
-            next: (response) => {
-                this.vehicles = response;
-                this.filteredVehicles = response;
-            },
-            error: (error) => {
-                this.messageService.add({
-                    severity: 'error',
-                    summary: 'Error',
-                    detail: 'Failed to load vehicles'
-                });
-                console.error('Error loading vehicles:', error);
-            }
+            next: (response) => { this.vehicles = response; this.filteredVehicles = response; },
+            error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load vehicles' })
         });
     }
 
     private loadCompatibleVehicles(): void {
         if (!this.partId) return;
-
         this.loadingCompatibilities = true;
         this.partService.getPartCompatibleVehicles(this.partId).subscribe({
-            next: (vehicles) => {
-                this.compatibleVehicles = vehicles;
-                this.loadingCompatibilities = false;
-            },
-            error: (error) => {
-                this.messageService.add({
-                    severity: 'error',
-                    summary: 'Error',
-                    detail: 'Failed to load compatible vehicles'
-                });
-                console.error('Error loading compatible vehicles:', error);
-                this.loadingCompatibilities = false;
-            }
+            next: (vehicles) => { this.compatibleVehicles = vehicles; this.loadingCompatibilities = false; },
+            error: () => { this.loadingCompatibilities = false; }
         });
     }
 
-    // Autocomplete handlers
+    // ── Autocomplete handlers ──────────────────────────────────────────────
+
     onCategorySearch(event: any): void {
-        const query = event.query || '';
-        this.filteredCategories = this.categories.filter(category =>
-            category.name.toLowerCase().includes(query.toLowerCase()) ||
-            category.code.toLowerCase().includes(query.toLowerCase())
-        );
+        const q = (event.query || '').toLowerCase();
+        this.filteredCategories = this.categories.filter(c =>
+            c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q));
     }
 
     onUnitSearch(event: any): void {
-        const query = event.query || '';
-        this.filteredUnits = this.units.filter(unit =>
-            unit.name.toLowerCase().includes(query.toLowerCase()) ||
-            unit.code.toLowerCase().includes(query.toLowerCase())
-        );
+        const q = (event.query || '').toLowerCase();
+        this.filteredUnits = this.units.filter(u =>
+            u.name.toLowerCase().includes(q) || u.code.toLowerCase().includes(q));
+    }
+
+    onBaseUnitSearch(event: any): void {
+        const q = (event.query || '').toLowerCase();
+        this.filteredBaseUnits = this.baseUnits.filter(u =>
+            u.name.toLowerCase().includes(q) || u.code.toLowerCase().includes(q));
     }
 
     onBrandSearch(event: any): void {
-        const query = event.query || '';
-        this.filteredBrands = this.brands.filter(brand =>
-            brand.name.toLowerCase().includes(query.toLowerCase()) ||
-            brand.code.toLowerCase().includes(query.toLowerCase())
-        );
+        const q = (event.query || '').toLowerCase();
+        this.filteredBrands = this.brands.filter(b =>
+            b.name.toLowerCase().includes(q) || b.code.toLowerCase().includes(q));
     }
 
     onVehicleSearch(event: any): void {
-        const query = (event.query || '').toLowerCase();
-        this.filteredVehicles = this.vehicles.filter(vehicle =>
-            `${vehicle.make} ${vehicle.model}`.toLowerCase().includes(query) ||
-            String(vehicle.year).includes(query) ||
-            vehicle.engineType.toLowerCase().includes(query)
-        );
+        const q = (event.query || '').toLowerCase();
+        this.filteredVehicles = this.vehicles.filter(v =>
+            `${v.make} ${v.model}`.toLowerCase().includes(q) ||
+            String(v.year).includes(q) ||
+            v.engineType.toLowerCase().includes(q));
     }
 
     onCategorySelect(event: any): void {
-        const category = event.value as CategoryResponse;
-        this.selectedCategory = category;
-        this.partForm.patchValue({ categoryId: category.id });
+        this.selectedCategory = event.value as CategoryResponse;
+        this.partForm.patchValue({ categoryId: this.selectedCategory.id });
     }
 
     onUnitSelect(event: any): void {
-        const unit = event.value as UnitResponse;
-        this.selectedUnit = unit;
-        this.partForm.patchValue({ unitId: unit.id });
+        this.selectedUnit = event.value as UnitResponse;
+        this.partForm.patchValue({ unitId: this.selectedUnit.id });
+    }
+
+    onBaseUnitSelect(event: any): void {
+        this.selectedBaseUnit = event.value as UnitResponse;
+        this.partForm.patchValue({ baseUnitId: this.selectedBaseUnit.id });
+        if (!this.partForm.value.unitId) {
+            this.partForm.patchValue({ unitId: this.selectedBaseUnit.id });
+            this.selectedUnit = this.selectedBaseUnit;
+        }
     }
 
     onBrandSelect(event: any): void {
-        const brand = event.value as BrandResponse;
-        this.selectedBrand = brand;
-        this.partForm.patchValue({ brandId: brand.id });
+        this.selectedBrand = event.value as BrandResponse;
+        this.partForm.patchValue({ brandId: this.selectedBrand.id });
     }
 
     onVehicleSelect(event: any): void {
-        const vehicle = event.value as VehicleResponse;
-        this.selectedVehicle = vehicle;
-        this.compatibilityForm.patchValue({ vehicle: vehicle });
+        this.selectedVehicle = event.value as VehicleResponse;
+        this.compatibilityForm.patchValue({ vehicle: this.selectedVehicle });
     }
 
-    onCategoryClear(): void {
-        this.selectedCategory = null;
-        this.partForm.patchValue({ categoryId: null });
-    }
-
-    onUnitClear(): void {
+    onCategoryClear(): void { this.selectedCategory = null; this.partForm.patchValue({ categoryId: null }); }
+    onUnitClear(): void { this.selectedUnit = null; this.partForm.patchValue({ unitId: null }); }
+    onBaseUnitClear(): void {
+        this.selectedBaseUnit = null;
         this.selectedUnit = null;
-        this.partForm.patchValue({ unitId: null });
+        this.partForm.patchValue({ baseUnitId: null, unitId: null });
     }
+    onBrandClear(): void { this.selectedBrand = null; this.partForm.patchValue({ brandId: null }); }
+    onVehicleClear(): void { this.selectedVehicle = null; this.compatibilityForm.patchValue({ vehicle: null }); }
 
-    onBrandClear(): void {
-        this.selectedBrand = null;
-        this.partForm.patchValue({ brandId: null });
-    }
-
-    onVehicleClear(): void {
-        this.selectedVehicle = null;
-        this.compatibilityForm.patchValue({ vehicle: null });
-    }
+    // ── Vehicle Compatibility ──────────────────────────────────────────────
 
     addCompatibility(): void {
         if (this.isViewMode) return;
 
         if (this.compatibilityForm.invalid) {
-            Object.keys(this.compatibilityForm.controls).forEach(key => {
-                this.compatibilityForm.get(key)?.markAsTouched();
-            });
-            this.messageService.add({
-                severity: 'warn',
-                summary: 'Validation Error',
-                detail: 'Please select a vehicle'
-            });
+            Object.keys(this.compatibilityForm.controls).forEach(k =>
+                this.compatibilityForm.get(k)?.markAsTouched());
+            this.messageService.add({ severity: 'warn', summary: 'Validation', detail: 'Please select a vehicle' });
             return;
         }
 
@@ -485,46 +476,25 @@ export class PartFormComponent implements OnInit {
             this.isCompatibilitySubmitting = true;
             this.vehicleService.addPartCompatibility(vehicle.id, this.partId, request).subscribe({
                 next: () => {
-                    this.messageService.add({
-                        severity: 'success',
-                        summary: 'Success',
-                        detail: `Vehicle '${vehicle.make} ${vehicle.model}' added`
-                    });
+                    this.messageService.add({ severity: 'success', summary: 'Added', detail: `${vehicle.make} ${vehicle.model} added` });
                     this.resetCompatibilityForm();
                     this.loadCompatibleVehicles();
                     this.isCompatibilitySubmitting = false;
                 },
                 error: (error) => {
-                    this.messageService.add({
-                        severity: 'error',
-                        summary: 'Error',
-                        detail: error?.error?.message || 'Failed to add compatibility'
-                    });
-                    console.error('Error adding compatibility:', error);
+                    this.messageService.add({ severity: 'error', summary: 'Error', detail: error?.error?.message || 'Failed to add compatibility' });
                     this.isCompatibilitySubmitting = false;
                 }
             });
             return;
         }
 
-        const exists = this.pendingCompatibilities.some(item => item.vehicle.id === vehicle.id);
-        if (exists) {
-            this.messageService.add({
-                severity: 'warn',
-                summary: 'Duplicate',
-                detail: 'This vehicle is already added'
-            });
+        if (this.pendingCompatibilities.some(p => p.vehicle.id === vehicle.id)) {
+            this.messageService.add({ severity: 'warn', summary: 'Duplicate', detail: 'Vehicle already added' });
             return;
         }
 
-        this.pendingCompatibilities = [
-            ...this.pendingCompatibilities,
-            {
-                vehicle,
-                isCompatible: request.isCompatible,
-                notes: request.notes || ''
-            }
-        ];
+        this.pendingCompatibilities = [...this.pendingCompatibilities, { vehicle, isCompatible: request.isCompatible, notes: request.notes || '' }];
         this.resetCompatibilityForm();
     }
 
@@ -532,8 +502,8 @@ export class PartFormComponent implements OnInit {
         if (this.isViewMode) return;
 
         this.confirmationService.confirm({
-            message: 'Are you sure you want to remove this compatibility?',
-            header: 'Confirm Removal',
+            message: 'Remove this vehicle compatibility?',
+            header: 'Confirm',
             icon: 'pi pi-exclamation-triangle',
             acceptButtonStyleClass: 'p-button-danger',
             accept: () => {
@@ -541,79 +511,56 @@ export class PartFormComponent implements OnInit {
                     this.pendingCompatibilities = this.pendingCompatibilities.filter(p => p.vehicle.id !== item.vehicleId);
                     return;
                 }
-
                 if (!item.id) return;
                 this.vehicleService.removeCompatibility(item.id).subscribe({
                     next: () => {
-                        this.messageService.add({
-                            severity: 'success',
-                            summary: 'Success',
-                            detail: 'Compatibility removed successfully'
-                        });
+                        this.messageService.add({ severity: 'success', summary: 'Removed', detail: 'Compatibility removed' });
                         this.loadCompatibleVehicles();
                     },
-                    error: (error) => {
-                        this.messageService.add({
-                            severity: 'error',
-                            summary: 'Error',
-                            detail: error?.error?.message || 'Failed to remove compatibility'
-                        });
-                        console.error('Error removing compatibility:', error);
-                    }
+                    error: (err) => this.messageService.add({ severity: 'error', summary: 'Error', detail: err?.error?.message || 'Failed to remove' })
                 });
             }
         });
     }
 
     private resetCompatibilityForm(): void {
-        this.compatibilityForm.reset({
-            vehicle: null,
-            isCompatible: true,
-            notes: ''
-        });
+        this.compatibilityForm.reset({ vehicle: null, isCompatible: true, notes: '' });
         this.selectedVehicle = null;
     }
 
     getCompatibilityRows(): Array<{
-        id?: string;
-        vehicleId: string;
-        vehicleInfo: string;
-        isCompatible: boolean;
-        notes: string;
-        isPending?: boolean;
+        id?: string; vehicleId: string; vehicleInfo: string;
+        isCompatible: boolean; notes: string; isPending?: boolean;
     }> {
-        const apiRows = this.compatibleVehicles.map(vehicle => ({
-            id: vehicle.id,
-            vehicleId: vehicle.vehicleId,
-            vehicleInfo: `${vehicle.vehicleMake} ${vehicle.vehicleModel} ${vehicle.vehicleYear} • ${vehicle.vehicleEngineType}`,
-            isCompatible: vehicle.isCompatible,
-            notes: vehicle.notes || ''
+        const apiRows = this.compatibleVehicles.map(v => ({
+            id: v.id,
+            vehicleId: v.vehicleId,
+            vehicleInfo: `${v.vehicleMake} ${v.vehicleModel} ${v.vehicleYear} · ${v.vehicleEngineType}`,
+            isCompatible: v.isCompatible,
+            notes: v.notes || ''
         }));
 
-        const pendingRows = this.pendingCompatibilities.map(item => ({
-            vehicleId: item.vehicle.id,
-            vehicleInfo: `${item.vehicle.make} ${item.vehicle.model} ${item.vehicle.year} • ${item.vehicle.engineType}`,
-            isCompatible: item.isCompatible,
-            notes: item.notes || '',
+        const pendingRows = this.pendingCompatibilities.map(p => ({
+            vehicleId: p.vehicle.id,
+            vehicleInfo: `${p.vehicle.make} ${p.vehicle.model} ${p.vehicle.year} · ${p.vehicle.engineType}`,
+            isCompatible: p.isCompatible,
+            notes: p.notes || '',
             isPending: true
         }));
 
         return [...pendingRows, ...apiRows];
     }
 
+    // ── Submit ─────────────────────────────────────────────────────────────
+
     onSubmit(): void {
         if (this.partForm.invalid) {
             this.partForm.markAllAsTouched();
-            this.messageService.add({
-                severity: 'warn',
-                summary: 'Validation Error',
-                detail: 'Please fill in all required fields correctly'
-            });
+            this.messageService.add({ severity: 'warn', summary: 'Validation Error', detail: 'Please fill in all required fields' });
             return;
         }
 
         this.isSubmitting = true;
-
         if (this.isEditMode && this.partId) {
             this.updatePart();
         } else {
@@ -622,192 +569,175 @@ export class PartFormComponent implements OnInit {
     }
 
     private createPart(): void {
+        const v = this.partForm.value;
         const request: CreatePartRequest = {
-            name: (this.partForm.value.name || '').trim(),
-            description: this.partForm.value.description || '',
-            partNumber: (this.partForm.value.partNumber || '').trim(),
-            sku: (this.partForm.value.sku || '').trim(),
-            categoryId: this.partForm.value.categoryId,
-            brandId: this.partForm.value.brandId || null,
-            unitId: this.partForm.value.unitId || null,
-            costPrice: this.partForm.value.costPrice || 0,
-            sellingPrice: this.partForm.value.sellingPrice || 0,
-            minimumStock: this.partForm.value.minimumStock || 0,
-            minMarginPercentOverride: this.partForm.value.minMarginPercentOverride ?? null,
-            maxDiscountPercentOverride: this.partForm.value.maxDiscountPercentOverride ?? null,
-            // Warranty fields
-            hasWarranty: this.partForm.value.hasWarranty || false,
-            warrantyPeriodMonths: this.partForm.value.hasWarranty ? this.partForm.value.warrantyPeriodMonths : null,
-            warrantyType: this.partForm.value.hasWarranty ? this.partForm.value.warrantyType : null,
-            warrantyTerms: this.partForm.value.hasWarranty ? this.partForm.value.warrantyTerms : null,
-            warrantyCertificateTemplate: this.partForm.value.hasWarranty ? this.partForm.value.warrantyCertificateTemplate : null
+            name: v.name.trim(),
+            description: v.description || '',
+            richDescription: v.richDescription?.trim() || null,
+            partNumber: v.partNumber.trim(),
+            sku: v.sku.trim(),
+            barcode: v.barcode?.trim() || null,
+            categoryId: v.categoryId,
+            brandId: v.brandId || null,
+            baseUnitId: v.baseUnitId || null,
+            unitId: v.unitId || v.baseUnitId || null,
+            costPrice: v.costPrice || 0,
+            sellingPrice: v.sellingPrice || 0,
+            minimumStock: v.minimumStock || 0,
+            tags: v.tags?.trim() || null,
+            productType: v.productType || 'PHYSICAL',
+            isPerishable: v.isPerishable || false,
+            weightKg: v.weightKg ?? null,
+            widthCm: null,
+            heightCm: null,
+            depthCm: null,
+            taxCode: v.taxCode?.trim() || null,
+            hasWarranty: v.hasWarranty || false,
+            warrantyPeriodMonths: v.hasWarranty ? v.warrantyPeriodMonths : null,
+            warrantyType: v.hasWarranty ? v.warrantyType : null,
+            warrantyTerms: v.hasWarranty ? v.warrantyTerms : null,
+            warrantyCertificateTemplate: v.hasWarranty ? v.warrantyCertificateTemplate : null
         };
 
         this.partService.createPart(request).subscribe({
             next: (response) => {
-                const complete = () => {
-                    this.messageService.add({
-                        severity: 'success',
-                        summary: 'Success',
-                        detail: `Part '${response.name}' created successfully`
-                    });
+                const finalize = () => {
+                    this.messageService.add({ severity: 'success', summary: 'Created', detail: `'${response.name}' created successfully` });
                     this.isSubmitting = false;
                     this.router.navigate(['/inventory/parts']);
                 };
 
-                if (this.pendingCompatibilities.length === 0) {
-                    complete();
-                    return;
-                }
+                const saveCatalogEntry$ = this.buildCatalogEntrySave(response.id);
+                const saveCompatibilities$ = this.pendingCompatibilities.length > 0
+                    ? this.savePendingCompatibilities(response.id)
+                    : of(void 0);
 
-                this.savePendingCompatibilities(response.id).subscribe({
-                    next: () => complete(),
-                    error: () => complete()
+                forkJoin([saveCatalogEntry$, saveCompatibilities$]).subscribe({
+                    next: () => finalize(),
+                    error: () => finalize()
                 });
             },
             error: (error) => {
-                this.messageService.add({
-                    severity: 'error',
-                    summary: 'Error',
-                    detail: error?.error?.message || 'Failed to create part'
-                });
-                console.error('Error creating part:', error);
+                this.messageService.add({ severity: 'error', summary: 'Error', detail: error?.error?.message || 'Failed to create part' });
                 this.isSubmitting = false;
             }
         });
     }
 
     private updatePart(): void {
+        const v = this.partForm.value;
         const request: UpdatePartRequest = {
             id: this.partId!,
-            name: (this.partForm.value.name || '').trim(),
-            description: this.partForm.value.description || '',
-            sku: (this.partForm.value.sku || '').trim(),
-            categoryId: this.partForm.value.categoryId,
-            brandId: this.partForm.value.brandId || null,
-            unitId: this.partForm.value.unitId || null,
-            costPrice: this.partForm.value.costPrice || 0,
-            sellingPrice: this.partForm.value.sellingPrice || 0,
-            minimumStock: this.partForm.value.minimumStock || 0,
-            isActive: this.partForm.value.isActive,
-            minMarginPercentOverride: this.partForm.value.minMarginPercentOverride ?? null,
-            maxDiscountPercentOverride: this.partForm.value.maxDiscountPercentOverride ?? null,
-            // Warranty fields
-            hasWarranty: this.partForm.value.hasWarranty || false,
-            warrantyPeriodMonths: this.partForm.value.hasWarranty ? this.partForm.value.warrantyPeriodMonths : null,
-            warrantyType: this.partForm.value.hasWarranty ? this.partForm.value.warrantyType : null,
-            warrantyTerms: this.partForm.value.hasWarranty ? this.partForm.value.warrantyTerms : null,
-            warrantyCertificateTemplate: this.partForm.value.hasWarranty ? this.partForm.value.warrantyCertificateTemplate : null
+            name: v.name.trim(),
+            description: v.description || '',
+            richDescription: v.richDescription?.trim() || null,
+            sku: v.sku.trim(),
+            barcode: v.barcode?.trim() || null,
+            categoryId: v.categoryId,
+            brandId: v.brandId || null,
+            baseUnitId: v.baseUnitId || null,
+            unitId: v.unitId || v.baseUnitId || null,
+            costPrice: v.costPrice || 0,
+            sellingPrice: v.sellingPrice || 0,
+            minimumStock: v.minimumStock || 0,
+            isActive: v.isActive,
+            tags: v.tags?.trim() || null,
+            productType: v.productType || 'PHYSICAL',
+            isPerishable: v.isPerishable || false,
+            weightKg: v.weightKg ?? null,
+            widthCm: null,
+            heightCm: null,
+            depthCm: null,
+            taxCode: v.taxCode?.trim() || null,
+            hasWarranty: v.hasWarranty || false,
+            warrantyPeriodMonths: v.hasWarranty ? v.warrantyPeriodMonths : null,
+            warrantyType: v.hasWarranty ? v.warrantyType : null,
+            warrantyTerms: v.hasWarranty ? v.warrantyTerms : null,
+            warrantyCertificateTemplate: v.hasWarranty ? v.warrantyCertificateTemplate : null
         };
 
         this.partService.updatePart(this.partId!, request).subscribe({
             next: (response) => {
-                this.messageService.add({
-                    severity: 'success',
-                    summary: 'Success',
-                    detail: `Part '${response.name}' updated successfully`
+                this.buildCatalogEntrySave(response.id).subscribe({
+                    next: () => {
+                        this.messageService.add({ severity: 'success', summary: 'Updated', detail: `'${response.name}' updated successfully` });
+                        this.isSubmitting = false;
+                        this.router.navigate(['/inventory/parts']);
+                    },
+                    error: () => {
+                        this.messageService.add({ severity: 'success', summary: 'Updated', detail: `'${response.name}' updated (online listing save failed)` });
+                        this.isSubmitting = false;
+                        this.router.navigate(['/inventory/parts']);
+                    }
                 });
-                this.isSubmitting = false;
-                this.router.navigate(['/inventory/parts']);
             },
             error: (error) => {
-                this.messageService.add({
-                    severity: 'error',
-                    summary: 'Error',
-                    detail: error?.error?.message || 'Failed to update part'
-                });
-                console.error('Error updating part:', error);
+                this.messageService.add({ severity: 'error', summary: 'Error', detail: error?.error?.message || 'Failed to update part' });
                 this.isSubmitting = false;
             }
         });
     }
 
+    private buildCatalogEntrySave(partId: string) {
+        const cv = this.catalogEntryForm.value;
+        const slugValue = (cv.slug || '').trim();
+        if (!slugValue) return of(null);
+
+        const req: UpsertCatalogEntryRequest = {
+            slug: slugValue,
+            shortDescription: cv.shortDescription?.trim() || '',
+            isPublished: cv.isPublished ?? true,
+            isFeatured: cv.isFeatured ?? false,
+            featuredRank: cv.featuredRank ?? 0,
+            metaTitle: cv.metaTitle?.trim() || null,
+            metaDescription: cv.metaDescription?.trim() || null
+        };
+
+        return this.catalogEntryService.upsert(partId, req).pipe(catchError(() => of(null)));
+    }
+
     private savePendingCompatibilities(partId: string) {
         const requests = this.pendingCompatibilities.map(item =>
-            this.vehicleService
-                .addPartCompatibility(item.vehicle.id, partId, {
-                    isCompatible: item.isCompatible,
-                    notes: item.notes || ''
-                })
-                .pipe(catchError(() => of(null)))
+            this.vehicleService.addPartCompatibility(item.vehicle.id, partId, {
+                isCompatible: item.isCompatible,
+                notes: item.notes || ''
+            }).pipe(catchError(() => of(null)))
         );
-
-        if (requests.length === 0) {
-            return of(void 0);
-        }
-
-        return forkJoin(requests).pipe(
-            tap((results) => {
-                const failedCount = results.filter(result => !result).length;
-                if (failedCount > 0) {
-                    this.messageService.add({
-                        severity: 'warn',
-                        summary: 'Partial Success',
-                        detail: `${failedCount} vehicle compatibility item(s) failed to save`
-                    });
-                }
-            }),
-            // normalize to a single observable type for subscribe
-            map(() => void 0)
-        );
+        return forkJoin(requests).pipe(map(() => void 0));
     }
 
-    onCancel(): void {
-        this.router.navigate(['/inventory/parts']);
-    }
+    onCancel(): void { this.router.navigate(['/inventory/parts']); }
+
+    // ── Helpers ────────────────────────────────────────────────────────────
 
     hasError(fieldName: string): boolean {
-        const control = this.partForm.get(fieldName);
-        return control ? control.invalid && control.touched : false;
+        const ctrl = this.partForm.get(fieldName);
+        return ctrl ? ctrl.invalid && ctrl.touched : false;
+    }
+
+    hasCatalogError(fieldName: string): boolean {
+        const ctrl = this.catalogEntryForm.get(fieldName);
+        return ctrl ? ctrl.invalid && ctrl.touched : false;
     }
 
     getErrorMessage(fieldName: string): string {
-        const control = this.partForm.get(fieldName);
-        if (control?.hasError('required')) {
-            return `${this.getFieldLabel(fieldName)} is required`;
-        }
-        if (control?.hasError('minlength')) {
-            return `${this.getFieldLabel(fieldName)} must be at least ${control.getError('minlength')?.requiredLength} characters`;
-        }
-        if (control?.hasError('maxlength')) {
-            return `${this.getFieldLabel(fieldName)} must not exceed ${control.getError('maxlength')?.requiredLength} characters`;
-        }
-        if (control?.hasError('min')) {
-            return `${this.getFieldLabel(fieldName)} must be at least ${control.getError('min')?.min}`;
-        }
-        if (control?.hasError('minMargin') && fieldName === 'sellingPrice') {
-            const minAllowed = control.getError('minMargin')?.minAllowed ?? 0;
-            return `Selling Price must be at least ${minAllowed}`;
-        }
-        if (control?.hasError('max') && (fieldName === 'minMarginPercentOverride' || fieldName === 'maxDiscountPercentOverride')) {
-            return `${this.getFieldLabel(fieldName)} must be at most ${control.getError('max')?.max}`;
-        }
-        if (control?.hasError('pattern') && fieldName === 'partNumber') {
-            return 'Part Number must start with a letter';
-        }
+        const ctrl = this.partForm.get(fieldName);
+        if (ctrl?.hasError('required')) return `${this.getFieldLabel(fieldName)} is required`;
+        if (ctrl?.hasError('minlength')) return `${this.getFieldLabel(fieldName)} must be at least ${ctrl.getError('minlength')?.requiredLength} chars`;
+        if (ctrl?.hasError('maxlength')) return `${this.getFieldLabel(fieldName)} must not exceed ${ctrl.getError('maxlength')?.requiredLength} chars`;
+        if (ctrl?.hasError('min')) return `${this.getFieldLabel(fieldName)} must be at least ${ctrl.getError('min')?.min}`;
+        if (ctrl?.hasError('pattern') && fieldName === 'partNumber') return 'Part Number must start with a letter';
         return 'Invalid value';
     }
 
     private getFieldLabel(fieldName: string): string {
-        const labels: { [key: string]: string } = {
-            name: 'Part Name',
-            partNumber: 'Part Number',
-            sku: 'SKU',
-            categoryId: 'Category',
-            costPrice: 'Cost Price',
-            sellingPrice: 'Selling Price',
-            minMarginPercentOverride: 'Min Margin (%)',
-            maxDiscountPercentOverride: 'Max Discount (%)',
-            minimumStock: 'Minimum Stock',
-            warrantyPeriodMonths: 'Warranty Period',
+        const labels: Record<string, string> = {
+            name: 'Part Name', partNumber: 'Part Number', sku: 'SKU',
+            categoryId: 'Category', costPrice: 'Cost Price',
+            minimumStock: 'Minimum Stock', warrantyPeriodMonths: 'Warranty Period',
             warrantyType: 'Warranty Type'
         };
         return labels[fieldName] || fieldName;
-    }
-
-    isFieldValid(fieldName: string): boolean {
-        const control = this.partForm.get(fieldName);
-        return control ? control.valid && control.touched : false;
     }
 
     get pageTitle(): string {
@@ -824,47 +754,25 @@ export class PartFormComponent implements OnInit {
         return isCompatible ? 'Compatible' : 'Not Compatible';
     }
 
-    getMinMarginPercent(): number {
-        const overrideValue = this.partForm.get('minMarginPercentOverride')?.value;
-        return overrideValue === null || overrideValue === undefined || overrideValue === ''
-            ? this.pricingRules.minMarginPercent
-            : Number(overrideValue);
+    get slugCharCount(): number {
+        return (this.catalogEntryForm.get('slug')?.value || '').length;
     }
 
-    getMaxDiscountPercent(): number {
-        const overrideValue = this.partForm.get('maxDiscountPercentOverride')?.value;
-        return overrideValue === null || overrideValue === undefined || overrideValue === ''
-            ? this.pricingRules.maxDiscountPercent
-            : Number(overrideValue);
+    get metaTitleCharCount(): number {
+        return (this.catalogEntryForm.get('metaTitle')?.value || '').length;
     }
 
-    getMinAllowedPrice(): number {
-        const cost = Number(this.partForm.get('costPrice')?.value || 0);
-        const minMargin = this.getMinMarginPercent();
-        if (cost <= 0) return 0;
-        return cost + (cost * (minMargin / 100));
-    }
-
-    getMaxDiscountedPrice(): number {
-        const mrp = Number(this.partForm.get('sellingPrice')?.value || 0);
-        const maxDiscount = this.getMaxDiscountPercent();
-        if (mrp <= 0) return 0;
-        return mrp - (mrp * (maxDiscount / 100));
+    get metaDescCharCount(): number {
+        return (this.catalogEntryForm.get('metaDescription')?.value || '').length;
     }
 
     private syncSelectedLookups(): void {
-        const categoryId = this.partForm?.value?.categoryId;
-        const unitId = this.partForm?.value?.unitId;
-        const brandId = this.partForm?.value?.brandId;
-
-        if (categoryId && !this.selectedCategory) {
+        const { categoryId, unitId, brandId } = this.partForm?.value || {};
+        if (categoryId && !this.selectedCategory)
             this.selectedCategory = this.categories.find(c => c.id === categoryId) || null;
-        }
-        if (unitId && !this.selectedUnit) {
+        if (unitId && !this.selectedUnit)
             this.selectedUnit = this.units.find(u => u.id === unitId) || null;
-        }
-        if (brandId && !this.selectedBrand) {
+        if (brandId && !this.selectedBrand)
             this.selectedBrand = this.brands.find(b => b.id === brandId) || null;
-        }
     }
 }

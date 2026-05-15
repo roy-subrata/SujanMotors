@@ -1,4 +1,4 @@
-.breadcrumb { max-width:1320px; margin:0 auto; padding:16px 24px; display:flex; align-items:center; gap:8px; font-size:13px; color:var(--sf-muted); }
+﻿.breadcrumb { max-width:1320px; margin:0 auto; padding:16px 24px; display:flex; align-items:center; gap:8px; font-size:13px; color:var(--sf-muted); }
 .breadcrumb a { color:var(--sf-muted); text-decoration:none; display:flex; align-items:center; gap:4px; }
 .breadcrumb a:hover { color:var(--sf-accent); }
 
@@ -25,7 +25,7 @@
 
 .cart-table-header {
   display:grid; grid-template-columns:2fr 1fr 1fr 1fr 60px; padding:14px 20px;
-  background:#f7f2ea; font-size:12px; font-weight:600; color:var(--sf-muted);
+  background:#F5F5F5; font-size:12px; font-weight:600; color:var(--sf-muted);
   text-transform:uppercase; letter-spacing:0.06em;
 }
 
@@ -52,10 +52,10 @@
 
 .qty-control { display:flex; align-items:center; border:1px solid var(--sf-border); border-radius:8px; overflow:hidden; width:fit-content; }
 .qty-control button {
-  width:32px; height:34px; border:none; background:#f7f2ea; cursor:pointer;
+  width:32px; height:34px; border:none; background:#F5F5F5; cursor:pointer;
   font-size:16px; font-weight:600;
 }
-.qty-control button:hover { background:#efe8dd; }
+.qty-control button:hover { background:#E8E8E8; }
 .qty-control span { width:36px; text-align:center; font-size:14px; font-weight:600; }
 
 .remove-btn { background:none; border:none; cursor:pointer; color:#c5bdb4; font-size:16px; padding:8px; transition:color 0.2s; }
@@ -93,6 +93,17 @@
 @media (max-width:900px) {
   .cart-layout { grid-template-columns:1fr; }
   .cart-table-header { display:none; }
-  .cart-row { grid-template-columns:1fr; gap:12px; }
-  .col-price, .col-qty, .col-total, .col-action { padding-left:78px; }
+  .cart-row { grid-template-columns:1fr; gap:10px; padding:16px; }
+  .col-price::before { content:'Price: '; font-weight:600; color:var(--sf-muted); font-size:12px; }
+  .col-qty::before  { content:'Qty: ';   font-weight:600; color:var(--sf-muted); font-size:12px; }
+  .col-total::before{ content:'Total: '; font-weight:600; color:var(--sf-muted); font-size:12px; }
+  .col-price, .col-qty, .col-total { display:flex; align-items:center; gap:8px; }
+  .col-action { justify-self:end; }
+  .order-summary { position:static; }
 }
+
+@media (max-width:480px) {
+  .cart-container { padding:0 12px 32px; }
+  .cart-container h1 { font-size:22px; }
+}
+

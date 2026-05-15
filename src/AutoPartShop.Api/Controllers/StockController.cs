@@ -1,6 +1,7 @@
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.Common;
 using AutoPartShop.Application.DTOs.StockDtos;
+using AutoPartShop.Application.Services;
 using AutoPartShop.Application.Stock;
 using AutoPartShop.Application.Stock.Dtos;
 using AutoPartShop.Domain.Entities;
@@ -21,6 +22,7 @@ public class StockController : ControllerBase
     private readonly IStockMovementReadRepository _stockMovementReadRepository;
     private readonly AutoPartDbContext _dbContext;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IUnitConversionService _unitConversionService;
     private readonly ILogger<StockController> _logger;
 
     public StockController(
@@ -30,6 +32,7 @@ public class StockController : ControllerBase
         IStockMovementReadRepository stockMovementReadRepository,
         AutoPartDbContext dbContext,
         ICurrentUserService currentUserService,
+        IUnitConversionService unitConversionService,
         ILogger<StockController> logger)
     {
         _stockLevelRepository = stockLevelRepository;
@@ -38,6 +41,7 @@ public class StockController : ControllerBase
         _stockMovementReadRepository = stockMovementReadRepository;
         _dbContext = dbContext;
         _currentUserService = currentUserService;
+        _unitConversionService = unitConversionService;
         _logger = logger;
     }
 
@@ -58,7 +62,7 @@ public class StockController : ControllerBase
     }
 
     [HttpPost("levels/list")]
-    public async Task<IActionResult> GetStockLevelsList(StockLevelQuery query, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> GetStockLevelsList([FromBody] StockLevelQuery? query, CancellationToken cancellationToken = default)
     {
         if (query is null)
             return BadRequest("Request body is required.");
@@ -365,9 +369,23 @@ public class StockController : ControllerBase
             if (sourceStockLevel == null)
                 return BadRequest(new { message = "Part not available in source warehouse" });
 
-            // Check if enough stock is available
-            if (sourceStockLevel.QuantityAvailable < request.Quantity)
-                return BadRequest(new { message = $"Insufficient stock. Available: {sourceStockLevel.QuantityAvailable}, Requested: {request.Quantity}" });
+            // Check if enough stock is available (use base unit for comparison)
+            int quantityInBaseUnit = request.QuantityInBaseUnit;
+            if (request.UnitId.HasValue && part.UnitId.HasValue && request.UnitId != part.UnitId)
+            {
+                // Convert from display unit to base unit
+                var conversionFactor = await _unitConversionService.GetConversionFactorAsync(
+                    request.UnitId.Value, part.UnitId.Value);
+                quantityInBaseUnit = (int)Math.Round(request.Quantity * conversionFactor);
+            }
+            else if (!request.UnitId.HasValue)
+            {
+                // If no unit specified, assume display quantity equals base quantity
+                quantityInBaseUnit = request.Quantity;
+            }
+
+            if (sourceStockLevel.QuantityAvailableInBaseUnit < quantityInBaseUnit)
+                return BadRequest(new { message = $"Insufficient stock. Available: {sourceStockLevel.QuantityAvailableInBaseUnit}, Requested: {quantityInBaseUnit}" });
 
             // Get or create destination stock level
             var destStockLevel = await _stockLevelRepository.GetByPartAndWarehouseAsync(
@@ -397,7 +415,9 @@ public class StockController : ControllerBase
                 "TRANSFER",
                 -request.Quantity,
                 transferReference,
-                $"Transfer to {toWarehouse.Name}"
+                $"Transfer to {toWarehouse.Name}",
+                unitId: request.UnitId,
+                quantityInBaseUnit: -quantityInBaseUnit
             );
             outMovement.CreatedBy = _currentUserService.GetCurrentUsername();
             outMovement.ModifiedBy = _currentUserService.GetCurrentUsername();
@@ -410,19 +430,21 @@ public class StockController : ControllerBase
                 "TRANSFER",
                 request.Quantity,
                 transferReference,
-                $"Transfer from {fromWarehouse.Name}"
+                $"Transfer from {fromWarehouse.Name}",
+                unitId: request.UnitId,
+                quantityInBaseUnit: quantityInBaseUnit
             );
             inMovement.CreatedBy = _currentUserService.GetCurrentUsername();
             inMovement.ModifiedBy = _currentUserService.GetCurrentUsername();
             inMovement.Approve("System");
             await _stockMovementRepository.AddAsync(inMovement, cancellationToken);
 
-            // Update stock levels
-            sourceStockLevel.RemoveStock(request.Quantity, "Transfer");
+            // Update stock levels with correct display and base quantities
+            sourceStockLevel.RemoveStock(request.Quantity, quantityInBaseUnit, "Transfer");
             sourceStockLevel.ModifiedBy = _currentUserService.GetCurrentUsername();
             await _stockLevelRepository.UpdateAsync(sourceStockLevel, cancellationToken);
 
-            destStockLevel.AddStock(request.Quantity, "Transfer");
+            destStockLevel.AddStock(request.Quantity, quantityInBaseUnit, "Transfer");
             destStockLevel.ModifiedBy = _currentUserService.GetCurrentUsername();
             await _stockLevelRepository.UpdateAsync(destStockLevel, cancellationToken);
 
@@ -440,6 +462,8 @@ public class StockController : ControllerBase
                 ToWarehouseName = toWarehouse.Name,
                 ToWarehouseCode = toWarehouse.Code,
                 Quantity = request.Quantity,
+                QuantityInBaseUnit = quantityInBaseUnit,
+                UnitId = request.UnitId,
                 Reference = transferReference,
                 Notes = request.Notes,
                 Status = "COMPLETED",
@@ -505,10 +529,28 @@ public class StockController : ControllerBase
             }
 
             var previousQuantity = stockLevel.QuantityOnHand;
+            var previousQuantityBase = stockLevel.QuantityOnHandInBaseUnit;
+
+            // Calculate quantity in base unit
+            int quantityInBaseUnit = request.QuantityInBaseUnit;
+            if (request.UnitId.HasValue && part.UnitId.HasValue && request.UnitId != part.UnitId)
+            {
+                // Convert from display unit to base unit
+                var conversionFactor = await _unitConversionService.GetConversionFactorAsync(
+                    request.UnitId.Value, part.UnitId.Value);
+                quantityInBaseUnit = (int)Math.Round(Math.Abs(request.Quantity) * conversionFactor);
+                // Preserve sign (positive for increase, negative for decrease)
+                quantityInBaseUnit = request.Quantity < 0 ? -quantityInBaseUnit : quantityInBaseUnit;
+            }
+            else if (!request.UnitId.HasValue)
+            {
+                // If no unit specified, assume display quantity equals base quantity
+                quantityInBaseUnit = request.Quantity;
+            }
 
             // Check if negative adjustment would result in negative stock
-            if (request.Quantity < 0 && stockLevel.QuantityOnHand + request.Quantity < 0)
-                return BadRequest(new { message = $"Cannot reduce stock below zero. Current: {stockLevel.QuantityOnHand}, Adjustment: {request.Quantity}" });
+            if (request.Quantity < 0 && stockLevel.QuantityOnHandInBaseUnit + quantityInBaseUnit < 0)
+                return BadRequest(new { message = $"Cannot reduce stock below zero. Current: {stockLevel.QuantityOnHandInBaseUnit}, Adjustment: {quantityInBaseUnit}" });
 
             // Create stock adjustment movement
             var adjustmentReference = string.IsNullOrEmpty(request.Reference)
@@ -520,26 +562,29 @@ public class StockController : ControllerBase
                 "ADJUST",
                 request.Quantity,
                 adjustmentReference,
-                $"{request.Reason}: {request.Notes}"
+                $"{request.Reason}: {request.Notes}",
+                unitId: request.UnitId,
+                quantityInBaseUnit: quantityInBaseUnit
             );
             movement.CreatedBy = _currentUserService.GetCurrentUsername();
             movement.ModifiedBy = _currentUserService.GetCurrentUsername();
             movement.Approve("System");
             await _stockMovementRepository.AddAsync(movement, cancellationToken);
 
-            // Update stock level
+            // Update stock level with correct display and base quantities
             if (request.Quantity > 0)
             {
-                stockLevel.AddStock(request.Quantity, request.Reason);
+                stockLevel.AddStock(request.Quantity, quantityInBaseUnit, request.Reason);
             }
             else
             {
-                stockLevel.RemoveStock(-request.Quantity, request.Reason);
+                stockLevel.RemoveStock(-request.Quantity, -quantityInBaseUnit, request.Reason);
             }
             stockLevel.ModifiedBy = _currentUserService.GetCurrentUsername();
             await _stockLevelRepository.UpdateAsync(stockLevel, cancellationToken);
 
             var newQuantity = stockLevel.QuantityOnHand;
+            var newQuantityBase = stockLevel.QuantityOnHandInBaseUnit;
 
             // Return adjustment response
             var response = new StockAdjustmentResponse
@@ -552,8 +597,12 @@ public class StockController : ControllerBase
                 WarehouseName = warehouse.Name,
                 WarehouseCode = warehouse.Code,
                 Quantity = request.Quantity,
+                QuantityInBaseUnit = quantityInBaseUnit,
+                UnitId = request.UnitId,
                 PreviousQuantity = previousQuantity,
+                PreviousQuantityInBaseUnit = previousQuantityBase,
                 NewQuantity = newQuantity,
+                NewQuantityInBaseUnit = newQuantityBase,
                 Reason = request.Reason,
                 Reference = adjustmentReference,
                 Notes = request.Notes,
@@ -581,12 +630,21 @@ public class StockController : ControllerBase
             Id = level.Id,
             PartId = level.PartId,
             WarehouseId = level.WarehouseId,
+            UnitId = level.UnitId,
+            UnitName = level.Unit?.Name,
+            UnitSymbol = level.Unit?.Symbol,
+            BaseUnitName = level.Part?.BaseUnit?.Name,
+            BaseUnitSymbol = level.Part?.BaseUnit?.Symbol,
             Quantity = level.QuantityOnHand,
+            QuantityInBaseUnit = level.QuantityOnHandInBaseUnit,
             ReservedQuantity = level.QuantityReserved,
+            ReservedQuantityInBaseUnit = level.QuantityReservedInBaseUnit,
             AvailableQuantity = level.QuantityAvailable,
+            AvailableQuantityInBaseUnit = level.QuantityAvailableInBaseUnit,
             ReorderLevel = level.ReorderLevel,
             ReorderQuantity = level.ReorderQuantity,
-            NeedsReorder = level.NeedsReorder,
+            // Status is calculated based on BASE UNIT quantities for accuracy
+            NeedsReorder = level.QuantityAvailableInBaseUnit <= level.ReorderLevel,
             CreatedAt = DateTime.UtcNow
         };
     }
@@ -607,6 +665,12 @@ public class StockController : ControllerBase
             WarehouseCode = warehouse?.Code ?? string.Empty,
             Type = movement.MovementType,
             Quantity = movement.Quantity,
+            QuantityInBaseUnit = movement.QuantityInBaseUnit,
+            UnitId = movement.UnitId,
+            UnitName = movement.Unit?.Name,
+            UnitSymbol = movement.Unit?.Symbol,
+            BaseUnitSymbol = movement.StockLevel?.Part?.BaseUnit?.Symbol,
+            Reason = movement.Reason,
             Reference = movement.ReferenceNumber,
             Status = string.IsNullOrEmpty(movement.ApprovedBy) ? "PENDING" : "APPROVED",
             Notes = movement.Notes,

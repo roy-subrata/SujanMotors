@@ -7,17 +7,30 @@ import { environment } from 'src/environments/environment';
 export interface GoodsReceiptLineResponse {
   id: string;
   partId: string;
+  partName: string;
+  partSKU: string;
+  orderedQuantity: number;
   receivedQuantity: number;
+  rejectedQuantity: number;
+  acceptedQuantity: number;
   condition: string;
   notes: string;
   hasDiscrepancy: boolean;
+  // Batch / lot identification
+  batchNumber?: string | null;
+  expiryDate?: string | null;
   // Cost Information
   unitCost: number;
   currency: string;
-  totalCost: number;
-  acceptedQuantity: number;
-  acceptedTotalCost: number;
   unitId?: string;
+  totalCost: number;
+  acceptedTotalCost: number;
+  // Lot-level selling price & warranty overrides
+  sellingPrice?: number | null;
+  hasWarranty?: boolean | null;
+  warrantyPeriodMonths?: number | null;
+  warrantyType?: string | null;
+  warrantyTerms?: string | null;
 }
 
 export interface GoodsReceiptResponse {
@@ -36,6 +49,10 @@ export interface GoodsReceiptResponse {
   verificationDate?: string;
   lines: GoodsReceiptLineResponse[];
   createdAt: string;
+  // Supplier Invoice
+  supplierInvoiceNumber: string;
+  supplierInvoiceDate?: string;
+  invoiceNotProvided: boolean;
   // Delivery Information
   deliveryDate?: string;
   deliveryReference: string;
@@ -49,6 +66,10 @@ export interface CreateGoodsReceiptRequest {
   warehouseId: string;
   receivedDate: string;
   lines: CreateGoodsReceiptLineRequest[];
+  // Supplier Invoice
+  supplierInvoiceNumber?: string | null;
+  supplierInvoiceDate?: string | null;
+  invoiceNotProvided?: boolean;
   // Delivery Information
   deliveryDate?: string;
   deliveryReference?: string;
@@ -63,10 +84,19 @@ export interface CreateGoodsReceiptLineRequest {
   condition: string;
   notes?: string;
   hasDiscrepancy?: boolean;
+  // Batch / lot identification
+  batchNumber?: string | null;
+  expiryDate?: string | null;
   // Cost Information
   unitCost: number;
   currency: string;
   unitId?: string | null;
+  // Lot-level selling price & warranty (optional overrides — defaults to Part master if omitted)
+  sellingPrice?: number | null;
+  hasWarranty?: boolean | null;
+  warrantyPeriodMonths?: number | null;
+  warrantyType?: string | null;
+  warrantyTerms?: string | null;
 }
 
 export interface PaginatedGoodsReceiptResponse {

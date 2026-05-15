@@ -72,7 +72,17 @@ export interface CatalogSearchRequest {
   priceMin?: number | null;
   priceMax?: number | null;
   inStockOnly: boolean;
+  onSaleOnly?: boolean;
   attributeFilters: AttributeFilterRequest[];
+  vehicleId?: string | null;
+}
+
+export interface VehicleOption {
+  id: string;
+  make: string;
+  model: string;
+  year: number;
+  engineType: string;
 }
 
 export interface AttributeFilterRequest {
@@ -86,15 +96,24 @@ export interface CatalogProductDetail {
   partId: string;
   name: string;
   description: string;
+  richDescription?: string | null;
   shortDescription: string;
   categoryName: string;
   brandName?: string | null;
+  sku?: string | null;
+  tags?: string | null;
   inStock: boolean;
   slug: string;
   primaryImageUrl: string;
+  basePrice: number;
   salePrice?: number | null;
   originalPrice?: number | null;
   isOnSale?: boolean;
+  currency: string;
+  hasWarranty: boolean;
+  warrantyPeriodMonths?: number | null;
+  warrantyType?: string | null;
+  warrantyTerms?: string | null;
   variants: CatalogVariant[];
   specifications: CatalogAttributeGroup[];
   media: CatalogMedia[];
@@ -106,10 +125,14 @@ export interface CatalogVariant {
   name: string;
   code: string;
   sku?: string | null;
-  price: number;
+  price: number;           // Effective price (after discount)
+  originalPrice?: number | null;
+  salePrice?: number | null;
+  isOnSale?: boolean;
   currency: string;
   inStock: boolean;
   attributes: CatalogAttributeValue[];
+  specifications: CatalogAttributeGroup[];
 }
 
 export interface CatalogAttributeGroup {
@@ -131,3 +154,19 @@ export interface CatalogMedia {
   sortOrder: number;
   isPrimary: boolean;
 }
+
+export interface ShopPolicies {
+  freeShippingEnabled: boolean;
+  freeShippingThreshold: number;
+  freeShippingCurrency: string;
+  returnPolicyDays: number;
+  returnPolicyText: string;
+}
+
+export const DEFAULT_SHOP_POLICIES: ShopPolicies = {
+  freeShippingEnabled: true,
+  freeShippingThreshold: 5000,
+  freeShippingCurrency: 'BDT',
+  returnPolicyDays: 30,
+  returnPolicyText: '30-day return policy',
+};

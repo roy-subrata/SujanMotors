@@ -1,0 +1,394 @@
+<!-- ============================================================
+     ATTRIBUTE GROUPS - ENTERPRISE UI (MATCHES BRANDS/CATEGORIES LAYOUT)
+     ============================================================ -->
+
+<p-toast position="top-right"></p-toast>
+<p-confirmDialog></p-confirmDialog>
+
+<div class="page-wrapper">
+  <!-- ==================== PAGE HEADER ==================== -->
+  <header class="page-header">
+    <div class="header-content">
+      <!-- Left: Back nav + Title -->
+      <div class="header-left">
+        <button class="btn-back" (click)="goBack()" pTooltip="Back to Parts" tooltipPosition="bottom">
+          <i class="pi pi-arrow-left"></i>
+        </button>
+        <h1 class="page-title">Attribute Groups</h1>
+        <p class="page-subtitle">Define reusable attribute groups used across all product variants</p>
+      </div>
+
+      <!-- Right: Actions -->
+      <div class="header-actions">
+        <!-- Stats Badge -->
+        <div class="stats-badge">
+          <i class="pi pi-tag"></i>
+          <div class="stats-info">
+            <span class="stats-value">{{ totalRecords }}</span>
+            <span class="stats-label">groups</span>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+          <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="refreshData()">
+            <i class="pi pi-refresh" [class.pi-spin]="isLoading"></i>
+          </button>
+          <button class="btn-primary" (click)="startAddGroup()">
+            <i class="pi pi-plus"></i>
+            <span>New Group</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================== FILTER SECTION ==================== -->
+  <section class="filter-section">
+    <div class="filter-container">
+      <!-- Search Input -->
+      <div class="filter-group search-group">
+        <div class="search-input-wrapper">
+          <i class="pi pi-search"></i>
+          <input
+            type="text"
+            [(ngModel)]="searchTerm"
+            placeholder="Search attribute groups..."
+            (input)="onSearchInput()"
+            class="search-input" />
+          <button *ngIf="searchTerm" class="search-clear" (click)="searchTerm = ''; onFilterChange()">
+            <i class="pi pi-times"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Status Filter -->
+      <div class="filter-group">
+        <label class="filter-label">Status</label>
+        <p-select
+          [options]="statusOptions"
+          [(ngModel)]="filterStatus"
+          placeholder="All Statuses"
+          [showClear]="true"
+          appendTo="body"
+          styleClass="filter-dropdown"
+          (onChange)="onFilterChange()">
+        </p-select>
+      </div>
+
+      <!-- Filter Actions -->
+      <div class="filter-group filter-actions">
+        <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
+          <i class="pi pi-filter-slash"></i>
+          Clear
+        </button>
+      </div>
+    </div>
+
+    <!-- Active Filters Display -->
+    <div *ngIf="hasActiveFilters()" class="active-filters">
+      <span class="active-filters-label">Active filters:</span>
+      <span *ngIf="searchTerm" class="filter-chip">
+        Search: "{{ searchTerm }}"
+        <i class="pi pi-times" (click)="searchTerm = ''; onFilterChange()"></i>
+      </span>
+      <span *ngIf="filterStatus !== null" class="filter-chip">
+        Status: {{ filterStatus ? 'Active' : 'Inactive' }}
+        <i class="pi pi-times" (click)="filterStatus = null; onFilterChange()"></i>
+      </span>
+    </div>
+  </section>
+
+  <!-- ==================== CONTENT SECTION ==================== -->
+  <section class="content-section">
+
+    <!-- Group form panel -->
+    <div *ngIf="showGroupForm" class="form-panel">
+      <div class="form-panel-header">
+        <span class="form-panel-title">
+          <i class="pi pi-{{ editingGroupId ? 'pencil' : 'plus-circle' }}"></i>
+          {{ editingGroupId ? 'Edit Group' : 'New Attribute Group' }}
+        </span>
+      </div>
+      <form [formGroup]="groupForm" class="inline-form">
+        <div class="inline-row">
+          <div class="inline-field">
+            <label class="field-label">Group Name <span class="required">*</span></label>
+            <input pInputText formControlName="name" placeholder="e.g. Color, Size, Storage" class="form-input" />
+            <small class="field-error" *ngIf="groupForm.get('name')?.invalid && groupForm.get('name')?.touched">Name is required</small>
+          </div>
+          <div class="inline-field narrow">
+            <label class="field-label">Sort Order</label>
+            <p-inputNumber formControlName="sortOrder" [min]="0" [step]="1" mode="decimal" styleClass="form-input-number"></p-inputNumber>
+          </div>
+          <div class="inline-field narrow checkbox-field">
+            <label class="field-label">&nbsp;</label>
+            <div class="checkbox-row">
+              <p-checkbox formControlName="isActive" [binary]="true" inputId="grpActive"></p-checkbox>
+              <label for="grpActive" class="checkbox-label">Active</label>
+            </div>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn-cancel" type="button" (click)="showGroupForm = false">
+            <i class="pi pi-times"></i> Cancel
+          </button>
+          <button class="btn-save" type="button" (click)="saveGroup()">
+            <i class="pi pi-check"></i> Save Group
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Attribute form panel -->
+    <div *ngIf="showAttrForm" class="form-panel">
+      <div class="form-panel-header">
+        <span class="form-panel-title">
+          <i class="pi pi-{{ editingAttrId ? 'pencil' : 'plus-circle' }}"></i>
+          {{ editingAttrId ? 'Edit Attribute' : 'New Attribute' }}
+        </span>
+      </div>
+      <form [formGroup]="attrForm" class="inline-form">
+        <div class="inline-row">
+          <div class="inline-field">
+            <label class="field-label">Attribute Name <span class="required">*</span></label>
+            <input pInputText formControlName="name" placeholder="e.g. Color" class="form-input" />
+            <small class="field-error" *ngIf="attrForm.get('name')?.invalid && attrForm.get('name')?.touched">Name is required</small>
+          </div>
+          <div class="inline-field narrow">
+            <label class="field-label">Code <span class="required">*</span></label>
+            <input pInputText formControlName="code" placeholder="e.g. COLOR" class="form-input" />
+            <small class="field-error" *ngIf="attrForm.get('code')?.invalid && attrForm.get('code')?.touched">Code is required</small>
+          </div>
+          <div class="inline-field">
+            <label class="field-label">Data Type</label>
+            <p-select formControlName="dataType" [options]="dataTypeOptions" optionLabel="label" optionValue="value" appendTo="body" styleClass="filter-dropdown"></p-select>
+          </div>
+          <div class="inline-field narrow">
+            <label class="field-label">Unit</label>
+            <input pInputText formControlName="unit" placeholder="e.g. GB, cm" class="form-input" />
+          </div>
+          <div class="inline-field narrow checkbox-field">
+            <label class="field-label">&nbsp;</label>
+            <div class="checkbox-row">
+              <p-checkbox formControlName="isActive" [binary]="true" inputId="attrActive"></p-checkbox>
+              <label for="attrActive" class="checkbox-label">Active</label>
+            </div>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn-cancel" type="button" (click)="showAttrForm = false">
+            <i class="pi pi-times"></i> Cancel
+          </button>
+          <button class="btn-save" type="button" (click)="saveAttr()">
+            <i class="pi pi-check"></i> Save Attribute
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Quick-start templates (shown only when no groups exist yet) -->
+    <div *ngIf="!isLoading && totalRecords === 0 && !hasActiveFilters()" class="templates-card">
+      <div class="templates-header">
+        <i class="pi pi-bolt templates-icon"></i>
+        <div>
+          <h3 class="templates-title">Quick-start Templates</h3>
+          <p class="templates-hint">Create a common attribute group in one click — you can edit it afterwards.</p>
+        </div>
+      </div>
+      <div class="templates-grid">
+        <button
+          *ngFor="let tpl of starterTemplates"
+          class="template-btn"
+          type="button"
+          [disabled]="isSeedingTemplate"
+          (click)="seedTemplate(tpl)">
+          <i class="pi {{ tpl.icon }}"></i>
+          {{ tpl.label }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Loading skeleton -->
+    <div *ngIf="isLoading" class="loading-state">
+      <div class="skeleton-card" *ngFor="let _ of [1,2,3]">
+        <div class="skeleton-row">
+          <div class="skeleton skeleton-text-lg"></div>
+          <div class="skeleton skeleton-badge"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Groups list -->
+    <div *ngIf="!isLoading" class="groups-list">
+
+      <!-- Empty state (no groups at all) -->
+      <div *ngIf="totalRecords === 0 && !hasActiveFilters()" class="empty-state">
+        <div class="empty-icon">
+          <i class="pi pi-tag"></i>
+        </div>
+        <h3>No Attribute Groups Yet</h3>
+        <p>Create your first attribute group to start defining product attributes.</p>
+        <button class="btn-primary-empty" (click)="startAddGroup()">
+          <i class="pi pi-plus"></i> Create First Group
+        </button>
+      </div>
+
+      <!-- Empty state (filtered, no results) -->
+      <div *ngIf="groups.length === 0 && hasActiveFilters()" class="empty-state">
+        <div class="empty-icon">
+          <i class="pi pi-search"></i>
+        </div>
+        <h3>No Results Found</h3>
+        <p>No attribute groups match your current filters.</p>
+        <button class="btn-secondary-action" (click)="clearFilters()">Clear Filters</button>
+      </div>
+
+      <!-- Group cards -->
+      <div *ngFor="let group of groups" class="group-card">
+        <div class="group-card-header">
+          <div class="group-info">
+            <div class="group-avatar">
+              <i class="pi pi-tag"></i>
+            </div>
+            <div class="group-details">
+              <span class="group-name">{{ group.name }}</span>
+              <span class="group-meta">{{ group.attributes.length }} attribute(s) · Sort: {{ group.sortOrder }}</span>
+            </div>
+            <span class="status-pill" [attr.data-status]="group.isActive ? 'active' : 'inactive'">
+              {{ group.isActive ? 'Active' : 'Inactive' }}
+            </span>
+          </div>
+          <div class="group-actions">
+            <button class="btn-action btn-action-info" type="button" (click)="startAddAttr(group.id)" pTooltip="Add Attribute" tooltipPosition="top">
+              <i class="pi pi-plus"></i>
+            </button>
+            <button class="btn-action" type="button" (click)="startEditGroup(group)" pTooltip="Edit Group" tooltipPosition="top">
+              <i class="pi pi-pencil"></i>
+            </button>
+            <button class="btn-action btn-action-danger" type="button" (click)="deleteGroup(group)" pTooltip="Delete Group" tooltipPosition="top">
+              <i class="pi pi-trash"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Attributes table -->
+        <div class="attributes-table" *ngIf="group.attributes.length > 0">
+          <p-table [value]="group.attributes" styleClass="p-datatable-sm attr-table" [tableStyle]="{ 'min-width': '40rem' }">
+            <ng-template pTemplate="header">
+              <tr>
+                <th>Attribute</th>
+                <th>Code</th>
+                <th>Type</th>
+                <th>Unit</th>
+                <th>Options</th>
+                <th>Status</th>
+                <th class="col-actions">Actions</th>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-attr>
+              <tr>
+                <td class="attr-name">{{ attr.name }}</td>
+                <td><code class="attr-code">{{ attr.code }}</code></td>
+                <td>
+                  <span class="type-badge">{{ attr.dataType }}</span>
+                </td>
+                <td class="text-muted">{{ attr.unit || '—' }}</td>
+                <td>
+                  <div class="option-chips" *ngIf="attr.dataType === 'option'">
+                    <span class="option-chip" *ngFor="let opt of attr.options">
+                      {{ opt.value }}
+                      <button class="opt-del-btn" type="button" (click)="deleteOption(group.id, attr.id, opt)" pTooltip="Remove" tooltipPosition="top">
+                        <i class="pi pi-times"></i>
+                      </button>
+                    </span>
+                    <button class="btn-add-option" type="button" pTooltip="Add option" tooltipPosition="top"
+                      (click)="startAddOption(group.id, attr.id)">
+                      <i class="pi pi-plus"></i>
+                    </button>
+                  </div>
+                  <span *ngIf="attr.dataType !== 'option'" class="text-muted">N/A</span>
+                </td>
+                <td>
+                  <span class="status-pill" [attr.data-status]="attr.isActive ? 'active' : 'inactive'">
+                    {{ attr.isActive ? 'Active' : 'Off' }}
+                  </span>
+                </td>
+                <td>
+                  <div class="action-cell">
+                    <button class="btn-action" type="button" (click)="startEditAttr(group.id, attr)" pTooltip="Edit" tooltipPosition="top">
+                      <i class="pi pi-pencil"></i>
+                    </button>
+                    <button class="btn-action btn-action-danger" type="button" (click)="deleteAttr(group.id, attr)" pTooltip="Delete" tooltipPosition="top">
+                      <i class="pi pi-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              <!-- Inline option input row -->
+              <tr *ngIf="showOptionInput && optionTargetAttrId === attr.id">
+                <td colspan="7">
+                  <div class="option-input-row">
+                    <input pInputText [(ngModel)]="optionValue" placeholder="Option value (e.g. Red)" class="option-input" />
+                    <button class="btn-save" type="button" [disabled]="!optionValue.trim()" (click)="saveOption()">
+                      <i class="pi pi-check"></i> Add
+                    </button>
+                    <button class="btn-cancel" type="button" (click)="showOptionInput = false">
+                      <i class="pi pi-times"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="emptymessage">
+              <tr>
+                <td colspan="7" class="empty-attrs-row">
+                  No attributes — click <b>Add Attribute</b> above to add the first one.
+                </td>
+              </tr>
+            </ng-template>
+          </p-table>
+        </div>
+
+        <!-- No attributes yet -->
+        <div *ngIf="group.attributes.length === 0" class="empty-attrs">
+          <i class="pi pi-info-circle"></i>
+          No attributes yet —
+          <a (click)="startAddAttr(group.id)" class="link-action">add the first one</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== PAGINATION ==================== -->
+    <div class="pagination-section" *ngIf="totalRecords > 0">
+      <div class="pagination-info">
+        Showing <strong>{{ first + 1 }}</strong> to <strong>{{ Math.min(first + rows, totalRecords) }}</strong> of <strong>{{ totalRecords }}</strong> groups
+      </div>
+      <div class="pagination-controls">
+        <span class="page-size-label">Rows per page:</span>
+        <p-select
+          [options]="[{label: '10', value: 10}, {label: '20', value: 20}, {label: '50', value: 50}]"
+          [ngModel]="rows"
+          (onChange)="onPageSizeChange($event.value)"
+          styleClass="page-size-dropdown">
+        </p-select>
+        <div class="page-nav">
+          <button class="page-btn" [disabled]="currentPage <= 1" (click)="goToPage(1)" pTooltip="First Page" tooltipPosition="top">
+            <i class="pi pi-angle-double-left"></i>
+          </button>
+          <button class="page-btn" [disabled]="currentPage <= 1" (click)="goToPage(currentPage - 1)" pTooltip="Previous Page" tooltipPosition="top">
+            <i class="pi pi-angle-left"></i>
+          </button>
+          <span class="page-indicator">{{ currentPage }} / {{ totalPages }}</span>
+          <button class="page-btn" [disabled]="currentPage >= totalPages" (click)="goToPage(currentPage + 1)" pTooltip="Next Page" tooltipPosition="top">
+            <i class="pi pi-angle-right"></i>
+          </button>
+          <button class="page-btn" [disabled]="currentPage >= totalPages" (click)="goToPage(totalPages)" pTooltip="Last Page" tooltipPosition="top">
+            <i class="pi pi-angle-double-right"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </section>
+</div>

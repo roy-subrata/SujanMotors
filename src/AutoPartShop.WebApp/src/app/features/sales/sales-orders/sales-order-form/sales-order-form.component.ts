@@ -22,11 +22,14 @@ import { UnitService, UnitResponse } from '../../../inventory/services/unit.serv
 import { CurrencyService } from '../../../../shared/services/currency.service';
 import { CurrencySelectorComponent } from '../../../../shared/components/currency-selector/currency-selector.component';
 import { LazyAutocompleteComponent, LazyRequest, LazyResponse } from '../../../../shared/components/lazy-autocomplete';
-import { PricingCalculationResponse, PricingValidationService } from '../../../../shared/services/pricing-validation.service';
-import { PRICING_RULES } from '../../../../shared/constants/pricing-rules';
+import { PricingValidationService, PricingCalculationResponse } from '../../../../shared/services/pricing-validation.service';
 import { Subject, takeUntil, map, forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { UnitConversionService } from '../../../inventory/services/unit-conversion.service';
+import { WarehouseService, WarehouseResponse } from '../../../inventory/services/warehouse.service';
+import { StockLotService } from '../../../inventory/services/stock-lot.service';
+import { ApplyCustomerCreditNotesComponent } from '../../credits/apply-customer-credit-notes.component';
+import { CustomerCreditNoteService } from '../../services/customer-credit-note.service';
 
 @Component({
     selector: 'app-sales-order-form',
@@ -47,7 +50,8 @@ import { UnitConversionService } from '../../../inventory/services/unit-conversi
         TextareaModule,
         TooltipModule,
         DatePickerModule,
-        LazyAutocompleteComponent
+        LazyAutocompleteComponent,
+        ApplyCustomerCreditNotesComponent
     ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './sales-order-form.component.html',
@@ -63,10 +67,17 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
     private readonly technicianService = inject(TechnicianService);
     private readonly unitService = inject(UnitService);
     private readonly currencyService = inject(CurrencyService);
+    private readonly creditNoteService = inject(CustomerCreditNoteService);
     private readonly messageService = inject(MessageService);
     private readonly confirmationService = inject(ConfirmationService);
     private readonly pricingValidationService = inject(PricingValidationService);
     private readonly unitConversionService = inject(UnitConversionService);
+    private readonly warehouseService = inject(WarehouseService);
+    private readonly stockLotService = inject(StockLotService);
+
+    // Credit note state
+    totalCreditApplied = 0;
+    availableCreditForCustomer = 0;
 
     // Subscription management
     private readonly destroy$ = new Subject<void>();
@@ -75,7 +86,6 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
     selectedTechnecian: TechnicianResponse | null = null;
     selectedPartQuickAdd: PublicPartResponse | null = null;
 
-    pricingRules = PRICING_RULES;
     linePricingErrors = new Map<number, string>();
     linePricingInfo = new Map<number, PricingCalculationResponse>();
     private readonly linePricingInfoTimers = new Map<number, ReturnType<typeof setTimeout>>();
@@ -190,6 +200,10 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
     // Units
     units = signal<UnitResponse[]>([]);
     loadingUnits = signal(false);
+
+    // Warehouses
+    warehouses = signal<WarehouseResponse[]>([]);
+    loadingWarehouses = signal(false);
     // Map to store compatible units for each part (keyed by part ID)
     compatibleUnitsMap = new Map<string, UnitResponse[]>();
 
@@ -232,6 +246,7 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
     ngOnInit(): void {
         this.initializeForm();
         this.loadUnits();
+        this.loadWarehouses();
 
         // Check route params
         this.route.queryParams.pipe(takeUntil(this.destroy$)).subscribe((params) => {
@@ -276,6 +291,23 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
             });
     }
 
+    loadWarehouses(): void {
+        this.loadingWarehouses.set(true);
+        this.warehouseService
+            .getWarehouses({ search: '', pageNumber: 1, pageSize: 1000, sorts: [{ field: 'name', direction: 'asc' }] })
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+                next: (res) => {
+                    this.warehouses.set(res.data ?? []);
+                    this.loadingWarehouses.set(false);
+                },
+                error: (err: Error) => {
+                    console.error('Error loading warehouses:', err);
+                    this.loadingWarehouses.set(false);
+                }
+            });
+    }
+
     clearCustomerSelection(): void {
         this.selectedCustomerId = '';
         this.salesOrderForm.patchValue({
@@ -306,11 +338,31 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
 
         // Auto-fill part details (part is already set by formControlName)
         const line = this.lines.at(lineIndex) as FormGroup;
-        line.patchValue({
-            unitPrice: part.sellingPrice
-        });
-        this.clearLinePricingError(lineIndex);
-        this.scheduleLinePricingInfoRefresh(lineIndex);
+        const warehouseId = this.salesOrderForm?.get('warehouseId')?.value as string | null;
+        if (warehouseId) {
+            // Use FIFO lot selling price as the default unit price
+            this.stockLotService.getFifoLotInfo(part.id, warehouseId)
+                .pipe(takeUntil(this.destroy$))
+                .subscribe({
+                    next: (lotInfo) => {
+                        const price = lotInfo.hasAvailableLot && lotInfo.sellingPrice > 0
+                            ? lotInfo.sellingPrice
+                            : part.sellingPrice;
+                        line.patchValue({ unitPrice: price });
+                        this.clearLinePricingError(lineIndex);
+                        this.scheduleLinePricingInfoRefresh(lineIndex);
+                    },
+                    error: () => {
+                        line.patchValue({ unitPrice: part.sellingPrice });
+                        this.clearLinePricingError(lineIndex);
+                        this.scheduleLinePricingInfoRefresh(lineIndex);
+                    }
+                });
+        } else {
+            line.patchValue({ unitPrice: part.sellingPrice });
+            this.clearLinePricingError(lineIndex);
+            this.scheduleLinePricingInfoRefresh(lineIndex);
+        }
 
         // Load compatible units for the selected part
         this.ensureCompatibleUnitsForLine(part, line, true);
@@ -377,6 +429,7 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
             customerEmail: ['', [Validators.required, Validators.email]],
             customerPhone: ['', [Validators.required]],
             customerCity: ['', [Validators.required]],
+            warehouseId: [null, [Validators.required]],
             technicianId: [null],
             technicianName: [null],
             deliveryDate: [null, [Validators.required]],
@@ -399,7 +452,7 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
             unitId: [data?.unitId || null], // Optional unit selection
             quantity: [data?.quantity || 1, [Validators.required, Validators.min(1)]],
             unitPrice: [data?.unitPrice || 0, [Validators.required, Validators.min(0)]],
-            discount: [data?.discount || 0, [Validators.min(0), Validators.max(this.pricingRules.maxDiscountPercent)]]
+            discount: [data?.discount || 0, [Validators.min(0), Validators.max(100)]]
         });
         this.watchLineUnitChanges(lineGroup);
         return lineGroup;
@@ -412,7 +465,20 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
     removeLine(index: number): void {
         if (this.lines.length > 1) {
             this.lines.removeAt(index);
-            this.linePricingErrors.clear();
+            // Cancel the removed line's debounce timer
+            const removedTimer = this.linePricingInfoTimers.get(index);
+            if (removedTimer) clearTimeout(removedTimer);
+            // Re-index all three maps so remaining indices stay accurate
+            const reindex = <T>(src: Map<number, T>): Map<number, T> => {
+                const out = new Map<number, T>();
+                src.forEach((v, k) => { if (k < index) out.set(k, v); else if (k > index) out.set(k - 1, v); });
+                return out;
+            };
+            this.linePricingErrors = reindex(this.linePricingErrors);
+            this.linePricingInfo = reindex(this.linePricingInfo);
+            const reindexedTimers = reindex(this.linePricingInfoTimers);
+            this.linePricingInfoTimers.clear();
+            reindexedTimers.forEach((v, k) => this.linePricingInfoTimers.set(k, v));
         }
     }
 
@@ -473,6 +539,7 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
                         customerEmail: order.customerEmail,
                         customerPhone: order.customerPhone,
                         customerCity: order.customerCity,
+                        warehouseId: order.warehouseId || null,
                         deliveryDate: deliveryDate,
                         currency: order.currency || this.currencyService.selectedCurrency(),
                         orderDiscount: order.discount || 0,
@@ -524,6 +591,13 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
         // Validate order-level discount
         if (this.orderDiscount() > 100) {
             this.error.set('Order discount cannot exceed 100%');
+            return;
+        }
+
+        // Validate warehouse selection
+        const warehouseId = this.salesOrderForm.get('warehouseId')?.value;
+        if (!warehouseId) {
+            this.error.set('Please select a warehouse');
             return;
         }
 
@@ -591,6 +665,7 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
 
         const request: CreateSalesOrderRequest = {
             customerId: this.selectedCustomerId,
+            warehouseId: formValue.warehouseId,
             customerName: formValue.customerName,
             customerEmail: formValue.customerEmail,
             customerPhone: formValue.customerPhone,
@@ -654,24 +729,9 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
         return this.linePricingInfo.get(index) || null;
     }
 
-    getMinMarginPercentForPart(part: PublicPartResponse | null): number {
-        if (!part) return this.pricingRules.minMarginPercent;
-        const override = part.minMarginPercentOverride;
-        return override === null || override === undefined ? this.pricingRules.minMarginPercent : Number(override);
-    }
-
-    getMaxDiscountPercentForPart(part: PublicPartResponse | null): number {
-        if (!part) return this.pricingRules.maxDiscountPercent;
-        const override = part.maxDiscountPercentOverride;
-        return override === null || override === undefined ? this.pricingRules.maxDiscountPercent : Number(override);
-    }
-
     getMaxDiscountedPriceForPart(part: PublicPartResponse | null): number {
         if (!part) return 0;
-        const mrp = this.parseNumber(part.sellingPrice);
-        if (mrp <= 0) return 0;
-        const maxDiscount = this.getMaxDiscountPercentForPart(part);
-        return mrp - (mrp * (maxDiscount / 100));
+        return this.parseNumber(part.sellingPrice);
     }
 
     getEffectivePrice(index: number): number {
@@ -776,12 +836,8 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
     private getLocalPricingError(part: PublicPartResponse, unitPrice: number, discount: number, unitId: string | null): string | null {
         if (unitPrice <= 0) return 'Selling price must be greater than 0.';
         if (discount < 0 || discount > 100) return 'Discount percentage must be between 0 and 100.';
-        if (part.sellingPrice <= 0) return 'MRP must be configured before sale.';
-        const isBaseUnit = !unitId || !part.unitId || unitId === part.unitId;
-        if (isBaseUnit && unitPrice > part.sellingPrice) return 'Selling price cannot exceed MRP.';
-        const maxDiscount = part.maxDiscountPercentOverride ?? this.pricingRules.maxDiscountPercent;
-        if (discount > maxDiscount) {
-            return `Discount cannot exceed ${maxDiscount}%.`;
+        if (discount > 100) {
+            return `Discount cannot exceed 100%.`;
         }
         return null;
     }
@@ -872,8 +928,8 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
             lineItemsHTML += `
                 <tr>
                     <td class="desc-cell">
-                        <div class="item-name">${part?.name || 'N/A'}</div>
-                        ${partMeta ? `<div class="item-desc">${partMeta}</div>` : `<div class="item-desc">-</div>`}
+                        <div class="item-name">${this.escapeHtml(part?.name) || 'N/A'}</div>
+                        ${partMeta ? `<div class="item-desc">${this.escapeHtml(partMeta)}</div>` : `<div class="item-desc">-</div>`}
                     </td>
                     <td class="num-cell">${this.formatCurrency(unitPrice)}</td>
                     <td class="num-cell">${quantity}</td>
@@ -981,18 +1037,18 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
         </div>
         <div class="address-block right">
             <div class="address-label">Bill to</div>
-            <div class="address-name">${customer?.fullName || formValue.customerName}</div>
+            <div class="address-name">${this.escapeHtml(customer?.fullName || formValue.customerName)}</div>
             <div class="address-detail">
-                ${customer?.email || formValue.customerEmail}<br>
-                ${customer?.phone || formValue.customerPhone}<br>
-                ${customer?.city || formValue.customerCity}
+                ${this.escapeHtml(customer?.email || formValue.customerEmail)}<br>
+                ${this.escapeHtml(customer?.phone || formValue.customerPhone)}<br>
+                ${this.escapeHtml(customer?.city || formValue.customerCity)}
             </div>
             ${
                 technician
                     ? `
             <div style="margin-top: 10px;">
                 <div class="address-label">Technician</div>
-                <div class="address-detail">${technician.name} | ${technician.phone || 'N/A'}</div>
+                <div class="address-detail">${this.escapeHtml(technician.name)} | ${this.escapeHtml(technician.phone) || 'N/A'}</div>
             </div>`
                     : ''
             }
@@ -1020,7 +1076,7 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
                 formValue.notes
                     ? `
             <h4>Notes</h4>
-            <p>${formValue.notes}</p>`
+            <p>${this.escapeHtml(formValue.notes)}</p>`
                     : ''
             }
         </div>
@@ -1076,6 +1132,16 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
         return this.currencyService.formatCurrency(amount, currencyCode);
     }
 
+    private escapeHtml(value: string | null | undefined): string {
+        if (!value) return '';
+        return value
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
     /**
      * Confirm sales order
      */
@@ -1118,6 +1184,43 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
      */
     formatDate(date: string): string {
         return new Date(date).toLocaleDateString('en-IN');
+    }
+
+    /**
+     * Handler for when credit is applied to this SO
+     */
+    onCreditApplied(amount: number): void {
+        this.totalCreditApplied += amount;
+        this.messageService.add({
+            severity: 'success',
+            summary: 'Credit Applied',
+            detail: `${this.formatCurrency(amount)} credit applied to this sales order`
+        });
+
+        // Reload SO to get updated data
+        if (this.salesOrderId()) {
+            this.loadSalesOrder(this.salesOrderId()!);
+        }
+
+        // Refresh available credit for customer
+        if (this.selectedCustomerId) {
+            this.loadAvailableCreditForCustomer(this.selectedCustomerId);
+        }
+    }
+
+    /**
+     * Load available credit for the selected customer
+     */
+    loadAvailableCreditForCustomer(customerId: string): void {
+        this.creditNoteService.getTotalAvailableCredit(customerId).subscribe({
+            next: (response: { totalAvailableCredit: number }) => {
+                this.availableCreditForCustomer = response.totalAvailableCredit;
+            },
+            error: () => {
+                // Silently fail - credit info is optional
+                this.availableCreditForCustomer = 0;
+            }
+        });
     }
 
     /**

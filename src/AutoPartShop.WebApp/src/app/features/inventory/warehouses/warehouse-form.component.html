@@ -23,15 +23,22 @@
       </div>
 <!-- Warehouse Code -->
       <div class="form-group">
-        <label for="name">Warehouse Code <span class="required">*</span></label>
-        <input
-          pInputText
-          id="code"
-          type="text"
-          formControlName="code"
-          placeholder="Enter warehouse code"
-          class="w-full"
-          [class.ng-invalid]="hasError('code')">
+        <label for="code">Warehouse Code <span class="required">*</span></label>
+        <div class="code-input-wrapper">
+          <input
+            pInputText
+            id="code"
+            type="text"
+            formControlName="code"
+            placeholder="Auto-generated"
+            class="w-full"
+            [class.ng-invalid]="hasError('code')">
+          <i *ngIf="generatingCode" class="pi pi-spin pi-spinner code-spinner"></i>
+        </div>
+        <span class="field-hint" *ngIf="!isEditMode && !isViewMode">
+          <i class="pi pi-info-circle"></i>
+          Code is auto-generated
+        </span>
         <small class="text-danger" *ngIf="hasError('code')">
           {{ getErrorMessage('code') }}
         </small>
@@ -55,11 +62,11 @@
       <!-- Capacity and Current Stock Row -->
       <div class="form-row">
         <div class="form-group col">
-          <label for="capacity">Capacity <span class="required">*</span></label>
+          <label for="capacity">Storage Capacity</label>
           <p-inputNumber
             id="capacity"
             formControlName="capacity"
-            [min]="1"
+            [min]="0"
             [useGrouping]="true"
             placeholder="0"
             class="w-full"
@@ -68,6 +75,17 @@
           <small class="text-danger" *ngIf="hasError('capacity')">
             {{ getErrorMessage('capacity') }}
           </small>
+        </div>
+
+        <div class="form-group col">
+          <label for="capacityUnit">Capacity Unit</label>
+          <input
+            pInputText
+            id="capacityUnit"
+            type="text"
+            formControlName="capacityUnit"
+            placeholder="e.g. SQM"
+            class="w-full">
         </div>
 
         <div class="form-group col" *ngIf="isEditMode || isViewMode">
@@ -122,7 +140,7 @@
           [label]="isEditMode ? 'Update Warehouse' : 'Create Warehouse'"
           class="p-button-success"
           [loading]="isSubmitting"
-          [disabled]="!form.valid || isSubmitting || isViewMode"
+          [disabled]="!form.valid || isSubmitting || isViewMode || generatingCode"
           *ngIf="!isViewMode">
         </button>
       </div>

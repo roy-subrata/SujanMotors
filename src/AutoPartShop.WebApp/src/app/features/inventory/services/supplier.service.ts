@@ -16,6 +16,8 @@ export interface SupplierResponse {
   state: string;
   country: string;
   postalCode: string;
+  paymentTerms: string;
+  creditLimit: number;
   currentBalance: number;
   isActive: boolean;
   rating: number;

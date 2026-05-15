@@ -32,6 +32,11 @@ public class SalesReturnConfiguration : IEntityTypeConfiguration<SalesReturn>
             .HasForeignKey(sr => sr.SalesOrderId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.HasOne(sr => sr.CustomerCreditNote)
+            .WithMany()
+            .HasForeignKey(sr => sr.CustomerCreditNoteId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         builder.HasMany(sr => sr.LineItems)
             .WithOne(li => li.SalesReturn)
             .HasForeignKey(li => li.SalesReturnId)

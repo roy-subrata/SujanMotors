@@ -1,21 +1,16 @@
-<div class="barcode-dialog-container">
+<div class="barcode-dialog">
   <p-toast position="top-right"></p-toast>
 
-  <!-- Header -->
-  <div class="dialog-header">
-    <h2 class="dialog-title" *ngIf="part">Barcode: {{ part.name }}</h2>
-    <p class="dialog-subtitle" *ngIf="part">
-      SKU: {{ part.sku }} | Part #: {{ part.partNumber }}
-    </p>
-  </div>
+  <!-- Main Layout: Controls + Label Preview side by side -->
+  <div class="barcode-main-layout">
+    <!-- Left: Controls -->
+    <div class="barcode-controls-panel">
+      <h4 class="panel-title"><i class="pi pi-cog"></i> Settings</h4>
 
-  <!-- Barcode Controls -->
-  <div class="barcode-controls">
-    <div class="controls-grid">
       <!-- Barcode Type -->
-      <div class="control-group">
-        <label>Barcode Type</label>
-        <p-select
+      <div class="field">
+        <label for="barcodeType">Barcode Type</label>
+        <p-select id="barcodeType"
           [(ngModel)]="selectedBarcodeType"
           [options]="barcodeTypes"
           optionLabel="label"
@@ -26,10 +21,34 @@
         </p-select>
       </div>
 
-      <!-- Barcode Size -->
-      <div class="control-group">
-        <label>Barcode Size</label>
-        <p-select
+      <!-- Barcode Value Source -->
+      <div class="field">
+        <label for="valueSource">Value Source</label>
+        <p-select id="valueSource"
+          [(ngModel)]="selectedValueSource"
+          [options]="valueSourceOptions"
+          optionLabel="label"
+          optionValue="value"
+          optionDisabled="disabled"
+          (onChange)="onValueSourceChange($event.value)"
+          styleClass="w-full">
+        </p-select>
+      </div>
+
+      <!-- Custom Value -->
+      <div class="field" *ngIf="selectedValueSource === 'custom'">
+        <label for="customVal">Custom Value</label>
+        <input pInputText id="customVal"
+          [(ngModel)]="customValue"
+          (input)="onValueSourceChange('custom')"
+          class="w-full"
+          placeholder="Enter custom value">
+      </div>
+
+      <!-- Size -->
+      <div class="field">
+        <label for="barcodeSize">Size</label>
+        <p-select id="barcodeSize"
           [(ngModel)]="selectedSize"
           [options]="barcodeSize"
           optionLabel="label"
@@ -39,164 +58,174 @@
         </p-select>
       </div>
 
-      <!-- Barcode Value Source -->
-      <div class="control-group">
-        <label>Barcode Value</label>
-        <p-select
-          [(ngModel)]="selectedValueSource"
-          [options]="valueSourceOptions"
-          optionLabel="label"
-          optionValue="value"
-          optionDisabled="disabled"
-          (onChange)="onValueSourceChange($event.value)"
-          styleClass="w-full">
-        </p-select>
-        <small class="helper-text">
-          Choose what gets encoded. QR can store full details; linear barcodes use the selected value.
-        </small>
-      </div>
-
-      <!-- Custom Value (if custom selected) -->
-      <div class="control-group" *ngIf="selectedValueSource === 'custom'">
-        <label>Custom Value</label>
-        <input
-          type="text"
-          [(ngModel)]="customValue"
-          (input)="onValueSourceChange('custom')"
-          class="form-input"
-          placeholder="Enter custom barcode value">
-      </div>
-
-      <!-- Custom Width (if custom size) -->
-      <div class="control-group" *ngIf="selectedSize === 'custom'">
-        <label>Width (mm)</label>
-        <input
-          type="number"
-          [(ngModel)]="customWidth"
-          (change)="onCustomSizeChange()"
-          min="1"
-          max="10"
-          step="0.5"
-          class="form-input">
-      </div>
-
-      <!-- Custom Height (if custom size) -->
-      <div class="control-group" *ngIf="selectedSize === 'custom'">
-        <label>Height (mm)</label>
-        <input
-          type="number"
-          [(ngModel)]="customHeight"
-          (change)="onCustomSizeChange()"
-          min="20"
-          max="200"
-          step="5"
-          class="form-input">
+      <!-- Custom Size Controls -->
+      <div class="field-row" *ngIf="selectedSize === 'custom'">
+        <div class="field compact">
+          <label>Width (mm)</label>
+          <input pInputText type="number"
+            [(ngModel)]="customWidth"
+            (change)="onCustomSizeChange()"
+            min="1" max="10" step="0.5"
+            class="w-full">
+        </div>
+        <div class="field compact">
+          <label>Height (mm)</label>
+          <input pInputText type="number"
+            [(ngModel)]="customHeight"
+            (change)="onCustomSizeChange()"
+            min="20" max="200" step="5"
+            class="w-full">
+        </div>
       </div>
 
       <!-- Quantity -->
-      <div class="control-group">
-        <label>Quantity to Print ({{ quantity }}/{{ maxQuantity }})</label>
-        <input
-          type="number"
-          [(ngModel)]="quantity"
-          (change)="validateQuantity()"
-          min="1"
-          [max]="maxQuantity"
-          class="form-input">
+      <div class="field">
+        <label for="qty">Print Quantity</label>
+        <div class="qty-input-group">
+          <button pButton icon="pi pi-minus" class="p-button-sm p-button-outlined"
+            (click)="quantity = quantity > 1 ? quantity - 1 : 1"
+            [disabled]="quantity <= 1"></button>
+          <input pInputText id="qty" type="number"
+            [(ngModel)]="quantity"
+            (change)="validateQuantity()"
+            min="1" [max]="maxQuantity"
+            class="qty-input">
+          <button pButton icon="pi pi-plus" class="p-button-sm p-button-outlined"
+            (click)="quantity = quantity < maxQuantity ? quantity + 1 : maxQuantity"
+            [disabled]="quantity >= maxQuantity"></button>
+        </div>
+        <small class="field-hint">Max {{ maxQuantity }} per batch</small>
+      </div>
+
+      <!-- Label Fields Toggle -->
+      <h4 class="panel-title" style="margin-top: 0.5rem;"><i class="pi pi-tag"></i> Label Fields</h4>
+      <div class="label-fields-list">
+        <div class="label-field-toggle" *ngFor="let field of labelFields">
+          <p-checkbox
+            [(ngModel)]="field.visible"
+            [binary]="true"
+            [inputId]="'lf_' + field.key">
+          </p-checkbox>
+          <label [for]="'lf_' + field.key" class="toggle-label">{{ field.label }}</label>
+          <input pInputText
+            [(ngModel)]="field.value"
+            class="toggle-value-input"
+            [placeholder]="field.label">
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- Barcode Display Container -->
-  <div class="barcode-display-section" #barcodeContainer>
-    <!-- QR Code Display -->
-    <div class="barcode-preview qrcode-preview" *ngIf="selectedBarcodeType === 'qrcode'">
-      <div class="qrcode-container" [style.width.px]="qrCodeSize" [style.height.px]="qrCodeSize">
-        <qrcode
-          [qrdata]="barcodeValue"
-          [width]="qrCodeSize"
-          [errorCorrectionLevel]="'M'"
-          [colorLight]="'#ffffff'"
-          [colorDark]="'#000000'">
-        </qrcode>
+    <!-- Right: Label Preview -->
+    <div class="barcode-preview-panel" #barcodeContainer>
+      <h4 class="panel-title"><i class="pi pi-eye"></i> Label Preview</h4>
+
+      <!-- Label Card Preview -->
+      <div class="label-preview-wrapper" #labelPreview>
+        <div class="label-card">
+          <!-- Header row: Category | Company | Brand -->
+          <div class="label-header">
+            <span class="label-header-left">{{ getFieldValue('categoryName') }}</span>
+            <span class="label-company">{{ companyName }}</span>
+            <span class="label-header-right">{{ getFieldValue('brandName') }}</span>
+          </div>
+
+          <!-- ID row: SKU ... Unit -->
+          <div class="label-id-row">
+            <span class="label-sku">{{ getFieldValue('sku') }}</span>
+            <span class="label-unit" *ngIf="getFieldValue('unitCode')">{{ getFieldValue('unitCode') }}</span>
+          </div>
+
+          <!-- Body: Sidebar Left | Barcode | Sidebar Right -->
+          <div class="label-body">
+            <div class="label-sidebar label-sidebar-left" *ngIf="getFieldValue('sku')">
+              <span>{{ getFieldValue('sku') }}</span>
+            </div>
+
+            <div class="label-barcode-area">
+              <!-- QR Code -->
+              <ng-container *ngIf="selectedBarcodeType === 'qrcode'">
+                <qrcode
+                  [qrdata]="barcodeValue"
+                  [width]="140"
+                  [errorCorrectionLevel]="'M'"
+                  [colorLight]="'#ffffff'"
+                  [colorDark]="'#000000'">
+                </qrcode>
+              </ng-container>
+
+              <!-- Linear Barcode -->
+              <ng-container *ngIf="selectedBarcodeType !== 'qrcode'">
+                <div class="label-linear-barcode" [innerHTML]="barcodeHTMLSafe" *ngIf="barcodeHTMLSafe"></div>
+                <div class="preview-error" *ngIf="validationMessage && !isGenerating">
+                  <i class="pi pi-exclamation-triangle"></i>
+                  <span>{{ validationMessage }}</span>
+                </div>
+              </ng-container>
+
+              <!-- Loading -->
+              <div class="preview-loading" *ngIf="isGenerating">
+                <i class="pi pi-spin pi-spinner"></i>
+              </div>
+            </div>
+
+            <div class="label-sidebar label-sidebar-right" *ngIf="getFieldValue('unitCode')">
+              <span>{{ getFieldValue('unitCode') }}</span>
+            </div>
+          </div>
+
+          <!-- Barcode value text -->
+          <div class="label-barcode-value">{{ barcodeValue }}</div>
+
+          <!-- Part Number -->
+          <div class="label-part-number" *ngIf="getFieldValue('partNumber')">
+            {{ getFieldValue('partNumber') }}
+          </div>
+
+          <!-- Footer: Price | Name -->
+          <div class="label-footer">
+            <span class="label-price" *ngIf="getFieldValue('sellingPrice')">
+              M.R.P. {{ getFieldValue('sellingPrice') }}
+            </span>
+            <span class="label-name" *ngIf="getFieldValue('name')">
+              {{ getFieldValue('name') }}
+            </span>
+          </div>
+        </div>
       </div>
-      <p class="barcode-data-label">{{ barcodeValue }}</p>
-      <p class="barcode-size-info">Size: {{ qrCodeSize }}x{{ qrCodeSize }}px</p>
-    </div>
 
-    <!-- Linear Barcode Display -->
-    <div class="barcode-preview linear-preview" *ngIf="selectedBarcodeType !== 'qrcode'">
-      <div class="linear-barcode-container" [innerHTML]="barcodeHTMLSafe" *ngIf="barcodeHTMLSafe"></div>
-      <p class="barcode-value-text" *ngIf="validationMessage && !isGenerating">
-        {{ validationMessage }}
-      </p>
-      <p class="barcode-value-text" *ngIf="!barcodeHTML && !isGenerating && !validationMessage">
-        Unable to generate barcode. Please check the value.
-      </p>
-      <p class="barcode-loading" *ngIf="isGenerating">Generating barcode...</p>
-    </div>
-
-  </div>
-
-  <!-- Barcode Information Section -->
-  <div class="barcode-info-section">
-    <div class="info-group">
-      <label>Barcode Value:</label>
-      <div class="barcode-value-display">
+      <!-- Barcode Value Display -->
+      <div class="value-display">
         <code>{{ barcodeValue }}</code>
-        <button
-          pButton
-          type="button"
-          icon="pi pi-copy"
-          class="p-button-sm p-button-text"
-          (click)="copyBarcodeValue()"
-          pTooltip="Copy to clipboard"
-          tooltipPosition="top">
-        </button>
+        <button pButton icon="pi pi-copy" class="p-button-sm p-button-text p-button-rounded"
+          (click)="copyBarcodeValue()" pTooltip="Copy value" tooltipPosition="top"></button>
       </div>
     </div>
   </div>
 
-  <!-- Action Buttons -->
-  <div class="dialog-actions">
-    <button
-      pButton
-      type="button"
-      icon="pi pi-download"
-      label="Download PNG"
-      class="p-button-outlined"
-      (click)="downloadBarcode()"
-      [loading]="isDownloading"
-      [disabled]="isDownloading || isGenerating">
-    </button>
-
-    <button
-      pButton
-      type="button"
-      icon="pi pi-download"
-      label="Download SVG"
-      class="p-button-outlined"
-      (click)="downloadBarcodeSVG()"
-      [disabled]="selectedBarcodeType === 'qrcode' || isGenerating">
-    </button>
-
-    <button
-      pButton
-      type="button"
-      icon="pi pi-print"
-      [label]="quantity > 1 ? 'Print (' + quantity + ')' : 'Print'"
-      class="p-button-outlined p-button-info"
-      (click)="printBarcode()"
-      [disabled]="isGenerating">
-    </button>
-
-    <button
-      pButton
-      type="button"
-      icon="pi pi-times"
-      label="Close"
-      class="p-button-text"
-      (click)="closeDialog()">
-    </button>
+  <!-- Action Bar -->
+  <div class="action-bar">
+    <div class="action-bar-left">
+      <button pButton icon="pi pi-download" label="PNG"
+        class="p-button-sm p-button-outlined"
+        (click)="downloadBarcode()"
+        [loading]="isDownloading"
+        [disabled]="isDownloading || isGenerating"
+        pTooltip="Download as PNG image"></button>
+      <button pButton icon="pi pi-download" label="SVG"
+        class="p-button-sm p-button-outlined"
+        (click)="downloadBarcodeSVG()"
+        [disabled]="selectedBarcodeType === 'qrcode' || isGenerating"
+        pTooltip="Download as SVG (linear only)"></button>
+    </div>
+    <div class="action-bar-right">
+      <button pButton icon="pi pi-print"
+        [label]="quantity > 1 ? 'Print Labels (' + quantity + ')' : 'Print Label'"
+        class="p-button-sm"
+        (click)="printBarcode()"
+        [disabled]="isGenerating"></button>
+      <button pButton icon="pi pi-times" label="Close"
+        class="p-button-sm p-button-text"
+        (click)="closeDialog()"></button>
+    </div>
   </div>
 </div>

@@ -15,33 +15,39 @@ namespace AutoPartShop.Api.Controllers;
 public class PurchaseReturnController : ControllerBase
 {
     private readonly IPurchaseReturnRepository _purchaseReturnRepository;
+    private readonly ICreditNoteRepository _creditNoteRepository;
     private readonly IStockLevelRepository _stockLevelRepository;
     private readonly IStockMovementRepository _stockMovementRepository;
     private readonly IStockLotRepository _stockLotRepository;
     private readonly IStockLotMovementRepository _stockLotMovementRepository;
     private readonly ISupplierPaymentRepository _supplierPaymentRepository;
     private readonly ICurrentUserService _currentUserService;
+    private readonly ICodeGenerateService _codeGenerateService;
     private readonly AutoPartDbContext _dbContext;
     private readonly ILogger<PurchaseReturnController> _logger;
 
     public PurchaseReturnController(
         IPurchaseReturnRepository purchaseReturnRepository,
+        ICreditNoteRepository creditNoteRepository,
         IStockLevelRepository stockLevelRepository,
         IStockMovementRepository stockMovementRepository,
         IStockLotRepository stockLotRepository,
         IStockLotMovementRepository stockLotMovementRepository,
         ISupplierPaymentRepository supplierPaymentRepository,
         ICurrentUserService currentUserService,
+        ICodeGenerateService codeGenerateService,
         AutoPartDbContext dbContext,
         ILogger<PurchaseReturnController> logger)
     {
         _purchaseReturnRepository = purchaseReturnRepository;
+        _creditNoteRepository = creditNoteRepository;
         _stockLevelRepository = stockLevelRepository;
         _stockMovementRepository = stockMovementRepository;
         _stockLotRepository = stockLotRepository;
         _stockLotMovementRepository = stockLotMovementRepository;
         _supplierPaymentRepository = supplierPaymentRepository;
         _currentUserService = currentUserService;
+        _codeGenerateService = codeGenerateService;
         _dbContext = dbContext;
         _logger = logger;
     }
@@ -195,8 +201,9 @@ public class PurchaseReturnController : ControllerBase
             if (request.PurchaseOrderId == Guid.Empty || request.SupplierId == Guid.Empty)
                 return BadRequest(new { message = "PurchaseOrderId and SupplierId are required" });
 
+            var returnNumber = await _codeGenerateService.GenerateAsync("PR", cancellationToken);
             var purchaseReturn = PurchaseReturn.Create(
-                $"PR-{DateTime.UtcNow:yyyyMMddHHmmss}",
+                returnNumber,
                 request.PurchaseOrderId,
                 request.SupplierId,
                 request.Reason,
@@ -231,6 +238,7 @@ public class PurchaseReturnController : ControllerBase
             purchaseReturn.ModifiedBy = _currentUserService.GetCurrentUsername();
 
             await _purchaseReturnRepository.AddAsync(purchaseReturn, cancellationToken);
+            await _codeGenerateService.SaveGenerateCodeAsync("PR", cancellationToken);
 
             return CreatedAtAction(nameof(GetById), new { id = purchaseReturn.Id }, MapToPurchaseReturnResponse(purchaseReturn));
         }
@@ -299,14 +307,14 @@ public class PurchaseReturnController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/approve")]
-    public async Task<IActionResult> Approve(Guid id, [FromQuery] string approvedBy, CancellationToken cancellationToken)
+    public async Task<IActionResult> Approve(Guid id, CancellationToken cancellationToken)
     {
         try
         {
             var purchaseReturn = await _purchaseReturnRepository.GetByIdAsync(id, cancellationToken);
             if (purchaseReturn is null) return NotFound(new { message = "Purchase return not found" });
 
-            purchaseReturn.Approve(approvedBy);
+            purchaseReturn.Approve(_currentUserService.GetCurrentUsername());
             purchaseReturn.ModifiedBy = _currentUserService.GetCurrentUsername();
             await _purchaseReturnRepository.UpdateAsync(purchaseReturn, cancellationToken);
 
@@ -335,17 +343,33 @@ public class PurchaseReturnController : ControllerBase
             var purchaseReturn = await _purchaseReturnRepository.GetByIdAsync(id, cancellationToken);
             if (purchaseReturn is null) return NotFound(new { message = "Purchase return not found" });
 
-            purchaseReturn.MarkAsReturned();
-            purchaseReturn.ModifiedBy = _currentUserService.GetCurrentUsername();
-
-            // Process stock movements for each line item
+            // Validate all lines have sufficient stock BEFORE modifying anything
             foreach (var line in purchaseReturn.LineItems)
             {
-                // Get the accepted quantity (returned quantity - rejected)
                 int acceptedQuantity = line.Quantity - line.RejectedQuantity;
                 if (acceptedQuantity <= 0) continue;
 
-                // Get stock level for this part
+                var stockLevels = await _stockLevelRepository.GetByPartAsync(line.PartId, cancellationToken);
+                var stockLevel = stockLevels.FirstOrDefault();
+                if (stockLevel == null)
+                    return BadRequest(new { message = $"No stock level found for part {line.PartId}. Cannot process return." });
+
+                if (stockLevel.QuantityAvailable < acceptedQuantity)
+                    return BadRequest(new { message = $"Insufficient available stock for part {line.Part?.Name ?? line.PartId.ToString()}. Available: {stockLevel.QuantityAvailable}, Required: {acceptedQuantity}" });
+            }
+
+            purchaseReturn.MarkAsReturned();
+            purchaseReturn.ModifiedBy = _currentUserService.GetCurrentUsername();
+
+            // Process stock movements for each line item inside a transaction
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+            try
+            {
+            foreach (var line in purchaseReturn.LineItems)
+            {
+                int acceptedQuantity = line.Quantity - line.RejectedQuantity;
+                if (acceptedQuantity <= 0) continue;
+
                 var stockLevels = await _stockLevelRepository.GetByPartAsync(line.PartId, cancellationToken);
                 var stockLevel = stockLevels.FirstOrDefault();
 
@@ -371,7 +395,7 @@ public class PurchaseReturnController : ControllerBase
                         }
 
                         // Reduce stock - items are being returned to supplier
-                        stockLevel.RemoveStock(acceptedQuantity, "Purchase Return");
+                        stockLevel.RemoveStock(acceptedQuantity, acceptedQuantity, "Purchase Return");
                         await _stockLevelRepository.UpdateAsync(stockLevel, cancellationToken);
 
                         // Create stock movement record
@@ -388,7 +412,7 @@ public class PurchaseReturnController : ControllerBase
                         await _stockMovementRepository.AddAsync(stockMovement, cancellationToken);
 
                         // Reduce the selected lot quantity
-                        selectedLot.RemoveStock(acceptedQuantity, "Purchase Return");
+                        selectedLot.RemoveStock(acceptedQuantity, acceptedQuantity, "Purchase Return");
                         await _stockLotRepository.UpdateAsync(selectedLot, cancellationToken);
 
                         // Create lot movement for the specific lot
@@ -440,7 +464,7 @@ public class PurchaseReturnController : ControllerBase
                         }
 
                         // Reduce stock - items are being returned to supplier
-                        stockLevel.RemoveStock(acceptedQuantity, "Purchase Return");
+                        stockLevel.RemoveStock(acceptedQuantity, acceptedQuantity, "Purchase Return");
                         await _stockLevelRepository.UpdateAsync(stockLevel, cancellationToken);
 
                         // Create stock movement record
@@ -465,7 +489,7 @@ public class PurchaseReturnController : ControllerBase
                             int qtyToReturn = Math.Min(remainingQty, lot.QuantityAvailable);
 
                             // Reduce lot quantity
-                            lot.RemoveStock(qtyToReturn, "Purchase Return");
+                            lot.RemoveStock(qtyToReturn, qtyToReturn, "Purchase Return");
                             await _stockLotRepository.UpdateAsync(lot, cancellationToken);
 
                             // Create lot movement with supplier reference
@@ -502,6 +526,13 @@ public class PurchaseReturnController : ControllerBase
             // Use the /settle endpoint to record the financial settlement of this return.
 
             await _purchaseReturnRepository.UpdateAsync(purchaseReturn, cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            } // end try
+            catch
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                throw;
+            }
 
             return Ok(MapToPurchaseReturnResponse(purchaseReturn));
         }
@@ -517,14 +548,14 @@ public class PurchaseReturnController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/mark-received")]
-    public async Task<IActionResult> MarkAsReceived(Guid id, [FromQuery] string receivedBy, CancellationToken cancellationToken)
+    public async Task<IActionResult> MarkAsReceived(Guid id, CancellationToken cancellationToken)
     {
         try
         {
             var purchaseReturn = await _purchaseReturnRepository.GetByIdAsync(id, cancellationToken);
             if (purchaseReturn is null) return NotFound(new { message = "Purchase return not found" });
 
-            purchaseReturn.MarkAsReceived(receivedBy);
+            purchaseReturn.MarkAsReceived(_currentUserService.GetCurrentUsername());
             purchaseReturn.ModifiedBy = _currentUserService.GetCurrentUsername();
             await _purchaseReturnRepository.UpdateAsync(purchaseReturn, cancellationToken);
 
@@ -553,11 +584,62 @@ public class PurchaseReturnController : ControllerBase
             var purchaseReturn = await _purchaseReturnRepository.GetByIdAsync(id, cancellationToken);
             if (purchaseReturn is null) return NotFound(new { message = "Purchase return not found" });
 
+            // Issue credit note on the return
             purchaseReturn.IssueCreditNote(creditAmount);
             purchaseReturn.ModifiedBy = _currentUserService.GetCurrentUsername();
             await _purchaseReturnRepository.UpdateAsync(purchaseReturn, cancellationToken);
 
-            return Ok(MapToPurchaseReturnResponse(purchaseReturn));
+            // Create CreditNote entity
+            var creditNoteNumber = $"CN-{DateTime.UtcNow:yyyyMMddHHmmss}";
+            // Derive currency from the linked purchase order if available, otherwise fall back to "NPR"
+            var linkedPO = await _dbContext.PurchaseOrders
+                .FirstOrDefaultAsync(po => po.Id == purchaseReturn.PurchaseOrderId, cancellationToken);
+            var currency = linkedPO?.Currency ?? "NPR";
+
+            var creditNote = CreditNote.Create(
+                creditNoteNumber: creditNoteNumber,
+                supplierId: purchaseReturn.SupplierId,
+                purchaseReturnId: purchaseReturn.Id,
+                amount: creditAmount,
+                currency: currency,
+                issueDate: DateTime.UtcNow,
+                notes: $"Credit note for return {purchaseReturn.ReturnNumber}",
+                issuedBy: _currentUserService.GetCurrentUsername()
+            );
+            await _creditNoteRepository.AddAsync(creditNote, cancellationToken);
+
+            // Link the credit note to the purchase return
+            purchaseReturn.SetCreditNote(creditNote.Id);
+            await _purchaseReturnRepository.UpdateAsync(purchaseReturn, cancellationToken);
+
+            // Create SupplierPayment record for audit trail (ADVANCE type)
+            // Find a default payment provider
+            var defaultProvider = await _dbContext.PaymentProviders.FirstOrDefaultAsync(cancellationToken);
+            if (defaultProvider != null)
+            {
+                var supplierPayment = SupplierPayment.Create(
+                    supplierId: purchaseReturn.SupplierId,
+                    paymentProviderId: defaultProvider.Id,
+                    amount: creditAmount,
+                    paymentMethod: "CREDIT_NOTE",
+                    transactionNumber: creditNoteNumber,
+                    referenceNumber: purchaseReturn.ReturnNumber,
+                    paymentDate: DateTime.UtcNow
+                );
+                supplierPayment.MarkAsAdvance();  // This is a credit that can be used later
+                supplierPayment.MarkAsProcessed(_currentUserService.GetCurrentUsername());
+                await _supplierPaymentRepository.AddAsync(supplierPayment, cancellationToken);
+            }
+
+            _logger.LogInformation(
+                "Credit note {CreditNoteNumber} issued for return {ReturnId}, amount: {Amount}, supplier: {SupplierId}",
+                creditNoteNumber, id, creditAmount, purchaseReturn.SupplierId);
+
+            var response = MapToPurchaseReturnResponse(purchaseReturn);
+            response.CreditNoteId = creditNote.Id;
+            response.CreditNoteNumber = creditNote.CreditNoteNumber;
+
+            return Ok(response);
         }
         catch (ArgumentException ex)
         {
@@ -705,8 +787,12 @@ public class PurchaseReturnController : ControllerBase
     {
         try
         {
-            if (!await _purchaseReturnRepository.ExistsAsync(id, cancellationToken))
+            var purchaseReturn = await _purchaseReturnRepository.GetByIdAsync(id, cancellationToken);
+            if (purchaseReturn is null)
                 return NotFound(new { message = "Purchase return not found" });
+
+            if (purchaseReturn.Status != "PENDING")
+                return BadRequest(new { message = $"Only PENDING returns can be deleted. Current status: {purchaseReturn.Status}" });
 
             await _purchaseReturnRepository.DeleteAsync(id, cancellationToken);
             return NoContent();

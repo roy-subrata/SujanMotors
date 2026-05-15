@@ -50,7 +50,7 @@
           <input
             type="text"
             [(ngModel)]="searchTerm"
-            placeholder="Search by name, code, description..."
+            placeholder="Search categories..."
             (keyup.enter)="onSearch()"
             class="search-input" />
           <button *ngIf="searchTerm" class="search-clear" (click)="clearSearchInput(); onSearch()">
@@ -67,7 +67,6 @@
           [(ngModel)]="filterStatus"
           placeholder="All Statuses"
           [showClear]="true"
-          (onChange)="onFilterChange()"
           appendTo="body"
           styleClass="filter-dropdown">
         </p-select>
@@ -77,7 +76,7 @@
       <div class="filter-group filter-actions">
         <button class="btn-search" (click)="onSearch()">
           <i class="pi pi-search"></i>
-          Search
+          Apply
         </button>
         <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
           <i class="pi pi-filter-slash"></i>
@@ -120,13 +119,9 @@
   [displayCreateDialog]="displayCreateDialog"
   [displayUpdateDialog]="displayUpdateDialog"
   [selectedCategory]="selectedCategory"
-  [filteredParentCategories]="filteredParentCategories"
   [selectedParentCategory]="selectedParentCategory"
   (displayCreateDialogChange)="onDisplayCreateDialogChange($event)"
   (displayUpdateDialogChange)="onDisplayUpdateDialogChange($event)"
   (createSuccess)="onCreateSuccess()"
-  (updateSuccess)="onUpdateSuccess()"
-  (parentCategoryEvent)="onParentCategoryEvent($event)"
-  (parentCategorySelect)="onParentCategorySelect($event)"
-  (parentCategoryCleared)="onParentCategoryCleared()">
+  (updateSuccess)="onUpdateSuccess()">
 </app-categories-form-dialog>

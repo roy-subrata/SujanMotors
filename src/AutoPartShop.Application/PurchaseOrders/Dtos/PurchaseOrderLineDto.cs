@@ -5,6 +5,7 @@ public class PurchaseOrderLineDto
     public Guid Id { get; set; }
     public Guid PartId { get; set; }
     public string? PartName { get; set; }
+    public Guid? PartBaseUnitId { get; set; }
     public Guid? UnitId { get; set; }
     public string UnitName { get; set; } = string.Empty;
     public string UnitSymbol { get; set; } = string.Empty;
@@ -15,4 +16,6 @@ public class PurchaseOrderLineDto
     public int RemainingQuantity => Quantity - ReceivedQuantity;
     public decimal UnitPrice { get; set; }
     public decimal LineTotal { get; set; }
+    public decimal PartDefaultSellingPrice { get; set; }
+    public decimal PartMinMarginPercent { get; set; }
 }

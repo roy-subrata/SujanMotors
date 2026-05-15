@@ -56,7 +56,11 @@ export const salesRoutes: Routes = [
         ]
     },
 
-    // Customer Payments
+    // Customer Payments — summary must be declared BEFORE the parent route that has a :customerId child
+    {
+        path: 'customer-payments/summary/:customerId',
+        component: CustomerPaymentSummaryComponent
+    },
     {
         path: 'customer-payments',
         component: CustomerPaymentsComponent,
@@ -67,10 +71,6 @@ export const salesRoutes: Routes = [
             { path: 'view', component: CustomerPaymentFormComponent },
             { path: ':customerId', component: CustomerPaymentListComponent }
         ]
-    },
-    {
-        path: 'customer-payments/summary/:customerId',
-        component: CustomerPaymentSummaryComponent
     },
 
     // Customer Account Summary Report

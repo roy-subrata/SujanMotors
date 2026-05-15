@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
+import { PaginatedResponse } from '@/features/sales/services/customer.service';
 
 export interface BrandResponse {
   id: string;
@@ -40,6 +41,20 @@ export interface UpdateBrandRequest {
   isActive: boolean;
 }
 
+export interface SortOption {
+  field: string;
+  direction: 'asc' | 'desc';
+}
+
+export interface BrandQuery {
+  pageSize: number;
+  pageNumber: number;
+  search?: string;
+  isActive?: boolean | null;
+  country?: string;
+  sorts?: SortOption[];
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -52,6 +67,13 @@ export class BrandService {
    */
   getAllBrands(): Observable<BrandResponse[]> {
     return this.http.get<BrandResponse[]>(this.apiUrl);
+  }
+
+  /**
+   * Get paginated brands with optional search filter
+   */
+  getBrands(query: BrandQuery): Observable<PaginatedResponse<BrandResponse>> {
+    return this.http.post<PaginatedResponse<BrandResponse>>(`${this.apiUrl}/list`, query);
   }
 
   /**
@@ -94,5 +116,19 @@ export class BrandService {
    */
   deleteBrand(id: string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
+  }
+
+  /**
+   * Activate a brand
+   */
+  activateBrand(id: string): Observable<BrandResponse> {
+    return this.http.patch<BrandResponse>(`${this.apiUrl}/${id}/activate`, {});
+  }
+
+  /**
+   * Deactivate a brand
+   */
+  deactivateBrand(id: string): Observable<BrandResponse> {
+    return this.http.patch<BrandResponse>(`${this.apiUrl}/${id}/deactivate`, {});
   }
 }

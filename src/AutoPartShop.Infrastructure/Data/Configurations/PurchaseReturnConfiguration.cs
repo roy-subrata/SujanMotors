@@ -40,6 +40,14 @@ public class PurchaseReturnConfiguration : IEntityTypeConfiguration<PurchaseRetu
         builder.Property(pr => pr.SettlementNotes)
             .HasMaxLength(500);
 
+        // Credit note relationship
+        builder.Property(pr => pr.CreditNoteId);
+
+        builder.HasOne(pr => pr.CreditNote)
+            .WithMany()
+            .HasForeignKey(pr => pr.CreditNoteId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         // Relationships - Use NoAction to avoid cascade paths
         builder.HasOne(pr => pr.PurchaseOrder)
             .WithMany()

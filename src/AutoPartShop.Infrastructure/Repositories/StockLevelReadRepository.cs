@@ -20,17 +20,19 @@ public class StockLevelReadRepository : IStockLevelReadRepository
     {
         var levels = _dbContext.StockLevels
             .Include(x => x.Part)
+                .ThenInclude(p => p.BaseUnit)
             .Include(x => x.Warehouse)
+            .Include(x => x.Unit)
             .Where(x => !x.Isdeleted);
 
-        if (query.PartId.HasValue && query.PartId.Value != Guid.Empty)
+        if (!string.IsNullOrWhiteSpace(query.PartId) && Guid.TryParse(query.PartId, out var partId) && partId != Guid.Empty)
         {
-            levels = levels.Where(x => x.PartId == query.PartId.Value);
+            levels = levels.Where(x => x.PartId == partId);
         }
 
-        if (query.WarehouseId.HasValue && query.WarehouseId.Value != Guid.Empty)
+        if (!string.IsNullOrWhiteSpace(query.WarehouseId) && Guid.TryParse(query.WarehouseId, out var warehouseId) && warehouseId != Guid.Empty)
         {
-            levels = levels.Where(x => x.WarehouseId == query.WarehouseId.Value);
+            levels = levels.Where(x => x.WarehouseId == warehouseId);
         }
 
         if (query.LowStockOnly)
@@ -77,9 +79,17 @@ public class StockLevelReadRepository : IStockLevelReadRepository
                 Id = level.Id,
                 PartId = level.PartId,
                 WarehouseId = level.WarehouseId,
+                UnitId = level.UnitId,
+                UnitName = level.Unit != null ? level.Unit.Name : null,
+                UnitSymbol = level.Unit != null ? level.Unit.Symbol : null,
+                BaseUnitName = level.Part != null && level.Part.BaseUnit != null ? level.Part.BaseUnit.Name : null,
+                BaseUnitSymbol = level.Part != null && level.Part.BaseUnit != null ? level.Part.BaseUnit.Symbol : null,
                 Quantity = level.QuantityOnHand,
+                QuantityInBaseUnit = level.QuantityOnHandInBaseUnit,
                 ReservedQuantity = level.QuantityReserved,
+                ReservedQuantityInBaseUnit = level.QuantityReservedInBaseUnit,
                 AvailableQuantity = level.QuantityAvailable,
+                AvailableQuantityInBaseUnit = level.QuantityAvailableInBaseUnit,
                 ReorderLevel = level.ReorderLevel,
                 ReorderQuantity = level.ReorderQuantity,
                 NeedsReorder = level.NeedsReorder,

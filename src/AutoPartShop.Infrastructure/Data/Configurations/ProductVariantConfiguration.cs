@@ -22,6 +22,26 @@ public class ProductVariantConfiguration : IEntityTypeConfiguration<ProductVaria
             .HasMaxLength(100)
             .IsRequired(false);
 
+        builder.Property(x => x.Barcode)
+            .HasMaxLength(100)
+            .IsRequired(false);
+
+        builder.Property(x => x.WeightKg)
+            .HasColumnType("decimal(10,4)")
+            .IsRequired(false);
+
+        builder.Property(x => x.WidthCm)
+            .HasColumnType("decimal(10,2)")
+            .IsRequired(false);
+
+        builder.Property(x => x.HeightCm)
+            .HasColumnType("decimal(10,2)")
+            .IsRequired(false);
+
+        builder.Property(x => x.DepthCm)
+            .HasColumnType("decimal(10,2)")
+            .IsRequired(false);
+
         builder.Property(x => x.CostPrice)
             .HasColumnType("decimal(18,2)")
             .IsRequired(false);
@@ -33,6 +53,16 @@ public class ProductVariantConfiguration : IEntityTypeConfiguration<ProductVaria
         builder.Property(x => x.Currency)
             .HasMaxLength(3)
             .IsRequired();
+
+        builder.Property(x => x.HasWarrantyOverride)
+            .IsRequired(false);
+
+        builder.Property(x => x.WarrantyPeriodMonthsOverride)
+            .IsRequired(false);
+
+        builder.Property(x => x.WarrantyTypeOverride)
+            .HasMaxLength(20)
+            .IsRequired(false);
 
         builder.HasOne(x => x.Part)
             .WithMany(p => p.Variants)

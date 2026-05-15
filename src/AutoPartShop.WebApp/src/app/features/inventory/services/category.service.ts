@@ -36,11 +36,17 @@ export interface UpdateCategoryRequest {
     isActive: boolean;
 }
 
+export interface SortOption {
+    field: string;
+    direction: 'asc' | 'desc';
+}
+
 export interface CategoryQuery {
     pageSize: number;
     pageNumber: number;
     search?: string;
     isActive?: boolean | null;
+    sorts?: SortOption[];
 }
 
 @Injectable({

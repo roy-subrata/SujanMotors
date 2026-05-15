@@ -45,46 +45,32 @@ export class WarehousesComponent implements OnInit {
   /**
    * Load warehouses from API
    */
-  loadWarehouses(pageNumber: number = 1, pageSize: number = 10, searchTerm: string = ''): void {
-    if (!pageNumber || isNaN(pageNumber) || pageNumber < 1) {
-      pageNumber = 1;
-    }
-    if (!pageSize || isNaN(pageSize) || pageSize < 1) {
-      pageSize = 10;
-    }
-
+  loadWarehouses(pageNumber: number = 1, pageSize: number = 10, search: string = ''): void {
     this.loading = true;
-    this.warehouseService.getAllWarehouses().subscribe({
-      next: (warehouses: WarehouseResponse[]) => {
-        // Apply search filter if provided
-        let filtered = warehouses;
-        if (searchTerm) {
-          const lowerSearch = searchTerm.toLowerCase();
-          filtered = warehouses.filter(w =>
-            w.name.toLowerCase().includes(lowerSearch) ||
-            w.location.toLowerCase().includes(lowerSearch)
-          );
+    this.warehouseService
+      .getWarehouses({
+        search: search ?? '',
+        pageNumber: pageNumber ?? 1,
+        pageSize: pageSize ?? 10
+      })
+      .subscribe({
+        next: (res) => {
+          this.warehouses = res.data || [];
+          this.totalRecords = res.pagination?.totalCount || 0;
+          this.rows = res.pagination?.pageSize || pageSize || 10;
+          this.currentPage = res.pagination?.pageNumber || pageNumber || 1;
+          this.loading = false;
+        },
+        error: (error: any) => {
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'Failed to load warehouses'
+          });
+          console.error('Error loading warehouses:', error);
+          this.loading = false;
         }
-
-        this.totalRecords = filtered.length;
-
-        // Apply pagination
-        const startIndex = (pageNumber - 1) * pageSize;
-        this.warehouses = filtered.slice(startIndex, startIndex + pageSize);
-        this.rows = pageSize;
-        this.currentPage = pageNumber;
-        this.loading = false;
-      },
-      error: (error: any) => {
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load warehouses'
-        });
-        console.error('Error loading warehouses:', error);
-        this.loading = false;
-      }
-    });
+      });
   }
 
   /**

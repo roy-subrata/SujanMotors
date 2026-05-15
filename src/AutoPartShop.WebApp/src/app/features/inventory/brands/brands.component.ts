@@ -1,22 +1,15 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { TableModule, TableLazyLoadEvent } from 'primeng/table';
-import { ButtonModule } from 'primeng/button';
-import { DialogModule } from 'primeng/dialog';
-import { InputTextModule } from 'primeng/inputtext';
-import { TextareaModule } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
-import { TagModule } from 'primeng/tag';
-import { TooltipModule } from 'primeng/tooltip';
-import { InputNumberModule } from 'primeng/inputnumber';
-import { CheckboxModule } from 'primeng/checkbox';
-import { MessageService, ConfirmationService } from 'primeng/api';
-import { BrandService, BrandResponse, CreateBrandRequest, UpdateBrandRequest } from '../services/brand.service';
-import { CodeGenerationService } from '@/shared/services/CodeGenerationService';
-import { CardModule } from 'primeng/card';
+import { ButtonModule } from 'primeng/button';
 import { Select } from 'primeng/select';
+import { MessageService, ConfirmationService } from 'primeng/api';
+import { BrandResponse, BrandService } from '../services/brand.service';
+import { BrandsListComponent } from './brands-list/brands-list.component';
+import { BrandsFormDialogComponent } from './brands-form-dialog/brands-form-dialog.component';
+import { tap } from 'rxjs';
 
 @Component({
   selector: 'app-brands',
@@ -24,294 +17,255 @@ import { Select } from 'primeng/select';
   imports: [
     CommonModule,
     FormsModule,
-    TableModule,
-    ButtonModule,
-    DialogModule,
-    InputTextModule,
-    TextareaModule,
     ToastModule,
     ConfirmDialogModule,
-    TagModule,
-    TooltipModule,
-    InputNumberModule,
-    CheckboxModule,
-    CardModule,
-    Select
+    ButtonModule,
+    Select,
+    BrandsListComponent,
+    BrandsFormDialogComponent
   ],
-  providers: [MessageService, ConfirmationService],
+  providers: [BrandService, MessageService, ConfirmationService],
   templateUrl: './brands.component.html',
   styleUrls: ['./brands.component.css']
 })
 export class BrandsComponent implements OnInit {
   private readonly brandService = inject(BrandService);
-  private readonly messageService = inject(MessageService);
   private readonly confirmationService = inject(ConfirmationService);
-  private readonly codeGenerationService = inject(CodeGenerationService);
+  private readonly messageService = inject(MessageService);
 
+  // Data
   brands: BrandResponse[] = [];
-  filteredBrands: BrandResponse[] = [];
-  pagedBrands: BrandResponse[] = [];
-  brand: any = {};
-  brandDialog = false;
-  editMode = false;
+  public selectedBrand: BrandResponse | null = null;
+
+  // Dialog visibility
+  public displayCreateDialog: boolean = false;
+  public displayUpdateDialog: boolean = false;
+
+  // Pagination & Loading
   loading = false;
-  generatingCode = false;
-  searchQuery = '';
   totalRecords = 0;
   rows = 10;
   currentPage = 1;
-  pageSizeOptions = [10, 20, 50];
+
+  // Filters
+  searchTerm = '';
+  filterStatus: boolean | null = null;
+  sortField = 'name';
+  sortDirection: 'asc' | 'desc' = 'asc';
+
+  // Status options for dropdown
+  statusOptions = [
+    { label: 'All', value: null },
+    { label: 'Active', value: true },
+    { label: 'Inactive', value: false }
+  ];
 
   ngOnInit(): void {
     this.loadBrands();
   }
 
-  loadBrands(): void {
-    this.loading = true;
-    this.brandService.getAllBrands().subscribe({
-      next: (brands) => {
-        this.brands = brands;
-        this.applyFilters();
-        this.loading = false;
-      },
-      error: (error) => {
-        console.error('Error loading brands:', error);
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load brands'
-        });
-        this.loading = false;
-      }
-    });
-  }
-
-  onSearchChange(query: string): void {
-    this.searchQuery = query;
-    this.currentPage = 1;
-    this.applyFilters();
-  }
-
-  clearSearch(): void {
-    this.searchQuery = '';
-    this.currentPage = 1;
-    this.applyFilters();
-  }
-
-  refreshData(): void {
-    this.loadBrands();
-  }
-
-  createBrand(): void {
-    this.openNew();
-  }
-
-  onSearch(): void {
-    this.onSearchChange(this.searchQuery);
-  }
-
-  clearFilters(): void {
-    this.clearSearch();
-  }
-
-  hasActiveFilters(): boolean {
-    return !!this.searchQuery;
-  }
-
-  onPageChange(event: TableLazyLoadEvent | { first: number; rows: number }): void {
-    const first = event?.first ?? 0;
-    const rows = event?.rows ?? this.rows;
-    if (typeof first !== 'number' || typeof rows !== 'number' || rows <= 0) {
-      return;
+  /**
+   * Load brands with current filters
+   */
+  loadBrands(pageNumber: number = 1, pageSize: number = 10): void {
+    if (!pageNumber || isNaN(pageNumber) || pageNumber < 1) {
+      pageNumber = 1;
     }
-    this.rows = rows;
-    this.currentPage = Math.floor(first / rows) + 1;
-    this.applyPagination();
-  }
+    if (!pageSize || isNaN(pageSize) || pageSize < 1) {
+      pageSize = 10;
+    }
 
-  openNew(): void {
-    this.brand = {
-      name: '',
-      code: '',
-      description: '',
-      country: ''
-    };
-    this.editMode = false;
-    this.brandDialog = true;
-    this.generateBrandCode();
+    this.loading = true;
+    this.brandService
+      .getBrands({
+        search: this.searchTerm,
+        pageNumber: pageNumber,
+        pageSize: pageSize,
+        isActive: this.filterStatus,
+        sorts: [{
+          field: this.sortField,
+          direction: this.sortDirection
+        }]
+      })
+      .subscribe({
+        next: (response: any) => {
+          // Extract data from response
+          this.brands = response.data || response.items || [];
+
+          // totalCount is nested in pagination object
+          const pagination = response.pagination || {};
+          this.totalRecords = pagination.totalCount || response.totalCount || this.brands.length;
+
+          // Update pagination state
+          this.rows = pagination.pageSize || pageSize;
+          this.currentPage = pagination.pageNumber || pageNumber;
+
+          this.loading = false;
+        },
+        error: (error) => {
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'Failed to load brands'
+          });
+          console.error('Error loading brands:', error);
+          this.loading = false;
+        }
+      });
   }
 
   /**
-   * Generate brand code automatically
+   * Handle search button click - applies all filters
    */
-  private generateBrandCode(): void {
-    this.generatingCode = true;
-    this.codeGenerationService.generateBrandCode().subscribe({
-      next: (code) => {
-        this.brand.code = code;
-        this.generatingCode = false;
-      },
-      error: (error) => {
-        console.error('Error generating brand code:', error);
-        this.messageService.add({
-          severity: 'warn',
-          summary: 'Warning',
-          detail: 'Failed to generate brand code. Please enter manually.'
-        });
-        this.generatingCode = false;
-      }
-    });
+  onSearch(): void {
+    this.loadBrands(1, this.rows);
   }
 
-  editBrand(brand: BrandResponse): void {
-    this.brand = { ...brand };
-    this.editMode = true;
-    this.brandDialog = true;
+  /**
+   * Handle filter changes (status)
+   */
+  onFilterChange(): void {
+    this.loadBrands(1, this.rows);
   }
 
-  hideDialog(): void {
-    this.brandDialog = false;
+  /**
+   * Clear search input only (does not trigger search)
+   */
+  clearSearchInput(): void {
+    this.searchTerm = '';
   }
 
-  saveBrand(): void {
-    if (this.editMode) {
-      const updateRequest: UpdateBrandRequest = {
-        id: this.brand.id,
-        name: this.brand.name,
-        code: this.brand.code,
-        description: this.brand.description || '',
-        logoUrl: this.brand.logoUrl || '',
-        website: this.brand.website || '',
-        country: this.brand.country || '',
-        contactEmail: this.brand.contactEmail || '',
-        contactPhone: this.brand.contactPhone || '',
-        displayOrder: this.brand.displayOrder || 0,
-        isActive: this.brand.isActive ?? true
-      };
+  /**
+   * Clear all filters and reload
+   */
+  clearFilters(): void {
+    this.searchTerm = '';
+    this.filterStatus = null;
+    this.loadBrands(1, this.rows);
+  }
 
-      this.brandService.updateBrand(this.brand.id, updateRequest).subscribe({
-        next: () => {
-          this.messageService.add({
-            severity: 'success',
-            summary: 'Success',
-            detail: 'Brand updated successfully'
-          });
-          this.loadBrands();
-          this.hideDialog();
-        },
-        error: (error) => {
-          console.error('Error updating brand:', error);
-          this.messageService.add({
-            severity: 'error',
-            summary: 'Error',
-            detail: error.error?.message || 'Failed to update brand'
-          });
-        }
-      });
-    } else {
-      const createRequest: CreateBrandRequest = {
-        name: this.brand.name,
-        code: this.brand.code.toUpperCase(),
-        description: this.brand.description || '',
-        country: this.brand.country || ''
-      };
+  /**
+   * Refresh current page
+   */
+  refreshData(): void {
+    this.loadBrands(this.currentPage, this.rows);
+  }
 
-      this.brandService.createBrand(createRequest).subscribe({
-        next: () => {
-          this.messageService.add({
-            severity: 'success',
-            summary: 'Success',
-            detail: 'Brand created successfully'
-          });
-          this.loadBrands();
-          this.hideDialog();
-        },
-        error: (error) => {
-          console.error('Error creating brand:', error);
-          this.messageService.add({
-            severity: 'error',
-            summary: 'Error',
-            detail: error.error?.message || 'Failed to create brand'
-          });
-        }
-      });
+  /**
+   * Check if any filters are active
+   */
+  hasActiveFilters(): boolean {
+    return !!this.searchTerm || this.filterStatus !== null;
+  }
+
+  /**
+   * Status label helper for filter chips
+   */
+  getStatusLabel(isActive: boolean | null): string {
+    if (isActive === true) {
+      return 'Active';
     }
+    if (isActive === false) {
+      return 'Inactive';
+    }
+    return 'All';
   }
 
-  deleteBrand(brand: BrandResponse): void {
+  /**
+   * Handle page change from list component
+   */
+  onPageChange(event: { page: number; rows: number }): void {
+    this.loadBrands(event.page, event.rows);
+  }
+
+  /**
+   * Trigger create dialog
+   */
+  onNewBrandClick() {
+    this.displayCreateDialog = true;
+    this.displayUpdateDialog = false;
+  }
+
+  /**
+   * Alias for header action button
+   */
+  createBrand(): void {
+    this.onNewBrandClick();
+  }
+
+  /**
+   * Handle create success
+   */
+  onCreateSuccess() {
+    this.loadBrands(this.currentPage, this.rows);
+  }
+
+  /**
+   * Handle update success
+   */
+  onUpdateSuccess() {
+    this.loadBrands(this.currentPage, this.rows);
+  }
+
+  /**
+   * Handle edit brand
+   */
+  selectAndOpenUpdate(brand: BrandResponse) {
+    this.selectedBrand = brand;
+    this.displayUpdateDialog = true;
+  }
+
+  /**
+   * Handle delete brand
+   */
+  selectAndDelete(brand: BrandResponse) {
+    this.selectedBrand = brand;
     this.confirmationService.confirm({
-      message: `Are you sure you want to delete the brand "${brand.name}"?`,
+      message: `Are you sure you want to delete "${brand.name}"?`,
       header: 'Confirm Delete',
       icon: 'pi pi-exclamation-triangle',
-      acceptButtonStyleClass: 'p-button-danger',
-      rejectButtonStyleClass: 'p-button-secondary',
       accept: () => {
-        this.brandService.deleteBrand(brand.id).subscribe({
-          next: () => {
-            this.messageService.add({
-              severity: 'success',
-              summary: 'Success',
-              detail: 'Brand deleted successfully'
-            });
-            this.loadBrands();
-          },
-          error: (error) => {
-            console.error('Error deleting brand:', error);
-            this.messageService.add({
-              severity: 'error',
-              summary: 'Error',
-              detail: error.error?.message || 'Failed to delete brand'
-            });
-          }
-        });
+        this.brandService.deleteBrand(brand.id)
+          .pipe(
+            tap(() => {
+              this.messageService.add({
+                severity: 'success',
+                summary: 'Success',
+                detail: 'Brand deleted successfully'
+              });
+              this.selectedBrand = null;
+              this.loadBrands(this.currentPage, this.rows);
+            })
+          )
+          .subscribe({
+            error: (err) => {
+              console.error('Failed to delete brand', err);
+              this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: 'Failed to delete brand'
+              });
+            }
+          });
       }
     });
   }
 
-  get first(): number {
-    return Math.max(0, (this.currentPage - 1) * this.rows);
-  }
-
-  get pageNumber(): number {
-    if (!this.totalRecords) {
-      return 0;
+  /**
+   * Handle create dialog visibility change
+   */
+  onDisplayCreateDialogChange(isVisible: boolean) {
+    if (!isVisible) {
+      this.displayCreateDialog = false;
     }
-    return Math.floor(this.first / this.rows) + 1;
   }
 
-  get totalPages(): number {
-    if (!this.totalRecords) {
-      return 0;
+  /**
+   * Handle update dialog visibility change
+   */
+  onDisplayUpdateDialogChange(isVisible: boolean) {
+    if (!isVisible) {
+      this.displayUpdateDialog = false;
     }
-    return Math.ceil(this.totalRecords / this.rows);
-  }
-
-  get pageSize(): number {
-    return this.rows;
-  }
-
-  set pageSize(value: number) {
-    this.rows = value;
-  }
-
-  private applyFilters(): void {
-    const query = this.searchQuery?.trim().toLowerCase();
-    if (!query) {
-      this.filteredBrands = [...this.brands];
-    } else {
-      this.filteredBrands = this.brands.filter(brand =>
-        brand.name?.toLowerCase().includes(query) ||
-        brand.code?.toLowerCase().includes(query) ||
-        brand.country?.toLowerCase().includes(query)
-      );
-    }
-    this.totalRecords = this.filteredBrands.length;
-    this.applyPagination();
-  }
-
-  private applyPagination(): void {
-    const startIndex = (this.currentPage - 1) * this.rows;
-    this.pagedBrands = this.filteredBrands.slice(startIndex, startIndex + this.rows);
   }
 }
-

@@ -4,5 +4,5 @@ namespace AutoPartShop.Application.Categories.Dtos;
 
 public class CategoryQuery : BaseQuery
 {
-
+    public bool? IsActive { get; set; }
 }

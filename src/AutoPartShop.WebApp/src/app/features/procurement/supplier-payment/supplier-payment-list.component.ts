@@ -1,30 +1,29 @@
 import { Component, OnInit, inject, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute, RouterModule } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { TableModule, TableLazyLoadEvent } from 'primeng/table';
 import { InputTextModule } from 'primeng/inputtext';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
-import { DialogModule } from 'primeng/dialog';
 import { TagModule } from 'primeng/tag';
 import { ContextMenuModule, ContextMenu } from 'primeng/contextmenu';
-import { RippleModule } from 'primeng/ripple';
-import { CardModule } from 'primeng/card';
 import { Select } from 'primeng/select';
 import { DatePicker } from 'primeng/datepicker';
-import { PaginatorModule } from 'primeng/paginator';
 import { TooltipModule } from 'primeng/tooltip';
 import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
 import { SupplierPaymentService, SupplierPaymentResponse, PaginatedSupplierPaymentResponse, SupplierPaymentQuery } from '../services/supplier-payment.service';
 import { StatusBadgeComponent } from '../components/status-badge.component';
 import { CurrencyService } from '../../../shared/services/currency.service';
+import { SupplierService } from '../../inventory/services/supplier.service';
 
 @Component({
     selector: 'app-supplier-payment-list',
     standalone: true,
-    imports: [CommonModule, FormsModule, ButtonModule, TableModule, InputTextModule, ToastModule, ConfirmDialogModule, DialogModule, TagModule, ContextMenuModule, RippleModule, CardModule, Select, DatePicker, PaginatorModule, TooltipModule, StatusBadgeComponent],
+    imports: [CommonModule, FormsModule, RouterModule, ButtonModule, TableModule, InputTextModule,
+              ToastModule, ConfirmDialogModule, TagModule, ContextMenuModule, Select, DatePicker,
+              TooltipModule, StatusBadgeComponent],
     providers: [MessageService, ConfirmationService],
     templateUrl: './supplier-payment-list.component.html',
     styleUrls: ['./supplier-payment-list.component.css']
@@ -36,7 +35,9 @@ export class SupplierPaymentListComponent implements OnInit {
     private readonly messageService = inject(MessageService);
     private readonly confirmationService = inject(ConfirmationService);
     private readonly router = inject(Router);
+    private readonly route = inject(ActivatedRoute);
     private readonly currencyService = inject(CurrencyService);
+    private readonly supplierService = inject(SupplierService);
 
     supplierPayments: SupplierPaymentResponse[] = [];
     searchTerm: string = '';
@@ -54,6 +55,8 @@ export class SupplierPaymentListComponent implements OnInit {
     pageSizeOptions = [10, 25, 50, 100];
     pageSizeSelectOptions = this.pageSizeOptions.map((size) => ({ label: size.toString(), value: size }));
     Math = Math;
+    supplierFilter: string | null = null;
+    supplierFilterName: string = '';
 
     statusOptions = [
         { label: 'All', value: null },
@@ -66,6 +69,14 @@ export class SupplierPaymentListComponent implements OnInit {
 
     ngOnInit(): void {
         this.initializeContextMenu();
+
+        // Check for supplier filter from query params
+        const supplierId = this.route.snapshot.queryParamMap.get('supplierId');
+        if (supplierId) {
+            this.supplierFilter = supplierId;
+            this.loadSupplierName(supplierId);
+        }
+
         this.loadSupplierPayments();
     }
 
@@ -179,7 +190,8 @@ export class SupplierPaymentListComponent implements OnInit {
             pageNumber: this.pageNumber,
             pageSize: this.pageSize,
             search: this.searchTerm || undefined,
-            status: this.filterStatus || undefined
+            status: this.filterStatus || undefined,
+            supplierId: this.supplierFilter || undefined
         };
 
         // Add date range if selected
@@ -467,11 +479,20 @@ export class SupplierPaymentListComponent implements OnInit {
         this.loadSupplierPayments();
     }
 
-    /**
-     * Handle filter change
-     */
     onFilterChange(): void {
-        // TODO: Implement filtering logic with status and date range
+        this.resetPagination();
+        this.loadSupplierPayments();
+    }
+
+    onDateRangeSelect(): void {
+        if (this.dateRange?.length === 2 && this.dateRange[0] && this.dateRange[1]) {
+            this.resetPagination();
+            this.loadSupplierPayments();
+        }
+    }
+
+    onDateClear(): void {
+        this.dateRange = [];
         this.resetPagination();
         this.loadSupplierPayments();
     }
@@ -483,8 +504,30 @@ export class SupplierPaymentListComponent implements OnInit {
         this.searchTerm = '';
         this.filterStatus = null;
         this.dateRange = [];
+        this.supplierFilter = null;
+        this.supplierFilterName = '';
+        this.router.navigate(['/procurement/supplier-payments']);
         this.resetPagination();
         this.loadSupplierPayments();
+    }
+
+    clearSupplierFilter(): void {
+        this.supplierFilter = null;
+        this.supplierFilterName = '';
+        this.router.navigate(['/procurement/supplier-payments']);
+        this.resetPagination();
+        this.loadSupplierPayments();
+    }
+
+    private loadSupplierName(supplierId: string): void {
+        this.supplierService.getSupplierById(supplierId).subscribe({
+            next: (supplier) => {
+                this.supplierFilterName = supplier.name || 'Selected Supplier';
+            },
+            error: () => {
+                this.supplierFilterName = 'Selected Supplier';
+            }
+        });
     }
 
     private resetPagination(): void {

@@ -134,19 +134,16 @@ export const MOBILE_PROVIDERS: { label: string; value: string }[] = [
 ];
 
 /**
- * Subset of payment methods for customer payments
+ * Subset of payment methods for customer payments (online checkout)
+ * CASH = Cash on Delivery (no upfront payment required)
+ * All others require a transaction reference number
  */
 export const CUSTOMER_PAYMENT_METHODS: PaymentMethodOption[] = [
-    { label: 'Cash', value: 'CASH', icon: 'pi-money-bill' },
-    { label: 'UPI', value: 'UPI', icon: 'pi-mobile' },
-    { label: 'Credit Card', value: 'CREDIT_CARD', icon: 'pi-credit-card' },
-    { label: 'Debit Card', value: 'DEBIT_CARD', icon: 'pi-credit-card' },
-    { label: 'Card', value: 'CARD', icon: 'pi-credit-card' },
-    { label: 'Cheque', value: 'CHEQUE', icon: 'pi-file-edit' },
-    { label: 'Bank Transfer', value: 'BANK_TRANSFER', icon: 'pi-building' },
-    { label: 'NEFT', value: 'NEFT', icon: 'pi-building' },
-    { label: 'RTGS', value: 'RTGS', icon: 'pi-building' },
-    { label: 'Demand Draft', value: 'DEMAND_DRAFT', icon: 'pi-file' }
+    { label: 'Cash on Delivery', value: 'CASH', icon: 'pi-money-bill', description: 'Pay when your order arrives' },
+    { label: 'Mobile Banking (bKash/Nagad)', value: 'MOBILE_BANKING', icon: 'pi-mobile', description: 'Pay via bKash, Nagad, or Rocket' },
+    { label: 'Credit Card', value: 'CREDIT_CARD', icon: 'pi-credit-card', description: 'Visa, Mastercard, etc.' },
+    { label: 'Debit Card', value: 'DEBIT_CARD', icon: 'pi-credit-card', description: 'Bank debit card' },
+    { label: 'Bank Transfer', value: 'BANK_TRANSFER', icon: 'pi-building', description: 'Direct bank transfer' },
 ];
 
 /**

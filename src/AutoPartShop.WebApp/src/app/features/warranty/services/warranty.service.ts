@@ -22,6 +22,7 @@ export interface WarrantyRegistrationResponse {
     warrantyType: string;
     warrantyPeriodMonths: number;
     warrantyTerms: string;
+    guaranteeMessage: string;
     certificateNumber: string;
     status: string;
     voidReason?: string;
@@ -68,21 +69,19 @@ export interface WarrantyClaimResponse {
     claimNumber: string;
     warrantyRegistrationId: string;
     warrantyNumber: string;
-    salesOrderNumber: string;
+    warrantyCoverageType: string;
+    guaranteeMessage: string;
     partName: string;
     partSKU: string;
     customerId: string;
     customerName: string;
     customerPhone: string;
-    assignedToTechnicianId?: string;
     technicianId?: string;
     technicianName?: string;
     claimDate: Date;
     issueDescription: string;
     serviceType: string;
-    priority: string;
     status: string;
-    resolutionType?: string;
     rejectionReason?: string;
     rejectedDate?: Date;
     approvedDate?: Date;
@@ -93,6 +92,14 @@ export interface WarrantyClaimResponse {
     serviceCostCurrency: string;
     serviceNotes?: string;
     resolutionDetails?: string;
+    refundType?: string;
+    refundAmount?: number;
+    refundReferenceNumber?: string;
+    refundReturnItemReceived: boolean;
+    refundRestockAsSellable?: boolean;
+    replacementLogisticsState: string;
+    canSendDefectiveItem: boolean;
+    canReceiveReplacementItem: boolean;
     isOpen: boolean;
     canBeModified: boolean;
     daysOpen: number;
@@ -113,9 +120,6 @@ export interface CreateWarrantyClaimRequest {
 
 export interface ApproveClaimRequest {
     approvedBy: string;
-    approvalNotes?: string;
-    approvalType?: 'REPAIR' | 'REPLACEMENT' | 'REFUND';
-    estimatedCost?: number;
 }
 
 export interface RejectClaimRequest {
@@ -139,6 +143,51 @@ export interface UpdateServiceCostRequest {
 
 export interface CompleteClaimRequest {
     resolutionDetails: string;
+    refundType?: 'CASH_REFUND' | 'STORE_CREDIT';
+    refundAmount?: number;
+    referenceNumber?: string;
+    refundNotes?: string;
+    returnItemReceived?: boolean;
+    restockAsSellable?: boolean;
+}
+
+export interface SendDefectiveItemRequest {
+    destination: string;
+    responsibleBy: string;
+    referenceNumber?: string;
+    notes?: string;
+}
+
+export interface ReceiveReplacementItemRequest {
+    source: string;
+    responsibleBy: string;
+    referenceNumber?: string;
+    notes?: string;
+}
+
+export interface ReplacementLogisticsEvent {
+    movementId: string;
+    movementType: string;
+    reason: string;
+    quantity: number;
+    movementDate: Date;
+    approvedBy: string;
+    referenceNumber: string;
+    notes: string;
+    partId?: string;
+    partName?: string;
+    partSku?: string;
+    warehouseId?: string;
+    warehouseName?: string;
+}
+
+export interface ReplacementLogisticsResponse {
+    claimId: string;
+    claimNumber: string;
+    state: string;
+    canSendDefectiveItem: boolean;
+    canReceiveReplacementItem: boolean;
+    events: ReplacementLogisticsEvent[];
 }
 
 export interface ClaimSearchParams {
@@ -326,20 +375,16 @@ export class WarrantyService {
         return this.http.patch<WarrantyClaimResponse>(`${this.claimsApiUrl}/${id}/complete`, request);
     }
 
-    markAsInvestigating(id: string): Observable<WarrantyClaimResponse> {
-        return this.http.patch<WarrantyClaimResponse>(`${this.claimsApiUrl}/${id}/mark-investigating`, {});
+    sendDefectiveItem(id: string, request: SendDefectiveItemRequest): Observable<any> {
+        return this.http.patch(`${this.claimsApiUrl}/${id}/defective/send`, request);
     }
 
-    markAsInRepair(id: string): Observable<WarrantyClaimResponse> {
-        return this.http.patch<WarrantyClaimResponse>(`${this.claimsApiUrl}/${id}/mark-in-repair`, {});
+    receiveReplacementItem(id: string, request: ReceiveReplacementItemRequest): Observable<any> {
+        return this.http.patch(`${this.claimsApiUrl}/${id}/replacement/receive`, request);
     }
 
-    markAsRepaired(id: string): Observable<WarrantyClaimResponse> {
-        return this.http.patch<WarrantyClaimResponse>(`${this.claimsApiUrl}/${id}/mark-repaired`, {});
-    }
-
-    markAsReplaced(id: string): Observable<WarrantyClaimResponse> {
-        return this.http.patch<WarrantyClaimResponse>(`${this.claimsApiUrl}/${id}/mark-replaced`, {});
+    getReplacementLogistics(id: string): Observable<ReplacementLogisticsResponse> {
+        return this.http.get<ReplacementLogisticsResponse>(`${this.claimsApiUrl}/${id}/replacement-logistics`);
     }
 
     closeClaim(id: string, request?: CloseClaimRequest): Observable<WarrantyClaimResponse> {

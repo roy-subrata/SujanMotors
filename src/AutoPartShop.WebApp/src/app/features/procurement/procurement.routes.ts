@@ -31,7 +31,6 @@ export const procurementRoutes: Routes = [
   { path: 'goods-receipts/create', component: GoodsReceiptFormComponent },
   { path: 'goods-receipts/view', component: GoodsReceiptFormComponent },
   { path: 'goods-receipts/edit', component: GoodsReceiptFormComponent },
-
   // Payment Providers
   { path: 'payment-providers', component: PaymentProviderListComponent },
   { path: 'payment-providers/new', component: PaymentProviderFormComponent },
@@ -40,9 +39,8 @@ export const procurementRoutes: Routes = [
   // Supplier Payments
   { path: 'supplier-payments', component: SupplierPaymentListComponent },
   { path: 'supplier-payments/new', component: SupplierPaymentFormComponent },
-  { path: 'supplier-payments/create', component: SupplierPaymentFormComponent },
   { path: 'supplier-payments/edit', component: SupplierPaymentFormComponent },
-  { path: 'supplier-payments/view', component: SupplierPaymentListComponent },
+  { path: 'supplier-payments/view', component: SupplierPaymentFormComponent },
   { path: 'supplier-payments/summary/:supplierId', component: SupplierPaymentSummaryComponent },
 
   // Supplier Account Summary
@@ -51,5 +49,4 @@ export const procurementRoutes: Routes = [
   // Daily Expenses
   { path: 'daily-expenses', component: DailyExpensesComponent }
 ];
-
 

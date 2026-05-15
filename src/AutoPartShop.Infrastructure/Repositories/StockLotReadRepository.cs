@@ -19,19 +19,20 @@ public class StockLotReadRepository : IStockLotReadRepository
         CancellationToken cancellationToken = default)
     {
         var lots = _dbContext.StockLots
-            .Include(x => x.Part)
+            .Include(x => x.Part).ThenInclude(p => p != null ? p.BaseUnit : null)
+            .Include(x => x.Unit)
             .Include(x => x.Warehouse)
             .Include(x => x.Supplier)
             .Where(x => !x.Isdeleted);
 
-        if (query.PartId.HasValue && query.PartId.Value != Guid.Empty)
+        if (!string.IsNullOrWhiteSpace(query.PartId) && Guid.TryParse(query.PartId, out var partId) && partId != Guid.Empty)
         {
-            lots = lots.Where(x => x.PartId == query.PartId.Value);
+            lots = lots.Where(x => x.PartId == partId);
         }
 
-        if (query.WarehouseId.HasValue && query.WarehouseId.Value != Guid.Empty)
+        if (!string.IsNullOrWhiteSpace(query.WarehouseId) && Guid.TryParse(query.WarehouseId, out var warehouseId) && warehouseId != Guid.Empty)
         {
-            lots = lots.Where(x => x.WarehouseId == query.WarehouseId.Value);
+            lots = lots.Where(x => x.WarehouseId == warehouseId);
         }
 
         if (!string.IsNullOrWhiteSpace(query.Search))
@@ -63,11 +64,23 @@ public class StockLotReadRepository : IStockLotReadRepository
                 SupplierId = lot.SupplierId,
                 SupplierName = lot.Supplier != null ? lot.Supplier.Name : string.Empty,
                 QuantityReceived = lot.QuantityReceived,
+                QuantityReceivedInBaseUnit = lot.QuantityReceivedInBaseUnit,
                 QuantityAvailable = lot.QuantityAvailable,
+                QuantityAvailableInBaseUnit = lot.QuantityAvailableInBaseUnit,
+                UnitId = lot.UnitId,
+                UnitName = lot.Unit != null ? lot.Unit.Name : null,
+                UnitCode = lot.Unit != null ? lot.Unit.Code : null,
+                BaseUnitName = lot.Part != null && lot.Part.BaseUnit != null ? lot.Part.BaseUnit.Name : null,
+                BaseUnitCode = lot.Part != null && lot.Part.BaseUnit != null ? lot.Part.BaseUnit.Code : null,
                 CostPrice = lot.CostPrice,
+                SellingPrice = lot.SellingPrice,
                 Currency = lot.Currency,
                 TotalCost = lot.GetTotalCost(),
                 AvailableCost = lot.GetAvailableCost(),
+                HasWarranty = lot.HasWarranty,
+                WarrantyPeriodMonths = lot.WarrantyPeriodMonths,
+                WarrantyType = lot.WarrantyType,
+                WarrantyTerms = lot.WarrantyTerms,
                 ReceivingDate = lot.ReceivingDate,
                 ExpiryDate = lot.ExpiryDate,
                 IsExpired = lot.IsExpired,

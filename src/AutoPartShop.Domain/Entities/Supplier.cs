@@ -15,6 +15,8 @@ public class Supplier : AuditableEntity
     public string State { get; private set; } = string.Empty;
     public string Country { get; private set; } = string.Empty;
     public string PostalCode { get; private set; } = string.Empty;
+    public string PaymentTerms { get; private set; } = "NET30";
+    public decimal CreditLimit { get; private set; } = 0;
     public decimal CurrentBalance { get; private set; } = 0;  // Outstanding balance we owe to supplier
     public bool IsActive { get; private set; } = true;
     public int Rating { get; private set; } = 5;  // 1-5 star rating
@@ -35,7 +37,8 @@ public class Supplier : AuditableEntity
     private Supplier() { }
 
     public static Supplier Create(string name, string code, string contactPerson, string email, string phone,
-        string address, string city, string state, string country, string postalCode)
+        string address, string city, string state, string country, string postalCode,
+        string? paymentTerms = null, decimal creditLimit = 0)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Name cannot be empty", nameof(name));
@@ -61,17 +64,19 @@ public class Supplier : AuditableEntity
             State = state?.Trim() ?? string.Empty,
             Country = country?.Trim() ?? string.Empty,
             PostalCode = postalCode?.Trim() ?? string.Empty,
+            PaymentTerms = paymentTerms?.Trim() ?? "NET30",
+            CreditLimit = Math.Max(0, creditLimit),
             IsActive = true,
             Rating = 5
         };
     }
 
     public void Update(string name, string contactPerson, string email, string phone,
-        string address, string city, string state, string country, string postalCode, bool isActive)
+        string address, string city, string state, string country, string postalCode, bool isActive,
+        string? paymentTerms = null, decimal creditLimit = 0)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Name cannot be empty", nameof(name));
-
 
         Name = name.Trim();
         ContactPerson = contactPerson?.Trim() ?? string.Empty;
@@ -82,6 +87,8 @@ public class Supplier : AuditableEntity
         State = state?.Trim() ?? string.Empty;
         Country = country?.Trim() ?? string.Empty;
         PostalCode = postalCode?.Trim() ?? string.Empty;
+        PaymentTerms = paymentTerms?.Trim() ?? "NET30";
+        CreditLimit = Math.Max(0, creditLimit);
         IsActive = isActive;
     }
 

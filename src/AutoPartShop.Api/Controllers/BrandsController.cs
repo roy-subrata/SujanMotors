@@ -1,4 +1,7 @@
 using AutoPartShop.Api.Services;
+using AutoPartShop.Application.Brands;
+using AutoPartShop.Application.Brands.Dtos;
+using AutoPartShop.Application.Common;
 using AutoPartShop.Application.DTOs.BrandDtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
@@ -11,13 +14,15 @@ namespace AutoPartShop.Api.Controllers;
 public class BrandsController : ControllerBase
 {
     private readonly IBrandRepository _brandRepository;
+    private readonly IBrandReadRepository _brandReadRepository;
     private readonly ILogger<BrandsController> _logger;
     private readonly ICodeGenerateService _codeGenerateService;
     private readonly ICurrentUserService _currentUserService;
 
-    public BrandsController(IBrandRepository brandRepository, ILogger<BrandsController> logger, ICodeGenerateService codeGenerateService, ICurrentUserService currentUserService)
+    public BrandsController(IBrandRepository brandRepository, IBrandReadRepository brandReadRepository, ILogger<BrandsController> logger, ICodeGenerateService codeGenerateService, ICurrentUserService currentUserService)
     {
         _brandRepository = brandRepository;
+        _brandReadRepository = brandReadRepository;
         _logger = logger;
         _codeGenerateService = codeGenerateService;
         _currentUserService = currentUserService;
@@ -38,6 +43,27 @@ public class BrandsController : ControllerBase
         {
             _logger.LogError(ex, "Error getting all brands");
             return StatusCode(500, "An error occurred while retrieving brands");
+        }
+    }
+
+    /// <summary>
+    /// Get paginated brands with search and filtering
+    /// </summary>
+    [HttpPost("list")]
+    public async Task<ActionResult> GetBrandsPaged(BrandQuery request, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogInformation("Fetching brands with pagination: pageNumber={PageNumber}, pageSize={PageSize}, searchTerm={SearchTerm}", request.PageNumber, request.PageSize, request.Search ?? "none");
+
+            var (response, total) = await _brandReadRepository.FindAllyAsync(request, cancellationToken);
+
+            return Ok(PagedResult<BrandResponse>.Create(response, total, request));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching paginated brands with searchTerm={SearchTerm}", request.Search ?? "none");
+            return StatusCode(500, "An error occurred while fetching paginated brands");
         }
     }
 

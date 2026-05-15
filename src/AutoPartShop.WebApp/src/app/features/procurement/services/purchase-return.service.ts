@@ -194,9 +194,8 @@ export class PurchaseReturnService {
   /**
    * Approve purchase return
    */
-  approvePurchaseReturn(id: string, approvedBy: string): Observable<PurchaseReturnResponse> {
-    const params = new HttpParams().set('approvedBy', approvedBy);
-    return this.http.patch<PurchaseReturnResponse>(`${this.apiUrl}/${id}/approve?approvedBy=${approvedBy}`, {});
+  approvePurchaseReturn(id: string): Observable<PurchaseReturnResponse> {
+    return this.http.patch<PurchaseReturnResponse>(`${this.apiUrl}/${id}/approve`, {});
   }
 
   /**
@@ -209,8 +208,8 @@ export class PurchaseReturnService {
   /**
    * Mark purchase return as received
    */
-  markAsReceived(id: string, receivedBy: string): Observable<PurchaseReturnResponse> {
-    return this.http.patch<PurchaseReturnResponse>(`${this.apiUrl}/${id}/mark-received?receivedBy=${receivedBy}`, {});
+  markAsReceived(id: string): Observable<PurchaseReturnResponse> {
+    return this.http.patch<PurchaseReturnResponse>(`${this.apiUrl}/${id}/mark-received`, {});
   }
 
   /**

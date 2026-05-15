@@ -27,11 +27,43 @@
     <a class="btn-primary" routerLink="/shop">Browse Products</a>
   </div>
 
-  <div *ngIf="!loading && products.length > 0" class="product-grid">
-    <app-product-card
-      *ngFor="let item of products; trackBy: trackById"
-      [product]="item"
-      (addToCart)="onAddToCart($event)"
-    ></app-product-card>
-  </div>
+  <ng-container *ngIf="!loading && products.length > 0">
+    <!-- Toolbar -->
+    <div class="sale-toolbar">
+      <span class="results-count">{{ totalCount }} item{{ totalCount !== 1 ? 's' : '' }} on sale</span>
+      <div class="sort-control">
+        <label>Sort:</label>
+        <select [(ngModel)]="sortBy" (ngModelChange)="onSortChange()">
+          <option value="relevance">Relevance</option>
+          <option value="price_asc">Price: Low to High</option>
+          <option value="price_desc">Price: High to Low</option>
+          <option value="name">Name A–Z</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Product grid -->
+    <div class="product-grid">
+      <app-product-card
+        *ngFor="let item of products; trackBy: trackById"
+        [product]="item"
+      ></app-product-card>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination" *ngIf="totalPages > 1">
+      <button class="page-btn" [disabled]="pageNumber === 1" (click)="goToPage(pageNumber - 1)">
+        <i class="pi pi-angle-left"></i>
+      </button>
+      <button
+        *ngFor="let p of pages"
+        class="page-btn"
+        [class.active]="p === pageNumber"
+        (click)="goToPage(p)"
+      >{{ p }}</button>
+      <button class="page-btn" [disabled]="pageNumber === totalPages" (click)="goToPage(pageNumber + 1)">
+        <i class="pi pi-angle-right"></i>
+      </button>
+    </div>
+  </ng-container>
 </div>

@@ -3,12 +3,8 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
-import { CardModule } from 'primeng/card';
 import { SkeletonModule } from 'primeng/skeleton';
 import { ToastModule } from 'primeng/toast';
-import { ConfirmDialogModule } from 'primeng/confirmdialog';
-import { TableModule } from 'primeng/table';
-import { TagModule } from 'primeng/tag';
 import { Subject, takeUntil } from 'rxjs';
 import { CustomerPaymentService, CustomerPaymentHistorySummary } from '../services/customer-payment.service';
 import { CurrencyService } from '../../../shared/services/currency.service';
@@ -19,12 +15,8 @@ import { CurrencyService } from '../../../shared/services/currency.service';
   imports: [
     CommonModule,
     ButtonModule,
-    CardModule,
     SkeletonModule,
-    ToastModule,
-    ConfirmDialogModule,
-    TableModule,
-    TagModule
+    ToastModule
   ],
   providers: [MessageService],
   templateUrl: './customer-payment-summary.component.html',
@@ -88,6 +80,12 @@ export class CustomerPaymentSummaryComponent implements OnInit, OnDestroy {
     this.router.navigate(['/sales/customer-payments']);
   }
 
+  viewAllPayments(): void {
+    this.router.navigate(['/sales/customer-payments'], {
+      queryParams: { customerId: this.customerId }
+    });
+  }
+
   formatCurrency(value: number | undefined | null): string {
     const numValue = value ?? 0;
     if (isNaN(numValue)) {
@@ -105,25 +103,6 @@ export class CustomerPaymentSummaryComponent implements OnInit, OnDestroy {
       month: 'short',
       day: 'numeric'
     });
-  }
-
-  getStatusSeverity(status: string): 'secondary' | 'info' | 'success' | 'danger' | 'warn' {
-    switch (status) {
-      case 'PENDING':
-        return 'secondary';
-      case 'PROCESSING':
-        return 'info';
-      case 'COMPLETED':
-        return 'success';
-      case 'FAILED':
-        return 'danger';
-      case 'CANCELLED':
-        return 'danger';
-      case 'REFUNDED':
-        return 'warn';
-      default:
-        return 'info';
-    }
   }
 
   ngOnDestroy(): void {

@@ -352,32 +352,30 @@
         </div>
       </div>
 
-      <!-- Section 4: Charges & Taxes -->
-      <div class="form-section">
-        <h3 class="section-title">
-          <i class="pi pi-percentage section-icon"></i>
-          Charges & Taxes
-        </h3>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label>Tax Rate (%) *</label>
-            <p-inputNumber
-              formControlName="taxRate"
-              [min]="0"
-              [max]="100"
-              placeholder="0"
-              [minFractionDigits]="0"
-              [maxFractionDigits]="2"
-              [disabled]="mode === 'view'"
-              [style]="{ width: '100%' }">
-            </p-inputNumber>
-            <small *ngIf="hasError('taxRate')" class="p-error">
-              {{ getErrorMessage('taxRate') }}
-            </small>
+      <!-- Section 5: Order Summary -->
+      <div class="form-section summary-section">
+        <div class="order-summary-modern">
+          <!-- Subtotal -->
+          <div class="summary-item">
+            <span class="summary-item-label">Subtotal</span>
+            <span class="summary-item-value">{{ formatCurrency(getSubtotal()) }}</span>
           </div>
-          <div class="form-group">
-            <label>Discount (%) *</label>
+
+          <!-- Discount Type Toggle (View Mode Hidden) -->
+          <div class="discount-type-toggle" *ngIf="mode !== 'view'">
+            <label class="radio-option">
+              <input type="radio" [value]="'BULK'" [checked]="form.get('discountType')?.value === 'BULK'" (change)="onDiscountTypeChange('BULK')" />
+              <span>Bulk (Per Item)</span>
+            </label>
+            <label class="radio-option">
+              <input type="radio" [value]="'TOTAL'" [checked]="form.get('discountType')?.value === 'TOTAL'" (change)="onDiscountTypeChange('TOTAL')" />
+              <span>Total Level</span>
+            </label>
+          </div>
+
+          <!-- Discount Input -->
+          <div class="discount-input-row" *ngIf="mode !== 'view'">
+            <label>Discount (%)</label>
             <p-inputNumber
               formControlName="discountPercentage"
               [min]="0"
@@ -385,85 +383,84 @@
               placeholder="0"
               [minFractionDigits]="0"
               [maxFractionDigits]="2"
-              [disabled]="mode === 'view'"
               [style]="{ width: '100%' }">
             </p-inputNumber>
             <small *ngIf="hasError('discountPercentage')" class="p-error">
               {{ getErrorMessage('discountPercentage') }}
             </small>
           </div>
-        </div>
-      </div>
 
-      <!-- Section 5: Order Summary -->
-      <div class="form-section">
-        <h3 class="section-title">
-          <i class="pi pi-calculator section-icon"></i>
-          Order Summary
-        </h3>
-        <div class="order-summary">
-          <div class="summary-row">
-            <span class="summary-label">Subtotal:</span>
-            <span class="summary-value">{{ formatCurrency(getSubtotal()) }}</span>
+          <!-- Manual Discount Amount -->
+          <div class="discount-input-row" *ngIf="mode !== 'view'">
+            <label>Discount Amount (Optional)</label>
+            <p-inputNumber
+              formControlName="discountAmount"
+              [min]="0"
+              placeholder="0.00"
+              [minFractionDigits]="2"
+              [maxFractionDigits]="2"
+              [style]="{ width: '100%' }">
+            </p-inputNumber>
+            <small class="field-hint">Enter a fixed discount amount or use percentage above</small>
           </div>
-          <div class="summary-row">
-            <span class="summary-label">Tax ({{ form.get('taxRate')?.value || 0 }}%):</span>
-            <span class="summary-value">{{ formatCurrency(getTaxAmount()) }}</span>
-          </div>
-          <div class="summary-row">
-            <span class="summary-label">Discount ({{ form.get('discountPercentage')?.value || 0 }}%):</span>
-            <span class="summary-value discount">-{{ formatCurrency(getDiscountAmount()) }}</span>
-          </div>
-          <div class="summary-row grand-total">
-            <span class="summary-label">Grand Total:</span>
-            <span class="summary-value">{{ formatCurrency(getGrandTotal()) }}</span>
-          </div>
-        </div>
-      </div>
 
-      <!-- Section 6: Additional Notes -->
-      <div class="form-section last">
-        <h3 class="section-title">
-          <i class="pi pi-file-edit section-icon"></i>
-          Additional Notes
-        </h3>
-        <div class="form-row">
-          <div class="form-group full">
-            <label>Notes</label>
-            <textarea
-              pInputTextarea
-              formControlName="notes"
-              rows="3"
-              placeholder="Add any additional notes or instructions for this purchase order..."
-              [disabled]="mode === 'view'">
-            </textarea>
+          <!-- Discount Display (View Mode) -->
+          <div class="summary-item" *ngIf="mode === 'view' && getDiscountAmount() > 0">
+            <span class="summary-item-label">Discount</span>
+            <span class="summary-item-value discount">-{{ formatCurrency(getDiscountAmount()) }}</span>
+          </div>
+
+          <!-- Divider -->
+          <div class="summary-divider"></div>
+
+          <!-- Total -->
+          <div class="grand-total-row">
+            <span class="grand-total-label">Total</span>
+            <span class="grand-total-value">{{ formatCurrency(getGrandTotal()) }}</span>
+          </div>
+
+          <!-- Credit Applied Display -->
+          <div class="credit-applied-row" *ngIf="totalCreditApplied > 0">
+            <span class="credit-label">Credit Applied</span>
+            <span class="credit-value">-{{ formatCurrency(totalCreditApplied) }}</span>
+          </div>
+
+          <div class="grand-total-row" *ngIf="totalCreditApplied > 0">
+            <span class="grand-total-label">Net Payable</span>
+            <span class="grand-total-value net-payable">{{ formatCurrency(getGrandTotal() - totalCreditApplied) }}</span>
           </div>
         </div>
-      </div>
-
-      <!-- Form Actions -->
-      <div class="form-actions">
-        <button
-          pButton
-          type="button"
-          [label]="mode === 'view' ? 'Back' : 'Cancel'"
-          icon="pi pi-times"
-          class="p-button-outlined"
-          (click)="onCancel()">
-        </button>
-        <button
-          *ngIf="mode !== 'view'"
-          pButton
-          type="button"
-          [label]="mode === 'edit' ? 'Update Purchase Order' : 'Create Purchase Order'"
-          icon="pi pi-check"
-          class="p-button-primary"
-          (click)="onSubmit()"
-          [loading]="isSubmitting"
-          [disabled]="isSubmitting">
-        </button>
       </div>
     </form>
+
+    <!-- Credit Notes Section (outside form, below summary) -->
+    <div class="credit-notes-section" *ngIf="form.get('supplierId')?.value && poId">
+      <app-apply-credit-notes
+          [supplierId]="form.get('supplierId')?.value"
+          [purchaseOrderId]="poId"
+          [poTotalAmount]="getGrandTotal()"
+          [poPaidAmount]="0"
+          (creditApplied)="onCreditApplied($event)">
+      </app-apply-credit-notes>
+    </div>
+
+    <!-- Submit Buttons (outside form, at card bottom) -->
+    <div class="submit-actions" *ngIf="!isViewing">
+      <button
+        type="button"
+        class="submit-button"
+        (click)="onSubmit()"
+        [disabled]="isSubmitting || linesArray.length === 0">
+        <i class="pi pi-spin pi-spinner" *ngIf="isSubmitting"></i>
+        <span>{{ isSubmitting ? 'Processing...' : (mode === 'edit' ? 'Update Order' : 'Create Order') }}</span>
+      </button>
+      <button
+        type="button"
+        class="cancel-button"
+        (click)="onCancel()">
+        <span>Cancel</span>
+      </button>
+    </div>
   </p-card>
 </div>
 

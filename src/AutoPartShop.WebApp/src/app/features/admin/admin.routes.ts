@@ -13,5 +13,11 @@ export const adminRoutes: Routes = [
     loadComponent: () => import('./exchange-rates/exchange-rates-list.component').then(m => m.ExchangeRatesListComponent),
     canActivate: [roleGuard],
     data: { roles: ['Admin'] }
+  },
+  {
+    path: 'shop-policies',
+    loadComponent: () => import('./shop-policies/shop-policies.component').then(m => m.ShopPoliciesComponent),
+    canActivate: [roleGuard],
+    data: { roles: ['Admin'] }
   }
 ];

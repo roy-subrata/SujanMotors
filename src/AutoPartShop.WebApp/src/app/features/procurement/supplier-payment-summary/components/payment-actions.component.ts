@@ -1,4 +1,4 @@
-import { Component, Input, inject } from '@angular/core';
+import { Component, Input, Output, EventEmitter, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { ButtonModule } from 'primeng/button';
@@ -75,6 +75,7 @@ import { SupplierPaymentService } from '../../services/supplier-payment.service'
 export class PaymentActionsComponent {
   @Input() supplierId!: string;
   @Input() supplierName!: string;
+  @Output() refresh = new EventEmitter<void>();
 
   private readonly router = inject(Router);
   private readonly messageService = inject(MessageService);
@@ -121,13 +122,12 @@ export class PaymentActionsComponent {
       },
       error: (error) => {
         console.error('Error downloading report:', error);
-        const errorMessage = error?.error?.message || error?.message || 'Failed to download report';
-        const detailedError = error?.error?.errors ? JSON.stringify(error.error.errors) : '';
+        const errorMessage = typeof error?.error === 'string' ? error.error : (error?.error?.message || 'Failed to download report');
 
         this.messageService.add({
           severity: 'error',
           summary: 'Error',
-          detail: `${errorMessage}${detailedError ? ' - ' + detailedError : ''}`,
+          detail: errorMessage,
           life: 5000
         });
       }
@@ -135,7 +135,6 @@ export class PaymentActionsComponent {
   }
 
   refreshSummary(): void {
-    // Refresh is handled by parent component
-    window.location.reload();
+    this.refresh.emit();
   }
 }

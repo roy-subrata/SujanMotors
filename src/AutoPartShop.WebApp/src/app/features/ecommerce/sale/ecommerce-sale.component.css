@@ -61,6 +61,57 @@
 
 .empty-state i { font-size: 40px; color: #d2c9bf; }
 
+/* Toolbar */
+.sale-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 0 8px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.results-count { font-size: 14px; color: var(--sf-muted); }
+
+.sort-control { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--sf-muted); }
+.sort-control select {
+  padding: 6px 10px;
+  border: 1px solid var(--sf-border, #e0e0e0);
+  border-radius: 8px;
+  font-size: 13px;
+  background: var(--sf-surface, #fff);
+  color: var(--sf-ink, #1a1a1a);
+  cursor: pointer;
+}
+
+/* Pagination */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 32px 0 8px;
+  flex-wrap: wrap;
+}
+
+.page-btn {
+  min-width: 36px; height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--sf-border, #e0e0e0);
+  border-radius: 8px;
+  background: var(--sf-surface, #fff);
+  color: var(--sf-ink, #1a1a1a);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.page-btn:hover:not(:disabled) { border-color: var(--sf-accent); color: var(--sf-accent); }
+.page-btn.active { background: var(--sf-accent); color: #fff; border-color: var(--sf-accent); }
+.page-btn:disabled { opacity: 0.35; cursor: default; }
+
 @media (max-width: 768px) {
   .sale-hero {
     flex-direction: column;

@@ -2,6 +2,7 @@ using AutoPartShop.Api.Services;
 using AutoPartShop.Application.Common;
 using AutoPartShop.Application.DTOs.PurchaseOrderDtos;
 using AutoPartShop.Application.PurchaseOrders;
+using AutoPartShop.Application.Services;
 using AutoPartShop.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
 
@@ -212,11 +213,11 @@ public class PurchaseOrderController : ControllerBase
                     {
                         try
                         {
-                            quantityInBaseUnit = await _unitConversionService.ConvertQuantityAsync(
+                            var qtyInBaseUnit = await _unitConversionService.ConvertQuantityAsync(
                                 lineRequest.Quantity,
                                 unitId.Value,
-                                part.UnitId.Value,
-                                cancellationToken);
+                                part.UnitId.Value);
+                            quantityInBaseUnit = (int)Math.Round(qtyInBaseUnit);
                         }
                         catch (InvalidOperationException ex)
                         {
@@ -300,11 +301,11 @@ public class PurchaseOrderController : ControllerBase
                 {
                     try
                     {
-                        quantityInBaseUnit = await _unitConversionService.ConvertQuantityAsync(
+                        var qtyInBaseUnit = await _unitConversionService.ConvertQuantityAsync(
                             lineRequest.Quantity,
                             unitId.Value,
-                            part.UnitId.Value,
-                            cancellationToken);
+                            part.UnitId.Value);
+                        quantityInBaseUnit = (int)Math.Round(qtyInBaseUnit);
                     }
                     catch (InvalidOperationException ex)
                     {
@@ -501,6 +502,12 @@ public class PurchaseOrderController : ControllerBase
             grn.CreatedBy = currentUser;
             grn.ModifiedBy = currentUser;
 
+            // Set supplier invoice information
+            grn.SetInvoiceInformation(
+                request.SupplierInvoiceNumber ?? string.Empty,
+                request.SupplierInvoiceDate,
+                request.InvoiceNotProvided);
+
             // Set delivery information if provided
             if (request.DeliveryDate.HasValue || !string.IsNullOrEmpty(request.DeliveryReference))
             {
@@ -523,7 +530,56 @@ public class PurchaseOrderController : ControllerBase
                     if (poLine is null)
                         return BadRequest(new { message = $"Part {lineRequest.PartId} not found in purchase order" });
 
-                    // Create GRN line item with cost information
+                    // Calculate remaining quantity considering already accepted/verified GRNs
+                    var alreadyReceived = purchaseOrder.GoodsReceipts
+                        .Where(gr => gr.Status == "ACCEPTED" || gr.Status == "VERIFIED")
+                        .SelectMany(gr => gr.LineItems)
+                        .Where(grl => grl.PartId == lineRequest.PartId)
+                        .Sum(grl => grl.ReceivedQuantity);
+
+                    var remainingQty = poLine.Quantity - alreadyReceived;
+
+                    if (lineRequest.ReceivedQuantity > remainingQty)
+                    {
+                        return BadRequest(new { 
+                            message = $"Received quantity ({lineRequest.ReceivedQuantity}) exceeds remaining ordered quantity ({remainingQty}) for part {lineRequest.PartId}. Already received: {alreadyReceived}, Ordered: {poLine.Quantity}" 
+                        });
+                    }
+
+                    // Get the Part to calculate base unit quantities
+                    var part = await _partRepository.GetByIdAsync(lineRequest.PartId, cancellationToken);
+
+                    if (part == null)
+                        return BadRequest(new { message = $"Part {lineRequest.PartId} not found" });
+
+                    // Calculate base unit quantities if unit conversion is needed
+                    int orderedQuantityInBaseUnit = poLine.Quantity;
+                    int receivedQuantityInBaseUnit = lineRequest.ReceivedQuantity;
+                    decimal unitCostInBaseUnit = lineRequest.UnitCost;
+
+                    // Only convert if part has a base unit AND received unit differs from base unit
+                    if (part.BaseUnitId.HasValue && lineRequest.UnitId.HasValue && lineRequest.UnitId.Value != part.BaseUnitId.Value)
+                    {
+                        try
+                        {
+                            var conversionFactor = await _unitConversionService.GetConversionFactorAsync(
+                                lineRequest.UnitId.Value,
+                                part.BaseUnitId.Value);
+
+                            if (conversionFactor > 0)
+                            {
+                                orderedQuantityInBaseUnit = (int)Math.Round(poLine.Quantity * conversionFactor, MidpointRounding.AwayFromZero);
+                                receivedQuantityInBaseUnit = (int)Math.Round(lineRequest.ReceivedQuantity * conversionFactor, MidpointRounding.AwayFromZero);
+                                unitCostInBaseUnit = lineRequest.UnitCost / conversionFactor;
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "Unit conversion failed for part {PartId}, using display quantities as base", lineRequest.PartId);
+                        }
+                    }
+
+                    // Create GRN line item with cost information and base unit quantities
                     var grnLine = GoodsReceiptLine.Create(
                         grn.Id,
                         poLine.Id,
@@ -533,12 +589,23 @@ public class PurchaseOrderController : ControllerBase
                         lineRequest.Condition,
                         lineRequest.UnitCost,  // Actual unit cost received
                         lineRequest.Currency,
-                        lineRequest.UnitId
+                        lineRequest.UnitId,
+                        orderedQuantityInBaseUnit,
+                        receivedQuantityInBaseUnit,
+                        0, // rejectedQuantityInBaseUnit
+                        unitCostInBaseUnit,
+                        lineRequest.SellingPrice,
+                        lineRequest.HasWarranty,
+                        lineRequest.WarrantyPeriodMonths,
+                        lineRequest.WarrantyType,
+                        lineRequest.WarrantyTerms,
+                        lineRequest.BatchNumber,
+                        lineRequest.ExpiryDate
                     );
 
                     if (!string.IsNullOrEmpty(lineRequest.Notes))
                     {
-                        grnLine.RejectQuantity(0, lineRequest.Notes);
+                        grnLine.RejectQuantity(0, 0, lineRequest.Notes);
                     }
 
                     grn.LineItems.Add(grnLine);
@@ -550,6 +617,7 @@ public class PurchaseOrderController : ControllerBase
 
             await _goodsReceiptRepository.AddAsync(grn, cancellationToken);
             await _codeGenerateService.SaveGenerateCodeAsync("GRN", cancellationToken);
+            await _codeGenerateService.SaveGenerateCodeAsync("LOT", cancellationToken);  // In case PO number sequence needs to be updated
             return CreatedAtAction(nameof(GetGRNById), new { id = grn.Id }, MapToGoodsReceiptResponse(grn));
         }
         catch (ArgumentException ex)
@@ -674,19 +742,82 @@ public class PurchaseOrderController : ControllerBase
                     if (poLine is null)
                         return BadRequest(new { message = $"Part {lineRequest.PartId} not found in purchase order" });
 
-                    // Create GRN line item
+                    // Calculate remaining quantity considering already accepted/verified GRNs (excluding current GRN being updated)
+                    var alreadyReceived = purchaseOrder.GoodsReceipts
+                        .Where(gr => (gr.Status == "ACCEPTED" || gr.Status == "VERIFIED") && gr.Id != id)
+                        .SelectMany(gr => gr.LineItems)
+                        .Where(grl => grl.PartId == lineRequest.PartId)
+                        .Sum(grl => grl.ReceivedQuantity);
+
+                    var remainingQty = poLine.Quantity - alreadyReceived;
+
+                    if (lineRequest.ReceivedQuantity > remainingQty)
+                    {
+                        return BadRequest(new { 
+                            message = $"Received quantity ({lineRequest.ReceivedQuantity}) exceeds remaining ordered quantity ({remainingQty}) for part {lineRequest.PartId}. Already received: {alreadyReceived}, Ordered: {poLine.Quantity}" 
+                        });
+                    }
+
+                    // Get the Part to calculate base unit quantities
+                    var part = await _partRepository.GetByIdAsync(lineRequest.PartId, cancellationToken);
+
+                    if (part == null)
+                        return BadRequest(new { message = $"Part {lineRequest.PartId} not found" });
+
+                    // Calculate base unit quantities if unit conversion is needed
+                    int orderedQuantityInBaseUnit = poLine.Quantity;
+                    int receivedQuantityInBaseUnit = lineRequest.ReceivedQuantity;
+                    decimal unitCostInBaseUnit = lineRequest.UnitCost;
+
+                    // Only convert if part has a base unit AND received unit differs from base unit
+                    if (part.BaseUnitId.HasValue && lineRequest.UnitId.HasValue && lineRequest.UnitId.Value != part.BaseUnitId.Value)
+                    {
+                        try
+                        {
+                            var conversionFactor = await _unitConversionService.GetConversionFactorAsync(
+                                lineRequest.UnitId.Value,
+                                part.BaseUnitId.Value);
+
+                            if (conversionFactor > 0)
+                            {
+                                orderedQuantityInBaseUnit = (int)Math.Round(poLine.Quantity * conversionFactor, MidpointRounding.AwayFromZero);
+                                receivedQuantityInBaseUnit = (int)Math.Round(lineRequest.ReceivedQuantity * conversionFactor, MidpointRounding.AwayFromZero);
+                                unitCostInBaseUnit = lineRequest.UnitCost / conversionFactor;
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "Unit conversion failed for part {PartId}, using display quantities as base", lineRequest.PartId);
+                        }
+                    }
+
+                    // Create GRN line item with cost information and base unit quantities
                     var grnLine = GoodsReceiptLine.Create(
                         grn.Id,
                         poLine.Id,
                         lineRequest.PartId,
                         poLine.Quantity,  // OrderedQuantity from PO
                         lineRequest.ReceivedQuantity,
-                        lineRequest.Condition
+                        lineRequest.Condition,
+                        lineRequest.UnitCost,  // Actual unit cost received
+                        lineRequest.Currency,
+                        lineRequest.UnitId,
+                        orderedQuantityInBaseUnit,
+                        receivedQuantityInBaseUnit,
+                        0, // rejectedQuantityInBaseUnit
+                        unitCostInBaseUnit,
+                        lineRequest.SellingPrice,
+                        lineRequest.HasWarranty,
+                        lineRequest.WarrantyPeriodMonths,
+                        lineRequest.WarrantyType,
+                        lineRequest.WarrantyTerms,
+                        lineRequest.BatchNumber,
+                        lineRequest.ExpiryDate
                     );
 
                     if (!string.IsNullOrEmpty(lineRequest.Notes))
                     {
-                        grnLine.RejectQuantity(0, lineRequest.Notes);
+                        grnLine.RejectQuantity(0, 0, lineRequest.Notes);
                     }
 
                     grn.LineItems.Add(grnLine);
@@ -747,40 +878,17 @@ public class PurchaseOrderController : ControllerBase
             if (grn.Status != "VERIFIED")
                 return BadRequest(new { message = "Only verified goods receipts can be accepted" });
 
-            // Update stock levels and create audit trail
+            // Prevent duplicate processing - check if already accepted
+            if (grn.Status == "ACCEPTED")
+                return BadRequest(new { message = "This goods receipt has already been accepted" });
+
+            // Update stock levels and update PO receipt status (handled inside ProcessGoodsReceiptAsync)
             await _stockManagementService.ProcessGoodsReceiptAsync(grn, cancellationToken);
 
             // Update GRN status to accepted
             grn.Accept();
             grn.ModifiedBy = _currentUserService.GetCurrentUsername();
             await _goodsReceiptRepository.UpdateAsync(grn, cancellationToken);
-
-            // Update purchase order line received quantities and status
-            var purchaseOrder = await _purchaseOrderRepository.GetByIdAsync(grn.PurchaseOrderId, cancellationToken);
-            if (purchaseOrder != null)
-            {
-                // Update received quantities for each line item
-                foreach (var grnLine in grn.LineItems)
-                {
-                    var poLine = purchaseOrder.LineItems.FirstOrDefault(l => l.PartId == grnLine.PartId);
-                    if (poLine != null)
-                    {
-                        // Calculate total accepted quantity for this part from all accepted GRNs
-                        var totalAcceptedForPart = purchaseOrder.GoodsReceipts
-                            .Where(gr => gr.Status == "ACCEPTED")
-                            .SelectMany(gr => gr.LineItems)
-                            .Where(l => l.PartId == grnLine.PartId)
-                            .Sum(l => l.AcceptedQuantity);
-
-                        poLine.UpdateReceivedQuantity(totalAcceptedForPart);
-                    }
-                }
-
-                // Update PO status (PARTIAL or DELIVERED)
-                purchaseOrder.UpdateReceiptStatus();
-                purchaseOrder.ModifiedBy = _currentUserService.GetCurrentUsername();
-                await _purchaseOrderRepository.UpdateAsync(purchaseOrder, cancellationToken);
-            }
 
             return Ok(MapToGoodsReceiptResponse(grn));
         }
@@ -792,6 +900,44 @@ public class PurchaseOrderController : ControllerBase
         {
             _logger.LogError(ex, "Error accepting goods receipt: {GRNId}", id);
             return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while accepting the goods receipt");
+        }
+    }
+
+    [HttpPatch("grn/{id:guid}/update-pricing")]
+    public async Task<IActionResult> UpdateGRNPricing(Guid id, [FromBody] UpdateGRNPricingRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var grn = await _goodsReceiptRepository.GetByIdAsync(id, cancellationToken);
+            if (grn is null) return NotFound(new { message = "Goods receipt not found" });
+
+            if (grn.Status != "VERIFIED")
+                return BadRequest(new { message = "Pricing can only be set on verified goods receipts" });
+
+            foreach (var linePricing in request.Lines)
+            {
+                var line = grn.LineItems.FirstOrDefault(l => l.Id == linePricing.LineId);
+                if (line is not null)
+                {
+                    line.UpdatePricing(
+                        linePricing.SellingPrice,
+                        linePricing.HasWarranty,
+                        linePricing.WarrantyPeriodMonths,
+                        linePricing.WarrantyType,
+                        linePricing.WarrantyTerms
+                    );
+                }
+            }
+
+            grn.ModifiedBy = _currentUserService.GetCurrentUsername();
+            await _goodsReceiptRepository.UpdateAsync(grn, cancellationToken);
+
+            return Ok(MapToGoodsReceiptResponse(grn));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating pricing for goods receipt: {GRNId}", id);
+            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while updating pricing");
         }
     }
 
@@ -846,6 +992,7 @@ public class PurchaseOrderController : ControllerBase
             {
                 Id = l.Id,
                 PartId = l.PartId,
+                PartBaseUnitId = l.Part?.UnitId,
                 UnitId = l.UnitId,
                 UnitName = l.Unit?.Name ?? string.Empty,
                 UnitSymbol = l.Unit?.Symbol ?? string.Empty,
@@ -854,7 +1001,9 @@ public class PurchaseOrderController : ControllerBase
                 ReceivedQuantity = l.ReceivedQuantity,
                 ReceivedQuantityInBaseUnit = l.ReceivedQuantityInBaseUnit,
                 UnitPrice = l.UnitPrice,
-                LineTotal = l.TotalPrice
+                LineTotal = l.TotalPrice,
+                PartDefaultSellingPrice = l.Part?.SellingPrice ?? 0,
+                PartMinMarginPercent = 0m
             }).ToList(),
             CreatedAt = DateTime.UtcNow
         };
@@ -876,6 +1025,9 @@ public class PurchaseOrderController : ControllerBase
             DiscrepancyCount = grn.DiscrepancyCount,
             VerifiedBy = grn.VerifiedBy,
             VerificationDate = grn.VerificationDate,
+            SupplierInvoiceNumber = grn.SupplierInvoiceNumber,
+            SupplierInvoiceDate = grn.SupplierInvoiceDate,
+            InvoiceNotProvided = grn.InvoiceNotProvided,
             DeliveryDate = grn.DeliveryDate,
             DeliveryReference = grn.DeliveryReference,
             CarrierName = grn.CarrierName,
@@ -885,16 +1037,27 @@ public class PurchaseOrderController : ControllerBase
             {
                 Id = l.Id,
                 PartId = l.PartId,
+                PartName = l.Part?.Name ?? string.Empty,
+                PartSKU = l.Part?.SKU ?? string.Empty,
+                OrderedQuantity = l.OrderedQuantity,
                 ReceivedQuantity = l.ReceivedQuantity,
+                RejectedQuantity = l.RejectedQuantity,
+                AcceptedQuantity = l.AcceptedQuantity,
                 Condition = l.Condition,
                 Notes = l.Notes,
                 HasDiscrepancy = l.HasDiscrepancy,
+                BatchNumber = l.BatchNumber,
+                ExpiryDate = l.ExpiryDate,
                 UnitCost = l.UnitCost,
                 Currency = l.Currency,
+                UnitId = l.UnitId,
                 TotalCost = l.TotalCost,
-                AcceptedQuantity = l.AcceptedQuantity,
                 AcceptedTotalCost = l.AcceptedTotalCost,
-                UnitId = l.UnitId
+                SellingPrice = l.SellingPrice,
+                HasWarranty = l.HasWarranty,
+                WarrantyPeriodMonths = l.WarrantyPeriodMonths,
+                WarrantyType = l.WarrantyType,
+                WarrantyTerms = l.WarrantyTerms
             }).ToList(),
             CreatedAt = DateTime.UtcNow
         };

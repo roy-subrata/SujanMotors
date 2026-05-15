@@ -58,7 +58,19 @@ public class AutoPartDbContext : IdentityDbContext<ApplicationUser, ApplicationR
     public DbSet<ApplicationSettings> ApplicationSettings { get; set; }
     public DbSet<WarrantyRegistration> WarrantyRegistrations { get; set; }
     public DbSet<WarrantyClaim> WarrantyClaims { get; set; }
+    public DbSet<Shipment> Shipments { get; set; }
+    public DbSet<ShipmentLine> ShipmentLines { get; set; }
+    public DbSet<CartReservation> CartReservations { get; set; }
     public DbSet<SupplierPaymentAccount> SupplierPaymentAccounts { get; set; }
+    public DbSet<CreditNote> CreditNotes { get; set; }
+    public DbSet<CustomerCreditNote> CustomerCreditNotes { get; set; }
+
+    // Discount system
+    public DbSet<Discount> Discounts { get; set; }
+
+    // Variant time-based pricing
+    public DbSet<ProductVariantPriceHistory> ProductVariantPriceHistories { get; set; }
+
 
     // Identity and Permission tables
     public DbSet<Permission> Permissions { get; set; }

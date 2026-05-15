@@ -22,6 +22,7 @@ import { MessageService, ConfirmationService } from 'primeng/api';
 
 // Services
 import { QuickSaleService, QuickSaleLineItem, PaymentDetail, PaymentMethod, PaymentResponsibility } from '../services/quick-sale.service';
+import { DiscountService, ResolveDiscountResult } from '../../inventory/services/discount.service';
 import { PaymentProviderService, PaymentProviderResponse } from '../../procurement/services/payment-provider.service';
 import { PublicPartService, PublicPartResponse } from '../services/public-part.service';
 import { UnitService, UnitResponse } from '../../inventory/services/unit.service';
@@ -31,7 +32,6 @@ import { TechnicianService, TechnicianResponse } from '../services/technician.se
 import { InvoicePdfService, InvoicePdfData } from '../services/invoice-pdf.service';
 import { CurrencyService } from '../../../shared/services/currency.service';
 import { PricingValidationService } from '../../../shared/services/pricing-validation.service';
-import { PRICING_RULES } from '../../../shared/constants/pricing-rules';
 
 // Components
 import { QuickCustomerDialogComponent } from '../components/quick-customer-dialog.component';
@@ -80,6 +80,7 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
   private readonly confirmationService = inject(ConfirmationService);
   private readonly invoicePdfService = inject(InvoicePdfService);
   private readonly pricingValidationService = inject(PricingValidationService);
+  private readonly discountService = inject(DiscountService);
 
   @ViewChild(QuickCustomerDialogComponent) quickCustomerDialog!: QuickCustomerDialogComponent;
   @ViewChild('toolbarContainer') toolbarContainer!: ElementRef<HTMLDivElement>;
@@ -176,6 +177,12 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
   // Cart items
   cartItems = signal<QuickSaleLineItem[]>([]);
   globalDiscount = 0;
+  discountReason = '';
+
+  // Promo code
+  promoCode = signal('');
+  cartDiscountResult = signal<ResolveDiscountResult | null>(null);
+  applyingPromo = signal(false);
 
   // Units
   units = signal<UnitResponse[]>([]);
@@ -249,8 +256,12 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
     return (this.subtotal() * this.vatPercentage()) / 100;
   });
 
+  cartDiscountAmount = computed(() => {
+    return this.cartDiscountResult()?.discountAmount ?? 0;
+  });
+
   grandTotal = computed(() => {
-    return this.subtotal();
+    return Math.max(0, this.subtotal() - this.cartDiscountAmount());
   });
 
   paidAmount = computed(() => {
@@ -286,7 +297,6 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
   saleNotes = '';
   favoriteParts: PublicPartResponse[] = [];
 
-  pricingRules = PRICING_RULES;
   pricingErrors = new Map<number, string>();
 
   // Dialog states
@@ -372,7 +382,7 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
   loadInitialData(): void {
     this.loading.set(true);
     let loadedCount = 0;
-    const totalLoads = 5;
+    const totalLoads = 3; // Parts, VAT Config, Units
 
     const checkComplete = () => {
       loadedCount++;
@@ -794,6 +804,8 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
       payments: this.payments(),
       subtotal: this.subtotal(),
       discountAmount: this.discountAmount(),
+      discountType: this.globalDiscount > 0 ? 'PERCENTAGE' : (this.cartDiscountResult()?.discountAmount ?? 0) > 0 ? 'FIXED' : 'NONE',
+      discountReason: this.discountReason || undefined,
       vatAmount: this.vatAmount(),
       vatPercentage: this.vatPercentage(),
       grandTotal: this.grandTotal(),
@@ -978,9 +990,8 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
     if (part.sellingPrice <= 0) return 'MRP must be configured before sale.';
     const isBaseUnit = !unitId || !part.unitId || unitId === part.unitId;
     if (isBaseUnit && unitPrice > part.sellingPrice) return 'Selling price cannot exceed MRP.';
-    const maxDiscount = part.maxDiscountPercentOverride ?? this.pricingRules.maxDiscountPercent;
-    if (discount > maxDiscount) {
-      return `Discount cannot exceed ${maxDiscount}%.`;
+    if (discount > 100) {
+      return `Discount cannot exceed 100%.`;
     }
     return null;
   }
@@ -1008,7 +1019,7 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
           this.clearPricingError(index);
           return true;
         }),
-        catchError((err) => {
+        catchError((err: any) => {
           const message = err?.error?.message || 'Invalid pricing for this item.';
           this.pricingErrors.set(index, message);
           return of(false);
@@ -1027,9 +1038,8 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
     this.pricingErrors.delete(index);
   }
 
-  getMaxDiscountForItem(item: QuickSaleLineItem): number {
-    const part = this.parts().find(p => p.id === item.partId);
-    return part?.maxDiscountPercentOverride ?? this.pricingRules.maxDiscountPercent;
+  getMaxDiscountForItem(_item: QuickSaleLineItem): number {
+    return 100;
   }
 
   resetForm(): void {
@@ -1049,6 +1059,12 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
     this.cartUnitSelection.clear();
     // Reset advance balance
     this.useAdvanceBalance.set(false);
+    // Reset promo code
+    this.promoCode.set('');
+    this.cartDiscountResult.set(null);
+    // Reset discount
+    this.globalDiscount = 0;
+    this.discountReason = '';
   }
 
   onCartUnitChanged(item: QuickSaleLineItem, index: number): void {
@@ -1961,7 +1977,7 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
   }
 
   applyGlobalDiscount(): void {
-    const value = Math.max(0, Math.min(this.pricingRules.maxDiscountPercent, Number(this.globalDiscount || 0)));
+    const value = Math.max(0, Math.min(100, Number(this.globalDiscount || 0)));
     this.globalDiscount = value;
     if (this.cartItems().length === 0) {
       return;
@@ -2011,6 +2027,81 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
       return newItems;
     });
     this.clearPricingError(index);
+  }
+
+  /**
+   * Apply the entered promo code by calling the discount resolve endpoint
+   */
+  applyPromoCode(): void {
+    const code = this.promoCode().trim();
+    if (!code) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'No Code',
+        detail: 'Please enter a promo code',
+        life: 2000
+      });
+      return;
+    }
+
+    const currentSubtotal = this.subtotal();
+    if (currentSubtotal <= 0) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Empty Cart',
+        detail: 'Add items to cart before applying a promo code',
+        life: 2000
+      });
+      return;
+    }
+
+    this.applyingPromo.set(true);
+    this.discountService.resolveCartDiscount(currentSubtotal, code).subscribe({
+      next: (result) => {
+        this.applyingPromo.set(false);
+        if (result && result.discountAmount > 0) {
+          this.cartDiscountResult.set(result);
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Promo Applied',
+            detail: `"${result.discountName || code}" — saved ${this.formatCurrency(result.discountAmount)}`,
+            life: 3000
+          });
+        } else {
+          this.cartDiscountResult.set(null);
+          this.messageService.add({
+            severity: 'warn',
+            summary: 'Code Not Applicable',
+            detail: 'This promo code does not apply to your current cart',
+            life: 3000
+          });
+        }
+      },
+      error: (err) => {
+        this.applyingPromo.set(false);
+        this.cartDiscountResult.set(null);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Invalid Code',
+          detail: err.error?.message || 'Promo code not found or expired',
+          life: 3000
+        });
+      }
+    });
+  }
+
+  /**
+   * Remove the applied promo code discount
+   */
+  removePromoCode(): void {
+    this.promoCode.set('');
+    this.cartDiscountResult.set(null);
+    this.messageService.add({
+      severity: 'info',
+      summary: 'Promo Removed',
+      detail: 'Promo code discount has been removed',
+      life: 2000
+    });
   }
 
   toggleVat(): void {

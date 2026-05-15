@@ -50,6 +50,21 @@ export class UnitConversionService {
   constructor(private http: HttpClient) {}
 
   /**
+   * Get conversions with pagination and search
+   */
+  getListConversions(pageNumber: number, pageSize: number, searchTerm?: string): Observable<UnitConversionListResponse> {
+    let params = new HttpParams()
+      .set('pageNumber', pageNumber.toString())
+      .set('pageSize', pageSize.toString());
+    
+    if (searchTerm) {
+      params = params.set('searchTerm', searchTerm);
+    }
+
+    return this.http.get<UnitConversionListResponse>(`${this.apiUrl}/conversions/list`, { params });
+  }
+
+  /**
    * Get all unit conversions
    */
   getAllConversions(): Observable<UnitConversionResponse[]> {

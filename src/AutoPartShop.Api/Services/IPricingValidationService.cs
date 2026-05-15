@@ -10,11 +10,6 @@ public interface IPricingValidationService
 
 public sealed record PricingCalculationResult(
     decimal EffectivePrice,
-    decimal MinAllowedPrice,
-    decimal MaxDiscountedPrice,
-    decimal MinMarginPercent,
-    decimal MaxDiscountPercent,
     decimal Mrp,
-    decimal FloorPrice,
     bool IsValid,
     string? ValidationMessage);

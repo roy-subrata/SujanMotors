@@ -50,6 +50,9 @@ export class CategoriesListComponent {
     selectedCategory: CategoryResponse | null = null;
     pageSizeOptions = [10, 20, 50];
 
+    // Expose Math for template
+    Math = Math;
+
     /**
      * Build context menu for a category
      */
@@ -107,10 +110,26 @@ export class CategoriesListComponent {
     }
 
     /**
-     * Get status badge severity
+     * Navigate to a specific page
      */
-    getStatusSeverity(isActive: boolean): "success" | "danger" | "secondary" | "info" | "warn" | "contrast" | undefined {
-        return isActive ? 'success' : 'danger';
+    goToPage(page: number): void {
+        if (page < 1 || page > this.totalPages) {
+            return;
+        }
+        this.pageChange.emit({
+            page: page,
+            rows: this.rows
+        });
+    }
+
+    /**
+     * Handle page size change
+     */
+    onPageSizeChange(newRows: number): void {
+        this.pageChange.emit({
+            page: 1,
+            rows: newRows
+        });
     }
 
     /**
@@ -131,25 +150,10 @@ export class CategoriesListComponent {
         return Math.max(0, (this.currentPage - 1) * this.rows);
     }
 
-    get pageNumber(): number {
-        if (!this.totalRecords) {
-            return 0;
-        }
-        return Math.floor(this.first / this.rows) + 1;
-    }
-
     get totalPages(): number {
-        if (!this.totalRecords) {
+        if (!this.totalRecords || !this.rows) {
             return 0;
         }
         return Math.ceil(this.totalRecords / this.rows);
-    }
-
-    get pageSize(): number {
-        return this.rows;
-    }
-
-    set pageSize(value: number) {
-        this.rows = value;
     }
 }

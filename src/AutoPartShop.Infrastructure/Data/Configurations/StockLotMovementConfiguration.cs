@@ -13,6 +13,9 @@ public class StockLotMovementConfiguration : IEntityTypeConfiguration<StockLotMo
         builder.Property(slm => slm.CostAtMovement)
             .HasPrecision(18, 2);
 
+        builder.Property(slm => slm.CostAtMovementInBaseUnit)
+            .HasPrecision(18, 2);
+
         builder.Property(slm => slm.MovementType)
             .IsRequired()
             .HasMaxLength(20);
@@ -25,6 +28,12 @@ public class StockLotMovementConfiguration : IEntityTypeConfiguration<StockLotMo
             .WithMany(sl => sl.Movements)
             .HasForeignKey(slm => slm.StockLotId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(slm => slm.Unit)
+            .WithMany()
+            .HasForeignKey(slm => slm.UnitId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired(false);
 
         // Indexes
         builder.HasIndex(slm => slm.StockLotId);

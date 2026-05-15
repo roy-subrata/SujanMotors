@@ -17,7 +17,8 @@
   <div *ngIf="!cartService.isEmpty()" class="cart-items">
     <div class="cart-item" *ngFor="let item of cartService.items()">
       <div class="item-image">
-        <i class="pi pi-box"></i>
+        <img *ngIf="item.primaryImageUrl" [src]="item.primaryImageUrl" [alt]="item.name" />
+        <i *ngIf="!item.primaryImageUrl" class="pi pi-box"></i>
       </div>
       <div class="item-details">
         <h4>{{ item.name }}</h4>
@@ -43,7 +44,12 @@
         <strong>{{ cartService.currency() }} {{ cartService.subtotal() | number:'1.0-0' }}</strong>
       </div>
       <a class="btn-view-cart" routerLink="/shop/cart" (click)="close()">View Cart</a>
-      <a class="btn-checkout" routerLink="/shop/checkout" (click)="close()">Checkout</a>
+      <a class="btn-checkout" [routerLink]="checkoutUrl" (click)="close()">
+        <ng-container *ngIf="authService.isLoggedIn(); else customerCheckout">
+          <i class="pi pi-id-card"></i> In-Store Checkout
+        </ng-container>
+        <ng-template #customerCheckout>Checkout</ng-template>
+      </a>
     </div>
   </ng-template>
 </p-drawer>

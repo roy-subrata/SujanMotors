@@ -35,18 +35,9 @@ import { filter } from 'rxjs/operators';
             <!-- Quick Sale -->
             <button
                 type="button"
-                class="topbar-action-btn quick-sale-btn"
-                (click)="navigateToQuickSale()"
-                pTooltip="Quick Sale"
-                tooltipPosition="bottom">
-                <i class="pi pi-shopping-cart"></i>
-            </button>
-            <!-- Quick Sale Shortcut -->
-            <button
-                type="button"
                 class="topbar-action-btn quick-sale-shortcut-btn"
                 (click)="navigateToQuickSaleShortcut()"
-                pTooltip="Quick Sale Shortcut"
+                pTooltip="Quick Sale (POS)"
                 tooltipPosition="bottom">
                 <i class="pi pi-bolt"></i>
             </button>

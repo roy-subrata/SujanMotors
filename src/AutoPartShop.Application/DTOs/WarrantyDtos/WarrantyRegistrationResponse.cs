@@ -7,6 +7,9 @@ public class WarrantyRegistrationResponse
     public Guid PartId { get; set; }
     public string PartName { get; set; } = string.Empty;
     public string PartSKU { get; set; } = string.Empty;
+    public Guid? ProductVariantId { get; set; }
+    public string? VariantName { get; set; }
+    public string? VariantSku { get; set; }
     public Guid SalesOrderId { get; set; }
     public string SalesOrderNumber { get; set; } = string.Empty;
     public Guid SalesOrderLineId { get; set; }
@@ -19,6 +22,7 @@ public class WarrantyRegistrationResponse
     public string WarrantyType { get; set; } = string.Empty;
     public int WarrantyPeriodMonths { get; set; }
     public string WarrantyTerms { get; set; } = string.Empty;
+    public string GuaranteeMessage { get; set; } = string.Empty;
     public string CertificateNumber { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public string? VoidReason { get; set; }

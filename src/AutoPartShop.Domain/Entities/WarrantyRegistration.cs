@@ -1,5 +1,13 @@
 namespace AutoPartShop.Domain.Entities;
 
+public static class WarrantyTypes
+{
+    public const string Manufacturer = "MANUFACTURER";
+    public const string Seller = "SELLER";
+    public const string Extended = "EXTENDED";
+    public static readonly string[] All = [Manufacturer, Seller, Extended];
+}
+
 /// <summary>
 /// Represents a warranty registration for a part sold to a customer
 /// </summary>
@@ -7,6 +15,7 @@ public class WarrantyRegistration : AuditableEntity
 {
     public string WarrantyNumber { get; private set; } = string.Empty;  // Auto-generated: WR-YYYY-XXXXX
     public Guid PartId { get; private set; }
+    public Guid? ProductVariantId { get; private set; }  // The specific variant sold
     public Guid SalesOrderId { get; private set; }
     public Guid SalesOrderLineId { get; private set; }
     public Guid CustomerId { get; private set; }
@@ -23,6 +32,7 @@ public class WarrantyRegistration : AuditableEntity
 
     // Navigation properties
     public Part? Part { get; set; }
+    public ProductVariant? ProductVariant { get; set; }
     public SalesOrder? SalesOrder { get; set; }
     public SalesOrderLine? SalesOrderLine { get; set; }
     public Customer? Customer { get; set; }
@@ -41,7 +51,8 @@ public class WarrantyRegistration : AuditableEntity
         int warrantyPeriodMonths,
         string warrantyType,
         string warrantyTerms,
-        string certificateNumber)
+        string certificateNumber,
+        Guid? productVariantId = null)
     {
         if (string.IsNullOrWhiteSpace(warrantyNumber))
             throw new ArgumentException("Warranty number cannot be empty", nameof(warrantyNumber));
@@ -64,6 +75,10 @@ public class WarrantyRegistration : AuditableEntity
         if (string.IsNullOrWhiteSpace(warrantyType))
             throw new ArgumentException("Warranty type cannot be empty", nameof(warrantyType));
 
+        var normalizedType = warrantyType.Trim().ToUpper();
+        if (!WarrantyTypes.All.Contains(normalizedType))
+            throw new ArgumentException($"Warranty type must be one of: {string.Join(", ", WarrantyTypes.All)}", nameof(warrantyType));
+
         if (string.IsNullOrWhiteSpace(certificateNumber))
             throw new ArgumentException("Certificate number cannot be empty", nameof(certificateNumber));
 
@@ -73,6 +88,7 @@ public class WarrantyRegistration : AuditableEntity
         {
             WarrantyNumber = warrantyNumber.Trim().ToUpper(),
             PartId = partId,
+            ProductVariantId = productVariantId,
             SalesOrderId = salesOrderId,
             SalesOrderLineId = salesOrderLineId,
             CustomerId = customerId,
@@ -127,5 +143,95 @@ public class WarrantyRegistration : AuditableEntity
     public bool IsValid()
     {
         return Status == "ACTIVE" && DateTime.UtcNow <= WarrantyExpiryDate;
+    }
+
+    /// <summary>
+    /// Reverts the warranty back to ACTIVE (or EXPIRED) after a claim is rejected,
+    /// so the customer can file a new claim on a still-valid warranty.
+    /// </summary>
+    public void ReactivateAfterClaimRejection()
+    {
+        if (Status != "CLAIMED")
+            return;
+
+        if (DateTime.UtcNow > WarrantyExpiryDate)
+        {
+            Status = "EXPIRED";
+        }
+        else
+        {
+            Status = "ACTIVE";
+        }
+        ModifiedBy = "System";
+    }
+
+    /// <summary>
+    /// Reactivates the warranty after a REPAIR claim is closed, allowing future claims.
+    /// REPLACEMENT and REFUND closures consume the warranty — call only for REPAIR.
+    /// </summary>
+    public void ReactivateAfterClaimClosure()
+    {
+        if (Status != "CLAIMED")
+            return;
+
+        Status = DateTime.UtcNow > WarrantyExpiryDate ? "EXPIRED" : "ACTIVE";
+        ModifiedBy = "System";
+    }
+
+    public void SyncFromPartWarranty(
+        bool hasWarranty,
+        int? warrantyPeriodMonths,
+        string? warrantyType,
+        string? warrantyTerms,
+        string? warrantyCertificateTemplate,
+        string modifiedBy,
+        string? voidReason = null)
+    {
+        var actor = string.IsNullOrWhiteSpace(modifiedBy) ? "System" : modifiedBy.Trim();
+
+        // Don't alter warranty details while a claim is actively in-flight.
+        if (Status == "CLAIMED")
+            return;
+
+        if (!hasWarranty)
+        {
+            if (Status == "ACTIVE")
+            {
+                Status = "VOID";
+                VoidReason = string.IsNullOrWhiteSpace(voidReason)
+                    ? "Part warranty was disabled"
+                    : voidReason.Trim();
+                VoidedDate = DateTime.UtcNow;
+                ModifiedBy = actor;
+            }
+
+            return;
+        }
+
+        if (!warrantyPeriodMonths.HasValue || warrantyPeriodMonths.Value <= 0)
+            throw new ArgumentException("Warranty period must be greater than 0", nameof(warrantyPeriodMonths));
+
+        if (string.IsNullOrWhiteSpace(warrantyType))
+            throw new ArgumentException("Warranty type is required", nameof(warrantyType));
+
+        WarrantyPeriodMonths = warrantyPeriodMonths.Value;
+        WarrantyType = warrantyType.Trim().ToUpper();
+        WarrantyTerms = warrantyTerms?.Trim() ?? string.Empty;
+        WarrantyExpiryDate = WarrantyStartDate.AddMonths(WarrantyPeriodMonths);
+
+        CertificateNumber = string.IsNullOrWhiteSpace(warrantyCertificateTemplate)
+            ? $"CERT-{WarrantyNumber}"
+            : $"{warrantyCertificateTemplate.Trim().ToUpper()}-{WarrantyNumber}";
+
+        if (Status == "EXPIRED" && DateTime.UtcNow <= WarrantyExpiryDate)
+        {
+            Status = "ACTIVE";
+        }
+        else if (Status == "ACTIVE" && DateTime.UtcNow > WarrantyExpiryDate)
+        {
+            Status = "EXPIRED";
+        }
+
+        ModifiedBy = actor;
     }
 }

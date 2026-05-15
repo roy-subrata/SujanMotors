@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -10,7 +10,7 @@ import { InputNumberModule } from 'primeng/inputnumber';
 import { Select } from 'primeng/select';
 import { ButtonModule } from 'primeng/button';
 import { ToastModule } from 'primeng/toast';
-import { MessageService, ConfirmationService } from 'primeng/api';
+import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
 import { DatePickerModule } from 'primeng/datepicker';
 import { TableModule } from 'primeng/table';
 import { InputTextModule } from 'primeng/inputtext';
@@ -20,6 +20,8 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { CardModule } from 'primeng/card';
 import { PaginatorModule, PaginatorState } from 'primeng/paginator';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
+import { MenuModule } from 'primeng/menu';
+import { Menu } from 'primeng/menu';
 import { tap } from 'rxjs';
 import { ApplyCustomerAdvanceCreditDialogComponent } from '../../sales-orders/apply-advance-credit/apply-advance-credit-dialog.component';
 
@@ -41,13 +43,16 @@ import { ApplyCustomerAdvanceCreditDialogComponent } from '../../sales-orders/ap
         TooltipModule,
         ConfirmDialogModule,
         CardModule,
-        PaginatorModule
+        PaginatorModule,
+        MenuModule
     ],
     providers: [MessageService, ConfirmationService, DialogService],
     templateUrl: './invoices-list.component.html',
     styleUrls: ['./invoices-list.component.css']
 })
 export class InvoicesListComponent implements OnInit {
+    @ViewChild('actionMenu') actionMenu!: Menu;
+
     private readonly router = inject(Router);
     private readonly invoiceService = inject(InvoiceService);
     private readonly currencyService = inject(CurrencyService);
@@ -66,6 +71,9 @@ export class InvoicesListComponent implements OnInit {
     pageSize = 25;
     pageSizeOptions = [10, 25, 50, 100];
 
+    // Context menu
+    actionItems: MenuItem[] = [];
+
     // Filters
     searchTerm = '';
     filterStatus = '';
@@ -78,6 +86,7 @@ export class InvoicesListComponent implements OnInit {
     paymentReference = '';
     paymentAmount = 0;
     paymentMethod = 'CASH';
+    paymentDate: Date = new Date();
     paymentProviderId: string | null = null;
     paymentProviders: { label: string; value: string; id: string }[] = [];
     paymentMethods: { label: string; value: string }[] = [];
@@ -336,12 +345,69 @@ export class InvoicesListComponent implements OnInit {
         return new Date(date).toLocaleDateString('en-IN');
     }
 
+    // ==================== CONTEXT MENU ====================
+    openActionMenu(event: MouseEvent, invoice: InvoiceResponse): void {
+        this.selectedInvoice = invoice;
+        this.actionItems = this.buildActionItems(invoice);
+        this.actionMenu.toggle(event);
+    }
+
+    private buildActionItems(invoice: InvoiceResponse): MenuItem[] {
+        const items: MenuItem[] = [
+            {
+                label: 'View Invoice',
+                icon: 'pi pi-eye',
+                command: () => this.viewInvoice(invoice)
+            },
+            {
+                label: 'View Sales Order',
+                icon: 'pi pi-shopping-cart',
+                command: () => this.viewSalesOrder(invoice)
+            },
+            { separator: true }
+        ];
+
+        if (invoice.status === 'DRAFT') {
+            items.push({
+                label: 'Issue Invoice',
+                icon: 'pi pi-check-circle',
+                command: () => this.issueInvoice(invoice)
+            });
+        }
+
+        if (this.canRecordPayment(invoice)) {
+            items.push({
+                label: 'Record Payment',
+                icon: 'pi pi-dollar',
+                command: () => this.openPaymentDialog(invoice)
+            });
+        }
+
+        if (this.canApplyAdvanceCredit(invoice)) {
+            items.push({
+                label: 'Apply Advance Credit',
+                icon: 'pi pi-credit-card',
+                command: () => this.applyAdvanceCredit(invoice)
+            });
+        }
+
+        items.push({
+            label: 'View / Confirm Payments',
+            icon: 'pi pi-wallet',
+            command: () => this.viewCustomerPayments(invoice)
+        });
+
+        return items;
+    }
+
+    // ==================== PAYMENT DIALOG ====================
     openPaymentDialog(invoice: InvoiceResponse): void {
         this.selectedInvoice = invoice;
-        this.paymentAmount = invoice.outstandingAmount;
+        this.paymentAmount = invoice.outstandingAmount > 0 ? invoice.outstandingAmount : 0;
         this.paymentMethod = 'CASH';
         this.paymentProviderId = null;
         this.paymentReference = '';
+        this.paymentDate = new Date();
         this.showPaymentDialog = true;
     }
 
@@ -352,6 +418,7 @@ export class InvoicesListComponent implements OnInit {
         this.paymentMethod = 'CASH';
         this.paymentProviderId = null;
         this.paymentReference = '';
+        this.paymentDate = new Date();
     }
 
     recordPayment(): void {
@@ -384,7 +451,7 @@ export class InvoicesListComponent implements OnInit {
         this.invoiceService
             .recordPayment(this.selectedInvoice.id, {
                 amount: this.paymentAmount,
-                paymentDate: new Date().toISOString(),
+                paymentDate: this.paymentDate.toISOString(),
                 paymentMethod: this.paymentMethod,
                 referenceNumber: this.paymentReference,
                 paymentProviderId: providerId || undefined

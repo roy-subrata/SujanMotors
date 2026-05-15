@@ -7,13 +7,14 @@ namespace AutoPartShop.Api.Services;
 
 /// <summary>
 /// Service for calculating and retrieving supplier ledger data.
-/// Combines PurchaseOrders, SupplierPayments, and PurchaseReturns into a unified ledger view.
+/// Combines PurchaseOrders, SupplierPayments, PurchaseReturns, and CreditNotes into a unified ledger view.
 /// </summary>
 public class SupplierLedgerService : ISupplierLedgerService
 {
     private readonly IPurchaseOrderRepository _purchaseOrderRepository;
     private readonly ISupplierPaymentRepository _supplierPaymentRepository;
     private readonly IPurchaseReturnRepository _purchaseReturnRepository;
+    private readonly ICreditNoteRepository _creditNoteRepository;
     private readonly ISupplierRepository _supplierRepository;
     private readonly ILogger<SupplierLedgerService> _logger;
 
@@ -21,12 +22,14 @@ public class SupplierLedgerService : ISupplierLedgerService
         IPurchaseOrderRepository purchaseOrderRepository,
         ISupplierPaymentRepository supplierPaymentRepository,
         IPurchaseReturnRepository purchaseReturnRepository,
+        ICreditNoteRepository creditNoteRepository,
         ISupplierRepository supplierRepository,
         ILogger<SupplierLedgerService> logger)
     {
         _purchaseOrderRepository = purchaseOrderRepository;
         _supplierPaymentRepository = supplierPaymentRepository;
         _purchaseReturnRepository = purchaseReturnRepository;
+        _creditNoteRepository = creditNoteRepository;
         _supplierRepository = supplierRepository;
         _logger = logger;
     }
@@ -174,13 +177,18 @@ public class SupplierLedgerService : ISupplierLedgerService
 
     public async Task<decimal> GetAvailableAdvanceCreditAsync(Guid supplierId, CancellationToken ct = default)
     {
+        // Get advance payment credits
         var payments = await _supplierPaymentRepository.GetBySupplierAsync(supplierId, ct);
-
-        return payments
+        var advanceCredit = payments
             .Where(p => p.PaymentType == PaymentType.ADVANCE &&
                        p.Status == "COMPLETED" &&
                        p.RemainingAmount > 0)
             .Sum(p => p.RemainingAmount);
+
+        // Get credit note credits (from returns)
+        var creditNoteCredit = await _creditNoteRepository.GetTotalAvailableCreditAsync(supplierId, ct);
+
+        return advanceCredit + creditNoteCredit;
     }
 
     #region Private Helper Methods

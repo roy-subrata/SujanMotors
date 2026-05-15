@@ -334,10 +334,17 @@
                   <span class="totals-label">Global Discount:</span>
                   <div class="discount-inline">
                     <input type="number" [(ngModel)]="globalDiscount" (ngModelChange)="applyGlobalDiscount()"
-                      [ngModelOptions]="{standalone: true}" min="0" [attr.max]="pricingRules.maxDiscountPercent" class="global-discount-input"
+                      [ngModelOptions]="{standalone: true}" min="0" max="100" class="global-discount-input"
                       placeholder="0" />
                     <span class="unit-suffix">%</span>
                   </div>
+                </div>
+              </div>
+              <div class="totals-row right-only" *ngIf="globalDiscount > 0 || discountAmount() > 0">
+                <div class="totals-inline">
+                  <span class="totals-label">Discount Reason:</span>
+                  <input pInputText [(ngModel)]="discountReason" [ngModelOptions]="{standalone: true}"
+                    placeholder="e.g. Loyalty, Bulk, Damage…" class="discount-reason-input" maxlength="120" />
                 </div>
               </div>
               <div class="totals-row right-only" *ngIf="discountAmount() > 0">
@@ -385,6 +392,44 @@
             <div class="summary-line discount" *ngIf="discountAmount() > 0">
               <span><i class="pi pi-percentage"></i> Total Discount</span>
               <span class="discount-value">-{{ formatCurrency(discountAmount()) }}</span>
+            </div>
+
+            <!-- Promo Code Section -->
+            <div class="promo-section">
+              <div *ngIf="!cartDiscountResult()" class="promo-input-row">
+                <input
+                  type="text"
+                  class="promo-input"
+                  placeholder="Enter promo code"
+                  [value]="promoCode()"
+                  (input)="promoCode.set($any($event.target).value)"
+                  (keyup.enter)="applyPromoCode()" />
+                <button
+                  class="promo-apply-btn"
+                  (click)="applyPromoCode()"
+                  [disabled]="applyingPromo()">
+                  <i *ngIf="applyingPromo()" class="pi pi-spin pi-spinner"></i>
+                  <span *ngIf="!applyingPromo()">Apply</span>
+                </button>
+              </div>
+              <div *ngIf="cartDiscountResult()" class="promo-applied-row">
+                <div class="promo-applied-info">
+                  <i class="pi pi-ticket"></i>
+                  <div class="promo-applied-details">
+                    <span class="promo-name">{{ cartDiscountResult()?.discountName || promoCode() }}</span>
+                    <span class="promo-saving">Saving {{ formatCurrency(cartDiscountResult()?.discountAmount || 0) }}</span>
+                  </div>
+                </div>
+                <button class="promo-remove-btn" (click)="removePromoCode()" pTooltip="Remove promo">
+                  <i class="pi pi-times"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Cart Discount line -->
+            <div class="summary-line discount" *ngIf="cartDiscountAmount() > 0">
+              <span><i class="pi pi-ticket"></i> Promo Discount</span>
+              <span class="discount-value">-{{ formatCurrency(cartDiscountAmount()) }}</span>
             </div>
 
             <div class="summary-line grand-total">

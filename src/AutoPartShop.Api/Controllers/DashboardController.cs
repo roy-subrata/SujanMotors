@@ -81,7 +81,8 @@ public class DashboardController(IFinancialSummaryService financialSummaryServic
     {
         try
         {
-            var today = DateTime.Today;
+            // Fix #1: use UtcNow.Date for consistency with the rest of the codebase
+            var today = DateTime.UtcNow.Date;
             var request = new FinancialSummaryRequest
             {
                 StartDate = today,
@@ -108,7 +109,8 @@ public class DashboardController(IFinancialSummaryService financialSummaryServic
     {
         try
         {
-            var now = DateTime.Now;
+            // Fix #2: UtcNow for consistency
+            var now = DateTime.UtcNow;
             var request = new FinancialSummaryRequest
             {
                 StartDate = new DateTime(now.Year, now.Month, 1),
@@ -135,7 +137,7 @@ public class DashboardController(IFinancialSummaryService financialSummaryServic
     {
         try
         {
-            var now = DateTime.Now;
+            var now = DateTime.UtcNow; // Fix #2
             var request = new FinancialSummaryRequest
             {
                 StartDate = new DateTime(now.Year, 1, 1),

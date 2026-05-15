@@ -25,7 +25,6 @@
 
     <!-- Metrics Section -->
     <div *ngIf="!loading && !error && summary" class="metrics-grid">
-      <!-- Invoice & Outstanding -->
       <div class="metric-card metric-primary">
         <div class="metric-label">Total Invoice Amount</div>
         <div class="metric-value">{{ formatCurrency(summary.totalInvoiceAmount || 0) }}</div>
@@ -34,98 +33,48 @@
       <div class="metric-card metric-success">
         <div class="metric-label">Total Paid</div>
         <div class="metric-value">{{ formatCurrency(summary.totalPaid || 0) }}</div>
-        <div class="metric-helper">{{ summary.completedPayments || 0 }} payments</div>
+        <div class="metric-helper">{{ summary.completedPayments || 0 }} completed payments</div>
       </div>
       <div class="metric-card" [ngClass]="(summary.totalOutstanding || 0) > 0 ? 'metric-warning' : 'metric-neutral'">
-        <div class="metric-label">Total Due</div>
+        <div class="metric-label">Outstanding Balance</div>
         <div class="metric-value">{{ formatCurrency(summary.totalOutstanding || 0) }}</div>
-        <div class="metric-helper" *ngIf="(summary.unpaidInvoices || 0) > 0">{{ summary.unpaidInvoices }} outstanding invoices</div>
+        <div class="metric-helper" *ngIf="(summary.unpaidInvoices || 0) > 0">{{ summary.unpaidInvoices }} unpaid invoices</div>
+        <div class="metric-helper" *ngIf="(summary.overdueInvoices || 0) > 0" style="color: #dc2626;">{{ summary.overdueInvoices }} overdue</div>
         <div class="metric-helper" *ngIf="(summary.unpaidInvoices || 0) === 0">All paid up!</div>
       </div>
       <div class="metric-card" [ngClass]="(summary.availableAdvance || 0) > 0 ? 'metric-success' : 'metric-neutral'">
         <div class="metric-label">
-          <i class="pi pi-gift mr-2"></i>Advance Amount
+          <i class="pi pi-gift mr-2"></i>Advance Balance
         </div>
         <div class="metric-value">{{ formatCurrency(summary.availableAdvance || 0) }}</div>
         <div class="metric-helper" *ngIf="(summary.availableAdvance || 0) > 0">Store credit on file</div>
         <div class="metric-helper" *ngIf="(summary.availableAdvance || 0) === 0">No credit available</div>
       </div>
+    </div>
 
-      <!-- Second Row -->
-      <div class="metric-card" [ngClass]="(summary.totalOutstanding || 0) > 0 ? 'metric-warning' : 'metric-neutral'">
-        <div class="metric-label">Outstanding Balance</div>
-        <div class="metric-value">{{ formatCurrency(summary.totalOutstanding || 0) }}</div>
-        <div class="metric-helper" *ngIf="(summary.unpaidInvoices || 0) > 0">{{ summary.unpaidInvoices }} unpaid</div>
-        <div class="metric-helper" *ngIf="(summary.unpaidInvoices || 0) === 0">All paid up!</div>
-      </div>
-      <div class="metric-card" [ngClass]="(summary.overdueInvoices || 0) > 0 ? 'metric-danger' : 'metric-neutral'">
-        <div class="metric-label">Overdue Amount</div>
-        <div class="metric-value">{{ formatCurrency(summary.amountDue || 0) }}</div>
-        <div class="metric-helper" *ngIf="(summary.overdueInvoices || 0) > 0">{{ summary.overdueInvoices }} overdue</div>
-        <div class="metric-helper" *ngIf="(summary.overdueInvoices || 0) === 0">No overdue</div>
-      </div>
-      <div class="metric-card metric-info">
-        <div class="metric-label">Pending Payments</div>
-        <div class="metric-value">{{ summary.pendingPayments || 0 }}</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-label">Payment Fees</div>
-        <div class="metric-value">{{ formatCurrency(summary.totalFees || 0) }}</div>
-      </div>
+    <!-- Secondary Stats -->
+    <div *ngIf="!loading && !error && summary && (summary.pendingPayments > 0 || summary.failedPayments > 0 || summary.lastPaymentDate)" class="secondary-stats">
+      <span *ngIf="summary.lastPaymentDate" class="stat-chip">
+        Last payment: {{ formatCurrency(summary.lastPaymentAmount) }} on {{ formatDate(summary.lastPaymentDate) }}
+      </span>
+      <span *ngIf="(summary.pendingPayments || 0) > 0" class="stat-chip stat-chip-info">
+        {{ summary.pendingPayments }} pending
+      </span>
+      <span *ngIf="(summary.failedPayments || 0) > 0" class="stat-chip stat-chip-danger">
+        {{ summary.failedPayments }} failed
+      </span>
+      <span *ngIf="(summary.totalFees || 0) > 0" class="stat-chip">
+        Fees: {{ formatCurrency(summary.totalFees) }}
+      </span>
     </div>
   </div>
 
-  <!-- Payment History Section -->
+  <!-- Payment History Link -->
   <div *ngIf="!loading && !error && summary" class="table-card">
-    <h3 class="table-title">Payment History</h3>
-    <p-table
-      [value]="summary.paymentHistory"
-      [paginator]="true"
-      [rows]="10"
-      responsiveLayout="scroll"
-      styleClass="p-datatable-striped">
-      <ng-template pTemplate="header">
-        <tr>
-          <th>Date</th>
-          <th>Amount</th>
-          <th>Type</th>
-          <th>Method</th>
-          <th>Invoice #</th>
-          <th>Transaction #</th>
-          <th>Provider</th>
-          <th>Status</th>
-        </tr>
-      </ng-template>
-      <ng-template pTemplate="body" let-payment>
-        <tr>
-          <td>{{ formatDate(payment.paymentDate) }}</td>
-          <td>{{ formatCurrency(payment.amount) }}</td>
-          <td>
-            <p-tag
-              [value]="payment.paymentType"
-              [severity]="payment.paymentType === 'ADVANCE' ? 'info' : 'secondary'"
-              [style]="{'font-size': '0.75rem'}">
-            </p-tag>
-          </td>
-          <td>
-            <div>{{ payment.paymentMethod }}</div>
-            <div *ngIf="payment.sourceAdvanceTransactionNumber" style="font-size: 0.75rem; color: #6c757d; margin-top: 0.25rem;">
-              From: {{ payment.sourceAdvanceTransactionNumber }}
-            </div>
-          </td>
-          <td>{{ payment.invoiceNumber || '-' }}</td>
-          <td>{{ payment.transactionNumber }}</td>
-          <td>{{ payment.providerName }}</td>
-          <td>
-            <p-tag [value]="payment.status" [severity]="getStatusSeverity(payment.status)"></p-tag>
-          </td>
-        </tr>
-      </ng-template>
-      <ng-template pTemplate="emptymessage">
-        <tr>
-          <td colspan="8" class="text-center">No payment history found</td>
-        </tr>
-      </ng-template>
-    </p-table>
+    <div class="table-header">
+      <h3 class="table-title">Payment History</h3>
+      <button pButton type="button" icon="pi pi-list" label="View All Payments" [text]="true" (click)="viewAllPayments()"></button>
+    </div>
+    <p class="empty-hint">Navigate to the payments list for full payment history with search, filters, and actions.</p>
   </div>
 </div>

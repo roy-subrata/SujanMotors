@@ -56,11 +56,18 @@ export class StockComponent implements OnInit {
   loading = false;
   searchTerm = '';
   activeTab = 0;
-  viewMode: 'table' | 'grid' = 'table';
-  selectedWarehouse: string | null = null;
-  selectedStatus: string | null = null;
-  showLowStockDialog = false;
-  showHistoryDialog = false;
+
+  // Per-tab filter states
+  allStockFilters = {
+    search: '',
+    warehouseId: null as string | null,
+    status: null as string | null
+  };
+
+  lowStockFilters = {
+    search: '',
+    warehouseId: null as string | null
+  };
 
   // Pagination state - All Stock
   allTotalRecords = 0;
@@ -78,7 +85,7 @@ export class StockComponent implements OnInit {
 
   // Warehouse filter options
   warehouseOptions: { label: string; value: string }[] = [];
-  
+
   // Stock status options
   stockStatusOptions = [
     { label: 'In Stock', value: 'in-stock' },
@@ -91,32 +98,17 @@ export class StockComponent implements OnInit {
     this.loadParts();
     this.loadWarehouses();
     this.loadAllStock();
-    setTimeout(() => {
-      this.loadLowStock();
-    }, 100);
-
-    // Auto-refresh stock data every 30 seconds
-    setInterval(() => {
-      this.refreshStockData();
-    }, 30000);
-  }
-
-  private refreshStockData(): void {
-    // Only refresh if not currently loading
-    if (!this.loading) {
-      this.loadAllStock();
-      this.loadLowStock();
-    }
+    this.loadLowStock();
   }
 
   loadAllStock(): void {
     this.loading = true;
     this.stockService.getStockLevels({
-      search: this.searchTerm,
+      search: this.allStockFilters.search,
       pageNumber: this.allPageNumber,
       pageSize: this.allPageSize,
-      warehouseId: this.selectedWarehouse || undefined,
-      status: this.selectedStatus || undefined
+      warehouseId: this.allStockFilters.warehouseId || undefined,
+      status: this.allStockFilters.status || undefined
     }).subscribe({
       next: (response) => {
         this.allStockLevels = response.data;
@@ -136,11 +128,10 @@ export class StockComponent implements OnInit {
 
   loadLowStock(): void {
     this.stockService.getStockLevels({
-      search: this.searchTerm,
+      search: this.lowStockFilters.search,
       pageNumber: this.lowPageNumber,
       pageSize: this.lowPageSize,
-      warehouseId: this.selectedWarehouse || undefined,
-      status: this.selectedStatus || undefined,
+      warehouseId: this.lowStockFilters.warehouseId || undefined,
       lowStockOnly: true
     }).subscribe({
       next: (response) => {
@@ -161,20 +152,44 @@ export class StockComponent implements OnInit {
     this.activeTab = tab;
   }
 
-  onSearch(): void {
+  // All Stock Tab Filters
+  onAllStockSearch(): void {
     this.resetAllPagination();
-    this.resetLowPagination();
     this.loadAllStock();
+  }
+
+  onAllStockSearchInput(): void {
+    // Debounced search will be triggered on input
+  }
+
+  onAllStockSearchClear(): void {
+    this.allStockFilters.search = '';
+    this.onAllStockFilterChange();
+  }
+
+  onAllStockFilterChange(): void {
+    this.resetAllPagination();
+    this.loadAllStock();
+  }
+
+  // Low Stock Tab Filters
+  onLowStockSearch(): void {
+    this.resetLowPagination();
     this.loadLowStock();
   }
 
-  onSearchInput(): void {
-    // Real-time search as user types
+  onLowStockSearchInput(): void {
+    // Debounced search will be triggered on input
   }
 
-  onSearchClear(): void {
-    this.searchTerm = '';
-    this.onSearch();
+  onLowStockSearchClear(): void {
+    this.lowStockFilters.search = '';
+    this.onLowStockFilterChange();
+  }
+
+  onLowStockFilterChange(): void {
+    this.resetLowPagination();
+    this.loadLowStock();
   }
 
   onRefresh(): void {
@@ -209,13 +224,10 @@ export class StockComponent implements OnInit {
     });
   }
 
-  /**
-   * Load all parts
-   */
   loadParts(): void {
-    this.partService.getAllParts().subscribe({
-      next: (parts) => {
-        this.parts = Array.isArray(parts) ? parts : [];
+    this.partService.getParts({ search: '', pageNumber: 1, pageSize: 500, isActive: true }).subscribe({
+      next: (res) => {
+        this.parts = res.data ?? [];
       },
       error: (_error) => {
         console.error('Error loading parts:', _error);
@@ -227,8 +239,9 @@ export class StockComponent implements OnInit {
    * Load all warehouses
    */
   loadWarehouses(): void {
-    this.warehouseService.getAllWarehouses().subscribe({
-      next: (warehouses) => {
+    this.warehouseService.getWarehouses({ search: '', pageNumber: 1, pageSize: 1000, sorts: [{ field: 'name', direction: 'asc' }] }).subscribe({
+      next: (res) => {
+        const warehouses = res.data ?? [];
         this.warehouses = Array.isArray(warehouses) ? warehouses : [];
         this.warehouseOptions = this.warehouses.map(w => ({
           label: w.name,
@@ -239,18 +252,6 @@ export class StockComponent implements OnInit {
         console.error('Error loading warehouses:', _error);
       }
     });
-  }
-
-  onWarehouseFilter(): void {
-    this.onSearch();
-  }
-
-  onStatusFilter(): void {
-    this.onSearch();
-  }
-
-  showAllLowStock(): void {
-    this.showLowStockDialog = true;
   }
 
   onAllLazyLoad(event: TableLazyLoadEvent): void {
@@ -371,30 +372,34 @@ export class StockComponent implements OnInit {
    * Calculate total on-hand quantity
    */
   getTotalOnHand(): number {
-    return this.allStockLevels.reduce((sum, s) => sum + (s.quantity || 0), 0);
+    // Sum base unit quantities for accurate totals across different units
+    return this.allStockLevels.reduce((sum, s) => sum + (s.quantityInBaseUnit || 0), 0);
   }
 
   /**
    * Calculate total reserved quantity
    */
   getTotalReserved(): number {
-    return this.allStockLevels.reduce((sum, s) => sum + (s.reservedQuantity || 0), 0);
+    // Sum base unit quantities for accurate totals across different units
+    return this.allStockLevels.reduce((sum, s) => sum + (s.reservedQuantityInBaseUnit || 0), 0);
   }
 
   /**
    * Check if stock is below reorder level
    */
   isLowStock(stock: StockLevelResponse): boolean {
-    return stock.availableQuantity <= stock.reorderLevel;
+    // Compare base unit quantity with reorder level
+    return stock.availableQuantityInBaseUnit <= stock.reorderLevel;
   }
 
   /**
    * Get stock status text
    */
   getStockStatus(stock: StockLevelResponse): string {
-    if (stock.availableQuantity === 0) return 'Out of Stock';
-    if (stock.availableQuantity <= stock.reorderLevel * 0.5) return 'Critical';
-    if (stock.availableQuantity <= stock.reorderLevel) return 'Low Stock';
+    const availBase = stock.availableQuantityInBaseUnit;
+    if (availBase === 0) return 'Out of Stock';
+    if (availBase <= stock.reorderLevel * 0.5) return 'Critical';
+    if (availBase <= stock.reorderLevel) return 'Low Stock';
     return 'In Stock';
   }
 
@@ -402,9 +407,10 @@ export class StockComponent implements OnInit {
    * Get status CSS class
    */
   getStatusClass(stock: StockLevelResponse): string {
-    if (stock.availableQuantity === 0) return 'status-out';
-    if (stock.availableQuantity <= stock.reorderLevel * 0.5) return 'status-critical';
-    if (stock.availableQuantity <= stock.reorderLevel) return 'status-low';
+    const availBase = stock.availableQuantityInBaseUnit;
+    if (availBase === 0) return 'status-out';
+    if (availBase <= stock.reorderLevel * 0.5) return 'status-critical';
+    if (availBase <= stock.reorderLevel) return 'status-low';
     return 'status-in-stock';
   }
 

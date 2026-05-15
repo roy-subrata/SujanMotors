@@ -14,6 +14,9 @@ public class ApplicationUser : IdentityUser<Guid>
     public DateTime? ModifiedAt { get; set; }
     public string? ModifiedBy { get; set; }
 
+    // Link to Customer record (set for online shoppers; null for staff accounts)
+    public Guid? CustomerId { get; set; }
+
     // Navigation properties
     public virtual ICollection<ApplicationUserRole> UserRoles { get; set; } = new List<ApplicationUserRole>();
 

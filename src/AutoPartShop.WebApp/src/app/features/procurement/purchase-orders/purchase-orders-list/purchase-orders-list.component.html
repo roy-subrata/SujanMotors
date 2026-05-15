@@ -64,7 +64,8 @@
                   {{ (po.supplierName || 'S')[0].toUpperCase() }}
                 </div>
                 <div class="customer-info">
-                  <span class="customer-name">{{ po.supplierName || '-' }}</span>
+                  <a class="customer-name entity-link" [routerLink]="['/inventory/suppliers', po.supplierId]" *ngIf="po.supplierId">{{ po.supplierName || '-' }}</a>
+                  <span class="customer-name" *ngIf="!po.supplierId">{{ po.supplierName || '-' }}</span>
                   <span *ngIf="po.supplierCode" class="customer-phone">{{ po.supplierCode }}</span>
                 </div>
               </div>

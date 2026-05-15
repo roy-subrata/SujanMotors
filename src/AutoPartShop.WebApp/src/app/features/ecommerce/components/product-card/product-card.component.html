@@ -6,8 +6,8 @@
       <i class="pi pi-box"></i>
     </div>
     <!-- Badges -->
-    <span class="badge-sale" *ngIf="product().isOnSale">
-      {{ ((1 - (product().price / (product().originalPrice || product().price))) * 100) | number:'1.0-0' }}%
+    <span class="badge-sale" *ngIf="product().isOnSale && (product().originalPrice ?? 0) > 0">
+      -{{ ((1 - product().price / product().originalPrice!) * 100) | number:'1.0-0' }}%
     </span>
     <span class="badge-stock" [class.out]="!product().inStock">
       {{ product().inStock ? 'In Stock' : 'Out of Stock' }}
@@ -27,15 +27,6 @@
     <span class="card-category">{{ product().categoryName }}</span>
     <h3 class="card-title">{{ product().name }}</h3>
     <div class="card-brand" *ngIf="product().brandName">{{ product().brandName }}</div>
-    <!-- Rating placeholder -->
-    <div class="card-rating">
-      <i class="pi pi-star-fill"></i>
-      <i class="pi pi-star-fill"></i>
-      <i class="pi pi-star-fill"></i>
-      <i class="pi pi-star-fill"></i>
-      <i class="pi pi-star"></i>
-      <span class="rating-count">1 review</span>
-    </div>
     <!-- Price -->
     <div class="card-price">
       <span *ngIf="product().isOnSale && product().originalPrice" class="old-price">
@@ -43,14 +34,31 @@
       </span>
       <strong>{{ product().currency }} {{ product().price | number:'1.0-0' }}</strong>
     </div>
-    <!-- Add to Cart -->
+    <!-- Add to Cart (in-stock only) -->
     <button
+      *ngIf="product().inStock"
       class="btn-add-cart"
-      [disabled]="!product().inStock"
+      [class.btn-added]="btnState() === 'added'"
+      [class.btn-error]="btnState() === 'error'"
+      [disabled]="btnState() === 'loading'"
       (click)="onAddToCart($event)"
     >
-      <i class="pi pi-shopping-cart"></i>
-      Add to Cart
+      <i class="pi"
+        [class.pi-spin]="btnState() === 'loading'"
+        [class.pi-spinner]="btnState() === 'loading'"
+        [class.pi-check]="btnState() === 'added'"
+        [class.pi-times]="btnState() === 'error'"
+        [class.pi-shopping-cart]="btnState() === 'idle'"
+      ></i>
+      <span *ngIf="btnState() === 'idle'">Add to Cart</span>
+      <span *ngIf="btnState() === 'loading'">Adding...</span>
+      <span *ngIf="btnState() === 'added'">Added!</span>
+      <span *ngIf="btnState() === 'error'">Out of Stock</span>
     </button>
+
+    <!-- Out of Stock label -->
+    <div *ngIf="!product().inStock" class="out-of-stock-label">
+      <i class="pi pi-times-circle"></i> Out of Stock
+    </div>
   </div>
 </a>

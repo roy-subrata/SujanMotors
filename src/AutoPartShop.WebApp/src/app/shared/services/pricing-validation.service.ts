@@ -9,12 +9,7 @@ export interface PricingValidationResponse {
 
 export interface PricingCalculationResponse {
   effectivePrice: number;
-  minAllowedPrice: number;
-  maxDiscountedPrice: number;
-  minMarginPercent: number;
-  maxDiscountPercent: number;
   mrp: number;
-  floorPrice: number;
   isValid: boolean;
   validationMessage?: string | null;
 }
@@ -26,19 +21,13 @@ export class PricingValidationService {
 
   validateLine(partId: string, unitPrice: number, discountPercent: number, unitId?: string | null): Observable<PricingValidationResponse> {
     return this.http.post<PricingValidationResponse>(`${this.apiUrl}/validate-line`, {
-      partId,
-      unitPrice,
-      discountPercent,
-      unitId: unitId ?? null
+      partId, unitPrice, discountPercent, unitId: unitId ?? null
     });
   }
 
   calculateLine(partId: string, unitPrice: number, discountPercent: number, unitId?: string | null): Observable<PricingCalculationResponse> {
     return this.http.post<PricingCalculationResponse>(`${this.apiUrl}/calculate-line`, {
-      partId,
-      unitPrice,
-      discountPercent,
-      unitId: unitId ?? null
+      partId, unitPrice, discountPercent, unitId: unitId ?? null
     });
   }
 }

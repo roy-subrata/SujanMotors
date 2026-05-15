@@ -1,7 +1,8 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SupplierPaymentHistorySummary } from '../../services/supplier-payment.service';
 import { SupplierLedgerSummaryDto } from '../../services/supplier-ledger.service';
+import { CurrencyService } from '../../../../shared/services/currency.service';
 
 @Component({
   selector: 'app-payment-metrics',
@@ -16,7 +17,7 @@ import { SupplierLedgerSummaryDto } from '../../services/supplier-ledger.service
           <div class="flex items-center justify-between">
             <div>
               <p class="text-gray-600 text-sm font-medium">Total Purchases</p>
-              <p class="text-2xl font-bold text-red-600">{{ ledgerSummary.totalPurchases | currency }}</p>
+              <p class="text-2xl font-bold text-red-600">{{ formatCurrency(ledgerSummary.totalPurchases) }}</p>
             </div>
             <i class="pi pi-shopping-cart text-red-500 text-3xl"></i>
           </div>
@@ -30,7 +31,7 @@ import { SupplierLedgerSummaryDto } from '../../services/supplier-ledger.service
           <div class="flex items-center justify-between">
             <div>
               <p class="text-gray-600 text-sm font-medium">Total Payments</p>
-              <p class="text-2xl font-bold text-green-600">{{ ledgerSummary.totalPayments | currency }}</p>
+              <p class="text-2xl font-bold text-green-600">{{ formatCurrency(ledgerSummary.totalPayments) }}</p>
             </div>
             <i class="pi pi-check-circle text-green-500 text-3xl"></i>
           </div>
@@ -44,7 +45,7 @@ import { SupplierLedgerSummaryDto } from '../../services/supplier-ledger.service
           <div class="flex items-center justify-between">
             <div>
               <p class="text-gray-600 text-sm font-medium">Purchase Returns</p>
-              <p class="text-2xl font-bold text-purple-600">{{ ledgerSummary.totalRefunds | currency }}</p>
+              <p class="text-2xl font-bold text-purple-600">{{ formatCurrency(ledgerSummary.totalRefunds) }}</p>
             </div>
             <i class="pi pi-replay text-purple-500 text-3xl"></i>
           </div>
@@ -58,7 +59,7 @@ import { SupplierLedgerSummaryDto } from '../../services/supplier-ledger.service
           <div class="flex items-center justify-between">
             <div>
               <p class="text-gray-600 text-sm font-medium">Advance Credit</p>
-              <p class="text-2xl font-bold text-blue-600">{{ ledgerSummary.availableAdvanceCredit | currency }}</p>
+              <p class="text-2xl font-bold text-blue-600">{{ formatCurrency(ledgerSummary.availableAdvanceCredit) }}</p>
             </div>
             <i class="pi pi-wallet text-blue-500 text-3xl"></i>
           </div>
@@ -73,7 +74,7 @@ import { SupplierLedgerSummaryDto } from '../../services/supplier-ledger.service
             <div>
               <p class="text-gray-600 text-sm font-medium">Current Balance</p>
               <p [ngClass]="getLedgerBalanceTextColor()" class="text-2xl font-bold">
-                {{ ledgerSummary.currentBalance | currency }}
+                {{ formatCurrency(ledgerSummary.currentBalance) }}
               </p>
             </div>
             <i [ngClass]="getLedgerBalanceIcon()" class="text-3xl"></i>
@@ -93,7 +94,7 @@ import { SupplierLedgerSummaryDto } from '../../services/supplier-ledger.service
           <div class="flex items-center justify-between">
             <div>
               <p class="text-gray-600 text-sm font-medium">Total Paid</p>
-              <p class="text-2xl font-bold text-green-600">{{ summary.totalPaid | currency }}</p>
+              <p class="text-2xl font-bold text-green-600">{{ formatCurrency(summary.totalPaid) }}</p>
             </div>
             <i class="pi pi-check-circle text-green-500 text-3xl"></i>
           </div>
@@ -107,7 +108,7 @@ import { SupplierLedgerSummaryDto } from '../../services/supplier-ledger.service
           <div class="flex items-center justify-between">
             <div>
               <p class="text-gray-600 text-sm font-medium">Total Due</p>
-              <p class="text-2xl font-bold text-orange-600">{{ summary.totalDue | currency }}</p>
+              <p class="text-2xl font-bold text-orange-600">{{ formatCurrency(summary.totalDue) }}</p>
             </div>
             <i class="pi pi-exclamation-circle text-orange-500 text-3xl"></i>
           </div>
@@ -121,7 +122,7 @@ import { SupplierLedgerSummaryDto } from '../../services/supplier-ledger.service
           <div class="flex items-center justify-between">
             <div>
               <p class="text-gray-600 text-sm font-medium">Advance Amount</p>
-              <p class="text-2xl font-bold text-blue-600">{{ summary.totalAdvanceAmount | currency }}</p>
+              <p class="text-2xl font-bold text-blue-600">{{ formatCurrency(summary.totalAdvanceAmount) }}</p>
             </div>
             <i class="pi pi-wallet text-blue-500 text-3xl"></i>
           </div>
@@ -135,7 +136,7 @@ import { SupplierLedgerSummaryDto } from '../../services/supplier-ledger.service
           <div class="flex items-center justify-between">
             <div>
               <p class="text-gray-600 text-sm font-medium">Purchase Returns</p>
-              <p class="text-2xl font-bold text-purple-600">{{ summary.totalRefunds | currency }}</p>
+              <p class="text-2xl font-bold text-purple-600">{{ formatCurrency(summary.totalRefunds) }}</p>
             </div>
             <i class="pi pi-replay text-purple-500 text-3xl"></i>
           </div>
@@ -150,7 +151,7 @@ import { SupplierLedgerSummaryDto } from '../../services/supplier-ledger.service
             <div>
               <p class="text-gray-600 text-sm font-medium">Outstanding Balance</p>
               <p [ngClass]="getBalanceTextColor()" class="text-2xl font-bold">
-                {{ summary.paymentBalance | currency }}
+                {{ formatCurrency(summary.paymentBalance) }}
               </p>
             </div>
             <i [ngClass]="getBalanceIcon()" class="text-3xl"></i>
@@ -177,6 +178,12 @@ import { SupplierLedgerSummaryDto } from '../../services/supplier-ledger.service
 export class PaymentMetricsComponent {
   @Input() summary!: SupplierPaymentHistorySummary;
   @Input() ledgerSummary?: SupplierLedgerSummaryDto;
+
+  private readonly currencyService = inject(CurrencyService);
+
+  formatCurrency(value: number): string {
+    return this.currencyService.formatCurrency(value ?? 0, this.currencyService.selectedCurrency());
+  }
 
   // Legacy payment-based methods
   getBelanceCardClass(): string {
@@ -208,27 +215,30 @@ export class PaymentMetricsComponent {
 
   // Ledger-based methods
   getLedgerBalanceCardClass(): string {
-    if (this.ledgerSummary!.currentBalance > 0) {
+    const balance = this.ledgerSummary?.currentBalance ?? 0;
+    if (balance > 0) {
       return 'metric-card bg-red-50 border-l-4 border-red-500';
-    } else if (this.ledgerSummary!.currentBalance < 0) {
+    } else if (balance < 0) {
       return 'metric-card bg-green-50 border-l-4 border-green-500';
     }
     return 'metric-card bg-gray-50 border-l-4 border-gray-500';
   }
 
   getLedgerBalanceTextColor(): string {
-    if (this.ledgerSummary!.currentBalance > 0) {
+    const balance = this.ledgerSummary?.currentBalance ?? 0;
+    if (balance > 0) {
       return 'text-red-600';
-    } else if (this.ledgerSummary!.currentBalance < 0) {
+    } else if (balance < 0) {
       return 'text-green-600';
     }
     return 'text-gray-600';
   }
 
   getLedgerBalanceIcon(): string {
-    if (this.ledgerSummary!.currentBalance > 0) {
+    const balance = this.ledgerSummary?.currentBalance ?? 0;
+    if (balance > 0) {
       return 'pi pi-exclamation-triangle text-red-500';
-    } else if (this.ledgerSummary!.currentBalance < 0) {
+    } else if (balance < 0) {
       return 'pi pi-check-circle text-green-500';
     }
     return 'pi pi-minus-circle text-gray-500';

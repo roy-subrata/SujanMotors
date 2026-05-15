@@ -32,12 +32,26 @@
 .filter-group {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0;
 }
 
-.filter-group label {
-  font-weight: 500;
-  font-size: 0.875rem;
+/* Part Autocomplete Item Styling */
+.part-autocomplete-item {
+  padding: 0.5rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.part-autocomplete-item .part-name {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 0.9375rem;
+}
+
+.part-autocomplete-item .part-sku {
+  font-size: 0.8125rem;
+  color: #6b7280;
 }
 
 .filter-actions {
@@ -175,6 +189,38 @@
   font-size: 1rem;
 }
 
+/* Dual Unit Display Styles */
+.dual-unit-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-end;
+}
+
+.display-qty {
+  font-weight: 600;
+  color: #0f172a;
+  font-size: 14px;
+}
+
+.display-unit {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.base-qty {
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+@media (max-width: 768px) {
+  .dual-unit-cell {
+    align-items: flex-start;
+  }
+}
+
 @media (max-width: 768px) {
   .price-history-container {
     padding: 0.5rem 0;
@@ -198,4 +244,12 @@
     align-items: flex-start;
     gap: 0.5rem;
   }
+}
+
+/* Price Code styling */
+.coded-price {
+  font-family: 'Courier New', monospace;
+  letter-spacing: 0.1em;
+  color: #6366f1 !important;
+  font-weight: 600;
 }

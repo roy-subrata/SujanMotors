@@ -14,7 +14,6 @@ import { BrandService, BrandResponse } from '../../services/brand.service';
 import { AutoCompleteModule } from 'primeng/autocomplete';
 import { CodeGenerationService } from '@/shared/services/CodeGenerationService';
 import { tap } from 'rxjs';
-import { PRICING_RULES } from '@/shared/constants/pricing-rules';
 
 @Component({
     selector: 'app-parts-form-dialog',
@@ -46,19 +45,26 @@ export class PartsFormDialogComponent implements OnInit {
     categories: CategoryResponse[] = [];
     units: UnitResponse[] = [];
     brands: BrandResponse[] = [];
-    pricingRules = PRICING_RULES;
+    warrantyTypes = [
+        { label: 'Manufacturer', value: 'MANUFACTURER' },
+        { label: 'Seller', value: 'SELLER' },
+        { label: 'Extended', value: 'EXTENDED' }
+    ];
 
     // Autocomplete properties for Create dialog
     filteredCategories: CategoryResponse[] = [];
     filteredUnits: UnitResponse[] = [];
+    filteredBaseUnits: UnitResponse[] = [];
     filteredBrands: BrandResponse[] = [];
     selectedCreateCategory: CategoryResponse | null = null;
     selectedCreateUnit: UnitResponse | null = null;
+    selectedCreateBaseUnit: UnitResponse | null = null;
     selectedCreateBrand: BrandResponse | null = null;
 
     // Autocomplete properties for Update dialog
     selectedUpdateCategory: CategoryResponse | null = null;
     selectedUpdateUnit: UnitResponse | null = null;
+    selectedUpdateBaseUnit: UnitResponse | null = null;
     selectedUpdateBrand: BrandResponse | null = null;
     destroyRef = inject(DestroyRef);
 
@@ -164,12 +170,16 @@ export class PartsFormDialogComponent implements OnInit {
             sku: ['', [Validators.required, Validators.maxLength(50)]],
             categoryId: ['', [Validators.required]],
             brandId: [null],
+            baseUnitId: [null],
             unitId: [null],
             costPrice: [0, [Validators.required, Validators.min(0)]],
             sellingPrice: [0, [Validators.required, Validators.min(0)]],
             minimumStock: [0, [Validators.required, Validators.min(0)]],
-            minMarginPercentOverride: [null, [Validators.min(0), Validators.max(100)]],
-            maxDiscountPercentOverride: [null, [Validators.min(0), Validators.max(100)]]
+            hasWarranty: [false],
+            warrantyPeriodMonths: [null],
+            warrantyType: [null],
+            warrantyTerms: [''],
+            warrantyCertificateTemplate: ['']
         });
 
         this.updateForm = this.formBuilder.group({
@@ -179,54 +189,45 @@ export class PartsFormDialogComponent implements OnInit {
             sku: ['', [Validators.required, Validators.maxLength(50)]],
             categoryId: ['', [Validators.required]],
             brandId: [null],
+            baseUnitId: [null],
             unitId: [null],
             costPrice: [0, [Validators.required, Validators.min(0)]],
             sellingPrice: [0, [Validators.required, Validators.min(0)]],
             minimumStock: [0, [Validators.required, Validators.min(0)]],
-            minMarginPercentOverride: [null, [Validators.min(0), Validators.max(100)]],
-            maxDiscountPercentOverride: [null, [Validators.min(0), Validators.max(100)]],
-            isActive: [true]
+            isActive: [true],
+            hasWarranty: [false],
+            warrantyPeriodMonths: [null],
+            warrantyType: [null],
+            warrantyTerms: [''],
+            warrantyCertificateTemplate: ['']
         });
 
-        this.attachPricingValidators(this.createForm);
-        this.attachPricingValidators(this.updateForm);
+        this.setupWarrantyValidation(this.createForm);
+        this.setupWarrantyValidation(this.updateForm);
     }
 
-    private attachPricingValidators(form: FormGroup): void {
-        const costControl = form.get('costPrice');
-        const sellingControl = form.get('sellingPrice');
-        const minMarginOverrideControl = form.get('minMarginPercentOverride');
-        if (!costControl || !sellingControl) return;
+    private setupWarrantyValidation(form: FormGroup): void {
+        const hasWarrantyControl = form.get('hasWarranty');
+        const periodControl = form.get('warrantyPeriodMonths');
+        const typeControl = form.get('warrantyType');
 
-        const validate = () => this.updateMinMarginValidation(form);
-        costControl.valueChanges.subscribe(validate);
-        sellingControl.valueChanges.subscribe(validate);
-        minMarginOverrideControl?.valueChanges.subscribe(validate);
-        this.updateMinMarginValidation(form);
-    }
+        const updateValidators = () => {
+            const hasWarranty = !!hasWarrantyControl?.value;
 
-    private updateMinMarginValidation(form: FormGroup): void {
-        const cost = Number(form.get('costPrice')?.value || 0);
-        const selling = Number(form.get('sellingPrice')?.value || 0);
-        const overrideValue = form.get('minMarginPercentOverride')?.value;
-        const minMargin = overrideValue === null || overrideValue === undefined || overrideValue === '' ? this.pricingRules.minMarginPercent : Number(overrideValue);
-        const minAllowed = cost + (cost * (minMargin / 100));
+            if (hasWarranty) {
+                periodControl?.setValidators([Validators.required, Validators.min(1)]);
+                typeControl?.setValidators([Validators.required]);
+            } else {
+                periodControl?.clearValidators();
+                typeControl?.clearValidators();
+            }
 
-        const control = form.get('sellingPrice');
-        if (!control) return;
+            periodControl?.updateValueAndValidity({ emitEvent: false });
+            typeControl?.updateValueAndValidity({ emitEvent: false });
+        };
 
-        const errors = { ...(control.errors || {}) };
-        if (cost > 0 && selling < minAllowed) {
-            errors['minMargin'] = { minAllowed };
-        } else {
-            delete errors['minMargin'];
-        }
-
-        if (Object.keys(errors).length === 0) {
-            control.setErrors(null);
-        } else {
-            control.setErrors(errors);
-        }
+        hasWarrantyControl?.valueChanges.subscribe(updateValidators);
+        updateValidators();
     }
 
     /**
@@ -236,6 +237,7 @@ export class PartsFormDialogComponent implements OnInit {
         if (this.selectedPart) {
             // Set the selected categories, units and brands for display
             this.selectedUpdateCategory = this.categories.find((c) => c.id === this.selectedPart?.categoryId) || null;
+            this.selectedUpdateBaseUnit = this.units.find((u) => u.id === this.selectedPart?.baseUnitId) || null;
             this.selectedUpdateUnit = this.units.find((u) => u.id === this.selectedPart?.unitId) || null;
             this.selectedUpdateBrand = this.brands.find((b) => b.id === this.selectedPart?.brandId) || null;
 
@@ -246,13 +248,17 @@ export class PartsFormDialogComponent implements OnInit {
                 sku: this.selectedPart.sku,
                 categoryId: this.selectedPart.categoryId,
                 brandId: this.selectedPart.brandId,
+                baseUnitId: this.selectedPart.baseUnitId,
                 unitId: this.selectedPart.unitId,
                 costPrice: this.selectedPart.costPrice,
                 sellingPrice: this.selectedPart.sellingPrice,
                 minimumStock: this.selectedPart.minimumStock,
-                minMarginPercentOverride: this.selectedPart.minMarginPercentOverride ?? null,
-                maxDiscountPercentOverride: this.selectedPart.maxDiscountPercentOverride ?? null,
-                isActive: this.selectedPart.isActive
+                isActive: this.selectedPart.isActive,
+                hasWarranty: this.selectedPart.hasWarranty,
+                warrantyPeriodMonths: this.selectedPart.warrantyPeriodMonths,
+                warrantyType: this.selectedPart.warrantyType,
+                warrantyTerms: this.selectedPart.warrantyTerms ?? '',
+                warrantyCertificateTemplate: this.selectedPart.warrantyCertificateTemplate ?? ''
             });
         }
     }
@@ -265,6 +271,7 @@ export class PartsFormDialogComponent implements OnInit {
         this.createForm.reset();
         this.selectedCreateCategory = null;
         this.selectedCreateUnit = null;
+        this.selectedCreateBaseUnit = null;
         this.selectedCreateBrand = null;
     }
 
@@ -276,6 +283,7 @@ export class PartsFormDialogComponent implements OnInit {
         this.updateForm.reset();
         this.selectedUpdateCategory = null;
         this.selectedUpdateUnit = null;
+        this.selectedUpdateBaseUnit = null;
         this.selectedUpdateBrand = null;
     }
 
@@ -325,6 +333,35 @@ export class PartsFormDialogComponent implements OnInit {
     onUnitCleared(): void {
         this.selectedCreateUnit = null;
         this.createForm.get('unitId')?.setValue(null);
+    }
+
+    /**
+     * Handle base unit autocomplete event (Create)
+     */
+    onBaseUnitEvent(event: any): void {
+        const query = event.query || '';
+        this.filteredBaseUnits = this.units.filter((unit) => unit.name.toLowerCase().includes(query.toLowerCase()) || unit.code.toLowerCase().includes(query.toLowerCase()));
+    }
+
+    /**
+     * Handle base unit selection (Create)
+     */
+    onBaseUnitSelect(unit: UnitResponse): void {
+        this.selectedCreateBaseUnit = unit;
+        this.createForm.get('baseUnitId')?.setValue(unit.id);
+        // If display unit not set, default to base unit
+        if (!this.createForm.get('unitId')?.value) {
+            this.createForm.get('unitId')?.setValue(unit.id);
+            this.selectedCreateUnit = unit;
+        }
+    }
+
+    /**
+     * Handle base unit cleared (Create)
+     */
+    onBaseUnitCleared(): void {
+        this.selectedCreateBaseUnit = null;
+        this.createForm.get('baseUnitId')?.setValue(null);
     }
 
     /**
@@ -400,6 +437,35 @@ export class PartsFormDialogComponent implements OnInit {
     }
 
     /**
+     * Handle base unit autocomplete event (Update)
+     */
+    onUpdateBaseUnitEvent(event: any): void {
+        const query = event.query || '';
+        this.filteredBaseUnits = this.units.filter((unit) => unit.name.toLowerCase().includes(query.toLowerCase()) || unit.code.toLowerCase().includes(query.toLowerCase()));
+    }
+
+    /**
+     * Handle base unit selection (Update)
+     */
+    onUpdateBaseUnitSelect(unit: UnitResponse): void {
+        this.selectedUpdateBaseUnit = unit;
+        this.updateForm.get('baseUnitId')?.setValue(unit.id);
+        // If display unit not set, default to base unit
+        if (!this.updateForm.get('unitId')?.value) {
+            this.updateForm.get('unitId')?.setValue(unit.id);
+            this.selectedUpdateUnit = unit;
+        }
+    }
+
+    /**
+     * Handle base unit cleared (Update)
+     */
+    onUpdateBaseUnitCleared(): void {
+        this.selectedUpdateBaseUnit = null;
+        this.updateForm.get('baseUnitId')?.setValue(null);
+    }
+
+    /**
      * Handle brand autocomplete event (Update)
      */
     onUpdateBrandEvent(event: any): void {
@@ -444,12 +510,16 @@ export class PartsFormDialogComponent implements OnInit {
             sku: this.createForm.get('sku')?.value ?? '',
             categoryId: this.selectedCreateCategory?.id ?? '',
             brandId: this.selectedCreateBrand?.id ?? null,
+            baseUnitId: this.selectedCreateBaseUnit?.id ?? null,
             unitId: this.selectedCreateUnit?.id ?? null,
             costPrice: this.createForm.get('costPrice')?.value ?? 0,
             sellingPrice: this.createForm.get('sellingPrice')?.value ?? 0,
             minimumStock: this.createForm.get('minimumStock')?.value ?? 0,
-            minMarginPercentOverride: this.createForm.get('minMarginPercentOverride')?.value ?? null,
-            maxDiscountPercentOverride: this.createForm.get('maxDiscountPercentOverride')?.value ?? null
+            hasWarranty: this.createForm.get('hasWarranty')?.value ?? false,
+            warrantyPeriodMonths: this.createForm.get('hasWarranty')?.value ? this.createForm.get('warrantyPeriodMonths')?.value ?? null : null,
+            warrantyType: this.createForm.get('hasWarranty')?.value ? this.createForm.get('warrantyType')?.value ?? null : null,
+            warrantyTerms: this.createForm.get('hasWarranty')?.value ? this.createForm.get('warrantyTerms')?.value ?? '' : null,
+            warrantyCertificateTemplate: this.createForm.get('hasWarranty')?.value ? this.createForm.get('warrantyCertificateTemplate')?.value ?? '' : null
         };
 
         this.partService.createPart(request).subscribe({
@@ -497,13 +567,17 @@ export class PartsFormDialogComponent implements OnInit {
             sku: this.updateForm.get('sku')?.value ?? '',
             categoryId: this.selectedUpdateCategory?.id ?? '',
             brandId: this.selectedUpdateBrand?.id ?? null,
+            baseUnitId: this.selectedUpdateBaseUnit?.id ?? null,
             unitId: this.selectedUpdateUnit?.id ?? null,
             costPrice: this.updateForm.get('costPrice')?.value ?? 0,
             sellingPrice: this.updateForm.get('sellingPrice')?.value ?? 0,
             minimumStock: this.updateForm.get('minimumStock')?.value ?? 0,
-            minMarginPercentOverride: this.updateForm.get('minMarginPercentOverride')?.value ?? null,
-            maxDiscountPercentOverride: this.updateForm.get('maxDiscountPercentOverride')?.value ?? null,
-            isActive: this.updateForm.get('isActive')?.value ?? true
+            isActive: this.updateForm.get('isActive')?.value ?? true,
+            hasWarranty: this.updateForm.get('hasWarranty')?.value ?? false,
+            warrantyPeriodMonths: this.updateForm.get('hasWarranty')?.value ? this.updateForm.get('warrantyPeriodMonths')?.value ?? null : null,
+            warrantyType: this.updateForm.get('hasWarranty')?.value ? this.updateForm.get('warrantyType')?.value ?? null : null,
+            warrantyTerms: this.updateForm.get('hasWarranty')?.value ? this.updateForm.get('warrantyTerms')?.value ?? '' : null,
+            warrantyCertificateTemplate: this.updateForm.get('hasWarranty')?.value ? this.updateForm.get('warrantyCertificateTemplate')?.value ?? '' : null
         };
 
         this.partService.updatePart(partId, request).subscribe({
@@ -554,13 +628,6 @@ export class PartsFormDialogComponent implements OnInit {
         if (control?.hasError('min')) {
             return `${this.getFieldLabel(fieldName)} must be at least ${control.getError('min')?.min}`;
         }
-        if (control?.hasError('max') && (fieldName === 'minMarginPercentOverride' || fieldName === 'maxDiscountPercentOverride')) {
-            return `${this.getFieldLabel(fieldName)} must be at most ${control.getError('max')?.max}`;
-        }
-        if (control?.hasError('minMargin') && fieldName === 'sellingPrice') {
-            const minAllowed = control.getError('minMargin')?.minAllowed ?? 0;
-            return `Selling Price must be at least ${minAllowed}`;
-        }
         return 'Invalid value';
     }
 
@@ -575,9 +642,9 @@ export class PartsFormDialogComponent implements OnInit {
             categoryId: 'Category',
             costPrice: 'Cost Price',
             sellingPrice: 'Selling Price',
-            minMarginPercentOverride: 'Min Margin (%)',
-            maxDiscountPercentOverride: 'Max Discount (%)',
-            minimumStock: 'Minimum Stock'
+            minimumStock: 'Minimum Stock',
+            warrantyPeriodMonths: 'Warranty Period (months)',
+            warrantyType: 'Warranty Type'
         };
         return labels[fieldName] || fieldName;
     }

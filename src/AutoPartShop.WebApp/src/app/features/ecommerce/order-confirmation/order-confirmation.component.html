@@ -2,30 +2,32 @@
 <div class="breadcrumb">
   <a routerLink="/shop"><i class="pi pi-home"></i> Home</a>
   <i class="pi pi-angle-right"></i>
-  <a routerLink="/shop/cart">Cart</a>
-  <i class="pi pi-angle-right"></i>
-  <a routerLink="/shop/checkout">Checkout</a>
-  <i class="pi pi-angle-right"></i>
   <span>Order Confirmation</span>
 </div>
 
 <div class="confirmation-container">
-  <div *ngIf="!order" class="empty-state">
+  <div *ngIf="loading" class="empty-state">
+    <i class="pi pi-spin pi-spinner" style="font-size:2rem"></i>
+    <p>Loading your order...</p>
+  </div>
+
+  <div *ngIf="!loading && (notFound || (!order && !soNumber))" class="empty-state">
     <i class="pi pi-shopping-cart"></i>
     <h3>We could not find that order</h3>
     <p>Please check your order link or start a new order.</p>
     <a class="btn-primary" routerLink="/shop">Continue Shopping</a>
   </div>
 
+  <!-- Order confirmed via API -->
   <div *ngIf="order" class="confirmation-content">
     <div class="hero">
       <div class="hero-icon"><i class="pi pi-check"></i></div>
       <div class="hero-text">
-        <h1>Order Confirmed</h1>
-        <p>Your order has been placed successfully.</p>
+        <h1>Order Confirmed!</h1>
+        <p>Thank you, <strong>{{ order.customerName }}</strong>. Your order has been placed successfully.</p>
         <div class="hero-meta">
-          <span>Order ID: <strong>{{ order.orderId }}</strong></span>
-          <span>Placed: {{ order.createdAt | date:'medium' }}</span>
+          <span>Order Number: <strong>{{ order.soNumber }}</strong></span>
+          <span>Status: <strong>{{ order.status | titlecase }}</strong></span>
         </div>
       </div>
     </div>
@@ -33,59 +35,56 @@
     <div class="confirmation-layout">
       <div class="details">
         <div class="detail-card">
-          <h3><i class="pi pi-user"></i> Customer</h3>
-          <p><strong>{{ order.customer.fullName }}</strong></p>
-          <p>{{ order.customer.email }}</p>
-          <p>{{ order.customer.phone }}</p>
+          <h3><i class="pi pi-tag"></i> Order Details</h3>
+          <p>Order: <strong>{{ order.soNumber }}</strong></p>
+          <p *ngIf="order.invoiceNumber">Invoice: <strong>{{ order.invoiceNumber }}</strong></p>
+          <p>Channel: <strong>{{ order.channel }}</strong></p>
         </div>
 
         <div class="detail-card">
-          <h3><i class="pi pi-truck"></i> Shipping</h3>
-          <p>{{ order.shipping.address }}</p>
-          <p>{{ order.shipping.city }} {{ order.shipping.postalCode }}</p>
-          <p>{{ order.shipping.country }}</p>
-          <p *ngIf="order.shipping.notes" class="notes">Notes: {{ order.shipping.notes }}</p>
-        </div>
-
-        <div class="detail-card">
-          <h3><i class="pi pi-credit-card"></i> Payment</h3>
-          <p>Method: <strong>{{ order.paymentMethod | titlecase }}</strong></p>
-          <p>Status: <span class="status">{{ order.status | titlecase }}</span></p>
+          <h3><i class="pi pi-credit-card"></i> Payment Summary</h3>
+          <p>Total: <strong>{{ order.currency }} {{ order.grandTotal | number:'1.0-0' }}</strong></p>
+          <p *ngIf="order.amountPaid > 0">
+            Paid: <strong>{{ order.currency }} {{ order.amountPaid | number:'1.0-0' }}</strong>
+          </p>
+          <p *ngIf="order.dueBalance > 0" style="color:#e67e22;font-weight:600;">
+            <i class="pi pi-exclamation-circle"></i>
+            Due Balance: {{ order.currency }} {{ order.dueBalance | number:'1.0-0' }}
+          </p>
+          <p *ngIf="order.dueBalance === 0 && order.amountPaid > 0" style="color:#27ae60;font-weight:600;">
+            <i class="pi pi-check-circle"></i> Fully Paid
+          </p>
+          <p *ngIf="order.dueBalance > 0">Our team will contact you for balance payment.</p>
+          <p *ngIf="order.dueBalance === 0 && order.amountPaid === 0">
+            Pay on delivery — our team will contact you.
+          </p>
         </div>
       </div>
 
       <div class="summary">
-        <h3>Order Summary</h3>
-        <div class="summary-items">
-          <div class="summary-item" *ngFor="let item of order.items">
-            <div class="summary-item-info">
-              <span class="summary-item-name">{{ item.name }}</span>
-              <span class="summary-item-qty">x{{ item.quantity }}</span>
-            </div>
-            <span class="summary-item-price">{{ item.currency }} {{ item.price * item.quantity | number:'1.0-0' }}</span>
-          </div>
-        </div>
-        <div class="summary-divider"></div>
-        <div class="summary-row">
-          <span>Subtotal</span>
-          <strong>{{ order.currency }} {{ order.subtotal | number:'1.0-0' }}</strong>
-        </div>
-        <div class="summary-row">
-          <span>Shipping</span>
-          <span class="free">Free</span>
-        </div>
-        <div class="summary-divider"></div>
-        <div class="summary-row total">
-          <span>Total</span>
-          <strong>{{ order.currency }} {{ order.subtotal | number:'1.0-0' }}</strong>
-        </div>
+        <h3>What's Next?</h3>
+        <ul class="next-steps">
+          <li><i class="pi pi-check-circle"></i> Order confirmed — reference: <strong>{{ order.soNumber }}</strong></li>
+          <li *ngIf="order.invoiceNumber"><i class="pi pi-file"></i> Invoice: <strong>{{ order.invoiceNumber }}</strong></li>
+          <li *ngIf="order.dueBalance > 0"><i class="pi pi-exclamation-triangle"></i> Outstanding balance: <strong>{{ order.currency }} {{ order.dueBalance | number:'1.0-0' }}</strong></li>
+          <li><i class="pi pi-truck"></i> You will be contacted for delivery arrangements</li>
+        </ul>
         <a class="btn-primary" routerLink="/shop">
-          <i class="pi pi-arrow-right"></i> Continue Shopping
-        </a>
-        <a class="btn-outline" routerLink="/shop/category/cat-1">
-          Browse Categories
+          <i class="pi pi-arrow-left"></i> Continue Shopping
         </a>
       </div>
     </div>
+  </div>
+
+  <!-- Fallback: only SO number available (page refresh) -->
+  <div *ngIf="!order && soNumber" class="confirmation-content">
+    <div class="hero">
+      <div class="hero-icon"><i class="pi pi-check"></i></div>
+      <div class="hero-text">
+        <h1>Order Placed</h1>
+        <p>Your order reference is <strong>{{ soNumber }}</strong>.</p>
+      </div>
+    </div>
+    <a class="btn-primary" routerLink="/shop">Continue Shopping</a>
   </div>
 </div>

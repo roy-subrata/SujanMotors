@@ -16,6 +16,10 @@ public class QuickSaleRequest
     public List<QuickSalePayment> Payments { get; set; } = new();
     public decimal Subtotal { get; set; }
     public decimal DiscountAmount { get; set; }
+    /// <summary>NONE | PERCENTAGE | FIXED — source of the cart-level discount</summary>
+    public string DiscountType { get; set; } = "NONE";
+    /// <summary>Reason for applying the discount — required for audit trail</summary>
+    public string? DiscountReason { get; set; }
     public decimal VatAmount { get; set; }
     public decimal VatPercentage { get; set; } = 15;
     public decimal GrandTotal { get; set; }
@@ -29,6 +33,7 @@ public class QuickSaleRequest
 
     // Quotation Support
     public bool SaveAsQuotation { get; set; } = false;
+    public string Channel { get; set; } = "POS";  // POS | ECOMMERCE | MOBILE | API
 }
 
 public class QuickSaleLineItem

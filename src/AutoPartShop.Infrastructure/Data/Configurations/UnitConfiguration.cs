@@ -39,11 +39,14 @@ public class UnitConfiguration : IEntityTypeConfiguration<Unit>
         .HasForeignKey(u => u.FromUnitId)
         .OnDelete(DeleteBehavior.NoAction);
 
-
         builder.HasMany(u => u.ToConversions)
         .WithOne(u => u.ToUnit)
         .HasForeignKey(u => u.ToUnitId)
         .OnDelete(DeleteBehavior.NoAction);
+
+        // Ignore the Parts collection to avoid EF Core relationship conflicts
+        // Parts can be queried through direct Part queries with BaseUnit/Unit includes
+        builder.Ignore(u => u.Parts);
 
     }
 }

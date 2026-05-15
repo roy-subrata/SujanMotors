@@ -1,4 +1,5 @@
 using AutoPartShop.Api.Services;
+using AutoPartShop.Application.Services;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
 using Microsoft.AspNetCore.Mvc;
@@ -91,7 +92,7 @@ public class PricingController : ControllerBase
         if (part.UnitId is null || unitId is null || unitId.Value == part.UnitId.Value)
             return unitPrice;
 
-        var conversionFactor = await _unitConversionService.GetConversionFactorAsync(unitId.Value, part.UnitId.Value, cancellationToken);
+        var conversionFactor = await _unitConversionService.GetConversionFactorAsync(unitId.Value, part.UnitId.Value);
         if (conversionFactor <= 0)
             throw new InvalidOperationException("Invalid unit conversion factor.");
 

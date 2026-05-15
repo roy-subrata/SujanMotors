@@ -2,6 +2,7 @@ using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.WarrantyDtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AutoPartShop.Api.Controllers;
@@ -241,6 +242,24 @@ public class WarrantyRegistrationsController : ControllerBase
             if (salesOrder == null)
                 return BadRequest(new { message = "Sales order not found" });
 
+            // Validate customer belongs to the provided sales order
+            if (salesOrder.CustomerId != request.CustomerId)
+                return BadRequest(new { message = "Customer does not match the selected sales order" });
+
+            // Validate sales order line exists on the selected sales order
+            var salesOrderLine = salesOrder.LineItems.FirstOrDefault(li => li.Id == request.SalesOrderLineId);
+            if (salesOrderLine == null)
+                return BadRequest(new { message = "Sales order line not found for the selected sales order" });
+
+            // Validate part belongs to the selected sales order line
+            if (salesOrderLine.PartId != request.PartId)
+                return BadRequest(new { message = "Part does not match the selected sales order line" });
+
+            // Prevent duplicate warranty registration for the same sales order line
+            var existingWarranties = await _warrantyRepository.GetBySalesOrderIdAsync(request.SalesOrderId, cancellationToken);
+            if (existingWarranties.Any(w => w.SalesOrderLineId == request.SalesOrderLineId && w.Status != "VOID"))
+                return BadRequest(new { message = "A warranty registration already exists for this sales order line" });
+
             // Generate warranty number
             var warrantyNumber = await _warrantyService.GenerateWarrantyNumberAsync(cancellationToken);
 
@@ -271,6 +290,20 @@ public class WarrantyRegistrationsController : ControllerBase
         catch (ArgumentException ex)
         {
             return BadRequest(new { message = ex.Message });
+        }
+        catch (DbUpdateException ex)
+        {
+            _logger.LogError(ex, "Database error creating warranty registration");
+
+            var root = ex.InnerException?.Message ?? ex.Message;
+            if (root.Contains("FOREIGN KEY", StringComparison.OrdinalIgnoreCase))
+                return BadRequest(new { message = "Invalid reference data: verify customer, sales order, sales order line, and part IDs" });
+
+            if (root.Contains("UNIQUE", StringComparison.OrdinalIgnoreCase) ||
+                root.Contains("duplicate", StringComparison.OrdinalIgnoreCase))
+                return BadRequest(new { message = "Duplicate warranty registration detected" });
+
+            return StatusCode(StatusCodes.Status500InternalServerError, "Database error occurred while creating warranty registration");
         }
         catch (Exception ex)
         {
@@ -330,8 +363,19 @@ public class WarrantyRegistrationsController : ControllerBase
     {
         try
         {
-            if (!await _warrantyRepository.ExistsAsync(id, cancellationToken))
+            var warranty = await _warrantyRepository.GetByIdAsync(id, cancellationToken);
+            if (warranty == null)
                 return NotFound(new { message = "Warranty registration not found" });
+
+            // Fix #7: block deletion when active claims exist to prevent orphaned claim records.
+            var activeStatuses = new[] { "PENDING", "UNDER_REVIEW", "APPROVED", "IN_PROGRESS" };
+            var activeClaim = warranty.Claims
+                .FirstOrDefault(c => activeStatuses.Contains(c.Status, StringComparer.OrdinalIgnoreCase));
+            if (activeClaim != null)
+                return BadRequest(new
+                {
+                    message = $"Cannot delete warranty {warranty.WarrantyNumber}: active claim {activeClaim.ClaimNumber} (status: {activeClaim.Status}) is attached. Close or reject the claim first."
+                });
 
             await _warrantyRepository.DeleteAsync(id, cancellationToken);
             return NoContent();
@@ -354,6 +398,9 @@ public class WarrantyRegistrationsController : ControllerBase
             PartId = warranty.PartId,
             PartName = warranty.Part?.Name ?? "",
             PartSKU = warranty.Part?.SKU ?? "",
+            ProductVariantId = warranty.ProductVariantId,
+            VariantName = warranty.ProductVariant?.Name,
+            VariantSku = warranty.ProductVariant?.SKU,
             SalesOrderId = warranty.SalesOrderId,
             SalesOrderNumber = warranty.SalesOrder?.SONumber ?? "",
             SalesOrderLineId = warranty.SalesOrderLineId,
@@ -366,6 +413,7 @@ public class WarrantyRegistrationsController : ControllerBase
             WarrantyType = warranty.WarrantyType,
             WarrantyPeriodMonths = warranty.WarrantyPeriodMonths,
             WarrantyTerms = warranty.WarrantyTerms,
+            GuaranteeMessage = BuildGuaranteeMessage(warranty),
             CertificateNumber = warranty.CertificateNumber,
             Status = warranty.Status,
             VoidReason = warranty.VoidReason,
@@ -377,6 +425,23 @@ public class WarrantyRegistrationsController : ControllerBase
             ModifiedDate = warranty.ModifiedDate,
             ModifiedBy = warranty.ModifiedBy
         };
+    }
+
+    private static string BuildGuaranteeMessage(WarrantyRegistration warranty)
+    {
+        var sourceLabel = warranty.WarrantyType switch
+        {
+            "MANUFACTURER" => "manufacturer",
+            "SELLER" => "seller",
+            "EXTENDED" => "extended",
+            _ => "warranty"
+        };
+
+        var periodText = warranty.WarrantyPeriodMonths == 1
+            ? "1 month"
+            : $"{warranty.WarrantyPeriodMonths} months";
+
+        return $"{periodText} {sourceLabel} warranty coverage. Resolution may be repair, replacement, or refund as per policy.";
     }
 }
 

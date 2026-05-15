@@ -71,6 +71,14 @@ public class WarrantyRegistrationConfiguration : IEntityTypeConfiguration<Warran
             .HasForeignKey(w => w.PartId)
             .OnDelete(DeleteBehavior.NoAction);
 
+        builder.HasOne(w => w.ProductVariant)
+            .WithMany()
+            .HasForeignKey(w => w.ProductVariantId)
+            .OnDelete(DeleteBehavior.NoAction)
+            .IsRequired(false);
+
+        builder.HasIndex(w => w.ProductVariantId);
+
         builder.HasOne(w => w.SalesOrder)
             .WithMany()
             .HasForeignKey(w => w.SalesOrderId)

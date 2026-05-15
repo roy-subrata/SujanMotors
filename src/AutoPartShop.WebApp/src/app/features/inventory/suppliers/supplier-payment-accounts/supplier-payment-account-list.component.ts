@@ -1,15 +1,13 @@
 import { Component, OnInit, inject, ViewChild, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, ActivatedRoute } from '@angular/router';
+import { Router, ActivatedRoute, RouterModule } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { TableModule } from 'primeng/table';
 import { InputTextModule } from 'primeng/inputtext';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
-import { DialogModule } from 'primeng/dialog';
-import { ContextMenuModule, ContextMenu } from 'primeng/contextmenu';
-import { RippleModule } from 'primeng/ripple';
+import { MenuModule, Menu } from 'primeng/menu';
 import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
 import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
@@ -22,14 +20,13 @@ import { SupplierService } from '../../services/supplier.service';
   imports: [
     CommonModule,
     FormsModule,
+    RouterModule,
     ButtonModule,
     TableModule,
     InputTextModule,
     ToastModule,
     ConfirmDialogModule,
-    DialogModule,
-    ContextMenuModule,
-    RippleModule,
+    MenuModule,
     TagModule,
     TooltipModule
   ],
@@ -38,7 +35,7 @@ import { SupplierService } from '../../services/supplier.service';
   styleUrls: ['./supplier-payment-account-list.component.css']
 })
 export class SupplierPaymentAccountListComponent implements OnInit {
-  @ViewChild('contextMenu') contextMenu: ContextMenu | undefined;
+  @ViewChild('actionMenu') actionMenu!: Menu;
   @Input() supplierId: string | null = null;
 
   private readonly service = inject(SupplierPaymentAccountService);
@@ -118,9 +115,13 @@ export class SupplierPaymentAccountListComponent implements OnInit {
 
   showContextMenu(event: MouseEvent, account: SupplierPaymentAccountResponse): void {
     this.selectedAccount = account;
-    // Update menu items based on selected account
-    this.contextMenuItems[1].visible = !account.isDefault;
-    this.contextMenu?.show(event);
+    this.contextMenuItems = [
+      { label: 'Edit', icon: 'pi pi-pencil', command: () => this.edit(account) },
+      ...(!account.isDefault ? [{ label: 'Set as Default', icon: 'pi pi-star', command: () => this.setAsDefault(account) }] : []),
+      { separator: true },
+      { label: 'Delete', icon: 'pi pi-trash', command: () => this.delete(account) }
+    ];
+    this.actionMenu.toggle(event);
   }
 
   loadAccounts(): void {

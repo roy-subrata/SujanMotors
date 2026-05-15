@@ -1,0 +1,187 @@
+<div class="wizard-container">
+  <div class="wizard-steps">
+    <div [class.active]="step === 1">1. PO & Warehouse</div>
+    <div [class.active]="step === 2">2. Items</div>
+    <div [class.active]="step === 3">3. Review</div>
+  </div>
+  <div class="workflow-stepper">
+    <div class="stepper-track">
+      <div class="stepper-step" [class.completed]="step > 1" [class.active]="step === 1">PENDING</div>
+      <div class="stepper-arrow">→</div>
+      <div class="stepper-step" [class.completed]="step > 2" [class.active]="step === 2">VERIFIED</div>
+      <div class="stepper-arrow">→</div>
+      <div class="stepper-step" [class.active]="step === 3">ACCEPTED</div>
+    </div>
+  </div>
+  <div class="wizard-content">
+    <ng-container [ngSwitch]="step">
+      <div *ngSwitchCase="1">
+        <!-- Step 1: PO & Warehouse -->
+        <form [formGroup]="formStep1" class="wizard-form">
+          <div class="form-row">
+            <label>Purchase Order *</label>
+            <select formControlName="purchaseOrderId" (change)="onPOChange($event.target.value)">
+              <option value="">Select a PO...</option>
+              <option *ngFor="let po of purchaseOrders" [value]="po.id">{{ po.poNumber }} - {{ po.supplierName }}</option>
+            </select>
+          </div>
+          <div *ngIf="selectedPO" class="po-summary">
+            <div><b>Supplier:</b> {{ selectedPO.supplierName }}</div>
+            <div><b>Total:</b> {{ selectedPO.grandTotal | number:'1.2-2' }}</div>
+            <div><b>Status:</b> {{ selectedPO.status }}</div>
+          </div>
+          <div class="form-row">
+            <label>Warehouse *</label>
+            <select formControlName="warehouseId" (change)="onWarehouseChange($event.target.value)">
+              <option value="">Select a warehouse...</option>
+              <option *ngFor="let w of warehouses" [value]="w.id">{{ w.name }} ({{ w.location }})</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label>Received Date *</label>
+            <input type="date" formControlName="receivedDate">
+          </div>
+          <div class="form-row">
+            <label>
+              <input type="checkbox" formControlName="showDelivery"> Add Delivery Info
+            </label>
+          </div>
+          <div *ngIf="formStep1.value.showDelivery" class="delivery-section">
+            <div class="form-row"><label>Delivery Date</label><input type="date" formControlName="deliveryDate"></div>
+            <div class="form-row"><label>Delivery Reference</label><input type="text" formControlName="deliveryReference"></div>
+            <div class="form-row"><label>Carrier Name</label><input type="text" formControlName="carrierName"></div>
+            <div class="form-row"><label>Driver Name</label><input type="text" formControlName="driverName"></div>
+            <div class="form-row"><label>Delivery Notes</label><input type="text" formControlName="deliveryNotes"></div>
+          </div>
+          <div class="form-actions">
+            <button type="button" [disabled]="!formStep1.valid" (click)="goToStep(2)">Next</button>
+          </div>
+        </form>
+      </div>
+      <div *ngSwitchCase="2">
+        <!-- Step 2: Items -->
+        <div *ngIf="lineItems.length === 0">
+          <p>No items found for this PO.</p>
+        </div>
+        <form *ngIf="lineItems.length > 0" class="wizard-form">
+          <!-- Removed bulk setup button and dialog. Only per-item setup remains. -->
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th>Part</th>
+                <th>Ordered</th>
+                <th>Received</th>
+                <th>Remaining</th>
+                <th>Receiving Now</th>
+                <th>Condition</th>
+                <th>Discrepancy</th>
+                <th>Setup</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of lineItems">
+                <td>{{ item.partName }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>{{ item.receivedQuantity }}</td>
+                <td>{{ item.remainingQuantity }}</td>
+                <td>
+                  <input type="number" min="0" max="{{item.remainingQuantity}}" [value]="item.receivingQuantity" (input)="onReceivingQtyChange(item, $event.target.value)">
+                </td>
+                <td>
+                  <select [value]="item.condition" (change)="onConditionChange(item, $event.target.value)">
+                    <option *ngFor="let cond of conditions" [value]="cond.value">{{ cond.label }}</option>
+                  </select>
+                </td>
+                <td>
+                  <span *ngIf="item.hasDiscrepancy" class="discrepancy-badge">Yes</span>
+                  <span *ngIf="!item.hasDiscrepancy">No</span>
+                </td>
+                <td>
+                  <button type="button" (click)="openItemSetupDialog(item)">Setup</button>
+                  <span *ngIf="item.sellingPrice">✔️</span>
+                  <span *ngIf="!item.sellingPrice">❌</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- Per-item Setup Modal -->
+          <div class="modal" *ngIf="showItemSetupDialog">
+            <div class="modal-content">
+              <h3>Setup for {{ selectedItem?.partName }}</h3>
+              <label>Selling Price</label>
+              <input type="number" [(ngModel)]="selectedItem.sellingPrice">
+              <label>
+                <input type="checkbox" [(ngModel)]="selectedItem.hasWarranty"> Has Warranty
+              </label>
+              <div *ngIf="selectedItem.hasWarranty">
+                <label>Period (months)</label>
+                <input type="number" [(ngModel)]="selectedItem.warrantyPeriod">
+                <label>Type</label>
+                <input type="text" [(ngModel)]="selectedItem.warrantyType">
+                <label>Terms</label>
+                <input type="text" [(ngModel)]="selectedItem.warrantyTerms">
+              </div>
+              <div class="form-actions">
+                <button type="button" (click)="closeItemSetupDialog()">Cancel</button>
+                <button type="button" (click)="saveItemSetupDialog()">Save</button>
+              </div>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="button" (click)="goToStep(1)">Back</button>
+            <button type="button" (click)="goToStep(3)" [disabled]="lineItems.length === 0">Next</button>
+          </div>
+        </form>
+      </div>
+      <div *ngSwitchCase="3">
+        <!-- Step 3: Review -->
+        <div class="review-summary">
+          <h3>Review & Submit</h3>
+          <div class="summary-card">
+            <div><b>PO:</b> {{ reviewSummary.po?.poNumber }} ({{ reviewSummary.po?.supplierName }})</div>
+            <div><b>Warehouse:</b> {{ reviewSummary.warehouse?.name }}</div>
+            <div><b>Received Date:</b> {{ reviewSummary.receivedDate }}</div>
+            <div *ngIf="reviewSummary.delivery">
+              <b>Delivery Info:</b>
+              <div>Date: {{ reviewSummary.delivery.deliveryDate }}</div>
+              <div>Reference: {{ reviewSummary.delivery.deliveryReference }}</div>
+              <div>Carrier: {{ reviewSummary.delivery.carrierName }}</div>
+              <div>Driver: {{ reviewSummary.delivery.driverName }}</div>
+              <div>Notes: {{ reviewSummary.delivery.deliveryNotes }}</div>
+            </div>
+            <div class="summary-row"><b>Total Cost (All Items):</b> {{ totalCostAllItems | number:'1.2-2' }}</div>
+            <div class="summary-row"><b>Total Ordered:</b> {{ totalOrdered }}</div>
+            <div class="summary-row"><b>Already Received:</b> {{ totalReceived }}</div>
+            <div class="summary-row"><b>Receiving Now (This GRN):</b> {{ totalReceivingNow }}</div>
+            <div class="summary-row" *ngIf="discrepancyCount > 0"><b>Items with Discrepancies:</b> <span class="text-danger">{{ discrepancyCount }}</span></div>
+          </div>
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th>Part</th>
+                <th>Receiving</th>
+                <th>Condition</th>
+                <th>Discrepancy</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of reviewSummary.items">
+                <td>{{ item.partName }}</td>
+                <td>{{ item.receivingQuantity }}</td>
+                <td>{{ item.condition }}</td>
+                <td>{{ item.hasDiscrepancy ? 'Yes' : 'No' }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <div *ngIf="submitError" class="error-message">{{ submitError }}</div>
+          <div *ngIf="submitSuccess" class="success-message">{{ submitSuccess }}</div>
+          <div class="form-actions">
+            <button type="button" (click)="goToStep(2)">Back</button>
+            <button type="button" (click)="submitGRN()" [disabled]="isSubmitting">Submit</button>
+          </div>
+        </div>
+      </div>
+    </ng-container>
+  </div>
+</div>

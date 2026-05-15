@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { CategoriesComponent } from './categories/categories.component';
 import { BrandsComponent } from './brands/brands.component';
+import { DiscountsComponent } from './discounts/discounts.component';
 import { UnitsComponent } from './units/units.component';
 import { PartsComponent } from './parts/parts.component';
 import { PartFormComponent } from './parts/part-form/part-form.component';
@@ -16,10 +17,9 @@ import { VehiclesComponent } from './vehicles/vehicles.component';
 import { VehicleFormComponent } from './vehicles/vehicle-form.component';
 import { VehicleCompatibilityComponent } from './vehicles/vehicle-compatibility.component';
 import { StockComponent } from './stock/stock.component';
-import { TestComponent } from './test/test.component';
+import { AttributeGroupManagerComponent } from './parts/attribute-group-manager/attribute-group-manager.component';
 
 export const inventoryRoutes: Routes = [
-  { path: 'test', component: TestComponent },
   { path: 'categories', component: CategoriesComponent },
   { path: 'brands', component: BrandsComponent },
   { path: 'units', component: UnitsComponent },
@@ -45,5 +45,7 @@ export const inventoryRoutes: Routes = [
   { path: 'vehicles/edit', component: VehicleFormComponent },
   { path: 'vehicles/view', component: VehicleFormComponent },
   { path: 'vehicles/compatibility', component: VehicleCompatibilityComponent },
-  { path: 'stock', component: StockComponent }
+  { path: 'stock', component: StockComponent },
+  { path: 'attribute-groups', component: AttributeGroupManagerComponent },
+  { path: 'discounts', component: DiscountsComponent }
 ];

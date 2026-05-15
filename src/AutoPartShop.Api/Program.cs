@@ -1,9 +1,17 @@
 using System.Text;
 using System.Text.Json.Serialization;
 using AutoPartShop.Api.Services;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
+using Serilog;
+using Serilog.Formatting.Compact;
+using Serilog.Sinks.OpenTelemetry;
 using AutoPartShop.Application;
+using AutoPartShop.Application.Services;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Infrastructure.Data;
+using AutoPartShop.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
@@ -11,6 +19,26 @@ using Microsoft.OpenApi;
 using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// --- Observability bootstrap ---
+var otelEndpoint = builder.Configuration["Otel:Endpoint"] ?? "http://otel-collector:4317";
+var serviceName  = builder.Configuration["Otel:ServiceName"] ?? "autopartshop-api";
+
+builder.Host.UseSerilog((ctx, lc) => lc
+    .ReadFrom.Configuration(ctx.Configuration)
+    .Enrich.FromLogContext()
+    .Enrich.WithProperty("service.name", serviceName)
+    .WriteTo.Console(new CompactJsonFormatter())
+    .WriteTo.OpenTelemetry(o =>
+    {
+        o.Endpoint = otelEndpoint;
+        o.Protocol = OtlpProtocol.Grpc;
+        o.ResourceAttributes = new Dictionary<string, object>
+        {
+            ["service.name"] = serviceName
+        };
+    }));
+// --------------------------------
 
 // Configure CORS
 var corsPolicy = "AllowAllApps";
@@ -59,6 +87,20 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApplication(builder.Configuration);
+
+// Distributed tracing + metrics
+builder.Services.AddOpenTelemetry()
+    .ConfigureResource(r => r.AddService(serviceName))
+    .WithTracing(t => t
+        .AddAspNetCoreInstrumentation(o => o.RecordException = true)
+        .AddHttpClientInstrumentation()
+        .AddEntityFrameworkCoreInstrumentation(o =>
+            o.SetDbStatementForText = builder.Environment.IsDevelopment())
+        .AddOtlpExporter(o => o.Endpoint = new Uri(otelEndpoint)))
+    .WithMetrics(m => m
+        .AddAspNetCoreInstrumentation()
+        .AddRuntimeInstrumentation()
+        .AddPrometheusExporter());
 
 
 // Configure ASP.NET Core Identity
@@ -128,7 +170,6 @@ builder.Services.AddScoped<IUnitConversionService, UnitConversionService>();
 builder.Services.AddScoped<IFinancialSummaryService, FinancialSummaryService>();
 builder.Services.AddScoped<IDailyExpenseService, DailyExpenseService>();
 builder.Services.AddScoped<IPricingValidationService, PricingValidationService>();
-builder.Services.Configure<PricingRulesOptions>(builder.Configuration.GetSection("PricingRules"));
 
 // Register multi-currency services
 builder.Services.AddScoped<ICurrencyConversionService, CurrencyConversionService>();
@@ -136,6 +177,10 @@ builder.Services.AddMemoryCache(); // Required for currency conversion caching
 
 // Register warranty services
 builder.Services.AddScoped<IWarrantyService, WarrantyService>();
+
+// Register discount and pricing services
+builder.Services.AddScoped<IDiscountResolutionService, DiscountResolutionService>();
+builder.Services.AddScoped<IPriceResolutionService, PriceResolutionService>();
 
 // Configure JSON serialization to use camelCase
 builder.Services.AddControllers()
@@ -207,6 +252,7 @@ app.UseSwaggerUI(c =>
 await app.ApplyMigration();
 // Enable CORS
 app.UseCors(corsPolicy);
+app.UseSerilogRequestLogging();
 
 // Only redirect HTTPS in production
 //if (!app.Environment.IsDevelopment())
@@ -221,6 +267,7 @@ app.MapControllers();
 
 // Ping the service is live or not
 app.MapGet("/live", () => "I am live");
+app.MapPrometheusScrapingEndpoint(); // Prometheus scrapes /metrics
 
 app.Run();
 

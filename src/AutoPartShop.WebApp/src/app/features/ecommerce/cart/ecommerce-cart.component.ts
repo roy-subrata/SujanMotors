@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { CartService } from '../services/cart.service';
 import { CartItem } from '../models/cart.model';
+import { AuthService } from '../../../shared/services/auth.service';
 
 @Component({
   selector: 'app-ecommerce-cart',
@@ -13,6 +14,11 @@ import { CartItem } from '../models/cart.model';
 })
 export class EcommerceCartComponent {
   readonly cartService = inject(CartService);
+  private readonly authService = inject(AuthService);
+
+  get checkoutUrl(): string {
+    return this.authService.isLoggedIn() ? '/shop/instore-checkout' : '/shop/checkout';
+  }
 
   increment(item: CartItem): void {
     this.cartService.updateQuantity(item.partId, item.variantId, item.quantity + 1);

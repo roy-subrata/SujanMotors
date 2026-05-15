@@ -1,0 +1,166 @@
+<p-toast></p-toast>
+
+<!-- ── Active Price Card ─────────────────────────────────────────────────── -->
+<div class="pricing-panel">
+  <div class="pricing-header">
+    <div class="pricing-label">
+      <i class="pi pi-tag"></i>
+      <span>{{ label }}</span>
+    </div>
+    <button pButton
+      type="button"
+      icon="pi pi-pencil"
+      label="Set Price"
+      class="p-button-sm p-button-outlined"
+      (click)="openSetPriceDialog()">
+    </button>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading()" class="price-loading">
+    <i class="pi pi-spin pi-spinner"></i>
+    <span>Loading price...</span>
+  </div>
+
+  <!-- Active price -->
+  <div *ngIf="!loading() && activePrice()" class="price-display">
+    <div class="price-main">
+      <span class="price-amount">{{ activePrice()!.sellingPrice | number:'1.2-2' }}</span>
+      <span class="price-currency">{{ activePrice()!.currency }}</span>
+      <span class="price-source" [attr.data-source]="activePrice()!.source">
+        {{ activePrice()!.source === 'VARIANT_HISTORY' ? 'Variant Price' : 'Product Price' }}
+      </span>
+    </div>
+    <div class="price-validity">
+      Valid from {{ formatDate(activePrice()!.validFrom) }}
+      <span *ngIf="activePrice()!.validTo"> → {{ formatDate(activePrice()!.validTo!) }}</span>
+      <span *ngIf="!activePrice()!.validTo" class="no-expiry">· No expiry</span>
+    </div>
+  </div>
+
+  <!-- No price set -->
+  <div *ngIf="!loading() && !activePrice()" class="price-none">
+    <i class="pi pi-exclamation-triangle"></i>
+    No price set — click <strong>Set Price</strong> to add one
+  </div>
+
+  <!-- History toggle -->
+  <button class="history-toggle" (click)="loadHistory()" [disabled]="loadingHistory()">
+    <i class="pi" [class.pi-chevron-down]="!showHistory()" [class.pi-chevron-up]="showHistory()"></i>
+    <span>{{ showHistory() ? 'Hide' : 'Show' }} price history</span>
+    <i *ngIf="loadingHistory()" class="pi pi-spin pi-spinner"></i>
+  </button>
+
+  <!-- Price History table -->
+  <div *ngIf="showHistory()" class="history-table">
+    <p-table
+      [value]="priceHistory()"
+      [rows]="5"
+      [paginator]="priceHistory().length > 5"
+      styleClass="p-datatable-sm">
+      <ng-template #header>
+        <tr>
+          <th>Price</th>
+          <th>Valid From</th>
+          <th>Valid To</th>
+          <th>Reason</th>
+          <th>Status</th>
+        </tr>
+      </ng-template>
+      <ng-template #body let-r>
+        <tr>
+          <td class="col-price">{{ r.sellingPrice | number:'1.2-2' }} {{ r.currency }}</td>
+          <td>{{ formatDate(r.startDate) }}</td>
+          <td>{{ r.endDate ? formatDate(r.endDate) : '—' }}</td>
+          <td class="col-reason">{{ r.reason || '—' }}</td>
+          <td>
+            <p-tag
+              [value]="r.isActive ? 'Active' : 'Closed'"
+              [severity]="r.isActive ? 'success' : 'secondary'">
+            </p-tag>
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template #emptymessage>
+        <tr><td colspan="5" class="text-center p-3">No price history found</td></tr>
+      </ng-template>
+    </p-table>
+  </div>
+</div>
+
+<!-- ── Set Price Dialog ─────────────────────────────────────────────────── -->
+<p-dialog
+  [(visible)]="showSetPriceDialog"
+  [header]="'Set ' + label"
+  [modal]="true"
+  [style]="{width: '420px', maxWidth: '95vw'}"
+  [draggable]="false">
+
+  <form [formGroup]="priceForm" class="price-form">
+
+    <div class="pf-group">
+      <label class="pf-label"><span class="req">*</span> Selling Price</label>
+      <p-inputNumber
+        formControlName="sellingPrice"
+        [min]="0.01"
+        [minFractionDigits]="2"
+        [maxFractionDigits]="2"
+        placeholder="0.00"
+        styleClass="w-full"
+        inputStyleClass="pf-input">
+      </p-inputNumber>
+      <small *ngIf="priceForm.get('sellingPrice')?.invalid && priceForm.get('sellingPrice')?.touched" class="pf-error">
+        Valid price is required
+      </small>
+    </div>
+
+    <div class="pf-row">
+      <div class="pf-group">
+        <label class="pf-label"><span class="req">*</span> Effective From</label>
+        <p-datepicker
+          formControlName="startDate"
+          [showIcon]="true"
+          dateFormat="dd M yy"
+          placeholder="Select date"
+          appendTo="body"
+          inputStyleClass="pf-input">
+        </p-datepicker>
+        <small *ngIf="priceForm.get('startDate')?.invalid && priceForm.get('startDate')?.touched" class="pf-error">
+          Date is required
+        </small>
+      </div>
+
+      <div class="pf-group">
+        <label class="pf-label">Currency</label>
+        <input type="text" pInputText formControlName="currency" class="pf-input" placeholder="BDT" />
+      </div>
+    </div>
+
+    <div class="pf-group">
+      <label class="pf-label">Reason <span class="pf-hint">(optional)</span></label>
+      <input
+        type="text"
+        pInputText
+        formControlName="reason"
+        placeholder="e.g. Market adjustment, Seasonal pricing"
+        class="pf-input" />
+    </div>
+
+    <div class="pf-note">
+      <i class="pi pi-info-circle"></i>
+      The current active price will be automatically closed when the new price takes effect.
+    </div>
+
+  </form>
+
+  <ng-template pTemplate="footer">
+    <button pButton type="button" label="Cancel" icon="pi pi-times"
+      class="p-button-text p-button-secondary"
+      (click)="showSetPriceDialog.set(false)"></button>
+    <button pButton type="button" label="Save Price" icon="pi pi-check"
+      class="p-button-success"
+      [loading]="saving()"
+      [disabled]="saving()"
+      (click)="onSavePrice()"></button>
+  </ng-template>
+</p-dialog>

@@ -17,18 +17,58 @@
   <div class="product-layout">
     <!-- Gallery -->
     <div class="product-gallery">
+      <!-- Main display: image or video -->
       <div class="primary-image">
-        <img *ngIf="product.primaryImageUrl" [src]="product.primaryImageUrl" [alt]="product.name" />
-        <i *ngIf="!product.primaryImageUrl" class="pi pi-box"></i>
+        <ng-container *ngIf="activeMedia?.mediaType === 'video'; else imageDisplay">
+          <iframe
+            *ngIf="isYouTube(activeMedia!.url)"
+            [src]="youTubeEmbedUrl(activeMedia!.url)"
+            frameborder="0"
+            allowfullscreen
+            class="product-video-frame"
+          ></iframe>
+          <video
+            *ngIf="!isYouTube(activeMedia!.url)"
+            [src]="activeMedia!.url"
+            controls
+            class="product-video-native"
+          ></video>
+        </ng-container>
+        <ng-template #imageDisplay>
+          <img
+            *ngIf="activeMedia?.url"
+            [src]="activeMedia!.url"
+            [alt]="product.name"
+          />
+          <i *ngIf="!activeMedia?.url" class="pi pi-box"></i>
+        </ng-template>
       </div>
-      <div class="media-strip">
+
+      <!-- Thumbnail strip — only when multiple media items exist -->
+      <div class="media-strip" *ngIf="mediaToShow.length > 1">
         <div
           class="media-thumb"
-          *ngFor="let media of product.media; let i = index"
-          [class.active]="i === 0"
+          *ngFor="let media of mediaToShow; let i = index"
+          [class.active]="i === activeMediaIndex"
+          (click)="setActiveMedia(i)"
         >
-          <img *ngIf="media.url" [src]="media.url" [alt]="product.name" />
-          <i *ngIf="!media.url" class="pi pi-image"></i>
+          <!-- Video thumbnail -->
+          <ng-container *ngIf="media.mediaType === 'video'; else imgThumb">
+            <img
+              *ngIf="isYouTube(media.url)"
+              [src]="youTubeThumbnail(media.url)"
+              [alt]="product.name"
+            />
+            <div *ngIf="!isYouTube(media.url)" class="video-thumb-bg">
+              <i class="pi pi-video"></i>
+            </div>
+            <div class="play-overlay"><i class="pi pi-play"></i></div>
+          </ng-container>
+          <!-- Image thumbnail -->
+          <ng-template #imgThumb>
+            <img *ngIf="media.url" [src]="media.url" [alt]="product.name" />
+            <i *ngIf="!media.url" class="pi pi-image"></i>
+          </ng-template>
         </div>
       </div>
     </div>
@@ -41,29 +81,20 @@
         <i class="pi pi-tag"></i> {{ product.brandName }}
       </div>
 
-      <!-- Rating -->
-      <div class="detail-rating">
-        <i class="pi pi-star-fill"></i>
-        <i class="pi pi-star-fill"></i>
-        <i class="pi pi-star-fill"></i>
-        <i class="pi pi-star-fill"></i>
-        <i class="pi pi-star"></i>
-        <span>(24 reviews)</span>
-      </div>
-
       <p class="detail-short">{{ product.shortDescription || product.description }}</p>
 
       <!-- Price -->
       <div class="price-block">
         <span class="price-currency">{{ currentCurrency }}</span>
         <span class="price-amount">{{ currentPrice | number:'1.0-0' }}</span>
-        <span class="price-old" *ngIf="showSale">
-          {{ currentCurrency }} {{ product.originalPrice | number:'1.0-0' }}
-        </span>
-        <span class="price-tag" *ngIf="showSale">Sale</span>
-        <span class="stock-badge" [class.in-stock]="selectedVariant?.inStock">
-          <i class="pi" [class.pi-check-circle]="selectedVariant?.inStock" [class.pi-times-circle]="!selectedVariant?.inStock"></i>
-          {{ selectedVariant?.inStock ? 'In Stock' : 'Out of Stock' }}
+        <ng-container *ngIf="showSale && currentOriginalPrice">
+          <span class="price-old">{{ currentCurrency }} {{ currentOriginalPrice | number:'1.0-0' }}</span>
+          <span class="price-tag">-{{ discountPercent }}%</span>
+        </ng-container>
+        <span class="stock-badge" [class.in-stock]="selectedVariant?.inStock ?? product.inStock">
+          <i class="pi" [class.pi-check-circle]="selectedVariant?.inStock ?? product.inStock"
+                        [class.pi-times-circle]="!(selectedVariant?.inStock ?? product.inStock)"></i>
+          {{ (selectedVariant?.inStock ?? product.inStock) ? 'In Stock' : 'Out of Stock' }}
         </span>
       </div>
 
@@ -90,20 +121,37 @@
           <input type="number" [(ngModel)]="quantity" min="1" max="99" />
           <button (click)="quantity = quantity + 1">+</button>
         </div>
-        <button class="btn-add-cart" [disabled]="!selectedVariant?.inStock" (click)="addToCart()">
+        <button class="btn-add-cart" [disabled]="!isAddable" (click)="addToCart()">
           <i class="pi" [class.pi-shopping-cart]="!addedToCart" [class.pi-check]="addedToCart"></i>
           {{ addedToCart ? 'Added!' : 'Add to Cart' }}
         </button>
-        <button class="btn-buy-now" [disabled]="!selectedVariant?.inStock" (click)="buyNow()">
+        <button class="btn-buy-now" [disabled]="!isAddable" (click)="buyNow()">
           <i class="pi pi-bolt"></i> Buy Now
         </button>
       </div>
 
       <!-- Features -->
       <div class="detail-features">
-        <div class="feature"><i class="pi pi-truck"></i> Free shipping on orders over BDT 5,000</div>
-        <div class="feature"><i class="pi pi-replay"></i> 30-day return policy</div>
-        <div class="feature"><i class="pi pi-shield"></i> 12-month warranty</div>
+        <div class="feature" *ngIf="policies.freeShippingEnabled">
+          <i class="pi pi-truck"></i> Free shipping on orders over {{ policies.freeShippingCurrency }} {{ policies.freeShippingThreshold | number:'1.0-0' }}
+        </div>
+        <div class="feature" *ngIf="warrantyLabel">
+          <i class="pi pi-shield"></i> {{ warrantyLabel }}
+        </div>
+        <div class="feature" *ngIf="!product.hasWarranty">
+          <i class="pi pi-replay"></i> {{ policies.returnPolicyText }}
+        </div>
+      </div>
+
+      <!-- Tags -->
+      <div class="detail-tags" *ngIf="tagList.length">
+        <span class="tag-chip" *ngFor="let tag of tagList">{{ tag }}</span>
+      </div>
+
+      <!-- SKU -->
+      <div class="detail-meta" *ngIf="product.sku">
+        <span class="meta-label">SKU:</span>
+        <span class="meta-value">{{ product.sku }}</span>
       </div>
     </div>
   </div>
@@ -119,12 +167,20 @@
     <div class="tab-content">
       <!-- Description -->
       <div *ngIf="activeTab === 'description'" class="tab-panel">
-        <p>{{ product.description }}</p>
+        <div *ngIf="product.richDescription" [innerHTML]="product.richDescription" class="rich-description"></div>
+        <p *ngIf="!product.richDescription && product.description">{{ product.description }}</p>
+        <div *ngIf="!product.richDescription && !product.description" class="empty-tab">No description available.</div>
+        <!-- Warranty details -->
+        <div class="warranty-detail" *ngIf="product.hasWarranty">
+          <h4><i class="pi pi-shield"></i> Warranty</h4>
+          <p *ngIf="product.warrantyTerms">{{ product.warrantyTerms }}</p>
+          <p *ngIf="!product.warrantyTerms && warrantyLabel">{{ warrantyLabel }}</p>
+        </div>
       </div>
 
-      <!-- Specifications -->
+      <!-- Specifications — updates when a variant is selected -->
       <div *ngIf="activeTab === 'specs'" class="tab-panel">
-        <div class="spec-group" *ngFor="let group of product.specifications">
+        <div class="spec-group" *ngFor="let group of currentSpecs">
           <h4>{{ group.groupName }}</h4>
           <table class="spec-table">
             <tr *ngFor="let attr of group.attributes">
@@ -133,7 +189,7 @@
             </tr>
           </table>
         </div>
-        <div *ngIf="!product.specifications?.length" class="empty-tab">No specifications available.</div>
+        <div *ngIf="!currentSpecs?.length" class="empty-tab">No specifications available.</div>
       </div>
 
       <!-- Reviews -->
@@ -153,7 +209,6 @@
       <app-product-card
         *ngFor="let item of product.relatedProducts"
         [product]="item"
-        (addToCart)="onRelatedAddToCart($event)"
       ></app-product-card>
     </div>
   </section>

@@ -205,7 +205,8 @@
                     min="0"
                     [max]="line.get('maxQuantity')?.value"
                     class="input-qty"
-                    [class.input-error]="line.get('quantity')?.invalid && line.get('quantity')?.touched" />
+                    [class.input-error]="line.get('quantity')?.invalid && line.get('quantity')?.touched"
+                    (input)="onQuantityChange(i)" />
                 </td>
                 <td>{{ formatCurrency(line.get('unitPrice')?.value) }}</td>
                 <td>
@@ -226,7 +227,7 @@
             <tfoot>
               <tr>
                 <td colspan="5" class="text-right">Total Refund:</td>
-                <td colspan="2" class="total-value">{{ formatCurrency(totalRefund()) }}</td>
+                <td colspan="2" class="total-value">{{ formatCurrency(totalRefund) }}</td>
               </tr>
             </tfoot>
           </table>
@@ -242,13 +243,32 @@
         <div class="order-summary">
           <div class="summary-row grand-total">
             <span class="summary-label">Total Refund:</span>
-            <span class="summary-value">{{ formatCurrency(totalRefund()) }}</span>
+            <span class="summary-value">{{ formatCurrency(totalRefund) }}</span>
           </div>
         </div>
       </div>
 
+      <!-- Inline Reject Form -->
+      <div *ngIf="showRejectForm" class="form-section last">
+        <h3 class="section-title">
+          <i class="pi pi-times-circle section-icon"></i>
+          Reject Return
+        </h3>
+        <div class="form-row">
+          <div class="form-group full">
+            <label>Reason for Rejection *</label>
+            <input pInputText type="text" [(ngModel)]="rejectReasonInput" [ngModelOptions]="{standalone: true}"
+              placeholder="Enter rejection reason..." style="width: 100%" />
+          </div>
+        </div>
+        <div class="form-actions" style="padding-top: 0">
+          <button pButton type="button" label="Cancel" icon="pi pi-arrow-left" class="p-button-outlined" (click)="cancelReject()"></button>
+          <button pButton type="button" label="Confirm Rejection" icon="pi pi-times" class="p-button-danger" (click)="submitReject()"></button>
+        </div>
+      </div>
+
       <!-- Form Actions -->
-      <div class="form-actions">
+      <div class="form-actions" *ngIf="!showRejectForm">
         <button pButton type="button" [label]="mode() === 'view' ? 'Back' : 'Cancel'" icon="pi pi-times"
           class="p-button-outlined" (click)="cancel()"></button>
         <button *ngIf="mode() === 'create'" pButton type="submit"

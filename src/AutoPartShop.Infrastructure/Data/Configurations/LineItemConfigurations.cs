@@ -25,6 +25,15 @@ public class SalesOrderLineConfiguration : IEntityTypeConfiguration<SalesOrderLi
             .HasForeignKey(l => l.PartId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        // Variant relationship — nullable, no cascade so variant changes don't affect order history
+        builder.HasOne(l => l.ProductVariant)
+            .WithMany()
+            .HasForeignKey(l => l.ProductVariantId)
+            .OnDelete(DeleteBehavior.NoAction)
+            .IsRequired(false);
+
+        builder.HasIndex(l => l.ProductVariantId);
+
         // Unit relationship
         builder.HasOne(l => l.Unit)
             .WithMany()
@@ -38,9 +47,14 @@ public class SalesReturnLineConfiguration : IEntityTypeConfiguration<SalesReturn
 {
     public void Configure(EntityTypeBuilder<SalesReturnLine> builder)
     {
+        builder.ToTable("SalesReturnLines");
+
         builder.HasKey(l => l.Id);
 
         builder.Property(l => l.UnitPrice)
+            .HasPrecision(18, 2);
+
+        builder.Property(l => l.UnitPriceInBaseUnit)
             .HasPrecision(18, 2);
 
         builder.Property(l => l.Condition)
@@ -54,6 +68,17 @@ public class SalesReturnLineConfiguration : IEntityTypeConfiguration<SalesReturn
             .WithMany()
             .HasForeignKey(l => l.PartId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // Unit relationship
+        builder.HasOne(l => l.Unit)
+            .WithMany()
+            .HasForeignKey(l => l.UnitId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired(false);
+
+        // Indexes
+        builder.HasIndex(l => l.SalesOrderLineId);
+        builder.HasIndex(l => l.PartId);
     }
 }
 

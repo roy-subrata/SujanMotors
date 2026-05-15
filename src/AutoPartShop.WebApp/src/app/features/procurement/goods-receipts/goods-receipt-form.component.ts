@@ -1,22 +1,38 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, FormArray, ReactiveFormsModule, FormsModule, Validators } from '@angular/forms';
-import { Router, ActivatedRoute } from '@angular/router';
+import { Component, OnInit, inject } from '@angular/core';
+import { FormArray, FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
+import { ConfirmationService, MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
-import { InputTextModule } from 'primeng/inputtext';
-import { InputNumberModule } from 'primeng/inputnumber';
-import { AutoCompleteModule } from 'primeng/autocomplete';
-import { MessageService, ConfirmationService } from 'primeng/api';
-import { ToastModule } from 'primeng/toast';
-import { TagModule } from 'primeng/tag';
-import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
-import { PurchaseOrderService, PurchaseOrderResponse } from '../services/purchase-order.service';
-import { GoodsReceiptService, GoodsReceiptResponse } from '../services/goods-receipt.service';
-import { WarehouseService, WarehouseResponse } from '../../inventory/services/warehouse.service';
-import { PartService, PartResponse } from '../../inventory/services/part.service';
+import { InputNumberModule } from 'primeng/inputnumber';
+import { InputTextModule } from 'primeng/inputtext';
+import { Select } from 'primeng/select';
+import { TextareaModule } from 'primeng/textarea';
+import { CheckboxModule } from 'primeng/checkbox';
+import { TagModule } from 'primeng/tag';
+import { ToastModule } from 'primeng/toast';
+import { TooltipModule } from 'primeng/tooltip';
+import { map } from 'rxjs/operators';
+
+import { WarehouseResponse, WarehouseService } from '../../inventory/services/warehouse.service';
+import { LazyAutocompleteComponent, LazyRequest, LazyResponse } from '../../../shared/components/lazy-autocomplete';
 import { CurrencyService } from '../../../shared/services/currency.service';
+import { PriceCodeService } from '../../../shared/services/price-code.service';
+import {
+  GoodsReceiptResponse,
+  GoodsReceiptService
+} from '../services/goods-receipt.service';
+import { PurchaseOrderResponse, PurchaseOrderService } from '../services/purchase-order.service';
+
+type WorkflowStatus = 'PENDING' | 'VERIFIED' | 'ACCEPTED';
+
+interface SubmitValidationResult {
+  errors: string[];
+  warnings: string[];
+}
 
 @Component({
   selector: 'app-goods-receipt-form',
@@ -29,11 +45,14 @@ import { CurrencyService } from '../../../shared/services/currency.service';
     CardModule,
     InputTextModule,
     InputNumberModule,
-    AutoCompleteModule,
+    Select,
     ToastModule,
     TagModule,
     TooltipModule,
-    ConfirmDialogModule
+    ConfirmDialogModule,
+    LazyAutocompleteComponent,
+    TextareaModule,
+    CheckboxModule
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: './goods-receipt-form.component.html',
@@ -44,8 +63,8 @@ export class GoodsReceiptFormComponent implements OnInit {
   private readonly poService = inject(PurchaseOrderService);
   private readonly grnService = inject(GoodsReceiptService);
   private readonly warehouseService = inject(WarehouseService);
-  private readonly partService = inject(PartService);
   private readonly currencyService = inject(CurrencyService);
+  readonly priceCodeService = inject(PriceCodeService);
   private readonly messageService = inject(MessageService);
   private readonly confirmationService = inject(ConfirmationService);
   private readonly router = inject(Router);
@@ -53,19 +72,29 @@ export class GoodsReceiptFormComponent implements OnInit {
 
   form: FormGroup;
   selectedPO: PurchaseOrderResponse | null = null;
-  filteredPOs: PurchaseOrderResponse[] = [];
-  purchaseOrders: PurchaseOrderResponse[] = [];
   selectedWarehouse: WarehouseResponse | null = null;
-  filteredWarehouses: WarehouseResponse[] = [];
   warehouses: WarehouseResponse[] = [];
-  parts: PartResponse[] = [];
   activeCurrencies$ = this.currencyService.activeCurrencies$;
-  conditions = [
+
+  readonly createSteps = [
+    { index: 1, label: 'PO & Warehouse' },
+    { index: 2, label: 'Items' },
+    { index: 3, label: 'Review' }
+  ];
+
+  readonly workflowSteps: WorkflowStatus[] = ['PENDING', 'VERIFIED', 'ACCEPTED'];
+
+  readonly conditions = [
     { label: 'Good', value: 'GOOD' },
     { label: 'Acceptable', value: 'ACCEPTABLE' },
     { label: 'Damaged', value: 'DAMAGED' },
     { label: 'Defective', value: 'DEFECTIVE' }
   ];
+
+  createStep = 1;
+  showDeliverySection = false;
+  lineItemWarnings: string[] = [];
+
   isSubmitting = false;
   isEditing = false;
   isViewing = false;
@@ -73,474 +102,110 @@ export class GoodsReceiptFormComponent implements OnInit {
   grnId: string | null = null;
   currentGRN: GoodsReceiptResponse | null = null;
 
+  // Which line item has its details panel open (-1 = none)
+  openDetailIndex = -1;
+
+  readonly warrantyTypeOptions = [
+    { label: 'Manufacturer', value: 'MANUFACTURER' },
+    { label: 'Seller',       value: 'SELLER' },
+    { label: 'Extended',     value: 'EXTENDED' }
+  ];
+
+  fetchPurchaseOrdersLazy = (req: LazyRequest) =>
+    this.poService
+      .getPurchaseOrders({
+        pageNumber: req.pageNumber,
+        pageSize: req.pageSize,
+        search: req.search,
+        status: 'CONFIRMED,PARTIAL'
+      })
+      .pipe(
+        map(
+          (res) =>
+            ({
+              items: res?.data ?? [],
+              totalCount: res?.pagination?.totalCount ?? 0
+            }) as LazyResponse<PurchaseOrderResponse>
+        )
+      );
+
+  fetchWarehousesLazy = (req: LazyRequest) =>
+    this.warehouseService
+      .getWarehouses({
+        pageNumber: req.pageNumber,
+        pageSize: req.pageSize,
+        search: req.search
+      })
+      .pipe(
+        map(
+          (res) =>
+            ({
+              items: res?.data ?? [],
+              totalCount: res?.pagination?.totalCount ?? 0
+            }) as LazyResponse<WarehouseResponse>
+        )
+      );
+
   constructor() {
     this.form = this.createForm();
   }
 
   ngOnInit(): void {
-    this.loadPurchaseOrders();
     this.loadWarehouses();
-    this.loadParts();
     this.currencyService.loadActiveCurrencies();
     this.checkEditMode();
   }
 
-  /**
-   * Check mode (create/edit/view)
-   */
-  private checkEditMode(): void {
-    const currentPath = this.route.snapshot.routeConfig?.path || '';
-    this.grnId = this.route.snapshot.queryParamMap.get('id');
-
-    if (this.grnId) {
-      if (currentPath.endsWith('/view') || currentPath === 'view') {
-        this.isViewing = true;
-        this.mode = 'view';
-      } else if (currentPath.endsWith('/edit') || currentPath === 'edit') {
-        this.isEditing = true;
-        this.mode = 'edit';
-      } else {
-        this.isEditing = true;
-        this.mode = 'edit';
-      }
-      this.loadGoodsReceipt(this.grnId);
-    } else {
-      this.mode = 'create';
-    }
+  get isCreateMode(): boolean {
+    return this.mode === 'create';
   }
 
-  /**
-   * Load existing goods receipt for editing/viewing
-   */
-  private loadGoodsReceipt(id: string): void {
-    this.grnService.getGoodsReceiptById(id).subscribe({
-      next: (grn) => {
-        this.currentGRN = grn;
-
-        // Find matching PO and warehouse
-        const matchingPO = this.purchaseOrders.find(po => po.id === grn.purchaseOrderId);
-        const matchingWarehouse = this.warehouses.find(w => w.id === grn.warehouseId);
-
-        // If PO not found in filtered list, create a mock object for display
-        if (!matchingPO && grn.poNumber) {
-          this.selectedPO = { id: grn.purchaseOrderId, poNumber: grn.poNumber } as PurchaseOrderResponse;
-        } else {
-          this.selectedPO = matchingPO || null;
-        }
-
-        // If warehouse not found, create a mock object for display
-        if (!matchingWarehouse && grn.warehouseName) {
-          this.selectedWarehouse = { id: grn.warehouseId, name: grn.warehouseName } as WarehouseResponse;
-        } else {
-          this.selectedWarehouse = matchingWarehouse || null;
-        }
-
-        this.form.patchValue({
-          warehouseId: matchingWarehouse?.id || grn.warehouseId,
-          receivedDate: grn.receivedDate ? grn.receivedDate.split('T')[0] : '',
-          // Delivery Information
-          deliveryDate: grn.deliveryDate ? grn.deliveryDate.split('T')[0] : '',
-          deliveryReference: grn.deliveryReference,
-          carrierName: grn.carrierName,
-          driverName: grn.driverName,
-          deliveryNotes: grn.deliveryNotes
-        });
-
-        // Populate line items (get data from PO for ordered and remaining quantities)
-        const linesArray = this.lineItemsArray;
-        linesArray.clear();
-
-        grn.lines?.forEach(line => {
-          // Find matching PO line to get ordered and remaining quantities
-          const poLine = matchingPO?.lines?.find(pl => pl.partId === line.partId);
-          const orderedQty = poLine?.quantity || 0;
-          const alreadyReceived = poLine?.receivedQuantity || 0;
-          const remainingQty = poLine?.remainingQuantity || (orderedQty - alreadyReceived);
-
-          linesArray.push(
-            this.fb.group({
-              partId: [line.partId, Validators.required],
-              orderedQuantity: [orderedQty],
-              receivedQuantity: [alreadyReceived],
-              remainingQuantity: [remainingQty],
-              receivingQuantity: [line.receivedQuantity, [Validators.required, Validators.min(1), Validators.max(remainingQty + line.receivedQuantity)]],
-              condition: [line.condition, Validators.required],
-              notes: [line.notes],
-              hasDiscrepancy: [line.hasDiscrepancy],
-              // Cost Information
-              unitCost: [line.unitCost || 0, [Validators.required, Validators.min(0)]],
-              currency: [line.currency || this.currencyService.selectedCurrency(), Validators.required],
-              unitId: [line.unitId || poLine?.unitId || ''],
-              unitName: [poLine?.unitName || this.getPartUnit(line.partId)],
-              unitSymbol: [poLine?.unitSymbol || '']
-            })
-          );
-        });
-
-        // Disable form in view mode
-        if (this.isViewing) {
-          this.form.disable();
-        }
-      },
-      error: (error) => {
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load goods receipt'
-        });
-        console.error('Error loading GRN:', error);
-      }
-    });
-  }
-
-  /**
-   * Create form group
-   */
-  private createForm(): FormGroup {
-    return this.fb.group({
-      warehouseId: ['', Validators.required],
-      receivedDate: [new Date().toISOString().split('T')[0], Validators.required],
-      // Delivery Information
-      deliveryDate: [''],
-      deliveryReference: [''],
-      carrierName: [''],
-      driverName: [''],
-      deliveryNotes: [''],
-      lineItems: this.fb.array([])
-    });
-  }
-
-  /**
-   * Get line items array
-   */
   get lineItemsArray(): FormArray {
     return this.form.get('lineItems') as FormArray;
   }
 
-  /**
-   * Load purchase orders
-   * Only show CONFIRMED and PARTIAL orders (ready to receive goods)
-   */
-  private loadPurchaseOrders(): void {
-    this.poService.getAllPurchaseOrders().subscribe({
-      next: (pos) => {
-        // Only show purchase orders that are approved and ready to receive goods
-        this.purchaseOrders = pos.filter(po =>
-          po.status === 'CONFIRMED' || po.status === 'PARTIAL'
-        );
-        this.filteredPOs = this.purchaseOrders;
-      },
-      error: (error) => {
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load purchase orders'
-        });
-        console.error('Error loading POs:', error);
-      }
-    });
+  get totalLinesWithReceivingQty(): number {
+    return this.lineItemsArray.controls.filter((control) => this.toNumber(control.get('receivingQuantity')?.value) > 0)
+      .length;
   }
 
-  /**
-   * Load warehouses
-   */
-  private loadWarehouses(): void {
-    this.warehouseService.getAllWarehouses().subscribe({
-      next: (warehouses: WarehouseResponse[]) => {
-        this.warehouses = warehouses;
-        this.filteredWarehouses = warehouses;
-      },
-      error: (error: any) => {
-        console.error('Error loading warehouses:', error);
-      }
-    });
-  }
-
-  /**
-   * Load parts for unit information
-   */
-  private loadParts(): void {
-    this.partService.getActiveParts().subscribe({
-      next: (parts: PartResponse[]) => {
-        this.parts = Array.isArray(parts) ? parts : [];
-      },
-      error: (error: any) => {
-        console.error('Error loading parts:', error);
-      }
-    });
-  }
-
-  /**
-   * Filter warehouses
-   */
-  filterWarehouses(event: { query: string }): void {
-    const filtered = this.warehouses.filter(warehouse =>
-      warehouse.name.toLowerCase().includes(event.query.toLowerCase())
-    );
-    this.filteredWarehouses = filtered;
-  }
-
-  /**
-   * Handle warehouse selection
-   */
-  onWarehouseSelected(event: any): void {
-    const warehouse = event.value as WarehouseResponse;
-    this.selectedWarehouse = warehouse;
-    this.form.patchValue({
-      warehouseId: warehouse.id
-    });
-  }
-
-  /**
-   * Filter purchase orders
-   */
-  filterPOs(event: { query: string }): void {
-    const filtered = this.purchaseOrders.filter(po =>
-      po.poNumber.toLowerCase().includes(event.query.toLowerCase())
-    );
-    this.filteredPOs = filtered;
-  }
-
-  /**
-   * Handle PO selection
-   */
-  onPOSelected(event: any): void {
-    this.selectedPO = event.value as PurchaseOrderResponse;
-    this.populateLineItems();
-  }
-
-  /**
-   * Populate line items from selected PO
-   */
-  private populateLineItems(): void {
-    if (!this.selectedPO) return;
-
-    const linesArray = this.lineItemsArray;
-    linesArray.clear();
-
-    this.selectedPO.lines?.forEach(line => {
-      const remainingQty = line.remainingQuantity || (line.quantity - line.receivedQuantity);
-
-      linesArray.push(
-        this.fb.group({
-          partId: [line.partId, Validators.required],
-          orderedQuantity: [line.quantity],
-          receivedQuantity: [line.receivedQuantity || 0],
-          remainingQuantity: [remainingQty],
-          receivingQuantity: [0, [Validators.required, Validators.min(1), Validators.max(remainingQty)]],
-          condition: ['GOOD', Validators.required],
-          notes: [''],
-          hasDiscrepancy: [false],
-          // Cost Information
-          unitCost: [line.unitPrice || 0, [Validators.required, Validators.min(0)]],
-          currency: [this.currencyService.selectedCurrency(), Validators.required],
-          unitId: [line.unitId || ''],
-          unitName: [line.unitName || this.getPartUnit(line.partId)],
-          unitSymbol: [line.unitSymbol || '']
-        })
-      );
-    });
-  }
-
-  /**
-   * Get part unit name for a given partId
-   */
-  getPartUnit(partId: string): string {
-    const part = this.parts.find(p => p.id === partId);
-    return part?.unitName || '-';
-  }
-
-  /**
-   * Get part name for a given partId
-   */
-  getPartName(partId: string): string {
-    const part = this.parts.find(p => p.id === partId);
-    return part?.name || '-';
-  }
-
-  /**
-   * Get total ordered quantity
-   */
   getTotalOrderedQuantity(): number {
-    return this.lineItemsArray.value.reduce((sum: number, line: any) => sum + (line.orderedQuantity || 0), 0);
+    return this.lineItemsArray.value.reduce((sum: number, line: any) => sum + this.toNumber(line.orderedQuantity), 0);
   }
 
-  /**
-   * Get total receiving quantity (for current GRN)
-   */
   getTotalReceivingQuantity(): number {
-    return this.lineItemsArray.value.reduce((sum: number, line: any) => sum + (line.receivingQuantity || 0), 0);
+    return this.lineItemsArray.value.reduce((sum: number, line: any) => sum + this.toNumber(line.receivingQuantity), 0);
   }
 
-  /**
-   * Get total received quantity (already received)
-   */
   getTotalReceivedQuantity(): number {
-    return this.lineItemsArray.value.reduce((sum: number, line: any) => sum + (line.receivedQuantity || 0), 0);
+    return this.lineItemsArray.value.reduce((sum: number, line: any) => sum + this.toNumber(line.receivedQuantity), 0);
   }
 
-  /**
-   * Get discrepancy count
-   */
   getDiscrepancyCount(): number {
-    return this.lineItemsArray.value.filter((line: any) => line.hasDiscrepancy).length;
+    return this.lineItemsArray.value.filter((line: any) => !!line.hasDiscrepancy).length;
   }
 
-  /**
-   * Get total cost for all items (receivingQuantity * unitCost)
-   */
   getTotalCostAllItems(): number {
     return this.lineItemsArray.value.reduce((sum: number, line: any) => {
-      const lineTotal = (line.receivingQuantity || 0) * (line.unitCost || 0);
-      return sum + lineTotal;
+      return sum + this.toNumber(line.receivingQuantity) * this.toNumber(line.unitCost);
     }, 0);
   }
 
-  /**
-   * Get average unit cost across all line items
-   */
   getAverageUnitCost(): number {
-    const lines = this.lineItemsArray.value;
-    if (lines.length === 0) return 0;
-
-    const totalCost = this.getTotalCostAllItems();
-    const totalQuantity = lines.reduce((sum: number, line: any) => sum + (line.receivingQuantity || 0), 0);
-
-    return totalQuantity > 0 ? totalCost / totalQuantity : 0;
-  }
-
-  /**
-   * Submit form
-   */
-  onSubmit(): void {
-    if (!this.form.valid || !this.selectedPO) {
-      this.messageService.add({
-        severity: 'error',
-        summary: 'Error',
-        detail: 'Please fill all required fields'
-      });
-      return;
+    const totalQuantity = this.getTotalReceivingQuantity();
+    if (totalQuantity <= 0) {
+      return 0;
     }
 
-    this.isSubmitting = true;
-
-    // Process line items to convert empty unitId strings to null
-    // and map receivingQuantity to receivedQuantity for API
-    const processedLines = this.lineItemsArray.value.map((line: any) => ({
-      partId: line.partId,
-      receivedQuantity: line.receivingQuantity || 0,
-      condition: line.condition,
-      notes: line.notes || '',
-      hasDiscrepancy: line.hasDiscrepancy || false,
-      unitCost: line.unitCost || 0,
-      currency: line.currency || this.currencyService.selectedCurrency(),
-      unitId: line.unitId && line.unitId.trim() !== '' ? line.unitId : null
-    }));
-
-    const request = {
-      purchaseOrderId: this.selectedPO.id,
-      warehouseId: this.form.value.warehouseId,
-      receivedDate: this.form.value.receivedDate,
-      // Delivery Information
-      deliveryDate: this.form.value.deliveryDate || null,
-      deliveryReference: this.form.value.deliveryReference || '',
-      carrierName: this.form.value.carrierName || '',
-      driverName: this.form.value.driverName || '',
-      deliveryNotes: this.form.value.deliveryNotes || '',
-      lines: processedLines
-    };
-
-    if (this.isEditing && this.grnId) {
-      // Update existing GRN
-      this.grnService.updateGoodsReceipt(this.grnId, request).subscribe({
-        next: (grn) => {
-          this.messageService.add({
-            severity: 'success',
-            summary: 'Success',
-            detail: `Goods Receipt '${grn.grnNumber}' updated successfully`
-          });
-          this.router.navigate(['/procurement/goods-receipts']);
-        },
-        error: (error) => {
-          this.messageService.add({
-            severity: 'error',
-            summary: 'Error',
-            detail: error?.error?.message || 'Failed to update goods receipt'
-          });
-          console.error('Error updating GRN:', error);
-          this.isSubmitting = false;
-        }
-      });
-    } else {
-      // Create new GRN
-      this.grnService.createGoodsReceipt(request).subscribe({
-        next: (grn) => {
-          this.messageService.add({
-            severity: 'success',
-            summary: 'Success',
-            detail: `Goods Receipt '${grn.grnNumber}' created successfully`
-          });
-          this.router.navigate(['/procurement/goods-receipts']);
-        },
-        error: (error) => {
-          this.messageService.add({
-            severity: 'error',
-            summary: 'Error',
-            detail: error?.error?.message || 'Failed to create goods receipt'
-          });
-          console.error('Error creating GRN:', error);
-          this.isSubmitting = false;
-        }
-      });
-    }
+    return this.getTotalCostAllItems() / totalQuantity;
   }
 
-  /**
-   * Go back
-   */
-  goBack(): void {
-    this.router.navigate(['/procurement/goods-receipts']);
-  }
-
-  /**
-   * Check if field has error
-   */
-  hasError(fieldName: string): boolean {
-    const field = this.form.get(fieldName);
-    return !!(field && field.invalid && field.touched);
-  }
-
-  /**
-   * Get error message
-   */
-  getErrorMessage(fieldName: string): string {
-    const field = this.form.get(fieldName);
-    if (field?.hasError('required')) {
-      return `${fieldName} is required`;
-    }
-    return '';
-  }
-
-  /**
-   * Format currency - uses default currency from settings
-   */
-  formatCurrency(value: number): string {
-    const currency = this.currencyService.selectedCurrency();
-    return this.currencyService.formatCurrency(value, currency);
-  }
-
-  /**
-   * Get page title based on mode
-   */
   getPageTitle(): string {
     if (this.mode === 'view') return 'View Goods Receipt';
     if (this.mode === 'edit') return 'Edit Goods Receipt';
-    return 'Create New Goods Receipt';
+    return 'Create Goods Receipt';
   }
 
-  /**
-   * Get status severity for p-tag
-   */
   getStatusSeverity(status: string): 'success' | 'secondary' | 'info' | 'warn' | 'danger' | 'contrast' | undefined {
     switch (status?.toUpperCase()) {
       case 'PENDING':
@@ -556,106 +221,745 @@ export class GoodsReceiptFormComponent implements OnInit {
     }
   }
 
-  /**
-   * Verify goods receipt
-   */
+  getWorkflowStatusIndex(status: string): number {
+    const normalized = status?.toUpperCase();
+    return this.workflowSteps.findIndex((step) => step === normalized);
+  }
+
+  formatWorkflowStatus(status: WorkflowStatus): string {
+    if (status === 'PENDING') return 'Pending';
+    if (status === 'VERIFIED') return 'Verified';
+    return 'Accepted';
+  }
+
+  formatCurrency(value: number): string {
+    return this.currencyService.formatCurrency(value, this.currencyService.selectedCurrency());
+  }
+
+  formatCostPrice(value: number): string {
+    const coded = this.priceCodeService.getDisplayPrice(value);
+    if (coded !== null) {
+      return coded;
+    }
+
+    return this.formatCurrency(value);
+  }
+
+  hasError(fieldName: string): boolean {
+    const field = this.form.get(fieldName);
+    return !!field && field.invalid && field.touched;
+  }
+
+  getErrorMessage(fieldName: string): string {
+    const field = this.form.get(fieldName);
+    if (field?.hasError('required')) {
+      return `${fieldName} is required`;
+    }
+
+    return '';
+  }
+
+  toggleDeliverySection(): void {
+    this.showDeliverySection = !this.showDeliverySection;
+  }
+
+  goToCreateStep(stepIndex: number): void {
+    if (!this.isCreateMode || stepIndex < 1 || stepIndex > 3) {
+      return;
+    }
+
+    if (stepIndex > this.createStep) {
+      if (this.createStep === 1 && !this.canProceedFromStepOne()) {
+        this.showValidationError('Select a purchase order, warehouse, and received date to continue.');
+        return;
+      }
+
+      if (this.createStep <= 2 && stepIndex === 3) {
+        const validation = this.validateBeforeSubmit();
+        this.lineItemWarnings = validation.warnings;
+        if (validation.errors.length > 0) {
+          this.showValidationError(validation.errors[0]);
+          return;
+        }
+      }
+    }
+
+    this.createStep = stepIndex;
+  }
+
+  nextCreateStep(): void {
+    this.goToCreateStep(this.createStep + 1);
+  }
+
+  previousCreateStep(): void {
+    this.goToCreateStep(this.createStep - 1);
+  }
+
+  onPOSelected(po: PurchaseOrderResponse): void {
+    this.selectedPO = po;
+    this.populateLineItems();
+  }
+
+  onPOCleared(): void {
+    this.selectedPO = null;
+    this.lineItemsArray.clear();
+    this.lineItemWarnings = [];
+  }
+
+  onWarehouseSelected(warehouse: WarehouseResponse): void {
+    this.selectedWarehouse = warehouse;
+    this.form.patchValue({ warehouseId: warehouse.id });
+  }
+
+  onWarehouseCleared(): void {
+    this.selectedWarehouse = null;
+    this.form.patchValue({ warehouseId: '' });
+  }
+
+  onReceivingQuantityChanged(index: number): void {
+    this.updateLineDiscrepancy(index);
+    this.refreshLineWarnings();
+  }
+
+  onConditionChanged(): void {
+    this.refreshLineWarnings();
+  }
+
+  toggleDetails(index: number): void {
+    this.openDetailIndex = this.openDetailIndex === index ? -1 : index;
+  }
+
+  isDetailOpen(index: number): boolean {
+    return this.openDetailIndex === index;
+  }
+
+  /** True if any lot-level detail field has a value — drives the icon badge */
+  hasDetails(ctrl: any): boolean {
+    return !!(
+      this.toNumber(ctrl.get('sellingPrice')?.value) > 0 ||
+      this.toNumber(ctrl.get('warrantyPeriodMonths')?.value) > 0 ||
+      ctrl.get('expiryDate')?.value ||
+      ctrl.get('notes')?.value?.trim()
+    );
+  }
+
+  isFullyReceived(ctrl: any): boolean {
+    return this.toNumber(ctrl.get('remainingQuantity')?.value) === 0;
+  }
+
+  /** Auto-calculate sell price when unit cost changes, if not already manually set */
+  onUnitCostChanged(index: number): void {
+    const ctrl = this.lineItemsArray.at(index);
+    if (!ctrl) return;
+
+    const cost = this.toNumber(ctrl.get('unitCost')?.value);
+    const existing = ctrl.get('sellingPrice')?.value;
+    if (existing != null && existing !== '') {
+      // Cost changed — keep the sell price but recalculate displayed margin
+      this._syncMarginFromPrice(ctrl, cost);
+      return;
+    }
+
+    const defaultSell = this.toNumber(ctrl.get('partDefaultSellingPrice')?.value);
+    const margin = this.toNumber(ctrl.get('sellingMarginPercent')?.value) || 0;
+    const suggested = defaultSell > 0 ? defaultSell : cost * (1 + margin / 100);
+    if (suggested > 0) {
+      ctrl.patchValue({ sellingPrice: Math.round(suggested * 100) / 100 }, { emitEvent: false });
+      this._syncMarginFromPrice(ctrl, cost);
+    }
+    this.updateLineDiscrepancy(index);
+    this.refreshLineWarnings();
+  }
+
+  /** User changed the sell price → recalculate and show the resulting margin % */
+  onSellingPriceChanged(index: number): void {
+    const ctrl = this.lineItemsArray.at(index);
+    if (!ctrl) return;
+    this._syncMarginFromPrice(ctrl, this.toNumber(ctrl.get('unitCost')?.value));
+  }
+
+  /** User changed the margin % → recalculate and set the sell price */
+  onMarginPercentChanged(index: number): void {
+    const ctrl = this.lineItemsArray.at(index);
+    if (!ctrl) return;
+    const cost   = this.toNumber(ctrl.get('unitCost')?.value);
+    const margin = this.toNumber(ctrl.get('sellingMarginPercent')?.value);
+    if (cost > 0 && margin >= 0) {
+      const sell = Math.round(cost * (1 + margin / 100) * 100) / 100;
+      ctrl.patchValue({ sellingPrice: sell }, { emitEvent: false });
+    }
+  }
+
+  /** Force-recalculate sell price using the current editable margin % */
+  recalculateSellingPrice(index: number): void {
+    const ctrl = this.lineItemsArray.at(index);
+    if (!ctrl) return;
+    const cost   = this.toNumber(ctrl.get('unitCost')?.value);
+    const margin = this.toNumber(ctrl.get('sellingMarginPercent')?.value) || 0;
+    ctrl.patchValue({ sellingPrice: Math.round(cost * (1 + margin / 100) * 100) / 100 }, { emitEvent: false });
+  }
+
+  private _syncMarginFromPrice(ctrl: any, cost: number): void {
+    const sell = this.toNumber(ctrl.get('sellingPrice')?.value);
+    if (cost > 0 && sell >= 0) {
+      const margin = Math.round(((sell - cost) / cost) * 10000) / 100;
+      ctrl.patchValue({ sellingMarginPercent: margin }, { emitEvent: false });
+    }
+  }
+
+  onSubmit(): void {
+    if (this.mode === 'view') {
+      return;
+    }
+
+    const validation = this.validateBeforeSubmit();
+    this.lineItemWarnings = validation.warnings;
+
+    if (validation.errors.length > 0) {
+      this.showValidationError(validation.errors[0]);
+      return;
+    }
+
+    const processedLines = this.buildSubmissionLines();
+
+    if (processedLines.length === 0) {
+      this.showValidationError('At least one line must have receiving quantity greater than 0.');
+      return;
+    }
+
+    if (validation.warnings.length > 0) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Review Warning',
+        detail: validation.warnings[0]
+      });
+    }
+
+    const invoiceNotProvided = !!this.form.value.invoiceNotProvided;
+    const request = {
+      purchaseOrderId: this.selectedPO!.id,
+      warehouseId: this.form.value.warehouseId,
+      receivedDate: this.form.value.receivedDate,
+      // Invoice
+      supplierInvoiceNumber: invoiceNotProvided ? null : this.toTrimmedOrNull(this.form.value.supplierInvoiceNumber),
+      supplierInvoiceDate: invoiceNotProvided ? null : this.toTrimmedOrNull(this.form.value.supplierInvoiceDate),
+      invoiceNotProvided,
+      // Delivery
+      deliveryDate: this.toTrimmedOrNull(this.form.value.deliveryDate) ?? undefined,
+      deliveryReference: this.toTrimmedOrEmpty(this.form.value.deliveryReference),
+      carrierName: this.toTrimmedOrEmpty(this.form.value.carrierName),
+      driverName: this.toTrimmedOrEmpty(this.form.value.driverName),
+      deliveryNotes: this.toTrimmedOrEmpty(this.form.value.deliveryNotes),
+      lines: processedLines
+    };
+
+    this.isSubmitting = true;
+
+    if (this.isEditing && this.grnId) {
+      this.grnService.updateGoodsReceipt(this.grnId, request).subscribe({
+        next: (grn) => {
+          this.isSubmitting = false;
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Updated',
+            detail: `Goods Receipt '${grn.grnNumber}' updated successfully.`
+          });
+          this.router.navigate(['/procurement/goods-receipts']);
+        },
+        error: (error) => {
+          this.isSubmitting = false;
+          this.showApiError('Update Failed', error, 'Failed to update goods receipt.');
+        }
+      });
+
+      return;
+    }
+
+    this.grnService.createGoodsReceipt(request).subscribe({
+      next: (grn) => {
+        this.isSubmitting = false;
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Created',
+          detail: `Goods Receipt '${grn.grnNumber}' created successfully.`
+        });
+        this.router.navigate(['/procurement/goods-receipts']);
+      },
+      error: (error) => {
+        this.isSubmitting = false;
+        this.showApiError('Creation Failed', error, 'Failed to create goods receipt.');
+      }
+    });
+  }
+
   verifyGoodsReceipt(): void {
-    if (!this.grnId || !this.currentGRN) return;
+    if (!this.grnId || !this.currentGRN) {
+      return;
+    }
 
     this.confirmationService.confirm({
-      message: `Are you sure you want to verify Goods Receipt ${this.currentGRN.grnNumber}?`,
-      header: 'Confirm Verification',
+      header: 'Verify Goods Receipt',
+      message: `Verify receipt ${this.currentGRN.grnNumber} and move it to VERIFIED?`,
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
-        // TODO: Get current user name from auth service
         const verifiedBy = 'System User';
         this.grnService.verifyGoodsReceipt(this.grnId!, verifiedBy).subscribe({
-          next: () => {
+          next: (grn) => {
+            this.currentGRN = grn;
             this.messageService.add({
               severity: 'success',
-              summary: 'Success',
-              detail: `Goods Receipt ${this.currentGRN!.grnNumber} verified successfully`
+              summary: 'Verified',
+              detail: `Goods Receipt ${grn.grnNumber} verified successfully.`
             });
             this.loadGoodsReceipt(this.grnId!);
           },
-          error: (error) => {
-            this.messageService.add({
-              severity: 'error',
-              summary: 'Error',
-              detail: error?.error?.message || 'Failed to verify goods receipt'
-            });
-            console.error('Error verifying GRN:', error);
-          }
+          error: (error) => this.showApiError('Verification Failed', error, 'Failed to verify goods receipt.')
         });
       }
     });
   }
 
-  /**
-   * Accept goods receipt
-   */
   acceptGoodsReceipt(): void {
-    if (!this.grnId || !this.currentGRN) return;
+    if (!this.grnId || !this.currentGRN) {
+      return;
+    }
 
     this.confirmationService.confirm({
-      message: `Are you sure you want to accept Goods Receipt ${this.currentGRN.grnNumber}? This will update the inventory.`,
-      header: 'Confirm Acceptance',
+      header: 'Accept Goods Receipt',
+      message: `Accept receipt ${this.currentGRN.grnNumber}? This updates stock on hand.`,
       icon: 'pi pi-exclamation-triangle',
       acceptButtonStyleClass: 'p-button-success',
       accept: () => {
         this.grnService.acceptGoodsReceipt(this.grnId!).subscribe({
-          next: () => {
+          next: (grn) => {
+            this.currentGRN = grn;
             this.messageService.add({
               severity: 'success',
-              summary: 'Success',
-              detail: `Goods Receipt ${this.currentGRN!.grnNumber} accepted successfully`
+              summary: 'Accepted',
+              detail: `Goods Receipt ${grn.grnNumber} accepted successfully.`
             });
             this.loadGoodsReceipt(this.grnId!);
           },
-          error: (error) => {
-            this.messageService.add({
-              severity: 'error',
-              summary: 'Error',
-              detail: error?.error?.message || 'Failed to accept goods receipt'
-            });
-            console.error('Error accepting GRN:', error);
-          }
+          error: (error) => this.showApiError('Acceptance Failed', error, 'Failed to accept goods receipt.')
         });
       }
     });
   }
 
-  /**
-   * Reject goods receipt
-   */
   rejectGoodsReceipt(): void {
-    if (!this.grnId || !this.currentGRN) return;
+    if (!this.grnId || !this.currentGRN) {
+      return;
+    }
 
     this.confirmationService.confirm({
-      message: `Are you sure you want to reject Goods Receipt ${this.currentGRN.grnNumber}?`,
-      header: 'Confirm Rejection',
+      header: 'Reject Goods Receipt',
+      message: `Reject receipt ${this.currentGRN.grnNumber}?`,
       icon: 'pi pi-exclamation-triangle',
       acceptButtonStyleClass: 'p-button-danger',
       accept: () => {
         this.grnService.rejectGoodsReceipt(this.grnId!, 'Rejected by user').subscribe({
-          next: () => {
+          next: (grn) => {
+            this.currentGRN = grn;
             this.messageService.add({
               severity: 'success',
-              summary: 'Success',
-              detail: `Goods Receipt ${this.currentGRN!.grnNumber} rejected`
+              summary: 'Rejected',
+              detail: `Goods Receipt ${grn.grnNumber} rejected.`
             });
             this.loadGoodsReceipt(this.grnId!);
           },
-          error: (error) => {
-            this.messageService.add({
-              severity: 'error',
-              summary: 'Error',
-              detail: error?.error?.message || 'Failed to reject goods receipt'
-            });
-            console.error('Error rejecting GRN:', error);
-          }
+          error: (error) => this.showApiError('Rejection Failed', error, 'Failed to reject goods receipt.')
         });
       }
     });
+  }
+
+  goBack(): void {
+    this.router.navigate(['/procurement/goods-receipts']);
+  }
+
+  private checkEditMode(): void {
+    const currentPath = this.route.snapshot.routeConfig?.path || '';
+    this.grnId = this.route.snapshot.queryParamMap.get('id');
+
+    if (!this.grnId) {
+      this.mode = 'create';
+      return;
+    }
+
+    if (currentPath.endsWith('/view') || currentPath === 'view') {
+      this.isViewing = true;
+      this.mode = 'view';
+    } else {
+      this.isEditing = true;
+      this.mode = 'edit';
+    }
+
+    this.loadGoodsReceipt(this.grnId);
+  }
+
+  private loadWarehouses(): void {
+    this.warehouseService
+      .getWarehouses({
+        search: '',
+        pageNumber: 1,
+        pageSize: 1000,
+        sorts: [{ field: 'name', direction: 'asc' }]
+      })
+      .subscribe({
+        next: (res) => {
+          const warehouseList = res.data ?? [];
+          this.warehouses = Array.isArray(warehouseList) ? warehouseList : [];
+        },
+        error: (error) => {
+          this.showApiError('Warehouse Load Failed', error, 'Could not load warehouses.');
+        }
+      });
+  }
+
+  private loadGoodsReceipt(id: string): void {
+    this.grnService.getGoodsReceiptById(id).subscribe({
+      next: (grn) => {
+        this.currentGRN = grn;
+
+        this.selectedWarehouse =
+          this.warehouses.find((w) => w.id === grn.warehouseId) ||
+          ({ id: grn.warehouseId, name: grn.warehouseName || 'Unknown Warehouse' } as WarehouseResponse);
+
+        this.form.patchValue({
+          warehouseId: this.selectedWarehouse?.id || grn.warehouseId,
+          receivedDate: grn.receivedDate ? grn.receivedDate.split('T')[0] : '',
+          // Invoice
+          supplierInvoiceNumber: grn.supplierInvoiceNumber || '',
+          supplierInvoiceDate: grn.supplierInvoiceDate ? grn.supplierInvoiceDate.split('T')[0] : '',
+          invoiceNotProvided: grn.invoiceNotProvided || false,
+          // Delivery
+          deliveryDate: grn.deliveryDate ? grn.deliveryDate.split('T')[0] : '',
+          deliveryReference: grn.deliveryReference,
+          carrierName: grn.carrierName,
+          driverName: grn.driverName,
+          deliveryNotes: grn.deliveryNotes
+        });
+
+        this.showDeliverySection = !!(
+          grn.deliveryDate ||
+          this.toTrimmedOrNull(grn.deliveryReference) ||
+          this.toTrimmedOrNull(grn.carrierName) ||
+          this.toTrimmedOrNull(grn.driverName) ||
+          this.toTrimmedOrNull(grn.deliveryNotes)
+        );
+
+        this.poService.getPurchaseOrderById(grn.purchaseOrderId).subscribe({
+          next: (po) => {
+            this.selectedPO = po;
+            this.setLineItemsFromGoodsReceipt(grn, po);
+          },
+          error: () => {
+            this.selectedPO = ({ id: grn.purchaseOrderId, poNumber: grn.poNumber || '' } as PurchaseOrderResponse);
+            this.setLineItemsFromGoodsReceipt(grn, null);
+          }
+        });
+      },
+      error: (error) => {
+        this.showApiError('Load Failed', error, 'Failed to load goods receipt.');
+      }
+    });
+  }
+
+  private createForm(): FormGroup {
+    return this.fb.group({
+      warehouseId: ['', Validators.required],
+      receivedDate: [new Date().toISOString().split('T')[0], Validators.required],
+      // Supplier Invoice
+      supplierInvoiceNumber: [''],
+      supplierInvoiceDate: [''],
+      invoiceNotProvided: [false],
+      // Delivery
+      deliveryDate: [''],
+      deliveryReference: [''],
+      carrierName: [''],
+      driverName: [''],
+      deliveryNotes: [''],
+      lineItems: this.fb.array([])
+    });
+  }
+
+  private canProceedFromStepOne(): boolean {
+    this.form.get('warehouseId')?.markAsTouched();
+    this.form.get('receivedDate')?.markAsTouched();
+    return !!this.selectedPO && !!this.selectedWarehouse && !!this.form.value.receivedDate;
+  }
+
+  private populateLineItems(): void {
+    if (!this.selectedPO) {
+      return;
+    }
+
+    const linesArray = this.lineItemsArray;
+    linesArray.clear();
+
+    this.selectedPO.lines?.forEach((line, index) => {
+      const remainingQty = Math.max(this.toNumber(line.remainingQuantity || line.quantity - line.receivedQuantity), 0);
+      const receivingNow = remainingQty;
+
+      const defaultSell = this.toNumber(line.partDefaultSellingPrice);
+      const margin     = this.toNumber(line.partMinMarginPercent) || 0;
+      const cost       = this.toNumber(line.unitPrice);
+      const autoSell   = defaultSell > 0 ? defaultSell : Math.round(cost * (1 + margin / 100) * 100) / 100;
+
+      const group = this.fb.group({
+        partId:                  [line.partId, Validators.required],
+        partName:                [line.partName],
+        orderedQuantity:         [this.toNumber(line.quantity)],
+        receivedQuantity:        [this.toNumber(line.receivedQuantity)],
+        remainingQuantity:       [remainingQty],
+        maxReceivableQuantity:   [remainingQty],
+        receivingQuantity:       [receivingNow, [Validators.required, Validators.min(0), Validators.max(remainingQty)]],
+        condition:               ['GOOD', Validators.required],
+        notes:                   [''],
+        hasDiscrepancy:          [false],
+        unitCost:                [cost, [Validators.required, Validators.min(0)]],
+        currency:                [this.currencyService.selectedCurrency(), Validators.required],
+        unitId:                  [line.unitId || ''],
+        unitName:                [line.unitName || ''],
+        unitSymbol:              [line.unitSymbol || ''],
+        batchNumber:             [''],
+        expiryDate:              [''],
+        // Lot-level pricing & warranty (details panel)
+        sellingPrice:            [autoSell > 0 ? autoSell : null],
+        warrantyPeriodMonths:    [null],
+        warrantyType:            [''],
+        warrantyTerms:           [''],
+        // Hidden helpers for auto-calculation
+        partDefaultSellingPrice: [defaultSell],
+        partMinMarginPercent:    [margin],
+        // Editable margin % for this lot (starts at product default, user can override)
+        sellingMarginPercent:    [margin]
+      });
+
+      if (remainingQty === 0) {
+        group.get('receivingQuantity')?.setValue(0);
+        group.get('receivingQuantity')?.disable();
+        group.get('condition')?.disable();
+        group.get('unitCost')?.disable();
+      }
+
+      linesArray.push(group);
+      this.updateLineDiscrepancy(index);
+    });
+
+    this.refreshLineWarnings();
+  }
+
+  private setLineItemsFromGoodsReceipt(grn: GoodsReceiptResponse, po: PurchaseOrderResponse | null): void {
+    const linesArray = this.lineItemsArray;
+    linesArray.clear();
+
+    grn.lines?.forEach((line, index) => {
+      const poLine = po?.lines?.find((l) => l.partId === line.partId);
+      const orderedQty = this.toNumber(poLine?.quantity);
+      const alreadyReceived = this.toNumber(poLine?.receivedQuantity);
+      const remainingQty = this.toNumber(poLine?.remainingQuantity ?? orderedQty - alreadyReceived);
+      const maxReceivableQty = Math.max(remainingQty + this.toNumber(line.receivedQuantity), this.toNumber(line.receivedQuantity));
+
+      linesArray.push(
+        this.fb.group({
+          partId: [line.partId, Validators.required],
+          partName: [poLine?.partName || ''],
+          orderedQuantity: [orderedQty],
+          receivedQuantity: [alreadyReceived],
+          remainingQuantity: [remainingQty],
+          maxReceivableQuantity: [maxReceivableQty],
+          receivingQuantity: [
+            this.toNumber(line.receivedQuantity),
+            [Validators.required, Validators.min(0), Validators.max(maxReceivableQty)]
+          ],
+          condition: [line.condition, Validators.required],
+          notes: [line.notes || ''],
+          hasDiscrepancy: [!!line.hasDiscrepancy],
+          unitCost: [this.toNumber(line.unitCost), [Validators.required, Validators.min(0)]],
+          currency: [line.currency || this.currencyService.selectedCurrency(), Validators.required],
+          unitId: [line.unitId || poLine?.unitId || ''],
+          unitName: [poLine?.unitName || ''],
+          unitSymbol: [poLine?.unitSymbol || ''],
+          batchNumber:             [line.batchNumber || ''],
+          expiryDate:              [line.expiryDate ? line.expiryDate.split('T')[0] : ''],
+          // Lot-level pricing & warranty from saved GRN
+          sellingPrice:            [line.sellingPrice ?? null],
+          warrantyPeriodMonths:    [line.warrantyPeriodMonths ?? null],
+          warrantyType:            [line.warrantyType ?? ''],
+          warrantyTerms:           [line.warrantyTerms ?? ''],
+          partDefaultSellingPrice: [0],
+          partMinMarginPercent:    [0],
+          sellingMarginPercent:    [line.sellingPrice && this.toNumber(line.unitCost) > 0
+            ? Math.round(((this.toNumber(line.sellingPrice) - this.toNumber(line.unitCost)) / this.toNumber(line.unitCost)) * 10000) / 100
+            : 0]
+        })
+      );
+
+      this.updateLineDiscrepancy(index);
+    });
+
+    this.refreshLineWarnings();
+
+    if (this.isViewing) {
+      this.form.disable();
+    }
+  }
+
+  private updateLineDiscrepancy(index: number): void {
+    const line = this.lineItemsArray.at(index);
+    if (!line) {
+      return;
+    }
+
+    const receivingQty = this.toNumber(line.get('receivingQuantity')?.value);
+    const remainingQty = this.toNumber(line.get('remainingQuantity')?.value);
+    line.patchValue({ hasDiscrepancy: receivingQty !== remainingQty }, { emitEvent: false });
+  }
+
+  private refreshLineWarnings(): void {
+    this.lineItemWarnings = this.validateBeforeSubmit().warnings;
+  }
+
+  private validateBeforeSubmit(): SubmitValidationResult {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+
+    if (!this.selectedPO) {
+      errors.push('Purchase order is required.');
+    }
+
+    if (!this.selectedWarehouse || !this.form.value.warehouseId) {
+      errors.push('Warehouse is required.');
+    }
+
+    if (!this.form.value.receivedDate) {
+      errors.push('Received date is required.');
+    }
+
+    if (this.lineItemsArray.length === 0) {
+      errors.push('No line items found for this goods receipt.');
+      return { errors, warnings };
+    }
+
+    let linesWithQuantity = 0;
+
+    this.lineItemsArray.controls.forEach((line, index) => {
+      const partName = line.get('partName')?.value || `Item ${index + 1}`;
+      const receivingQty = this.toNumber(line.get('receivingQuantity')?.value);
+      const maxReceivableQty = this.toNumber(line.get('maxReceivableQuantity')?.value);
+      const condition = this.toTrimmedOrNull(line.get('condition')?.value);
+
+      if (receivingQty < 0) {
+        errors.push(`${partName}: receiving quantity cannot be negative.`);
+      }
+
+      if (receivingQty > maxReceivableQty) {
+        errors.push(`${partName}: receiving quantity exceeds allowed remaining quantity.`);
+      }
+
+      if (!condition) {
+        errors.push(`${partName}: condition is required.`);
+      }
+
+      if (receivingQty === 0) {
+        warnings.push(`${partName}: receiving quantity is 0 and this line will not be submitted.`);
+      }
+
+      if (receivingQty > 0) {
+        linesWithQuantity += 1;
+      }
+    });
+
+    if (linesWithQuantity === 0) {
+      errors.push('At least one item must have receiving quantity greater than 0.');
+    }
+
+    return { errors, warnings };
+  }
+
+  private buildSubmissionLines(): any[] {
+    return this.lineItemsArray.controls
+      .map((line) => {
+        const receivedQty = this.toNumber(line.get('receivingQuantity')?.value);
+        if (receivedQty <= 0) return null;
+        const sellPrice = line.get('sellingPrice')?.value;
+        const warrantyMonths = line.get('warrantyPeriodMonths')?.value;
+        return {
+          partId:              line.get('partId')?.value,
+          receivedQuantity:    receivedQty,
+          condition:           line.get('condition')?.value,
+          notes:               this.toTrimmedOrEmpty(line.get('notes')?.value),
+          hasDiscrepancy:      !!line.get('hasDiscrepancy')?.value,
+          unitCost:            this.toNumber(line.get('unitCost')?.value),
+          currency:            this.toTrimmedOrEmpty(line.get('currency')?.value) || this.currencyService.selectedCurrency(),
+          unitId:              this.toTrimmedOrNull(line.get('unitId')?.value),
+          batchNumber:         this.toTrimmedOrNull(line.get('batchNumber')?.value),
+          expiryDate:          this.toTrimmedOrNull(line.get('expiryDate')?.value),
+          // Lot-level pricing & warranty
+          sellingPrice:        sellPrice != null && sellPrice !== '' ? this.toNumber(sellPrice) : null,
+          hasWarranty:         this.toNumber(warrantyMonths) > 0 ? true : null,
+          warrantyPeriodMonths: this.toNumber(warrantyMonths) > 0 ? this.toNumber(warrantyMonths) : null,
+          warrantyType:        this.toTrimmedOrNull(line.get('warrantyType')?.value),
+          warrantyTerms:       this.toTrimmedOrNull(line.get('warrantyTerms')?.value)
+        };
+      })
+      .filter((line): line is NonNullable<typeof line> => line !== null);
+  }
+
+  private showValidationError(message: string): void {
+    this.messageService.add({
+      severity: 'error',
+      summary: 'Validation Error',
+      detail: message
+    });
+  }
+
+  private showApiError(summary: string, error: unknown, fallbackMessage: string): void {
+    this.messageService.add({
+      severity: 'error',
+      summary,
+      detail: this.getApiErrorMessage(error, fallbackMessage)
+    });
+  }
+
+  private getApiErrorMessage(error: unknown, fallbackMessage: string): string {
+    const httpError = error as HttpErrorResponse;
+
+    if (httpError?.status === 0) {
+      return 'Network error. Please check your connection and try again.';
+    }
+
+    if (typeof httpError?.error === 'string' && httpError.error.trim().length > 0) {
+      return httpError.error;
+    }
+
+    if (httpError?.error?.message) {
+      return httpError.error.message;
+    }
+
+    if (httpError?.message) {
+      return httpError.message;
+    }
+
+    return fallbackMessage;
+  }
+
+  private toNumber(value: unknown): number {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  private toTrimmedOrNull(value: unknown): string | null {
+    if (typeof value !== 'string') {
+      return null;
+    }
+
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+
+  private toTrimmedOrEmpty(value: unknown): string {
+    return this.toTrimmedOrNull(value) ?? '';
   }
 }

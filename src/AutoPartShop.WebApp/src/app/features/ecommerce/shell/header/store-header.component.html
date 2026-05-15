@@ -15,7 +15,7 @@
 <div class="main-header">
   <div class="header-inner">
     <!-- Logo -->
-    <a routerLink="/shop" class="logo">
+    <a routerLink="/shop" class="logo" (click)="onNavLink()">
       <span class="logo-mark">SM</span>
       <div class="logo-text">
         <span class="logo-title">Sujan Motors</span>
@@ -37,9 +37,37 @@
 
     <!-- Header Actions -->
     <div class="header-actions">
-      <button class="action-icon" title="My Account">
-        <i class="pi pi-user"></i>
-      </button>
+
+      <!-- Staff logged in: show POS mode badge + instore checkout -->
+      <ng-container *ngIf="staffAuthService.isLoggedIn()">
+        <div class="staff-mode-badge">
+          <i class="pi pi-id-card"></i> POS
+        </div>
+        <a routerLink="/shop/instore-checkout" class="action-icon instore-btn" title="In-Store Checkout">
+          <i class="pi pi-shopping-bag"></i>
+          <span class="login-label">In-Store</span>
+        </a>
+      </ng-container>
+
+      <!-- Customer logged in: show name + logout -->
+      <ng-container *ngIf="!staffAuthService.isLoggedIn() && customerAuthService.isLoggedIn()">
+        <div class="account-info">
+          <i class="pi pi-user" style="color:#e53e3e"></i>
+          <span class="account-name">{{ customerAuthService.currentCustomer()?.fullName?.split(' ')?.[0] }}</span>
+          <button class="account-logout" (click)="customerAuthService.logout()" title="Sign out">
+            <i class="pi pi-sign-out"></i>
+          </button>
+        </div>
+      </ng-container>
+
+      <!-- Neither logged in: show Login link -->
+      <ng-container *ngIf="!staffAuthService.isLoggedIn() && !customerAuthService.isLoggedIn()">
+        <a routerLink="/shop/login" class="action-icon" title="Sign in">
+          <i class="pi pi-user"></i>
+          <span class="login-label">Login</span>
+        </a>
+      </ng-container>
+
       <button class="action-icon cart-icon" (click)="onCartClick()">
         <i class="pi pi-shopping-cart"></i>
         <span class="cart-badge" *ngIf="cartService.itemCount() > 0">
@@ -55,25 +83,89 @@
   </div>
 </div>
 
-<!-- Navigation -->
+<!-- ── Navigation with Mega Menu ── -->
 <nav class="nav-bar" [class.mobile-open]="mobileMenuOpen">
   <div class="nav-inner">
-    <a routerLink="/shop" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" (click)="mobileMenuOpen = false">
+
+    <!-- Home -->
+    <a class="nav-link"
+       routerLink="/shop"
+       routerLinkActive="active"
+       [routerLinkActiveOptions]="{ exact: true }"
+       (click)="onNavLink()">
       <i class="pi pi-home"></i> Home
     </a>
-    <a
-      *ngFor="let cat of categories()"
-      [routerLink]="['/shop/category', cat.id]"
-      routerLinkActive="active"
-      (click)="mobileMenuOpen = false"
+
+    <!-- Visible categories with mega dropdown -->
+    <div
+      class="nav-item"
+      *ngFor="let cat of visibleCats()"
+      [class.has-children]="cat.children.length > 0"
+      [class.mobile-open]="activeMenuId() === cat.id"
     >
-      {{ cat.name }}
-    </a>
-    <a routerLink="/shop/sale" routerLinkActive="active" (click)="mobileMenuOpen = false">
+      <!-- Desktop: link navigates, chevron toggles (mobile) -->
+      <div class="nav-item-row">
+        <a class="nav-link"
+           [routerLink]="['/shop/category', cat.id]"
+           routerLinkActive="active"
+           (click)="onNavLink()">
+          {{ cat.name }}
+        </a>
+        <button
+          *ngIf="cat.children.length"
+          class="chevron-btn"
+          (click)="toggleMenu(cat.id, $event)"
+          [attr.aria-expanded]="activeMenuId() === cat.id"
+        >
+          <i class="pi pi-angle-down"></i>
+        </button>
+      </div>
+
+      <!-- Mega dropdown (shown on CSS hover for desktop, .mobile-open for mobile) -->
+      <div class="mega-dropdown" *ngIf="cat.children.length">
+        <div class="mega-header">
+          <a [routerLink]="['/shop/category', cat.id]" (click)="onNavLink()">
+            <i class="pi pi-th-large"></i> All {{ cat.name }}
+          </a>
+        </div>
+        <div class="mega-grid">
+          <a
+            *ngFor="let child of cat.children"
+            [routerLink]="['/shop/category', child.id]"
+            class="mega-item"
+            (click)="onNavLink()"
+          >
+            <i class="pi pi-angle-right"></i> {{ child.name }}
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- More ▾ (overflow categories) -->
+    <div class="more-item" *ngIf="overflowCats().length" [class.open]="moreOpen()">
+      <button class="nav-link more-btn" (click)="toggleMore($event)">
+        More <i class="pi pi-angle-down"></i>
+      </button>
+      <div class="more-dropdown">
+        <a
+          *ngFor="let cat of overflowCats()"
+          [routerLink]="['/shop/category', cat.id]"
+          class="more-item-link"
+          (click)="onNavLink()"
+        >
+          {{ cat.name }}
+          <span class="more-child-count" *ngIf="cat.children.length">({{ cat.children.length }})</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Sale -->
+    <a class="nav-link sale-link"
+       routerLink="/shop/sale"
+       routerLinkActive="active"
+       (click)="onNavLink()">
       <i class="pi pi-bolt"></i> Sale
     </a>
-    <a routerLink="/shop/cart" routerLinkActive="active" class="nav-cart-link" (click)="mobileMenuOpen = false">
-      <i class="pi pi-shopping-cart"></i> Cart
-    </a>
+
   </div>
 </nav>

@@ -6,8 +6,11 @@ import { environment } from 'src/environments/environment';
 export interface SalesReturnLineRequest {
   salesOrderLineId: string;
   partId: string;
+  unitId?: string | null;  // Unit in which the return is made
   quantity: number;
+  quantityInBaseUnit: number;  // Converted to Part's base unit
   unitPrice: number;
+  unitPriceInBaseUnit: number;  // Price in base unit terms
   condition: string; // UNOPENED, OPENED, DAMAGED
   notes: string;
 }
@@ -24,8 +27,15 @@ export interface CreateSalesReturnRequest {
 export interface SalesReturnLineResponse {
   id: string;
   partId: string;
+  partName: string;
+  partSku: string;
+  unitId: string | null;
+  unitName: string | null;
+  unitSymbol: string | null;
   quantity: number;
+  quantityInBaseUnit: number;
   unitPrice: number;
+  unitPriceInBaseUnit: number;
   refundAmount: number;
   condition: string;
   notes: string;

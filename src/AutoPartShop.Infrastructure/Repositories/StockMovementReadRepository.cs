@@ -21,8 +21,10 @@ public class StockMovementReadRepository : IStockMovementReadRepository
         var movements = _dbContext.StockMovements
             .Include(x => x.StockLevel)
                 .ThenInclude(sl => sl!.Part)
+                    .ThenInclude(p => p!.BaseUnit)
             .Include(x => x.StockLevel)
                 .ThenInclude(sl => sl!.Warehouse)
+            .Include(x => x.Unit)
             .Where(x => !x.Isdeleted);
 
         if (query.PartId.HasValue && query.PartId.Value != Guid.Empty)
@@ -52,11 +54,16 @@ public class StockMovementReadRepository : IStockMovementReadRepository
             };
         }
 
-        if (query.FromDate.HasValue && query.ToDate.HasValue)
+        if (query.FromDate.HasValue)
         {
-            var from = query.FromDate.Value;
-            var to = query.ToDate.Value;
-            movements = movements.Where(x => x.MovementDate >= from && x.MovementDate <= to);
+            var from = query.FromDate.Value.Date;
+            movements = movements.Where(x => x.MovementDate >= from);
+        }
+
+        if (query.ToDate.HasValue)
+        {
+            var to = query.ToDate.Value.Date.AddDays(1); // inclusive of the entire end day
+            movements = movements.Where(x => x.MovementDate < to);
         }
 
         if (!string.IsNullOrWhiteSpace(query.Search))
@@ -94,6 +101,13 @@ public class StockMovementReadRepository : IStockMovementReadRepository
                 WarehouseCode = movement.StockLevel != null && movement.StockLevel.Warehouse != null ? movement.StockLevel.Warehouse.Code : string.Empty,
                 Type = movement.MovementType,
                 Quantity = movement.Quantity,
+                QuantityInBaseUnit = movement.QuantityInBaseUnit,
+                UnitId = movement.UnitId,
+                UnitName = movement.Unit != null ? movement.Unit.Name : null,
+                UnitSymbol = movement.Unit != null ? movement.Unit.Symbol : null,
+                BaseUnitSymbol = movement.StockLevel != null && movement.StockLevel.Part != null && movement.StockLevel.Part.BaseUnit != null
+                    ? movement.StockLevel.Part.BaseUnit.Symbol : null,
+                Reason = movement.Reason,
                 Reference = movement.ReferenceNumber,
                 Status = string.IsNullOrEmpty(movement.ApprovedBy) ? "PENDING" : "APPROVED",
                 Notes = movement.Notes,

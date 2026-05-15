@@ -21,12 +21,23 @@
     <div class="as-filter-bar">
         <div class="filter-field supplier-field">
             <label class="filter-label">Supplier</label>
-            <sm-autocomplete
-                [dataSource]="supplierDataSource"
+            <app-lazy-autocomplete
+                [(ngModel)]="selectedSupplier"
+                [fetchFn]="fetchSuppliersLazy"
+                optionLabel="name"
                 placeholder="Search supplier..."
-                (itemSelected)="onSupplierSelected($event)"
-                (cleared)="onSupplierCleared()">
-            </sm-autocomplete>
+                [minLength]="0"
+                [pageSize]="20"
+                scrollHeight="300px"
+                (onItemSelect)="onSupplierSelected($event)"
+                (onClearEvent)="onSupplierCleared()">
+                <ng-template let-supplier>
+                    <div class="supplier-option">
+                        <span class="supplier-option-name">{{ supplier.name }}</span>
+                        <span class="supplier-option-code">{{ supplier.code }}</span>
+                    </div>
+                </ng-template>
+            </app-lazy-autocomplete>
         </div>
         <div class="filter-field date-field">
             <label class="filter-label">From</label>

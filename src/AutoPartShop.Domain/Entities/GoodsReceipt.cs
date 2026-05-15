@@ -16,12 +16,17 @@ public class GoodsReceipt : AuditableEntity
     public string VerifiedBy { get; private set; } = string.Empty;
     public DateTime? VerificationDate { get; private set; }
 
+    // Supplier Invoice
+    public string SupplierInvoiceNumber { get; private set; } = string.Empty;  // Supplier's bill/invoice ref
+    public DateTime? SupplierInvoiceDate { get; private set; }  // Date printed on the supplier invoice
+    public bool InvoiceNotProvided { get; private set; } = false;  // True = walk-in / no invoice given
+
     // Delivery Information
-    public DateTime? DeliveryDate { get; private set; }  // Actual delivery/arrival date
-    public string DeliveryReference { get; private set; } = string.Empty;  // Waybill, shipment ID, etc.
-    public string CarrierName { get; private set; } = string.Empty;  // Transport/courier company
-    public string DriverName { get; private set; } = string.Empty;  // Driver or contact person
-    public string DeliveryNotes { get; private set; } = string.Empty;  // Delivery-related notes
+    public DateTime? DeliveryDate { get; private set; }
+    public string DeliveryReference { get; private set; } = string.Empty;  // Waybill, shipment ID
+    public string CarrierName { get; private set; } = string.Empty;
+    public string DriverName { get; private set; } = string.Empty;
+    public string DeliveryNotes { get; private set; } = string.Empty;
 
     // Navigation properties
     public PurchaseOrder? PurchaseOrder { get; set; }
@@ -95,6 +100,13 @@ public class GoodsReceipt : AuditableEntity
     public void AddNotes(string notes)
     {
         Notes = notes?.Trim() ?? string.Empty;
+    }
+
+    public void SetInvoiceInformation(string invoiceNumber, DateTime? invoiceDate, bool invoiceNotProvided = false)
+    {
+        InvoiceNotProvided = invoiceNotProvided;
+        SupplierInvoiceNumber = invoiceNotProvided ? string.Empty : (invoiceNumber?.Trim() ?? string.Empty);
+        SupplierInvoiceDate = invoiceNotProvided ? null : invoiceDate;
     }
 
     public void SetDeliveryInformation(DateTime? deliveryDate, string deliveryReference = "",

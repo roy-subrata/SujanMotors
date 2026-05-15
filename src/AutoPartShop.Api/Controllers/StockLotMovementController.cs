@@ -219,7 +219,7 @@ public class StockLotMovementController : ControllerBase
             // Update lot quantity if it's a removal (SALE, DAMAGE, RETURN)
             if (new[] { "SALE", "DAMAGE", "RETURN" }.Contains(request.MovementType.ToUpper()))
             {
-                lot.RemoveStock(request.Quantity, request.Reason);
+                lot.RemoveStock(request.Quantity, request.Quantity, request.Reason);
                 lot.ModifiedBy = currentUser;
                 await _lotRepository.UpdateAsync(lot, cancellationToken);
             }
@@ -251,11 +251,16 @@ public class StockLotMovementController : ControllerBase
             StockLotId = movement.StockLotId,
             LotNumber = lot?.LotNumber ?? "",
             Quantity = movement.Quantity,
+            QuantityInBaseUnit = movement.QuantityInBaseUnit,
+            UnitId = movement.UnitId,
+            UnitName = movement.Unit?.Name,
+            UnitSymbol = movement.Unit?.Symbol,
             MovementType = movement.MovementType,
             ReferenceId = movement.ReferenceId,
             ReferenceType = movement.ReferenceType,
             MovementDate = movement.MovementDate,
             CostAtMovement = movement.CostAtMovement,
+            CostAtMovementInBaseUnit = movement.CostAtMovementInBaseUnit,
             MovementCost = movement.GetMovementCost(),
             Reason = movement.Reason,
             Notes = movement.Notes,

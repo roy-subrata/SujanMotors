@@ -7,6 +7,21 @@
 <p-confirmDialog></p-confirmDialog>
 <p-menu #actionMenu [model]="actionMenuItems" [popup]="true" appendTo="body"></p-menu>
 
+<!-- ==================== BREADCRUMB ==================== -->
+<div class="breadcrumb-bar">
+  <div class="breadcrumb-content">
+    <a routerLink="/" class="breadcrumb-link">
+      <i class="pi pi-home"></i>
+    </a>
+    <i class="pi pi-chevron-right breadcrumb-separator"></i>
+    <span class="breadcrumb-text">
+      <span class="breadcrumb-parent"><a routerLink="/inventory/categories">Products</a></span>
+      <i class="pi pi-chevron-right breadcrumb-separator"></i>
+      <span class="breadcrumb-active">Parts</span>
+    </span>
+  </div>
+</div>
+
 <!-- Main Page Container -->
 <div class="page-wrapper">
 
@@ -32,6 +47,11 @@
 
         <!-- Action Buttons -->
         <div class="action-buttons">
+          @if (priceCodeService.isConfigured()) {
+            <button class="btn-icon" [pTooltip]="priceCodeService.showActualPrice() ? 'Hide Cost Prices' : 'Show Cost Prices'" tooltipPosition="bottom" (click)="priceCodeService.toggleVisibility()">
+              <i class="pi" [ngClass]="priceCodeService.showActualPrice() ? 'pi-eye' : 'pi-eye-slash'"></i>
+            </button>
+          }
           <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="refreshData()">
             <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
           </button>
@@ -163,7 +183,7 @@
 
             <!-- Cost -->
             <td class="col-price">
-              <span class="amount-value">{{ formatCurrency(part.costPrice) }}</span>
+              <span class="amount-value" [class.coded-price]="priceCodeService.getDisplayPrice(part.costPrice) !== null">{{ formatCostPrice(part.costPrice) }}</span>
             </td>
 
             <!-- Selling -->
@@ -346,7 +366,7 @@
         <div class="card-footer">
           <div class="card-amount">
             <span class="amount-label">Cost</span>
-            <span class="amount-value">{{ formatCurrency(part.costPrice) }}</span>
+            <span class="amount-value" [class.coded-price]="priceCodeService.getDisplayPrice(part.costPrice) !== null">{{ formatCostPrice(part.costPrice) }}</span>
           </div>
           <div class="card-amount">
             <span class="amount-label">Selling</span>

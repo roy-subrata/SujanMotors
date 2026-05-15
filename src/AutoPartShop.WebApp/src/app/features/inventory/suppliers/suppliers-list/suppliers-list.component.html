@@ -3,6 +3,19 @@
 <p-confirmDialog></p-confirmDialog>
 <p-menu #actionMenu [model]="actionMenuItems" [popup]="true" appendTo="body"></p-menu>
 
+<!-- ==================== BREADCRUMB ==================== -->
+<div class="breadcrumb-bar">
+  <div class="breadcrumb-content">
+    <a routerLink="/" class="breadcrumb-link">
+      <i class="pi pi-home"></i>
+    </a>
+    <i class="pi pi-chevron-right breadcrumb-separator"></i>
+    <a routerLink="/inventory/suppliers" class="breadcrumb-link breadcrumb-active">
+      <span>Manage Suppliers</span>
+    </a>
+  </div>
+</div>
+
 <!-- Main Page Container -->
 <div class="page-wrapper">
 
@@ -11,7 +24,7 @@
     <div class="header-content">
       <!-- Left: Title & Subtitle -->
       <div class="header-left">
-        <h1 class="page-title">Suppliers</h1>
+        <h1 class="page-title">Manage Suppliers</h1>
         <p class="page-subtitle">Manage and track all suppliers</p>
       </div>
 

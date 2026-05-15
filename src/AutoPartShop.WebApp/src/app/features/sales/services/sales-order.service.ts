@@ -13,6 +13,7 @@ export interface SalesOrderLineRequest {
 
 export interface CreateSalesOrderRequest {
     customerId: string;
+    warehouseId: string;
     customerName: string;
     customerEmail: string;
     customerPhone: string;

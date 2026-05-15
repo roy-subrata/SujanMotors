@@ -118,7 +118,9 @@ export class SupplierFormComponent implements OnInit {
       city: ['', [Validators.required, Validators.minLength(2)]],
       state: ['', [Validators.required, Validators.minLength(2)]],
       country: ['India', Validators.required],
-      postalCode: ['', [Validators.required, Validators.pattern(/^[0-9\-\s]{3,}$/)]]
+      postalCode: ['', [Validators.required, Validators.pattern(/^[0-9\-\s]{3,}$/)]],
+      paymentTerms: ['NET30'],
+      creditLimit: [0, [Validators.min(0)]]
     });
   }
 
@@ -136,7 +138,9 @@ export class SupplierFormComponent implements OnInit {
           city: supplier.city,
           state: supplier.state,
           country: supplier.country,
-          postalCode: supplier.postalCode
+          postalCode: supplier.postalCode,
+          paymentTerms: supplier.paymentTerms || 'NET30',
+          creditLimit: supplier.creditLimit ?? 0
         });
         this.loading.set(false);
       },

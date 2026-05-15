@@ -11,7 +11,6 @@ import { MessageService } from 'primeng/api';
 import { ToastModule } from 'primeng/toast';
 import { WarehouseService, WarehouseResponse } from '../services/warehouse.service';
 import { CodeGenerationService } from '@/shared/services/CodeGenerationService';
-import { tap } from 'rxjs';
 
 @Component({
     selector: 'app-warehouse-form',
@@ -35,6 +34,8 @@ export class WarehouseFormComponent implements OnInit {
     isSubmitting = false;
     warehouseId: string | null = null;
     pageTitle = 'Create Warehouse';
+    private loadedWarehouse: WarehouseResponse | null = null;
+    generatingCode = false;
 
     constructor() {
         this.form = this.createForm();
@@ -55,28 +56,39 @@ export class WarehouseFormComponent implements OnInit {
 
                 if (this.isViewMode) {
                     this.form.disable();
+                } else {
+                    this.form.get('code')?.disable();
                 }
             } else {
-                this.setCode();
+                this.form.get('code')?.disable();
+                this.generateWarehouseCode();
             }
         });
     }
-    private setCode(): void {
-        this.codeGenerationService
-            .getCode('Warehouse')
-            .pipe(
-                tap({
-                    next: (code) => {
-                        if (code) {
-                            this.form.get('code')?.patchValue(code);
-                        }
-                    },
-                    error: (err) => {
-                        console.log('Error Generaete code');
-                    }
-                })
-            )
-            .subscribe();
+    
+
+    private generateWarehouseCode(): void {
+        this.generatingCode = true;
+        this.form.patchValue({ code: '' });
+
+        this.codeGenerationService.generateWarehouseCode().subscribe({
+            next: (code) => {
+                if (code) {
+                    this.form.get('code')?.patchValue(code);
+                }
+                this.generatingCode = false;
+            },
+            error: (error) => {
+                console.error('Error generating warehouse code:', error);
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'Warning',
+                    detail: 'Failed to generate warehouse code. Please enter manually.'
+                });
+                this.form.get('code')?.enable();
+                this.generatingCode = false;
+            }
+        });
     }
     /**
      * Create form group
@@ -86,7 +98,8 @@ export class WarehouseFormComponent implements OnInit {
             name: ['', [Validators.required, Validators.minLength(2)]],
             code: ['', [Validators.required, Validators.minLength(3)]],
             location: ['', [Validators.required, Validators.minLength(3)]],
-            capacity: [0],
+            capacity: [0, [Validators.min(0)]],
+            capacityUnit: ['SQM'],
             currentStock: [{ value: 0, disabled: true }],
             description: ['']
         });
@@ -98,11 +111,13 @@ export class WarehouseFormComponent implements OnInit {
     private loadWarehouse(id: string): void {
         this.warehouseService.getWarehouseById(id).subscribe({
             next: (warehouse: WarehouseResponse) => {
+                this.loadedWarehouse = warehouse;
                 this.form.patchValue({
                     name: warehouse.name,
                     code: warehouse.code,
                     location: warehouse.location,
-                    capacity: warehouse.capacity,
+                    capacity: warehouse.storageCapacity ?? warehouse.capacity ?? 0,
+                    capacityUnit: warehouse.capacityUnit ?? 'SQM',
                     currentStock: warehouse.currentStock,
                     description: warehouse.description
                 });
@@ -122,6 +137,15 @@ export class WarehouseFormComponent implements OnInit {
      * Submit form
      */
     onSubmit(): void {
+        if (this.generatingCode) {
+            this.messageService.add({
+                severity: 'info',
+                summary: 'Please wait',
+                detail: 'Generating warehouse code...'
+            });
+            return;
+        }
+
         if (!this.form.valid) {
             this.messageService.add({
                 severity: 'error',
@@ -133,16 +157,26 @@ export class WarehouseFormComponent implements OnInit {
 
         this.isSubmitting = true;
 
-        const warehouseData = {
-            name: this.form.value.name,
-            code: this.form.value.code,
-            location: this.form.value.location,
-            capacity: this.form.value.capacity,
-            description: this.form.value.description,
-            currentStock: this.isEditMode ? this.form.getRawValue().currentStock : 0
-        };
+        const capacity = Number(this.form.getRawValue().capacity) || 0;
+        const capacityUnit = (this.form.getRawValue().capacityUnit ?? 'SQM').toString();
 
         if (this.isEditMode && this.warehouseId) {
+            const warehouseData = {
+                name: this.form.getRawValue().name,
+                location: this.form.getRawValue().location,
+                city: this.loadedWarehouse?.city ?? '',
+                state: this.loadedWarehouse?.state ?? '',
+                country: this.loadedWarehouse?.country ?? '',
+                postalCode: this.loadedWarehouse?.postalCode ?? '',
+                manager: this.loadedWarehouse?.manager ?? '',
+                managerEmail: this.loadedWarehouse?.managerEmail ?? '',
+                managerPhone: this.loadedWarehouse?.managerPhone ?? '',
+                storageCapacity: capacity,
+                capacityUnit,
+                description: this.form.getRawValue().description ?? '',
+                isActive: this.loadedWarehouse?.isActive ?? true
+            };
+
             // Update existing warehouse
             this.warehouseService.updateWarehouse(this.warehouseId, warehouseData).subscribe({
                 next: () => {
@@ -164,6 +198,33 @@ export class WarehouseFormComponent implements OnInit {
                 }
             });
         } else {
+            const code = (this.form.getRawValue().code ?? '').toString().trim();
+            if (!code) {
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: 'Warehouse code is required'
+                });
+                this.isSubmitting = false;
+                return;
+            }
+
+            const warehouseData = {
+                name: this.form.getRawValue().name,
+                code,
+                location: this.form.getRawValue().location,
+                city: '',
+                state: '',
+                country: '',
+                postalCode: '',
+                manager: '',
+                managerEmail: '',
+                managerPhone: '',
+                storageCapacity: capacity,
+                capacityUnit,
+                description: this.form.getRawValue().description ?? ''
+            };
+
             // Create new warehouse
             this.warehouseService.createWarehouse(warehouseData).subscribe({
                 next: () => {

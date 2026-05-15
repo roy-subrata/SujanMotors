@@ -18,6 +18,14 @@ public class ProductMediaConfiguration : IEntityTypeConfiguration<ProductMedia>
             .HasMaxLength(20)
             .IsRequired();
 
+        builder.Property(x => x.AltText)
+            .HasMaxLength(300)
+            .IsRequired(false);
+
+        builder.Property(x => x.FileName)
+            .HasMaxLength(255)
+            .IsRequired(false);
+
         builder.HasOne(x => x.Part)
             .WithMany(p => p.Media)
             .HasForeignKey(x => x.PartId)

@@ -99,7 +99,10 @@ public class WarrantyClaim : AuditableEntity
 
     public void Reject(string rejectionReason, string rejectedBy)
     {
-        if (Status == "COMPLETED" || Status == "CLOSED")
+        if (Status == "REJECTED")
+            throw new InvalidOperationException("Claim is already rejected");
+
+        if (Status == "IN_PROGRESS" || Status == "COMPLETED" || Status == "CLOSED")
             throw new InvalidOperationException($"Cannot reject. Current status: {Status}");
 
         if (string.IsNullOrWhiteSpace(rejectionReason))
@@ -125,8 +128,24 @@ public class WarrantyClaim : AuditableEntity
         ModifiedBy = "System";
     }
 
+    public void StartServiceWithoutTechnician()
+    {
+        if (Status != "APPROVED")
+            throw new InvalidOperationException($"Cannot start service. Claim must be approved first. Current status: {Status}");
+
+        if (ServiceType != "REPLACEMENT" && ServiceType != "REFUND")
+            throw new InvalidOperationException($"Service without technician is only allowed for replacement/refund claims. Current service type: {ServiceType}");
+
+        Status = "IN_PROGRESS";
+        ServiceStartDate = DateTime.UtcNow;
+        ModifiedBy = "System";
+    }
+
     public void UpdateServiceCost(decimal serviceCost, string? serviceNotes = null)
     {
+        if (Status == "CLOSED" || Status == "REJECTED")
+            throw new InvalidOperationException($"Cannot update service cost on a {Status} claim");
+
         if (serviceCost < 0)
             throw new ArgumentException("Service cost cannot be negative", nameof(serviceCost));
 
@@ -152,12 +171,18 @@ public class WarrantyClaim : AuditableEntity
         ModifiedBy = "System";
     }
 
-    public void Close()
+    public void Close(string? notes = null)
     {
         if (Status != "COMPLETED" && Status != "REJECTED")
             throw new InvalidOperationException($"Cannot close. Claim must be completed or rejected first. Current status: {Status}");
 
         Status = "CLOSED";
+        if (!string.IsNullOrWhiteSpace(notes))
+        {
+            ServiceNotes = string.IsNullOrWhiteSpace(ServiceNotes)
+                ? notes.Trim()
+                : $"{ServiceNotes} | {notes.Trim()}";
+        }
         ModifiedBy = "System";
     }
 

@@ -22,6 +22,18 @@ public class ProductCatalogEntryConfiguration : IEntityTypeConfiguration<Product
             .HasMaxLength(500)
             .IsRequired(false);
 
+        builder.Property(x => x.VideoUrl)
+            .HasMaxLength(500)
+            .IsRequired(false);
+
+        builder.Property(x => x.MetaTitle)
+            .HasMaxLength(160)
+            .IsRequired(false);
+
+        builder.Property(x => x.MetaDescription)
+            .HasMaxLength(320)
+            .IsRequired(false);
+
         builder.Property(x => x.PopularityScore)
             .HasColumnType("decimal(18,4)")
             .IsRequired();

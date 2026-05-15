@@ -17,6 +17,7 @@ import { DialogService } from 'primeng/dynamicdialog';
 import { BarcodeDialogComponent } from './barcode-dialog/barcode-dialog.component';
 import { PartService, PartResponse } from '../services/part.service';
 import { CurrencyService } from '@/shared/services/currency.service';
+import { PriceCodeService } from '@/shared/services/price-code.service';
 
 @Component({
     selector: 'app-parts',
@@ -45,6 +46,7 @@ export class PartsComponent implements OnInit {
     private readonly dialogService = inject(DialogService);
     private readonly confirmationService = inject(ConfirmationService);
     private readonly currencyService = inject(CurrencyService);
+    readonly priceCodeService = inject(PriceCodeService);
     private readonly router = inject(Router);
 
     @ViewChild('actionMenu') actionMenu!: Menu;
@@ -241,8 +243,10 @@ export class PartsComponent implements OnInit {
     showBarcode(part: PartResponse): void {
         this.dialogService.open(BarcodeDialogComponent, {
             data: { part: part },
-            header: 'Part Barcode Generator',
-            width: '600px',
+            header: 'Label & Barcode Generator',
+            width: '100vw',
+            height: '100vh',
+            styleClass: 'fullscreen-dialog',
             modal: true,
             closable: true
         });
@@ -346,6 +350,12 @@ export class PartsComponent implements OnInit {
     formatCurrency(amount: number): string {
         const currency = this.currencyService.selectedCurrency();
         return this.currencyService.formatCurrency(amount, currency);
+    }
+
+    formatCostPrice(amount: number): string {
+        const coded = this.priceCodeService.getDisplayPrice(amount);
+        if (coded !== null) return coded;
+        return this.formatCurrency(amount);
     }
 
     /**

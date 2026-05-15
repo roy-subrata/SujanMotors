@@ -47,12 +47,12 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
           </div>
           <div class="info-row">
             <div class="info-item">
-              <label>Current Stock</label>
-              <span class="value stock-value">{{ currentStock?.quantity }} units</span>
+              <label>On Hand</label>
+              <span class="value stock-value">{{ currentStock?.quantity }} {{ currentStock?.unitSymbol || 'units' }}</span>
             </div>
             <div class="info-item">
               <label>Available</label>
-              <span class="value">{{ currentStock?.availableQuantity }} units</span>
+              <span class="value">{{ currentStock?.availableQuantity }} {{ currentStock?.unitSymbol || 'units' }}</span>
             </div>
           </div>
         </p-card>
@@ -82,11 +82,14 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
             <p-inputNumber
               id="quantity"
               formControlName="quantity"
-              [min]="0"
-              [max]="999999"
+              [min]="1"
+              [max]="getMaxQuantity()"
               placeholder="Enter quantity"
               class="w-full">
             </p-inputNumber>
+            <small class="text-muted" *ngIf="isDecreaseType()">
+              Max: {{ currentStock?.availableQuantity }} {{ currentStock?.unitSymbol || 'units' }} (available)
+            </small>
             <small class="text-danger" *ngIf="form.get('quantity')?.invalid && form.get('quantity')?.touched">
               Valid quantity is required
             </small>
@@ -107,11 +110,11 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
         </div>
 
         <!-- New Stock Preview -->
-        <p-card class="preview-card" *ngIf="getNewStock() > 0">
+        <p-card class="preview-card" *ngIf="form.get('quantity')?.value > 0 && form.get('type')?.value">
           <div class="preview-row">
-            <label>New Stock After Adjustment:</label>
+            <label>New On-Hand After Adjustment:</label>
             <span class="preview-value" [ngClass]="getNewStock() < 0 ? 'text-danger' : 'text-success'">
-              {{ getNewStock() }} units
+              {{ getNewStock() }} {{ currentStock?.unitSymbol || 'units' }}
             </span>
           </div>
         </p-card>
@@ -334,19 +337,26 @@ export class StockAdjustmentDialogComponent implements OnInit {
     });
   }
 
+  isDecreaseType(): boolean {
+    const type = this.form.get('type')?.value;
+    return type && type !== 'FOUND' && type !== 'COUNT_CORRECTION_UP';
+  }
+
+  getMaxQuantity(): number {
+    if (!this.currentStock) return 999999;
+    return this.isDecreaseType()
+      ? (this.currentStock.availableQuantity ?? 999999)
+      : 999999;
+  }
+
   getNewStock(): number {
     if (!this.currentStock) return 0;
     const type = this.form.get('type')?.value;
     const quantity = this.form.get('quantity')?.value || 0;
-
-    // Positive adjustments (increase stock)
     if (type === 'FOUND' || type === 'COUNT_CORRECTION_UP') {
       return this.currentStock.quantity + quantity;
     }
-    // Negative adjustments (decrease stock)
-    else {
-      return this.currentStock.quantity - quantity;
-    }
+    return this.currentStock.quantity - quantity;
   }
 
   onSubmit(): void {
@@ -366,6 +376,8 @@ export class StockAdjustmentDialogComponent implements OnInit {
       partId: this.currentStock.partId,
       warehouseId: this.currentStock.warehouseId,
       quantity: adjustmentQuantity,
+      quantityInBaseUnit: undefined,  // Backend will calculate if not provided
+      unitId: this.currentStock.unitId || undefined,
       reason: type,
       reference: '',
       notes: this.form.get('notes')?.value || ''

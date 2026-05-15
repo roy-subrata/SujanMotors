@@ -17,6 +17,12 @@ public class StockLotConfiguration : IEntityTypeConfiguration<StockLot>
         builder.Property(sl => sl.CostPrice)
             .HasPrecision(18, 2);
 
+        builder.Property(sl => sl.CostPriceInBaseUnit)
+            .HasPrecision(18, 2);
+
+        builder.Property(sl => sl.SellingPrice)
+            .HasPrecision(18, 2);
+
         builder.Property(sl => sl.Currency)
             .IsRequired()
             .HasMaxLength(10);
@@ -36,6 +42,12 @@ public class StockLotConfiguration : IEntityTypeConfiguration<StockLot>
             .WithMany()
             .HasForeignKey(sl => sl.SupplierId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(sl => sl.Unit)
+            .WithMany()
+            .HasForeignKey(sl => sl.UnitId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired(false);
 
         builder.HasMany(sl => sl.Movements)
             .WithOne(m => m.StockLot)

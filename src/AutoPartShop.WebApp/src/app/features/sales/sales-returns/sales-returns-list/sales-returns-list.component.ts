@@ -327,7 +327,7 @@ export class SalesReturnsListComponent implements OnInit {
             this.messageService.add({
               severity: 'error',
               summary: 'Error',
-              detail: err?.error?.message || 'Failed to approve return'
+              detail: typeof err?.error === 'string' ? err.error : (err?.error?.message || 'Failed to approve return')
             });
           }
         });
@@ -355,7 +355,7 @@ export class SalesReturnsListComponent implements OnInit {
         this.messageService.add({
           severity: 'error',
           summary: 'Error',
-          detail: err?.error?.message || 'Failed to reject return'
+          detail: typeof err?.error === 'string' ? err.error : (err?.error?.message || 'Failed to reject return')
         });
       }
     });
@@ -382,7 +382,7 @@ export class SalesReturnsListComponent implements OnInit {
             this.messageService.add({
               severity: 'error',
               summary: 'Error',
-              detail: err?.error?.message || 'Failed to mark return as received'
+              detail: typeof err?.error === 'string' ? err.error : (err?.error?.message || 'Failed to mark return as received')
             });
           }
         });
@@ -411,7 +411,7 @@ export class SalesReturnsListComponent implements OnInit {
             this.messageService.add({
               severity: 'error',
               summary: 'Error',
-              detail: err?.error?.message || 'Failed to process return'
+              detail: typeof err?.error === 'string' ? err.error : (err?.error?.message || 'Failed to process return')
             });
           }
         });

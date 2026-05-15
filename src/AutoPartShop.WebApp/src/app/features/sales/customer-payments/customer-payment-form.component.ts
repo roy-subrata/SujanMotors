@@ -248,6 +248,8 @@ export class CustomerPaymentFormComponent implements OnInit {
       return;
     }
 
+    if (this.loading) return;
+
     this.loading = true;
 
     if (this.isEditing && this.paymentId) {
@@ -265,13 +267,14 @@ export class CustomerPaymentFormComponent implements OnInit {
             summary: 'Success',
             detail: 'Customer payment updated successfully'
           });
+          this.loading = false;
           this.router.navigate(['/sales/customer-payments']);
         },
         error: (error) => {
           this.messageService.add({
             severity: 'error',
             summary: 'Error',
-            detail: error?.error?.message || 'Failed to update customer payment'
+            detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || 'Failed to update customer payment')
           });
           this.loading = false;
         }
@@ -307,6 +310,7 @@ export class CustomerPaymentFormComponent implements OnInit {
               summary: 'Success',
               detail: 'Payment created and completed successfully'
             });
+            this.loading = false;
             this.router.navigate(['/sales/customer-payments']);
           } else if (createdPayment.status === 'PENDING') {
             // For CHEQUE, BANK_TRANSFER, etc., keep as PENDING for manual verification
@@ -316,6 +320,7 @@ export class CustomerPaymentFormComponent implements OnInit {
               detail: `Payment created successfully. ${paymentMethod} payments require manual confirmation.`,
               life: 5000
             });
+            this.loading = false;
             this.router.navigate(['/sales/customer-payments']);
           } else {
             // Unknown status - show generic success
@@ -324,6 +329,7 @@ export class CustomerPaymentFormComponent implements OnInit {
               summary: 'Success',
               detail: 'Payment created successfully'
             });
+            this.loading = false;
             this.router.navigate(['/sales/customer-payments']);
           }
         },
@@ -331,7 +337,7 @@ export class CustomerPaymentFormComponent implements OnInit {
           this.messageService.add({
             severity: 'error',
             summary: 'Error',
-            detail: error?.error?.message || 'Failed to create customer payment'
+            detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || 'Failed to create customer payment')
           });
           this.loading = false;
         }

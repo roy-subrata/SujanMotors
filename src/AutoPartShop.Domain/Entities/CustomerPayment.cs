@@ -15,6 +15,7 @@ public enum CustomerPaymentType
 public class CustomerPayment : AuditableEntity
 {
     public Guid CustomerId { get; private set; }
+    public Guid? WarrantyClaimId { get; private set; }  // Optional: link to warranty refund claim
     public Guid? InvoiceId { get; private set; }  // Optional: link to specific invoice
     public Guid? PaymentProviderId { get; private set; }  // Optional: payment provider
     public string TransactionNumber { get; private set; } = string.Empty;  // Unique transaction ID
@@ -85,6 +86,14 @@ public class CustomerPayment : AuditableEntity
     public void LinkToInvoice(Guid invoiceId)
     {
         InvoiceId = invoiceId;
+    }
+
+    public void LinkToWarrantyClaim(Guid warrantyClaimId)
+    {
+        if (warrantyClaimId == Guid.Empty)
+            throw new ArgumentException("WarrantyClaimId cannot be empty", nameof(warrantyClaimId));
+
+        WarrantyClaimId = warrantyClaimId;
     }
 
     public void SetFee(decimal feeAmount)
@@ -183,6 +192,9 @@ public class CustomerPayment : AuditableEntity
     /// </summary>
     public void MarkAsRegular()
     {
+        if (PaymentType == CustomerPaymentType.ADVANCE && RemainingAmount > 0)
+            throw new InvalidOperationException($"Cannot mark as regular: advance payment still has {RemainingAmount} remaining balance. Use or refund the remaining amount first.");
+
         PaymentType = CustomerPaymentType.REGULAR;
         RemainingAmount = 0;  // Regular payments don't have remaining amounts
     }

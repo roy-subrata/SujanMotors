@@ -73,7 +73,12 @@
       "Bash(Select-String -Pattern \"error\" -Context 0,2)",
       "Bash(timeout 10 dotnet run:*)",
       "Bash(dotnet ef dbcontext script:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(Remove-Item \"d:\\\\AI\\\\SujanMotors\\\\src\\\\AutoPartShop.API\\\\obj\\\\Debug\\\\net10.0\\\\AutoPartShop.Api.csproj.CoreCompileInputs.cache\" -Force -ErrorAction SilentlyContinue)",
+      "Bash(Select-String \"error CS|Error\")",
+      "Bash(Select-Object -First 15)",
+      "PowerShell(Set-Location \"d:\\\\AI\\\\SujanMotors\\\\src\\\\AutoPartShop.WebApp\"; npx ng build 2>&1 | Where-Object { $_ -match \"ERROR|error TS|\\\\w+\\\\.ts:\\\\d+\" } | Select-Object -First 60)",
+      "Bash(Get-ChildItem *)"
     ],
     "deny": [],
     "ask": []

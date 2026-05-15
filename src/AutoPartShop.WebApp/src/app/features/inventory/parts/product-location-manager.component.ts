@@ -78,9 +78,9 @@ export class ProductLocationManagerComponent implements OnInit {
   }
 
   private loadWarehouses(): void {
-    this.warehouseService.getAllWarehouses().subscribe({
-      next: (warehouses) => {
-        this.warehouses = warehouses;
+    this.warehouseService.getWarehouses({ search: '', pageNumber: 1, pageSize: 1000, sorts: [{ field: 'name', direction: 'asc' }] }).subscribe({
+      next: (res) => {
+        this.warehouses = res.data ?? [];
       },
       error: (error) => {
         this.messageService.add({

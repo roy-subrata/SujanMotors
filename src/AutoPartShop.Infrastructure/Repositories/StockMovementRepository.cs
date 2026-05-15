@@ -122,6 +122,23 @@ public class StockMovementRepository : IStockMovementRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IEnumerable<StockMovement>> GetByReferenceNumberAsync(string referenceNumber, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(referenceNumber))
+            return Enumerable.Empty<StockMovement>();
+
+        var normalizedReference = referenceNumber.Trim();
+
+        return await _dbContext.Set<StockMovement>()
+            .Include(x => x.StockLevel)
+                .ThenInclude(sl => sl!.Part)
+            .Include(x => x.StockLevel)
+                .ThenInclude(sl => sl!.Warehouse)
+            .Where(x => x.ReferenceNumber == normalizedReference && !x.Isdeleted)
+            .OrderByDescending(x => x.MovementDate)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<(IEnumerable<StockMovement> movements, int totalCount)> GetPagedAsync(int pageNumber, int pageSize, CancellationToken cancellationToken = default)
     {
         var query = _dbContext.Set<StockMovement>()

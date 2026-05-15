@@ -5,17 +5,18 @@ import { DialogModule } from 'primeng/dialog';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { TextareaModule } from 'primeng/textarea';
-import { AutoCompleteModule } from 'primeng/autocomplete';
 import { CategoryResponse, CategoryService, CreateCategoryRequest, UpdateCategoryRequest } from '../../services/category.service';
 import { MessageService } from 'primeng/api';
 import { ToastModule } from 'primeng/toast';
 import { CodeGenerationService } from '@/shared/services/CodeGenerationService';
+import { LazyAutocompleteComponent, LazyRequest, LazyResponse } from '@/shared/components/lazy-autocomplete/lazy-autocomplete.component';
+import { Observable } from 'rxjs';
 
 
 @Component({
     selector: 'app-categories-form-dialog',
     standalone: true,
-    imports: [CommonModule, FormsModule, ReactiveFormsModule, DialogModule, ButtonModule, InputTextModule, TextareaModule, AutoCompleteModule, ToastModule],
+    imports: [CommonModule, FormsModule, ReactiveFormsModule, DialogModule, ButtonModule, InputTextModule, TextareaModule, ToastModule, LazyAutocompleteComponent],
     templateUrl: './categories-form-dialog.component.html',
     styleUrls: ['./categories-form-dialog.component.css'],
     providers: [MessageService]
@@ -25,15 +26,11 @@ export class CategoriesFormDialogComponent {
     @Input() displayUpdateDialog: boolean = false;
     @Input() selectedParentCategory: CategoryResponse | null = null;
     @Input() selectedCategory: CategoryResponse | null = null;
-    @Input() filteredParentCategories: CategoryResponse[] = [];
 
     @Output() displayCreateDialogChange = new EventEmitter<boolean>();
     @Output() displayUpdateDialogChange = new EventEmitter<boolean>();
     @Output() createSuccess = new EventEmitter<void>();
     @Output() updateSuccess = new EventEmitter<void>();
-    @Output() parentCategoryEvent = new EventEmitter<any>();
-    @Output() parentCategorySelect = new EventEmitter<CategoryResponse>();
-    @Output() parentCategoryCleared = new EventEmitter<void>();
 
     private readonly fb = inject(FormBuilder);
     private readonly categoryService = inject(CategoryService);
@@ -53,7 +50,7 @@ export class CategoriesFormDialogComponent {
     createForm = this.fb.group({
         name: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(100)]],
         description: [''],
-        code: ['', [Validators.required, Validators.minLength(1), Validators.maxLength(20)]],
+        code: [{ value: '', disabled: true }, [Validators.required, Validators.minLength(1), Validators.maxLength(20)]],
         displayOrder: [0, [Validators.required, Validators.min(0)]],
         isActive: [true],
         parentCategoryId: [''],
@@ -62,6 +59,58 @@ export class CategoriesFormDialogComponent {
 
     isCreating = signal(false);
     isUpdating = signal(false);
+
+    /**
+     * Create a root category option for the autocomplete
+     */
+    private createRootCategoryOption(): CategoryResponse {
+        return {
+            id: null as any,
+            name: 'None (Root Category)',
+            code: 'ROOT',
+            description: 'Create as top-level category with no parent',
+            parentCategoryId: null,
+            displayOrder: 0,
+            isActive: true,
+            depthLevel: 0,
+            childCount: 0,
+            breadcrumbPath: 'Root',
+            createdBy: '',
+            modifiedBy: '',
+            subCategories: []
+        };
+    }
+
+    /**
+     * Fetch parent categories for lazy autocomplete
+     */
+    fetchParentCategories(req: LazyRequest): Observable<LazyResponse<CategoryResponse>> {
+        return new Observable<LazyResponse<CategoryResponse>>(observer => {
+            this.categoryService.getPagedCategories({
+                search: req.search,
+                pageNumber: req.pageNumber,
+                pageSize: req.pageSize
+            }).subscribe({
+                next: (response: any) => {
+                    const items = response.items || response.data || [];
+                    const realTotal = response.pagination?.totalCount || response.totalCount || response.total || 0;
+
+                    // Prepend "None (Root)" only on page 1 with no active search
+                    const addRoot = req.pageNumber === 1 && !req.search;
+                    const itemsWithRoot = addRoot ? [this.createRootCategoryOption(), ...items] : items;
+
+                    observer.next({
+                        items: itemsWithRoot,
+                        totalCount: addRoot ? realTotal + 1 : realTotal
+                    });
+                    observer.complete();
+                },
+                error: (err) => {
+                    observer.error(err);
+                }
+            });
+        });
+    }
 
     constructor() {
         effect(() => {
@@ -109,7 +158,7 @@ export class CategoriesFormDialogComponent {
     onCreateDialogHide() {
         this.displayCreateDialogChange.emit(false);
         this.createForm.reset({ displayOrder: 0, isActive: true, parentCategoryId: '', parentCategory: null });
-        this.parentCategoryCleared.emit();
+        this.onParentCategoryCleared();
     }
 
     generateCategoryCode() {
@@ -139,12 +188,13 @@ export class CategoriesFormDialogComponent {
         }
 
         this.isCreating.set(true);
-        const formValue = this.createForm.value as { name?: string | null; code?: string | null; description?: string | null; displayOrder?: number | null; isActive?: boolean | null; parentCategoryId?: string | null };
+        // Use getRawValue() to include disabled fields (like 'code')
+        const formValue = this.createForm.getRawValue();
         const request: CreateCategoryRequest = {
-            name: formValue.name ?? '',
-            code: formValue.code ?? '',
-            description: formValue.description ?? '',
-            displayOrder: formValue.displayOrder ?? 0,
+            name: formValue.name || '',
+            code: formValue.code || '',
+            description: formValue.description || '',
+            displayOrder: formValue.displayOrder || 0,
             parentCategoryId: this.selectedParentCategory?.id || null
         };
 
@@ -195,20 +245,30 @@ export class CategoriesFormDialogComponent {
         });
     }
 
-    onParentCategoryEvent(event: any) {
-        this.parentCategoryEvent.emit(event);
+    /**
+     * Handle parent category selection from lazy autocomplete
+     */
+    onParentCategorySelect(category: CategoryResponse) {
+        // Check if it's the root category option (id is null or empty)
+        const isRootCategory = !category?.id || category.code === 'ROOT';
+        
+        if (isRootCategory) {
+            this.selectedParentCategory = null;
+            this.createForm.get('parentCategory')?.setValue(null);
+            this.createForm.get('parentCategoryId')?.setValue(null);
+        } else {
+            this.selectedParentCategory = category;
+            this.createForm.get('parentCategory')?.setValue(category);
+            this.createForm.get('parentCategoryId')?.setValue(category.id || '');
+        }
     }
 
-    onParentCategorySelect(event: any) {
-        const selectedCategory = event as CategoryResponse;
-        this.createForm.get('parentCategory')?.setValue(selectedCategory);
-        this.createForm.get('parentCategoryId')?.setValue(selectedCategory.id || '');
-        this.parentCategorySelect.emit(selectedCategory);
-    }
-
+    /**
+     * Handle parent category cleared
+     */
     onParentCategoryCleared() {
+        this.selectedParentCategory = null;
         this.createForm.get('parentCategory')?.setValue(null);
         this.createForm.get('parentCategoryId')?.setValue('');
-        this.parentCategoryCleared.emit();
     }
 }

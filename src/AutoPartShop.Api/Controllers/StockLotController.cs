@@ -1,42 +1,30 @@
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.Common;
 using AutoPartShop.Application.DTOs.InventoryDtos;
-using AutoPartShop.Application.DTOs.PaymentDtos;
 using AutoPartShop.Application.Stock;
 using AutoPartShop.Application.Stock.Dtos;
 using AutoPartShop.Domain.Entities;
-using AutoPartShop.Infrastructure.Repositories;
+using AutoPartShop.Domain.Repositories;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace AutoPartShop.Api.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class StockLotController : ControllerBase
+public class StockLotController(
+    ILogger<StockLotController> _logger,
+    IStockLotRepository _repository,
+    IStockLotMovementRepository _movementRepository,
+    IStockLotReadRepository _stockLotReadRepository,
+    IPartRepository _partRepository,
+    IWarehouseRepository _warehouseRepository,
+    ISupplierRepository _supplierRepository,
+    IUnitRepository _unitRepository,
+    ICurrentUserService _currentUserService,
+    AutoPartDbContext _dbContext
+) : ControllerBase
 {
-    private readonly IStockLotRepository _repository;
-    private readonly IStockLotMovementRepository _movementRepository;
-    private readonly IStockLotReadRepository _stockLotReadRepository;
-    private readonly IPartRepository _partRepository;
-    private readonly IWarehouseRepository _warehouseRepository;
-    private readonly ISupplierRepository _supplierRepository;
-    private readonly ILogger<StockLotController> _logger;
-    private readonly ICurrentUserService _currentUserService;
-
-    public StockLotController(IStockLotRepository repository, IStockLotMovementRepository movementRepository,
-        IStockLotReadRepository stockLotReadRepository, IPartRepository partRepository, IWarehouseRepository warehouseRepository,
-        ISupplierRepository supplierRepository,
-        ICurrentUserService currentUserService, ILogger<StockLotController> logger)
-    {
-        _repository = repository;
-        _movementRepository = movementRepository;
-        _stockLotReadRepository = stockLotReadRepository;
-        _partRepository = partRepository;
-        _warehouseRepository = warehouseRepository;
-        _supplierRepository = supplierRepository;
-        _currentUserService = currentUserService;
-        _logger = logger;
-    }
 
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
@@ -45,7 +33,7 @@ public class StockLotController : ControllerBase
         {
             var lot = await _repository.GetByIdAsync(id, cancellationToken);
             if (lot is null) return NotFound();
-            return Ok(await MapResponse(lot));
+            return Ok(await MapResponse(lot, cancellationToken));
         }
         catch (Exception ex)
         {
@@ -61,7 +49,7 @@ public class StockLotController : ControllerBase
         {
             var lot = await _repository.GetByLotNumberAsync(lotNumber, cancellationToken);
             if (lot is null) return NotFound();
-            return Ok(await MapResponse(lot));
+            return Ok(await MapResponse(lot, cancellationToken));
         }
         catch (Exception ex)
         {
@@ -76,8 +64,7 @@ public class StockLotController : ControllerBase
         try
         {
             var lots = await _repository.GetByPartAsync(partId, cancellationToken);
-            var responses = await Task.WhenAll(lots.Select(MapResponse));
-            return Ok(responses);
+            return Ok(await MapResponses(lots, cancellationToken));
         }
         catch (Exception ex)
         {
@@ -169,6 +156,10 @@ public class StockLotController : ControllerBase
                     QuantityReceived = l.QuantityReceived,
                     QuantityAvailable = l.QuantityAvailable,
                     CostPrice = l.CostPrice,
+                    SellingPrice = l.SellingPrice,
+                    HasWarranty = l.HasWarranty,
+                    WarrantyPeriodMonths = l.WarrantyPeriodMonths,
+                    WarrantyType = l.WarrantyType,
                     ReceivingDate = l.ReceivingDate,
                     ExpiryDate = l.ExpiryDate,
                     IsExpired = l.IsExpired
@@ -257,14 +248,7 @@ public class StockLotController : ControllerBase
         try
         {
             var lots = await _repository.GetByPartAndWarehouseAsync(partId, warehouseId, cancellationToken);
-            var responses = new List<StockLotResponse>();
-
-            foreach (var lot in lots)
-            {
-                responses.Add(await MapResponse(lot));
-            }
-           // var responses = await Task.WhenAll(lots.Select(MapResponse));
-            return Ok(responses);
+            return Ok(await MapResponses(lots, cancellationToken));
         }
         catch (Exception ex)
         {
@@ -279,13 +263,7 @@ public class StockLotController : ControllerBase
         try
         {
             var lots = await _repository.GetAvailableLotsAsync(partId, warehouseId, cancellationToken);
-           
-            var responses = new List<StockLotResponse>();
-            foreach (var lot in lots)
-            {
-                responses.Add(await MapResponse(lot));
-            }
-            return Ok(responses);
+            return Ok(await MapResponses(lots, cancellationToken));
         }
         catch (Exception ex)
         {
@@ -300,8 +278,7 @@ public class StockLotController : ControllerBase
         try
         {
             var lots = await _repository.GetExpiredLotsAsync(cancellationToken);
-            var responses = await Task.WhenAll(lots.Select(MapResponse));
-            return Ok(responses);
+            return Ok(await MapResponses(lots, cancellationToken));
         }
         catch (Exception ex)
         {
@@ -316,8 +293,7 @@ public class StockLotController : ControllerBase
         try
         {
             var lots = await _repository.GetLowStockLotsAsync(cancellationToken);
-            var responses = await Task.WhenAll(lots.Select(MapResponse));
-            return Ok(responses);
+            return Ok(await MapResponses(lots, cancellationToken));
         }
         catch (Exception ex)
         {
@@ -331,16 +307,34 @@ public class StockLotController : ControllerBase
     {
         try
         {
-            var lot = StockLot.Create(request.LotNumber, request.PartId, request.WarehouseId, request.SupplierId,
-                request.GoodsReceiptLineId, request.QuantityReceived, request.CostPrice, request.ReceivingDate,
-                request.ManufacturerLotNumber, request.ExpiryDate, request.Currency, request.Notes);
+            var lot = StockLot.Create(
+                request.LotNumber, 
+                request.PartId, 
+                request.WarehouseId, 
+                request.SupplierId,
+                request.GoodsReceiptLineId, 
+                request.QuantityReceived, 
+                request.CostPrice, 
+                request.ReceivingDate,
+                request.ManufacturerLotNumber, 
+                request.ExpiryDate, 
+                request.Currency, 
+                request.Notes,
+                request.UnitId,
+                request.QuantityReceivedInBaseUnit,
+                request.CostPriceInBaseUnit,
+                request.SellingPrice,
+                request.HasWarranty,
+                request.WarrantyPeriodMonths,
+                request.WarrantyType,
+                request.WarrantyTerms);
 
             var currentUser = _currentUserService.GetCurrentUsername();
             lot.CreatedBy = currentUser;
             lot.ModifiedBy = currentUser;
 
             await _repository.AddAsync(lot, cancellationToken);
-            return CreatedAtAction(nameof(GetById), new { id = lot.Id }, await MapResponse(lot));
+            return CreatedAtAction(nameof(GetById), new { id = lot.Id }, await MapResponse(lot, cancellationToken));
         }
         catch (ArgumentException ex)
         {
@@ -361,16 +355,21 @@ public class StockLotController : ControllerBase
             var lot = await _repository.GetByIdAsync(id, cancellationToken);
             if (lot is null) return NotFound();
 
-            if (request.ExpiryDate.HasValue)
-                lot = StockLot.Create(lot.LotNumber, lot.PartId, lot.WarehouseId, lot.SupplierId, lot.GoodsReceiptLineId,
-                    lot.QuantityReceived, lot.CostPrice, lot.ReceivingDate, request.ManufacturerLotNumber ?? lot.ManufacturerLotNumber,
-                    request.ExpiryDate, lot.Currency, request.Notes ?? lot.Notes);
-            else
-                lot.UpdateNotes(request.Notes ?? lot.Notes);
+            lot.UpdateDetails(request.ManufacturerLotNumber, request.ExpiryDate, request.Notes);
+
+            if (request.SellingPrice.HasValue || request.HasWarranty.HasValue)
+            {
+                lot.UpdatePriceAndWarranty(
+                    request.SellingPrice ?? lot.SellingPrice,
+                    request.HasWarranty ?? lot.HasWarranty,
+                    request.WarrantyPeriodMonths ?? lot.WarrantyPeriodMonths,
+                    request.WarrantyType ?? lot.WarrantyType,
+                    request.WarrantyTerms ?? lot.WarrantyTerms);
+            }
 
             lot.ModifiedBy = _currentUserService.GetCurrentUsername();
             await _repository.UpdateAsync(lot, cancellationToken);
-            return Ok(await MapResponse(lot));
+            return Ok(await MapResponse(lot, cancellationToken));
         }
         catch (Exception ex)
         {
@@ -379,11 +378,118 @@ public class StockLotController : ControllerBase
         }
     }
 
-    private async Task<StockLotResponse> MapResponse(StockLot lot)
+    /// <summary>
+    /// Returns the oldest available lot (FIFO) selling price and warranty info for a part/warehouse.
+    /// Used by the sales order form to pre-fill the default selling price.
+    /// </summary>
+    [HttpGet("fifo-info/{partId:guid}/{warehouseId:guid}")]
+    public async Task<IActionResult> GetFifoInfo(Guid partId, Guid warehouseId, CancellationToken cancellationToken)
     {
-        var part = await _partRepository.GetByIdAsync(lot.PartId);
-        var warehouse = await _warehouseRepository.GetByIdAsync(lot.WarehouseId);
-        var supplier = await _supplierRepository.GetByIdAsync(lot.SupplierId);
+        try
+        {
+            var fifoLot = await _dbContext.StockLots
+                .Where(sl => sl.PartId == partId &&
+                             sl.WarehouseId == warehouseId &&
+                             sl.QuantityAvailableInBaseUnit > 0 &&
+                             !sl.Isdeleted)
+                .OrderBy(sl => sl.ExpiryDate == null ? 1 : 0)
+                .ThenBy(sl => sl.ExpiryDate)
+                .ThenBy(sl => sl.ReceivingDate)
+                .ThenBy(sl => sl.CreatedDate)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (fifoLot is null)
+            {
+                // Fall back to Part master data (no stock in this warehouse)
+                var part = await _partRepository.GetByIdAsync(partId, cancellationToken);
+                return Ok(new FifoLotInfoResponse
+                {
+                    HasAvailableLot = false,
+                    SellingPrice = part?.SellingPrice ?? 0,
+                    HasWarranty = part?.HasWarranty ?? false,
+                    WarrantyPeriodMonths = part?.WarrantyPeriodMonths,
+                    WarrantyType = part?.WarrantyType,
+                    WarrantyTerms = part?.WarrantyTerms
+                });
+            }
+
+            return Ok(new FifoLotInfoResponse
+            {
+                HasAvailableLot = true,
+                LotId = fifoLot.Id,
+                LotNumber = fifoLot.LotNumber,
+                SellingPrice = fifoLot.SellingPrice > 0 ? fifoLot.SellingPrice
+                    : (await _partRepository.GetByIdAsync(partId, cancellationToken))?.SellingPrice ?? 0,
+                HasWarranty = fifoLot.HasWarranty,
+                WarrantyPeriodMonths = fifoLot.WarrantyPeriodMonths,
+                WarrantyType = fifoLot.WarrantyType,
+                WarrantyTerms = fifoLot.WarrantyTerms,
+                QuantityAvailable = fifoLot.QuantityAvailableInBaseUnit,
+                ReceivingDate = fifoLot.ReceivingDate
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting FIFO lot info for part {PartId} / warehouse {WarehouseId}", partId, warehouseId);
+            return StatusCode(500, "An error occurred");
+        }
+    }
+
+    private Task<StockLotResponse> MapResponse(StockLot lot, CancellationToken cancellationToken)
+    {
+        return MapResponse(
+            lot,
+            new Dictionary<Guid, Part?>(),
+            new Dictionary<Guid, Warehouse?>(),
+            new Dictionary<Guid, Supplier?>(),
+            cancellationToken);
+    }
+
+    private async Task<List<StockLotResponse>> MapResponses(IEnumerable<StockLot> lots, CancellationToken cancellationToken)
+    {
+        var partCache = new Dictionary<Guid, Part?>();
+        var warehouseCache = new Dictionary<Guid, Warehouse?>();
+        var supplierCache = new Dictionary<Guid, Supplier?>();
+
+        var responses = new List<StockLotResponse>();
+        foreach (var lot in lots)
+        {
+            responses.Add(await MapResponse(lot, partCache, warehouseCache, supplierCache, cancellationToken));
+        }
+        return responses;
+    }
+
+    private async Task<StockLotResponse> MapResponse(
+        StockLot lot,
+        Dictionary<Guid, Part?> partCache,
+        Dictionary<Guid, Warehouse?> warehouseCache,
+        Dictionary<Guid, Supplier?> supplierCache,
+        CancellationToken cancellationToken)
+    {
+        if (!partCache.TryGetValue(lot.PartId, out var part))
+        {
+            part = await _partRepository.GetByIdAsync(lot.PartId, cancellationToken);
+            partCache[lot.PartId] = part;
+        }
+
+        if (!warehouseCache.TryGetValue(lot.WarehouseId, out var warehouse))
+        {
+            warehouse = await _warehouseRepository.GetByIdAsync(lot.WarehouseId, cancellationToken);
+            warehouseCache[lot.WarehouseId] = warehouse;
+        }
+
+        if (!supplierCache.TryGetValue(lot.SupplierId, out var supplier))
+        {
+            supplier = await _supplierRepository.GetByIdAsync(lot.SupplierId, cancellationToken);
+            supplierCache[lot.SupplierId] = supplier;
+        }
+
+        // Load unit info
+        Unit? unit = null;
+        if (lot.UnitId.HasValue)
+        {
+            unit = await _unitRepository.GetByIdAsync(lot.UnitId.Value, cancellationToken);
+        }
 
         return new StockLotResponse
         {
@@ -397,18 +503,30 @@ public class StockLotController : ControllerBase
             SupplierId = lot.SupplierId,
             SupplierName = supplier?.Name ?? "",
             QuantityReceived = lot.QuantityReceived,
+            QuantityReceivedInBaseUnit = lot.QuantityReceivedInBaseUnit,
             QuantityAvailable = lot.QuantityAvailable,
+            QuantityAvailableInBaseUnit = lot.QuantityAvailableInBaseUnit,
+            UnitId = lot.UnitId,
+            UnitName = unit?.Name,
+            UnitCode = unit?.Code,
+            BaseUnitName = part?.BaseUnit?.Name,
+            BaseUnitCode = part?.BaseUnit?.Code,
             CostPrice = lot.CostPrice,
+            SellingPrice = lot.SellingPrice,
             Currency = lot.Currency,
             TotalCost = lot.GetTotalCost(),
             AvailableCost = lot.GetAvailableCost(),
+            HasWarranty = lot.HasWarranty,
+            WarrantyPeriodMonths = lot.WarrantyPeriodMonths,
+            WarrantyType = lot.WarrantyType,
+            WarrantyTerms = lot.WarrantyTerms,
             ReceivingDate = lot.ReceivingDate,
             ExpiryDate = lot.ExpiryDate,
             IsExpired = lot.IsExpired,
             ManufacturerLotNumber = lot.ManufacturerLotNumber,
             Notes = lot.Notes,
             IsActive = lot.IsActive,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = lot.CreatedDate
         };
     }
 }

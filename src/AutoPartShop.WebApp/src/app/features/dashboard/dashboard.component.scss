@@ -202,6 +202,10 @@
   &.kpi-icon-teal {
     background-color: #14b8a6;
   }
+
+  &.kpi-icon-indigo {
+    background-color: #6366f1;
+  }
 }
 
 .kpi-content {
@@ -322,6 +326,10 @@
   }
 }
 
+.flow-opening .flow-icon {
+  background-color: #64748b;
+}
+
 .flow-in .flow-icon {
   background-color: #10b981;
 }
@@ -437,6 +445,11 @@
     font-weight: 500;
     font-variant-numeric: tabular-nums;
   }
+
+  .col-date {
+    width: 110px;
+    white-space: nowrap;
+  }
 }
 
 .rank-badge {
@@ -493,10 +506,85 @@
   }
 }
 
+/* ===================== PERIOD INFO BAR ===================== */
+.period-info-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  margin-bottom: 16px;
+  background-color: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  color: #1d4ed8;
+
+  i {
+    font-size: 0.875rem;
+  }
+}
+
+/* ===================== ALERT STRIP ===================== */
+.alert-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.alert-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: default;
+
+  i {
+    font-size: 0.875rem;
+  }
+
+  &.alert-warning {
+    background-color: #fffbeb;
+    border: 1px solid #fcd34d;
+    color: #92400e;
+  }
+
+  &.alert-danger {
+    background-color: #fef2f2;
+    border: 1px solid #fca5a5;
+    color: #991b1b;
+  }
+}
+
 /* ===================== LOADING ===================== */
 .loading-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.skeleton-section {
+  margin-bottom: 20px;
+}
+
+.loading-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.loading-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.loading-grid-chart {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
   gap: 16px;
 }
 
@@ -505,6 +593,55 @@
   border-radius: 8px;
   border: 1px solid #e2e8f0;
   padding: 20px;
+}
+
+/* ===================== EMPTY & ERROR STATES ===================== */
+.empty-full-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 24px;
+  text-align: center;
+
+  i {
+    font-size: 3rem;
+    color: #cbd5e1;
+    margin-bottom: 16px;
+  }
+
+  h3 {
+    margin: 0 0 8px;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #1e293b;
+  }
+
+  p {
+    margin: 0 0 20px;
+    font-size: 0.875rem;
+    color: #64748b;
+  }
+}
+
+.chart-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  color: #94a3b8;
+  text-align: center;
+
+  i {
+    font-size: 2.5rem;
+    margin-bottom: 12px;
+  }
+
+  p {
+    margin: 0;
+    font-size: 0.875rem;
+  }
 }
 
 /* ===================== UTILITIES ===================== */
@@ -516,6 +653,15 @@
 .text-danger {
   color: #ef4444 !important;
   font-weight: 600;
+}
+
+.text-muted {
+  color: #94a3b8 !important;
+}
+
+.date-text {
+  font-size: 0.8125rem;
+  color: #475569;
 }
 
 /* ===================== PRIMENG OVERRIDES ===================== */
@@ -561,6 +707,14 @@
   }
 
   .tables-row {
+    grid-template-columns: 1fr;
+  }
+
+  .loading-grid-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .loading-grid-chart {
     grid-template-columns: 1fr;
   }
 }

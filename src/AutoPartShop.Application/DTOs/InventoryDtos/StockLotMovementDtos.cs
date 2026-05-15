@@ -4,11 +4,14 @@ public class CreateStockLotMovementRequest
 {
     public Guid StockLotId { get; set; }
     public int Quantity { get; set; }
+    public int QuantityInBaseUnit { get; set; }
+    public Guid? UnitId { get; set; }
     public string MovementType { get; set; } = string.Empty;  // RECEIPT, SALE, ADJUSTMENT, DAMAGE, RETURN, TRANSFER
     public Guid? ReferenceId { get; set; }
     public string ReferenceType { get; set; } = string.Empty;
     public DateTime? MovementDate { get; set; }
     public decimal CostAtMovement { get; set; }
+    public decimal CostAtMovementInBaseUnit { get; set; }
     public string Reason { get; set; } = string.Empty;
     public string Notes { get; set; } = string.Empty;
 }
@@ -19,11 +22,16 @@ public class StockLotMovementResponse
     public Guid StockLotId { get; set; }
     public string LotNumber { get; set; } = string.Empty;
     public int Quantity { get; set; }
+    public int QuantityInBaseUnit { get; set; }
+    public Guid? UnitId { get; set; }
+    public string? UnitName { get; set; }
+    public string? UnitSymbol { get; set; }
     public string MovementType { get; set; } = string.Empty;
     public Guid? ReferenceId { get; set; }
     public string ReferenceType { get; set; } = string.Empty;
     public DateTime MovementDate { get; set; }
     public decimal CostAtMovement { get; set; }
+    public decimal CostAtMovementInBaseUnit { get; set; }
     public decimal MovementCost { get; set; }
     public string Reason { get; set; } = string.Empty;
     public string Notes { get; set; } = string.Empty;

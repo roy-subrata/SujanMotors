@@ -17,14 +17,14 @@
   <ng-template pTemplate="header">
     <tr>
       <th style="width: 15%">Part Name</th>
-      <th style="width: 15%">Warehouse</th>
-      <th style="width: 10%" class="text-right">On Hand</th>
-      <th style="width: 10%" class="text-right">Reserved</th>
-      <th style="width: 10%" class="text-right">Available</th>
+      <th style="width: 12%">Warehouse</th>
+      <th style="width: 14%" class="text-right">On Hand</th>
+      <th style="width: 14%" class="text-right">Reserved</th>
+      <th style="width: 16%" class="text-right">Available</th>
       <th style="width: 10%" class="text-right">Reorder Level</th>
       <th style="width: 10%" class="text-right">Reorder Qty</th>
       <th style="width: 10%">Status</th>
-      <th style="width: 10%">Actions</th>
+      <th style="width: 9%">Actions</th>
     </tr>
   </ng-template>
 
@@ -38,13 +38,31 @@
         <span class="text-gray-600">{{ getWarehouseName ? getWarehouseName(stock.warehouseId) : stock.warehouseId }}</span>
       </td>
       <td class="text-right">
-        <span>{{ stock.quantity }}</span>
+        <div class="dual-unit-cell">
+          <span class="display-qty">{{ stock.quantity }}</span>
+          <span class="display-unit">{{ stock.unitSymbol || '-' }}</span>
+          <span class="base-qty" *ngIf="stock.baseUnitSymbol">
+            ({{ stock.quantityInBaseUnit }} {{ stock.baseUnitSymbol }})
+          </span>
+        </div>
       </td>
       <td class="text-right">
-        <span class="text-orange-600">{{ stock.reservedQuantity }}</span>
+        <div class="dual-unit-cell">
+          <span class="display-qty text-orange-600">{{ stock.reservedQuantity }}</span>
+          <span class="display-unit text-orange-600">{{ stock.unitSymbol || '-' }}</span>
+          <span class="base-qty text-gray-500" *ngIf="stock.baseUnitSymbol">
+            ({{ stock.reservedQuantityInBaseUnit }} {{ stock.baseUnitSymbol }})
+          </span>
+        </div>
       </td>
       <td class="text-right">
-        <span class="font-semibold">{{ stock.availableQuantity }}</span>
+        <div class="dual-unit-cell">
+          <span class="display-qty font-semibold">{{ stock.availableQuantity }}</span>
+          <span class="display-unit">{{ stock.unitSymbol || '-' }}</span>
+          <span class="base-qty" *ngIf="stock.baseUnitSymbol">
+            ({{ stock.availableQuantityInBaseUnit }} {{ stock.baseUnitSymbol }})
+          </span>
+        </div>
       </td>
       <td class="text-right">
         <span class="text-gray-600">{{ stock.reorderLevel }}</span>

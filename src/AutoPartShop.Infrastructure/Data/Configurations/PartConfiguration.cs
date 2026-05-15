@@ -27,6 +27,10 @@ public class PartEntityConfiguration : IEntityTypeConfiguration<Part>
               .HasMaxLength(255)
               .IsRequired(false);
 
+        builder.Property(p => p.RichDescription)
+              .HasColumnType("nvarchar(max)")
+              .IsRequired(false);
+
         builder.Property(p => p.SKU)
         .HasMaxLength(100)
         .IsRequired();
@@ -49,13 +53,6 @@ public class PartEntityConfiguration : IEntityTypeConfiguration<Part>
                .IsRequired()
                .HasDefaultValue("BDT");
 
-        builder.Property(p => p.MinMarginPercentOverride)
-               .HasColumnType("decimal(5,2)")
-               .IsRequired(false);
-
-        builder.Property(p => p.MaxDiscountPercentOverride)
-               .HasColumnType("decimal(5,2)")
-               .IsRequired(false);
 
         // Warranty Configuration
         builder.Property(p => p.HasWarranty)
@@ -77,17 +74,61 @@ public class PartEntityConfiguration : IEntityTypeConfiguration<Part>
                .HasMaxLength(100)
                .IsRequired(false);
 
+        // Universal product fields
+        builder.Property(p => p.Barcode)
+               .HasMaxLength(100)
+               .IsRequired(false);
+
+        builder.Property(p => p.Tags)
+               .HasMaxLength(500)
+               .IsRequired(false);
+
+        builder.Property(p => p.ProductType)
+               .HasMaxLength(20)
+               .IsRequired()
+               .HasDefaultValue("PHYSICAL");
+
+        builder.Property(p => p.TaxCode)
+               .HasMaxLength(50)
+               .IsRequired(false);
+
+        builder.Property(p => p.WeightKg)
+               .HasColumnType("decimal(10,4)")
+               .IsRequired(false);
+
+        builder.Property(p => p.WidthCm)
+               .HasColumnType("decimal(10,2)")
+               .IsRequired(false);
+
+        builder.Property(p => p.HeightCm)
+               .HasColumnType("decimal(10,2)")
+               .IsRequired(false);
+
+        builder.Property(p => p.DepthCm)
+               .HasColumnType("decimal(10,2)")
+               .IsRequired(false);
+
+        builder.Property(p => p.IsPerishable)
+               .IsRequired()
+               .HasDefaultValue(false);
+
         builder.HasMany(b => b.VehicleCompatibilities)
         .WithOne(p => p.Part)
         .HasForeignKey(p => p.PartId)
         .OnDelete(DeleteBehavior.NoAction);
 
-        builder.HasOne(p => p.Unit)
-            .WithMany(p => p.Parts)
-            .HasForeignKey(p => p.UnitId)
-            .OnDelete(DeleteBehavior.NoAction);
+        builder.HasOne(b => b.BaseUnit)
+            .WithMany()
+            .HasForeignKey(p => p.BaseUnitId)
+            .OnDelete(DeleteBehavior.NoAction)
+            .IsRequired(false)
+            .HasConstraintName("FK_Part_BaseUnit");
 
-        builder.Property(p => p.UnitId);
+        builder.HasOne(p => p.Unit)
+            .WithMany()
+            .HasForeignKey(p => p.UnitId)
+            .OnDelete(DeleteBehavior.NoAction)
+            .HasConstraintName("FK_Part_Unit");
 
         builder.HasOne(p => p.Category)
                 .WithMany()

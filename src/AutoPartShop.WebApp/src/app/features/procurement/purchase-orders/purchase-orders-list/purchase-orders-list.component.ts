@@ -20,7 +20,7 @@
 
 import { Component, EventEmitter, Input, Output, ViewChild, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { ContextMenuModule, ContextMenu } from 'primeng/contextmenu';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { TooltipModule } from 'primeng/tooltip';
@@ -37,7 +37,8 @@ import { ApplyAdvanceCreditDialogComponent } from '../apply-advance-credit/apply
     CommonModule,
     ContextMenuModule,
     ConfirmDialogModule,
-    TooltipModule
+    TooltipModule,
+    RouterModule
   ],
   providers: [ConfirmationService, MessageService, DialogService],
   templateUrl: './purchase-orders-list.component.html',

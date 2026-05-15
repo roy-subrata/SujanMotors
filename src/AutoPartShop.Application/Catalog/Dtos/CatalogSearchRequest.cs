@@ -9,7 +9,9 @@ public class CatalogSearchRequest : BaseQuery
     public decimal? PriceMin { get; set; }
     public decimal? PriceMax { get; set; }
     public bool InStockOnly { get; set; } = false;
+    public bool OnSaleOnly { get; set; } = false;
     public List<AttributeFilterRequest> AttributeFilters { get; set; } = new();
+    public Guid? VehicleId { get; set; }  // Filter by vehicle compatibility
 }
 
 public class AttributeFilterRequest

@@ -20,6 +20,7 @@ public class PurchaseOrder : AuditableEntity
     public decimal TotalAmount { get; private set; } = 0;
     public string PaymentStatus { get; private set; } = "PENDING";  // PENDING, PARTIAL, PAID
     public decimal PaidAmount { get; private set; } = 0;
+    public decimal CreditAppliedAmount { get; private set; } = 0;  // Total credit notes applied to this PO
     public string Notes { get; private set; } = string.Empty;
     public string ApprovedBy { get; private set; } = string.Empty;
     public DateTime? ApprovedDate { get; private set; }
@@ -132,6 +133,25 @@ public class PurchaseOrder : AuditableEntity
 
         PaidAmount += amount;
         PaymentStatus = PaidAmount >= TotalAmount ? "PAID" : "PARTIAL";
+    }
+
+    /// <summary>
+    /// Apply credit note amount to this purchase order
+    /// </summary>
+    public void ApplyCredit(decimal amount)
+    {
+        if (amount <= 0)
+            throw new ArgumentException("Credit amount must be greater than 0", nameof(amount));
+
+        var outstandingAmount = TotalAmount - PaidAmount;
+        if (amount > outstandingAmount)
+            throw new InvalidOperationException("Credit amount exceeds outstanding amount");
+
+        CreditAppliedAmount += amount;
+        
+        // Update payment status based on total payments + credits
+        var totalApplied = PaidAmount + CreditAppliedAmount;
+        PaymentStatus = totalApplied >= TotalAmount ? "PAID" : "PARTIAL";
     }
 
     public void MarkAsDelivered(DateTime? deliveryDate = null)

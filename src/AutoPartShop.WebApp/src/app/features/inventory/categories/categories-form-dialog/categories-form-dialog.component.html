@@ -52,31 +52,25 @@
     <form [formGroup]="createForm">
         <div class="form-group">
             <label for="parentCategory">Parent Category (Optional)</label>
-            <p-autocomplete
+            <app-lazy-autocomplete
                 id="parentCategory"
                 formControlName="parentCategory"
-                [suggestions]="filteredParentCategories"
+                [fetchFn]="fetchParentCategories.bind(this)"
                 [(ngModel)]="selectedParentCategory"
                 placeholder="Search by name or code..."
-                [showEmptyMessage]="true"
-                emptyMessage="No categories found"
-                (onClear)="onParentCategoryCleared()"
-                (onSelect)="onParentCategorySelect($event.value)"
-                [virtualScroll]="true"
-                [virtualScrollItemSize]="34"
-                [lazy]="true"
-                (onLazyLoad)="onParentCategoryEvent($event)"
-                (completeMethod)="onParentCategoryEvent($event)"
+                [pageSize]="20"
+                [itemSize]="52"
                 optionLabel="name"
-                [dropdown]="true"
                 [disabled]="isCreating()"
-                ><ng-template let-category #item>
+                (onItemSelect)="onParentCategorySelect($event)"
+                (onClearEvent)="onParentCategoryCleared()"
+            >
+                <ng-template let-category #item>
                     <div class="category-autocomplete-item">
-                        <div class="font-semibold">{{ category.name }}</div>
-                        <div class="text-sm text-gray-500">{{ category.code }}</div>
+                        {{ category.name }} ({{ category.code }})
                     </div>
                 </ng-template>
-            </p-autocomplete>
+            </app-lazy-autocomplete>
         </div>
         <div class="form-group">
             <label for="createName">Name *</label>
@@ -87,7 +81,7 @@
         <div class="form-group">
             <label for="createCode">Code *</label>
             <div class="code-input-wrapper">
-                <input id="createCode" type="text" pInputText formControlName="code" class="w-full" placeholder="Auto-generated" [disabled]="true" />
+                <input id="createCode" type="text" pInputText formControlName="code" class="w-full" placeholder="Auto-generated" />
                 <i *ngIf="generatingCode" class="pi pi-spin pi-spinner code-spinner"></i>
             </div>
             <small class="hint-text">Code is auto-generated and cannot be changed</small>

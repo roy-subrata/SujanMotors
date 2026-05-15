@@ -1,47 +1,91 @@
 import { inject, Injectable } from '@angular/core';
-import { CatalogSearchRequest } from '../models/catalog.model';
-import { MockCatalogService } from './mock-catalog.service';
+import { HttpClient } from '@angular/common/http';
+import { Observable, catchError, map, of } from 'rxjs';
+import { environment } from 'src/environments/environment';
+import {
+  CatalogLandingResponse,
+  CatalogFilterResponse,
+  CatalogProductListItem,
+  CatalogProductDetail,
+  CatalogSearchRequest,
+  CatalogCategory,
+} from '../models/catalog.model';
 
-/**
- * Catalog service - currently delegates to MockCatalogService for in-memory data.
- * TODO: Replace MockCatalogService calls with real HTTP calls when backend is ready.
- *
- * To switch to real API:
- *   1. Import HttpClient
- *   2. Replace mock.xxx() calls with this.http.get/post(...)
- *   3. Remove MockCatalogService import
- */
 @Injectable({ providedIn: 'root' })
 export class CatalogService {
-  private readonly mock = inject(MockCatalogService);
+  private readonly http = inject(HttpClient);
+  private readonly baseUrl = `${environment.apiUrl}/catalog`;
 
-  getLanding() {
-    return this.mock.getLanding();
-    // return this.http.get<CatalogLandingResponse>(`${this.baseUrl}/landing`);
+  getLanding(): Observable<CatalogLandingResponse> {
+    return this.http.get<CatalogLandingResponse>(`${this.baseUrl}/landing`).pipe(
+      catchError(() => of({ categories: [], featured: [], popular: [], latest: [] }))
+    );
   }
 
-  getCategories() {
-    return this.mock.getCategories();
-    // return this.http.get<CatalogCategory[]>(`${this.baseUrl}/categories`);
+  getCategories(): Observable<CatalogCategory[]> {
+    return this.getLanding().pipe(
+      map(r => r.categories),
+      catchError(() => of([]))
+    );
   }
 
-  getSaleProducts() {
-    return this.mock.getSaleProducts();
-    // return this.http.get<CatalogProductListItem[]>(`${this.baseUrl}/products/sale`);
+  getSaleProducts(pageNumber = 1, pageSize = 12): Observable<{
+    items: CatalogProductListItem[];
+    pageNumber: number;
+    pageSize: number;
+    totalCount: number;
+  }> {
+    return this.searchProducts({
+      search: '',
+      pageNumber,
+      pageSize,
+      includeDescendants: true,
+      inStockOnly: false,
+      onSaleOnly: true,
+      attributeFilters: [],
+    }).pipe(
+      catchError(() => of({ items: [], pageNumber, pageSize, totalCount: 0 }))
+    );
   }
 
-  getFilters(categoryId: string, _includeDescendants = true) {
-    return this.mock.getFilters(categoryId);
-    // return this.http.get<CatalogFilterResponse>(`${this.baseUrl}/categories/${categoryId}/filters?includeDescendants=${includeDescendants}`);
+  getFilters(categoryId: string, includeDescendants = true): Observable<CatalogFilterResponse> {
+    return this.http
+      .get<CatalogFilterResponse>(
+        `${this.baseUrl}/categories/${categoryId}/filters?includeDescendants=${includeDescendants}`
+      )
+      .pipe(
+        catchError(() =>
+          of({
+            categoryId,
+            filters: [],
+            priceRange: { min: null, max: null, currency: 'BDT' },
+            availability: { inStockAvailable: true },
+          })
+        )
+      );
   }
 
-  searchProducts(request: CatalogSearchRequest) {
-    return this.mock.searchProducts(request);
-    // return this.http.post<{...}>(`${this.baseUrl}/products/search`, request);
+  searchProducts(request: CatalogSearchRequest): Observable<{
+    items: CatalogProductListItem[];
+    pageNumber: number;
+    pageSize: number;
+    totalCount: number;
+  }> {
+    return this.http
+      .post<{ items: CatalogProductListItem[]; pageNumber: number; pageSize: number; totalCount: number }>(
+        `${this.baseUrl}/products/search`,
+        request
+      )
+      .pipe(
+        catchError(() =>
+          of({ items: [], pageNumber: request.pageNumber, pageSize: request.pageSize, totalCount: 0 })
+        )
+      );
   }
 
-  getProductDetail(partId: string) {
-    return this.mock.getProductDetail(partId);
-    // return this.http.get<CatalogProductDetail>(`${this.baseUrl}/products/${partId}`);
+  getProductDetail(partId: string): Observable<CatalogProductDetail | null> {
+    return this.http.get<CatalogProductDetail>(`${this.baseUrl}/products/${partId}`).pipe(
+      catchError(() => of(null))
+    );
   }
 }

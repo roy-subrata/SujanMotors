@@ -2,215 +2,592 @@
   <p-toast></p-toast>
 
   <!-- Header -->
-  <div class="form-header">
-    <div class="header-content">
-      <div class="header-title-section">
-        <div class="breadcrumb">
-          <a (click)="onBack()" class="breadcrumb-link">
-            <i class="pi pi-arrow-left"></i>
-            Parts
-          </a>
-          <span class="breadcrumb-separator">/</span>
-          <span class="breadcrumb-current">Details</span>
-        </div>
-        <h1 class="form-title">Part Details</h1>
-        <p class="form-subtitle">View detailed information about this auto part</p>
+  <div class="pd-header">
+    <div class="pd-header-left">
+      <div class="pd-breadcrumb">
+        <a (click)="onBack()" class="pd-back-link">
+          <i class="pi pi-arrow-left"></i> Parts
+        </a>
+        <span class="pd-breadcrumb-sep">/</span>
+        <span>{{ part?.name || 'Details' }}</span>
       </div>
-      <div class="header-actions">
-        <button
-          pButton
-          type="button"
-          label="Back"
-          icon="pi pi-arrow-left"
-          class="p-button-outlined"
-          (click)="onBack()">
-        </button>
-        <button
-          pButton
-          type="button"
-          label="Edit Part"
-          icon="pi pi-pencil"
-          class="p-button-primary"
-          (click)="onEdit()">
-        </button>
+      <div class="pd-title-row">
+        <h1 class="pd-title">{{ part?.name }}</h1>
+        <p-tag *ngIf="part"
+          [value]="part.isActive ? 'Active' : 'Inactive'"
+          [severity]="getStatusSeverity(part.isActive)">
+        </p-tag>
       </div>
+      <p class="pd-subtitle" *ngIf="part">{{ part.partNumber }} &nbsp;·&nbsp; {{ part.sku }}</p>
+    </div>
+    <div class="pd-header-actions">
+      <button pButton type="button" label="Edit Part"
+        icon="pi pi-pencil" class="p-button-primary"
+        (click)="onEdit()">
+      </button>
     </div>
   </div>
 
-  <!-- Loading State -->
-  <div *ngIf="loading" class="loading-state">
-    <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
-    <p>Loading part details...</p>
+  <!-- Loading -->
+  <div *ngIf="loading" class="pd-loading">
+    <i class="pi pi-spin pi-spinner"></i>
+    <span>Loading…</span>
   </div>
 
-  <!-- Part Details -->
-  <div *ngIf="!loading && part" class="content">
-    <p-card class="form-card">
-      <div class="form-content">
-        <!-- Section 1: Basic Information -->
-        <div class="form-section">
-          <div class="section-header">
-            <h3 class="section-title">
-              <i class="pi pi-box section-icon"></i>
-              Basic Information
-            </h3>
-            <p-tag
-              [value]="part.isActive ? 'Active' : 'Inactive'"
-              [severity]="getStatusSeverity(part.isActive)">
-            </p-tag>
-          </div>
+  <!-- Error -->
+  <div *ngIf="!loading && !part" class="pd-error">
+    <i class="pi pi-exclamation-triangle"></i>
+    <p>Part not found.</p>
+    <button pButton label="Back to Parts" icon="pi pi-arrow-left" (click)="onBack()"></button>
+  </div>
 
-          <div class="info-grid">
-            <div class="info-item">
-              <label>Part Name</label>
-              <span class="value-text">{{ part.name }}</span>
+  <!-- Tabs -->
+  <div *ngIf="!loading && part" class="pd-body">
+    <p-tabs value="overview">
+      <p-tablist>
+        <p-tab value="overview"><i class="pi pi-info-circle"></i> Overview</p-tab>
+        <p-tab value="pricing"><i class="pi pi-tag"></i> Pricing</p-tab>
+        <p-tab value="variants"><i class="pi pi-th-large"></i> Variants</p-tab>
+        <p-tab value="online">
+          <i class="pi pi-globe"></i> Online
+          <span *ngIf="catalogEntry() as ce" class="pd-tab-badge"
+            [class.pd-tab-badge-green]="ce.isPublished"
+            [class.pd-tab-badge-gray]="!ce.isPublished">
+            {{ ce.isPublished ? 'Live' : 'Draft' }}
+          </span>
+        </p-tab>
+        <p-tab value="media"><i class="pi pi-images"></i> Media</p-tab>
+        <p-tab value="compatibility"><i class="pi pi-car"></i> Compatibility</p-tab>
+      </p-tablist>
+
+      <p-tabpanels>
+
+        <!-- ══ TAB: OVERVIEW ══ -->
+        <p-tabpanel value="overview">
+          <div class="tab-content">
+
+            <div class="pd-section">
+              <h3 class="pd-section-title">Basic Information</h3>
+              <div class="info-grid">
+                <div class="info-item">
+                  <label>Part Number</label>
+                  <span>{{ part.partNumber }}</span>
+                </div>
+                <div class="info-item">
+                  <label>SKU</label>
+                  <span>{{ part.sku }}</span>
+                </div>
+                <div class="info-item">
+                  <label>Category</label>
+                  <span>{{ part.categoryName }}</span>
+                </div>
+                <div class="info-item">
+                  <label>Brand</label>
+                  <span>{{ part.brandName || '—' }}</span>
+                </div>
+                <div class="info-item">
+                  <label>Unit</label>
+                  <span>{{ part.unitName || '—' }}</span>
+                </div>
+                <div class="info-item">
+                  <label>Product Type</label>
+                  <span>{{ part.productType || '—' }}</span>
+                </div>
+                <div class="info-item">
+                  <label>Barcode</label>
+                  <span>{{ part.barcode || '—' }}</span>
+                </div>
+                <div class="info-item">
+                  <label>Min Stock</label>
+                  <span>{{ part.minimumStock }}</span>
+                </div>
+                <div class="info-item full-width" *ngIf="part.description">
+                  <label>Description</label>
+                  <span>{{ part.description }}</span>
+                </div>
+                <div class="info-item" *ngIf="part.tags">
+                  <label>Tags</label>
+                  <span class="tags-list">
+                    <span *ngFor="let t of (part.tags || '').split(',')" class="tag-chip">{{ t.trim() }}</span>
+                  </span>
+                </div>
+              </div>
             </div>
-            <div class="info-item">
-              <label>Part Number</label>
-              <span class="value-text">{{ part.partNumber }}</span>
+
+            <div class="pd-section">
+              <div class="pd-section-title-row">
+                <h3 class="pd-section-title">Cost Price</h3>
+                <button *ngIf="priceCodeService.isConfigured()"
+                  class="btn-toggle-price"
+                  (click)="priceCodeService.toggleVisibility()"
+                  [title]="priceCodeService.showActualPrice() ? 'Hide' : 'Show'">
+                  <i class="pi" [ngClass]="priceCodeService.showActualPrice() ? 'pi-eye-slash' : 'pi-eye'"></i>
+                </button>
+              </div>
+              <div class="info-grid">
+                <div class="info-item">
+                  <label>Cost Price</label>
+                  <span class="value-price" [class.coded-price]="priceCodeService.getDisplayPrice(part.costPrice) !== null">
+                    {{ formatCostPrice(part.costPrice) }}
+                  </span>
+                </div>
+              </div>
             </div>
-            <div class="info-item">
-              <label>SKU</label>
-              <span class="value-text">{{ part.sku }}</span>
+
+            <div class="pd-section" *ngIf="part.hasWarranty">
+              <h3 class="pd-section-title">Warranty</h3>
+              <div class="info-grid">
+                <div class="info-item">
+                  <label>Period</label>
+                  <span>{{ part.warrantyPeriodMonths }} months</span>
+                </div>
+                <div class="info-item">
+                  <label>Type</label>
+                  <span>{{ part.warrantyType }}</span>
+                </div>
+                <div class="info-item full-width" *ngIf="part.warrantyTerms">
+                  <label>Terms</label>
+                  <span>{{ part.warrantyTerms }}</span>
+                </div>
+              </div>
             </div>
-            <div class="info-item">
-              <label>Category</label>
-              <span class="value-text">{{ part.categoryName }}</span>
+
+            <div class="pd-section">
+              <h3 class="pd-section-title">Storage Locations</h3>
+              <app-product-location-manager [partId]="partId!" [partName]="part.name">
+              </app-product-location-manager>
             </div>
-            <div class="info-item">
-              <label>Unit</label>
-              <span class="value-text">{{ part.unitName || 'N/A' }}</span>
-            </div>
-            <div class="info-item">
-              <label>Minimum Stock</label>
-              <span class="value-text">{{ part.minimumStock }}</span>
-            </div>
-            <div class="info-item full-width">
-              <label>Description</label>
-              <span class="value-text">{{ part.description || 'No description provided' }}</span>
-            </div>
+
           </div>
+        </p-tabpanel>
+
+        <!-- ══ TAB: PRICING ══ -->
+        <p-tabpanel value="pricing">
+          <div class="tab-content">
+
+            <div class="pd-section">
+              <div class="pd-section-title-row">
+                <div>
+                  <h3 class="pd-section-title">Base Product Price</h3>
+                  <p class="pd-section-sub">Applies to all variants unless a variant-specific price is set. Set via <strong>Edit Part</strong> or use Quick Update below.</p>
+                </div>
+                <button pButton type="button"
+                  icon="pi pi-bolt"
+                  label="Quick Update"
+                  class="p-button-sm p-button-outlined"
+                  (click)="openSetPriceDialog(partId!, 'Base Product Price')">
+                </button>
+              </div>
+
+              <div class="price-card" [class.price-card-empty]="!part.sellingPrice || part.sellingPrice === 0">
+                <ng-container *ngIf="part.sellingPrice > 0">
+                  <div class="price-card-amount">
+                    <span class="price-big">{{ part.sellingPrice | number:'1.2-2' }}</span>
+                    <span class="price-currency">BDT</span>
+                    <span class="price-badge" data-source="PRODUCT">Current Price</span>
+                  </div>
+                  <div class="price-card-validity" *ngIf="basePrice() as bp">
+                    Last updated {{ formatDate(bp.validFrom) }}
+                  </div>
+                </ng-container>
+                <div *ngIf="!part.sellingPrice || part.sellingPrice === 0" class="price-card-empty-msg">
+                  <i class="pi pi-exclamation-triangle"></i>
+                  No selling price set — click <strong>Edit Part</strong> to add one
+                </div>
+              </div>
+            </div>
+
+            <div class="pd-section" *ngIf="variants().length > 0">
+              <div class="pd-section-title-row">
+                <div>
+                  <h3 class="pd-section-title">Variant Prices</h3>
+                  <p class="pd-section-sub">Variant-specific prices override the base product price</p>
+                </div>
+              </div>
+
+              <div *ngIf="variantsLoading()" class="price-card-loading" style="padding:16px">
+                <i class="pi pi-spin pi-spinner"></i> Loading variants...
+              </div>
+
+              <p-table *ngIf="!variantsLoading()"
+                [value]="variants()"
+                styleClass="p-datatable-sm variant-price-table">
+                <ng-template pTemplate="header">
+                  <tr>
+                    <th>Variant</th>
+                    <th>Code / SKU</th>
+                    <th>Price</th>
+                    <th style="width: 120px; text-align: right">Action</th>
+                  </tr>
+                </ng-template>
+                <ng-template pTemplate="body" let-v>
+                  <tr>
+                    <td><span class="font-semibold">{{ v.name }}</span></td>
+                    <td class="text-secondary text-sm">{{ v.code }}<span *ngIf="v.sku"> · {{ v.sku }}</span></td>
+                    <td>
+                      <span *ngIf="v.sellingPrice && v.sellingPrice > 0" class="variant-price-value">
+                        {{ v.sellingPrice | number:'1.2-2' }} {{ v.currency }}
+                        <span class="price-badge variant-badge">Own Price</span>
+                      </span>
+                      <span *ngIf="!v.sellingPrice || v.sellingPrice === 0" class="text-secondary text-sm">
+                        Inherits base ({{ part.sellingPrice | number:'1.2-2' }} BDT)
+                      </span>
+                    </td>
+                    <td style="text-align: right">
+                      <button pButton type="button"
+                        icon="pi pi-bolt"
+                        label="Quick Update"
+                        class="p-button-xs p-button-text p-button-info"
+                        (click)="openSetPriceDialog(partId!, v.name, v.id)">
+                      </button>
+                    </td>
+                  </tr>
+                </ng-template>
+              </p-table>
+            </div>
+
+            <div class="pd-section" *ngIf="!variantsLoading() && variants().length === 0">
+              <div class="pd-empty-note">
+                <i class="pi pi-info-circle"></i>
+                No active variants. Add variants from the <strong>Variants</strong> tab.
+              </div>
+            </div>
+
+          </div>
+        </p-tabpanel>
+
+        <!-- ══ TAB: VARIANTS ══ -->
+        <p-tabpanel value="variants">
+          <div class="tab-content">
+            <app-product-variant-manager [partId]="partId!" [isViewMode]="false">
+            </app-product-variant-manager>
+          </div>
+        </p-tabpanel>
+
+        <!-- ══ TAB: ONLINE LISTING ══ -->
+        <p-tabpanel value="online">
+          <div class="tab-content">
+
+            <div *ngIf="catalogEntryLoading()" class="pd-loading">
+              <i class="pi pi-spin pi-spinner"></i> Loading...
+            </div>
+
+            <!-- View mode -->
+            <ng-container *ngIf="!catalogEntryLoading() && !editingOnline()">
+
+              <!-- No entry yet -->
+              <div *ngIf="!catalogEntry()" class="pd-section">
+                <div class="pd-empty-note">
+                  <i class="pi pi-globe"></i>
+                  <div>
+                    <strong>Not listed online yet.</strong>
+                    <p style="margin: 0.25rem 0 0; font-size: 0.85rem;">
+                      Set up the online listing to make this product visible in the storefront.
+                    </p>
+                  </div>
+                </div>
+                <button pButton type="button" label="Set Up Online Listing"
+                  icon="pi pi-plus" class="p-button-success p-button-sm"
+                  style="margin-top: 1rem"
+                  (click)="startEditOnline()">
+                </button>
+              </div>
+
+              <!-- Has entry -->
+              <div *ngIf="catalogEntry() as ce" class="pd-section">
+                <div class="pd-section-title-row">
+                  <div>
+                    <h3 class="pd-section-title">Online Listing</h3>
+                    <p class="pd-section-sub">/products/{{ ce.slug }}</p>
+                  </div>
+                  <button pButton type="button" label="Edit" icon="pi pi-pencil"
+                    class="p-button-sm p-button-outlined"
+                    (click)="startEditOnline()">
+                  </button>
+                </div>
+
+                <!-- Status pills -->
+                <div class="online-status-row">
+                  <div class="online-status-pill" [class.status-live]="ce.isPublished" [class.status-draft]="!ce.isPublished">
+                    <i class="pi" [ngClass]="ce.isPublished ? 'pi-check-circle' : 'pi-pause-circle'"></i>
+                    {{ ce.isPublished ? 'Published' : 'Draft' }}
+                  </div>
+                  <div *ngIf="ce.isFeatured" class="online-status-pill status-featured">
+                    <i class="pi pi-star-fill"></i> Featured
+                    <span *ngIf="ce.featuredRank > 0"> #{{ ce.featuredRank }}</span>
+                  </div>
+                  <div *ngIf="ce.publishedAt" class="online-status-date">
+                    Published {{ formatDate(ce.publishedAt) }}
+                  </div>
+                </div>
+
+                <div class="info-grid" style="margin-top: 1rem">
+                  <div class="info-item full-width" *ngIf="ce.shortDescription">
+                    <label>Short Description</label>
+                    <span>{{ ce.shortDescription }}</span>
+                  </div>
+                  <div class="info-item" *ngIf="ce.metaTitle">
+                    <label>Meta Title</label>
+                    <span>{{ ce.metaTitle }}</span>
+                  </div>
+                  <div class="info-item" *ngIf="ce.metaDescription">
+                    <label>Meta Description</label>
+                    <span>{{ ce.metaDescription }}</span>
+                  </div>
+                </div>
+              </div>
+
+            </ng-container>
+
+            <!-- Edit mode -->
+            <div *ngIf="!catalogEntryLoading() && editingOnline()" class="pd-section" [formGroup]="onlineForm">
+              <div class="pd-section-title-row">
+                <h3 class="pd-section-title">{{ catalogEntry() ? 'Edit Online Listing' : 'Set Up Online Listing' }}</h3>
+              </div>
+
+              <div class="ol-row">
+                <div class="ol-field">
+                  <label>URL Slug <span class="req">*</span></label>
+                  <div class="ol-slug-wrap">
+                    <span class="ol-slug-prefix">/products/</span>
+                    <input pInputText formControlName="slug" placeholder="e.g. brake-pad-toyota-corolla" />
+                  </div>
+                  <small class="pf-hint">{{ onlineSlugCharCount }}/200 · lowercase letters, numbers, hyphens only</small>
+                  <small *ngIf="onlineForm.get('slug')?.invalid && onlineForm.get('slug')?.touched" class="p-error">
+                    Only lowercase letters, numbers, and hyphens
+                  </small>
+                </div>
+                <div class="ol-field">
+                  <label>Status</label>
+                  <div class="pf-toggle-row" style="margin-top: 0.35rem">
+                    <p-toggleSwitch formControlName="isPublished"></p-toggleSwitch>
+                    <span>Published (visible in storefront)</span>
+                  </div>
+                  <div class="pf-toggle-row" style="margin-top: 0.7rem">
+                    <p-toggleSwitch formControlName="isFeatured"></p-toggleSwitch>
+                    <span>Featured (homepage / highlights)</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="ol-field" style="margin-bottom: 0.75rem">
+                <label>Short Description <span class="pf-optional">max 300 chars</span></label>
+                <textarea pInputTextarea formControlName="shortDescription" rows="2"
+                  placeholder="Brief summary shown in storefront cards"></textarea>
+              </div>
+
+              <p class="ol-subsection">SEO <span class="pf-optional">optional</span></p>
+              <div class="ol-row">
+                <div class="ol-field">
+                  <label>Meta Title</label>
+                  <input pInputText formControlName="metaTitle" placeholder="Page title for search engines" />
+                  <small class="pf-hint" [class.pf-char-warn]="onlineMetaTitleCount > 60">
+                    {{ onlineMetaTitleCount }}/70 · aim for under 60
+                  </small>
+                </div>
+                <div class="ol-field">
+                  <label>Meta Description</label>
+                  <input pInputText formControlName="metaDescription" placeholder="Short summary for search results" />
+                  <small class="pf-hint" [class.pf-char-warn]="onlineMetaDescCount > 150">
+                    {{ onlineMetaDescCount }}/160 · aim for under 150
+                  </small>
+                </div>
+              </div>
+
+              <div class="ol-actions">
+                <button pButton type="button" label="Cancel" icon="pi pi-times"
+                  class="p-button-outlined p-button-secondary"
+                  (click)="cancelEditOnline()"></button>
+                <button pButton type="button" label="Save Listing" icon="pi pi-check"
+                  class="p-button-success"
+                  [loading]="savingOnline()" [disabled]="savingOnline()"
+                  (click)="saveOnlineListing()"></button>
+              </div>
+            </div>
+
+          </div>
+        </p-tabpanel>
+
+        <!-- ══ TAB: MEDIA ══ -->
+        <p-tabpanel value="media">
+          <div class="tab-content">
+            <app-product-media-manager [partId]="partId!">
+            </app-product-media-manager>
+          </div>
+        </p-tabpanel>
+
+        <!-- ══ TAB: COMPATIBILITY ══ -->
+        <p-tabpanel value="compatibility">
+          <p-confirmDialog></p-confirmDialog>
+          <div class="tab-content">
+
+            <!-- Add vehicle -->
+            <div class="pd-section">
+              <h3 class="pd-section-title">Link Compatible Vehicle</h3>
+              <div class="compat-add-row">
+                <p-select
+                  [(ngModel)]="selectedVehicleId"
+                  [options]="availableVehicles"
+                  optionValue="id"
+                  [optionLabel]="'make'"
+                  placeholder="Select a vehicle..."
+                  [filter]="true"
+                  filterBy="make,model,year,engineType"
+                  styleClass="compat-select"
+                  appendTo="body"
+                  [showClear]="true">
+                  <ng-template let-v pTemplate="item">
+                    {{ v.make }} {{ v.model }} {{ v.year }} — {{ v.engineType }}
+                  </ng-template>
+                  <ng-template let-v pTemplate="selectedItem">
+                    {{ v?.make }} {{ v?.model }} {{ v?.year }} — {{ v?.engineType }}
+                  </ng-template>
+                </p-select>
+                <button
+                  pButton
+                  type="button"
+                  label="Add Vehicle"
+                  icon="pi pi-plus"
+                  class="p-button-success"
+                  [disabled]="!selectedVehicleId || addingCompatibility"
+                  [loading]="addingCompatibility"
+                  (click)="onAddCompatibility()">
+                </button>
+              </div>
+              <small *ngIf="availableVehicles.length === 0 && allVehicles.length > 0" class="compat-hint">
+                All available vehicles are already linked to this part.
+              </small>
+              <small *ngIf="allVehicles.length === 0" class="compat-hint">
+                No vehicles found. Add vehicles first via
+                <a routerLink="/inventory/vehicles">Inventory → Vehicles</a>.
+              </small>
+            </div>
+
+            <!-- Linked vehicles table -->
+            <div class="pd-section">
+              <h3 class="pd-section-title">
+                Compatible Vehicles
+                <span class="pd-section-count">{{ compatibleVehicles.length }}</span>
+              </h3>
+
+              <div *ngIf="loadingVehicles" class="price-card-loading" style="padding:20px">
+                <i class="pi pi-spin pi-spinner"></i> Loading...
+              </div>
+
+              <p-table *ngIf="!loadingVehicles && compatibleVehicles.length > 0"
+                [value]="compatibleVehicles"
+                styleClass="p-datatable-sm"
+                responsiveLayout="stack">
+                <ng-template pTemplate="header">
+                  <tr>
+                    <th>Make</th>
+                    <th>Model</th>
+                    <th>Year</th>
+                    <th>Engine</th>
+                    <th>Status</th>
+                    <th>Notes</th>
+                    <th style="width:60px"></th>
+                  </tr>
+                </ng-template>
+                <ng-template pTemplate="body" let-v>
+                  <tr>
+                    <td>{{ v.vehicleMake }}</td>
+                    <td>{{ v.vehicleModel }}</td>
+                    <td>{{ v.vehicleYear }}</td>
+                    <td>{{ v.vehicleEngineType }}</td>
+                    <td>
+                      <p-tag [value]="v.isCompatible ? 'Compatible' : 'Not Compatible'"
+                        [severity]="getCompatibilitySeverity(v.isCompatible)">
+                      </p-tag>
+                    </td>
+                    <td>{{ v.notes || '—' }}</td>
+                    <td>
+                      <button
+                        pButton
+                        type="button"
+                        icon="pi pi-trash"
+                        class="p-button-text p-button-danger p-button-sm"
+                        pTooltip="Remove"
+                        (click)="onRemoveCompatibility(v)">
+                      </button>
+                    </td>
+                  </tr>
+                </ng-template>
+              </p-table>
+
+              <div *ngIf="!loadingVehicles && compatibleVehicles.length === 0" class="pd-empty-note">
+                <i class="pi pi-car"></i>
+                No compatible vehicles linked. Use the selector above to add one.
+              </div>
+            </div>
+
+          </div>
+        </p-tabpanel>
+
+      </p-tabpanels>
+    </p-tabs>
+  </div>
+
+  <!-- ══ Set Price Dialog ══ -->
+  <p-dialog
+    [(visible)]="showSetPriceDialog"
+    [header]="'Set Price — ' + (setPriceTarget?.label || '')"
+    [modal]="true"
+    [style]="{width: '420px', maxWidth: '95vw'}"
+    [draggable]="false"
+    appendTo="body">
+
+    <form [formGroup]="priceForm" class="spf-form">
+      <div class="spf-group">
+        <label class="spf-label"><span class="req">*</span> Selling Price</label>
+        <p-inputNumber formControlName="sellingPrice"
+          [min]="0.01" [minFractionDigits]="2" [maxFractionDigits]="2"
+          placeholder="0.00" styleClass="w-full" inputStyleClass="spf-input">
+        </p-inputNumber>
+        <small *ngIf="priceForm.get('sellingPrice')?.invalid && priceForm.get('sellingPrice')?.touched" class="spf-error">
+          Valid price is required
+        </small>
+      </div>
+
+      <div class="spf-row">
+        <div class="spf-group">
+          <label class="spf-label"><span class="req">*</span> Effective From</label>
+          <p-datepicker formControlName="startDate"
+            [showIcon]="true" dateFormat="dd M yy"
+            placeholder="Select date" appendTo="body"
+            inputStyleClass="spf-input">
+          </p-datepicker>
+          <small *ngIf="priceForm.get('startDate')?.invalid && priceForm.get('startDate')?.touched" class="spf-error">
+            Date is required
+          </small>
         </div>
-
-        <!-- Section 2: Pricing Information -->
-        <div class="form-section">
-          <h3 class="section-title">
-            <i class="pi pi-dollar section-icon"></i>
-            Pricing Information
-          </h3>
-
-          <div class="pricing-grid">
-            <div class="pricing-item">
-              <label>Cost Price</label>
-              <span class="price-value">{{ formatPrice(part.costPrice) }}</span>
-            </div>
-            <div class="pricing-item">
-              <label>Selling Price</label>
-              <span class="price-value">{{ formatPrice(part.sellingPrice) }}</span>
-            </div>
-            <div class="pricing-item">
-              <label>Profit Margin</label>
-              <span class="margin-value" [ngClass]="getMarginClass(part.costPrice, part.sellingPrice)">
-                {{ calculateMargin(part.costPrice, part.sellingPrice) }}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Section 3: Vehicle Compatibility -->
-        <div class="form-section">
-          <div class="section-header">
-            <h3 class="section-title">
-              <i class="pi pi-car section-icon"></i>
-              Compatible Vehicles
-            </h3>
-            <span class="vehicle-count">{{ compatibleVehicles.length }} vehicle(s)</span>
-          </div>
-
-          <!-- Loading State -->
-          <div *ngIf="loadingVehicles" class="loading-vehicles">
-            <i class="pi pi-spin pi-spinner"></i>
-            <p>Loading compatible vehicles...</p>
-          </div>
-
-          <!-- Vehicles Table -->
-          <div *ngIf="!loadingVehicles" class="vehicles-table">
-            <p-table *ngIf="compatibleVehicles.length > 0"
-                     [value]="compatibleVehicles"
-                     responsiveLayout="stack"
-                     breakpoint="768px">
-              <ng-template pTemplate="header">
-                <tr>
-                  <th style="width: 20%">Make</th>
-                  <th style="width: 25%">Model</th>
-                  <th style="width: 10%">Year</th>
-                  <th style="width: 15%">Engine Type</th>
-                  <th style="width: 10%">Status</th>
-                  <th style="width: 20%">Notes</th>
-                </tr>
-              </ng-template>
-              <ng-template pTemplate="body" let-vehicle>
-                <tr>
-                  <td>
-                    <span class="p-column-title">Make</span>
-                    {{ vehicle.vehicleMake }}
-                  </td>
-                  <td>
-                    <span class="p-column-title">Model</span>
-                    {{ vehicle.vehicleModel }}
-                  </td>
-                  <td>
-                    <span class="p-column-title">Year</span>
-                    {{ vehicle.vehicleYear }}
-                  </td>
-                  <td>
-                    <span class="p-column-title">Engine Type</span>
-                    {{ vehicle.vehicleEngineType }}
-                  </td>
-                  <td>
-                    <span class="p-column-title">Status</span>
-                    <p-tag
-                      [value]="vehicle.isCompatible ? 'Compatible' : 'Not Compatible'"
-                      [severity]="getCompatibilitySeverity(vehicle.isCompatible)">
-                    </p-tag>
-                  </td>
-                  <td>
-                    <span class="p-column-title">Notes</span>
-                    {{ vehicle.notes || 'N/A' }}
-                  </td>
-                </tr>
-              </ng-template>
-            </p-table>
-
-            <!-- Empty State -->
-            <div *ngIf="compatibleVehicles.length === 0" class="empty-state">
-              <i class="pi pi-car"></i>
-              <p>No compatible vehicles found for this part.</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Section 4: Storage Locations -->
-        <div class="form-section last">
-          <h3 class="section-title">
-            <i class="pi pi-map-marker section-icon"></i>
-            Storage Locations
-          </h3>
-
-          <app-product-location-manager
-            [partId]="partId!"
-            [partName]="part.name">
-          </app-product-location-manager>
+        <div class="spf-group">
+          <label class="spf-label">Currency</label>
+          <input type="text" pInputText formControlName="currency" class="spf-input" placeholder="BDT" />
         </div>
       </div>
-    </p-card>
-  </div>
 
-  <!-- Error State -->
-  <div *ngIf="!loading && !part" class="error-container">
-    <i class="pi pi-exclamation-triangle"></i>
-    <p>Part not found or failed to load.</p>
-    <button pButton type="button" label="Back to Parts" icon="pi pi-arrow-left"
-            (click)="onBack()"></button>
-  </div>
+      <div class="spf-group">
+        <label class="spf-label">Reason <span class="spf-hint">(optional)</span></label>
+        <input type="text" pInputText formControlName="reason"
+          placeholder="e.g. Market adjustment" class="spf-input" />
+      </div>
+
+      <div class="spf-note">
+        <i class="pi pi-info-circle"></i>
+        Previous active price will be closed automatically.
+      </div>
+    </form>
+
+    <ng-template pTemplate="footer">
+      <button pButton type="button" label="Cancel" icon="pi pi-times"
+        class="p-button-text p-button-secondary"
+        (click)="showSetPriceDialog.set(false)"></button>
+      <button pButton type="button" label="Save Price" icon="pi pi-check"
+        class="p-button-success"
+        [loading]="savingPrice()" [disabled]="savingPrice()"
+        (click)="onSavePrice()"></button>
+    </ng-template>
+  </p-dialog>
+
 </div>

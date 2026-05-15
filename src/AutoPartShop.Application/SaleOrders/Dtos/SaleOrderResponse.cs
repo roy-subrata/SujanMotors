@@ -14,7 +14,11 @@
         public string? TechnicianName { get; set; }
         public DateTime OrderDate { get; set; }
         public DateTime DeliveryDate { get; set; }
-        public string Status { get; set; } = string.Empty; // DRAFT, CONFIRMED, PARTIALLY_SHIPPED, SHIPPED, DELIVERED, CANCELLED
+        public string Status { get; set; } = string.Empty; // DRAFT → CONFIRMED → PAID → PACKED → SHIPPED → COMPLETED | CANCELLED | RETURNED
+        public string Channel { get; set; } = string.Empty; // POS | ECOMMERCE | MOBILE | API
+        public DateTime? PaidDate { get; set; }
+        public DateTime? PackedDate { get; set; }
+        public DateTime? CompletedDate { get; set; }
         public decimal SubTotal { get; set; }
         public decimal TaxAmount { get; set; }
         public decimal Discount { get; set; }

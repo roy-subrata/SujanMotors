@@ -215,6 +215,14 @@ public class CategoriesController(
                 return BadRequest(new { message = "Name and Code are required" });
             }
 
+            // Check if name already exists
+            var nameExists = await _categoryRepository.NameExistsAsync(request.Name, null, cancellationToken);
+            if (nameExists)
+            {
+                _logger.LogWarning("Category name already exists: {Name}", request.Name);
+                return Conflict(new { message = $"Category with name '{request.Name}' already exists" });
+            }
+
             // Check if code already exists
             var codeExists = await _categoryRepository.CodeExistsAsync(request.Code, null, cancellationToken);
             if (codeExists)
@@ -290,6 +298,14 @@ public class CategoriesController(
                 return NotFound(new { message = "Category not found" });
             }
 
+            // Check if name already exists (excluding current category)
+            var nameExists = await _categoryRepository.NameExistsAsync(request.Name, id, cancellationToken);
+            if (nameExists)
+            {
+                _logger.LogWarning("Category name already exists: {Name}", request.Name);
+                return Conflict(new { message = $"Category with name '{request.Name}' already exists" });
+            }
+
             _logger.LogInformation("Updating category: {CategoryId}", id);
 
             existingCategory.Update(request.Name, request.Description, request.DisplayOrder, request.IsActive);
@@ -338,6 +354,11 @@ public class CategoriesController(
 
             _logger.LogInformation("Successfully deleted category: {CategoryId}", id);
             return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Business rule violation deleting category: {CategoryId}", id);
+            return Conflict(new { message = ex.Message });
         }
         catch (Exception ex)
         {

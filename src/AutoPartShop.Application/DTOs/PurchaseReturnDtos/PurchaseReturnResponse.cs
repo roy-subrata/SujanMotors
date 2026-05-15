@@ -28,6 +28,10 @@ public class PurchaseReturnResponse
     public string SettlementNotes { get; set; } = string.Empty;
     public bool IsSettled { get; set; }
 
+    // Credit note fields
+    public Guid? CreditNoteId { get; set; }
+    public string? CreditNoteNumber { get; set; }
+
     public List<PurchaseReturnLineResponse> Lines { get; set; } = new();
     public DateTime CreatedAt { get; set; }
 }

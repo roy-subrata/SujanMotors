@@ -365,13 +365,11 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
     }
 
     /**
-     * Get filtered payments based on status
+     * Get filtered payments — server already filters by status,
+     * so just return the loaded data directly to avoid paginator mismatch
      */
     get filteredPayments(): CustomerPaymentResponse[] {
-        if (!this.statusFilter) {
-            return this.customerPayments;
-        }
-        return this.customerPayments.filter((p) => p.status === this.statusFilter);
+        return this.customerPayments;
     }
 
     /**
@@ -417,7 +415,7 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
                         this.messageService.add({
                             severity: 'error',
                             summary: 'Error',
-                            detail: error?.error?.message || 'Failed to confirm payment'
+                            detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || 'Failed to confirm payment')
                         });
                         console.error('Error confirming payment:', error);
                     }
@@ -448,7 +446,7 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
                         this.messageService.add({
                             severity: 'error',
                             summary: 'Error',
-                            detail: error?.error?.message || 'Failed to mark payment as advance'
+                            detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || 'Failed to mark payment as advance')
                         });
                         console.error('Error marking payment as advance:', error);
                     }
@@ -479,7 +477,7 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
                         this.messageService.add({
                             severity: 'error',
                             summary: 'Error',
-                            detail: error?.error?.message || 'Failed to mark payment as regular'
+                            detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || 'Failed to mark payment as regular')
                         });
                         console.error('Error marking payment as regular:', error);
                     }
@@ -510,7 +508,7 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
                         this.messageService.add({
                             severity: 'error',
                             summary: 'Error',
-                            detail: error?.error?.message || 'Failed to reconcile payment'
+                            detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || 'Failed to reconcile payment')
                         });
                         console.error('Error reconciling payment:', error);
                     }
@@ -541,7 +539,7 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
                         this.messageService.add({
                             severity: 'error',
                             summary: 'Error',
-                            detail: error?.error?.message || 'Failed to refund payment'
+                            detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || 'Failed to refund payment')
                         });
                         console.error('Error refunding payment:', error);
                     }
@@ -572,7 +570,7 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
                         this.messageService.add({
                             severity: 'error',
                             summary: 'Error',
-                            detail: error?.error?.message || 'Failed to cancel payment'
+                            detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || 'Failed to cancel payment')
                         });
                         console.error('Error cancelling payment:', error);
                     }
@@ -603,7 +601,7 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
                         this.messageService.add({
                             severity: 'error',
                             summary: 'Error',
-                            detail: error?.error?.message || 'Failed to delete payment'
+                            detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || 'Failed to delete payment')
                         });
                         console.error('Error deleting payment:', error);
                     }

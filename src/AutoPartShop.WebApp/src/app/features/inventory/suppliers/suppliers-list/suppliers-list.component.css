@@ -48,6 +48,44 @@
   margin: 0;
 }
 
+/* ==================== BREADCRUMB BAR ==================== */
+.breadcrumb-bar {
+  background: #ffffff;
+  border-bottom: 1px solid var(--color-border);
+  padding: 10px 20px;
+}
+
+.breadcrumb-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.breadcrumb-link {
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: color 0.2s ease;
+}
+
+.breadcrumb-link:hover {
+  color: var(--color-primary);
+}
+
+.breadcrumb-link.breadcrumb-active {
+  color: var(--color-text-primary);
+  font-weight: 500;
+  pointer-events: none;
+}
+
+.breadcrumb-separator {
+  font-size: 10px;
+  color: var(--color-text-muted);
+}
+
 /* ==================== PAGE HEADER ==================== */
 .page-header {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #6B8DD6 100%);

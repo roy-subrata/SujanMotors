@@ -1,42 +1,53 @@
 .storefront {
-  --sf-bg: #f6f3ef;
-  --sf-surface: #ffffff;
-  --sf-ink: #111318;
-  --sf-muted: #5f6672;
-  --sf-border: #e7dfd6;
-  --sf-accent: #d97706;
-  --sf-accent-strong: #b45309;
-  --sf-accent-soft: #fff0dc;
-  --sf-success: #1f8a5b;
-  --sf-shadow-sm: 0 6px 18px rgba(17, 19, 24, 0.08);
-  --sf-shadow-lg: 0 20px 40px rgba(17, 19, 24, 0.12);
-  --sf-radius: 16px;
-  --sf-radius-sm: 10px;
+  /* ── Mechanic Dark Theme ── */
+  --sf-accent:        #F97316;   /* vivid orange */
+  --sf-accent-strong: #EA580C;   /* darker orange */
+  --sf-accent-mid:    #FB923C;   /* lighter orange */
+  --sf-accent-soft:   #FFF7ED;   /* warm orange tint */
+
+  --sf-bg:       #F5F5F5;
+  --sf-surface:  #ffffff;
+  --sf-ink:      #1C1C1E;        /* near-black charcoal */
+  --sf-muted:    #6B7280;
+  --sf-border:   #E5E7EB;
+  --sf-success:  #16A34A;
+  --sf-sale:     #DC2626;
+
+  --sf-nav-bg:   #1C1C1E;        /* charcoal nav */
+  --sf-nav-text: #ffffff;
+
+  --sf-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --sf-shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.15);
+  --sf-radius:    10px;
+  --sf-radius-sm: 6px;
 
   min-height: 100vh;
-  background:
-    radial-gradient(1200px 600px at 10% -10%, #fff4e6 0%, rgba(255, 244, 230, 0) 60%),
-    radial-gradient(900px 520px at 90% -20%, #eef2ff 0%, rgba(238, 242, 255, 0) 55%),
-    var(--sf-bg);
+  background: var(--sf-bg);
   color: var(--sf-ink);
-  font-family: 'Sora', 'Space Grotesk', 'Segoe UI', sans-serif;
+  font-family: 'Inter', 'Segoe UI', sans-serif;
   display: flex;
   flex-direction: column;
-  height: 100%;
-  overflow-y: auto;
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
+  /* clip instead of hidden — doesn't create a scroll container,
+     so position:sticky on the header still anchors to the viewport */
+  overflow-x: clip;
+}
+
+/* Sticky header */
+app-store-header {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  display: block;
 }
 
 .storefront h1,
 .storefront h2,
 .storefront h3,
 .storefront h4 {
-  font-family: 'Space Grotesk', 'Sora', 'Segoe UI', sans-serif;
-  letter-spacing: -0.02em;
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  letter-spacing: -0.01em;
 }
 
 .storefront-content {
   flex: 1;
-  overflow: visible;
 }

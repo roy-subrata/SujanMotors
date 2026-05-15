@@ -96,9 +96,40 @@
       </small>
     </div>
 
+    <!-- Base Unit Field -->
+    <div class="form-group">
+      <label for="create-base-unit" class="form-label">
+        <span class="required">*</span> Base Unit
+      </label>
+      <small class="hint-message">Unit for stock tracking (e.g., Pieces)</small>
+      <p-autocomplete
+        id="create-base-unit"
+        [suggestions]="filteredBaseUnits"
+        [ngModel]="selectedCreateBaseUnit"
+        (ngModelChange)="selectedCreateBaseUnit = $event"
+        placeholder="Search base unit..."
+        [showEmptyMessage]="true"
+        emptyMessage="No units found"
+        (onClear)="onBaseUnitCleared()"
+        (onSelect)="onBaseUnitSelect($event.value)"
+        [dropdown]="true"
+        [disabled]="isSubmitting"
+        (completeMethod)="onBaseUnitEvent($event)"
+        optionLabel="name"
+        [ngModelOptions]="{standalone: true}">
+        <ng-template let-unit #item>
+          <div class="unit-autocomplete-item">
+            <div class="font-semibold">{{ unit.name }}</div>
+            <div class="text-sm text-gray-500">{{ unit.code }}</div>
+          </div>
+        </ng-template>
+      </p-autocomplete>
+    </div>
+
     <!-- Unit Field -->
     <div class="form-group">
-      <label for="create-unit" class="form-label">Unit</label>
+      <label for="create-unit" class="form-label">Display/Sales Unit</label>
+      <small class="hint-message">Unit for sales (defaults to Base Unit)</small>
       <p-autocomplete
         id="create-unit"
         [suggestions]="filteredUnits"
@@ -215,49 +246,78 @@
       <small class="hint-message">Reorder level for inventory alerts</small>
     </div>
 
-    <!-- Min Margin Override -->
+    <!-- Warranty Fields -->
     <div class="form-group">
-      <label for="create-min-margin" class="form-label">Min Margin (%)</label>
-      <p-inputNumber
-        inputId="create-min-margin"
-        formControlName="minMarginPercentOverride"
-        placeholder="Default"
-        [min]="0"
-        [max]="100"
-        [step]="0.01"
-        [minFractionDigits]="0"
-        [maxFractionDigits]="2"
-        mode="decimal"
-        [class.error]="hasError(createForm, 'minMarginPercentOverride')"
-        [class.success]="isFieldValid(createForm, 'minMarginPercentOverride')">
-      </p-inputNumber>
-      <small class="error-message" *ngIf="hasError(createForm, 'minMarginPercentOverride')">
-        {{ getErrorMessage(createForm, 'minMarginPercentOverride') }}
-      </small>
-      <small class="hint-message">Leave blank to use global rule</small>
+      <label for="create-has-warranty" class="form-label">Warranty Available</label>
+      <div class="status-toggle">
+        <input id="create-has-warranty" type="checkbox" formControlName="hasWarranty" class="status-checkbox" />
+        <label for="create-has-warranty" class="status-label">
+          <span *ngIf="createForm.get('hasWarranty')?.value" class="status-active">
+            <i class="pi pi-shield"></i> Yes
+          </span>
+          <span *ngIf="!createForm.get('hasWarranty')?.value" class="status-inactive">
+            <i class="pi pi-ban"></i> No
+          </span>
+        </label>
+      </div>
     </div>
 
-    <!-- Max Discount Override -->
-    <div class="form-group">
-      <label for="create-max-discount" class="form-label">Max Discount (%)</label>
-      <p-inputNumber
-        inputId="create-max-discount"
-        formControlName="maxDiscountPercentOverride"
-        placeholder="Default"
-        [min]="0"
-        [max]="100"
-        [step]="0.01"
-        [minFractionDigits]="0"
-        [maxFractionDigits]="2"
-        mode="decimal"
-        [class.error]="hasError(createForm, 'maxDiscountPercentOverride')"
-        [class.success]="isFieldValid(createForm, 'maxDiscountPercentOverride')">
-      </p-inputNumber>
-      <small class="error-message" *ngIf="hasError(createForm, 'maxDiscountPercentOverride')">
-        {{ getErrorMessage(createForm, 'maxDiscountPercentOverride') }}
-      </small>
-      <small class="hint-message">Leave blank to use global rule</small>
-    </div>
+    <ng-container *ngIf="createForm.get('hasWarranty')?.value">
+      <div class="form-group">
+        <label for="create-warranty-period" class="form-label">
+          <span class="required">*</span> Warranty Period (Months)
+        </label>
+        <p-inputNumber
+          inputId="create-warranty-period"
+          formControlName="warrantyPeriodMonths"
+          placeholder="12"
+          [min]="1"
+          [step]="1"
+          [showButtons]="true"
+          [class.error]="hasError(createForm, 'warrantyPeriodMonths')"
+          [class.success]="isFieldValid(createForm, 'warrantyPeriodMonths')">
+        </p-inputNumber>
+        <small class="error-message" *ngIf="hasError(createForm, 'warrantyPeriodMonths')">
+          {{ getErrorMessage(createForm, 'warrantyPeriodMonths') }}
+        </small>
+      </div>
+
+      <div class="form-group">
+        <label for="create-warranty-type" class="form-label">
+          <span class="required">*</span> Warranty Type
+        </label>
+        <select id="create-warranty-type" class="form-input" formControlName="warrantyType">
+          <option [ngValue]="null">Select warranty type</option>
+          <option *ngFor="let type of warrantyTypes" [value]="type.value">{{ type.label }}</option>
+        </select>
+        <small class="error-message" *ngIf="hasError(createForm, 'warrantyType')">
+          {{ getErrorMessage(createForm, 'warrantyType') }}
+        </small>
+      </div>
+
+      <div class="form-group">
+        <label for="create-warranty-certificate-template" class="form-label">Certificate Template Prefix</label>
+        <input
+          id="create-warranty-certificate-template"
+          pInputText
+          type="text"
+          formControlName="warrantyCertificateTemplate"
+          placeholder="Example: CERT"
+          class="form-input" />
+      </div>
+
+      <div class="form-group">
+        <label for="create-warranty-terms" class="form-label">Warranty Terms</label>
+        <textarea
+          id="create-warranty-terms"
+          pInputTextarea
+          formControlName="warrantyTerms"
+          placeholder="Enter warranty terms"
+          rows="3"
+          class="form-input">
+        </textarea>
+      </div>
+    </ng-container>
 
     <!-- Description Field -->
     <div class="form-group">
@@ -364,9 +424,40 @@
       </small>
     </div>
 
+    <!-- Base Unit Field -->
+    <div class="form-group">
+      <label for="update-base-unit" class="form-label">
+        <span class="required">*</span> Base Unit
+      </label>
+      <small class="hint-message">Unit for stock tracking (e.g., Pieces)</small>
+      <p-autocomplete
+        id="update-base-unit"
+        [suggestions]="filteredBaseUnits"
+        [ngModel]="selectedUpdateBaseUnit"
+        (ngModelChange)="selectedUpdateBaseUnit = $event"
+        placeholder="Search base unit..."
+        [showEmptyMessage]="true"
+        emptyMessage="No units found"
+        (onClear)="onUpdateBaseUnitCleared()"
+        (onSelect)="onUpdateBaseUnitSelect($event.value)"
+        [dropdown]="true"
+        [disabled]="isSubmitting"
+        (completeMethod)="onUpdateBaseUnitEvent($event)"
+        optionLabel="name"
+        [ngModelOptions]="{standalone: true}">
+        <ng-template let-unit #item>
+          <div class="unit-autocomplete-item">
+            <div class="font-semibold">{{ unit.name }}</div>
+            <div class="text-sm text-gray-500">{{ unit.code }}</div>
+          </div>
+        </ng-template>
+      </p-autocomplete>
+    </div>
+
     <!-- Unit Field -->
     <div class="form-group">
-      <label for="update-unit" class="form-label">Unit</label>
+      <label for="update-unit" class="form-label">Display/Sales Unit</label>
+      <small class="hint-message">Unit for sales (defaults to Base Unit)</small>
       <p-autocomplete
         id="update-unit"
         [suggestions]="filteredUnits"
@@ -482,49 +573,78 @@
       </small>
     </div>
 
-    <!-- Min Margin Override -->
+    <!-- Warranty Fields -->
     <div class="form-group">
-      <label for="update-min-margin" class="form-label">Min Margin (%)</label>
-      <p-inputNumber
-        inputId="update-min-margin"
-        formControlName="minMarginPercentOverride"
-        placeholder="Default"
-        [min]="0"
-        [max]="100"
-        [step]="0.01"
-        [minFractionDigits]="0"
-        [maxFractionDigits]="2"
-        mode="decimal"
-        [class.error]="hasError(updateForm, 'minMarginPercentOverride')"
-        [class.success]="isFieldValid(updateForm, 'minMarginPercentOverride')">
-      </p-inputNumber>
-      <small class="error-message" *ngIf="hasError(updateForm, 'minMarginPercentOverride')">
-        {{ getErrorMessage(updateForm, 'minMarginPercentOverride') }}
-      </small>
-      <small class="hint-message">Leave blank to use global rule</small>
+      <label for="update-has-warranty" class="form-label">Warranty Available</label>
+      <div class="status-toggle">
+        <input id="update-has-warranty" type="checkbox" formControlName="hasWarranty" class="status-checkbox" />
+        <label for="update-has-warranty" class="status-label">
+          <span *ngIf="updateForm.get('hasWarranty')?.value" class="status-active">
+            <i class="pi pi-shield"></i> Yes
+          </span>
+          <span *ngIf="!updateForm.get('hasWarranty')?.value" class="status-inactive">
+            <i class="pi pi-ban"></i> No
+          </span>
+        </label>
+      </div>
     </div>
 
-    <!-- Max Discount Override -->
-    <div class="form-group">
-      <label for="update-max-discount" class="form-label">Max Discount (%)</label>
-      <p-inputNumber
-        inputId="update-max-discount"
-        formControlName="maxDiscountPercentOverride"
-        placeholder="Default"
-        [min]="0"
-        [max]="100"
-        [step]="0.01"
-        [minFractionDigits]="0"
-        [maxFractionDigits]="2"
-        mode="decimal"
-        [class.error]="hasError(updateForm, 'maxDiscountPercentOverride')"
-        [class.success]="isFieldValid(updateForm, 'maxDiscountPercentOverride')">
-      </p-inputNumber>
-      <small class="error-message" *ngIf="hasError(updateForm, 'maxDiscountPercentOverride')">
-        {{ getErrorMessage(updateForm, 'maxDiscountPercentOverride') }}
-      </small>
-      <small class="hint-message">Leave blank to use global rule</small>
-    </div>
+    <ng-container *ngIf="updateForm.get('hasWarranty')?.value">
+      <div class="form-group">
+        <label for="update-warranty-period" class="form-label">
+          <span class="required">*</span> Warranty Period (Months)
+        </label>
+        <p-inputNumber
+          inputId="update-warranty-period"
+          formControlName="warrantyPeriodMonths"
+          placeholder="12"
+          [min]="1"
+          [step]="1"
+          [showButtons]="true"
+          [class.error]="hasError(updateForm, 'warrantyPeriodMonths')"
+          [class.success]="isFieldValid(updateForm, 'warrantyPeriodMonths')">
+        </p-inputNumber>
+        <small class="error-message" *ngIf="hasError(updateForm, 'warrantyPeriodMonths')">
+          {{ getErrorMessage(updateForm, 'warrantyPeriodMonths') }}
+        </small>
+      </div>
+
+      <div class="form-group">
+        <label for="update-warranty-type" class="form-label">
+          <span class="required">*</span> Warranty Type
+        </label>
+        <select id="update-warranty-type" class="form-input" formControlName="warrantyType">
+          <option [ngValue]="null">Select warranty type</option>
+          <option *ngFor="let type of warrantyTypes" [value]="type.value">{{ type.label }}</option>
+        </select>
+        <small class="error-message" *ngIf="hasError(updateForm, 'warrantyType')">
+          {{ getErrorMessage(updateForm, 'warrantyType') }}
+        </small>
+      </div>
+
+      <div class="form-group">
+        <label for="update-warranty-certificate-template" class="form-label">Certificate Template Prefix</label>
+        <input
+          id="update-warranty-certificate-template"
+          pInputText
+          type="text"
+          formControlName="warrantyCertificateTemplate"
+          placeholder="Example: CERT"
+          class="form-input" />
+      </div>
+
+      <div class="form-group">
+        <label for="update-warranty-terms" class="form-label">Warranty Terms</label>
+        <textarea
+          id="update-warranty-terms"
+          pInputTextarea
+          formControlName="warrantyTerms"
+          placeholder="Enter warranty terms"
+          rows="3"
+          class="form-input">
+        </textarea>
+      </div>
+    </ng-container>
 
     <!-- Description Field -->
     <div class="form-group">

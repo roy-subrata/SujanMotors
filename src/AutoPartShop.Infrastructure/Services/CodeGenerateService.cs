@@ -7,7 +7,7 @@ namespace AutoPartsShop.Infrastructure.Services
     {
         public async Task<string> GenerateAsync(string prefix, CancellationToken cancellationToken = default, int minDigits = 3)
         {
-            // Make generation atomic: fetch or create the sequence, increment LastNumber and save within a transaction
+            // Make generation atomic: fetch or create the sequence, increment LastNumber and persist within a transaction
             var strategy = _db.Database.CreateExecutionStrategy();
 
             string result = null;
@@ -26,11 +26,11 @@ namespace AutoPartsShop.Infrastructure.Services
                         Prefix = prefix,
                         LastNumber = 0
                     };
-                    // Don't save here - just preview the code
+                    _db.Add(sequence);
                 }
 
                 sequence.LastNumber++;
-                // Don't save here - call SaveGenerateCodeAsync after record is created
+                await _db.SaveChangesAsync(cancellationToken);
 
                 int nextNumber = sequence.LastNumber;
                 int numberLength = Math.Max(minDigits, nextNumber.ToString().Length);

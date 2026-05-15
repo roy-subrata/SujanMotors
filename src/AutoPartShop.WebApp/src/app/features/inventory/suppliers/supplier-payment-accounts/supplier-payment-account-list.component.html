@@ -1,136 +1,178 @@
-<div class="container">
-  <p-toast></p-toast>
-  <p-confirmDialog></p-confirmDialog>
+<p-toast position="top-right"></p-toast>
+<p-confirmDialog></p-confirmDialog>
+<p-menu #actionMenu [model]="contextMenuItems" [popup]="true" appendTo="body"></p-menu>
 
-  <!-- Header Section -->
-  <div class="header">
+<!-- Breadcrumb -->
+<div class="breadcrumb-bar">
+  <div class="breadcrumb-content">
+    <a routerLink="/" class="breadcrumb-link"><i class="pi pi-home"></i></a>
+    <i class="pi pi-chevron-right breadcrumb-separator"></i>
+    <a routerLink="/inventory/suppliers" class="breadcrumb-link">Suppliers</a>
+    <i class="pi pi-chevron-right breadcrumb-separator"></i>
+    <span class="breadcrumb-active">{{ supplierName || 'Payment Accounts' }}</span>
+  </div>
+</div>
+
+<div class="page-wrapper">
+
+  <!-- Header -->
+  <header class="page-header">
     <div class="header-content">
-      <div class="header-title-section">
-        <div class="breadcrumb">
-          <a (click)="goBack()" class="breadcrumb-link">
-            <i class="pi pi-arrow-left"></i>
-            Suppliers
-          </a>
-          <span class="breadcrumb-separator">/</span>
-          <span class="breadcrumb-current">{{ supplierName }}</span>
-        </div>
-        <h1 class="header-title">Payment Accounts</h1>
-        <p class="header-subtitle">Manage payment accounts for {{ supplierName }}</p>
+      <div class="header-left">
+        <h1 class="page-title">Payment Accounts</h1>
+        <p class="page-subtitle">Bank accounts & payment methods for {{ supplierName }}</p>
       </div>
-      <div class="toolbar">
-        <button
-          pButton
-          type="button"
-          label="Add Payment Account"
-          icon="pi pi-plus"
-          class="btn-create p-button-success"
-          (click)="createNew()"
-        ></button>
+      <div class="header-actions">
+        <div class="stats-badge">
+          <i class="pi pi-credit-card"></i>
+          <div class="stats-info">
+            <span class="stats-value">{{ accounts.length }}</span>
+            <span class="stats-label">accounts</span>
+          </div>
+        </div>
+        <div class="action-buttons">
+          <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="loadAccounts()">
+            <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
+          </button>
+          <button class="btn-primary" (click)="createNew()">
+            <i class="pi pi-plus"></i>
+            <span>Add Account</span>
+          </button>
+        </div>
       </div>
     </div>
-  </div>
+  </header>
 
-  <!-- Table Container -->
-  <div class="table-container">
-    <p-table
-      [value]="accounts"
-      [loading]="loading"
-      responsiveLayout="scroll"
-      styleClass="p-datatable-striped"
-    >
-      <ng-template pTemplate="header">
-        <tr>
-          <th>Account Name</th>
-          <th>Type</th>
-          <th>Account Details</th>
-          <th>Beneficiary</th>
-          <th>Status</th>
-          <th>Default</th>
-          <th style="width: 80px;">Actions</th>
-        </tr>
-      </ng-template>
+  <!-- Desktop Table -->
+  <section class="table-section desktop-only">
+    <div class="table-container">
+      <p-table
+        [value]="accounts"
+        [loading]="loading"
+        [rowHover]="true"
+        responsiveLayout="scroll"
+        styleClass="custom-table">
 
-      <ng-template pTemplate="body" let-account>
-        <tr>
-          <td>
-            <span class="account-name">{{ account.accountName }}</span>
-          </td>
-          <td>
-            <p-tag
-              [value]="getAccountTypeLabel(account.accountType)"
-              [severity]="getAccountTypeBadgeSeverity(account.accountType)"
-            ></p-tag>
-          </td>
-          <td>
-            <div class="account-details">
-              <span class="primary-info">{{ getAccountDisplay(account) }}</span>
-              <span *ngIf="account.accountType === 'BANK_TRANSFER' && account.bankBranchName" class="secondary-info">
-                Branch: {{ account.bankBranchName }}
+        <ng-template #header>
+          <tr>
+            <th class="col-name">Account Name</th>
+            <th class="col-type">Type</th>
+            <th class="col-details">Account Details</th>
+            <th class="col-beneficiary">Beneficiary</th>
+            <th class="col-status">Status</th>
+            <th class="col-default">Default</th>
+            <th class="col-actions">Actions</th>
+          </tr>
+        </ng-template>
+
+        <ng-template #body let-account>
+          <tr class="data-row">
+            <td class="col-name">
+              <span class="account-name">{{ account.accountName }}</span>
+            </td>
+            <td class="col-type">
+              <p-tag [value]="getAccountTypeLabel(account.accountType)"
+                     [severity]="getAccountTypeBadgeSeverity(account.accountType)">
+              </p-tag>
+            </td>
+            <td class="col-details">
+              <div class="account-details">
+                <span class="primary-info">{{ getAccountDisplay(account) }}</span>
+                <span *ngIf="account.accountType === 'BANK_TRANSFER' && account.bankBranchName" class="secondary-info">
+                  {{ account.bankBranchName }}
+                </span>
+              </div>
+            </td>
+            <td class="col-beneficiary">
+              <span class="text-gray">
+                {{ (account.accountType === 'BANK_TRANSFER' ? account.beneficiaryName :
+                   account.accountType === 'MOBILE_BANKING' ? account.mobileAccountHolderName : null) || '-' }}
               </span>
-            </div>
-          </td>
-          <td>
-            <ng-container *ngIf="account.accountType === 'BANK_TRANSFER'">
-              {{ account.beneficiaryName || '-' }}
-            </ng-container>
-            <ng-container *ngIf="account.accountType === 'MOBILE_BANKING'">
-              {{ account.mobileAccountHolderName || '-' }}
-            </ng-container>
-            <ng-container *ngIf="account.accountType !== 'BANK_TRANSFER' && account.accountType !== 'MOBILE_BANKING'">
-              -
-            </ng-container>
-          </td>
-          <td>
-            <p-tag
-              [value]="account.isActive ? 'Active' : 'Inactive'"
-              [severity]="account.isActive ? 'success' : 'danger'"
-            ></p-tag>
-          </td>
-          <td>
-            <ng-container *ngIf="account.isDefault; else notDefault">
-              <p-tag value="DEFAULT" severity="info"></p-tag>
-            </ng-container>
-            <ng-template #notDefault>
-              <span class="text-secondary">-</span>
-            </ng-template>
-          </td>
-          <td>
-            <button
-              pButton
-              pRipple
-              type="button"
-              icon="pi pi-ellipsis-v"
-              class="p-button-text p-button-sm"
-              pTooltip="Actions"
-              tooltipPosition="left"
-              (contextmenu)="showContextMenu($event, account)"
-              (click)="showContextMenu($event, account)"
-            ></button>
-          </td>
-        </tr>
-      </ng-template>
+            </td>
+            <td class="col-status">
+              <span class="status-pill" [attr.data-status]="account.isActive ? 'active' : 'inactive'">
+                {{ account.isActive ? 'Active' : 'Inactive' }}
+              </span>
+            </td>
+            <td class="col-default">
+              <span *ngIf="account.isDefault" class="default-badge">DEFAULT</span>
+              <span *ngIf="!account.isDefault" class="text-muted">—</span>
+            </td>
+            <td class="col-actions">
+              <div class="action-cell">
+                <button class="btn-action" pTooltip="More" (click)="showContextMenu($event, account)">
+                  <i class="pi pi-ellipsis-v"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </ng-template>
 
-      <ng-template pTemplate="emptymessage">
-        <tr>
-          <td colspan="7" class="empty-message">
-            <div class="empty-state">
-              <i class="pi pi-credit-card empty-icon"></i>
-              <p class="empty-text">No payment accounts found for this supplier</p>
-              <button
-                pButton
-                type="button"
-                label="Add Payment Account"
-                icon="pi pi-plus"
-                class="p-button-outlined"
-                (click)="createNew()"
-              ></button>
-            </div>
-          </td>
-        </tr>
-      </ng-template>
-    </p-table>
-  </div>
+        <ng-template #emptymessage>
+          <tr>
+            <td colspan="7">
+              <div class="empty-state">
+                <div class="empty-icon"><i class="pi pi-credit-card"></i></div>
+                <h3>No Payment Accounts</h3>
+                <p>Add the first payment account for this supplier</p>
+                <button class="btn-primary" (click)="createNew()">
+                  <i class="pi pi-plus"></i> Add Account
+                </button>
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </div>
+  </section>
 
-  <!-- Context Menu -->
-  <p-contextMenu #contextMenu [model]="contextMenuItems" [appendTo]="'body'"></p-contextMenu>
+  <!-- Mobile Cards -->
+  <section class="cards-section mobile-only">
+    <div *ngIf="loading" class="cards-grid">
+      <div *ngFor="let _ of [1,2,3]" class="account-card skeleton-card">
+        <div class="skeleton skeleton-text"></div>
+        <div class="skeleton skeleton-text-sm"></div>
+      </div>
+    </div>
+
+    <div *ngIf="!loading && accounts.length === 0" class="empty-state-mobile">
+      <div class="empty-icon"><i class="pi pi-credit-card"></i></div>
+      <h3>No Payment Accounts</h3>
+      <p>Add the first payment account for this supplier</p>
+      <button class="btn-primary" (click)="createNew()">
+        <i class="pi pi-plus"></i> Add Account
+      </button>
+    </div>
+
+    <div *ngIf="!loading && accounts.length > 0" class="cards-grid">
+      <div *ngFor="let account of accounts" class="account-card">
+        <div class="card-header">
+          <span class="account-name">{{ account.accountName }}</span>
+          <p-tag [value]="getAccountTypeLabel(account.accountType)"
+                 [severity]="getAccountTypeBadgeSeverity(account.accountType)">
+          </p-tag>
+        </div>
+        <div class="card-body">
+          <div class="card-row">
+            <span class="label">Details</span>
+            <span class="value">{{ getAccountDisplay(account) }}</span>
+          </div>
+          <div class="card-row" *ngIf="account.beneficiaryName || account.mobileAccountHolderName">
+            <span class="label">Beneficiary</span>
+            <span class="value">{{ account.beneficiaryName || account.mobileAccountHolderName }}</span>
+          </div>
+        </div>
+        <div class="card-footer">
+          <span class="status-pill" [attr.data-status]="account.isActive ? 'active' : 'inactive'">
+            {{ account.isActive ? 'Active' : 'Inactive' }}
+          </span>
+          <span *ngIf="account.isDefault" class="default-badge">DEFAULT</span>
+          <button class="btn-card-action" (click)="showContextMenu($event, account); $event.stopPropagation()">
+            <i class="pi pi-ellipsis-h"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
 </div>

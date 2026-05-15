@@ -1,0 +1,175 @@
+/* Fix pricing/warranty table column alignment */
+/* Improved pricing & warranty table alignment */
+.modal-content .items-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+.modal-content .items-table th,
+.modal-content .items-table td {
+  padding: 0.5rem 0.25rem;
+  text-align: center;
+  border-bottom: 1px solid #e5e7eb;
+  vertical-align: middle;
+}
+.modal-content .items-table th {
+  background: #f3f4f6;
+  font-weight: 600;
+}
+.modal-content .items-table td input[type="number"],
+.modal-content .items-table td input[type="text"] {
+  width: 95%;
+  min-width: 60px;
+  box-sizing: border-box;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid #d1d5db;
+  font-size: 1rem;
+  text-align: right;
+  margin: 0 auto;
+  display: block;
+}
+.modal-content .items-table td input[type="checkbox"] {
+  display: block;
+  margin: 0 auto;
+  transform: scale(1.2);
+}
+.modal-content .items-table th,
+.modal-content .items-table td {
+  width: 14%;
+  max-width: 14%;
+}
+.modal-content .items-table th:first-child,
+.modal-content .items-table td:first-child {
+  width: 16%;
+  max-width: 16%;
+}
+.modal-content .items-table th:last-child,
+.modal-content .items-table td:last-child {
+  width: 16%;
+  max-width: 16%;
+}
+@media (max-width: 900px) {
+  .modal-content .items-table th,
+  .modal-content .items-table td {
+    font-size: 0.95rem;
+    padding: 0.25rem 0.1rem;
+  }
+  .modal-content .items-table td input[type="number"],
+  .modal-content .items-table td input[type="text"] {
+    min-width: 40px;
+    font-size: 0.95rem;
+  }
+}
+/* Summary card styles */
+.summary-card {
+  background: #f3f4f6;
+  border-radius: 8px;
+  padding: 1rem 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+.summary-row {
+  margin: 0.25rem 0;
+}
+.text-danger {
+  color: #dc2626;
+  font-weight: 600;
+}
+/* Modal styles for pricing dialog */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.modal-content {
+  background: #fff;
+  border-radius: 8px;
+  padding: 2rem;
+  min-width: 600px;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.15);
+}
+.pricing-btn {
+  margin-bottom: 1rem;
+  background: #ede9fe;
+  color: #6d28d9;
+  border: none;
+  border-radius: 4px;
+  padding: 0.5rem 1.25rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.pricing-btn:hover {
+  background: #6d28d9;
+  color: #fff;
+}
+/* Workflow Stepper Styles */
+.workflow-stepper {
+  margin: 1.5rem 0 2rem 0;
+  display: flex;
+  justify-content: center;
+}
+.stepper-track {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+.stepper-step {
+  padding: 0.5rem 1.25rem;
+  border-radius: 2rem;
+  background: #ede9fe;
+  color: #6d28d9;
+  font-weight: 600;
+  font-size: 1rem;
+  transition: background 0.2s, color 0.2s;
+}
+.stepper-step.active {
+  background: #6d28d9;
+  color: #fff;
+}
+.stepper-step.completed {
+  background: #a7f3d0;
+  color: #065f46;
+}
+.stepper-arrow {
+  font-size: 1.5rem;
+  color: #a1a1aa;
+}
+.wizard-container {
+  max-width: 800px;
+  margin: 2rem auto;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  padding: 2rem;
+}
+.wizard-steps {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+}
+.wizard-steps div {
+  flex: 1;
+  text-align: center;
+  padding: 0.75rem 0;
+  border-bottom: 2px solid #e5e7eb;
+  color: #6b7280;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+.wizard-steps div.active {
+  color: #6d28d9;
+  border-bottom: 2px solid #6d28d9;
+}
+.wizard-content {
+  min-height: 200px;
+}

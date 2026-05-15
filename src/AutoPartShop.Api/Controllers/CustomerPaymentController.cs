@@ -97,22 +97,26 @@ public class CustomerPaymentController : ControllerBase
 
             var responses = paymentsList.Select(p => new Application.CustomerPayment.Dtos.CustomerPaymentResponse
             {
-                //Id = p.Id,
-                //CustomerId = p.CustomerId,
-                //CustomerName = customerName,
-                //InvoiceId = p.InvoiceId,
-                //PaymentProviderId = p.PaymentProviderId,
-                //ProviderName = p.PaymentProvider?.ProviderName ?? string.Empty,
-                //InvoiceNumber = p.Invoice?.InvoiceNumber ?? string.Empty,
-                //TransactionNumber = p.TransactionNumber,
-                //Amount = p.Amount,
-                //PaymentFee = p.PaymentFee,
-                //NetAmount = p.NetAmount,
-                //PaymentMethod = p.PaymentMethod,
-                //PaymentDate = p.PaymentDate,
-                //ReferenceNumber = p.ReferenceNumber,
-                //Status = p.Status,
-                //Notes = p.Notes
+                Id = p.Id,
+                CustomerId = p.CustomerId,
+                CustomerName = customerName,
+                InvoiceId = p.InvoiceId,
+                PaymentProviderId = p.PaymentProviderId,
+                ProviderName = p.PaymentProvider?.ProviderName ?? string.Empty,
+                InvoiceNumber = p.Invoice?.InvoiceNumber ?? string.Empty,
+                TransactionNumber = p.TransactionNumber,
+                Amount = p.Amount,
+                PaymentFee = p.PaymentFee,
+                NetAmount = p.NetAmount,
+                PaymentMethod = p.PaymentMethod,
+                PaymentDate = p.PaymentDate,
+                ReferenceNumber = p.ReferenceNumber,
+                Status = p.Status,
+                Notes = p.Notes,
+                PaymentType = p.PaymentType.ToString(),
+                RemainingAmount = p.RemainingAmount,
+                SourceAdvancePaymentId = p.SourceAdvancePaymentId,
+                CreatedAt = p.CreatedDate
             }).ToList();
 
             return Ok(new { data = responses, totalCount });
@@ -241,27 +245,51 @@ public class CustomerPaymentController : ControllerBase
 
                 payment.MarkAsCompleted();
 
-                // Decrease customer balance (negative because payment reduces debt)
-                customer.UpdateBalance(-request.Amount);
-                customer.ModifiedBy = _currentUserService.GetCurrentUsername();
-
-                await _repository.AddAsync(payment, cancellationToken);
-                await _customerRepository.UpdateAsync(customer, cancellationToken);
-
-                // Update invoice payment status if payment is linked to an invoice
-                if (request.InvoiceId.HasValue)
+                var strategy = _dbContext.Database.CreateExecutionStrategy();
+                await strategy.ExecuteAsync(async () =>
                 {
-                    var invoice = await _dbContext.Invoices
-                        .Include(i => i.CustomerPayments)
-                        .FirstOrDefaultAsync(i => i.Id == request.InvoiceId.Value, cancellationToken);
-
-                    if (invoice != null)
+                    await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+                    try
                     {
-                        invoice.UpdatePaymentStatus();
-                        invoice.ModifiedBy = _currentUserService.GetCurrentUsername();
-                        await _invoiceRepository.UpdateAsync(invoice, cancellationToken);
+                        // Decrease customer balance (negative because payment reduces debt)
+                        customer.UpdateBalance(-request.Amount);
+                        customer.ModifiedBy = _currentUserService.GetCurrentUsername();
+
+                        await _repository.AddAsync(payment, cancellationToken);
+                        await _customerRepository.UpdateAsync(customer, cancellationToken);
+
+                        // Update invoice payment status and sales order if payment is linked to an invoice
+                        if (request.InvoiceId.HasValue)
+                        {
+                            var invoice = await _dbContext.Invoices
+                                .Include(i => i.CustomerPayments)
+                                .Include(i => i.SalesOrder)
+                                .FirstOrDefaultAsync(i => i.Id == request.InvoiceId.Value, cancellationToken);
+
+                            if (invoice != null)
+                            {
+                                invoice.UpdatePaymentStatus();
+                                invoice.ModifiedBy = _currentUserService.GetCurrentUsername();
+                                await _invoiceRepository.UpdateAsync(invoice, cancellationToken);
+
+                                // Update sales order paid amount
+                                if (invoice.SalesOrder != null)
+                                {
+                                    invoice.SalesOrder.RecordPayment(request.Amount);
+                                    invoice.SalesOrder.ModifiedBy = _currentUserService.GetCurrentUsername();
+                                    await _salesOrderRepository.UpdateAsync(invoice.SalesOrder, cancellationToken);
+                                }
+                            }
+                        }
+
+                        await transaction.CommitAsync(cancellationToken);
                     }
-                }
+                    catch
+                    {
+                        await transaction.RollbackAsync(cancellationToken);
+                        throw;
+                    }
+                });
             }
             else
             {
@@ -320,36 +348,51 @@ public class CustomerPaymentController : ControllerBase
             payment.MarkAsCompleted();
             payment.ModifiedBy = _currentUserService.GetCurrentUsername();
 
-            // Decrease customer balance (negative because payment reduces debt)
-            customer.UpdateBalance(-payment.Amount);
-            customer.ModifiedBy = _currentUserService.GetCurrentUsername();
-
-            await _repository.UpdateAsync(payment, cancellationToken);
-            await _customerRepository.UpdateAsync(customer, cancellationToken);
-
-            // Update invoice payment status if payment is linked to an invoice
-            if (payment.InvoiceId.HasValue)
+            var strategy = _dbContext.Database.CreateExecutionStrategy();
+            await strategy.ExecuteAsync(async () =>
             {
-                var invoice = await _dbContext.Invoices
-                    .Include(i => i.CustomerPayments)
-                    .Include(i => i.SalesOrder)
-                    .FirstOrDefaultAsync(i => i.Id == payment.InvoiceId.Value, cancellationToken);
-
-                if (invoice != null)
+                await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+                try
                 {
-                    invoice.UpdatePaymentStatus();
-                    invoice.ModifiedBy = _currentUserService.GetCurrentUsername();
-                    await _invoiceRepository.UpdateAsync(invoice, cancellationToken);
+                    // Decrease customer balance (negative because payment reduces debt)
+                    customer.UpdateBalance(-payment.Amount);
+                    customer.ModifiedBy = _currentUserService.GetCurrentUsername();
 
-                    // Update sales order paid amount
-                    if (invoice.SalesOrder != null)
+                    await _repository.UpdateAsync(payment, cancellationToken);
+                    await _customerRepository.UpdateAsync(customer, cancellationToken);
+
+                    // Update invoice payment status if payment is linked to an invoice
+                    if (payment.InvoiceId.HasValue)
                     {
-                        invoice.SalesOrder.RecordPayment(payment.Amount);
-                        invoice.SalesOrder.ModifiedBy = _currentUserService.GetCurrentUsername();
-                        await _salesOrderRepository.UpdateAsync(invoice.SalesOrder, cancellationToken);
+                        var invoice = await _dbContext.Invoices
+                            .Include(i => i.CustomerPayments)
+                            .Include(i => i.SalesOrder)
+                            .FirstOrDefaultAsync(i => i.Id == payment.InvoiceId.Value, cancellationToken);
+
+                        if (invoice != null)
+                        {
+                            invoice.UpdatePaymentStatus();
+                            invoice.ModifiedBy = _currentUserService.GetCurrentUsername();
+                            await _invoiceRepository.UpdateAsync(invoice, cancellationToken);
+
+                            // Update sales order paid amount
+                            if (invoice.SalesOrder != null)
+                            {
+                                invoice.SalesOrder.RecordPayment(payment.Amount);
+                                invoice.SalesOrder.ModifiedBy = _currentUserService.GetCurrentUsername();
+                                await _salesOrderRepository.UpdateAsync(invoice.SalesOrder, cancellationToken);
+                            }
+                        }
                     }
+
+                    await transaction.CommitAsync(cancellationToken);
                 }
-            }
+                catch
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                    throw;
+                }
+            });
 
             return Ok(MapResponse(payment));
         }
@@ -387,6 +430,15 @@ public class CustomerPaymentController : ControllerBase
             var payment = await _repository.GetByIdAsync(id, cancellationToken);
             if (payment is null) return NotFound();
 
+            if (payment.Status == "REFUNDED")
+                return BadRequest(new { message = "Payment has already been refunded" });
+
+            if (payment.Status != "COMPLETED")
+                return BadRequest(new { message = $"Only completed payments can be refunded. Current status: {payment.Status}" });
+
+            if (payment.Amount <= 0 || payment.PaymentMethod == "REFUND")
+                return BadRequest(new { message = "This payment is not eligible for refund" });
+
             // Get customer and update balance (refund increases balance back)
             var customer = await _customerRepository.GetByIdAsync(payment.CustomerId, cancellationToken);
             if (customer is null) return NotFound(new { message = "Customer not found" });
@@ -394,12 +446,51 @@ public class CustomerPaymentController : ControllerBase
             payment.MarkAsRefunded(payment.Amount);  // Refund full amount
             payment.ModifiedBy = _currentUserService.GetCurrentUsername();
 
-            // Increase customer balance (reverting the payment)
-            customer.UpdateBalance(payment.Amount);
-            customer.ModifiedBy = _currentUserService.GetCurrentUsername();
+            var strategy = _dbContext.Database.CreateExecutionStrategy();
+            await strategy.ExecuteAsync(async () =>
+            {
+                await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+                try
+                {
+                    // Increase customer balance (reverting the payment)
+                    customer.UpdateBalance(payment.Amount);
+                    customer.ModifiedBy = _currentUserService.GetCurrentUsername();
 
-            await _repository.UpdateAsync(payment, cancellationToken);
-            await _customerRepository.UpdateAsync(customer, cancellationToken);
+                    await _repository.UpdateAsync(payment, cancellationToken);
+                    await _customerRepository.UpdateAsync(customer, cancellationToken);
+
+                    // Update invoice and sales order if payment was linked
+                    if (payment.InvoiceId.HasValue)
+                    {
+                        var invoice = await _dbContext.Invoices
+                            .Include(i => i.CustomerPayments)
+                            .Include(i => i.SalesOrder)
+                            .FirstOrDefaultAsync(i => i.Id == payment.InvoiceId.Value, cancellationToken);
+
+                        if (invoice != null)
+                        {
+                            invoice.UpdatePaymentStatus();
+                            invoice.ModifiedBy = _currentUserService.GetCurrentUsername();
+                            await _invoiceRepository.UpdateAsync(invoice, cancellationToken);
+
+                            // Reverse payment on sales order
+                            if (invoice.SalesOrder != null)
+                            {
+                                invoice.SalesOrder.ProcessRefund(payment.Amount);
+                                invoice.SalesOrder.ModifiedBy = _currentUserService.GetCurrentUsername();
+                                await _salesOrderRepository.UpdateAsync(invoice.SalesOrder, cancellationToken);
+                            }
+                        }
+                    }
+
+                    await transaction.CommitAsync(cancellationToken);
+                }
+                catch
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                    throw;
+                }
+            });
 
             return Ok(MapResponse(payment));
         }
@@ -478,6 +569,10 @@ public class CustomerPaymentController : ControllerBase
             var payment = await _repository.GetByIdAsync(id, cancellationToken);
             if (payment is null) return NotFound();
 
+            // Prevent deleting payments that have already affected balances
+            if (payment.Status == "COMPLETED" || payment.Status == "REFUNDED")
+                return BadRequest(new { message = $"Cannot delete a {payment.Status} payment. Cancel or refund it instead." });
+
             await _repository.DeleteAsync(id, cancellationToken);
             return NoContent();
         }
@@ -494,32 +589,32 @@ public class CustomerPaymentController : ControllerBase
     {
         return new()
         {
-            //Id = p.Id,
-            //CustomerId = p.CustomerId,
-            //CustomerName = p.Customer?.GetFullName() ?? "",
-            //InvoiceId = p.InvoiceId,
-            //InvoiceNumber = p.Invoice?.InvoiceNumber ?? string.Empty,
-            //PaymentProviderId = p.PaymentProviderId,
-            //ProviderName = p.PaymentProvider?.ProviderName ?? string.Empty,
-            //TransactionNumber = p.TransactionNumber,
-            //Amount = p.Amount,
-            //PaymentFee = p.PaymentFee,
-            //NetAmount = p.NetAmount,
-            //Currency = p.Currency,
-            //PaymentDate = p.PaymentDate,
-            //PaymentMethod = p.PaymentMethod,
-            //Status = p.Status,
-            //ReferenceNumber = p.ReferenceNumber,
-            //AuthorizationCode = p.AuthorizationCode,
-            //Notes = p.Notes,
-            //SettledDate = p.SettledDate,
-            //SettledBy = p.SettledBy,
-            //IsReconciled = p.IsReconciled,
-            //ReconciledDate = p.ReconciledDate,
-            //PaymentType = p.PaymentType.ToString(),
-            //RemainingAmount = p.RemainingAmount,
-            //SourceAdvancePaymentId = p.SourceAdvancePaymentId,
-            //CreatedAt = DateTime.UtcNow
+            Id = p.Id,
+            CustomerId = p.CustomerId,
+            CustomerName = p.Customer?.GetFullName() ?? "",
+            InvoiceId = p.InvoiceId,
+            InvoiceNumber = p.Invoice?.InvoiceNumber ?? string.Empty,
+            PaymentProviderId = p.PaymentProviderId,
+            ProviderName = p.PaymentProvider?.ProviderName ?? string.Empty,
+            TransactionNumber = p.TransactionNumber,
+            Amount = p.Amount,
+            PaymentFee = p.PaymentFee,
+            NetAmount = p.NetAmount,
+            Currency = p.Currency,
+            PaymentDate = p.PaymentDate,
+            PaymentMethod = p.PaymentMethod,
+            Status = p.Status,
+            ReferenceNumber = p.ReferenceNumber,
+            AuthorizationCode = p.AuthorizationCode,
+            Notes = p.Notes,
+            SettledDate = p.SettledDate,
+            SettledBy = p.SettledBy,
+            IsReconciled = p.IsReconciled,
+            ReconciledDate = p.ReconciledDate,
+            PaymentType = p.PaymentType.ToString(),
+            RemainingAmount = p.RemainingAmount,
+            SourceAdvancePaymentId = p.SourceAdvancePaymentId,
+            CreatedAt = p.CreatedDate
         };
     }
 
@@ -620,37 +715,55 @@ public class CustomerPaymentController : ControllerBase
 
             newPayment.CreatedBy = _currentUserService.GetCurrentUsername();
 
-            // Reduce the remaining amount on the advance payment
-            advancePayment.ReduceRemainingAmount(request.Amount);
-            advancePayment.ModifiedBy = _currentUserService.GetCurrentUsername();
-
-            // Update sales order paid amount (CRITICAL - matches supplier implementation)
-            salesOrder.RecordPayment(request.Amount);
-            salesOrder.ModifiedBy = _currentUserService.GetCurrentUsername();
-
-            // Update invoice payment tracking - Invoice will recalculate its status based on CustomerPayments
-            invoice.UpdatePaymentStatus();
-            invoice.ModifiedBy = _currentUserService.GetCurrentUsername();
-
-            // Update customer balance (reduce the amount owed)
-            customer.UpdateBalance(-request.Amount);
-            customer.ModifiedBy = _currentUserService.GetCurrentUsername();
-
-            // Save all changes
-            await _repository.AddAsync(newPayment, cancellationToken);
-            await _repository.UpdateAsync(advancePayment, cancellationToken);
-            await _invoiceRepository.UpdateAsync(invoice, cancellationToken);
-            await _salesOrderRepository.UpdateAsync(salesOrder, cancellationToken);
-            await _customerRepository.UpdateAsync(customer, cancellationToken);
-
-            return Ok(new ApplyCustomerAdvanceCreditResponse
+            var strategy = _dbContext.Database.CreateExecutionStrategy();
+            ApplyCustomerAdvanceCreditResponse? creditResponse = null;
+            await strategy.ExecuteAsync(async () =>
             {
-                PaymentId = newPayment.Id,
-                TransactionNumber = newPayment.TransactionNumber,
-                AmountApplied = request.Amount,
-                RemainingAdvanceBalance = advancePayment.RemainingAmount,
-                Message = $"Successfully applied {request.Amount:C} from advance to invoice {invoice.InvoiceNumber}"
+                await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+                try
+                {
+                    // Reduce the remaining amount on the advance payment
+                    advancePayment.ReduceRemainingAmount(request.Amount);
+                    advancePayment.ModifiedBy = _currentUserService.GetCurrentUsername();
+
+                    // Update sales order paid amount (CRITICAL - matches supplier implementation)
+                    salesOrder.RecordPayment(request.Amount);
+                    salesOrder.ModifiedBy = _currentUserService.GetCurrentUsername();
+
+                    // Update invoice payment tracking - Invoice will recalculate its status based on CustomerPayments
+                    invoice.UpdatePaymentStatus();
+                    invoice.ModifiedBy = _currentUserService.GetCurrentUsername();
+
+                    // Update customer balance (reduce the amount owed)
+                    customer.UpdateBalance(-request.Amount);
+                    customer.ModifiedBy = _currentUserService.GetCurrentUsername();
+
+                    // Save all changes
+                    await _repository.AddAsync(newPayment, cancellationToken);
+                    await _repository.UpdateAsync(advancePayment, cancellationToken);
+                    await _invoiceRepository.UpdateAsync(invoice, cancellationToken);
+                    await _salesOrderRepository.UpdateAsync(salesOrder, cancellationToken);
+                    await _customerRepository.UpdateAsync(customer, cancellationToken);
+
+                    await transaction.CommitAsync(cancellationToken);
+
+                    creditResponse = new ApplyCustomerAdvanceCreditResponse
+                    {
+                        PaymentId = newPayment.Id,
+                        TransactionNumber = newPayment.TransactionNumber,
+                        AmountApplied = request.Amount,
+                        RemainingAdvanceBalance = advancePayment.RemainingAmount,
+                        Message = $"Successfully applied {request.Amount:C} from advance to invoice {invoice.InvoiceNumber}"
+                    };
+                }
+                catch
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                    throw;
+                }
             });
+
+            return Ok(creditResponse);
         }
         catch (InvalidOperationException ex)
         {

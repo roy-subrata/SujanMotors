@@ -29,6 +29,7 @@ namespace AutoPartsShop.Infrastructure.Data.Configurations
             builder.Property(p => p.DiscountAmount).HasColumnType("decimal(18,2)");
             builder.Property(p => p.TotalAmount).HasColumnType("decimal(18,2)");
             builder.Property(p => p.PaidAmount).HasColumnType("decimal(18,2)");
+            builder.Property(p => p.CreditAppliedAmount).HasColumnType("decimal(18,2)");
             builder.Property(p => p.TaxPercentage).HasColumnType("decimal(5,2)");
             builder.Property(p => p.DiscountPercentage).HasColumnType("decimal(5,2)");
 
@@ -120,6 +121,7 @@ namespace AutoPartsShop.Infrastructure.Data.Configurations
                 .HasMaxLength(20);
 
             builder.Property(g => g.Notes).HasMaxLength(500);
+            builder.Property(g => g.SupplierInvoiceNumber).HasMaxLength(100).IsRequired(false);
             builder.Property(g => g.DeliveryReference).HasMaxLength(100);
             builder.Property(g => g.CarrierName).HasMaxLength(100);
             builder.Property(g => g.DriverName).HasMaxLength(100);
@@ -153,6 +155,13 @@ namespace AutoPartsShop.Infrastructure.Data.Configurations
             builder.Property(gl => gl.UnitCost)
                 .HasColumnType("decimal(18,2)");
 
+            builder.Property(gl => gl.SellingPrice)
+                .HasColumnType("decimal(18,2)")
+                .IsRequired(false);
+
+            builder.Property(gl => gl.UnitCostInBaseUnit)
+                .HasColumnType("decimal(18,2)");
+
             builder.Property(gl => gl.Currency)
                 .HasMaxLength(10);
 
@@ -164,6 +173,10 @@ namespace AutoPartsShop.Infrastructure.Data.Configurations
 
             builder.Property(gl => gl.Notes)
                 .HasMaxLength(500);
+
+            builder.Property(gl => gl.BatchNumber)
+                .HasMaxLength(100)
+                .IsRequired(false);
 
             // GR (1-M)
             builder.HasOne(gl => gl.GoodsReceipt)
@@ -179,12 +192,6 @@ namespace AutoPartsShop.Infrastructure.Data.Configurations
             // Part
             builder.HasOne(gl => gl.Part)
                 .WithMany()
-
-
-
-
-
-
                 .HasForeignKey(gl => gl.PartId);
         }
     }

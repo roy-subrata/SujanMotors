@@ -1,3 +1,4 @@
+
 namespace AutoPartShop.Domain.Entities;
 
 /// <summary>

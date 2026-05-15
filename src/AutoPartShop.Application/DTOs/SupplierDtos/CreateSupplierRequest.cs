@@ -12,4 +12,6 @@ public class CreateSupplierRequest
     public string State { get; set; } = string.Empty;
     public string Country { get; set; } = string.Empty;
     public string PostalCode { get; set; } = string.Empty;
+    public string PaymentTerms { get; set; } = "NET30";
+    public decimal CreditLimit { get; set; } = 0;
 }

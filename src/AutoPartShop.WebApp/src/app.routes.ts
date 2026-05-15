@@ -6,18 +6,18 @@ import { Landing } from './app/pages/landing/landing';
 import { Notfound } from './app/pages/notfound/notfound';
 import { QuickSaleComponent } from './app/features/sales/quick-sale/quick-sale.component';
 import { QuickSaleShortcutComponent } from './app/features/sales/quick-sale-shortcut/quick-sale-shortcut.component';
-import { LoginComponent } from './app/pages/login/login.component';
+import { UnifiedLoginComponent } from './app/pages/login/unified-login.component';
 import { AdminSettingsComponent } from './app/pages/admin-settings/admin-settings.component';
 import { authGuard } from './app/shared/guards/auth.guard';
 import { roleGuard } from './app/shared/guards/role.guard';
 
 export const appRoutes: Routes = [
-    // Login - standalone (no layout)
-    { path: 'login', component: LoginComponent },
+    // Login - standalone (no layout) — shared unified login, staff mode default
+    { path: 'login', component: UnifiedLoginComponent, data: { mode: 'staff' } },
 
-    // Quick Sale - standalone layout (no sidebar/header)
-    { path: 'quick-sale', component: QuickSaleComponent },
-    { path: 'quick-sale-shortcut', component: QuickSaleShortcutComponent },
+    // Quick Sale - standalone layout (no sidebar/header) — auth required
+    { path: 'quick-sale', component: QuickSaleComponent, canActivate: [authGuard] },
+    { path: 'quick-sale-shortcut', component: QuickSaleShortcutComponent, canActivate: [authGuard] },
 
     // E-commerce storefront - public module
     { path: 'shop', loadChildren: () => import('./app/features/ecommerce/ecommerce.routes').then(m => m.ecommerceRoutes) },

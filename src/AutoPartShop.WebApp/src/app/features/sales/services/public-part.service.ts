@@ -19,8 +19,6 @@ export interface PublicPartResponse {
   sellingPrice: number;
   minimumStock: number;
   isActive: boolean;
-  minMarginPercentOverride?: number | null;
-  maxDiscountPercentOverride?: number | null;
   hasWarranty: boolean;
   warrantyPeriodMonths: number | null;
   warrantyType: string | null;
@@ -60,5 +58,10 @@ export class PublicPartService {
 
   getPartById(id: string): Observable<PublicPartResponse> {
     return this.http.get<PublicPartResponse>(`${this.apiUrl}/${id}`);
+  }
+
+  /** Returns the FIFO lot selling price. Falls back to Part.SellingPrice when no active lot has a price. */
+  getLotPrice(partId: string): Observable<{ partId: string; sellingPrice: number; lotSellingPrice: number | null; fallbackSellingPrice: number; hasLotPrice: boolean; stockAvailable: number }> {
+    return this.http.get<any>(`${this.apiUrl}/${partId}/lot-price`);
   }
 }

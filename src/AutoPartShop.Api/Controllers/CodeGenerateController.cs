@@ -38,7 +38,7 @@ namespace AutoPartsShop.Api.Controllers
         [HttpGet("warehouse")]
         public async Task<IActionResult> GenerateWarehouseCode(CancellationToken cancellationToken = default)
         {
-            var code = await _codeGenerator.GenerateAsync("WR", cancellationToken);
+            var code = await _codeGenerator.GenerateAsync("WH", cancellationToken);
             return Ok(code);
         }
 

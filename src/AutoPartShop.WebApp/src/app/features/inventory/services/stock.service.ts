@@ -1,15 +1,23 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, map } from 'rxjs';
 import { environment } from 'src/environments/environment';
 
 export interface StockLevelResponse {
   id: string;
   partId: string;
   warehouseId: string;
+  unitId: string | null;
+  unitName: string | null;
+  unitSymbol: string | null;
+  baseUnitName: string | null;
+  baseUnitSymbol: string | null;
   quantity: number;
+  quantityInBaseUnit: number;
   reservedQuantity: number;
+  reservedQuantityInBaseUnit: number;
   availableQuantity: number;
+  availableQuantityInBaseUnit: number;
   reorderLevel: number;
   reorderQuantity: number;
   needsReorder: boolean;
@@ -48,6 +56,11 @@ export interface StockMovementResponse {
   warehouseCode: string;
   type: string;
   quantity: number;
+  quantityInBaseUnit: number;
+  unitId: string | null;
+  unitName: string | null;
+  unitSymbol: string | null;
+  baseUnitSymbol: string | null;
   reason: string;
   reference: string;
   status: string;
@@ -73,6 +86,8 @@ export interface CreateStockMovementRequest {
   partId: string;
   type: string;
   quantity: number;
+  quantityInBaseUnit?: number;
+  unitId?: string;
   reference: string;
 }
 
@@ -81,6 +96,8 @@ export interface StockTransferRequest {
   fromWarehouseId: string;
   toWarehouseId: string;
   quantity: number;
+  quantityInBaseUnit?: number;
+  unitId?: string;
   reference: string;
   notes: string;
 }
@@ -108,6 +125,8 @@ export interface StockAdjustmentRequest {
   partId: string;
   warehouseId: string;
   quantity: number;
+  quantityInBaseUnit?: number;
+  unitId?: string;
   reason: string;
   reference: string;
   notes: string;

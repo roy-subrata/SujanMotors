@@ -1,6 +1,9 @@
 using AutoPartShop.Api.Services;
+using AutoPartShop.Application.Common;
 using AutoPartShop.Application.DTOs.WarehouseDtos;
+using AutoPartShop.Application.Warehouse;
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Repositories;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AutoPartShop.Api.Controllers;
@@ -8,68 +11,23 @@ namespace AutoPartShop.Api.Controllers;
 [Route("api/[controller]")]
 [ApiController]
 [Produces("application/json")]
-public class WarehousesController : ControllerBase
+public class WarehousesController(
+    IWarehouseRepository _warehouseRepository,
+    IWarehouseReadRepository _warehouseReadRepository,
+    ICurrentUserService _currentUserService,
+    ICodeGenerateService _codeGenerateService,
+    ILogger<WarehousesController> _logger
+) : ControllerBase
 {
-    private readonly IWarehouseRepository _warehouseRepository;
-    private readonly ILogger<WarehousesController> _logger;
-    private readonly ICurrentUserService _currentUserService;
 
-    public WarehousesController(IWarehouseRepository warehouseRepository, ICurrentUserService currentUserService, ILogger<WarehousesController> logger)
-    {
-        _warehouseRepository = warehouseRepository;
-        _logger = logger;
-        _currentUserService = currentUserService;
-    }
-
-    [HttpGet]
-    public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
+    [HttpPost("list")]
+    public async Task<IActionResult> GetList([FromBody] WarehouseQueryDto query, CancellationToken cancellationToken = default)
     {
         try
         {
-            var warehouses = await _warehouseRepository.GetAllAsync(cancellationToken);
-            var response = warehouses.Select(w => MapToResponse(w));
-            return Ok(response);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting all warehouses");
-            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving warehouses");
-        }
-    }
 
-    [HttpGet("active")]
-    public async Task<IActionResult> GetActive(CancellationToken cancellationToken)
-    {
-        try
-        {
-            var warehouses = await _warehouseRepository.GetAllActiveAsync(cancellationToken);
-            var response = warehouses.Select(w => MapToResponse(w));
-            return Ok(response);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting active warehouses");
-            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving active warehouses");
-        }
-    }
-
-    [HttpGet("list")]
-    public async Task<IActionResult> GetList(int pageNumber = 1, int pageSize = 10, string? searchTerm = null, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            if (pageNumber < 1) pageNumber = 1;
-            if (pageSize < 1) pageSize = 10;
-            if (pageSize > 100) pageSize = 100;
-
-            var (warehouses, totalCount) = await _warehouseRepository.SearchPagedAsync(searchTerm ?? string.Empty, pageNumber, pageSize, cancellationToken);
-
-            var response = warehouses.Select(w => MapToResponse(w));
-            return Ok(new
-            {
-                data = response,
-                pagination = new { pageNumber, pageSize, totalCount, totalPages = (int)Math.Ceiling(totalCount / (double)pageSize) }
-            });
+            var (warehouses, total) = await _warehouseReadRepository.FindAllAsync(query, cancellationToken);
+            return Ok(PagedResult<WarehouseResponse>.Create(warehouses, total, query));
         }
         catch (Exception ex)
         {
@@ -83,10 +41,10 @@ public class WarehousesController : ControllerBase
     {
         try
         {
-            var warehouse = await _warehouseRepository.GetByIdAsync(id, cancellationToken);
+            var warehouse = await _warehouseReadRepository.GetByIdAsync(id, cancellationToken);
             if (warehouse is null) return NotFound(new { message = "Warehouse not found" });
 
-            return Ok(MapToResponse(warehouse));
+            return Ok(warehouse);
         }
         catch (Exception ex)
         {
@@ -100,31 +58,15 @@ public class WarehousesController : ControllerBase
     {
         try
         {
-            var warehouse = await _warehouseRepository.GetByCodeAsync(code, cancellationToken);
+            var warehouse = await _warehouseReadRepository.GetByCodeAsync(code, cancellationToken);
             if (warehouse is null) return NotFound(new { message = "Warehouse not found" });
 
-            return Ok(MapToResponse(warehouse));
+            return Ok(warehouse);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting warehouse by code: {WarehouseCode}", code);
             return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving the warehouse");
-        }
-    }
-
-    [HttpGet("city/{city}")]
-    public async Task<IActionResult> GetByCity(string city, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var warehouses = await _warehouseRepository.GetByCityAsync(city, cancellationToken);
-            var response = warehouses.Select(w => MapToResponse(w));
-            return Ok(response);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting warehouses by city: {City}", city);
-            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving warehouses");
         }
     }
 
@@ -134,8 +76,9 @@ public class WarehousesController : ControllerBase
         try
         {
             if (string.IsNullOrWhiteSpace(request.Name) ||
+                string.IsNullOrWhiteSpace(request.Code) ||
                 string.IsNullOrWhiteSpace(request.Location))
-                return BadRequest(new { message = "Name, and Location are required" });
+                return BadRequest(new { message = "Name, Code, and Location are required" });
 
             if (await _warehouseRepository.CodeExistsAsync(request.Code, null, cancellationToken))
                 return Conflict(new { message = "Warehouse code already exists" });
@@ -159,10 +102,11 @@ public class WarehousesController : ControllerBase
             var currentUser = _currentUserService.GetCurrentUsername();
             warehouse.CreatedBy = currentUser;
             warehouse.ModifiedBy = currentUser;
-
+            await _codeGenerateService.SaveGenerateCodeAsync("WH", cancellationToken);
             await _warehouseRepository.AddAsync(warehouse, cancellationToken);
 
-            return CreatedAtAction(nameof(GetById), new { id = warehouse.Id }, MapToResponse(warehouse));
+            var created = await _warehouseReadRepository.GetByIdAsync(warehouse.Id, cancellationToken);
+            return CreatedAtAction(nameof(GetById), new { id = warehouse.Id }, created ?? new WarehouseResponse { Id = warehouse.Id, Name = warehouse.Name, Code = warehouse.Code });
         }
         catch (ArgumentException ex)
         {
@@ -191,7 +135,8 @@ public class WarehousesController : ControllerBase
 
             await _warehouseRepository.UpdateAsync(warehouse, cancellationToken);
 
-            return Ok(MapToResponse(warehouse));
+            var updated = await _warehouseReadRepository.GetByIdAsync(id, cancellationToken);
+            return Ok(updated ?? new WarehouseResponse { Id = warehouse.Id, Name = warehouse.Name, Code = warehouse.Code });
         }
         catch (ArgumentException ex)
         {
@@ -216,7 +161,8 @@ public class WarehousesController : ControllerBase
             warehouse.ModifiedBy = _currentUserService.GetCurrentUsername();
             await _warehouseRepository.UpdateAsync(warehouse, cancellationToken);
 
-            return Ok(MapToResponse(warehouse));
+            var updated = await _warehouseReadRepository.GetByIdAsync(id, cancellationToken);
+            return Ok(updated ?? new WarehouseResponse { Id = warehouse.Id, Name = warehouse.Name, Code = warehouse.Code });
         }
         catch (Exception ex)
         {
@@ -237,7 +183,8 @@ public class WarehousesController : ControllerBase
             warehouse.ModifiedBy = _currentUserService.GetCurrentUsername();
             await _warehouseRepository.UpdateAsync(warehouse, cancellationToken);
 
-            return Ok(MapToResponse(warehouse));
+            var updated = await _warehouseReadRepository.GetByIdAsync(id, cancellationToken);
+            return Ok(updated ?? new WarehouseResponse { Id = warehouse.Id, Name = warehouse.Name, Code = warehouse.Code });
         }
         catch (Exception ex)
         {
@@ -251,8 +198,8 @@ public class WarehousesController : ControllerBase
     {
         try
         {
-            if (!await _warehouseRepository.ExistsAsync(id, cancellationToken))
-                return NotFound(new { message = "Warehouse not found" });
+            var warehouse = await _warehouseRepository.GetByIdAsync(id, cancellationToken);
+            if (warehouse is null) return NotFound(new { message = "Warehouse not found" });
 
             await _warehouseRepository.DeleteAsync(id, cancellationToken);
             return NoContent();
@@ -264,27 +211,5 @@ public class WarehousesController : ControllerBase
         }
     }
 
-    private WarehouseResponse MapToResponse(Warehouse warehouse)
-    {
-        return new WarehouseResponse
-        {
-            Id = warehouse.Id,
-            Name = warehouse.Name,
-            Code = warehouse.Code,
-            Location = warehouse.Location,
-            City = warehouse.City,
-            State = warehouse.State,
-            Country = warehouse.Country,
-            PostalCode = warehouse.PostalCode,
-            Manager = warehouse.Manager,
-            ManagerEmail = warehouse.ManagerEmail,
-            ManagerPhone = warehouse.ManagerPhone,
-            StorageCapacity = warehouse.StorageCapacity,
-            CapacityUnit = warehouse.CapacityUnit,
-            Description = warehouse.Description,
-            IsActive = warehouse.IsActive,
-            CreatedBy = warehouse.CreatedBy,
-            ModifiedBy = warehouse.ModifiedBy
-        };
-    }
+
 }

@@ -87,6 +87,7 @@ export class ApplyCustomerAdvanceCreditDialogComponent implements OnInit {
 
         this.customerPaymentService.applyAdvanceCredit(request).subscribe({
             next: (response: ApplyCustomerAdvanceCreditResponse) => {
+                this.isApplying = false;
                 this.messageService.add({
                     severity: 'success',
                     summary: 'Success',
@@ -99,7 +100,7 @@ export class ApplyCustomerAdvanceCreditDialogComponent implements OnInit {
                 this.messageService.add({
                     severity: 'error',
                     summary: 'Error',
-                    detail: error.error?.message || 'Failed to apply advance credit'
+                    detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || 'Failed to apply advance credit')
                 });
                 this.isApplying = false;
             }

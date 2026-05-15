@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
-import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
 import { Select } from 'primeng/select';
 import { MessageService, ConfirmationService } from 'primeng/api';
@@ -20,7 +19,6 @@ import { tap } from 'rxjs';
         FormsModule,
         ToastModule,
         ConfirmDialogModule,
-        CardModule,
         ButtonModule,
         Select,
         CategoriesListComponent,
@@ -39,7 +37,6 @@ export class CategoriesComponent implements OnInit {
     categories: CategoryResponse[] = [];
     public selectedParentCategory: CategoryResponse | null = null;
     public selectedCategory: CategoryResponse | null = null;
-    public filteredParentCategories: CategoryResponse[] = [];
 
     // Dialog visibility
     public displayCreateDialog: boolean = false;
@@ -54,6 +51,8 @@ export class CategoriesComponent implements OnInit {
     // Filters
     searchTerm = '';
     filterStatus: boolean | null = null;
+    sortField = 'name';
+    sortDirection: 'asc' | 'desc' = 'asc';
 
     // Status options for dropdown
     statusOptions = [
@@ -62,15 +61,8 @@ export class CategoriesComponent implements OnInit {
         { label: 'Inactive', value: false }
     ];
 
-    // Parent category autocomplete
-    parentCategorySearchQuery: string = '';
-    parentCategoryOptions: CategoryResponse[] = [];
-    private readonly PARENT_CATEGORY_PAGE_SIZE = 20;
-    private isLoadingMoreParentCategories = false;
-
     ngOnInit(): void {
         this.loadCategories();
-        this.loadAllParentCategories();
     }
 
     /**
@@ -90,14 +82,25 @@ export class CategoriesComponent implements OnInit {
                 search: this.searchTerm,
                 pageNumber: pageNumber,
                 pageSize: pageSize,
-                isActive: this.filterStatus
+                isActive: this.filterStatus,
+                sorts: [{
+                    field: this.sortField,
+                    direction: this.sortDirection
+                }]
             })
             .subscribe({
                 next: (response: any) => {
-                    this.categories = response.items || response.data || [];
-                    this.totalRecords = response.totalCount || response.total || this.categories.length;
-                    this.rows = pageSize;
-                    this.currentPage = pageNumber;
+                    // Extract data from response
+                    this.categories = response.data || response.items || [];
+
+                    // totalCount is nested in pagination object
+                    const pagination = response.pagination || {};
+                    this.totalRecords = pagination.totalCount || response.totalCount || this.categories.length;
+
+                    // Update pagination state
+                    this.rows = pagination.pageSize || pageSize;
+                    this.currentPage = pagination.pageNumber || pageNumber;
+
                     this.loading = false;
                 },
                 error: (error) => {
@@ -126,11 +129,9 @@ export class CategoriesComponent implements OnInit {
         this.loadCategories(1, this.rows);
     }
 
-    /**
-     * Clear search input only (does not trigger search)
-     */
     clearSearchInput(): void {
         this.searchTerm = '';
+        this.loadCategories(1, this.rows);
     }
 
     /**
@@ -180,7 +181,6 @@ export class CategoriesComponent implements OnInit {
      * Trigger create dialog
      */
     onNewCategoryClick() {
-        this.filteredParentCategories = [];
         this.selectedParentCategory = null;
         this.displayCreateDialog = true;
         this.displayUpdateDialog = false;
@@ -239,12 +239,8 @@ export class CategoriesComponent implements OnInit {
                     )
                     .subscribe({
                         error: (err) => {
-                            console.error('Failed to delete category', err);
-                            this.messageService.add({
-                                severity: 'error',
-                                summary: 'Error',
-                                detail: 'Failed to delete category'
-                            });
+                            const msg = err?.error?.message || 'Failed to delete category';
+                            this.messageService.add({ severity: 'error', summary: 'Cannot Delete', detail: msg });
                         }
                     });
             }
@@ -297,126 +293,6 @@ export class CategoriesComponent implements OnInit {
         this.selectedParentCategory = category;
         this.displayCreateDialog = true;
         this.displayUpdateDialog = false;
-        this.filteredParentCategories = [category];
-    }
-
-    /**
-     * Helper method to create root category
-     */
-    private createRootCategory(): CategoryResponse {
-        return {
-            id: null as any,
-            name: 'Root (No Parent)',
-            code: 'ROOT',
-            description: 'Top level category with no parent',
-            parentCategoryId: null,
-            displayOrder: 0,
-            isActive: true,
-            depthLevel: 0,
-            childCount: 0,
-            breadcrumbPath: 'Root',
-            createdBy: '',
-            modifiedBy: '',
-            subCategories: []
-        };
-    }
-
-    private addRootToCategories(categories: CategoryResponse[]): CategoryResponse[] {
-        const root = this.createRootCategory();
-        return [root, ...categories];
-    }
-
-    private loadAllParentCategories() {
-        this.categoryService.getAllCategories().subscribe({
-            next: (data) => {
-                this.parentCategoryOptions = data;
-                this.filteredParentCategories = [];
-            },
-            error: (err) => {
-                console.error('Failed to load parent categories', err);
-                this.messageService.add({
-                    severity: 'error',
-                    summary: 'Error',
-                    detail: 'Failed to load parent categories'
-                });
-            }
-        });
-    }
-
-    /**
-     * Handle parent category autocomplete events
-     */
-    onParentCategoryEvent(event: any) {
-        if ('query' in event) {
-            const query = event.query || '';
-            const lowerQuery = query.toLowerCase();
-            this.parentCategorySearchQuery = lowerQuery;
-            this.parentCategoryOptions = [];
-            this.filteredParentCategories = [];
-            this.loadParentCategories(0, this.PARENT_CATEGORY_PAGE_SIZE);
-        } else {
-            this.loadParentCategories(event.first || 0, event.rows || this.PARENT_CATEGORY_PAGE_SIZE);
-        }
-    }
-
-    /**
-     * Load parent categories with pagination
-     */
-    private loadParentCategories(first: number, rows: number) {
-        if (this.isLoadingMoreParentCategories) {
-            return;
-        }
-
-        const pageNumber = Math.floor(first / rows) + 1;
-        const expectedItemsCount = pageNumber * rows;
-        if (this.parentCategoryOptions.length >= expectedItemsCount) {
-            return;
-        }
-
-        this.isLoadingMoreParentCategories = true;
-        const searchQuery = this.parentCategorySearchQuery;
-
-        this.categoryService.getPagedCategories({
-            search: searchQuery,
-            pageNumber: pageNumber,
-            pageSize: rows
-        }).subscribe({
-            next: (response: any) => {
-                const newItems = response.items || response.data || [];
-
-                if (pageNumber === 1) {
-                    this.parentCategoryOptions = this.addRootToCategories(newItems);
-                } else {
-                    this.parentCategoryOptions = [...this.parentCategoryOptions, ...newItems];
-                }
-
-                this.filteredParentCategories = this.parentCategoryOptions;
-                this.isLoadingMoreParentCategories = false;
-            },
-            error: (err) => {
-                console.error('Failed to load parent categories for autocomplete', err);
-                this.messageService.add({
-                    severity: 'error',
-                    summary: 'Error',
-                    detail: 'Failed to load parent categories'
-                });
-                this.isLoadingMoreParentCategories = false;
-            }
-        });
-    }
-
-    /**
-     * Handle parent category selection
-     */
-    onParentCategorySelect(category: CategoryResponse) {
-        this.selectedParentCategory = category;
-    }
-
-    /**
-     * Handle parent category cleared
-     */
-    onParentCategoryCleared() {
-        this.selectedParentCategory = null;
     }
 
     /**

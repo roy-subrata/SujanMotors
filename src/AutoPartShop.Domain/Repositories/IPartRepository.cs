@@ -32,14 +32,7 @@ public interface IPartVehicleCompatibilityRepository : IBaseRepository<PartVehic
     Task<bool> IsCompatibleAsync(Guid partId, Guid vehicleId, CancellationToken cancellationToken = default);
 }
 
-public interface IWarehouseRepository : IBaseRepository<Warehouse>
-{
-    Task<IEnumerable<Warehouse>> GetAllActiveAsync(CancellationToken cancellationToken = default);
-    Task<(IEnumerable<Warehouse> Warehouses, int TotalCount)> SearchPagedAsync(string searchTerm, int pageNumber, int pageSize, CancellationToken cancellationToken = default);
-    Task<bool> CodeExistsAsync(string code, Guid? excludeWarehouseId = null, CancellationToken cancellationToken = default);
-    Task<Warehouse?> GetByCodeAsync(string code, CancellationToken cancellationToken = default);
-    Task<IEnumerable<Warehouse>> GetByCityAsync(string city, CancellationToken cancellationToken = default);
-}
+
 
 public interface IProductLocationRepository : IBaseRepository<ProductLocation>
 {

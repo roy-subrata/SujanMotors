@@ -11,6 +11,7 @@ public class WarrantyClaimRepository(AutoPartDbContext _db) : IWarrantyClaimRepo
         return await _db.WarrantyClaims
             .Where(wc => !wc.Isdeleted)
             .Include(wc => wc.WarrantyRegistration)
+                .ThenInclude(wr => wr!.Part)
             .Include(wc => wc.Customer)
             .Include(wc => wc.Technician)
             .OrderByDescending(wc => wc.ClaimDate)
@@ -70,6 +71,8 @@ public class WarrantyClaimRepository(AutoPartDbContext _db) : IWarrantyClaimRepo
     public async Task<IEnumerable<WarrantyClaim>> GetByWarrantyRegistrationIdAsync(Guid warrantyRegistrationId, CancellationToken cancellationToken = default)
     {
         return await _db.WarrantyClaims
+            .Include(wc => wc.WarrantyRegistration)
+                .ThenInclude(wr => wr!.Part)
             .Include(wc => wc.Customer)
             .Include(wc => wc.Technician)
             .Where(wc => wc.WarrantyRegistrationId == warrantyRegistrationId && !wc.Isdeleted)

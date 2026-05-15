@@ -125,7 +125,8 @@ public class SuppliersController : ControllerBase
                 return Conflict(new { message = "Supplier code already exists" });
 
             var supplier = Supplier.Create(request.Name, request.Code, request.ContactPerson, request.Email, request.Phone,
-                request.Address, request.City, request.State, request.Country, request.PostalCode);
+                request.Address, request.City, request.State, request.Country, request.PostalCode,
+                request.PaymentTerms, request.CreditLimit);
 
             var currentUser = _currentUserService.GetCurrentUsername();
             supplier.CreatedBy = currentUser;
@@ -157,7 +158,7 @@ public class SuppliersController : ControllerBase
 
             supplier.Update(request.Name, request.ContactPerson, request.Email, request.Phone,
                 request.Address, request.City, request.State, request.Country, request.PostalCode,
-              request.IsActive);
+                request.IsActive, request.PaymentTerms, request.CreditLimit);
             supplier.ModifiedBy = _currentUserService.GetCurrentUsername();
 
             await _supplierRepository.UpdateAsync(supplier, cancellationToken);
@@ -294,6 +295,8 @@ public class SuppliersController : ControllerBase
             State = supplier.State,
             Country = supplier.Country,
             PostalCode = supplier.PostalCode,
+            PaymentTerms = supplier.PaymentTerms,
+            CreditLimit = supplier.CreditLimit,
             CurrentBalance = supplier.CurrentBalance,
             IsActive = supplier.IsActive,
             Rating = supplier.Rating,

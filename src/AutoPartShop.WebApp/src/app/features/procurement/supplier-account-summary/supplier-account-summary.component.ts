@@ -1,7 +1,7 @@
-import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { ToastModule } from 'primeng/toast';
@@ -10,7 +10,8 @@ import { TooltipModule } from 'primeng/tooltip';
 import { PaginatorModule, PaginatorState } from 'primeng/paginator';
 import { SkeletonModule } from 'primeng/skeleton';
 import { Subject, takeUntil, forkJoin } from 'rxjs';
-import { SmAutocompleteComponent, AutocompleteDataSource } from '../../../shared/components/sm-autocomplete/sm-autocomplete.component';
+import { map } from 'rxjs/operators';
+import { LazyAutocompleteComponent, LazyRequest, LazyResponse } from '../../../shared/components/lazy-autocomplete';
 import { SupplierService, SupplierResponse } from '../../inventory/services/supplier.service';
 import {
     SupplierLedgerService,
@@ -35,17 +36,20 @@ import { InvoicePdfService } from '../../sales/services/invoice-pdf.service';
         TooltipModule,
         PaginatorModule,
         SkeletonModule,
-        SmAutocompleteComponent
+        LazyAutocompleteComponent
     ],
     providers: [MessageService],
     templateUrl: './supplier-account-summary.component.html',
     styleUrls: ['./supplier-account-summary.component.css']
 })
 export class SupplierAccountSummaryComponent implements OnInit, OnDestroy {
+    @ViewChild(LazyAutocompleteComponent) supplierAutocomplete!: LazyAutocompleteComponent<SupplierResponse>;
+
     private readonly supplierService = inject(SupplierService);
     private readonly ledgerService = inject(SupplierLedgerService);
     private readonly invoicePdfService = inject(InvoicePdfService);
     private readonly router = inject(Router);
+    private readonly route = inject(ActivatedRoute);
     private readonly messageService = inject(MessageService);
     private readonly currencyService = inject(CurrencyService);
     private readonly destroy$ = new Subject<void>();
@@ -76,20 +80,36 @@ export class SupplierAccountSummaryComponent implements OnInit, OnDestroy {
     companyConfig = this.invoicePdfService.getCompanyConfig();
     today = new Date().toISOString();
 
-    // Supplier autocomplete data source
-    supplierDataSource: AutocompleteDataSource<SupplierResponse> = {
-        fetchData: (search, pageNumber, pageSize) => {
-            return this.supplierService.getSuppliers({
-                search,
-                pageNumber,
-                pageSize
-            });
-        },
-        displayField: (item) => item.name,
-        subtitleField: (item) => `${item.code} | ${item.phone || item.email || 'No contact'}`
-    };
+    fetchSuppliersLazy = (req: LazyRequest) =>
+        this.supplierService.getSuppliers({
+            search: req.search || '',
+            pageNumber: req.pageNumber,
+            pageSize: req.pageSize
+        }).pipe(
+            map(res => ({
+                items: res.data ?? [],
+                totalCount: res.pagination?.totalCount ?? 0
+            }) as LazyResponse<SupplierResponse>)
+        );
 
-    ngOnInit(): void {}
+    ngOnInit(): void {
+        const supplierId = this.route.snapshot.queryParamMap.get('supplierId');
+        if (supplierId) {
+            this.supplierService.getSupplierById(supplierId).pipe(takeUntil(this.destroy$)).subscribe({
+                next: (supplier) => {
+                    this.selectedSupplier = supplier;
+                    // Use setTimeout so the ViewChild is ready after view init
+                    setTimeout(() => {
+                        this.supplierAutocomplete?.writeValue(supplier);
+                        this.generateReport();
+                    }, 0);
+                },
+                error: () => {
+                    this.messageService.add({ severity: 'warn', summary: 'Not Found', detail: 'Supplier not found', life: 3000 });
+                }
+            });
+        }
+    }
 
     onSupplierSelected(supplier: SupplierResponse): void {
         this.selectedSupplier = supplier;

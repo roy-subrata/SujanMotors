@@ -7,6 +7,7 @@ public class SalesOrderLine : AuditableEntity
 {
     public Guid SalesOrderId { get; private set; }
     public Guid PartId { get; private set; }
+    public Guid? ProductVariantId { get; private set; }  // The specific variant sold (SKU-level)
     public Guid? UnitId { get; private set; }  // Unit in which the part is sold
     public int Quantity { get; private set; }
     public int QuantityInBaseUnit { get; private set; }  // Converted to Part's base unit for stock
@@ -21,6 +22,7 @@ public class SalesOrderLine : AuditableEntity
     // Navigation properties
     public SalesOrder? SalesOrder { get; set; }
     public Part? Part { get; set; }
+    public ProductVariant? ProductVariant { get; set; }
     public Unit? Unit { get; set; }
 
     // Computed properties
@@ -30,7 +32,8 @@ public class SalesOrderLine : AuditableEntity
     private SalesOrderLine() { }
 
     public static SalesOrderLine Create(Guid salesOrderId, Guid partId, int quantity,
-        decimal unitPrice, int lineNumber, Guid? unitId = null, int quantityInBaseUnit = 0, decimal discount = 0, string description = "")
+        decimal unitPrice, int lineNumber, Guid? unitId = null, int quantityInBaseUnit = 0,
+        decimal discount = 0, string description = "", Guid? productVariantId = null)
     {
         if (salesOrderId == Guid.Empty)
             throw new ArgumentException("SalesOrderId cannot be empty", nameof(salesOrderId));
@@ -58,6 +61,7 @@ public class SalesOrderLine : AuditableEntity
         {
             SalesOrderId = salesOrderId,
             PartId = partId,
+            ProductVariantId = productVariantId,
             UnitId = unitId,
             Quantity = quantity,
             QuantityInBaseUnit = quantityInBaseUnit,

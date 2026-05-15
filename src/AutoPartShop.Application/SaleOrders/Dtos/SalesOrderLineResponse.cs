@@ -6,6 +6,9 @@
         public Guid PartId { get; set; }
         public string PartName { get; set; } = string.Empty;
         public string PartSku { get; set; } = string.Empty;
+        public Guid? ProductVariantId { get; set; }
+        public string? VariantName { get; set; }
+        public string? VariantSku { get; set; }
         public Guid? UnitId { get; set; }
         public string UnitName { get; set; } = string.Empty;
         public string UnitSymbol { get; set; } = string.Empty;

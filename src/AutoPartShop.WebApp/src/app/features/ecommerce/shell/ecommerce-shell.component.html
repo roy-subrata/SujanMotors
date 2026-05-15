@@ -1,10 +1,10 @@
 <div class="storefront">
-  <app-store-header (toggleCart)="showCartSidebar = true"></app-store-header>
+  <app-store-header></app-store-header>
 
   <main class="storefront-content">
     <router-outlet></router-outlet>
   </main>
 
   <app-store-footer></app-store-footer>
-  <app-cart-sidebar [(visible)]="showCartSidebar"></app-cart-sidebar>
+  <app-cart-sidebar [(visible)]="cartService.sidebarOpen"></app-cart-sidebar>
 </div>

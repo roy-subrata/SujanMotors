@@ -80,13 +80,21 @@ public class CategoryRepository(AutoPartDbContext dbContext) : ICategoryReposito
 
     public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var category = dbContext.Categories.FirstOrDefault(c => c.Id == id && !c.Isdeleted);
+        var category = await dbContext.Categories.FirstOrDefaultAsync(c => c.Id == id && !c.Isdeleted, cancellationToken);
         if (category == null)
             throw new InvalidOperationException($"Category with ID '{id}' not found");
 
+        var hasChildren = await dbContext.Categories.AnyAsync(c => c.ParentCategoryId == id && !c.Isdeleted, cancellationToken);
+        if (hasChildren)
+            throw new InvalidOperationException("Cannot delete a category that has subcategories. Remove or reassign subcategories first.");
+
+        var hasProducts = await dbContext.Parts.AnyAsync(p => p.CategoryId == id && !p.Isdeleted, cancellationToken);
+        if (hasProducts)
+            throw new InvalidOperationException("Cannot delete a category that has products assigned to it. Reassign or remove products first.");
+
         // Soft delete
-        dbContext.Categories.Remove(category);
-        await dbContext.SaveChangesAsync();
+        category.Isdeleted = true;
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 
     public async Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken = default)
@@ -125,7 +133,8 @@ public class CategoryRepository(AutoPartDbContext dbContext) : ICategoryReposito
 
     public async Task<bool> NameExistsAsync(string name, Guid? excludeId = null, CancellationToken cancellationToken = default)
     {
-        var query = dbContext.Categories.Where(c => c.Name == name && !c.Isdeleted);
+        var normalizedName = name.Trim().ToLowerInvariant();
+        var query = dbContext.Categories.Where(c => c.Name.ToLower() == normalizedName && !c.Isdeleted);
         if (excludeId.HasValue)
             query = query.Where(c => c.Id != excludeId.Value);
 
@@ -250,7 +259,7 @@ public class CategoryRepository(AutoPartDbContext dbContext) : ICategoryReposito
         return string.Join(" > ", path);
     }
 
-    public async Task<(IEnumerable<Category> Items, int TotalCount)> SearchPagedAsync(string searchTerm, int pageNumber = 10, int pageSize = 1, CancellationToken cancellationToken = default)
+    public async Task<(IEnumerable<Category> Items, int TotalCount)> SearchPagedAsync(string searchTerm, int pageNumber = 1, int pageSize = 10, CancellationToken cancellationToken = default)
     {
         var query = dbContext.Categories.Where(c => !c.Isdeleted);
         if (!string.IsNullOrEmpty(searchTerm))

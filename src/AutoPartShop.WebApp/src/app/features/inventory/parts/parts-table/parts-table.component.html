@@ -1,3 +1,5 @@
+<p-toast></p-toast>
+
 <p-table
   [value]="parts"
   [rows]="rows"
@@ -15,94 +17,101 @@
   [tableStyle]="{ 'min-width': '50rem' }"
   styleClass="p-datatable-striped">
 
-  <!-- SKU Column -->
   <ng-template pTemplate="header">
     <tr>
-      <th pSortableColumn="sku" style="width: 10%">
-        SKU <p-sortIcon field="sku"></p-sortIcon>
+      <th pSortableColumn="sku" style="width: 9%">SKU <p-sortIcon field="sku"></p-sortIcon></th>
+      <th pSortableColumn="name" style="width: 16%">Name <p-sortIcon field="name"></p-sortIcon></th>
+      <th pSortableColumn="partNumber" style="width: 9%">Part No. <p-sortIcon field="partNumber"></p-sortIcon></th>
+      <th style="width: 9%">Category</th>
+      <th style="width: 8%">Brand</th>
+      <th style="width: 7%">Unit</th>
+      <th style="width: 8%">Cost Price</th>
+      <th style="width: 10%">
+        <div class="price-col-header">
+          <i class="pi pi-tag"></i> Active Price
+        </div>
       </th>
-      <th pSortableColumn="name" style="width: 16%">
-        Name <p-sortIcon field="name"></p-sortIcon>
-      </th>
-      <th pSortableColumn="partNumber" style="width: 10%">
-        Part Number <p-sortIcon field="partNumber"></p-sortIcon>
-      </th>
-      <th style="width: 10%">Category</th>
-      <th style="width: 10%">Brand</th>
-      <th style="width: 8%">Unit</th>
-      <th style="width: 7%">Cost Price</th>
-      <th style="width: 7%">Selling Price</th>
       <th style="width: 5%">Margin</th>
-      <th style="width: 5%">Min Stock</th>
-      <th style="width: 8%">Warranty</th>
       <th style="width: 5%">Status</th>
-      <th style="width: 10%">Actions</th>
+      <th style="width: 8%">Actions</th>
     </tr>
   </ng-template>
 
-  <!-- Data Rows -->
   <ng-template pTemplate="body" let-part>
     <tr>
+      <td><span class="font-semibold">{{ part.sku }}</span></td>
+
       <td>
-        <span class="font-semibold">{{ part.sku }}</span>
-      </td>
-      <td>
-        <div class="part-name">
-          {{ part.name }}
-        </div>
+        <div class="part-name">{{ part.name }}</div>
         <small class="text-gray-500">{{ part.description }}</small>
       </td>
+
       <td>{{ part.partNumber }}</td>
-      <td>
-        <span class="category-badge">{{ part.categoryName }}</span>
-      </td>
+
+      <td><span class="category-badge">{{ part.categoryName }}</span></td>
+
       <td>
         <span *ngIf="part.brandName; else noBrand" class="brand-badge">{{ part.brandName }}</span>
-        <ng-template #noBrand>
-          <span class="text-gray-400">—</span>
-        </ng-template>
+        <ng-template #noBrand><span class="text-gray-400">—</span></ng-template>
       </td>
+
       <td>
         <span *ngIf="part.unitName; else noUnit" class="unit-badge">{{ part.unitName }}</span>
-        <ng-template #noUnit>
-          <span class="text-gray-400">—</span>
-        </ng-template>
+        <ng-template #noUnit><span class="text-gray-400">—</span></ng-template>
       </td>
+
       <td class="text-right">
-        {{ formatPrice(part.costPrice) }}
-      </td>
-      <td class="text-right">
-        {{ formatPrice(part.sellingPrice) }}
-      </td>
-      <td class="text-center">
-        <span class="margin-badge" [ngClass]="part.sellingPrice >= part.costPrice ? 'positive' : 'negative'">
-          {{ calculateMargin(part.costPrice, part.sellingPrice) }}
+        <span [class.coded-price]="priceCodeService.getDisplayPrice(part.costPrice) !== null">
+          {{ formatCostPrice(part.costPrice) }}
         </span>
       </td>
-      <td class="text-center">{{ part.minimumStock }}</td>
+
+      <!-- Active Price column (from ProductVariantPriceHistory) -->
+      <td class="price-cell">
+        <!-- Loading -->
+        <span *ngIf="isPriceLoading(part.id)" class="price-loading">
+          <i class="pi pi-spin pi-spinner"></i>
+        </span>
+        <!-- Price set -->
+        <span *ngIf="!isPriceLoading(part.id) && !isPriceNotSet(part.id)" class="price-value-tag">
+          {{ formatActivePrice(part.id) }}
+          <span class="price-source-dot" [attr.data-source]="getActivePrice(part.id)?.source"
+            pTooltip="{{ getActivePrice(part.id)?.source === 'VARIANT_HISTORY' ? 'Variant price' : 'Product price' }}">
+          </span>
+        </span>
+        <!-- Not set -->
+        <button *ngIf="!isPriceLoading(part.id) && isPriceNotSet(part.id)"
+          pButton type="button"
+          icon="pi pi-plus"
+          label="Set Price"
+          class="p-button-xs p-button-outlined p-button-warning price-not-set-btn"
+          pTooltip="No price set — click to set"
+          (click)="openSetPriceDialog(part)">
+        </button>
+      </td>
+
       <td class="text-center">
-        <div *ngIf="part.hasWarranty" class="warranty-info">
-          <p-tag value="Yes" severity="success" icon="pi pi-shield"></p-tag>
-          <small class="block text-xs mt-1">{{ part.warrantyPeriodMonths }}mo</small>
-        </div>
-        <span *ngIf="!part.hasWarranty" class="text-gray-400">—</span>
+        <ng-container *ngIf="priceCodeService.showActualPrice() || !priceCodeService.isConfigured()">
+          <span *ngIf="getActivePrice(part.id) as ap" class="margin-badge"
+            [ngClass]="ap.sellingPrice >= part.costPrice ? 'positive' : 'negative'">
+            {{ calculateMargin(part.costPrice, ap.sellingPrice) }}
+          </span>
+          <span *ngIf="isPriceNotSet(part.id)" class="text-gray-400">—</span>
+        </ng-container>
+        <span *ngIf="!priceCodeService.showActualPrice() && priceCodeService.isConfigured()" class="text-gray-400">—</span>
       </td>
+
       <td>
-        <p-tag
-          [value]="part.isActive ? 'Active' : 'Inactive'"
-          [severity]="getStatusSeverity(part.isActive)">
-        </p-tag>
+        <p-tag [value]="part.isActive ? 'Active' : 'Inactive'" [severity]="getStatusSeverity(part.isActive)"></p-tag>
       </td>
+
       <td>
         <div class="action-buttons">
           <button
-            pButton
-            pRipple
-            type="button"
+            pButton pRipple type="button"
             icon="pi pi-ellipsis-v"
             class="p-button-text p-button-sm"
-            pTooltip="Actions"
-            tooltipPosition="left"
+            pTooltip="Actions" tooltipPosition="left"
             (contextmenu)="showContextMenu($event, part)"
             (click)="showContextMenu($event, part)">
           </button>
@@ -111,10 +120,9 @@
     </tr>
   </ng-template>
 
-  <!-- Empty Message -->
   <ng-template pTemplate="emptymessage">
     <tr>
-      <td colspan="12" class="text-center py-4">
+      <td colspan="11" class="text-center py-4">
         <i class="pi pi-inbox mr-2"></i>
         No parts found. Click "New Part" to create one.
       </td>
@@ -123,11 +131,79 @@
 </p-table>
 
 <!-- Context Menu -->
-<p-contextMenu
-  #contextMenu
-  [model]="contextMenuItems"
-  [appendTo]="'body'">
-</p-contextMenu>
+<p-contextMenu #contextMenu [model]="contextMenuItems" [appendTo]="'body'"></p-contextMenu>
 
 <!-- Confirm Dialog -->
 <p-confirmDialog></p-confirmDialog>
+
+<!-- ── Set Price Dialog ─────────────────────────────────────────────────── -->
+<p-dialog
+  [(visible)]="showSetPriceDialog"
+  [header]="'Set Price — ' + (selectedPart?.name || '')"
+  [modal]="true"
+  [style]="{width: '420px', maxWidth: '95vw'}"
+  [draggable]="false">
+
+  <form [formGroup]="priceForm" class="spf-form">
+
+    <div class="spf-group">
+      <label class="spf-label"><span class="req">*</span> Selling Price</label>
+      <p-inputNumber
+        formControlName="sellingPrice"
+        [min]="0.01"
+        [minFractionDigits]="2"
+        [maxFractionDigits]="2"
+        placeholder="0.00"
+        styleClass="w-full"
+        inputStyleClass="spf-input">
+      </p-inputNumber>
+      <small *ngIf="priceForm.get('sellingPrice')?.invalid && priceForm.get('sellingPrice')?.touched" class="spf-error">
+        Valid price is required
+      </small>
+    </div>
+
+    <div class="spf-row">
+      <div class="spf-group">
+        <label class="spf-label"><span class="req">*</span> Effective From</label>
+        <p-datepicker
+          formControlName="startDate"
+          [showIcon]="true"
+          dateFormat="dd M yy"
+          placeholder="Select date"
+          appendTo="body"
+          inputStyleClass="spf-input">
+        </p-datepicker>
+        <small *ngIf="priceForm.get('startDate')?.invalid && priceForm.get('startDate')?.touched" class="spf-error">
+          Date is required
+        </small>
+      </div>
+      <div class="spf-group">
+        <label class="spf-label">Currency</label>
+        <input type="text" pInputText formControlName="currency" class="spf-input" placeholder="BDT" />
+      </div>
+    </div>
+
+    <div class="spf-group">
+      <label class="spf-label">Reason <span class="spf-hint">(optional)</span></label>
+      <input type="text" pInputText formControlName="reason"
+        placeholder="e.g. Market adjustment" class="spf-input" />
+    </div>
+
+    <div class="spf-note">
+      <i class="pi pi-info-circle"></i>
+      Previous active price will be automatically closed.
+    </div>
+
+  </form>
+
+  <ng-template pTemplate="footer">
+    <button pButton type="button" label="Cancel" icon="pi pi-times"
+      class="p-button-text p-button-secondary"
+      (click)="showSetPriceDialog.set(false)"></button>
+    <button pButton type="button" label="Save Price" icon="pi pi-check"
+      class="p-button-success"
+      [loading]="savingPrice()"
+      [disabled]="savingPrice()"
+      (click)="onSavePrice()"></button>
+  </ng-template>
+</p-dialog>

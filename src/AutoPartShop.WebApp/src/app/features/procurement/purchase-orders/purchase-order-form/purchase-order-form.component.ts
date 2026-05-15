@@ -25,6 +25,8 @@ import { DatePicker } from 'primeng/datepicker';
 import { TextareaModule } from 'primeng/textarea';
 import { tap, forkJoin, of } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { ApplyCreditNotesComponent } from '../../purchase-credits/apply-credit-notes.component';
+import { CreditNoteService } from '../../services/credit-note.service';
 
 @Component({
     selector: 'app-purchase-order-form',
@@ -46,7 +48,8 @@ import { map } from 'rxjs/operators';
         TooltipModule,
         TextareaModule,
         TagModule,
-        LazyAutocompleteComponent
+        LazyAutocompleteComponent,
+        ApplyCreditNotesComponent
     ],
     templateUrl: './purchase-order-form.component.html',
     styleUrls: ['./purchase-order-form.component.css'],
@@ -117,8 +120,13 @@ export class PurchaseOrderFormComponent implements OnInit {
     private readonly unitService = inject(UnitService);
     private readonly unitConversionService = inject(UnitConversionService);
     private readonly currencyService = inject(CurrencyService);
+    private readonly creditNoteService = inject(CreditNoteService);
     private readonly messageService = inject(MessageService);
     private readonly confirmationService = inject(ConfirmationService);
+
+    // Credit note state
+    totalCreditApplied = 0;
+    availableCreditForSupplier = 0;
     private readonly fb = inject(FormBuilder);
     private readonly route = inject(ActivatedRoute);
     private readonly router = inject(Router);
@@ -174,7 +182,9 @@ export class PurchaseOrderFormComponent implements OnInit {
                     priority: 'MEDIUM',
                     notes: po.notes,
                     taxRate: po.taxPercentage || 0,
-                    discountPercentage: po.discountPercentage || 0
+                    discountPercentage: po.discountPercentage || 0,
+                    discountAmount: po.discountAmount || 0,
+                    discountType: po.discountType || 'TOTAL'
                 });
 
                 const linesArray = this.linesArray;
@@ -182,8 +192,11 @@ export class PurchaseOrderFormComponent implements OnInit {
                 this.lineUnitsMap.clear();
 
                 po.lines?.forEach((line, index) => {
-                    const matchingPart = { id: line.partId, name: line.partName, unitId: line.unitId };
-                    const matchingUnit = { id: line.unitId, name: line.unitName, symbol: line.unitSymbol } as UnitResponse;
+                    const baseUnitId = line.partBaseUnitId || line.unitId || null;
+                    const matchingPart = { id: line.partId, name: line.partName, unitId: baseUnitId };
+                    const matchingUnit = line.unitId
+                        ? ({ id: line.unitId, name: line.unitName, symbol: line.unitSymbol } as UnitResponse)
+                        : null;
 
                     linesArray.push(this.fb.group({
                         partId: [matchingPart || line.partId, Validators.required],
@@ -193,12 +206,14 @@ export class PurchaseOrderFormComponent implements OnInit {
                     }));
 
                     // Set current unit immediately so dropdown has options
-                    this.lineUnitsMap.set(index, [matchingUnit]);
-                    this.lineUnitSelection.set(index, line.unitId || null);
+                    if (matchingUnit) {
+                        this.lineUnitsMap.set(index, [matchingUnit]);
+                    }
+                    this.lineUnitSelection.set(index, line.unitId || baseUnitId);
 
                     // Load compatible units for each line
-                    if (line.unitId) {
-                        this.unitService.getCompatibleUnits(line.unitId).subscribe({
+                    if (baseUnitId) {
+                        this.unitService.getCompatibleUnits(baseUnitId).subscribe({
                             next: (compatibleUnits) => {
                                 this.compatibleUnitsMap.set(line.partId, compatibleUnits);
                                 this.lineUnitsMap.set(index, compatibleUnits);
@@ -236,9 +251,15 @@ export class PurchaseOrderFormComponent implements OnInit {
             priority: ['MEDIUM', Validators.required],
             taxRate: [0, [Validators.required, Validators.min(0), Validators.max(100)]],
             discountPercentage: [0, [Validators.required, Validators.min(0), Validators.max(100)]],
+            discountAmount: [0],
+            discountType: ['TOTAL'], // 'BULK' or 'TOTAL'
             notes: [''],
             lines: this.fb.array([])
         });
+    }
+
+    onDiscountTypeChange(type: 'BULK' | 'TOTAL'): void {
+        this.form.patchValue({ discountType: type });
     }
 
     get linesArray(): FormArray {
@@ -281,7 +302,26 @@ export class PurchaseOrderFormComponent implements OnInit {
     getDiscountAmount(): number {
         const subtotal = this.getSubtotal();
         const discountPercentage = this.form.get('discountPercentage')?.value || 0;
-        return (subtotal * discountPercentage) / 100;
+        const manualDiscountAmount = this.form.get('discountAmount')?.value || 0;
+        const discountType = this.form.get('discountType')?.value || 'TOTAL';
+
+        let percentageDiscount = 0;
+
+        // For TOTAL discount, apply percentage to subtotal
+        if (discountType === 'TOTAL') {
+            percentageDiscount = (subtotal * discountPercentage) / 100;
+        }
+        // For BULK discount, sum up individual line discounts
+        else {
+            percentageDiscount = this.linesArray.controls.reduce((totalDiscount, line, index) => {
+                const lineTotal = this.getLineTotal(index);
+                const lineDiscount = (lineTotal * discountPercentage) / 100;
+                return totalDiscount + lineDiscount;
+            }, 0);
+        }
+
+        // Use the larger of percentage discount or manual amount
+        return Math.max(percentageDiscount, manualDiscountAmount);
     }
 
     getGrandTotal(): number {
@@ -339,6 +379,8 @@ export class PurchaseOrderFormComponent implements OnInit {
             deliveryDate: this.form.value.deliveryDate,
             taxPercentage: this.form.value.taxRate || 0,
             discountPercentage: this.form.value.discountPercentage || 0,
+            discountAmount: this.form.value.discountAmount || 0,
+            discountType: this.form.value.discountType || 'TOTAL',
             notes: this.form.value.notes,
             lineItems
         };
@@ -383,6 +425,8 @@ export class PurchaseOrderFormComponent implements OnInit {
             deliveryDate: this.form.value.deliveryDate,
             taxPercentage: this.form.value.taxRate || 0,
             discountPercentage: this.form.value.discountPercentage || 0,
+            discountAmount: this.form.value.discountAmount || 0,
+            discountType: this.form.value.discountType || 'TOTAL',
             notes: this.form.value.notes,
             lineItems
         };
@@ -412,6 +456,44 @@ export class PurchaseOrderFormComponent implements OnInit {
 
     onCancel(): void {
         this.router.navigate(['/procurement/purchase-orders']);
+    }
+
+    /**
+     * Handler for when credit is applied to this PO
+     */
+    onCreditApplied(amount: number): void {
+        this.totalCreditApplied += amount;
+        this.messageService.add({
+            severity: 'success',
+            summary: 'Credit Applied',
+            detail: `${this.formatCurrency(amount)} credit applied to this purchase order`
+        });
+
+        // Reload PO to get updated data
+        if (this.poId) {
+            this.loadPurchaseOrder(this.poId);
+        }
+
+        // Refresh available credit for supplier
+        const supplierId = this.form.get('supplierId')?.value;
+        if (supplierId) {
+            this.loadAvailableCreditForSupplier(supplierId);
+        }
+    }
+
+    /**
+     * Load available credit for the selected supplier
+     */
+    loadAvailableCreditForSupplier(supplierId: string): void {
+        this.creditNoteService.getTotalAvailableCredit(supplierId).subscribe({
+            next: (response: { totalAvailableCredit: number }) => {
+                this.availableCreditForSupplier = response.totalAvailableCredit;
+            },
+            error: () => {
+                // Silently fail - credit info is optional
+                this.availableCreditForSupplier = 0;
+            }
+        });
     }
 
     private markFormGroupTouched(formGroup: FormGroup): void {
@@ -489,6 +571,7 @@ export class PurchaseOrderFormComponent implements OnInit {
     }
 
     submitPurchaseOrder(): void {
+        debugger;
         if (!this.poId || !this.currentPO) return;
 
         this.confirmationService.confirm({
@@ -519,6 +602,7 @@ export class PurchaseOrderFormComponent implements OnInit {
     }
 
     confirmPurchaseOrder(): void {
+
         if (!this.poId || !this.currentPO) return;
 
         this.confirmationService.confirm({
@@ -654,6 +738,7 @@ export class PurchaseOrderFormComponent implements OnInit {
     }
 
     onUnitChanged(lineIndex: number): void {
+        debugger;
         const line = this.linesArray.at(lineIndex) as FormGroup | null;
         if (!line) return;
 

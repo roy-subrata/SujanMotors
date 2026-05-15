@@ -8,20 +8,26 @@ public class SalesReturnLine : AuditableEntity
     public Guid SalesReturnId { get; private set; }
     public Guid SalesOrderLineId { get; private set; }
     public Guid PartId { get; private set; }
+    public Guid? UnitId { get; private set; }  // Unit in which the return was made
     public int Quantity { get; private set; }
+    public int QuantityInBaseUnit { get; private set; }  // Converted to Part's base unit
     public decimal UnitPrice { get; private set; }
+    public decimal UnitPriceInBaseUnit { get; private set; }  // Price in base unit terms
     public decimal RefundAmount => Quantity * UnitPrice;
+    public decimal RefundAmountInBaseUnit => QuantityInBaseUnit * UnitPriceInBaseUnit;
     public string Condition { get; private set; } = string.Empty;  // UNOPENED, OPENED, DAMAGED
     public string Notes { get; private set; } = string.Empty;
 
     // Navigation properties
     public SalesReturn? SalesReturn { get; set; }
     public Part? Part { get; set; }
+    public Unit? Unit { get; set; }
 
     private SalesReturnLine() { }
 
     public static SalesReturnLine Create(Guid salesReturnId, Guid salesOrderLineId, Guid partId,
-        int quantity, decimal unitPrice, string condition = "UNOPENED")
+        int quantity, decimal unitPrice, string condition = "UNOPENED", Guid? unitId = null,
+        int quantityInBaseUnit = 0, decimal unitPriceInBaseUnit = 0)
     {
         if (salesReturnId == Guid.Empty)
             throw new ArgumentException("SalesReturnId cannot be empty", nameof(salesReturnId));
@@ -48,8 +54,11 @@ public class SalesReturnLine : AuditableEntity
             SalesOrderLineId = salesOrderLineId,
             PartId = partId,
             Quantity = quantity,
+            QuantityInBaseUnit = quantityInBaseUnit > 0 ? quantityInBaseUnit : quantity,
             UnitPrice = unitPrice,
-            Condition = condition.ToUpper()
+            UnitPriceInBaseUnit = unitPriceInBaseUnit > 0 ? unitPriceInBaseUnit : unitPrice,
+            Condition = condition.ToUpper(),
+            UnitId = unitId
         };
     }
 

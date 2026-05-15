@@ -133,21 +133,10 @@
             </span>
           </td>
           <td class="text-center">
-            <div class="flex justify-center gap-1">
-              <button pButton type="button" icon="pi pi-eye" class="p-button-text p-button-sm"
-                (click)="viewInvoice(invoice)" pTooltip="View" tooltipPosition="left"></button>
-              <button *ngIf="invoice.status === 'DRAFT'" pButton type="button" icon="pi pi-check-circle"
-                class="p-button-text p-button-success p-button-sm" (click)="issueInvoice(invoice)" pTooltip="Issue"
-                tooltipPosition="left"></button>
-              <button *ngIf="canRecordPayment(invoice)" pButton type="button" icon="pi pi-dollar"
-                class="p-button-text p-button-warning p-button-sm" (click)="openPaymentDialog(invoice)"
-                pTooltip="Record Payment" tooltipPosition="left"></button>
-              <button *ngIf="canApplyAdvanceCredit(invoice)" pButton type="button" icon="pi pi-credit-card"
-                class="p-button-text p-button-success p-button-sm" (click)="applyAdvanceCredit(invoice)"
-                pTooltip="Apply Advance Credit" tooltipPosition="left"></button>
-              <button pButton type="button" icon="pi pi-wallet" class="p-button-text p-button-info p-button-sm"
-                (click)="viewCustomerPayments(invoice)" pTooltip="View/Confirm Payments" tooltipPosition="left"></button>
-            </div>
+            <button pButton type="button" icon="pi pi-ellipsis-v"
+              class="p-button-text p-button-sm p-button-secondary"
+              pTooltip="Actions" tooltipPosition="left"
+              (click)="openActionMenu($event, invoice)"></button>
           </td>
         </tr>
       </ng-template>
@@ -175,6 +164,9 @@
       (onPageChange)="onPageChange($event)">
     </p-paginator>
   </div>
+
+  <!-- Context Action Menu (shared, single instance) -->
+  <p-menu #actionMenu [popup]="true" [model]="actionItems" appendTo="body"></p-menu>
 
   <!-- Payment Dialog -->
   <p-dialog  header="Record Payment" [(visible)]="showPaymentDialog" [modal]="true" [style]="{width: '500px'}"
@@ -212,6 +204,13 @@
             [min]="0" styleClass="w-full">
           </p-inputNumber>
           <small class="text-gray-500 mt-1 block">You can enter more than the outstanding amount to create a credit balance</small>
+        </div>
+
+        <!-- Fix #10: allow user to choose payment date -->
+        <div class="form-field">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Payment Date</label>
+          <p-datepicker [(ngModel)]="paymentDate" [showIcon]="true" dateFormat="M dd, yy"
+            appendTo="body" styleClass="w-full"></p-datepicker>
         </div>
 
         <div class="form-field">

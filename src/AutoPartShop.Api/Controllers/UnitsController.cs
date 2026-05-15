@@ -391,6 +391,60 @@ public class UnitsController : ControllerBase
     }
 
     /// <summary>
+    /// Get conversions with pagination and optional search
+    /// Unified endpoint for listing, searching, and pagination
+    /// </summary>
+    /// <remarks>
+    /// Examples:
+    /// - GET /api/units/conversions/list - Get all conversions (page 1, 10 per page)
+    /// - GET /api/units/conversions/list?pageNumber=1&amp;pageSize=20 - Custom page size
+    /// - GET /api/units/conversions/list?searchTerm=kg - Search for "kg" (page 1, 10 per page)
+    /// - GET /api/units/conversions/list?searchTerm=kg&amp;pageNumber=2&amp;pageSize=5 - Search with pagination
+    /// </remarks>
+    [HttpGet("conversions/list")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetConversionsList(
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string? searchTerm = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // Validate pagination parameters
+            if (pageNumber < 1) pageNumber = 1;
+            if (pageSize < 1) pageSize = 10;
+            if (pageSize > 100) pageSize = 100;
+
+            var hasSearch = !string.IsNullOrWhiteSpace(searchTerm);
+            _logger.LogInformation("Getting conversions - Page: {PageNumber}, Size: {PageSize}, Search: {SearchTerm}",
+                pageNumber, pageSize, hasSearch ? searchTerm : "none");
+
+            var (conversions, totalCount) = hasSearch
+                ? await _conversionRepository.SearchPagedAsync(searchTerm!, pageNumber, pageSize, cancellationToken)
+                : await _conversionRepository.GetPagedAsync(pageNumber, pageSize, cancellationToken);
+
+            var response = conversions.Select(c => MapToConversionResponse(c, c.FromUnit, c.ToUnit));
+            return Ok(new
+            {
+                data = response,
+                pagination = new
+                {
+                    pageNumber,
+                    pageSize,
+                    totalCount,
+                    totalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting conversions list");
+            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving conversions");
+        }
+    }
+
+    /// <summary>
     /// Get conversions for a specific unit (both from and to)
     /// </summary>
     [HttpGet("{id:guid}/conversions")]
@@ -433,13 +487,42 @@ public class UnitsController : ControllerBase
             _logger.LogInformation("Getting conversion from {FromUnitId} to {ToUnitId}", fromUnitId, toUnitId);
 
             var conversion = await _conversionRepository.GetConversionAsync(fromUnitId, toUnitId, cancellationToken);
-            if (conversion is null)
+            if (conversion is not null)
+            {
+                return Ok(MapToConversionResponse(conversion, conversion.FromUnit, conversion.ToUnit));
+            }
+
+            // Fallback: if direct conversion is not configured, try reverse and invert factor.
+            var reverseConversion = await _conversionRepository.GetConversionAsync(toUnitId, fromUnitId, cancellationToken);
+            if (reverseConversion is null)
             {
                 _logger.LogWarning("Conversion not found from {FromUnitId} to {ToUnitId}", fromUnitId, toUnitId);
                 return NotFound(new { message = "Conversion not found" });
             }
 
-            var response = MapToConversionResponse(conversion);
+            if (reverseConversion.ConversionFactor <= 0)
+            {
+                _logger.LogWarning("Invalid reverse conversion factor for {ToUnitId} -> {FromUnitId}", toUnitId, fromUnitId);
+                return BadRequest(new { message = "Invalid conversion factor configured" });
+            }
+
+            var invertedFactor = 1 / reverseConversion.ConversionFactor;
+            var response = new UnitConversionResponse
+            {
+                Id = reverseConversion.Id,
+                FromUnitId = fromUnitId,
+                ToUnitId = toUnitId,
+                FromUnitName = reverseConversion.ToUnit?.Name ?? string.Empty,
+                FromUnitCode = reverseConversion.ToUnit?.Code ?? string.Empty,
+                ToUnitName = reverseConversion.FromUnit?.Name ?? string.Empty,
+                ToUnitCode = reverseConversion.FromUnit?.Code ?? string.Empty,
+                ConversionFactor = invertedFactor,
+                Description = reverseConversion.Description,
+                IsActive = reverseConversion.IsActive,
+                CreatedBy = reverseConversion.CreatedBy,
+                ModifiedBy = reverseConversion.ModifiedBy
+            };
+
             return Ok(response);
         }
         catch (Exception ex)

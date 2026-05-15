@@ -8,6 +8,7 @@ export interface PurchaseOrderLineResponse {
     id: string;
     partId: string;
     partName: string;
+    partBaseUnitId?: string;
     unitId?: string;
     unitName?: string;
     unitSymbol?: string;
@@ -18,6 +19,8 @@ export interface PurchaseOrderLineResponse {
     remainingQuantity: number;
     unitPrice: number;
     lineTotal: number;
+    partDefaultSellingPrice: number;   // Part master sell price — used by GRN to auto-fill lot sell price
+    partMinMarginPercent: number;      // Part-level margin override (or global 15%)
 }
 
 export interface PurchaseOrderResponse {
@@ -36,6 +39,8 @@ export interface PurchaseOrderResponse {
     taxPercentage: number;
     discount: number;
     discountPercentage: number;
+    discountAmount?: number;
+    discountType?: string; // 'BULK' or 'TOTAL'
     grandTotal: number;
     amountPaid: number;
     outstandingAmount: number;
@@ -50,6 +55,8 @@ export interface CreatePurchaseOrderRequest {
     deliveryDate: string;
     taxPercentage: number;
     discountPercentage: number;
+    discountAmount?: number;
+    discountType?: string;
     notes: string;
     lineItems: CreatePurchaseOrderLineRequest[];
 }
@@ -67,6 +74,8 @@ export interface UpdatePurchaseOrderRequest {
     deliveryDate: string;
     taxPercentage: number;
     discountPercentage: number;
+    discountAmount?: number;
+    discountType?: string;
     notes: string;
     lineItems: CreatePurchaseOrderLineRequest[];
 }

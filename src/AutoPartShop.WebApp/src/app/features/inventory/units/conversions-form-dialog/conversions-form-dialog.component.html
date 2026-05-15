@@ -96,9 +96,11 @@
       <small class="hint-message">Example: 1 kg = 1000 grams, so enter 1000</small>
     </div>
 
-    <!-- Description Field -->
+    <!-- Description Field (Optional) -->
     <div class="form-group">
-      <label for="create-description" class="form-label">Description</label>
+      <label for="create-description" class="form-label">
+        Description <span class="optional-label">(Optional)</span>
+      </label>
       <textarea id="create-description" pInputTextarea formControlName="description"
         placeholder="Optional description or notes" rows="2" class="form-input"
         [class.error]="hasError(createForm, 'description')" [class.success]="isFieldValid(createForm, 'description')">
@@ -166,9 +168,11 @@
       </small>
     </div>
 
-    <!-- Description Field -->
+    <!-- Description Field (Optional) -->
     <div class="form-group">
-      <label for="update-description" class="form-label">Description</label>
+      <label for="update-description" class="form-label">
+        Description <span class="optional-label">(Optional)</span>
+      </label>
       <textarea id="update-description" pInputTextarea formControlName="description"
         placeholder="Optional description or notes" rows="2" class="form-input"
         [class.error]="hasError(updateForm, 'description')" [class.success]="isFieldValid(updateForm, 'description')">

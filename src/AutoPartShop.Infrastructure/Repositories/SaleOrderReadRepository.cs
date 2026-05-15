@@ -12,6 +12,8 @@ namespace AutoPartShop.Infrastructure.Repositories
             var salesOrders = _dbContext.SalesOrders
                 .Include(x => x.LineItems)
                     .ThenInclude(li => li.Part)
+                .Include(x => x.LineItems)
+                    .ThenInclude(li => li.ProductVariant)
                 .Where(x => !x.Isdeleted);
 
             // Apply search filter
@@ -27,9 +29,10 @@ namespace AutoPartShop.Infrastructure.Repositories
             }
 
             if (!string.IsNullOrWhiteSpace(query.Status))
-            {
                 salesOrders = salesOrders.Where(x => x.Status == query.Status);
-            }
+
+            if (!string.IsNullOrWhiteSpace(query.Channel))
+                salesOrders = salesOrders.Where(x => x.Channel == query.Channel.ToUpper());
 
 
             if (query.FromDate.HasValue && query.ToDate.HasValue)
@@ -62,6 +65,7 @@ namespace AutoPartShop.Infrastructure.Repositories
                     OrderDate = order.SODate,
                     DeliveryDate = order.DeliveryDate ?? DateTime.MinValue,
                     Status = order.Status,
+                    Channel = order.Channel,
                     SubTotal = order.SubTotal,
                     TaxAmount = order.TaxAmount,
                     Discount = order.DiscountPercentage,
@@ -77,6 +81,9 @@ namespace AutoPartShop.Infrastructure.Repositories
                         PartId = l.PartId,
                         PartName = l.Part != null ? l.Part.Name : string.Empty,
                         PartSku = l.Part != null ? l.Part.SKU : string.Empty,
+                        ProductVariantId = l.ProductVariantId,
+                        VariantName = l.ProductVariant != null ? l.ProductVariant.Name : null,
+                        VariantSku = l.ProductVariant != null ? l.ProductVariant.SKU : null,
                         UnitId = l.UnitId,
                         UnitName = l.Unit != null ? l.Unit.Name : string.Empty,
                         UnitSymbol = l.Unit != null ? l.Unit.Symbol : string.Empty,

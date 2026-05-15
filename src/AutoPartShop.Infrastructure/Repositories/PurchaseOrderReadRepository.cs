@@ -6,6 +6,7 @@ namespace AutoPartShop.Infrastructure.Repositories;
 
 public class PurchaseOrderReadRepository(AutoPartDbContext _dbContext) : IPurchaseOrderReadRepository
 {
+
     public async Task<(IEnumerable<PurchaseOrderResponse> response, int total)> FindAllAsync(PurcahseQueryDto query, CancellationToken cancellationToken = default)
     {
         var purchaseOrders = _dbContext.PurchaseOrders
@@ -29,7 +30,8 @@ public class PurchaseOrderReadRepository(AutoPartDbContext _dbContext) : IPurcha
 
         if (!string.IsNullOrWhiteSpace(query.Status))
         {
-            purchaseOrders = purchaseOrders.Where(x => x.Status == query.Status);
+            var statuses = query.Status.Split(',').Select(s => s.Trim()).ToArray();
+            purchaseOrders = purchaseOrders.Where(x => statuses.Contains(x.Status));
         }
 
         if (query.FromDate.HasValue && query.ToDate.HasValue)
@@ -77,6 +79,8 @@ public class PurchaseOrderReadRepository(AutoPartDbContext _dbContext) : IPurcha
                 {
                     Id = l.Id,
                     PartId = l.PartId,
+                    PartName = l.Part != null ? l.Part.Name : string.Empty,
+                    PartBaseUnitId = l.Part != null ? l.Part.UnitId : null,
                     UnitId = l.UnitId,
                     UnitName = l.Unit != null ? l.Unit.Name : string.Empty,
                     UnitSymbol = l.Unit != null ? l.Unit.Symbol : string.Empty,
@@ -85,7 +89,9 @@ public class PurchaseOrderReadRepository(AutoPartDbContext _dbContext) : IPurcha
                     ReceivedQuantity = l.ReceivedQuantity,
                     ReceivedQuantityInBaseUnit = l.ReceivedQuantityInBaseUnit,
                     UnitPrice = l.UnitPrice,
-                    LineTotal = l.TotalPrice
+                    LineTotal = l.TotalPrice,
+                    PartDefaultSellingPrice = l.Part != null ? l.Part.SellingPrice : 0,
+                    PartMinMarginPercent = 0m
                 }).ToList(),
                 CreatedAt = DateTime.UtcNow
 
@@ -131,6 +137,7 @@ public class PurchaseOrderReadRepository(AutoPartDbContext _dbContext) : IPurcha
                      LineTotal = pl.TotalPrice,
                      PartId = pl.PartId,
                      PartName = pl.Part != null ? pl.Part.Name : string.Empty,
+                     PartBaseUnitId = pl.Part != null ? pl.Part.UnitId : null,
                      UnitPrice = pl.UnitPrice,
                      Quantity = pl.Quantity,
                      QuantityInBaseUnit = pl.QuantityInBaseUnit,
@@ -138,7 +145,9 @@ public class PurchaseOrderReadRepository(AutoPartDbContext _dbContext) : IPurcha
                      ReceivedQuantityInBaseUnit = pl.ReceivedQuantityInBaseUnit,
                      UnitId = pl.UnitId,
                      UnitName = pl.Unit != null ? pl.Unit.Name : string.Empty,
-                     UnitSymbol = pl.Unit != null ? pl.Unit.Symbol : string.Empty
+                     UnitSymbol = pl.Unit != null ? pl.Unit.Symbol : string.Empty,
+                     PartDefaultSellingPrice = pl.Part != null ? pl.Part.SellingPrice : 0,
+                     PartMinMarginPercent = 0m
                  }).ToList()
              })
              .FirstOrDefaultAsync(cancellationToken);

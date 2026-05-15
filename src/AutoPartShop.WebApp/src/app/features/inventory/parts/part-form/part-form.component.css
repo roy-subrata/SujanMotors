@@ -1,474 +1,333 @@
-.container {
-  padding: 0;
+/* ── Layout ─────────────────────────────────────────────────────── */
+.pf-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 0 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.pf-loading {
+  text-align: center;
+  padding: 3rem;
+  color: var(--text-color-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  font-size: 0.95rem;
+}
+
+/* ── Header ─────────────────────────────────────────────────────── */
+.pf-header {
+  padding: 1.25rem 0 1.5rem;
+}
+
+.pf-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--text-color-secondary);
+  margin-bottom: 0.4rem;
+}
+
+.pf-back {
+  cursor: pointer;
+  color: var(--primary-color);
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  text-decoration: none;
+}
+.pf-back:hover { text-decoration: underline; }
+
+.pf-sep { color: var(--surface-border); }
+
+.pf-title {
+  font-size: 1.5rem;
+  font-weight: 700;
   margin: 0;
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  max-width: none;
-  padding-bottom: 1rem;
+  color: var(--text-color);
 }
 
-/* Header with gradient - sticky on scroll */
-.form-header {
-  background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
-  border-radius: 0.5rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+/* ── Section card ───────────────────────────────────────────────── */
+.pf-section {
+  background: var(--surface-card);
+  border: 1px solid var(--surface-border);
+  border-radius: 10px;
   padding: 1.25rem 1.5rem;
-  margin-bottom: 1.5rem;
-  position: sticky;
-  top: 0;
-  z-index: 100;
+  margin-bottom: 1rem;
 }
 
-.header-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-}
-
-.header-title-section {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-/* Breadcrumb */
-.breadcrumb {
+.pf-section-head {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  margin-bottom: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 1.1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--surface-border);
 }
 
-.breadcrumb-link {
-  color: rgba(255, 255, 255, 0.9);
-  cursor: pointer;
+.pf-section-head i {
+  color: var(--primary-color);
+  font-size: 1rem;
+}
+
+.pf-section-badge {
+  margin-left: auto;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.15rem 0.55rem;
+  border-radius: 20px;
+  background: var(--blue-50);
+  color: var(--blue-700);
+  border: 1px solid var(--blue-200);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.pf-section-badge-gray {
+  background: var(--surface-100);
+  color: var(--text-color-secondary);
+  border-color: var(--surface-border);
+}
+
+.pf-section-desc {
+  font-size: 0.85rem;
+  color: var(--text-color-secondary);
+  margin: -0.5rem 0 1rem;
+  line-height: 1.5;
+}
+
+.pf-subsection-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-color-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 1rem 0 0.6rem;
+}
+
+/* ── Field rows ─────────────────────────────────────────────────── */
+.pf-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.9rem;
+  margin-bottom: 0.75rem;
+}
+
+.pf-row.three {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+.pf-field {
   display: flex;
-  align-items: center;
-  gap: 0.375rem;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.pf-field.pf-field-full {
+  grid-column: 1 / -1;
+}
+
+.pf-field label {
   font-size: 0.875rem;
-  text-decoration: none;
-  transition: color 0.2s ease;
+  font-weight: 500;
+  color: var(--text-color);
 }
 
-.breadcrumb-link:hover {
-  color: #ffffff;
-}
-
-.breadcrumb-separator {
-  color: rgba(255, 255, 255, 0.6);
-}
-
-.breadcrumb-current {
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 0.875rem;
-}
-
-.form-title {
-  margin: 0;
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: white;
-  line-height: 1.2;
-}
-
-.form-subtitle {
-  margin: 0;
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 0.875rem;
-  font-weight: 400;
+.pf-hint {
+  font-size: 0.78rem;
+  color: var(--text-color-secondary);
   line-height: 1.4;
 }
 
-/* Loading state */
-.loading-state {
+.req { color: var(--red-500); margin-left: 1px; }
+
+.pf-optional {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--text-color-secondary);
+  margin-left: 4px;
+}
+
+.pf-tag {
+  font-size: 0.72rem;
+  background: var(--surface-100);
+  border: 1px solid var(--surface-border);
+  border-radius: 3px;
+  padding: 0 5px;
+  color: var(--text-color-secondary);
+  margin-left: 5px;
+  vertical-align: middle;
+}
+
+/* ── AutoComplete item ──────────────────────────────────────────── */
+.pf-ac-item {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 3rem;
-  color: #6b7280;
+  gap: 0.5rem;
+  justify-content: space-between;
 }
 
-.loading-state p {
-  margin-top: 1rem;
+.pf-ac-code {
+  font-size: 0.75rem;
+  color: var(--text-color-secondary);
+  background: var(--surface-100);
+  border-radius: 3px;
+  padding: 0 4px;
 }
 
-/* Form card */
-.form-card {
-  background: #ffffff;
-  border-radius: 0.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e5e7eb;
+/* ── Callouts ───────────────────────────────────────────────────── */
+.pf-callout {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.65rem 0.9rem;
+  border-radius: 7px;
+  font-size: 0.83rem;
+  line-height: 1.5;
+  margin: 0.5rem 0;
 }
 
-.form-content {
-  padding: 0.5rem;
-}
+.pf-callout i { flex-shrink: 0; margin-top: 1px; }
 
-/* Form sections */
-.form-section {
-  margin-bottom: 1.5rem;
-  padding-bottom: 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
+.pf-callout-blue {
+  background: #EFF6FF;
+  border: 1px solid #BFDBFE;
+  color: #1D4ED8;
 }
+.pf-callout-blue i { color: #3B82F6; }
 
-.form-section.last,
-.form-section:last-of-type {
-  border-bottom: none;
-  margin-bottom: 0;
-  padding-bottom: 0;
+.pf-callout-green {
+  background: #F0FDF4;
+  border: 1px solid #BBF7D0;
+  color: #15803D;
 }
+.pf-callout-green i { color: #22C55E; }
 
-.section-title {
-  margin: 0 0 1rem 0;
-  font-size: 1rem;
-  font-weight: 600;
-  color: #374151;
+/* ── Checkboxes ─────────────────────────────────────────────────── */
+.pf-checkbox-row {
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
 
-.section-icon {
-  color: #8b5cf6;
-  font-size: 1rem;
-}
-
-/* Form rows and groups */
-.form-row {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
-  margin-bottom: 1rem;
-}
-
-.form-row.three-columns {
-  grid-template-columns: repeat(3, 1fr);
-}
-
-.form-row:last-child {
-  margin-bottom: 0;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.form-group.full {
-  grid-column: span 2;
-}
-
-.form-row.three-columns .form-group.full {
-  grid-column: span 3;
-}
-
-.form-group label {
+.pf-checkbox-label {
   font-size: 0.875rem;
-  font-weight: 500;
-  color: #374151;
-}
-
-.form-group input,
-.form-group textarea {
-  width: 100%;
-}
-
-/* Field hints */
-.field-hint {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  color: #6b7280;
-  font-size: 0.75rem;
-}
-
-.field-hint.pricing-tooltip {
-  cursor: help;
-}
-
-.field-hint i {
-  font-size: 0.75rem;
-}
-
-/* Autocomplete item styling */
-.autocomplete-item {
-  display: flex;
-  flex-direction: column;
-  gap: 0.125rem;
-}
-
-.item-name {
-  font-weight: 500;
-  color: #1f2937;
-}
-
-.item-code {
-  font-size: 0.75rem;
-  color: #6b7280;
-}
-
-/* Error messages */
-.p-error {
-  color: #dc2626;
-  font-size: 0.75rem;
-}
-
-/* Warranty checkbox */
-.warranty-checkbox {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.checkbox-label {
-  font-weight: 500;
-  color: #374151;
   cursor: pointer;
 }
 
-/* Warranty select */
-.warranty-select {
-  width: 100%;
-  padding: 0.625rem 0.875rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  background: white;
-  color: #374151;
-  transition: all 0.15s ease;
-}
-
-.warranty-select:focus {
-  outline: none;
-  border-color: #8b5cf6;
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
-}
-
-.warranty-select:disabled {
-  background-color: #f9fafb;
-  color: #9ca3af;
-  cursor: not-allowed;
-}
-
-/* Vehicle compatibility */
-.compatibility-note {
+/* ── Toggle row ─────────────────────────────────────────────────── */
+.pf-toggle-row {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  background: #f3e8ff;
-  color: #6d28d9;
-  border-radius: 0.5rem;
-  margin-bottom: 1rem;
-  font-size: 0.875rem;
+  gap: 0.6rem;
 }
 
-.compatibility-form {
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.5rem;
+.pf-toggle-label {
+  font-size: 0.875rem;
+  color: var(--text-color);
+}
+
+/* ── Slug field ─────────────────────────────────────────────────── */
+.pf-slug-wrap {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--surface-border);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  background: var(--surface-card);
+}
+
+.pf-slug-prefix {
+  padding: 0.5rem 0.7rem;
+  background: var(--surface-100);
+  color: var(--text-color-secondary);
+  font-size: 0.83rem;
+  border-right: 1px solid var(--surface-border);
+  white-space: nowrap;
+}
+
+.pf-slug-wrap input {
+  border: none !important;
+  flex: 1;
+  min-width: 0;
+  border-radius: 0 !important;
+}
+
+/* ── Char count ─────────────────────────────────────────────────── */
+.pf-char-count { transition: color 0.2s; }
+.pf-char-warn { color: var(--orange-600) !important; }
+
+/* ── Warranty select ────────────────────────────────────────────── */
+.pf-select {
+  width: 100%;
+  height: 2.5rem;
+  padding: 0 0.75rem;
+  border: 1px solid var(--surface-border);
+  border-radius: var(--border-radius);
+  background: var(--surface-card);
+  color: var(--text-color);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+.pf-select:focus { outline: none; border-color: var(--primary-color); }
+
+/* ── Vehicle compatibility ──────────────────────────────────────── */
+.pf-compat-form {
+  background: var(--surface-50);
+  border: 1px solid var(--surface-border);
+  border-radius: 8px;
   padding: 1rem;
-  margin-bottom: 1rem;
-}
-
-.checkbox-wrapper {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 0.75rem;
+  margin-bottom: 0.75rem;
 }
 
-.compatibility-actions {
-  margin-top: 0.5rem;
-  padding-top: 0.5rem;
-  border-top: none;
-  justify-content: flex-end;
+.pf-pending-pill {
+  display: inline-block;
+  margin-left: 0.4rem;
+  font-size: 0.72rem;
+  background: var(--orange-100);
+  color: var(--orange-700);
+  border: 1px solid var(--orange-200);
+  border-radius: 20px;
+  padding: 0.1rem 0.45rem;
+  vertical-align: middle;
 }
 
-.compatibility-list .p-datatable {
-  border-radius: 0.5rem;
-}
-
-.pending-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  margin-left: 8px;
-  padding: 2px 8px;
-  border-radius: 9999px;
-  font-size: 11px;
-  font-weight: 600;
-  background: #e0e7ff;
-  color: #4338ca;
-}
-
-.text-sm {
-  font-size: 0.875rem;
-}
-
-.text-center {
-  text-align: center;
-}
-
-.py-4 {
-  padding-top: 1rem;
-  padding-bottom: 1rem;
-}
-
-.mr-2 {
-  margin-right: 0.5rem;
-}
-
-/* Form actions */
-.form-actions {
+/* ── Actions bar ────────────────────────────────────────────────── */
+.pf-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 1rem;
-  margin-top: 1.5rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid #e5e7eb;
-  position: relative;
-  background: #ffffff;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
 }
 
-/* PrimeNG overrides */
-::ng-deep .p-autocomplete,
-::ng-deep .p-inputnumber,
-::ng-deep .p-inputtext {
-  width: 100%;
+/* ── Responsive ─────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .pf-row, .pf-row.three {
+    grid-template-columns: 1fr;
+  }
+  .pf-section { padding: 1rem; }
+  .pf-actions { flex-direction: column-reverse; }
+  .pf-actions button { width: 100%; }
 }
 
-::ng-deep .p-autocomplete .p-autocomplete-input {
-  width: 100%;
-}
-
-::ng-deep .p-inputnumber input {
-  width: 100%;
-}
-
-::ng-deep .form-card .p-card-body {
-  padding: 1.5rem;
-}
-
-::ng-deep textarea.p-inputtextarea {
+/* ── Textarea ───────────────────────────────────────────────────── */
+textarea {
   width: 100%;
   resize: vertical;
 }
 
-::ng-deep .p-checkbox {
-  width: auto;
-}
-
-/* Responsive */
-@media (max-width: 1024px) {
-  .form-row.three-columns {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .form-row.three-columns .form-group:last-child {
-    grid-column: span 2;
-  }
-
-  .form-row.three-columns .form-group.full {
-    grid-column: span 2;
-  }
-}
-
-@media (max-width: 768px) {
-  .form-header {
-    padding: 0.75rem 1rem;
-    border-radius: 0;
-    margin-bottom: 1rem;
-    margin-left: -0.75rem;
-    margin-right: -0.75rem;
-    width: calc(100% + 1.5rem);
-  }
-
-  .form-title {
-    font-size: 1.125rem;
-  }
-
-  .form-subtitle {
-    display: none;
-  }
-
-  .breadcrumb {
-    margin-bottom: 0.25rem;
-  }
-
-  .form-row {
-    grid-template-columns: 1fr;
-  }
-
-  .form-row.three-columns {
-    grid-template-columns: 1fr;
-  }
-
-  .form-group.full {
-    grid-column: span 1;
-  }
-
-  .form-row.three-columns .form-group:last-child,
-  .form-row.three-columns .form-group.full {
-    grid-column: span 1;
-  }
-
-  .form-content {
-    padding-bottom: 1rem;
-  }
-
-  ::ng-deep .form-card .p-card-body {
-    padding: 1rem;
-  }
-
-  .form-actions {
-    position: static;
-    flex-direction: column-reverse;
-    margin-top: 1.5rem;
-    padding: 1rem;
-    border-top: 1px solid #e5e7eb;
-    background: #f9fafb;
-    border-radius: 0.5rem;
-  }
-
-  .form-actions button {
-    width: 100%;
-  }
-}
-
-@media (max-width: 640px) {
-  .form-header {
-    padding: 0.625rem 0.75rem;
-    margin-left: -0.375rem;
-    margin-right: -0.375rem;
-    width: calc(100% + 0.75rem);
-  }
-
-  .form-title {
-    font-size: 1rem;
-  }
-
-  .breadcrumb-link {
-    font-size: 0.75rem;
-  }
-
-  .breadcrumb-current {
-    font-size: 0.75rem;
-  }
-
-  .form-content {
-    padding: 0.25rem;
-    padding-bottom: 0.5rem;
-  }
-
-  ::ng-deep .form-card .p-card-body {
-    padding: 0.875rem;
-  }
-
-  .form-actions {
-    padding: 0.875rem;
-    margin-top: 1rem;
-  }
-}
+/* ── Table tweaks ───────────────────────────────────────────────── */
+.text-sm { font-size: 0.875rem; }
+.text-secondary { color: var(--text-color-secondary); }
+.font-semibold { font-weight: 600; }

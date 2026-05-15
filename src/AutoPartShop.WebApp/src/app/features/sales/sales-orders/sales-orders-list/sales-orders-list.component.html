@@ -7,6 +7,21 @@
 <p-confirmDialog></p-confirmDialog>
 <p-menu #actionMenu [model]="actionMenuItems" [popup]="true" appendTo="body"></p-menu>
 
+<!-- ==================== BREADCRUMB ==================== -->
+<div class="breadcrumb-bar">
+  <div class="breadcrumb-content">
+    <a routerLink="/" class="breadcrumb-link">
+      <i class="pi pi-home"></i>
+    </a>
+    <i class="pi pi-chevron-right breadcrumb-separator"></i>
+    <span class="breadcrumb-text">
+      <span class="breadcrumb-parent"><a routerLink="/sales/sales-orders">Sales</a></span>
+      <i class="pi pi-chevron-right breadcrumb-separator"></i>
+      <span class="breadcrumb-active">Sales Orders</span>
+    </span>
+  </div>
+</div>
+
 <!-- Main Page Container -->
 <div class="page-wrapper">
 

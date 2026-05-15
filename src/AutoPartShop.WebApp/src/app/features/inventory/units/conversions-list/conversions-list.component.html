@@ -5,7 +5,7 @@
 <section class="table-section desktop-only">
   <div class="table-container">
     <p-table
-      [value]="pagedConversions"
+      [value]="conversions"
       [lazy]="true"
       [paginator]="false"
       [rows]="pageSize"
@@ -116,7 +116,7 @@
 
   <div class="pagination-section" *ngIf="totalRecords > 0">
     <div class="pagination-info">
-      Showing <strong>{{ first + 1 }}</strong> to <strong>{{ first + pagedConversions.length }}</strong> of <strong>{{ totalRecords }}</strong> conversions
+      Showing <strong>{{ first + 1 }}</strong> to <strong>{{ first + conversions.length }}</strong> of <strong>{{ totalRecords }}</strong> conversions
     </div>
     <div class="pagination-controls">
       <span class="page-size-label">Rows per page:</span>
@@ -163,7 +163,7 @@
     </div>
   </div>
 
-  <div *ngIf="!loading && pagedConversions.length === 0" class="empty-state-mobile">
+  <div *ngIf="!loading && conversions.length === 0" class="empty-state-mobile">
     <div class="empty-icon">
       <i class="pi pi-arrows-h"></i>
     </div>
@@ -171,8 +171,8 @@
     <p>Create a new conversion to get started</p>
   </div>
 
-  <div *ngIf="!loading && pagedConversions.length > 0" class="cards-grid">
-    <div *ngFor="let conversion of pagedConversions" class="order-card">
+  <div *ngIf="!loading && conversions.length > 0" class="cards-grid">
+    <div *ngFor="let conversion of conversions" class="order-card">
       <div class="card-header">
         <span class="card-so-number">{{ conversion.fromUnitCode }} → {{ conversion.toUnitCode }}</span>
         <span class="status-pill" [attr.data-status]="conversion.isActive ? 'active' : 'inactive'">
@@ -212,9 +212,9 @@
     </div>
   </div>
 
-  <div *ngIf="!loading && pagedConversions.length > 0" class="mobile-pagination">
+  <div *ngIf="!loading && conversions.length > 0" class="mobile-pagination">
     <div class="pagination-info-mobile">
-      {{ first + 1 }}-{{ first + pagedConversions.length }} of {{ totalRecords }}
+      {{ first + 1 }}-{{ first + conversions.length }} of {{ totalRecords }}
     </div>
     <div class="pagination-nav-mobile">
       <button class="page-btn" [disabled]="first === 0" (click)="onPageChange({first: first - pageSize, rows: pageSize})">

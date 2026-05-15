@@ -142,6 +142,37 @@
         </div>
       </div>
 
+      <!-- Commercial Terms Section -->
+      <div class="form-section">
+        <h3 class="section-title">
+          <i class="pi pi-wallet section-icon"></i>
+          Commercial Terms
+        </h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Payment Terms</label>
+            <p-select formControlName="paymentTerms"
+                      [options]="paymentTermsOptions"
+                      optionLabel="label"
+                      optionValue="value"
+                      placeholder="Select payment terms">
+            </p-select>
+          </div>
+          <div class="form-group">
+            <label>Credit Limit</label>
+            <p-inputNumber formControlName="creditLimit"
+                           [min]="0"
+                           [minFractionDigits]="2"
+                           [maxFractionDigits]="2"
+                           placeholder="0.00">
+            </p-inputNumber>
+            <small class="p-error" *ngIf="supplierForm.get('creditLimit')?.invalid && supplierForm.get('creditLimit')?.touched">
+              Credit limit must be 0 or greater
+            </small>
+          </div>
+        </div>
+      </div>
+
       <!-- Form Actions -->
       <div class="form-actions">
         <button pButton

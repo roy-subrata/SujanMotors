@@ -25,3 +25,7 @@ appsettings.*.json
 nul
 # node
 node_modules/
+# Environment / secrets — never commit these
+.env
+.env.*
+!.env.example

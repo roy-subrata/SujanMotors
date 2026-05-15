@@ -271,12 +271,10 @@ export class PurchaseReturnsFormComponent implements OnInit {
   /**
    * Load available lots for a part
    */
-  loadAvailableLotsForPart(partId: string): void {
-    if (!partId || this.availableLotsMap.has(partId)) {
-      return;  // Already loaded or no partId
-    }
+  loadAvailableLotsForPart(partId: string, forceRefresh = false): void {
+    if (!partId) return;
+    if (!forceRefresh && this.availableLotsMap.has(partId)) return;
 
-    // Get supplier ID from selected PO
     const supplierId = this.selectedPurchaseOrder?.supplierId;
 
     this.loadingLotsMap.set(partId, true);
@@ -359,30 +357,19 @@ export class PurchaseReturnsFormComponent implements OnInit {
    * Handle PO selection change
    */
   onPurchaseOrderSelected(event: any): void {
-    console.log('PO Selected Event:', event);
-
     if (event && event.id) {
-      console.log('Fetching PO details for ID:', event.id);
-
-      // Load PO details and store available items
       this.poService.getPurchaseOrderById(event.id).subscribe({
         next: (po) => {
-          console.log('PO Response:', po);
-          console.log('PO Lines:', po.lines);
-
-          // Store the complete PO object
           this.selectedPurchaseOrder = po;
-
-          // Store available items for selection
           this.availablePOItems = po.lines || [];
 
-          console.log('Available PO Items:', this.availablePOItems);
-          console.log('Available PO Items Length:', this.availablePOItems.length);
+          // Clear lot cache when PO (and therefore supplier) changes
+          this.availableLotsMap.clear();
+          this.loadingLotsMap.clear();
 
-          // Clear existing items
+          // Clear existing line items
           this.lineItemsArray.clear();
 
-          // Don't auto-populate - let user choose how to add items
           this.messageService.add({
             severity: 'info',
             summary: 'Purchase Order Loaded',
@@ -390,17 +377,10 @@ export class PurchaseReturnsFormComponent implements OnInit {
             life: 5000
           });
         },
-        error: (error) => {
-          console.error('Error loading PO details:', error);
-          this.messageService.add({
-            severity: 'error',
-            summary: 'Error',
-            detail: 'Failed to load PO details'
-          });
+        error: (_error) => {
+          this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load PO details' });
         }
       });
-    } else {
-      console.log('Invalid event or missing ID:', event);
     }
   }
 
@@ -716,7 +696,7 @@ export class PurchaseReturnsFormComponent implements OnInit {
       header: 'Confirm Approval',
       icon: 'pi pi-check',
       accept: () => {
-        this.prService.approvePurchaseReturn(this.currentReturn!.id, 'System').subscribe({
+        this.prService.approvePurchaseReturn(this.currentReturn!.id).subscribe({
           next: (updated) => {
             this.currentReturn = updated;
             this.messageService.add({
@@ -780,7 +760,7 @@ export class PurchaseReturnsFormComponent implements OnInit {
       header: 'Confirm',
       icon: 'pi pi-inbox',
       accept: () => {
-        this.prService.markAsReceived(this.currentReturn!.id, 'System').subscribe({
+        this.prService.markAsReceived(this.currentReturn!.id).subscribe({
           next: (updated) => {
             this.currentReturn = updated;
             this.messageService.add({

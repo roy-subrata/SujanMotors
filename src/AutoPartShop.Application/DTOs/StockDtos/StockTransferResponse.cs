@@ -13,6 +13,8 @@ public class StockTransferResponse
     public string ToWarehouseName { get; set; } = string.Empty;
     public string ToWarehouseCode { get; set; } = string.Empty;
     public int Quantity { get; set; }
+    public int QuantityInBaseUnit { get; set; }
+    public Guid? UnitId { get; set; }
     public string Reference { get; set; } = string.Empty;
     public string Notes { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;

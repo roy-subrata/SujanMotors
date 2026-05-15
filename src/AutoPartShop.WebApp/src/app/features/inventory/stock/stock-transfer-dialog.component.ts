@@ -348,8 +348,9 @@ export class StockTransferDialogComponent implements OnInit {
     });
 
     // Load all warehouses for dropdown (excluding source warehouse)
-    this.warehouseService.getAllWarehouses().subscribe({
-      next: (warehouses) => {
+    this.warehouseService.getWarehouses({ search: '', pageNumber: 1, pageSize: 1000, sorts: [{ field: 'name', direction: 'asc' }] }).subscribe({
+      next: (res) => {
+        const warehouses = res.data ?? [];
         this.warehouses = warehouses.filter(w => w.id !== this.currentStock?.warehouseId);
       },
       error: (_error) => {
@@ -375,6 +376,8 @@ export class StockTransferDialogComponent implements OnInit {
       fromWarehouseId: this.currentStock.warehouseId,
       toWarehouseId: this.form.get('toWarehouseId')?.value,
       quantity: this.form.get('quantity')?.value,
+      quantityInBaseUnit: undefined,  // Backend will calculate if not provided
+      unitId: this.currentStock.unitId || undefined,
       reference: '',
       notes: this.form.get('notes')?.value || ''
     };

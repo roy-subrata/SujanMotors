@@ -52,6 +52,7 @@ export class SupplierDetailComponent implements OnInit {
                 this.supplier.set(supplier);
             },
             error: (error) => {
+                this.loading.set(false);
                 this.messageService.add({
                     severity: 'error',
                     summary: 'Error',
@@ -120,12 +121,10 @@ export class SupplierDetailComponent implements OnInit {
         });
     }
 
-    viewPaymentSummary(): void {
-        this.router.navigate(['/procurement/supplier-payments/summary', this.supplierId()]);
-    }
-
     viewAccountSummary(): void {
-        this.router.navigate(['/procurement/supplier-account-summary']);
+        this.router.navigate(['/procurement/supplier-account-summary'], {
+            queryParams: { supplierId: this.supplierId() }
+        });
     }
 
     goBack(): void {

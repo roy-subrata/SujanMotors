@@ -14,6 +14,9 @@ import { StockLotService, StockLotResponse } from '../services/stock-lot.service
 import { PartService, PartResponse } from '../services/part.service';
 import { WarehouseService, WarehouseResponse } from '../services/warehouse.service';
 import { CurrencyService } from '../../../shared/services/currency.service';
+import { PriceCodeService } from '../../../shared/services/price-code.service';
+import { LazyAutocompleteComponent, LazyRequest, LazyResponse } from '../../../shared/components/lazy-autocomplete';
+import { map } from 'rxjs';
 
 @Component({
   selector: 'app-stock-lots-by-warehouse',
@@ -28,7 +31,8 @@ import { CurrencyService } from '../../../shared/services/currency.service';
     TableModule,
     TagModule,
     ToastModule,
-    TooltipModule
+    TooltipModule,
+    LazyAutocompleteComponent
   ],
   providers: [MessageService],
   templateUrl: './stock-lots-by-warehouse.component.html',
@@ -40,12 +44,12 @@ export class StockLotsByWarehouseComponent implements OnInit {
   private readonly warehouseService = inject(WarehouseService);
   private readonly messageService = inject(MessageService);
   private readonly currencyService = inject(CurrencyService);
+  readonly priceCodeService = inject(PriceCodeService);
 
-  parts: PartResponse[] = [];
   warehouses: WarehouseResponse[] = [];
   stockLots: StockLotResponse[] = [];
 
-  selectedPartId: string | null = null;
+  selectedPart: PartResponse | null = null;
   selectedWarehouseId: string | null = null;
   selectedPartName: string = '';
   selectedWarehouseName: string = '';
@@ -61,25 +65,28 @@ export class StockLotsByWarehouseComponent implements OnInit {
     return this.currencyService.selectedCurrency();
   }
 
+  // Lazy autocomplete fetch function for parts
+  fetchPartsLazy = (req: LazyRequest) =>
+    this.partService.getParts({
+      search: req.search || '',
+      pageNumber: req.pageNumber,
+      pageSize: req.pageSize,
+      isActive: true
+    }).pipe(
+      map((res) => ({
+        items: res.data ?? [],
+        totalCount: res.pagination?.totalCount ?? 0
+      }) as LazyResponse<PartResponse>)
+    );
+
   ngOnInit(): void {
-    this.loadParts();
     this.loadWarehouses();
   }
 
-  private loadParts(): void {
-    this.partService.getAllParts().subscribe({
-      next: (parts) => {
-        this.parts = Array.isArray(parts) ? parts : [];
-      },
-      error: (_error) => {
-        console.error('Error loading parts:', _error);
-      }
-    });
-  }
-
   private loadWarehouses(): void {
-    this.warehouseService.getAllWarehouses().subscribe({
-      next: (warehouses) => {
+    this.warehouseService.getWarehouses({ search: '', pageNumber: 1, pageSize: 1000, sorts: [{ field: 'name', direction: 'asc' }] }).subscribe({
+      next: (res) => {
+        const warehouses = res.data ?? [];
         this.warehouses = Array.isArray(warehouses) ? warehouses : [];
       },
       error: (_error) => {
@@ -88,10 +95,13 @@ export class StockLotsByWarehouseComponent implements OnInit {
     });
   }
 
-  onPartSelected(): void {
-    if (this.selectedPartId) {
-      const part = this.parts.find(p => p.id === this.selectedPartId);
-      this.selectedPartName = part ? `${part.name} (${part.sku})` : '';
+  onPartSelected(part: PartResponse | null): void {
+    if (part) {
+      this.selectedPart = part;
+      this.selectedPartName = `${part.name} (${part.sku})`;
+    } else {
+      this.selectedPart = null;
+      this.selectedPartName = '';
     }
     this.resetPagination();
   }
@@ -100,18 +110,20 @@ export class StockLotsByWarehouseComponent implements OnInit {
     if (this.selectedWarehouseId) {
       const warehouse = this.warehouses.find(w => w.id === this.selectedWarehouseId);
       this.selectedWarehouseName = warehouse?.name || '';
+    } else {
+      this.selectedWarehouseName = '';
     }
     this.resetPagination();
   }
 
   loadStockLots(): void {
-    if (!this.selectedPartId || !this.selectedWarehouseId) {
+    if (!this.selectedPart || !this.selectedWarehouseId) {
       return;
     }
 
     this.loading = true;
     this.stockLotService.getStockLots({
-      partId: this.selectedPartId,
+      partId: this.selectedPart.id,
       warehouseId: this.selectedWarehouseId,
       pageNumber: this.pageNumber,
       pageSize: this.pageSize
@@ -153,7 +165,8 @@ export class StockLotsByWarehouseComponent implements OnInit {
   }
 
   getAverageCostPerUnit(): number {
-    const totalQuantity = this.stockLots.reduce((sum, lot) => sum + lot.quantityAvailable, 0);
+    // Use base unit quantities for accurate average across different units
+    const totalQuantity = this.stockLots.reduce((sum, lot) => sum + (lot.quantityAvailableInBaseUnit || 0), 0);
     if (totalQuantity === 0) return 0;
     return this.getTotalAvailableCost() / totalQuantity;
   }

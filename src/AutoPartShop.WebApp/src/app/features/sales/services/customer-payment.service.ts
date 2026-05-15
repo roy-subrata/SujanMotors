@@ -8,7 +8,7 @@ import { environment } from 'src/environments/environment';
 export interface CreateCustomerPaymentRequest {
     customerId: string;
     invoiceId?: string;
-    paymentProviderId: string;
+    paymentProviderId?: string;
     amount: number;
     paymentMethod: string;
     transactionNumber: string;
@@ -50,6 +50,7 @@ export interface CustomerPaymentResponse {
     paymentType: string;
     remainingAmount: number;
     sourceAdvancePaymentId?: string;
+    sourceAdvanceTransactionNumber?: string;
     createdAt: string;
 }
 

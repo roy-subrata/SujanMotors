@@ -13,7 +13,10 @@ public class SalesOrder : AuditableEntity
     public Guid? TechnicianId { get; private set; }  // Optional: Technician who recommended the parts
     public string? TechnicianName { get; private set; }  // Technician name for easy reference
     public Guid? WarehouseId { get; private set; }  // Dispatch warehouse
-    public string Status { get; private set; } = "DRAFT";  // DRAFT, CONFIRMED, PARTIALLY_SHIPPED, SHIPPED, DELIVERED, CANCELLED
+    public string Status { get; private set; } = "DRAFT";  // DRAFT → CONFIRMED → PAID → PACKED → SHIPPED → COMPLETED | CANCELLED | RETURNED
+    public DateTime? PaidDate { get; private set; }
+    public DateTime? PackedDate { get; private set; }
+    public DateTime? CompletedDate { get; private set; }
     public DateTime SODate { get; private set; }
     public DateTime? ConfirmedDate { get; private set; }
     public DateTime? DeliveryDate { get; private set; }
@@ -28,6 +31,7 @@ public class SalesOrder : AuditableEntity
     public string DeliveryAddress { get; private set; } = string.Empty;
     public string Notes { get; private set; } = string.Empty;
     public string Currency { get; private set; } = "BDT";  // ISO 4217 currency code
+    public string Channel { get; private set; } = "POS";  // POS | ECOMMERCE | MOBILE | API
 
     // Navigation properties
     public Customer? Customer { get; set; }
@@ -38,10 +42,13 @@ public class SalesOrder : AuditableEntity
 
     private SalesOrder() { }
 
+    public static readonly string[] ValidChannels = ["POS", "ECOMMERCE", "MOBILE", "API"];
+
     public static SalesOrder Create(string soNumber, Guid customerId, string customerName,
         string customerEmail, string customerPhone, Guid? warehouseId = null,
         Guid? technicianId = null, string? technicianName = null,
-        string deliveryAddress = "", string notes = "", string currency = "BDT")
+        string deliveryAddress = "", string notes = "", string currency = "BDT",
+        string channel = "POS")
     {
         if (string.IsNullOrWhiteSpace(soNumber))
             throw new ArgumentException("SONumber cannot be empty", nameof(soNumber));
@@ -51,6 +58,10 @@ public class SalesOrder : AuditableEntity
 
         if (string.IsNullOrWhiteSpace(customerName))
             throw new ArgumentException("CustomerName cannot be empty", nameof(customerName));
+
+        var normalizedChannel = string.IsNullOrWhiteSpace(channel) ? "POS" : channel.Trim().ToUpper();
+        if (!ValidChannels.Contains(normalizedChannel))
+            throw new ArgumentException($"Channel must be one of: {string.Join(", ", ValidChannels)}", nameof(channel));
 
         return new SalesOrder
         {
@@ -66,6 +77,7 @@ public class SalesOrder : AuditableEntity
             DeliveryAddress = deliveryAddress?.Trim() ?? string.Empty,
             Notes = notes?.Trim() ?? string.Empty,
             Currency = string.IsNullOrWhiteSpace(currency) ? "BDT" : currency.Trim().ToUpper(),
+            Channel = normalizedChannel,
             Status = "DRAFT"
         };
     }
@@ -78,32 +90,79 @@ public class SalesOrder : AuditableEntity
         if (!LineItems.Any())
             throw new InvalidOperationException("SO must have at least one line item");
 
+        if (LineItems.Any(l => l.Quantity <= 0))
+            throw new InvalidOperationException("All line items must have a quantity greater than 0");
+
         Status = "CONFIRMED";
         ConfirmedDate = DateTime.UtcNow;
     }
 
+    public void MarkAsPaid()
+    {
+        if (Status != "CONFIRMED")
+            throw new InvalidOperationException($"Order must be CONFIRMED before marking as PAID. Current: {Status}");
+
+        Status = "PAID";
+        PaidDate = DateTime.UtcNow;
+    }
+
+    public void MarkAsPacked()
+    {
+        if (Status != "PAID")
+            throw new InvalidOperationException($"Order must be PAID before marking as PACKED. Current: {Status}");
+
+        Status = "PACKED";
+        PackedDate = DateTime.UtcNow;
+    }
+
     public void MarkAsPartiallyShipped()
     {
+        if (Status is not ("PAID" or "PACKED" or "PARTIALLY_SHIPPED"))
+            throw new InvalidOperationException($"Order must be PAID or PACKED before shipping. Current: {Status}");
+
         Status = "PARTIALLY_SHIPPED";
     }
 
     public void MarkAsShipped()
     {
+        if (Status is not ("PAID" or "PACKED" or "PARTIALLY_SHIPPED"))
+            throw new InvalidOperationException($"Order must be PAID or PACKED before marking as SHIPPED. Current: {Status}");
+
         Status = "SHIPPED";
     }
 
     public void MarkAsDelivered(DateTime? deliveryDate = null)
     {
+        if (Status is not ("SHIPPED" or "PARTIALLY_SHIPPED"))
+            throw new InvalidOperationException($"Order must be SHIPPED before marking as DELIVERED. Current: {Status}");
+
         Status = "DELIVERED";
         DeliveryDate = deliveryDate ?? DateTime.UtcNow;
     }
 
+    public void MarkAsCompleted()
+    {
+        if (Status != "DELIVERED")
+            throw new InvalidOperationException($"Order must be DELIVERED before marking as COMPLETED. Current: {Status}");
+
+        Status = "COMPLETED";
+        CompletedDate = DateTime.UtcNow;
+    }
+
     public void Cancel()
     {
-        if (Status is "SHIPPED" or "DELIVERED" or "CANCELLED")
-            throw new InvalidOperationException($"Cannot cancel a {Status} SO");
+        if (Status is "SHIPPED" or "DELIVERED" or "COMPLETED" or "CANCELLED" or "RETURNED")
+            throw new InvalidOperationException($"Cannot cancel a {Status} order");
 
         Status = "CANCELLED";
+    }
+
+    public void MarkAsReturned()
+    {
+        if (Status is not ("DELIVERED" or "COMPLETED"))
+            throw new InvalidOperationException($"Only DELIVERED or COMPLETED orders can be returned. Current: {Status}");
+
+        Status = "RETURNED";
     }
 
     public void CalculateTotal()
@@ -154,6 +213,21 @@ public class SalesOrder : AuditableEntity
         PaymentStatus = PaidAmount >= GrandTotal ? "PAID" : "PARTIAL";
     }
 
+    /// <summary>
+    /// Process a refund by reducing the paid amount
+    /// </summary>
+    public void ProcessRefund(decimal refundAmount)
+    {
+        if (refundAmount <= 0)
+            throw new ArgumentException("Refund amount must be greater than 0", nameof(refundAmount));
+
+        if (refundAmount > PaidAmount)
+            throw new InvalidOperationException("Refund amount cannot exceed paid amount");
+
+        PaidAmount -= refundAmount;
+        PaymentStatus = PaidAmount >= GrandTotal ? "PAID" : (PaidAmount > 0 ? "PARTIAL" : "PENDING");
+    }
+
     public void UpdateNotes(string notes)
     {
         Notes = notes?.Trim() ?? string.Empty;
@@ -191,6 +265,23 @@ public class SalesOrder : AuditableEntity
     {
         TechnicianId = technicianId;
         TechnicianName = technicianName?.Trim();
+    }
+
+    /// <summary>
+    /// Applies a fixed-amount salesperson discount on top of any existing percentage discount.
+    /// Must be called after CalculateTotal().
+    /// </summary>
+    public void ApplyAdditionalDiscount(decimal fixedDiscountAmount)
+    {
+        if (fixedDiscountAmount < 0)
+            throw new ArgumentException("Discount cannot be negative", nameof(fixedDiscountAmount));
+
+        if (fixedDiscountAmount > TotalAmount)
+            throw new ArgumentException($"Fixed discount ({fixedDiscountAmount}) cannot exceed order total ({TotalAmount})", nameof(fixedDiscountAmount));
+
+        DiscountAmount += fixedDiscountAmount;
+        TotalAmount -= fixedDiscountAmount;
+        if (TotalAmount < 0) TotalAmount = 0;
     }
 
     public void ClearLineItems()

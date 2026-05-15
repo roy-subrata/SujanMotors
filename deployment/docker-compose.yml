@@ -12,22 +12,131 @@ services:
       - autopart_mssql_data:/var/opt/mssql
     restart: always
     
-  autopartshop.api:
-    image: smapi:latest
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__AutoPartDb=Server=autopartshop.db,1433;Database=AutoPartShopDb;User=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=True;
-    ports:
-      - "5292:8080"
-    depends_on:
-      - autopartshop.db
+  # autopartshop.api:
+  #   build:
+  #     context: ..
+  #     dockerfile: src/AutoPartShop.Api/Dockerfile
+  #   image: smapi:local
+  #   environment:
+  #     - ASPNETCORE_ENVIRONMENT=Development
+  #     - ConnectionStrings__AutoPartDb=Server=autopartshop.db,1433;Database=AutoPartShopDb;User=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=True;
+  #   ports:
+  #     - "5292:8080"
+  #   depends_on:
+  #     - autopartshop.db
 
-  autopartshop.web:
-   image: smweb:latest
-   ports:
-   - "4200:80"
-   depends_on:
-   - autopartshop.api
+  # autopartshop.web:
+  #   build:
+  #     context: ../src/AutoPartShop.WebApp
+  #     dockerfile: dockerfile
+  #     args:
+  #       ENV_NAME: development
+  #   image: smweb:local
+  #   ports:
+  #     - "4200:80"
+  #   depends_on:
+  #     - autopartshop.api
+
+  # qdrant:
+  #   image: qdrant/qdrant:v1.13.2
+  #   container_name: autopartshop.qdrant
+  #   ports:
+  #     - "6333:6333"
+  #     - "6334:6334"
+  #   volumes:
+  #     - autopart_qdrant_data:/qdrant/storage
+  #   restart: always
+
+  # autopartshop.ai:
+  #   build:
+  #     context: ../src/AutoPartShop.AI
+  #     dockerfile: Dockerfile
+  #   image: smai:local
+  #   environment:
+  #     - APP_NAME=AutoPartShop.AI
+  #     - APP_PORT=8088
+  #     - LOG_LEVEL=INFO
+  #     - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+  #     - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4.1-mini}
+  #     - LLM_TEMPERATURE=${LLM_TEMPERATURE:-0.1}
+  #     - AUTOPARTSHOP_API_BASE_URL=http://autopartshop.api:8080
+  #     - AUTOPARTSHOP_API_TIMEOUT_SECONDS=30
+  #     - AUTOPARTSHOP_API_BEARER_TOKEN=${AUTOPARTSHOP_API_BEARER_TOKEN:-}
+  #     - QDRANT_URL=http://qdrant:6333
+  #     - QDRANT_COLLECTION=autopartshop_customer_memory
+  #     - QDRANT_VECTOR_SIZE=1536
+  #     - DEFAULT_WAREHOUSE=A
+  #     - LOW_STOCK_THRESHOLD=5
+  #   ports:
+  #     - "8088:8088"
+  #   depends_on:
+  #     - qdrant
+  #     - autopartshop.api
   
+  # ── Observability stack ────────────────────────────────────────────────────
+  # otel-collector:
+  #   image: otel/opentelemetry-collector-contrib:latest
+  #   container_name: autopartshop.otel-collector
+  #   volumes:
+  #     - ./otel-config.yaml:/etc/otelcol-contrib/config.yaml
+  #   ports:
+  #     - "4317:4317"   # OTLP gRPC
+  #     - "4318:4318"   # OTLP HTTP
+  #   depends_on:
+  #     - tempo
+  #     - loki
+  #   restart: unless-stopped
+
+  # prometheus:
+  #   image: prom/prometheus:v3.1.0
+  #   container_name: autopartshop.prometheus
+  #   volumes:
+  #     - ./prometheus.yml:/etc/prometheus/prometheus.yml
+  #   ports:
+  #     - "9090:9090"
+  #   restart: unless-stopped
+
+  # loki:
+  #   image: grafana/loki:3.3.2
+  #   container_name: autopartshop.loki
+  #   command: ["-config.file=/etc/loki/config.yaml"]
+  #   volumes:
+  #     - ./loki-config.yaml:/etc/loki/config.yaml
+  #   ports:
+  #     - "3100:3100"
+  #   restart: unless-stopped
+
+  # tempo:
+  #   image: grafana/tempo:2.7.1
+  #   container_name: autopartshop.tempo
+  #   command: ["-config.file=/etc/tempo.yaml"]
+  #   volumes:
+  #     - ./tempo-config.yaml:/etc/tempo.yaml
+  #   ports:
+  #     - "3200:3200"   # Tempo HTTP API
+  #   restart: unless-stopped
+
+  # grafana:
+  #   image: grafana/grafana:11.4.0
+  #   container_name: autopartshop.grafana
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     - GF_SECURITY_ADMIN_USER=admin
+  #     - GF_SECURITY_ADMIN_PASSWORD=admin
+  #     - GF_USERS_ALLOW_SIGN_UP=false
+  #     - GF_FEATURE_TOGGLES_ENABLE=traceqlEditor
+  #   volumes:
+  #     - grafana_data:/var/lib/grafana
+  #     - ./grafana/provisioning:/etc/grafana/provisioning
+  #   depends_on:
+  #     - prometheus
+  #     - loki
+  #     - tempo
+  #   restart: unless-stopped
+  # ──────────────────────────────────────────────────────────────────────────
+
 volumes:
   autopart_mssql_data:
+  # autopart_qdrant_data:
+  # grafana_data:

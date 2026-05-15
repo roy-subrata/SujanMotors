@@ -30,7 +30,7 @@
       </small>
     </div>
 
-    <!-- Code Field -->
+    <!-- Code Field (Disabled) -->
     <div class="form-group">
       <label for="create-code" class="form-label">
         <span class="required">*</span> Code
@@ -42,11 +42,11 @@
           type="text"
           formControlName="code"
           placeholder="Auto-generated"
-          class="form-input"
+          class="form-input disabled-field"
           [disabled]="true" />
         <i *ngIf="generatingCode" class="pi pi-spin pi-spinner code-spinner"></i>
       </div>
-      <small class="hint-message">Code is auto-generated</small>
+      <small class="hint-message">Code is auto-generated and cannot be modified</small>
     </div>
 
     <!-- Symbol Field -->
@@ -68,9 +68,11 @@
       </small>
     </div>
 
-    <!-- Description Field -->
+    <!-- Description Field (Optional) -->
     <div class="form-group">
-      <label for="create-description" class="form-label">Description</label>
+      <label for="create-description" class="form-label">
+        Description <span class="optional-label">(Optional)</span>
+      </label>
       <textarea
         id="create-description"
         pInputTextarea
@@ -141,7 +143,7 @@
       </small>
     </div>
 
-    <!-- Code Field -->
+    <!-- Code Field (Disabled) -->
     <div class="form-group">
       <label for="update-code" class="form-label">
         <span class="required">*</span> Code
@@ -152,12 +154,9 @@
         type="text"
         formControlName="code"
         placeholder="e.g., KG"
-        class="form-input"
-        [class.error]="hasError(updateForm, 'code')"
-        [class.success]="isFieldValid(updateForm, 'code')" />
-      <small class="error-message" *ngIf="hasError(updateForm, 'code')">
-        {{ getErrorMessage(updateForm, 'code') }}
-      </small>
+        class="form-input disabled-field"
+        [disabled]="true" />
+      <small class="hint-message">Code cannot be modified</small>
     </div>
 
     <!-- Symbol Field -->
@@ -179,9 +178,11 @@
       </small>
     </div>
 
-    <!-- Description Field -->
+    <!-- Description Field (Optional) -->
     <div class="form-group">
-      <label for="update-description" class="form-label">Description</label>
+      <label for="update-description" class="form-label">
+        Description <span class="optional-label">(Optional)</span>
+      </label>
       <textarea
         id="update-description"
         pInputTextarea

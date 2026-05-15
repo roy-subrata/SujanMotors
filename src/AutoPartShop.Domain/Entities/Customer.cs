@@ -107,8 +107,6 @@ public class Customer : AuditableEntity
     public void UpdateBalance(decimal amount)
     {
         CurrentBalance += amount;
-        if (CurrentBalance < 0)
-            CurrentBalance = 0;
     }
 
     public void RecordPurchase(decimal amount, DateTime? purchaseDate = null)

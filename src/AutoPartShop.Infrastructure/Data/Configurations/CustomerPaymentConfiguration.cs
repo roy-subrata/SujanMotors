@@ -82,5 +82,6 @@ public class CustomerPaymentConfiguration : IEntityTypeConfiguration<CustomerPay
         builder.HasIndex(cp => cp.PaymentDate);
         builder.HasIndex(cp => cp.PaymentType);
         builder.HasIndex(cp => cp.SourceAdvancePaymentId);
+        builder.HasIndex(cp => cp.WarrantyClaimId);
     }
 }

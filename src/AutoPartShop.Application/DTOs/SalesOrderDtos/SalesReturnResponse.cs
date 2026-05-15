@@ -23,8 +23,13 @@ public class SalesReturnLineResponse
     public string PartName { get; set; } = string.Empty;
     public string PartSku { get; set; } = string.Empty;
     public int Quantity { get; set; }
+    public int QuantityInBaseUnit { get; set; }
     public decimal UnitPrice { get; set; }
+    public decimal UnitPriceInBaseUnit { get; set; }
     public decimal RefundAmount { get; set; }
+    public Guid? UnitId { get; set; }
+    public string? UnitName { get; set; }
+    public string? UnitSymbol { get; set; }
     public string Condition { get; set; } = string.Empty;
     public string Notes { get; set; } = string.Empty;
 }

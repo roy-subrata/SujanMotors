@@ -15,6 +15,7 @@ public class PartRepository(AutoPartDbContext _db) : IPartRepository
             .Include(p => p.Category)
             .Include(p => p.Brand)
             .Include(p => p.Unit)
+            .Include(p => p.BaseUnit)
             .FirstOrDefaultAsync(p => p.Id == id && !p.Isdeleted, cancellationToken);
     }
 
@@ -26,7 +27,7 @@ public class PartRepository(AutoPartDbContext _db) : IPartRepository
 
     public async Task UpdateAsync(Part entity, CancellationToken cancellationToken = default)
     {
-        var existing = await _db.Parts.FirstOrDefaultAsync(p => p.Id == entity.Id);
+        var existing = await _db.Parts.FirstOrDefaultAsync(p => p.Id == entity.Id, cancellationToken);
         if (existing != null)
         {
             existing.Update(
@@ -35,11 +36,30 @@ public class PartRepository(AutoPartDbContext _db) : IPartRepository
                 entity.SKU,
                 entity.CategoryId,
                 entity.BrandId,
+                entity.BaseUnitId,
                 entity.UnitId,
                 entity.CostPrice,
                 entity.SellingPrice,
                 entity.MinimumStock,
-                entity.IsActive);
+                entity.IsActive,
+                entity.HasWarranty,
+                entity.WarrantyPeriodMonths,
+                entity.WarrantyType,
+                entity.WarrantyTerms,
+                entity.WarrantyCertificateTemplate,
+                // Universal product fields — must be passed or they get reset to defaults
+                entity.Barcode,
+                entity.Tags,
+                entity.ProductType,
+                entity.IsPerishable,
+                entity.WeightKg,
+                entity.WidthCm,
+                entity.HeightCm,
+                entity.DepthCm,
+                entity.TaxCode,
+                entity.RichDescription);
+
+            existing.ModifiedBy = entity.ModifiedBy;
         }
         await _db.SaveChangesAsync(cancellationToken);
     }
@@ -78,6 +98,7 @@ public class PartRepository(AutoPartDbContext _db) : IPartRepository
             .Include(p => p.Category)
             .Include(p => p.Brand)
             .Include(p => p.Unit)
+            .Include(p => p.BaseUnit)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(cancellationToken);

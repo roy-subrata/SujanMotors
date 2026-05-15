@@ -10,7 +10,6 @@
 <div class="checkout-container">
   <h1>Checkout</h1>
 
-  <!-- Empty cart redirect -->
   <div *ngIf="cartService.isEmpty()" class="empty-state">
     <i class="pi pi-shopping-cart"></i>
     <h3>Your cart is empty</h3>
@@ -18,27 +17,20 @@
   </div>
 
   <div *ngIf="!cartService.isEmpty()" class="checkout-layout">
-    <!-- Forms -->
     <div class="checkout-forms">
-      <!-- Customer info -->
-      <div class="form-section">
-        <h3><i class="pi pi-user"></i> Customer Information</h3>
-        <div class="form-grid">
-          <div class="form-field full">
-            <label>Full Name *</label>
-            <input type="text" [(ngModel)]="form.customer.fullName" placeholder="John Doe" [class.error]="errors['fullName']" />
-            <span class="field-error" *ngIf="errors['fullName']">{{ errors['fullName'] }}</span>
-          </div>
-          <div class="form-field">
-            <label>Email *</label>
-            <input type="email" [(ngModel)]="form.customer.email" placeholder="john@example.com" [class.error]="errors['email']" />
-            <span class="field-error" *ngIf="errors['email']">{{ errors['email'] }}</span>
-          </div>
-          <div class="form-field">
-            <label>Phone *</label>
-            <input type="tel" [(ngModel)]="form.customer.phone" placeholder="+880 1234-567890" [class.error]="errors['phone']" />
-            <span class="field-error" *ngIf="errors['phone']">{{ errors['phone'] }}</span>
-          </div>
+
+      <!-- Error banner -->
+      <div *ngIf="errorMessage()" class="error-banner">
+        <i class="pi pi-exclamation-triangle"></i> {{ errorMessage() }}
+      </div>
+
+      <!-- Logged-in customer info (read-only) -->
+      <div class="form-section customer-info-panel" *ngIf="customerAuthService.currentCustomer() as customer">
+        <h3><i class="pi pi-user"></i> Ordering As</h3>
+        <div class="customer-info-row">
+          <span class="customer-info-name">{{ customer.fullName }}</span>
+          <span class="customer-info-meta">{{ customer.email }} &nbsp;·&nbsp; {{ customer.phone }}</span>
+          <a class="customer-logout-link" (click)="customerAuthService.logout()">Not you? Sign out</a>
         </div>
       </div>
 
@@ -48,22 +40,63 @@
         <div class="form-grid">
           <div class="form-field full">
             <label>Address *</label>
-            <input type="text" [(ngModel)]="form.shipping.address" placeholder="Street address" [class.error]="errors['address']" />
-            <span class="field-error" *ngIf="errors['address']">{{ errors['address'] }}</span>
+            <input type="text" [(ngModel)]="form.shippingAddress" placeholder="Street address" [class.error]="errors['shippingAddress']" />
+            <span class="field-error" *ngIf="errors['shippingAddress']">{{ errors['shippingAddress'] }}</span>
           </div>
           <div class="form-field">
             <label>City *</label>
-            <input type="text" [(ngModel)]="form.shipping.city" placeholder="Dhaka" [class.error]="errors['city']" />
-            <span class="field-error" *ngIf="errors['city']">{{ errors['city'] }}</span>
+            <input type="text" [(ngModel)]="form.shippingCity" placeholder="Dhaka" [class.error]="errors['shippingCity']" />
+            <span class="field-error" *ngIf="errors['shippingCity']">{{ errors['shippingCity'] }}</span>
           </div>
           <div class="form-field">
             <label>Postal Code</label>
-            <input type="text" [(ngModel)]="form.shipping.postalCode" placeholder="1205" />
+            <input type="text" [(ngModel)]="form.shippingPostalCode" placeholder="1205" />
           </div>
           <div class="form-field full">
             <label>Order Notes (optional)</label>
-            <textarea [(ngModel)]="form.shipping.notes" placeholder="Special instructions for delivery..." rows="3"></textarea>
+            <textarea [(ngModel)]="form.notes" placeholder="Special instructions..." rows="3"></textarea>
           </div>
+        </div>
+      </div>
+
+      <!-- Promo Code -->
+      <div class="form-section">
+        <h3><i class="pi pi-ticket"></i> Promo Code</h3>
+
+        <div *ngIf="!promoApplied()" class="promo-row">
+          <input
+            type="text"
+            class="promo-input"
+            [(ngModel)]="promoInput"
+            placeholder="Enter promo code"
+            (keyup.enter)="applyPromo()"
+            [disabled]="promoValidating()"
+          />
+          <button
+            class="btn-apply-promo"
+            (click)="applyPromo()"
+            [disabled]="promoValidating() || !promoInput.trim()"
+          >
+            <i class="pi" [ngClass]="promoValidating() ? 'pi-spin pi-spinner' : 'pi-check'"></i>
+            {{ promoValidating() ? 'Checking...' : 'Apply' }}
+          </button>
+        </div>
+
+        <div *ngIf="promoError()" class="promo-error">
+          <i class="pi pi-times-circle"></i> {{ promoError() }}
+        </div>
+
+        <div *ngIf="promoApplied()" class="promo-applied">
+          <div class="promo-applied-left">
+            <i class="pi pi-check-circle"></i>
+            <div>
+              <strong>{{ promoCode() }}</strong> applied
+              <span class="promo-applied-label">— {{ promoLabel() }}</span>
+            </div>
+          </div>
+          <button class="promo-remove-btn" (click)="clearPromo()">
+            <i class="pi pi-times"></i> Remove
+          </button>
         </div>
       </div>
 
@@ -80,6 +113,21 @@
             <i class="pi" [ngClass]="method.icon || 'pi-money-bill'"></i>
             <span>{{ method.label }}</span>
           </label>
+        </div>
+        <div *ngIf="form.paymentMethod === 'CASH'" class="payment-note">
+          <i class="pi pi-info-circle"></i> Cash on Delivery — pay when your order arrives.
+        </div>
+        <div *ngIf="requiresReference" class="form-grid" style="margin-top:12px">
+          <div class="form-field full">
+            <label>Transaction Reference *</label>
+            <input
+              type="text"
+              [(ngModel)]="form.paymentReference"
+              placeholder="e.g. bKash transaction ID or card last-4"
+              [class.error]="errors['paymentReference']"
+            />
+            <span class="field-error" *ngIf="errors['paymentReference']">{{ errors['paymentReference'] }}</span>
+          </div>
         </div>
       </div>
     </div>
@@ -101,6 +149,10 @@
         <span>Subtotal</span>
         <strong>{{ cartService.currency() }} {{ cartService.subtotal() | number:'1.0-0' }}</strong>
       </div>
+      <div class="summary-row promo-discount-row" *ngIf="promoDiscount() > 0">
+        <span><i class="pi pi-ticket"></i> Promo ({{ promoCode() }})</span>
+        <strong class="discount-value">− {{ cartService.currency() }} {{ promoDiscount() | number:'1.0-0' }}</strong>
+      </div>
       <div class="summary-row">
         <span>Shipping</span>
         <span class="free">Free</span>
@@ -108,10 +160,11 @@
       <div class="summary-divider"></div>
       <div class="summary-row total">
         <span>Total</span>
-        <strong>{{ cartService.currency() }} {{ cartService.subtotal() | number:'1.0-0' }}</strong>
+        <strong>{{ cartService.currency() }} {{ grandTotal() | number:'1.0-0' }}</strong>
       </div>
-      <button class="btn-place-order" (click)="placeOrder()">
-        <i class="pi pi-check"></i> Place Order
+      <button class="btn-place-order" (click)="placeOrder()" [disabled]="submitting()">
+        <i class="pi" [ngClass]="submitting() ? 'pi-spin pi-spinner' : 'pi-check'"></i>
+        {{ submitting() ? 'Placing Order...' : 'Place Order' }}
       </button>
       <a routerLink="/shop/cart" class="back-to-cart">
         <i class="pi pi-arrow-left"></i> Back to Cart

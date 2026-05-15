@@ -1,70 +1,22 @@
-<!-- ======== SECTION 1: HERO BANNER ======== -->
-<section class="hero">
-  <div class="hero-inner">
-    <div class="hero-content">
-      <span class="hero-badge">Premium Auto Parts Store</span>
-      <h1>Quality Auto Parts <br/>for Every Vehicle</h1>
-      <p class="hero-lead">
-        Discover thousands of premium parts with live stock visibility, competitive pricing, and fast delivery across Bangladesh.
-      </p>
-      <div class="hero-search">
-        <i class="pi pi-search"></i>
-        <input
-          type="text"
-          placeholder="Search parts, brands, categories..."
-          [(ngModel)]="searchTerm"
-        />
-        <button class="hero-search-btn">Search</button>
-      </div>
-      <div class="hero-ctas">
-        <a class="btn-primary" routerLink="/shop" fragment="products">Shop Now</a>
-        <a class="btn-outline" routerLink="/shop" fragment="categories">Browse Categories</a>
-      </div>
-    </div>
-    <div class="hero-visual">
-      <div class="hero-stat-grid">
-        <div class="stat-card">
-          <i class="pi pi-box"></i>
-          <strong>10,000+</strong>
-          <span>Products</span>
-        </div>
-        <div class="stat-card accent">
-          <i class="pi pi-verified"></i>
-          <strong>100%</strong>
-          <span>Genuine Parts</span>
-        </div>
-        <div class="stat-card">
-          <i class="pi pi-truck"></i>
-          <strong>Fast</strong>
-          <span>Delivery</span>
-        </div>
-        <div class="stat-card">
-          <i class="pi pi-users"></i>
-          <strong>5,000+</strong>
-          <span>Happy Customers</span>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ======== SECTION 1B: SALE BANNER CAROUSEL ======== -->
+<!-- ======== SECTION 1: BANNER CAROUSEL ======== -->
 <section class="banner-carousel" *ngIf="banners.length">
   <div class="banner-track" [style.transform]="'translateX(-' + (activeBannerIndex * 100) + '%)'">
     <article
-      class="banner-slide"
       *ngFor="let banner of banners; let i = index"
+      class="banner-slide"
       [class.active]="i === activeBannerIndex"
-      [class]="banner.theme"
+      [ngClass]="banner.theme"
     >
       <div class="banner-content">
-        <span class="banner-tag"><i class="pi" [ngClass]="banner.icon"></i> Limited Offer</span>
+        <span class="banner-tag"><i class="pi" [ngClass]="'pi ' + banner.icon"></i> {{ banner.tag }}</span>
         <h2>{{ banner.title }}</h2>
         <p>{{ banner.subtitle }}</p>
         <a class="btn-primary" [routerLink]="banner.route">{{ banner.cta }}</a>
       </div>
       <div class="banner-art">
-        <img [src]="banner.image" alt="Sale banner" />
+        <div class="banner-icon-art">
+          <i class="pi" [ngClass]="'pi ' + banner.icon"></i>
+        </div>
       </div>
     </article>
   </div>
@@ -162,8 +114,7 @@
         <div class="carousel-card" *ngFor="let item of saleProducts; trackBy: trackById">
           <app-product-card
             [product]="item"
-            (addToCart)="onAddToCart($event)"
-          ></app-product-card>
+                      ></app-product-card>
         </div>
       </div>
       <button class="carousel-btn next" (click)="scrollSale(1)" aria-label="Scroll right">
@@ -184,8 +135,7 @@
       <app-product-card
         *ngFor="let item of landing?.featured?.slice(0, 5); trackBy: trackById"
         [product]="item"
-        (addToCart)="onAddToCart($event)"
-      ></app-product-card>
+              ></app-product-card>
     </div>
   </div>
 </section>
@@ -235,8 +185,7 @@
       <app-product-card
         *ngFor="let item of tabbedProducts?.slice(0, 8); trackBy: trackById"
         [product]="item"
-        (addToCart)="onAddToCart($event)"
-      ></app-product-card>
+              ></app-product-card>
     </div>
   </div>
 </section>
@@ -252,8 +201,7 @@
       <app-product-card
         *ngFor="let item of landing?.latest?.slice(0, 4); trackBy: trackById"
         [product]="item"
-        (addToCart)="onAddToCart($event)"
-      ></app-product-card>
+              ></app-product-card>
     </div>
   </div>
 </section>

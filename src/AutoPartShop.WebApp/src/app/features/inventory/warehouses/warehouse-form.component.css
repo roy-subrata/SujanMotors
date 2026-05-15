@@ -80,6 +80,26 @@
   font-size: 0.875rem;
 }
 
+.code-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.code-spinner {
+  position: absolute;
+  right: 0.75rem;
+  color: #6b7280;
+}
+
+.field-hint {
+  color: #6b7280;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
 .info-section {
   display: grid;
   grid-template-columns: 1fr 1fr;

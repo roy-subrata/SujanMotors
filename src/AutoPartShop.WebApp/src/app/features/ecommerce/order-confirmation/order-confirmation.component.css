@@ -34,7 +34,7 @@
 
 .summary {
   background:var(--sf-surface); border:1px solid var(--sf-border); border-radius:var(--sf-radius); padding:24px;
-  position:sticky; top:20px; box-shadow:var(--sf-shadow-sm);
+  position:sticky; top:148px; box-shadow:var(--sf-shadow-sm);
 }
 .summary h3 { margin:0 0 16px; font-size:18px; font-weight:700; }
 .summary-items { display:flex; flex-direction:column; gap:10px; max-height:240px; overflow-y:auto; }

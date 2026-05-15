@@ -1,57 +1,189 @@
 <p-toast></p-toast>
 
-<div class="grid grid-cols-12 gap-4">
-    <!-- Header Section -->
-    <div class="col-span-12">
-        <div class="card">
-            <div class="flex justify-between items-center mb-4">
-                <div>
-                    <h2 class="text-2xl font-bold">{{ supplierName }}</h2>
-                    <p class="text-gray-600 text-sm">Payment Summary</p>
-                </div>
-                <button pButton type="button" icon="pi pi-arrow-left" (click)="goBack()" [text]="true" label="Back">
-                </button>
-            </div>
-
-            <!-- Loading State -->
-            <div *ngIf="loading" class="space-y-4">
-                <p-skeleton height="2rem" styleClass="mb-2"></p-skeleton>
-                <p-skeleton height="2rem" styleClass="mb-2"></p-skeleton>
-                <p-skeleton height="2rem"></p-skeleton>
-            </div>
-
-            <!-- Error State -->
-            <div *ngIf="error && !loading" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-                {{ error }}
-            </div>
-
-            <!-- Metrics Section -->
-            <app-payment-metrics *ngIf="!loading && !error && (summary || ledgerSummary)"
-                [summary]="summary!"
-                [ledgerSummary]="ledgerSummary ?? undefined">
-            </app-payment-metrics>
-        </div>
+<div class="container">
+  <!-- Header Section -->
+  <div class="header-card">
+    <div class="header-content">
+      <div>
+        <h2 class="header-title">{{ supplierName }}</h2>
+        <p class="header-subtitle">Payment Summary</p>
+      </div>
+      <button pButton type="button" icon="pi pi-arrow-left" (click)="goBack()" [text]="true" label="Back"></button>
     </div>
 
-    <!-- Transaction Ledger / Payment History Section -->
-    <div class="col-span-12">
-        <div class="card">
-            <app-payment-history-table *ngIf="!loading && !error && (summary || ledgerSummary)"
-                [payments]="summary?.paymentHistory || []"
-                [ledgerEntries]="ledgerSummary?.entries || []"
-                [supplierName]="supplierName"
-                [useLedger]="useLedgerView && !!ledgerSummary"
-                [entryLimit]="20">
-            </app-payment-history-table>
-        </div>
+    <!-- Loading State -->
+    <div *ngIf="loading" class="loading-state">
+      <p-skeleton height="2rem" styleClass="mb-2"></p-skeleton>
+      <p-skeleton height="2rem" styleClass="mb-2"></p-skeleton>
+      <p-skeleton height="2rem"></p-skeleton>
     </div>
 
-    <!-- Action Buttons -->
-    <div class="col-span-12">
-        <div class="card">
-            <app-payment-actions *ngIf="!loading && !error && summary" [supplierId]="supplierId"
-                [supplierName]="supplierName">
-            </app-payment-actions>
-        </div>
+    <!-- Error State -->
+    <div *ngIf="error && !loading" class="error-state">
+      {{ error }}
     </div>
+
+    <!-- Metrics Section (Ledger-based) -->
+    <div *ngIf="!loading && !error && ledgerSummary" class="metrics-grid">
+      <div class="metric-card metric-primary">
+        <div class="metric-label">Total Purchases</div>
+        <div class="metric-value">{{ formatCurrency(ledgerSummary.totalPurchases) }}</div>
+        <div class="metric-helper">{{ ledgerSummary.transactionCount || 0 }} transactions</div>
+      </div>
+      <div class="metric-card metric-success">
+        <div class="metric-label">Total Payments</div>
+        <div class="metric-value">{{ formatCurrency(ledgerSummary.totalPayments) }}</div>
+        <div class="metric-helper">{{ summary?.completedPayments || 0 }} completed</div>
+      </div>
+      <div class="metric-card" [ngClass]="(ledgerSummary.currentBalance || 0) > 0 ? 'metric-warning' : 'metric-neutral'">
+        <div class="metric-label">Current Balance</div>
+        <div class="metric-value">{{ formatCurrency(ledgerSummary.currentBalance) }}</div>
+        <div class="metric-helper" *ngIf="ledgerSummary.currentBalance > 0">Amount owed to supplier</div>
+        <div class="metric-helper" *ngIf="ledgerSummary.currentBalance <= 0">All settled!</div>
+      </div>
+      <div class="metric-card" [ngClass]="(ledgerSummary.availableAdvanceCredit || 0) > 0 ? 'metric-info' : 'metric-neutral'">
+        <div class="metric-label">
+          <i class="pi pi-wallet mr-2"></i>Advance Credit
+        </div>
+        <div class="metric-value">{{ formatCurrency(ledgerSummary.availableAdvanceCredit) }}</div>
+        <div class="metric-helper" *ngIf="(ledgerSummary.availableAdvanceCredit || 0) > 0">Available to apply</div>
+        <div class="metric-helper" *ngIf="(ledgerSummary.availableAdvanceCredit || 0) === 0">No credit available</div>
+      </div>
+    </div>
+
+    <!-- Metrics Section (Legacy fallback) -->
+    <div *ngIf="!loading && !error && !ledgerSummary && summary" class="metrics-grid">
+      <div class="metric-card metric-primary">
+        <div class="metric-label">Total Due</div>
+        <div class="metric-value">{{ formatCurrency(summary.totalDue) }}</div>
+        <div class="metric-helper">{{ summary.outstandingInvoiceCount || 0 }} outstanding invoices</div>
+      </div>
+      <div class="metric-card metric-success">
+        <div class="metric-label">Total Paid</div>
+        <div class="metric-value">{{ formatCurrency(summary.totalPaid) }}</div>
+        <div class="metric-helper">{{ summary.completedPayments || 0 }} completed</div>
+      </div>
+      <div class="metric-card" [ngClass]="(summary.paymentBalance || 0) > 0 ? 'metric-warning' : 'metric-neutral'">
+        <div class="metric-label">Outstanding Balance</div>
+        <div class="metric-value">{{ formatCurrency(summary.paymentBalance) }}</div>
+        <div class="metric-helper" *ngIf="summary.paymentBalance > 0">Amount due</div>
+        <div class="metric-helper" *ngIf="summary.paymentBalance <= 0">All settled!</div>
+      </div>
+      <div class="metric-card" [ngClass]="(summary.totalAdvanceAmount || 0) > 0 ? 'metric-info' : 'metric-neutral'">
+        <div class="metric-label">
+          <i class="pi pi-wallet mr-2"></i>Advance Amount
+        </div>
+        <div class="metric-value">{{ formatCurrency(summary.totalAdvanceAmount) }}</div>
+        <div class="metric-helper" *ngIf="(summary.totalAdvanceAmount || 0) > 0">Prepayments on file</div>
+        <div class="metric-helper" *ngIf="(summary.totalAdvanceAmount || 0) === 0">No advance</div>
+      </div>
+    </div>
+
+    <!-- Secondary Stats -->
+    <div *ngIf="!loading && !error && (ledgerSummary || summary)" class="secondary-stats">
+      <span *ngIf="ledgerSummary?.totalRefunds" class="stat-chip stat-chip-purple">
+        Returns: {{ formatCurrency(ledgerSummary!.totalRefunds) }}
+      </span>
+      <span *ngIf="!ledgerSummary && summary?.totalRefunds" class="stat-chip stat-chip-purple">
+        Returns: {{ formatCurrency(summary!.totalRefunds) }}
+      </span>
+      <span *ngIf="ledgerSummary?.lastTransactionDate" class="stat-chip">
+        Last transaction: {{ formatDate(ledgerSummary!.lastTransactionDate!) }}
+      </span>
+      <span *ngIf="!ledgerSummary && summary?.lastPaymentDate" class="stat-chip">
+        Last payment: {{ formatCurrency(summary!.lastPaymentAmount) }} on {{ formatDate(summary!.lastPaymentDate!) }}
+      </span>
+      <span *ngIf="(summary?.pendingPayments || 0) > 0" class="stat-chip stat-chip-info">
+        {{ summary!.pendingPayments }} pending
+      </span>
+      <span *ngIf="(summary?.failedPayments || 0) > 0" class="stat-chip stat-chip-danger">
+        {{ summary!.failedPayments }} failed
+      </span>
+    </div>
+  </div>
+
+  <!-- Transaction Ledger Table -->
+  <div *ngIf="!loading && !error && ledgerSummary" class="table-card">
+    <div class="table-header">
+      <h3 class="table-title">Transaction Ledger</h3>
+      <button pButton type="button" icon="pi pi-list" label="View All Payments" [text]="true" (click)="viewAllPayments()"></button>
+    </div>
+
+    <!-- Ledger Filters -->
+    <div class="ledger-filters">
+      <div class="filter-item">
+        <p-select [options]="transactionTypeOptions" [(ngModel)]="ledgerFilterType"
+          placeholder="All Types" [showClear]="true" (onChange)="onLedgerFilterChange()" class="w-full"></p-select>
+      </div>
+      <div class="filter-item">
+        <p-datepicker [(ngModel)]="ledgerDateRange" selectionMode="range" [showIcon]="true"
+          placeholder="Date range" dateFormat="M dd, yy" [showButtonBar]="true"
+          (onClose)="onLedgerFilterChange()" class="w-full"></p-datepicker>
+      </div>
+      <button *ngIf="filtersActive" pButton type="button" icon="pi pi-times" label="Clear"
+        class="p-button-sm p-button-outlined" (click)="clearLedgerFilters()"></button>
+    </div>
+
+    <p-table
+      [value]="ledgerEntries"
+      [paginator]="true"
+      [rows]="10"
+      [loading]="ledgerLoading"
+      responsiveLayout="scroll"
+      styleClass="p-datatable-striped">
+      <ng-template pTemplate="header">
+        <tr>
+          <th>Date</th>
+          <th>Type</th>
+          <th>Reference</th>
+          <th>Debit</th>
+          <th>Credit</th>
+          <th>Balance</th>
+          <th>Status</th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-entry>
+        <tr>
+          <td>{{ formatDate(entry.transactionDate) }}</td>
+          <td>
+            <p-tag
+              [value]="getLedgerTypeLabel(entry.transactionType)"
+              [severity]="getLedgerTypeSeverity(entry.transactionType)"
+              [style]="{'font-size': '0.75rem'}">
+            </p-tag>
+          </td>
+          <td>
+            <div class="font-semibold">{{ entry.referenceNumber }}</div>
+            <div *ngIf="entry.description" style="font-size: 0.75rem; color: #6c757d;">{{ entry.description }}</div>
+          </td>
+          <td style="font-weight: 600; color: #dc2626;">
+            {{ entry.debitAmount > 0 ? formatCurrency(entry.debitAmount) : '' }}
+          </td>
+          <td style="font-weight: 600; color: #16a34a;">
+            {{ entry.creditAmount > 0 ? formatCurrency(entry.creditAmount) : '' }}
+          </td>
+          <td style="font-weight: 600;" [style.color]="entry.runningBalance > 0 ? '#dc2626' : '#16a34a'">
+            {{ formatCurrency(entry.runningBalance) }}
+          </td>
+          <td>
+            <p-tag [value]="entry.status" [severity]="getStatusSeverity(entry.status)"></p-tag>
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="7" class="text-center">No transactions found</td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+
+  <!-- Legacy fallback: show link to list when no ledger -->
+  <div *ngIf="!loading && !error && !ledgerSummary && summary" class="table-card">
+    <div class="table-header">
+      <h3 class="table-title">Payment History</h3>
+      <button pButton type="button" icon="pi pi-list" label="View All Payments" [text]="true" (click)="viewAllPayments()"></button>
+    </div>
+    <p class="empty-hint">Navigate to the payments list for full payment history with search, filters, and actions.</p>
+  </div>
 </div>

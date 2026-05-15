@@ -13,7 +13,7 @@ public class Invoice : AuditableEntity
     public decimal TaxAmount { get; private set; }
     public decimal DiscountAmount { get; private set; } = 0;
     public decimal GrandTotal => SubTotal + TaxAmount - DiscountAmount;
-    public string Status { get; private set; } = "DRAFT";  // DRAFT, ISSUED, PAID, PARTIALLY_PAID, OVERDUE, CANCELLED
+    public string Status { get; private set; } = "DRAFT";  // DRAFT, ISSUED, DUE, PAID, PARTIALLY_PAID, OVERDUE, CANCELLED
     public string Notes { get; private set; } = string.Empty;
     public string Currency { get; private set; } = "BDT";  // ISO 4217 currency code
 
@@ -92,6 +92,13 @@ public class Invoice : AuditableEntity
         {
             Status = IsOverdue ? "OVERDUE" : "PARTIALLY_PAID";
         }
+    }
+
+    public void MarkAsDue()
+    {
+        if (Status != "ISSUED")
+            throw new InvalidOperationException("Only issued invoices can be marked as due.");
+        Status = "DUE";
     }
 
     public void Cancel(string reason = "")

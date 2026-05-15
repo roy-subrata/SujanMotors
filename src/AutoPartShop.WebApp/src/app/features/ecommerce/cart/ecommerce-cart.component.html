@@ -77,7 +77,7 @@
         <span>Total</span>
         <strong>{{ cartService.currency() }} {{ cartService.subtotal() | number:'1.0-0' }}</strong>
       </div>
-      <a class="btn-checkout" routerLink="/shop/checkout">
+      <a class="btn-checkout" [routerLink]="checkoutUrl">
         <i class="pi pi-lock"></i> Proceed to Checkout
       </a>
     </div>

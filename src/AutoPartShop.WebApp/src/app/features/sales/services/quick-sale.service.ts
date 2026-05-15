@@ -44,6 +44,8 @@ export interface QuickSaleRequest {
   payments: PaymentDetail[];
   subtotal: number;
   discountAmount: number;
+  discountType?: string;    // 'NONE' | 'PERCENTAGE' | 'FIXED'
+  discountReason?: string;  // required for audit trail when discount > 0
   vatAmount: number;
   vatPercentage: number;
   grandTotal: number;
@@ -339,9 +341,10 @@ export class QuickSaleService {
 
   // ===== PRICE CHECK =====
   /**
-   * Get part price by SKU or part number
+   * Search part by SKU, barcode, or part number. Returns current FIFO lot selling price
+   * (falls back to Part.SellingPrice when no lot price is set).
    */
-  getPriceByCode(code: string): Observable<{ partId: string; name: string; partNumber: string; sku: string; sellingPrice: number; stockLevel: number } | null> {
+  getPriceByCode(code: string): Observable<{ partId: string; name: string; partNumber: string; sku: string; sellingPrice: number; fallbackSellingPrice: number; hasLotPrice: boolean; stockLevel: number; unitId: string | null } | null> {
     return this.http.get<any>(`${this.apiUrl}/parts/search-by-code?code=${encodeURIComponent(code)}`);
   }
 

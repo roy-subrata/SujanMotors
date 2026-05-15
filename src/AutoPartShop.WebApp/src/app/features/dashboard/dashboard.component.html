@@ -41,25 +41,105 @@
           </button>
         }
       </div>
-      <button class="btn-refresh" (click)="loadDashboard()" [disabled]="loading()">
+      <button class="btn-refresh" (click)="loadDashboard()" [disabled]="loading()"
+        pTooltip="Refresh" tooltipPosition="bottom">
         <i class="pi pi-refresh" [class.pi-spin]="loading()"></i>
       </button>
     </div>
   </div>
 
-  <!-- Loading State -->
+  <!-- Period info bar (#3) -->
+  @if (resolvedStartDate && !loading()) {
+    <div class="period-info-bar">
+      <i class="pi pi-calendar"></i>
+      <span>Showing data for: <strong>{{ getPeriodLabel() }}</strong></span>
+    </div>
+  }
+
+  <!-- Improved skeleton (#10): matches actual layout -->
   <ng-container *ngIf="loading()">
-    <div class="loading-grid">
-      <div class="skeleton-card" *ngFor="let i of [1,2,3,4]">
-        <p-skeleton height="100px" styleClass="skeleton-item"></p-skeleton>
+    <div class="skeleton-section">
+      <div class="loading-grid-4">
+        <div class="skeleton-card" *ngFor="let i of [1,2,3,4]">
+          <p-skeleton height="90px" styleClass="skeleton-item"></p-skeleton>
+        </div>
+      </div>
+    </div>
+    <div class="skeleton-section">
+      <div class="loading-grid-3">
+        <div class="skeleton-card" *ngFor="let i of [1,2,3]">
+          <p-skeleton height="80px" styleClass="skeleton-item"></p-skeleton>
+        </div>
+      </div>
+    </div>
+    <div class="skeleton-section">
+      <div class="loading-grid-4">
+        <div class="skeleton-card" *ngFor="let i of [1,2,3,4]">
+          <p-skeleton height="80px" styleClass="skeleton-item"></p-skeleton>
+        </div>
+      </div>
+    </div>
+    <div class="skeleton-section">
+      <div class="loading-grid-chart">
+        <div class="skeleton-card">
+          <p-skeleton height="320px" styleClass="skeleton-item"></p-skeleton>
+        </div>
+        <div class="skeleton-card">
+          <p-skeleton height="320px" styleClass="skeleton-item"></p-skeleton>
+        </div>
+      </div>
+    </div>
+    <div class="skeleton-section">
+      <div class="loading-grid-chart">
+        <div class="skeleton-card">
+          <p-skeleton height="240px" styleClass="skeleton-item"></p-skeleton>
+        </div>
+        <div class="skeleton-card">
+          <p-skeleton height="240px" styleClass="skeleton-item"></p-skeleton>
+        </div>
       </div>
     </div>
   </ng-container>
 
-  <!-- Dashboard Content -->
-  <ng-container *ngIf="!loading() && dashboardData()">
+  <!-- Error state (#9) -->
+  <ng-container *ngIf="!loading() && hasError()">
+    <div class="empty-full-state">
+      <i class="pi pi-exclamation-circle"></i>
+      <h3>Failed to load dashboard</h3>
+      <p>Could not retrieve data from the server. Check your connection and try again.</p>
+      <button class="btn-apply" (click)="loadDashboard()">
+        <i class="pi pi-refresh"></i> Retry
+      </button>
+    </div>
+  </ng-container>
 
-    <!-- Primary KPIs -->
+  <!-- Dashboard Content -->
+  <ng-container *ngIf="!loading() && !hasError() && dashboardData()">
+
+    <!-- Alert Strip (#13) -->
+    <div class="alert-strip" *ngIf="hasAlerts">
+      <div class="alert-item alert-warning" *ngIf="dashboardData()!.summary.lowStockItemsCount > 0"
+        pTooltip="Parts below minimum stock level" tooltipPosition="bottom">
+        <i class="pi pi-exclamation-triangle"></i>
+        <span><strong>{{ dashboardData()!.summary.lowStockItemsCount }}</strong> low stock items</span>
+      </div>
+      <div class="alert-item alert-danger" *ngIf="dashboardData()!.summary.customerOverdueAmount > 0"
+        pTooltip="Customer invoices past due date" tooltipPosition="bottom">
+        <i class="pi pi-users"></i>
+        <span>Customer overdue: <strong>{{ formatCurrency(dashboardData()!.summary.customerOverdueAmount) }}</strong>
+          ({{ dashboardData()!.summary.customerOverdueCount }} customers)</span>
+      </div>
+      <div class="alert-item alert-danger" *ngIf="dashboardData()!.summary.supplierOverdueAmount > 0"
+        pTooltip="Supplier invoices past due date" tooltipPosition="bottom">
+        <i class="pi pi-truck"></i>
+        <span>Supplier overdue: <strong>{{ formatCurrency(dashboardData()!.summary.supplierOverdueAmount) }}</strong>
+          ({{ dashboardData()!.summary.supplierOverdueCount }} suppliers)</span>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════
+         SECTION 1 — Key Metrics
+         ═══════════════════════════════════════════════════════ -->
     <div class="section">
       <div class="section-header">
         <h2 class="section-title">Key Metrics</h2>
@@ -72,7 +152,8 @@
           <div class="kpi-content">
             <span class="kpi-value">{{ formatCurrency(dashboardData()!.summary.totalSales) }}</span>
             <span class="kpi-label">Total Sales</span>
-            <span class="kpi-meta">{{ dashboardData()!.summary.totalSalesCount }} orders</span>
+            <span class="kpi-meta">{{ dashboardData()!.summary.totalSalesCount }} orders
+              · avg {{ formatCurrency(dashboardData()!.summary.averageSaleValue) }}</span>
           </div>
         </div>
 
@@ -82,8 +163,11 @@
           </div>
           <div class="kpi-content">
             <span class="kpi-value">{{ formatCurrency(dashboardData()!.summary.totalRevenue) }}</span>
-            <span class="kpi-label">Total Revenue</span>
-            <span class="kpi-meta">Cash + Payments</span>
+            <span class="kpi-label">Revenue Collected</span>
+            <span class="kpi-meta">
+              Cash: {{ formatCurrency(dashboardData()!.summary.cashSales) }}
+              · Credit: {{ formatCurrency(dashboardData()!.summary.creditSales) }}
+            </span>
           </div>
         </div>
 
@@ -94,24 +178,86 @@
           <div class="kpi-content">
             <span class="kpi-value">{{ formatCurrency(dashboardData()!.summary.totalExpenses) }}</span>
             <span class="kpi-label">Total Expenses</span>
-            <span class="kpi-meta">Purchases + Daily</span>
+            <span class="kpi-meta">Purchases + Daily + Payments</span>
           </div>
         </div>
 
-        <div class="kpi-card" [class.kpi-card-success]="dashboardData()!.summary.netProfit >= 0" [class.kpi-card-danger]="dashboardData()!.summary.netProfit < 0">
-          <div class="kpi-icon" [class.kpi-icon-green]="dashboardData()!.summary.netProfit >= 0" [class.kpi-icon-red]="dashboardData()!.summary.netProfit < 0">
+        <div class="kpi-card"
+          [class.kpi-card-success]="dashboardData()!.summary.netProfit >= 0"
+          [class.kpi-card-danger]="dashboardData()!.summary.netProfit < 0">
+          <div class="kpi-icon"
+            [class.kpi-icon-green]="dashboardData()!.summary.netProfit >= 0"
+            [class.kpi-icon-red]="dashboardData()!.summary.netProfit < 0">
             <i class="pi pi-chart-bar"></i>
           </div>
           <div class="kpi-content">
             <span class="kpi-value">{{ formatCurrency(dashboardData()!.summary.netProfit) }}</span>
             <span class="kpi-label">Net Profit</span>
-            <span class="kpi-meta">{{ formatPercent(dashboardData()!.summary.profitMargin) }} margin</span>
+            <span class="kpi-meta" [class]="getProfitMarginClass(dashboardData()!.summary.profitMargin)">
+              {{ formatPercent(dashboardData()!.summary.profitMargin) }} margin
+            </span>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Expense Breakdown -->
+    <!-- ══════════════════════════════════════════════════════════
+         SECTION 2 — Business Insights (#4 — previously hidden metrics)
+         ═══════════════════════════════════════════════════════ -->
+    <div class="section">
+      <div class="section-header">
+        <h2 class="section-title">Business Insights</h2>
+      </div>
+      <div class="kpi-grid kpi-grid-4">
+        <div class="kpi-card kpi-card-compact">
+          <div class="kpi-icon kpi-icon-indigo">
+            <i class="pi pi-chart-pie"></i>
+          </div>
+          <div class="kpi-content">
+            <span class="kpi-value">{{ formatCurrency(dashboardData()!.summary.grossProfit) }}</span>
+            <span class="kpi-label">Gross Profit</span>
+            <span class="kpi-meta">Before daily expenses</span>
+          </div>
+        </div>
+
+        <div class="kpi-card kpi-card-compact">
+          <div class="kpi-icon kpi-icon-blue">
+            <i class="pi pi-tag"></i>
+          </div>
+          <div class="kpi-content">
+            <span class="kpi-value">{{ formatCurrency(dashboardData()!.summary.averageSaleValue) }}</span>
+            <span class="kpi-label">Avg Sale Value</span>
+            <span class="kpi-meta">Per order this period</span>
+          </div>
+        </div>
+
+        <div class="kpi-card kpi-card-compact">
+          <div class="kpi-icon kpi-icon-teal">
+            <i class="pi pi-user-plus"></i>
+          </div>
+          <div class="kpi-content">
+            <span class="kpi-value">{{ dashboardData()!.summary.newCustomers }}</span>
+            <span class="kpi-label">New Customers</span>
+            <span class="kpi-meta">of {{ dashboardData()!.summary.totalCustomers }} total</span>
+          </div>
+        </div>
+
+        <div class="kpi-card kpi-card-compact">
+          <div class="kpi-icon kpi-icon-purple">
+            <i class="pi pi-box"></i>
+          </div>
+          <div class="kpi-content">
+            <span class="kpi-value">{{ dashboardData()!.summary.lowStockItemsCount }}</span>
+            <span class="kpi-label">Low Stock Items</span>
+            <span class="kpi-meta">Value: {{ formatCurrency(dashboardData()!.summary.lowStockValue) }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════
+         SECTION 3 — Expense Breakdown
+         ═══════════════════════════════════════════════════════ -->
     <div class="section">
       <div class="section-header">
         <h2 class="section-title">Expense Breakdown</h2>
@@ -124,7 +270,8 @@
           <div class="kpi-content">
             <span class="kpi-value">{{ formatCurrency(dashboardData()!.summary.totalPurchases) }}</span>
             <span class="kpi-label">Inventory Purchases</span>
-            <span class="kpi-meta">{{ dashboardData()!.summary.totalPurchasesCount }} orders</span>
+            <span class="kpi-meta">{{ dashboardData()!.summary.totalPurchasesCount }} orders
+              · avg {{ formatCurrency(dashboardData()!.summary.averagePurchaseValue) }}</span>
           </div>
         </div>
 
@@ -152,7 +299,9 @@
       </div>
     </div>
 
-    <!-- Outstanding & Cash Position -->
+    <!-- ══════════════════════════════════════════════════════════
+         SECTION 4 — Outstanding & Cash Position (#4, #5)
+         ═══════════════════════════════════════════════════════ -->
     <div class="section">
       <div class="section-header">
         <h2 class="section-title">Outstanding & Cash Position</h2>
@@ -170,13 +319,13 @@
         </div>
 
         <div class="kpi-card kpi-card-compact">
-          <div class="kpi-icon kpi-icon-red">
-            <i class="pi pi-exclamation-triangle"></i>
+          <div class="kpi-icon kpi-icon-orange">
+            <i class="pi pi-truck"></i>
           </div>
           <div class="kpi-content">
-            <span class="kpi-value text-danger">{{ formatCurrency(dashboardData()!.summary.customerOverdueAmount) }}</span>
-            <span class="kpi-label">Customer Overdue</span>
-            <span class="kpi-meta">{{ dashboardData()!.summary.customerOverdueCount }} customers</span>
+            <span class="kpi-value">{{ formatCurrency(dashboardData()!.summary.supplierDueAmount) }}</span>
+            <span class="kpi-label">Supplier Due</span>
+            <span class="kpi-meta">{{ dashboardData()!.summary.supplierDueCount }} suppliers</span>
           </div>
         </div>
 
@@ -187,7 +336,7 @@
           <div class="kpi-content">
             <span class="kpi-value">{{ formatCurrency(dashboardData()!.summary.inventoryValue) }}</span>
             <span class="kpi-label">Inventory Value</span>
-            <span class="kpi-meta">Current stock</span>
+            <span class="kpi-meta">Current stock at cost</span>
           </div>
         </div>
 
@@ -198,41 +347,64 @@
           <div class="kpi-content">
             <span class="kpi-value">{{ formatCurrency(dashboardData()!.summary.closingBalance) }}</span>
             <span class="kpi-label">Closing Balance</span>
-            <span class="kpi-meta">Cash position</span>
+            <span class="kpi-meta">Opening: {{ formatCurrency(dashboardData()!.summary.openingBalance) }}</span>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Charts & Cash Flow Row -->
+    <!-- ══════════════════════════════════════════════════════════
+         SECTION 5 — Charts & Cash Flow
+         ═══════════════════════════════════════════════════════ -->
     <div class="section">
       <div class="charts-row">
         <!-- Sales Trend Chart -->
         <div class="chart-card chart-card-wide">
           <div class="card-header">
-            <h3 class="card-title">Sales & Profit Trend</h3>
+            <h3 class="card-title">
+              <i class="pi pi-chart-line"></i>
+              Sales &amp; Profit Trend
+            </h3>
           </div>
           <div class="card-body">
-            <div class="chart-container">
+            <!-- Chart empty state (#9) -->
+            <div *ngIf="!hasChartData" class="chart-empty-state">
+              <i class="pi pi-chart-line"></i>
+              <p>No trend data for this period</p>
+            </div>
+            <div class="chart-container" *ngIf="hasChartData">
               <p-chart type="line" [data]="salesTrendChartData" [options]="salesTrendChartOptions" height="280px"></p-chart>
             </div>
           </div>
         </div>
 
-        <!-- Cash Flow Summary -->
+        <!-- Cash Flow Summary (#5 — opening balance added) -->
         <div class="chart-card">
           <div class="card-header">
-            <h3 class="card-title">Cash Flow</h3>
+            <h3 class="card-title">
+              <i class="pi pi-wallet"></i>
+              Cash Flow
+            </h3>
           </div>
           <div class="card-body">
             <div class="cash-flow-list">
+              <div class="flow-item flow-opening">
+                <div class="flow-icon">
+                  <i class="pi pi-history"></i>
+                </div>
+                <div class="flow-details">
+                  <span class="flow-label">Opening Balance</span>
+                  <span class="flow-value">{{ formatCurrency(dashboardData()!.summary.openingBalance) }}</span>
+                </div>
+              </div>
+
               <div class="flow-item flow-in">
                 <div class="flow-icon">
                   <i class="pi pi-arrow-down-left"></i>
                 </div>
                 <div class="flow-details">
                   <span class="flow-label">Cash Inflow</span>
-                  <span class="flow-value">{{ formatCurrency(dashboardData()!.summary.cashInflow) }}</span>
+                  <span class="flow-value text-success">{{ formatCurrency(dashboardData()!.summary.cashInflow) }}</span>
                 </div>
               </div>
 
@@ -242,7 +414,7 @@
                 </div>
                 <div class="flow-details">
                   <span class="flow-label">Cash Outflow</span>
-                  <span class="flow-value">{{ formatCurrency(dashboardData()!.summary.cashOutflow) }}</span>
+                  <span class="flow-value text-danger">{{ formatCurrency(dashboardData()!.summary.cashOutflow) }}</span>
                 </div>
               </div>
 
@@ -253,8 +425,9 @@
                   <i class="pi pi-wallet"></i>
                 </div>
                 <div class="flow-details">
-                  <span class="flow-label">Net Cash Flow</span>
-                  <span class="flow-value">{{ formatCurrency(dashboardData()!.summary.cashInflow - dashboardData()!.summary.cashOutflow) }}</span>
+                  <span class="flow-label">Closing Balance</span>
+                  <!-- Fix #12: use component property instead of template expression -->
+                  <span class="flow-value">{{ formatCurrency(dashboardData()!.summary.closingBalance) }}</span>
                 </div>
               </div>
             </div>
@@ -263,7 +436,9 @@
       </div>
     </div>
 
-    <!-- Tables Row -->
+    <!-- ══════════════════════════════════════════════════════════
+         SECTION 6 — Tables Row (#6 — added lastPurchaseDate)
+         ═══════════════════════════════════════════════════════ -->
     <div class="section">
       <div class="tables-row">
         <!-- Top Products -->
@@ -283,6 +458,7 @@
                   <th class="col-number">Qty</th>
                   <th class="col-amount">Revenue</th>
                   <th class="col-amount">Profit</th>
+                  <th class="col-amount">Margin</th>
                 </tr>
               </thead>
               <tbody>
@@ -298,14 +474,21 @@
                   </td>
                   <td class="col-number">{{ formatNumber(product.quantitySold) }}</td>
                   <td class="col-amount">{{ formatCurrency(product.totalRevenue) }}</td>
-                  <td class="col-amount" [class.text-success]="product.totalProfit > 0" [class.text-danger]="product.totalProfit < 0">
+                  <td class="col-amount"
+                    [class.text-success]="product.totalProfit > 0"
+                    [class.text-danger]="product.totalProfit < 0">
                     {{ formatCurrency(product.totalProfit) }}
+                  </td>
+                  <td class="col-amount">
+                    <span [class]="getProfitMarginClass(product.totalRevenue > 0 ? (product.totalProfit / product.totalRevenue) * 100 : 0)">
+                      {{ formatPercent(product.totalRevenue > 0 ? (product.totalProfit / product.totalRevenue) * 100 : 0) }}
+                    </span>
                   </td>
                 </tr>
                 <tr *ngIf="dashboardData()!.topProducts.length === 0">
-                  <td colspan="5" class="empty-state">
+                  <td colspan="6" class="empty-state">
                     <i class="pi pi-inbox"></i>
-                    <span>No product data available</span>
+                    <span>No product sales in this period</span>
                   </td>
                 </tr>
               </tbody>
@@ -313,7 +496,7 @@
           </div>
         </div>
 
-        <!-- Top Customers -->
+        <!-- Top Customers (#6 — lastPurchaseDate added) -->
         <div class="table-card">
           <div class="card-header">
             <h3 class="card-title">
@@ -330,6 +513,7 @@
                   <th class="col-number">Orders</th>
                   <th class="col-amount">Revenue</th>
                   <th class="col-amount">Due</th>
+                  <th class="col-date">Last Purchase</th>
                 </tr>
               </thead>
               <tbody>
@@ -346,13 +530,18 @@
                   <td class="col-number">{{ customer.totalOrders }}</td>
                   <td class="col-amount">{{ formatCurrency(customer.totalRevenue) }}</td>
                   <td class="col-amount" [class.text-danger]="customer.outstandingAmount > 0">
-                    {{ formatCurrency(customer.outstandingAmount) }}
+                    {{ customer.outstandingAmount > 0 ? formatCurrency(customer.outstandingAmount) : '—' }}
+                  </td>
+                  <td class="col-date">
+                    <span class="date-text" [class.text-muted]="!customer.lastPurchaseDate">
+                      {{ formatDate(customer.lastPurchaseDate) }}
+                    </span>
                   </td>
                 </tr>
                 <tr *ngIf="dashboardData()!.topCustomers.length === 0">
-                  <td colspan="5" class="empty-state">
+                  <td colspan="6" class="empty-state">
                     <i class="pi pi-inbox"></i>
-                    <span>No customer data available</span>
+                    <span>No customer activity in this period</span>
                   </td>
                 </tr>
               </tbody>
@@ -363,4 +552,17 @@
     </div>
 
   </ng-container>
+
+  <!-- Empty state when no data and no error (#9) -->
+  <ng-container *ngIf="!loading() && !hasError() && !dashboardData()">
+    <div class="empty-full-state">
+      <i class="pi pi-chart-bar"></i>
+      <h3>No data available</h3>
+      <p>Select a period and click refresh to load your business overview.</p>
+      <button class="btn-apply" (click)="loadDashboard()">
+        <i class="pi pi-refresh"></i> Load Dashboard
+      </button>
+    </div>
+  </ng-container>
+
 </div>

@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { TabsModule } from 'primeng/tabs';
@@ -15,6 +15,7 @@ import { PasswordModule } from 'primeng/password';
 import { TooltipModule } from 'primeng/tooltip';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { AdminService, UserResponse, RoleResponse, PermissionResponse } from '../../shared/services/admin.service';
+import { PriceCodeService } from '../../shared/services/price-code.service';
 
 @Component({
   selector: 'app-admin-settings',
@@ -45,6 +46,7 @@ export class AdminSettingsComponent implements OnInit {
   private readonly messageService = inject(MessageService);
   private readonly confirmationService = inject(ConfirmationService);
   private readonly fb = inject(FormBuilder);
+  readonly priceCodeService = inject(PriceCodeService);
 
   // Active tab (regular variable for two-way binding with p-tabs)
   activeTabIndex: number = 0;
@@ -491,7 +493,157 @@ export class AdminSettingsComponent implements OnInit {
     }));
   }
 
+  getGroupedPermissions(): { category: string; permissions: PermissionResponse[] }[] {
+    const groups = new Map<string, PermissionResponse[]>();
+    for (const p of this.permissions()) {
+      if (!groups.has(p.category)) groups.set(p.category, []);
+      groups.get(p.category)!.push(p);
+    }
+    return Array.from(groups.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([category, permissions]) => ({ category, permissions }));
+  }
+
+  isPermissionSelected(id: string): boolean {
+    return this.selectedPermissionIds().includes(id);
+  }
+
+  togglePermission(id: string): void {
+    const current = this.selectedPermissionIds();
+    if (current.includes(id)) {
+      this.selectedPermissionIds.set(current.filter(p => p !== id));
+    } else {
+      this.selectedPermissionIds.set([...current, id]);
+    }
+  }
+
+  toggleCategoryPermissions(category: string): void {
+    const group = this.getGroupedPermissions().find(g => g.category === category);
+    if (!group) return;
+    const ids = group.permissions.map(p => p.id);
+    const allSelected = ids.every(id => this.selectedPermissionIds().includes(id));
+    if (allSelected) {
+      this.selectedPermissionIds.set(this.selectedPermissionIds().filter(id => !ids.includes(id)));
+    } else {
+      const merged = new Set([...this.selectedPermissionIds(), ...ids]);
+      this.selectedPermissionIds.set(Array.from(merged));
+    }
+  }
+
+  isCategoryAllSelected(category: string): boolean {
+    const group = this.getGroupedPermissions().find(g => g.category === category);
+    if (!group || group.permissions.length === 0) return false;
+    return group.permissions.every(p => this.selectedPermissionIds().includes(p.id));
+  }
+
+  isCategoryPartial(category: string): boolean {
+    const group = this.getGroupedPermissions().find(g => g.category === category);
+    if (!group) return false;
+    const selected = group.permissions.filter(p => this.selectedPermissionIds().includes(p.id));
+    return selected.length > 0 && selected.length < group.permissions.length;
+  }
+
+  selectAllPermissions(): void {
+    this.selectedPermissionIds.set(this.permissions().map(p => p.id));
+  }
+
+  clearAllPermissions(): void {
+    this.selectedPermissionIds.set([]);
+  }
+
   getStatusSeverity(isActive: boolean): 'success' | 'danger' {
     return isActive ? 'success' : 'danger';
+  }
+
+  // ============= Price Code Management =============
+
+  priceCodeWord = '';
+  priceCodePrefix = '';
+  priceCodeSuffix = '';
+  priceCodeSaving = signal(false);
+  priceCodePreviewPrice = 1234567890;
+
+  private priceCodeEffect = effect(() => {
+    // Auto-populate inputs once the service loads from server
+    if (this.priceCodeService.loaded()) {
+      if (!this.priceCodeWord) this.priceCodeWord = this.priceCodeService.magicWord();
+      if (!this.priceCodePrefix) this.priceCodePrefix = this.priceCodeService.prefix();
+      if (!this.priceCodeSuffix) this.priceCodeSuffix = this.priceCodeService.suffix();
+    }
+  });
+
+  initPriceCode(): void {
+    this.priceCodeWord = this.priceCodeService.magicWord();
+    this.priceCodePrefix = this.priceCodeService.prefix();
+    this.priceCodeSuffix = this.priceCodeService.suffix();
+  }
+
+  getPriceCodeValidation(): { valid: boolean; error?: string } {
+    return this.priceCodeService.validateMagicWord(this.priceCodeWord);
+  }
+
+  getPriceCodePreview(): string {
+    const validation = this.priceCodeService.validateMagicWord(this.priceCodeWord);
+    if (!validation.valid) return '—';
+
+    const word = this.priceCodeWord.toUpperCase();
+    // Preview: map digits 1234567890 to letters
+    let result = '';
+    const digits = '1234567890';
+    for (const d of digits) {
+      const digit = parseInt(d, 10);
+      const index = digit === 0 ? 9 : digit - 1;
+      result += word[index];
+    }
+    return result;
+  }
+
+  savePriceCode(): void {
+    const validation = this.getPriceCodeValidation();
+    if (!validation.valid) {
+      this.messageService.add({ severity: 'error', summary: 'Error', detail: validation.error || 'Invalid magic word' });
+      return;
+    }
+
+    this.priceCodeSaving.set(true);
+    this.priceCodeService.saveMagicWord(this.priceCodeWord, this.priceCodePrefix, this.priceCodeSuffix).subscribe({
+      next: () => {
+        this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Price code word saved successfully' });
+        this.priceCodeSaving.set(false);
+      },
+      error: (error) => {
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || 'Failed to save price code word')
+        });
+        this.priceCodeSaving.set(false);
+      }
+    });
+  }
+
+  clearPriceCode(): void {
+    this.confirmationService.confirm({
+      message: 'Are you sure you want to clear the price code? Cost prices will be shown as plain numbers.',
+      header: 'Clear Price Code',
+      icon: 'pi pi-exclamation-triangle',
+      acceptButtonStyleClass: 'p-button-danger',
+      accept: () => {
+        this.priceCodeSaving.set(true);
+        this.priceCodeService.clearMagicWord().subscribe({
+          next: () => {
+            this.priceCodeWord = '';
+            this.priceCodePrefix = '';
+            this.priceCodeSuffix = '';
+            this.messageService.add({ severity: 'success', summary: 'Cleared', detail: 'Price code removed. Cost prices will display as numbers.' });
+            this.priceCodeSaving.set(false);
+          },
+          error: () => {
+            this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to clear price code' });
+            this.priceCodeSaving.set(false);
+          }
+        });
+      }
+    });
   }
 }

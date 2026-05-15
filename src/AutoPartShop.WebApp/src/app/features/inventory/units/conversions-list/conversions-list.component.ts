@@ -27,29 +27,29 @@ export class ConversionsListComponent implements OnInit {
     private readonly messageService = inject(MessageService);
 
     conversions: UnitConversionResponse[] = [];
-    filteredConversions: UnitConversionResponse[] = [];
-    pagedConversions: UnitConversionResponse[] = [];
     selectedConversions: UnitConversionResponse[] = [];
     loading = false;
     searchTerm = '';
     pageNumber = 1;
     pageSize = 10;
     totalRecords = 0;
+    pageSizeOptions = [10, 20, 50];
 
     ngOnInit(): void {
         this.loadConversions();
     }
 
     /**
-     * Load all conversions
+     * Load conversions with pagination and search
      */
-    loadConversions(): void {
+    loadConversions(pageNum: number = 1): void {
         this.loading = true;
+        this.pageNumber = pageNum;
 
-        this.conversionService.getAllConversions().subscribe({
+        this.conversionService.getListConversions(this.pageNumber, this.pageSize, this.searchTerm).subscribe({
             next: (response) => {
-                this.conversions = response;
-                this.applyFilters();
+                this.conversions = response.data;
+                this.totalRecords = response.pagination?.totalCount || 0;
                 this.loading = false;
             },
             error: (error) => {
@@ -64,12 +64,24 @@ export class ConversionsListComponent implements OnInit {
     }
 
     /**
-     * Search conversions by unit names
+     * Handle pagination change
+     */
+    onPageChange(event: any): void {
+        if (!event || typeof event.first !== 'number' || typeof event.rows !== 'number') {
+            return;
+        }
+        const pageNum = Math.floor(event.first / event.rows) + 1;
+        this.pageSize = event.rows;
+        this.loadConversions(pageNum);
+    }
+
+    /**
+     * Search conversions
      */
     search(query: string): void {
-        this.searchTerm = query.toLowerCase();
+        this.searchTerm = query;
         this.pageNumber = 1;
-        this.applyFilters();
+        this.loadConversions(1);
     }
 
     /**
@@ -78,7 +90,7 @@ export class ConversionsListComponent implements OnInit {
     clearSearch(): void {
         this.searchTerm = '';
         this.pageNumber = 1;
-        this.applyFilters();
+        this.loadConversions(1);
     }
 
     /**
@@ -108,7 +120,7 @@ export class ConversionsListComponent implements OnInit {
     reload(): void {
         this.searchTerm = '';
         this.selectedConversions = [];
-        this.loadConversions();
+        this.loadConversions(1);
     }
 
     /**
@@ -116,16 +128,6 @@ export class ConversionsListComponent implements OnInit {
      */
     getConversionDisplay(conversion: UnitConversionResponse): string {
         return `1 ${conversion.fromUnitCode} = ${conversion.conversionFactor} ${conversion.toUnitCode}`;
-    }
-
-    onPageChange(event: any): void {
-        if (!event || typeof event.first !== 'number' || typeof event.rows !== 'number') {
-            return;
-        }
-        const pageNum = Math.floor(event.first / event.rows) + 1;
-        this.pageSize = event.rows;
-        this.pageNumber = pageNum;
-        this.applyPagination();
     }
 
     get first(): number {
@@ -144,26 +146,5 @@ export class ConversionsListComponent implements OnInit {
             return 0;
         }
         return Math.ceil(this.totalRecords / this.pageSize);
-    }
-
-    private applyFilters(): void {
-        if (!this.searchTerm) {
-            this.filteredConversions = [...this.conversions];
-        } else {
-            this.filteredConversions = this.conversions.filter(
-                (conversion) =>
-                    conversion.fromUnitName.toLowerCase().includes(this.searchTerm) ||
-                    conversion.fromUnitCode.toLowerCase().includes(this.searchTerm) ||
-                    conversion.toUnitName.toLowerCase().includes(this.searchTerm) ||
-                    conversion.toUnitCode.toLowerCase().includes(this.searchTerm)
-            );
-        }
-        this.totalRecords = this.filteredConversions.length;
-        this.applyPagination();
-    }
-
-    private applyPagination(): void {
-        const startIndex = (this.pageNumber - 1) * this.pageSize;
-        this.pagedConversions = this.filteredConversions.slice(startIndex, startIndex + this.pageSize);
     }
 }
