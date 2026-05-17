@@ -10,6 +10,7 @@ public interface IPartRepository : IBaseRepository<Part>
     Task<bool> SKUExistsAsync(string sku, Guid? excludePartId = null, CancellationToken cancellationToken = default);
     Task<Part?> GetBySKUAsync(string sku, CancellationToken cancellationToken = default);
     Task<IEnumerable<Part>> GetByCategoryAsync(Guid categoryId, CancellationToken cancellationToken = default);
+    Task<bool> HasActiveVariantsAsync(Guid partId, CancellationToken cancellationToken = default);
 }
 
 

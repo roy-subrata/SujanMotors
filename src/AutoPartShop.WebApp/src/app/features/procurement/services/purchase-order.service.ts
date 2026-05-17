@@ -8,6 +8,10 @@ export interface PurchaseOrderLineResponse {
     id: string;
     partId: string;
     partName: string;
+    variantId?: string | null;
+    variantName?: string | null;
+    variantCode?: string | null;
+    displayName: string;
     partBaseUnitId?: string;
     unitId?: string;
     unitName?: string;
@@ -19,8 +23,8 @@ export interface PurchaseOrderLineResponse {
     remainingQuantity: number;
     unitPrice: number;
     lineTotal: number;
-    partDefaultSellingPrice: number;   // Part master sell price — used by GRN to auto-fill lot sell price
-    partMinMarginPercent: number;      // Part-level margin override (or global 15%)
+    partDefaultSellingPrice: number;
+    partMinMarginPercent: number;
 }
 
 export interface PurchaseOrderResponse {
@@ -63,6 +67,7 @@ export interface CreatePurchaseOrderRequest {
 
 export interface CreatePurchaseOrderLineRequest {
     partId: string;
+    variantId?: string | null;
     unitId?: string;
     quantity: number;
     unitPrice: number;

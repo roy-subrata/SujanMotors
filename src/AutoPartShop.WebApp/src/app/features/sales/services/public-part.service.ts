@@ -6,6 +6,7 @@ import { environment } from 'src/environments/environment';
 export interface PublicPartResponse {
   id: string;
   name: string;
+  displayName: string;
   description: string;
   partNumber: string;
   sku: string;
@@ -17,6 +18,16 @@ export interface PublicPartResponse {
   unitId: string | null;
   unitName: string | null;
   sellingPrice: number;
+  effectiveSellingPrice: number;
+  // Variant fields — populated when flattenVariants = true
+  hasVariants: boolean;
+  isVariant: boolean;
+  variantId?: string | null;
+  variantName?: string | null;
+  variantCode?: string | null;
+  variantSKU?: string | null;
+  variantBarcode?: string | null;
+  pricingMode?: string | null;
   minimumStock: number;
   isActive: boolean;
   hasWarranty: boolean;
@@ -31,6 +42,7 @@ export interface PublicPartsQuery {
   pageSize: number;
   pageNumber: number;
   isActive?: boolean;
+  flattenVariants?: boolean;
 }
 
 export interface PaginatedResponse<T> {

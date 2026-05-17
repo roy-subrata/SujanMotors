@@ -106,7 +106,8 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
       search: req.search || '',
       pageNumber: req.pageNumber,
       pageSize: req.pageSize,
-      isActive: true
+      isActive: true,
+      flattenVariants: true
     }).pipe(
       map((res) => ({
         items: res.data ?? [],
@@ -564,8 +565,10 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Check if already in cart
-    const existing = this.cartItems().find(item => item.partId === part.id);
+    // Check if already in cart — same part + same variant is a duplicate
+    const existing = this.cartItems().find(
+      item => item.partId === part.id && (item.productVariantId ?? null) === (part.variantId ?? null)
+    );
     if (existing) {
       this.messageService.add({
         severity: 'info',
@@ -592,19 +595,19 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
       this.compatibleUnitsMap.set(part.id, this.units());
     }
 
-    // Add to cart
     const newItem: QuickSaleLineItem = {
       partId: part.id,
-      partName: part.name,
+      productVariantId: part.variantId ?? undefined,
+      partName: part.displayName || part.name,
       partNumber: part.partNumber,
-      sku: part.sku,
-      unitId: part.unitId || undefined, // Set part's base unit as default
+      sku: part.variantSKU || part.sku,
+      unitId: part.unitId || undefined,
       quantity: 1,
-      unitPrice: part.sellingPrice,
+      unitPrice: part.effectiveSellingPrice ?? part.sellingPrice,
       discount: 0,
-      stockAvailable: undefined, // Stock will be checked via API
-      warehouseLocation: '', // Could be populated from warehouse data
-      supplierName: '' // Could be populated from supplier data
+      stockAvailable: undefined,
+      warehouseLocation: '',
+      supplierName: ''
     };
 
     this.cartItems.update(items => [...items, newItem]);
@@ -615,7 +618,7 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
     this.messageService.add({
       severity: 'success',
       summary: 'Part Added',
-      detail: `${part.name} added to cart`
+      detail: `${part.displayName || part.name} added to cart`
     });
   }
 

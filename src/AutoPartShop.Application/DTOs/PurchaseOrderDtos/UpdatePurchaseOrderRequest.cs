@@ -26,15 +26,9 @@ public class UpdatePurchaseOrderLineRequest
     /// Line item ID. Null or empty for new items, existing ID for updates
     /// </summary>
     public Guid? Id { get; set; }
-
     public Guid PartId { get; set; }
-
-    /// <summary>
-    /// Optional: Unit in which to purchase. If null, uses Part's base unit
-    /// </summary>
+    public Guid? VariantId { get; set; }
     public Guid? UnitId { get; set; }
-
     public int Quantity { get; set; }
-
     public decimal UnitPrice { get; set; }
 }

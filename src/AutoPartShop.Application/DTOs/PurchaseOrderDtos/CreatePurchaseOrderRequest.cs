@@ -14,7 +14,8 @@ public class CreatePurchaseOrderRequest
 public class CreatePurchaseOrderLineRequest
 {
     public Guid PartId { get; set; }
-    public Guid? UnitId { get; set; }  // Optional: Unit in which to purchase. If null, uses Part's base unit
+    public Guid? VariantId { get; set; }
+    public Guid? UnitId { get; set; }
     public int Quantity { get; set; }
     public decimal UnitPrice { get; set; }
 }

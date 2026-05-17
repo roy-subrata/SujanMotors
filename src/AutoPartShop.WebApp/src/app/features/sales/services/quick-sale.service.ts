@@ -10,10 +10,11 @@ export type PaymentResponsibility = 'CUSTOMER' | 'TECHNICIAN_TEMPORARY';
 
 export interface QuickSaleLineItem {
   partId: string;
+  productVariantId?: string;
   partName?: string;
   partNumber?: string;
   sku?: string;
-  unitId?: string;  // Optional: Unit in which to sell. If null, uses Part's base unit
+  unitId?: string;
   quantity: number;
   unitPrice: number;
   discount: number;

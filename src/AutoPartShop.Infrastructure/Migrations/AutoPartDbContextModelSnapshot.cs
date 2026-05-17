@@ -2516,7 +2516,7 @@ namespace AutoPartsShop.Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<decimal?>("CostPrice")
+                    b.Property<decimal>("CostPrice")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("CreatedBy")
@@ -2561,11 +2561,18 @@ namespace AutoPartsShop.Infrastructure.Migrations
                     b.Property<Guid>("PartId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("PricingMode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)")
+                        .HasDefaultValue("OVERRIDE");
+
                     b.Property<string>("SKU")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<decimal?>("SellingPrice")
+                    b.Property<decimal>("SellingPrice")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int?>("WarrantyPeriodMonthsOverride")
@@ -2809,6 +2816,9 @@ namespace AutoPartsShop.Infrastructure.Migrations
                     b.Property<decimal>("UnitPrice")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<Guid?>("VariantId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.HasKey("Id");
 
                     b.HasIndex("PartId");
@@ -2816,6 +2826,8 @@ namespace AutoPartsShop.Infrastructure.Migrations
                     b.HasIndex("PurchaseOrderId");
 
                     b.HasIndex("UnitId");
+
+                    b.HasIndex("VariantId");
 
                     b.ToTable("PurchaseOrderLines", (string)null);
                 });
@@ -5516,11 +5528,18 @@ namespace AutoPartsShop.Infrastructure.Migrations
                         .HasForeignKey("UnitId")
                         .OnDelete(DeleteBehavior.NoAction);
 
+                    b.HasOne("AutoPartShop.Domain.Entities.ProductVariant", "Variant")
+                        .WithMany()
+                        .HasForeignKey("VariantId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.Navigation("Part");
 
                     b.Navigation("PurchaseOrder");
 
                     b.Navigation("Unit");
+
+                    b.Navigation("Variant");
                 });
 
             modelBuilder.Entity("AutoPartShop.Domain.Entities.PurchaseReturn", b =>

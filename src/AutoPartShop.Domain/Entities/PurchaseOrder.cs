@@ -278,18 +278,17 @@ public class PurchaseOrder : AuditableEntity
 
             if (existing != null)
             {
-                // Update existing line item
                 existing.Update(
                     itemData.Quantity,
                     itemData.UnitPrice,
                     itemData.UnitId,
                     itemData.QuantityInBaseUnit,
-                    itemData.Description
+                    itemData.Description,
+                    itemData.VariantId
                 );
             }
             else
             {
-                // Add new line item
                 var newLine = PurchaseOrderLine.Create(
                     Id,
                     itemData.PartId,
@@ -298,7 +297,8 @@ public class PurchaseOrder : AuditableEntity
                     lineNumber,
                     itemData.UnitId,
                     itemData.QuantityInBaseUnit,
-                    itemData.Description
+                    itemData.Description,
+                    itemData.VariantId
                 );
                 LineItems.Add(newLine);
             }
@@ -316,6 +316,7 @@ public class PurchaseOrder : AuditableEntity
 public record LineItemData(
     Guid? Id,
     Guid PartId,
+    Guid? VariantId,
     int Quantity,
     decimal UnitPrice,
     Guid? UnitId,

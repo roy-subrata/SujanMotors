@@ -123,7 +123,11 @@ public class PartRepository(AutoPartDbContext _db) : IPartRepository
         return await _db.Parts.Where(p => p.CategoryId == categoryId && !p.Isdeleted).ToListAsync(cancellationToken);
     }
 
-
+    public async Task<bool> HasActiveVariantsAsync(Guid partId, CancellationToken cancellationToken = default)
+    {
+        return await _db.ProductVariants
+            .AnyAsync(v => v.PartId == partId && v.IsActive && !v.Isdeleted, cancellationToken);
+    }
 }
 
 public class VehicleRepository(AutoPartDbContext _db) : IVehicleRepository

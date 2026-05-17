@@ -230,6 +230,11 @@ public class PurchaseOrderController : ControllerBase
                         unitId = part.UnitId;
                     }
 
+                    // Enforce variant selection when product has active variants
+                    var hasVariants = await _partRepository.HasActiveVariantsAsync(lineRequest.PartId, cancellationToken);
+                    if (hasVariants && !lineRequest.VariantId.HasValue)
+                        return BadRequest(new { message = $"Product '{part.Name}' has variants — please select a specific variant" });
+
                     var line = PurchaseOrderLine.Create(
                         order.Id,
                         lineRequest.PartId,
@@ -237,7 +242,8 @@ public class PurchaseOrderController : ControllerBase
                         lineRequest.UnitPrice,
                         lineNumber++,
                         unitId,
-                        quantityInBaseUnit
+                        quantityInBaseUnit,
+                        variantId: lineRequest.VariantId
                     );
                     order.LineItems.Add(line);
                 }
@@ -317,9 +323,14 @@ public class PurchaseOrderController : ControllerBase
                     unitId = part.UnitId;
                 }
 
+                var hasVariants = await _partRepository.HasActiveVariantsAsync(lineRequest.PartId, cancellationToken);
+                if (hasVariants && !lineRequest.VariantId.HasValue)
+                    return BadRequest(new { message = $"Product '{part.Name}' has variants — please select a specific variant" });
+
                 lineItemDataList.Add(new LineItemData(
                     lineRequest.Id,
                     lineRequest.PartId,
+                    lineRequest.VariantId,
                     lineRequest.Quantity,
                     lineRequest.UnitPrice,
                     unitId,
@@ -992,6 +1003,13 @@ public class PurchaseOrderController : ControllerBase
             {
                 Id = l.Id,
                 PartId = l.PartId,
+                PartName = l.Part?.Name ?? string.Empty,
+                VariantId = l.VariantId,
+                VariantName = l.Variant?.Name,
+                VariantCode = l.Variant?.Code,
+                DisplayName = l.Variant != null
+                    ? (l.Part != null ? l.Part.Name + " - " + l.Variant.Name : l.Variant.Name)
+                    : (l.Part?.Name ?? string.Empty),
                 PartBaseUnitId = l.Part?.UnitId,
                 UnitId = l.UnitId,
                 UnitName = l.Unit?.Name ?? string.Empty,

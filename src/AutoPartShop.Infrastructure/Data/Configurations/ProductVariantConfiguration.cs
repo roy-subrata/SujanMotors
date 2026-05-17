@@ -42,13 +42,18 @@ public class ProductVariantConfiguration : IEntityTypeConfiguration<ProductVaria
             .HasColumnType("decimal(10,2)")
             .IsRequired(false);
 
+        builder.Property(x => x.PricingMode)
+            .HasMaxLength(10)
+            .IsRequired()
+            .HasDefaultValue("OVERRIDE");
+
         builder.Property(x => x.CostPrice)
             .HasColumnType("decimal(18,2)")
-            .IsRequired(false);
+            .IsRequired();
 
         builder.Property(x => x.SellingPrice)
             .HasColumnType("decimal(18,2)")
-            .IsRequired(false);
+            .IsRequired();
 
         builder.Property(x => x.Currency)
             .HasMaxLength(3)

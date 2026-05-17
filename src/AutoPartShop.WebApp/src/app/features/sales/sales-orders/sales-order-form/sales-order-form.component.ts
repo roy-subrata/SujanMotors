@@ -132,7 +132,8 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
                 search: req.search,
                 pageNumber: req.pageNumber,
                 pageSize: req.pageSize,
-                isActive: true
+                isActive: true,
+                flattenVariants: true
             })
             .pipe(
                 map(
@@ -322,9 +323,11 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
     onPartSelected(part: PublicPartResponse, lineIndex: number): void {
         if (!part?.id) return;
 
-        // Merge duplicates: if the same part exists in another line, increase its quantity and remove this line
+        // Merge duplicates: same part + same variant → increase qty; different variant = separate line
         const existingIndex = this.lines.controls.findIndex(
-            (line, idx) => idx !== lineIndex && line.get('part')?.value?.id === part.id
+            (line, idx) => idx !== lineIndex
+                && line.get('part')?.value?.id === part.id
+                && (line.get('variantId')?.value ?? null) === (part.variantId ?? null)
         );
         if (existingIndex >= 0) {
             const existingLine = this.lines.at(existingIndex);
@@ -336,30 +339,32 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
             return;
         }
 
-        // Auto-fill part details (part is already set by formControlName)
         const line = this.lines.at(lineIndex) as FormGroup;
+        // Store variantId on the line
+        line.patchValue({ variantId: part.variantId ?? null });
+
+        const effectivePrice = part.effectiveSellingPrice ?? part.sellingPrice;
         const warehouseId = this.salesOrderForm?.get('warehouseId')?.value as string | null;
         if (warehouseId) {
-            // Use FIFO lot selling price as the default unit price
             this.stockLotService.getFifoLotInfo(part.id, warehouseId)
                 .pipe(takeUntil(this.destroy$))
                 .subscribe({
                     next: (lotInfo) => {
                         const price = lotInfo.hasAvailableLot && lotInfo.sellingPrice > 0
                             ? lotInfo.sellingPrice
-                            : part.sellingPrice;
+                            : effectivePrice;
                         line.patchValue({ unitPrice: price });
                         this.clearLinePricingError(lineIndex);
                         this.scheduleLinePricingInfoRefresh(lineIndex);
                     },
                     error: () => {
-                        line.patchValue({ unitPrice: part.sellingPrice });
+                        line.patchValue({ unitPrice: effectivePrice });
                         this.clearLinePricingError(lineIndex);
                         this.scheduleLinePricingInfoRefresh(lineIndex);
                     }
                 });
         } else {
-            line.patchValue({ unitPrice: part.sellingPrice });
+            line.patchValue({ unitPrice: effectivePrice });
             this.clearLinePricingError(lineIndex);
             this.scheduleLinePricingInfoRefresh(lineIndex);
         }
@@ -372,7 +377,10 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
     onQuickAddPartSelected(part: PublicPartResponse): void {
         if (!part?.id) return;
 
-        const existingIndex = this.lines.controls.findIndex((line) => line.get('part')?.value?.id === part.id);
+        const existingIndex = this.lines.controls.findIndex(
+            (line) => line.get('part')?.value?.id === part.id
+                && (line.get('variantId')?.value ?? null) === (part.variantId ?? null)
+        );
         if (existingIndex >= 0) {
             const line = this.lines.at(existingIndex) as FormGroup;
             const currentQty = this.parseNumber(line.get('quantity')?.value) || 0;
@@ -383,9 +391,10 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
             this.lines.push(
                 this.createLine({
                     part: part,
+                    variantId: part.variantId ?? null,
                     unitId: part.unitId || null,
                     quantity: 1,
-                    unitPrice: part.sellingPrice || 0,
+                    unitPrice: part.effectiveSellingPrice ?? part.sellingPrice ?? 0,
                     discount: 0
                 })
             );
@@ -448,8 +457,9 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
 
     createLine(data?: any): FormGroup {
         const lineGroup = this.fb.group({
-            part: [data?.part || null, [Validators.required]], // Full part object for lazy autocomplete
-            unitId: [data?.unitId || null], // Optional unit selection
+            part: [data?.part || null, [Validators.required]],
+            variantId: [data?.variantId || null],
+            unitId: [data?.unitId || null],
             quantity: [data?.quantity || 1, [Validators.required, Validators.min(1)]],
             unitPrice: [data?.unitPrice || 0, [Validators.required, Validators.min(0)]],
             discount: [data?.discount || 0, [Validators.min(0), Validators.max(100)]]
@@ -678,6 +688,7 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
             discount: this.orderDiscount(),
             lines: formValue.lines.map((line: any) => ({
                 partId: line.part?.id,
+                productVariantId: line.variantId ?? line.part?.variantId ?? null,
                 unitId: line.unitId,
                 quantity: line.quantity,
                 unitPrice: line.unitPrice,

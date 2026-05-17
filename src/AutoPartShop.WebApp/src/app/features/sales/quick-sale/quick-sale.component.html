@@ -166,7 +166,7 @@
                 [(ngModel)]="selectedPartModel"
                 [ngModelOptions]="{standalone: true}"
                 [fetchFn]="fetchPartsLazy"
-                optionLabel="name"
+                optionLabel="displayName"
                 placeholder="Search by part name, SKU, or part number..."
                 [showClear]="true"
                 [minLength]="1"
@@ -177,15 +177,15 @@
                       <i class="pi pi-cog"></i>
                     </div>
                     <div class="part-details">
-                      <strong>{{ part.name }}</strong>
+                      <strong>{{ part.displayName || part.name }}</strong>
                       <div class="part-meta">
                         <span class="sku">{{ part.partNumber }}</span>
                         <span class="separator">•</span>
-                        <span class="sku">{{ part.sku }}</span>
+                        <span class="sku">{{ part.variantSKU || part.sku }}</span>
                       </div>
                     </div>
                     <div class="part-pricing">
-                      <span class="selling-price">{{ formatCurrency(part.sellingPrice) }}</span>
+                      <span class="selling-price">{{ formatCurrency(part.effectiveSellingPrice ?? part.sellingPrice) }}</span>
                     </div>
                   </div>
                 </ng-template>

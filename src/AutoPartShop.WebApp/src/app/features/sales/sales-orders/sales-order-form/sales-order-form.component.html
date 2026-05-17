@@ -225,7 +225,7 @@
               [fetchFn]="searchParts"
               [(ngModel)]="selectedPartQuickAdd"
               [ngModelOptions]="{standalone: true}"
-              optionLabel="name"
+              optionLabel="displayName"
               placeholder="Search part by name, code, or SKU..."
               [disabled]="mode() === 'view'"
               (onItemSelect)="onQuickAddPartSelected($any($event))"
@@ -233,17 +233,17 @@
               <ng-template let-part>
                 <div class="part-item">
                   <div class="part-item-name">
-                    {{ part.name }}
+                    {{ part.displayName || part.name }}
                     <span class="customer-item-code">{{ part.partNumber }}</span>
                   </div>
                   <div class="part-item-details">
-                    <span *ngIf="part.sku">SKU: {{ part.sku }}</span>
+                    <span *ngIf="part.variantSKU || part.sku">SKU: {{ part.variantSKU || part.sku }}</span>
                     <span *ngIf="part.brandName" class="separator">&bull;</span>
                     <span *ngIf="part.brandName">{{ part.brandName }}</span>
                     <span *ngIf="part.unitName" class="separator">&bull;</span>
                     <span *ngIf="part.unitName">{{ part.unitName }}</span>
                     <span class="separator">&bull;</span>
-                    <span>{{ formatCurrency(part.sellingPrice) }}</span>
+                    <span>{{ formatCurrency(part.effectiveSellingPrice ?? part.sellingPrice) }}</span>
                   </div>
                 </div>
               </ng-template>
@@ -271,7 +271,7 @@
                 <app-lazy-autocomplete
                   [fetchFn]="searchParts"
                   formControlName="part"
-                  optionLabel="name"
+                  optionLabel="displayName"
                   placeholder="Search part by name or code..."
                   [disabled]="mode() === 'view'"
                   (onItemSelect)="onPartSelected($any($event), i)"
@@ -279,17 +279,17 @@
                   <ng-template let-part>
                     <div class="part-item">
                       <div class="part-item-name">
-                        {{ part.name }}
+                        {{ part.displayName || part.name }}
                         <span class="customer-item-code">{{ part.partNumber }}</span>
                       </div>
                       <div class="part-item-details">
-                        <span *ngIf="part.sku">SKU: {{ part.sku }}</span>
+                        <span *ngIf="part.variantSKU || part.sku">SKU: {{ part.variantSKU || part.sku }}</span>
                         <span *ngIf="part.brandName" class="separator">&bull;</span>
                         <span *ngIf="part.brandName">{{ part.brandName }}</span>
                         <span *ngIf="part.unitName" class="separator">&bull;</span>
                         <span *ngIf="part.unitName">{{ part.unitName }}</span>
                         <span class="separator">&bull;</span>
-                        <span>{{ formatCurrency(part.sellingPrice) }}</span>
+                        <span>{{ formatCurrency(part.effectiveSellingPrice ?? part.sellingPrice) }}</span>
                       </div>
                     </div>
                   </ng-template>

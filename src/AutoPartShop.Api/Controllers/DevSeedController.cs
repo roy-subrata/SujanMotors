@@ -262,8 +262,9 @@ public class DevSeedController(AutoPartDbContext _db, ICodeGenerateService _code
                 var variantSell = Math.Round(sell * sellMult);
 
                 var variant = ProductVariant.Create(part.Id,
-                    $"{name} — {grade}", vCode, vSku,
-                    costPrice: variantCost, sellingPrice: variantSell, isActive: true);
+                    $"{name} — {grade}", vCode,
+                    costPrice: variantCost, sellingPrice: variantSell,
+                    sku: vSku, isActive: true);
                 variant.CreatedBy = variant.ModifiedBy = "System";
                 _db.ProductVariants.Add(variant);
                 await _db.SaveChangesAsync(ct);

@@ -122,7 +122,7 @@
             [(ngModel)]="selectedPartModel"
             [ngModelOptions]="{standalone: true}"
             [fetchFn]="fetchPartsLazy"
-            optionLabel="name"
+            optionLabel="displayName"
             placeholder="Search products by name, SKU, or part number..."
             [showClear]="true"
             [minLength]="1"
@@ -132,10 +132,10 @@
             <ng-template let-part>
               <div class="product-option">
                 <div class="product-details">
-                  <strong>{{ part.name }}</strong>
-                  <span class="product-meta">{{ part.partNumber }} • {{ part.sku }}</span>
+                  <strong>{{ part.displayName || part.name }}</strong>
+                  <span class="product-meta">{{ part.partNumber }} • {{ part.variantSKU || part.sku }}</span>
                 </div>
-                <span class="product-price">{{ formatCurrency(part.sellingPrice) }}</span>
+                <span class="product-price">{{ formatCurrency(part.effectiveSellingPrice ?? part.sellingPrice) }}</span>
               </div>
             </ng-template>
           </app-lazy-autocomplete>

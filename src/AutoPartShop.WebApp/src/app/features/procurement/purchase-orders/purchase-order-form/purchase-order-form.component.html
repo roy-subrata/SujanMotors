@@ -205,7 +205,7 @@
               [ngModelOptions]="{standalone: true}"
               [fetchFn]="fetchPartsLazy"
               (onItemSelect)="onPartSelectAndAdd($event)"
-              field="name"
+              field="displayName"
               placeholder="Search product by name, SKU, or part number to add..."
               [minLength]="0"
               [showClear]="true"
@@ -213,11 +213,12 @@
               <ng-template let-part>
                 <div class="autocomplete-item part-item">
                   <div class="part-main-info">
-                    <span class="item-name">{{ part.name }}</span>
-                    <span class="part-price">{{ formatCurrency(part.sellingPrice || 0) }}</span>
+                    <span class="item-name">{{ part.displayName || part.name }}</span>
+                    <span class="part-price">{{ formatCurrency(part.effectiveSellingPrice ?? part.sellingPrice ?? 0) }}</span>
                   </div>
                   <div class="part-sub-info">
-                    <span class="item-code">SKU: {{ part.sku }} | PN: {{ part.partNumber }}</span>
+                    <span class="item-code">SKU: {{ part.variantSKU || part.sku }} | PN: {{ part.partNumber }}</span>
+                    <span *ngIf="part.pricingMode === 'ADDITIVE'" class="variant-badge"> +delta</span>
                     <span *ngIf="part.unitName"> | Unit: {{ part.unitName }}</span>
                   </div>
                 </div>
@@ -258,7 +259,7 @@
               <tr *ngFor="let line of linesArray.controls; let i = index" [formGroupName]="i" class="line-item-row">
                 <td class="part-name-cell" data-label="Product">
                   <div class="part-name-wrapper" *ngIf="line.get('partId')?.value">
-                    <span class="part-name-value">{{ line.get('partId')?.value?.name }}</span>
+                    <span class="part-name-value">{{ line.get('partId')?.value?.displayName || line.get('partId')?.value?.name }}</span>
                     <button
                       pButton
                       type="button"

@@ -8,7 +8,9 @@
         public string PartSku { get; set; } = string.Empty;
         public Guid? ProductVariantId { get; set; }
         public string? VariantName { get; set; }
+        public string? VariantCode { get; set; }
         public string? VariantSku { get; set; }
+        public string DisplayName { get; set; } = string.Empty;
         public Guid? UnitId { get; set; }
         public string UnitName { get; set; } = string.Empty;
         public string UnitSymbol { get; set; } = string.Empty;

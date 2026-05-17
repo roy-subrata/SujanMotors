@@ -102,7 +102,8 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
       search: req.search || '',
       pageNumber: req.pageNumber,
       pageSize: req.pageSize,
-      isActive: true
+      isActive: true,
+      flattenVariants: true
     }).pipe(
       map((res) => ({
         items: res.data ?? [],
@@ -356,9 +357,11 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
   // ===== PRODUCT SELECTION =====
   selectPart(event: any): void {
     const part = event as PublicPartResponse;
-    const existing = this.cartItems().find(item => item.partId === part.id);
+    const existing = this.cartItems().find(
+      item => item.partId === part.id && (item.productVariantId ?? null) === (part.variantId ?? null)
+    );
     if (existing) {
-      this.messageService.add({ severity: 'info', summary: 'Already Added', detail: 'This part is already in the cart' });
+      this.messageService.add({ severity: 'info', summary: 'Already Added', detail: 'This item is already in the cart' });
       return;
     }
 
@@ -369,36 +372,39 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
       });
     }
 
-    // Start with Part's fallback selling price, then update with FIFO lot price
     const newItem: QuickSaleLineItem = {
       partId: part.id,
-      partName: part.name,
+      productVariantId: part.variantId ?? undefined,
+      partName: part.displayName || part.name,
       partNumber: part.partNumber,
-      sku: part.sku,
+      sku: part.variantSKU || part.sku,
       unitId: part.unitId || undefined,
       quantity: 1,
-      unitPrice: part.sellingPrice,
+      unitPrice: part.effectiveSellingPrice ?? part.sellingPrice,
       discount: 0
     };
 
     this.cartItems.update(items => [...items, newItem]);
     this.selectedPartModel = null;
 
-    // Fetch FIFO lot price and update the cart item if a lot-level price exists
-    this.partService.getLotPrice(part.id).subscribe({
-      next: (priceInfo) => {
-        if (priceInfo.hasLotPrice && priceInfo.sellingPrice > 0) {
-          this.cartItems.update(items =>
-            items.map(item =>
-              item.partId === part.id ? { ...item, unitPrice: priceInfo.sellingPrice } : item
-            )
-          );
-        }
-      },
-      error: () => { /* fallback price already set — no action needed */ }
-    });
+    // For OVERRIDE variants their effectiveSellingPrice is already definitive.
+    // Only fetch FIFO lot price for base products (no variant) as lot prices are not variant-specific yet.
+    if (!part.variantId) {
+      this.partService.getLotPrice(part.id).subscribe({
+        next: (priceInfo) => {
+          if (priceInfo.hasLotPrice && priceInfo.sellingPrice > 0) {
+            this.cartItems.update(items =>
+              items.map(item =>
+                item.partId === part.id && !item.productVariantId ? { ...item, unitPrice: priceInfo.sellingPrice } : item
+              )
+            );
+          }
+        },
+        error: () => {}
+      });
+    }
 
-    this.messageService.add({ severity: 'success', summary: 'Part Added', detail: `${part.name} added to cart` });
+    this.messageService.add({ severity: 'success', summary: 'Part Added', detail: `${part.displayName || part.name} added to cart` });
   }
 
   // ===== CART ACTIONS =====

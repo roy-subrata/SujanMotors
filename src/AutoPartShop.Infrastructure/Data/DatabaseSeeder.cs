@@ -450,9 +450,9 @@ public class DatabaseSeeder
                 var vSku  = $"SKU-{sku}-{variantNum++}";
 
                 var variant = ProductVariant.Create(
-                    part.Id, $"{name} — {grade}", vCode, vSku,
-                    barcode: null, costPrice: variantCost, sellingPrice: variantSell,
-                    isActive: true);
+                    part.Id, $"{name} — {grade}", vCode,
+                    costPrice: variantCost, sellingPrice: variantSell,
+                    sku: vSku, isActive: true);
                 variant.CreatedBy = "System"; variant.ModifiedBy = "System";
                 context.ProductVariants.Add(variant);
                 await context.SaveChangesAsync();

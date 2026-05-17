@@ -96,6 +96,13 @@ namespace AutoPartsShop.Infrastructure.Data.Configurations
                 .HasForeignKey(li => li.PartId)
                 .OnDelete(DeleteBehavior.NoAction);
 
+            // Variant (optional — null for products without variants)
+            builder.HasOne(li => li.Variant)
+                .WithMany()
+                .HasForeignKey(li => li.VariantId)
+                .OnDelete(DeleteBehavior.NoAction)
+                .IsRequired(false);
+
             // Unit
             builder.HasOne(li => li.Unit)
                 .WithMany()

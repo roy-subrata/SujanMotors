@@ -9,6 +9,7 @@ import { environment } from 'src/environments/environment';
 export interface PartResponse {
     id: string;
     name: string;
+    displayName: string;
     description: string;
     richDescription?: string | null;
     partNumber: string;
@@ -27,6 +28,19 @@ export interface PartResponse {
     unitCode: string | null;
     costPrice: number;
     sellingPrice: number;
+    // Effective prices: OVERRIDE = variant price, ADDITIVE = base + delta
+    effectiveCostPrice: number;
+    effectiveSellingPrice: number;
+    // Variant fields (populated when flattenVariants = true)
+    hasVariants: boolean;
+    variantCount: number;
+    isVariant: boolean;
+    variantId?: string | null;
+    variantName?: string | null;
+    variantCode?: string | null;
+    variantSKU?: string | null;
+    variantBarcode?: string | null;
+    pricingMode?: string | null;
     minimumStock: number;
     isActive: boolean;
     // Universal product fields
@@ -138,6 +152,7 @@ export interface PartsQuery {
     pageSize: number;
     pageNumber: number;
     isActive?: boolean;
+    flattenVariants?: boolean;
 }
 
 @Injectable({

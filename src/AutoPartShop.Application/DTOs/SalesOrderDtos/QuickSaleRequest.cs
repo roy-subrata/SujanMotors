@@ -39,10 +39,11 @@ public class QuickSaleRequest
 public class QuickSaleLineItem
 {
     public Guid PartId { get; set; }
+    public Guid? ProductVariantId { get; set; }
     public string PartName { get; set; } = string.Empty;
     public string PartNumber { get; set; } = string.Empty;
     public string Sku { get; set; } = string.Empty;
-    public Guid? UnitId { get; set; }  // Optional: Unit in which to sell. If null, uses Part's base unit
+    public Guid? UnitId { get; set; }
     public int Quantity { get; set; }
     public decimal UnitPrice { get; set; }
     public decimal Discount { get; set; } = 0;

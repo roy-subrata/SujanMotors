@@ -81,7 +81,8 @@ export class PurchaseOrderFormComponent implements OnInit {
       this.partService.getParts({
         search: req.search,
         pageNumber: req.pageNumber,
-        pageSize: req.pageSize
+        pageSize: req.pageSize,
+        flattenVariants: true
       } as PartsQuery).pipe(
         map(res => ({
           items: res.data,
@@ -193,13 +194,22 @@ export class PurchaseOrderFormComponent implements OnInit {
 
                 po.lines?.forEach((line, index) => {
                     const baseUnitId = line.partBaseUnitId || line.unitId || null;
-                    const matchingPart = { id: line.partId, name: line.partName, unitId: baseUnitId };
+                    const matchingPart = {
+                        id: line.partId,
+                        name: line.partName,
+                        displayName: line.displayName || line.partName,
+                        unitId: baseUnitId,
+                        variantId: line.variantId || null,
+                        variantName: line.variantName || null,
+                        variantCode: line.variantCode || null
+                    };
                     const matchingUnit = line.unitId
                         ? ({ id: line.unitId, name: line.unitName, symbol: line.unitSymbol } as UnitResponse)
                         : null;
 
                     linesArray.push(this.fb.group({
                         partId: [matchingPart || line.partId, Validators.required],
+                        variantId: [line.variantId || null],
                         unitId: [matchingUnit],
                         quantity: [line.quantity, [Validators.required, Validators.min(1)]],
                         unitPrice: [line.unitPrice, [Validators.required, Validators.min(0)]]
@@ -368,6 +378,7 @@ export class PurchaseOrderFormComponent implements OnInit {
     private createPurchaseOrder(): void {
         const lineItems = this.linesArray.value.map((line: any) => ({
             partId: typeof line.partId === 'string' ? line.partId : line.partId.id,
+            variantId: line.variantId ?? null,
             unitId: typeof line.unitId === 'string' ? line.unitId : line.unitId?.id,
             quantity: line.quantity,
             unitPrice: line.unitPrice
@@ -413,6 +424,7 @@ export class PurchaseOrderFormComponent implements OnInit {
 
         const lineItems = this.linesArray.value.map((line: any) => ({
             partId: typeof line.partId === 'string' ? line.partId : line.partId.id,
+            variantId: line.variantId ?? null,
             unitId: typeof line.unitId === 'string' ? line.unitId : line.unitId?.id,
             quantity: line.quantity,
             unitPrice: line.unitPrice
@@ -668,36 +680,38 @@ export class PurchaseOrderFormComponent implements OnInit {
         const selectedPart = event;
         if (!selectedPart) return;
 
+        // Match by partId + variantId so the same part in different variants is a separate line
         const existingIndex = this.linesArray.controls.findIndex(line => {
-            const partId = line.get('partId')?.value;
-            const id = typeof partId === 'string' ? partId : partId?.id;
-            return id === selectedPart.id;
+            const partVal = line.get('partId')?.value;
+            const partId = typeof partVal === 'string' ? partVal : partVal?.id;
+            const variantId = line.get('variantId')?.value;
+            return partId === selectedPart.id && variantId === (selectedPart.variantId ?? null);
         });
 
         const selectedUnit = { id: selectedPart.unitId, name: selectedPart.unitName, symbol: selectedPart.unitSymbol || selectedPart.unitName } as UnitResponse;
+        const displayLabel = selectedPart.displayName || selectedPart.name;
 
         if (existingIndex >= 0) {
             const existingLine = this.linesArray.at(existingIndex);
             const currentQty = existingLine.get('quantity')?.value || 0;
-            existingLine.patchValue({
-                quantity: currentQty + 1
-            });
+            existingLine.patchValue({ quantity: currentQty + 1 });
             this.messageService.add({
                 severity: 'info',
                 summary: 'Updated',
-                detail: `Increased quantity for ${selectedPart.name}`
+                detail: `Increased quantity for ${displayLabel}`
             });
         } else {
             const newLine = this.fb.group({
                 partId: [selectedPart, Validators.required],
+                variantId: [selectedPart.variantId ?? null],
                 unitId: [selectedUnit],
                 quantity: [1, [Validators.required, Validators.min(1)]],
-                unitPrice: [selectedPart.sellingPrice || 0, [Validators.required, Validators.min(0)]]
+                // Use effectiveSellingPrice (accounts for OVERRIDE vs ADDITIVE pricing)
+                unitPrice: [selectedPart.effectiveSellingPrice ?? selectedPart.sellingPrice ?? 0, [Validators.required, Validators.min(0)]]
             });
             this.linesArray.push(newLine);
             const newLineIndex = this.linesArray.length - 1;
 
-            // Set current unit immediately so dropdown has options
             this.lineUnitsMap.set(newLineIndex, [selectedUnit]);
             this.lineUnitSelection.set(newLineIndex, selectedUnit.id || null);
 
@@ -707,16 +721,14 @@ export class PurchaseOrderFormComponent implements OnInit {
                         this.compatibleUnitsMap.set(selectedPart.id, compatibleUnits);
                         this.lineUnitsMap.set(newLineIndex, compatibleUnits);
                     },
-                    error: () => {
-                        // Keep the current unit if API fails
-                    }
+                    error: () => {}
                 });
             }
 
             this.messageService.add({
                 severity: 'success',
                 summary: 'Added',
-                detail: `Added ${selectedPart.name} to order`
+                detail: `Added ${displayLabel} to order`
             });
         }
 
@@ -864,7 +876,7 @@ export class PurchaseOrderFormComponent implements OnInit {
         const lineItemsHtml = (po.lines || []).map((line) => `
             <tr>
                 <td class="desc-cell">
-                    <div class="item-name">${line.partName || 'N/A'}</div>
+                    <div class="item-name">${line.displayName || line.partName || 'N/A'}</div>
                     <div class="item-desc">${line.unitName ? `Unit: ${line.unitName}` : '-'}${line.unitSymbol ? ` (${line.unitSymbol})` : ''}</div>
                 </td>
                 <td class="num-cell">${this.currencyService.formatCurrency(line.unitPrice, currencyCode)}</td>
