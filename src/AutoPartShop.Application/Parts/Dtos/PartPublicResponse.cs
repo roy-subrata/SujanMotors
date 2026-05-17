@@ -19,6 +19,18 @@ namespace AutoPartShop.Application.Parts.Dtos
         public Guid? UnitId { get; set; }
         public string? UnitName { get; set; }
         public decimal SellingPrice { get; set; }
+        public decimal EffectiveSellingPrice { get; set; }
+        // "Engine Oil" for base, "Engine Oil - 5W-30 1L" for variant
+        public string DisplayName { get; set; } = string.Empty;
+        // Variant fields — populated when flattenVariants = true
+        public bool HasVariants { get; set; } = false;
+        public bool IsVariant { get; set; } = false;
+        public Guid? VariantId { get; set; }
+        public string? VariantName { get; set; }
+        public string? VariantCode { get; set; }
+        public string? VariantSKU { get; set; }
+        public string? VariantBarcode { get; set; }
+        public string? PricingMode { get; set; }
         public int MinimumStock { get; set; }
         public bool IsActive { get; set; }
         // Warranty Information

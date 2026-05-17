@@ -19,7 +19,6 @@ public class EcommerceController(
     IInvoiceRepository _invoiceRepository,
     ICustomerPaymentRepository _customerPaymentRepository,
     ICodeGenerateService _codeGenerateService,
-    IPriceResolutionService _priceResolutionService,
     IProductVariantPriceHistoryRepository _priceHistoryRepository,
     ICurrentUserService _currentUserService,
     ILogger<EcommerceController> _logger) : ControllerBase
@@ -119,7 +118,7 @@ public class EcommerceController(
                         return BadRequest(new { message = $"Variant not found for '{part.Name}'." });
 
                     var canonical = await _priceHistoryRepository.ResolveActivePriceAsync(item.PartId, item.VariantId.Value, cancellationToken);
-                    serverPrice = canonical?.SellingPrice ?? variant.SellingPrice ?? part.SellingPrice;
+                    serverPrice = canonical?.SellingPrice ?? (variant.SellingPrice > 0 ? variant.SellingPrice : part.SellingPrice);
                 }
                 else
                 {
@@ -266,7 +265,7 @@ public class EcommerceController(
                     await _salesOrderRepository.AddAsync(salesOrder, cancellationToken);
 
                     foreach (var (pId, vId, qty, _) in lineRequests)
-                        await ConsumeStockForLineAsync(pId, vId, qty, cancellationToken);
+                        await ConsumeStockForLineAsync(pId, vId, qty, soNumber, warehouse!.Id, cancellationToken);
 
                     if (!string.IsNullOrWhiteSpace(request.SessionId))
                     {
@@ -573,7 +572,7 @@ public class EcommerceController(
                         return BadRequest(new { message = $"Variant not found for '{part.Name}'." });
 
                     var canonical = await _priceHistoryRepository.ResolveActivePriceAsync(item.PartId, item.VariantId.Value, cancellationToken);
-                    serverPrice = canonical?.SellingPrice ?? variant.SellingPrice ?? part.SellingPrice;
+                    serverPrice = canonical?.SellingPrice ?? (variant.SellingPrice > 0 ? variant.SellingPrice : part.SellingPrice);
                 }
                 else
                 {
@@ -721,7 +720,7 @@ public class EcommerceController(
                     await _salesOrderRepository.AddAsync(salesOrder, cancellationToken);
 
                     foreach (var (pId, vId, qty, _) in lineRequests)
-                        await ConsumeStockForLineAsync(pId, vId, qty, cancellationToken);
+                        await ConsumeStockForLineAsync(pId, vId, qty, soNumber, warehouse!.Id, cancellationToken);
 
                     if (!string.IsNullOrWhiteSpace(request.SessionId))
                     {
@@ -1170,8 +1169,12 @@ public class EcommerceController(
         await _dbContext.SaveChangesAsync(ct);
     }
 
-    private async Task ConsumeStockForLineAsync(Guid partId, Guid? variantId, int qty, CancellationToken ct)
+    private async Task ConsumeStockForLineAsync(
+        Guid partId, Guid? variantId, int qty,
+        string soNumber, Guid warehouseId, CancellationToken ct)
     {
+        var reference = $"Ecommerce Order {soNumber}";
+
         if (variantId.HasValue)
         {
             var levels = await _dbContext.VariantStockLevels
@@ -1180,7 +1183,6 @@ public class EcommerceController(
 
             if (levels.Any())
             {
-                // Release reservation then deduct OnHand
                 var toRelease = qty;
                 foreach (var v in levels.OrderByDescending(x => x.QuantityReserved))
                 {
@@ -1198,6 +1200,19 @@ public class EcommerceController(
                 if (toRemove > 0)
                     throw new InvalidOperationException(
                         $"Insufficient stock for variant {variantId}: ordered {qty}, only {qty - toRemove} available.");
+
+                // StockMovement audit via the part-level StockLevel for this warehouse
+                var partLevel = await _dbContext.StockLevels
+                    .FirstOrDefaultAsync(s => s.PartId == partId && s.WarehouseId == warehouseId && s.IsActive && !s.Isdeleted, ct);
+                if (partLevel != null)
+                {
+                    var movement = StockMovement.Create(partLevel.Id, "OUT", qty, reference, soNumber, quantityInBaseUnit: qty);
+                    movement.Approve("ECOMMERCE");
+                    movement.CreatedBy = "ECOMMERCE";
+                    movement.ModifiedBy = "ECOMMERCE";
+                    await _dbContext.StockMovements.AddAsync(movement, ct);
+                }
+
                 await _dbContext.SaveChangesAsync(ct);
                 return;
             }
@@ -1208,32 +1223,66 @@ public class EcommerceController(
             .Where(s => s.PartId == partId && s.IsActive && !s.Isdeleted)
             .ToListAsync(ct);
 
-        if (partLevels.Any())
-        {
-            var toRelease = qty;
-            foreach (var s in partLevels.OrderByDescending(x => x.QuantityReserved))
-            {
-                if (toRelease <= 0) break;
-                var r = Math.Min(s.QuantityReserved, toRelease);
-                if (r > 0) { s.ReleaseReservedStock(r); toRelease -= r; }
-            }
-            var toRemove = qty;
-            foreach (var s in partLevels.OrderByDescending(x => x.QuantityAvailable))
-            {
-                if (toRemove <= 0) break;
-                var r = Math.Min(s.QuantityAvailable, toRemove);
-                if (r > 0) { s.RemoveStock(r); toRemove -= r; }
-            }
-            if (toRemove > 0)
-                throw new InvalidOperationException(
-                    $"Insufficient stock for part {partId}: ordered {qty}, only {qty - toRemove} available.");
-            await _dbContext.SaveChangesAsync(ct);
-        }
-        else
-        {
+        if (!partLevels.Any())
             throw new InvalidOperationException(
                 $"No stock levels configured for part {partId}. Cannot fulfil this order line.");
+
+        var releaseRemaining = qty;
+        foreach (var s in partLevels.OrderByDescending(x => x.QuantityReserved))
+        {
+            if (releaseRemaining <= 0) break;
+            var r = Math.Min(s.QuantityReserved, releaseRemaining);
+            if (r > 0) { s.ReleaseReservedStock(r); releaseRemaining -= r; }
         }
+        var removeRemaining = qty;
+        foreach (var s in partLevels.OrderByDescending(x => x.QuantityAvailable))
+        {
+            if (removeRemaining <= 0) break;
+            var r = Math.Min(s.QuantityAvailable, removeRemaining);
+            if (r > 0) { s.RemoveStock(r); removeRemaining -= r; }
+        }
+        if (removeRemaining > 0)
+            throw new InvalidOperationException(
+                $"Insufficient stock for part {partId}: ordered {qty}, only {qty - removeRemaining} available.");
+
+        // StockMovement audit record
+        var primaryLevel = partLevels.FirstOrDefault(s => s.WarehouseId == warehouseId) ?? partLevels.First();
+        var stockMovement = StockMovement.Create(primaryLevel.Id, "OUT", qty, reference, soNumber, quantityInBaseUnit: qty);
+        stockMovement.Approve("ECOMMERCE");
+        stockMovement.CreatedBy = "ECOMMERCE";
+        stockMovement.ModifiedBy = "ECOMMERCE";
+        await _dbContext.StockMovements.AddAsync(stockMovement, ct);
+
+        // FIFO lot deduction
+        try
+        {
+            var lots = await _dbContext.StockLots
+                .Where(l => l.PartId == partId && l.WarehouseId == warehouseId
+                    && l.QuantityAvailableInBaseUnit > 0 && !l.Isdeleted)
+                .OrderBy(l => l.ReceivingDate)
+                .ToListAsync(ct);
+
+            var lotRemaining = qty;
+            foreach (var lot in lots)
+            {
+                if (lotRemaining <= 0) break;
+                var deduct = Math.Min(lot.QuantityAvailableInBaseUnit, lotRemaining);
+                lot.RemoveStock(deduct, deduct, reference);
+                lot.ModifiedBy = "ECOMMERCE";
+                var lotMovement = StockLotMovement.Create(lot.Id, deduct, "SALE",
+                    partId, "EcommerceOrder", DateTime.UtcNow, lot.CostPrice, reference);
+                lotMovement.CreatedBy = "ECOMMERCE";
+                lotMovement.ModifiedBy = "ECOMMERCE";
+                await _dbContext.StockLotMovements.AddAsync(lotMovement, ct);
+                lotRemaining -= deduct;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not deduct stock lots for ecommerce order {SONumber}, part {PartId}", soNumber, partId);
+        }
+
+        await _dbContext.SaveChangesAsync(ct);
     }
 
     private async Task<(Customer customer, bool isNew)> ResolveCustomerAsync(EcommerceCheckoutRequest request, CancellationToken ct)

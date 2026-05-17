@@ -180,7 +180,6 @@ builder.Services.AddScoped<IWarrantyService, WarrantyService>();
 
 // Register discount and pricing services
 builder.Services.AddScoped<IDiscountResolutionService, DiscountResolutionService>();
-builder.Services.AddScoped<IPriceResolutionService, PriceResolutionService>();
 
 // Configure JSON serialization to use camelCase
 builder.Services.AddControllers()

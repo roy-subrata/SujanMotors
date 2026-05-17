@@ -29,7 +29,6 @@ public class SalesOrderController : ControllerBase
     private readonly IWarrantyService _warrantyService;
     private readonly ICurrentUserService _currentUserService;
     private readonly IPricingValidationService _pricingValidationService;
-    private readonly IPriceResolutionService _priceResolutionService;
     private readonly ILogger<SalesOrderController> _logger;
     private readonly AutoPartDbContext _dbContext;
 
@@ -46,7 +45,6 @@ public class SalesOrderController : ControllerBase
         IWarrantyService warrantyService,
         ICurrentUserService currentUserService,
         IPricingValidationService pricingValidationService,
-        IPriceResolutionService priceResolutionService,
         ILogger<SalesOrderController> logger,
         AutoPartDbContext dbContext)
     {
@@ -62,7 +60,6 @@ public class SalesOrderController : ControllerBase
         _warrantyService = warrantyService;
         _currentUserService = currentUserService;
         _pricingValidationService = pricingValidationService;
-        _priceResolutionService = priceResolutionService;
         _logger = logger;
         _dbContext = dbContext;
     }
@@ -921,7 +918,11 @@ public class SalesOrderController : ControllerBase
                 PartSku = l.Part?.SKU ?? string.Empty,
                 ProductVariantId = l.ProductVariantId,
                 VariantName = l.ProductVariant?.Name,
+                VariantCode = l.ProductVariant?.Code,
                 VariantSku = l.ProductVariant?.SKU,
+                DisplayName = l.ProductVariant != null
+                    ? (l.Part != null ? l.Part.Name + " - " + l.ProductVariant.Name : l.ProductVariant.Name)
+                    : (l.Part?.Name ?? string.Empty),
                 UnitId = l.UnitId,
                 UnitName = l.Unit?.Name ?? string.Empty,
                 UnitSymbol = l.Unit?.Symbol ?? string.Empty,
@@ -961,22 +962,13 @@ public class SalesOrderController : ControllerBase
                 throw new ArgumentException($"Variant {lineRequest.ProductVariantId} not found for part '{part.Name}'");
         }
 
-        // Price resolution: variant price → part-level price history → error
-        var unitPrice = lineRequest.UnitPrice;
+        // Price resolution: manual entry → variant price → product base price → error
+        var unitPrice = lineRequest.UnitPrice > 0
+            ? lineRequest.UnitPrice
+            : (variant?.SellingPrice > 0 ? variant.SellingPrice : part.SellingPrice);
+
         if (unitPrice <= 0)
-        {
-            if (variant?.SellingPrice > 0)
-            {
-                unitPrice = variant.SellingPrice!.Value;
-            }
-            else
-            {
-                var resolved = await _priceResolutionService.ResolveAsync(lineRequest.PartId, null, cancellationToken);
-                if (resolved == null)
-                    throw new ArgumentException($"No selling price set for '{part.Name}'. Please set a price in Price Management before creating an order.");
-                unitPrice = resolved.SellingPrice;
-            }
-        }
+            throw new ArgumentException($"No selling price set for '{part.Name}'. Please set a selling price on the product or variant.");
 
         var (quantityInBaseUnit, unitId, baseUnitPrice) = await ResolveUnitPricingAsync(
             part,
@@ -1181,15 +1173,9 @@ public class SalesOrderController : ControllerBase
                 if (part == null)
                     return BadRequest(new { message = $"Part with ID {item.PartId} not found" });
 
-                // Resolve price from ProductVariantPriceHistory when not provided by frontend
-                var itemUnitPrice = item.UnitPrice;
+                var itemUnitPrice = item.UnitPrice > 0 ? item.UnitPrice : part.SellingPrice;
                 if (itemUnitPrice <= 0)
-                {
-                    var resolved = await _priceResolutionService.ResolveAsync(item.PartId, null, cancellationToken);
-                    if (resolved == null)
-                        return BadRequest(new { message = $"No selling price set for '{part.Name}'. Please set a price in Price Management." });
-                    itemUnitPrice = resolved.SellingPrice;
-                }
+                    return BadRequest(new { message = $"No selling price set for '{part.Name}'. Please set a selling price on the product." });
 
                 var (quantityInBaseUnit, unitId, baseUnitPrice) = await ResolveUnitPricingAsync(
                     part,
@@ -1217,7 +1203,8 @@ public class SalesOrderController : ControllerBase
                     unitId: unitId,
                     quantityInBaseUnit: quantityInBaseUnit,
                     discount: discountPerUnit,
-                    description: item.PartName
+                    description: item.PartName,
+                    productVariantId: item.ProductVariantId
                 );
                 salesOrder.LineItems.Add(salesOrderLine);
             }

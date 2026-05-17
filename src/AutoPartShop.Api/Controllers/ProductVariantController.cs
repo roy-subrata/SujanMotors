@@ -82,8 +82,10 @@ public class ProductVariantController : ControllerBase
                 return Conflict(new { message = $"Variant code '{req.Code}' already exists for this product" });
 
             var variant = ProductVariant.Create(
-                partId, req.Name, req.Code, req.SKU?.Trim(), req.Barcode?.Trim(),
-                req.CostPrice, req.SellingPrice, req.Currency ?? "BDT", req.IsActive,
+                partId, req.Name, req.Code,
+                req.CostPrice, req.SellingPrice,
+                req.SKU?.Trim(), req.Barcode?.Trim(),
+                req.Currency ?? "BDT", req.IsActive,
                 req.WeightKg, req.WidthCm, req.HeightCm, req.DepthCm);
 
             var user = _currentUserService.GetCurrentUsername();
@@ -93,9 +95,8 @@ public class ProductVariantController : ControllerBase
             _db.ProductVariants.Add(variant);
             await _db.SaveChangesAsync(ct); // Save to get the variant Id
 
-            // Auto-record price history when variant is created with a price
             if (req.SellingPrice > 0)
-                await SyncVariantPriceHistory(partId, variant.Id, req.SellingPrice.Value, req.Currency ?? "BDT", user, ct);
+                await SyncVariantPriceHistory(partId, variant.Id, req.SellingPrice, req.Currency ?? "BDT", user, ct);
 
             // Attach attribute values
             await SaveAttributeValues(variant.Id, req.AttributeValues, ct);
@@ -138,8 +139,10 @@ public class ProductVariantController : ControllerBase
             var oldSellingPrice = variant.SellingPrice;
             var user = _currentUserService.GetCurrentUsername();
 
-            variant.Update(req.Name, req.Code, req.SKU?.Trim(), req.Barcode?.Trim(),
-                req.CostPrice, req.SellingPrice, req.Currency ?? "BDT", req.IsActive,
+            variant.Update(req.Name, req.Code,
+                req.CostPrice, req.SellingPrice,
+                req.SKU?.Trim(), req.Barcode?.Trim(),
+                req.Currency ?? "BDT", req.IsActive,
                 req.WeightKg, req.WidthCm, req.HeightCm, req.DepthCm);
             variant.ModifiedBy = user;
 
@@ -147,9 +150,8 @@ public class ProductVariantController : ControllerBase
             _db.VariantAttributeValues.RemoveRange(variant.Attributes);
             await _db.SaveChangesAsync(ct);
 
-            // Auto-record price history when variant price changes
             if (req.SellingPrice > 0 && req.SellingPrice != oldSellingPrice)
-                await SyncVariantPriceHistory(partId, variant.Id, req.SellingPrice.Value, req.Currency ?? "BDT", user, ct);
+                await SyncVariantPriceHistory(partId, variant.Id, req.SellingPrice, req.Currency ?? "BDT", user, ct);
 
             await SaveAttributeValues(variant.Id, req.AttributeValues, ct);
 
@@ -226,6 +228,7 @@ public class ProductVariantController : ControllerBase
         v.Code,
         v.SKU,
         v.Barcode,
+        v.PricingMode,
         v.CostPrice,
         v.SellingPrice,
         v.Currency,
@@ -258,8 +261,8 @@ public class CreateVariantRequest
     public string Code { get; set; } = string.Empty;
     public string? SKU { get; set; }
     public string? Barcode { get; set; }
-    public decimal? CostPrice { get; set; }
-    public decimal? SellingPrice { get; set; }
+    public decimal CostPrice { get; set; }
+    public decimal SellingPrice { get; set; }
     public string? Currency { get; set; } = "BDT";
     public bool IsActive { get; set; } = true;
     public decimal? WeightKg { get; set; }

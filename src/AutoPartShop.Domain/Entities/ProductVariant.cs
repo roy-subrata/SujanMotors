@@ -1,29 +1,28 @@
 namespace AutoPartShop.Domain.Entities;
 
-/// <summary>
-/// Sellable variant of a part for e-commerce.
-/// </summary>
 public class ProductVariant : AuditableEntity
 {
     public Guid PartId { get; private set; }
     public string Name { get; private set; } = string.Empty;
     public string Code { get; private set; } = string.Empty;
     public string? SKU { get; private set; }
-    public string? Barcode { get; private set; }      // Variant-level UPC/EAN (e.g. size S vs size L)
-    public decimal? CostPrice { get; private set; }
-    public decimal? SellingPrice { get; private set; }
+    public string? Barcode { get; private set; }
+
+    public string PricingMode { get; private set; } = "OVERRIDE";
+
+    public decimal CostPrice { get; private set; }
+    public decimal SellingPrice { get; private set; }
     public string Currency { get; private set; } = "BDT";
     public bool IsActive { get; private set; } = true;
-    // Variant-level physical specs (override Part defaults when variants differ — e.g. clothing sizes)
+
     public decimal? WeightKg { get; private set; }
     public decimal? WidthCm { get; private set; }
     public decimal? HeightCm { get; private set; }
     public decimal? DepthCm { get; private set; }
 
-    // Variant-level warranty override — when set, takes priority over the Part's warranty policy
-    public bool? HasWarrantyOverride { get; private set; }        // null = inherit from Part
+    public bool? HasWarrantyOverride { get; private set; }
     public int? WarrantyPeriodMonthsOverride { get; private set; }
-    public string? WarrantyTypeOverride { get; private set; }     // MANUFACTURER | SELLER | EXTENDED
+    public string? WarrantyTypeOverride { get; private set; }
 
     public Part? Part { get; set; }
     public ICollection<VariantAttributeValue> Attributes { get; set; } = new List<VariantAttributeValue>();
@@ -36,10 +35,10 @@ public class ProductVariant : AuditableEntity
         Guid partId,
         string name,
         string code,
+        decimal costPrice,
+        decimal sellingPrice,
         string? sku = null,
         string? barcode = null,
-        decimal? costPrice = null,
-        decimal? sellingPrice = null,
         string currency = "BDT",
         bool isActive = true,
         decimal? weightKg = null,
@@ -49,17 +48,13 @@ public class ProductVariant : AuditableEntity
     {
         if (partId == Guid.Empty)
             throw new ArgumentException("PartId cannot be empty", nameof(partId));
-
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Name cannot be empty", nameof(name));
-
         if (string.IsNullOrWhiteSpace(code))
             throw new ArgumentException("Code cannot be empty", nameof(code));
-
-        if (costPrice.HasValue && costPrice.Value < 0)
+        if (costPrice < 0)
             throw new ArgumentException("Cost price cannot be negative", nameof(costPrice));
-
-        if (sellingPrice.HasValue && sellingPrice.Value < 0)
+        if (sellingPrice < 0)
             throw new ArgumentException("Selling price cannot be negative", nameof(sellingPrice));
 
         return new ProductVariant
@@ -69,6 +64,7 @@ public class ProductVariant : AuditableEntity
             Code = code.Trim().ToUpperInvariant(),
             SKU = sku?.Trim().ToUpperInvariant(),
             Barcode = barcode?.Trim(),
+            PricingMode = "OVERRIDE",
             CostPrice = costPrice,
             SellingPrice = sellingPrice,
             Currency = string.IsNullOrWhiteSpace(currency) ? "BDT" : currency.Trim().ToUpperInvariant(),
@@ -80,16 +76,15 @@ public class ProductVariant : AuditableEntity
         };
     }
 
-
     public void Update(
         string name,
         string code,
-        string? sku,
-        string? barcode,
-        decimal? costPrice,
-        decimal? sellingPrice,
-        string currency,
-        bool isActive,
+        decimal costPrice,
+        decimal sellingPrice,
+        string? sku = null,
+        string? barcode = null,
+        string currency = "BDT",
+        bool isActive = true,
         decimal? weightKg = null,
         decimal? widthCm = null,
         decimal? heightCm = null,
@@ -97,14 +92,11 @@ public class ProductVariant : AuditableEntity
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Name cannot be empty", nameof(name));
-
         if (string.IsNullOrWhiteSpace(code))
             throw new ArgumentException("Code cannot be empty", nameof(code));
-
-        if (costPrice.HasValue && costPrice.Value < 0)
+        if (costPrice < 0)
             throw new ArgumentException("Cost price cannot be negative", nameof(costPrice));
-
-        if (sellingPrice.HasValue && sellingPrice.Value < 0)
+        if (sellingPrice < 0)
             throw new ArgumentException("Selling price cannot be negative", nameof(sellingPrice));
 
         Name = name.Trim();
@@ -121,9 +113,9 @@ public class ProductVariant : AuditableEntity
         DepthCm = depthCm;
     }
 
-    public void UpdateSellingPrice(decimal? newPrice, string currency = "BDT")
+    public void UpdateSellingPrice(decimal newPrice, string currency = "BDT")
     {
-        if (newPrice.HasValue && newPrice.Value < 0)
+        if (newPrice < 0)
             throw new ArgumentException("Selling price cannot be negative", nameof(newPrice));
         SellingPrice = newPrice;
         if (!string.IsNullOrWhiteSpace(currency))
@@ -161,12 +153,10 @@ public class ProductVariant : AuditableEntity
         WarrantyTypeOverride = null;
     }
 
-    // Returns effective warranty settings: variant override first, then falls back to Part
     public (bool hasWarranty, int? periodMonths, string? warrantyType) ResolveWarranty(Part part)
     {
         if (HasWarrantyOverride.HasValue)
             return (HasWarrantyOverride.Value, WarrantyPeriodMonthsOverride, WarrantyTypeOverride);
-
         return (part.HasWarranty, part.WarrantyPeriodMonths, part.WarrantyType);
     }
 }

@@ -139,7 +139,7 @@ public class CatalogReadRepository(AutoPartDbContext _db) : ICatalogReadReposito
                 && v.Part != null
                 && (v.Part.CatalogEntry == null || v.Part.CatalogEntry.IsPublished)
                 && categoryIds.Contains(v.Part.CategoryId))
-            .Select(v => v.SellingPrice ?? v.Part!.SellingPrice)
+            .Select(v => v.SellingPrice > 0 ? v.SellingPrice : v.Part!.SellingPrice)
             .ToListAsync(cancellationToken);
 
         var partPrices = await _db.Parts
@@ -207,10 +207,10 @@ public class CatalogReadRepository(AutoPartDbContext _db) : ICatalogReadReposito
                 EF.Functions.Like(v.Name.ToLower(), $"%{term}%"));
 
         if (request.PriceMin.HasValue)
-            variants = variants.Where(v => (v.SellingPrice ?? v.Part!.SellingPrice) >= request.PriceMin.Value);
+            variants = variants.Where(v => (v.SellingPrice > 0 ? v.SellingPrice : v.Part!.SellingPrice) >= request.PriceMin.Value);
 
         if (request.PriceMax.HasValue)
-            variants = variants.Where(v => (v.SellingPrice ?? v.Part!.SellingPrice) <= request.PriceMax.Value);
+            variants = variants.Where(v => (v.SellingPrice > 0 ? v.SellingPrice : v.Part!.SellingPrice) <= request.PriceMax.Value);
 
         if (request.AttributeFilters != null && request.AttributeFilters.Any())
         {
@@ -300,11 +300,11 @@ public class CatalogReadRepository(AutoPartDbContext _db) : ICatalogReadReposito
                 var part = g.First().Part!;
                 // Prefer an in-stock variant with the lowest price; fall back to any variant
                 var rep = g.Where(v => variantStockLookup.Contains(v.Id))
-                            .OrderBy(v => v.SellingPrice ?? part.SellingPrice)
+                            .OrderBy(v => v.SellingPrice > 0 ? v.SellingPrice : part.SellingPrice)
                             .FirstOrDefault()
-                        ?? g.OrderBy(v => v.SellingPrice ?? part.SellingPrice).First();
+                        ?? g.OrderBy(v => v.PricingMode == "ADDITIVE" ? part.SellingPrice + v.SellingPrice : v.SellingPrice).First();
 
-                var basePrice = rep.SellingPrice ?? part.SellingPrice;
+                var basePrice = rep.SellingPrice > 0 ? rep.SellingPrice : part.SellingPrice;
                 var item = new CatalogProductListItem
                 {
                     PartId  = part.Id,
@@ -382,7 +382,7 @@ public class CatalogReadRepository(AutoPartDbContext _db) : ICatalogReadReposito
 
         var variantDtos = variants.Select(v =>
         {
-            var basePrice = v.SellingPrice ?? part.SellingPrice;
+            var basePrice = v.SellingPrice > 0 ? v.SellingPrice : part.SellingPrice;
             var variantDiscount = discounts.FirstOrDefault(d => d.ProductVariantId == v.Id)
                 ?? discounts.FirstOrDefault(d => d.PartId == partId && d.ProductVariantId == null)
                 ?? discounts.FirstOrDefault(d => d.PartId == null);

@@ -40,6 +40,20 @@
         public decimal? DepthCm { get; set; }
         public string? TaxCode { get; set; }
 
+        // Variant fields — populated when FlattenVariants=true
+        public bool HasVariants { get; set; } = false;
+        public int VariantCount { get; set; } = 0;
+        public bool IsVariant { get; set; } = false;
+        public Guid? VariantId { get; set; }
+        public string? VariantName { get; set; }
+        public string? VariantCode { get; set; }
+        public string? VariantSKU { get; set; }
+        public string? VariantBarcode { get; set; }
+        public decimal EffectiveCostPrice { get; set; }
+        public decimal EffectiveSellingPrice { get; set; }
+        // "Engine Oil" for base, "Engine Oil - 5W-30 1L" for variant
+        public string DisplayName { get; set; } = string.Empty;
+
         public string CreatedBy { get; set; } = string.Empty;
         public string ModifiedBy { get; set; } = string.Empty;
     }

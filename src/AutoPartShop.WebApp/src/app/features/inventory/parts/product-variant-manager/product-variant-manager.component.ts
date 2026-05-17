@@ -216,8 +216,8 @@ export class ProductVariantManagerComponent implements OnInit, OnChanges {
       code: v.code.trim(),
       sku: v.sku?.trim() || null,
       barcode: v.barcode?.trim() || null,
-      costPrice: null,
-      sellingPrice: v.sellingPrice ?? null,
+      costPrice: v.costPrice ?? 0,
+      sellingPrice: v.sellingPrice ?? 0,
       currency: v.currency || 'BDT',
       isActive: v.isActive,
       attributeValues
