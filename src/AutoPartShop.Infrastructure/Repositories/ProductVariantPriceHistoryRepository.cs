@@ -118,7 +118,7 @@ public class ProductVariantPriceHistoryRepository : IProductVariantPriceHistoryR
             ? await GetActiveVariantPriceAsync(newPrice.PartId, newPrice.ProductVariantId.Value, cancellationToken)
             : await GetActiveProductPriceAsync(newPrice.PartId, cancellationToken);
 
-        if (current != null)
+        if (current != null && !current.EndDate.HasValue)
         {
             var closeDate = newPrice.StartDate.AddDays(-1);
             if (closeDate < current.StartDate) closeDate = current.StartDate;
