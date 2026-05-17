@@ -31,7 +31,7 @@ namespace AutoPartShop.Infrastructure.Repositories
             }
             else
             {
-                suppliers = suppliers.OrderBy(x => x.CreatedDate);
+                suppliers = suppliers.OrderByDescending(x => x.CreatedDate);
             }
 
             var totalCount = await suppliers.CountAsync(cancellationToken);

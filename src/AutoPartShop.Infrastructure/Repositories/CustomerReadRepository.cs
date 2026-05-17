@@ -35,7 +35,7 @@ public class CustomerReadRepository(AutoPartDbContext _dbContext) : ICustomerRea
         }
         else
         {
-            customers = customers.OrderBy(x => x.CreatedDate);
+            customers = customers.OrderByDescending(x => x.CreatedDate);
         }
 
         var totalCount = await customers.CountAsync(cancellationToken);

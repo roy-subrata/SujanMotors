@@ -31,7 +31,7 @@ public class PartReadRepository(AutoPartDbContext _db) : IPartReadRepository
         }
         else
         {
-            parts = parts.OrderBy(x => x.CreatedDate);
+            parts = parts.OrderByDescending(x => x.CreatedDate);
         }
 
         var totalCount = await parts.CountAsync(cancellationToken);
@@ -250,7 +250,7 @@ public class PartReadRepository(AutoPartDbContext _db) : IPartReadRepository
         }
         else
         {
-            parts = parts.OrderBy(x => x.CreatedDate);
+            parts = parts.OrderByDescending(x => x.CreatedDate);
         }
 
         var totalCount = await parts.CountAsync(cancellationToken);

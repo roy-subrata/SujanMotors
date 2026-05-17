@@ -65,10 +65,7 @@ public class StockLevelReadRepository : IStockLevelReadRepository
                 (x.Warehouse != null && EF.Functions.Like(x.Warehouse.Code.ToLower(), $"%{term}%")));
         }
 
-        // Default sorting: Part Name, then Warehouse Name
-        levels = levels
-            .OrderBy(x => x.Part != null ? x.Part.Name : string.Empty)
-            .ThenBy(x => x.Warehouse != null ? x.Warehouse.Name : string.Empty);
+        levels = levels.OrderByDescending(x => x.CreatedDate);
 
         var totalCount = await levels.CountAsync(cancellationToken);
         var items = await levels

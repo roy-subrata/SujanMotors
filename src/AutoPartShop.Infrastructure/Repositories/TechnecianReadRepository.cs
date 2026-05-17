@@ -31,7 +31,7 @@ namespace AutoPartShop.Infrastructure.Repositories
             }
             else
             {
-                technicians = technicians.OrderBy(x => x.CreatedDate);
+                technicians = technicians.OrderByDescending(x => x.CreatedDate);
             }
 
             var totalCount = await technicians.CountAsync(cancellationToken);

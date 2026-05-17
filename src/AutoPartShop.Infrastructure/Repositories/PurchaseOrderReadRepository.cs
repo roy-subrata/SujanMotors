@@ -46,7 +46,7 @@ public class PurchaseOrderReadRepository(AutoPartDbContext _dbContext) : IPurcha
         }
         else
         {
-            purchaseOrders = purchaseOrders.OrderBy(x => x.CreatedDate);
+            purchaseOrders = purchaseOrders.OrderByDescending(x => x.CreatedDate);
         }
 
         var totalCount = await purchaseOrders.CountAsync(cancellationToken);
