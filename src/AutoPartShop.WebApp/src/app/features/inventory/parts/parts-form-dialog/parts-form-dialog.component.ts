@@ -230,9 +230,10 @@ export class PartsFormDialogComponent implements OnInit {
         updateValidators();
     }
 
-    /**
-     * Populate update form with selected part data
-     */
+    get isVariantSelected(): boolean {
+        return !!this.selectedPart?.isVariant;
+    }
+
     onUpdateDialogShow(): void {
         if (this.selectedPart) {
             // Set the selected categories, units and brands for display
@@ -250,8 +251,8 @@ export class PartsFormDialogComponent implements OnInit {
                 brandId: this.selectedPart.brandId,
                 baseUnitId: this.selectedPart.baseUnitId,
                 unitId: this.selectedPart.unitId,
-                costPrice: this.selectedPart.costPrice,
-                sellingPrice: this.selectedPart.sellingPrice,
+                costPrice: this.selectedPart.effectiveCostPrice ?? this.selectedPart.costPrice,
+                sellingPrice: this.selectedPart.effectiveSellingPrice ?? this.selectedPart.sellingPrice,
                 minimumStock: this.selectedPart.minimumStock,
                 isActive: this.selectedPart.isActive,
                 hasWarranty: this.selectedPart.hasWarranty,

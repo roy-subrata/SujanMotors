@@ -26,11 +26,7 @@
       <th style="width: 8%">Brand</th>
       <th style="width: 7%">Unit</th>
       <th style="width: 8%">Cost Price</th>
-      <th style="width: 10%">
-        <div class="price-col-header">
-          <i class="pi pi-tag"></i> Active Price
-        </div>
-      </th>
+      <th style="width: 10%">Selling Price</th>
       <th style="width: 5%">Margin</th>
       <th style="width: 5%">Status</th>
       <th style="width: 8%">Actions</th>
@@ -66,37 +62,21 @@
         </span>
       </td>
 
-      <!-- Active Price column (from ProductVariantPriceHistory) -->
       <td class="price-cell">
-        <!-- Loading -->
-        <span *ngIf="isPriceLoading(part.id)" class="price-loading">
-          <i class="pi pi-spin pi-spinner"></i>
+        <span *ngIf="part.effectiveSellingPrice > 0" class="price-value-tag">
+          {{ part.effectiveSellingPrice | number:'1.2-2' }} {{ part.currency }}
+          <span *ngIf="part.isVariant" class="price-source-dot" pTooltip="Variant price"></span>
         </span>
-        <!-- Price set -->
-        <span *ngIf="!isPriceLoading(part.id) && !isPriceNotSet(part.id)" class="price-value-tag">
-          {{ formatActivePrice(part.id) }}
-          <span class="price-source-dot" [attr.data-source]="getActivePrice(part.id)?.source"
-            pTooltip="{{ getActivePrice(part.id)?.source === 'VARIANT_HISTORY' ? 'Variant price' : 'Product price' }}">
-          </span>
-        </span>
-        <!-- Not set -->
-        <button *ngIf="!isPriceLoading(part.id) && isPriceNotSet(part.id)"
-          pButton type="button"
-          icon="pi pi-plus"
-          label="Set Price"
-          class="p-button-xs p-button-outlined p-button-warning price-not-set-btn"
-          pTooltip="No price set — click to set"
-          (click)="openSetPriceDialog(part)">
-        </button>
+        <span *ngIf="part.effectiveSellingPrice === 0" class="text-gray-400">—</span>
       </td>
 
       <td class="text-center">
         <ng-container *ngIf="priceCodeService.showActualPrice() || !priceCodeService.isConfigured()">
-          <span *ngIf="getActivePrice(part.id) as ap" class="margin-badge"
-            [ngClass]="ap.sellingPrice >= part.costPrice ? 'positive' : 'negative'">
-            {{ calculateMargin(part.costPrice, ap.sellingPrice) }}
+          <span *ngIf="part.effectiveSellingPrice > 0" class="margin-badge"
+            [ngClass]="part.effectiveSellingPrice >= part.costPrice ? 'positive' : 'negative'">
+            {{ calculateMargin(part.effectiveCostPrice, part.effectiveSellingPrice) }}
           </span>
-          <span *ngIf="isPriceNotSet(part.id)" class="text-gray-400">—</span>
+          <span *ngIf="part.effectiveSellingPrice === 0" class="text-gray-400">—</span>
         </ng-container>
         <span *ngIf="!priceCodeService.showActualPrice() && priceCodeService.isConfigured()" class="text-gray-400">—</span>
       </td>
@@ -136,74 +116,3 @@
 <!-- Confirm Dialog -->
 <p-confirmDialog></p-confirmDialog>
 
-<!-- ── Set Price Dialog ─────────────────────────────────────────────────── -->
-<p-dialog
-  [(visible)]="showSetPriceDialog"
-  [header]="'Set Price — ' + (selectedPart?.name || '')"
-  [modal]="true"
-  [style]="{width: '420px', maxWidth: '95vw'}"
-  [draggable]="false">
-
-  <form [formGroup]="priceForm" class="spf-form">
-
-    <div class="spf-group">
-      <label class="spf-label"><span class="req">*</span> Selling Price</label>
-      <p-inputNumber
-        formControlName="sellingPrice"
-        [min]="0.01"
-        [minFractionDigits]="2"
-        [maxFractionDigits]="2"
-        placeholder="0.00"
-        styleClass="w-full"
-        inputStyleClass="spf-input">
-      </p-inputNumber>
-      <small *ngIf="priceForm.get('sellingPrice')?.invalid && priceForm.get('sellingPrice')?.touched" class="spf-error">
-        Valid price is required
-      </small>
-    </div>
-
-    <div class="spf-row">
-      <div class="spf-group">
-        <label class="spf-label"><span class="req">*</span> Effective From</label>
-        <p-datepicker
-          formControlName="startDate"
-          [showIcon]="true"
-          dateFormat="dd M yy"
-          placeholder="Select date"
-          appendTo="body"
-          inputStyleClass="spf-input">
-        </p-datepicker>
-        <small *ngIf="priceForm.get('startDate')?.invalid && priceForm.get('startDate')?.touched" class="spf-error">
-          Date is required
-        </small>
-      </div>
-      <div class="spf-group">
-        <label class="spf-label">Currency</label>
-        <input type="text" pInputText formControlName="currency" class="spf-input" placeholder="BDT" />
-      </div>
-    </div>
-
-    <div class="spf-group">
-      <label class="spf-label">Reason <span class="spf-hint">(optional)</span></label>
-      <input type="text" pInputText formControlName="reason"
-        placeholder="e.g. Market adjustment" class="spf-input" />
-    </div>
-
-    <div class="spf-note">
-      <i class="pi pi-info-circle"></i>
-      Previous active price will be automatically closed.
-    </div>
-
-  </form>
-
-  <ng-template pTemplate="footer">
-    <button pButton type="button" label="Cancel" icon="pi pi-times"
-      class="p-button-text p-button-secondary"
-      (click)="showSetPriceDialog.set(false)"></button>
-    <button pButton type="button" label="Save Price" icon="pi pi-check"
-      class="p-button-success"
-      [loading]="savingPrice()"
-      [disabled]="savingPrice()"
-      (click)="onSavePrice()"></button>
-  </ng-template>
-</p-dialog>

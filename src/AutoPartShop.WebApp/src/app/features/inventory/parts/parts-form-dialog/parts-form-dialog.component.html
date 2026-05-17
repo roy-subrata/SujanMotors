@@ -509,8 +509,14 @@
       </p-autocomplete>
     </div>
 
+    <!-- Variant pricing note -->
+    <div class="form-group variant-price-note" *ngIf="isVariantSelected">
+      <i class="pi pi-info-circle"></i>
+      This product has variants. Prices are managed per variant — open the product and go to the <strong>Variants</strong> tab to update cost and selling price.
+    </div>
+
     <!-- Cost Price Field -->
-    <div class="form-group">
+    <div class="form-group" *ngIf="!isVariantSelected">
       <label for="update-cost-price" class="form-label">
         <span class="required">*</span> Cost Price
       </label>
@@ -532,7 +538,7 @@
     </div>
 
     <!-- Selling Price Field -->
-    <div class="form-group">
+    <div class="form-group" *ngIf="!isVariantSelected">
       <label for="update-selling-price" class="form-label">
         <span class="required">*</span> Selling Price
       </label>
