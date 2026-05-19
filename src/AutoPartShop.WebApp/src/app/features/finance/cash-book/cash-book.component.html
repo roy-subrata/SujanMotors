@@ -1,0 +1,324 @@
+<p-toast position="top-right"></p-toast>
+
+<div class="page-wrapper">
+
+  <!-- ═══════════════════════════════ HEADER ═══════════════════════════════ -->
+  <header class="page-header">
+    <div class="header-content">
+
+      <!-- Left: title + date heading -->
+      <div class="header-left">
+        <div class="header-title-group">
+          <h1 class="page-title">
+            <i class="pi pi-book"></i>
+            Cash Book
+          </h1>
+          <span class="page-subtitle">{{ headingDate() }}</span>
+        </div>
+      </div>
+
+      <!-- Right: stats + actions -->
+      <div class="header-right">
+        <div class="header-stat in" *ngIf="book()">
+          <span class="stat-label">In</span>
+          <span class="stat-value">{{ formatCurrency(book()!.totalCashIn) }}</span>
+        </div>
+        <div class="header-stat out" *ngIf="book()">
+          <span class="stat-label">Out</span>
+          <span class="stat-value">{{ formatCurrency(book()!.totalCashOut) }}</span>
+        </div>
+        <div class="header-stat net" *ngIf="book()" [class.positive]="book()!.netCash >= 0" [class.negative]="book()!.netCash < 0">
+          <span class="stat-label">Net</span>
+          <span class="stat-value">{{ book()!.netCash >= 0 ? '+' : '' }}{{ formatCurrency(book()!.netCash) }}</span>
+        </div>
+        <div class="header-actions">
+          <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="load()">
+            <i class="pi pi-refresh" [class.pi-spin]="loading()"></i>
+          </button>
+          <div class="view-toggle">
+            <button class="toggle-btn" [class.active]="viewMode() === 'ledger'" (click)="viewMode.set('ledger')" pTooltip="Ledger view">
+              <i class="pi pi-list"></i>
+            </button>
+            <button class="toggle-btn" [class.active]="viewMode() === 'split'" (click)="viewMode.set('split')" pTooltip="Split view">
+              <i class="pi pi-table"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════ CONTROLS ═══════════════════════════════ -->
+  <section class="controls-bar">
+
+    <!-- Preset chips -->
+    <div class="preset-group">
+      <button class="preset-chip" [class.active]="preset() === 'today'"      (click)="applyPreset('today')">Today</button>
+      <button class="preset-chip" [class.active]="preset() === 'yesterday'"  (click)="applyPreset('yesterday')">Yesterday</button>
+      <button class="preset-chip" [class.active]="preset() === 'this_week'"  (click)="applyPreset('this_week')">This Week</button>
+      <button class="preset-chip" [class.active]="preset() === 'this_month'" (click)="applyPreset('this_month')">This Month</button>
+    </div>
+
+    <!-- Custom date range -->
+    <div class="date-range-group">
+      <button class="nav-btn" (click)="prevDay()" pTooltip="Previous day" tooltipPosition="top">
+        <i class="pi pi-chevron-left"></i>
+      </button>
+      <p-datepicker
+        [(ngModel)]="dateFrom"
+        (ngModelChange)="onDateChange()"
+        [maxDate]="maxDate"
+        [showIcon]="true"
+        dateFormat="dd M yy"
+        appendTo="body"
+        styleClass="date-input">
+      </p-datepicker>
+      <span class="date-sep" *ngIf="!isSingleDay()">to</span>
+      <p-datepicker
+        *ngIf="!isSingleDay()"
+        [(ngModel)]="dateTo"
+        (ngModelChange)="onDateChange()"
+        [minDate]="dateFrom"
+        [maxDate]="maxDate"
+        [showIcon]="true"
+        dateFormat="dd M yy"
+        appendTo="body"
+        styleClass="date-input">
+      </p-datepicker>
+      <button class="nav-btn" [disabled]="isToday()" (click)="nextDay()" pTooltip="Next day" tooltipPosition="top">
+        <i class="pi pi-chevron-right"></i>
+      </button>
+    </div>
+
+    <!-- Method filter -->
+    <div class="method-filter" *ngIf="(book()?.entryCount ?? 0) > 0">
+      <p-select
+        [options]="methodOptions()"
+        [(ngModel)]="filterMethod"
+        optionLabel="label"
+        optionValue="value"
+        appendTo="body"
+        styleClass="method-select"
+        placeholder="All Methods">
+      </p-select>
+    </div>
+
+  </section>
+
+  <!-- ═══════════════════════════════ LOADING ═══════════════════════════════ -->
+  <div *ngIf="loading()" class="loading-panel">
+    <div *ngFor="let _ of [1,2,3,4,5]" class="skeleton-row">
+      <div class="sk sk-time"></div>
+      <div class="sk sk-badge"></div>
+      <div class="sk sk-desc"></div>
+      <div class="sk sk-amount"></div>
+      <div class="sk sk-amount"></div>
+      <div class="sk sk-balance"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════ EMPTY ═══════════════════════════════ -->
+  <div *ngIf="!loading() && book() && book()!.entryCount === 0" class="empty-panel">
+    <div class="empty-icon-wrap"><i class="pi pi-book"></i></div>
+    <h3>No transactions recorded</h3>
+    <p>{{ headingDate() }} has no cash movements yet.</p>
+    <div class="empty-actions">
+      <a routerLink="/procurement/daily-expenses" class="btn-empty-action">
+        <i class="pi pi-plus"></i> Add Expense
+      </a>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════ CONTENT ═══════════════════════════════ -->
+  <div *ngIf="!loading() && book() && book()!.entryCount > 0" class="content-area">
+
+    <!-- ── Payment method breakdown ───────────────────────────────────── -->
+    <div class="method-breakdown" *ngIf="book()!.paymentMethodBreakdown.length > 0">
+      <div *ngFor="let b of book()!.paymentMethodBreakdown" class="breakdown-chip">
+        <i class="pi" [ngClass]="methodIcon(b.method)"></i>
+        <span class="bk-method">{{ methodLabel(b.method) }}</span>
+        <span class="bk-in"  *ngIf="b.in  > 0">+{{ formatCurrency(b.in)  }}</span>
+        <span class="bk-out" *ngIf="b.out > 0">−{{ formatCurrency(b.out) }}</span>
+      </div>
+    </div>
+
+    <!-- ══════════════ LEDGER VIEW ══════════════ -->
+    <ng-container *ngIf="viewMode() === 'ledger'">
+      <div class="table-card">
+        <div class="table-card-header">
+          <span class="table-title"><i class="pi pi-list"></i> Transaction Ledger</span>
+          <span class="entry-count">{{ ledgerRows().length }} entries</span>
+        </div>
+        <div class="table-scroll">
+          <table class="ledger-table">
+            <thead>
+              <tr>
+                <th class="col-time">Time</th>
+                <th class="col-type">Type</th>
+                <th class="col-desc">Description</th>
+                <th class="col-method">Method</th>
+                <th class="col-money text-right">Cash In</th>
+                <th class="col-money text-right">Cash Out</th>
+                <th class="col-balance text-right">Balance</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let row of ledgerRows(); trackBy: trackById"
+                  class="ledger-row" [class.row-in]="row.flow === 'IN'" [class.row-out]="row.flow === 'OUT'">
+
+                <td class="col-time">
+                  <span class="time-val">{{ formatTime(row.time) }}</span>
+                  <span class="date-val" *ngIf="!isSingleDay()">{{ formatDate(row.time) }}</span>
+                </td>
+
+                <td class="col-type">
+                  <span class="type-badge" [attr.data-flow]="row.flow">
+                    <i class="pi" [ngClass]="typeIcon(row.type)"></i>
+                    {{ typeLabel(row.type) }}
+                  </span>
+                </td>
+
+                <td class="col-desc">
+                  <div class="desc-stack">
+                    <span class="desc-main">{{ row.description }}</span>
+                    <span class="desc-meta" *ngIf="row.category || row.vendor">
+                      <ng-container *ngIf="row.category">{{ row.category }}</ng-container>
+                      <ng-container *ngIf="row.category && row.vendor"> · </ng-container>
+                      <ng-container *ngIf="row.vendor">{{ row.vendor }}</ng-container>
+                    </span>
+                    <span class="desc-ref" *ngIf="row.reference">{{ row.reference }}</span>
+                    <span class="desc-notes" *ngIf="row.notes">{{ row.notes }}</span>
+                  </div>
+                </td>
+
+                <td class="col-method">
+                  <span class="method-tag">
+                    <i class="pi" [ngClass]="methodIcon(row.paymentMethod)"></i>
+                    {{ methodLabel(row.paymentMethod) }}
+                  </span>
+                </td>
+
+                <td class="col-money text-right">
+                  <span class="amount-in" *ngIf="row.cashIn">{{ formatCurrency(row.cashIn) }}</span>
+                </td>
+
+                <td class="col-money text-right">
+                  <span class="amount-out" *ngIf="row.cashOut">{{ formatCurrency(row.cashOut) }}</span>
+                </td>
+
+                <td class="col-balance text-right">
+                  <span class="balance-val" [class.bal-pos]="row.balance >= 0" [class.bal-neg]="row.balance < 0">
+                    {{ formatCurrency(row.balance) }}
+                  </span>
+                </td>
+
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr class="totals-row">
+                <td colspan="4" class="totals-label">Totals</td>
+                <td class="text-right"><span class="total-in">{{ formatCurrency(filteredIn()) }}</span></td>
+                <td class="text-right"><span class="total-out">{{ formatCurrency(filteredOut()) }}</span></td>
+                <td class="text-right">
+                  <span class="total-net" [class.bal-pos]="filteredNet() >= 0" [class.bal-neg]="filteredNet() < 0">
+                    {{ filteredNet() >= 0 ? '+' : '' }}{{ formatCurrency(filteredNet()) }}
+                  </span>
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </ng-container>
+
+    <!-- ══════════════ SPLIT VIEW ══════════════ -->
+    <ng-container *ngIf="viewMode() === 'split'">
+      <div class="split-grid">
+
+        <!-- Cash In -->
+        <div class="split-card">
+          <div class="split-header in">
+            <div class="split-title">
+              <i class="pi pi-arrow-circle-down"></i>
+              <span>Cash In</span>
+            </div>
+            <span class="split-total">{{ formatCurrency(filteredIn()) }}</span>
+          </div>
+
+          <div class="split-scroll" *ngIf="cashInRows().length > 0; else emptyIn">
+            <table class="split-table">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Description</th>
+                  <th>Method</th>
+                  <th class="text-right">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let row of cashInRows()">
+                  <td><span class="time-val">{{ formatTime(row.time) }}</span></td>
+                  <td>
+                    <div class="desc-stack">
+                      <span class="desc-main">{{ row.description }}</span>
+                      <span class="desc-ref" *ngIf="row.reference">{{ row.reference }}</span>
+                    </div>
+                  </td>
+                  <td><span class="method-tag sm"><i class="pi" [ngClass]="methodIcon(row.paymentMethod)"></i> {{ methodLabel(row.paymentMethod) }}</span></td>
+                  <td class="text-right"><span class="amount-in">{{ formatCurrency(row.amount) }}</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <ng-template #emptyIn>
+            <div class="split-empty">No cash-in for this filter</div>
+          </ng-template>
+        </div>
+
+        <!-- Cash Out -->
+        <div class="split-card">
+          <div class="split-header out">
+            <div class="split-title">
+              <i class="pi pi-arrow-circle-up"></i>
+              <span>Cash Out</span>
+            </div>
+            <span class="split-total">{{ formatCurrency(filteredOut()) }}</span>
+          </div>
+
+          <div class="split-scroll" *ngIf="cashOutRows().length > 0; else emptyOut">
+            <table class="split-table">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Description</th>
+                  <th>Method</th>
+                  <th class="text-right">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let row of cashOutRows()">
+                  <td><span class="time-val">{{ formatTime(row.time) }}</span></td>
+                  <td>
+                    <div class="desc-stack">
+                      <span class="desc-main">{{ row.description }}</span>
+                      <span class="desc-meta" *ngIf="row.category">{{ row.category }}</span>
+                      <span class="desc-ref" *ngIf="row.reference">{{ row.reference }}</span>
+                    </div>
+                  </td>
+                  <td><span class="method-tag sm"><i class="pi" [ngClass]="methodIcon(row.paymentMethod)"></i> {{ methodLabel(row.paymentMethod) }}</span></td>
+                  <td class="text-right"><span class="amount-out">{{ formatCurrency(row.amount) }}</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <ng-template #emptyOut>
+            <div class="split-empty">No cash-out for this filter</div>
+          </ng-template>
+        </div>
+
+      </div>
+    </ng-container>
+
+  </div>
+</div>

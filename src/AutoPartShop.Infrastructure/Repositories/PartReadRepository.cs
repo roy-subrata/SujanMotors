@@ -1,13 +1,14 @@
 using AutoPartShop.Application.Parts;
 using AutoPartShop.Application.Parts.Dtos;
+using AutoPartShop.Domain.Entities;
 using AutoPartsShop.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace AutoPartShop.Infrastructure.Repositories;
 
-public class PartReadRepository(AutoPartDbContext _db) : IPartReadRepository
+public class ProductReadRepository(AutoPartDbContext _db) : IProductReadRepository
 {
-    public async Task<(IEnumerable<PartResponse> Parts, int TotalCount)> FindAllAsync(PartQuery query, CancellationToken cancellationToken = default)
+    public async Task<(IEnumerable<ProductResponse> Parts, int TotalCount)> FindAllAsync(ProductQuery query, CancellationToken cancellationToken = default)
     {
         var term = query.Search.ToLower();
 
@@ -19,7 +20,7 @@ public class PartReadRepository(AutoPartDbContext _db) : IPartReadRepository
             .Include(p => p.Brand)
             .Include(p => p.Unit)
             .Include(p => p.BaseUnit)
-            .Where(x => !x.Isdeleted && x.IsActive == query.IsActive && (
+            .Where(x => !x.Isdeleted && (query.IsActive == null || x.IsActive == query.IsActive) && (
              (EF.Functions.Like(x.Name, $"%{term}%") ||
              EF.Functions.Like(x.SKU, $"%{term}%")
             )));
@@ -38,7 +39,7 @@ public class PartReadRepository(AutoPartDbContext _db) : IPartReadRepository
         var items = await parts
             .Skip((query.PageNumber - 1) * query.PageSize)
             .Take(query.PageSize)
-            .Select(part => new PartResponse
+            .Select(part => new ProductResponse
             {
                 Id = part.Id,
                 Name = part.Name,
@@ -92,18 +93,18 @@ public class PartReadRepository(AutoPartDbContext _db) : IPartReadRepository
     //   - Products WITHOUT active variants → returned as-is (base product)
     //   - Products WITH active variants    → each variant returned as its own line item
     // Search matches on product name, product SKU, variant name, or variant SKU.
-    private async Task<(IEnumerable<PartResponse> Parts, int TotalCount)> FindAllFlattenedAsync(
-        PartQuery query, string term, CancellationToken cancellationToken)
+    private async Task<(IEnumerable<ProductResponse> Parts, int TotalCount)> FindAllFlattenedAsync(
+        ProductQuery query, string term, CancellationToken cancellationToken)
     {
         var baseItems = await _db.Parts
             .Include(p => p.Category)
             .Include(p => p.Brand)
             .Include(p => p.Unit)
             .Include(p => p.BaseUnit)
-            .Where(x => !x.Isdeleted && x.IsActive == query.IsActive
+            .Where(x => !x.Isdeleted && (query.IsActive == null || x.IsActive == query.IsActive)
                 && !x.Variants.Any(v => v.IsActive && !v.Isdeleted)
                 && (EF.Functions.Like(x.Name, $"%{term}%") || EF.Functions.Like(x.SKU, $"%{term}%")))
-            .Select(part => new PartResponse
+            .Select(part => new ProductResponse
             {
                 Id = part.Id,
                 Name = part.Name,
@@ -156,12 +157,12 @@ public class PartReadRepository(AutoPartDbContext _db) : IPartReadRepository
             .Include(v => v.Part).ThenInclude(p => p!.Unit)
             .Include(v => v.Part).ThenInclude(p => p!.BaseUnit)
             .Where(v => v.IsActive && !v.Isdeleted
-                && v.Part != null && !v.Part.Isdeleted && v.Part.IsActive == query.IsActive
+                && v.Part != null && !v.Part.Isdeleted && (query.IsActive == null || v.Part.IsActive == query.IsActive)
                 && (EF.Functions.Like(v.Name, $"%{term}%")
                     || (v.SKU != null && EF.Functions.Like(v.SKU, $"%{term}%"))
                     || EF.Functions.Like(v.Part.Name, $"%{term}%")
                     || EF.Functions.Like(v.Part.SKU, $"%{term}%")))
-            .Select(v => new PartResponse
+            .Select(v => new ProductResponse
             {
                 Id = v.PartId,
                 Name = v.Part!.Name,
@@ -226,7 +227,7 @@ public class PartReadRepository(AutoPartDbContext _db) : IPartReadRepository
         return (paged, totalCount);
     }
 
-    public async Task<(IEnumerable<PartPublicResponse> Parts, int TotalCount)> FindAllPublicAsync(PartQuery query, CancellationToken cancellationToken = default)
+    public async Task<(IEnumerable<ProductPublicResponse> Parts, int TotalCount)> FindAllPublicAsync(ProductQuery query, CancellationToken cancellationToken = default)
     {
         var term = query.Search.ToLower();
 
@@ -238,7 +239,7 @@ public class PartReadRepository(AutoPartDbContext _db) : IPartReadRepository
             .Include(p => p.Brand)
             .Include(p => p.Unit)
             .Include(p => p.BaseUnit)
-            .Where(x => !x.Isdeleted && x.IsActive == query.IsActive && (
+            .Where(x => !x.Isdeleted && (query.IsActive == null || x.IsActive == query.IsActive) && (
              (EF.Functions.Like(x.Name, $"%{term}%") ||
              EF.Functions.Like(x.SKU, $"%{term}%")
             )));
@@ -257,7 +258,7 @@ public class PartReadRepository(AutoPartDbContext _db) : IPartReadRepository
         var items = await parts
             .Skip((query.PageNumber - 1) * query.PageSize)
             .Take(query.PageSize)
-            .Select(part => new PartPublicResponse
+            .Select(part => new ProductPublicResponse
             {
                 Id = part.Id,
                 Name = part.Name,
@@ -302,18 +303,18 @@ public class PartReadRepository(AutoPartDbContext _db) : IPartReadRepository
         return (items, totalCount);
     }
 
-    private async Task<(IEnumerable<PartPublicResponse> Parts, int TotalCount)> FindAllPublicFlattenedAsync(
-        PartQuery query, string term, CancellationToken cancellationToken)
+    private async Task<(IEnumerable<ProductPublicResponse> Parts, int TotalCount)> FindAllPublicFlattenedAsync(
+        ProductQuery query, string term, CancellationToken cancellationToken)
     {
         var baseItems = await _db.Parts
             .Include(p => p.Category)
             .Include(p => p.Brand)
             .Include(p => p.Unit)
             .Include(p => p.BaseUnit)
-            .Where(x => !x.Isdeleted && x.IsActive == query.IsActive
+            .Where(x => !x.Isdeleted && (query.IsActive == null || x.IsActive == query.IsActive)
                 && !x.Variants.Any(v => v.IsActive && !v.Isdeleted)
                 && (EF.Functions.Like(x.Name, $"%{term}%") || EF.Functions.Like(x.SKU, $"%{term}%")))
-            .Select(part => new PartPublicResponse
+            .Select(part => new ProductPublicResponse
             {
                 Id = part.Id,
                 Name = part.Name,
@@ -361,12 +362,12 @@ public class PartReadRepository(AutoPartDbContext _db) : IPartReadRepository
             .Include(v => v.Part).ThenInclude(p => p!.Unit)
             .Include(v => v.Part).ThenInclude(p => p!.BaseUnit)
             .Where(v => v.IsActive && !v.Isdeleted
-                && v.Part != null && !v.Part.Isdeleted && v.Part.IsActive == query.IsActive
+                && v.Part != null && !v.Part.Isdeleted && (query.IsActive == null || v.Part.IsActive == query.IsActive)
                 && (EF.Functions.Like(v.Name, $"%{term}%")
                     || (v.SKU != null && EF.Functions.Like(v.SKU, $"%{term}%"))
                     || EF.Functions.Like(v.Part.Name, $"%{term}%")
                     || EF.Functions.Like(v.Part.SKU, $"%{term}%")))
-            .Select(v => new PartPublicResponse
+            .Select(v => new ProductPublicResponse
             {
                 Id = v.PartId,
                 Name = v.Part!.Name,

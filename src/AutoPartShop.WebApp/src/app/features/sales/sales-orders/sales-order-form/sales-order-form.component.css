@@ -1,35 +1,63 @@
 .container {
-  padding: 0;
-  margin: 0;
+  min-height: 100vh;
+  background-color: var(--color-bg-secondary, #F8FAFC);
   display: flex;
   flex-direction: column;
   width: 100%;
   max-width: none;
-  padding-bottom: 1rem;
+  padding-bottom: 2rem;
 }
 
-/* Header with gradient - sticky on scroll */
+/* Header — breaks out of .layout-main's padding so it spans the full container edge */
 .form-header {
-  background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
-  border-radius: 0.5rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  padding: 1.25rem 1.5rem;
-  margin-bottom: 1.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #6B8DD6 100%);
+  border-radius: 0;
+  box-shadow: 0 2px 12px rgba(102, 126, 234, 0.25);
+  padding: 12px 20px;
   position: sticky;
   top: 0;
   z-index: 100;
+  /* Negate layout-main's padding so the gradient banner is flush with the sidebar */
+  margin-left:  -1.5rem;
+  margin-right: -1.5rem;
+  margin-top:   -1.5rem;
+
+  @media (min-width: 1200px) {
+    margin-left:  -2rem;
+    margin-right: -2rem;
+    margin-top:   -2rem;
+  }
+  @media (max-width: 991px) {
+    margin-left:  -0.75rem;
+    margin-right: -0.75rem;
+    margin-top:   -0.75rem;
+  }
+  @media (max-width: 767px) {
+    margin-left:  -0.5rem;
+    margin-right: -0.5rem;
+    margin-top:   -0.5rem;
+  }
 }
 
 .header-content {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
+  gap: 16px;
 }
 
 .header-title-section {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.2rem;
+  flex: 1;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 /* Breadcrumb */
@@ -66,8 +94,8 @@
 
 .form-title {
   margin: 0;
-  font-size: 1.5rem;
-  font-weight: 700;
+  font-size: 18px;
+  font-weight: 600;
   color: white;
   line-height: 1.2;
 }
@@ -86,7 +114,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 3rem;
+  padding: 4rem 1.25rem;
   color: #6b7280;
 }
 
@@ -101,7 +129,7 @@
   gap: 0.75rem;
   padding: 0.875rem 1rem;
   border-radius: 0.5rem;
-  margin-bottom: 1rem;
+  margin-top: 1rem;
   background: #fef2f2;
   border: 1px solid #fecaca;
   color: #dc2626;
@@ -112,16 +140,17 @@
   color: #dc2626;
 }
 
-/* Form card */
+/* Form card — full-width inside the layout's own padding, no extra margin */
 .form-card {
   background: #ffffff;
-  border-radius: 0.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
   border: 1px solid #e5e7eb;
+  margin-top: 1.25rem;
 }
 
 .form-content {
-  padding: 0.5rem;
+  padding: 1.5rem;
 }
 
 /* Form sections */
@@ -160,7 +189,7 @@
 }
 
 .section-icon {
-  color: #8b5cf6;
+  color: #4F46E5;
   font-size: 1rem;
 }
 
@@ -408,7 +437,7 @@
 
 .line-total {
   font-weight: 600;
-  color: #8b5cf6;
+  color: #4F46E5;
   font-size: 1rem;
   padding: 0.5rem;
   background: #f3f4f6;
@@ -473,7 +502,7 @@
 
 .grand-total .summary-value {
   font-weight: 700;
-  color: #8b5cf6;
+  color: #4F46E5;
   font-size: 1.25rem;
 }
 
@@ -501,7 +530,9 @@
 
 /* Credit Notes Section */
 .credit-notes-section {
-  padding: 1.5rem 1.5rem 0 1.5rem;
+  padding: 1.25rem 1.5rem 0 1.5rem;
+  border-top: 1px solid #e5e7eb;
+  margin-top: 0.5rem;
 }
 
 .credit-notes-section app-apply-customer-credit-notes {
@@ -536,7 +567,7 @@
 }
 
 ::ng-deep .form-card .p-card-body {
-  padding: 1.5rem;
+  padding: 0;
 }
 
 ::ng-deep .p-select {
@@ -566,52 +597,21 @@ input[type="number"] {
 }
 
 @media (max-width: 768px) {
-  .form-header {
-    padding: 0.75rem 1rem;
-    border-radius: 0;
-    margin-bottom: 1rem;
-    margin-left: -0.75rem;
-    margin-right: -0.75rem;
-    width: calc(100% + 1.5rem);
-  }
+  .form-header { padding: 10px 14px; }
+  .form-card   { margin-top: 0.75rem; }
+  .error-box   { margin-top: 0.75rem; }
+  .form-title    { font-size: 1.125rem; }
+  .form-subtitle { display: none; }
+  .breadcrumb    { margin-bottom: 0.25rem; }
 
-  .form-title {
-    font-size: 1.125rem;
-  }
+  .form-row { grid-template-columns: 1fr; }
+  .form-group.full { grid-column: span 1; }
 
-  .form-subtitle {
-    display: none;
-  }
+  .line-item-content { grid-template-columns: 1fr 1fr; }
+  .part-field        { grid-column: span 2; }
 
-  .breadcrumb {
-    margin-bottom: 0.25rem;
-  }
+  .form-content { padding: 1rem; }
 
-  .form-row {
-    grid-template-columns: 1fr;
-  }
-
-  .form-group.full {
-    grid-column: span 1;
-  }
-
-  .line-item-content {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .part-field {
-    grid-column: span 2;
-  }
-
-  .form-content {
-    padding-bottom: 1rem;
-  }
-
-  ::ng-deep .form-card .p-card-body {
-    padding: 1rem;
-  }
-
-  /* Form actions - scroll with content, not fixed */
   .form-actions {
     position: static;
     flex-direction: column-reverse;
@@ -621,48 +621,21 @@ input[type="number"] {
     background: #f9fafb;
     border-radius: 0.5rem;
   }
-
-  .form-actions button {
-    width: 100%;
-  }
+  .form-actions button { width: 100%; }
 }
 
 @media (max-width: 640px) {
-  .form-header {
-    padding: 0.625rem 0.75rem;
-    margin-left: -0.375rem;
-    margin-right: -0.375rem;
-    width: calc(100% + 0.75rem);
-  }
+  .form-header { padding: 8px 12px; }
+  .form-card   { margin-top: 0.5rem; }
+  .form-title  { font-size: 1rem; }
 
-  .form-title {
-    font-size: 1rem;
-  }
+  .breadcrumb-link    { font-size: 0.75rem; }
+  .breadcrumb-current { font-size: 0.75rem; }
 
-  .breadcrumb-link {
-    font-size: 0.75rem;
-  }
+  .form-content { padding: 0.75rem; }
 
-  .breadcrumb-current {
-    font-size: 0.75rem;
-  }
-
-  .form-content {
-    padding: 0.25rem;
-    padding-bottom: 0.5rem;
-  }
-
-  .line-item-content {
-    grid-template-columns: 1fr;
-  }
-
-  .part-field {
-    grid-column: span 1;
-  }
-
-  ::ng-deep .form-card .p-card-body {
-    padding: 0.875rem;
-  }
+  .line-item-content { grid-template-columns: 1fr; }
+  .part-field        { grid-column: span 1; }
 
   .form-actions {
     padding: 0.875rem;
@@ -715,7 +688,7 @@ input[type="number"] {
 
 .customer-item-code {
   font-weight: 500;
-  color: #8b5cf6;
+  color: #4F46E5;
   font-size: 12px;
   margin-left: 8px;
 }
@@ -753,5 +726,12 @@ input[type="number"] {
 }
 
 ::ng-deep .p-autocomplete-panel .p-autocomplete-item.p-highlight {
-  background: #f3e8ff !important;
+  background: #e0e7ff !important;
 }
+
+/* ── Challan dialog ──────────────────────────────────────────────── */
+.challan-dialog-body { display: flex; flex-direction: column; gap: 14px; padding: 4px 0; }
+.cd-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.cd-row .cd-field:only-child { grid-column: span 2; }
+.cd-field { display: flex; flex-direction: column; gap: 5px; }
+.cd-field label { font-size: 13px; font-weight: 500; color: #374151; }

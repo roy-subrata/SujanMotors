@@ -11,18 +11,18 @@ namespace AutoPartShop.Api.Controllers;
 [Produces("application/json")]
 public class PricingController : ControllerBase
 {
-    private readonly IPartRepository _partRepository;
+    private readonly IProductRepository _productRepository;
     private readonly IPricingValidationService _pricingValidationService;
     private readonly IUnitConversionService _unitConversionService;
     private readonly ILogger<PricingController> _logger;
 
     public PricingController(
-        IPartRepository partRepository,
+        IProductRepository productRepository,
         IPricingValidationService pricingValidationService,
         IUnitConversionService unitConversionService,
         ILogger<PricingController> logger)
     {
-        _partRepository = partRepository;
+        _productRepository = productRepository;
         _pricingValidationService = pricingValidationService;
         _unitConversionService = unitConversionService;
         _logger = logger;
@@ -36,7 +36,7 @@ public class PricingController : ControllerBase
             if (request is null || request.PartId == Guid.Empty)
                 return BadRequest(new { message = "PartId is required." });
 
-            var part = await _partRepository.GetByIdAsync(request.PartId, cancellationToken);
+            var part = await _productRepository.GetByIdAsync(request.PartId, cancellationToken);
             if (part is null)
                 return NotFound(new { message = "Part not found." });
 
@@ -64,7 +64,7 @@ public class PricingController : ControllerBase
             if (request is null || request.PartId == Guid.Empty)
                 return BadRequest(new { message = "PartId is required." });
 
-            var part = await _partRepository.GetByIdAsync(request.PartId, cancellationToken);
+            var part = await _productRepository.GetByIdAsync(request.PartId, cancellationToken);
             if (part is null)
                 return NotFound(new { message = "Part not found." });
 
@@ -87,7 +87,7 @@ public class PricingController : ControllerBase
         public Guid? UnitId { get; set; }
     }
 
-    private async Task<decimal> NormalizeUnitPriceAsync(Part part, decimal unitPrice, Guid? unitId, CancellationToken cancellationToken)
+    private async Task<decimal> NormalizeUnitPriceAsync(Product part, decimal unitPrice, Guid? unitId, CancellationToken cancellationToken)
     {
         if (part.UnitId is null || unitId is null || unitId.Value == part.UnitId.Value)
             return unitPrice;

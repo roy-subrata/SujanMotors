@@ -18,7 +18,7 @@ public class PurchaseOrderController : ControllerBase
     private readonly IPurchaseOrderReadRepository _purchaseOrderReadRepository;
     private readonly IGoodsReceiptRepository _goodsReceiptRepository;
     private readonly ISupplierRepository _supplierRepository;
-    private readonly IPartRepository _partRepository;
+    private readonly IProductRepository _productRepository;
     private readonly StockManagementService _stockManagementService;
     private readonly IUnitConversionService _unitConversionService;
     private readonly ILogger<PurchaseOrderController> _logger;
@@ -30,7 +30,7 @@ public class PurchaseOrderController : ControllerBase
         IPurchaseOrderReadRepository purchaseOrderReadRepository,
         IGoodsReceiptRepository goodsReceiptRepository,
         ISupplierRepository supplierRepository,
-        IPartRepository partRepository,
+        IProductRepository productRepository,
         StockManagementService stockManagementService,
         IUnitConversionService unitConversionService,
         ICodeGenerateService codeGenerateService,
@@ -40,7 +40,7 @@ public class PurchaseOrderController : ControllerBase
         _purchaseOrderRepository = purchaseOrderRepository;
         _goodsReceiptRepository = goodsReceiptRepository;
         _supplierRepository = supplierRepository;
-        _partRepository = partRepository;
+        _productRepository = productRepository;
         _stockManagementService = stockManagementService;
         _unitConversionService = unitConversionService;
         _codeGenerateService = codeGenerateService;
@@ -193,7 +193,7 @@ public class PurchaseOrderController : ControllerBase
                 foreach (var lineRequest in request.LineItems)
                 {
                     // Get part to determine base unit using repository
-                    var part = await _partRepository.GetByIdAsync(lineRequest.PartId, cancellationToken);
+                    var part = await _productRepository.GetByIdAsync(lineRequest.PartId, cancellationToken);
 
                     if (part == null)
                         return BadRequest(new { message = $"Part with ID {lineRequest.PartId} not found" });
@@ -231,7 +231,7 @@ public class PurchaseOrderController : ControllerBase
                     }
 
                     // Enforce variant selection when product has active variants
-                    var hasVariants = await _partRepository.HasActiveVariantsAsync(lineRequest.PartId, cancellationToken);
+                    var hasVariants = await _productRepository.HasActiveVariantsAsync(lineRequest.PartId, cancellationToken);
                     if (hasVariants && !lineRequest.VariantId.HasValue)
                         return BadRequest(new { message = $"Product '{part.Name}' has variants — please select a specific variant" });
 
@@ -290,7 +290,7 @@ public class PurchaseOrderController : ControllerBase
             foreach (var lineRequest in request.LineItems)
             {
                 // Get part to determine base unit using repository
-                var part = await _partRepository.GetByIdAsync(lineRequest.PartId, cancellationToken);
+                var part = await _productRepository.GetByIdAsync(lineRequest.PartId, cancellationToken);
                 if (part == null)
                     return BadRequest(new { message = $"Part with ID {lineRequest.PartId} not found" });
 
@@ -323,7 +323,7 @@ public class PurchaseOrderController : ControllerBase
                     unitId = part.UnitId;
                 }
 
-                var hasVariants = await _partRepository.HasActiveVariantsAsync(lineRequest.PartId, cancellationToken);
+                var hasVariants = await _productRepository.HasActiveVariantsAsync(lineRequest.PartId, cancellationToken);
                 if (hasVariants && !lineRequest.VariantId.HasValue)
                     return BadRequest(new { message = $"Product '{part.Name}' has variants — please select a specific variant" });
 
@@ -558,7 +558,7 @@ public class PurchaseOrderController : ControllerBase
                     }
 
                     // Get the Part to calculate base unit quantities
-                    var part = await _partRepository.GetByIdAsync(lineRequest.PartId, cancellationToken);
+                    var part = await _productRepository.GetByIdAsync(lineRequest.PartId, cancellationToken);
 
                     if (part == null)
                         return BadRequest(new { message = $"Part {lineRequest.PartId} not found" });
@@ -770,7 +770,7 @@ public class PurchaseOrderController : ControllerBase
                     }
 
                     // Get the Part to calculate base unit quantities
-                    var part = await _partRepository.GetByIdAsync(lineRequest.PartId, cancellationToken);
+                    var part = await _productRepository.GetByIdAsync(lineRequest.PartId, cancellationToken);
 
                     if (part == null)
                         return BadRequest(new { message = $"Part {lineRequest.PartId} not found" });

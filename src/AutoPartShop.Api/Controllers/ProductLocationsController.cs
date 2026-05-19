@@ -1,3 +1,4 @@
+using AutoPartShop.Api.Common;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.ProductLocationDtos;
 using AutoPartShop.Domain.Entities;
@@ -6,288 +7,167 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace AutoPartShop.Api.Controllers;
 
-[Route("api/[controller]")]
+/// <summary>
+/// Warehouse bin/shelf locations for a product.
+/// All endpoints are scoped under the owning product.
+/// </summary>
+[Route("api/v1/products/{productId:guid}/locations")]
 [ApiController]
 [Produces("application/json")]
 public class ProductLocationsController : ControllerBase
 {
     private readonly IProductLocationRepository _locationRepository;
-    private readonly IPartRepository _partRepository;
+    private readonly IProductRepository _productRepository;
     private readonly IWarehouseRepository _warehouseRepository;
-    private readonly ILogger<ProductLocationsController> _logger;
     private readonly ICurrentUserService _currentUserService;
+    private readonly ILogger<ProductLocationsController> _logger;
 
     public ProductLocationsController(
         IProductLocationRepository locationRepository,
-        IPartRepository partRepository,
+        IProductRepository productRepository,
         IWarehouseRepository warehouseRepository,
         ICurrentUserService currentUserService,
         ILogger<ProductLocationsController> logger)
     {
         _locationRepository = locationRepository;
-        _partRepository = partRepository;
+        _productRepository = productRepository;
         _warehouseRepository = warehouseRepository;
         _currentUserService = currentUserService;
         _logger = logger;
     }
 
-    /// <summary>
-    /// Get all product locations
-    /// </summary>
+    // GET /api/v1/products/{productId}/locations?warehouseId=
     [HttpGet]
-    public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
+    public async Task<IActionResult> GetAll(Guid productId, [FromQuery] Guid? warehouseId, CancellationToken cancellationToken)
     {
-        try
-        {
-            var locations = await _locationRepository.GetAllAsync(cancellationToken);
-            var response = locations.Select(MapToResponse);
-            return Ok(response);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting all product locations");
-            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving product locations");
-        }
+        if (!await _productRepository.ExistsAsync(productId, cancellationToken))
+            return NotFound(ApiError.NotFound($"Product '{productId}' not found", Request.Path));
+
+        var locations = await _locationRepository.GetLocationsByPartAsync(productId, warehouseId, cancellationToken);
+        return Ok(ApiResponse<object>.Ok(locations.Select(MapToResponse)));
     }
 
-    /// <summary>
-    /// Get product location by ID
-    /// </summary>
+    // GET /api/v1/products/{productId}/locations/primary
+    [HttpGet("primary")]
+    public async Task<IActionResult> GetPrimary(Guid productId, CancellationToken cancellationToken)
+    {
+        if (!await _productRepository.ExistsAsync(productId, cancellationToken))
+            return NotFound(ApiError.NotFound($"Product '{productId}' not found", Request.Path));
+
+        var location = await _locationRepository.GetPrimaryLocationByPartAsync(productId, cancellationToken);
+        if (location is null)
+            return NotFound(ApiError.NotFound("No primary location found for this product", Request.Path));
+
+        return Ok(ApiResponse<ProductLocationResponse>.Ok(MapToResponse(location)));
+    }
+
+    // GET /api/v1/products/{productId}/locations/{id}
     [HttpGet("{id:guid}")]
-    public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetById(Guid productId, Guid id, CancellationToken cancellationToken)
     {
-        try
-        {
-            var location = await _locationRepository.GetByIdAsync(id, cancellationToken);
-            if (location is null)
-                return NotFound(new { message = "Product location not found" });
+        var location = await _locationRepository.GetByIdAsync(id, cancellationToken);
+        if (location is null || location.PartId != productId)
+            return NotFound(ApiError.NotFound($"Location '{id}' not found on product '{productId}'", Request.Path));
 
-            return Ok(MapToResponse(location));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting product location by ID: {LocationId}", id);
-            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving the product location");
-        }
+        return Ok(ApiResponse<ProductLocationResponse>.Ok(MapToResponse(location)));
     }
 
-    /// <summary>
-    /// Get all locations for a specific part
-    /// </summary>
-    [HttpGet("part/{partId:guid}")]
-    public async Task<IActionResult> GetByPart(Guid partId, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var locations = await _locationRepository.GetLocationsByPartAsync(partId, cancellationToken);
-            var response = locations.Select(MapToResponse);
-            return Ok(response);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting locations for part: {PartId}", partId);
-            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving product locations");
-        }
-    }
-
-    /// <summary>
-    /// Get all locations in a specific warehouse
-    /// </summary>
-    [HttpGet("warehouse/{warehouseId:guid}")]
-    public async Task<IActionResult> GetByWarehouse(Guid warehouseId, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var locations = await _locationRepository.GetLocationsByWarehouseAsync(warehouseId, cancellationToken);
-            var response = locations.Select(MapToResponse);
-            return Ok(response);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting locations for warehouse: {WarehouseId}", warehouseId);
-            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving product locations");
-        }
-    }
-
-    /// <summary>
-    /// Get primary location for a part
-    /// </summary>
-    [HttpGet("part/{partId:guid}/primary")]
-    public async Task<IActionResult> GetPrimaryLocation(Guid partId, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var location = await _locationRepository.GetPrimaryLocationByPartAsync(partId, cancellationToken);
-            if (location is null)
-                return NotFound(new { message = "No primary location found for this part" });
-
-            return Ok(MapToResponse(location));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting primary location for part: {PartId}", partId);
-            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving the primary location");
-        }
-    }
-
-    /// <summary>
-    /// Create a new product location
-    /// </summary>
+    // POST /api/v1/products/{productId}/locations
     [HttpPost]
-    public async Task<IActionResult> Create(CreateProductLocationRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Create(Guid productId, [FromBody] CreateLocationBody body, CancellationToken cancellationToken)
     {
-        try
-        {
-            // Validate part exists
-            if (!await _partRepository.ExistsAsync(request.PartId, cancellationToken))
-                return BadRequest(new { message = "Part not found" });
+        if (!await _productRepository.ExistsAsync(productId, cancellationToken))
+            return NotFound(ApiError.NotFound($"Product '{productId}' not found", Request.Path));
 
-            // Validate warehouse exists
-            if (!await _warehouseRepository.ExistsAsync(request.WarehouseId, cancellationToken))
-                return BadRequest(new { message = "Warehouse not found" });
+        if (!await _warehouseRepository.ExistsAsync(body.WarehouseId, cancellationToken))
+            return BadRequest(ApiError.Validation("Warehouse not found", instance: Request.Path));
 
-            // Check for duplicate location
-            if (await _locationRepository.LocationExistsAsync(request.PartId, request.WarehouseId, request.Section, request.Shelf, null, cancellationToken))
-                return Conflict(new { message = "A location with this section and shelf already exists for this part in this warehouse" });
+        if (await _locationRepository.LocationExistsAsync(productId, body.WarehouseId, body.Section, body.Shelf, null, cancellationToken))
+            return Conflict(ApiError.Conflict("A location with this section and shelf already exists for this product in this warehouse", Request.Path));
 
-            var location = ProductLocation.Create(
-                request.PartId,
-                request.WarehouseId,
-                request.Section,
-                request.Shelf,
-                request.IsPrimary,
-                request.Notes);
+        var location = ProductLocation.Create(productId, body.WarehouseId, body.Section, body.Shelf, body.IsPrimary, body.Notes);
+        var user = _currentUserService.GetCurrentUsername();
+        location.CreatedBy = user;
+        location.ModifiedBy = user;
 
-            var currentUser = _currentUserService.GetCurrentUsername();
-            location.CreatedBy = currentUser;
-            location.ModifiedBy = currentUser;
+        await _locationRepository.AddAsync(location, cancellationToken);
 
-            await _locationRepository.AddAsync(location, cancellationToken);
+        if (body.IsPrimary)
+            await _locationRepository.SetPrimaryLocationAsync(productId, location.Id, cancellationToken);
 
-            // If this is set as primary, ensure no other locations are primary
-            if (request.IsPrimary)
-            {
-                await _locationRepository.SetPrimaryLocationAsync(request.PartId, location.Id, cancellationToken);
-            }
-
-            return CreatedAtAction(nameof(GetById), new { id = location.Id }, MapToResponse(location));
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error creating product location");
-            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while creating the product location");
-        }
+        return CreatedAtAction(nameof(GetById), new { productId, id = location.Id },
+            ApiResponse<ProductLocationResponse>.Ok(MapToResponse(location)));
     }
 
-    /// <summary>
-    /// Update a product location
-    /// </summary>
+    // PUT /api/v1/products/{productId}/locations/{id}
     [HttpPut("{id:guid}")]
-    public async Task<IActionResult> Update(Guid id, UpdateProductLocationRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Update(Guid productId, Guid id, [FromBody] UpdateProductLocationRequest body, CancellationToken cancellationToken)
     {
-        try
-        {
-            var location = await _locationRepository.GetByIdAsync(id, cancellationToken);
-            if (location is null)
-                return NotFound(new { message = "Product location not found" });
+        var location = await _locationRepository.GetByIdAsync(id, cancellationToken);
+        if (location is null || location.PartId != productId)
+            return NotFound(ApiError.NotFound($"Location '{id}' not found on product '{productId}'", Request.Path));
 
-            // Check for duplicate location (excluding current)
-            if (await _locationRepository.LocationExistsAsync(location.PartId, location.WarehouseId, request.Section, request.Shelf, id, cancellationToken))
-                return Conflict(new { message = "A location with this section and shelf already exists for this part in this warehouse" });
+        if (await _locationRepository.LocationExistsAsync(productId, location.WarehouseId, body.Section, body.Shelf, id, cancellationToken))
+            return Conflict(ApiError.Conflict("A location with this section and shelf already exists in this warehouse", Request.Path));
 
-            location.Update(request.Section, request.Shelf, request.IsPrimary, request.Notes);
-            location.ModifiedBy = _currentUserService.GetCurrentUsername();
+        location.Update(body.Section, body.Shelf, body.IsPrimary, body.Notes);
+        location.ModifiedBy = _currentUserService.GetCurrentUsername();
 
-            await _locationRepository.UpdateAsync(location, cancellationToken);
+        await _locationRepository.UpdateAsync(location, cancellationToken);
 
-            // If this is set as primary, ensure no other locations are primary
-            if (request.IsPrimary)
-            {
-                await _locationRepository.SetPrimaryLocationAsync(location.PartId, location.Id, cancellationToken);
-            }
+        if (body.IsPrimary)
+            await _locationRepository.SetPrimaryLocationAsync(productId, location.Id, cancellationToken);
 
-            return Ok(MapToResponse(location));
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error updating product location: {LocationId}", id);
-            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while updating the product location");
-        }
+        return Ok(ApiResponse<ProductLocationResponse>.Ok(MapToResponse(location)));
     }
 
-    /// <summary>
-    /// Set a location as the primary location for a part
-    /// </summary>
-    [HttpPatch("part/{partId:guid}/set-primary")]
-    public async Task<IActionResult> SetPrimary(Guid partId, SetPrimaryLocationRequest request, CancellationToken cancellationToken)
+    // PATCH /api/v1/products/{productId}/locations/{id}/set-primary
+    [HttpPatch("{id:guid}/set-primary")]
+    public async Task<IActionResult> SetPrimary(Guid productId, Guid id, CancellationToken cancellationToken)
     {
-        try
-        {
-            var location = await _locationRepository.GetByIdAsync(request.LocationId, cancellationToken);
-            if (location is null)
-                return NotFound(new { message = "Product location not found" });
+        var location = await _locationRepository.GetByIdAsync(id, cancellationToken);
+        if (location is null || location.PartId != productId)
+            return NotFound(ApiError.NotFound($"Location '{id}' not found on product '{productId}'", Request.Path));
 
-            if (location.PartId != partId)
-                return BadRequest(new { message = "Location does not belong to the specified part" });
-
-            await _locationRepository.SetPrimaryLocationAsync(partId, request.LocationId, cancellationToken);
-
-            return Ok(new { message = "Primary location updated successfully" });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error setting primary location for part: {PartId}", partId);
-            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while setting the primary location");
-        }
+        await _locationRepository.SetPrimaryLocationAsync(productId, id, cancellationToken);
+        return Ok(ApiResponse<object>.Ok(new { message = "Primary location updated" }));
     }
 
-    /// <summary>
-    /// Delete a product location
-    /// </summary>
+    // DELETE /api/v1/products/{productId}/locations/{id}
     [HttpDelete("{id:guid}")]
-    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    public async Task<IActionResult> Delete(Guid productId, Guid id, CancellationToken cancellationToken)
     {
-        try
-        {
-            if (!await _locationRepository.ExistsAsync(id, cancellationToken))
-                return NotFound(new { message = "Product location not found" });
+        var location = await _locationRepository.GetByIdAsync(id, cancellationToken);
+        if (location is null || location.PartId != productId)
+            return NotFound(ApiError.NotFound($"Location '{id}' not found on product '{productId}'", Request.Path));
 
-            await _locationRepository.DeleteAsync(id, cancellationToken);
-            return NoContent();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error deleting product location: {LocationId}", id);
-            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while deleting the product location");
-        }
+        await _locationRepository.DeleteAsync(id, cancellationToken);
+        return NoContent();
     }
 
-    private ProductLocationResponse MapToResponse(ProductLocation location)
+    private static ProductLocationResponse MapToResponse(ProductLocation location) => new()
     {
-        return new ProductLocationResponse
-        {
-            Id = location.Id,
-            PartId = location.PartId,
-            PartName = location.Part?.Name ?? string.Empty,
-            PartSKU = location.Part?.SKU ?? string.Empty,
-            WarehouseId = location.WarehouseId,
-            WarehouseName = location.Warehouse?.Name ?? string.Empty,
-            WarehouseCode = location.Warehouse?.Code ?? string.Empty,
-            Section = location.Section,
-            Shelf = location.Shelf,
-            FullLocation = location.GetFullLocation(),
-            Notes = location.Notes,
-            IsPrimary = location.IsPrimary,
-            CreatedBy = location.CreatedBy,
-            CreatedAt = location.CreatedDate
-        };
-    }
+        Id = location.Id,
+        PartId = location.PartId,
+        PartName = location.Part?.Name ?? string.Empty,
+        PartSKU = location.Part?.SKU ?? string.Empty,
+        WarehouseId = location.WarehouseId,
+        WarehouseName = location.Warehouse?.Name ?? string.Empty,
+        WarehouseCode = location.Warehouse?.Code ?? string.Empty,
+        Section = location.Section,
+        Shelf = location.Shelf,
+        FullLocation = location.GetFullLocation(),
+        Notes = location.Notes,
+        IsPrimary = location.IsPrimary,
+        CreatedBy = location.CreatedBy,
+        CreatedAt = location.CreatedDate
+    };
 }
+
+// Request body — productId comes from the URL, not the body
+public record CreateLocationBody(
+    Guid WarehouseId,
+    string Section,
+    string Shelf,
+    bool IsPrimary,
+    string? Notes);

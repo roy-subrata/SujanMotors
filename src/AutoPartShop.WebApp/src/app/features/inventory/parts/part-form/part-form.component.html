@@ -2,14 +2,33 @@
   <p-toast></p-toast>
 
   <!-- Header -->
-  <div class="pf-header">
-    <div class="pf-breadcrumb">
-      <a (click)="onCancel()" class="pf-back"><i class="pi pi-arrow-left"></i> Parts</a>
-      <span class="pf-sep">/</span>
-      <span>{{ isEditMode ? 'Edit' : isViewMode ? 'View' : 'New Part' }}</span>
+  <header class="page-header">
+    <div class="header-content">
+      <div class="header-left">
+        <div class="pf-breadcrumb">
+          <a (click)="onCancel()" class="pf-back"><i class="pi pi-arrow-left"></i> Parts</a>
+          <i class="pi pi-chevron-right pf-sep"></i>
+          <span>{{ isEditMode ? 'Edit' : isViewMode ? 'View' : 'New Part' }}</span>
+        </div>
+        <h1 class="page-title">{{ pageTitle }}</h1>
+        <p class="page-subtitle">
+          {{ isViewMode ? 'Viewing part details' : isEditMode ? 'Update part information and settings' : 'Add a new part to inventory' }}
+        </p>
+      </div>
+      <div class="header-actions">
+        <div class="action-buttons">
+          <button class="btn-secondary" type="button" (click)="onCancel()" [disabled]="isSubmitting">
+            <i class="pi pi-arrow-left"></i>
+            <span>{{ isViewMode ? 'Back' : 'Cancel' }}</span>
+          </button>
+          <button *ngIf="!isViewMode" class="btn-primary" type="button" (click)="onSubmit()" [disabled]="isSubmitting">
+            <i class="pi" [ngClass]="isSubmitting ? 'pi-spin pi-spinner' : 'pi-check'"></i>
+            <span>{{ isEditMode ? 'Update Part' : 'Create Part' }}</span>
+          </button>
+        </div>
+      </div>
     </div>
-    <h1 class="pf-title">{{ pageTitle }}</h1>
-  </div>
+  </header>
 
   <!-- Loading overlay -->
   <div *ngIf="isLoading" class="pf-loading">

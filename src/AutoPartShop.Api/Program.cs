@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json.Serialization;
+using AutoPartShop.Api.Middleware;
 using AutoPartShop.Api.Services;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
@@ -251,6 +252,7 @@ app.UseSwaggerUI(c =>
 await app.ApplyMigration();
 // Enable CORS
 app.UseCors(corsPolicy);
+app.UseMiddleware<GlobalExceptionMiddleware>();
 app.UseSerilogRequestLogging();
 
 // Only redirect HTTPS in production

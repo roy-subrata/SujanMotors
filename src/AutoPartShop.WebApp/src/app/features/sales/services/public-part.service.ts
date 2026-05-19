@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
 
 export interface PublicPartResponse {
@@ -58,22 +59,35 @@ export interface PaginatedResponse<T> {
 @Injectable({ providedIn: 'root' })
 export class PublicPartService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = `${environment.apiUrl}/parts/public`;
+  private readonly apiUrl = `${environment.apiUrl}/v1/products`;
 
   getActiveParts(): Observable<PublicPartResponse[]> {
-    return this.http.get<PublicPartResponse[]>(`${this.apiUrl}/active`);
+    return this.http.get<{ data: PublicPartResponse[] }>(this.apiUrl, {
+      params: new HttpParams().set('isActive', 'true').set('pageSize', '500')
+    }).pipe(map(r => r.data));
   }
 
   getParts(query: PublicPartsQuery): Observable<PaginatedResponse<PublicPartResponse>> {
-    return this.http.post<PaginatedResponse<PublicPartResponse>>(`${this.apiUrl}/list`, query);
+    let params = new HttpParams()
+      .set('search', query.search ?? '')
+      .set('page', query.pageNumber.toString())
+      .set('pageSize', query.pageSize.toString())
+      .set('flattenVariants', (query.flattenVariants ?? false).toString());
+    if (query.isActive != null) params = params.set('isActive', query.isActive.toString());
+    return this.http.get<{ data: PublicPartResponse[]; pagination: any }>(this.apiUrl, { params })
+      .pipe(map(r => ({
+        data: r.data,
+        pagination: { ...r.pagination, pageNumber: r.pagination.page }
+      })));
   }
 
   getPartById(id: string): Observable<PublicPartResponse> {
-    return this.http.get<PublicPartResponse>(`${this.apiUrl}/${id}`);
+    return this.http.get<{ data: PublicPartResponse }>(`${this.apiUrl}/${id}`)
+      .pipe(map(r => r.data));
   }
 
-  /** Returns the FIFO lot selling price. Falls back to Part.SellingPrice when no active lot has a price. */
-  getLotPrice(partId: string): Observable<{ partId: string; sellingPrice: number; lotSellingPrice: number | null; fallbackSellingPrice: number; hasLotPrice: boolean; stockAvailable: number }> {
-    return this.http.get<any>(`${this.apiUrl}/${partId}/lot-price`);
+  getLotPrice(partId: string): Observable<{ productId: string; sellingPrice: number; lotSellingPrice: number | null; fallbackSellingPrice: number; hasLotPrice: boolean; stockAvailable: number }> {
+    return this.http.get<{ data: any }>(`${this.apiUrl}/${partId}/lot-price`)
+      .pipe(map(r => r.data));
   }
 }

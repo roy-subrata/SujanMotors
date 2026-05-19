@@ -1,71 +1,220 @@
-/* Invoice View Page Container */
+/* ============================================================
+   INVOICE VIEW / CREATE  — matches app design system
+   ============================================================ */
+
+:host {
+  --color-primary:       #4F46E5;
+  --color-primary-hover: #4338CA;
+  --color-success:       #10B981;
+  --color-danger:        #EF4444;
+  --color-text-primary:  #1E293B;
+  --color-text-secondary:#64748B;
+  --color-text-muted:    #94A3B8;
+  --color-bg-primary:    #FFFFFF;
+  --color-bg-secondary:  #F8FAFC;
+  --color-bg-tertiary:   #F1F5F9;
+  --color-border:        #E2E8F0;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --transition-fast: 150ms ease;
+}
+
+/* ── Page wrapper ────────────────────────────────────────── */
 .invoice-view-page {
-  height: 100%;
-  overflow-y: auto;
+  min-height: 100%;
+  background: var(--color-bg-secondary);
   display: flex;
   flex-direction: column;
-  margin: -1.5rem;
-  padding: 1.5rem;
 }
 
-@media (min-width: 1200px) {
-  .invoice-view-page {
-    margin: -2rem;
-    padding: 1.5rem;
-  }
+/* ── Header ──────────────────────────────────────────────── */
+.inv-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #6B8DD6 100%);
+  padding: 12px 20px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 12px rgba(102, 126, 234, 0.25);
 }
 
-@media (max-width: 768px) {
-  .invoice-view-page {
-    margin: -1rem;
-    padding: 1rem;
-  }
+.inv-header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
-@media (max-width: 480px) {
-  .invoice-view-page {
-    margin: -0.75rem;
-    padding: 0.75rem;
-  }
+.inv-header-left { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+
+.inv-breadcrumb {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; color: rgba(255,255,255,0.7); margin-bottom: 2px;
+}
+.inv-back-link {
+  color: rgba(255,255,255,0.85); cursor: pointer; text-decoration: none;
+  display: flex; align-items: center; gap: 4px;
+}
+.inv-back-link:hover { color: #fff; }
+.inv-sep { color: rgba(255,255,255,0.4); font-size: 10px; }
+
+.inv-title {
+  font-size: 18px; font-weight: 600; color: #fff; margin: 0; display: flex; align-items: center; gap: 8px;
+}
+.inv-subtitle { font-size: 12px; color: rgba(255,255,255,0.7); }
+
+.inv-header-right {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
 }
 
-/* PrimeNG Card Header */
-:host ::ng-deep .p-card .p-card-header {
-  background: #ffffff;
-  border-bottom: 1px solid #e5e7eb;
-  padding: 0;
+.inv-status-pill {
+  display: inline-flex; align-items: center;
+  padding: 3px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.inv-status-pill[data-status="PAID"]           { background: #dcfce7; color: #16a34a; }
+.inv-status-pill[data-status="ISSUED"]         { background: rgba(255,255,255,0.9); color: #1d4ed8; }
+.inv-status-pill[data-status="PARTIALLY_PAID"] { background: #fef9c3; color: #b45309; }
+.inv-status-pill[data-status="DUE"]            { background: #fef9c3; color: #b45309; }
+.inv-status-pill[data-status="OVERDUE"]        { background: #fee2e2; color: #dc2626; }
+.inv-status-pill[data-status="DRAFT"]          { background: rgba(255,255,255,0.2); color: rgba(255,255,255,0.9); }
+.inv-status-pill[data-status="CANCELLED"]      { background: #fee2e2; color: #dc2626; }
+
+.inv-overdue-badge {
+  background: #dc2626; color: #fff;
+  padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700;
 }
 
-:host ::ng-deep .p-card .p-card-body {
-  padding: 1.25rem;
+.btn-header {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 14px; font-size: 13px; font-weight: 500;
+  border-radius: var(--radius-md); cursor: pointer;
+  transition: all var(--transition-fast); border: none;
+}
+.btn-header-outline {
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.35);
+  color: #fff;
+}
+.btn-header-outline:hover { background: rgba(255,255,255,0.25); }
+.btn-header-primary {
+  background: rgba(255,255,255,0.2);
+  border: 1px solid rgba(255,255,255,0.45);
+  color: #fff; font-weight: 600;
+}
+.btn-header-primary:hover { background: rgba(255,255,255,0.3); }
+.btn-header-success {
+  background: #10b981; border: 1px solid #059669; color: #fff; font-weight: 600;
+}
+.btn-header-success:hover { background: #059669; }
+
+/* ── Content area ────────────────────────────────────────── */
+.inv-body { padding: 16px 20px; display: flex; flex-direction: column; gap: 14px; }
+
+/* ── Section cards ───────────────────────────────────────── */
+.inv-card {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  overflow: hidden;
 }
 
-@media (max-width: 768px) {
-  :host ::ng-deep .p-card .p-card-body {
-    padding: 1rem;
-  }
+.inv-card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg-tertiary);
+}
+.inv-card-title {
+  display: flex; align-items: center; gap: 7px;
+  font-weight: 600; font-size: 14px; color: var(--color-text-primary);
+}
+.inv-card-title i { color: var(--color-text-secondary); font-size: 13px; }
+.inv-card-body { padding: 16px; }
+
+/* ── Summary grid ────────────────────────────────────────── */
+.summary-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+}
+@media (max-width: 640px) { .summary-grid { grid-template-columns: 1fr 1fr; } }
+
+.summary-item { display: flex; flex-direction: column; gap: 3px; }
+.summary-item-label {
+  font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+}
+.summary-item-value { font-size: 15px; font-weight: 600; color: var(--color-text-primary); }
+.summary-item-value.large { font-size: 20px; font-weight: 800; color: var(--color-primary); }
+.summary-item-value.paid  { color: var(--color-success); font-size: 18px; font-weight: 700; }
+.summary-item-value.due   { color: var(--color-danger);  font-size: 20px; font-weight: 800; }
+.summary-item-value.zero  { color: var(--color-success); }
+
+/* ── Due banner ──────────────────────────────────────────── */
+.due-banner {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px;
+  background: #fef2f2; border: 1px solid #fecaca; border-radius: var(--radius-md);
+}
+.due-banner-label { font-size: 14px; font-weight: 600; color: #dc2626; display: flex; align-items: center; gap: 6px; }
+.due-banner-amount { font-size: 22px; font-weight: 900; color: #dc2626; letter-spacing: -0.5px; }
+.paid-banner {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 10px 16px;
+  background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-md);
+  font-weight: 700; font-size: 14px; color: #16a34a;
 }
 
-:host ::ng-deep .p-card .p-card-content {
-  padding: 0;
+/* ── Payment history table ───────────────────────────────── */
+.payments-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.payments-table th {
+  padding: 8px 12px; font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.05em; color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border); background: var(--color-bg-tertiary); text-align: left;
+}
+.payments-table td { padding: 10px 12px; border-bottom: 1px solid var(--color-border); }
+.payments-table tr:last-child td { border-bottom: none; }
+.payments-table tr:hover td { background: var(--color-bg-secondary); }
+.amount-cell { text-align: right; font-weight: 600; color: var(--color-success); }
+
+/* ── Notes ───────────────────────────────────────────────── */
+.inv-notes { font-size: 13px; color: var(--color-text-secondary); line-height: 1.6; }
+
+/* ── Loading / error ─────────────────────────────────────── */
+.inv-loading {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 4rem; font-size: 15px; color: var(--color-text-secondary);
+}
+.inv-error {
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 16px; margin: 16px 20px;
+  background: #fef2f2; border: 1px solid #fecaca; border-radius: var(--radius-md);
+  color: #dc2626; font-size: 13px;
 }
 
-/* Payment History Table */
-:host ::ng-deep .p-datatable {
-  font-size: 0.875rem;
+/* ── Create form card ────────────────────────────────────── */
+.inv-form-card {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
 }
+.inv-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.inv-form-full  { grid-column: span 2; }
+.inv-form-label { font-size: 13px; font-weight: 500; color: var(--color-text-primary); display: block; margin-bottom: 6px; }
+.inv-form-actions { display: flex; justify-content: flex-end; gap: 10px; padding-top: 12px; border-top: 1px solid var(--color-border); margin-top: 4px; }
 
-:host ::ng-deep .p-datatable th {
-  font-size: 0.75rem;
-  padding: 0.75rem;
+/* ── Payment dialog ──────────────────────────────────────── */
+.pmt-dialog-info {
+  background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-md);
+  padding: 10px 14px; margin-bottom: 14px;
 }
+.pmt-dialog-info-label { font-size: 11px; font-weight: 600; color: #1d4ed8; text-transform: uppercase; letter-spacing: 0.05em; }
+.pmt-dialog-info-value { font-size: 20px; font-weight: 800; color: #1d4ed8; }
 
-@media (min-width: 768px) {
-  :host ::ng-deep .p-datatable th {
-    font-size: 0.875rem;
-  }
-}
-
-:host ::ng-deep .p-datatable td {
-  padding: 0.75rem;
+@media (max-width: 640px) {
+  .inv-header { padding: 10px 14px; }
+  .inv-body   { padding: 12px 14px; gap: 10px; }
+  .inv-header-right { display: none; }
+  .summary-grid { grid-template-columns: 1fr 1fr; }
 }

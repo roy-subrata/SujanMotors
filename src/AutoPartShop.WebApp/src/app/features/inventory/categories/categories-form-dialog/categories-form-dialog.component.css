@@ -136,3 +136,117 @@
   content: 'ℹ️';
   font-size: 0.75rem;
 }
+
+/* ── New consistent form layout (matches brands dialog) ─────────────── */
+
+.form-container {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 4px 0;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.form-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 4px;
+}
+
+.required { color: #ef4444; margin-right: 4px; }
+
+.form-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 13px;
+  background: #fff;
+  color: #1f2937;
+  transition: border-color .2s, box-shadow .2s;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, .1);
+}
+
+.hint-message {
+  font-size: 11px;
+  color: #9ca3af;
+  margin-top: 2px;
+  font-style: italic;
+}
+
+.form-error {
+  font-size: 12px;
+  color: #ef4444;
+  margin-top: 2px;
+}
+
+.form-checkbox-group {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 10px;
+  padding-top: 28px; /* align with sibling inputs that have a label above */
+}
+
+.checkbox-label {
+  cursor: pointer;
+  margin: 0;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Autocomplete item layout */
+.autocomplete-item {
+  font-size: 13px;
+  color: #1f2937;
+  font-weight: 500;
+}
+.autocomplete-code {
+  font-size: 12px;
+  color: #9ca3af;
+  font-family: monospace;
+}
+
+/* ── Dialog overflow fix (footer always visible on mobile) ────────── */
+:host ::ng-deep .p-dialog {
+  display: flex !important;
+  flex-direction: column !important;
+  max-height: 92dvh !important;
+}
+
+:host ::ng-deep .p-dialog .p-dialog-content {
+  flex: 1 1 auto !important;
+  overflow-y: auto !important;
+  min-height: 0 !important;
+}
+
+:host ::ng-deep .p-dialog .p-dialog-footer {
+  flex-shrink: 0 !important;
+  border-top: 1px solid #e5e7eb;
+  background: #fff;
+}
+
+@media (max-width: 640px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .form-checkbox-group {
+    padding-top: 0;
+  }
+}

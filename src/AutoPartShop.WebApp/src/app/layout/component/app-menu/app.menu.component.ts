@@ -179,6 +179,11 @@ export class AppMenuComponent implements OnInit {
                                 routerLink: ['/sales/sales-orders']
                             },
                             {
+                                label: 'Pending Deliveries',
+                                icon: 'pi pi-truck',
+                                routerLink: ['/sales/pending-deliveries']
+                            },
+                            {
                                 label: this.i18n.t('menu.salesReturns'),
                                 icon: 'pi pi-replay',
                                 routerLink: ['/sales/sales-returns']
@@ -248,6 +253,11 @@ export class AppMenuComponent implements OnInit {
                 label: 'Finance',
                 icon: 'pi pi-chart-line',
                 items: [
+                    {
+                        label: 'Daily Cash Book',
+                        icon: 'pi pi-book',
+                        routerLink: ['/finance/cash-book']
+                    },
                     {
                         label: this.i18n.t('menu.invoices'),
                         icon: 'pi pi-file-invoice',

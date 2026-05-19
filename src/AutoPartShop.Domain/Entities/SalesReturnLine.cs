@@ -20,7 +20,7 @@ public class SalesReturnLine : AuditableEntity
 
     // Navigation properties
     public SalesReturn? SalesReturn { get; set; }
-    public Part? Part { get; set; }
+    public Product? Part { get; set; }
     public Unit? Unit { get; set; }
 
     private SalesReturnLine() { }

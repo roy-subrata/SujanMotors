@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, BehaviorSubject } from 'rxjs';
-import { tap } from 'rxjs/operators';
+import { map, tap } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
 
 // Payment method types
@@ -346,7 +346,8 @@ export class QuickSaleService {
    * (falls back to Part.SellingPrice when no lot price is set).
    */
   getPriceByCode(code: string): Observable<{ partId: string; name: string; partNumber: string; sku: string; sellingPrice: number; fallbackSellingPrice: number; hasLotPrice: boolean; stockLevel: number; unitId: string | null } | null> {
-    return this.http.get<any>(`${this.apiUrl}/parts/search-by-code?code=${encodeURIComponent(code)}`);
+    return this.http.get<{ data: any }>(`${this.apiUrl}/v1/products/by-code?code=${encodeURIComponent(code)}`)
+      .pipe(map(r => r.data ? { ...r.data, partId: r.data.productId } : null));
   }
 
   // ===== RETURNS =====

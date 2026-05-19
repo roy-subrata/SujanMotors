@@ -100,16 +100,19 @@
   </section>
 
   <!-- ==================== LIST SECTION ==================== -->
-  <app-brands-list
-    [brands]="brands"
-    [loading]="loading"
-    [totalRecords]="totalRecords"
-    [rows]="rows"
-    [currentPage]="currentPage"
-    (editBrand)="selectAndOpenUpdate($event)"
-    (deleteBrand)="selectAndDelete($event)"
-    (pageChange)="onPageChange($event)">
-  </app-brands-list>
+  <div class="list-wrapper">
+    <app-brands-list
+      [brands]="brands"
+      [loading]="loading"
+      [totalRecords]="totalRecords"
+      [rows]="rows"
+      [currentPage]="currentPage"
+      (editBrand)="selectAndOpenUpdate($event)"
+      (deleteBrand)="selectAndDelete($event)"
+      (toggleStatus)="toggleBrandStatus($event)"
+      (pageChange)="onPageChange($event)">
+    </app-brands-list>
+  </div>
 </div>
 
 <!-- ==================== FORM DIALOG ==================== -->

@@ -13,7 +13,7 @@ namespace AutoPartShop.Api.Controllers;
 public class WarrantyRegistrationsController : ControllerBase
 {
     private readonly IWarrantyRegistrationRepository _warrantyRepository;
-    private readonly IPartRepository _partRepository;
+    private readonly IProductRepository _productRepository;
     private readonly ICustomerRepository _customerRepository;
     private readonly ISalesOrderRepository _salesOrderRepository;
     private readonly IWarrantyService _warrantyService;
@@ -21,14 +21,14 @@ public class WarrantyRegistrationsController : ControllerBase
 
     public WarrantyRegistrationsController(
         IWarrantyRegistrationRepository warrantyRepository,
-        IPartRepository partRepository,
+        IProductRepository productRepository,
         ICustomerRepository customerRepository,
         ISalesOrderRepository salesOrderRepository,
         IWarrantyService warrantyService,
         ILogger<WarrantyRegistrationsController> logger)
     {
         _warrantyRepository = warrantyRepository;
-        _partRepository = partRepository;
+        _productRepository = productRepository;
         _customerRepository = customerRepository;
         _salesOrderRepository = salesOrderRepository;
         _warrantyService = warrantyService;
@@ -225,7 +225,7 @@ public class WarrantyRegistrationsController : ControllerBase
         try
         {
             // Validate part exists and has warranty
-            var part = await _partRepository.GetByIdAsync(request.PartId, cancellationToken);
+            var part = await _productRepository.GetByIdAsync(request.PartId, cancellationToken);
             if (part == null)
                 return BadRequest(new { message = "Part not found" });
 

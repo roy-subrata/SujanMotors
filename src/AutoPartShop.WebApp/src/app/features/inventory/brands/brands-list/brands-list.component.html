@@ -17,30 +17,41 @@
       scrollHeight="flex"
       styleClass="custom-table">
 
-      <!-- Table Header -->
       <ng-template #header>
         <tr>
+          <th class="col-logo">Logo</th>
           <th class="col-name">Name</th>
           <th class="col-code">Code</th>
           <th class="col-country">Country</th>
+          <th class="col-website">Website</th>
+          <th class="col-order">Order</th>
+          <th class="col-created">Created</th>
           <th class="col-status">Status</th>
           <th class="col-actions">Actions</th>
         </tr>
       </ng-template>
 
-      <!-- Table Body -->
       <ng-template #body let-brand>
         <tr class="data-row">
-          <!-- Name -->
-          <td class="col-name">
-            <div class="customer-cell">
-              <div class="customer-avatar">
+
+          <!-- Logo -->
+          <td class="col-logo">
+            <div class="brand-logo-cell">
+              <img *ngIf="brand.logoUrl" [src]="brand.logoUrl" [alt]="brand.name" class="brand-logo-img"
+                   (error)="brand.logoUrl = null" />
+              <div *ngIf="!brand.logoUrl" class="customer-avatar">
                 {{ (brand.name || 'B')[0].toUpperCase() }}
               </div>
-              <div class="customer-info">
-                <span class="customer-name">{{ brand.name }}</span>
-                <span *ngIf="brand.description" class="customer-phone">{{ brand.description }}</span>
-              </div>
+            </div>
+          </td>
+
+          <!-- Name + description -->
+          <td class="col-name">
+            <div class="customer-info">
+              <span class="customer-name">{{ brand.name }}</span>
+              <span *ngIf="brand.description" class="customer-phone text-truncate" [title]="brand.description">
+                {{ brand.description }}
+              </span>
             </div>
           </td>
 
@@ -51,7 +62,27 @@
 
           <!-- Country -->
           <td class="col-country">
-            <span class="country-text">{{ brand.country || '-' }}</span>
+            <span class="country-text">{{ brand.country || '—' }}</span>
+          </td>
+
+          <!-- Website -->
+          <td class="col-website">
+            <a *ngIf="brand.website" [href]="brand.website" target="_blank" rel="noopener noreferrer"
+               class="website-link" [title]="brand.website">
+              <i class="pi pi-external-link"></i>
+              <span class="website-text">{{ brand.website | slice:8:40 }}{{ (brand.website?.length ?? 0) > 48 ? '…' : '' }}</span>
+            </a>
+            <span *ngIf="!brand.website" class="text-muted">—</span>
+          </td>
+
+          <!-- Display Order -->
+          <td class="col-order">
+            <span class="order-badge">{{ brand.displayOrder }}</span>
+          </td>
+
+          <!-- Created At -->
+          <td class="col-created">
+            <span class="date-text">{{ brand.createdAt | date:'dd MMM yyyy' }}</span>
           </td>
 
           <!-- Status -->
@@ -64,22 +95,20 @@
           <!-- Actions -->
           <td class="col-actions">
             <div class="action-cell">
-              <button class="btn-action" pTooltip="More" (click)="showContextMenu($event, brand)">
+              <button class="btn-action" pTooltip="Actions" tooltipPosition="top" (click)="showContextMenu($event, brand)">
                 <i class="pi pi-ellipsis-v"></i>
               </button>
             </div>
           </td>
+
         </tr>
       </ng-template>
 
-      <!-- Empty State -->
       <ng-template #emptymessage>
         <tr>
-          <td colspan="5">
+          <td colspan="9">
             <div class="empty-state">
-              <div class="empty-icon">
-                <i class="pi pi-tags"></i>
-              </div>
+              <div class="empty-icon"><i class="pi pi-tags"></i></div>
               <h3>No Brands Found</h3>
               <p>Try adjusting your filters or create a new brand</p>
             </div>
@@ -87,15 +116,13 @@
         </tr>
       </ng-template>
 
-      <!-- Loading Skeleton -->
       <ng-template #loadingbody>
         <tr *ngFor="let _ of [1,2,3,4,5,6,7,8]" class="skeleton-row">
-          <td>
-            <div class="skeleton-customer">
-              <div class="skeleton skeleton-avatar"></div>
-              <div class="skeleton skeleton-text"></div>
-            </div>
-          </td>
+          <td><div class="skeleton skeleton-avatar"></div></td>
+          <td><div class="skeleton skeleton-text"></div></td>
+          <td><div class="skeleton skeleton-text-sm"></div></td>
+          <td><div class="skeleton skeleton-text-sm"></div></td>
+          <td><div class="skeleton skeleton-text-sm"></div></td>
           <td><div class="skeleton skeleton-text-sm"></div></td>
           <td><div class="skeleton skeleton-text-sm"></div></td>
           <td><div class="skeleton skeleton-badge"></div></td>
@@ -109,28 +136,29 @@
   <!-- Pagination -->
   <div class="pagination-section" *ngIf="totalRecords > 0">
     <div class="pagination-info">
-      Showing <strong>{{ first + 1 }}</strong> to <strong>{{ Math.min(first + rows, totalRecords) }}</strong> of <strong>{{ totalRecords }}</strong> brands
+      Showing <strong>{{ first + 1 }}</strong> – <strong>{{ Math.min(first + rows, totalRecords) }}</strong>
+      of <strong>{{ totalRecords }}</strong> brands
     </div>
     <div class="pagination-controls">
       <span class="page-size-label">Rows per page:</span>
       <p-select
-        [options]="[{label: '10', value: 10}, {label: '20', value: 20}, {label: '50', value: 50}]"
+        [options]="[{label:'10',value:10},{label:'20',value:20},{label:'50',value:50}]"
         [ngModel]="rows"
         (onChange)="onPageSizeChange($event.value)"
         styleClass="page-size-dropdown">
       </p-select>
       <div class="page-nav">
-        <button class="page-btn" [disabled]="currentPage <= 1" (click)="goToPage(1)" pTooltip="First Page" tooltipPosition="top">
+        <button class="page-btn" [disabled]="currentPage <= 1" (click)="goToPage(1)" pTooltip="First" tooltipPosition="top">
           <i class="pi pi-angle-double-left"></i>
         </button>
-        <button class="page-btn" [disabled]="currentPage <= 1" (click)="goToPage(currentPage - 1)" pTooltip="Previous Page" tooltipPosition="top">
+        <button class="page-btn" [disabled]="currentPage <= 1" (click)="goToPage(currentPage - 1)" pTooltip="Previous" tooltipPosition="top">
           <i class="pi pi-angle-left"></i>
         </button>
         <span class="page-indicator">{{ currentPage }} / {{ totalPages }}</span>
-        <button class="page-btn" [disabled]="currentPage >= totalPages" (click)="goToPage(currentPage + 1)" pTooltip="Next Page" tooltipPosition="top">
+        <button class="page-btn" [disabled]="currentPage >= totalPages" (click)="goToPage(currentPage + 1)" pTooltip="Next" tooltipPosition="top">
           <i class="pi pi-angle-right"></i>
         </button>
-        <button class="page-btn" [disabled]="currentPage >= totalPages" (click)="goToPage(totalPages)" pTooltip="Last Page" tooltipPosition="top">
+        <button class="page-btn" [disabled]="currentPage >= totalPages" (click)="goToPage(totalPages)" pTooltip="Last" tooltipPosition="top">
           <i class="pi pi-angle-double-right"></i>
         </button>
       </div>
@@ -140,7 +168,6 @@
 
 <!-- ==================== MOBILE CARDS ==================== -->
 <section class="cards-section mobile-only">
-  <!-- Loading Skeleton -->
   <div *ngIf="loading" class="cards-grid">
     <div *ngFor="let _ of [1,2,3,4]" class="order-card skeleton-card">
       <div class="card-header">
@@ -151,50 +178,46 @@
         <div class="skeleton skeleton-text-lg"></div>
         <div class="skeleton skeleton-text-sm"></div>
       </div>
-      <div class="card-footer">
-        <div class="skeleton skeleton-text-sm"></div>
-        <div class="skeleton skeleton-text-sm"></div>
-      </div>
     </div>
   </div>
 
-  <!-- Empty State -->
   <div *ngIf="!loading && brands.length === 0" class="empty-state-mobile">
-    <div class="empty-icon">
-      <i class="pi pi-tags"></i>
-    </div>
+    <div class="empty-icon"><i class="pi pi-tags"></i></div>
     <h3>No Brands</h3>
     <p>Try different filters or create a new brand</p>
   </div>
 
-  <!-- Brand Cards -->
   <div *ngIf="!loading && brands.length > 0" class="cards-grid">
     <div *ngFor="let brand of brands" class="order-card" (click)="editBrand.emit(brand)">
-      <!-- Card Header -->
       <div class="card-header">
-        <span class="card-so-number">{{ brand.code }}</span>
+        <div class="card-logo-name">
+          <img *ngIf="brand.logoUrl" [src]="brand.logoUrl" [alt]="brand.name" class="card-logo-img" />
+          <div *ngIf="!brand.logoUrl" class="customer-avatar small">{{ (brand.name || 'B')[0].toUpperCase() }}</div>
+          <span class="card-so-number">{{ brand.code }}</span>
+        </div>
         <span class="status-pill" [attr.data-status]="brand.isActive ? 'active' : 'inactive'">
           {{ getStatusLabel(brand.isActive) }}
         </span>
       </div>
 
-      <!-- Card Body -->
       <div class="card-body">
         <div class="card-customer">
-          <div class="customer-avatar small">
-            {{ (brand.name || 'B')[0].toUpperCase() }}
-          </div>
           <span class="customer-name">{{ brand.name }}</span>
+          <span *ngIf="brand.description" class="customer-phone">{{ brand.description }}</span>
         </div>
-        <div class="card-dates">
-          <span class="card-date">
-            <i class="pi pi-globe"></i>
-            {{ brand.country || '-' }}
+        <div class="card-meta">
+          <span *ngIf="brand.country" class="card-meta-item">
+            <i class="pi pi-globe"></i>&nbsp;{{ brand.country }}
+          </span>
+          <span *ngIf="brand.website" class="card-meta-item">
+            <i class="pi pi-link"></i>&nbsp;<a [href]="brand.website" target="_blank" rel="noopener noreferrer" (click)="$event.stopPropagation()">Website</a>
+          </span>
+          <span class="card-meta-item">
+            <i class="pi pi-calendar"></i>&nbsp;{{ brand.createdAt | date:'dd MMM yyyy' }}
           </span>
         </div>
       </div>
 
-      <!-- Card Footer -->
       <div class="card-footer">
         <button class="btn-card-action" (click)="showContextMenu($event, brand); $event.stopPropagation()">
           <i class="pi pi-ellipsis-h"></i>
@@ -203,11 +226,8 @@
     </div>
   </div>
 
-  <!-- Mobile Pagination -->
-  <div *ngIf="!loading && brands.length > 0" class="mobile-pagination">
-    <div class="pagination-info-mobile">
-      {{ first + 1 }}-{{ Math.min(first + rows, totalRecords) }} of {{ totalRecords }}
-    </div>
+  <div *ngIf="!loading && totalRecords > 0" class="mobile-pagination">
+    <div class="pagination-info-mobile">{{ first + 1 }}–{{ Math.min(first + rows, totalRecords) }} of {{ totalRecords }}</div>
     <div class="pagination-nav-mobile">
       <button class="page-btn" [disabled]="currentPage <= 1" (click)="goToPage(currentPage - 1)">
         <i class="pi pi-chevron-left"></i>

@@ -39,7 +39,7 @@ public class GoodsReceiptLine : AuditableEntity
     public GoodsReceipt? GoodsReceipt { get; set; }
 
     public PurchaseOrderLine? PurchaseOrderLine { get; set; }
-    public Part? Part { get; set; }
+    public Product? Part { get; set; }
 
     // Computed properties
     public bool HasDiscrepancy => ReceivedQuantity != OrderedQuantity || RejectedQuantity > 0;

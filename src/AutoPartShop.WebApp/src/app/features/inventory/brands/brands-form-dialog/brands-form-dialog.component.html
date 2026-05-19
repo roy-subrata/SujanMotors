@@ -1,170 +1,212 @@
-<!-- Create Brand Dialog -->
+<!-- ==================== CREATE BRAND DIALOG ==================== -->
 <p-dialog
   [(visible)]="displayCreateDialog"
   header="New Brand"
   [modal]="true"
-  [style]="{width: '500px', maxWidth: '95vw'}"
-  [draggable]="true"
+  [style]="{width: '640px'}"
+  [breakpoints]="{'960px': '90vw', '640px': '100vw'}"
+  [draggable]="false"
   [resizable]="false"
   (onShow)="onCreateDialogShow()"
   (onHide)="onCreateDialogHide()">
 
+  <p-toast position="top-right"></p-toast>
+
   <form [formGroup]="createForm" class="form-container">
-    <div class="form-group">
-      <label for="createName" class="form-label">
-        <span class="required">*</span> Brand Name
-      </label>
-      <input
-        type="text"
-        pInputText
-        id="createName"
-        formControlName="name"
-        placeholder="Enter brand name"
-        class="form-input" />
-    </div>
 
-    <div class="form-group">
-      <label for="createCode" class="form-label">
-        <span class="required">*</span> Code
-      </label>
-      <div class="code-input-wrapper">
-        <input
-          type="text"
-          pInputText
-          id="createCode"
-          formControlName="code"
-          placeholder="Auto-generated"
-          class="form-input"
-          [disabled]="true"
-          style="text-transform: uppercase;" />
-        <i *ngIf="generatingCode" class="pi pi-spin pi-spinner code-spinner"></i>
+    <!-- Row 1: Name + Code -->
+    <div class="form-row">
+      <div class="form-group">
+        <label for="c-name" class="form-label"><span class="required">*</span> Brand Name</label>
+        <input type="text" pInputText id="c-name" formControlName="name" placeholder="e.g. Bosch" class="form-input" />
+        <small class="form-error" *ngIf="createForm.get('name')?.touched && createForm.get('name')?.invalid">
+          Name is required (min 2 characters)
+        </small>
       </div>
-      <small class="hint-message">Code is auto-generated and cannot be changed</small>
+      <div class="form-group">
+        <label for="c-code" class="form-label"><span class="required">*</span> Code</label>
+        <div class="code-input-wrapper">
+          <input type="text" pInputText id="c-code" formControlName="code" placeholder="Auto-generated"
+                 class="form-input" style="text-transform:uppercase" />
+          <i *ngIf="generatingCode" class="pi pi-spin pi-spinner code-spinner"></i>
+        </div>
+        <small class="hint-message">Auto-generated — unique identifier</small>
+      </div>
     </div>
 
+    <!-- Description -->
     <div class="form-group">
-      <label for="createDescription" class="form-label">Description</label>
-      <textarea
-        pInputTextarea
-        id="createDescription"
-        formControlName="description"
-        rows="3"
-        placeholder="Enter description"
-        class="form-input"></textarea>
+      <label for="c-description" class="form-label">Description</label>
+      <textarea pInputTextarea id="c-description" formControlName="description" rows="2"
+                placeholder="Short brand description" class="form-input"></textarea>
     </div>
 
-    <div class="form-group">
-      <label for="createCountry" class="form-label">Country</label>
-      <input
-        type="text"
-        pInputText
-        id="createCountry"
-        formControlName="country"
-        placeholder="e.g., Japan"
-        class="form-input" />
+    <!-- Row 2: Country + Display Order -->
+    <div class="form-row">
+      <div class="form-group">
+        <label for="c-country" class="form-label">Country</label>
+        <input type="text" pInputText id="c-country" formControlName="country" placeholder="e.g. Japan" class="form-input" />
+      </div>
+      <div class="form-group">
+        <label for="c-order" class="form-label">Display Order</label>
+        <p-inputNumber id="c-order" formControlName="displayOrder" [min]="0" styleClass="form-input w-full"></p-inputNumber>
+        <small class="hint-message">Lower = shown first</small>
+      </div>
     </div>
+
+    <!-- Row 3: Logo URL + Website -->
+    <div class="form-row">
+      <div class="form-group">
+        <label for="c-logo" class="form-label">Logo URL</label>
+        <input type="url" pInputText id="c-logo" formControlName="logoUrl" placeholder="https://..." class="form-input" />
+      </div>
+      <div class="form-group">
+        <label for="c-website" class="form-label">Website</label>
+        <input type="url" pInputText id="c-website" formControlName="website" placeholder="https://..." class="form-input" />
+        <small class="form-error" *ngIf="createForm.get('website')?.touched && createForm.get('website')?.errors?.['pattern']">
+          Must be a valid URL
+        </small>
+      </div>
+    </div>
+
+    <!-- Row 4: Contact Email + Contact Phone -->
+    <div class="form-row">
+      <div class="form-group">
+        <label for="c-email" class="form-label">Contact Email</label>
+        <input type="email" pInputText id="c-email" formControlName="contactEmail" placeholder="support@brand.com" class="form-input" />
+        <small class="form-error" *ngIf="createForm.get('contactEmail')?.touched && createForm.get('contactEmail')?.errors?.['email']">
+          Must be a valid email
+        </small>
+      </div>
+      <div class="form-group">
+        <label for="c-phone" class="form-label">Contact Phone</label>
+        <input type="tel" pInputText id="c-phone" formControlName="contactPhone" placeholder="+1-800-123456" class="form-input" />
+      </div>
+    </div>
+
+    <!-- Active toggle -->
+    <div class="form-group form-checkbox-group">
+      <p-checkbox formControlName="isActive" [binary]="true" inputId="c-active"></p-checkbox>
+      <label for="c-active" class="form-label checkbox-label">Active</label>
+    </div>
+
   </form>
 
   <ng-template pTemplate="footer">
     <div class="dialog-footer">
-      <button
-        pButton
-        type="button"
-        label="Cancel"
-        icon="pi pi-times"
-        class="p-button-text p-button-secondary"
-        (click)="onCreateDialogHide()"></button>
-      <button
-        pButton
-        type="button"
-        label="Create"
-        icon="pi pi-check"
-        class="p-button-success"
-        (click)="onCreateSubmit()"
-        [disabled]="isCreating()"
-        [loading]="isCreating()"></button>
+      <button pButton type="button" label="Cancel" icon="pi pi-times"
+              class="p-button-text p-button-secondary"
+              [disabled]="isCreating()" (click)="onCreateDialogHide()"></button>
+      <button pButton type="button" label="Create Brand" icon="pi pi-check"
+              class="p-button-success" (click)="onCreateSubmit()"
+              [disabled]="isCreating()" [loading]="isCreating()"></button>
     </div>
   </ng-template>
 </p-dialog>
 
-<!-- Update Brand Dialog -->
+
+<!-- ==================== UPDATE BRAND DIALOG ==================== -->
 <p-dialog
   [(visible)]="displayUpdateDialog"
   header="Edit Brand"
   [modal]="true"
-  [style]="{width: '500px', maxWidth: '95vw'}"
-  [draggable]="true"
+  [style]="{width: '640px'}"
+  [breakpoints]="{'960px': '90vw', '640px': '100vw'}"
+  [draggable]="false"
   [resizable]="false"
   (onShow)="onUpdateDialogShow()"
   (onHide)="onUpdateDialogHide()">
 
   <form [formGroup]="updateForm" class="form-container">
-    <div class="form-group">
-      <label for="updateName" class="form-label">
-        <span class="required">*</span> Brand Name
-      </label>
-      <input
-        type="text"
-        pInputText
-        id="updateName"
-        formControlName="name"
-        placeholder="Enter brand name"
-        class="form-input" />
+
+    <!-- Row 1: Name + Code -->
+    <div class="form-row">
+      <div class="form-group">
+        <label for="u-name" class="form-label"><span class="required">*</span> Brand Name</label>
+        <input type="text" pInputText id="u-name" formControlName="name" placeholder="e.g. Bosch" class="form-input" />
+        <small class="form-error" *ngIf="updateForm.get('name')?.touched && updateForm.get('name')?.invalid">
+          Name is required (min 2 characters)
+        </small>
+      </div>
+      <div class="form-group">
+        <label for="u-code" class="form-label"><span class="required">*</span> Code</label>
+        <input type="text" pInputText id="u-code" formControlName="code" placeholder="e.g. BOSCH"
+               class="form-input" style="text-transform:uppercase" />
+        <small class="form-error" *ngIf="updateForm.get('code')?.touched && updateForm.get('code')?.invalid">
+          Code is required
+        </small>
+      </div>
     </div>
 
+    <!-- Description -->
     <div class="form-group">
-      <label for="updateCode" class="form-label">Code</label>
-      <input
-        type="text"
-        pInputText
-        id="updateCode"
-        [value]="selectedBrand?.code"
-        class="form-input"
-        disabled />
-      <small class="hint-message">Code cannot be changed</small>
+      <label for="u-description" class="form-label">Description</label>
+      <textarea pInputTextarea id="u-description" formControlName="description" rows="2"
+                placeholder="Short brand description" class="form-input"></textarea>
     </div>
 
-    <div class="form-group">
-      <label for="updateDescription" class="form-label">Description</label>
-      <textarea
-        pInputTextarea
-        id="updateDescription"
-        formControlName="description"
-        rows="3"
-        placeholder="Enter description"
-        class="form-input"></textarea>
+    <!-- Row 2: Country + Display Order -->
+    <div class="form-row">
+      <div class="form-group">
+        <label for="u-country" class="form-label">Country</label>
+        <input type="text" pInputText id="u-country" formControlName="country" placeholder="e.g. Japan" class="form-input" />
+      </div>
+      <div class="form-group">
+        <label for="u-order" class="form-label">Display Order</label>
+        <p-inputNumber id="u-order" formControlName="displayOrder" [min]="0" styleClass="form-input w-full"></p-inputNumber>
+      </div>
     </div>
 
-    <div class="form-group">
-      <label for="updateCountry" class="form-label">Country</label>
-      <input
-        type="text"
-        pInputText
-        id="updateCountry"
-        formControlName="country"
-        placeholder="e.g., Japan"
-        class="form-input" />
+    <!-- Row 3: Logo URL + Website -->
+    <div class="form-row">
+      <div class="form-group">
+        <label for="u-logo" class="form-label">Logo URL</label>
+        <input type="url" pInputText id="u-logo" formControlName="logoUrl" placeholder="https://..." class="form-input" />
+        <!-- Logo preview -->
+        <div *ngIf="updateForm.get('logoUrl')?.value" class="logo-preview">
+          <img [src]="updateForm.get('logoUrl')?.value" alt="Logo preview" class="logo-preview-img" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="u-website" class="form-label">Website</label>
+        <input type="url" pInputText id="u-website" formControlName="website" placeholder="https://..." class="form-input" />
+        <small class="form-error" *ngIf="updateForm.get('website')?.touched && updateForm.get('website')?.errors?.['pattern']">
+          Must be a valid URL
+        </small>
+      </div>
     </div>
+
+    <!-- Row 4: Contact Email + Contact Phone -->
+    <div class="form-row">
+      <div class="form-group">
+        <label for="u-email" class="form-label">Contact Email</label>
+        <input type="email" pInputText id="u-email" formControlName="contactEmail" placeholder="support@brand.com" class="form-input" />
+        <small class="form-error" *ngIf="updateForm.get('contactEmail')?.touched && updateForm.get('contactEmail')?.errors?.['email']">
+          Must be a valid email
+        </small>
+      </div>
+      <div class="form-group">
+        <label for="u-phone" class="form-label">Contact Phone</label>
+        <input type="tel" pInputText id="u-phone" formControlName="contactPhone" placeholder="+1-800-123456" class="form-input" />
+      </div>
+    </div>
+
+    <!-- Active toggle -->
+    <div class="form-group form-checkbox-group">
+      <p-checkbox formControlName="isActive" [binary]="true" inputId="u-active"></p-checkbox>
+      <label for="u-active" class="form-label checkbox-label">Active</label>
+    </div>
+
   </form>
 
   <ng-template pTemplate="footer">
     <div class="dialog-footer">
-      <button
-        pButton
-        type="button"
-        label="Cancel"
-        icon="pi pi-times"
-        class="p-button-text p-button-secondary"
-        (click)="onUpdateDialogHide()"></button>
-      <button
-        pButton
-        type="button"
-        label="Update"
-        icon="pi pi-check"
-        class="p-button-info"
-        (click)="onUpdateSubmit()"
-        [disabled]="isUpdating()"
-        [loading]="isUpdating()"></button>
+      <button pButton type="button" label="Cancel" icon="pi pi-times"
+              class="p-button-text p-button-secondary"
+              [disabled]="isUpdating()" (click)="onUpdateDialogHide()"></button>
+      <button pButton type="button" label="Save Changes" icon="pi pi-check"
+              class="p-button-info" (click)="onUpdateSubmit()"
+              [disabled]="isUpdating()" [loading]="isUpdating()"></button>
     </div>
   </ng-template>
 </p-dialog>

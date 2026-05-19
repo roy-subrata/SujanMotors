@@ -13,7 +13,7 @@ public class StockManagementService
     private readonly IStockMovementRepository _stockMovementRepository;
     private readonly IStockLotRepository _stockLotRepository;
     private readonly IStockLotMovementRepository _stockLotMovementRepository;
-    private readonly IPartRepository _partRepository;
+    private readonly IProductRepository _productRepository;
     private readonly IPurchaseOrderRepository _purchaseOrderRepository;
     private readonly ICodeGenerateService _codeGenerateService;
     private readonly IUnitConversionService _unitConversionService;
@@ -23,7 +23,7 @@ public class StockManagementService
         IStockMovementRepository stockMovementRepository,
         IStockLotRepository stockLotRepository,
         IStockLotMovementRepository stockLotMovementRepository,
-        IPartRepository partRepository,
+        IProductRepository productRepository,
         IPurchaseOrderRepository purchaseOrderRepository,
         ICodeGenerateService codeGenerateService,
         IUnitConversionService unitConversionService)
@@ -32,7 +32,7 @@ public class StockManagementService
         _stockMovementRepository = stockMovementRepository;
         _stockLotRepository = stockLotRepository;
         _stockLotMovementRepository = stockLotMovementRepository;
-        _partRepository = partRepository;
+        _productRepository = productRepository;
         _purchaseOrderRepository = purchaseOrderRepository;
         _codeGenerateService = codeGenerateService;
         _unitConversionService = unitConversionService;
@@ -59,7 +59,7 @@ public class StockManagementService
 
             foreach (var grnLine in goodsReceipt.LineItems)
             {
-                var part = await _partRepository.GetByIdAsync(grnLine.PartId, cancellationToken);
+                var part = await _productRepository.GetByIdAsync(grnLine.PartId, cancellationToken);
                 if (part == null)
                     throw new InvalidOperationException($"Part not found for goods receipt line {grnLine.Id}");
 
@@ -246,7 +246,7 @@ public class StockManagementService
         {
             foreach (var grnLine in goodsReceipt.LineItems)
             {
-                var part = await _partRepository.GetByIdAsync(grnLine.PartId, cancellationToken);
+                var part = await _productRepository.GetByIdAsync(grnLine.PartId, cancellationToken);
                 if (part == null)
                     throw new InvalidOperationException($"Part not found for goods receipt line {grnLine.Id}");
 

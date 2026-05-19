@@ -58,11 +58,13 @@ public class Brand : AuditableEntity
     /// <summary>
     /// Collection of parts from this brand
     /// </summary>
-    public ICollection<Part> Parts { get; set; } = new List<Part>();
+    public ICollection<Product> Parts { get; set; } = new List<Product>();
 
     private Brand() { }
 
-    public static Brand Create(string name, string code, string description = "", string country = "")
+    public static Brand Create(string name, string code, string description = "", string country = "",
+        string logoUrl = "", string website = "", string contactEmail = "", string contactPhone = "",
+        int displayOrder = 0, bool isActive = true)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Brand name cannot be empty", nameof(name));
@@ -82,7 +84,12 @@ public class Brand : AuditableEntity
             Code = code.Trim().ToUpper(),
             Description = description?.Trim() ?? string.Empty,
             Country = country?.Trim() ?? string.Empty,
-            IsActive = true
+            LogoUrl = logoUrl?.Trim() ?? string.Empty,
+            Website = website?.Trim() ?? string.Empty,
+            ContactEmail = contactEmail?.Trim() ?? string.Empty,
+            ContactPhone = contactPhone?.Trim() ?? string.Empty,
+            DisplayOrder = displayOrder,
+            IsActive = isActive
         };
     }
 

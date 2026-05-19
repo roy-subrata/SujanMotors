@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
 
 export interface ProductLocationResponse {
@@ -36,77 +37,45 @@ export interface UpdateProductLocationRequest {
   notes?: string;
 }
 
-export interface SetPrimaryLocationRequest {
-  locationId: string;
-}
-
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable({ providedIn: 'root' })
 export class ProductLocationService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = `${environment.apiUrl}/productlocations`;
 
-  /**
-   * Get all product locations
-   */
-  getAllLocations(): Observable<ProductLocationResponse[]> {
-    return this.http.get<ProductLocationResponse[]>(this.apiUrl);
+  private baseUrl(productId: string): string {
+    return `${environment.apiUrl}/v1/products/${productId}/locations`;
   }
 
-  /**
-   * Get product location by ID
-   */
-  getLocationById(id: string): Observable<ProductLocationResponse> {
-    return this.http.get<ProductLocationResponse>(`${this.apiUrl}/${id}`);
-  }
-
-  /**
-   * Get all locations for a specific part
-   */
   getLocationsByPart(partId: string): Observable<ProductLocationResponse[]> {
-    return this.http.get<ProductLocationResponse[]>(`${this.apiUrl}/part/${partId}`);
+    return this.http.get<{ data: ProductLocationResponse[] }>(this.baseUrl(partId))
+      .pipe(map(r => r.data));
   }
 
-  /**
-   * Get all locations in a specific warehouse
-   */
-  getLocationsByWarehouse(warehouseId: string): Observable<ProductLocationResponse[]> {
-    return this.http.get<ProductLocationResponse[]>(`${this.apiUrl}/warehouse/${warehouseId}`);
-  }
-
-  /**
-   * Get primary location for a part
-   */
   getPrimaryLocation(partId: string): Observable<ProductLocationResponse> {
-    return this.http.get<ProductLocationResponse>(`${this.apiUrl}/part/${partId}/primary`);
+    return this.http.get<{ data: ProductLocationResponse }>(`${this.baseUrl(partId)}/primary`)
+      .pipe(map(r => r.data));
   }
 
-  /**
-   * Create a new product location
-   */
+  getLocationById(partId: string, id: string): Observable<ProductLocationResponse> {
+    return this.http.get<{ data: ProductLocationResponse }>(`${this.baseUrl(partId)}/${id}`)
+      .pipe(map(r => r.data));
+  }
+
   createLocation(request: CreateProductLocationRequest): Observable<ProductLocationResponse> {
-    return this.http.post<ProductLocationResponse>(this.apiUrl, request);
+    const { partId, ...body } = request;
+    return this.http.post<{ data: ProductLocationResponse }>(this.baseUrl(partId), body)
+      .pipe(map(r => r.data));
   }
 
-  /**
-   * Update a product location
-   */
-  updateLocation(id: string, request: UpdateProductLocationRequest): Observable<ProductLocationResponse> {
-    return this.http.put<ProductLocationResponse>(`${this.apiUrl}/${id}`, request);
+  updateLocation(partId: string, id: string, request: UpdateProductLocationRequest): Observable<ProductLocationResponse> {
+    return this.http.put<{ data: ProductLocationResponse }>(`${this.baseUrl(partId)}/${id}`, request)
+      .pipe(map(r => r.data));
   }
 
-  /**
-   * Set a location as the primary location for a part
-   */
-  setPrimaryLocation(partId: string, request: SetPrimaryLocationRequest): Observable<any> {
-    return this.http.patch(`${this.apiUrl}/part/${partId}/set-primary`, request);
+  setPrimaryLocation(partId: string, locationId: string): Observable<void> {
+    return this.http.patch<void>(`${this.baseUrl(partId)}/${locationId}/set-primary`, {});
   }
 
-  /**
-   * Delete a product location
-   */
-  deleteLocation(id: string): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/${id}`);
+  deleteLocation(partId: string, id: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl(partId)}/${id}`);
   }
 }

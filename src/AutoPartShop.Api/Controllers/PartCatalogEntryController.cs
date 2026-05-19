@@ -1,3 +1,4 @@
+using AutoPartShop.Api.Common;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Infrastructure.Data;
@@ -6,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AutoPartShop.Api.Controllers;
 
-[Route("api/parts/{partId:guid}/catalog-entry")]
+[Route("api/v1/products/{productId:guid}/catalog-entry")]
 [ApiController]
 [Produces("application/json")]
 public class PartCatalogEntryController(
@@ -14,47 +15,47 @@ public class PartCatalogEntryController(
     ICurrentUserService _currentUserService,
     ILogger<PartCatalogEntryController> _logger) : ControllerBase
 {
-    // GET /api/parts/{partId}/catalog-entry
+    // GET /api/v1/products/{productId}/catalog-entry
     [HttpGet]
-    public async Task<IActionResult> Get(Guid partId, CancellationToken ct)
+    public async Task<IActionResult> Get(Guid productId, CancellationToken ct)
     {
-        if (!await _db.Parts.AnyAsync(p => p.Id == partId, ct))
-            return NotFound(new { message = "Part not found" });
+        if (!await _db.Parts.AnyAsync(p => p.Id == productId, ct))
+            return NotFound(ApiError.NotFound("Product not found"));
 
         var entry = await _db.ProductCatalogEntries
             .AsNoTracking()
-            .FirstOrDefaultAsync(e => e.PartId == partId, ct);
+            .FirstOrDefaultAsync(e => e.PartId == productId, ct);
 
         if (entry is null) return Ok(null);
         return Ok(MapEntry(entry));
     }
 
-    // PUT /api/parts/{partId}/catalog-entry
+    // PUT /api/v1/products/{productId}/catalog-entry
     [HttpPut]
-    public async Task<IActionResult> Upsert(Guid partId, [FromBody] UpsertCatalogEntryRequest req, CancellationToken ct)
+    public async Task<IActionResult> Upsert(Guid productId, [FromBody] UpsertCatalogEntryRequest req, CancellationToken ct)
     {
-        if (!await _db.Parts.AnyAsync(p => p.Id == partId, ct))
-            return NotFound(new { message = "Part not found" });
+        if (!await _db.Parts.AnyAsync(p => p.Id == productId, ct))
+            return NotFound(ApiError.NotFound("Product not found"));
 
-        // Normalise slug: fall back to partId if blank
+        // Normalise slug: fall back to productId if blank
         var slug = string.IsNullOrWhiteSpace(req.Slug)
-            ? partId.ToString()
+            ? productId.ToString()
             : req.Slug.Trim().ToLowerInvariant().Replace(" ", "-");
 
         // Slug uniqueness check (exclude self)
         if (await _db.ProductCatalogEntries.AnyAsync(
-                e => e.Slug == slug && e.PartId != partId, ct))
-            return Conflict(new { message = $"Slug '{slug}' is already used by another product" });
+                e => e.Slug == slug && e.PartId != productId, ct))
+            return Conflict(ApiError.Conflict($"Slug '{slug}' is already used by another product"));
 
         var existing = await _db.ProductCatalogEntries
-            .FirstOrDefaultAsync(e => e.PartId == partId, ct);
+            .FirstOrDefaultAsync(e => e.PartId == productId, ct);
 
         var user = _currentUserService.GetCurrentUsername();
 
         if (existing is null)
         {
             var entry = ProductCatalogEntry.Create(
-                partId, slug,
+                productId, slug,
                 shortDescription: req.ShortDescription ?? "",
                 isPublished: req.IsPublished,
                 publishedAt: req.IsPublished ? DateTime.UtcNow : null,

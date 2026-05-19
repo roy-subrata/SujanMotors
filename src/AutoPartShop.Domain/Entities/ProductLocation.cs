@@ -13,7 +13,7 @@ public class ProductLocation : AuditableEntity
     public bool IsPrimary { get; private set; }
 
     // Navigation properties
-    public virtual Part Part { get; set; } = null!;
+    public virtual Product Part { get; set; } = null!;
     public virtual Warehouse Warehouse { get; set; } = null!;
 
     private ProductLocation() { }

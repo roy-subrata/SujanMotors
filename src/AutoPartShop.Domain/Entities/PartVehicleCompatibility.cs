@@ -11,7 +11,7 @@ public class PartVehicleCompatibility : AuditableEntity
     public bool IsCompatible { get; private set; } = true;
 
     // Navigation properties
-    public Part? Part { get; set; }
+    public Product? Part { get; set; }
     public Vehicle? Vehicle { get; set; }
 
     private PartVehicleCompatibility() { }

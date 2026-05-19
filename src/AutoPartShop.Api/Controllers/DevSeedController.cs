@@ -214,7 +214,7 @@ public class DevSeedController(AutoPartDbContext _db, ICodeGenerateService _code
             decimal? discPct = null)
         {
             var pn = $"PN-{counter++:D4}";
-            var part = Part.Create(name, PartNumber.Create(pn), sku, catId,
+            var part = Product.Create(name, PartNumber.Create(pn), sku, catId,
                 brandId: brandId, baseUnitId: pcs.Id, unitId: pcs.Id,
                 description: desc, costPrice: cost, sellingPrice: sell,
                 hasWarranty: warranty, warrantyPeriodMonths: wMonths, warrantyType: wType);

@@ -200,7 +200,7 @@ export class ProductLocationManagerComponent implements OnInit {
       notes: this.locationForm.value.notes || undefined
     };
 
-    this.locationService.updateLocation(this.selectedLocation.id, request).subscribe({
+    this.locationService.updateLocation(this.partId, this.selectedLocation.id, request).subscribe({
       next: () => {
         this.messageService.add({
           severity: 'success',
@@ -224,7 +224,7 @@ export class ProductLocationManagerComponent implements OnInit {
   }
 
   setPrimary(location: ProductLocationResponse): void {
-    this.locationService.setPrimaryLocation(this.partId, { locationId: location.id }).subscribe({
+    this.locationService.setPrimaryLocation(this.partId, location.id).subscribe({
       next: () => {
         this.messageService.add({
           severity: 'success',
@@ -251,7 +251,7 @@ export class ProductLocationManagerComponent implements OnInit {
       icon: 'pi pi-exclamation-triangle',
       acceptButtonStyleClass: 'p-button-danger',
       accept: () => {
-        this.locationService.deleteLocation(location.id).subscribe({
+        this.locationService.deleteLocation(location.partId, location.id).subscribe({
           next: () => {
             this.messageService.add({
               severity: 'success',

@@ -2,15 +2,16 @@ using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
 
 
-public interface IPartRepository : IBaseRepository<Part>
+public interface IProductRepository : IBaseRepository<Product>
 {
-    Task<IEnumerable<Part>> GetAllActiveAsync(CancellationToken cancellationToken = default);
-    Task<(IEnumerable<Part> Parts, int TotalCount)> SearchPagedAsync(string searchTerm, int pageNumber, int pageSize, CancellationToken cancellationToken = default);
+    Task<IEnumerable<Product>> GetAllActiveAsync(CancellationToken cancellationToken = default);
+    Task<(IEnumerable<Product> Parts, int TotalCount)> SearchPagedAsync(string searchTerm, int pageNumber, int pageSize, CancellationToken cancellationToken = default);
 
     Task<bool> SKUExistsAsync(string sku, Guid? excludePartId = null, CancellationToken cancellationToken = default);
-    Task<Part?> GetBySKUAsync(string sku, CancellationToken cancellationToken = default);
-    Task<IEnumerable<Part>> GetByCategoryAsync(Guid categoryId, CancellationToken cancellationToken = default);
+    Task<Product?> GetBySKUAsync(string sku, CancellationToken cancellationToken = default);
+    Task<IEnumerable<Product>> GetByCategoryAsync(Guid categoryId, CancellationToken cancellationToken = default);
     Task<bool> HasActiveVariantsAsync(Guid partId, CancellationToken cancellationToken = default);
+    Task<Product?> GetByBarcodeOrPartNumberAsync(string code, CancellationToken cancellationToken = default);
 }
 
 
@@ -37,7 +38,7 @@ public interface IPartVehicleCompatibilityRepository : IBaseRepository<PartVehic
 
 public interface IProductLocationRepository : IBaseRepository<ProductLocation>
 {
-    Task<IEnumerable<ProductLocation>> GetLocationsByPartAsync(Guid partId, CancellationToken cancellationToken = default);
+    Task<IEnumerable<ProductLocation>> GetLocationsByPartAsync(Guid partId, Guid? warehouseId = null, CancellationToken cancellationToken = default);
     Task<IEnumerable<ProductLocation>> GetLocationsByWarehouseAsync(Guid warehouseId, CancellationToken cancellationToken = default);
     Task<ProductLocation?> GetLocationByPartAndWarehouseAsync(Guid partId, Guid warehouseId, string section, string shelf, CancellationToken cancellationToken = default);
     Task<ProductLocation?> GetPrimaryLocationByPartAsync(Guid partId, CancellationToken cancellationToken = default);

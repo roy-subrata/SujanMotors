@@ -1,0 +1,122 @@
+<!-- Toolbar (hidden on print) -->
+<div class="print-toolbar no-print" *ngIf="!loading() && !error()">
+  <button class="btn-print" (click)="print()">
+    <i class="pi pi-print"></i> Print / Save PDF
+  </button>
+  <a class="btn-back" routerLink="/sales/pending-deliveries">
+    <i class="pi pi-arrow-left"></i> Back
+  </a>
+  <span class="doc-label">Delivery Challan — {{ challan()?.challanNumber }}</span>
+</div>
+
+<div class="loading-wrap no-print" *ngIf="loading()">
+  <i class="pi pi-spin pi-spinner"></i> Loading…
+</div>
+<div class="error-wrap no-print" *ngIf="error()">
+  <i class="pi pi-exclamation-circle"></i> {{ error() }}
+</div>
+
+<!-- ══ DOCUMENT ══════════════════════════════════════════════════ -->
+<div class="document" *ngIf="!loading() && !error() && challan() as c">
+
+  <div class="watermark" *ngIf="isDelivered">DELIVERED</div>
+
+  <!-- Header -->
+  <div class="doc-header">
+    <div class="shop-info">
+      <div class="shop-name">SujanMotors Auto Parts</div>
+      <div class="shop-sub">Delivery Challan</div>
+    </div>
+    <div class="doc-meta">
+      <div class="doc-type">DELIVERY CHALLAN</div>
+      <table class="meta-table">
+        <tr><td>Challan No.</td><td><strong>{{ c.challanNumber }}</strong></td></tr>
+        <tr><td>Date</td><td>{{ formatDateTime(c.createdAt) }}</td></tr>
+        <tr *ngIf="c.issuedAt"><td>Issued At</td><td>{{ formatDateTime(c.issuedAt) }}</td></tr>
+        <tr *ngIf="c.salesOrderNumber"><td>SO No.</td><td>{{ c.salesOrderNumber }}</td></tr>
+        <tr>
+          <td>Status</td>
+          <td><span class="status-pill" [attr.data-status]="c.status">{{ statusLabel }}</span></td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- Deliver To + Transport -->
+  <div class="info-row">
+    <div class="info-box">
+      <div class="info-label">Deliver To</div>
+      <div class="info-name">{{ c.receiverName || 'Customer' }}</div>
+      <div class="info-detail" *ngIf="c.receiverPhone">{{ c.receiverPhone }}</div>
+      <div class="info-detail" *ngIf="c.deliveryAddress">{{ c.deliveryAddress }}</div>
+    </div>
+    <div class="info-box" *ngIf="c.transportCompany || c.vehicleNumber || c.driverName">
+      <div class="info-label">Transport Details</div>
+      <div class="info-name" *ngIf="c.transportCompany">{{ c.transportCompany }}</div>
+      <div class="info-detail" *ngIf="c.vehicleNumber">Vehicle: <strong>{{ c.vehicleNumber }}</strong></div>
+      <div class="info-detail" *ngIf="c.driverName">Driver: {{ c.driverName }}</div>
+      <div class="info-detail" *ngIf="c.driverPhone">Driver Ph: {{ c.driverPhone }}</div>
+    </div>
+    <div class="info-box" *ngIf="c.notes">
+      <div class="info-label">Notes</div>
+      <div class="info-detail">{{ c.notes }}</div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- Items table -->
+  <table class="items-table">
+    <thead>
+      <tr>
+        <th class="col-num">#</th>
+        <th class="col-item">Item Description</th>
+        <th class="col-sku">SKU</th>
+        <th class="col-qty">Qty</th>
+        <th class="col-unit">Unit</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let line of c.lines; let i = index">
+        <td class="col-num">{{ i + 1 }}</td>
+        <td class="col-item"><span class="item-name">{{ line.displayName || line.partName }}</span></td>
+        <td class="col-sku">{{ line.partSku }}</td>
+        <td class="col-qty"><strong>{{ line.quantity }}</strong></td>
+        <td class="col-unit">{{ line.unitName || 'PCS' }}</td>
+      </tr>
+    </tbody>
+    <tfoot>
+      <tr class="total-row">
+        <td colspan="3" class="total-label">Total Items</td>
+        <td class="col-qty"><strong>{{ c.lines.length }}</strong></td>
+        <td></td>
+      </tr>
+    </tfoot>
+  </table>
+
+  <!-- Signatures -->
+  <div class="divider"></div>
+  <div class="signatures">
+    <div class="sig-box">
+      <div class="sig-line"></div>
+      <div class="sig-label">Dispatched By (Authorised Signatory)</div>
+    </div>
+    <div class="sig-box">
+      <div class="sig-line"></div>
+      <div class="sig-label">Driver / Transport Acknowledgement</div>
+    </div>
+    <div class="sig-box">
+      <div class="sig-line">
+        <span *ngIf="c.deliveredAt" class="delivered-stamp">{{ formatDate(c.deliveredAt) }}</span>
+      </div>
+      <div class="sig-label">Received By (Signature &amp; Date)</div>
+    </div>
+  </div>
+
+  <div class="doc-footer">
+    <p>This is a computer-generated delivery challan. Goods once dispatched will not be accepted back without prior notice.</p>
+  </div>
+
+</div>

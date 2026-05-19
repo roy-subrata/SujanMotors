@@ -1,6 +1,6 @@
 namespace AutoPartShop.Application.Parts.Dtos
 {
-    public class PartPublicResponse
+    public class ProductPublicResponse
     {
         public Guid Id { get; set; }
         public string Name { get; set; } = string.Empty;

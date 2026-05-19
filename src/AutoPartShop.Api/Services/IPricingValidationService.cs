@@ -4,8 +4,8 @@ namespace AutoPartShop.Api.Services;
 
 public interface IPricingValidationService
 {
-    decimal ValidateLinePricing(Part part, decimal unitPrice, decimal discountPercent);
-    PricingCalculationResult CalculateLinePricingSnapshot(Part part, decimal unitPrice, decimal discountPercent);
+    decimal ValidateLinePricing(Product part, decimal unitPrice, decimal discountPercent);
+    PricingCalculationResult CalculateLinePricingSnapshot(Product part, decimal unitPrice, decimal discountPercent);
 }
 
 public sealed record PricingCalculationResult(

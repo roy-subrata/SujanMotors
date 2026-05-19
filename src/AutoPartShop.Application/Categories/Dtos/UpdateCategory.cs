@@ -3,11 +3,6 @@
     public class UpdateCategory
     {
         /// <summary>
-        /// Category ID (required)
-        /// </summary>
-        public Guid Id { get; set; }
-
-        /// <summary>
         /// Category name (required, max 100 characters)
         /// </summary>
         public string Name { get; set; } = string.Empty;

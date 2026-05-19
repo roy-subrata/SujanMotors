@@ -97,8 +97,6 @@ public class CategoryReadRepository(AutoPartDbContext dbContext) : ICategoryRead
             ParentCategoryId = category.ParentCategoryId,
             IsActive = category.IsActive,
             DisplayOrder = category.DisplayOrder,
-            CreatedBy = category.CreatedBy,
-            ModifiedBy = category.ModifiedBy,
             BreadcrumbPath = category.BreadcrumbPath,
             DepthLevel = category.DepthLevel,
             ChildCount = category.ChildCount,

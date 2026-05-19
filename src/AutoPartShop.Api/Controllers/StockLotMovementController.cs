@@ -12,16 +12,16 @@ public class StockLotMovementController : ControllerBase
 {
     private readonly IStockLotMovementRepository _repository;
     private readonly IStockLotRepository _lotRepository;
-    private readonly IPartRepository _partRepository;
+    private readonly IProductRepository _productRepository;
     private readonly ILogger<StockLotMovementController> _logger;
     private readonly ICurrentUserService _currentUserService;
 
     public StockLotMovementController(IStockLotMovementRepository repository, IStockLotRepository lotRepository,
-        IPartRepository partRepository, ICurrentUserService currentUserService, ILogger<StockLotMovementController> logger)
+        IProductRepository productRepository, ICurrentUserService currentUserService, ILogger<StockLotMovementController> logger)
     {
         _repository = repository;
         _lotRepository = lotRepository;
-        _partRepository = partRepository;
+        _productRepository = productRepository;
         _currentUserService = currentUserService;
         _logger = logger;
     }
@@ -65,7 +65,7 @@ public class StockLotMovementController : ControllerBase
         {
             var lot = await _lotRepository.GetByIdAsync(stockLotId, cancellationToken);
             if (lot is null) return NotFound("Stock lot not found");
-            var part = await _partRepository.GetByIdAsync(lot.PartId, cancellationToken);
+            var part = await _productRepository.GetByIdAsync(lot.PartId, cancellationToken);
             var movements = await _repository.GetByStockLotAsync(stockLotId, cancellationToken);
             var sortedMovements = movements.OrderBy(m => m.MovementDate).ToList();
 
@@ -155,7 +155,7 @@ public class StockLotMovementController : ControllerBase
     {
         try
         {
-            var part = await _partRepository.GetByIdAsync(partId, cancellationToken);
+            var part = await _productRepository.GetByIdAsync(partId, cancellationToken);
             if (part is null) return NotFound("Part not found");
 
             var lots = await _lotRepository.GetByPartAsync(partId, cancellationToken);

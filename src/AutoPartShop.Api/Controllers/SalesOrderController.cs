@@ -1,3 +1,4 @@
+using AutoPartShop.Api.Common;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.Common;
 using AutoPartShop.Application.DTOs.SalesOrderDtos;
@@ -21,7 +22,7 @@ public class SalesOrderController : ControllerBase
     private readonly ISaleOrderReadRepository _saleOrderReadRepository;
     private readonly IInvoiceRepository _invoiceRepository;
     private readonly ICustomerRepository _customerRepository;
-    private readonly IPartRepository _partRepository;
+    private readonly IProductRepository _productRepository;
     private readonly IStockLevelRepository _stockLevelRepository;
     private readonly ICustomerPaymentRepository _customerPaymentRepository;
     private readonly ICodeGenerateService _codeGenerateService;
@@ -37,7 +38,7 @@ public class SalesOrderController : ControllerBase
         ISaleOrderReadRepository saleOrderReadRepository,
         IInvoiceRepository invoiceRepository,
         ICustomerRepository customerRepository,
-        IPartRepository partRepository,
+        IProductRepository productRepository,
         IStockLevelRepository stockLevelRepository,
         ICustomerPaymentRepository customerPaymentRepository,
         ICodeGenerateService codeGenerateService,
@@ -52,7 +53,7 @@ public class SalesOrderController : ControllerBase
         _saleOrderReadRepository = saleOrderReadRepository;
         _invoiceRepository = invoiceRepository;
         _customerRepository = customerRepository;
-        _partRepository = partRepository;
+        _productRepository = productRepository;
         _stockLevelRepository = stockLevelRepository;
         _customerPaymentRepository = customerPaymentRepository;
         _codeGenerateService = codeGenerateService;
@@ -375,7 +376,7 @@ public class SalesOrderController : ControllerBase
                         var stockLevel = await _stockLevelRepository.GetByPartAndWarehouseAsync(line.PartId, warehouseId, cancellationToken);
                         if (stockLevel == null || stockLevel.QuantityAvailableInBaseUnit < line.QuantityInBaseUnit)
                         {
-                            var part = await _partRepository.GetByIdAsync(line.PartId, cancellationToken);
+                            var part = await _productRepository.GetByIdAsync(line.PartId, cancellationToken);
                             throw new InvalidOperationException($"Insufficient stock for part: {part?.Name ?? line.PartId.ToString()}. Required: {line.QuantityInBaseUnit}, Available: {stockLevel?.QuantityAvailableInBaseUnit ?? 0}");
                         }
                     }
@@ -474,11 +475,11 @@ public class SalesOrderController : ControllerBase
                     order.Confirm();
                     order.ModifiedBy = _currentUserService.GetCurrentUsername();
 
-                    // Atomic status transition — WHERE Status = 'DRAFT' prevents double-confirm:
-                    // if a concurrent request already confirmed this order, rowsUpdated = 0 and we throw,
-                    // rolling back all stock deductions made above.
+                    // Atomic status transition — WHERE Status IN ('PENDING','DRAFT') prevents double-confirm.
                     var rowsUpdated = await _dbContext.Set<SalesOrder>()
-                        .Where(so => so.Id == order.Id && so.Status == "DRAFT" && !so.Isdeleted)
+                        .Where(so => so.Id == order.Id
+                                  && (so.Status == "PENDING" || so.Status == "DRAFT")
+                                  && !so.Isdeleted)
                         .ExecuteUpdateAsync(setters => setters
                             .SetProperty(so => so.Status, order.Status)
                             .SetProperty(so => so.ConfirmedDate, order.ConfirmedDate)
@@ -488,6 +489,30 @@ public class SalesOrderController : ControllerBase
 
                     if (rowsUpdated == 0)
                         throw new InvalidOperationException("Sales order has already been confirmed or no longer exists.");
+
+                    // ── Auto-create a DRAFT invoice (mandatory at Confirm) ────────────
+                    // AnyAsync check is a first guard; the DB-level unique filtered index on
+                    // (SalesOrderId) WHERE Isdeleted=0 is the hard safety net against races.
+                    var existingInvoice = await _dbContext.Invoices
+                        .AnyAsync(i => i.SalesOrderId == order.Id && !i.Isdeleted, cancellationToken);
+
+                    if (!existingInvoice)
+                    {
+                        var invoiceNumber = await _codeGenerateService.GenerateAsync("INV", cancellationToken);
+                        var invoice = Invoice.Create(
+                            invoiceNumber, order.Id,
+                            order.SubTotal, order.TaxAmount,
+                            dueDate: DateTime.UtcNow.AddDays(30),
+                            notes: order.Notes);
+
+                        if (order.DiscountAmount > 0)
+                            invoice.SetDiscount(order.DiscountAmount);
+
+                        invoice.CreatedBy  = _currentUserService.GetCurrentUsername();
+                        invoice.ModifiedBy = _currentUserService.GetCurrentUsername();
+                        await _dbContext.Invoices.AddAsync(invoice, cancellationToken);
+                    }
+                    // ────────────────────────────────────────────────────────────────
 
                     await _dbContext.SaveChangesAsync(cancellationToken);
                     await tx.CommitAsync(cancellationToken);
@@ -504,7 +529,7 @@ public class SalesOrderController : ControllerBase
             {
                 foreach (var line in order.LineItems)
                 {
-                    var part = await _partRepository.GetByIdAsync(line.PartId, cancellationToken);
+                    var part = await _productRepository.GetByIdAsync(line.PartId, cancellationToken);
                     // Check part-level warranty as a quick gate; actual lot-level check is inside the service
                     if (part != null && (part.HasWarranty || true))
                     {
@@ -545,6 +570,139 @@ public class SalesOrderController : ControllerBase
             _logger.LogError(ex, "Error confirming sales order: {SOId}", id);
             return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while confirming the sales order");
         }
+    }
+
+    // ── Ready for delivery ────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Later-delivery flow: marks a Confirmed order as packed and ready to dispatch.
+    /// After this a Challan should be generated before the goods leave the warehouse.
+    /// </summary>
+    [HttpPatch("{id:guid}/ready-for-delivery")]
+    [Authorize]
+    public async Task<IActionResult> MarkReadyForDelivery(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var order = await _salesOrderRepository.GetByIdAsync(id, cancellationToken);
+            if (order is null) return NotFound(ApiError.NotFound("Sales order not found", Request.Path));
+
+            order.MarkAsReadyForDelivery();
+            order.ModifiedBy = _currentUserService.GetCurrentUsername();
+            await _salesOrderRepository.UpdateAsync(order, cancellationToken);
+
+            return Ok(ApiResponse<object>.Ok(MapToSalesOrderResponse(order)));
+        }
+        catch (InvalidOperationException ex) { return BadRequest(ApiError.BusinessRule(ex.Message, Request.Path)); }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error marking SO {Id} as ready-for-delivery", id);
+            return StatusCode(500, ApiError.Internal());
+        }
+    }
+
+    // ── Direct deliver (no challan) ───────────────────────────────────────────
+
+    /// <summary>
+    /// Direct-handover flow: marks a Confirmed order as Delivered immediately.
+    /// The invoice is automatically issued if it is still in DRAFT status.
+    /// No challan is generated — use the Challan endpoints for the later-delivery flow.
+    /// </summary>
+    [HttpPatch("{id:guid}/deliver")]
+    [Authorize]
+    public async Task<IActionResult> DeliverDirect(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var order = await _salesOrderRepository.GetByIdAsync(id, cancellationToken);
+            if (order is null) return NotFound(ApiError.NotFound("Sales order not found", Request.Path));
+
+            // If the order is in READY_FOR_DELIVERY state, block direct delivery when a
+            // challan has already been ISSUED — the challan deliver endpoint must be used instead.
+            if (order.Status == "READY_FOR_DELIVERY")
+            {
+                var hasIssuedChallan = await _dbContext.Challans
+                    .AnyAsync(c => c.SalesOrderId == order.Id && c.Status == "ISSUED" && !c.Isdeleted, cancellationToken);
+
+                if (hasIssuedChallan)
+                    return BadRequest(ApiError.BusinessRule(
+                        "This order has an issued challan. Use the challan delivery endpoint (PATCH /api/challans/{id}/deliver) to complete the delivery.",
+                        Request.Path));
+            }
+
+            var strategy = _dbContext.Database.CreateExecutionStrategy();
+            await strategy.ExecuteAsync(async () =>
+            {
+                await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+                try
+                {
+                    order.MarkAsDelivered();
+                    order.ModifiedBy = _currentUserService.GetCurrentUsername();
+                    await _salesOrderRepository.UpdateAsync(order, cancellationToken);
+
+                    // Auto-issue the invoice on delivery if it is still DRAFT
+                    var invoice = await _dbContext.Invoices
+                        .Include(i => i.SalesOrder)
+                        .FirstOrDefaultAsync(i => i.SalesOrderId == order.Id && !i.Isdeleted, cancellationToken);
+
+                    if (invoice is { Status: "DRAFT" })
+                    {
+                        invoice.Issue();
+                        invoice.ModifiedBy = _currentUserService.GetCurrentUsername();
+
+                        // Update customer balance and invoice status atomically
+                        if (order.CustomerId != Guid.Empty)
+                        {
+                            var customer = await _customerRepository.GetByIdAsync(order.CustomerId, cancellationToken);
+                            if (customer != null)
+                            {
+                                customer.UpdateBalance(invoice.GrandTotal);
+                                customer.ModifiedBy = _currentUserService.GetCurrentUsername();
+                            }
+                            else
+                            {
+                                _logger.LogWarning("Customer {Id} not found during direct delivery of SO {SOId} — balance not updated.", order.CustomerId, order.Id);
+                            }
+                        }
+
+                        // Single save: invoice status + customer balance in same commit
+                        _dbContext.Invoices.Update(invoice);
+                        await _dbContext.SaveChangesAsync(cancellationToken);
+                    }
+
+                    await tx.CommitAsync(cancellationToken);
+                }
+                catch { await tx.RollbackAsync(cancellationToken); throw; }
+            });
+
+            return Ok(ApiResponse<object>.Ok(MapToSalesOrderResponse(order)));
+        }
+        catch (InvalidOperationException ex) { return BadRequest(ApiError.BusinessRule(ex.Message, Request.Path)); }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error delivering SO {Id}", id);
+            return StatusCode(500, ApiError.Internal());
+        }
+    }
+
+    // ── Pending deliveries ────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Returns all Confirmed or ReadyForDelivery orders — for the delivery staff queue.
+    /// </summary>
+    [HttpGet("pending-deliveries")]
+    [Authorize]
+    public async Task<IActionResult> GetPendingDeliveries(CancellationToken cancellationToken)
+    {
+        var orders = await _dbContext.SalesOrders
+            .Include(so => so.LineItems).ThenInclude(l => l.Part)
+            .Where(so => (so.Status == "CONFIRMED" || so.Status == "READY_FOR_DELIVERY")
+                      && !so.Isdeleted)
+            .OrderBy(so => so.ConfirmedDate)
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+
+        return Ok(ApiResponse<object>.Ok(orders.Select(MapToSalesOrderResponse)));
     }
 
     [HttpDelete("{id:guid}")]
@@ -880,6 +1038,87 @@ public class SalesOrderController : ControllerBase
         }
     }
 
+    // ── Print data endpoint ────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Returns all data required to render a printable invoice or delivery challan.
+    /// Includes sales order line items and shop settings.
+    /// </summary>
+    [HttpGet("invoices/{id:guid}/print-data")]
+    [AllowAnonymous]   // print page is opened in a new tab; auth token may not be present
+    public async Task<IActionResult> GetInvoicePrintData(Guid id, CancellationToken cancellationToken)
+    {
+        var invoice = await _dbContext.Invoices
+            .Include(i => i.CustomerPayments)
+            .Include(i => i.SalesOrder)
+                .ThenInclude(so => so!.LineItems)
+                    .ThenInclude(l => l.Part)
+            .Include(i => i.SalesOrder)
+                .ThenInclude(so => so!.LineItems)
+                    .ThenInclude(l => l.ProductVariant)
+            .Include(i => i.SalesOrder)
+                .ThenInclude(so => so!.LineItems)
+                    .ThenInclude(l => l.Unit)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(i => i.Id == id, cancellationToken);
+
+        if (invoice is null)
+            return NotFound(ApiError.NotFound($"Invoice '{id}' not found", Request.Path));
+
+        // Shop settings — graceful fallback if not configured
+        async Task<string> Setting(string key) =>
+            (await _dbContext.Set<ApplicationSettings>()
+                .Where(s => s.Key == key && !s.Isdeleted)
+                .Select(s => s.Value)
+                .FirstOrDefaultAsync(cancellationToken)) ?? string.Empty;
+
+        var shopName    = await Setting("SHOP_NAME");
+        var shopAddress = await Setting("SHOP_ADDRESS");
+        var shopPhone   = await Setting("SHOP_PHONE");
+        var shopEmail   = await Setting("SHOP_EMAIL");
+        var shopTaxNo   = await Setting("SHOP_TAX_NUMBER");
+
+        var so = invoice.SalesOrder;
+        var lines = so?.LineItems.OrderBy(l => l.LineNumber).Select(l => new
+        {
+            partId          = l.PartId,
+            partName        = l.Part?.Name ?? string.Empty,
+            partSku         = l.Part?.SKU ?? string.Empty,
+            displayName     = l.ProductVariant != null
+                ? (l.Part != null ? $"{l.Part.Name} - {l.ProductVariant.Name}" : l.ProductVariant.Name)
+                : (l.Part?.Name ?? string.Empty),
+            variantName     = l.ProductVariant?.Name,
+            unitName        = l.Unit?.Name ?? string.Empty,
+            unitSymbol      = l.Unit?.Symbol ?? string.Empty,
+            quantity        = l.Quantity,
+            unitPrice       = l.UnitPrice,
+            discount        = l.Discount,
+            lineTotal       = l.TotalPrice
+        }).ToList();
+
+        return Ok(ApiResponse<object>.Ok(new
+        {
+            shop = new
+            {
+                name    = string.IsNullOrWhiteSpace(shopName)    ? "SujanMotors Auto Parts" : shopName,
+                address = string.IsNullOrWhiteSpace(shopAddress) ? string.Empty             : shopAddress,
+                phone   = string.IsNullOrWhiteSpace(shopPhone)   ? string.Empty             : shopPhone,
+                email   = string.IsNullOrWhiteSpace(shopEmail)   ? string.Empty             : shopEmail,
+                taxNo   = string.IsNullOrWhiteSpace(shopTaxNo)   ? string.Empty             : shopTaxNo
+            },
+            invoice = MapToInvoiceResponse(invoice),
+            lines,
+            customer = new
+            {
+                name    = so?.CustomerName    ?? string.Empty,
+                phone   = so?.CustomerPhone   ?? string.Empty,
+                email   = so?.CustomerEmail   ?? string.Empty,
+                address = so?.DeliveryAddress ?? string.Empty
+            },
+            salesOrderNumber = so?.SONumber ?? string.Empty
+        }));
+    }
+
     private SaleOrderResponse MapToSalesOrderResponse(SalesOrder order)
     {
         return new SaleOrderResponse
@@ -995,7 +1234,7 @@ public class SalesOrderController : ControllerBase
     }
 
     private async Task<(int quantityInBaseUnit, Guid? unitId, decimal baseUnitPrice)> ResolveUnitPricingAsync(
-        Part part,
+        Product part,
         int quantity,
         Guid? unitId,
         decimal unitPrice,
@@ -1102,10 +1341,10 @@ public class SalesOrderController : ControllerBase
 
             // 3. Validate parts and check stock
             var partIds = request.Items.Select(x => x.PartId).ToList();
-            var parts = new List<Part>();
+            var parts = new List<Product>();
             foreach (var partId in partIds)
             {
-                var part = await _partRepository.GetByIdAsync(partId, cancellationToken);
+                var part = await _productRepository.GetByIdAsync(partId, cancellationToken);
                 if (part is null)
                     return BadRequest(new { message = $"Part with ID {partId} not found" });
                 parts.Add(part);

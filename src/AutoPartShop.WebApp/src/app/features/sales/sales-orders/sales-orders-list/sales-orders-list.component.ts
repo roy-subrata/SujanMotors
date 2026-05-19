@@ -162,13 +162,12 @@ export class SalesOrdersListComponent implements OnInit {
      Static options for dropdowns - customize per entity
   */
     statusOptions = [
-        { label: 'All Statuses', value: '' },
-        { label: 'Draft', value: 'DRAFT' },
-        { label: 'Confirmed', value: 'CONFIRMED' },
-        { label: 'Partially Shipped', value: 'PARTIALLY_SHIPPED' },
-        { label: 'Shipped', value: 'SHIPPED' },
-        { label: 'Delivered', value: 'DELIVERED' },
-        { label: 'Cancelled', value: 'CANCELLED' }
+        { label: 'All Statuses',       value: '' },
+        { label: 'Pending',            value: 'PENDING' },
+        { label: 'Confirmed',          value: 'CONFIRMED' },
+        { label: 'Ready for Delivery', value: 'READY_FOR_DELIVERY' },
+        { label: 'Delivered',          value: 'DELIVERED' },
+        { label: 'Cancelled',          value: 'CANCELLED' }
     ];
 
     /* ============================================================
@@ -532,25 +531,32 @@ export class SalesOrdersListComponent implements OnInit {
      * Available severities: 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast'
      */
     getStatusSeverity(status: string): 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' {
-        const severityMap: Record<string, 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast'> = {
-            DRAFT: 'secondary',
-            CONFIRMED: 'info',
-            PARTIALLY_SHIPPED: 'warn',
-            SHIPPED: 'info',
-            DELIVERED: 'success',
-            CANCELLED: 'danger'
+        const map: Record<string, 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast'> = {
+            PENDING:            'secondary',
+            DRAFT:              'secondary',       // legacy
+            CONFIRMED:          'info',
+            READY_FOR_DELIVERY: 'warn',
+            DELIVERED:          'success',
+            CANCELLED:          'danger',
+            // legacy statuses
+            PAID: 'info', PACKED: 'warn', PARTIALLY_SHIPPED: 'warn', SHIPPED: 'info',
+            COMPLETED: 'success', RETURNED: 'danger'
         };
-        return severityMap[status] || 'secondary';
+        return map[status] ?? 'secondary';
     }
 
-    /**
-     * Format status for display (e.g., PARTIALLY_SHIPPED -> Partially Shipped)
-     */
     formatStatus(status: string): string {
-        if (!status) return '-';
-        return status
-            .split('_')
-            .map((word) => word.charAt(0) + word.slice(1).toLowerCase())
-            .join(' ');
+        const labels: Record<string, string> = {
+            PENDING:            'Pending',
+            DRAFT:              'Pending',
+            CONFIRMED:          'Confirmed',
+            READY_FOR_DELIVERY: 'Ready for Delivery',
+            DELIVERED:          'Delivered',
+            CANCELLED:          'Cancelled',
+            PAID: 'Paid', PACKED: 'Packed', PARTIALLY_SHIPPED: 'Partially Shipped',
+            SHIPPED: 'Shipped', COMPLETED: 'Completed', RETURNED: 'Returned'
+        };
+        return labels[status] ?? (status ?? '-').split('_')
+            .map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(' ');
     }
 }

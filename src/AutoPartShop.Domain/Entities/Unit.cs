@@ -14,7 +14,7 @@ public class Unit : AuditableEntity
     public int DisplayOrder { get; set; } = 0;
 
     // Navigation properties
-    public ICollection<Part> Parts { get; set; } = new List<Part>();
+    public ICollection<Product> Parts { get; set; } = new List<Product>();
     public ICollection<UnitConversion> FromConversions { get; set; } = new List<UnitConversion>();
     public ICollection<UnitConversion> ToConversions { get; set; } = new List<UnitConversion>();
 

@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
 
 export interface CreateInvoiceRequest {
@@ -100,4 +101,31 @@ export class InvoiceService {
   recordPayment(id: string, request: RecordPaymentRequest): Observable<InvoiceResponse> {
     return this.http.patch<InvoiceResponse>(`${this.apiUrl}/${id}/payment`, request);
   }
+
+  getPrintData(id: string): Observable<InvoicePrintData> {
+    return this.http.get<{ data: InvoicePrintData }>(`${this.apiUrl}/${id}/print-data`)
+      .pipe(map(r => r.data));
+  }
+}
+
+export interface InvoicePrintLineItem {
+  partId: string;
+  partName: string;
+  partSku: string;
+  displayName: string;
+  variantName?: string | null;
+  unitName: string;
+  unitSymbol: string;
+  quantity: number;
+  unitPrice: number;
+  discount: number;
+  lineTotal: number;
+}
+
+export interface InvoicePrintData {
+  shop: { name: string; address: string; phone: string; email: string; taxNo: string; };
+  invoice: InvoiceResponse;
+  lines: InvoicePrintLineItem[];
+  customer: { name: string; phone: string; email: string; address: string; };
+  salesOrderNumber: string;
 }

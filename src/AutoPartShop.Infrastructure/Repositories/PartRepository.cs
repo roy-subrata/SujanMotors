@@ -2,14 +2,14 @@ using AutoPartShop.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace AutoPartShop.Infrastructure.Repositories;
-public class PartRepository(AutoPartDbContext _db) : IPartRepository
+public class ProductRepository(AutoPartDbContext _db) : IProductRepository
 {
-    public async Task<IEnumerable<Part>> GetAllAsync(CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<Product>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         return await _db.Parts.Where(p => !p.Isdeleted).ToListAsync(cancellationToken);
     }
 
-    public async Task<Part?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<Product?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         return await _db.Parts
             .Include(p => p.Category)
@@ -19,13 +19,13 @@ public class PartRepository(AutoPartDbContext _db) : IPartRepository
             .FirstOrDefaultAsync(p => p.Id == id && !p.Isdeleted, cancellationToken);
     }
 
-    public async Task AddAsync(Part entity, CancellationToken cancellationToken = default)
+    public async Task AddAsync(Product entity, CancellationToken cancellationToken = default)
     {
         _db.Parts.Add(entity);
         await _db.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task UpdateAsync(Part entity, CancellationToken cancellationToken = default)
+    public async Task UpdateAsync(Product entity, CancellationToken cancellationToken = default)
     {
         var existing = await _db.Parts.FirstOrDefaultAsync(p => p.Id == entity.Id, cancellationToken);
         if (existing != null)
@@ -79,12 +79,12 @@ public class PartRepository(AutoPartDbContext _db) : IPartRepository
         return await _db.Parts.AnyAsync(p => p.Id == id && !p.Isdeleted, cancellationToken);
     }
 
-    public async Task<IEnumerable<Part>> GetAllActiveAsync(CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<Product>> GetAllActiveAsync(CancellationToken cancellationToken = default)
     {
         return await _db.Parts.Where(p => p.IsActive && !p.Isdeleted).ToListAsync(cancellationToken);
     }
 
-    public async Task<(IEnumerable<Part> Parts, int TotalCount)> SearchPagedAsync(string searchTerm, int pageNumber, int pageSize, CancellationToken cancellationToken = default)
+    public async Task<(IEnumerable<Product> Parts, int TotalCount)> SearchPagedAsync(string searchTerm, int pageNumber, int pageSize, CancellationToken cancellationToken = default)
     {
         var query = _db.Parts.Where(c => !c.Isdeleted);
         if (!string.IsNullOrWhiteSpace(searchTerm))
@@ -112,13 +112,13 @@ public class PartRepository(AutoPartDbContext _db) : IPartRepository
         return await _db.Parts.AnyAsync(p => p.SKU == normalizedSku && !p.Isdeleted && (excludePartId == null || p.Id != excludePartId), cancellationToken);
     }
 
-    public async Task<Part?> GetBySKUAsync(string sku, CancellationToken cancellationToken = default)
+    public async Task<Product?> GetBySKUAsync(string sku, CancellationToken cancellationToken = default)
     {
         var normalizedSku = sku.ToUpper();
         return await _db.Parts.FirstOrDefaultAsync(p => p.SKU == normalizedSku && !p.Isdeleted, cancellationToken);
     }
 
-    public async Task<IEnumerable<Part>> GetByCategoryAsync(Guid categoryId, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<Product>> GetByCategoryAsync(Guid categoryId, CancellationToken cancellationToken = default)
     {
         return await _db.Parts.Where(p => p.CategoryId == categoryId && !p.Isdeleted).ToListAsync(cancellationToken);
     }
@@ -127,6 +127,14 @@ public class PartRepository(AutoPartDbContext _db) : IPartRepository
     {
         return await _db.ProductVariants
             .AnyAsync(v => v.PartId == partId && v.IsActive && !v.Isdeleted, cancellationToken);
+    }
+
+    public async Task<Product?> GetByBarcodeOrPartNumberAsync(string code, CancellationToken cancellationToken = default)
+    {
+        var normalized = code.Trim().ToUpperInvariant();
+        return await _db.Parts
+            .FirstOrDefaultAsync(p => !p.Isdeleted && p.IsActive &&
+                (p.Barcode == normalized || p.PartNumber.Value == normalized), cancellationToken);
     }
 }
 

@@ -20,11 +20,12 @@ public class ProductVariant : AuditableEntity
     public decimal? HeightCm { get; private set; }
     public decimal? DepthCm { get; private set; }
 
+    // null = inherit from parent Part; true = variant has warranty; false = variant explicitly has no warranty
     public bool? HasWarrantyOverride { get; private set; }
     public int? WarrantyPeriodMonthsOverride { get; private set; }
     public string? WarrantyTypeOverride { get; private set; }
 
-    public Part? Part { get; set; }
+    public Product? Part { get; set; }
     public ICollection<VariantAttributeValue> Attributes { get; set; } = new List<VariantAttributeValue>();
     public ICollection<ProductMedia> Media { get; set; } = new List<ProductMedia>();
     public ICollection<VariantStockLevel> StockLevels { get; set; } = new List<VariantStockLevel>();
@@ -153,7 +154,7 @@ public class ProductVariant : AuditableEntity
         WarrantyTypeOverride = null;
     }
 
-    public (bool hasWarranty, int? periodMonths, string? warrantyType) ResolveWarranty(Part part)
+    public (bool hasWarranty, int? periodMonths, string? warrantyType) ResolveWarranty(Product part)
     {
         if (HasWarrantyOverride.HasValue)
             return (HasWarrantyOverride.Value, WarrantyPeriodMonthsOverride, WarrantyTypeOverride);

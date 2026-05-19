@@ -1080,6 +1080,11 @@
   }
 }
 
+/* list-wrapper — no special sizing needed; just a semantic wrapper */
+.list-wrapper {
+  display: block;
+}
+
 @media (max-width: 768px) {
   .desktop-only {
     display: none !important;

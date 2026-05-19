@@ -5,9 +5,9 @@ using AutoPartShop.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 namespace AutoPartShop.Infrastructure.Data.Configurations;
-public class PartEntityConfiguration : IEntityTypeConfiguration<Part>
+public class PartEntityConfiguration : IEntityTypeConfiguration<Product>
 {
-    public void Configure(EntityTypeBuilder<Part> builder)
+    public void Configure(EntityTypeBuilder<Product> builder)
     {
         builder.HasKey(p => p.Id);
 

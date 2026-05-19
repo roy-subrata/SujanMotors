@@ -16,7 +16,7 @@ public class PurchaseOrderLine : AuditableEntity
     public int LineNumber { get; private set; }
 
     public PurchaseOrder? PurchaseOrder { get; set; }
-    public Part? Part { get; set; }
+    public Product? Part { get; set; }
     public ProductVariant? Variant { get; set; }
     public Unit? Unit { get; set; }
 

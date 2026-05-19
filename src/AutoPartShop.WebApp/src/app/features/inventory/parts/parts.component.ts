@@ -55,10 +55,8 @@ export class PartsComponent implements OnInit {
     selectedPart: PartResponse | null = null;
     loading = false;
     totalRecords = 0;
-    pageNumber = 1;
+    currentPage = 1;
     pageSize = 10;
-    first = 0;
-    pageSizeOptions = [10, 20, 50];
     searchTerm = '';
     filterStatus = '';
 
@@ -72,39 +70,45 @@ export class PartsComponent implements OnInit {
 
     Math = Math;
 
+    get totalPages(): number { return Math.max(1, Math.ceil(this.totalRecords / this.pageSize)); }
+    get first(): number { return (this.currentPage - 1) * this.pageSize; }
+
     constructor() {}
 
     ngOnInit(): void {
         this.loadData();
     }
 
-    /**
-     * Load parts from API
-     */
-    loadData(): void {
+    loadData(page = this.currentPage, rows = this.pageSize): void {
         this.loading = true;
+        this.currentPage = page;
+        this.pageSize = rows;
         const isActive = this.filterStatus === 'ACTIVE' ? true : this.filterStatus === 'INACTIVE' ? false : undefined;
         this.partService.getParts({
             search: this.searchTerm,
-            pageNumber: this.pageNumber,
-            pageSize: this.pageSize,
-            isActive: isActive
+            pageNumber: page,
+            pageSize: rows,
+            isActive
         }).subscribe({
             next: (response) => {
                 this.parts = response.data;
                 this.totalRecords = response.pagination.totalCount;
                 this.loading = false;
             },
-            error: (error) => {
-                this.messageService.add({
-                    severity: 'error',
-                    summary: 'Error',
-                    detail: 'Failed to load parts'
-                });
-                console.error('Error loading parts:', error);
+            error: () => {
+                this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load parts' });
                 this.loading = false;
             }
         });
+    }
+
+    goToPage(page: number): void {
+        if (page < 1 || page > this.totalPages) return;
+        this.loadData(page, this.pageSize);
+    }
+
+    onPageSizeChange(rows: number): void {
+        this.loadData(1, rows);
     }
 
     /**
@@ -117,27 +121,14 @@ export class PartsComponent implements OnInit {
     /**
      * Handle search
      */
-    onSearch(): void {
-        this.resetPagination();
-        this.loadData();
-    }
+    onSearch(): void { this.loadData(1, this.pageSize); }
+    onFilterChange(): void { this.loadData(1, this.pageSize); }
+    refreshData(): void { this.loadData(this.currentPage, this.pageSize); }
 
-    /**
-     * Handle filter change
-     */
-    onFilterChange(): void {
-        this.resetPagination();
-        this.loadData();
-    }
-
-    /**
-     * Clear all filters
-     */
     clearFilters(): void {
         this.searchTerm = '';
         this.filterStatus = '';
-        this.resetPagination();
-        this.loadData();
+        this.loadData(1, this.pageSize);
     }
 
     /**
@@ -147,32 +138,9 @@ export class PartsComponent implements OnInit {
         return !!(this.searchTerm || this.filterStatus);
     }
 
-    /**
-     * Handle PrimeNG table lazy load event
-     */
     onLazyLoad(event: TableLazyLoadEvent): void {
-        this.first = event.first ?? 0;
-        this.pageSize = event.rows ?? 10;
-        this.pageNumber = Math.floor(this.first / this.pageSize) + 1;
-        this.loadData();
-    }
-
-    /**
-     * Handle paginator page change
-     */
-    onPageChange(event: { first?: number; rows?: number }): void {
-        this.first = event.first ?? 0;
-        this.pageSize = event.rows ?? 10;
-        this.pageNumber = Math.floor(this.first / this.pageSize) + 1;
-        this.loadData();
-    }
-
-    /**
-     * Reset pagination to first page
-     */
-    private resetPagination(): void {
-        this.pageNumber = 1;
-        this.first = 0;
+        const page = Math.floor((event.first ?? 0) / (event.rows ?? this.pageSize)) + 1;
+        this.loadData(page, event.rows ?? this.pageSize);
     }
 
     /**
@@ -335,13 +303,6 @@ export class PartsComponent implements OnInit {
                 });
             }
         });
-    }
-
-    /**
-     * Refresh data
-     */
-    refreshData(): void {
-        this.loadData();
     }
 
     /**

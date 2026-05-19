@@ -274,7 +274,7 @@ export class PartDetailsComponent implements OnInit {
                     productVariantId: this.setPriceTarget!.variantId,
                     sellingPrice: saved.sellingPrice,
                     currency: saved.currency,
-                    source: this.setPriceTarget!.variantId ? 'VARIANT_HISTORY' : 'PRODUCT_HISTORY',
+                    source: this.setPriceTarget!.variantId ? 'VARIANT_SCHEDULE' : 'PRODUCT_SCHEDULE',
                     validFrom: saved.startDate,
                     validTo: saved.endDate ?? null
                 };

@@ -18,7 +18,7 @@ public class AutoPartDbContext : IdentityDbContext<ApplicationUser, ApplicationR
     public DbSet<Brand> Brands { get; set; }
     public DbSet<Unit> Units { get; set; }
     public DbSet<UnitConversion> UnitConversions { get; set; }
-    public DbSet<Part> Parts { get; set; }
+    public DbSet<Product> Parts { get; set; }
     public DbSet<ProductCatalogEntry> ProductCatalogEntries { get; set; }
     public DbSet<ProductVariant> ProductVariants { get; set; }
     public DbSet<ProductAttributeGroup> ProductAttributeGroups { get; set; }
@@ -41,7 +41,6 @@ public class AutoPartDbContext : IdentityDbContext<ApplicationUser, ApplicationR
     public DbSet<Invoice> Invoices { get; set; }
     public DbSet<InvoicePayment> InvoicePayments { get; set; }
     public DbSet<SalesReturn> SalesReturns { get; set; }
-    public DbSet<PriceHistory> PriceHistories { get; set; }
     public DbSet<PurchaseReturn> PurchaseReturns { get; set; }
     public DbSet<Customer> Customers { get; set; }
     public DbSet<PaymentProvider> PaymentProviders { get; set; }
@@ -60,6 +59,8 @@ public class AutoPartDbContext : IdentityDbContext<ApplicationUser, ApplicationR
     public DbSet<WarrantyClaim> WarrantyClaims { get; set; }
     public DbSet<Shipment> Shipments { get; set; }
     public DbSet<ShipmentLine> ShipmentLines { get; set; }
+    public DbSet<Challan> Challans { get; set; }
+    public DbSet<ChallanLine> ChallanLines { get; set; }
     public DbSet<CartReservation> CartReservations { get; set; }
     public DbSet<SupplierPaymentAccount> SupplierPaymentAccounts { get; set; }
     public DbSet<CreditNote> CreditNotes { get; set; }

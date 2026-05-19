@@ -1,7 +1,3 @@
-<!-- ============================================================
-     CATEGORIES LIST - ENTERPRISE UI (MATCHES SALES ORDERS LAYOUT)
-     ============================================================ -->
-
 <!-- Context Menu -->
 <p-contextMenu #contextMenu [model]="contextMenuItems" [appendTo]="'body'"></p-contextMenu>
 
@@ -21,31 +17,30 @@
       scrollHeight="flex"
       styleClass="custom-table">
 
-      <!-- Table Header -->
       <ng-template #header>
         <tr>
           <th class="col-name">Name</th>
           <th class="col-code">Code</th>
           <th class="col-breadcrumb">Breadcrumb</th>
           <th class="col-level">Level</th>
-          <th class="col-status">Status</th>
+          <th class="col-children">Children</th>
           <th class="col-order">Order</th>
+          <th class="col-status">Status</th>
           <th class="col-actions">Actions</th>
         </tr>
       </ng-template>
 
-      <!-- Table Body -->
       <ng-template #body let-category>
         <tr class="data-row">
-          <!-- Name -->
+
+          <!-- Name + description -->
           <td class="col-name">
             <div class="customer-cell">
-              <div class="customer-avatar">
-                {{ (category.name || 'C')[0].toUpperCase() }}
-              </div>
+              <div class="customer-avatar">{{ (category.name || 'C')[0].toUpperCase() }}</div>
               <div class="customer-info">
                 <span class="customer-name">{{ category.name }}</span>
-                <span *ngIf="category.description" class="customer-phone">{{ category.description }}</span>
+                <span *ngIf="category.description" class="customer-phone text-truncate"
+                      [title]="category.description">{{ category.description }}</span>
               </div>
             </div>
           </td>
@@ -57,12 +52,26 @@
 
           <!-- Breadcrumb -->
           <td class="col-breadcrumb">
-            <span class="breadcrumb-path">{{ category.breadcrumbPath || '-' }}</span>
+            <span class="breadcrumb-path" [title]="category.breadcrumbPath">
+              {{ category.breadcrumbPath || '—' }}
+            </span>
           </td>
 
           <!-- Level -->
           <td class="col-level">
             <span class="level-badge">{{ getLevelDisplay(category.depthLevel) }}</span>
+          </td>
+
+          <!-- Children count -->
+          <td class="col-children">
+            <span class="children-count" [class.has-children]="category.childCount > 0">
+              {{ category.childCount }}
+            </span>
+          </td>
+
+          <!-- Display Order -->
+          <td class="col-order">
+            <span class="order-badge">{{ category.displayOrder }}</span>
           </td>
 
           <!-- Status -->
@@ -72,30 +81,24 @@
             </span>
           </td>
 
-          <!-- Order -->
-          <td class="col-order">
-            <span class="amount-value">{{ category.displayOrder }}</span>
-          </td>
-
           <!-- Actions -->
           <td class="col-actions">
             <div class="action-cell">
-              <button class="btn-action" pTooltip="More" (click)="showContextMenu($event, category)">
+              <button class="btn-action" pTooltip="Actions" tooltipPosition="top"
+                      (click)="showContextMenu($event, category)">
                 <i class="pi pi-ellipsis-v"></i>
               </button>
             </div>
           </td>
+
         </tr>
       </ng-template>
 
-      <!-- Empty State -->
       <ng-template #emptymessage>
         <tr>
-          <td colspan="7">
+          <td colspan="8">
             <div class="empty-state">
-              <div class="empty-icon">
-                <i class="pi pi-tags"></i>
-              </div>
+              <div class="empty-icon"><i class="pi pi-sitemap"></i></div>
               <h3>No Categories Found</h3>
               <p>Try adjusting your filters or create a new category</p>
             </div>
@@ -103,20 +106,18 @@
         </tr>
       </ng-template>
 
-      <!-- Loading Skeleton -->
       <ng-template #loadingbody>
         <tr *ngFor="let _ of [1,2,3,4,5,6,7,8]" class="skeleton-row">
-          <td>
-            <div class="skeleton-customer">
-              <div class="skeleton skeleton-avatar"></div>
-              <div class="skeleton skeleton-text"></div>
-            </div>
-          </td>
+          <td><div class="skeleton-customer">
+            <div class="skeleton skeleton-avatar"></div>
+            <div class="skeleton skeleton-text"></div>
+          </div></td>
           <td><div class="skeleton skeleton-text-sm"></div></td>
           <td><div class="skeleton skeleton-text-sm"></div></td>
           <td><div class="skeleton skeleton-badge"></div></td>
-          <td><div class="skeleton skeleton-badge"></div></td>
           <td><div class="skeleton skeleton-text-sm"></div></td>
+          <td><div class="skeleton skeleton-text-sm"></div></td>
+          <td><div class="skeleton skeleton-badge"></div></td>
           <td><div class="skeleton skeleton-actions"></div></td>
         </tr>
       </ng-template>
@@ -127,28 +128,29 @@
   <!-- Pagination -->
   <div class="pagination-section" *ngIf="totalRecords > 0">
     <div class="pagination-info">
-      Showing <strong>{{ first + 1 }}</strong> to <strong>{{ Math.min(first + rows, totalRecords) }}</strong> of <strong>{{ totalRecords }}</strong> categories
+      Showing <strong>{{ first + 1 }}</strong> – <strong>{{ Math.min(first + rows, totalRecords) }}</strong>
+      of <strong>{{ totalRecords }}</strong> categories
     </div>
     <div class="pagination-controls">
       <span class="page-size-label">Rows per page:</span>
       <p-select
-        [options]="[{label: '10', value: 10}, {label: '20', value: 20}, {label: '50', value: 50}]"
+        [options]="[{label:'10',value:10},{label:'20',value:20},{label:'50',value:50}]"
         [ngModel]="rows"
         (onChange)="onPageSizeChange($event.value)"
         styleClass="page-size-dropdown">
       </p-select>
       <div class="page-nav">
-        <button class="page-btn" [disabled]="currentPage <= 1" (click)="goToPage(1)" pTooltip="First Page" tooltipPosition="top">
+        <button class="page-btn" [disabled]="currentPage <= 1" (click)="goToPage(1)" pTooltip="First" tooltipPosition="top">
           <i class="pi pi-angle-double-left"></i>
         </button>
-        <button class="page-btn" [disabled]="currentPage <= 1" (click)="goToPage(currentPage - 1)" pTooltip="Previous Page" tooltipPosition="top">
+        <button class="page-btn" [disabled]="currentPage <= 1" (click)="goToPage(currentPage - 1)" pTooltip="Previous" tooltipPosition="top">
           <i class="pi pi-angle-left"></i>
         </button>
         <span class="page-indicator">{{ currentPage }} / {{ totalPages }}</span>
-        <button class="page-btn" [disabled]="currentPage >= totalPages" (click)="goToPage(currentPage + 1)" pTooltip="Next Page" tooltipPosition="top">
+        <button class="page-btn" [disabled]="currentPage >= totalPages" (click)="goToPage(currentPage + 1)" pTooltip="Next" tooltipPosition="top">
           <i class="pi pi-angle-right"></i>
         </button>
-        <button class="page-btn" [disabled]="currentPage >= totalPages" (click)="goToPage(totalPages)" pTooltip="Last Page" tooltipPosition="top">
+        <button class="page-btn" [disabled]="currentPage >= totalPages" (click)="goToPage(totalPages)" pTooltip="Last" tooltipPosition="top">
           <i class="pi pi-angle-double-right"></i>
         </button>
       </div>
@@ -158,7 +160,7 @@
 
 <!-- ==================== MOBILE CARDS ==================== -->
 <section class="cards-section mobile-only">
-  <!-- Loading Skeleton -->
+
   <div *ngIf="loading" class="cards-grid">
     <div *ngFor="let _ of [1,2,3,4]" class="order-card skeleton-card">
       <div class="card-header">
@@ -169,26 +171,18 @@
         <div class="skeleton skeleton-text-lg"></div>
         <div class="skeleton skeleton-text-sm"></div>
       </div>
-      <div class="card-footer">
-        <div class="skeleton skeleton-text-sm"></div>
-        <div class="skeleton skeleton-text-sm"></div>
-      </div>
     </div>
   </div>
 
-  <!-- Empty State -->
   <div *ngIf="!loading && categories.length === 0" class="empty-state-mobile">
-    <div class="empty-icon">
-      <i class="pi pi-tags"></i>
-    </div>
+    <div class="empty-icon"><i class="pi pi-sitemap"></i></div>
     <h3>No Categories</h3>
     <p>Try different filters or create a new category</p>
   </div>
 
-  <!-- Category Cards -->
   <div *ngIf="!loading && categories.length > 0" class="cards-grid">
     <div *ngFor="let category of categories" class="order-card" (click)="editCategory.emit(category)">
-      <!-- Card Header -->
+
       <div class="card-header">
         <span class="card-so-number">{{ category.code }}</span>
         <span class="status-pill" [attr.data-status]="category.isActive ? 'active' : 'inactive'">
@@ -196,51 +190,53 @@
         </span>
       </div>
 
-      <!-- Card Body -->
       <div class="card-body">
         <div class="card-customer">
-          <div class="customer-avatar small">
-            {{ (category.name || 'C')[0].toUpperCase() }}
+          <div class="customer-avatar small">{{ (category.name || 'C')[0].toUpperCase() }}</div>
+          <div class="customer-info">
+            <span class="customer-name">{{ category.name }}</span>
+            <span *ngIf="category.description" class="customer-phone">{{ category.description }}</span>
           </div>
-          <span class="customer-name">{{ category.name }}</span>
         </div>
-        <div class="card-dates">
-          <span class="card-date">
-            <i class="pi pi-sitemap"></i>
-            {{ category.breadcrumbPath || '-' }}
+        <div class="card-meta">
+          <span *ngIf="category.breadcrumbPath" class="card-meta-item">
+            <i class="pi pi-sitemap"></i>&nbsp;{{ category.breadcrumbPath }}
           </span>
-          <span class="card-date">
-            <i class="pi pi-layer-group"></i>
-            {{ getLevelDisplay(category.depthLevel) }}
+          <span class="card-meta-item">
+            <i class="pi pi-layer-group"></i>&nbsp;{{ getLevelDisplay(category.depthLevel) }}
+          </span>
+          <span *ngIf="category.childCount > 0" class="card-meta-item">
+            <i class="pi pi-list"></i>&nbsp;{{ category.childCount }} children
+          </span>
+          <span class="card-meta-item">
+            <i class="pi pi-sort-numeric-down"></i>&nbsp;Order {{ category.displayOrder }}
           </span>
         </div>
       </div>
 
-      <!-- Card Footer -->
       <div class="card-footer">
-        <div class="card-amount">
-          <span class="amount-label">Order</span>
-          <span class="amount-value">{{ category.displayOrder }}</span>
-        </div>
-        <button class="btn-card-action" (click)="showContextMenu($event, category); $event.stopPropagation()">
+        <button class="btn-card-action"
+                (click)="showContextMenu($event, category); $event.stopPropagation()">
           <i class="pi pi-ellipsis-h"></i>
         </button>
       </div>
     </div>
   </div>
 
-  <!-- Mobile Pagination -->
-  <div *ngIf="!loading && categories.length > 0" class="mobile-pagination">
+  <!-- Mobile Pagination — fixed at viewport bottom -->
+  <div *ngIf="!loading && totalRecords > 0" class="mobile-pagination">
     <div class="pagination-info-mobile">
-      {{ first + 1 }}-{{ Math.min(first + rows, totalRecords) }} of {{ totalRecords }}
+      {{ first + 1 }}–{{ Math.min(first + rows, totalRecords) }} of {{ totalRecords }}
     </div>
     <div class="pagination-nav-mobile">
       <button class="page-btn" [disabled]="currentPage <= 1" (click)="goToPage(currentPage - 1)">
         <i class="pi pi-chevron-left"></i>
       </button>
+      <span class="page-indicator-mobile">{{ currentPage }} / {{ totalPages }}</span>
       <button class="page-btn" [disabled]="currentPage >= totalPages" (click)="goToPage(currentPage + 1)">
         <i class="pi pi-chevron-right"></i>
       </button>
     </div>
   </div>
+
 </section>

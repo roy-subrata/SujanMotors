@@ -257,7 +257,7 @@ public class CatalogReadRepository(AutoPartDbContext _db) : ICatalogReadReposito
 
         // Query 2: parts WITHOUT active variants — always included regardless of attribute filters
         // (non-variant parts have no VariantAttributeValues so attribute filters cannot apply to them)
-        IQueryable<Part> partsOnly = _db.Parts
+        IQueryable<Product> partsOnly = _db.Parts
             .Include(p => p.Category).Include(p => p.Brand).Include(p => p.CatalogEntry)
             .Where(p => !p.Isdeleted && p.IsActive
                 && (p.CatalogEntry == null || p.CatalogEntry.IsPublished)
@@ -519,7 +519,7 @@ public class CatalogReadRepository(AutoPartDbContext _db) : ICatalogReadReposito
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private static CatalogProductListItem ToListItem(
-        Part p,
+        Product p,
         HashSet<Guid> stockLookup,
         Dictionary<Guid, List<Discount>> discountLookup)
     {

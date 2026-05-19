@@ -273,28 +273,29 @@
     <!-- Pagination -->
     <div class="pagination-section" *ngIf="totalRecords > 0">
       <div class="pagination-info">
-        Showing <strong>{{ first + 1 }}</strong> to <strong>{{ first + parts.length }}</strong> of <strong>{{ totalRecords }}</strong> parts
+        Showing <strong>{{ first + 1 }}</strong> – <strong>{{ Math.min(first + pageSize, totalRecords) }}</strong>
+        of <strong>{{ totalRecords }}</strong> parts
       </div>
       <div class="pagination-controls">
         <span class="page-size-label">Rows per page:</span>
         <p-select
-          [options]="[{label: '10', value: 10}, {label: '20', value: 20}, {label: '50', value: 50}]"
-          [(ngModel)]="pageSize"
-          (onChange)="onPageChange({first: 0, rows: pageSize})"
+          [options]="[{label:'10',value:10},{label:'20',value:20},{label:'50',value:50}]"
+          [ngModel]="pageSize"
+          (onChange)="onPageSizeChange($event.value)"
           styleClass="page-size-dropdown">
         </p-select>
         <div class="page-nav">
-          <button class="page-btn" [disabled]="first === 0" (click)="onPageChange({first: 0, rows: pageSize})">
+          <button class="page-btn" [disabled]="currentPage <= 1" (click)="goToPage(1)" pTooltip="First" tooltipPosition="top">
             <i class="pi pi-angle-double-left"></i>
           </button>
-          <button class="page-btn" [disabled]="first === 0" (click)="onPageChange({first: first - pageSize, rows: pageSize})">
+          <button class="page-btn" [disabled]="currentPage <= 1" (click)="goToPage(currentPage - 1)" pTooltip="Previous" tooltipPosition="top">
             <i class="pi pi-angle-left"></i>
           </button>
-          <span class="page-indicator">{{ pageNumber }} / {{ Math.ceil(totalRecords / pageSize) }}</span>
-          <button class="page-btn" [disabled]="first + pageSize >= totalRecords" (click)="onPageChange({first: first + pageSize, rows: pageSize})">
+          <span class="page-indicator">{{ currentPage }} / {{ totalPages }}</span>
+          <button class="page-btn" [disabled]="currentPage >= totalPages" (click)="goToPage(currentPage + 1)" pTooltip="Next" tooltipPosition="top">
             <i class="pi pi-angle-right"></i>
           </button>
-          <button class="page-btn" [disabled]="first + pageSize >= totalRecords" (click)="onPageChange({first: (Math.ceil(totalRecords / pageSize) - 1) * pageSize, rows: pageSize})">
+          <button class="page-btn" [disabled]="currentPage >= totalPages" (click)="goToPage(totalPages)" pTooltip="Last" tooltipPosition="top">
             <i class="pi pi-angle-double-right"></i>
           </button>
         </div>
@@ -380,15 +381,15 @@
     </div>
 
     <!-- Mobile Pagination -->
-    <div *ngIf="!loading && parts.length > 0" class="mobile-pagination">
+    <div *ngIf="!loading && totalRecords > 0" class="mobile-pagination">
       <div class="pagination-info-mobile">
-        {{ first + 1 }}-{{ first + parts.length }} of {{ totalRecords }}
+        {{ first + 1 }}–{{ Math.min(first + pageSize, totalRecords) }} of {{ totalRecords }}
       </div>
       <div class="pagination-nav-mobile">
-        <button class="page-btn" [disabled]="first === 0" (click)="onPageChange({first: first - pageSize, rows: pageSize})">
+        <button class="page-btn" [disabled]="currentPage <= 1" (click)="goToPage(currentPage - 1)">
           <i class="pi pi-chevron-left"></i>
         </button>
-        <button class="page-btn" [disabled]="first + pageSize >= totalRecords" (click)="onPageChange({first: first + pageSize, rows: pageSize})">
+        <button class="page-btn" [disabled]="currentPage >= totalPages" (click)="goToPage(currentPage + 1)">
           <i class="pi pi-chevron-right"></i>
         </button>
       </div>

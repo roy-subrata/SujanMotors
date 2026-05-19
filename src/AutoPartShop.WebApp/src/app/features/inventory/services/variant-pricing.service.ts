@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
 
 export interface ActivePriceResponse {
@@ -8,7 +9,7 @@ export interface ActivePriceResponse {
   productVariantId?: string | null;
   sellingPrice: number;
   currency: string;
-  source: 'VARIANT_HISTORY' | 'PRODUCT_HISTORY';
+  source: 'VARIANT_SCHEDULE' | 'PRODUCT_SCHEDULE';
   validFrom: string;
   validTo?: string | null;
 }
@@ -37,24 +38,27 @@ export interface SetPriceRequest {
 @Injectable({ providedIn: 'root' })
 export class VariantPricingService {
   private readonly http = inject(HttpClient);
-  private readonly baseUrl = `${environment.apiUrl}/variant-pricing`;
 
-  /** Get current active price — variant-specific first, then base product fallback */
-  getActivePrice(partId: string, variantId?: string): Observable<ActivePriceResponse> {
+  private baseUrl(productId: string): string {
+    return `${environment.apiUrl}/v1/products/${productId}/price-schedule`;
+  }
+
+  getActivePrice(partId: string, variantId?: string): Observable<ActivePriceResponse | null> {
     let params = new HttpParams();
     if (variantId) params = params.set('variantId', variantId);
-    return this.http.get<ActivePriceResponse>(`${this.baseUrl}/${partId}/active`, { params });
+    return this.http.get<{ data: ActivePriceResponse | null }>(`${this.baseUrl(partId)}/active`, { params })
+      .pipe(map(r => r.data));
   }
 
-  /** Full price history for a part (all scopes, newest first) */
   getPriceHistory(partId: string): Observable<PriceHistoryRecord[]> {
-    return this.http.get<PriceHistoryRecord[]>(`${this.baseUrl}/${partId}/history`);
+    return this.http.get<{ data: PriceHistoryRecord[] }>(this.baseUrl(partId))
+      .pipe(map(r => r.data));
   }
 
-  /** Set a new price — closes previous active price automatically */
   setPrice(partId: string, request: SetPriceRequest, variantId?: string): Observable<PriceHistoryRecord> {
     let params = new HttpParams();
     if (variantId) params = params.set('variantId', variantId);
-    return this.http.post<PriceHistoryRecord>(`${this.baseUrl}/${partId}/set-price`, request, { params });
+    return this.http.post<{ data: PriceHistoryRecord }>(this.baseUrl(partId), request, { params })
+      .pipe(map(r => r.data));
   }
 }

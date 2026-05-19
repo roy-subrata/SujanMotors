@@ -1,3 +1,4 @@
+using AutoPartShop.Api.Common;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.VariantPricingDtos;
 using AutoPartShop.Domain.Entities;
@@ -9,8 +10,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AutoPartShop.Api.Controllers;
 
+/// <summary>
+/// Manages the price schedule for a product (or a specific variant of it).
+/// Price history/audit is in AuditLog — these endpoints handle time-based scheduled prices only.
+/// Leave variantId null to target the base product price.
+/// </summary>
 [ApiController]
-[Route("api/variant-pricing")]
+[Route("api/v1/products/{productId:guid}/price-schedule")]
 [Authorize]
 [Produces("application/json")]
 public class VariantPricingController : ControllerBase
@@ -33,136 +39,99 @@ public class VariantPricingController : ControllerBase
     }
 
     /// <summary>
-    /// Get the currently active price for a part or variant.
-    /// variantId is optional — omit for base product price.
+    /// Get the currently active price for a product or one of its variants.
     /// </summary>
-    [HttpGet("{partId:guid}/active")]
-    public async Task<ActionResult<ActiveVariantPriceResponse>> GetActivePrice(
-        Guid partId, [FromQuery] Guid? variantId, CancellationToken cancellationToken)
+    [HttpGet("active")]
+    public async Task<ActionResult<ActiveVariantPriceResponse>> GetActive(
+        Guid productId, [FromQuery] Guid? variantId, CancellationToken cancellationToken)
     {
-        try
-        {
-            var price = await _priceHistoryRepository.ResolveActivePriceAsync(partId, variantId, cancellationToken);
-            if (price is null)
-                return NotFound(new { message = "No active price found" });
-
-            return Ok(MapToActive(price));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting active price for part {PartId}", partId);
-            return StatusCode(500, "An error occurred while retrieving the price");
-        }
-    }
-
-    /// <summary>Get the price that was active on a specific date (for auditing past orders).</summary>
-    [HttpGet("{partId:guid}/price-at")]
-    public async Task<ActionResult<ActiveVariantPriceResponse>> GetPriceAt(
-        Guid partId, [FromQuery] Guid? variantId, [FromQuery] DateTime date, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var price = await _priceHistoryRepository.GetPriceOnDateAsync(partId, variantId, date, cancellationToken);
-            if (price is null)
-                return NotFound(new { message = $"No price found on {date:yyyy-MM-dd}" });
-
-            return Ok(MapToActive(price));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting price at date for part {PartId}", partId);
-            return StatusCode(500, "An error occurred while retrieving the price");
-        }
-    }
-
-    /// <summary>Get full price history for a part (all variants included), newest first.</summary>
-    [HttpGet("{partId:guid}/history")]
-    public async Task<ActionResult<IEnumerable<VariantPriceResponse>>> GetHistory(
-        Guid partId, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var history = await _priceHistoryRepository.GetByPartAsync(partId, cancellationToken);
-            return Ok(history.Select(MapToResponse));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting price history for part {PartId}", partId);
-            return StatusCode(500, "An error occurred while retrieving price history");
-        }
+        var price = await _priceHistoryRepository.ResolveActivePriceAsync(productId, variantId, cancellationToken);
+        return Ok(ApiResponse<ActiveVariantPriceResponse?>.Ok(price is null ? null : MapToActive(price)));
     }
 
     /// <summary>
-    /// Set a new selling price for a part or variant.
-    /// Automatically closes the previous active price.
-    /// Leave variantId null to set the base product price.
+    /// Get the price that was active on a specific date (for auditing past orders).
     /// </summary>
-    [HttpPost("{partId:guid}/set-price")]
-    public async Task<ActionResult<VariantPriceResponse>> SetPrice(
-        Guid partId, [FromQuery] Guid? variantId, SetVariantPriceRequest request, CancellationToken cancellationToken)
+    [HttpGet("at")]
+    public async Task<ActionResult<ActiveVariantPriceResponse>> GetAt(
+        Guid productId, [FromQuery] Guid? variantId, [FromQuery] DateTime date, CancellationToken cancellationToken)
     {
-        try
+        var price = await _priceHistoryRepository.GetPriceOnDateAsync(productId, variantId, date, cancellationToken);
+        if (price is null)
+            return NotFound(ApiError.NotFound($"No price found for {date:yyyy-MM-dd}", Request.Path));
+
+        return Ok(ApiResponse<ActiveVariantPriceResponse>.Ok(MapToActive(price)));
+    }
+
+    /// <summary>
+    /// Get full price schedule for a product (all variants, newest first).
+    /// </summary>
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<VariantPriceResponse>>> GetHistory(
+        Guid productId, CancellationToken cancellationToken)
+    {
+        var history = await _priceHistoryRepository.GetByPartAsync(productId, cancellationToken);
+        return Ok(ApiResponse<object>.Ok(history.Select(MapToResponse)));
+    }
+
+    /// <summary>
+    /// Set a new selling price for a product or variant.
+    /// Automatically closes the previous active price entry.
+    /// Use variantId=null to set the base product price.
+    /// </summary>
+    [HttpPost]
+    public async Task<ActionResult<VariantPriceResponse>> SetPrice(
+        Guid productId, [FromQuery] Guid? variantId, [FromBody] SetVariantPriceRequest request, CancellationToken cancellationToken)
+    {
+        var currency = request.Currency?.Trim().ToUpperInvariant() ?? "BDT";
+        var user     = _currentUserService.GetCurrentUsername();
+        var today    = DateTime.UtcNow.Date;
+
+        var newPrice = ProductVariantPriceHistory.Create(
+            productId, request.SellingPrice, request.StartDate, variantId, currency, request.Reason);
+        newPrice.CreatedBy  = user;
+        newPrice.ModifiedBy = user;
+
+        var strategy = _db.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
         {
-            var currency = request.Currency?.Trim().ToUpperInvariant() ?? "BDT";
-            var user     = _currentUserService.GetCurrentUsername();
-            var today    = DateTime.UtcNow.Date;
+            await using var tx = await _db.Database.BeginTransactionAsync(cancellationToken);
 
-            var newPrice = ProductVariantPriceHistory.Create(
-                partId, request.SellingPrice, request.StartDate, variantId, currency, request.Reason);
-            newPrice.CreatedBy  = user;
-            newPrice.ModifiedBy = user;
+            await _priceHistoryRepository.SetNewPriceAsync(newPrice, cancellationToken);
 
-            // EnableRetryOnFailure requires IExecutionStrategy to safely span a manual transaction.
-            var strategy = _db.Database.CreateExecutionStrategy();
-            await strategy.ExecuteAsync(async () =>
+            // Only sync the denormalized field when the price is effective today or earlier.
+            // A future-dated price must not be visible in the catalog yet.
+            if (request.StartDate.Date <= today)
             {
-                await using var tx = await _db.Database.BeginTransactionAsync(cancellationToken);
-
-                // 1 — persist the price schedule record (closes previous active price internally)
-                await _priceHistoryRepository.SetNewPriceAsync(newPrice, cancellationToken);
-
-                // 2 — sync the denormalized field ONLY if the price is effective today or earlier
-                //     A future-dated price (StartDate > today) must NOT be visible in the catalog yet
-                if (request.StartDate.Date <= today)
+                if (variantId.HasValue)
                 {
-                    if (variantId.HasValue)
+                    var variant = await _db.ProductVariants
+                        .FirstOrDefaultAsync(v => v.Id == variantId.Value && !v.Isdeleted, cancellationToken);
+                    if (variant != null)
                     {
-                        var variant = await _db.ProductVariants
-                            .FirstOrDefaultAsync(v => v.Id == variantId.Value && !v.Isdeleted, cancellationToken);
-                        if (variant != null)
-                        {
-                            variant.UpdateSellingPrice(request.SellingPrice, currency);
-                            variant.ModifiedBy = user;
-                            await _db.SaveChangesAsync(cancellationToken);
-                        }
-                    }
-                    else
-                    {
-                        var part = await _db.Parts
-                            .FirstOrDefaultAsync(p => p.Id == partId && !p.Isdeleted, cancellationToken);
-                        if (part != null)
-                        {
-                            part.UpdateSellingPrice(request.SellingPrice, currency);
-                            part.ModifiedBy = user;
-                            await _db.SaveChangesAsync(cancellationToken);
-                        }
+                        variant.UpdateSellingPrice(request.SellingPrice, currency);
+                        variant.ModifiedBy = user;
+                        await _db.SaveChangesAsync(cancellationToken);
                     }
                 }
+                else
+                {
+                    var part = await _db.Parts
+                        .FirstOrDefaultAsync(p => p.Id == productId && !p.Isdeleted, cancellationToken);
+                    if (part != null)
+                    {
+                        part.UpdateSellingPrice(request.SellingPrice, currency);
+                        part.ModifiedBy = user;
+                        await _db.SaveChangesAsync(cancellationToken);
+                    }
+                }
+            }
 
-                await tx.CommitAsync(cancellationToken);
-            });
+            await tx.CommitAsync(cancellationToken);
+        });
 
-            return CreatedAtAction(nameof(GetActivePrice), new { partId }, MapToResponse(newPrice));
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error setting price for part {PartId}", partId);
-            return StatusCode(500, "An error occurred while setting the price");
-        }
+        return CreatedAtAction(nameof(GetActive), new { productId },
+            ApiResponse<VariantPriceResponse>.Ok(MapToResponse(newPrice)));
     }
 
     private static VariantPriceResponse MapToResponse(ProductVariantPriceHistory p) => new()
@@ -186,7 +155,7 @@ public class VariantPricingController : ControllerBase
         ProductVariantId = p.ProductVariantId,
         SellingPrice = p.SellingPrice,
         Currency = p.Currency,
-        Source = p.ProductVariantId.HasValue ? "VARIANT_HISTORY" : "PRODUCT_HISTORY",
+        Source = p.ProductVariantId.HasValue ? "VARIANT_SCHEDULE" : "PRODUCT_SCHEDULE",
         ValidFrom = p.StartDate,
         ValidTo = p.EndDate
     };

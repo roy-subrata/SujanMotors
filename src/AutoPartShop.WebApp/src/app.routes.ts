@@ -33,6 +33,7 @@ export const appRoutes: Routes = [
             { path: 'procurement', loadChildren: () => import('./app/features/procurement/procurement.routes').then(m => m.procurementRoutes) },
             { path: 'sales', loadChildren: () => import('./app/features/sales/sales.routes').then(m => m.salesRoutes) },
             { path: 'warranty', loadChildren: () => import('./app/features/warranty/warranty.routes').then(m => m.warrantyRoutes) },
+            { path: 'finance', loadChildren: () => import('./app/features/finance/finance.routes').then(m => m.financeRoutes) },
             { path: 'audit', loadChildren: () => import('./app/features/audit/audit.routes').then(m => m.auditRoutes) },
             { path: 'admin', loadChildren: () => import('./app/features/admin/admin.routes').then(m => m.adminRoutes) },
             {
