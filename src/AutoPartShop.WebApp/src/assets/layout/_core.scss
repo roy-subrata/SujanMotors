@@ -1,0 +1,39 @@
+html {
+    height: 100%;
+    font-size: 14px;
+}
+
+body {
+    font-family: 'Lato', sans-serif;
+    color: var(--text-color);
+    background-color: var(--surface-ground);
+    margin: 0;
+    padding: 0;
+    min-height: 100%;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    line-height: 1.2;
+}
+
+a {
+    text-decoration: none;
+}
+
+.layout-wrapper {
+    min-height: 100vh;
+}
+
+/* keep layout-wrapper min-height behavior */
+
+/* PrimeNG overlay panels (dropdowns, autocomplete, calendar, overlaypanel) should appear above dialogs */
+.p-overlaypanel,
+.p-dropdown-panel,
+.p-autocomplete-panel,
+.p-calendar,
+.p-tooltip,
+.p-select-panel,
+.p-tieredmenu-root,
+.p-menu-overlay,
+.p-overlay {
+    z-index: 12000 !important;
+}

@@ -1,0 +1,243 @@
+<!-- Create Dialog -->
+<p-dialog
+  [(visible)]="displayCreateDialog"
+  (visibleChange)="displayCreateDialogChange.emit($event)"
+  [header]="'Create New Unit'"
+  [modal]="true"
+  [style]="{width: '100%', maxWidth: '500px'}"
+  [draggable]="true"
+  [resizable]="false"
+  (onShow)="onCreateDialogShow()"
+  (onHide)="onCreateDialogHide()">
+
+  <form [formGroup]="createForm" class="form-container">
+    <!-- Name Field -->
+    <div class="form-group">
+      <label for="create-name" class="form-label">
+        <span class="required">*</span> Unit Name
+      </label>
+      <input
+        id="create-name"
+        pInputText
+        type="text"
+        formControlName="name"
+        placeholder="e.g., Kilogram"
+        class="form-input"
+        [class.error]="hasError(createForm, 'name')"
+        [class.success]="isFieldValid(createForm, 'name')" />
+      <small class="error-message" *ngIf="hasError(createForm, 'name')">
+        {{ getErrorMessage(createForm, 'name') }}
+      </small>
+    </div>
+
+    <!-- Code Field (Disabled) -->
+    <div class="form-group">
+      <label for="create-code" class="form-label">
+        <span class="required">*</span> Code
+      </label>
+      <div class="code-input-wrapper">
+        <input
+          id="create-code"
+          pInputText
+          type="text"
+          formControlName="code"
+          placeholder="Auto-generated"
+          class="form-input disabled-field"
+          [disabled]="true" />
+        <i *ngIf="generatingCode" class="pi pi-spin pi-spinner code-spinner"></i>
+      </div>
+      <small class="hint-message">Code is auto-generated and cannot be modified</small>
+    </div>
+
+    <!-- Symbol Field -->
+    <div class="form-group">
+      <label for="create-symbol" class="form-label">
+        <span class="required">*</span> Symbol
+      </label>
+      <input
+        id="create-symbol"
+        pInputText
+        type="text"
+        formControlName="symbol"
+        placeholder="e.g., kg"
+        class="form-input"
+        [class.error]="hasError(createForm, 'symbol')"
+        [class.success]="isFieldValid(createForm, 'symbol')" />
+      <small class="error-message" *ngIf="hasError(createForm, 'symbol')">
+        {{ getErrorMessage(createForm, 'symbol') }}
+      </small>
+    </div>
+
+    <!-- Description Field (Optional) -->
+    <div class="form-group">
+      <label for="create-description" class="form-label">
+        Description <span class="optional-label">(Optional)</span>
+      </label>
+      <textarea
+        id="create-description"
+        pInputTextarea
+        formControlName="description"
+        placeholder="Optional description"
+        rows="3"
+        class="form-input"
+        [class.error]="hasError(createForm, 'description')"
+        [class.success]="isFieldValid(createForm, 'description')">
+      </textarea>
+      <small class="hint-message">Max 500 characters</small>
+    </div>
+  </form>
+
+  <ng-template pTemplate="footer">
+    <div class="dialog-footer">
+      <button
+        pButton
+        type="button"
+        label="Cancel"
+        icon="pi pi-times"
+        class="p-button-text p-button-secondary"
+        (click)="onCreateDialogHide()"
+        [disabled]="isSubmitting">
+      </button>
+      <button
+        pButton
+        type="button"
+        label="Create"
+        icon="pi pi-check"
+        class="p-button p-button-success"
+        (click)="onCreateSubmit()"
+        [loading]="isSubmitting"
+        [disabled]="createForm.invalid || isSubmitting">
+      </button>
+    </div>
+  </ng-template>
+</p-dialog>
+
+<!-- Update Dialog -->
+<p-dialog
+  [(visible)]="displayUpdateDialog"
+  (visibleChange)="displayUpdateDialogChange.emit($event)"
+  [header]="'Edit Unit'"
+  [modal]="true"
+  [style]="{width: '100%', maxWidth: '500px'}"
+  [draggable]="true"
+  [resizable]="false"
+  (onHide)="onUpdateDialogHide()">
+
+  <form [formGroup]="updateForm" class="form-container">
+    <!-- Name Field -->
+    <div class="form-group">
+      <label for="update-name" class="form-label">
+        <span class="required">*</span> Unit Name
+      </label>
+      <input
+        id="update-name"
+        pInputText
+        type="text"
+        formControlName="name"
+        placeholder="e.g., Kilogram"
+        class="form-input"
+        [class.error]="hasError(updateForm, 'name')"
+        [class.success]="isFieldValid(updateForm, 'name')" />
+      <small class="error-message" *ngIf="hasError(updateForm, 'name')">
+        {{ getErrorMessage(updateForm, 'name') }}
+      </small>
+    </div>
+
+    <!-- Code Field (Disabled) -->
+    <div class="form-group">
+      <label for="update-code" class="form-label">
+        <span class="required">*</span> Code
+      </label>
+      <input
+        id="update-code"
+        pInputText
+        type="text"
+        formControlName="code"
+        placeholder="e.g., KG"
+        class="form-input disabled-field"
+        [disabled]="true" />
+      <small class="hint-message">Code cannot be modified</small>
+    </div>
+
+    <!-- Symbol Field -->
+    <div class="form-group">
+      <label for="update-symbol" class="form-label">
+        <span class="required">*</span> Symbol
+      </label>
+      <input
+        id="update-symbol"
+        pInputText
+        type="text"
+        formControlName="symbol"
+        placeholder="e.g., kg"
+        class="form-input"
+        [class.error]="hasError(updateForm, 'symbol')"
+        [class.success]="isFieldValid(updateForm, 'symbol')" />
+      <small class="error-message" *ngIf="hasError(updateForm, 'symbol')">
+        {{ getErrorMessage(updateForm, 'symbol') }}
+      </small>
+    </div>
+
+    <!-- Description Field (Optional) -->
+    <div class="form-group">
+      <label for="update-description" class="form-label">
+        Description <span class="optional-label">(Optional)</span>
+      </label>
+      <textarea
+        id="update-description"
+        pInputTextarea
+        formControlName="description"
+        placeholder="Optional description"
+        rows="3"
+        class="form-input"
+        [class.error]="hasError(updateForm, 'description')"
+        [class.success]="isFieldValid(updateForm, 'description')">
+      </textarea>
+      <small class="hint-message">Max 500 characters</small>
+    </div>
+
+    <!-- Status Field -->
+    <div class="form-group">
+      <label for="update-status" class="form-label">Status</label>
+      <div class="status-toggle">
+        <input
+          id="update-status"
+          type="checkbox"
+          formControlName="isActive"
+          class="status-checkbox" />
+        <label for="update-status" class="status-label">
+          <span *ngIf="updateForm.get('isActive')?.value" class="status-active">
+            <i class="pi pi-check-circle"></i> Active
+          </span>
+          <span *ngIf="!updateForm.get('isActive')?.value" class="status-inactive">
+            <i class="pi pi-times-circle"></i> Inactive
+          </span>
+        </label>
+      </div>
+    </div>
+  </form>
+
+  <ng-template pTemplate="footer">
+    <div class="dialog-footer">
+      <button
+        pButton
+        type="button"
+        label="Cancel"
+        icon="pi pi-times"
+        class="p-button-text p-button-secondary"
+        (click)="onUpdateDialogHide()"
+        [disabled]="isSubmitting">
+      </button>
+      <button
+        pButton
+        type="button"
+        label="Update"
+        icon="pi pi-check"
+        class="p-button p-button-info"
+        (click)="onUpdateSubmit()"
+        [loading]="isSubmitting"
+        [disabled]="updateForm.invalid || isSubmitting">
+      </button>
+    </div>
+  </ng-template>
+</p-dialog>

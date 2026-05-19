@@ -1,0 +1,127 @@
+<div class="customer-detail-container">
+  <p-toast></p-toast>
+
+  <!-- Integrated Customer Header -->
+  <div class="customer-header-section" *ngIf="customer() as cust">
+    <!-- Top Bar: Back button, Title, Actions -->
+    <div class="header-top-bar">
+      <div class="header-left">
+        <button pButton icon="pi pi-arrow-left" class="back-button" (click)="goBack()" pTooltip="Back to Customers"
+          tooltipPosition="bottom"></button>
+        <span class="header-title">Customer Details</span>
+      </div>
+      <div class="header-actions">
+        <button pButton label="New Payment" icon="pi pi-wallet" class="action-btn action-btn-primary"
+          (click)="recordPayment()"></button>
+        <button pButton label="Edit" icon="pi pi-pencil" class="action-btn action-btn-secondary"
+          (click)="editCustomer()"></button>
+      </div>
+    </div>
+
+    <!-- Profile Section -->
+    <div class="profile-section">
+      <div class="profile-left">
+        <p-avatar [label]="getInitials(cust)" size="large" shape="circle"
+          [style]="{'background-color': 'rgba(255,255,255,0.2)', 'color': '#ffffff', 'font-size': '1.125rem', 'width': '48px', 'height': '48px', 'border': '2px solid rgba(255,255,255,0.3)'}">
+        </p-avatar>
+        <div class="profile-info">
+          <div class="name-badges">
+            <h2 class="customer-name">{{ cust.firstName }} {{ cust.lastName }}</h2>
+            <p-tag [value]="cust.status" [severity]="getStatusSeverity(cust.status)"></p-tag>
+            <span class="customer-type-badge">
+              <i class="pi pi-tag"></i>
+              {{ cust.customerType }}
+            </span>
+          </div>
+          <div class="code-company">
+            <span class="customer-code">{{ cust.customerCode }}</span>
+            <span class="separator" *ngIf="cust.companyName">•</span>
+            <span class="company-name" *ngIf="cust.companyName">{{ cust.companyName }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Summary Stats -->
+      <div class="summary-stats" *ngIf="paymentSummary() as summary">
+        <div class="stat-item stat-blue">
+          <div class="stat-icon"><i class="pi pi-dollar"></i></div>
+          <div class="stat-content">
+            <span class="stat-label">Total Paid</span>
+            <span class="stat-value">{{ summary.totalPaid | appCurrency }}</span>
+          </div>
+        </div>
+        <div class="stat-item stat-orange">
+          <div class="stat-icon"><i class="pi pi-exclamation-triangle"></i></div>
+          <div class="stat-content">
+            <span class="stat-label">Outstanding</span>
+            <span class="stat-value">{{ summary.totalOutstanding | appCurrency }}</span>
+          </div>
+        </div>
+        <div class="stat-item stat-purple">
+          <div class="stat-icon"><i class="pi pi-credit-card"></i></div>
+          <div class="stat-content">
+            <span class="stat-label">Advance</span>
+            <span class="stat-value">{{ summary.availableAdvance | appCurrency }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contact Row -->
+    <div class="contact-row">
+      <div class="contact-item">
+        <i class="pi pi-envelope"></i>
+        <span>{{ cust.email || 'N/A' }}</span>
+      </div>
+      <div class="contact-divider">|</div>
+      <div class="contact-item">
+        <i class="pi pi-phone"></i>
+        <span>{{ cust.phone || 'N/A' }}</span>
+      </div>
+      <div class="contact-divider">|</div>
+      <div class="contact-item">
+        <i class="pi pi-map-marker"></i>
+        <span>
+          <ng-container *ngIf="cust.billingAddress || cust.city || cust.state || cust.postalCode">
+            {{ cust.billingAddress }}{{ cust.billingAddress && cust.city ? ', ' : '' }}{{ cust.city }}{{ cust.city &&
+            cust.state ? ', ' : '' }}{{ cust.state }} {{ cust.postalCode }}
+          </ng-container>
+          <ng-container *ngIf="!cust.billingAddress && !cust.city && !cust.state && !cust.postalCode">N/A</ng-container>
+        </span>
+      </div>
+      <div class="contact-divider">|</div>
+      <div class="contact-item">
+        <i class="pi pi-calendar"></i>
+        <span>Member Since {{ cust.createdAt | date:'MMM dd, yyyy' }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Links Section -->
+  <div class="quick-links-section" *ngIf="customer()">
+    <div class="quick-link-card" (click)="viewPayments()">
+      <div class="quick-link-icon ql-blue"><i class="pi pi-wallet"></i></div>
+      <div class="quick-link-content">
+        <span class="quick-link-title">View Payments</span>
+        <span class="quick-link-desc">Payment history & transactions</span>
+      </div>
+      <i class="pi pi-arrow-right quick-link-arrow"></i>
+    </div>
+    <div class="quick-link-card" (click)="viewAccountSummary()">
+      <div class="quick-link-icon ql-purple"><i class="pi pi-file-check"></i></div>
+      <div class="quick-link-content">
+        <span class="quick-link-title">Account Summary</span>
+        <span class="quick-link-desc">Purchase items & due report</span>
+      </div>
+      <i class="pi pi-arrow-right quick-link-arrow"></i>
+    </div>
+    <div class="quick-link-card" (click)="viewPaymentSummary()">
+      <div class="quick-link-icon ql-green"><i class="pi pi-chart-bar"></i></div>
+      <div class="quick-link-content">
+        <span class="quick-link-title">Payment Summary</span>
+        <span class="quick-link-desc">Financial overview & analytics</span>
+      </div>
+      <i class="pi pi-arrow-right quick-link-arrow"></i>
+    </div>
+  </div>
+</div>

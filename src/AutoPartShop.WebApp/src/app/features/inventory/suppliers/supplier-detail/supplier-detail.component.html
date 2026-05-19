@@ -1,0 +1,123 @@
+<div class="supplier-detail-container">
+  <p-toast></p-toast>
+
+  <!-- Integrated Supplier Header -->
+  <div class="supplier-header-section" *ngIf="supplier() as sup">
+    <!-- Top Bar: Back button, Title, Actions -->
+    <div class="header-top-bar">
+      <div class="header-left">
+        <button pButton icon="pi pi-arrow-left" class="back-button" (click)="goBack()" pTooltip="Back to Suppliers"
+          tooltipPosition="bottom"></button>
+        <span class="header-title">Supplier Details</span>
+      </div>
+      <div class="header-actions">
+        <button pButton label="New Payment" icon="pi pi-wallet" class="action-btn action-btn-primary"
+          (click)="recordPayment()"></button>
+        <button pButton label="Edit" icon="pi pi-pencil" class="action-btn action-btn-secondary"
+          (click)="editSupplier()"></button>
+      </div>
+    </div>
+
+    <!-- Profile Section -->
+    <div class="profile-section">
+      <div class="profile-left">
+        <p-avatar [label]="getInitials(sup)" size="large" shape="circle"
+          [style]="{'background-color': 'rgba(255,255,255,0.2)', 'color': '#ffffff', 'font-size': '1.125rem', 'width': '48px', 'height': '48px', 'border': '2px solid rgba(255,255,255,0.3)'}">
+        </p-avatar>
+        <div class="profile-info">
+          <div class="name-badges">
+            <h2 class="supplier-name">{{ sup.name }}</h2>
+            <p-tag [value]="sup.isActive ? 'Active' : 'Inactive'" [severity]="getStatusSeverity(sup.isActive)"></p-tag>
+          </div>
+          <div class="code-company">
+            <span class="supplier-code">{{ sup.code }}</span>
+            <span class="separator" *ngIf="sup.contactPerson">•</span>
+            <span class="contact-person" *ngIf="sup.contactPerson">{{ sup.contactPerson }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Summary Stats -->
+      <div class="summary-stats" *ngIf="paymentSummary() as summary">
+        <div class="stat-item stat-blue">
+          <div class="stat-icon"><i class="pi pi-dollar"></i></div>
+          <div class="stat-content">
+            <span class="stat-label">Total Paid</span>
+            <span class="stat-value">{{ formatCurrency(summary.totalPaid) }}</span>
+          </div>
+        </div>
+        <div class="stat-item stat-orange">
+          <div class="stat-icon"><i class="pi pi-exclamation-triangle"></i></div>
+          <div class="stat-content">
+            <span class="stat-label">Outstanding</span>
+            <span class="stat-value">{{ formatCurrency(summary.totalDue) }}</span>
+          </div>
+        </div>
+        <div class="stat-item stat-purple">
+          <div class="stat-icon"><i class="pi pi-credit-card"></i></div>
+          <div class="stat-content">
+            <span class="stat-label">Advance</span>
+            <span class="stat-value">{{ formatCurrency(summary.totalAdvanceAmount) }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contact Row -->
+    <div class="contact-row">
+      <div class="contact-item">
+        <i class="pi pi-envelope"></i>
+        <span>{{ sup.email || 'N/A' }}</span>
+      </div>
+      <div class="contact-divider">|</div>
+      <div class="contact-item">
+        <i class="pi pi-phone"></i>
+        <span>{{ sup.phone || 'N/A' }}</span>
+      </div>
+      <div class="contact-divider">|</div>
+      <div class="contact-item">
+        <i class="pi pi-map-marker"></i>
+        <span>
+          <ng-container *ngIf="sup.address || sup.city || sup.state || sup.postalCode">
+            {{ sup.address }}{{ sup.address && sup.city ? ', ' : '' }}{{ sup.city }}{{ sup.city &&
+            sup.state ? ', ' : '' }}{{ sup.state }} {{ sup.postalCode }}
+          </ng-container>
+          <ng-container *ngIf="!sup.address && !sup.city && !sup.state && !sup.postalCode">N/A</ng-container>
+        </span>
+      </div>
+      <div class="contact-divider" *ngIf="sup.country">|</div>
+      <div class="contact-item" *ngIf="sup.country">
+        <i class="pi pi-globe"></i>
+        <span>{{ sup.country }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Links Section -->
+  <div class="quick-links-section" *ngIf="supplier()">
+    <div class="quick-link-card" (click)="viewPayments()">
+      <div class="quick-link-icon ql-blue"><i class="pi pi-wallet"></i></div>
+      <div class="quick-link-content">
+        <span class="quick-link-title">View Payments</span>
+        <span class="quick-link-desc">Payment history & transactions</span>
+      </div>
+      <i class="pi pi-arrow-right quick-link-arrow"></i>
+    </div>
+    <div class="quick-link-card" (click)="viewPaymentAccounts()">
+      <div class="quick-link-icon ql-purple"><i class="pi pi-credit-card"></i></div>
+      <div class="quick-link-content">
+        <span class="quick-link-title">Payment Accounts</span>
+        <span class="quick-link-desc">Bank accounts & payment methods</span>
+      </div>
+      <i class="pi pi-arrow-right quick-link-arrow"></i>
+    </div>
+    <div class="quick-link-card" (click)="viewAccountSummary()">
+      <div class="quick-link-icon ql-green"><i class="pi pi-file-check"></i></div>
+      <div class="quick-link-content">
+        <span class="quick-link-title">Account Summary</span>
+        <span class="quick-link-desc">Ledger, balances & transaction history</span>
+      </div>
+      <i class="pi pi-arrow-right quick-link-arrow"></i>
+    </div>
+  </div>
+</div>

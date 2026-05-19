@@ -1,0 +1,178 @@
+<div class="container">
+  <p-toast></p-toast>
+
+  <!-- Header -->
+  <div class="form-header">
+    <div class="header-content">
+      <div>
+        <h1 class="form-title">
+          {{ isEditing ? 'Edit Payment Provider' : 'Create Payment Provider' }}
+        </h1>
+        <p class="form-subtitle">
+          {{ isEditing ? 'Update payment provider details and settings' : 'Configure a new payment gateway or provider' }}
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Form -->
+  <p-card class="form-card">
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form-content">
+      <!-- Basic Info - Always Visible -->
+      <div class="form-section">
+        <h3 class="section-title">Basic Information</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Provider Name *</label>
+            <input pInputText formControlName="providerName" placeholder="e.g., Stripe, PayPal, BOC" />
+          </div>
+          <div class="form-group">
+            <label>Provider Type *</label>
+            <p-autoComplete [suggestions]="filteredProviderTypes" formControlName="providerType"
+              [dropdown]="true" [forceSelection]="true" field="label" optionLabel="label" optionValue="value"
+              placeholder="Select Type" (completeMethod)="filterProviderTypes($event)"></p-autoComplete>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bank Transfer Fields -->
+      <div class="form-section" *ngIf="showBankFields">
+        <h3 class="section-title">Bank Details</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Bank Name</label>
+            <input pInputText formControlName="bankName" placeholder="e.g., Bank of Ceylon" />
+          </div>
+          <div class="form-group">
+            <label>Account Number</label>
+            <input pInputText formControlName="bankAccountNumber" placeholder="Account number" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Beneficiary Name</label>
+            <input pInputText formControlName="beneficiaryName" placeholder="Account holder name" />
+          </div>
+          <div class="form-group">
+            <label>Routing Number</label>
+            <input pInputText formControlName="bankRoutingNumber" placeholder="Routing number (if applicable)" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>IBAN</label>
+            <input pInputText formControlName="bankIBAN" placeholder="International Bank Account Number" />
+          </div>
+          <div class="form-group">
+            <label>SWIFT Code</label>
+            <input pInputText formControlName="bankSWIFT" placeholder="SWIFT/BIC code" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Online Gateway / Crypto Fields -->
+      <div class="form-section" *ngIf="showOnlineGatewayFields">
+        <h3 class="section-title">API Configuration</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label>API Key</label>
+            <input pInputText formControlName="apiKey" placeholder="API key" type="password" />
+          </div>
+          <div class="form-group">
+            <label>Merchant ID</label>
+            <input pInputText formControlName="merchantId" placeholder="Merchant ID" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group full">
+            <label>Webhook URL</label>
+            <input pInputText formControlName="webhookUrl" placeholder="https://example.com/webhook" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Mobile Banking Fields (bKash, Nagad, eZ Cash, FriMi, etc.) -->
+      <div class="form-section" *ngIf="showMobileBankingFields">
+        <h3 class="section-title">Mobile Wallet Details</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Mobile Number</label>
+            <input pInputText formControlName="mobileNumber" placeholder="e.g., 01XXXXXXXXX" />
+          </div>
+          <div class="form-group">
+            <label>Account Holder Name</label>
+            <input pInputText formControlName="accountHolderName" placeholder="Wallet account holder name" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Agent/Merchant Number</label>
+            <input pInputText formControlName="agentNumber" placeholder="Agent or merchant number (if applicable)" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Fee Configuration - Show after provider type is selected -->
+      <div class="form-section" *ngIf="showFeeFields">
+        <h3 class="section-title">Fee Configuration</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Fee Type</label>
+            <p-autoComplete [suggestions]="filteredFeeTypes" formControlName="transactionFeeType"
+              [dropdown]="true" [forceSelection]="true" field="label" optionLabel="label" optionValue="value"
+              placeholder="Select Fee Type" (completeMethod)="filterFeeTypes($event)"></p-autoComplete>
+          </div>
+          <div class="form-group">
+            <label>Fee Amount</label>
+            <p-inputNumber formControlName="transactionFeeAmount" placeholder="0.00" [minFractionDigits]="2"></p-inputNumber>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Minimum Amount</label>
+            <p-inputNumber formControlName="minimumAmount" placeholder="0.00" [minFractionDigits]="2"></p-inputNumber>
+          </div>
+          <div class="form-group">
+            <label>Maximum Amount</label>
+            <p-inputNumber formControlName="maximumAmount" placeholder="0 = Unlimited" [minFractionDigits]="2"></p-inputNumber>
+          </div>
+        </div>
+      </div>
+
+      <!-- Additional Settings -->
+      <div class="form-section" *ngIf="showSettlementDays || showCurrencies">
+        <h3 class="section-title">Additional Settings</h3>
+        <div class="form-row">
+          <div class="form-group" *ngIf="showSettlementDays">
+            <label>Settlement Days</label>
+            <p-inputNumber formControlName="settlementDays" placeholder="1" [min]="0"></p-inputNumber>
+          </div>
+          <div class="form-group" *ngIf="showCurrencies">
+            <label>Supported Currencies</label>
+            <input pInputText formControlName="supportedCurrencies" placeholder="USD,EUR,LKR" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Notes - Always Visible after provider type selected -->
+      <div class="form-section" *ngIf="showFeeFields">
+        <div class="form-row">
+          <div class="form-group full">
+            <label>Notes</label>
+            <textarea pInputText formControlName="notes" placeholder="Additional notes" rows="3"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button pButton type="button" label="Cancel" icon="pi pi-times" class="p-button-outlined" (click)="onCancel()"></button>
+        <button pButton type="submit" label="Save Provider" icon="pi pi-check" class="p-button-primary" [loading]="loading"></button>
+      </div>
+    </form>
+  </p-card>
+</div>

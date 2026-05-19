@@ -1,0 +1,255 @@
+.price-history-container {
+  padding: 1rem 0;
+}
+
+.header {
+  margin-bottom: 1.5rem;
+}
+
+.header-content h2 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.header-content .subtitle {
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.filters-card {
+  margin-bottom: 1.5rem;
+}
+
+.filters-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1rem;
+  align-items: flex-end;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* Part Autocomplete Item Styling */
+.part-autocomplete-item {
+  padding: 0.5rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.part-autocomplete-item .part-name {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 0.9375rem;
+}
+
+.part-autocomplete-item .part-sku {
+  font-size: 0.8125rem;
+  color: #6b7280;
+}
+
+.filter-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.content-card {
+  margin-bottom: 1.5rem;
+}
+
+.card-header {
+  width: 100%;
+  padding: 1rem 0;
+}
+
+.card-header h3 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.text-sm {
+  font-size: 0.875rem;
+}
+
+.text-gray-600 {
+  color: #4b5563;
+}
+
+.text-gray-500 {
+  color: #6b7280;
+}
+
+.text-green-600 {
+  color: #16a34a;
+}
+
+.text-red-600 {
+  color: #dc2626;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.font-semibold {
+  font-weight: 600;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0;
+  padding: 1rem;
+  background: #f9fafb;
+  border-radius: 0.5rem;
+}
+
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.stat-card label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.stat-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.stat-value.text-green {
+  color: #16a34a;
+}
+
+.stat-value.text-red {
+  color: #dc2626;
+}
+
+.insights-section {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.insights-section h4 {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.insights-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.insights-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+  color: #4b5563;
+}
+
+.insights-list i {
+  font-size: 1rem;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #6b7280;
+}
+
+.empty-state i {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.empty-state p {
+  margin: 0;
+  font-size: 1rem;
+}
+
+/* Dual Unit Display Styles */
+.dual-unit-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-end;
+}
+
+.display-qty {
+  font-weight: 600;
+  color: #0f172a;
+  font-size: 14px;
+}
+
+.display-unit {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.base-qty {
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+@media (max-width: 768px) {
+  .dual-unit-cell {
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 768px) {
+  .price-history-container {
+    padding: 0.5rem 0;
+  }
+
+  .filters-row {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .filter-actions {
+    width: 100%;
+  }
+
+  .filter-actions button {
+    width: 100%;
+  }
+
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+}
+
+/* Price Code styling */
+.coded-price {
+  font-family: 'Courier New', monospace;
+  letter-spacing: 0.1em;
+  color: #6366f1 !important;
+  font-weight: 600;
+}

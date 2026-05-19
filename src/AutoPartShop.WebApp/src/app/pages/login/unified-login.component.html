@@ -1,0 +1,96 @@
+<div class="ul-page">
+  <div class="ul-card">
+
+    <!-- Logo -->
+    <div class="ul-logo">
+      <div class="ul-logo-mark">SM</div>
+      <div class="ul-logo-text">
+        <span class="ul-logo-title">Sujan Motors</span>
+        <span class="ul-logo-sub">{{ mode === 'staff' ? 'Management System' : 'Auto Parts Shop' }}</span>
+      </div>
+    </div>
+
+    <h2 class="ul-heading">Sign in</h2>
+    <p class="ul-sub">{{ mode === 'staff' ? 'Enter your staff credentials to continue.' : 'Sign in to shop and track your orders.' }}</p>
+
+    <!-- Error banner -->
+    <div class="ul-error" *ngIf="error()">
+      <i class="pi pi-exclamation-triangle"></i> {{ error() }}
+    </div>
+
+    <!-- Form -->
+    <div class="ul-form">
+
+      <!-- Identifier -->
+      <div class="ul-field">
+        <label>{{ identifierLabel }}</label>
+        <div class="ul-input-wrap">
+          <i class="pi pi-user ul-input-icon"></i>
+          <input
+            type="text"
+            [(ngModel)]="identifier"
+            [placeholder]="identifierPlaceholder"
+            (keyup.enter)="submit()"
+            [class.ul-input-error]="errors['identifier']"
+            autocomplete="username"
+          />
+        </div>
+        <span class="ul-field-error" *ngIf="errors['identifier']">{{ errors['identifier'] }}</span>
+      </div>
+
+      <!-- Password -->
+      <div class="ul-field">
+        <label>Password</label>
+        <div class="ul-input-wrap">
+          <i class="pi pi-lock ul-input-icon"></i>
+          <input
+            [type]="showPassword ? 'text' : 'password'"
+            [(ngModel)]="password"
+            placeholder="••••••••"
+            (keyup.enter)="submit()"
+            [class.ul-input-error]="errors['password']"
+            autocomplete="current-password"
+          />
+          <button type="button" class="ul-toggle-pw" (click)="showPassword = !showPassword" tabindex="-1">
+            <i class="pi" [ngClass]="showPassword ? 'pi-eye-slash' : 'pi-eye'"></i>
+          </button>
+        </div>
+        <span class="ul-field-error" *ngIf="errors['password']">{{ errors['password'] }}</span>
+      </div>
+
+      <!-- Remember me — staff only -->
+      <div class="ul-remember" *ngIf="mode === 'staff'">
+        <label class="ul-checkbox-label">
+          <input type="checkbox" [(ngModel)]="rememberMe" />
+          <span>Remember me</span>
+        </label>
+      </div>
+
+      <!-- Submit -->
+      <button
+        class="ul-submit"
+        [class.ul-submit-staff]="mode === 'staff'"
+        (click)="submit()"
+        [disabled]="loading()"
+        type="button"
+      >
+        <i class="pi" [ngClass]="loading() ? 'pi-spin pi-spinner' : 'pi-sign-in'"></i>
+        {{ loading() ? 'Signing in…' : 'Sign In' }}
+      </button>
+    </div>
+
+    <!-- Footer -->
+    <div class="ul-footer">
+      <ng-container *ngIf="mode === 'customer'">
+        <span>New here?</span>
+        <a routerLink="/shop/register" [queryParams]="returnUrl ? { returnUrl } : {}">Create an account</a>
+        <span class="ul-sep">·</span>
+        <a routerLink="/shop"><i class="pi pi-arrow-left"></i> Back to Shop</a>
+      </ng-container>
+      <ng-container *ngIf="mode === 'staff'">
+        Need access? <a href="javascript:void(0)">Contact administrator</a>
+      </ng-container>
+    </div>
+
+  </div>
+</div>

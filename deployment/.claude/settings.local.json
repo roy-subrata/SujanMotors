@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs grep -l \"AddInfrastructure\")",
+      "Bash(dotnet ef *)",
+      "Bash(dotnet build *)",
+      "Bash(xargs grep -l \"interceptor\\\\|Interceptor\\\\|AuthService\\\\|authService\\\\|token\\\\|JWT\\\\|Bearer\")",
+      "Bash(npx ng *)"
+    ]
+  }
+}

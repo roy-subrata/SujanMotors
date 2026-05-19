@@ -1,0 +1,211 @@
+<p-menu #actionMenu [model]="actionMenuItems" [popup]="true" appendTo="body"></p-menu>
+
+<section class="table-section desktop-only">
+  <div class="table-container">
+    <p-table
+      [value]="goodsReceipts"
+      [lazy]="false"
+      [paginator]="false"
+      [rows]="rows"
+      [totalRecords]="totalRecords"
+      [loading]="loading"
+      [rowHover]="true"
+      [scrollable]="true"
+      scrollHeight="flex"
+      styleClass="custom-table">
+
+      <ng-template #header>
+        <tr>
+          <th class="col-grn">GRN Number</th>
+          <th class="col-po">PO Number</th>
+          <th class="col-warehouse">Warehouse</th>
+          <th class="col-date">Received Date</th>
+          <th class="col-status">Status</th>
+          <th class="col-items">Items</th>
+          <th class="col-verified">Verified By</th>
+          <th class="col-actions">Actions</th>
+        </tr>
+      </ng-template>
+
+      <ng-template #body let-grn>
+        <tr class="data-row" (dblclick)="viewGoodsReceipt(grn)">
+          <td class="col-grn">
+            <div class="grn-cell">
+              <a class="grn-link" (click)="viewGoodsReceipt(grn)">{{ grn.grnNumber }}</a>
+              <span *ngIf="grn.discrepancyCount > 0" class="discrepancy-badge">Discrepancy</span>
+            </div>
+          </td>
+          <td class="col-po">
+            <span class="po-text">{{ grn.poNumber || '-' }}</span>
+          </td>
+          <td class="col-warehouse">
+            <span class="warehouse-text">{{ grn.warehouseName || '-' }}</span>
+          </td>
+          <td class="col-date">
+            <span class="date-text">{{ formatDate(grn.receivedDate) }}</span>
+          </td>
+          <td class="col-status">
+            <span class="status-pill" [attr.data-status]="(grn.status || '').toLowerCase()">
+              {{ formatStatus(grn.status) }}
+            </span>
+          </td>
+          <td class="col-items">
+            <div class="items-cell">
+              <span class="items-value">{{ grn.totalItemsReceived || 0 }}</span>
+              <span *ngIf="grn.discrepancyCount > 0" class="items-badge">{{ grn.discrepancyCount }}</span>
+            </div>
+          </td>
+          <td class="col-verified">
+            <span class="verified-text">{{ grn.verifiedBy || 'Pending' }}</span>
+          </td>
+          <td class="col-actions">
+            <div class="action-cell">
+              <button class="btn-action" pTooltip="More" (click)="showActionMenu($event, grn)">
+                <i class="pi pi-ellipsis-v"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+
+      <ng-template #emptymessage>
+        <tr>
+          <td colspan="8">
+            <div class="empty-state">
+              <div class="empty-icon">
+                <i class="pi pi-inbox"></i>
+              </div>
+              <h3>No Goods Receipts Found</h3>
+              <p *ngIf="hasActiveFilters">Try adjusting your filters or search criteria</p>
+              <p *ngIf="!hasActiveFilters">Get started by creating your first goods receipt</p>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+
+      <ng-template #loadingbody>
+        <tr *ngFor="let _ of [1,2,3,4,5,6,7,8]" class="skeleton-row">
+          <td><div class="skeleton skeleton-text"></div></td>
+          <td><div class="skeleton skeleton-text"></div></td>
+          <td><div class="skeleton skeleton-text"></div></td>
+          <td><div class="skeleton skeleton-text-sm"></div></td>
+          <td><div class="skeleton skeleton-badge"></div></td>
+          <td><div class="skeleton skeleton-text-sm"></div></td>
+          <td><div class="skeleton skeleton-text-sm"></div></td>
+          <td><div class="skeleton skeleton-actions"></div></td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+
+  <div class="pagination-section" *ngIf="totalRecords > 0">
+    <div class="pagination-info">
+      Showing <strong>{{ firstIndex + 1 }}</strong> to <strong>{{ firstIndex + goodsReceipts.length }}</strong> of <strong>{{ totalRecords }}</strong> receipts
+    </div>
+    <div class="pagination-controls">
+      <span class="page-size-label">Rows per page:</span>
+      <p-select
+        [options]="pageSizeOptions"
+        [(ngModel)]="rows"
+        (onChange)="onPageSizeChange()"
+        styleClass="page-size-dropdown">
+      </p-select>
+      <div class="page-nav">
+        <button class="page-btn" [disabled]="currentPage === 1" (click)="goToFirstPage()">
+          <i class="pi pi-angle-double-left"></i>
+        </button>
+        <button class="page-btn" [disabled]="currentPage === 1" (click)="goToPrevPage()">
+          <i class="pi pi-angle-left"></i>
+        </button>
+        <span class="page-indicator">{{ currentPage }} / {{ totalPages }}</span>
+        <button class="page-btn" [disabled]="currentPage >= totalPages" (click)="goToNextPage()">
+          <i class="pi pi-angle-right"></i>
+        </button>
+        <button class="page-btn" [disabled]="currentPage >= totalPages" (click)="goToLastPage()">
+          <i class="pi pi-angle-double-right"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="cards-section mobile-only">
+  <div *ngIf="loading" class="cards-grid">
+    <div *ngFor="let _ of [1,2,3,4]" class="receipt-card skeleton-card">
+      <div class="card-header">
+        <div class="skeleton skeleton-text"></div>
+        <div class="skeleton skeleton-badge"></div>
+      </div>
+      <div class="card-body">
+        <div class="skeleton skeleton-text-lg"></div>
+        <div class="skeleton skeleton-text-sm"></div>
+      </div>
+      <div class="card-footer">
+        <div class="skeleton skeleton-text-sm"></div>
+        <div class="skeleton skeleton-text-sm"></div>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="!loading && goodsReceipts.length === 0" class="empty-state-mobile">
+    <div class="empty-icon">
+      <i class="pi pi-inbox"></i>
+    </div>
+    <h3>No Goods Receipts</h3>
+    <p>{{ hasActiveFilters ? 'Try different filters' : 'Create your first receipt' }}</p>
+  </div>
+
+  <div *ngIf="!loading && goodsReceipts.length > 0" class="cards-grid">
+    <div *ngFor="let grn of goodsReceipts" class="receipt-card" (click)="viewGoodsReceipt(grn)">
+      <div class="card-header">
+        <span class="card-grn-number">{{ grn.grnNumber }}</span>
+        <span class="status-pill" [attr.data-status]="(grn.status || '').toLowerCase()">
+          {{ formatStatus(grn.status) }}
+        </span>
+      </div>
+
+      <div class="card-body">
+        <div class="card-meta">
+          <span class="meta-label">PO</span>
+          <span class="meta-value">{{ grn.poNumber || '-' }}</span>
+        </div>
+        <div class="card-meta">
+          <span class="meta-label">Warehouse</span>
+          <span class="meta-value">{{ grn.warehouseName || '-' }}</span>
+        </div>
+        <div class="card-meta">
+          <span class="meta-label">Received</span>
+          <span class="meta-value">{{ formatDate(grn.receivedDate) }}</span>
+        </div>
+      </div>
+
+      <div class="card-footer">
+        <div class="card-amount">
+          <span class="amount-label">Items</span>
+          <span class="amount-value">{{ grn.totalItemsReceived || 0 }}</span>
+        </div>
+        <div class="card-amount">
+          <span class="amount-label">Verified By</span>
+          <span class="amount-value">{{ grn.verifiedBy || 'Pending' }}</span>
+        </div>
+        <button class="btn-card-action" (click)="showActionMenu($event, grn); $event.stopPropagation()">
+          <i class="pi pi-ellipsis-h"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="!loading && goodsReceipts.length > 0" class="mobile-pagination">
+    <div class="pagination-info-mobile">
+      {{ firstIndex + 1 }}-{{ firstIndex + goodsReceipts.length }} of {{ totalRecords }}
+    </div>
+    <div class="pagination-nav-mobile">
+      <button class="page-btn" [disabled]="currentPage === 1" (click)="goToPrevPage()">
+        <i class="pi pi-chevron-left"></i>
+      </button>
+      <button class="page-btn" [disabled]="currentPage >= totalPages" (click)="goToNextPage()">
+        <i class="pi pi-chevron-right"></i>
+      </button>
+    </div>
+  </div>
+</section>

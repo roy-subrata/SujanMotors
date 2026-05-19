@@ -1,0 +1,141 @@
+<div class="container">
+  <p-toast></p-toast>
+
+  <div class="form-header">
+    <button
+      pButton
+      pRipple
+      type="button"
+      icon="pi pi-arrow-left"
+      class="p-button-text"
+      label="Back"
+      (click)="goBack()">
+    </button>
+    <h2>{{ pageTitle }}</h2>
+  </div>
+
+  <p-card>
+    <form [formGroup]="form" (ngSubmit)="onSubmit()">
+      <div class="form-grid">
+        <!-- Make Field -->
+        <div class="form-field">
+          <label for="make" class="required">Make</label>
+          <input
+            pInputText
+            id="make"
+            formControlName="make"
+            placeholder="Enter vehicle make"
+            [class.ng-invalid]="hasError('make')"
+            [class.ng-dirty]="hasError('make')" />
+          <small class="p-error" *ngIf="hasError('make')">
+            {{ getErrorMessage('make') }}
+          </small>
+        </div>
+
+        <!-- Model Field -->
+        <div class="form-field">
+          <label for="model" class="required">Model</label>
+          <input
+            pInputText
+            id="model"
+            formControlName="model"
+            placeholder="Enter vehicle model"
+            [class.ng-invalid]="hasError('model')"
+            [class.ng-dirty]="hasError('model')" />
+          <small class="p-error" *ngIf="hasError('model')">
+            {{ getErrorMessage('model') }}
+          </small>
+        </div>
+
+        <!-- Year Field -->
+        <div class="form-field">
+          <label for="year" class="required">Year</label>
+          <p-inputNumber
+            inputId="year"
+            formControlName="year"
+            [useGrouping]="false"
+            [showButtons]="true"
+            placeholder="Enter year"
+            [class.ng-invalid]="hasError('year')"
+            [class.ng-dirty]="hasError('year')">
+          </p-inputNumber>
+          <small class="p-error" *ngIf="hasError('year')">
+            {{ getErrorMessage('year') }}
+          </small>
+        </div>
+
+        <!-- Engine Type Autocomplete -->
+        <div class="form-field">
+          <label for="engineType" class="required">Engine Type</label>
+          <p-autoComplete
+            inputId="engineType"
+            [(ngModel)]="selectedEngineType"
+            [ngModelOptions]="{standalone: true}"
+            [suggestions]="filteredEngineTypes"
+            (completeMethod)="filterEngineTypes($event)"
+            (onSelect)="onEngineTypeSelected($event)"
+            [dropdown]="true"
+            field="label"
+            placeholder="Select engine type"
+            [class.ng-invalid]="hasError('engineType')"
+            [class.ng-dirty]="hasError('engineType')">
+          </p-autoComplete>
+          <small class="p-error" *ngIf="hasError('engineType')">
+            {{ getErrorMessage('engineType') }}
+          </small>
+        </div>
+
+        <!-- Description Field -->
+        <div class="form-field form-field-full">
+          <label for="description">Description</label>
+          <textarea
+            pTextarea
+            id="description"
+            formControlName="description"
+            rows="4"
+            placeholder="Enter vehicle description (optional)"
+            [class.ng-invalid]="hasError('description')"
+            [class.ng-dirty]="hasError('description')">
+          </textarea>
+          <small class="p-error" *ngIf="hasError('description')">
+            {{ getErrorMessage('description') }}
+          </small>
+        </div>
+
+        <!-- Is Active Field (Edit Mode Only) -->
+        <div class="form-field" *ngIf="isEditMode">
+          <label for="isActive">Active Status</label>
+          <div class="checkbox-wrapper">
+            <p-checkbox
+              inputId="isActive"
+              formControlName="isActive"
+              [binary]="true"
+              label="Active">
+            </p-checkbox>
+          </div>
+        </div>
+      </div>
+
+      <!-- Form Actions -->
+      <div class="form-actions" *ngIf="!isViewMode">
+        <button
+          pButton
+          pRipple
+          type="button"
+          label="Cancel"
+          class="p-button-secondary"
+          (click)="goBack()"
+          [disabled]="isSubmitting">
+        </button>
+        <button
+          pButton
+          pRipple
+          type="submit"
+          [label]="isEditMode ? 'Update' : 'Create'"
+          [loading]="isSubmitting"
+          [disabled]="!form.valid || isSubmitting">
+        </button>
+      </div>
+    </form>
+  </p-card>
+</div>

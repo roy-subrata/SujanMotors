@@ -1,0 +1,742 @@
+<p-toast />
+
+<div class="page-container">
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <div>
+        <h1 class="header-title"><i class="pi pi-file-check" style="margin-right: 0.5rem;"></i> Warranty Claims</h1>
+        <p class="header-subtitle">Manage warranty claims, approvals, and service assignments</p>
+      </div>
+      <div class="header-actions">
+        <button pButton type="button" icon="pi pi-plus" label="New Claim" (click)="openCreateDialog()"></button>
+        <button pButton type="button" icon="pi pi-refresh" class="p-button-outlined" pTooltip="Refresh" (click)="loadClaims()"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Metrics -->
+  <div class="metrics-row">
+    <div class="metric-card metric-pending">
+      <div class="metric-icon"><i class="pi pi-clock"></i></div>
+      <div class="metric-info">
+        <span class="metric-value">{{ totalPending }}</span>
+        <span class="metric-label">Pending</span>
+      </div>
+    </div>
+    <div class="metric-card metric-review">
+      <div class="metric-icon"><i class="pi pi-search"></i></div>
+      <div class="metric-info">
+        <span class="metric-value">{{ totalUnderReview }}</span>
+        <span class="metric-label">Under Review</span>
+      </div>
+    </div>
+    <div class="metric-card metric-progress">
+      <div class="metric-icon"><i class="pi pi-wrench"></i></div>
+      <div class="metric-info">
+        <span class="metric-value">{{ totalInProgress }}</span>
+        <span class="metric-label">In Progress</span>
+      </div>
+    </div>
+    <div class="metric-card metric-completed">
+      <div class="metric-icon"><i class="pi pi-check-circle"></i></div>
+      <div class="metric-info">
+        <span class="metric-value">{{ totalCompleted }}</span>
+        <span class="metric-label">Completed / Closed</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters-card">
+    <div class="filters-container">
+      <div class="filter-item search-filter">
+        <div class="search-container">
+          <i class="pi pi-search search-icon"></i>
+          <input type="text" class="search-input" [(ngModel)]="searchText" (input)="onSearch()"
+            placeholder="Search claims, warranties, parts, customers, technicians..." />
+          <i *ngIf="searchText" class="pi pi-times clear-icon" (click)="clearSearch()"></i>
+        </div>
+      </div>
+      <div class="filter-item">
+        <p-select [(ngModel)]="selectedStatus" [options]="statuses" optionLabel="label" optionValue="value"
+          (onChange)="onStatusChange()" styleClass="w-full" appendTo="body"></p-select>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow-guide">
+    <span class="flow-guide-label">Standard Flow</span>
+    <span class="flow-step">1. Receive</span>
+    <i class="pi pi-angle-right"></i>
+    <span class="flow-step">2. Review</span>
+    <i class="pi pi-angle-right"></i>
+    <span class="flow-step">3. Approve</span>
+    <i class="pi pi-angle-right"></i>
+    <span class="flow-step">4. Service</span>
+    <i class="pi pi-angle-right"></i>
+    <span class="flow-step">5. Complete</span>
+    <i class="pi pi-angle-right"></i>
+    <span class="flow-step">6. Close</span>
+  </div>
+
+  <!-- Claims Table -->
+  <div class="table-container">
+    <p-table [value]="filteredClaims" [loading]="isLoading" [paginator]="true" [rows]="10"
+      [rowsPerPageOptions]="[10, 25, 50]" [showCurrentPageReport]="true"
+      currentPageReportTemplate="Showing {first} to {last} of {totalRecords} claims"
+      styleClass="p-datatable-sm" [sortField]="'claimDate'" [sortOrder]="-1">
+      <ng-template #header>
+        <tr>
+          <th pSortableColumn="claimNumber">Claim # <p-sortIcon field="claimNumber" /></th>
+          <th>Warranty / Part</th>
+          <th>Customer</th>
+          <th pSortableColumn="claimDate">Claim Date <p-sortIcon field="claimDate" /></th>
+          <th>Coverage Type</th>
+          <th>Resolution Method</th>
+          <th>Technician</th>
+          <th pSortableColumn="status">Status <p-sortIcon field="status" /></th>
+          <th pSortableColumn="daysOpen">Days Open <p-sortIcon field="daysOpen" /></th>
+          <th>Cost</th>
+          <th>Actions</th>
+        </tr>
+      </ng-template>
+      <ng-template #body let-claim>
+        <tr>
+          <td>
+            <a class="link-text" (click)="openDetailDialog(claim)">{{ claim.claimNumber }}</a>
+          </td>
+          <td>
+            <div class="cell-primary">{{ claim.warrantyNumber }}</div>
+            <div class="cell-secondary">{{ claim.partName }} ({{ claim.partSKU }})</div>
+          </td>
+          <td>
+            <div class="cell-primary">{{ claim.customerName }}</div>
+            <div class="cell-secondary">{{ claim.customerPhone }}</div>
+          </td>
+          <td><span class="timestamp">{{ formatDate(claim.claimDate) }}</span></td>
+          <td>
+            <p-tag [value]="getCoverageTypeLabel(claim.warrantyCoverageType)"
+              [severity]="getCoverageTypeSeverity(claim.warrantyCoverageType)"></p-tag>
+          </td>
+          <td>
+            <p-tag [value]="getResolutionMethodLabel(claim.serviceType)"
+              [severity]="getResolutionMethodSeverity(claim.serviceType)"></p-tag>
+          </td>
+          <td>
+            <span *ngIf="claim.technicianName" class="cell-primary">{{ claim.technicianName }}</span>
+            <span *ngIf="!claim.technicianName" class="cell-secondary">—</span>
+          </td>
+          <td>
+            <p-tag [value]="getStatusLabel(claim.status)" [severity]="getStatusSeverity(claim.status)"></p-tag>
+          </td>
+          <td>
+            <span *ngIf="claim.isOpen" [class]="getDaysOpenClass(claim.daysOpen)">{{ claim.daysOpen }}d</span>
+            <span *ngIf="!claim.isOpen" class="cell-secondary">Closed</span>
+          </td>
+          <td>
+            <span *ngIf="claim.serviceCost">{{ formatCurrency(claim.serviceCost) }}</span>
+            <span *ngIf="!claim.serviceCost" class="cell-secondary">—</span>
+          </td>
+          <td>
+            <div class="action-buttons">
+              <button *ngIf="canRunQuickFlow(claim)" pButton type="button" [icon]="getQuickFlowIcon(claim)"
+                class="p-button-sm p-button-success" [label]="getQuickFlowLabel(claim)"
+                pTooltip="Move claim to the next standard step" tooltipPosition="top" (click)="runQuickFlow(claim)"></button>
+
+              <!-- View Detail -->
+              <button pButton type="button" icon="pi pi-eye" class="p-button-sm p-button-text p-button-secondary"
+                pTooltip="View Details" tooltipPosition="top" (click)="openDetailDialog(claim)"></button>
+
+              <!-- Submit for Review (PENDING) -->
+              <button *ngIf="canSubmitForReview(claim)" pButton type="button" icon="pi pi-send"
+                class="p-button-sm p-button-text p-button-info" pTooltip="Submit for Review" tooltipPosition="top"
+                (click)="submitForReview(claim)"></button>
+
+              <!-- Approve (UNDER_REVIEW) -->
+              <button *ngIf="canApprove(claim)" pButton type="button" icon="pi pi-check"
+                class="p-button-sm p-button-text p-button-success" pTooltip="Approve" tooltipPosition="top"
+                (click)="openApproveDialog(claim)"></button>
+
+              <!-- Reject (UNDER_REVIEW or PENDING) -->
+              <button *ngIf="canReject(claim)" pButton type="button" icon="pi pi-times"
+                class="p-button-sm p-button-text p-button-danger" pTooltip="Reject" tooltipPosition="top"
+                (click)="openRejectDialog(claim)"></button>
+
+              <!-- Assign Technician (APPROVED) -->
+              <button *ngIf="canAssignTechnician(claim)" pButton type="button" icon="pi pi-user-plus"
+                class="p-button-sm p-button-text p-button-info" pTooltip="Assign Technician" tooltipPosition="top"
+                (click)="openAssignDialog(claim)"></button>
+
+              <!-- Update Service Cost (REPAIR, IN_PROGRESS or APPROVED) -->
+              <button *ngIf="canUpdateServiceCost(claim)" pButton type="button" icon="pi pi-dollar"
+                class="p-button-sm p-button-text p-button-info" pTooltip="Update Repair Cost" tooltipPosition="top"
+                (click)="openServiceCostUpdate(claim)"></button>
+
+              <!-- Complete (IN_PROGRESS) -->
+              <button *ngIf="canComplete(claim)" pButton type="button" icon="pi pi-check-circle"
+                class="p-button-sm p-button-text p-button-success" pTooltip="Complete Claim" tooltipPosition="top"
+                (click)="openCompleteDialog(claim)"></button>
+
+              <!-- Send defective to vendor (replacement only) -->
+              <button *ngIf="canOpenSendDefective(claim)" pButton type="button" icon="pi pi-send"
+                class="p-button-sm p-button-text p-button-warning" pTooltip="Send Defective to Vendor" tooltipPosition="top"
+                (click)="openSendDefectiveDialog(claim)"></button>
+
+              <!-- Receive replacement from vendor (replacement only) -->
+              <button *ngIf="canOpenReceiveReplacement(claim)" pButton type="button" icon="pi pi-download"
+                class="p-button-sm p-button-text p-button-help" pTooltip="Receive Replacement from Vendor" tooltipPosition="top"
+                (click)="openReceiveReplacementDialog(claim)"></button>
+
+              <!-- Close (COMPLETED or REJECTED) -->
+              <button *ngIf="canClose(claim)" pButton type="button" icon="pi pi-lock"
+                class="p-button-sm p-button-text p-button-secondary" pTooltip="Close Claim" tooltipPosition="top"
+                (click)="openCloseDialog(claim)"></button>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template #emptymessage>
+        <tr>
+          <td colspan="11">
+            <div class="empty-state">
+              <i class="pi pi-inbox"></i>
+              <p>No warranty claims found</p>
+              <button pButton type="button" label="Create New Claim" icon="pi pi-plus"
+                class="p-button-outlined p-button-sm" (click)="openCreateDialog()"></button>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+</div>
+
+<!-- ==================== DETAIL DIALOG ==================== -->
+<p-dialog [(visible)]="showDetailDialog" header="Claim Details" [modal]="true"
+  [style]="{ width: '700px' }" [draggable]="false" [resizable]="false">
+  <div *ngIf="selectedClaim" class="detail-dialog">
+    <div class="detail-header">
+      <span class="detail-claim-number">{{ selectedClaim.claimNumber }}</span>
+      <p-tag [value]="getStatusLabel(selectedClaim.status)" [severity]="getStatusSeverity(selectedClaim.status)"></p-tag>
+    </div>
+
+    <div class="detail-grid">
+      <div class="detail-section">
+        <h4>Warranty & Product</h4>
+        <div class="detail-row"><span class="detail-label">Warranty #</span><span>{{ selectedClaim.warrantyNumber }}</span></div>
+        <div class="detail-row"><span class="detail-label">Coverage Type</span><span><p-tag [value]="getCoverageTypeLabel(selectedClaim.warrantyCoverageType)" [severity]="getCoverageTypeSeverity(selectedClaim.warrantyCoverageType)"></p-tag></span></div>
+        <div class="detail-row"><span class="detail-label">Part</span><span>{{ selectedClaim.partName }} ({{ selectedClaim.partSKU }})</span></div>
+        <div class="detail-row"><span class="detail-label">Resolution Method</span><span><p-tag [value]="getResolutionMethodLabel(selectedClaim.serviceType)" [severity]="getResolutionMethodSeverity(selectedClaim.serviceType)"></p-tag></span></div>
+      </div>
+
+      <div class="detail-section">
+        <h4>Customer</h4>
+        <div class="detail-row"><span class="detail-label">Name</span><span>{{ selectedClaim.customerName }}</span></div>
+        <div class="detail-row"><span class="detail-label">Phone</span><span>{{ selectedClaim.customerPhone }}</span></div>
+      </div>
+
+      <div class="detail-section">
+        <h4>Dates</h4>
+        <div class="detail-row"><span class="detail-label">Claim Date</span><span>{{ formatDate(selectedClaim.claimDate) }}</span></div>
+        <div class="detail-row"><span class="detail-label">Approved</span><span>{{ formatDate(selectedClaim.approvedDate) }}</span></div>
+        <div class="detail-row"><span class="detail-label">Service Start</span><span>{{ formatDate(selectedClaim.serviceStartDate) }}</span></div>
+        <div class="detail-row"><span class="detail-label">Completed</span><span>{{ formatDate(selectedClaim.serviceCompletedDate) }}</span></div>
+      </div>
+
+      <div class="detail-section">
+        <h4>Service Details</h4>
+        <div class="detail-row"><span class="detail-label">Technician</span><span>{{ selectedClaim.technicianName || '—' }}</span></div>
+        <div class="detail-row"><span class="detail-label">Additional Customer Cost</span><span>{{ selectedClaim.serviceCost ? formatCurrency(selectedClaim.serviceCost) : '—' }}</span></div>
+        <div class="detail-row"><span class="detail-label">Days Open</span><span [class]="selectedClaim.isOpen ? getDaysOpenClass(selectedClaim.daysOpen) : ''">{{ selectedClaim.isOpen ? selectedClaim.daysOpen + 'd' : 'Closed' }}</span></div>
+      </div>
+    </div>
+
+    <div class="detail-section full-width" *ngIf="selectedClaim.issueDescription">
+      <h4>Issue Description</h4>
+      <p class="detail-text">{{ selectedClaim.issueDescription }}</p>
+    </div>
+
+    <div class="detail-section full-width" *ngIf="selectedClaim.resolutionDetails">
+      <h4>Resolution</h4>
+      <p class="detail-text">{{ selectedClaim.resolutionDetails }}</p>
+    </div>
+
+    <div class="detail-section full-width" *ngIf="selectedClaim.serviceType === 'REFUND'">
+      <h4>Refund Summary</h4>
+      <div class="detail-grid">
+        <div class="detail-row"><span class="detail-label">Refund Type</span><span>{{ selectedClaim.refundType === 'STORE_CREDIT' ? 'Store Credit' : (selectedClaim.refundType === 'CASH_REFUND' ? 'Cash Refund' : '—') }}</span></div>
+        <div class="detail-row"><span class="detail-label">Refund Amount</span><span>{{ selectedClaim.refundAmount ? formatCurrency(selectedClaim.refundAmount) : '—' }}</span></div>
+        <div class="detail-row"><span class="detail-label">Reference</span><span>{{ selectedClaim.refundReferenceNumber || '—' }}</span></div>
+        <div class="detail-row"><span class="detail-label">Returned Item Received</span><span>{{ selectedClaim.refundReturnItemReceived ? 'Yes' : 'No' }}</span></div>
+        <div class="detail-row"><span class="detail-label">Returned Item Handling</span><span>
+          {{ !selectedClaim.refundReturnItemReceived ? 'No stock return' : (selectedClaim.refundRestockAsSellable ? 'Returned to sellable stock' : 'Quarantined from sale') }}
+        </span></div>
+      </div>
+    </div>
+
+    <div class="detail-section full-width" *ngIf="selectedClaim.rejectionReason">
+      <h4>Rejection Reason</h4>
+      <p class="detail-text rejection-text">{{ selectedClaim.rejectionReason }}</p>
+    </div>
+
+    <div class="detail-section full-width" *ngIf="selectedClaim.serviceNotes">
+      <h4>Service Notes</h4>
+      <p class="detail-text">{{ selectedClaim.serviceNotes }}</p>
+    </div>
+
+    <div class="detail-section full-width" *ngIf="selectedClaim.guaranteeMessage">
+      <h4>Guarantee Message</h4>
+      <p class="detail-text">{{ selectedClaim.guaranteeMessage }}</p>
+    </div>
+
+    <div class="detail-section full-width" *ngIf="selectedClaim.serviceType === 'REPLACEMENT' || selectedClaim.serviceType === 'REFUND'">
+      <h4>{{ selectedClaim.serviceType === 'REPLACEMENT' ? 'Replacement Logistics' : 'Refund Stock History' }}</h4>
+
+      <div *ngIf="isLoadingReplacementLogistics" class="cell-secondary">Loading logistics...</div>
+
+      <div *ngIf="!isLoadingReplacementLogistics && replacementLogistics">
+        <div class="logistics-header-row">
+          <div>
+            <span class="detail-label">Current State</span>
+            <p-tag [value]="getLogisticsStateLabel(replacementLogistics.state)"
+              [severity]="getLogisticsStateSeverity(replacementLogistics.state)"></p-tag>
+          </div>
+          <div class="logistics-action-buttons">
+            <button *ngIf="selectedClaim.serviceType === 'REPLACEMENT'" pButton type="button" icon="pi pi-send" label="Send Defective"
+              class="p-button-sm p-button-warning"
+              [disabled]="!replacementLogistics.canSendDefectiveItem"
+              (click)="openSendDefectiveDialog(selectedClaim)"></button>
+            <button *ngIf="selectedClaim.serviceType === 'REPLACEMENT'" pButton type="button" icon="pi pi-download" label="Receive Replacement"
+              class="p-button-sm p-button-help"
+              [disabled]="!replacementLogistics.canReceiveReplacementItem"
+              (click)="openReceiveReplacementDialog(selectedClaim)"></button>
+            <button pButton type="button" icon="pi pi-refresh" class="p-button-sm p-button-outlined"
+              pTooltip="Refresh logistics status" tooltipPosition="top"
+              (click)="loadReplacementLogistics(selectedClaim.id)"></button>
+          </div>
+        </div>
+
+        <div *ngIf="replacementLogistics.events.length === 0" class="cell-secondary" style="margin-top: 0.75rem;">
+          {{ selectedClaim.serviceType === 'REPLACEMENT' ? 'No replacement logistics events yet.' : 'No refund stock events yet.' }}
+        </div>
+
+        <div *ngIf="replacementLogistics.events.length > 0" class="logistics-events">
+          <div class="logistics-event" *ngFor="let event of replacementLogistics.events">
+            <div class="logistics-event-main">
+              <p-tag [value]="getLogisticsReasonLabel(event.reason)" severity="info"></p-tag>
+              <span class="timestamp">{{ formatDate(event.movementDate) }}</span>
+            </div>
+            <div class="cell-secondary">
+              Qty: {{ event.quantity }} | Approved By: {{ event.approvedBy || 'system' }}
+              <span *ngIf="event.warehouseName"> | Warehouse: {{ event.warehouseName }}</span>
+              <span *ngIf="event.notes"> | Notes: {{ event.notes }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</p-dialog>
+
+<!-- ==================== APPROVE DIALOG ==================== -->
+<p-dialog [(visible)]="showApproveDialog" header="Approve Warranty Claim" [modal]="true"
+  [style]="{ width: '500px' }" [draggable]="false" [resizable]="false">
+  <div *ngIf="selectedClaim" class="dialog-body">
+    <div class="dialog-info-banner success-banner">
+      <i class="pi pi-check-circle"></i>
+      <span>You are approving claim <strong>{{ selectedClaim.claimNumber }}</strong> for <strong>{{ selectedClaim.customerName }}</strong></span>
+    </div>
+
+    <div class="dialog-summary">
+      <div class="summary-row"><span>Part:</span><span>{{ selectedClaim.partName }}</span></div>
+      <div class="summary-row"><span>Issue:</span><span>{{ selectedClaim.issueDescription }}</span></div>
+    </div>
+  </div>
+  <ng-template #footer>
+    <button pButton type="button" label="Cancel" class="p-button-text" (click)="showApproveDialog = false"></button>
+    <button pButton type="button" label="Approve Claim" class="p-button-success" icon="pi pi-check" (click)="approveClaim()"></button>
+  </ng-template>
+</p-dialog>
+
+<!-- ==================== REJECT DIALOG ==================== -->
+<p-dialog [(visible)]="showRejectDialog" header="Reject Warranty Claim" [modal]="true"
+  [style]="{ width: '500px' }" [draggable]="false" [resizable]="false">
+  <div *ngIf="selectedClaim" class="dialog-body">
+    <div class="dialog-info-banner danger-banner">
+      <i class="pi pi-exclamation-triangle"></i>
+      <span>You are rejecting claim <strong>{{ selectedClaim.claimNumber }}</strong></span>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label"><span class="required">*</span> Rejection Reason</label>
+      <textarea pTextarea [(ngModel)]="rejectReason" placeholder="Enter reason for rejection..." rows="4" class="w-full"></textarea>
+    </div>
+  </div>
+  <ng-template #footer>
+    <button pButton type="button" label="Cancel" class="p-button-text" (click)="showRejectDialog = false"></button>
+    <button pButton type="button" label="Reject Claim" class="p-button-danger" icon="pi pi-times"
+      [disabled]="!rejectReason.trim()" (click)="rejectClaim()"></button>
+  </ng-template>
+</p-dialog>
+
+<!-- ==================== ASSIGN TECHNICIAN DIALOG ==================== -->
+<p-dialog [(visible)]="showAssignDialog" header="Assign Technician" [modal]="true"
+  [style]="{ width: '550px' }" [draggable]="false" [resizable]="false">
+  <div *ngIf="selectedClaim" class="dialog-body">
+    <div class="dialog-info-banner info-banner">
+      <i class="pi pi-user-plus"></i>
+      <span>Assign a technician to claim <strong>{{ selectedClaim.claimNumber }}</strong></span>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label"><span class="required">*</span> Select Technician</label>
+      <p-autoComplete [(ngModel)]="selectedTechnician" [suggestions]="filteredTechnicians"
+        (completeMethod)="searchTechnicians($event)" field="name"
+        placeholder="Search by name, code, or shop..." [dropdown]="true" [forceSelection]="true" styleClass="w-full" [appendTo]="'body'">
+        <ng-template let-tech pTemplate="item">
+          <div class="tech-suggestion">
+            <div class="tech-name"><strong>{{ tech.name }}</strong> <span class="tech-code">({{ tech.technicianCode }})</span></div>
+            <div class="tech-detail">{{ tech.shopName }} · {{ tech.phone }}</div>
+          </div>
+        </ng-template>
+      </p-autoComplete>
+    </div>
+
+    <div *ngIf="selectedTechnician" class="selected-tech-card">
+      <div class="tech-card-row"><span>Name:</span><strong>{{ selectedTechnician.name }}</strong></div>
+      <div class="tech-card-row"><span>Code:</span><span>{{ selectedTechnician.technicianCode }}</span></div>
+      <div class="tech-card-row"><span>Shop:</span><span>{{ selectedTechnician.shopName }}</span></div>
+      <div class="tech-card-row"><span>Phone:</span><span>{{ selectedTechnician.phone }}</span></div>
+    </div>
+  </div>
+  <ng-template #footer>
+    <button pButton type="button" label="Cancel" class="p-button-text" (click)="showAssignDialog = false"></button>
+    <button pButton type="button" label="Assign Technician" class="p-button-info" icon="pi pi-user-plus"
+      [disabled]="!selectedTechnician" (click)="assignTechnician()"></button>
+  </ng-template>
+</p-dialog>
+
+<!-- ==================== COMPLETE DIALOG ==================== -->
+<p-dialog [(visible)]="showCompleteDialog" header="Complete Warranty Claim" [modal]="true"
+  [style]="{ width: '550px' }" [draggable]="false" [resizable]="false">
+  <div *ngIf="selectedClaim" class="dialog-body">
+    <div class="dialog-info-banner success-banner">
+      <i class="pi pi-check-circle"></i>
+      <span>Mark claim <strong>{{ selectedClaim.claimNumber }}</strong> as completed</span>
+    </div>
+
+    <div class="dialog-summary">
+      <div class="summary-row"><span>Part:</span><span>{{ selectedClaim.partName }}</span></div>
+      <div class="summary-row"><span>Technician:</span><span>{{ selectedClaim.technicianName || '—' }}</span></div>
+    </div>
+
+    <!-- Service cost entry for REPAIR claims -->
+    <div *ngIf="selectedClaim.serviceType === 'REPAIR'" class="form-row">
+      <div class="form-group">
+        <label class="form-label">Repair Cost (charged to customer)</label>
+        <p-inputNumber [(ngModel)]="serviceCost" mode="decimal" [min]="0" [minFractionDigits]="2"
+          [maxFractionDigits]="2" placeholder="0.00" styleClass="w-full"></p-inputNumber>
+        <small class="form-hint">Leave 0 if covered fully under warranty</small>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Service Notes</label>
+        <input pInputText [(ngModel)]="serviceNotes" class="w-full"
+          placeholder="Parts replaced, labour hours, etc." />
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label"><span class="required">*</span> Resolution Details</label>
+      <textarea pTextarea [(ngModel)]="resolutionDetails" placeholder="Describe the resolution and work performed..." rows="4" class="w-full"></textarea>
+    </div>
+
+    <div *ngIf="selectedClaim.serviceType === 'REFUND'" class="dialog-summary" style="margin-top: 0.75rem;">
+      <div class="summary-row"><span>Refund Type:</span><span>{{ refundType === 'CASH_REFUND' ? 'Cash Refund' : 'Store Credit' }}</span></div>
+    </div>
+
+    <div *ngIf="selectedClaim.serviceType === 'REFUND'" class="form-group">
+      <label class="form-label"><span class="required">*</span> Refund Type</label>
+      <p-select [(ngModel)]="refundType"
+        [options]="[{label:'Cash Refund', value:'CASH_REFUND'},{label:'Store Credit', value:'STORE_CREDIT'}]"
+        optionLabel="label" optionValue="value" styleClass="w-full" appendTo="body"></p-select>
+    </div>
+
+    <div *ngIf="selectedClaim.serviceType === 'REFUND'" class="form-group">
+      <label class="form-label"><span class="required">*</span> Refund Amount</label>
+      <p-inputNumber [(ngModel)]="refundAmount" mode="decimal" [min]="0.01" [minFractionDigits]="2" [maxFractionDigits]="2"
+        placeholder="Enter refund amount" styleClass="w-full"></p-inputNumber>
+    </div>
+
+    <div *ngIf="selectedClaim.serviceType === 'REFUND'" class="form-group">
+      <label class="form-label">Reference Number (optional)</label>
+      <input pInputText [(ngModel)]="refundReferenceNumber" class="w-full" placeholder="Receipt / voucher / txn reference" />
+    </div>
+
+    <div *ngIf="selectedClaim.serviceType === 'REFUND'" class="form-group">
+      <label class="form-label">Refund Notes (optional)</label>
+      <textarea pTextarea [(ngModel)]="refundNotes" placeholder="Additional refund notes..." rows="3" class="w-full"></textarea>
+    </div>
+
+    <div *ngIf="selectedClaim.serviceType === 'REFUND'" class="form-group">
+      <label class="form-label">Returned Item Received?</label>
+      <p-select [(ngModel)]="refundReturnItemReceived"
+        [options]="[{label:'Yes, customer returned the item', value:true},{label:'No, compensation only', value:false}]"
+        optionLabel="label" optionValue="value" styleClass="w-full" appendTo="body"></p-select>
+    </div>
+
+    <div *ngIf="selectedClaim.serviceType === 'REFUND' && refundReturnItemReceived" class="form-group">
+      <label class="form-label">Returned Item Stock Handling</label>
+      <p-select [(ngModel)]="refundRestockAsSellable"
+        [options]="[{label:'Quarantine from sale', value:false},{label:'Return to sellable stock', value:true}]"
+        optionLabel="label" optionValue="value" styleClass="w-full" appendTo="body"></p-select>
+      <small class="cell-secondary" style="display:block; margin-top:0.5rem;">
+        Use quarantine for defective items. Use sellable stock only when the returned item is still resalable.
+      </small>
+    </div>
+  </div>
+  <ng-template #footer>
+    <button pButton type="button" label="Cancel" class="p-button-text" (click)="showCompleteDialog = false"></button>
+    <button pButton type="button" label="Mark as Completed" class="p-button-success" icon="pi pi-check-circle"
+      [disabled]="!resolutionDetails.trim() || (selectedClaim?.serviceType === 'REFUND' && (!refundAmount || refundAmount <= 0))" (click)="completeClaim()"></button>
+  </ng-template>
+</p-dialog>
+
+<!-- ==================== SERVICE COST DIALOG ==================== -->
+<p-dialog [(visible)]="showServiceCostDialog" header="Update Repair Cost" [modal]="true"
+  [style]="{ width: '480px' }" [draggable]="false" [resizable]="false">
+  <div *ngIf="selectedClaim" class="dialog-body">
+    <div class="dialog-info-banner info-banner">
+      <i class="pi pi-dollar"></i>
+      <span>Record repair cost for claim <strong>{{ selectedClaim.claimNumber }}</strong> — <strong>{{ selectedClaim.partName }}</strong></span>
+    </div>
+
+    <div class="dialog-summary">
+      <div class="summary-row"><span>Technician:</span><span>{{ selectedClaim.technicianName || '—' }}</span></div>
+      <div class="summary-row"><span>Current Cost:</span><span>{{ selectedClaim.serviceCost ? formatCurrency(selectedClaim.serviceCost) : 'Not set' }}</span></div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Repair Cost (additional customer charge)</label>
+      <p-inputNumber [(ngModel)]="serviceCost" mode="decimal" [min]="0" [minFractionDigits]="2"
+        [maxFractionDigits]="2" placeholder="0.00" styleClass="w-full"></p-inputNumber>
+      <small class="form-hint">Enter 0 if the repair is fully covered under warranty</small>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Service Notes</label>
+      <textarea pTextarea [(ngModel)]="serviceNotes"
+        placeholder="Parts replaced, labour hours, diagnostic findings..." rows="4" class="w-full"></textarea>
+    </div>
+  </div>
+  <ng-template #footer>
+    <button pButton type="button" label="Cancel" class="p-button-text" (click)="showServiceCostDialog = false"></button>
+    <button pButton type="button" label="Save Cost" class="p-button-info" icon="pi pi-save"
+      (click)="updateServiceCost()"></button>
+  </ng-template>
+</p-dialog>
+
+<!-- ==================== CLOSE DIALOG ==================== -->
+<p-dialog [(visible)]="showCloseDialog" header="Close Warranty Claim" [modal]="true"
+  [style]="{ width: '500px' }" [draggable]="false" [resizable]="false">
+  <div *ngIf="selectedClaim" class="dialog-body">
+    <div class="dialog-info-banner info-banner">
+      <i class="pi pi-lock"></i>
+      <span>Close claim <strong>{{ selectedClaim.claimNumber }}</strong></span>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Closure Notes (optional)</label>
+      <textarea pTextarea [(ngModel)]="closureNotes" placeholder="Enter any closure notes..." rows="3" class="w-full"></textarea>
+    </div>
+  </div>
+  <ng-template #footer>
+    <button pButton type="button" label="Cancel" class="p-button-text" (click)="showCloseDialog = false"></button>
+    <button pButton type="button" label="Close Claim" class="p-button-secondary" icon="pi pi-lock" (click)="closeClaim()"></button>
+  </ng-template>
+</p-dialog>
+
+<!-- ==================== SEND DEFECTIVE DIALOG ==================== -->
+<p-dialog [(visible)]="showSendDefectiveDialog" header="Send Defective Item to Vendor" [modal]="true"
+  [style]="{ width: '560px' }" [draggable]="false" [resizable]="false">
+  <div *ngIf="selectedClaim" class="dialog-body">
+    <div class="dialog-info-banner warn-banner">
+      <i class="pi pi-send"></i>
+      <span>Track defective item sent for claim <strong>{{ selectedClaim.claimNumber }}</strong></span>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label"><span class="required">*</span> Destination Type</label>
+      <p-select [(ngModel)]="sendDefectiveForm.partnerType"
+        [options]="[{label:'Seller', value:'SELLER'},{label:'Manufacturer', value:'MANUFACTURER'}]"
+        optionLabel="label" optionValue="value" styleClass="w-full" appendTo="body"></p-select>
+    </div>
+
+    <div class="form-group" *ngIf="sendDefectiveForm.partnerType === 'SELLER'">
+      <label class="form-label"><span class="required">*</span> Seller</label>
+      <p-select [(ngModel)]="sendDefectiveForm.supplierId" [options]="suppliers"
+        optionLabel="name" optionValue="id" placeholder="Select seller..." styleClass="w-full" appendTo="body"
+        [filter]="true" filterBy="name,contactPerson" emptyMessage="No active suppliers found">
+        <ng-template pTemplate="item" let-supplier>
+          <div>
+            <div>{{ supplier.name }}</div>
+            <div class="cell-secondary" style="font-size:0.78rem" *ngIf="supplier.contactPerson || supplier.phone">
+              <span *ngIf="supplier.contactPerson">{{ supplier.contactPerson }}</span>
+              <span *ngIf="supplier.contactPerson && supplier.phone"> · </span>
+              <span *ngIf="supplier.phone">{{ supplier.phone }}</span>
+            </div>
+          </div>
+        </ng-template>
+      </p-select>
+    </div>
+
+    <div class="form-group" *ngIf="sendDefectiveForm.partnerType === 'MANUFACTURER'">
+      <label class="form-label"><span class="required">*</span> Manufacturer Name</label>
+      <input pInputText [(ngModel)]="sendDefectiveForm.manufacturerName" class="w-full" placeholder="e.g. ABC Manufacturer Ltd" />
+    </div>
+
+    <div class="form-group">
+      <label class="form-label"><span class="required">*</span> Responsible By</label>
+      <input pInputText [(ngModel)]="sendDefectiveForm.responsibleBy" class="w-full" placeholder="Person responsible" />
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Reference Number</label>
+        <input pInputText [(ngModel)]="sendDefectiveForm.referenceNumber" class="w-full" placeholder="RMA / Courier Ref" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <input pInputText [(ngModel)]="sendDefectiveForm.notes" class="w-full" placeholder="Optional notes" />
+      </div>
+    </div>
+  </div>
+  <ng-template #footer>
+    <button pButton type="button" label="Cancel" class="p-button-text" (click)="showSendDefectiveDialog = false"></button>
+    <button pButton type="button" label="Send Defective" icon="pi pi-send" class="p-button-warning"
+      [disabled]="((sendDefectiveForm.partnerType === 'SELLER' && !sendDefectiveForm.supplierId) || (sendDefectiveForm.partnerType === 'MANUFACTURER' && !sendDefectiveForm.manufacturerName.trim()) || !sendDefectiveForm.responsibleBy.trim())"
+      (click)="submitSendDefective()"></button>
+  </ng-template>
+</p-dialog>
+
+<!-- ==================== RECEIVE REPLACEMENT DIALOG ==================== -->
+<p-dialog [(visible)]="showReceiveReplacementDialog" header="Receive Replacement Item" [modal]="true"
+  [style]="{ width: '560px' }" [draggable]="false" [resizable]="false">
+  <div *ngIf="selectedClaim" class="dialog-body">
+    <div class="dialog-info-banner success-banner">
+      <i class="pi pi-download"></i>
+      <span>Track replacement item received for claim <strong>{{ selectedClaim.claimNumber }}</strong></span>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label"><span class="required">*</span> Source Type</label>
+      <p-select [(ngModel)]="receiveReplacementForm.partnerType"
+        [options]="[{label:'Seller', value:'SELLER'},{label:'Manufacturer', value:'MANUFACTURER'}]"
+        optionLabel="label" optionValue="value" styleClass="w-full" appendTo="body"></p-select>
+    </div>
+
+    <div class="form-group" *ngIf="receiveReplacementForm.partnerType === 'SELLER'">
+      <label class="form-label"><span class="required">*</span> Seller</label>
+      <p-select [(ngModel)]="receiveReplacementForm.supplierId" [options]="suppliers"
+        optionLabel="name" optionValue="id" placeholder="Select seller..." styleClass="w-full" appendTo="body"
+        [filter]="true" filterBy="name,contactPerson" emptyMessage="No active suppliers found">
+        <ng-template pTemplate="item" let-supplier>
+          <div>
+            <div>{{ supplier.name }}</div>
+            <div class="cell-secondary" style="font-size:0.78rem" *ngIf="supplier.contactPerson || supplier.phone">
+              <span *ngIf="supplier.contactPerson">{{ supplier.contactPerson }}</span>
+              <span *ngIf="supplier.contactPerson && supplier.phone"> · </span>
+              <span *ngIf="supplier.phone">{{ supplier.phone }}</span>
+            </div>
+          </div>
+        </ng-template>
+      </p-select>
+    </div>
+
+    <div class="form-group" *ngIf="receiveReplacementForm.partnerType === 'MANUFACTURER'">
+      <label class="form-label"><span class="required">*</span> Manufacturer Name</label>
+      <input pInputText [(ngModel)]="receiveReplacementForm.manufacturerName" class="w-full" placeholder="e.g. ABC Manufacturer Ltd" />
+    </div>
+
+    <div class="form-group">
+      <label class="form-label"><span class="required">*</span> Responsible By</label>
+      <input pInputText [(ngModel)]="receiveReplacementForm.responsibleBy" class="w-full" placeholder="Person responsible" />
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Reference Number</label>
+        <input pInputText [(ngModel)]="receiveReplacementForm.referenceNumber" class="w-full" placeholder="RMA / Delivery Ref" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <input pInputText [(ngModel)]="receiveReplacementForm.notes" class="w-full" placeholder="Optional notes" />
+      </div>
+    </div>
+  </div>
+  <ng-template #footer>
+    <button pButton type="button" label="Cancel" class="p-button-text" (click)="showReceiveReplacementDialog = false"></button>
+    <button pButton type="button" label="Receive Replacement" icon="pi pi-download" class="p-button-success"
+      [disabled]="((receiveReplacementForm.partnerType === 'SELLER' && !receiveReplacementForm.supplierId) || (receiveReplacementForm.partnerType === 'MANUFACTURER' && !receiveReplacementForm.manufacturerName.trim()) || !receiveReplacementForm.responsibleBy.trim())"
+      (click)="submitReceiveReplacement()"></button>
+  </ng-template>
+</p-dialog>
+
+<!-- ==================== CREATE CLAIM DIALOG ==================== -->
+<p-dialog [(visible)]="showCreateDialog" header="Create Warranty Claim" [modal]="true"
+  [style]="{ width: '650px' }" [draggable]="false" [resizable]="false">
+  <div class="dialog-body">
+    <div class="form-group">
+      <label class="form-label"><span class="required">*</span> Warranty Registration</label>
+      <p-autoComplete [(ngModel)]="selectedWarranty" [suggestions]="filteredWarranties"
+        (completeMethod)="searchWarranties($event)" (onSelect)="onWarrantySelect($event)"
+        field="warrantyNumber" placeholder="Search by warranty number, part, or customer..."
+        [dropdown]="true" [forceSelection]="true" styleClass="w-full" [appendTo]="'body'">
+        <ng-template let-warranty pTemplate="item">
+          <div class="warranty-suggestion">
+            <div><strong>{{ warranty.warrantyNumber }}</strong> — {{ warranty.partName }}</div>
+            <div class="cell-secondary">{{ warranty.customerName }} · Certificate: {{ warranty.certificateNumber }}</div>
+            <div class="cell-secondary">Expires: {{ formatDate(warranty.warrantyExpiryDate) }}</div>
+          </div>
+        </ng-template>
+      </p-autoComplete>
+      <small class="form-hint">Search and select an active warranty registration</small>
+    </div>
+
+    <div *ngIf="selectedWarranty" class="selected-warranty-card">
+      <div class="warranty-card-grid">
+        <div><span class="detail-label">Warranty:</span> {{ selectedWarranty.warrantyNumber }}</div>
+        <div><span class="detail-label">Certificate:</span> {{ selectedWarranty.certificateNumber }}</div>
+        <div><span class="detail-label">Part:</span> {{ selectedWarranty.partName }} ({{ selectedWarranty.partSKU }})</div>
+        <div><span class="detail-label">Customer:</span> {{ selectedWarranty.customerName }}</div>
+        <div><span class="detail-label">Coverage Type:</span> {{ selectedWarranty.warrantyType }}</div>
+        <div><span class="detail-label">Expires:</span> {{ formatDate(selectedWarranty.warrantyExpiryDate) }}</div>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label"><span class="required">*</span> Claim Date</label>
+        <p-datePicker [(ngModel)]="newClaim.claimDate" [showIcon]="true" dateFormat="yy-mm-dd" styleClass="w-full" appendTo="body"></p-datePicker>
+      </div>
+      <div class="form-group">
+        <label class="form-label"><span class="required">*</span> Resolution Method</label>
+        <p-select [(ngModel)]="newClaim.serviceType" [options]="serviceTypes" optionLabel="label"
+          optionValue="value" placeholder="Select resolution method" styleClass="w-full" appendTo="body"></p-select>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label"><span class="required">*</span> Issue Description</label>
+      <textarea pTextarea [(ngModel)]="newClaim.issueDescription"
+        placeholder="Describe the issue in detail..." rows="5" class="w-full"></textarea>
+      <small class="form-hint">Include details about the defect or problem</small>
+    </div>
+  </div>
+
+  <ng-template #footer>
+    <button pButton type="button" label="Cancel" class="p-button-text" (click)="showCreateDialog = false"></button>
+    <button pButton type="button" label="Create Claim" class="p-button-success" icon="pi pi-plus"
+      [disabled]="!selectedWarranty || !newClaim.issueDescription.trim()" (click)="createClaim()"></button>
+  </ng-template>
+</p-dialog>

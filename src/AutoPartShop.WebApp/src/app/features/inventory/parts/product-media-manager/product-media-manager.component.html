@@ -1,0 +1,236 @@
+<p-toast></p-toast>
+
+<div class="media-manager">
+
+  <!-- Header -->
+  <div class="mm-header">
+    <div>
+      <h3 class="mm-title">
+        <i class="pi pi-images mm-icon"></i>
+        Media
+        <span class="mm-count" *ngIf="media.length > 0">({{ media.length }})</span>
+      </h3>
+      <p class="mm-hint">
+        Add images and videos shown on the product page.
+        The <strong>primary</strong> image appears in listings and search results.
+      </p>
+    </div>
+    <button
+      pButton
+      type="button"
+      label="Add Media"
+      icon="pi pi-plus"
+      class="p-button-sm p-button-success"
+      (click)="openAdd()">
+    </button>
+  </div>
+
+  <!-- Empty state -->
+  <div *ngIf="media.length === 0" class="mm-empty">
+    <i class="pi pi-images"></i>
+    <p>No media yet. Click <strong>Add Media</strong> to upload images or add video links.</p>
+  </div>
+
+  <!-- Media grid -->
+  <div class="mm-grid" *ngIf="media.length > 0">
+    <div
+      class="mm-card"
+      *ngFor="let item of media; let i = index"
+      [class.mm-card-primary]="item.isPrimary">
+
+      <!-- Preview area -->
+      <div class="mm-preview">
+
+        <!-- Image preview -->
+        <ng-container *ngIf="item.mediaType === 'image'">
+          <img [src]="item.url" [alt]="item.altText || 'Product image'" class="mm-img"
+            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'" />
+          <div class="mm-img-fallback" style="display:none">
+            <i class="pi pi-image"></i>
+            <span>Preview unavailable</span>
+          </div>
+        </ng-container>
+
+        <!-- YouTube video preview -->
+        <ng-container *ngIf="item.mediaType === 'video' && isYouTube(item.url)">
+          <div class="mm-yt-thumb">
+            <img [src]="youTubeThumbnail(item.url)" [alt]="item.altText || 'Video thumbnail'" class="mm-img" />
+            <div class="mm-play-overlay">
+              <i class="pi pi-play-circle"></i>
+            </div>
+          </div>
+        </ng-container>
+
+        <!-- Non-YouTube video preview -->
+        <ng-container *ngIf="item.mediaType === 'video' && !isYouTube(item.url)">
+          <div class="mm-video-placeholder">
+            <i class="pi pi-video"></i>
+            <span>Video</span>
+          </div>
+        </ng-container>
+
+        <!-- Badges -->
+        <div class="mm-badges">
+          <span class="mm-badge mm-badge-primary" *ngIf="item.isPrimary">
+            <i class="pi pi-star-fill"></i> Primary
+          </span>
+          <span class="mm-badge" [class.mm-badge-image]="item.mediaType === 'image'" [class.mm-badge-video]="item.mediaType === 'video'">
+            <i class="pi" [ngClass]="item.mediaType === 'video' ? 'pi-video' : 'pi-image'"></i>
+            {{ item.mediaType }}
+          </span>
+        </div>
+
+        <!-- Sort position -->
+        <span class="mm-sort-label">#{{ i + 1 }}</span>
+      </div>
+
+      <!-- Alt text label -->
+      <div class="mm-label" *ngIf="item.altText">{{ item.altText }}</div>
+      <div class="mm-url" [title]="item.url">{{ item.url }}</div>
+
+      <!-- Actions -->
+      <div class="mm-actions">
+        <button
+          pButton type="button"
+          icon="pi pi-angle-up"
+          class="p-button-text p-button-secondary p-button-sm"
+          pTooltip="Move up"
+          [disabled]="i === 0"
+          (click)="moveUp(i)">
+        </button>
+        <button
+          pButton type="button"
+          icon="pi pi-angle-down"
+          class="p-button-text p-button-secondary p-button-sm"
+          pTooltip="Move down"
+          [disabled]="i === media.length - 1"
+          (click)="moveDown(i)">
+        </button>
+        <button
+          pButton type="button"
+          icon="pi pi-star"
+          class="p-button-text p-button-sm"
+          [class.p-button-warning]="!item.isPrimary"
+          [class.p-button-success]="item.isPrimary"
+          [pTooltip]="item.isPrimary ? 'Already primary' : 'Set as primary'"
+          [disabled]="item.isPrimary"
+          (click)="setPrimary(item)">
+        </button>
+        <button
+          pButton type="button"
+          icon="pi pi-pencil"
+          class="p-button-text p-button-info p-button-sm"
+          pTooltip="Edit"
+          (click)="openEdit(item)">
+        </button>
+        <button
+          pButton type="button"
+          icon="pi pi-trash"
+          class="p-button-text p-button-danger p-button-sm"
+          pTooltip="Remove"
+          (click)="remove(item)">
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ Add / Edit Dialog ══ -->
+<p-dialog
+  [(visible)]="showDialog"
+  [header]="dialogHeader"
+  [modal]="true"
+  [style]="{ width: '480px', maxWidth: '95vw' }"
+  [draggable]="false"
+  appendTo="body"
+  (onHide)="closeDialog()">
+
+  <div class="mm-form">
+
+    <div class="mm-form-group">
+      <label class="mm-form-label">
+        Media Type <span class="req">*</span>
+      </label>
+      <div class="mm-type-toggle">
+        <button
+          type="button"
+          class="mm-type-btn"
+          [class.active]="formType === 'image'"
+          (click)="formType = 'image'">
+          <i class="pi pi-image"></i> Image
+        </button>
+        <button
+          type="button"
+          class="mm-type-btn"
+          [class.active]="formType === 'video'"
+          (click)="formType = 'video'">
+          <i class="pi pi-video"></i> Video
+        </button>
+      </div>
+    </div>
+
+    <div class="mm-form-group">
+      <label class="mm-form-label">
+        URL <span class="req">*</span>
+        <span class="mm-form-hint" *ngIf="formType === 'video'">
+          — paste a YouTube link or direct video URL
+        </span>
+      </label>
+      <input
+        pInputText
+        [(ngModel)]="formUrl"
+        [placeholder]="formType === 'video' ? 'https://www.youtube.com/watch?v=...' : 'https://cdn.example.com/image.jpg'"
+        class="mm-input"
+        (input)="formUrlError = ''"
+      />
+      <small class="mm-error" *ngIf="formUrlError">{{ formUrlError }}</small>
+    </div>
+
+    <!-- Live URL preview -->
+    <div class="mm-form-preview" *ngIf="formUrl.trim()">
+      <ng-container *ngIf="formType === 'image'">
+        <img [src]="formUrl" alt="Preview" class="mm-form-img"
+          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'" />
+        <div class="mm-img-fallback mm-form-fallback" style="display:none">
+          <i class="pi pi-image"></i> <span>Could not load preview</span>
+        </div>
+      </ng-container>
+      <ng-container *ngIf="formType === 'video' && isYouTube(formUrl)">
+        <div class="mm-yt-thumb mm-form-yt">
+          <img [src]="youTubeThumbnail(formUrl)" alt="YouTube preview" class="mm-form-img" />
+          <div class="mm-play-overlay"><i class="pi pi-play-circle"></i></div>
+        </div>
+      </ng-container>
+      <ng-container *ngIf="formType === 'video' && formUrl.trim() && !isYouTube(formUrl)">
+        <div class="mm-video-placeholder mm-form-fallback">
+          <i class="pi pi-video"></i> <span>Direct video URL</span>
+        </div>
+      </ng-container>
+    </div>
+
+    <div class="mm-form-group">
+      <label class="mm-form-label">
+        Alt Text
+        <span class="mm-form-hint">— optional, for accessibility</span>
+      </label>
+      <input
+        pInputText
+        [(ngModel)]="formAlt"
+        placeholder="e.g. Front view of brake pad"
+        class="mm-input"
+      />
+    </div>
+
+  </div>
+
+  <ng-template pTemplate="footer">
+    <button pButton type="button" label="Cancel" icon="pi pi-times"
+      class="p-button-text p-button-secondary"
+      (click)="closeDialog()">
+    </button>
+    <button pButton type="button" label="Save" icon="pi pi-check"
+      class="p-button-success"
+      (click)="save()">
+    </button>
+  </ng-template>
+</p-dialog>

@@ -1,0 +1,53 @@
+.storefront {
+  /* ── Mechanic Dark Theme ── */
+  --sf-accent:        #F97316;   /* vivid orange */
+  --sf-accent-strong: #EA580C;   /* darker orange */
+  --sf-accent-mid:    #FB923C;   /* lighter orange */
+  --sf-accent-soft:   #FFF7ED;   /* warm orange tint */
+
+  --sf-bg:       #F5F5F5;
+  --sf-surface:  #ffffff;
+  --sf-ink:      #1C1C1E;        /* near-black charcoal */
+  --sf-muted:    #6B7280;
+  --sf-border:   #E5E7EB;
+  --sf-success:  #16A34A;
+  --sf-sale:     #DC2626;
+
+  --sf-nav-bg:   #1C1C1E;        /* charcoal nav */
+  --sf-nav-text: #ffffff;
+
+  --sf-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --sf-shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.15);
+  --sf-radius:    10px;
+  --sf-radius-sm: 6px;
+
+  min-height: 100vh;
+  background: var(--sf-bg);
+  color: var(--sf-ink);
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  display: flex;
+  flex-direction: column;
+  /* clip instead of hidden — doesn't create a scroll container,
+     so position:sticky on the header still anchors to the viewport */
+  overflow-x: clip;
+}
+
+/* Sticky header */
+app-store-header {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  display: block;
+}
+
+.storefront h1,
+.storefront h2,
+.storefront h3,
+.storefront h4 {
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  letter-spacing: -0.01em;
+}
+
+.storefront-content {
+  flex: 1;
+}

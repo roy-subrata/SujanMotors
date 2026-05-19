@@ -1,0 +1,210 @@
+<!-- Create Dialog -->
+<p-dialog [(visible)]="displayCreateDialog" (visibleChange)="displayCreateDialogChange.emit($event)"
+  [header]="'Create New Unit Conversion'" [modal]="true" [style]="{width: '100%', maxWidth: '550px'}" [draggable]="true"
+  [resizable]="false" (onHide)="onCreateDialogHide()">
+
+  <form [formGroup]="createForm" class="form-container">
+    <!-- From Unit Field -->
+    <div class="form-group">
+      <label for="create-from-unit" class="form-label">
+        <span class="required">*</span> From Unit
+      </label>
+      <p-autocomplete
+        id="create-from-unit"
+        formControlName="fromUnit"
+        [suggestions]="filteredFromUnits"
+        [(ngModel)]="selectedFromUnit"
+        placeholder="Search by name or code..."
+        [showEmptyMessage]="true"
+        emptyMessage="No units found"
+        (onClear)="onFromUnitCleared()"
+        (onSelect)="onFromUnitSelect($event.value)"
+        [virtualScroll]="true"
+        [virtualScrollItemSize]="34"
+        optionLabel="name"
+        [dropdown]="true"
+        [disabled]="isSubmitting"
+        (completeMethod)="onFromUnitEvent($event)">
+        <ng-template let-unit #item>
+          <div class="unit-autocomplete-item">
+            <div class="font-semibold">{{ unit.name }}</div>
+            <div class="text-sm text-gray-500">{{ unit.code }}</div>
+          </div>
+        </ng-template>
+      </p-autocomplete>
+      <small class="error-message" *ngIf="hasError(createForm, 'fromUnit')">
+        {{ getErrorMessage(createForm, 'fromUnit') }}
+      </small>
+    </div>
+
+    <!-- Conversion Arrow Display -->
+    <div class="conversion-display">
+      <div class="arrow-section">
+        <span class="conversion-label">Conversion Rate</span>
+        <i class="pi pi-arrow-right arrow-icon"></i>
+      </div>
+    </div>
+
+    <!-- To Unit Field -->
+    <div class="form-group">
+      <label for="create-to-unit" class="form-label">
+        <span class="required">*</span> To Unit
+      </label>
+      <p-autocomplete
+        id="create-to-unit"
+        formControlName="toUnit"
+        [suggestions]="filteredToUnits"
+        [(ngModel)]="selectedToUnit"
+        placeholder="Search by name or code..."
+        [showEmptyMessage]="true"
+        emptyMessage="No units found"
+        (onClear)="onToUnitCleared()"
+        (onSelect)="onToUnitSelect($event.value)"
+        [virtualScroll]="true"
+        [virtualScrollItemSize]="34"
+        optionLabel="name"
+        [dropdown]="true"
+        [disabled]="isSubmitting"
+        (completeMethod)="onToUnitEvent($event)">
+        <ng-template let-unit #item>
+          <div class="unit-autocomplete-item">
+            <div class="font-semibold">{{ unit.name }}</div>
+            <div class="text-sm text-gray-500">{{ unit.code }}</div>
+          </div>
+        </ng-template>
+      </p-autocomplete>
+      <small class="error-message" *ngIf="hasError(createForm, 'toUnit')">
+        {{ getErrorMessage(createForm, 'toUnit') }}
+      </small>
+    </div>
+
+    <!-- Conversion Factor Field -->
+    <div class="form-group">
+      <label for="create-factor" class="form-label">
+        <span class="required">*</span> Conversion Factor
+      </label>
+      <div class="factor-input-group">
+        <span class="factor-prefix">1 (from unit) =</span>
+        <input id="create-factor" pInputNumber formControlName="conversionFactor" placeholder="0.00" [min]="0.000001"
+          [step]="0.01" [class.error]="hasError(createForm, 'conversionFactor')"
+          [class.success]="isFieldValid(createForm, 'conversionFactor')" />
+        <span class="factor-suffix">(to unit)</span>
+      </div>
+      <small class="error-message" *ngIf="hasError(createForm, 'conversionFactor')">
+        {{ getErrorMessage(createForm, 'conversionFactor') }}
+      </small>
+      <small class="hint-message">Example: 1 kg = 1000 grams, so enter 1000</small>
+    </div>
+
+    <!-- Description Field (Optional) -->
+    <div class="form-group">
+      <label for="create-description" class="form-label">
+        Description <span class="optional-label">(Optional)</span>
+      </label>
+      <textarea id="create-description" pInputTextarea formControlName="description"
+        placeholder="Optional description or notes" rows="2" class="form-input"
+        [class.error]="hasError(createForm, 'description')" [class.success]="isFieldValid(createForm, 'description')">
+      </textarea>
+      <small class="hint-message">Max 500 characters</small>
+    </div>
+  </form>
+
+  <ng-template pTemplate="footer">
+    <div class="dialog-footer">
+      <button pButton type="button" label="Cancel" icon="pi pi-times" class="p-button-text p-button-secondary"
+        (click)="onCreateDialogHide()" [disabled]="isSubmitting">
+      </button>
+      <button pButton type="button" label="Create" icon="pi pi-check" class="p-button p-button-success"
+        (click)="onCreateSubmit()" [loading]="isSubmitting" [disabled]="createForm.invalid || isSubmitting">
+      </button>
+    </div>
+  </ng-template>
+</p-dialog>
+
+<!-- Update Dialog -->
+<p-dialog [(visible)]="displayUpdateDialog" (visibleChange)="displayUpdateDialogChange.emit($event)"
+  [header]="'Edit Unit Conversion'" [modal]="true" [style]="{width: '100%', maxWidth: '550px'}" [draggable]="true"
+  [resizable]="false" (onHide)="onUpdateDialogHide()">
+
+  <form [formGroup]="updateForm" class="form-container">
+    <!-- From Unit (Read-only) -->
+    <div class="form-group">
+      <label class="form-label">From Unit</label>
+      <div class="read-only-field">
+        <span>{{ selectedUpdateFromUnit?.name }} ({{ selectedUpdateFromUnit?.code }})</span>
+      </div>
+    </div>
+
+    <!-- Conversion Arrow Display -->
+    <div class="conversion-display">
+      <div class="arrow-section">
+        <span class="conversion-label">Conversion Rate</span>
+        <i class="pi pi-arrow-right arrow-icon"></i>
+      </div>
+    </div>
+
+    <!-- To Unit (Read-only) -->
+    <div class="form-group">
+      <label class="form-label">To Unit</label>
+      <div class="read-only-field">
+        <span>{{ selectedUpdateToUnit?.name }} ({{ selectedUpdateToUnit?.code }})</span>
+      </div>
+    </div>
+
+    <!-- Conversion Factor Field -->
+    <div class="form-group">
+      <label for="update-factor" class="form-label">
+        <span class="required">*</span> Conversion Factor
+      </label>
+      <div class="factor-input-group">
+        <span class="factor-prefix">1 (from unit) =</span>
+        <input id="update-factor" pInputNumber formControlName="conversionFactor" placeholder="0.00" [min]="0.000001"
+          [step]="0.01" [class.error]="hasError(updateForm, 'conversionFactor')"
+          [class.success]="isFieldValid(updateForm, 'conversionFactor')" />
+        <span class="factor-suffix">(to unit)</span>
+      </div>
+      <small class="error-message" *ngIf="hasError(updateForm, 'conversionFactor')">
+        {{ getErrorMessage(updateForm, 'conversionFactor') }}
+      </small>
+    </div>
+
+    <!-- Description Field (Optional) -->
+    <div class="form-group">
+      <label for="update-description" class="form-label">
+        Description <span class="optional-label">(Optional)</span>
+      </label>
+      <textarea id="update-description" pInputTextarea formControlName="description"
+        placeholder="Optional description or notes" rows="2" class="form-input"
+        [class.error]="hasError(updateForm, 'description')" [class.success]="isFieldValid(updateForm, 'description')">
+      </textarea>
+      <small class="hint-message">Max 500 characters</small>
+    </div>
+
+    <!-- Status Field -->
+    <div class="form-group">
+      <label for="update-status" class="form-label">Status</label>
+      <div class="status-toggle">
+        <input id="update-status" type="checkbox" formControlName="isActive" class="status-checkbox" />
+        <label for="update-status" class="status-label">
+          <span *ngIf="updateForm.get('isActive')?.value" class="status-active">
+            <i class="pi pi-check-circle"></i> Active
+          </span>
+          <span *ngIf="!updateForm.get('isActive')?.value" class="status-inactive">
+            <i class="pi pi-times-circle"></i> Inactive
+          </span>
+        </label>
+      </div>
+    </div>
+  </form>
+
+  <ng-template pTemplate="footer">
+    <div class="dialog-footer">
+      <button pButton type="button" label="Cancel" icon="pi pi-times" class="p-button-text p-button-secondary"
+        (click)="onUpdateDialogHide()" [disabled]="isSubmitting">
+      </button>
+      <button pButton type="button" label="Update" icon="pi pi-check" class="p-button p-button-info"
+        (click)="onUpdateSubmit()" [loading]="isSubmitting" [disabled]="updateForm.invalid || isSubmitting">
+      </button>
+    </div>
+  </ng-template>
+</p-dialog>

@@ -1,0 +1,39 @@
+<p-autoComplete
+  #autoComplete
+  [(ngModel)]="value"
+  [suggestions]="suggestions"
+  [optionLabel]="optionLabel"
+  [virtualScroll]="true"
+  [virtualScrollItemSize]="itemSize"
+  [lazy]="true"
+  [dropdown]="true"
+  [forceSelection]="false"
+  [appendTo]="'body'"
+  [placeholder]="placeholder"
+  [showClear]="showClear"
+  [disabled]="disabled"
+  [minLength]="minLength"
+  [scrollHeight]="scrollHeight"
+  [style]="{ width: '100%' }"
+  [inputStyle]="{ width: '100%' }"
+  (completeMethod)="onSearch($event)"
+  (onLazyLoad)="onLazyLoad($event)"
+  (onDropdownClick)="onDropdownClick()"
+  (onSelect)="onSelect()"
+  (onClear)="onClearValue()">
+  <ng-template pTemplate="item" let-item>
+    <ng-container *ngTemplateOutlet="itemTemplate || defaultTemplate; context: { $implicit: item }"></ng-container>
+  </ng-template>
+  <ng-template pTemplate="loader">
+    <div style="padding: 10px; text-align: center; color: #6b7280;">
+      <i class="pi pi-spin pi-spinner" style="margin-right: 8px;"></i>Loading...
+    </div>
+  </ng-template>
+  <ng-template pTemplate="empty">
+    <div style="padding: 12px; text-align: center; color: #6b7280;">No results found</div>
+  </ng-template>
+</p-autoComplete>
+
+<ng-template #defaultTemplate let-item>
+  <div style="padding: 8px 4px;">{{ item[optionLabel] }}</div>
+</ng-template>

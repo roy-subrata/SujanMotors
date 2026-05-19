@@ -1,0 +1,690 @@
+<div class="pos-container">
+  <p-toast></p-toast>
+  <p-confirmDialog></p-confirmDialog>
+  <app-quick-customer-dialog (customerCreated)="onCustomerCreated($event)"></app-quick-customer-dialog>
+  <app-invoice-preview [(visible)]="showInvoicePreview" [invoiceData]="invoicePreviewData" (onPrint)="onInvoicePrint()" (onDownload)="onInvoiceDownload()"></app-invoice-preview>
+
+  <!-- Loading Overlay -->
+  <div *ngIf="loading()" class="loading-overlay">
+    <div class="loading-content">
+      <i class="pi pi-spin pi-spinner" style="font-size: 3rem; color: var(--pos-primary);"></i>
+      <h3>Loading Quick Sale...</h3>
+    </div>
+  </div>
+
+  <!-- POS Header -->
+  <header class="pos-header">
+    <div class="header-left">
+      <button class="back-btn" routerLink="/" pTooltip="Back">
+        <i class="pi pi-arrow-left"></i>
+      </button>
+      <div class="brand">
+        <div class="brand-icon">
+          <i class="pi pi-shopping-cart"></i>
+        </div>
+        <div class="brand-info">
+          <h1>Quick Sale</h1>
+          <span class="invoice-number">{{ invoiceNumber() }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Shortcut Toolbar -->
+    <div class="header-toolbar">
+      <div class="toolbar-group">
+        <button class="toolbar-btn" (click)="resetShortcut()" pTooltip="New Sale (F2)">
+          <i class="pi pi-plus-circle"></i>
+        </button>
+        <button class="toolbar-btn" (click)="viewLastSale()" pTooltip="Last Sale (F3)" [disabled]="!hasLastSale()">
+          <i class="pi pi-clock"></i>
+        </button>
+        <button class="toolbar-btn" (click)="openReturns()" pTooltip="Returns (F4)">
+          <i class="pi pi-refresh"></i>
+        </button>
+      </div>
+
+      <div class="toolbar-divider"></div>
+
+      <div class="toolbar-group">
+        <button class="toolbar-btn primary" (click)="openQuickCustomerDialog()" pTooltip="New Customer (Ctrl+N)">
+          <i class="pi pi-user-plus"></i>
+        </button>
+        <button class="toolbar-btn" (click)="openCustomerHistory()" pTooltip="Customer History" [disabled]="!selectedCustomer()">
+          <i class="pi pi-history"></i>
+        </button>
+        <button class="toolbar-btn" (click)="viewCustomerCredit()" pTooltip="Customer Credit" [disabled]="!selectedCustomer()">
+          <i class="pi pi-wallet"></i>
+        </button>
+      </div>
+
+      <div class="toolbar-divider"></div>
+
+      <div class="toolbar-group">
+        <button class="toolbar-btn" (click)="openStockSearch()" pTooltip="Stock Check (F7)">
+          <i class="pi pi-box"></i>
+        </button>
+        <button class="toolbar-btn" (click)="openPriceCheck()" pTooltip="Price Check (F8)">
+          <i class="pi pi-tag"></i>
+        </button>
+      </div>
+
+      <div class="toolbar-divider"></div>
+
+      <div class="toolbar-group">
+        <button class="toolbar-btn" (click)="saveDraft()" pTooltip="Save Draft (Ctrl+S)">
+          <i class="pi pi-save"></i>
+        </button>
+        <button class="toolbar-btn" (click)="holdSale()" pTooltip="Hold Sale (F5)">
+          <i class="pi pi-pause"></i>
+        </button>
+        <button class="toolbar-btn" (click)="recallHeldSales()" pTooltip="Recall Held (F6)">
+          <i class="pi pi-replay"></i>
+        </button>
+      </div>
+
+      <div class="toolbar-divider"></div>
+
+      <div class="toolbar-group">
+        <button class="toolbar-btn success" (click)="quickCashPayment()" pTooltip="Cash (F9)">
+          <i class="pi pi-money-bill"></i>
+        </button>
+        <button class="toolbar-btn" (click)="quickCardPayment()" pTooltip="Card (F10)">
+          <i class="pi pi-credit-card"></i>
+        </button>
+        <button class="toolbar-btn" (click)="quickMobilePayment()" pTooltip="Mobile">
+          <i class="pi pi-mobile"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <div class="header-stats">
+        <span class="stat-badge">
+          <i class="pi pi-shopping-bag"></i>
+          {{ cartItems().length }} Items
+        </span>
+        <span class="stat-badge total" *ngIf="cartItems().length > 0">
+          {{ formatCurrency(grandTotal()) }}
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="pos-main">
+    <!-- Left: Product Search + Cart -->
+    <section class="cart-section">
+      <!-- Product Search -->
+      <div class="search-bar">
+        <!-- Normal Search -->
+        <div class="search-input-wrapper" *ngIf="!barcodeModeActive">
+          <app-lazy-autocomplete
+            [(ngModel)]="selectedPartModel"
+            [ngModelOptions]="{standalone: true}"
+            [fetchFn]="fetchPartsLazy"
+            optionLabel="displayName"
+            placeholder="Search products by name, SKU, or part number..."
+            [showClear]="true"
+            [minLength]="1"
+            (onItemSelect)="selectPart($event)"
+            appendTo="body"
+            styleClass="product-search">
+            <ng-template let-part>
+              <div class="product-option">
+                <div class="product-details">
+                  <strong>{{ part.displayName || part.name }}</strong>
+                  <span class="product-meta">{{ part.partNumber }} • {{ part.variantSKU || part.sku }}</span>
+                </div>
+                <span class="product-price">{{ formatCurrency(part.effectiveSellingPrice ?? part.sellingPrice) }}</span>
+              </div>
+            </ng-template>
+          </app-lazy-autocomplete>
+          <button class="search-mode-btn" (click)="toggleBarcodeMode()" pTooltip="Switch to Barcode Mode">
+            <i class="pi pi-qrcode"></i>
+          </button>
+        </div>
+
+        <!-- Barcode Input -->
+        <div class="search-input-wrapper" *ngIf="barcodeModeActive">
+          <div class="barcode-input-inline">
+            <i class="pi pi-qrcode barcode-icon"></i>
+            <input type="text" pInputText [(ngModel)]="barcodeValue" [ngModelOptions]="{standalone: true}"
+                   placeholder="Scan or type barcode and press Enter..."
+                   (keydown.enter)="processBarcodeInput()" />
+            <button class="barcode-submit-btn" (click)="processBarcodeInput()">
+              <i class="pi pi-check"></i>
+            </button>
+          </div>
+          <button class="search-mode-btn active" (click)="setSearchMode()" pTooltip="Switch to Search Mode">
+            <i class="pi pi-search"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Cart Header -->
+      <div class="section-header">
+        <h2>Current Sale</h2>
+        <div class="cart-actions">
+          <span class="item-count">{{ cartItems().length }} item(s)</span>
+          <button class="icon-btn-sm" (click)="openBulkDiscount()" pTooltip="Bulk Discount" [disabled]="cartItems().length === 0">
+            <i class="pi pi-percentage"></i>
+          </button>
+          <button class="icon-btn-sm danger" (click)="clearCart()" pTooltip="Clear Cart" [disabled]="cartItems().length === 0">
+            <i class="pi pi-trash"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Empty State -->
+      <div *ngIf="cartItems().length === 0" class="empty-cart">
+        <div class="empty-icon">
+          <i class="pi pi-shopping-cart"></i>
+        </div>
+        <h3>Cart is Empty</h3>
+        <p>Search and add products to start a sale</p>
+      </div>
+
+      <!-- Cart Items -->
+      <div class="cart-items" *ngIf="cartItems().length > 0">
+        <div class="cart-item" *ngFor="let item of cartItems(); let i = index">
+          <div class="item-left">
+            <div class="item-avatar">
+              <span>{{ item.partName?.charAt(0) || '?' }}</span>
+            </div>
+            <div class="item-info">
+              <h4 class="item-name">{{ item.partName }}</h4>
+              <div class="item-meta">
+                <span class="sku">{{ item.sku || '-' }}</span>
+                <span class="separator">•</span>
+                <span class="brand">{{ getBrandName(item.partId) }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="item-middle">
+            <div class="unit-control">
+              <p-select
+                [options]="compatibleUnitsMap.get(item.partId) || []"
+                [(ngModel)]="item.unitId"
+                [ngModelOptions]="{standalone: true}"
+                optionLabel="name"
+                optionValue="id"
+                placeholder="Unit"
+                [showClear]="true"
+                [style]="{ width: '100%' }"
+                appendTo="body"
+                (onChange)="onCartUnitChanged(item, i)">
+                <ng-template let-unit pTemplate="item">
+                  {{ unit.name }} <small>({{ unit.symbol }})</small>
+                </ng-template>
+              </p-select>
+            </div>
+
+            <div class="qty-control">
+              <button class="qty-btn" (click)="decrementQty(i)">
+                <i class="pi pi-minus"></i>
+              </button>
+              <input type="number" [(ngModel)]="item.quantity" [ngModelOptions]="{standalone: true}" min="1" class="qty-input" />
+              <button class="qty-btn" (click)="incrementQty(i)">
+                <i class="pi pi-plus"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="item-right">
+            <div class="price-input-wrap">
+              <input type="number" [(ngModel)]="item.unitPrice" [ngModelOptions]="{standalone: true}" min="0" class="price-input" (ngModelChange)="clearPricingError(i)" />
+              
+            </div>
+            <div class="item-total">
+              {{ formatCurrency(calculateLineTotal(item)) }}
+            </div>
+            <button class="remove-btn" (click)="removeFromCart(i)" pTooltip="Remove">
+              <i class="pi pi-trash"></i>
+            </button>
+          </div>
+
+          <div class="item-discount" *ngIf="item.discount > 0">
+            <span class="discount-tag">{{ item.discount }}% OFF</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cart Footer -->
+      <div class="cart-footer" *ngIf="cartItems().length > 0">
+        <div class="totals">
+          <div class="total-row">
+            <span class="label">Subtotal</span>
+            <span class="value">{{ formatCurrency(subtotal()) }}</span>
+          </div>
+          <div class="total-row" *ngIf="discountAmount() > 0">
+            <span class="label">Discount</span>
+            <span class="value discount">-{{ formatCurrency(discountAmount()) }}</span>
+          </div>
+          <div class="total-row">
+            <span class="label">Discount</span>
+            <span class="value discount">
+              <p-inputNumber
+                [(ngModel)]="manualDiscountAmount"
+                [ngModelOptions]="{standalone: true}"
+                [min]="0"
+                [max]="subtotal()"
+                mode="decimal"
+                styleClass="manual-discount-input"
+                placeholder="Manual discount..."
+                (onInput)="onManualDiscountChange()">
+              </p-inputNumber>
+            </span>
+          </div>
+        </div>
+
+        <!-- Checkout Button -->
+        <button class="checkout-btn" (click)="openCheckout()" [disabled]="cartItems().length === 0 || saving()">
+          <span>Checkout</span>
+          <span class="checkout-amount">{{ formatCurrency(grandTotal()) }}</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Right: Customer, Technician, Payment & Options -->
+    <aside class="sidebar-section">
+      <!-- Scrollable Area -->
+      <div class="sidebar-scroll-area">
+        <!-- Customer -->
+        <div class="sidebar-card">
+          <div class="customer-inputs">
+            <app-lazy-autocomplete
+              [(ngModel)]="selectedCustomerModel"
+              [ngModelOptions]="{standalone: true}"
+              [fetchFn]="fetchCustomersLazy"
+              optionLabel="fullName"
+              placeholder="Search customer..."
+              [showClear]="true"
+              [minLength]="0"
+              (onItemSelect)="selectCustomer($event)"
+              appendTo="body"
+              styleClass="customer-search">
+              <ng-template let-customer>
+                <div class="customer-option">
+                  <span class="name">{{ customer.fullName }}<span class="code" *ngIf="customer.customerCode"> ({{ customer.customerCode }})</span></span>
+                  <span class="phone">{{ customer.phone }}</span>
+                </div>
+              </ng-template>
+            </app-lazy-autocomplete>
+          </div>
+          <div class="customer-info" *ngIf="selectedCustomer()">
+            <div class="customer-badge-stats">
+              <span class="badge-stat advance" [class.has-advance]="availableAdvance() > 0">
+                <i class="pi pi-wallet"></i> {{ formatCurrency(availableAdvance()) }}
+              </span>
+              <span class="badge-stat" [class.has-due]="selectedCustomer().dueAmount > 0">
+                <i class="pi pi-clock"></i> {{ formatCurrency(selectedCustomer().dueAmount || 0) }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Technician -->
+        <div class="sidebar-card">
+          <app-lazy-autocomplete
+            [(ngModel)]="selectedTechnicianModel"
+            [ngModelOptions]="{standalone: true}"
+            [fetchFn]="fetchTechniciansLazy"
+            optionLabel="name"
+            placeholder="Search technician..."
+            [showClear]="true"
+            [minLength]="0"
+            (onItemSelect)="selectTechnician($event)"
+            appendTo="body"
+            styleClass="tech-search">
+            <ng-template let-tech>
+              <div class="tech-option">
+                <span class="name">{{ tech.name }}</span>
+                <span class="code">{{ tech.technicianCode }}</span>
+              </div>
+            </ng-template>
+          </app-lazy-autocomplete>
+          <div class="responsibility-toggle">
+            <label class="radio-label">
+              <input type="radio" name="responsibility" [checked]="paymentResponsibility === 'CUSTOMER'" (change)="paymentResponsibility = 'CUSTOMER'" />
+              <span>Customer</span>
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="responsibility" [checked]="paymentResponsibility === 'TECHNICIAN_TEMPORARY'" (change)="paymentResponsibility = 'TECHNICIAN_TEMPORARY'" />
+              <span>Technician</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Payment Section (Inline) -->
+        <div class="sidebar-card payment-inline" *ngIf="cartItems().length > 0">
+          <div class="payment-header">
+            <i class="pi pi-wallet"></i>
+            <span>Payment</span>
+            <span class="payment-total">{{ formatCurrency(grandTotal()) }}</span>
+          </div>
+
+          <!-- Payment Method Dropdown -->
+          <div class="payment-method-dropdown">
+            <label class="payment-method-label">Payment Method</label>
+            <p-select
+              [(ngModel)]="selectedPaymentMethod"
+              [ngModelOptions]="{standalone: true}"
+              [options]="paymentMethodOptions"
+              optionLabel="label"
+              optionValue="value"
+              placeholder="Select payment method..."
+              appendTo="body"
+              [style]="{ width: '100%' }"
+              styleClass="payment-method-select"
+              (onChange)="onPaymentMethodChange()">
+              <ng-template let-method pTemplate="selectedItem">
+                <div class="payment-method-selected">
+                  <i [class]="method.icon"></i>
+                  <span>{{ method.label }}</span>
+                </div>
+              </ng-template>
+              <ng-template let-method pTemplate="item">
+                <div class="payment-method-option">
+                  <i [class]="method.icon"></i>
+                  <span>{{ method.label }}</span>
+                </div>
+              </ng-template>
+            </p-select>
+          </div>
+
+          <!-- Transaction Reference (for Card/Mobile) -->
+          <div class="payment-reference-field" *ngIf="requiresReference(selectedPaymentMethod)">
+            <input type="text" pInputText [(ngModel)]="paymentReference" [ngModelOptions]="{standalone: true}"
+              [placeholder]="selectedPaymentMethod === 'CARD' ? 'Card transaction number...' : 'Transaction ID / Reference...'"
+              class="reference-input" />
+          </div>
+
+          <!-- Payment Notes (optional, for non-cash) -->
+          <div class="payment-reference-field" *ngIf="selectedPaymentMethod !== 'CASH'">
+            <input type="text" pInputText [(ngModel)]="paymentNotes" [ngModelOptions]="{standalone: true}"
+              placeholder="Payment notes (optional)..."
+              class="reference-input" />
+          </div>
+
+          <!-- Due Payment Info -->
+          <div class="due-info-banner" *ngIf="selectedPaymentMethod === 'DUE'">
+            <i class="pi pi-info-circle"></i>
+            <span>Customer will pay later. A registered customer is required.</span>
+          </div>
+
+          <!-- Payment Amount Input -->
+          <div class="payment-input-inline">
+            <p-inputNumber
+              [(ngModel)]="paymentInputAmount"
+              [ngModelOptions]="{standalone: true}"
+              [min]="0"
+              mode="decimal"
+              styleClass="payment-field"
+              placeholder="Enter amount...">
+            </p-inputNumber>
+            <button class="add-pay-btn" (click)="addNewPayment()" [disabled]="!paymentInputAmount || paymentInputAmount <= 0 || !selectedPaymentMethod" type="button">
+              <i class="pi pi-plus"></i>
+            </button>
+          </div>
+
+          <!-- Customer Credit -->
+          <div class="credit-inline" *ngIf="selectedCustomer() && customerCreditInfo && customerCreditInfo.availableCredit > 0">
+            <label class="checkbox-label">
+              <input type="checkbox" [checked]="useCreditBalance" (change)="useCreditBalance = !useCreditBalance" />
+              <span>Use credit ({{ formatCurrency(customerCreditInfo.availableCredit) }})</span>
+            </label>
+            <div class="credit-amount-row" *ngIf="useCreditBalance">
+              <span class="credit-label">Apply:</span>
+              <p-inputNumber
+                [(ngModel)]="creditAmountToApply"
+                [ngModelOptions]="{standalone: true}"
+                [min]="0"
+                [max]="Math.min(customerCreditInfo.availableCredit, remainingBalance())"
+                mode="decimal"
+                styleClass="credit-field">
+              </p-inputNumber>
+            </div>
+          </div>
+
+          <!-- Payment List -->
+          <div class="payment-list-inline" *ngIf="payments().length > 0">
+            <div class="pay-item" *ngFor="let payment of payments(); let i = index">
+              <div class="pay-item-info">
+                <i [class]="getPaymentIcon(payment.method)"></i>
+                <div class="pay-item-details">
+                  <span>{{ getPaymentLabel(payment.method) }}</span>
+                  <span class="pay-item-ref" *ngIf="payment.reference">{{ payment.reference }}</span>
+                </div>
+              </div>
+              <span class="pay-item-amount">{{ formatCurrency(payment.amount) }}</span>
+              <button class="remove-pay-item" (click)="removeNewPayment(i)" type="button">
+                <i class="pi pi-times"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Balance Summary -->
+          <div class="balance-summary">
+            <div class="balance-row">
+              <span>Paid:</span>
+              <span class="paid-value">{{ formatCurrency(totalPaid() + (useCreditBalance ? creditAmountToApply : 0)) }}</span>
+            </div>
+            <div class="balance-row" *ngIf="remainingBalance() > 0">
+              <span>Remaining:</span>
+              <span class="due-value">{{ formatCurrency(remainingBalance()) }}</span>
+            </div>
+            <div class="balance-row complete" *ngIf="remainingBalance() <= 0.01 && totalPaid() > 0">
+              <i class="pi pi-check-circle"></i>
+              <span>Payment Complete</span>
+            </div>
+            <div class="balance-row due-warning" *ngIf="hasDuePayments()">
+              <i class="pi pi-exclamation-triangle"></i>
+              <span>Due: {{ formatCurrency(totalDueAmount()) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Options -->
+        <div class="sidebar-card">
+          <div class="option-row">
+            <label class="checkbox-label">
+              <input type="checkbox" [(ngModel)]="autoCreatePO" [ngModelOptions]="{standalone: true}" />
+              <span>Auto Create PO</span>
+            </label>
+          </div>
+          <div class="option-row">
+            <label class="checkbox-label">
+              <input type="checkbox" [(ngModel)]="printReceipt" [ngModelOptions]="{standalone: true}" />
+              <span>Print Receipt</span>
+            </label>
+          </div>
+          <textarea pTextarea [(ngModel)]="saleNotes" [ngModelOptions]="{standalone: true}" rows="2" placeholder="Notes..."></textarea>
+        </div>
+      </div>
+
+      <!-- Complete Sale Buttons (Fixed at bottom) -->
+      <div class="complete-actions" *ngIf="cartItems().length > 0">
+        <button class="complete-btn primary" (click)="confirmCheckout()" [disabled]="(remainingBalance() > 0.01 && !hasDuePayments()) || !selectedCustomer() || saving()">
+          <i class="pi pi-check-circle"></i>
+          <span>{{ hasDuePayments() ? 'Complete (Due Sale)' : 'Complete Sale' }}</span>
+        </button>
+        <div class="secondary-actions">
+          <button class="action-btn" (click)="saveAndPrint()" [disabled]="!selectedCustomer()">
+            <i class="pi pi-print"></i>
+            <span>Save & Print</span>
+          </button>
+          <button class="action-btn" (click)="processQuotation()" [disabled]="!selectedCustomer()">
+            <i class="pi pi-file-edit"></i>
+            <span>Save as Quote</span>
+          </button>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- ===== ALL DIALOGS ===== -->
+
+  <!-- Customer History Dialog -->
+  <p-dialog [(visible)]="showCustomerHistoryDialog" [modal]="true" [style]="{ width: '600px' }" header="Customer Purchase History">
+    <div class="history-content" *ngIf="selectedCustomer()">
+      <div class="customer-header">
+        <div class="customer-avatar">{{ selectedCustomer().fullName?.charAt(0) }}</div>
+        <div class="customer-details">
+          <strong>{{ selectedCustomer().fullName }}</strong>
+          <span>{{ selectedCustomer().phone }}</span>
+        </div>
+      </div>
+      <div class="history-list">
+        <div class="history-item" *ngFor="let order of customerPurchaseHistory()">
+          <div class="history-info">
+            <span class="invoice">{{ order.invoiceNumber }}</span>
+            <span class="date">{{ order.createdAt | date:'short' }}</span>
+          </div>
+          <span class="amount">{{ formatCurrency(order.grandTotal) }}</span>
+        </div>
+        <div class="empty-history" *ngIf="customerPurchaseHistory().length === 0">
+          <i class="pi pi-inbox"></i>
+          <p>No purchase history found</p>
+        </div>
+      </div>
+    </div>
+  </p-dialog>
+
+  <!-- Customer Credit Dialog -->
+  <p-dialog [(visible)]="showCustomerCreditDialog" [modal]="true" [style]="{ width: '450px' }" header="Customer Credit Information">
+    <div class="credit-dialog-content" *ngIf="selectedCustomer() && customerCreditInfo">
+      <div class="credit-stat">
+        <span class="stat-label">Credit Limit</span>
+        <span class="stat-value">{{ formatCurrency(customerCreditInfo.creditLimit) }}</span>
+      </div>
+      <div class="credit-stat">
+        <span class="stat-label">Used Credit</span>
+        <span class="stat-value">{{ formatCurrency(customerCreditInfo.usedCredit) }}</span>
+      </div>
+      <div class="credit-stat">
+        <span class="stat-label">Available Credit</span>
+        <span class="stat-value success">{{ formatCurrency(customerCreditInfo.availableCredit) }}</span>
+      </div>
+      <div class="credit-stat">
+        <span class="stat-label">Outstanding Due</span>
+        <span class="stat-value danger">{{ formatCurrency(customerCreditInfo.dueBalance) }}</span>
+      </div>
+    </div>
+  </p-dialog>
+
+  <!-- Held Sales Dialog -->
+  <p-dialog [(visible)]="showHeldSalesDialog" [modal]="true" [style]="{ width: '550px' }" header="Held Sales">
+    <div class="held-sales-list">
+      <div class="held-item" *ngFor="let sale of heldSales()">
+        <div class="held-info">
+          <strong>{{ sale.customerName || 'Walk-in Customer' }}</strong>
+          <span>{{ sale.items.length }} items • {{ sale.timestamp | date:'short' }}</span>
+        </div>
+        <div class="held-actions">
+          <button class="action-btn-sm" (click)="recallHeldSale(sale.draftId)">
+            <i class="pi pi-replay"></i> Recall
+          </button>
+          <button class="action-btn-sm danger" (click)="deleteHeldSale(sale.draftId)">
+            <i class="pi pi-trash"></i>
+          </button>
+        </div>
+      </div>
+      <div class="empty-held" *ngIf="heldSales().length === 0">
+        <i class="pi pi-inbox"></i>
+        <p>No held sales</p>
+      </div>
+    </div>
+  </p-dialog>
+
+  <!-- Last Sale Dialog -->
+  <p-dialog [(visible)]="showLastSaleDialog" [modal]="true" [style]="{ width: '450px' }" header="Last Completed Sale">
+    <div class="last-sale-content" *ngIf="lastSale">
+      <div class="sale-detail">
+        <span class="detail-label">Invoice</span>
+        <span class="detail-value">{{ lastSale.invoiceNumber }}</span>
+      </div>
+      <div class="sale-detail">
+        <span class="detail-label">Customer</span>
+        <span class="detail-value">{{ lastSale.customerName }}</span>
+      </div>
+      <div class="sale-detail">
+        <span class="detail-label">Total</span>
+        <span class="detail-value">{{ formatCurrency(lastSale.grandTotal) }}</span>
+      </div>
+      <div class="sale-detail">
+        <span class="detail-label">Paid</span>
+        <span class="detail-value">{{ formatCurrency(lastSale.paidAmount) }}</span>
+      </div>
+      <div class="sale-detail">
+        <span class="detail-label">Due</span>
+        <span class="detail-value">{{ formatCurrency(lastSale.dueAmount) }}</span>
+      </div>
+      <button class="action-btn primary" (click)="printLastSaleReceipt()">
+        <i class="pi pi-print"></i> Print Receipt
+      </button>
+    </div>
+  </p-dialog>
+
+  <!-- Returns Dialog -->
+  <p-dialog [(visible)]="showReturnsDialog" [modal]="true" [style]="{ width: '500px' }" header="Process Return">
+    <div class="returns-content">
+      <div class="return-search">
+        <input type="text" pInputText [(ngModel)]="returnInvoiceNumber" [ngModelOptions]="{standalone: true}" placeholder="Enter invoice number..." />
+        <button class="search-btn" (click)="lookupReturnInvoice()">
+          <i class="pi pi-search"></i>
+        </button>
+      </div>
+      <div class="return-invoice" *ngIf="returnInvoice">
+        <p><strong>Invoice:</strong> {{ returnInvoice.invoiceNumber }}</p>
+        <p><strong>Customer:</strong> {{ returnInvoice.customerName }}</p>
+        <p><strong>Total:</strong> {{ formatCurrency(returnInvoice.grandTotal) }}</p>
+      </div>
+    </div>
+    <ng-template pTemplate="footer">
+      <button pButton label="Cancel" class="p-button-text" (click)="showReturnsDialog = false"></button>
+      <button pButton label="Process Return" icon="pi pi-check" (click)="processReturn()" [disabled]="!returnInvoice"></button>
+    </ng-template>
+  </p-dialog>
+
+  <!-- Price Check Dialog -->
+  <p-dialog [(visible)]="showPriceCheckDialog" [modal]="true" [style]="{ width: '400px' }" header="Price Check">
+    <div class="price-check-content">
+      <input type="text" pInputText [(ngModel)]="priceCheckCode" [ngModelOptions]="{standalone: true}" placeholder="Enter SKU or part number..." (keydown.enter)="searchPrice()" />
+      <div class="price-result" *ngIf="priceCheckResult">
+        <p><strong>{{ priceCheckResult.name }}</strong></p>
+        <p>SKU: {{ priceCheckResult.sku }}</p>
+        <p>Price: {{ formatCurrency(priceCheckResult.sellingPrice) }}</p>
+        <p>Stock: {{ priceCheckResult.stockLevel }}</p>
+        <button class="action-btn primary" (click)="addPriceCheckToCart()">
+          <i class="pi pi-plus"></i> Add to Cart
+        </button>
+      </div>
+    </div>
+    <ng-template pTemplate="footer">
+      <button pButton label="Search" icon="pi pi-search" (click)="searchPrice()"></button>
+    </ng-template>
+  </p-dialog>
+
+  <!-- Stock Check Dialog -->
+  <p-dialog [(visible)]="showStockSearchDialog" [modal]="true" [style]="{ width: '450px' }" header="Stock Check">
+    <div class="stock-check-content">
+      <input type="text" pInputText [(ngModel)]="stockSearchCode" [ngModelOptions]="{standalone: true}" placeholder="Search by part name, SKU, or part number..." />
+    </div>
+    <ng-template pTemplate="footer">
+      <button pButton label="Cancel" class="p-button-text" (click)="showStockSearchDialog = false"></button>
+      <button pButton label="Search" icon="pi pi-search" (click)="searchStock()"></button>
+    </ng-template>
+  </p-dialog>
+
+  <!-- Bulk Discount Dialog -->
+  <p-dialog [(visible)]="showBulkDiscountDialog" [modal]="true" [style]="{ width: '350px' }" header="Apply Bulk Discount">
+    <div class="bulk-discount-content">
+      <p-inputNumber [(ngModel)]="bulkDiscountPercent" [ngModelOptions]="{standalone: true}" [min]="0" [max]="100" mode="decimal" placeholder="Discount %..." />
+    </div>
+    <ng-template pTemplate="footer">
+      <button pButton label="Cancel" class="p-button-text" (click)="showBulkDiscountDialog = false"></button>
+      <button pButton label="Apply" icon="pi pi-check" (click)="applyBulkDiscountConfirm()"></button>
+    </ng-template>
+  </p-dialog>
+</div>

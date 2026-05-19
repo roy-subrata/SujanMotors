@@ -1,0 +1,90 @@
+<!-- ============================================================
+     WAREHOUSES LIST - ENTERPRISE UI (MATCHES SALES ORDERS LAYOUT)
+     ============================================================ -->
+
+<p-toast position="top-right"></p-toast>
+<p-confirmDialog></p-confirmDialog>
+
+<div class="page-wrapper">
+  <!-- ==================== PAGE HEADER ==================== -->
+  <header class="page-header">
+    <div class="header-content">
+      <div class="header-left">
+        <h1 class="page-title">Warehouses</h1>
+        <p class="page-subtitle">Organize and manage your warehouse locations</p>
+      </div>
+
+      <div class="header-actions">
+        <div class="stats-badge">
+          <i class="pi pi-building"></i>
+          <div class="stats-info">
+            <span class="stats-value">{{ totalRecords }}</span>
+            <span class="stats-label">warehouses</span>
+          </div>
+        </div>
+
+        <div class="action-buttons">
+          <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="refreshData()">
+            <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
+          </button>
+          <button class="btn-primary" (click)="createWarehouse()">
+            <i class="pi pi-plus"></i>
+            <span>New Warehouse</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================== FILTER SECTION ==================== -->
+  <section class="filter-section">
+    <div class="filter-container">
+      <div class="filter-group search-group">
+        <div class="search-input-wrapper">
+          <i class="pi pi-search"></i>
+          <input
+            type="text"
+            [(ngModel)]="searchTerm"
+            placeholder="Search by name or location..."
+            (keyup.enter)="onSearch()"
+            class="search-input" />
+          <button *ngIf="searchTerm" class="search-clear" (click)="onSearchClear()">
+            <i class="pi pi-times"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="filter-group filter-actions">
+        <button class="btn-search" (click)="onSearch()">
+          <i class="pi pi-search"></i>
+          Search
+        </button>
+        <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
+          <i class="pi pi-filter-slash"></i>
+          Clear
+        </button>
+      </div>
+    </div>
+
+    <div *ngIf="hasActiveFilters()" class="active-filters">
+      <span class="active-filters-label">Active filters:</span>
+      <span *ngIf="searchTerm" class="filter-chip">
+        Search: "{{ searchTerm }}"
+        <i class="pi pi-times" (click)="onSearchClear()"></i>
+      </span>
+    </div>
+  </section>
+
+  <!-- ==================== LIST SECTION ==================== -->
+  <app-warehouses-list
+    [warehouses]="warehouses"
+    [loading]="loading"
+    [totalRecords]="totalRecords"
+    [rows]="rows"
+    [currentPage]="currentPage"
+    (viewClick)="onViewClick($event)"
+    (editClick)="onEditClick($event)"
+    (pageChange)="onPageChange($event)"
+    (warehouseDeleted)="onWarehouseDeleted()">
+  </app-warehouses-list>
+</div>

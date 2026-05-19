@@ -1,0 +1,189 @@
+<!-- ==================== DATA TABLE (Desktop) ==================== -->
+<section class="table-section desktop-only">
+  <div class="table-container">
+    <p-table
+      #dt
+      [value]="purchaseReturns"
+      [loading]="loading"
+      [lazy]="true"
+      [paginator]="false"
+      [rows]="rows"
+      [totalRecords]="totalRecords"
+      [rowHover]="true"
+      responsiveLayout="scroll"
+      styleClass="custom-table"
+      [tableStyle]="{ 'min-width': '50rem' }"
+      dataKey="id">
+
+      <ng-template pTemplate="header">
+        <tr>
+          <th class="col-po">Return Number</th>
+          <th class="col-supplier">Supplier</th>
+          <th class="col-date">Return Date</th>
+          <th class="col-status">Status</th>
+          <th class="col-amount">Refund Amount</th>
+          <th class="col-actions">Actions</th>
+        </tr>
+      </ng-template>
+
+      <ng-template pTemplate="body" let-pr>
+        <tr class="data-row" (dblclick)="viewPurchaseReturn(pr)">
+          <td class="col-po">
+            <div class="so-cell">
+              <a class="so-link" (click)="viewPurchaseReturn(pr)">{{ pr.returnNumber }}</a>
+            </div>
+          </td>
+          <td class="col-supplier">
+            <div class="customer-cell">
+              <div class="customer-avatar">
+                {{ (pr.supplierName || 'S')[0].toUpperCase() }}
+              </div>
+              <div class="customer-info">
+                <span class="customer-name">{{ pr.supplierName || '-' }}</span>
+                <span *ngIf="pr.supplierCode" class="customer-phone">{{ pr.supplierCode }}</span>
+              </div>
+            </div>
+          </td>
+          <td class="col-date">
+            <span class="date-text">{{ formatDate(pr.returnDate) }}</span>
+          </td>
+          <td class="col-status">
+            <span class="status-pill" [attr.data-status]="pr.status.toLowerCase()">
+              {{ pr.status }}
+            </span>
+          </td>
+          <td class="col-amount">
+            <span class="amount-value">{{ formatCurrency(pr.refundAmount) }}</span>
+          </td>
+          <td class="col-actions">
+            <div class="action-cell">
+              <button class="btn-action" pTooltip="More" (click)="showContextMenu($event, pr)">
+                <i class="pi pi-ellipsis-v"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="6">
+            <div class="empty-state">
+              <div class="empty-icon">
+                <i class="pi pi-replay"></i>
+              </div>
+              <h3>No Purchase Returns Found</h3>
+              <p>{{ searchTerm ? 'Try adjusting your filters or search criteria' : 'Start by creating a new purchase return' }}</p>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+
+  <div class="pagination-section" *ngIf="totalRecords > 0">
+    <div class="pagination-info">
+      Showing <strong>{{ ((currentPage - 1) * rows) + 1 }}</strong> to <strong>{{ Math.min(currentPage * rows, totalRecords) }}</strong> of <strong>{{ totalRecords }}</strong> returns
+    </div>
+    <div class="pagination-controls">
+      <span class="page-size-label">Rows per page:</span>
+      <select class="page-size-select" [value]="rows" (change)="onPageChange({ first: 0, rows: +($any($event.target).value) })">
+        <option *ngFor="let size of pageSizeOptions" [value]="size">{{ size }}</option>
+      </select>
+      <div class="page-nav">
+        <button class="page-btn" [disabled]="currentPage === 1" (click)="onPageChange({ first: 0, rows: rows })">
+          <i class="pi pi-angle-double-left"></i>
+        </button>
+        <button class="page-btn" [disabled]="currentPage === 1" (click)="onPageChange({ first: (currentPage - 2) * rows, rows: rows })">
+          <i class="pi pi-angle-left"></i>
+        </button>
+        <span class="page-indicator">{{ currentPage }} / {{ Math.ceil(totalRecords / rows) }}</span>
+        <button class="page-btn" [disabled]="currentPage * rows >= totalRecords" (click)="onPageChange({ first: currentPage * rows, rows: rows })">
+          <i class="pi pi-angle-right"></i>
+        </button>
+        <button class="page-btn" [disabled]="currentPage * rows >= totalRecords" (click)="onPageChange({ first: (Math.ceil(totalRecords / rows) - 1) * rows, rows: rows })">
+          <i class="pi pi-angle-double-right"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== MOBILE CARDS ==================== -->
+<section class="cards-section mobile-only">
+  <div *ngIf="loading" class="cards-grid">
+    <div *ngFor="let _ of [1,2,3,4]" class="order-card skeleton-card">
+      <div class="card-header">
+        <div class="skeleton skeleton-text"></div>
+        <div class="skeleton skeleton-badge"></div>
+      </div>
+      <div class="card-body">
+        <div class="skeleton skeleton-text-lg"></div>
+        <div class="skeleton skeleton-text-sm"></div>
+      </div>
+      <div class="card-footer">
+        <div class="skeleton skeleton-text-sm"></div>
+        <div class="skeleton skeleton-text-sm"></div>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="!loading && purchaseReturns.length === 0" class="empty-state-mobile">
+    <div class="empty-icon">
+      <i class="pi pi-replay"></i>
+    </div>
+    <h3>No Purchase Returns</h3>
+    <p>{{ searchTerm ? 'Try adjusting your filters or search criteria' : 'Start by creating a new purchase return' }}</p>
+  </div>
+
+  <div *ngIf="!loading && purchaseReturns.length > 0" class="cards-grid">
+    <div *ngFor="let pr of purchaseReturns" class="order-card" (click)="viewPurchaseReturn(pr)">
+      <div class="card-header">
+        <span class="card-so-number">{{ pr.returnNumber }}</span>
+        <span class="status-pill" [attr.data-status]="pr.status.toLowerCase()">{{ pr.status }}</span>
+      </div>
+      <div class="card-body">
+        <div class="card-customer">
+          <div class="customer-avatar small">
+            {{ (pr.supplierName || 'S')[0].toUpperCase() }}
+          </div>
+          <div class="customer-info">
+            <span class="customer-name">{{ pr.supplierName || '-' }}</span>
+            <span *ngIf="pr.supplierCode" class="customer-phone">{{ pr.supplierCode }}</span>
+          </div>
+        </div>
+        <div class="card-dates">
+          <span class="card-date"><i class="pi pi-calendar"></i> {{ formatDate(pr.returnDate) }}</span>
+        </div>
+      </div>
+      <div class="card-footer">
+        <div class="card-amount">
+          <span class="amount-label">Refund</span>
+          <span class="amount-value">{{ formatCurrency(pr.refundAmount) }}</span>
+        </div>
+        <button class="btn-card-action" (click)="showContextMenu($event, pr); $event.stopPropagation()">
+          <i class="pi pi-ellipsis-v"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="mobile-pagination" *ngIf="totalRecords > 0">
+    <span class="pagination-info-mobile">{{ currentPage }} / {{ Math.ceil(totalRecords / rows) }}</span>
+    <div class="pagination-nav-mobile">
+      <button class="page-btn" [disabled]="currentPage === 1" (click)="onPageChange({ first: (currentPage - 2) * rows, rows: rows })">
+        <i class="pi pi-angle-left"></i>
+      </button>
+      <button class="page-btn" [disabled]="currentPage * rows >= totalRecords" (click)="onPageChange({ first: currentPage * rows, rows: rows })">
+        <i class="pi pi-angle-right"></i>
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- Context Menu -->
+<p-contextMenu
+  #contextMenu
+  [model]="contextMenuItems"
+  [appendTo]="'body'">
+</p-contextMenu>

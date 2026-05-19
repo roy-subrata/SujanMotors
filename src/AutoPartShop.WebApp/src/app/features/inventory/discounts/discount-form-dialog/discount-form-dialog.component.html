@@ -1,0 +1,434 @@
+<!-- ==================== CREATE DISCOUNT DIALOG ==================== -->
+<p-dialog
+  [(visible)]="displayCreateDialog"
+  header="New Discount"
+  [modal]="true"
+  [style]="{width: '560px', maxWidth: '95vw'}"
+  [draggable]="true"
+  [resizable]="false"
+  (onShow)="onCreateDialogShow()"
+  (onHide)="onCreateDialogHide()">
+
+  <form [formGroup]="createForm" class="form-container">
+
+    <!-- Name -->
+    <div class="form-group">
+      <label for="createName" class="form-label">
+        <span class="required">*</span> Discount Name
+      </label>
+      <input
+        type="text"
+        pInputText
+        id="createName"
+        formControlName="name"
+        placeholder="e.g. Summer Sale 10%"
+        class="form-input"
+        [class.form-input-error]="isInvalid('create', 'name')" />
+      <small *ngIf="isInvalid('create', 'name')" class="error-message">Name is required (min 2 characters)</small>
+    </div>
+
+    <!-- Description -->
+    <div class="form-group">
+      <label for="createDescription" class="form-label">Description</label>
+      <textarea
+        pInputTextarea
+        id="createDescription"
+        formControlName="description"
+        rows="2"
+        placeholder="Optional description"
+        class="form-input"></textarea>
+    </div>
+
+    <!-- Type & Value row -->
+    <div class="form-row">
+      <div class="form-group">
+        <label for="createType" class="form-label">
+          <span class="required">*</span> Discount Type
+        </label>
+        <p-select
+          inputId="createType"
+          [options]="typeOptions"
+          formControlName="type"
+          placeholder="Select type"
+          [style]="{width: '100%'}"
+          appendTo="body"
+          >
+        </p-select>
+        <small *ngIf="isInvalid('create', 'type')" class="error-message">Type is required</small>
+      </div>
+
+      <div class="form-group">
+        <label for="createValue" class="form-label">
+          <span class="required">*</span> Value
+          <span class="label-hint" *ngIf="createType === 'PERCENTAGE'">(0–100)</span>
+          <span class="label-hint" *ngIf="createType === 'FIXED'">(৳ amount)</span>
+        </label>
+        <p-inputNumber
+          inputId="createValue"
+          formControlName="value"
+          [min]="0.01"
+          [max]="createValueMax"
+          [minFractionDigits]="0"
+          [maxFractionDigits]="2"
+          [showButtons]="false"
+          placeholder="Enter value"
+          styleClass="form-input-number"
+          [inputStyleClass]="'form-input' + (isInvalid('create', 'value') ? ' form-input-error' : '')">
+        </p-inputNumber>
+        <small *ngIf="isInvalid('create', 'value')" class="error-message">
+          Value is required (min 0.01{{ createType === 'PERCENTAGE' ? ', max 100' : '' }})
+        </small>
+      </div>
+    </div>
+
+    <!-- Scope banner (computed live from selection) -->
+    <div class="scope-banner" [attr.data-scope]="createScope">
+      <i class="pi"
+         [class.pi-tag]="createScope === 'VARIANT'"
+         [class.pi-box]="createScope === 'PRODUCT'"
+         [class.pi-shopping-cart]="createScope === 'CART'"></i>
+      <span *ngIf="createScope === 'CART'">
+        <strong>Cart Level</strong> — applies on top of item discounts (promo code or threshold)
+      </span>
+      <span *ngIf="createScope === 'PRODUCT'">
+        <strong>Product Level</strong> — applies to all variants of <em>{{ selectedPart()?.name }}</em>
+      </span>
+      <span *ngIf="createScope === 'VARIANT'">
+        <strong>Variant Level</strong> — applies only to <em>{{ selectedVariant()?.name }}</em>
+      </span>
+    </div>
+
+    <!-- Product search (lazy autocomplete) -->
+    <div class="form-group">
+      <label class="form-label">
+        Product <span class="label-hint">(optional — leave blank for cart-level discount)</span>
+      </label>
+      <app-lazy-autocomplete
+        [fetchFn]="fetchPartsLazy"
+        optionLabel="name"
+        placeholder="Search product by name or SKU..."
+        [showClear]="true"
+        [pageSize]="15"
+        (onItemSelect)="onPartSelected($event)"
+        (onClearEvent)="onPartCleared()">
+        <ng-template let-part>
+          <div class="autocomplete-item">
+            <span class="autocomplete-item-name">{{ part.name }}</span>
+            <span class="autocomplete-item-meta">{{ part.sku }} · {{ part.categoryName }}</span>
+          </div>
+        </ng-template>
+      </app-lazy-autocomplete>
+      <small class="hint-message" *ngIf="!selectedPart()">No product selected → discount will be CART level</small>
+    </div>
+
+    <!-- Variant dropdown (shown only after part is selected) -->
+    <div class="form-group" *ngIf="selectedPart()">
+      <label class="form-label">
+        Variant <span class="label-hint">(optional — leave blank for product-level discount)</span>
+      </label>
+      <p-select
+        [options]="variants()"
+        [(ngModel)]="selectedVariant"
+        [ngModelOptions]="{standalone: true}"
+        optionLabel="name"
+        [filter]="true"
+        filterBy="name,code,sku"
+        placeholder="Select variant (optional)"
+        [showClear]="true"
+        [loading]="loadingVariants()"
+        emptyMessage="No active variants"
+        [style]="{width: '100%'}"
+        appendTo="body"
+        (onChange)="selectedVariant() ? onVariantSelected(selectedVariant()!) : onVariantCleared()">
+        <ng-template pTemplate="item" let-v>
+          <div class="autocomplete-item">
+            <span class="autocomplete-item-name">{{ v.name }}</span>
+            <span class="autocomplete-item-meta">{{ v.code }}{{ v.sku ? ' · ' + v.sku : '' }}</span>
+          </div>
+        </ng-template>
+      </p-select>
+      <small class="hint-message" *ngIf="!selectedVariant()">No variant selected → discount applies to all variants</small>
+    </div>
+
+    <!-- CART-specific fields (promo code / threshold) -->
+    <ng-container *ngIf="isCreateCartLevel">
+      <div class="form-group">
+        <label for="createPromoCode" class="form-label">Promo Code <span class="label-hint">(optional)</span></label>
+        <input
+          type="text"
+          pInputText
+          id="createPromoCode"
+          formControlName="promoCode"
+          placeholder="e.g. SUMMER25"
+          class="form-input"
+          style="text-transform: uppercase;" />
+        <small class="hint-message">Leave blank to use minimum cart amount threshold instead</small>
+      </div>
+
+      <div class="form-group">
+        <label for="createMinCartAmount" class="form-label">Minimum Cart Amount (৳) <span class="label-hint">(optional)</span></label>
+        <p-inputNumber
+          inputId="createMinCartAmount"
+          formControlName="minimumCartAmount"
+          [min]="0"
+          [minFractionDigits]="0"
+          [maxFractionDigits]="2"
+          [showButtons]="false"
+          placeholder="e.g. 2000"
+          styleClass="form-input-number"
+          inputStyleClass="form-input">
+        </p-inputNumber>
+        <small class="hint-message">Discount auto-applies when cart total meets this amount</small>
+      </div>
+    </ng-container>
+
+    <!-- Start Date & End Date row -->
+    <div class="form-row">
+      <div class="form-group">
+        <label for="createStartDate" class="form-label">
+          <span class="required">*</span> Start Date
+        </label>
+        <p-datepicker
+          inputId="createStartDate"
+          formControlName="startDate"
+          placeholder="Select start date"
+          [showIcon]="true"
+          [style]="{width: '100%'}"
+          appendTo="body"
+          dateFormat="dd M yy"
+          [inputStyleClass]="'form-input' + (isInvalid('create', 'startDate') ? ' form-input-error' : '')">
+        </p-datepicker>
+        <small *ngIf="isInvalid('create', 'startDate')" class="error-message">Start date is required</small>
+      </div>
+
+      <div class="form-group">
+        <label for="createEndDate" class="form-label">End Date <span class="label-hint">(optional)</span></label>
+        <p-datepicker
+          inputId="createEndDate"
+          formControlName="endDate"
+          placeholder="No expiry"
+          [showIcon]="true"
+          [style]="{width: '100%'}"
+          appendTo="body"
+          dateFormat="dd M yy"
+          inputStyleClass="form-input">
+        </p-datepicker>
+      </div>
+    </div>
+
+  </form>
+
+  <ng-template pTemplate="footer">
+    <div class="dialog-footer">
+      <button
+        pButton
+        type="button"
+        label="Cancel"
+        icon="pi pi-times"
+        class="p-button-text p-button-secondary"
+        (click)="onCreateDialogHide()"></button>
+      <button
+        pButton
+        type="button"
+        label="Create Discount"
+        icon="pi pi-check"
+        class="p-button-success"
+        (click)="onCreateSubmit()"
+        [disabled]="isCreating()"
+        [loading]="isCreating()"></button>
+    </div>
+  </ng-template>
+</p-dialog>
+
+<!-- ==================== EDIT DISCOUNT DIALOG ==================== -->
+<p-dialog
+  [(visible)]="displayUpdateDialog"
+  header="Edit Discount"
+  [modal]="true"
+  [style]="{width: '560px', maxWidth: '95vw'}"
+  [draggable]="true"
+  [resizable]="false"
+  (onShow)="onUpdateDialogShow()"
+  (onHide)="onUpdateDialogHide()">
+
+  <form [formGroup]="updateForm" class="form-container">
+
+    <!-- Name -->
+    <div class="form-group">
+      <label for="updateName" class="form-label">
+        <span class="required">*</span> Discount Name
+      </label>
+      <input
+        type="text"
+        pInputText
+        id="updateName"
+        formControlName="name"
+        placeholder="e.g. Summer Sale 10%"
+        class="form-input"
+        [class.form-input-error]="isInvalid('update', 'name')" />
+      <small *ngIf="isInvalid('update', 'name')" class="error-message">Name is required (min 2 characters)</small>
+    </div>
+
+    <!-- Description -->
+    <div class="form-group">
+      <label for="updateDescription" class="form-label">Description</label>
+      <textarea
+        pInputTextarea
+        id="updateDescription"
+        formControlName="description"
+        rows="2"
+        placeholder="Optional description"
+        class="form-input"></textarea>
+    </div>
+
+    <!-- Type & Value row -->
+    <div class="form-row">
+      <div class="form-group">
+        <label for="updateType" class="form-label">
+          <span class="required">*</span> Discount Type
+        </label>
+        <p-select
+          inputId="updateType"
+          [options]="typeOptions"
+          formControlName="type"
+          placeholder="Select type"
+          [style]="{width: '100%'}"
+          appendTo="body"
+          >
+        </p-select>
+      </div>
+
+      <div class="form-group">
+        <label for="updateValue" class="form-label">
+          <span class="required">*</span> Value
+          <span class="label-hint" *ngIf="updateType === 'PERCENTAGE'">(0–100)</span>
+          <span class="label-hint" *ngIf="updateType === 'FIXED'">(৳ amount)</span>
+        </label>
+        <p-inputNumber
+          inputId="updateValue"
+          formControlName="value"
+          [min]="0.01"
+          [max]="updateValueMax"
+          [minFractionDigits]="0"
+          [maxFractionDigits]="2"
+          [showButtons]="false"
+          placeholder="Enter value"
+          styleClass="form-input-number"
+          [inputStyleClass]="'form-input' + (isInvalid('update', 'value') ? ' form-input-error' : '')">
+        </p-inputNumber>
+        <small *ngIf="isInvalid('update', 'value')" class="error-message">Value is required (min 0.01)</small>
+      </div>
+    </div>
+
+    <!-- Scope (read-only — determined by partId/variantId on creation) -->
+    <div class="scope-banner" *ngIf="selectedDiscount" [attr.data-scope]="selectedDiscount.scope">
+      <i class="pi"
+         [class.pi-tag]="selectedDiscount.scope === 'VARIANT'"
+         [class.pi-box]="selectedDiscount.scope === 'PRODUCT'"
+         [class.pi-shopping-cart]="selectedDiscount.scope === 'CART'"></i>
+      <span><strong>{{ selectedDiscount.scope }} Level</strong> — scope cannot be changed after creation</span>
+    </div>
+
+    <!-- CART-specific fields -->
+    <ng-container *ngIf="selectedDiscount?.scope === 'CART'">
+      <div class="form-group">
+        <label for="updatePromoCode" class="form-label">Promo Code <span class="label-hint">(optional)</span></label>
+        <input
+          type="text"
+          pInputText
+          id="updatePromoCode"
+          formControlName="promoCode"
+          placeholder="e.g. SUMMER25"
+          class="form-input"
+          style="text-transform: uppercase;" />
+      </div>
+
+      <div class="form-group">
+        <label for="updateMinCartAmount" class="form-label">Minimum Cart Amount (৳) <span class="label-hint">(optional)</span></label>
+        <p-inputNumber
+          inputId="updateMinCartAmount"
+          formControlName="minimumCartAmount"
+          [min]="0"
+          [minFractionDigits]="0"
+          [maxFractionDigits]="2"
+          [showButtons]="false"
+          placeholder="e.g. 2000"
+          styleClass="form-input-number"
+          inputStyleClass="form-input">
+        </p-inputNumber>
+      </div>
+    </ng-container>
+
+    <!-- Start Date & End Date row -->
+    <div class="form-row">
+      <div class="form-group">
+        <label for="updateStartDate" class="form-label">
+          <span class="required">*</span> Start Date
+        </label>
+        <p-datepicker
+          inputId="updateStartDate"
+          formControlName="startDate"
+          placeholder="Select start date"
+          [showIcon]="true"
+          [style]="{width: '100%'}"
+          appendTo="body"
+          dateFormat="dd M yy"
+          [inputStyleClass]="'form-input' + (isInvalid('update', 'startDate') ? ' form-input-error' : '')">
+        </p-datepicker>
+        <small *ngIf="isInvalid('update', 'startDate')" class="error-message">Start date is required</small>
+      </div>
+
+      <div class="form-group">
+        <label for="updateEndDate" class="form-label">End Date <span class="label-hint">(optional)</span></label>
+        <p-datepicker
+          inputId="updateEndDate"
+          formControlName="endDate"
+          placeholder="No expiry"
+          [showIcon]="true"
+          [style]="{width: '100%'}"
+          appendTo="body"
+          dateFormat="dd M yy"
+          inputStyleClass="form-input">
+        </p-datepicker>
+      </div>
+    </div>
+
+    <!-- Is Active (edit only) -->
+    <div class="form-group">
+      <label class="form-label">Status</label>
+      <div class="toggle-row">
+        <p-toggleSwitch formControlName="isActive" inputId="updateIsActive"></p-toggleSwitch>
+        <label for="updateIsActive" class="toggle-label">
+          <span *ngIf="updateForm.get('isActive')?.value" class="status-active">
+            <i class="pi pi-check-circle"></i> Active
+          </span>
+          <span *ngIf="!updateForm.get('isActive')?.value" class="status-inactive">
+            <i class="pi pi-times-circle"></i> Inactive
+          </span>
+        </label>
+      </div>
+    </div>
+
+  </form>
+
+  <ng-template pTemplate="footer">
+    <div class="dialog-footer">
+      <button
+        pButton
+        type="button"
+        label="Cancel"
+        icon="pi pi-times"
+        class="p-button-text p-button-secondary"
+        (click)="onUpdateDialogHide()"></button>
+      <button
+        pButton
+        type="button"
+        label="Update Discount"
+        icon="pi pi-check"
+        class="p-button-info"
+        (click)="onUpdateSubmit()"
+        [disabled]="isUpdating()"
+        [loading]="isUpdating()"></button>
+    </div>
+  </ng-template>
+</p-dialog>

@@ -1,0 +1,192 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;       /* fill parent layout-main */
+  min-height: 0;      /* allow flex children to shrink */
+}
+
+.page-header {
+  flex: 0 0 auto;
+  padding: 1rem 1.5rem;
+  background-color: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  h1 {
+    font-size: 1.5rem;
+    margin: 0;
+  }
+
+  .debug-info {
+    color: #666;
+    font-size: 0.85rem;
+  }
+}
+
+.page-content {
+  flex: 1 1 auto;     /* take remaining space */
+  min-height: 0;      /* critical for table scroll */
+  overflow: hidden;   /* table handles scroll */
+  padding: 0.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.table-container {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  ::ng-deep p-table {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+
+    .p-datatable {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    .p-datatable-wrapper {
+      flex: 1 1 auto;
+      overflow: auto;
+    }
+  }
+}
+
+/* PrimeNG table responsive styles */
+::ng-deep {
+  .responsive-table {
+    table {
+      width: 100%;
+      table-layout: auto;
+    }
+
+    thead th {
+      position: sticky;
+      top: 0;
+      background: #f8f9fa;
+      z-index: 1;
+      padding: 0.75rem;
+      font-weight: 600;
+      border-bottom: 2px solid #dee2e6;
+    }
+
+    tbody td {
+      padding: 0.75rem;
+      border-bottom: 1px solid #e9ecef;
+    }
+  }
+}
+
+/* Mobile label - hidden by default */
+.mobile-label {
+  display: none;
+  font-weight: 600;
+  margin-right: 0.5rem;
+}
+
+/* Responsive breakpoints */
+@media (max-width: 768px) {
+  .page-header {
+    padding: 0.75rem 1rem;
+
+    h1 {
+      font-size: 1.25rem;
+    }
+  }
+
+  .page-content {
+    padding: 0.5rem;
+  }
+
+  ::ng-deep .responsive-table {
+    /* Stack table cells vertically on mobile */
+    table {
+      table-layout: fixed;
+    }
+
+    thead {
+      display: none; /* Hide header on mobile */
+    }
+
+    tbody tr {
+      display: block;
+      margin-bottom: 1rem;
+      border: 1px solid #dee2e6;
+      border-radius: 4px;
+      background: #fff;
+    }
+
+    tbody td {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.5rem 0.75rem;
+      border: none;
+      border-bottom: 1px solid #f0f0f0;
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      .mobile-label {
+        display: inline-block;
+      }
+    }
+
+    .role-column {
+      display: flex;
+    }
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  /* Tablet styles */
+  .page-header h1 {
+    font-size: 1.375rem;
+  }
+
+  ::ng-deep .responsive-table {
+    thead th,
+    tbody td {
+      padding: 0.625rem;
+      font-size: 0.9rem;
+    }
+  }
+}
+
+@media (min-width: 1025px) {
+  /* Desktop styles - default, already defined above */
+}
+
+/* Loading spinner responsiveness */
+::ng-deep .p-datatable-loading-overlay {
+  background-color: rgba(255, 255, 255, 0.8);
+}
+
+/* Scrollbar styling for better UX */
+::ng-deep .p-datatable-wrapper {
+  &::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+
+    &:hover {
+      background: #555;
+    }
+  }
+}

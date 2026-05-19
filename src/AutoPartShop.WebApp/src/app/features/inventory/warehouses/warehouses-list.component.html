@@ -1,0 +1,216 @@
+<!-- ============================================================
+     WAREHOUSES LIST - ENTERPRISE UI (MATCHES SALES ORDERS LAYOUT)
+     ============================================================ -->
+
+<!-- Context Menu -->
+<p-contextMenu #contextMenu [model]="contextMenuItems" [appendTo]="'body'"></p-contextMenu>
+
+<!-- ==================== DATA TABLE (Desktop) ==================== -->
+<section class="table-section desktop-only">
+  <div class="table-container">
+    <p-table
+      [value]="warehouses"
+      [lazy]="true"
+      [paginator]="false"
+      [rows]="pageSize"
+      [first]="first"
+      [totalRecords]="totalRecords"
+      [loading]="loading"
+      (onLazyLoad)="onPageChange($event)"
+      [rowHover]="true"
+      [scrollable]="true"
+      scrollHeight="flex"
+      styleClass="custom-table">
+
+      <ng-template #header>
+        <tr>
+          <th class="col-name">Warehouse</th>
+          <th class="col-location">Location</th>
+          <th class="col-amount">Capacity</th>
+          <th class="col-amount">Current Stock</th>
+          <th class="col-status">Utilization</th>
+          <th class="col-actions">Actions</th>
+        </tr>
+      </ng-template>
+
+      <ng-template #body let-warehouse>
+        <tr class="data-row">
+          <td class="col-name">
+            <div class="customer-cell">
+              <div class="customer-avatar">
+                {{ (warehouse.name || 'W')[0].toUpperCase() }}
+              </div>
+              <div class="customer-info">
+                <span class="customer-name">{{ warehouse.name }}</span>
+                <span *ngIf="warehouse.code" class="customer-phone">{{ warehouse.code }}</span>
+              </div>
+            </div>
+          </td>
+          <td class="col-location">
+            <span class="date-text">{{ warehouse.location || '-' }}</span>
+          </td>
+          <td class="col-amount">
+            <span class="amount-value">{{ warehouse.capacity | number }}</span>
+          </td>
+          <td class="col-amount">
+            <span class="amount-value">{{ warehouse.currentStock | number }}</span>
+          </td>
+          <td class="col-status">
+            <span class="status-pill" [attr.data-status]="getUtilizationSeverity(getUtilizationPercentage(warehouse))">
+              {{ getUtilizationPercentage(warehouse) }}%
+            </span>
+          </td>
+          <td class="col-actions">
+            <div class="action-cell">
+              <button class="btn-action" pTooltip="More" (click)="showContextMenu($event, warehouse)">
+                <i class="pi pi-ellipsis-v"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+
+      <ng-template #emptymessage>
+        <tr>
+          <td colspan="6">
+            <div class="empty-state">
+              <div class="empty-icon">
+                <i class="pi pi-building"></i>
+              </div>
+              <h3>No Warehouses Found</h3>
+              <p>Try adjusting your filters or create a new warehouse</p>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+
+      <ng-template #loadingbody>
+        <tr *ngFor="let _ of [1,2,3,4,5,6,7,8]" class="skeleton-row">
+          <td>
+            <div class="skeleton-customer">
+              <div class="skeleton skeleton-avatar"></div>
+              <div class="skeleton skeleton-text"></div>
+            </div>
+          </td>
+          <td><div class="skeleton skeleton-text-sm"></div></td>
+          <td><div class="skeleton skeleton-text-sm"></div></td>
+          <td><div class="skeleton skeleton-text-sm"></div></td>
+          <td><div class="skeleton skeleton-badge"></div></td>
+          <td><div class="skeleton skeleton-actions"></div></td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+
+  <div class="pagination-section" *ngIf="totalRecords > 0">
+    <div class="pagination-info">
+      Showing <strong>{{ first + 1 }}</strong> to <strong>{{ first + warehouses.length }}</strong> of <strong>{{ totalRecords }}</strong> warehouses
+    </div>
+    <div class="pagination-controls">
+      <span class="page-size-label">Rows per page:</span>
+      <p-select
+        [options]="[{label: '10', value: 10}, {label: '20', value: 20}, {label: '50', value: 50}]"
+        [(ngModel)]="pageSize"
+        (onChange)="onPageChange({first: 0, rows: pageSize})"
+        styleClass="page-size-dropdown">
+      </p-select>
+      <div class="page-nav">
+        <button class="page-btn" [disabled]="first === 0" (click)="onPageChange({first: 0, rows: pageSize})">
+          <i class="pi pi-angle-double-left"></i>
+        </button>
+        <button class="page-btn" [disabled]="first === 0" (click)="onPageChange({first: first - pageSize, rows: pageSize})">
+          <i class="pi pi-angle-left"></i>
+        </button>
+        <span class="page-indicator">{{ pageNumber }} / {{ totalPages }}</span>
+        <button class="page-btn" [disabled]="first + pageSize >= totalRecords" (click)="onPageChange({first: first + pageSize, rows: pageSize})">
+          <i class="pi pi-angle-right"></i>
+        </button>
+        <button class="page-btn" [disabled]="first + pageSize >= totalRecords" (click)="onPageChange({first: (totalPages - 1) * pageSize, rows: pageSize})">
+          <i class="pi pi-angle-double-right"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== MOBILE CARDS ==================== -->
+<section class="cards-section mobile-only">
+  <div *ngIf="loading" class="cards-grid">
+    <div *ngFor="let _ of [1,2,3,4]" class="order-card skeleton-card">
+      <div class="card-header">
+        <div class="skeleton skeleton-text"></div>
+        <div class="skeleton skeleton-badge"></div>
+      </div>
+      <div class="card-body">
+        <div class="skeleton skeleton-text-lg"></div>
+        <div class="skeleton skeleton-text-sm"></div>
+      </div>
+      <div class="card-footer">
+        <div class="skeleton skeleton-text-sm"></div>
+        <div class="skeleton skeleton-text-sm"></div>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="!loading && warehouses.length === 0" class="empty-state-mobile">
+    <div class="empty-icon">
+      <i class="pi pi-building"></i>
+    </div>
+    <h3>No Warehouses</h3>
+    <p>Try different filters or create a new warehouse</p>
+  </div>
+
+  <div *ngIf="!loading && warehouses.length > 0" class="cards-grid">
+    <div *ngFor="let warehouse of warehouses" class="order-card">
+      <div class="card-header">
+        <span class="card-so-number">{{ warehouse.name }}</span>
+        <span class="status-pill" [attr.data-status]="getUtilizationSeverity(getUtilizationPercentage(warehouse))">
+          {{ getUtilizationPercentage(warehouse) }}%
+        </span>
+      </div>
+
+      <div class="card-body">
+        <div class="card-customer">
+          <div class="customer-avatar small">
+            {{ (warehouse.name || 'W')[0].toUpperCase() }}
+          </div>
+          <span class="customer-name">{{ warehouse.location || '-' }}</span>
+        </div>
+        <div class="card-dates">
+          <span class="card-date">
+            <i class="pi pi-box"></i>
+            {{ warehouse.currentStock | number }}
+          </span>
+          <span class="card-date">
+            <i class="pi pi-database"></i>
+            {{ warehouse.capacity | number }}
+          </span>
+        </div>
+      </div>
+
+      <div class="card-footer">
+        <div class="card-amount">
+          <span class="amount-label">Utilization</span>
+          <span class="amount-value">{{ getUtilizationPercentage(warehouse) }}%</span>
+        </div>
+        <button class="btn-card-action" (click)="showContextMenu($event, warehouse); $event.stopPropagation()">
+          <i class="pi pi-ellipsis-h"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="!loading && warehouses.length > 0" class="mobile-pagination">
+    <div class="pagination-info-mobile">
+      {{ first + 1 }}-{{ first + warehouses.length }} of {{ totalRecords }}
+    </div>
+    <div class="pagination-nav-mobile">
+      <button class="page-btn" [disabled]="first === 0" (click)="onPageChange({first: first - pageSize, rows: pageSize})">
+        <i class="pi pi-chevron-left"></i>
+      </button>
+      <button class="page-btn" [disabled]="first + pageSize >= totalRecords" (click)="onPageChange({first: first + pageSize, rows: pageSize})">
+        <i class="pi pi-chevron-right"></i>
+      </button>
+    </div>
+  </div>
+</section>

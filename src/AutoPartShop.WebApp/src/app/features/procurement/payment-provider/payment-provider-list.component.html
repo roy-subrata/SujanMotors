@@ -1,0 +1,107 @@
+<div class="container">
+  <p-toast></p-toast>
+  <p-confirmDialog></p-confirmDialog>
+
+  <!-- Header Section -->
+  <div class="header">
+    <div class="header-content">
+      <div class="header-title-section">
+        <h1 class="header-title">Payment Providers Management</h1>
+        <p class="header-subtitle">Manage payment methods and gateway configurations</p>
+      </div>
+      <div class="toolbar">
+        <div class="search-container">
+          <i class="pi pi-search search-icon"></i>
+          <input
+            type="text"
+            class="search-input"
+            placeholder="Search by provider name..."
+            [(ngModel)]="searchTerm"
+            (keyup.enter)="onSearch()"
+          />
+          <i
+            *ngIf="searchTerm"
+            class="pi pi-times clear-icon"
+            (click)="searchTerm = ''; onSearch()"
+          ></i>
+        </div>
+        <button
+          pButton
+          type="button"
+          label="New Payment Provider"
+          icon="pi pi-plus"
+          class="btn-create p-button-success"
+          (click)="createNew()"
+        ></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table Container -->
+  <div class="table-container">
+    <p-table [value]="paymentProviders" [paginator]="true" [rows]="pageSize" [totalRecords]="totalCount"
+    [loading]="loading" (onLazyLoad)="onPageChange($event)" [lazy]="true" responsiveLayout="scroll"
+    styleClass="p-datatable-striped" [globalFilterFields]="['providerName', 'providerType', 'status']">
+
+    <ng-template pTemplate="header">
+      <tr>
+        <th pSortableColumn="providerName">Provider Name <p-sortIcon field="providerName"></p-sortIcon></th>
+        <th pSortableColumn="providerType">Type <p-sortIcon field="providerType"></p-sortIcon></th>
+        <th pSortableColumn="status">Status <p-sortIcon field="status"></p-sortIcon></th>
+        <th>Account/Number</th>
+        <th>Fee Type</th>
+        <th>Settlement Days</th>
+        <th>Default</th>
+        <th>Actions</th>
+      </tr>
+    </ng-template>
+
+    <ng-template pTemplate="body" let-provider>
+      <tr>
+        <td>{{ provider.providerName }}</td>
+        <td>{{ provider.providerType }}</td>
+        <td>
+          <p-tag [value]="provider.status" [severity]="getStatusSeverity(provider.status)"></p-tag>
+        </td>
+        <td>{{ getAccountDisplay(provider) }}</td>
+        <td>{{ provider.transactionFeeType }} ({{ provider.transactionFeeAmount | appCurrency }})</td>
+        <td>{{ provider.settlementDays }} days</td>
+        <td>
+          <ng-container *ngIf="provider.isDefault; else notDefault">
+            <p-tag value="DEFAULT" severity="success"></p-tag>
+          </ng-container>
+          <ng-template #notDefault>
+            <span class="text-secondary">-</span>
+          </ng-template>
+        </td>
+        <td>
+          <button
+            pButton
+            pRipple
+            type="button"
+            icon="pi pi-ellipsis-v"
+            class="p-button-text p-button-sm"
+            pTooltip="Actions"
+            tooltipPosition="left"
+            (contextmenu)="showContextMenu($event, provider)"
+            (click)="showContextMenu($event, provider)">
+          </button>
+        </td>
+      </tr>
+    </ng-template>
+
+    <ng-template pTemplate="emptymessage">
+      <tr>
+        <td colspan="8" class="text-center">No payment providers found</td>
+      </tr>
+    </ng-template>
+  </p-table>
+  </div>
+
+  <!-- Context Menu -->
+  <p-contextMenu
+    #contextMenu
+    [model]="contextMenuItems"
+    [appendTo]="'body'">
+  </p-contextMenu>
+</div>

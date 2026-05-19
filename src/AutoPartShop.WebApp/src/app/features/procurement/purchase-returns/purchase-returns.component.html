@@ -1,0 +1,127 @@
+<p-toast position="top-right"></p-toast>
+<p-confirmDialog></p-confirmDialog>
+<p-menu #menu [model]="menuItems" [popup]="true" appendTo="body"></p-menu>
+
+<div class="page-wrapper">
+  <!-- ==================== PAGE HEADER ==================== -->
+  <header class="page-header">
+    <div class="header-content">
+      <div class="header-left">
+        <h1 class="page-title">Purchase Returns</h1>
+        <p class="page-subtitle">Track and manage supplier returns and refunds</p>
+      </div>
+
+      <div class="header-actions">
+        <div class="stats-badge">
+          <i class="pi pi-replay"></i>
+          <div class="stats-info">
+            <span class="stats-value">{{ totalRecords }}</span>
+            <span class="stats-label">returns</span>
+          </div>
+        </div>
+
+        <div class="action-buttons">
+          <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="loadPurchaseReturns(currentPage, rows, searchTerm)">
+            <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
+          </button>
+          <button class="btn-icon" pTooltip="More options" tooltipPosition="bottom" (click)="menu.toggle($event)">
+            <i class="pi pi-ellipsis-v"></i>
+          </button>
+          <button class="btn-primary" (click)="onCreateClick()">
+            <i class="pi pi-plus"></i>
+            <span>New Return</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================== FILTER SECTION ==================== -->
+  <section class="filter-section">
+    <div class="filter-container">
+      <div class="filter-group search-group">
+        <div class="search-input-wrapper">
+          <i class="pi pi-search"></i>
+          <input
+            type="text"
+            [(ngModel)]="searchTerm"
+            placeholder="Search by return number, supplier..."
+            (keyup.enter)="onSearch()"
+            class="search-input" />
+          <button *ngIf="searchTerm" class="search-clear" (click)="clearSearch()">
+            <i class="pi pi-times"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="filter-group">
+        <label class="filter-label">Status</label>
+        <p-select
+          [options]="statusOptions"
+          [(ngModel)]="filterStatus"
+          placeholder="All Statuses"
+          [showClear]="true"
+          (onChange)="onFilterChange()"
+          appendTo="body"
+          styleClass="filter-dropdown">
+        </p-select>
+      </div>
+
+      <div class="filter-group">
+        <label class="filter-label">Return Date</label>
+        <p-datepicker
+          [(ngModel)]="dateRange"
+          selectionMode="range"
+          placeholder="Select date range"
+          dateFormat="dd M yy"
+          [showIcon]="true"
+          [showButtonBar]="true"
+          (onSelect)="onFilterChange()"
+          appendTo="body"
+          styleClass="filter-datepicker">
+        </p-datepicker>
+      </div>
+
+      <div class="filter-group filter-actions">
+        <button class="btn-search" (click)="onSearch()">
+          <i class="pi pi-search"></i>
+          Search
+        </button>
+        <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
+          <i class="pi pi-filter-slash"></i>
+          Clear
+        </button>
+      </div>
+    </div>
+
+    <div *ngIf="hasActiveFilters()" class="active-filters">
+      <span class="active-filters-label">Active filters:</span>
+      <span *ngIf="searchTerm" class="filter-chip">
+        Search: "{{ searchTerm }}"
+        <i class="pi pi-times" (click)="clearSearch()"></i>
+      </span>
+      <span *ngIf="filterStatus" class="filter-chip">
+        Status: {{ filterStatus }}
+        <i class="pi pi-times" (click)="filterStatus = null; onFilterChange()"></i>
+      </span>
+      <span *ngIf="dateRange && dateRange.length > 0" class="filter-chip">
+        Date Range
+        <i class="pi pi-times" (click)="dateRange = null; onFilterChange()"></i>
+      </span>
+    </div>
+  </section>
+
+  <section class="table-section">
+    <app-purchase-returns-list
+      [purchaseReturns]="purchaseReturns"
+      [loading]="loading"
+      [totalRecords]="totalRecords"
+      [rows]="rows"
+      [currentPage]="currentPage"
+      [searchTerm]="searchTerm"
+      (pageChange)="onPageChange($event)"
+      (onReturnCreated)="onPurchaseReturnCreated()"
+      (onReturnDeleted)="onPurchaseReturnDeleted()">
+    </app-purchase-returns-list>
+  </section>
+</div>

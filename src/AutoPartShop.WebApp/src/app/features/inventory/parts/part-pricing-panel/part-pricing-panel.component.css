@@ -1,0 +1,159 @@
+.pricing-panel {
+  border: 1px solid #E5E7EB;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.pricing-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #F9FAFB;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.pricing-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.pricing-label i { color: #6366f1; font-size: 14px; }
+
+.price-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  color: #6B7280;
+  font-size: 0.875rem;
+}
+
+.price-display { padding: 14px 16px 10px; }
+
+.price-main {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.price-amount {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1;
+}
+
+.price-currency {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #6B7280;
+}
+
+.price-source {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.price-source[data-source="VARIANT_HISTORY"] {
+  background: #F5F3FF;
+  color: #5B21B6;
+}
+
+.price-source[data-source="PRODUCT_HISTORY"] {
+  background: #EFF6FF;
+  color: #1D4ED8;
+}
+
+.price-validity {
+  margin-top: 4px;
+  font-size: 0.775rem;
+  color: #6B7280;
+}
+
+.no-expiry { color: #059669; font-style: italic; }
+
+.price-none {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  color: #D97706;
+  font-size: 0.875rem;
+}
+
+.price-none i { color: #D97706; }
+
+.history-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 16px;
+  border: none;
+  border-top: 1px solid #F3F4F6;
+  background: #F9FAFB;
+  font-size: 0.8rem;
+  color: #6366f1;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.15s;
+}
+
+.history-toggle:hover { background: #EEF2FF; }
+.history-toggle:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.history-table { padding: 0; }
+.history-table .col-price { font-weight: 600; }
+.history-table .col-reason { font-size: 0.8rem; color: #6B7280; max-width: 160px; }
+
+/* Set Price form */
+.price-form { display: flex; flex-direction: column; gap: 1rem; padding: 4px 0; }
+.pf-group { display: flex; flex-direction: column; gap: 4px; }
+.pf-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.pf-label { font-size: 0.8125rem; font-weight: 600; color: #374151; }
+.pf-hint { font-size: 0.75rem; font-weight: 400; color: #9CA3AF; }
+.req { color: #ef4444; margin-right: 2px; }
+.pf-error { color: #ef4444; font-size: 0.75rem; }
+
+.pf-input {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid #D1D5DB;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  transition: border 0.2s;
+}
+
+.pf-input:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+}
+
+.pf-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #FFFBEB;
+  border: 1px solid #FDE68A;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  color: #92400E;
+}
+
+.pf-note i { flex-shrink: 0; margin-top: 1px; color: #D97706; }
+
+:host ::ng-deep .p-datepicker-input { width: 100%; }
+:host ::ng-deep .p-inputnumber-input { width: 100%; }

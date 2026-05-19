@@ -1,0 +1,120 @@
+ <div class="apply-credit-dialog">
+            <div class="dialog-content">
+                <h3 class="section-title">Available Advance Payments</h3>
+
+                <p-table
+                    [value]="availableAdvances"
+                    [loading]="isLoading"
+                    [rowHover]="true"
+                    selectionMode="single"
+                    [(selection)]="selectedAdvance"
+                    dataKey="id"
+                    styleClass="p-datatable-sm">
+                    <ng-template pTemplate="header">
+                        <tr>
+                            <th style="width: 3rem"></th>
+                            <th>Transaction #</th>
+                            <th>Date</th>
+                            <th>Original Amount</th>
+                            <th>Used</th>
+                            <th>Available</th>
+                        </tr>
+                    </ng-template>
+                    <ng-template pTemplate="body" let-advance>
+                        <tr [pSelectableRow]="advance">
+                            <td>
+                                <p-tableRadioButton [value]="advance"></p-tableRadioButton>
+                            </td>
+                            <td>
+                                <strong>{{ advance.transactionNumber }}</strong>
+                                <br>
+                                <small class="text-muted">{{ advance.description }}</small>
+                            </td>
+                            <td>{{ formatDate(advance.paymentDate) }}</td>
+                            <td>{{ formatCurrency(advance.amount) }}</td>
+                            <td>
+                                <p-tag severity="info" [value]="formatCurrency(advance.usedAmount)"></p-tag>
+                            </td>
+                            <td>
+                                <p-tag severity="success" [value]="formatCurrency(advance.remainingAmount)"></p-tag>
+                            </td>
+                        </tr>
+                    </ng-template>
+                    <ng-template pTemplate="emptymessage">
+                        <tr>
+                            <td colspan="6" class="text-center">
+                                <div class="empty-state">
+                                    <i class="pi pi-info-circle" style="font-size: 3rem; color: var(--text-color-secondary);"></i>
+                                    <p>No advance payments available for this supplier</p>
+                                </div>
+                            </td>
+                        </tr>
+                    </ng-template>
+                </p-table>
+
+                <div *ngIf="selectedAdvance" class="payment-form" style="margin-top: 1.5rem;">
+                    <div class="form-group">
+                        <label for="amount">Amount to Apply <span class="required">*</span></label>
+                        <p-inputNumber
+                            id="amount"
+                            [(ngModel)]="amountToApply"
+                            mode="currency"
+                            [currency]="currencyCode"
+                            [locale]="currencyLocale"
+                            [min]="0"
+                            [max]="getMaxAmount()"
+                            [maxFractionDigits]="2"
+                            placeholder="Enter amount"
+                            styleClass="w-full">
+                        </p-inputNumber>
+                        <small class="text-muted">
+                            Max: {{ formatCurrency(getMaxAmount()) }}
+                        </small>
+                        <small class="text-danger" *ngIf="amountToApply > getMaxAmount()">
+                            Amount cannot exceed available advance balance
+                        </small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="description">Description (Optional)</label>
+                        <textarea
+                            id="description"
+                            [(ngModel)]="description"
+                            pInputTextarea
+                            rows="3"
+                            placeholder="Add notes about this credit application"
+                            class="w-full">
+                        </textarea>
+                    </div>
+
+                    <div class="summary-box" style="margin-top: 1rem; padding: 1rem; background: var(--surface-100); border-radius: 6px;">
+                        <div class="summary-row">
+                            <span>Purchase Order Amount:</span>
+                            <strong>{{ formatCurrency(purchaseOrderAmount) }}</strong>
+                        </div>
+                        <div class="summary-row">
+                            <span>Amount to Apply:</span>
+                            <strong class="text-primary">{{ formatCurrency(amountToApply || 0) }}</strong>
+                        </div>
+                        <div class="summary-row" style="border-top: 1px solid var(--surface-300); padding-top: 0.5rem; margin-top: 0.5rem;">
+                            <span>Remaining Balance After:</span>
+                            <strong class="text-success">{{ formatCurrency(selectedAdvance.remainingAmount - (amountToApply || 0)) }}</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dialog-footer" style="margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 0.5rem;">
+                <button pButton type="button" label="Cancel" icon="pi pi-times" class="p-button-outlined" (click)="onCancel()"></button>
+                <button
+                    pButton
+                    type="button"
+                    label="Apply Credit"
+                    icon="pi pi-check"
+                    class="p-button-success"
+                    (click)="onApply()"
+                    [disabled]="!canApply()"
+                    [loading]="isApplying">
+                </button>
+            </div>
+        </div>

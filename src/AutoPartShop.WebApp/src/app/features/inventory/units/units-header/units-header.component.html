@@ -1,0 +1,21 @@
+<div class="header-content">
+  <!-- Title and Subtitle -->
+  <div class="header-title-section">
+    <h1 class="header-title">Units Management</h1>
+    <p class="header-subtitle">Manage measurement units for your inventory system</p>
+  </div>
+
+  <!-- Toolbar: Search and Action Button -->
+  <div class="toolbar">
+    <div class="search-container">
+      <i class="pi pi-search search-icon"></i>
+      <input type="text" placeholder="Search by name, code, or symbol..." class="search-input"
+        (input)="onSearch(searchQuery)" [(ngModel)]="searchQuery">
+      <i *ngIf="searchQuery" class="pi pi-times clear-icon" (click)="clearSearch()">
+      </i>
+    </div>
+    <button pButton type="button" label="New Unit" icon="pi pi-plus" class="p-button-success btn-create"
+      (click)="onCreateClick()">
+    </button>
+  </div>
+</div>

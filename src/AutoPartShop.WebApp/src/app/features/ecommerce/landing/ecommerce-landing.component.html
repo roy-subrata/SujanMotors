@@ -1,0 +1,245 @@
+<!-- ======== SECTION 1: BANNER CAROUSEL ======== -->
+<section class="banner-carousel" *ngIf="banners.length">
+  <div class="banner-track" [style.transform]="'translateX(-' + (activeBannerIndex * 100) + '%)'">
+    <article
+      *ngFor="let banner of banners; let i = index"
+      class="banner-slide"
+      [class.active]="i === activeBannerIndex"
+      [ngClass]="banner.theme"
+    >
+      <div class="banner-content">
+        <span class="banner-tag"><i class="pi" [ngClass]="'pi ' + banner.icon"></i> {{ banner.tag }}</span>
+        <h2>{{ banner.title }}</h2>
+        <p>{{ banner.subtitle }}</p>
+        <a class="btn-primary" [routerLink]="banner.route">{{ banner.cta }}</a>
+      </div>
+      <div class="banner-art">
+        <div class="banner-icon-art">
+          <i class="pi" [ngClass]="'pi ' + banner.icon"></i>
+        </div>
+      </div>
+    </article>
+  </div>
+  <button class="banner-nav prev" (click)="nextBanner(-1)" aria-label="Previous banner">
+    <i class="pi pi-angle-left"></i>
+  </button>
+  <button class="banner-nav next" (click)="nextBanner(1)" aria-label="Next banner">
+    <i class="pi pi-angle-right"></i>
+  </button>
+  <div class="banner-dots">
+    <button
+      *ngFor="let banner of banners; let i = index"
+      class="dot"
+      [class.active]="i === activeBannerIndex"
+      (click)="setBanner(i)"
+      aria-label="Go to banner"
+    ></button>
+  </div>
+</section>
+
+<!-- ======== SECTION 2: SERVICE FEATURES BAR ======== -->
+<section class="features-bar">
+  <div class="features-inner">
+    <div class="feature-item">
+      <i class="pi pi-truck"></i>
+      <div>
+        <strong>Free Shipping</strong>
+        <span>Orders over BDT 5,000</span>
+      </div>
+    </div>
+    <div class="feature-item">
+      <i class="pi pi-headphones"></i>
+      <div>
+        <strong>24/7 Support</strong>
+        <span>Expert assistance</span>
+      </div>
+    </div>
+    <div class="feature-item">
+      <i class="pi pi-replay"></i>
+      <div>
+        <strong>Easy Returns</strong>
+        <span>30-day return policy</span>
+      </div>
+    </div>
+    <div class="feature-item">
+      <i class="pi pi-shield"></i>
+      <div>
+        <strong>Secure Payment</strong>
+        <span>100% protected</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======== SECTION 3: CATEGORY GRID ======== -->
+<section class="section categories-section" id="categories" *ngIf="topCategories?.length">
+  <div class="section-container">
+    <div class="section-header">
+      <h2>Shop by Category</h2>
+      <p>Find the right parts for your vehicle</p>
+    </div>
+    <div class="category-grid">
+      <a
+        *ngFor="let cat of topCategories"
+        class="category-card"
+        [routerLink]="['/shop/category', cat.id]"
+      >
+        <div class="category-icon">
+          <i class="pi" [ngClass]="getCategoryIcon(cat.name)"></i>
+        </div>
+        <h4>{{ cat.name }}</h4>
+        <span class="category-count">{{ cat.childCount }} items</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ======== SECTION 4: FLASH SALE CAROUSEL ======== -->
+<section class="section sale-section" id="sale" *ngIf="saleProducts.length">
+  <div class="section-container">
+    <div class="section-header">
+      <div>
+        <h2>Flash Sale</h2>
+        <p>Limited-time offers on best-selling parts</p>
+      </div>
+      <a class="view-all" [routerLink]="['/shop/category', firstCategoryId]">
+        View All <i class="pi pi-arrow-right"></i>
+      </a>
+    </div>
+    <div class="sale-carousel">
+      <button class="carousel-btn prev" (click)="scrollSale(-1)" aria-label="Scroll left">
+        <i class="pi pi-angle-left"></i>
+      </button>
+      <div class="carousel-track" #saleTrack>
+        <div class="carousel-card" *ngFor="let item of saleProducts; trackBy: trackById">
+          <app-product-card
+            [product]="item"
+                      ></app-product-card>
+        </div>
+      </div>
+      <button class="carousel-btn next" (click)="scrollSale(1)" aria-label="Scroll right">
+        <i class="pi pi-angle-right"></i>
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- ======== SECTION 5: FEATURED PRODUCTS ======== -->
+<section class="section" id="products" *ngIf="landing?.featured?.length">
+  <div class="section-container">
+    <div class="section-header">
+      <h2>Featured Products</h2>
+      <a class="view-all" [routerLink]="['/shop/category', landing?.categories?.[0]?.id]">View All <i class="pi pi-arrow-right"></i></a>
+    </div>
+    <div class="product-grid">
+      <app-product-card
+        *ngFor="let item of landing?.featured?.slice(0, 5); trackBy: trackById"
+        [product]="item"
+              ></app-product-card>
+    </div>
+  </div>
+</section>
+
+<!-- ======== SECTION 6: DEAL / PROMO BANNER ======== -->
+<section class="deal-banner">
+  <div class="deal-inner">
+    <div class="deal-content">
+      <span class="deal-badge">Limited Time Offer</span>
+      <h2>Up to 30% Off on Brake Systems</h2>
+      <p>Premium brake pads, rotors, and complete kits from top brands. Don't miss out!</p>
+      <a class="btn-primary" [routerLink]="['/shop/category', 'cat-2']">Shop the Deal</a>
+    </div>
+    <div class="deal-visual">
+      <div class="deal-circle">
+        <span class="deal-percent">30%</span>
+        <span class="deal-off">OFF</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======== SECTION 7: TABBED PRODUCTS (Popular) ======== -->
+<section class="section" *ngIf="landing">
+  <div class="section-container">
+    <div class="section-header">
+      <h2>Our Products</h2>
+      <div class="tab-buttons">
+        <button
+          class="tab-btn"
+          [class.active]="activeTab === 'featured'"
+          (click)="activeTab = 'featured'"
+        >Best Sellers</button>
+        <button
+          class="tab-btn"
+          [class.active]="activeTab === 'popular'"
+          (click)="activeTab = 'popular'"
+        >Most Popular</button>
+        <button
+          class="tab-btn"
+          [class.active]="activeTab === 'latest'"
+          (click)="activeTab = 'latest'"
+        >New Arrivals</button>
+      </div>
+    </div>
+    <div class="product-grid">
+      <app-product-card
+        *ngFor="let item of tabbedProducts?.slice(0, 8); trackBy: trackById"
+        [product]="item"
+              ></app-product-card>
+    </div>
+  </div>
+</section>
+
+<!-- ======== SECTION 8: LATEST ARRIVALS ======== -->
+<section class="section section-alt" *ngIf="landing?.latest?.length">
+  <div class="section-container">
+    <div class="section-header">
+      <h2>Just Arrived</h2>
+      <p>Fresh inventory hitting our shelves</p>
+    </div>
+    <div class="product-grid">
+      <app-product-card
+        *ngFor="let item of landing?.latest?.slice(0, 4); trackBy: trackById"
+        [product]="item"
+              ></app-product-card>
+    </div>
+  </div>
+</section>
+
+<!-- ======== SECTION 9: BRAND LOGOS ======== -->
+<section class="section brands-section">
+  <div class="section-container">
+    <div class="section-header center">
+      <h2>Trusted Brands</h2>
+      <p>We partner with the world's leading auto parts manufacturers</p>
+    </div>
+    <div class="brand-grid">
+      <div class="brand-item" *ngFor="let brand of brands">
+        <span>{{ brand }}</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======== SECTION 10: NEWSLETTER ======== -->
+<section class="newsletter-section">
+  <div class="newsletter-inner">
+    <div class="newsletter-content">
+      <i class="pi pi-envelope"></i>
+      <h2>Subscribe to Our Newsletter</h2>
+      <p>Get the latest deals, new arrivals, and exclusive offers straight to your inbox.</p>
+      <div class="newsletter-form" *ngIf="!newsletterSubmitted">
+        <input
+          type="email"
+          placeholder="Enter your email address"
+          [(ngModel)]="newsletterEmail"
+        />
+        <button (click)="onNewsletterSubmit()">Subscribe</button>
+      </div>
+      <div class="newsletter-success" *ngIf="newsletterSubmitted">
+        <i class="pi pi-check-circle"></i>
+        <span>Thank you for subscribing!</span>
+      </div>
+    </div>
+  </div>
+</section>

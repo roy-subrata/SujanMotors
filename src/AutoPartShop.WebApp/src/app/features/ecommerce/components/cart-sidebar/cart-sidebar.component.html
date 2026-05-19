@@ -1,0 +1,55 @@
+<p-drawer [(visible)]="visible" position="right" styleClass="cart-sidebar-panel">
+  <ng-template pTemplate="header">
+    <div class="sidebar-header">
+      <h3><i class="pi pi-shopping-cart"></i> Shopping Cart</h3>
+      <span class="item-count">{{ cartService.itemCount() }} items</span>
+    </div>
+  </ng-template>
+
+  <!-- Empty state -->
+  <div *ngIf="cartService.isEmpty()" class="empty-cart">
+    <i class="pi pi-shopping-cart"></i>
+    <p>Your cart is empty</p>
+    <a class="btn-shop" routerLink="/shop" (click)="close()">Start Shopping</a>
+  </div>
+
+  <!-- Cart items -->
+  <div *ngIf="!cartService.isEmpty()" class="cart-items">
+    <div class="cart-item" *ngFor="let item of cartService.items()">
+      <div class="item-image">
+        <img *ngIf="item.primaryImageUrl" [src]="item.primaryImageUrl" [alt]="item.name" />
+        <i *ngIf="!item.primaryImageUrl" class="pi pi-box"></i>
+      </div>
+      <div class="item-details">
+        <h4>{{ item.name }}</h4>
+        <span class="item-variant" *ngIf="item.variantName">{{ item.variantName }}</span>
+        <span class="item-price">{{ item.currency }} {{ item.price | number:'1.0-0' }}</span>
+        <div class="qty-controls">
+          <button class="qty-btn" (click)="decrement(item)">-</button>
+          <span class="qty-value">{{ item.quantity }}</span>
+          <button class="qty-btn" (click)="increment(item)">+</button>
+        </div>
+      </div>
+      <button class="remove-btn" (click)="remove(item)" title="Remove">
+        <i class="pi pi-trash"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <ng-template pTemplate="footer">
+    <div class="sidebar-footer" *ngIf="!cartService.isEmpty()">
+      <div class="subtotal">
+        <span>Subtotal</span>
+        <strong>{{ cartService.currency() }} {{ cartService.subtotal() | number:'1.0-0' }}</strong>
+      </div>
+      <a class="btn-view-cart" routerLink="/shop/cart" (click)="close()">View Cart</a>
+      <a class="btn-checkout" [routerLink]="checkoutUrl" (click)="close()">
+        <ng-container *ngIf="authService.isLoggedIn(); else customerCheckout">
+          <i class="pi pi-id-card"></i> In-Store Checkout
+        </ng-container>
+        <ng-template #customerCheckout>Checkout</ng-template>
+      </a>
+    </div>
+  </ng-template>
+</p-drawer>

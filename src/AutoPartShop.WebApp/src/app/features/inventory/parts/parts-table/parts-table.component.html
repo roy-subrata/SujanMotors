@@ -1,0 +1,118 @@
+<p-toast></p-toast>
+
+<p-table
+  [value]="parts"
+  [rows]="rows"
+  [first]="(currentPage - 1) * rows"
+  [totalRecords]="totalRecords"
+  [loading]="loading"
+  [lazy]="true"
+  [paginator]="true"
+  [globalFilterFields]="['name', 'sku', 'partNumber']"
+  paginatorPosition="bottom"
+  [showCurrentPageReport]="true"
+  currentPageReportTemplate="Showing {first} to {last} of {totalRecords} parts"
+  (onLazyLoad)="onPageChange($event)"
+  responsiveLayout="scroll"
+  [tableStyle]="{ 'min-width': '50rem' }"
+  styleClass="p-datatable-striped">
+
+  <ng-template pTemplate="header">
+    <tr>
+      <th pSortableColumn="sku" style="width: 9%">SKU <p-sortIcon field="sku"></p-sortIcon></th>
+      <th pSortableColumn="name" style="width: 16%">Name <p-sortIcon field="name"></p-sortIcon></th>
+      <th pSortableColumn="partNumber" style="width: 9%">Part No. <p-sortIcon field="partNumber"></p-sortIcon></th>
+      <th style="width: 9%">Category</th>
+      <th style="width: 8%">Brand</th>
+      <th style="width: 7%">Unit</th>
+      <th style="width: 8%">Cost Price</th>
+      <th style="width: 10%">Selling Price</th>
+      <th style="width: 5%">Margin</th>
+      <th style="width: 5%">Status</th>
+      <th style="width: 8%">Actions</th>
+    </tr>
+  </ng-template>
+
+  <ng-template pTemplate="body" let-part>
+    <tr>
+      <td><span class="font-semibold">{{ part.sku }}</span></td>
+
+      <td>
+        <div class="part-name">{{ part.name }}</div>
+        <small class="text-gray-500">{{ part.description }}</small>
+      </td>
+
+      <td>{{ part.partNumber }}</td>
+
+      <td><span class="category-badge">{{ part.categoryName }}</span></td>
+
+      <td>
+        <span *ngIf="part.brandName; else noBrand" class="brand-badge">{{ part.brandName }}</span>
+        <ng-template #noBrand><span class="text-gray-400">—</span></ng-template>
+      </td>
+
+      <td>
+        <span *ngIf="part.unitName; else noUnit" class="unit-badge">{{ part.unitName }}</span>
+        <ng-template #noUnit><span class="text-gray-400">—</span></ng-template>
+      </td>
+
+      <td class="text-right">
+        <span [class.coded-price]="priceCodeService.getDisplayPrice(part.costPrice) !== null">
+          {{ formatCostPrice(part.costPrice) }}
+        </span>
+      </td>
+
+      <td class="price-cell">
+        <span *ngIf="part.effectiveSellingPrice > 0" class="price-value-tag">
+          {{ part.effectiveSellingPrice | number:'1.2-2' }} {{ part.currency }}
+          <span *ngIf="part.isVariant" class="price-source-dot" pTooltip="Variant price"></span>
+        </span>
+        <span *ngIf="part.effectiveSellingPrice === 0" class="text-gray-400">—</span>
+      </td>
+
+      <td class="text-center">
+        <ng-container *ngIf="priceCodeService.showActualPrice() || !priceCodeService.isConfigured()">
+          <span *ngIf="part.effectiveSellingPrice > 0" class="margin-badge"
+            [ngClass]="part.effectiveSellingPrice >= part.costPrice ? 'positive' : 'negative'">
+            {{ calculateMargin(part.effectiveCostPrice, part.effectiveSellingPrice) }}
+          </span>
+          <span *ngIf="part.effectiveSellingPrice === 0" class="text-gray-400">—</span>
+        </ng-container>
+        <span *ngIf="!priceCodeService.showActualPrice() && priceCodeService.isConfigured()" class="text-gray-400">—</span>
+      </td>
+
+      <td>
+        <p-tag [value]="part.isActive ? 'Active' : 'Inactive'" [severity]="getStatusSeverity(part.isActive)"></p-tag>
+      </td>
+
+      <td>
+        <div class="action-buttons">
+          <button
+            pButton pRipple type="button"
+            icon="pi pi-ellipsis-v"
+            class="p-button-text p-button-sm"
+            pTooltip="Actions" tooltipPosition="left"
+            (contextmenu)="showContextMenu($event, part)"
+            (click)="showContextMenu($event, part)">
+          </button>
+        </div>
+      </td>
+    </tr>
+  </ng-template>
+
+  <ng-template pTemplate="emptymessage">
+    <tr>
+      <td colspan="11" class="text-center py-4">
+        <i class="pi pi-inbox mr-2"></i>
+        No parts found. Click "New Part" to create one.
+      </td>
+    </tr>
+  </ng-template>
+</p-table>
+
+<!-- Context Menu -->
+<p-contextMenu #contextMenu [model]="contextMenuItems" [appendTo]="'body'"></p-contextMenu>
+
+<!-- Confirm Dialog -->
+<p-confirmDialog></p-confirmDialog>
+

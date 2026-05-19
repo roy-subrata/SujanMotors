@@ -1,0 +1,17 @@
+.layout-footer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    gap: 0.5rem;
+    border-top: 1px solid var(--surface-border);
+    font-size: 0.875rem; /* slightly smaller to keep footer compact */
+    color: rgba(0,0,0,0.65);
+}
+
+.layout-footer .footer-content {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}

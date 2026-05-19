@@ -1,0 +1,170 @@
+<!-- Create Brand Dialog -->
+<p-dialog
+  [(visible)]="displayCreateDialog"
+  header="New Brand"
+  [modal]="true"
+  [style]="{width: '500px', maxWidth: '95vw'}"
+  [draggable]="true"
+  [resizable]="false"
+  (onShow)="onCreateDialogShow()"
+  (onHide)="onCreateDialogHide()">
+
+  <form [formGroup]="createForm" class="form-container">
+    <div class="form-group">
+      <label for="createName" class="form-label">
+        <span class="required">*</span> Brand Name
+      </label>
+      <input
+        type="text"
+        pInputText
+        id="createName"
+        formControlName="name"
+        placeholder="Enter brand name"
+        class="form-input" />
+    </div>
+
+    <div class="form-group">
+      <label for="createCode" class="form-label">
+        <span class="required">*</span> Code
+      </label>
+      <div class="code-input-wrapper">
+        <input
+          type="text"
+          pInputText
+          id="createCode"
+          formControlName="code"
+          placeholder="Auto-generated"
+          class="form-input"
+          [disabled]="true"
+          style="text-transform: uppercase;" />
+        <i *ngIf="generatingCode" class="pi pi-spin pi-spinner code-spinner"></i>
+      </div>
+      <small class="hint-message">Code is auto-generated and cannot be changed</small>
+    </div>
+
+    <div class="form-group">
+      <label for="createDescription" class="form-label">Description</label>
+      <textarea
+        pInputTextarea
+        id="createDescription"
+        formControlName="description"
+        rows="3"
+        placeholder="Enter description"
+        class="form-input"></textarea>
+    </div>
+
+    <div class="form-group">
+      <label for="createCountry" class="form-label">Country</label>
+      <input
+        type="text"
+        pInputText
+        id="createCountry"
+        formControlName="country"
+        placeholder="e.g., Japan"
+        class="form-input" />
+    </div>
+  </form>
+
+  <ng-template pTemplate="footer">
+    <div class="dialog-footer">
+      <button
+        pButton
+        type="button"
+        label="Cancel"
+        icon="pi pi-times"
+        class="p-button-text p-button-secondary"
+        (click)="onCreateDialogHide()"></button>
+      <button
+        pButton
+        type="button"
+        label="Create"
+        icon="pi pi-check"
+        class="p-button-success"
+        (click)="onCreateSubmit()"
+        [disabled]="isCreating()"
+        [loading]="isCreating()"></button>
+    </div>
+  </ng-template>
+</p-dialog>
+
+<!-- Update Brand Dialog -->
+<p-dialog
+  [(visible)]="displayUpdateDialog"
+  header="Edit Brand"
+  [modal]="true"
+  [style]="{width: '500px', maxWidth: '95vw'}"
+  [draggable]="true"
+  [resizable]="false"
+  (onShow)="onUpdateDialogShow()"
+  (onHide)="onUpdateDialogHide()">
+
+  <form [formGroup]="updateForm" class="form-container">
+    <div class="form-group">
+      <label for="updateName" class="form-label">
+        <span class="required">*</span> Brand Name
+      </label>
+      <input
+        type="text"
+        pInputText
+        id="updateName"
+        formControlName="name"
+        placeholder="Enter brand name"
+        class="form-input" />
+    </div>
+
+    <div class="form-group">
+      <label for="updateCode" class="form-label">Code</label>
+      <input
+        type="text"
+        pInputText
+        id="updateCode"
+        [value]="selectedBrand?.code"
+        class="form-input"
+        disabled />
+      <small class="hint-message">Code cannot be changed</small>
+    </div>
+
+    <div class="form-group">
+      <label for="updateDescription" class="form-label">Description</label>
+      <textarea
+        pInputTextarea
+        id="updateDescription"
+        formControlName="description"
+        rows="3"
+        placeholder="Enter description"
+        class="form-input"></textarea>
+    </div>
+
+    <div class="form-group">
+      <label for="updateCountry" class="form-label">Country</label>
+      <input
+        type="text"
+        pInputText
+        id="updateCountry"
+        formControlName="country"
+        placeholder="e.g., Japan"
+        class="form-input" />
+    </div>
+  </form>
+
+  <ng-template pTemplate="footer">
+    <div class="dialog-footer">
+      <button
+        pButton
+        type="button"
+        label="Cancel"
+        icon="pi pi-times"
+        class="p-button-text p-button-secondary"
+        (click)="onUpdateDialogHide()"></button>
+      <button
+        pButton
+        type="button"
+        label="Update"
+        icon="pi pi-check"
+        class="p-button-info"
+        (click)="onUpdateSubmit()"
+        [disabled]="isUpdating()"
+        [loading]="isUpdating()"></button>
+    </div>
+  </ng-template>
+</p-dialog>

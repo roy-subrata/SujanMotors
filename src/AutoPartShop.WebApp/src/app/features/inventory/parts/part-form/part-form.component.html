@@ -1,0 +1,491 @@
+<div class="pf-container">
+  <p-toast></p-toast>
+
+  <!-- Header -->
+  <div class="pf-header">
+    <div class="pf-breadcrumb">
+      <a (click)="onCancel()" class="pf-back"><i class="pi pi-arrow-left"></i> Parts</a>
+      <span class="pf-sep">/</span>
+      <span>{{ isEditMode ? 'Edit' : isViewMode ? 'View' : 'New Part' }}</span>
+    </div>
+    <h1 class="pf-title">{{ pageTitle }}</h1>
+  </div>
+
+  <!-- Loading overlay -->
+  <div *ngIf="isLoading" class="pf-loading">
+    <i class="pi pi-spin pi-spinner"></i> Loading…
+  </div>
+
+  <form [formGroup]="partForm" (ngSubmit)="onSubmit()" *ngIf="!isLoading">
+
+    <!-- ══ SECTION 1: Identity ══ -->
+    <div class="pf-section">
+      <div class="pf-section-head">
+        <i class="pi pi-box"></i>
+        <span>Basic Information</span>
+      </div>
+
+      <div class="pf-row">
+        <div class="pf-field">
+          <label>Part Name <span class="req">*</span></label>
+          <input pInputText formControlName="name" placeholder="e.g. Brake Pad — Toyota Corolla Front" [disabled]="isViewMode" />
+          <small *ngIf="hasError('name')" class="p-error">{{ getErrorMessage('name') }}</small>
+        </div>
+        <div class="pf-field">
+          <label>Category <span class="req">*</span></label>
+          <p-autoComplete
+            [suggestions]="filteredCategories"
+            [(ngModel)]="selectedCategory"
+            [ngModelOptions]="{standalone: true}"
+            placeholder="Search category…"
+            [showEmptyMessage]="true" emptyMessage="No categories"
+            [dropdown]="true"
+            (onClear)="onCategoryClear()"
+            (onSelect)="onCategorySelect($event)"
+            (completeMethod)="onCategorySearch($event)"
+            optionLabel="name"
+            appendTo="body"
+            [disabled]="isSubmitting || isViewMode"
+            [style]="{ width: '100%' }">
+            <ng-template let-c pTemplate="item">
+              <div class="pf-ac-item">
+                <span>{{ c.name }}</span>
+                <span class="pf-ac-code">{{ c.code }}</span>
+              </div>
+            </ng-template>
+          </p-autoComplete>
+          <small *ngIf="hasError('categoryId')" class="p-error">Category is required</small>
+        </div>
+      </div>
+
+      <div class="pf-row">
+        <div class="pf-field">
+          <label>Brand</label>
+          <p-autoComplete
+            [suggestions]="filteredBrands"
+            [(ngModel)]="selectedBrand"
+            [ngModelOptions]="{standalone: true}"
+            placeholder="Search brand…"
+            [showEmptyMessage]="true" emptyMessage="No brands"
+            [dropdown]="true"
+            (onClear)="onBrandClear()"
+            (onSelect)="onBrandSelect($event)"
+            (completeMethod)="onBrandSearch($event)"
+            optionLabel="name"
+            appendTo="body"
+            [disabled]="isSubmitting || isViewMode"
+            [style]="{ width: '100%' }">
+            <ng-template let-b pTemplate="item">
+              <div class="pf-ac-item">
+                <span>{{ b.name }}</span>
+                <span class="pf-ac-code">{{ b.code }}</span>
+              </div>
+            </ng-template>
+          </p-autoComplete>
+        </div>
+        <div class="pf-field">
+          <label>Part Number</label>
+          <input pInputText formControlName="partNumber" [readonly]="true" [disabled]="isViewMode" />
+          <small class="pf-hint"><i class="pi pi-lock"></i> Auto-generated, read-only</small>
+        </div>
+      </div>
+
+      <div class="pf-row">
+        <div class="pf-field">
+          <label>SKU</label>
+          <input pInputText formControlName="sku" [readonly]="true" [disabled]="isViewMode" />
+          <small class="pf-hint"><i class="pi pi-lock"></i> Auto-generated, read-only</small>
+        </div>
+        <div class="pf-field">
+          <label>Barcode <span class="pf-tag">UPC / EAN / QR</span></label>
+          <input pInputText formControlName="barcode" placeholder="e.g. 8901234567890" [disabled]="isViewMode" />
+          <small class="pf-hint">Scanned at POS or e-commerce checkout</small>
+        </div>
+      </div>
+
+      <div class="pf-row">
+        <div class="pf-field">
+          <label>Base Unit</label>
+          <small class="pf-hint">Stock &amp; inventory unit (e.g. Piece, ml, g)</small>
+          <p-autoComplete
+            [suggestions]="filteredBaseUnits"
+            [(ngModel)]="selectedBaseUnit"
+            [ngModelOptions]="{standalone: true}"
+            placeholder="Search unit…"
+            [showEmptyMessage]="true" emptyMessage="No units"
+            [dropdown]="true"
+            (onClear)="onBaseUnitClear()"
+            (onSelect)="onBaseUnitSelect($event)"
+            (completeMethod)="onBaseUnitSearch($event)"
+            optionLabel="name"
+            appendTo="body"
+            [disabled]="isSubmitting || isViewMode"
+            [style]="{ width: '100%' }">
+            <ng-template let-u pTemplate="item">
+              <div class="pf-ac-item"><span>{{ u.name }}</span><span class="pf-ac-code">{{ u.code }}</span></div>
+            </ng-template>
+          </p-autoComplete>
+        </div>
+        <div class="pf-field">
+          <label>Display Unit <span class="pf-optional">optional</span></label>
+          <small class="pf-hint">Leave blank to use Base Unit. Set only if different (e.g. 500ml Bottle)</small>
+          <p-autoComplete
+            [suggestions]="filteredUnits"
+            [(ngModel)]="selectedUnit"
+            [ngModelOptions]="{standalone: true}"
+            placeholder="Search unit…"
+            [showEmptyMessage]="true" emptyMessage="No units"
+            [dropdown]="true"
+            (onClear)="onUnitClear()"
+            (onSelect)="onUnitSelect($event)"
+            (completeMethod)="onUnitSearch($event)"
+            optionLabel="name"
+            appendTo="body"
+            [disabled]="isSubmitting || isViewMode"
+            [style]="{ width: '100%' }">
+            <ng-template let-u pTemplate="item">
+              <div class="pf-ac-item"><span>{{ u.name }}</span><span class="pf-ac-code">{{ u.code }}</span></div>
+            </ng-template>
+          </p-autoComplete>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SECTION 2: Classification ══ -->
+    <div class="pf-section">
+      <div class="pf-section-head">
+        <i class="pi pi-tags"></i>
+        <span>Classification</span>
+      </div>
+
+      <div class="pf-row three">
+        <div class="pf-field">
+          <label>Product Type</label>
+          <p-select formControlName="productType" [options]="productTypes"
+            optionLabel="label" optionValue="value"
+            placeholder="Select type" [disabled]="isViewMode" [style]="{ width: '100%' }">
+          </p-select>
+        </div>
+        <div class="pf-field">
+          <label>Tax Code</label>
+          <p-select formControlName="taxCode" [options]="taxCodes"
+            optionLabel="label" optionValue="value"
+            placeholder="Select tax code" [disabled]="isViewMode" [showClear]="true" [style]="{ width: '100%' }">
+          </p-select>
+        </div>
+        <div class="pf-field">
+          <label>Search Tags</label>
+          <input pInputText formControlName="tags" placeholder="brake, front, ceramic (comma-separated)" [disabled]="isViewMode" />
+          <small class="pf-hint">Keywords for search &amp; filtering</small>
+        </div>
+      </div>
+
+      <div class="pf-row">
+        <div class="pf-field">
+          <div class="pf-checkbox-row">
+            <p-checkbox inputId="isPerishable" formControlName="isPerishable" [binary]="true" [disabled]="isViewMode"></p-checkbox>
+            <label for="isPerishable">
+              Perishable / Expiry Tracking
+              <small class="pf-hint">Grocery, pharmacy — enables per-lot expiry on GRN</small>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SECTION 3: Cost & Stock ══ -->
+    <div class="pf-section">
+      <div class="pf-section-head">
+        <i class="pi pi-dollar"></i>
+        <span>Cost &amp; Stock</span>
+      </div>
+
+      <div class="pf-row three">
+        <div class="pf-field">
+          <label>Selling Price <span class="req">*</span></label>
+          <p-inputNumber formControlName="sellingPrice" placeholder="0.00"
+            [min]="0" [step]="0.01" [minFractionDigits]="2" [maxFractionDigits]="2"
+            mode="decimal" [disabled]="isViewMode" [style]="{ width: '100%' }">
+          </p-inputNumber>
+          <small class="pf-hint">Base list price — inherited by all variants unless overridden</small>
+          <small *ngIf="hasError('sellingPrice')" class="p-error">{{ getErrorMessage('sellingPrice') }}</small>
+        </div>
+        <div class="pf-field">
+          <label>Minimum Stock <span class="req">*</span></label>
+          <p-inputNumber formControlName="minimumStock" placeholder="0"
+            [min]="0" [step]="1" mode="decimal"
+            [disabled]="isViewMode" [style]="{ width: '100%' }">
+          </p-inputNumber>
+          <small class="pf-hint">Reorder alert threshold</small>
+          <small *ngIf="hasError('minimumStock')" class="p-error">{{ getErrorMessage('minimumStock') }}</small>
+        </div>
+        <div class="pf-field">
+          <label>Weight (kg) <span class="pf-optional">optional</span></label>
+          <p-inputNumber formControlName="weightKg" placeholder="e.g. 0.350"
+            [min]="0" [step]="0.001" [minFractionDigits]="0" [maxFractionDigits]="4"
+            mode="decimal" [disabled]="isViewMode" [style]="{ width: '100%' }">
+          </p-inputNumber>
+          <small class="pf-hint">Default shipping weight</small>
+        </div>
+      </div>
+
+      <div class="pf-callout pf-callout-blue">
+        <i class="pi pi-info-circle"></i>
+        <span>Selling price changes are tracked automatically. Use the <strong>Pricing tab</strong> on the product details page to view the full price history or apply variant-specific prices.</span>
+      </div>
+    </div>
+
+    <!-- ══ SECTION 4: Description ══ -->
+    <div class="pf-section">
+      <div class="pf-section-head">
+        <i class="pi pi-file-edit"></i>
+        <span>Description</span>
+      </div>
+
+      <div class="pf-field pf-field-full">
+        <label>Short Description <span class="pf-optional">max 255 chars — shown on product cards</span></label>
+        <textarea pInputTextarea formControlName="description" rows="2"
+          placeholder="Brief summary for listing cards" [disabled]="isViewMode" maxlength="255"></textarea>
+      </div>
+      <div class="pf-field pf-field-full" style="margin-top: 0.75rem">
+        <label>Full Description <span class="pf-optional">HTML / Markdown — shown on product detail page</span></label>
+        <textarea pInputTextarea formControlName="richDescription" rows="5"
+          placeholder="Detailed description, specifications, features…" [disabled]="isViewMode"></textarea>
+      </div>
+    </div>
+
+    <!-- ══ SECTION 5: Online Listing ══ -->
+    <div class="pf-section" [formGroup]="catalogEntryForm">
+      <div class="pf-section-head">
+        <i class="pi pi-globe"></i>
+        <span>Online Listing</span>
+        <span class="pf-section-badge">E-commerce</span>
+      </div>
+      <p class="pf-section-desc">
+        Controls how this product appears in the online storefront.
+        The slug and publishing status apply across all categories this product appears in.
+      </p>
+
+      <div class="pf-row">
+        <div class="pf-field">
+          <label>URL Slug</label>
+          <div class="pf-slug-wrap">
+            <span class="pf-slug-prefix">/products/</span>
+            <input pInputText formControlName="slug" placeholder="e.g. brake-pad-toyota-corolla"
+              [disabled]="isViewMode" />
+          </div>
+          <small class="pf-hint">{{ slugCharCount }}/200 · lowercase letters, numbers and hyphens only</small>
+          <small *ngIf="hasCatalogError('slug')" class="p-error">Only lowercase letters, numbers, and hyphens allowed</small>
+        </div>
+        <div class="pf-field">
+          <label>Listing Options</label>
+          <div class="pf-toggle-row">
+            <p-toggleSwitch formControlName="isPublished" [disabled]="isViewMode"></p-toggleSwitch>
+            <span class="pf-toggle-label">Published (visible in storefront)</span>
+          </div>
+          <div class="pf-toggle-row" style="margin-top: 0.6rem">
+            <p-toggleSwitch formControlName="isFeatured" [disabled]="isViewMode"></p-toggleSwitch>
+            <span class="pf-toggle-label">Featured (shown on homepage / category highlights)</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="pf-subsection-title">SEO <span class="pf-optional">optional — overrides auto-generated defaults</span></div>
+      <div class="pf-row">
+        <div class="pf-field">
+          <label>Meta Title</label>
+          <input pInputText formControlName="metaTitle"
+            placeholder="Page title for search engines" [disabled]="isViewMode" />
+          <small class="pf-hint pf-char-count"
+            [class.pf-char-warn]="metaTitleCharCount > 60">
+            {{ metaTitleCharCount }}/70 chars · aim for under 60
+          </small>
+        </div>
+        <div class="pf-field">
+          <label>Meta Description</label>
+          <input pInputText formControlName="metaDescription"
+            placeholder="Short summary shown in search results" [disabled]="isViewMode" />
+          <small class="pf-hint pf-char-count"
+            [class.pf-char-warn]="metaDescCharCount > 150">
+            {{ metaDescCharCount }}/160 chars · aim for under 150
+          </small>
+        </div>
+      </div>
+
+      <!-- Dynamic category hint -->
+      <div class="pf-callout pf-callout-green" *ngIf="selectedCategory">
+        <i class="pi pi-info-circle"></i>
+        <span>
+          Listed under <strong>{{ selectedCategory.name }}</strong>.
+          Customers browsing this category will see this product when published.
+        </span>
+      </div>
+    </div>
+
+    <!-- ══ SECTION 6: Warranty ══ -->
+    <div class="pf-section">
+      <div class="pf-section-head">
+        <i class="pi pi-shield"></i>
+        <span>Warranty</span>
+      </div>
+
+      <div class="pf-checkbox-row" style="margin-bottom: 1rem">
+        <p-checkbox inputId="hasWarranty" formControlName="hasWarranty" [binary]="true" [disabled]="isViewMode"></p-checkbox>
+        <label for="hasWarranty" class="pf-checkbox-label">This product comes with warranty</label>
+      </div>
+
+      <ng-container *ngIf="partForm.get('hasWarranty')?.value">
+        <div class="pf-row three">
+          <div class="pf-field">
+            <label>Period (months) <span class="req">*</span></label>
+            <p-inputNumber formControlName="warrantyPeriodMonths" placeholder="e.g. 12"
+              [min]="1" [step]="1" mode="decimal" [disabled]="isViewMode" [style]="{ width: '100%' }">
+            </p-inputNumber>
+            <small *ngIf="hasError('warrantyPeriodMonths')" class="p-error">{{ getErrorMessage('warrantyPeriodMonths') }}</small>
+          </div>
+          <div class="pf-field">
+            <label>Type <span class="req">*</span></label>
+            <select formControlName="warrantyType" class="pf-select" [disabled]="isViewMode">
+              <option value="">Select type</option>
+              <option *ngFor="let t of warrantyTypes" [value]="t.value">{{ t.label }}</option>
+            </select>
+            <small *ngIf="hasError('warrantyType')" class="p-error">{{ getErrorMessage('warrantyType') }}</small>
+          </div>
+          <div class="pf-field">
+            <label>Certificate Template <span class="pf-optional">optional</span></label>
+            <input pInputText formControlName="warrantyCertificateTemplate"
+              placeholder="e.g. CERT" [disabled]="isViewMode" />
+            <small class="pf-hint">Prefix for certificate numbers</small>
+          </div>
+        </div>
+        <div class="pf-field pf-field-full">
+          <label>Terms &amp; Conditions <span class="pf-optional">optional</span></label>
+          <textarea pInputTextarea formControlName="warrantyTerms" rows="3"
+            placeholder="Enter warranty terms" [disabled]="isViewMode"></textarea>
+        </div>
+      </ng-container>
+    </div>
+
+    <!-- ══ SECTION 7: Variants ══ -->
+    <div class="pf-section">
+      <app-product-variant-manager [partId]="partId || ''" [isViewMode]="isViewMode">
+      </app-product-variant-manager>
+    </div>
+
+    <!-- ══ SECTION 8: Vehicle Compatibility ══ (auto parts only) -->
+    <div class="pf-section">
+      <div class="pf-section-head">
+        <i class="pi pi-car"></i>
+        <span>Vehicle Compatibility</span>
+        <span class="pf-section-badge pf-section-badge-gray">Auto parts only</span>
+      </div>
+      <p class="pf-section-desc">
+        Which vehicle makes/models this part fits. Skip this section for non-auto parts.
+      </p>
+
+      <div *ngIf="!partId && !isViewMode" class="pf-callout pf-callout-blue">
+        <i class="pi pi-info-circle"></i>
+        <span>Compatibility entries will be saved after the part is created.</span>
+      </div>
+
+      <div class="pf-compat-form" [formGroup]="compatibilityForm">
+        <div class="pf-row">
+          <div class="pf-field">
+            <label>Vehicle <span class="req">*</span></label>
+            <p-autoComplete
+              [suggestions]="filteredVehicles"
+              [(ngModel)]="selectedVehicle"
+              [ngModelOptions]="{standalone: true}"
+              placeholder="Search by make, model, year…"
+              [showEmptyMessage]="true" emptyMessage="No vehicles"
+              [dropdown]="true"
+              (onClear)="onVehicleClear()"
+              (onSelect)="onVehicleSelect($event)"
+              (completeMethod)="onVehicleSearch($event)"
+              optionLabel="model"
+              appendTo="body"
+              [disabled]="isSubmitting || isViewMode"
+              [style]="{ width: '100%' }">
+              <ng-template let-v pTemplate="item">
+                <div class="pf-ac-item">
+                  <span>{{ v.make }} {{ v.model }} {{ v.year }}</span>
+                  <span class="pf-ac-code">{{ v.engineType }}</span>
+                </div>
+              </ng-template>
+            </p-autoComplete>
+            <small *ngIf="compatibilityForm.get('vehicle')?.invalid && compatibilityForm.get('vehicle')?.touched" class="p-error">
+              Vehicle is required
+            </small>
+          </div>
+          <div class="pf-field">
+            <label>Status</label>
+            <div class="pf-checkbox-row" style="margin-top: 0.35rem">
+              <p-checkbox inputId="isCompatible" formControlName="isCompatible" [binary]="true" [disabled]="isViewMode"></p-checkbox>
+              <label for="isCompatible" class="pf-checkbox-label">Compatible</label>
+            </div>
+          </div>
+        </div>
+        <div class="pf-field pf-field-full">
+          <label>Notes <span class="pf-optional">optional</span></label>
+          <textarea pInputTextarea formControlName="notes" rows="2"
+            placeholder="Compatibility notes" [disabled]="isViewMode"></textarea>
+        </div>
+        <button pButton type="button" label="Add Vehicle" icon="pi pi-plus"
+          class="p-button-sm p-button-outlined p-button-success"
+          (click)="addCompatibility()"
+          [disabled]="isViewMode || compatibilityForm.invalid || isCompatibilitySubmitting">
+        </button>
+      </div>
+
+      <p-table *ngIf="getCompatibilityRows().length > 0"
+        [value]="getCompatibilityRows()"
+        [loading]="loadingCompatibilities"
+        styleClass="p-datatable-sm p-datatable-striped"
+        style="margin-top: 1rem">
+        <ng-template pTemplate="header">
+          <tr>
+            <th>Vehicle</th>
+            <th style="width: 120px">Status</th>
+            <th>Notes</th>
+            <th style="width: 60px"></th>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-row>
+          <tr>
+            <td>
+              <span class="font-semibold">{{ row.vehicleInfo }}</span>
+              <span *ngIf="row.isPending" class="pf-pending-pill">Pending</span>
+            </td>
+            <td>
+              <p-tag [value]="getCompatibilityLabel(row.isCompatible)" [severity]="getCompatibilitySeverity(row.isCompatible)"></p-tag>
+            </td>
+            <td class="text-sm text-secondary">{{ row.notes || '—' }}</td>
+            <td>
+              <button pButton type="button" icon="pi pi-trash"
+                class="p-button-text p-button-sm p-button-danger"
+                pTooltip="Remove" [disabled]="isViewMode"
+                (click)="removeCompatibility(row)">
+              </button>
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </div>
+
+    <!-- ══ Actions ══ -->
+    <div class="pf-actions">
+      <button pButton type="button" [label]="isViewMode ? 'Back' : 'Cancel'"
+        icon="pi pi-times" class="p-button-outlined"
+        (click)="onCancel()">
+      </button>
+      <button *ngIf="!isViewMode" pButton type="submit"
+        [label]="isEditMode ? 'Update Part' : 'Create Part'"
+        icon="pi pi-check" class="p-button-primary"
+        [loading]="isSubmitting" [disabled]="isSubmitting">
+      </button>
+    </div>
+
+  </form>
+</div>
+
+<p-confirmDialog></p-confirmDialog>

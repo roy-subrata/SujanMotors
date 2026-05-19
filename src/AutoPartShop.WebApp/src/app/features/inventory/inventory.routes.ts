@@ -1,0 +1,51 @@
+import { Routes } from '@angular/router';
+import { CategoriesComponent } from './categories/categories.component';
+import { BrandsComponent } from './brands/brands.component';
+import { DiscountsComponent } from './discounts/discounts.component';
+import { UnitsComponent } from './units/units.component';
+import { PartsComponent } from './parts/parts.component';
+import { PartFormComponent } from './parts/part-form/part-form.component';
+import { PartDetailsComponent } from './parts/part-details/part-details.component';
+import { SuppliersListComponent } from './suppliers/suppliers-list/suppliers-list.component';
+import { SupplierFormComponent } from './suppliers/supplier-form/supplier-form.component';
+import { SupplierDetailComponent } from './suppliers/supplier-detail/supplier-detail.component';
+import { SupplierPaymentAccountListComponent } from './suppliers/supplier-payment-accounts/supplier-payment-account-list.component';
+import { SupplierPaymentAccountFormComponent } from './suppliers/supplier-payment-accounts/supplier-payment-account-form.component';
+import { WarehousesComponent } from './warehouses/warehouses.component';
+import { WarehouseFormComponent } from './warehouses/warehouse-form.component';
+import { VehiclesComponent } from './vehicles/vehicles.component';
+import { VehicleFormComponent } from './vehicles/vehicle-form.component';
+import { VehicleCompatibilityComponent } from './vehicles/vehicle-compatibility.component';
+import { StockComponent } from './stock/stock.component';
+import { AttributeGroupManagerComponent } from './parts/attribute-group-manager/attribute-group-manager.component';
+
+export const inventoryRoutes: Routes = [
+  { path: 'categories', component: CategoriesComponent },
+  { path: 'brands', component: BrandsComponent },
+  { path: 'units', component: UnitsComponent },
+  { path: 'parts', component: PartsComponent },
+  { path: 'parts/create', component: PartFormComponent },
+  { path: 'parts/edit', component: PartFormComponent },
+  { path: 'parts/view', component: PartFormComponent },
+  { path: 'parts/:id', component: PartDetailsComponent },
+  { path: 'suppliers', component: SuppliersListComponent },
+  { path: 'suppliers/detail', component: SupplierDetailComponent },
+  { path: 'suppliers/create', component: SupplierFormComponent },
+  { path: 'suppliers/edit', component: SupplierFormComponent },
+  { path: 'suppliers/view', component: SupplierFormComponent },
+  { path: 'suppliers/payment-accounts', component: SupplierPaymentAccountListComponent },
+  { path: 'suppliers/payment-accounts/new', component: SupplierPaymentAccountFormComponent },
+  { path: 'suppliers/payment-accounts/edit', component: SupplierPaymentAccountFormComponent },
+  { path: 'warehouses', component: WarehousesComponent },
+  { path: 'warehouses/create', component: WarehouseFormComponent },
+  { path: 'warehouses/edit', component: WarehouseFormComponent },
+  { path: 'warehouses/view', component: WarehouseFormComponent },
+  { path: 'vehicles', component: VehiclesComponent },
+  { path: 'vehicles/create', component: VehicleFormComponent },
+  { path: 'vehicles/edit', component: VehicleFormComponent },
+  { path: 'vehicles/view', component: VehicleFormComponent },
+  { path: 'vehicles/compatibility', component: VehicleCompatibilityComponent },
+  { path: 'stock', component: StockComponent },
+  { path: 'attribute-groups', component: AttributeGroupManagerComponent },
+  { path: 'discounts', component: DiscountsComponent }
+];

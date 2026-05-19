@@ -1,0 +1,293 @@
+.audit-dashboard {
+  padding: 1.5rem;
+}
+
+/* Header */
+.dashboard-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.header-title-section {
+  flex: 1;
+}
+
+.header-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: white;
+  margin: 0 0 0.25rem 0;
+  display: flex;
+  align-items: center;
+}
+
+.header-subtitle {
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.date-range-picker {
+  min-width: 250px;
+}
+
+.entity-dropdown {
+  min-width: 180px;
+}
+
+/* Stat Cards */
+:host ::ng-deep .stat-card {
+  height: 100%;
+}
+
+:host ::ng-deep .stat-card .p-card-body {
+  padding: 1.25rem;
+}
+
+.stat-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.stat-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+}
+
+:host ::ng-deep .stat-card-primary .stat-icon {
+  background: rgba(99, 102, 241, 0.1);
+  color: #6366f1;
+}
+
+:host ::ng-deep .stat-card-success .stat-icon {
+  background: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+}
+
+:host ::ng-deep .stat-card-info .stat-icon {
+  background: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+}
+
+:host ::ng-deep .stat-card-warning .stat-icon {
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+}
+
+.stat-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-color);
+  line-height: 1.2;
+}
+
+.stat-label {
+  font-size: 0.875rem;
+  color: var(--text-color-secondary);
+  margin-top: 0.25rem;
+}
+
+/* Charts */
+:host ::ng-deep .chart-card .p-card-body {
+  padding: 1rem 1.25rem;
+}
+
+.chart-container {
+  width: 100%;
+  min-height: 250px;
+}
+
+.pie-chart {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Top Lists */
+:host ::ng-deep .list-card .p-card-body {
+  padding: 1rem;
+}
+
+.top-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.top-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  border-radius: 8px;
+  background: var(--surface-ground);
+  transition: background 0.2s;
+}
+
+.top-item:hover {
+  background: var(--surface-hover);
+}
+
+.top-rank {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--primary-color);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.top-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.top-name {
+  font-weight: 500;
+  color: var(--text-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.top-count {
+  font-size: 0.8rem;
+  color: var(--text-color-secondary);
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  color: var(--text-color-secondary);
+  gap: 0.5rem;
+}
+
+.empty-state i {
+  font-size: 2rem;
+  opacity: 0.5;
+}
+
+/* Recent Activity */
+:host ::ng-deep .recent-activity-card .p-card-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--surface-border);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.view-all-link {
+  color: var(--primary-color);
+  text-decoration: none;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  transition: color 0.2s;
+}
+
+.view-all-link:hover {
+  color: var(--primary-700);
+}
+
+.time-ago {
+  color: var(--text-color-secondary);
+  font-size: 0.875rem;
+  cursor: help;
+}
+
+.entity-badge {
+  background: var(--primary-100);
+  color: var(--primary-700);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  margin-right: 0.5rem;
+}
+
+.entity-id {
+  color: var(--text-color-secondary);
+  font-size: 0.8rem;
+  font-family: monospace;
+}
+
+.property-name {
+  font-family: monospace;
+  font-size: 0.85rem;
+  color: var(--text-color);
+}
+
+.no-property {
+  color: var(--text-color-secondary);
+}
+
+.user-name {
+  font-weight: 500;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .header-content {
+    flex-direction: column;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .date-range-picker,
+  .entity-dropdown {
+    min-width: 100%;
+  }
+}

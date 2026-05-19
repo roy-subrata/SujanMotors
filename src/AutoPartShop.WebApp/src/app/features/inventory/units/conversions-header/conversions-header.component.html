@@ -1,0 +1,21 @@
+<div class="header-content">
+  <div class="header-title-section">
+    <h1 class="header-title">Unit Conversions</h1>
+    <p class="header-subtitle"> Manage conversion factors between different measurement units</p>
+  </div>
+
+
+  <div class="toolbar">
+    <div class="search-container">
+      <i class="pi pi-search search-icon"></i>
+      <input pInputText type="text" placeholder="Search by unit names..." [(ngModel)]="searchQuery"
+        (input)="onSearch(searchQuery)" class="search-input" />
+      <i *ngIf="searchQuery" pTooltip="Clear search" class="pi pi-times clear-icon" (click)="clearSearch()">
+      </i>
+    </div>
+
+    <button pButton type="button" icon="pi pi-plus" label="New Conversion" class="btn-create p-button-success"
+      pTooltip="Create a new unit conversion" (click)="onCreateClick()">
+    </button>
+  </div>
+</div>

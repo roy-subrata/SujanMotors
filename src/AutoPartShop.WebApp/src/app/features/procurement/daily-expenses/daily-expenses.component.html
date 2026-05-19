@@ -1,0 +1,250 @@
+<p-toast />
+<p-confirmDialog />
+
+<p-card>
+    <ng-template pTemplate="header">
+        <div class="flex justify-between items-center p-4">
+            <h2 class="text-2xl font-bold m-0">Daily Expenses</h2>
+            <button
+                pButton
+                type="button"
+                label="Add Expense"
+                icon="pi pi-plus"
+                (click)="openNewExpenseDialog()"
+                class="p-button-success"
+            ></button>
+        </div>
+    </ng-template>
+
+    <p-table
+        [value]="expenses()"
+        [loading]="loading()"
+        [paginator]="true"
+        [rows]="10"
+        [rowsPerPageOptions]="[10, 25, 50]"
+        [showCurrentPageReport]="true"
+        currentPageReportTemplate="Showing {first} to {last} of {totalRecords} expenses"
+        [globalFilterFields]="['description', 'category', 'vendorName', 'paymentMethod']"
+        styleClass="p-datatable-striped"
+    >
+        <ng-template pTemplate="header">
+            <tr>
+                <th pSortableColumn="expenseDate">
+                    Date <p-sortIcon field="expenseDate" />
+                </th>
+                <th pSortableColumn="category">
+                    Category <p-sortIcon field="category" />
+                </th>
+                <th pSortableColumn="description">
+                    Description <p-sortIcon field="description" />
+                </th>
+                <th pSortableColumn="vendorName">
+                    Vendor <p-sortIcon field="vendorName" />
+                </th>
+                <th pSortableColumn="amount">
+                    Amount <p-sortIcon field="amount" />
+                </th>
+                <th pSortableColumn="paymentMethod">
+                    Payment Method <p-sortIcon field="paymentMethod" />
+                </th>
+                <th>Recurring</th>
+                <th style="width: 120px">Actions</th>
+            </tr>
+        </ng-template>
+
+        <ng-template pTemplate="body" let-expense>
+            <tr>
+                <td>{{ formatDate(expense.expenseDate) }}</td>
+                <td>
+                    <span class="inline-flex items-center px-2 py-1 rounded text-sm bg-blue-100 text-blue-800">
+                        <i class="pi {{ getCategoryIcon(expense.category) }} mr-2"></i>
+                        {{ getCategoryLabel(expense.category) }}
+                    </span>
+                </td>
+                <td>{{ expense.description }}</td>
+                <td>{{ expense.vendorName || '-' }}</td>
+                <td class="font-semibold">{{ formatCurrency(expense.amount) }}</td>
+                <td>{{ expense.paymentMethod }}</td>
+                <td>
+                    <i *ngIf="expense.isRecurring" class="pi pi-sync text-green-600" title="{{ expense.recurrencePattern }}"></i>
+                    <span *ngIf="!expense.isRecurring" class="text-gray-400">-</span>
+                </td>
+                <td>
+                    <div class="flex gap-2">
+                        <button
+                            pButton
+                            type="button"
+                            icon="pi pi-pencil"
+                            class="p-button-rounded p-button-text p-button-info"
+                            (click)="editExpense(expense)"
+                            pTooltip="Edit"
+                        ></button>
+                        <button
+                            pButton
+                            type="button"
+                            icon="pi pi-trash"
+                            class="p-button-rounded p-button-text p-button-danger"
+                            (click)="deleteExpense(expense)"
+                            pTooltip="Delete"
+                        ></button>
+                    </div>
+                </td>
+            </tr>
+        </ng-template>
+
+        <ng-template pTemplate="emptymessage">
+            <tr>
+                <td colspan="8" class="text-center">No expenses found</td>
+            </tr>
+        </ng-template>
+    </p-table>
+</p-card>
+
+<!-- Add/Edit Expense Dialog -->
+<p-dialog
+    [(visible)]="displayDialog"
+    [header]="isEditMode ? 'Edit Expense' : 'Add New Expense'"
+    [modal]="true"
+    [style]="{ width: '600px' }"
+    [draggable]="false"
+    [resizable]="false"
+>
+    <div class="flex flex-col gap-4">
+        <div class="flex flex-col gap-2">
+            <label for="expenseDate" class="font-semibold">Date *</label>
+            <p-datepicker
+                id="expenseDate"
+                [(ngModel)]="expenseForm.expenseDate"
+                dateFormat="yy-mm-dd"
+                [showIcon]="true"
+                placeholder="Select date"
+            />
+        </div>
+
+        <div class="flex flex-col gap-2">
+            <label for="category" class="font-semibold">Category *</label>
+            <p-select
+                id="category"
+                [(ngModel)]="expenseForm.category"
+                [options]="categories()"
+                optionLabel="label"
+                optionValue="value"
+                placeholder="Select category"
+                [filter]="true"
+            >
+                <ng-template let-item pTemplate="item">
+                    <div class="flex items-center gap-2">
+                        <i class="pi {{ item.icon }}"></i>
+                        <span>{{ item.label }}</span>
+                    </div>
+                </ng-template>
+            </p-select>
+        </div>
+
+        <div class="flex flex-col gap-2">
+            <label for="description" class="font-semibold">Description *</label>
+            <input
+                pInputText
+                id="description"
+                [(ngModel)]="expenseForm.description"
+                placeholder="Enter description"
+            />
+        </div>
+
+        <div class="flex flex-col gap-2">
+            <label for="amount" class="font-semibold">Amount *</label>
+            <p-inputNumber
+                id="amount"
+                [(ngModel)]="expenseForm.amount"
+                mode="currency"
+                [currency]="currencyCode"
+                [locale]="currencyLocale"
+                [minFractionDigits]="2"
+                placeholder="0.00"
+            />
+        </div>
+
+        <div class="flex flex-col gap-2">
+            <label for="vendorName" class="font-semibold">Vendor</label>
+            <input
+                pInputText
+                id="vendorName"
+                [(ngModel)]="expenseForm.vendorName"
+                placeholder="Enter vendor name"
+            />
+        </div>
+
+        <div class="flex flex-col gap-2">
+            <label for="paymentMethod" class="font-semibold">Payment Method *</label>
+            <p-select
+                id="paymentMethod"
+                [(ngModel)]="expenseForm.paymentMethod"
+                [options]="paymentMethods"
+                optionLabel="label"
+                optionValue="value"
+                placeholder="Select payment method"
+            />
+        </div>
+
+        <div class="flex flex-col gap-2">
+            <label for="referenceNumber" class="font-semibold">Reference Number</label>
+            <input
+                pInputText
+                id="referenceNumber"
+                [(ngModel)]="expenseForm.referenceNumber"
+                placeholder="Check number, transfer ref, etc."
+            />
+        </div>
+
+        <div class="flex items-center gap-2">
+            <p-checkbox
+                [(ngModel)]="expenseForm.isRecurring"
+                [binary]="true"
+                inputId="isRecurring"
+            />
+            <label for="isRecurring" class="font-semibold">Recurring Expense</label>
+        </div>
+
+        <div *ngIf="expenseForm.isRecurring" class="flex flex-col gap-2">
+            <label for="recurrencePattern" class="font-semibold">Recurrence Pattern</label>
+            <p-select
+                id="recurrencePattern"
+                [(ngModel)]="expenseForm.recurrencePattern"
+                [options]="recurrencePatterns"
+                optionLabel="label"
+                optionValue="value"
+                placeholder="Select pattern"
+            />
+        </div>
+
+        <div class="flex flex-col gap-2">
+            <label for="notes" class="font-semibold">Notes</label>
+            <textarea
+                pTextarea
+                id="notes"
+                [(ngModel)]="expenseForm.notes"
+                rows="3"
+                placeholder="Additional notes..."
+            ></textarea>
+        </div>
+    </div>
+
+    <ng-template pTemplate="footer">
+        <button
+            pButton
+            type="button"
+            label="Cancel"
+            icon="pi pi-times"
+            class="p-button-text"
+            (click)="displayDialog = false"
+        ></button>
+        <button
+            pButton
+            type="button"
+            [label]="isEditMode ? 'Update' : 'Save'"
+            icon="pi pi-check"
+            (click)="saveExpense()"
+            [loading]="loading()"
+        ></button>
+    </ng-template>
+</p-dialog>

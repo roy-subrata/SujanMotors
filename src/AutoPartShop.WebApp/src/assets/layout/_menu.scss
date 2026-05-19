@@ -1,0 +1,344 @@
+@use 'mixins' as *;
+
+/* Sidebar container is defined in _sidebar.scss */
+/* Only menu-specific styles below */
+
+/* Enterprise-style menu tweaks */
+.layout-menu {
+    padding-top: 0.75rem;
+}
+
+.layout-menu {
+    margin: 0;
+    padding: 0;
+    list-style-type: none;
+
+    .layout-root-menuitem {
+        > .layout-menuitem-root-text {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            font-weight: 600;
+            color: var(--text-color-secondary);
+            margin: 0;
+            padding: 0.5rem 1.25rem;
+            letter-spacing: 0.02em;
+        }
+
+        > a {
+            display: none;
+        }
+    }
+
+            a {
+            user-select: none;
+
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.625rem 1.25rem;
+            color: var(--text-color);
+            transition: background-color .12s ease, color .12s ease, padding-left .12s ease;
+
+            .layout-menuitem-icon {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 36px;
+                height: 36px;
+                border-radius: 6px;
+                background: transparent;
+                color: var(--text-color-secondary);
+                transition: background .12s ease, color .12s ease;
+            }
+
+            &:hover {
+                background: var(--surface-hover);
+                color: var(--text-color);
+                .layout-menuitem-icon {
+                    background: rgba(102,126,234,0.12); /* subtle primary tint */
+                    color: var(--primary-color);
+                }
+            }
+
+            &.active-route, &.active-menuitem {
+                background: linear-gradient(90deg, rgba(102,126,234,0.06), rgba(118,75,162,0.03));
+                color: var(--primary-color);
+                font-weight: 600;
+                .layout-menuitem-icon {
+                    background: var(--primary-color-variant, rgba(102,126,234,0.14));
+                    color: var(--primary-color);
+                }
+            }
+
+            &.active-menuitem {
+                > .layout-submenu-toggler {
+                    transform: rotate(-180deg);
+                }
+            }
+        }
+
+    li.active-menuitem {
+        > a {
+            .layout-submenu-toggler {
+                transform: rotate(-180deg);
+            }
+        }
+    }
+
+    ul {
+        margin: 0;
+        padding: 0;
+        list-style-type: none;
+
+        a {
+            display: flex;
+            align-items: center;
+            position: relative;
+            outline: 0 none;
+            color: var(--text-color);
+            cursor: pointer;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0;
+            transition:
+                background-color var(--element-transition-duration),
+                box-shadow var(--element-transition-duration);
+
+            .layout-menuitem-icon {
+                margin-right: 0.5rem;
+            }
+
+            .layout-submenu-toggler {
+                font-size: 75%;
+                margin-left: auto;
+                transition: transform var(--element-transition-duration);
+            }
+
+            &.active-route {
+                font-weight: 700;
+                color: var(--primary-color);
+            }
+
+            &:hover {
+                background-color: var(--surface-hover);
+            }
+
+            &:focus {
+                @include focused-inset();
+            }
+        }
+
+        ul {
+            overflow: hidden;
+            border-radius: var(--content-border-radius);
+
+            li {
+                a {
+                    margin-left: 1rem;
+                    padding-left: 1rem;
+                }
+
+                li {
+                    a {
+                        margin-left: 2rem;
+                        padding-left: 1rem;
+                    }
+
+                    li {
+                        a {
+                            margin-left: 2.5rem;
+                            padding-left: 1rem;
+                        }
+
+                            li {
+                                a {
+                                    margin-left: 3rem;
+                                    padding-left: 1rem;
+                                }
+
+                                li {
+                                    a {
+                                        margin-left: 3.5rem;
+                                        padding-left: 1rem;
+                                    }
+
+                                        li {
+                                            a {
+                                                margin-left: 4rem;
+                                                padding-left: 1rem;
+                                            }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+.layout-submenu-enter-from,
+.layout-submenu-leave-to {
+    max-height: 0;
+}
+
+.layout-submenu-enter-to,
+.layout-submenu-leave-from {
+    max-height: 1000px;
+}
+
+.layout-submenu-leave-active {
+    overflow: hidden;
+    transition: max-height 0.45s cubic-bezier(0, 1, 0, 1);
+}
+
+.layout-submenu-enter-active {
+    overflow: hidden;
+    transition: max-height 1s ease-in-out;
+}
+
+/* Compact sidebar override: tighten paddings, smaller icons, reduced nesting indent */
+.layout-sidebar .layout-menu {
+    padding-top: 0.35rem;
+}
+
+.layout-sidebar .layout-root-menuitem > .layout-menuitem-root-text {
+    font-size: 0.72rem;
+    padding: 0.35rem 0.75rem;
+    letter-spacing: 0.01em;
+    margin-bottom: 0.15rem;
+}
+
+.layout-sidebar .layout-menu > li > a,
+.layout-sidebar .layout-menu a {
+    padding: 0.45rem 0.9rem;
+    gap: 0.5rem;
+    font-size: 0.92rem;
+}
+
+.layout-sidebar .layout-menu .layout-menuitem-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    font-size: 0.92rem;
+}
+
+.layout-sidebar .layout-menu ul a {
+    padding: 0.4rem 1rem;
+    font-size: 0.9rem;
+}
+
+/* Reduce deep nesting indents to keep items compact */
+.layout-sidebar .layout-menu ul li a { margin-left: 0.5rem; padding-left: 0.75rem; }
+.layout-sidebar .layout-menu ul li li a { margin-left: 1rem; padding-left: 0.75rem; }
+.layout-sidebar .layout-menu ul li li li a { margin-left: 1.25rem; padding-left: 0.75rem; }
+
+/* Slightly bolder active states but compact */
+.layout-sidebar .layout-menu a.active-route,
+.layout-sidebar .layout-menu a.active-menuitem {
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+/* Keep hover affordance but subtle */
+.layout-sidebar .layout-menu a:hover {
+    background: var(--surface-hover);
+}
+
+/* Keep transitions smooth but snappy */
+.layout-sidebar .layout-menu a,
+.layout-sidebar .layout-menu .layout-menuitem-icon {
+    transition: background-color .1s ease, color .1s ease, transform .12s ease;
+}
+
+/* ========================================
+   COLLAPSED SIDEBAR - ICONS ONLY
+   ======================================== */
+.layout-sidebar.collapsed {
+    .layout-menu {
+        /* Hide category labels when collapsed */
+        .layout-root-menuitem > .layout-menuitem-root-text {
+            display: none;
+            opacity: 0;
+        }
+
+        /* Menu items: center icons, hide text */
+        a {
+            justify-content: center;
+            padding: 0.625rem !important;
+            position: relative;
+
+            .layout-menuitem-icon {
+                margin-right: 0 !important;
+            }
+
+            /* Hide text labels */
+            .layout-menuitem-text {
+                display: none;
+                opacity: 0;
+                white-space: nowrap;
+            }
+
+            /* Hide submenu toggle arrow */
+            .layout-submenu-toggler {
+                display: none;
+            }
+        }
+
+        /* Nested menu items */
+        ul {
+            li a {
+                margin-left: 0 !important;
+                padding-left: 0 !important;
+                justify-content: center;
+            }
+        }
+    }
+
+    /* HOVER: Expand sidebar and show all text */
+    &:hover {
+        .layout-menu {
+            /* Show category labels on hover */
+            .layout-root-menuitem > .layout-menuitem-root-text {
+                display: block;
+                opacity: 1;
+            }
+
+            /* Restore normal menu item layout */
+            a {
+                justify-content: flex-start;
+                padding: 0.625rem 1.25rem !important;
+
+                .layout-menuitem-icon {
+                    margin-right: 0.75rem !important;
+                }
+
+                /* Show text labels */
+                .layout-menuitem-text {
+                    display: inline;
+                    opacity: 1;
+                }
+
+                /* Show submenu toggle arrow */
+                .layout-submenu-toggler {
+                    display: block;
+                }
+            }
+
+            /* Restore nested menu indents */
+            ul {
+                li a {
+                    margin-left: 0.5rem !important;
+                    padding-left: 0.75rem !important;
+                    justify-content: flex-start;
+                }
+                li li a {
+                    margin-left: 1rem !important;
+                }
+                li li li a {
+                    margin-left: 1.25rem !important;
+                }
+            }
+        }
+    }
+}
+

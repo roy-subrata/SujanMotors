@@ -1,0 +1,308 @@
+<p-toast></p-toast>
+<p-confirmDialog></p-confirmDialog>
+
+<div class="variant-manager">
+
+  <!-- Header -->
+  <div class="variant-header">
+    <div>
+      <h3 class="section-title">
+        <i class="pi pi-clone section-icon"></i>
+        Variants
+        <span class="variant-count" *ngIf="variants.length > 0">({{ variants.length }})</span>
+      </h3>
+      <p class="section-hint">
+        Create variants for products that come in multiple options — e.g. <b>Color</b>, <b>Size</b>, <b>Storage</b>.
+        Use <a (click)="goToAttributeManager()" class="link-action">Manage Attributes</a> to define your attribute groups first.
+      </p>
+    </div>
+    <button
+      *ngIf="!isViewMode && partId"
+      pButton
+      type="button"
+      label="Add Variant"
+      icon="pi pi-plus"
+      class="p-button-sm p-button-success"
+      (click)="openAddDialog()">
+    </button>
+    <div *ngIf="!partId" class="save-first-hint">
+      <i class="pi pi-info-circle"></i> Save the product first to add variants
+    </div>
+  </div>
+
+  <!-- Variants table -->
+  <p-table
+    [value]="variants"
+    [loading]="isLoading"
+    responsiveLayout="scroll"
+    styleClass="p-datatable-sm p-datatable-striped"
+    [tableStyle]="{ 'min-width': '40rem' }">
+
+    <ng-template pTemplate="header">
+      <tr>
+        <th>Variant</th>
+        <th>SKU / Barcode</th>
+        <th>Price</th>
+        <th>Attributes</th>
+        <th>Status</th>
+        <th *ngIf="!isViewMode" style="width: 6rem"></th>
+      </tr>
+    </ng-template>
+
+    <ng-template pTemplate="body" let-v>
+      <tr>
+        <td>
+          <div class="font-semibold">{{ v.name }}</div>
+          <div class="text-xs text-secondary">{{ v.code }}</div>
+        </td>
+        <td>
+          <div *ngIf="v.sku" class="text-sm"><code>{{ v.sku }}</code></div>
+          <div *ngIf="v.barcode" class="text-xs text-secondary">{{ v.barcode }}</div>
+          <span *ngIf="!v.sku && !v.barcode" class="text-secondary">—</span>
+        </td>
+        <td>
+          <span *ngIf="v.sellingPrice != null && v.sellingPrice > 0" class="text-sm font-medium">
+            {{ v.sellingPrice | number:'1.2-2' }} {{ v.currency }}
+          </span>
+          <span *ngIf="!v.sellingPrice || v.sellingPrice === 0" class="text-secondary text-sm">
+            Inherits base
+          </span>
+        </td>
+        <td>
+          <div *ngIf="v.attributeValues.length > 0" class="attr-chips">
+            <span class="attr-chip" *ngFor="let av of v.attributeValues">
+              <b>{{ av.attributeName }}:</b>
+              {{ av.optionValue ?? av.valueText ?? av.valueNumber ?? (av.valueBool != null ? (av.valueBool ? 'Yes' : 'No') : '—') }}
+            </span>
+          </div>
+          <span *ngIf="v.attributeValues.length === 0" class="text-secondary text-sm">None</span>
+        </td>
+        <td>
+          <p-tag [value]="v.isActive ? 'Active' : 'Inactive'" [severity]="v.isActive ? 'success' : 'secondary'"></p-tag>
+        </td>
+        <td *ngIf="!isViewMode">
+          <button pButton type="button" icon="pi pi-pencil" class="p-button-text p-button-sm p-button-info" pTooltip="Edit" (click)="openEditDialog(v)"></button>
+          <button pButton type="button" icon="pi pi-trash" class="p-button-text p-button-sm p-button-danger" pTooltip="Delete" (click)="confirmDelete(v)"></button>
+        </td>
+      </tr>
+    </ng-template>
+
+    <ng-template pTemplate="emptymessage">
+      <tr>
+        <td [attr.colspan]="isViewMode ? 5 : 6" class="text-center py-4 text-secondary">
+          No variants yet.
+          <span *ngIf="!isViewMode && partId"> Click <b>Add Variant</b> to create one.</span>
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>
+
+<!-- Add / Edit Variant Dialog -->
+<p-dialog
+  [(visible)]="dialogVisible"
+  [header]="isEditing ? 'Edit Variant' : 'Add Variant'"
+  [modal]="true"
+  [style]="{ width: '680px', maxWidth: '96vw' }"
+  [draggable]="false"
+  [resizable]="false"
+  (onHide)="closeDialog()">
+
+  <form [formGroup]="variantForm" (ngSubmit)="onSubmit()" class="vd-form">
+
+    <!-- Basic info -->
+    <div class="vd-section">
+      <div class="vd-row">
+        <div class="vd-field">
+          <label>Variant Name *</label>
+          <input pInputText formControlName="name" placeholder="e.g. Red / Large" class="w-full" />
+          <small class="p-error" *ngIf="variantForm.get('name')?.invalid && variantForm.get('name')?.touched">Required</small>
+        </div>
+        <div class="vd-field">
+          <label>Code *</label>
+          <input pInputText formControlName="code" placeholder="e.g. RED-L" class="w-full" />
+          <small class="p-error" *ngIf="variantForm.get('code')?.invalid && variantForm.get('code')?.touched">Required</small>
+        </div>
+      </div>
+      <div class="vd-row">
+        <div class="vd-field">
+          <label>SKU</label>
+          <input pInputText formControlName="sku" placeholder="Stock Keeping Unit" class="w-full" />
+        </div>
+        <div class="vd-field">
+          <label>Barcode</label>
+          <input pInputText formControlName="barcode" placeholder="UPC / EAN" class="w-full" />
+        </div>
+      </div>
+      <div class="vd-row">
+        <div class="vd-field">
+          <label>Selling Price <span style="font-size:0.78rem;color:#6b7280;font-weight:400">(leave blank to inherit base product price)</span></label>
+          <p-inputNumber formControlName="sellingPrice" placeholder="0.00"
+            [min]="0" [step]="0.01" [minFractionDigits]="2" [maxFractionDigits]="2"
+            mode="decimal" [showClear]="true" class="w-full">
+          </p-inputNumber>
+        </div>
+        <div class="vd-field">
+          <label>Currency</label>
+          <input pInputText formControlName="currency" placeholder="BDT" class="w-full" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Attribute Values (user-driven) -->
+    <div class="vd-section">
+      <div class="vd-section-header">
+        <span class="vd-section-title"><i class="pi pi-tag"></i> Attribute Values</span>
+        <small class="vd-section-hint">Add only the attributes that distinguish this variant (e.g. Color, Size).</small>
+      </div>
+
+      <!-- Existing added attribute rows -->
+      <div formArrayName="attributeValues" class="attr-rows">
+        <div
+          *ngFor="let ctrl of attrValuesArray.controls; let i = index"
+          [formGroupName]="i"
+          class="attr-value-row">
+
+          <div class="attr-value-label">
+            <span class="attr-name">{{ selectedAttrRows[i]?.label }}</span>
+            <span *ngIf="selectedAttrRows[i]?.unit" class="attr-unit">({{ selectedAttrRows[i].unit }})</span>
+            <span class="attr-group-badge">{{ selectedAttrRows[i]?.groupName }}</span>
+          </div>
+
+          <div class="attr-value-input">
+            <!-- option type -->
+            <p-select
+              *ngIf="selectedAttrRows[i]?.dataType === 'option'"
+              formControlName="optionId"
+              [options]="selectedAttrRows[i]?.options"
+              optionLabel="value"
+              optionValue="id"
+              placeholder="Select..."
+              [showClear]="true"
+              appendTo="body"
+              [style]="{ width: '100%' }">
+            </p-select>
+            <!-- number type -->
+            <p-inputNumber
+              *ngIf="selectedAttrRows[i]?.dataType === 'number'"
+              formControlName="valueNumber"
+              [minFractionDigits]="0" [maxFractionDigits]="4"
+              mode="decimal" class="w-full">
+            </p-inputNumber>
+            <!-- boolean type -->
+            <p-checkbox
+              *ngIf="selectedAttrRows[i]?.dataType === 'boolean'"
+              formControlName="valueBool"
+              [binary]="true">
+            </p-checkbox>
+            <!-- text type -->
+            <input
+              *ngIf="selectedAttrRows[i]?.dataType === 'text'"
+              pInputText formControlName="valueText"
+              placeholder="Enter value" class="w-full" />
+          </div>
+
+          <button
+            pButton type="button" icon="pi pi-times"
+            class="p-button-text p-button-danger p-button-sm attr-remove-btn"
+            pTooltip="Remove attribute"
+            (click)="removeAttrRow(i)">
+          </button>
+        </div>
+      </div>
+
+      <!-- Add attribute picker -->
+      <div class="attr-add-row" *ngIf="availableAttributes.length > 0">
+        <p-select
+          [(ngModel)]="attrToAdd"
+          [ngModelOptions]="{standalone: true}"
+          [options]="availableAttributes"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Pick an attribute to add..."
+          appendTo="body"
+          [style]="{ flex: '1' }">
+        </p-select>
+        <button pButton type="button" icon="pi pi-plus" label="Add" class="p-button-outlined p-button-sm p-button-info"
+          [disabled]="!attrToAdd" (click)="addSelectedAttribute()"></button>
+      </div>
+
+      <div *ngIf="allAttributes.length === 0" class="no-attrs-hint">
+        <i class="pi pi-info-circle"></i>
+        No attributes defined yet.
+        <a (click)="goToAttributeManager()" class="link-action">Set up Attribute Groups</a>
+        to enable Color, Size, Storage, Weight, Dimensions, and any other specs.
+      </div>
+      <div *ngIf="allAttributes.length > 0 && availableAttributes.length === 0 && selectedAttrRows.length > 0" class="all-added-hint">
+        <i class="pi pi-check-circle"></i> All available attributes are added.
+      </div>
+    </div>
+
+
+    <div class="vd-section" style="padding-bottom:0">
+      <div class="checkbox-row">
+        <p-checkbox formControlName="isActive" [binary]="true" inputId="varIsActive"></p-checkbox>
+        <label for="varIsActive">Active</label>
+      </div>
+    </div>
+
+  </form>
+
+  <ng-template pTemplate="footer">
+    <button pButton type="button" label="Cancel" icon="pi pi-times" class="p-button-outlined" (click)="closeDialog()"></button>
+    <button pButton type="button" [label]="isEditing ? 'Update Variant' : 'Add Variant'" icon="pi pi-check"
+      class="p-button-success" [loading]="isSubmitting" (click)="onSubmit()"></button>
+  </ng-template>
+</p-dialog>
+
+<style>
+/* Variant table */
+.variant-manager { display: flex; flex-direction: column; gap: 0.75rem; }
+.variant-header { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.75rem; }
+.variant-count { font-size: 0.85rem; color: var(--text-color-secondary); font-weight: normal; }
+.section-hint { margin: 0.25rem 0 0; font-size: 0.825rem; color: var(--text-color-secondary); }
+.save-first-hint { font-size: 0.85rem; color: var(--text-color-secondary); display: flex; align-items: center; gap: 0.3rem; }
+.attr-chips { display: flex; flex-wrap: wrap; gap: 0.25rem; }
+.attr-chip { background: var(--surface-100); border: 1px solid var(--surface-border); border-radius: 4px; padding: 0.1rem 0.35rem; font-size: 0.78rem; }
+.text-secondary { color: var(--text-color-secondary); }
+.text-xs { font-size: 0.75rem; }
+.text-sm { font-size: 0.875rem; }
+.link-action { color: var(--primary-color); cursor: pointer; text-decoration: underline; }
+
+/* Dialog form */
+.vd-form { display: flex; flex-direction: column; gap: 0; }
+.vd-section { padding: 0.75rem 0; border-bottom: 1px solid var(--surface-border); }
+.vd-section:last-child { border-bottom: none; }
+.vd-section-header { margin-bottom: 0.6rem; }
+.vd-section-title { font-size: 0.9rem; font-weight: 600; display: flex; align-items: center; gap: 0.35rem; }
+.vd-section-title small { font-weight: normal; color: var(--text-color-secondary); font-size: 0.8rem; }
+.vd-section-hint { display: block; font-size: 0.8rem; color: var(--text-color-secondary); margin-top: 0.2rem; }
+.vd-note { display: flex; align-items: flex-start; gap: 9px; padding: 10px 14px; background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 8px; font-size: 0.8rem; color: #1D4ED8; line-height: 1.5; margin-bottom: 0.4rem; }
+.vd-note i { color: #3B82F6; flex-shrink: 0; margin-top: 2px; }
+.vd-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-bottom: 0.6rem; }
+.vd-row.three-col { grid-template-columns: 1fr 1fr 1fr; }
+.vd-row.four-col { grid-template-columns: 1fr 1fr 1fr 1fr; }
+.vd-field { display: flex; flex-direction: column; gap: 0.2rem; }
+.vd-field label { font-size: 0.875rem; font-weight: 500; }
+.w-full { width: 100%; }
+
+/* Attribute rows */
+.attr-rows { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.6rem; }
+.attr-value-row { display: flex; align-items: center; gap: 0.5rem; background: var(--surface-50); border: 1px solid var(--surface-border); border-radius: 6px; padding: 0.4rem 0.6rem; }
+.attr-value-label { flex: 0 0 160px; display: flex; flex-direction: column; }
+.attr-name { font-size: 0.875rem; font-weight: 500; }
+.attr-unit { font-size: 0.75rem; color: var(--text-color-secondary); }
+.attr-group-badge { font-size: 0.7rem; color: var(--primary-color); background: var(--blue-50); border-radius: 3px; padding: 0 4px; align-self: flex-start; margin-top: 2px; }
+.attr-value-input { flex: 1; }
+.attr-remove-btn { flex-shrink: 0; }
+.attr-add-row { display: flex; gap: 0.5rem; align-items: center; }
+.no-attrs-hint, .all-added-hint { font-size: 0.825rem; color: var(--text-color-secondary); display: flex; align-items: center; gap: 0.3rem; padding: 0.4rem 0; }
+.all-added-hint { color: var(--green-600); }
+
+.checkbox-row { display: flex; align-items: center; gap: 0.5rem; }
+
+@media (max-width: 580px) {
+  .vd-row, .vd-row.three-col, .vd-row.four-col { grid-template-columns: 1fr; }
+  .attr-value-label { flex: 0 0 120px; }
+}
+</style>

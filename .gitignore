@@ -21,5 +21,11 @@ packages/
 appsettings.*.json
 # Temporary
 *.tmp
+# Windows reserved filename created accidentally
+nul
 # node
 node_modules/
+# Environment / secrets — never commit these
+.env
+.env.*
+!.env.example

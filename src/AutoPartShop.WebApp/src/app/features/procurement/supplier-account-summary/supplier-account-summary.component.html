@@ -1,0 +1,315 @@
+<div class="as-page">
+    <p-toast></p-toast>
+
+    <!-- HEADER -->
+    <div class="as-header">
+        <div class="as-header-left">
+            <button pButton class="p-button-text p-button-rounded" pTooltip="Back" (click)="goBack()">
+                <i class="pi pi-arrow-left"></i>
+            </button>
+            <h2 class="as-title">Supplier Account Summary</h2>
+        </div>
+        <div class="as-header-right" *ngIf="summary()">
+            <button pButton type="button" icon="pi pi-file-pdf" class="p-button-text p-button-rounded"
+                pTooltip="Download PDF" [loading]="pdfLoading()" (click)="onDownloadPdf()"></button>
+            <button pButton type="button" icon="pi pi-print" class="p-button-text p-button-rounded"
+                pTooltip="Print" [loading]="pdfLoading()" (click)="onPrint()"></button>
+        </div>
+    </div>
+
+    <!-- FILTER BAR -->
+    <div class="as-filter-bar">
+        <div class="filter-field supplier-field">
+            <label class="filter-label">Supplier</label>
+            <app-lazy-autocomplete
+                [(ngModel)]="selectedSupplier"
+                [fetchFn]="fetchSuppliersLazy"
+                optionLabel="name"
+                placeholder="Search supplier..."
+                [minLength]="0"
+                [pageSize]="20"
+                scrollHeight="300px"
+                (onItemSelect)="onSupplierSelected($event)"
+                (onClearEvent)="onSupplierCleared()">
+                <ng-template let-supplier>
+                    <div class="supplier-option">
+                        <span class="supplier-option-name">{{ supplier.name }}</span>
+                        <span class="supplier-option-code">{{ supplier.code }}</span>
+                    </div>
+                </ng-template>
+            </app-lazy-autocomplete>
+        </div>
+        <div class="filter-field date-field">
+            <label class="filter-label">From</label>
+            <p-datepicker
+                [(ngModel)]="fromDate"
+                [showIcon]="true"
+                dateFormat="dd M yy"
+                placeholder="Start date"
+                styleClass="w-full">
+            </p-datepicker>
+        </div>
+        <div class="filter-field date-field">
+            <label class="filter-label">To</label>
+            <p-datepicker
+                [(ngModel)]="toDate"
+                [showIcon]="true"
+                dateFormat="dd M yy"
+                placeholder="End date"
+                styleClass="w-full">
+            </p-datepicker>
+        </div>
+        <button pButton type="button" icon="pi pi-search" label="Generate"
+            class="generate-btn" (click)="generateReport()" [loading]="loading()"></button>
+    </div>
+
+    <!-- INFO BAR -->
+    <div class="as-info-bar" *ngIf="summary()">
+        <span class="info-item"><i class="pi pi-truck"></i> {{ summary()!.supplierName }}</span>
+        <span class="info-item"><i class="pi pi-hashtag"></i> {{ summary()!.supplierCode }}</span>
+        <span class="info-item"><i class="pi pi-list"></i> {{ summary()!.transactionCount }} transactions</span>
+        <span class="info-item" *ngIf="summary()!.lastTransactionDate"><i class="pi pi-calendar"></i> Last: {{ formatDate(summary()!.lastTransactionDate) }}</span>
+    </div>
+
+    <!-- CONTENT AREA -->
+    <div class="as-content">
+        <!-- Empty State -->
+        <div *ngIf="!loading() && !summary()" class="as-empty-state">
+            <i class="pi pi-file-check"></i>
+            <p>No report generated</p>
+            <span>Select a supplier and click Generate to view account summary</span>
+        </div>
+
+        <!-- Loading State -->
+        <div *ngIf="loading()" class="as-loading-state">
+            <p-skeleton height="2rem" styleClass="mb-2"></p-skeleton>
+            <p-skeleton height="2rem" styleClass="mb-2"></p-skeleton>
+            <p-skeleton height="2rem" styleClass="mb-2"></p-skeleton>
+            <p-skeleton height="10rem"></p-skeleton>
+        </div>
+
+        <!-- Error State -->
+        <div *ngIf="error() && !loading()" class="as-error-state">
+            <i class="pi pi-exclamation-circle"></i>
+            <span>{{ error() }}</span>
+        </div>
+
+        <!-- Report Content -->
+        @if (!loading() && !error() && summary()) {
+            <!-- Metrics Row -->
+            <div class="as-metrics">
+                <div class="metric-card metric-primary">
+                    <div class="metric-icon"><i class="pi pi-shopping-cart"></i></div>
+                    <div class="metric-body">
+                        <span class="metric-label">Total Purchases</span>
+                        <span class="metric-value">{{ formatCurrency(summary()!.totalPurchases) }}</span>
+                        <span class="metric-helper">{{ summary()!.transactionCount }} transaction(s)</span>
+                    </div>
+                </div>
+                <div class="metric-card metric-success">
+                    <div class="metric-icon"><i class="pi pi-check-circle"></i></div>
+                    <div class="metric-body">
+                        <span class="metric-label">Total Payments</span>
+                        <span class="metric-value">{{ formatCurrency(summary()!.totalPayments) }}</span>
+                        <span class="metric-helper" *ngIf="summary()!.totalRefunds > 0">Refunds: {{ formatCurrency(summary()!.totalRefunds) }}</span>
+                    </div>
+                </div>
+                <div class="metric-card" [ngClass]="summary()!.currentBalance > 0 ? 'metric-danger' : 'metric-success'">
+                    <div class="metric-icon"><i class="pi pi-exclamation-triangle"></i></div>
+                    <div class="metric-body">
+                        <span class="metric-label">Current Balance</span>
+                        <span class="metric-value">{{ formatCurrency(summary()!.currentBalance) }}</span>
+                        <span class="metric-helper" *ngIf="summary()!.availableAdvanceCredit > 0">Advance: {{ formatCurrency(summary()!.availableAdvanceCredit) }}</span>
+                        <span class="metric-helper" *ngIf="summary()!.currentBalance <= 0">All settled!</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ledger Entries Table -->
+            <div class="as-table-section">
+                <div class="table-header-row">
+                    <h3 class="table-title">Ledger Entries</h3>
+                    <span class="table-count">{{ totalEntryCount() }} entries</span>
+                </div>
+
+                <!-- Desktop Table -->
+                <div class="desktop-view">
+                    <div class="as-list-header">
+                        <span class="col-date">Date</span>
+                        <span class="col-type">Type</span>
+                        <span class="col-ref">Reference #</span>
+                        <span class="col-desc">Description</span>
+                        <span class="col-debit">Debit</span>
+                        <span class="col-credit">Credit</span>
+                        <span class="col-balance">Balance</span>
+                    </div>
+                    <div class="as-list-body">
+                        <div class="as-list-item" *ngFor="let entry of entries()">
+                            <div class="col-date">{{ formatDate(entry.transactionDate) }}</div>
+                            <div class="col-type">
+                                <span class="type-pill" [attr.data-type]="getTransactionTypeStatus(entry.transactionType)">
+                                    {{ getTransactionTypeLabel(entry.transactionType) }}
+                                </span>
+                            </div>
+                            <div class="col-ref mono">{{ entry.referenceNumber || '-' }}</div>
+                            <div class="col-desc">{{ entry.description || '-' }}</div>
+                            <div class="col-debit" [class.text-debit]="entry.debitAmount > 0">
+                                {{ entry.debitAmount > 0 ? formatCurrency(entry.debitAmount) : '-' }}
+                            </div>
+                            <div class="col-credit" [class.text-credit]="entry.creditAmount > 0">
+                                {{ entry.creditAmount > 0 ? formatCurrency(entry.creditAmount) : '-' }}
+                            </div>
+                            <div class="col-balance bold">{{ formatCurrency(entry.runningBalance) }}</div>
+                        </div>
+                        <div *ngIf="entries().length === 0" class="as-list-empty">
+                            No ledger entries found for the selected criteria
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mobile Cards -->
+                <div class="mobile-view">
+                    <div class="as-mobile-card" *ngFor="let entry of entries()">
+                        <div class="mobile-card-header">
+                            <div class="mobile-card-title">
+                                <div class="item-name">{{ getTransactionTypeLabel(entry.transactionType) }}</div>
+                                <div class="item-meta">{{ entry.referenceNumber || '-' }}</div>
+                            </div>
+                            <span class="type-pill" [attr.data-type]="getTransactionTypeStatus(entry.transactionType)">
+                                {{ entry.debitAmount > 0 ? 'DR' : 'CR' }}
+                            </span>
+                        </div>
+                        <div class="mobile-card-body">
+                            <div class="mobile-field">
+                                <label>Date</label>
+                                <span>{{ formatDate(entry.transactionDate) }}</span>
+                            </div>
+                            <div class="mobile-field">
+                                <label>Debit</label>
+                                <span [class.text-debit]="entry.debitAmount > 0">{{ entry.debitAmount > 0 ? formatCurrency(entry.debitAmount) : '-' }}</span>
+                            </div>
+                            <div class="mobile-field">
+                                <label>Credit</label>
+                                <span [class.text-credit]="entry.creditAmount > 0">{{ entry.creditAmount > 0 ? formatCurrency(entry.creditAmount) : '-' }}</span>
+                            </div>
+                            <div class="mobile-field total">
+                                <label>Balance</label>
+                                <strong>{{ formatCurrency(entry.runningBalance) }}</strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div *ngIf="entries().length === 0" class="as-list-empty">
+                        No ledger entries found
+                    </div>
+                </div>
+
+                <!-- Paginator -->
+                <div class="as-paginator" *ngIf="totalEntryCount() > pageSize">
+                    <p-paginator
+                        [rows]="pageSize"
+                        [totalRecords]="totalEntryCount()"
+                        [first]="first"
+                        [rowsPerPageOptions]="[10, 20, 50]"
+                        (onPageChange)="onPageChange($event)">
+                    </p-paginator>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- STICKY FOOTER -->
+    <div class="as-footer" *ngIf="summary()">
+        <div class="as-footer-summary">
+            <div class="summary-row">
+                <span>Total Purchases</span>
+                <span class="value">{{ formatCurrency(summary()!.totalPurchases) }}</span>
+            </div>
+            <div class="summary-row">
+                <span>Total Payments</span>
+                <span class="value paid">{{ formatCurrency(summary()!.totalPayments) }}</span>
+            </div>
+            <div class="summary-row total-row" [class.due]="summary()!.currentBalance > 0">
+                <span>Current Balance</span>
+                <span class="value total-value">{{ formatCurrency(summary()!.currentBalance) }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== HIDDEN PRINT-OPTIMIZED SECTION ==================== -->
+@if (allEntriesLoaded() && summary()) {
+    <div id="supplier-account-summary-print" class="print-container">
+        <div class="print-header">
+            <div class="print-company-name">{{ companyConfig.companyName }}</div>
+            <div class="print-company-info">
+                {{ companyConfig.companyAddress }} | {{ companyConfig.companyPhone }} | {{ companyConfig.companyEmail }}
+            </div>
+            <div class="print-title">Supplier Account Summary</div>
+        </div>
+        <div class="print-supplier-info">
+            <div>
+                <div class="print-supplier-name">{{ summary()!.supplierName }}</div>
+                <div>Code: {{ summary()!.supplierCode }}</div>
+                <div>Transactions: {{ summary()!.transactionCount }}</div>
+            </div>
+            <div style="text-align: right;">
+                <div>Report Date: {{ formatDate(today) }}</div>
+                <div *ngIf="fromDate">From: {{ formatDate(fromDate.toISOString()) }}</div>
+                <div *ngIf="toDate">To: {{ formatDate(toDate.toISOString()) }}</div>
+            </div>
+        </div>
+        <div class="print-metrics">
+            <div class="print-metric">
+                <div class="print-metric-label">Total Purchases</div>
+                <div class="print-metric-value">{{ formatCurrency(summary()!.totalPurchases) }}</div>
+            </div>
+            <div class="print-metric paid">
+                <div class="print-metric-label">Total Payments</div>
+                <div class="print-metric-value">{{ formatCurrency(summary()!.totalPayments) }}</div>
+            </div>
+            <div class="print-metric" [class.due]="summary()!.currentBalance > 0">
+                <div class="print-metric-label">Current Balance</div>
+                <div class="print-metric-value">{{ formatCurrency(summary()!.currentBalance) }}</div>
+            </div>
+        </div>
+        <div class="print-table-title">Ledger Entries ({{ allEntries().length }} entries)</div>
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 5%;">#</th>
+                    <th style="width: 12%;">Date</th>
+                    <th style="width: 12%;">Type</th>
+                    <th style="width: 12%;">Reference #</th>
+                    <th>Description</th>
+                    <th class="text-right" style="width: 12%;">Debit</th>
+                    <th class="text-right" style="width: 12%;">Credit</th>
+                    <th class="text-right" style="width: 12%;">Balance</th>
+                </tr>
+            </thead>
+            <tbody>
+                @for (entry of allEntries(); track entry.id; let i = $index) {
+                    <tr>
+                        <td>{{ i + 1 }}</td>
+                        <td>{{ formatDate(entry.transactionDate) }}</td>
+                        <td>{{ getTransactionTypeLabel(entry.transactionType) }}</td>
+                        <td>{{ entry.referenceNumber || '-' }}</td>
+                        <td>{{ entry.description || '-' }}</td>
+                        <td class="text-right" [class.text-debit]="entry.debitAmount > 0">{{ entry.debitAmount > 0 ? formatCurrency(entry.debitAmount) : '-' }}</td>
+                        <td class="text-right" [class.text-credit]="entry.creditAmount > 0">{{ entry.creditAmount > 0 ? formatCurrency(entry.creditAmount) : '-' }}</td>
+                        <td class="text-right font-bold">{{ formatCurrency(entry.runningBalance) }}</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        @if (summary()!.currentBalance > 0) {
+            <div class="print-due-box">
+                <span class="label">Outstanding Balance: </span>
+                <span class="value">{{ formatCurrency(summary()!.currentBalance) }}</span>
+            </div>
+        }
+        <div class="print-footer">
+            <p>This is a computer-generated document. Generated on {{ formatDate(today) }} by {{ companyConfig.companyName }}.</p>
+            <p style="margin-top: 4px;">Thank you for your business!</p>
+        </div>
+    </div>
+}

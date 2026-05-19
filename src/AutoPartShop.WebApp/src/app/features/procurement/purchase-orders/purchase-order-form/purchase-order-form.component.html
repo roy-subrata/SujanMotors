@@ -1,0 +1,469 @@
+<div class="container">
+  <p-toast></p-toast>
+
+  <!-- Header -->
+  <div class="form-header">
+    <div class="header-content">
+      <div class="header-title-section">
+        <div class="breadcrumb">
+          <a (click)="onCancel()" class="breadcrumb-link">
+            <i class="pi pi-arrow-left"></i>
+            Purchase Orders
+          </a>
+          <span class="breadcrumb-separator">/</span>
+          <span class="breadcrumb-current">{{ mode === 'create' ? 'New' : mode === 'edit' ? 'Edit' : 'View' }}</span>
+        </div>
+        <h1 class="form-title">{{ getPageTitle() }}</h1>
+        <p class="form-subtitle">
+          {{ mode === 'create' ? 'Create a new purchase order for a supplier' : 'View or edit purchase order details' }}
+        </p>
+      </div>
+
+      <!-- Status Change Actions (View Mode Only) -->
+      <div class="header-actions" *ngIf="mode === 'view' && currentPO">
+        <div class="status-info">
+          <span class="status-label">Status:</span>
+          <p-tag [value]="currentPO.status" [severity]="getStatusSeverity(currentPO.status)"></p-tag>
+        </div>
+        <div class="action-buttons">
+          <button
+            pButton
+            type="button"
+            label="Print"
+            icon="pi pi-print"
+            class="p-button-outlined"
+            (click)="printPurchaseOrder()"
+            pTooltip="Print purchase order"
+            tooltipPosition="bottom">
+          </button>
+
+          <!-- Submit button - only for DRAFT status -->
+          <button
+            *ngIf="currentPO.status === 'DRAFT'"
+            pButton
+            type="button"
+            label="Submit"
+            icon="pi pi-send"
+            class="p-button-info"
+            (click)="submitPurchaseOrder()"
+            pTooltip="Submit this purchase order for approval"
+            tooltipPosition="bottom">
+          </button>
+
+          <!-- Confirm button - only for SUBMITTED status -->
+          <button
+            *ngIf="currentPO.status === 'SUBMITTED'"
+            pButton
+            type="button"
+            label="Confirm"
+            icon="pi pi-check-circle"
+            class="p-button-success"
+            (click)="confirmPurchaseOrder()"
+            pTooltip="Confirm this purchase order"
+            tooltipPosition="bottom">
+          </button>
+
+          <!-- Cancel button - only for DRAFT or SUBMITTED status -->
+          <button
+            *ngIf="currentPO.status === 'DRAFT' || currentPO.status === 'SUBMITTED'"
+            pButton
+            type="button"
+            label="Cancel"
+            icon="pi pi-ban"
+            class="p-button-warning"
+            (click)="cancelPurchaseOrder()"
+            pTooltip="Cancel this purchase order"
+            tooltipPosition="bottom">
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isSubmitting" class="loading-state">
+    <i class="pi pi-spin pi-spinner" style="font-size: 2rem;"></i>
+    <p>Processing...</p>
+  </div>
+
+  <!-- Form -->
+  <p-card class="form-card">
+    <form [formGroup]="form" class="form-content">
+
+      <!-- Section 1: Supplier Information -->
+      <div class="form-section">
+        <h3 class="section-title">
+          <i class="pi pi-truck section-icon"></i>
+          Supplier Information
+        </h3>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Supplier *</label>
+            <app-lazy-autocomplete
+              formControlName="supplier"
+              [fetchFn]="fetchSuppliersLazy"
+              optionLabel="name"
+              dataKey="id"
+              placeholder="Select supplier..."
+              [disabled]="mode === 'view'"
+              [minLength]="0"
+              [showClear]="true"
+              [style]="{ width: '100%' }">
+              <ng-template let-supplier>
+                <div class="autocomplete-item">
+                  <span class="item-name">{{ supplier.name }}</span>
+                  <span class="item-code">{{ supplier.code }}</span>
+                </div>
+              </ng-template>
+            </app-lazy-autocomplete>
+            <small *ngIf="hasError('supplier')" class="p-error">
+              {{ getErrorMessage('supplier') }}
+            </small>
+          </div>
+          <div class="form-group">
+            <label>Expected Delivery Date *</label>
+            <p-datepicker
+              formControlName="deliveryDate"
+              [showIcon]="true"
+              [showButtonBar]="true"
+              dateFormat="yy-mm-dd"
+              placeholder="Select date..."
+              [disabled]="mode === 'view'"
+              appendTo="body"
+              [style]="{ width: '100%' }">
+            </p-datepicker>
+            <small *ngIf="hasError('deliveryDate')" class="p-error">
+              {{ getErrorMessage('deliveryDate') }}
+            </small>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Payment Terms *</label>
+            <p-select
+              formControlName="paymentTerms"
+              [options]="paymentTermsOptions"
+              optionLabel="label"
+              optionValue="value"
+              placeholder="Select payment terms..."
+              [disabled]="mode === 'view'"
+              [style]="{ width: '100%' }">
+            </p-select>
+            <small *ngIf="hasError('paymentTerms')" class="p-error">
+              {{ getErrorMessage('paymentTerms') }}
+            </small>
+          </div>
+          <div class="form-group">
+            <label>Priority *</label>
+            <p-select
+              formControlName="priority"
+              [options]="priorityOptions"
+              optionLabel="label"
+              optionValue="value"
+              placeholder="Select priority..."
+              [disabled]="mode === 'view'"
+              [style]="{ width: '100%' }">
+            </p-select>
+            <small *ngIf="hasError('priority')" class="p-error">
+              {{ getErrorMessage('priority') }}
+            </small>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Currency *</label>
+            <app-currency-selector
+              formControlName="currency"
+              [disabled]="mode === 'view'"
+              [showLabel]="false"
+              placeholder="Select currency">
+            </app-currency-selector>
+            <small *ngIf="hasError('currency')" class="p-error">
+              {{ getErrorMessage('currency') }}
+            </small>
+          </div>
+          <div class="form-group">
+            <!-- Empty for alignment -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 2: Product Search (only in create/edit mode) -->
+      <div class="form-section" *ngIf="mode !== 'view'">
+        <h3 class="section-title">
+          <i class="pi pi-search section-icon"></i>
+          Add Products
+        </h3>
+        <div class="form-row">
+          <div class="form-group full">
+            <label>Search Product</label>
+            <app-lazy-autocomplete
+              [(ngModel)]="selectedPartToAdd"
+              [ngModelOptions]="{standalone: true}"
+              [fetchFn]="fetchPartsLazy"
+              (onItemSelect)="onPartSelectAndAdd($event)"
+              field="displayName"
+              placeholder="Search product by name, SKU, or part number to add..."
+              [minLength]="0"
+              [showClear]="true"
+              [style]="{ width: '100%' }">
+              <ng-template let-part>
+                <div class="autocomplete-item part-item">
+                  <div class="part-main-info">
+                    <span class="item-name">{{ part.displayName || part.name }}</span>
+                    <span class="part-price">{{ formatCurrency(part.effectiveSellingPrice ?? part.sellingPrice ?? 0) }}</span>
+                  </div>
+                  <div class="part-sub-info">
+                    <span class="item-code">SKU: {{ part.variantSKU || part.sku }} | PN: {{ part.partNumber }}</span>
+                    <span *ngIf="part.pricingMode === 'ADDITIVE'" class="variant-badge"> +delta</span>
+                    <span *ngIf="part.unitName"> | Unit: {{ part.unitName }}</span>
+                  </div>
+                </div>
+              </ng-template>
+            </app-lazy-autocomplete>
+            <small class="field-hint">
+              <i class="pi pi-info-circle"></i>
+              Type to search and select a product to add to the order
+            </small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 3: Order Line Items -->
+      <div class="form-section">
+        <div class="section-header">
+          <h3 class="section-title">
+            <i class="pi pi-list section-icon"></i>
+            Order Items
+            <span class="items-count" *ngIf="linesArray.length > 0">({{ linesArray.length }})</span>
+          </h3>
+        </div>
+
+        <!-- Line Items Table -->
+        <div class="table-wrapper" *ngIf="linesArray.length > 0">
+          <table class="line-items-table">
+            <thead>
+              <tr>
+                <th class="col-name">Product</th>
+                <th class="col-unit">Unit</th>
+                <th class="col-qty">Quantity</th>
+                <th class="col-price">Unit Price</th>
+                <th class="col-total">Line Total</th>
+                <th class="col-actions" *ngIf="mode !== 'view'">Actions</th>
+              </tr>
+            </thead>
+            <tbody formArrayName="lines">
+              <tr *ngFor="let line of linesArray.controls; let i = index" [formGroupName]="i" class="line-item-row">
+                <td class="part-name-cell" data-label="Product">
+                  <div class="part-name-wrapper" *ngIf="line.get('partId')?.value">
+                    <span class="part-name-value">{{ line.get('partId')?.value?.displayName || line.get('partId')?.value?.name }}</span>
+                    <button
+                      pButton
+                      type="button"
+                      icon="pi pi-warehouse"
+                      class="p-button-rounded p-button-text p-button-sm stock-nav-btn"
+                      (click)="navigateToStock(line.get('partId')?.value)"
+                      pTooltip="View stock in inventory"
+                      tooltipPosition="top">
+                    </button>
+                  </div>
+                  <span class="no-product" *ngIf="!line.get('partId')?.value">
+                    <i class="pi pi-exclamation-circle"></i> No product selected
+                  </span>
+                </td>
+                <td class="unit-cell" data-label="Unit">
+                  <p-select
+                    *ngIf="mode !== 'view'"
+                    formControlName="unitId"
+                    [options]="getCompatibleUnitsForLine(i)"
+                    optionLabel="name"
+                    dataKey="id"
+                    [filter]="true"
+                    filterPlaceholder="Search unit"
+                    placeholder="Select unit"
+                    appendTo="body"
+                    [style]="{ width: '100%' }"
+                    (onClick)="loadCompatibleUnitsForLine(i)"
+                    (onFilter)="onUnitFilter($event, i)"
+                    (onChange)="onUnitChanged(i)">
+                    <ng-template let-unit pTemplate="selectedItem">
+                      <span>{{ unit?.name || '-' }}</span>
+                    </ng-template>
+                    <ng-template let-unit pTemplate="item">
+                      <div class="unit-option">
+                        <span>{{ unit.name }}</span>
+                        <small class="unit-symbol">({{ unit.symbol }})</small>
+                      </div>
+                    </ng-template>
+                  </p-select>
+                  <span *ngIf="mode === 'view'" class="unit-display">{{ line.get('unitId')?.value?.name || '-' }}</span>
+                </td>
+                <td class="qty-cell" data-label="Quantity">
+                  <p-inputNumber
+                    *ngIf="mode !== 'view'"
+                    formControlName="quantity"
+                    [min]="1"
+                    [max]="9999"
+                    placeholder="0"
+                    [style]="{ width: '100%' }">
+                  </p-inputNumber>
+                  <span *ngIf="mode === 'view'" class="qty-display">{{ line.get('quantity')?.value }}</span>
+                </td>
+                <td class="price-cell" data-label="Unit Price">
+                  <p-inputNumber
+                    *ngIf="mode !== 'view'"
+                    formControlName="unitPrice"
+                    [min]="0"
+                    [max]="9999999"
+                    placeholder="0.00"
+                    [minFractionDigits]="2"
+                    [maxFractionDigits]="2"
+                    [style]="{ width: '100%' }">
+                  </p-inputNumber>
+                  <span *ngIf="mode === 'view'" class="price-display">{{ formatCurrency(line.get('unitPrice')?.value) }}</span>
+                </td>
+                <td class="line-total-cell" data-label="Line Total">
+                  <span class="line-total">{{ formatCurrency(getLineTotal(i)) }}</span>
+                </td>
+                <td class="action-cell" *ngIf="mode !== 'view'" data-label="Actions">
+                  <button
+                    pButton
+                    type="button"
+                    icon="pi pi-trash"
+                    class="p-button-rounded p-button-text p-button-sm p-button-danger"
+                    (click)="removeLineItem(i)"
+                    pTooltip="Remove item"
+                    tooltipPosition="top">
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Empty State -->
+        <div class="empty-lines" *ngIf="linesArray.length === 0">
+          <i class="pi pi-shopping-cart"></i>
+          <p>No products added yet</p>
+          <small *ngIf="mode !== 'view'">Use the search section above to add products to this order</small>
+          <small *ngIf="mode === 'view'">This order has no products</small>
+        </div>
+      </div>
+
+      <!-- Section 5: Order Summary -->
+      <div class="form-section summary-section">
+        <div class="order-summary-modern">
+          <!-- Subtotal -->
+          <div class="summary-item">
+            <span class="summary-item-label">Subtotal</span>
+            <span class="summary-item-value">{{ formatCurrency(getSubtotal()) }}</span>
+          </div>
+
+          <!-- Discount Type Toggle (View Mode Hidden) -->
+          <div class="discount-type-toggle" *ngIf="mode !== 'view'">
+            <label class="radio-option">
+              <input type="radio" [value]="'BULK'" [checked]="form.get('discountType')?.value === 'BULK'" (change)="onDiscountTypeChange('BULK')" />
+              <span>Bulk (Per Item)</span>
+            </label>
+            <label class="radio-option">
+              <input type="radio" [value]="'TOTAL'" [checked]="form.get('discountType')?.value === 'TOTAL'" (change)="onDiscountTypeChange('TOTAL')" />
+              <span>Total Level</span>
+            </label>
+          </div>
+
+          <!-- Discount Input -->
+          <div class="discount-input-row" *ngIf="mode !== 'view'">
+            <label>Discount (%)</label>
+            <p-inputNumber
+              formControlName="discountPercentage"
+              [min]="0"
+              [max]="100"
+              placeholder="0"
+              [minFractionDigits]="0"
+              [maxFractionDigits]="2"
+              [style]="{ width: '100%' }">
+            </p-inputNumber>
+            <small *ngIf="hasError('discountPercentage')" class="p-error">
+              {{ getErrorMessage('discountPercentage') }}
+            </small>
+          </div>
+
+          <!-- Manual Discount Amount -->
+          <div class="discount-input-row" *ngIf="mode !== 'view'">
+            <label>Discount Amount (Optional)</label>
+            <p-inputNumber
+              formControlName="discountAmount"
+              [min]="0"
+              placeholder="0.00"
+              [minFractionDigits]="2"
+              [maxFractionDigits]="2"
+              [style]="{ width: '100%' }">
+            </p-inputNumber>
+            <small class="field-hint">Enter a fixed discount amount or use percentage above</small>
+          </div>
+
+          <!-- Discount Display (View Mode) -->
+          <div class="summary-item" *ngIf="mode === 'view' && getDiscountAmount() > 0">
+            <span class="summary-item-label">Discount</span>
+            <span class="summary-item-value discount">-{{ formatCurrency(getDiscountAmount()) }}</span>
+          </div>
+
+          <!-- Divider -->
+          <div class="summary-divider"></div>
+
+          <!-- Total -->
+          <div class="grand-total-row">
+            <span class="grand-total-label">Total</span>
+            <span class="grand-total-value">{{ formatCurrency(getGrandTotal()) }}</span>
+          </div>
+
+          <!-- Credit Applied Display -->
+          <div class="credit-applied-row" *ngIf="totalCreditApplied > 0">
+            <span class="credit-label">Credit Applied</span>
+            <span class="credit-value">-{{ formatCurrency(totalCreditApplied) }}</span>
+          </div>
+
+          <div class="grand-total-row" *ngIf="totalCreditApplied > 0">
+            <span class="grand-total-label">Net Payable</span>
+            <span class="grand-total-value net-payable">{{ formatCurrency(getGrandTotal() - totalCreditApplied) }}</span>
+          </div>
+        </div>
+      </div>
+    </form>
+
+    <!-- Credit Notes Section (outside form, below summary) -->
+    <div class="credit-notes-section" *ngIf="form.get('supplierId')?.value && poId">
+      <app-apply-credit-notes
+          [supplierId]="form.get('supplierId')?.value"
+          [purchaseOrderId]="poId"
+          [poTotalAmount]="getGrandTotal()"
+          [poPaidAmount]="0"
+          (creditApplied)="onCreditApplied($event)">
+      </app-apply-credit-notes>
+    </div>
+
+    <!-- Submit Buttons (outside form, at card bottom) -->
+    <div class="submit-actions" *ngIf="!isViewing">
+      <button
+        type="button"
+        class="submit-button"
+        (click)="onSubmit()"
+        [disabled]="isSubmitting || linesArray.length === 0">
+        <i class="pi pi-spin pi-spinner" *ngIf="isSubmitting"></i>
+        <span>{{ isSubmitting ? 'Processing...' : (mode === 'edit' ? 'Update Order' : 'Create Order') }}</span>
+      </button>
+      <button
+        type="button"
+        class="cancel-button"
+        (click)="onCancel()">
+        <span>Cancel</span>
+      </button>
+    </div>
+  </p-card>
+</div>
+
+<!-- Confirm Dialog -->
+<p-confirmDialog></p-confirmDialog>

@@ -1,0 +1,111 @@
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.credit-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 6px;
+}
+
+.credit-label {
+  font-size: 13px;
+  color: #166534;
+  font-weight: 500;
+}
+
+.credit-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #15803d;
+}
+
+.credit-number {
+  font-weight: 600;
+  color: #2563eb;
+}
+
+.available-amount {
+  font-weight: 600;
+  color: #15803d;
+}
+
+tr.selected {
+  background-color: #eff6ff;
+}
+
+.apply-section {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.apply-form h4 {
+  margin: 0 0 16px 0;
+  font-size: 15px;
+  color: #1e293b;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group label {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.value-display {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e293b;
+  padding: 8px 0;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 16px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px;
+  color: #64748b;
+}
+
+.empty-state i {
+  font-size: 32px;
+}
+
+.text-right {
+  text-align: right;
+}
+
+@media (max-width: 768px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,213 @@
+<!-- ============================================================
+     PURCHASE ORDERS LIST - CLEAN TABLE COMPONENT
+     ============================================================
+     This is a reusable table component. The header and filters
+     should be in the parent component.
+
+     TO REUSE THIS TEMPLATE:
+     - Copy the card-container structure
+     - Update table columns (th elements) as needed
+     - Update table body (td elements) to match your data
+     - Update status badge colors in CSS
+     - Update action menu items in component.ts
+     ============================================================ -->
+
+<!-- ==================== DATA TABLE (Desktop) ==================== -->
+<section class="table-section desktop-only">
+  <div class="table-container">
+    <div class="table-wrapper">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th class="col-po">PO Number</th>
+            <th class="col-supplier">Supplier</th>
+            <th class="col-date">Order Date</th>
+            <th class="col-date">Delivery Date</th>
+            <th class="col-status">Status</th>
+            <th class="col-amount">Grand Total</th>
+            <th class="col-amount">Outstanding</th>
+            <th class="col-actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="loading" class="loading-row">
+            <td colspan="8">
+              <div class="loading-spinner">
+                <i class="pi pi-spin pi-spinner"></i>
+                <span>Loading purchase orders...</span>
+              </div>
+            </td>
+          </tr>
+
+          <tr *ngIf="!loading && purchaseOrders.length === 0" class="empty-row">
+            <td colspan="8">
+              <div class="empty-state">
+                <div class="empty-icon">
+                  <i class="pi pi-shopping-bag"></i>
+                </div>
+                <h3>No Purchase Orders Found</h3>
+                <p>{{ searchTerm ? 'Try adjusting your filters or search criteria' : 'Start by creating a new purchase order' }}</p>
+              </div>
+            </td>
+          </tr>
+
+          <tr *ngFor="let po of purchaseOrders" class="data-row" [class.row-overdue]="po.isOverdue" (dblclick)="viewPurchaseOrder(po)">
+            <td class="col-po">
+              <div class="so-cell">
+                <a class="so-link" (click)="viewPurchaseOrder(po)">{{ po.poNumber }}</a>
+                <span *ngIf="po.isOverdue" class="overdue-badge">Overdue</span>
+              </div>
+            </td>
+            <td class="col-supplier">
+              <div class="customer-cell">
+                <div class="customer-avatar">
+                  {{ (po.supplierName || 'S')[0].toUpperCase() }}
+                </div>
+                <div class="customer-info">
+                  <a class="customer-name entity-link" [routerLink]="['/inventory/suppliers', po.supplierId]" *ngIf="po.supplierId">{{ po.supplierName || '-' }}</a>
+                  <span class="customer-name" *ngIf="!po.supplierId">{{ po.supplierName || '-' }}</span>
+                  <span *ngIf="po.supplierCode" class="customer-phone">{{ po.supplierCode }}</span>
+                </div>
+              </div>
+            </td>
+            <td class="col-date">
+              <span class="date-text">{{ formatDate(po.orderDate) }}</span>
+            </td>
+            <td class="col-date">
+              <span class="date-text" [class.text-danger]="po.isOverdue">
+                {{ formatDate(po.deliveryDate) }}
+              </span>
+            </td>
+            <td class="col-status">
+              <span class="status-pill" [attr.data-status]="po.status.toLowerCase()">
+                {{ po.status }}
+              </span>
+            </td>
+            <td class="col-amount">
+              <span class="amount-value">{{ formatCurrency(po.grandTotal) }}</span>
+            </td>
+            <td class="col-amount">
+              <span class="amount-value" [class.text-danger]="po.outstandingAmount > 0">
+                {{ formatCurrency(po.outstandingAmount) }}
+              </span>
+            </td>
+            <td class="col-actions">
+              <div class="action-cell">
+                <button class="btn-action" pTooltip="More" (click)="showContextMenu($event, po)">
+                  <i class="pi pi-ellipsis-v"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="pagination-section" *ngIf="totalRecords > 0">
+    <div class="pagination-info">
+      Showing <strong>{{ ((currentPage - 1) * rows) + 1 }}</strong> to <strong>{{ Math.min(currentPage * rows, totalRecords) }}</strong> of <strong>{{ totalRecords }}</strong> orders
+    </div>
+    <div class="pagination-controls">
+      <span class="page-size-label">Rows per page:</span>
+      <select class="page-size-select" [value]="rows" (change)="onPageSizeChange($event)">
+        <option *ngFor="let size of pageSizeOptions" [value]="size">{{ size }}</option>
+      </select>
+      <div class="page-nav">
+        <button class="page-btn" [disabled]="currentPage === 1" (click)="goToPage(1)">
+          <i class="pi pi-angle-double-left"></i>
+        </button>
+        <button class="page-btn" [disabled]="currentPage === 1" (click)="goToPage(currentPage - 1)">
+          <i class="pi pi-angle-left"></i>
+        </button>
+        <span class="page-indicator">{{ currentPage }} / {{ totalPages }}</span>
+        <button class="page-btn" [disabled]="currentPage === totalPages" (click)="goToPage(currentPage + 1)">
+          <i class="pi pi-angle-right"></i>
+        </button>
+        <button class="page-btn" [disabled]="currentPage === totalPages" (click)="goToPage(totalPages)">
+          <i class="pi pi-angle-double-right"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== MOBILE CARDS ==================== -->
+<section class="cards-section mobile-only">
+  <div *ngIf="loading" class="cards-grid">
+    <div *ngFor="let _ of [1,2,3,4]" class="order-card skeleton-card">
+      <div class="card-header">
+        <div class="skeleton skeleton-text"></div>
+        <div class="skeleton skeleton-badge"></div>
+      </div>
+      <div class="card-body">
+        <div class="skeleton skeleton-text-lg"></div>
+        <div class="skeleton skeleton-text-sm"></div>
+      </div>
+      <div class="card-footer">
+        <div class="skeleton skeleton-text-sm"></div>
+        <div class="skeleton skeleton-text-sm"></div>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="!loading && purchaseOrders.length === 0" class="empty-state-mobile">
+    <div class="empty-icon">
+      <i class="pi pi-shopping-bag"></i>
+    </div>
+    <h3>No Purchase Orders</h3>
+    <p>{{ searchTerm ? 'Try adjusting your filters or search criteria' : 'Start by creating a new purchase order' }}</p>
+  </div>
+
+  <div *ngIf="!loading && purchaseOrders.length > 0" class="cards-grid">
+    <div *ngFor="let po of purchaseOrders" class="order-card" (click)="viewPurchaseOrder(po)">
+      <div class="card-header">
+        <span class="card-so-number">{{ po.poNumber }}</span>
+        <span class="status-pill" [attr.data-status]="po.status.toLowerCase()">{{ po.status }}</span>
+      </div>
+      <div class="card-body">
+        <div class="card-customer">
+          <div class="customer-avatar small">
+            {{ (po.supplierName || 'S')[0].toUpperCase() }}
+          </div>
+          <div class="customer-info">
+            <span class="customer-name">{{ po.supplierName || '-' }}</span>
+            <span *ngIf="po.supplierCode" class="customer-phone">{{ po.supplierCode }}</span>
+          </div>
+        </div>
+        <div class="card-dates">
+          <span class="card-date"><i class="pi pi-calendar"></i> {{ formatDate(po.orderDate) }}</span>
+          <span class="card-date" [class.text-danger]="po.isOverdue"><i class="pi pi-truck"></i> {{ formatDate(po.deliveryDate) }}</span>
+        </div>
+        <span *ngIf="po.isOverdue" class="overdue-text"><i class="pi pi-exclamation-triangle"></i> Overdue</span>
+      </div>
+      <div class="card-footer">
+        <div class="card-amount">
+          <span class="amount-label">Grand Total</span>
+          <span class="amount-value">{{ formatCurrency(po.grandTotal) }}</span>
+        </div>
+        <button class="btn-card-action" (click)="showContextMenu($event, po); $event.stopPropagation()">
+          <i class="pi pi-ellipsis-v"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="mobile-pagination" *ngIf="totalRecords > 0">
+    <span class="pagination-info-mobile">{{ currentPage }} / {{ totalPages }}</span>
+    <div class="pagination-nav-mobile">
+      <button class="page-btn" [disabled]="currentPage === 1" (click)="goToPage(currentPage - 1)">
+        <i class="pi pi-angle-left"></i>
+      </button>
+      <button class="page-btn" [disabled]="currentPage === totalPages" (click)="goToPage(currentPage + 1)">
+        <i class="pi pi-angle-right"></i>
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- Context Menu -->
+<p-contextMenu #contextMenu [model]="contextMenuItems" [appendTo]="'body'"></p-contextMenu>
+
+<!-- Confirm Dialog -->
+<p-confirmDialog></p-confirmDialog>

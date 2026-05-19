@@ -1,0 +1,140 @@
+<p-toast></p-toast>
+<p-confirmDialog></p-confirmDialog>
+
+<div class="location-manager">
+    <div class="header">
+        <h3>Locations for {{ partName }}</h3>
+        <button pButton type="button" label="Add Location" icon="pi pi-plus" class="p-button-sm" (click)="openCreateDialog()"></button>
+    </div>
+
+    <p-table [value]="locations" [loading]="loading" responsiveLayout="stack" breakpoint="768px" styleClass="p-datatable-sm">
+        <ng-template pTemplate="header">
+            <tr>
+                <th style="width: 30px"></th>
+                <th>Warehouse</th>
+                <th>Section</th>
+                <th>Shelf</th>
+                <th>Full Location</th>
+                <th>Notes</th>
+                <th style="width: 100px">Actions</th>
+            </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-location>
+            <tr>
+                <td>
+                    <p-tag *ngIf="location.isPrimary" [value]="'Primary'" [severity]="getSeverity(location.isPrimary)" [rounded]="true"></p-tag>
+                </td>
+                <td>
+                    <span class="p-column-title">Warehouse</span>
+                    {{ location.warehouseName }} ({{ location.warehouseCode }})
+                </td>
+                <td>
+                    <span class="p-column-title">Section</span>
+                    {{ location.section }}
+                </td>
+                <td>
+                    <span class="p-column-title">Shelf</span>
+                    {{ location.shelf }}
+                </td>
+                <td>
+                    <span class="p-column-title">Full Location</span>
+                    <strong>{{ location.fullLocation }}</strong>
+                </td>
+                <td>
+                    <span class="p-column-title">Notes</span>
+                    {{ location.notes || '-' }}
+                </td>
+                <td>
+                    <span class="p-column-title">Actions</span>
+                    <div class="flex gap-2">
+                        <button
+                            *ngIf="!location.isPrimary"
+                            pButton
+                            type="button"
+                            icon="pi pi-star"
+                            class="p-button-text p-button-sm"
+                            pTooltip="Set as Primary"
+                            (click)="setPrimary(location)"
+                        ></button>
+                        <button pButton type="button" icon="pi pi-pencil" class="p-button-text p-button-sm" pTooltip="Edit" (click)="openEditDialog(location)"></button>
+                        <button
+                            pButton
+                            type="button"
+                            icon="pi pi-trash"
+                            class="p-button-text p-button-danger p-button-sm"
+                            pTooltip="Delete"
+                            (click)="deleteLocation(location)"
+                        ></button>
+                    </div>
+                </td>
+            </tr>
+        </ng-template>
+        <ng-template pTemplate="emptymessage">
+            <tr>
+                <td colspan="7" class="text-center">No locations found. Click "Add Location" to create one.</td>
+            </tr>
+        </ng-template>
+    </p-table>
+</div>
+
+<!-- Add/Edit Location Dialog -->
+<p-dialog [(visible)]="displayDialog" [header]="isEditing ? 'Edit Location' : 'Add Location'" [modal]="true" [style]="{ width: '500px' }" (onHide)="closeDialog()">
+    <form [formGroup]="locationForm">
+        <div class="form-group">
+            <label for="warehouse">Warehouse *</label>
+            <p-select
+                id="warehouse"
+                formControlName="warehouseId"
+                [options]="warehouses"
+                optionLabel="name"
+                optionValue="id"
+                placeholder="Select a warehouse"
+                [disabled]="isEditing || isSubmitting"
+                [style]="{ width: '100%' }"
+            >
+                <ng-template let-warehouse pTemplate="item">
+                    <div>{{ warehouse.name }} ({{ warehouse.code }})</div>
+                </ng-template>
+            </p-select>
+            <small class="error" *ngIf="hasError('warehouseId')">Warehouse is required</small>
+        </div>
+
+        <div class="form-group">
+            <label for="section">Section / Aisle *</label>
+            <input id="section" type="text" pInputText formControlName="section" class="w-full" [disabled]="isSubmitting" />
+            <small class="error" *ngIf="hasError('section')">Section is required and must not exceed 100 characters</small>
+        </div>
+
+        <div class="form-group">
+            <label for="shelf">Shelf / Bin *</label>
+            <input id="shelf" type="text" pInputText formControlName="shelf" class="w-full" [disabled]="isSubmitting" />
+            <small class="error" *ngIf="hasError('shelf')">Shelf is required and must not exceed 100 characters</small>
+        </div>
+
+        <div class="form-group">
+            <div class="flex align-items-center">
+                <p-checkbox formControlName="isPrimary" [binary]="true" inputId="isPrimary" [disabled]="isSubmitting"></p-checkbox>
+                <label for="isPrimary" class="ml-2 mb-0">Set as Primary Location</label>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="notes">Notes</label>
+            <textarea id="notes" pInputTextarea formControlName="notes" class="w-full" [disabled]="isSubmitting"></textarea>
+            <small class="error" *ngIf="hasError('notes')">Notes must not exceed 500 characters</small>
+        </div>
+    </form>
+
+    <ng-template pTemplate="footer">
+        <button type="button" pButton label="Cancel" (click)="closeDialog()" [disabled]="isSubmitting" class="p-button-text"></button>
+        <button
+            type="button"
+            pButton
+            [label]="isEditing ? 'Update' : 'Create'"
+            (click)="onSubmit()"
+            [disabled]="locationForm.invalid || isSubmitting"
+            [loading]="isSubmitting"
+            class="p-button-success"
+        ></button>
+    </ng-template>
+</p-dialog>
