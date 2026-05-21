@@ -71,6 +71,9 @@ public class AutoPartDbContext : IdentityDbContext<ApplicationUser, ApplicationR
     // Variant time-based pricing
     public DbSet<ProductVariantPriceHistory> ProductVariantPriceHistories { get; set; }
 
+    // Notification audit trail
+    public DbSet<NotificationLog> NotificationLogs { get; set; }
+
 
     // Identity and Permission tables
     public DbSet<Permission> Permissions { get; set; }

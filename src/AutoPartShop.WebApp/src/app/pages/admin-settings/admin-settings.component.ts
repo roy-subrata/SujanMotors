@@ -13,9 +13,11 @@ import { MultiSelectModule } from 'primeng/multiselect';
 import { CheckboxModule } from 'primeng/checkbox';
 import { PasswordModule } from 'primeng/password';
 import { TooltipModule } from 'primeng/tooltip';
+import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { AdminService, UserResponse, RoleResponse, PermissionResponse } from '../../shared/services/admin.service';
 import { PriceCodeService } from '../../shared/services/price-code.service';
+import { AppSettingsService, NotificationSettings } from '../../shared/services/app-settings.service';
 
 @Component({
   selector: 'app-admin-settings',
@@ -35,7 +37,8 @@ import { PriceCodeService } from '../../shared/services/price-code.service';
     MultiSelectModule,
     CheckboxModule,
     PasswordModule,
-    TooltipModule
+    TooltipModule,
+    ToggleSwitchModule
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: './admin-settings.component.html',
@@ -47,6 +50,7 @@ export class AdminSettingsComponent implements OnInit {
   private readonly confirmationService = inject(ConfirmationService);
   private readonly fb = inject(FormBuilder);
   readonly priceCodeService = inject(PriceCodeService);
+  private readonly appSettingsService = inject(AppSettingsService);
 
   // Active tab (regular variable for two-way binding with p-tabs)
   activeTabIndex: number = 0;
@@ -118,6 +122,7 @@ export class AdminSettingsComponent implements OnInit {
     this.loadUsers();
     this.loadRoles();
     this.loadPermissions();
+    this.loadNotificationSettings();
   }
 
   // User Management
@@ -553,6 +558,53 @@ export class AdminSettingsComponent implements OnInit {
 
   getStatusSeverity(isActive: boolean): 'success' | 'danger' {
     return isActive ? 'success' : 'danger';
+  }
+
+  // ============= Notification Settings =============
+
+  notifSettings = signal<NotificationSettings>({ smsEnabled: false, whatsAppEnabled: false, signalRRoles: [] });
+  notifLoading = signal(false);
+  notifSaving = signal(false);
+
+  loadNotificationSettings(): void {
+    this.notifLoading.set(true);
+    this.appSettingsService.getNotificationSettings().subscribe({
+      next: (settings) => {
+        this.notifSettings.set(settings);
+        this.notifLoading.set(false);
+      },
+      error: () => {
+        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load notification settings' });
+        this.notifLoading.set(false);
+      }
+    });
+  }
+
+  saveNotificationSettings(): void {
+    this.notifSaving.set(true);
+    this.appSettingsService.updateNotificationSettings(this.notifSettings()).subscribe({
+      next: (updated) => {
+        this.notifSettings.set(updated);
+        this.messageService.add({ severity: 'success', summary: 'Saved', detail: 'Notification settings updated' });
+        this.notifSaving.set(false);
+      },
+      error: () => {
+        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to save notification settings' });
+        this.notifSaving.set(false);
+      }
+    });
+  }
+
+  toggleSms(): void {
+    this.notifSettings.update(s => ({ ...s, smsEnabled: !s.smsEnabled }));
+  }
+
+  toggleWhatsApp(): void {
+    this.notifSettings.update(s => ({ ...s, whatsAppEnabled: !s.whatsAppEnabled }));
+  }
+
+  updateSignalRRoles(roles: string[]): void {
+    this.notifSettings.update(s => ({ ...s, signalRRoles: roles }));
   }
 
   // ============= Price Code Management =============

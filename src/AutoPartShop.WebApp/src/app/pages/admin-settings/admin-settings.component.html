@@ -47,6 +47,10 @@
           <i class="pi pi-lock mr-2"></i>
           Price Code
         </p-tab>
+        <p-tab [value]="4">
+          <i class="pi pi-bell mr-2"></i>
+          Notifications
+        </p-tab>
       </p-tablist>
 
       <p-tabpanels>
@@ -381,6 +385,102 @@
           </div>
         </div>
       </p-tabpanel>
+
+      <!-- ==================== NOTIFICATIONS TAB ==================== -->
+      <p-tabpanel [value]="4">
+        <div class="tab-content">
+          <div class="price-code-section">
+
+            <div class="price-code-header">
+              <i class="pi pi-bell" style="font-size: 1.75rem; color: #6366f1;"></i>
+              <div>
+                <h3 style="margin: 0; font-size: 1.15rem; font-weight: 600;">Notification Channels</h3>
+                <p style="margin: 0.25rem 0 0; color: #6b7280; font-size: 0.875rem;">
+                  Enable or disable outbound notification channels. Changes take effect immediately — no restart required.
+                </p>
+              </div>
+            </div>
+
+            @if (notifLoading()) {
+              <div style="padding: 2rem; text-align: center; color: #9ca3af;">
+                <i class="pi pi-spin pi-spinner" style="font-size: 1.5rem;"></i>
+              </div>
+            } @else {
+              <div style="display: flex; flex-direction: column; gap: 1rem; max-width: 520px; margin-top: 1.5rem;">
+
+                <!-- SMS -->
+                <div class="notif-channel-card" [class.notif-channel-active]="notifSettings().smsEnabled">
+                  <div class="notif-channel-icon">
+                    <i class="pi pi-mobile"></i>
+                  </div>
+                  <div class="notif-channel-info">
+                    <span class="notif-channel-name">SMS</span>
+                    <span class="notif-channel-desc">Send order confirmation texts via Twilio</span>
+                  </div>
+                  <p-toggleswitch
+                    [ngModel]="notifSettings().smsEnabled"
+                    (ngModelChange)="toggleSms()">
+                  </p-toggleswitch>
+                </div>
+
+                <!-- WhatsApp -->
+                <div class="notif-channel-card" [class.notif-channel-active]="notifSettings().whatsAppEnabled">
+                  <div class="notif-channel-icon" style="background: #dcfce7; color: #16a34a;">
+                    <i class="pi pi-comments"></i>
+                  </div>
+                  <div class="notif-channel-info">
+                    <span class="notif-channel-name">WhatsApp</span>
+                    <span class="notif-channel-desc">Send order confirmation messages via Twilio WhatsApp</span>
+                  </div>
+                  <p-toggleswitch
+                    [ngModel]="notifSettings().whatsAppEnabled"
+                    (ngModelChange)="toggleWhatsApp()">
+                  </p-toggleswitch>
+                </div>
+
+                <!-- SignalR role filter -->
+                <div class="notif-channel-card" style="flex-direction: column; align-items: flex-start; gap: 0.75rem;">
+                  <div style="display: flex; align-items: center; gap: 0.75rem; width: 100%;">
+                    <div class="notif-channel-icon" style="background: #ede9fe; color: #7c3aed;">
+                      <i class="pi pi-wifi"></i>
+                    </div>
+                    <div class="notif-channel-info">
+                      <span class="notif-channel-name">Real-time Alerts (SignalR)</span>
+                      <span class="notif-channel-desc">Which roles receive in-app sale pop-ups. Leave empty to notify all staff.</span>
+                    </div>
+                  </div>
+                  <p-multiselect
+                    [options]="getRoleOptions()"
+                    [ngModel]="notifSettings().signalRRoles"
+                    (ngModelChange)="updateSignalRRoles($event)"
+                    optionLabel="label"
+                    optionValue="value"
+                    placeholder="All staff (no filter)"
+                    appendTo="body"
+                    styleClass="w-full"
+                  ></p-multiselect>
+                </div>
+
+              </div>
+
+              <div style="margin-top: 1.5rem;">
+                <button pButton label="Save Changes" icon="pi pi-save"
+                  (click)="saveNotificationSettings()"
+                  [loading]="notifSaving()"
+                  [disabled]="notifSaving()">
+                </button>
+              </div>
+
+              <div class="price-code-status" style="margin-top: 1.25rem;">
+                <i class="pi pi-info-circle" style="color: #6366f1;"></i>
+                <span>Email notifications are always active and cannot be disabled here.</span>
+              </div>
+            }
+
+          </div>
+        </div>
+      </p-tabpanel>
+
     </p-tabpanels>
   </p-tabs>
   </div>
@@ -532,6 +632,7 @@
             [filter]="false"
             display="chip"
             styleClass="w-full"
+            appendTo="body"
           ></p-multiselect>
         </div>
       </div>

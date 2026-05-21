@@ -1,4 +1,4 @@
-import { Component, inject, computed, signal } from '@angular/core';
+import { Component, inject, computed, signal, OnInit, OnDestroy } from '@angular/core';
 import { MenuItem } from 'primeng/api';
 import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { CommonModule } from '@angular/common';
@@ -12,14 +12,20 @@ import { InputTextModule } from 'primeng/inputtext';
 import { LayoutService } from '../service/layout.service';
 import { AuthService } from '../../shared/services/auth.service';
 import { I18nService } from '../../shared/services/i18n.service';
+import { NotificationHubService, SaleNotificationEvent } from '../../shared/services/notification-hub.service';
 import { LanguageSwitcherComponent } from '../../shared/components/language-switcher/language-switcher.component';
+import { ToastModule } from 'primeng/toast';
+import { MessageService } from 'primeng/api';
 import { filter } from 'rxjs/operators';
+import { Subscription } from 'rxjs';
 
 @Component({
     selector: 'app-topbar',
     standalone: true,
-    imports: [RouterModule, CommonModule, FormsModule, StyleClassModule, TooltipModule, AvatarModule, MenuModule, BadgeModule, InputTextModule, LanguageSwitcherComponent],
-    template: ` <div class="layout-topbar">
+    imports: [RouterModule, CommonModule, FormsModule, StyleClassModule, TooltipModule, AvatarModule, MenuModule, BadgeModule, InputTextModule, LanguageSwitcherComponent, ToastModule],
+    providers: [MessageService],
+    template: ` <p-toast position="top-right" key="sale-notification"></p-toast>
+    <div class="layout-topbar">
         <!-- Mobile Menu Toggle -->
         <button class="layout-menu-button layout-topbar-action" (click)="layoutService.onMenuToggle()">
             <i class="pi pi-bars"></i>
@@ -331,19 +337,23 @@ import { filter } from 'rxjs/operators';
         }
     `]
 })
-export class AppTopbar {
+export class AppTopbar implements OnInit, OnDestroy {
     public layoutService = inject(LayoutService);
     private authService = inject(AuthService);
     private router = inject(Router);
     private i18n = inject(I18nService);
+    private notificationHub = inject(NotificationHubService);
+    private messageService = inject(MessageService);
 
     currentUser = computed(() => this.authService.currentUser());
     pageTitle = signal('Dashboard');
-    notificationCount = signal(3);
+    notificationCount = signal(0);
     searchQuery = '';
 
     notificationItems: MenuItem[] = [];
     userMenuItems: MenuItem[] = [];
+
+    private hubSub?: Subscription;
 
     constructor() {
         this.buildNotificationItems();
@@ -356,11 +366,42 @@ export class AppTopbar {
             this.updatePageTitle();
         });
 
-        // Rebuild menus when language changes
         this.i18n.translationsLoaded$.subscribe(() => {
             this.buildNotificationItems();
             this.buildUserMenuItems();
             this.updatePageTitle();
+        });
+    }
+
+    ngOnInit(): void {
+        this.hubSub = this.notificationHub.saleNotification$.subscribe(evt => {
+            this.onSaleNotification(evt);
+        });
+    }
+
+    ngOnDestroy(): void {
+        this.hubSub?.unsubscribe();
+    }
+
+    private onSaleNotification(evt: SaleNotificationEvent): void {
+        const label = `${evt.soNumber} — ${evt.customerName} · ${evt.currency} ${evt.grandTotal.toFixed(2)}`;
+        const time   = new Date(evt.occurredAt).toLocaleTimeString();
+
+        // Prepend to notification dropdown
+        this.notificationItems = [
+            { label, icon: 'pi-check-circle', time, severity: 'success' },
+            ...this.notificationItems
+        ].slice(0, 10); // keep last 10
+
+        this.notificationCount.update(n => n + 1);
+
+        // Show a toast popup
+        this.messageService.add({
+            key:      'sale-notification',
+            severity: 'success',
+            summary:  '💰 New Sale',
+            detail:   `${evt.soNumber} — ${evt.currency} ${evt.grandTotal.toFixed(2)}`,
+            life:      6000
         });
     }
 
