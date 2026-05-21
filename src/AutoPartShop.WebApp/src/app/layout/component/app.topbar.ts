@@ -1,4 +1,4 @@
-import { Component, inject, computed, signal, OnInit, OnDestroy } from '@angular/core';
+import { Component, inject, computed, signal, OnInit, OnDestroy, ViewChild } from '@angular/core';
 import { MenuItem } from 'primeng/api';
 import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { CommonModule } from '@angular/common';
@@ -9,6 +9,7 @@ import { AvatarModule } from 'primeng/avatar';
 import { MenuModule } from 'primeng/menu';
 import { BadgeModule } from 'primeng/badge';
 import { InputTextModule } from 'primeng/inputtext';
+import { Popover } from 'primeng/popover';
 import { LayoutService } from '../service/layout.service';
 import { AuthService } from '../../shared/services/auth.service';
 import { I18nService } from '../../shared/services/i18n.service';
@@ -19,12 +20,25 @@ import { MessageService } from 'primeng/api';
 import { filter } from 'rxjs/operators';
 import { Subscription } from 'rxjs';
 
+interface StaffNotification {
+    id: string;
+    type: 'sale';
+    title: string;
+    description: string;
+    icon: string;
+    occurredAt: Date;
+    isRead: boolean;
+    routerLink: string;
+    queryParams?: Record<string, string>;
+}
+
 @Component({
     selector: 'app-topbar',
     standalone: true,
-    imports: [RouterModule, CommonModule, FormsModule, StyleClassModule, TooltipModule, AvatarModule, MenuModule, BadgeModule, InputTextModule, LanguageSwitcherComponent, ToastModule],
+    imports: [RouterModule, CommonModule, FormsModule, StyleClassModule, TooltipModule, AvatarModule, MenuModule, BadgeModule, InputTextModule, LanguageSwitcherComponent, ToastModule, Popover],
     providers: [MessageService],
-    template: ` <p-toast position="top-right" key="sale-notification"></p-toast>
+    template: `
+    <p-toast position="top-right" key="sale-notification"></p-toast>
     <div class="layout-topbar">
         <!-- Mobile Menu Toggle -->
         <button class="layout-menu-button layout-topbar-action" (click)="layoutService.onMenuToggle()">
@@ -62,41 +76,58 @@ import { Subscription } from 'rxjs';
             </button>
 
             <!-- Notifications -->
-            <div class="notification-container">
+            <div class="notif-btn-wrap">
                 <button
                     type="button"
                     class="topbar-action-btn"
-                    pBadge
-                    [value]="notificationCount().toString()"
-                    severity="danger"
                     pTooltip="Notifications"
                     tooltipPosition="bottom"
-                    (click)="notificationsMenu.toggle($event)">
+                    (click)="notifPanel.toggle($event)">
                     <i class="pi pi-bell"></i>
                 </button>
-                <p-menu
-                    #notificationsMenu
-                    [model]="notificationItems"
-                    [popup]="true"
-                    [appendTo]="'body'"
-                    [style]="{'min-width': '320px', 'max-width': '400px'}">
-                    <ng-template pTemplate="start">
-                        <div class="notifications-header">
-                            <h3>Notifications</h3>
-                            <button type="button" class="text-btn">Mark all as read</button>
-                        </div>
-                    </ng-template>
-                    <ng-template pTemplate="item" let-item>
-                        <div class="notification-item-custom">
-                            <i [class]="'pi ' + item.icon + ' notification-icon ' + (item.severity || '')"></i>
-                            <div class="notification-content">
-                                <p class="notification-title">{{ item.label }}</p>
-                                <p class="notification-time">{{ item.time }}</p>
-                            </div>
-                        </div>
-                    </ng-template>
-                </p-menu>
+                @if (unreadCount() > 0) {
+                    <span class="notif-badge">{{ unreadCount() }}</span>
+                }
             </div>
+
+            <p-popover #notifPanel [style]="{'width': '380px'}">
+                <div class="notif-panel">
+                    <div class="notif-panel-header">
+                        <span class="notif-panel-title">Notifications</span>
+                        @if (unreadCount() > 0) {
+                            <button type="button" class="text-btn" (click)="markAllAsRead()">Mark all read</button>
+                        }
+                    </div>
+
+                    @if (notifications().length === 0) {
+                        <div class="notif-empty">
+                            <i class="pi pi-bell-slash"></i>
+                            <p>No notifications yet</p>
+                        </div>
+                    } @else {
+                        <div class="notif-list">
+                            @for (n of notifications(); track n.id) {
+                                <div class="notif-item" [class.unread]="!n.isRead" (click)="onNotifClick(n)">
+                                    <div class="notif-icon-wrap">
+                                        <i [class]="'pi ' + n.icon"></i>
+                                    </div>
+                                    <div class="notif-body">
+                                        <p class="notif-title">{{ n.title }}</p>
+                                        <p class="notif-desc">{{ n.description }}</p>
+                                        <p class="notif-time">{{ timeAgo(n.occurredAt) }}</p>
+                                    </div>
+                                    @if (!n.isRead) {
+                                        <span class="notif-dot"></span>
+                                    }
+                                </div>
+                            }
+                        </div>
+                        <div class="notif-panel-footer">
+                            <button type="button" class="text-btn small" (click)="clearAll()">Clear all</button>
+                        </div>
+                    }
+                </div>
+            </p-popover>
 
             <!-- User Menu -->
             @if (currentUser(); as user) {
@@ -138,7 +169,6 @@ import { Subscription } from 'rxjs';
         </div>
     </div>`,
     styles: [`
-        // Menu and notification styles
         ::ng-deep .user-menu-header {
             padding: 1rem;
             border-bottom: 1px solid var(--surface-border);
@@ -164,7 +194,6 @@ import { Subscription } from 'rxjs';
             color: var(--text-color-secondary);
         }
 
-        /* Fix PrimeNG menu items styling */
         ::ng-deep .p-menu {
             background: var(--surface-card);
             border: 1px solid var(--surface-border);
@@ -173,7 +202,6 @@ import { Subscription } from 'rxjs';
             z-index: 9999 !important;
         }
 
-        /* Ensure menu overlay wrapper has high z-index */
         ::ng-deep .p-menu-overlay {
             z-index: 9999 !important;
         }
@@ -206,86 +234,197 @@ import { Subscription } from 'rxjs';
             margin: 0.25rem 0;
         }
 
-        ::ng-deep .notifications-header {
-            padding: 1rem;
-            border-bottom: 1px solid var(--surface-border);
+        /* Notification button wrapper */
+        .notif-btn-wrap {
+            position: relative;
+            display: inline-flex;
+        }
+
+        .notif-badge {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: var(--red-500, #ef4444);
+            color: #fff;
+            border-radius: 10px;
+            min-width: 18px;
+            height: 18px;
+            font-size: 10px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 4px;
+            pointer-events: none;
+            line-height: 1;
+        }
+
+        /* Notification popover panel */
+        ::ng-deep .p-popover {
+            border-radius: 8px;
+            border: 1px solid var(--surface-border);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+            overflow: hidden;
+        }
+
+        ::ng-deep .p-popover-content {
+            padding: 0 !important;
+        }
+
+        .notif-panel {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .notif-panel-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            padding: 0.875rem 1rem;
+            border-bottom: 1px solid var(--surface-border);
         }
 
-        ::ng-deep .notifications-header h3 {
-            margin: 0;
-            font-size: 1rem;
+        .notif-panel-title {
             font-weight: 600;
+            font-size: 0.9375rem;
             color: var(--text-color);
         }
 
-        ::ng-deep .text-btn {
+        .text-btn {
             background: none;
             border: none;
             color: var(--primary-color);
             cursor: pointer;
-            font-size: 0.875rem;
+            font-size: 0.8125rem;
             padding: 0;
         }
 
-        ::ng-deep .text-btn:hover {
+        .text-btn:hover {
             text-decoration: underline;
         }
 
-        ::ng-deep .notification-item-custom {
-            display: flex;
-            gap: 0.75rem;
-            padding: 0.75rem 1rem;
-            cursor: pointer;
-            transition: background-color 0.15s;
+        .text-btn.small {
+            color: var(--text-color-secondary);
+            font-size: 0.8125rem;
         }
 
-        ::ng-deep .notification-item-custom:hover {
+        /* Empty state */
+        .notif-empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2.5rem 1rem;
+            gap: 0.5rem;
+            color: var(--text-color-secondary);
+        }
+
+        .notif-empty i {
+            font-size: 2rem;
+            opacity: 0.4;
+        }
+
+        .notif-empty p {
+            margin: 0;
+            font-size: 0.875rem;
+        }
+
+        /* Notification list */
+        .notif-list {
+            max-height: 340px;
+            overflow-y: auto;
+        }
+
+        .notif-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            padding: 0.875rem 1rem;
+            cursor: pointer;
+            transition: background-color 0.15s;
+            position: relative;
+        }
+
+        .notif-item:not(:last-child) {
+            border-bottom: 1px solid var(--surface-border);
+        }
+
+        .notif-item:hover {
             background: var(--surface-hover);
         }
 
-        ::ng-deep .notification-icon {
-            font-size: 1.25rem;
-            color: var(--primary-color);
-            margin-top: 0.125rem;
+        .notif-item.unread {
+            background: color-mix(in srgb, var(--primary-color) 5%, transparent);
+        }
+
+        .notif-item.unread:hover {
+            background: color-mix(in srgb, var(--primary-color) 10%, transparent);
+        }
+
+        .notif-icon-wrap {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: color-mix(in srgb, var(--green-500, #22c55e) 15%, transparent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
             flex-shrink: 0;
         }
 
-        ::ng-deep .notification-icon.warning {
-            color: #f59e0b;
+        .notif-icon-wrap i {
+            font-size: 1rem;
+            color: var(--green-600, #16a34a);
         }
 
-        ::ng-deep .notification-icon.success {
-            color: #10b981;
-        }
-
-        ::ng-deep .notification-content {
+        .notif-body {
             flex: 1;
             min-width: 0;
         }
 
-        ::ng-deep .notification-title {
-            margin: 0 0 0.25rem 0;
+        .notif-title {
+            margin: 0 0 0.2rem;
             font-size: 0.875rem;
-            font-weight: 500;
+            font-weight: 600;
             color: var(--text-color);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
-        ::ng-deep .notification-time {
+        .notif-desc {
+            margin: 0 0 0.2rem;
+            font-size: 0.8125rem;
+            color: var(--text-color-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .notif-time {
             margin: 0;
             font-size: 0.75rem;
             color: var(--text-color-secondary);
+            opacity: 0.7;
         }
 
-        /* Fix notification menu list styling */
-        ::ng-deep .p-menu-list {
-            padding: 0;
-            margin: 0;
-            list-style: none;
+        .notif-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            flex-shrink: 0;
+            margin-top: 4px;
         }
 
+        .notif-panel-footer {
+            display: flex;
+            justify-content: center;
+            padding: 0.625rem 1rem;
+            border-top: 1px solid var(--surface-border);
+        }
+
+        /* Common topbar styles */
         .layout-menu-button {
             display: inline-flex;
             align-items: center;
@@ -306,20 +445,6 @@ import { Subscription } from 'rxjs';
 
         .layout-menu-button i {
             font-size: 1.25rem;
-        }
-
-        .quick-sale-btn {
-            background: var(--primary-color) !important;
-            color: white !important;
-        }
-
-        .quick-sale-btn:hover {
-            background: var(--primary-600) !important;
-            transform: scale(1.05);
-        }
-
-        .quick-sale-btn i {
-            color: white !important;
         }
 
         .quick-sale-shortcut-btn {
@@ -345,18 +470,19 @@ export class AppTopbar implements OnInit, OnDestroy {
     private notificationHub = inject(NotificationHubService);
     private messageService = inject(MessageService);
 
+    @ViewChild('notifPanel') notifPanel!: Popover;
+
     currentUser = computed(() => this.authService.currentUser());
     pageTitle = signal('Dashboard');
-    notificationCount = signal(0);
+    notifications = signal<StaffNotification[]>([]);
+    unreadCount = computed(() => this.notifications().filter(n => !n.isRead).length);
     searchQuery = '';
 
-    notificationItems: MenuItem[] = [];
     userMenuItems: MenuItem[] = [];
 
     private hubSub?: Subscription;
 
     constructor() {
-        this.buildNotificationItems();
         this.buildUserMenuItems();
         this.updatePageTitle();
 
@@ -367,7 +493,6 @@ export class AppTopbar implements OnInit, OnDestroy {
         });
 
         this.i18n.translationsLoaded$.subscribe(() => {
-            this.buildNotificationItems();
             this.buildUserMenuItems();
             this.updatePageTitle();
         });
@@ -384,47 +509,54 @@ export class AppTopbar implements OnInit, OnDestroy {
     }
 
     private onSaleNotification(evt: SaleNotificationEvent): void {
-        const label = `${evt.soNumber} — ${evt.customerName} · ${evt.currency} ${evt.grandTotal.toFixed(2)}`;
-        const time   = new Date(evt.occurredAt).toLocaleTimeString();
+        const notif: StaffNotification = {
+            id: crypto.randomUUID(),
+            type: 'sale',
+            title: `New Sale — ${evt.soNumber}`,
+            description: `${evt.customerName} · ${evt.saleChannel} · ${evt.currency} ${evt.grandTotal.toFixed(2)}`,
+            icon: 'pi-shopping-cart',
+            occurredAt: new Date(evt.occurredAt),
+            isRead: false,
+            routerLink: '/sales/sales-orders/view',
+            queryParams: { id: evt.salesOrderId }
+        };
 
-        // Prepend to notification dropdown
-        this.notificationItems = [
-            { label, icon: 'pi-check-circle', time, severity: 'success' },
-            ...this.notificationItems
-        ].slice(0, 10); // keep last 10
+        this.notifications.update(ns => [notif, ...ns].slice(0, 20));
 
-        this.notificationCount.update(n => n + 1);
-
-        // Show a toast popup
         this.messageService.add({
             key:      'sale-notification',
             severity: 'success',
-            summary:  '💰 New Sale',
-            detail:   `${evt.soNumber} — ${evt.currency} ${evt.grandTotal.toFixed(2)}`,
+            summary:  'New Sale',
+            detail:   `${evt.soNumber} — ${evt.customerName} · ${evt.currency} ${evt.grandTotal.toFixed(2)}`,
             life:      6000
         });
     }
 
-    private buildNotificationItems(): void {
-        this.notificationItems = [
-            {
-                label: 'New stock alert',
-                icon: 'pi-info-circle',
-                time: '5 minutes ago'
-            },
-            {
-                label: 'Low stock warning',
-                icon: 'pi-exclamation-triangle',
-                time: '1 hour ago',
-                severity: 'warning'
-            },
-            {
-                label: 'Order completed',
-                icon: 'pi-check-circle',
-                time: '2 hours ago',
-                severity: 'success'
-            }
-        ];
+    onNotifClick(n: StaffNotification): void {
+        this.notifications.update(ns =>
+            ns.map(x => x.id === n.id ? { ...x, isRead: true } : x)
+        );
+        this.notifPanel.hide();
+        this.router.navigate([n.routerLink], n.queryParams ? { queryParams: n.queryParams } : {});
+    }
+
+    markAllAsRead(): void {
+        this.notifications.update(ns => ns.map(n => ({ ...n, isRead: true })));
+    }
+
+    clearAll(): void {
+        this.notifications.set([]);
+        this.notifPanel.hide();
+    }
+
+    timeAgo(date: Date): string {
+        const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+        if (seconds < 60) return 'just now';
+        const minutes = Math.floor(seconds / 60);
+        if (minutes < 60) return `${minutes}m ago`;
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `${hours}h ago`;
+        return `${Math.floor(hours / 24)}d ago`;
     }
 
     private buildUserMenuItems(): void {
@@ -520,7 +652,6 @@ export class AppTopbar implements OnInit, OnDestroy {
     onSearch() {
         if (this.searchQuery.trim()) {
             console.log('Searching for:', this.searchQuery);
-            // Implement search functionality
         }
     }
 
