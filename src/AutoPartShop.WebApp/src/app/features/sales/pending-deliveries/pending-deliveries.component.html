@@ -1,0 +1,166 @@
+<p-toast position="top-right"></p-toast>
+<p-confirmDialog></p-confirmDialog>
+
+<div class="page-wrapper">
+
+  <!-- ══ HEADER ══════════════════════════════════════════════════════ -->
+  <header class="page-header">
+    <div class="header-content">
+      <div class="header-left">
+        <h1 class="page-title"><i class="pi pi-truck"></i> Pending Deliveries</h1>
+        <p class="page-subtitle">Orders confirmed and waiting to be delivered</p>
+      </div>
+      <div class="header-actions">
+        <div class="stats-badge" *ngIf="!loading()">
+          <i class="pi pi-box"></i>
+          <div class="stats-info">
+            <span class="stats-value">{{ orders().length }}</span>
+            <span class="stats-label">orders</span>
+          </div>
+        </div>
+        <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="load()">
+          <i class="pi pi-refresh" [class.pi-spin]="loading()"></i>
+        </button>
+        <a routerLink="/sales/sales-orders" class="btn-icon" pTooltip="All Orders" tooltipPosition="bottom">
+          <i class="pi pi-list"></i>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- ══ LOADING ══════════════════════════════════════════════════════ -->
+  <div *ngIf="loading()" class="pd-loading">
+    <i class="pi pi-spin pi-spinner"></i> Loading pending deliveries…
+  </div>
+
+  <!-- ══ EMPTY ════════════════════════════════════════════════════════ -->
+  <div *ngIf="!loading() && orders().length === 0" class="pd-empty">
+    <div class="pd-empty-icon"><i class="pi pi-check-circle"></i></div>
+    <h3>All Clear!</h3>
+    <p>No orders are waiting for delivery right now.</p>
+  </div>
+
+  <!-- ══ ORDERS TABLE ════════════════════════════════════════════════ -->
+  <div *ngIf="!loading() && orders().length > 0" class="pd-content">
+
+    <div class="pd-table-card">
+      <table class="pd-table">
+        <thead>
+          <tr>
+            <th>Order</th>
+            <th>Customer</th>
+            <th>Confirmed</th>
+            <th>Items</th>
+            <th>Grand Total</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let o of orders()" class="pd-row" [attr.data-status]="o.status" (dblclick)="view(o.id)">
+
+            <td>
+              <div class="so-cell">
+                <span class="so-number">{{ o.soNumber }}</span>
+                <span class="so-date" *ngIf="o.deliveryDate">Expected {{ formatDate(o.deliveryDate) }}</span>
+              </div>
+            </td>
+
+            <td>
+              <div class="customer-cell">
+                <span class="customer-name">{{ o.customerName }}</span>
+                <span class="customer-phone" *ngIf="o.customerPhone">{{ o.customerPhone }}</span>
+              </div>
+            </td>
+
+            <td><span class="date-text">{{ o.createdAt ? formatDate(o.createdAt) : '—' }}</span></td>
+
+            <td><span class="item-count">{{ o.lines.length }} item{{ o.lines.length !== 1 ? 's' : '' }}</span></td>
+
+            <td><span class="amount-value">{{ formatCurrency(o.grandTotal) }}</span></td>
+
+            <td>
+              <span class="status-pill" [attr.data-status]="o.status">{{ statusLabel(o.status) }}</span>
+            </td>
+
+            <td>
+              <div class="action-cell">
+                <!-- Generate challan (for any status — auto-transitions if CONFIRMED) -->
+                <button class="action-btn challan-btn" pTooltip="Generate Challan" tooltipPosition="top"
+                  (click)="openChallanDialog(o); $event.stopPropagation()">
+                  <i class="pi pi-file-export"></i>
+                  <span>Challan</span>
+                </button>
+
+                <!-- Deliver direct -->
+                <button class="action-btn deliver-btn" pTooltip="Deliver Now (no challan)" tooltipPosition="top"
+                  (click)="deliverDirect(o); $event.stopPropagation()">
+                  <i class="pi pi-check-circle"></i>
+                  <span>Deliver</span>
+                </button>
+
+                <button class="action-btn view-btn" pTooltip="View Order" tooltipPosition="top"
+                  (click)="view(o.id); $event.stopPropagation()">
+                  <i class="pi pi-eye"></i>
+                </button>
+              </div>
+            </td>
+
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- ══ Challan Dialog ══════════════════════════════════════════════ -->
+<p-dialog header="Generate Delivery Challan" [(visible)]="showChallanDialog"
+  [modal]="true" [style]="{width:'560px',maxWidth:'95vw'}" appendTo="body">
+  <div style="display:flex;flex-direction:column;gap:14px;padding:4px 0;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div style="grid-column:span 2;display:flex;flex-direction:column;gap:5px;">
+        <label style="font-size:13px;font-weight:500;color:#374151">Delivery Address</label>
+        <input pInputText [(ngModel)]="challanForm.deliveryAddress" style="width:100%" />
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;">
+        <label style="font-size:13px;font-weight:500;color:#374151">Receiver Name</label>
+        <input pInputText [(ngModel)]="challanForm.receiverName" style="width:100%" />
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;">
+        <label style="font-size:13px;font-weight:500;color:#374151">Receiver Phone</label>
+        <input pInputText [(ngModel)]="challanForm.receiverPhone" style="width:100%" />
+      </div>
+    </div>
+    <p-divider align="left">
+      <span style="font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.05em">Transport / Carrier</span>
+    </p-divider>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div style="display:flex;flex-direction:column;gap:5px;">
+        <label style="font-size:13px;font-weight:500;color:#374151">Transport Company</label>
+        <input pInputText [(ngModel)]="challanForm.transportCompany" placeholder="e.g. Sundarban Courier" style="width:100%" />
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;">
+        <label style="font-size:13px;font-weight:500;color:#374151">Vehicle / Truck No.</label>
+        <input pInputText [(ngModel)]="challanForm.vehicleNumber" placeholder="DHAKA-KA-11-1234" style="width:100%" />
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;">
+        <label style="font-size:13px;font-weight:500;color:#374151">Driver Name</label>
+        <input pInputText [(ngModel)]="challanForm.driverName" style="width:100%" />
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;">
+        <label style="font-size:13px;font-weight:500;color:#374151">Driver Phone</label>
+        <input pInputText [(ngModel)]="challanForm.driverPhone" style="width:100%" />
+      </div>
+      <div style="grid-column:span 2;display:flex;flex-direction:column;gap:5px;">
+        <label style="font-size:13px;font-weight:500;color:#374151">Notes (optional)</label>
+        <textarea pInputTextarea [(ngModel)]="challanForm.notes" rows="2" style="width:100%"></textarea>
+      </div>
+    </div>
+  </div>
+  <ng-template pTemplate="footer">
+    <button pButton type="button" label="Cancel" icon="pi pi-times" class="p-button-outlined p-button-sm" (click)="showChallanDialog=false"></button>
+    <button pButton type="button" label="Generate &amp; Print" icon="pi pi-file-export" class="p-button-sm p-button-success" (click)="generateChallan()"></button>
+  </ng-template>
+</p-dialog>

@@ -21,7 +21,7 @@ public class SalesOrderLine : AuditableEntity
 
     // Navigation properties
     public SalesOrder? SalesOrder { get; set; }
-    public Part? Part { get; set; }
+    public Product? Part { get; set; }
     public ProductVariant? ProductVariant { get; set; }
     public Unit? Unit { get; set; }
 

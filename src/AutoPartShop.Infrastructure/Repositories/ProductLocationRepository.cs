@@ -34,11 +34,16 @@ public class ProductLocationRepository : IProductLocationRepository
             .FirstOrDefaultAsync(x => x.Id == id && !x.Isdeleted, cancellationToken);
     }
 
-    public async Task<IEnumerable<ProductLocation>> GetLocationsByPartAsync(Guid partId, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<ProductLocation>> GetLocationsByPartAsync(Guid partId, Guid? warehouseId = null, CancellationToken cancellationToken = default)
     {
-        return await _db.ProductLocations
+        var query = _db.ProductLocations
             .Include(x => x.Warehouse)
-            .Where(x => x.PartId == partId && !x.Isdeleted)
+            .Where(x => x.PartId == partId && !x.Isdeleted);
+
+        if (warehouseId.HasValue)
+            query = query.Where(x => x.WarehouseId == warehouseId.Value);
+
+        return await query
             .OrderBy(x => x.IsPrimary ? 0 : 1)
             .ThenBy(x => x.Warehouse.Name)
             .ThenBy(x => x.Section)

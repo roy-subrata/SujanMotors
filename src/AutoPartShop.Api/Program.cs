@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json.Serialization;
+using AutoPartShop.Api.Middleware;
 using AutoPartShop.Api.Hubs;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.Interfaces;
@@ -282,6 +283,7 @@ app.UseSwaggerUI(c =>
 await app.ApplyMigration();
 // Enable CORS
 app.UseCors(corsPolicy);
+app.UseMiddleware<GlobalExceptionMiddleware>();
 app.UseSerilogRequestLogging();
 
 // Only redirect HTTPS in production

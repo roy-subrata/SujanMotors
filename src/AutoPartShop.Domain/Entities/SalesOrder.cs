@@ -15,7 +15,10 @@ public class SalesOrder : AggregateRoot
     public Guid? TechnicianId { get; private set; }  // Optional: Technician who recommended the parts
     public string? TechnicianName { get; private set; }  // Technician name for easy reference
     public Guid? WarehouseId { get; private set; }  // Dispatch warehouse
-    public string Status { get; private set; } = "DRAFT";  // DRAFT → CONFIRMED → PAID → PACKED → SHIPPED → COMPLETED | CANCELLED | RETURNED
+    public string Status { get; private set; } = "PENDING";
+    // Lifecycle: PENDING → CONFIRMED → DELIVERED  (direct handover, invoice only)
+    //        or: PENDING → CONFIRMED → READY_FOR_DELIVERY → DELIVERED  (later delivery, invoice + challan)
+    // Legacy statuses retained for backward compat: DRAFT, PAID, PACKED, SHIPPED, PARTIALLY_SHIPPED, COMPLETED, RETURNED
     public DateTime? PaidDate { get; private set; }
     public DateTime? PackedDate { get; private set; }
     public DateTime? CompletedDate { get; private set; }
@@ -80,14 +83,15 @@ public class SalesOrder : AggregateRoot
             Notes = notes?.Trim() ?? string.Empty,
             Currency = string.IsNullOrWhiteSpace(currency) ? "BDT" : currency.Trim().ToUpper(),
             Channel = normalizedChannel,
-            Status = "DRAFT"
+            Status = "PENDING"
         };
     }
 
     public void Confirm()
     {
-        if (Status != "DRAFT")
-            throw new InvalidOperationException("Only draft SOs can be confirmed");
+        // Accept PENDING (new) and DRAFT (legacy) as the pre-confirm state
+        if (Status is not ("PENDING" or "DRAFT"))
+            throw new InvalidOperationException($"Only Pending orders can be confirmed. Current: {Status}");
 
         if (!LineItems.Any())
             throw new InvalidOperationException("SO must have at least one line item");
@@ -101,6 +105,18 @@ public class SalesOrder : AggregateRoot
         RaiseEvent(new SaleOrderConfirmedEvent(
             Id, SONumber, CustomerName, CustomerEmail, CustomerPhone,
             GrandTotal, Currency, Channel, CreatedBy ?? string.Empty));
+    }
+
+    /// <summary>
+    /// Later-delivery flow only: marks the order as packed/ready to dispatch.
+    /// A challan should be generated after this step.
+    /// </summary>
+    public void MarkAsReadyForDelivery()
+    {
+        if (Status != "CONFIRMED")
+            throw new InvalidOperationException($"Order must be Confirmed before marking Ready For Delivery. Current: {Status}");
+
+        Status = "READY_FOR_DELIVERY";
     }
 
     public void MarkAsPaid()
@@ -139,8 +155,12 @@ public class SalesOrder : AggregateRoot
 
     public void MarkAsDelivered(DateTime? deliveryDate = null)
     {
-        if (Status is not ("SHIPPED" or "PARTIALLY_SHIPPED"))
-            throw new InvalidOperationException($"Order must be SHIPPED before marking as DELIVERED. Current: {Status}");
+        // Direct handover: CONFIRMED → DELIVERED (no challan needed)
+        // Later delivery:  READY_FOR_DELIVERY → DELIVERED (challan already issued)
+        // Legacy paths:    SHIPPED / PARTIALLY_SHIPPED → DELIVERED
+        var allowed = new[] { "CONFIRMED", "READY_FOR_DELIVERY", "SHIPPED", "PARTIALLY_SHIPPED" };
+        if (!allowed.Contains(Status))
+            throw new InvalidOperationException($"Cannot mark as Delivered from status: {Status}");
 
         Status = "DELIVERED";
         DeliveryDate = deliveryDate ?? DateTime.UtcNow;
@@ -157,7 +177,7 @@ public class SalesOrder : AggregateRoot
 
     public void Cancel()
     {
-        if (Status is "SHIPPED" or "DELIVERED" or "COMPLETED" or "CANCELLED" or "RETURNED")
+        if (Status is "DELIVERED" or "CANCELLED" or "RETURNED")
             throw new InvalidOperationException($"Cannot cancel a {Status} order");
 
         Status = "CANCELLED";

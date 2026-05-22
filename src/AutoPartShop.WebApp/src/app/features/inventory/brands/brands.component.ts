@@ -35,14 +35,15 @@ export class BrandsComponent implements OnInit {
 
   // Data
   brands: BrandResponse[] = [];
-  public selectedBrand: BrandResponse | null = null;
+  selectedBrand: BrandResponse | null = null;
 
   // Dialog visibility
-  public displayCreateDialog: boolean = false;
-  public displayUpdateDialog: boolean = false;
+  displayCreateDialog = false;
+  displayUpdateDialog = false;
 
-  // Pagination & Loading
+  // Pagination & loading
   loading = false;
+  togglingStatusId: string | null = null;   // prevents double-click on toggle
   totalRecords = 0;
   rows = 10;
   currentPage = 1;
@@ -50,13 +51,11 @@ export class BrandsComponent implements OnInit {
   // Filters
   searchTerm = '';
   filterStatus: boolean | null = null;
-  sortField = 'name';
-  sortDirection: 'asc' | 'desc' = 'asc';
+  filterCountry = '';
 
-  // Status options for dropdown
   statusOptions = [
-    { label: 'All', value: null },
-    { label: 'Active', value: true },
+    { label: 'All',      value: null  },
+    { label: 'Active',   value: true  },
     { label: 'Inactive', value: false }
   ];
 
@@ -64,161 +63,118 @@ export class BrandsComponent implements OnInit {
     this.loadBrands();
   }
 
-  /**
-   * Load brands with current filters
-   */
-  loadBrands(pageNumber: number = 1, pageSize: number = 10): void {
-    if (!pageNumber || isNaN(pageNumber) || pageNumber < 1) {
-      pageNumber = 1;
-    }
-    if (!pageSize || isNaN(pageSize) || pageSize < 1) {
-      pageSize = 10;
-    }
+  loadBrands(page = 1, pageSize = this.rows): void {
+    if (page < 1) page = 1;
+    if (pageSize < 1) pageSize = 10;
 
     this.loading = true;
-    this.brandService
-      .getBrands({
-        search: this.searchTerm,
-        pageNumber: pageNumber,
-        pageSize: pageSize,
-        isActive: this.filterStatus,
-        sorts: [{
-          field: this.sortField,
-          direction: this.sortDirection
-        }]
-      })
-      .subscribe({
-        next: (response: any) => {
-          // Extract data from response
-          this.brands = response.data || response.items || [];
-
-          // totalCount is nested in pagination object
-          const pagination = response.pagination || {};
-          this.totalRecords = pagination.totalCount || response.totalCount || this.brands.length;
-
-          // Update pagination state
-          this.rows = pagination.pageSize || pageSize;
-          this.currentPage = pagination.pageNumber || pageNumber;
-
-          this.loading = false;
-        },
-        error: (error) => {
-          this.messageService.add({
-            severity: 'error',
-            summary: 'Error',
-            detail: 'Failed to load brands'
-          });
-          console.error('Error loading brands:', error);
-          this.loading = false;
-        }
-      });
+    this.brandService.getBrands({
+      search: this.searchTerm || undefined,
+      isActive: this.filterStatus,
+      country: this.filterCountry || undefined,
+      page,
+      pageSize
+    }).subscribe({
+      next: (response) => {
+        this.brands       = response.data ?? [];
+        this.totalRecords = response.pagination.totalCount;
+        this.rows         = response.pagination.pageSize;
+        this.currentPage  = response.pagination.page;
+        this.loading      = false;
+      },
+      error: () => {
+        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load brands' });
+        this.loading = false;
+      }
+    });
   }
 
-  /**
-   * Handle search button click - applies all filters
-   */
-  onSearch(): void {
-    this.loadBrands(1, this.rows);
-  }
+  onSearch(): void        { this.loadBrands(1, this.rows); }
+  onFilterChange(): void  { this.loadBrands(1, this.rows); }
+  refreshData(): void     { this.loadBrands(this.currentPage, this.rows); }
 
-  /**
-   * Handle filter changes (status)
-   */
-  onFilterChange(): void {
-    this.loadBrands(1, this.rows);
-  }
-
-  /**
-   * Clear search input only (does not trigger search)
-   */
-  clearSearchInput(): void {
-    this.searchTerm = '';
-  }
-
-  /**
-   * Clear all filters and reload
-   */
   clearFilters(): void {
-    this.searchTerm = '';
-    this.filterStatus = null;
+    this.searchTerm    = '';
+    this.filterStatus  = null;
+    this.filterCountry = '';
     this.loadBrands(1, this.rows);
   }
 
-  /**
-   * Refresh current page
-   */
-  refreshData(): void {
-    this.loadBrands(this.currentPage, this.rows);
-  }
-
-  /**
-   * Check if any filters are active
-   */
   hasActiveFilters(): boolean {
-    return !!this.searchTerm || this.filterStatus !== null;
+    return !!this.searchTerm || this.filterStatus !== null || !!this.filterCountry;
   }
 
-  /**
-   * Status label helper for filter chips
-   */
-  getStatusLabel(isActive: boolean | null): string {
-    if (isActive === true) {
-      return 'Active';
-    }
-    if (isActive === false) {
-      return 'Inactive';
-    }
-    return 'All';
-  }
-
-  /**
-   * Handle page change from list component
-   */
   onPageChange(event: { page: number; rows: number }): void {
     this.loadBrands(event.page, event.rows);
   }
 
-  /**
-   * Trigger create dialog
-   */
-  onNewBrandClick() {
+  // ── Dialogs ────────────────────────────────────────────────────────────────
+
+  onNewBrandClick(): void {
     this.displayCreateDialog = true;
     this.displayUpdateDialog = false;
   }
 
-  /**
-   * Alias for header action button
-   */
-  createBrand(): void {
-    this.onNewBrandClick();
+  /** Alias used by the template header button. */
+  createBrand(): void { this.onNewBrandClick(); }
+
+  /** Clear search text only — does not reload. */
+  clearSearchInput(): void { this.searchTerm = ''; }
+
+  /** Label for status filter chip. */
+  getStatusLabel(isActive: boolean | null): string {
+    if (isActive === true)  return 'Active';
+    if (isActive === false) return 'Inactive';
+    return 'All';
   }
 
-  /**
-   * Handle create success
-   */
-  onCreateSuccess() {
-    this.loadBrands(this.currentPage, this.rows);
-  }
-
-  /**
-   * Handle update success
-   */
-  onUpdateSuccess() {
-    this.loadBrands(this.currentPage, this.rows);
-  }
-
-  /**
-   * Handle edit brand
-   */
-  selectAndOpenUpdate(brand: BrandResponse) {
-    this.selectedBrand = brand;
+  selectAndOpenUpdate(brand: BrandResponse): void {
+    this.selectedBrand       = brand;
     this.displayUpdateDialog = true;
   }
 
-  /**
-   * Handle delete brand
-   */
-  selectAndDelete(brand: BrandResponse) {
+  toggleBrandStatus(brand: BrandResponse): void {
+    if (this.togglingStatusId === brand.id) return; // guard against double-click
+    this.togglingStatusId = brand.id;
+
+    this.brandService.updateBrand(brand.id, {
+      name: brand.name,
+      code: brand.code,
+      description: brand.description,
+      logoUrl: brand.logoUrl,
+      website: brand.website,
+      country: brand.country,
+      contactEmail: brand.contactEmail,
+      contactPhone: brand.contactPhone,
+      displayOrder: brand.displayOrder,
+      isActive: !brand.isActive
+    }).subscribe({
+      next: () => {
+        const action = brand.isActive ? 'deactivated' : 'activated';
+        this.messageService.add({ severity: 'success', summary: 'Updated', detail: `"${brand.name}" ${action}` });
+        this.togglingStatusId = null;
+        this.loadBrands(this.currentPage, this.rows);
+      },
+      error: () => {
+        this.togglingStatusId = null;
+        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to update brand status' });
+      }
+    });
+  }
+
+  onCreateSuccess(): void { this.loadBrands(this.currentPage, this.rows); }
+  onUpdateSuccess(): void { this.loadBrands(this.currentPage, this.rows); }
+
+  onDisplayCreateDialogChange(isVisible: boolean): void {
+    if (!isVisible) this.displayCreateDialog = false;
+  }
+  onDisplayUpdateDialogChange(isVisible: boolean): void {
+    if (!isVisible) this.displayUpdateDialog = false;
+  }
+
+  // ── Delete ─────────────────────────────────────────────────────────────────
+
+  selectAndDelete(brand: BrandResponse): void {
     this.selectedBrand = brand;
     this.confirmationService.confirm({
       message: `Are you sure you want to delete "${brand.name}"?`,
@@ -226,46 +182,17 @@ export class BrandsComponent implements OnInit {
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
         this.brandService.deleteBrand(brand.id)
-          .pipe(
-            tap(() => {
-              this.messageService.add({
-                severity: 'success',
-                summary: 'Success',
-                detail: 'Brand deleted successfully'
-              });
-              this.selectedBrand = null;
-              this.loadBrands(this.currentPage, this.rows);
-            })
-          )
+          .pipe(tap(() => {
+            this.messageService.add({ severity: 'success', summary: 'Deleted', detail: `"${brand.name}" deleted` });
+            this.selectedBrand = null;
+            // If we deleted the last item on a page beyond page 1, go back a page
+            const isLastItemOnPage = this.brands.length === 1 && this.currentPage > 1;
+            this.loadBrands(isLastItemOnPage ? this.currentPage - 1 : this.currentPage, this.rows);
+          }))
           .subscribe({
-            error: (err) => {
-              console.error('Failed to delete brand', err);
-              this.messageService.add({
-                severity: 'error',
-                summary: 'Error',
-                detail: 'Failed to delete brand'
-              });
-            }
+            error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to delete brand' })
           });
       }
     });
-  }
-
-  /**
-   * Handle create dialog visibility change
-   */
-  onDisplayCreateDialogChange(isVisible: boolean) {
-    if (!isVisible) {
-      this.displayCreateDialog = false;
-    }
-  }
-
-  /**
-   * Handle update dialog visibility change
-   */
-  onDisplayUpdateDialogChange(isVisible: boolean) {
-    if (!isVisible) {
-      this.displayUpdateDialog = false;
-    }
   }
 }

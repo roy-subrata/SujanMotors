@@ -82,7 +82,7 @@ public static class Dependency
         services.AddScoped<IBrandRepository, BrandRepository>();
         services.AddScoped<IUnitRepository, UnitRepository>();
         services.AddScoped<IUnitConversionRepository, UnitConversionRepository>();
-        services.AddScoped<IPartRepository, PartRepository>();
+        services.AddScoped<IProductRepository, ProductRepository>();
         services.AddScoped<IVehicleRepository, VehicleRepository>();
         services.AddScoped<IPartVehicleCompatibilityRepository, PartVehicleCompatibilityRepository>();
         services.AddScoped<ISupplierRepository, SupplierRepository>();
@@ -93,8 +93,8 @@ public static class Dependency
         services.AddScoped<IGoodsReceiptRepository, GoodsReceiptRepository>();
         services.AddScoped<ISalesOrderRepository, SalesOrderRepository>();
         services.AddScoped<IInvoiceRepository, InvoiceRepository>();
+        services.AddScoped<IChallanRepository, ChallanRepository>();
         services.AddScoped<ISalesReturnRepository, SalesReturnRepository>();
-        services.AddScoped<IPriceHistoryRepository, PriceHistoryRepository>();
         services.AddScoped<IPurchaseReturnRepository, PurchaseReturnRepository>();
         services.AddScoped<ICreditNoteRepository, CreditNoteRepository>();
         services.AddScoped<ICustomerCreditNoteRepository, CustomerCreditNoteRepository>();
@@ -154,7 +154,7 @@ public static class Dependency
         services.AddScoped<ISupplierReadRepository, SupplierReadRepository>();
         services.AddScoped<ISupplierPaymentReadRespository, SupplierPaymentReadRespository>();
 
-        services.AddScoped<IPartReadRepository, PartReadRepository>();
+        services.AddScoped<IProductReadRepository, ProductReadRepository>();
         services.AddScoped<ICatalogReadRepository, CatalogReadRepository>();
         services.AddScoped<IPurchaseOrderReadRepository, PurchaseOrderReadRepository>();
 

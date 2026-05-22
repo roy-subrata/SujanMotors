@@ -312,6 +312,16 @@ export class InvoiceFormComponent implements OnInit {
     this.router.navigate(['/sales/invoices']);
   }
 
+  openPrint(): void {
+    if (!this.invoiceId()) return;
+    window.open(`/sales/invoices/${this.invoiceId()}/print`, '_blank');
+  }
+
+  openChallan(): void {
+    if (!this.invoiceId()) return;
+    window.open(`/sales/invoices/${this.invoiceId()}/print?type=challan`, '_blank');
+  }
+
   getStatusSeverity(status: string): 'secondary' | 'info' | 'warn' | 'success' | 'danger' {
     const severityMap: Record<string, 'secondary' | 'info' | 'warn' | 'success' | 'danger'> = {
       DRAFT: 'secondary',

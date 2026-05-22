@@ -1,0 +1,193 @@
+<!-- ══ Print toolbar (hidden when printing) ══════════════════════════ -->
+<div class="print-toolbar no-print" *ngIf="!loading() && !error()">
+  <button class="btn-print" (click)="print()">
+    <i class="pi pi-print"></i> Print / Save PDF
+  </button>
+  <a class="btn-back" routerLink="/sales/invoices">
+    <i class="pi pi-arrow-left"></i> Back to Invoices
+  </a>
+  <span class="doc-title">{{ title }} — {{ data()?.invoice?.invoiceNumber }}</span>
+</div>
+
+<!-- ══ Loading ══════════════════════════════════════════════════════ -->
+<div class="loading-wrap no-print" *ngIf="loading()">
+  <i class="pi pi-spin pi-spinner"></i> Loading document…
+</div>
+
+<!-- ══ Error ════════════════════════════════════════════════════════ -->
+<div class="error-wrap no-print" *ngIf="error()">
+  <i class="pi pi-exclamation-circle"></i> {{ error() }}
+</div>
+
+<!-- ══ DOCUMENT ══════════════════════════════════════════════════════ -->
+<div class="document" *ngIf="!loading() && !error() && data() as d">
+
+  <!-- PAID watermark (print only) -->
+  <div class="watermark" *ngIf="isPaid">PAID</div>
+  <div class="watermark partial" *ngIf="isPartiallyPaid">PARTIAL</div>
+
+  <!-- ── Document header ──────────────────────────────────────────── -->
+  <div class="doc-header">
+    <div class="shop-info">
+      <div class="shop-name">{{ d.shop.name }}</div>
+      <div class="shop-detail" *ngIf="d.shop.address">{{ d.shop.address }}</div>
+      <div class="shop-detail" *ngIf="d.shop.phone">Tel: {{ d.shop.phone }}</div>
+      <div class="shop-detail" *ngIf="d.shop.email">{{ d.shop.email }}</div>
+      <div class="shop-detail" *ngIf="d.shop.taxNo">Tax Reg: {{ d.shop.taxNo }}</div>
+    </div>
+    <div class="doc-meta">
+      <div class="doc-type">{{ title }}</div>
+      <table class="meta-table">
+        <tr><td>No.</td><td><strong>{{ d.invoice.invoiceNumber }}</strong></td></tr>
+        <tr><td>Date</td><td>{{ formatDate(d.invoice.invoiceDate) }}</td></tr>
+        <tr *ngIf="!isChallan"><td>Due Date</td><td [class.overdue]="d.invoice.isOverdue">{{ formatDate(d.invoice.dueDate) }}</td></tr>
+        <tr><td>SO No.</td><td>{{ d.salesOrderNumber }}</td></tr>
+        <tr>
+          <td>Status</td>
+          <td>
+            <span class="status-pill" [attr.data-status]="d.invoice.status">{{ d.invoice.status }}</span>
+          </td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ── Bill To ──────────────────────────────────────────────────── -->
+  <div class="parties">
+    <div class="party">
+      <div class="party-label">{{ isChallan ? 'Deliver To' : 'Bill To' }}</div>
+      <div class="party-name">{{ d.customer.name || 'Walk-in Customer' }}</div>
+      <div class="party-detail" *ngIf="d.customer.phone">{{ d.customer.phone }}</div>
+      <div class="party-detail" *ngIf="d.customer.email">{{ d.customer.email }}</div>
+      <div class="party-detail" *ngIf="d.customer.address">{{ d.customer.address }}</div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ── Line items ────────────────────────────────────────────────── -->
+  <table class="items-table">
+    <thead>
+      <tr>
+        <th class="col-num">#</th>
+        <th class="col-item">Item Description</th>
+        <th class="col-sku">SKU</th>
+        <th class="col-qty">Qty</th>
+        <th class="col-unit">Unit</th>
+        <th class="col-price" *ngIf="!isChallan">Unit Price</th>
+        <th class="col-disc"  *ngIf="!isChallan">Disc.</th>
+        <th class="col-total" *ngIf="!isChallan">Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let line of d.lines; let i = index">
+        <td class="col-num">{{ i + 1 }}</td>
+        <td class="col-item">
+          <span class="item-name">{{ line.displayName }}</span>
+        </td>
+        <td class="col-sku">{{ line.partSku }}</td>
+        <td class="col-qty">{{ line.quantity }}</td>
+        <td class="col-unit">{{ line.unitSymbol || line.unitName || 'PCS' }}</td>
+        <td class="col-price" *ngIf="!isChallan">{{ formatCurrency(line.unitPrice) }}</td>
+        <td class="col-disc"  *ngIf="!isChallan">
+          <span *ngIf="line.discount > 0">{{ formatCurrency(line.discount) }}</span>
+          <span *ngIf="line.discount <= 0" class="text-muted">—</span>
+        </td>
+        <td class="col-total text-right" *ngIf="!isChallan">{{ formatCurrency(line.lineTotal) }}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ── Totals (invoice only) ─────────────────────────────────────── -->
+  <div class="totals-section" *ngIf="!isChallan">
+    <div class="totals-table">
+      <div class="totals-row">
+        <span>Subtotal</span>
+        <span>{{ formatCurrency(d.invoice.subTotal) }}</span>
+      </div>
+      <div class="totals-row" *ngIf="d.invoice.discountAmount > 0">
+        <span>Discount</span>
+        <span class="text-discount">− {{ formatCurrency(d.invoice.discountAmount) }}</span>
+      </div>
+      <div class="totals-row" *ngIf="d.invoice.taxAmount > 0">
+        <span>Tax / VAT</span>
+        <span>{{ formatCurrency(d.invoice.taxAmount) }}</span>
+      </div>
+      <div class="totals-row grand">
+        <span>Grand Total</span>
+        <span>{{ formatCurrency(d.invoice.grandTotal) }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Payment summary (invoice only) ───────────────────────────── -->
+  <ng-container *ngIf="!isChallan">
+
+    <div class="divider" *ngIf="(d.invoice.payments?.length ?? 0) > 0"></div>
+
+    <div class="payments-section" *ngIf="(d.invoice.payments?.length ?? 0) > 0">
+      <div class="section-title">Payment History</div>
+      <table class="payments-table">
+        <thead>
+          <tr>
+            <th>Date &amp; Time</th>
+            <th>Method</th>
+            <th>Reference</th>
+            <th class="text-right">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let p of (d.invoice.payments ?? [])">
+            <td>{{ formatDateTime(p.paymentDate) }}</td>
+            <td>{{ p.paymentMethod }}</td>
+            <td class="text-muted">{{ p.referenceNumber || '—' }}</td>
+            <td class="text-right text-paid">{{ formatCurrency(p.amount) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Balance summary -->
+    <div class="balance-summary">
+      <div class="balance-row">
+        <span>Total Paid</span>
+        <span class="text-paid">{{ formatCurrency(d.invoice.amountPaid) }}</span>
+      </div>
+      <div class="balance-row due" *ngIf="d.invoice.outstandingAmount > 0">
+        <span>Balance Due</span>
+        <span class="due-amount">{{ formatCurrency(d.invoice.outstandingAmount) }}</span>
+      </div>
+      <div class="balance-row paid-stamp" *ngIf="isPaid">
+        <span>Balance Due</span>
+        <span class="zero-due">{{ formatCurrency(0) }}</span>
+      </div>
+    </div>
+
+  </ng-container>
+
+  <!-- ── Challan: received signature ───────────────────────────────── -->
+  <div class="signature-section" *ngIf="isChallan">
+    <div class="divider"></div>
+    <div class="signatures">
+      <div class="sig-box">
+        <div class="sig-line"></div>
+        <div class="sig-label">Delivered By</div>
+      </div>
+      <div class="sig-box">
+        <div class="sig-line"></div>
+        <div class="sig-label">Received By (Signature &amp; Date)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Footer ───────────────────────────────────────────────────── -->
+  <div class="doc-footer">
+    <div class="footer-note" *ngIf="d.invoice.notes">{{ d.invoice.notes }}</div>
+    <div class="footer-thanks">Thank you for your business!</div>
+  </div>
+
+</div>

@@ -1,107 +1,152 @@
-<!-- Toast Messages -->
-<p-toast></p-toast>
+<p-toast position="top-right"></p-toast>
 
-<!-- Update Category Dialog -->
+<!-- ==================== CREATE CATEGORY DIALOG ==================== -->
 <p-dialog
-    [(visible)]="displayUpdateDialog"
-    [header]="'Update Category: ' + (selectedCategory?.name || '')"
+    [(visible)]="displayCreateDialog"
+    header="New Category"
     [modal]="true"
-    [style]="{ width: '50vw' }"
-    [breakpoints]="{ '960px': '75vw', '640px': '90vw' }"
-    [closable]="true"
-    [showHeader]="true"
-    (onShow)="onUpdateDialogShow()"
-    (onHide)="onUpdateDialogHide()"
-    [closeOnEscape]="true"
->
-    <form [formGroup]="updateForm">
-        <div class="form-group">
-            <label for="updateName">Name *</label>
-            <input id="updateName" type="text" pInputText formControlName="name" class="w-full" [disabled]="isUpdating()" />
-            <small class="error" *ngIf="updateForm.get('name')?.invalid && updateForm.get('name')?.touched"> Name is required and must be 3-100 characters </small>
-        </div>
+    [style]="{width: '600px'}"
+    [breakpoints]="{'960px': '90vw', '640px': '100vw'}"
+    [draggable]="false"
+    [resizable]="false"
+    (onShow)="onCreateDialogShow()"
+    (onHide)="onCreateDialogHide()">
 
-        <div class="form-group">
-            <label for="updateDescription">Description</label>
-            <textarea id="updateDescription" pInputTextarea formControlName="description" rows="4" class="w-full" [disabled]="isUpdating()"> </textarea>
-            <small class="error" *ngIf="updateForm.get('description')?.invalid && updateForm.get('description')?.touched"> Description must not exceed 500 characters </small>
-        </div>
+    <form [formGroup]="createForm" class="form-container">
 
+        <!-- Parent Category (full width) -->
         <div class="form-group">
-            <label for="updateDisplayOrder">Display Order</label>
-            <input id="updateDisplayOrder" type="number" pInputText formControlName="displayOrder" class="w-full" [disabled]="isUpdating()" />
-            <small class="error" *ngIf="updateForm.get('displayOrder')?.invalid && updateForm.get('displayOrder')?.touched"> Display order must be a non-negative number </small>
-        </div>
-
-        <div class="form-group">
-            <label>
-                <input type="checkbox" formControlName="isActive" [disabled]="isUpdating()" />
-                Active
-            </label>
-        </div>
-    </form>
-
-    <ng-template pTemplate="footer">
-        <button type="button" pButton label="Cancel" (click)="onUpdateDialogHide()" [disabled]="isUpdating()" class="p-button-text"></button>
-        <button type="button" pButton label="Update" (click)="onUpdateSubmit()" [disabled]="updateForm.invalid || isUpdating()" [loading]="isUpdating()" class="p-button-success"></button>
-    </ng-template>
-</p-dialog>
-
-<!-- Create Category Dialog -->
-<p-dialog [(visible)]="displayCreateDialog" header="Create New Category" [modal]="true" [style]="{ width: '50vw' }" [breakpoints]="{ '960px': '75vw', '640px': '90vw' }" (onHide)="onCreateDialogHide()" (onShow)="onCreateDialogShow()" [showHeader]="true">
-    <form [formGroup]="createForm">
-        <div class="form-group">
-            <label for="parentCategory">Parent Category (Optional)</label>
+            <label for="c-parent" class="form-label">Parent Category</label>
             <app-lazy-autocomplete
-                id="parentCategory"
+                id="c-parent"
                 formControlName="parentCategory"
-                [fetchFn]="fetchParentCategories.bind(this)"
                 [(ngModel)]="selectedParentCategory"
-                placeholder="Search by name or code..."
+                [fetchFn]="fetchParentCategories.bind(this)"
+                placeholder="Search or leave empty for root category..."
                 [pageSize]="20"
                 [itemSize]="52"
                 optionLabel="name"
                 [disabled]="isCreating()"
                 (onItemSelect)="onParentCategorySelect($event)"
-                (onClearEvent)="onParentCategoryCleared()"
-            >
-                <ng-template let-category #item>
-                    <div class="category-autocomplete-item">
-                        {{ category.name }} ({{ category.code }})
-                    </div>
+                (onClearEvent)="onParentCategoryCleared()">
+                <ng-template let-cat #item>
+                    <div class="autocomplete-item">{{ cat.name }} <span class="autocomplete-code">({{ cat.code }})</span></div>
                 </ng-template>
             </app-lazy-autocomplete>
-        </div>
-        <div class="form-group">
-            <label for="createName">Name *</label>
-            <input id="createName" type="text" pInputText formControlName="name" class="w-full" [disabled]="isCreating()" />
-            <small class="error" *ngIf="createForm.get('name')?.invalid && createForm.get('name')?.touched"> Name is required and must be 3-100 characters </small>
+            <small class="hint-message">Leave empty to create a root (top-level) category</small>
         </div>
 
-        <div class="form-group">
-            <label for="createCode">Code *</label>
-            <div class="code-input-wrapper">
-                <input id="createCode" type="text" pInputText formControlName="code" class="w-full" placeholder="Auto-generated" />
-                <i *ngIf="generatingCode" class="pi pi-spin pi-spinner code-spinner"></i>
+        <!-- Row: Name + Code -->
+        <div class="form-row">
+            <div class="form-group">
+                <label for="c-name" class="form-label"><span class="required">*</span> Name</label>
+                <input type="text" pInputText id="c-name" formControlName="name"
+                       placeholder="e.g. Engine Parts" class="form-input" />
+                <small class="form-error" *ngIf="createForm.get('name')?.touched && createForm.get('name')?.invalid">
+                    Name is required (3–100 characters)
+                </small>
             </div>
-            <small class="hint-text">Code is auto-generated and cannot be changed</small>
+            <div class="form-group">
+                <label for="c-code" class="form-label"><span class="required">*</span> Code</label>
+                <div class="code-input-wrapper">
+                    <input type="text" pInputText id="c-code" formControlName="code"
+                           placeholder="Auto-generated" class="form-input" style="text-transform:uppercase" />
+                    <i *ngIf="generatingCode" class="pi pi-spin pi-spinner code-spinner"></i>
+                </div>
+                <small class="hint-message">Auto-generated unique identifier</small>
+            </div>
         </div>
 
+        <!-- Description (full width) -->
         <div class="form-group">
-            <label for="createDescription">Description</label>
-            <textarea id="createDescription" pInputTextarea formControlName="description" rows="4" class="w-full" [disabled]="isCreating()"> </textarea>
-            <small class="error" *ngIf="createForm.get('description')?.invalid && createForm.get('description')?.touched"> Description must not exceed 500 characters </small>
+            <label for="c-description" class="form-label">Description</label>
+            <textarea pInputTextarea id="c-description" formControlName="description" rows="2"
+                      placeholder="Optional description" class="form-input"></textarea>
         </div>
 
-        <div class="form-group">
-            <label for="createDisplayOrder">Display Order</label>
-            <input id="createDisplayOrder" type="number" pInputText formControlName="displayOrder" class="w-full" value="0" [disabled]="isCreating()" />
-            <small class="error" *ngIf="createForm.get('displayOrder')?.invalid && createForm.get('displayOrder')?.touched"> Display order must be a non-negative number </small>
+        <!-- Row: Display Order + Active -->
+        <div class="form-row">
+            <div class="form-group">
+                <label for="c-order" class="form-label">Display Order</label>
+                <p-inputNumber id="c-order" formControlName="displayOrder"
+                               [min]="0" styleClass="form-input w-full"></p-inputNumber>
+                <small class="hint-message">Lower = shown first</small>
+            </div>
+            <div class="form-group form-checkbox-group">
+                <p-checkbox formControlName="isActive" [binary]="true" inputId="c-active"></p-checkbox>
+                <label for="c-active" class="form-label checkbox-label">Active</label>
+            </div>
         </div>
+
     </form>
 
     <ng-template pTemplate="footer">
-        <button type="button" pButton label="Cancel" (click)="onCreateDialogHide()" [disabled]="isCreating()" class="p-button-text"></button>
-        <button type="button" pButton label="Create" (click)="onCreateSubmit()" [disabled]="createForm.invalid || isCreating()" [loading]="isCreating()" class="p-button-success"></button>
+        <div class="dialog-footer">
+            <button pButton type="button" label="Cancel" icon="pi pi-times"
+                    class="p-button-text p-button-secondary"
+                    [disabled]="isCreating()" (click)="onCreateDialogHide()"></button>
+            <button pButton type="button" label="Create Category" icon="pi pi-check"
+                    class="p-button-success" (click)="onCreateSubmit()"
+                    [disabled]="isCreating()" [loading]="isCreating()"></button>
+        </div>
+    </ng-template>
+</p-dialog>
+
+
+<!-- ==================== UPDATE CATEGORY DIALOG ==================== -->
+<p-dialog
+    [(visible)]="displayUpdateDialog"
+    [header]="'Edit: ' + (selectedCategory?.name || '')"
+    [modal]="true"
+    [style]="{width: '600px'}"
+    [breakpoints]="{'960px': '90vw', '640px': '100vw'}"
+    [draggable]="false"
+    [resizable]="false"
+    (onShow)="onUpdateDialogShow()"
+    (onHide)="onUpdateDialogHide()">
+
+    <form [formGroup]="updateForm" class="form-container">
+
+        <!-- Name (full width) -->
+        <div class="form-group">
+            <label for="u-name" class="form-label"><span class="required">*</span> Name</label>
+            <input type="text" pInputText id="u-name" formControlName="name"
+                   placeholder="Category name" class="form-input" />
+            <small class="form-error" *ngIf="updateForm.get('name')?.touched && updateForm.get('name')?.invalid">
+                Name is required (3–100 characters)
+            </small>
+        </div>
+
+        <!-- Description (full width) -->
+        <div class="form-group">
+            <label for="u-description" class="form-label">Description</label>
+            <textarea pInputTextarea id="u-description" formControlName="description" rows="2"
+                      placeholder="Optional description" class="form-input"></textarea>
+        </div>
+
+        <!-- Row: Display Order + Active -->
+        <div class="form-row">
+            <div class="form-group">
+                <label for="u-order" class="form-label">Display Order</label>
+                <p-inputNumber id="u-order" formControlName="displayOrder"
+                               [min]="0" styleClass="form-input w-full"></p-inputNumber>
+            </div>
+            <div class="form-group form-checkbox-group">
+                <p-checkbox formControlName="isActive" [binary]="true" inputId="u-active"></p-checkbox>
+                <label for="u-active" class="form-label checkbox-label">Active</label>
+            </div>
+        </div>
+
+    </form>
+
+    <ng-template pTemplate="footer">
+        <div class="dialog-footer">
+            <button pButton type="button" label="Cancel" icon="pi pi-times"
+                    class="p-button-text p-button-secondary"
+                    [disabled]="isUpdating()" (click)="onUpdateDialogHide()"></button>
+            <button pButton type="button" label="Save Changes" icon="pi pi-check"
+                    class="p-button-info" (click)="onUpdateSubmit()"
+                    [disabled]="isUpdating()" [loading]="isUpdating()"></button>
+        </div>
     </ng-template>
 </p-dialog>

@@ -12,7 +12,7 @@ public class ShipmentLine : AuditableEntity
     // Navigation
     public Shipment? Shipment { get; set; }
     public SalesOrderLine? SalesOrderLine { get; set; }
-    public Part? Part { get; set; }
+    public Product? Part { get; set; }
     public ProductVariant? ProductVariant { get; set; }
 
     private ShipmentLine() { }

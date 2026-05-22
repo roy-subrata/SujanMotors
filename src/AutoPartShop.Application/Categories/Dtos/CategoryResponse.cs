@@ -16,7 +16,7 @@ namespace AutoPartShop.Application.Categories.Dtos
         /// <summary>
         /// Category description
         /// </summary>
-        public string Description { get; set; } = string.Empty;
+        public string? Description { get; set; }
 
         /// <summary>
         /// Category code
@@ -37,16 +37,6 @@ namespace AutoPartShop.Application.Categories.Dtos
         /// Display order in lists
         /// </summary>
         public int DisplayOrder { get; set; }
-
-        /// <summary>
-        /// Created by user
-        /// </summary>
-        public string CreatedBy { get; set; } = string.Empty;
-
-        /// <summary>
-        /// Last modified by user
-        /// </summary>
-        public string ModifiedBy { get; set; } = string.Empty;
 
         /// <summary>
         /// Subcategories (only populated when requested)

@@ -3,11 +3,10 @@ using AutoPartsShop.Domain.Entities;
 namespace AutoPartShop.Domain.Entities;
 
 /// <summary>
-/// Universal product record — works for auto parts, grocery, pharmacy, clothing,
-/// electronics, and any other shop type.  Per-lot cost/price/warranty overrides live
-/// on StockLot (created from GoodsReceiptLine when a GRN is accepted).
+/// Product catalog record. Per-lot cost/price/warranty overrides live on StockLot
+/// (created from GoodsReceiptLine when a GRN is accepted).
 /// </summary>
-public class Part : AuditableEntity
+public class Product : AuditableEntity
 {
     // ── Core identity ────────────────────────────────────────────────────────
     public string Name { get; private set; } = string.Empty;
@@ -62,9 +61,9 @@ public class Part : AuditableEntity
     public ICollection<ProductMedia> Media { get; set; } = new List<ProductMedia>();
     public ProductCatalogEntry? CatalogEntry { get; set; }
 
-    private Part() { }
+    private Product() { }
 
-    public static Part Create(string name, PartNumber partNumber, string sku, Guid categoryId,
+    public static Product Create(string name, PartNumber partNumber, string sku, Guid categoryId,
         Guid? brandId = null, Guid? baseUnitId = null, Guid? unitId = null, string description = "",
         string? richDescription = null,
         decimal costPrice = 0, decimal sellingPrice = 0, int minimumStock = 0,
@@ -119,7 +118,7 @@ public class Part : AuditableEntity
         if (!validProductTypes.Contains(resolvedType))
             throw new ArgumentException("ProductType must be PHYSICAL, DIGITAL, or SERVICE", nameof(productType));
 
-        return new Part
+        return new Product
         {
             Name = name.Trim(),
             Description = description?.Trim() ?? string.Empty,

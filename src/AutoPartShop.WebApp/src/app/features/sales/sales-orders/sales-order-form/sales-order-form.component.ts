@@ -7,6 +7,8 @@ import { SelectModule } from 'primeng/select';
 import { TagModule } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { DialogModule } from 'primeng/dialog';
+import { DividerModule } from 'primeng/divider';
 import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -15,6 +17,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { DatePickerModule } from 'primeng/datepicker';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { SalesOrderService, CreateSalesOrderRequest, SalesOrderResponse } from '../../services/sales-order.service';
+import { ChallanService, GenerateChallanRequest } from '../../services/challan.service';
 import { CustomerService, CustomerResponse } from '../../services/customer.service';
 import { PublicPartService, PublicPartResponse } from '../../services/public-part.service';
 import { TechnicianService, TechnicianResponse } from '../../services/technician.service';
@@ -44,6 +47,8 @@ import { CustomerCreditNoteService } from '../../services/customer-credit-note.s
         TagModule,
         ToastModule,
         ConfirmDialogModule,
+        DialogModule,
+        DividerModule,
         CardModule,
         ButtonModule,
         InputTextModule,
@@ -62,6 +67,7 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
     private readonly router = inject(Router);
     private readonly route = inject(ActivatedRoute);
     private readonly salesOrderService = inject(SalesOrderService);
+    private readonly challanService     = inject(ChallanService);
     private readonly customerService = inject(CustomerService);
     private readonly partService = inject(PublicPartService);
     private readonly technicianService = inject(TechnicianService);
@@ -1138,7 +1144,8 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
         });
     }
 
-    formatCurrency(amount: number): string {
+    formatCurrency(amount: number | null | undefined): string {
+        if (amount == null || isNaN(amount)) return '—';
         const currencyCode = this.salesOrderForm?.get('currency')?.value || this.currencyService.selectedCurrency();
         return this.currencyService.formatCurrency(amount, currencyCode);
     }
@@ -1188,6 +1195,95 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
                     });
             }
         });
+    }
+
+    /** Later-delivery flow: pack & mark ready to dispatch. */
+    markReadyForDelivery(): void {
+        if (!this.salesOrderId() || !this.currentSO) return;
+        this.confirmationService.confirm({
+            message: `Mark ${this.currentSO.soNumber} as Ready for Delivery? A challan can then be generated before dispatch.`,
+            header: 'Ready for Delivery',
+            icon: 'pi pi-truck',
+            acceptButtonStyleClass: 'p-button-warning',
+            accept: () => {
+                this.salesOrderService.markReadyForDelivery(this.salesOrderId()!)
+                    .pipe(takeUntil(this.destroy$))
+                    .subscribe({
+                        next: () => {
+                            this.messageService.add({ severity: 'success', summary: 'Updated', detail: `${this.currentSO!.soNumber} is now Ready for Delivery` });
+                            this.loadSalesOrder(this.salesOrderId()!);
+                        },
+                        error: err => this.messageService.add({ severity: 'error', summary: 'Error', detail: err?.error?.detail || 'Failed to update status' })
+                    });
+            }
+        });
+    }
+
+    /** Direct-handover flow: deliver immediately without a challan. */
+    deliverDirect(): void {
+        if (!this.salesOrderId() || !this.currentSO) return;
+        this.confirmationService.confirm({
+            message: `Mark ${this.currentSO.soNumber} as Delivered now? The invoice will be issued automatically.`,
+            header: 'Direct Delivery',
+            icon: 'pi pi-check-circle',
+            acceptButtonStyleClass: 'p-button-success',
+            accept: () => {
+                this.salesOrderService.deliverDirect(this.salesOrderId()!)
+                    .pipe(takeUntil(this.destroy$))
+                    .subscribe({
+                        next: () => {
+                            this.messageService.add({ severity: 'success', summary: 'Delivered', detail: `${this.currentSO!.soNumber} marked as Delivered` });
+                            this.loadSalesOrder(this.salesOrderId()!);
+                        },
+                        error: err => this.messageService.add({ severity: 'error', summary: 'Error', detail: err?.error?.detail || 'Failed to deliver order' })
+                    });
+            }
+        });
+    }
+
+    // ── Challan dialog state ─────────────────────────────────────────────────
+    showChallanDialog = false;
+    challanForm = {
+        deliveryAddress:  '',
+        receiverName:     '',
+        receiverPhone:    '',
+        transportCompany: '',
+        vehicleNumber:    '',
+        driverName:       '',
+        driverPhone:      '',
+        notes:            ''
+    };
+
+    openChallanDialog(): void {
+        if (!this.currentSO) return;
+        this.challanForm = {
+            deliveryAddress:  this.currentSO.customerCity    || '',
+            receiverName:     this.currentSO.customerName    || '',
+            receiverPhone:    this.currentSO.customerPhone   || '',
+            transportCompany: '',
+            vehicleNumber:    '',
+            driverName:       '',
+            driverPhone:      '',
+            notes:            ''
+        };
+        this.showChallanDialog = true;
+    }
+
+    /** Generate a challan for the later-delivery flow. */
+    generateChallan(): void {
+        if (!this.salesOrderId() || !this.currentSO) return;
+        this.showChallanDialog = false;
+        const req: GenerateChallanRequest = { ...this.challanForm };
+        this.challanService.generate(this.salesOrderId()!, req)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+                next: challan => {
+                    this.messageService.add({ severity: 'success', summary: 'Challan Generated', detail: `Challan ${challan.challanNumber} created` });
+                    this.loadSalesOrder(this.salesOrderId()!);
+                    window.open(`/sales/challans/${challan.id}/print`, '_blank');
+                },
+                error: err => this.messageService.add({ severity: 'error', summary: 'Error', detail: err?.error?.detail || 'Failed to generate challan' })
+            });
     }
 
     /**

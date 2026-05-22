@@ -11,7 +11,7 @@ public class CartReservation : BaseEntity
     public bool IsReleased { get; private set; }
 
     // Navigation
-    public Part? Part { get; set; }
+    public Product? Part { get; set; }
 
     private CartReservation() { }
 

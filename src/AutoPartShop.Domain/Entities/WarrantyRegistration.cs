@@ -31,7 +31,7 @@ public class WarrantyRegistration : AuditableEntity
     public DateTime? VoidedDate { get; private set; }
 
     // Navigation properties
-    public Part? Part { get; set; }
+    public Product? Part { get; set; }
     public ProductVariant? ProductVariant { get; set; }
     public SalesOrder? SalesOrder { get; set; }
     public SalesOrderLine? SalesOrderLine { get; set; }

@@ -35,6 +35,7 @@ public class DatabaseSeeder
             await SeedCustomerAsync(context, codeService, logger);
             await SeedEcommerceCatalogAsync(context, logger);
             await SeedShopPoliciesAsync(context, logger);
+            await SeedBusinessSettingsAsync(context, logger);
             await EnsureDemoStockAsync(context, logger);
             await SeedDemoVehiclesAsync(context, logger);
             await SeedDemoCompatibilitiesAsync(context, logger);
@@ -263,126 +264,164 @@ public class DatabaseSeeder
 
         logger.LogInformation("Seeding e-commerce catalog...");
 
-        // Units
-        var unitPcs  = Unit.Create("Piece", "PCS", "pcs");
-        var unitLtr  = Unit.Create("Litre", "LTR", "L");
-        var unitSet  = Unit.Create("Set",   "SET", "set");
-        var unitPair = Unit.Create("Pair",  "PAIR","pair");
-        foreach (var u in new[] { unitPcs, unitLtr, unitSet, unitPair })
-        { u.CreatedBy = "System"; u.ModifiedBy = "System"; }
-        context.Units.AddRange(unitPcs, unitLtr, unitSet, unitPair);
-        await context.SaveChangesAsync();
-
-        // Warehouse
-        var wh = Warehouse.Create("Main Warehouse", "WH-MAIN", "123 Industrial Area", "Dhaka",
-            "Dhaka Division", "Bangladesh", "1200", "System Admin");
-        wh.CreatedBy = "System"; wh.ModifiedBy = "System";
-        context.Warehouses.Add(wh);
-        await context.SaveChangesAsync();
-
-        // Brands
-        var bosch   = Brand.Create("Bosch",   "BOSCH",   "German engineering excellence", "Germany");
-        var denso   = Brand.Create("Denso",   "DENSO",   "Trusted Japanese OEM supplier", "Japan");
-        var ngk     = Brand.Create("NGK",     "NGK",     "World's #1 spark plug brand",   "Japan");
-        var brembo  = Brand.Create("Brembo",  "BREMBO",  "Premium braking systems",        "Italy");
-        var monroe  = Brand.Create("Monroe",  "MONROE",  "Ride comfort and handling",       "USA");
-        var mann    = Brand.Create("Mann",    "MANN",    "Filtration specialists",           "Germany");
-        var castrol = Brand.Create("Castrol", "CASTROL", "Premium engine lubricants",        "UK");
-        var hella   = Brand.Create("Hella",   "HELLA",   "Automotive lighting & electronics","Germany");
-        foreach (var b in new[] { bosch, denso, ngk, brembo, monroe, mann, castrol, hella })
-        { b.CreatedBy = "System"; b.ModifiedBy = "System"; }
-        context.Brands.AddRange(bosch, denso, ngk, brembo, monroe, mann, castrol, hella);
-        await context.SaveChangesAsync();
-
-        // Categories (root level)
-        var catEngine  = Category.Create("Engine Parts",   "Engine components and gaskets",    "CAT-ENG", 1, null, "Engine Parts",  0);
-        var catBrake   = Category.Create("Brake System",   "Brake pads, rotors, calipers",     "CAT-BRK", 2, null, "Brake System", 0);
-        var catSuspend = Category.Create("Suspension",     "Shocks, struts, control arms",     "CAT-SUS", 3, null, "Suspension",   0);
-        var catElec    = Category.Create("Electrical",     "Batteries, lighting, ignition",    "CAT-ELC", 4, null, "Electrical",   0);
-        var catBody    = Category.Create("Body Parts",     "Mirrors, bumpers, panels",         "CAT-BDY", 5, null, "Body Parts",   0);
-        var catOils    = Category.Create("Oils & Fluids",  "Engine oil, coolant, fluids",      "CAT-OIL", 6, null, "Oils & Fluids",0);
-        var catFilters = Category.Create("Filters",        "Oil, air, fuel, cabin filters",    "CAT-FLT", 7, null, "Filters",      0);
-        var catTires   = Category.Create("Tires & Wheels", "Alloy wheels and tires",           "CAT-TYR", 8, null, "Tires & Wheels",0);
-        foreach (var c in new[] { catEngine, catBrake, catSuspend, catElec, catBody, catOils, catFilters, catTires })
-        { c.CreatedBy = "System"; c.ModifiedBy = "System"; }
-        context.Categories.AddRange(catEngine, catBrake, catSuspend, catElec, catBody, catOils, catFilters, catTires);
-        await context.SaveChangesAsync();
-
-        // Vehicles
-        var veh = new[]
+        // ── Units (load existing by code, insert only if missing) ────────────
+        async Task<Unit> EnsureUnit(string name, string code, string symbol)
         {
-            Vehicle.Create("Toyota",     "Corolla",  2022, "Inline-4 1.6L"),
-            Vehicle.Create("Toyota",     "Hilux",    2022, "Inline-4 2.4L Diesel"),
-            Vehicle.Create("Honda",      "Civic",    2022, "Inline-4 1.5T"),
-            Vehicle.Create("Honda",      "Accord",   2021, "Inline-4 2.0T"),
-            Vehicle.Create("Nissan",     "Sunny",    2021, "Inline-4 1.5L"),
-            Vehicle.Create("Mitsubishi", "Lancer",   2019, "Inline-4 2.0L"),
-            Vehicle.Create("Suzuki",     "Swift",    2023, "Inline-3 1.2L"),
-            Vehicle.Create("Hyundai",    "Tucson",   2022, "Inline-4 2.0L"),
-        };
-        foreach (var v in veh) { v.CreatedBy = "System"; v.ModifiedBy = "System"; }
-        context.Vehicles.AddRange(veh);
-        await context.SaveChangesAsync();
+            var existing = await context.Units.FirstOrDefaultAsync(u => u.Code == code);
+            if (existing != null) return existing;
+            var u = Unit.Create(name, code, symbol);
+            u.CreatedBy = "System"; u.ModifiedBy = "System";
+            context.Units.Add(u);
+            await context.SaveChangesAsync();
+            return u;
+        }
+        var unitPcs  = await EnsureUnit("Piece", "PCS",  "pcs");
+        var unitLtr  = await EnsureUnit("Litre", "LTR",  "L");
+        var unitSet  = await EnsureUnit("Set",   "SET",  "set");
+        var unitPair = await EnsureUnit("Pair",  "PAIR", "pair");
 
-        // ── Attribute Groups & Attributes ─────────────────────────────────────
-        var grpGeneral  = ProductAttributeGroup.Create("General",     1);
-        var grpPerf     = ProductAttributeGroup.Create("Performance", 2);
-        var grpCompat   = ProductAttributeGroup.Create("Fitment",     3);
-        foreach (var g in new[] { grpGeneral, grpPerf, grpCompat })
-        { g.CreatedBy = "System"; g.ModifiedBy = "System"; }
-        context.ProductAttributeGroups.AddRange(grpGeneral, grpPerf, grpCompat);
-        await context.SaveChangesAsync();
-
-        // Attributes
-        var attrGrade    = ProductAttribute.Create(grpGeneral.Id,  "Grade",     "GRADE",    "option");
-        var attrPos      = ProductAttribute.Create(grpCompat.Id,   "Position",  "POSITION", "option");
-        var attrBrakeTyp = ProductAttribute.Create(grpPerf.Id,     "Brake Type","BRAKE_TYP","option");
-        var attrViscosity= ProductAttribute.Create(grpGeneral.Id,  "Viscosity", "VISCOSITY","option");
-        var attrVolume   = ProductAttribute.Create(grpGeneral.Id,  "Volume",    "VOLUME",   "option", "L");
-        var attrMaterial = ProductAttribute.Create(grpPerf.Id,     "Material",  "MATERIAL", "option");
-        foreach (var a in new[] { attrGrade, attrPos, attrBrakeTyp, attrViscosity, attrVolume, attrMaterial })
-        { a.CreatedBy = "System"; a.ModifiedBy = "System"; }
-        context.ProductAttributes.AddRange(attrGrade, attrPos, attrBrakeTyp, attrViscosity, attrVolume, attrMaterial);
-        await context.SaveChangesAsync();
-
-        // Attribute Options
-        ProductAttributeOption Opt(Guid attrId, string val, int order)
+        // ── Warehouse ─────────────────────────────────────────────────────────
+        var wh = await context.Warehouses.FirstOrDefaultAsync(w => w.Code == "WH-MAIN");
+        if (wh is null)
         {
-            var o = ProductAttributeOption.Create(attrId, val, order);
+            wh = Warehouse.Create("Main Warehouse", "WH-MAIN", "123 Industrial Area", "Dhaka",
+                "Dhaka Division", "Bangladesh", "1200", "System Admin");
+            wh.CreatedBy = "System"; wh.ModifiedBy = "System";
+            context.Warehouses.Add(wh);
+            await context.SaveChangesAsync();
+        }
+
+        // ── Brands (load existing by code, insert only if missing) ────────────
+        async Task<Brand> EnsureBrand(string name, string code, string desc, string country)
+        {
+            var existing = await context.Brands.FirstOrDefaultAsync(b => b.Code == code);
+            if (existing != null) return existing;
+            var b = Brand.Create(name, code, desc, country);
+            b.CreatedBy = "System"; b.ModifiedBy = "System";
+            context.Brands.Add(b);
+            await context.SaveChangesAsync();
+            return b;
+        }
+        var bosch   = await EnsureBrand("Bosch",   "BOSCH",   "German engineering excellence",        "Germany");
+        var denso   = await EnsureBrand("Denso",   "DENSO",   "Trusted Japanese OEM supplier",        "Japan");
+        var ngk     = await EnsureBrand("NGK",     "NGK",     "World's #1 spark plug brand",          "Japan");
+        var brembo  = await EnsureBrand("Brembo",  "BREMBO",  "Premium braking systems",              "Italy");
+        var monroe  = await EnsureBrand("Monroe",  "MONROE",  "Ride comfort and handling",            "USA");
+        var mann    = await EnsureBrand("Mann",    "MANN",    "Filtration specialists",               "Germany");
+        var castrol = await EnsureBrand("Castrol", "CASTROL", "Premium engine lubricants",            "UK");
+        var hella   = await EnsureBrand("Hella",   "HELLA",   "Automotive lighting & electronics",    "Germany");
+
+        // ── Categories (load existing by code, insert only if missing) ─────────
+        async Task<Category> EnsureCategory(string name, string desc, string code, int order, string breadcrumb)
+        {
+            var existing = await context.Categories.FirstOrDefaultAsync(c => c.Code == code);
+            if (existing != null) return existing;
+            var c = Category.Create(name, desc, code, order, null, breadcrumb, 0);
+            c.CreatedBy = "System"; c.ModifiedBy = "System";
+            context.Categories.Add(c);
+            await context.SaveChangesAsync();
+            return c;
+        }
+        var catEngine  = await EnsureCategory("Engine Parts",   "Engine components and gaskets",  "CAT-ENG", 1, "Engine Parts");
+        var catBrake   = await EnsureCategory("Brake System",   "Brake pads, rotors, calipers",   "CAT-BRK", 2, "Brake System");
+        var catSuspend = await EnsureCategory("Suspension",     "Shocks, struts, control arms",   "CAT-SUS", 3, "Suspension");
+        var catElec    = await EnsureCategory("Electrical",     "Batteries, lighting, ignition",  "CAT-ELC", 4, "Electrical");
+        var catBody    = await EnsureCategory("Body Parts",     "Mirrors, bumpers, panels",       "CAT-BDY", 5, "Body Parts");
+        var catOils    = await EnsureCategory("Oils & Fluids",  "Engine oil, coolant, fluids",    "CAT-OIL", 6, "Oils & Fluids");
+        var catFilters = await EnsureCategory("Filters",        "Oil, air, fuel, cabin filters",  "CAT-FLT", 7, "Filters");
+        var catTires   = await EnsureCategory("Tires & Wheels", "Alloy wheels and tires",         "CAT-TYR", 8, "Tires & Wheels");
+
+        // ── Attribute Groups (load existing by name, insert only if missing) ────
+        async Task<ProductAttributeGroup> EnsureAttrGroup(string name, int order)
+        {
+            var existing = await context.ProductAttributeGroups.FirstOrDefaultAsync(g => g.Name == name);
+            if (existing != null) return existing;
+            var g = ProductAttributeGroup.Create(name, order);
+            g.CreatedBy = "System"; g.ModifiedBy = "System";
+            context.ProductAttributeGroups.Add(g);
+            await context.SaveChangesAsync();
+            return g;
+        }
+        var grpGeneral = await EnsureAttrGroup("General",     1);
+        var grpPerf    = await EnsureAttrGroup("Performance", 2);
+        var grpCompat  = await EnsureAttrGroup("Fitment",     3);
+
+        // ── Attributes (load existing by code, insert only if missing) ────────
+        async Task<ProductAttribute> EnsureAttr(Guid groupId, string name, string code, string dataType, string? unit = null)
+        {
+            var existing = await context.ProductAttributes.FirstOrDefaultAsync(a => a.Code == code);
+            if (existing != null) return existing;
+            var a = unit != null
+                ? ProductAttribute.Create(groupId, name, code, dataType, unit)
+                : ProductAttribute.Create(groupId, name, code, dataType);
+            a.CreatedBy = "System"; a.ModifiedBy = "System";
+            context.ProductAttributes.Add(a);
+            await context.SaveChangesAsync();
+            return a;
+        }
+        var attrGrade     = await EnsureAttr(grpGeneral.Id, "Grade",      "GRADE",    "option");
+        var attrPos       = await EnsureAttr(grpCompat.Id,  "Position",   "POSITION", "option");
+        var attrBrakeTyp  = await EnsureAttr(grpPerf.Id,    "Brake Type", "BRAKE_TYP","option");
+        var attrViscosity = await EnsureAttr(grpGeneral.Id, "Viscosity",  "VISCOSITY","option");
+        var attrVolume    = await EnsureAttr(grpGeneral.Id, "Volume",     "VOLUME",   "option", "L");
+        var attrMaterial  = await EnsureAttr(grpPerf.Id,    "Material",   "MATERIAL", "option");
+
+        // ── Attribute Options (load existing by attrId+value, insert if missing)
+        async Task<ProductAttributeOption> EnsureOpt(Guid attrId, string value, int order)
+        {
+            var existing = await context.ProductAttributeOptions
+                .FirstOrDefaultAsync(o => o.AttributeId == attrId && o.Value == value);
+            if (existing != null) return existing;
+            var o = ProductAttributeOption.Create(attrId, value, order);
             o.CreatedBy = "System"; o.ModifiedBy = "System";
+            context.ProductAttributeOptions.Add(o);
+            await context.SaveChangesAsync();
             return o;
         }
-        var opts = new[]
-        {
-            Opt(attrGrade.Id, "Standard", 1), Opt(attrGrade.Id, "Premium", 2),
-            Opt(attrPos.Id,   "Front",    1), Opt(attrPos.Id,   "Rear",    2),
-            Opt(attrBrakeTyp.Id, "Ceramic", 1), Opt(attrBrakeTyp.Id, "Semi-Metallic", 2),
-            Opt(attrViscosity.Id, "5W-30", 1), Opt(attrViscosity.Id, "10W-40", 2), Opt(attrViscosity.Id, "0W-20", 3),
-            Opt(attrVolume.Id,  "1L",   1),   Opt(attrVolume.Id,  "4L",   2), Opt(attrVolume.Id, "5L", 3),
-            Opt(attrMaterial.Id,"Steel",1),   Opt(attrMaterial.Id,"Aluminium",2), Opt(attrMaterial.Id,"Carbon",3),
-        };
-        context.ProductAttributeOptions.AddRange(opts);
-        await context.SaveChangesAsync();
+        var optStandard     = await EnsureOpt(attrGrade.Id,    "Standard",     1);
+        var optPremium      = await EnsureOpt(attrGrade.Id,    "Premium",      2);
+        var optFront        = await EnsureOpt(attrPos.Id,      "Front",        1);
+        var optRear         = await EnsureOpt(attrPos.Id,      "Rear",         2);
+        var optCeramic      = await EnsureOpt(attrBrakeTyp.Id, "Ceramic",      1);
+        var optSemiMetallic = await EnsureOpt(attrBrakeTyp.Id, "Semi-Metallic",2);
+        var opt5W30         = await EnsureOpt(attrViscosity.Id,"5W-30",        1);
+        var opt10W40        = await EnsureOpt(attrViscosity.Id,"10W-40",       2);
+        var opt0W20         = await EnsureOpt(attrViscosity.Id,"0W-20",        3);
+        var opt1L           = await EnsureOpt(attrVolume.Id,   "1L",           1);
+        var opt4L           = await EnsureOpt(attrVolume.Id,   "4L",           2);
+        var opt5L           = await EnsureOpt(attrVolume.Id,   "5L",           3);
+        var optSteel        = await EnsureOpt(attrMaterial.Id, "Steel",        1);
+        var optAluminium    = await EnsureOpt(attrMaterial.Id, "Aluminium",    2);
+        var optCarbon       = await EnsureOpt(attrMaterial.Id, "Carbon",       3);
 
-        // Category ↔ Attribute links (which filters show on each category page)
-        void LinkCatAttr(Guid catId, Guid attrId, string filterType = "select", int sort = 1)
+        // Keep a local lookup so AddPart helpers can still call OptId(value)
+        var opts = new[] {
+            optStandard, optPremium, optFront, optRear, optCeramic, optSemiMetallic,
+            opt5W30, opt10W40, opt0W20, opt1L, opt4L, opt5L, optSteel, optAluminium, optCarbon
+        };
+
+        // ── Category ↔ Attribute links (skip if already linked) ───────────────
+        async Task LinkCatAttr(Guid catId, Guid attrId, string filterType = "select", int sort = 1)
         {
+            if (await context.CategoryAttributes.AnyAsync(ca => ca.CategoryId == catId && ca.AttributeId == attrId))
+                return;
             var ca = CategoryAttribute.Create(catId, attrId, isFilterable: true, filterType: filterType, sortOrder: sort);
             ca.CreatedBy = "System"; ca.ModifiedBy = "System";
             context.CategoryAttributes.Add(ca);
         }
-        LinkCatAttr(catEngine.Id,  attrGrade.Id,    "select", 1);
-        LinkCatAttr(catEngine.Id,  attrMaterial.Id, "select", 2);
-        LinkCatAttr(catBrake.Id,   attrGrade.Id,    "select", 1);
-        LinkCatAttr(catBrake.Id,   attrBrakeTyp.Id, "select", 2);
-        LinkCatAttr(catBrake.Id,   attrPos.Id,      "select", 3);
-        LinkCatAttr(catSuspend.Id, attrGrade.Id,    "select", 1);
-        LinkCatAttr(catSuspend.Id, attrPos.Id,      "select", 2);
-        LinkCatAttr(catElec.Id,    attrGrade.Id,    "select", 1);
-        LinkCatAttr(catOils.Id,    attrViscosity.Id,"select", 1);
-        LinkCatAttr(catOils.Id,    attrVolume.Id,   "select", 2);
-        LinkCatAttr(catFilters.Id, attrGrade.Id,    "select", 1);
-        LinkCatAttr(catBody.Id,    attrPos.Id,      "select", 1);
+        await LinkCatAttr(catEngine.Id,  attrGrade.Id,     "select", 1);
+        await LinkCatAttr(catEngine.Id,  attrMaterial.Id,  "select", 2);
+        await LinkCatAttr(catBrake.Id,   attrGrade.Id,     "select", 1);
+        await LinkCatAttr(catBrake.Id,   attrBrakeTyp.Id,  "select", 2);
+        await LinkCatAttr(catBrake.Id,   attrPos.Id,       "select", 3);
+        await LinkCatAttr(catSuspend.Id, attrGrade.Id,     "select", 1);
+        await LinkCatAttr(catSuspend.Id, attrPos.Id,       "select", 2);
+        await LinkCatAttr(catElec.Id,    attrGrade.Id,     "select", 1);
+        await LinkCatAttr(catOils.Id,    attrViscosity.Id, "select", 1);
+        await LinkCatAttr(catOils.Id,    attrVolume.Id,    "select", 2);
+        await LinkCatAttr(catFilters.Id, attrGrade.Id,     "select", 1);
+        await LinkCatAttr(catBody.Id,    attrPos.Id,       "select", 1);
+        await context.SaveChangesAsync();
         await context.SaveChangesAsync();
 
         // Get existing SKUs to avoid duplicates
@@ -393,7 +432,7 @@ public class DatabaseSeeder
         Guid OptId(string val) => opts.First(o => o.Value == val).Id;
         Guid AttrId(ProductAttribute a) => a.Id;
 
-        async Task<Part?> AddPart(
+        async Task<Product?> AddPart(
             string name, string sku, string pn, Guid catId, Guid? brandId,
             decimal cost, decimal sell, string desc, string shortDesc, string img,
             bool featured = false, int rank = 0, decimal pop = 0,
@@ -412,7 +451,7 @@ public class DatabaseSeeder
         {
             if (existingSkus.Contains(sku)) return null;
 
-            var part = Part.Create(name, PartNumber.Create(pn), sku, catId,
+            var part = Product.Create(name, PartNumber.Create(pn), sku, catId,
                 brandId: brandId, baseUnitId: unitPcs.Id, unitId: unitPcs.Id,
                 description: desc, costPrice: cost, sellingPrice: sell,
                 hasWarranty: warranty, warrantyPeriodMonths: wMonths,
@@ -790,6 +829,30 @@ public class DatabaseSeeder
         await context.SaveChangesAsync();
 
         logger.LogInformation("Seeded shop policy settings");
+    }
+
+    private static async Task SeedBusinessSettingsAsync(AutoPartDbContext context, ILogger logger)
+    {
+        var keys = new[] { "SHOP_NAME", "SHOP_ADDRESS", "SHOP_PHONE", "SHOP_EMAIL", "SHOP_TAX_NUMBER" };
+        if (await context.ApplicationSettings.AnyAsync(s => keys.Contains(s.Key)))
+        {
+            logger.LogInformation("Business settings already exist, skipping seed");
+            return;
+        }
+
+        var settings = new[]
+        {
+            ApplicationSettings.Create("SHOP_NAME",       "SujanMotors Auto Parts", "STRING", "BUSINESS", "Business name on invoices",       isSystemSetting: true),
+            ApplicationSettings.Create("SHOP_ADDRESS",    "Dhaka, Bangladesh",       "STRING", "BUSINESS", "Business address on invoices",    isSystemSetting: true),
+            ApplicationSettings.Create("SHOP_PHONE",      "+880 1XXXXXXXXX",         "STRING", "BUSINESS", "Contact phone",                   isSystemSetting: true),
+            ApplicationSettings.Create("SHOP_EMAIL",      "info@sujanmotors.com",    "STRING", "BUSINESS", "Business email on invoices",      isSystemSetting: true),
+            ApplicationSettings.Create("SHOP_TAX_NUMBER", "",                        "STRING", "BUSINESS", "Tax/VAT registration number",     isSystemSetting: true),
+        };
+
+        foreach (var s in settings) { s.CreatedBy = "System"; s.ModifiedBy = "System"; }
+        context.ApplicationSettings.AddRange(settings);
+        await context.SaveChangesAsync();
+        logger.LogInformation("Seeded business settings");
     }
 
 }

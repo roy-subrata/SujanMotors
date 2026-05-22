@@ -35,7 +35,7 @@ public class StockLot : AuditableEntity
     public string? WarrantyTerms { get; private set; }
 
     // Navigation properties
-    public Part? Part { get; set; }
+    public Product? Part { get; set; }
     public Warehouse? Warehouse { get; set; }
     public Supplier? Supplier { get; set; }
     public Unit? Unit { get; set; }

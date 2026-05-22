@@ -17,7 +17,7 @@ public class StockLotController(
     IStockLotRepository _repository,
     IStockLotMovementRepository _movementRepository,
     IStockLotReadRepository _stockLotReadRepository,
-    IPartRepository _partRepository,
+    IProductRepository _productRepository,
     IWarehouseRepository _warehouseRepository,
     ISupplierRepository _supplierRepository,
     IUnitRepository _unitRepository,
@@ -111,7 +111,7 @@ public class StockLotController(
     {
         try
         {
-            var part = await _partRepository.GetByIdAsync(partId, cancellationToken);
+            var part = await _productRepository.GetByIdAsync(partId, cancellationToken);
             if (part is null) return NotFound("Part not found");
 
             var lots = await _repository.GetByPartAsync(partId, cancellationToken);
@@ -201,7 +201,7 @@ public class StockLotController(
     //{
     //    try
     //    {
-    //        var part = await _partRepository.GetByIdAsync(partId, cancellationToken);
+    //        var part = await _productRepository.GetByIdAsync(partId, cancellationToken);
     //        if (part is null) return NotFound("Part not found");
 
     //        var lots = await _repository.GetByPartAsync(partId, cancellationToken);
@@ -401,7 +401,7 @@ public class StockLotController(
             if (fifoLot is null)
             {
                 // Fall back to Part master data (no stock in this warehouse)
-                var part = await _partRepository.GetByIdAsync(partId, cancellationToken);
+                var part = await _productRepository.GetByIdAsync(partId, cancellationToken);
                 return Ok(new FifoLotInfoResponse
                 {
                     HasAvailableLot = false,
@@ -419,7 +419,7 @@ public class StockLotController(
                 LotId = fifoLot.Id,
                 LotNumber = fifoLot.LotNumber,
                 SellingPrice = fifoLot.SellingPrice > 0 ? fifoLot.SellingPrice
-                    : (await _partRepository.GetByIdAsync(partId, cancellationToken))?.SellingPrice ?? 0,
+                    : (await _productRepository.GetByIdAsync(partId, cancellationToken))?.SellingPrice ?? 0,
                 HasWarranty = fifoLot.HasWarranty,
                 WarrantyPeriodMonths = fifoLot.WarrantyPeriodMonths,
                 WarrantyType = fifoLot.WarrantyType,
@@ -439,7 +439,7 @@ public class StockLotController(
     {
         return MapResponse(
             lot,
-            new Dictionary<Guid, Part?>(),
+            new Dictionary<Guid, Product?>(),
             new Dictionary<Guid, Warehouse?>(),
             new Dictionary<Guid, Supplier?>(),
             cancellationToken);
@@ -447,7 +447,7 @@ public class StockLotController(
 
     private async Task<List<StockLotResponse>> MapResponses(IEnumerable<StockLot> lots, CancellationToken cancellationToken)
     {
-        var partCache = new Dictionary<Guid, Part?>();
+        var partCache = new Dictionary<Guid, Product?>();
         var warehouseCache = new Dictionary<Guid, Warehouse?>();
         var supplierCache = new Dictionary<Guid, Supplier?>();
 
@@ -461,14 +461,14 @@ public class StockLotController(
 
     private async Task<StockLotResponse> MapResponse(
         StockLot lot,
-        Dictionary<Guid, Part?> partCache,
+        Dictionary<Guid, Product?> partCache,
         Dictionary<Guid, Warehouse?> warehouseCache,
         Dictionary<Guid, Supplier?> supplierCache,
         CancellationToken cancellationToken)
     {
         if (!partCache.TryGetValue(lot.PartId, out var part))
         {
-            part = await _partRepository.GetByIdAsync(lot.PartId, cancellationToken);
+            part = await _productRepository.GetByIdAsync(lot.PartId, cancellationToken);
             partCache[lot.PartId] = part;
         }
 

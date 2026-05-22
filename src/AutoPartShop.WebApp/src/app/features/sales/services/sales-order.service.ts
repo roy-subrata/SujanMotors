@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
 
 export interface SalesOrderLineRequest {
@@ -133,6 +134,23 @@ export class SalesOrderService {
 
     confirmSalesOrder(id: string): Observable<SalesOrderResponse> {
         return this.http.patch<SalesOrderResponse>(`${this.apiUrl}/${id}/confirm`, {});
+    }
+
+    /** Later-delivery flow: pack the order and make it ready to dispatch. */
+    markReadyForDelivery(id: string): Observable<SalesOrderResponse> {
+        return this.http.patch<{ data: SalesOrderResponse }>(`${this.apiUrl}/${id}/ready-for-delivery`, {})
+            .pipe(map(r => r.data));
+    }
+
+    /** Direct-handover flow: deliver straight from Confirmed — no challan. */
+    deliverDirect(id: string): Observable<SalesOrderResponse> {
+        return this.http.patch<{ data: SalesOrderResponse }>(`${this.apiUrl}/${id}/deliver`, {})
+            .pipe(map(r => r.data));
+    }
+
+    /** Orders waiting to be delivered (Confirmed + ReadyForDelivery). */
+    getPendingDeliveries(): Observable<{ data: SalesOrderResponse[] }> {
+        return this.http.get<{ data: SalesOrderResponse[] }>(`${this.apiUrl}/pending-deliveries`);
     }
 
     deleteSalesOrder(id: string): Observable<void> {

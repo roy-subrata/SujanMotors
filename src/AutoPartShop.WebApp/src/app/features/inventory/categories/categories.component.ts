@@ -15,14 +15,8 @@ import { tap } from 'rxjs';
     selector: 'app-categories',
     standalone: true,
     imports: [
-        CommonModule,
-        FormsModule,
-        ToastModule,
-        ConfirmDialogModule,
-        ButtonModule,
-        Select,
-        CategoriesListComponent,
-        CategoriesFormDialogComponent
+        CommonModule, FormsModule, ToastModule, ConfirmDialogModule,
+        ButtonModule, Select, CategoriesListComponent, CategoriesFormDialogComponent
     ],
     providers: [CategoryService, MessageService, ConfirmationService],
     templateUrl: './categories.component.html',
@@ -33,192 +27,148 @@ export class CategoriesComponent implements OnInit {
     private readonly confirmationService = inject(ConfirmationService);
     private readonly messageService = inject(MessageService);
 
-    // Data
     categories: CategoryResponse[] = [];
-    public selectedParentCategory: CategoryResponse | null = null;
-    public selectedCategory: CategoryResponse | null = null;
+    selectedParentCategory: CategoryResponse | null = null;
+    selectedCategory: CategoryResponse | null = null;
 
-    // Dialog visibility
-    public displayCreateDialog: boolean = false;
-    public displayUpdateDialog: boolean = false;
+    displayCreateDialog = false;
+    displayUpdateDialog = false;
 
-    // Pagination & Loading
     loading = false;
+    togglingStatusId: string | null = null;
     totalRecords = 0;
     rows = 10;
     currentPage = 1;
 
-    // Filters
     searchTerm = '';
     filterStatus: boolean | null = null;
-    sortField = 'name';
-    sortDirection: 'asc' | 'desc' = 'asc';
 
-    // Status options for dropdown
     statusOptions = [
-        { label: 'All', value: null },
-        { label: 'Active', value: true },
+        { label: 'All',      value: null  },
+        { label: 'Active',   value: true  },
         { label: 'Inactive', value: false }
     ];
 
-    ngOnInit(): void {
-        this.loadCategories();
-    }
+    ngOnInit(): void { this.loadCategories(); }
 
-    /**
-     * Load categories with current filters
-     */
-    loadCategories(pageNumber: number = 1, pageSize: number = 10): void {
-        if (!pageNumber || isNaN(pageNumber) || pageNumber < 1) {
-            pageNumber = 1;
-        }
-        if (!pageSize || isNaN(pageSize) || pageSize < 1) {
-            pageSize = 10;
-        }
+    loadCategories(page = 1, pageSize = this.rows): void {
+        if (page < 1) page = 1;
+        if (pageSize < 1) pageSize = 10;
 
         this.loading = true;
-        this.categoryService
-            .getPagedCategories({
-                search: this.searchTerm,
-                pageNumber: pageNumber,
-                pageSize: pageSize,
-                isActive: this.filterStatus,
-                sorts: [{
-                    field: this.sortField,
-                    direction: this.sortDirection
-                }]
-            })
-            .subscribe({
-                next: (response: any) => {
-                    // Extract data from response
-                    this.categories = response.data || response.items || [];
-
-                    // totalCount is nested in pagination object
-                    const pagination = response.pagination || {};
-                    this.totalRecords = pagination.totalCount || response.totalCount || this.categories.length;
-
-                    // Update pagination state
-                    this.rows = pagination.pageSize || pageSize;
-                    this.currentPage = pagination.pageNumber || pageNumber;
-
-                    this.loading = false;
-                },
-                error: (error) => {
-                    this.messageService.add({
-                        severity: 'error',
-                        summary: 'Error',
-                        detail: 'Failed to load categories'
-                    });
-                    console.error('Error loading categories:', error);
-                    this.loading = false;
-                }
-            });
+        this.categoryService.getCategories({
+            search: this.searchTerm || undefined,
+            isActive: this.filterStatus,
+            page,
+            pageSize
+        }).subscribe({
+            next: (response) => {
+                this.categories   = response.data ?? [];
+                this.totalRecords = response.pagination.totalCount;
+                this.rows         = response.pagination.pageSize;
+                this.currentPage  = response.pagination.page;
+                this.loading      = false;
+            },
+            error: () => {
+                this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load categories' });
+                this.loading = false;
+            }
+        });
     }
 
-    /**
-     * Handle search button click - applies all filters
-     */
-    onSearch(): void {
-        this.loadCategories(1, this.rows);
-    }
+    onSearch(): void       { this.loadCategories(1, this.rows); }
+    onFilterChange(): void { this.loadCategories(1, this.rows); }
+    refreshData(): void    { this.loadCategories(this.currentPage, this.rows); }
 
-    /**
-     * Handle filter changes (status)
-     */
-    onFilterChange(): void {
-        this.loadCategories(1, this.rows);
-    }
+    clearSearchInput(): void { this.searchTerm = ''; }
 
-    clearSearchInput(): void {
-        this.searchTerm = '';
-        this.loadCategories(1, this.rows);
-    }
-
-    /**
-     * Clear all filters and reload
-     */
     clearFilters(): void {
-        this.searchTerm = '';
+        this.searchTerm   = '';
         this.filterStatus = null;
         this.loadCategories(1, this.rows);
     }
 
-    /**
-     * Refresh current page
-     */
-    refreshData(): void {
-        this.loadCategories(this.currentPage, this.rows);
-    }
-
-    /**
-     * Check if any filters are active
-     */
     hasActiveFilters(): boolean {
         return !!this.searchTerm || this.filterStatus !== null;
     }
 
-    /**
-     * Status label helper for filter chips
-     */
     getStatusLabel(isActive: boolean | null): string {
-        if (isActive === true) {
-            return 'Active';
-        }
-        if (isActive === false) {
-            return 'Inactive';
-        }
+        if (isActive === true)  return 'Active';
+        if (isActive === false) return 'Inactive';
         return 'All';
     }
 
-    /**
-     * Handle page change from list component
-     */
     onPageChange(event: { page: number; rows: number }): void {
         this.loadCategories(event.page, event.rows);
     }
 
-    /**
-     * Trigger create dialog
-     */
-    onNewCategoryClick() {
+    // ── Dialogs ────────────────────────────────────────────────────────────────
+
+    onNewCategoryClick(): void {
         this.selectedParentCategory = null;
         this.displayCreateDialog = true;
         this.displayUpdateDialog = false;
     }
 
-    /**
-     * Alias for header action button
-     */
-    createCategory(): void {
-        this.onNewCategoryClick();
-    }
+    createCategory(): void { this.onNewCategoryClick(); }
 
-    /**
-     * Handle create success
-     */
-    onCreateSuccess() {
-        this.loadCategories(this.currentPage, this.rows);
-    }
-
-    /**
-     * Handle update success
-     */
-    onUpdateSuccess() {
-        this.loadCategories(this.currentPage, this.rows);
-    }
-
-    /**
-     * Handle edit category
-     */
-    selectAndOpenUpdate(category: CategoryResponse) {
-        this.selectedCategory = category;
+    selectAndOpenUpdate(category: CategoryResponse): void {
+        this.selectedCategory    = category;
         this.displayUpdateDialog = true;
     }
 
-    /**
-     * Handle delete category
-     */
-    selectAndDelete(category: CategoryResponse) {
+    selectAndAddSubcategory(category: CategoryResponse): void {
+        this.selectedCategory       = category;
+        this.selectedParentCategory = category;
+        this.displayCreateDialog    = true;
+        this.displayUpdateDialog    = false;
+    }
+
+    onCreateSuccess(): void { this.loadCategories(this.currentPage, this.rows); }
+    onUpdateSuccess(): void { this.loadCategories(this.currentPage, this.rows); }
+
+    onDisplayCreateDialogChange(isVisible: boolean): void {
+        if (!isVisible) this.displayCreateDialog = false;
+    }
+    onDisplayUpdateDialogChange(isVisible: boolean): void {
+        if (!isVisible) this.displayUpdateDialog = false;
+    }
+
+    // ── Toggle status ──────────────────────────────────────────────────────────
+
+    selectAndToggleStatus(category: CategoryResponse): void {
+        if (this.togglingStatusId === category.id) return;
+        const action = category.isActive ? 'deactivate' : 'activate';
+
+        this.confirmationService.confirm({
+            message: `Are you sure you want to ${action} "${category.name}"?`,
+            header: 'Confirm Status Change',
+            icon: 'pi pi-exclamation-triangle',
+            accept: () => {
+                this.togglingStatusId = category.id;
+                this.categoryService.setStatus(category.id, !category.isActive)
+                    .pipe(tap(() => {
+                        this.messageService.add({
+                            severity: 'success', summary: 'Updated',
+                            detail: `"${category.name}" ${action}d`
+                        });
+                        this.togglingStatusId = null;
+                        this.loadCategories(this.currentPage, this.rows);
+                    }))
+                    .subscribe({
+                        error: (err) => {
+                            this.togglingStatusId = null;
+                            const detail = err.error?.detail ?? err.error?.message ?? `Failed to ${action} category`;
+                            this.messageService.add({ severity: 'error', summary: 'Error', detail });
+                        }
+                    });
+            }
+        });
+    }
+
+    // ── Delete ─────────────────────────────────────────────────────────────────
+
+    selectAndDelete(category: CategoryResponse): void {
         this.selectedCategory = category;
         this.confirmationService.confirm({
             message: `Are you sure you want to delete "${category.name}"?`,
@@ -226,90 +176,19 @@ export class CategoriesComponent implements OnInit {
             icon: 'pi pi-exclamation-triangle',
             accept: () => {
                 this.categoryService.deleteCategory(category.id)
-                    .pipe(
-                        tap(() => {
-                            this.messageService.add({
-                                severity: 'success',
-                                summary: 'Success',
-                                detail: 'Category deleted successfully'
-                            });
-                            this.selectedCategory = null;
-                            this.loadCategories(this.currentPage, this.rows);
-                        })
-                    )
+                    .pipe(tap(() => {
+                        this.messageService.add({ severity: 'success', summary: 'Deleted', detail: `"${category.name}" deleted` });
+                        this.selectedCategory = null;
+                        const isLastItemOnPage = this.categories.length === 1 && this.currentPage > 1;
+                        this.loadCategories(isLastItemOnPage ? this.currentPage - 1 : this.currentPage, this.rows);
+                    }))
                     .subscribe({
                         error: (err) => {
-                            const msg = err?.error?.message || 'Failed to delete category';
-                            this.messageService.add({ severity: 'error', summary: 'Cannot Delete', detail: msg });
+                            const detail = err.error?.detail ?? err.error?.message ?? 'Failed to delete category';
+                            this.messageService.add({ severity: 'error', summary: 'Cannot Delete', detail });
                         }
                     });
             }
         });
-    }
-
-    /**
-     * Handle toggle status
-     */
-    selectAndToggleStatus(category: CategoryResponse) {
-        this.selectedCategory = category;
-        const action = category.isActive ? 'deactivate' : 'activate';
-        this.confirmationService.confirm({
-            message: `Are you sure you want to ${action} "${category.name}"?`,
-            header: 'Confirm Status Change',
-            icon: 'pi pi-exclamation-triangle',
-            accept: () => {
-                const request = category.isActive
-                    ? this.categoryService.deactivateCategory(category.id)
-                    : this.categoryService.activateCategory(category.id);
-
-                request.pipe(
-                    tap(() => {
-                        this.messageService.add({
-                            severity: 'success',
-                            summary: 'Success',
-                            detail: `Category ${action}d successfully`
-                        });
-                        this.loadCategories(this.currentPage, this.rows);
-                    })
-                ).subscribe({
-                    error: (err) => {
-                        console.error(`Failed to ${action} category`, err);
-                        this.messageService.add({
-                            severity: 'error',
-                            summary: 'Error',
-                            detail: `Failed to ${action} category`
-                        });
-                    }
-                });
-            }
-        });
-    }
-
-    /**
-     * Handle add subcategory
-     */
-    selectAndAddSubcategory(category: CategoryResponse) {
-        this.selectedCategory = category;
-        this.selectedParentCategory = category;
-        this.displayCreateDialog = true;
-        this.displayUpdateDialog = false;
-    }
-
-    /**
-     * Handle create dialog visibility change
-     */
-    onDisplayCreateDialogChange(isVisible: boolean) {
-        if (!isVisible) {
-            this.displayCreateDialog = false;
-        }
-    }
-
-    /**
-     * Handle update dialog visibility change
-     */
-    onDisplayUpdateDialogChange(isVisible: boolean) {
-        if (!isVisible) {
-            this.displayUpdateDialog = false;
-        }
     }
 }

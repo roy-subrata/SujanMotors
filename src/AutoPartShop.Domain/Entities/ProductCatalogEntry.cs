@@ -21,7 +21,7 @@ public class ProductCatalogEntry : AuditableEntity
     public string? MetaTitle { get; private set; }         // <title> tag override
     public string? MetaDescription { get; private set; }  // <meta name="description"> tag
 
-    public Part? Part { get; set; }
+    public Product? Part { get; set; }
 
     private ProductCatalogEntry() { }
 

@@ -34,7 +34,7 @@ public class Discount : AuditableEntity
     public DateTime? EndDate { get; private set; }
     public bool IsActive { get; private set; } = true;
 
-    public Part? Part { get; set; }
+    public Product? Part { get; set; }
     public ProductVariant? ProductVariant { get; set; }
 
     private Discount() { }

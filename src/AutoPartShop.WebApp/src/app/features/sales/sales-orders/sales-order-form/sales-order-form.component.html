@@ -11,8 +11,7 @@
             Sales Orders
           </a>
           <span class="breadcrumb-separator">/</span>
-          <span class="breadcrumb-current">{{ mode() === 'create' ? 'New' : mode() === 'edit' ? 'Edit' : 'View'
-            }}</span>
+          <span class="breadcrumb-current">{{ mode() === 'create' ? 'New' : mode() === 'edit' ? 'Edit' : 'View' }}</span>
         </div>
         <h1 class="form-title">
           {{ mode() === 'create' ? 'Create Sales Order' : mode() === 'edit' ? 'Edit Sales Order' : 'View Sales Order' }}
@@ -20,6 +19,67 @@
         <p class="form-subtitle">
           {{ mode() === 'create' ? 'Create a new sales order for a customer' : 'View or edit sales order details' }}
         </p>
+      </div>
+      <div class="header-actions">
+        <button pButton type="button" icon="pi pi-arrow-left"
+          class="p-button-text p-button-sm" style="color:rgba(255,255,255,0.8); border:1px solid rgba(255,255,255,0.3);"
+          pTooltip="Back" tooltipPosition="bottom" (click)="cancel()">
+        </button>
+
+        <!-- View mode: lifecycle actions based on current status -->
+        <ng-container *ngIf="mode() === 'view' && currentSO">
+
+          <!-- PENDING → Confirm -->
+          <button *ngIf="currentSO.status === 'PENDING' || currentSO.status === 'DRAFT'"
+            pButton type="button" label="Confirm Order" icon="pi pi-check"
+            class="p-button-sm p-button-success"
+            style="border:1px solid rgba(255,255,255,0.3);"
+            pTooltip="Confirm & generate invoice" tooltipPosition="bottom"
+            (click)="confirmSalesOrder()">
+          </button>
+
+          <!-- CONFIRMED → two paths -->
+          <ng-container *ngIf="currentSO.status === 'CONFIRMED'">
+            <button pButton type="button" label="Deliver Now" icon="pi pi-check-circle"
+              class="p-button-sm p-button-success"
+              style="border:1px solid rgba(255,255,255,0.3);"
+              pTooltip="Direct handover — no challan" tooltipPosition="bottom"
+              (click)="deliverDirect()">
+            </button>
+            <button pButton type="button" label="Ready for Delivery" icon="pi pi-truck"
+              class="p-button-sm p-button-warning"
+              style="border:1px solid rgba(255,255,255,0.3);"
+              pTooltip="Pack & prepare challan" tooltipPosition="bottom"
+              (click)="markReadyForDelivery()">
+            </button>
+          </ng-container>
+
+          <!-- READY_FOR_DELIVERY → generate challan + deliver -->
+          <ng-container *ngIf="currentSO.status === 'READY_FOR_DELIVERY'">
+            <button pButton type="button" label="Generate Challan" icon="pi pi-file-export"
+              class="p-button-sm"
+              style="background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.4); color:#fff; font-weight:600;"
+              pTooltip="Create delivery challan" tooltipPosition="bottom"
+              (click)="openChallanDialog()">
+            </button>
+            <button pButton type="button" label="Deliver Now" icon="pi pi-check-circle"
+              class="p-button-sm p-button-success"
+              style="border:1px solid rgba(255,255,255,0.3);"
+              pTooltip="Skip challan and mark delivered" tooltipPosition="bottom"
+              (click)="deliverDirect()">
+            </button>
+          </ng-container>
+
+        </ng-container>
+
+        <!-- Edit/create mode: save -->
+        <button *ngIf="mode() !== 'view'" pButton type="button"
+          [label]="saving() ? 'Saving…' : (mode() === 'edit' ? 'Update' : 'Create')"
+          icon="pi pi-check" class="p-button-sm"
+          style="background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.4); color:#fff; font-weight:600;"
+          [loading]="saving()" [disabled]="saving() || salesOrderForm.invalid"
+          (click)="onSubmit()">
+        </button>
       </div>
     </div>
   </div>
@@ -453,3 +513,67 @@
 
 <!-- Confirm Dialog -->
 <p-confirmDialog></p-confirmDialog>
+
+<!-- ══ Challan Generation Dialog ══════════════════════════════════════ -->
+<p-dialog
+  header="Generate Delivery Challan"
+  [(visible)]="showChallanDialog"
+  [modal]="true"
+  [style]="{width:'560px',maxWidth:'95vw'}"
+  appendTo="body">
+
+  <div class="challan-dialog-body">
+    <div class="cd-row">
+      <div class="cd-field">
+        <label>Delivery Address</label>
+        <input pInputText [(ngModel)]="challanForm.deliveryAddress" placeholder="Delivery address" style="width:100%" />
+      </div>
+    </div>
+    <div class="cd-row">
+      <div class="cd-field">
+        <label>Receiver Name</label>
+        <input pInputText [(ngModel)]="challanForm.receiverName" placeholder="Name of person receiving goods" style="width:100%" />
+      </div>
+      <div class="cd-field">
+        <label>Receiver Phone</label>
+        <input pInputText [(ngModel)]="challanForm.receiverPhone" placeholder="+880 ..." style="width:100%" />
+      </div>
+    </div>
+
+    <p-divider align="left">
+      <span style="font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.05em">Transport / Carrier</span>
+    </p-divider>
+
+    <div class="cd-row">
+      <div class="cd-field">
+        <label>Transport Company</label>
+        <input pInputText [(ngModel)]="challanForm.transportCompany" placeholder="e.g. Sundarban Courier" style="width:100%" />
+      </div>
+      <div class="cd-field">
+        <label>Vehicle / Truck Number</label>
+        <input pInputText [(ngModel)]="challanForm.vehicleNumber" placeholder="e.g. DHAKA-KA-11-1234" style="width:100%" />
+      </div>
+    </div>
+    <div class="cd-row">
+      <div class="cd-field">
+        <label>Driver Name</label>
+        <input pInputText [(ngModel)]="challanForm.driverName" placeholder="Driver's name" style="width:100%" />
+      </div>
+      <div class="cd-field">
+        <label>Driver Phone</label>
+        <input pInputText [(ngModel)]="challanForm.driverPhone" placeholder="+880 ..." style="width:100%" />
+      </div>
+    </div>
+    <div class="cd-row">
+      <div class="cd-field">
+        <label>Notes (optional)</label>
+        <textarea pInputTextarea [(ngModel)]="challanForm.notes" rows="2" placeholder="Any special instructions…" style="width:100%"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <ng-template pTemplate="footer">
+    <button pButton type="button" label="Cancel" icon="pi pi-times" class="p-button-outlined p-button-sm" (click)="showChallanDialog = false"></button>
+    <button pButton type="button" label="Generate &amp; Print" icon="pi pi-file-export" class="p-button-sm p-button-success" (click)="generateChallan()"></button>
+  </ng-template>
+</p-dialog>

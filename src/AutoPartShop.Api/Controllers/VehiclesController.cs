@@ -12,16 +12,16 @@ public class VehiclesController : ControllerBase
 {
     private readonly IVehicleRepository _vehicleRepository;
     private readonly IPartVehicleCompatibilityRepository _compatibilityRepository;
-    private readonly IPartRepository _partRepository;
+    private readonly IProductRepository _productRepository;
     private readonly ILogger<VehiclesController> _logger;
     private readonly ICurrentUserService _currentUserService;
 
     public VehiclesController(IVehicleRepository vehicleRepository, IPartVehicleCompatibilityRepository compatibilityRepository,
-        IPartRepository partRepository, ICurrentUserService currentUserService, ILogger<VehiclesController> logger)
+        IProductRepository productRepository, ICurrentUserService currentUserService, ILogger<VehiclesController> logger)
     {
         _vehicleRepository = vehicleRepository;
         _compatibilityRepository = compatibilityRepository;
-        _partRepository = partRepository;
+        _productRepository = productRepository;
         _currentUserService = currentUserService;
         _logger = logger;
     }
@@ -220,7 +220,7 @@ public class VehiclesController : ControllerBase
     {
         try
         {
-            if (!await _vehicleRepository.ExistsAsync(vehicleId, cancellationToken) || !await _partRepository.ExistsAsync(partId, cancellationToken))
+            if (!await _vehicleRepository.ExistsAsync(vehicleId, cancellationToken) || !await _productRepository.ExistsAsync(partId, cancellationToken))
                 return BadRequest(new { message = "Vehicle or Part does not exist" });
 
             var existing = await _compatibilityRepository.GetCompatibilityAsync(partId, vehicleId, cancellationToken);

@@ -46,7 +46,7 @@ public interface IWarrantyService
 
 public class WarrantyService(
     ICodeGenerateService codeGenerateService,
-    IPartRepository partRepository,
+    IProductRepository productRepository,
     IWarrantyRegistrationRepository warrantyRepository,
     IWarrantyClaimRepository claimRepository,
     IStockLevelRepository stockLevelRepository,
@@ -102,7 +102,7 @@ public class WarrantyService(
         Guid warehouseId,
         CancellationToken cancellationToken = default)
     {
-        var part = await partRepository.GetByIdAsync(salesOrderLine.PartId, cancellationToken);
+        var part = await productRepository.GetByIdAsync(salesOrderLine.PartId, cancellationToken);
         if (part == null)
             throw new InvalidOperationException($"Part not found: {salesOrderLine.PartId}");
 

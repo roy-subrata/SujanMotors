@@ -67,3 +67,58 @@
   justify-content: flex-end;
   gap: 0.5rem;
 }
+
+/* ── Dialog overflow fix ──────────────────────────────────────────────────────
+ * PrimeNG dialog has no built-in max-height on the content area.
+ * On small/mobile screens with many form fields, the footer buttons fall
+ * below the viewport. This makes the content scrollable and the footer
+ * permanently visible.
+ */
+:host ::ng-deep .p-dialog {
+  display: flex !important;
+  flex-direction: column !important;
+  max-height: 92dvh !important;
+}
+
+:host ::ng-deep .p-dialog .p-dialog-content {
+  flex: 1 1 auto !important;
+  overflow-y: auto !important;
+  min-height: 0 !important;
+}
+
+:host ::ng-deep .p-dialog .p-dialog-footer {
+  flex-shrink: 0 !important;
+  border-top: 1px solid #e5e7eb;
+  background: #fff;
+}
+
+/* Logo preview */
+.logo-preview {
+  margin-top: 6px;
+}
+.logo-preview-img {
+  height: 36px;
+  max-width: 120px;
+  object-fit: contain;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  padding: 2px;
+}
+
+/* Checkbox row */
+.form-checkbox-group {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 10px !important;
+}
+.checkbox-label {
+  margin: 0;
+  cursor: pointer;
+}
+
+/* Validation error text */
+.form-error {
+  color: #ef4444;
+  font-size: 0.75rem;
+  margin-top: 2px;
+}

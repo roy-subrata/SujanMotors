@@ -30,7 +30,7 @@ export class CatalogEntryService {
   private readonly http = inject(HttpClient);
 
   private url(partId: string): string {
-    return `${environment.apiUrl}/parts/${partId}/catalog-entry`;
+    return `${environment.apiUrl}/v1/products/${partId}/catalog-entry`;
   }
 
   get(partId: string): Observable<CatalogEntryResponse | null> {

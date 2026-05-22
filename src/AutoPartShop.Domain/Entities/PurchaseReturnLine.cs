@@ -18,7 +18,7 @@ public class PurchaseReturnLine : AuditableEntity
 
     // Navigation properties
     public PurchaseReturn? PurchaseReturn { get; set; }
-    public Part? Part { get; set; }
+    public Product? Part { get; set; }
     public StockLot? StockLot { get; set; }  // Navigation to specific lot
 
     private PurchaseReturnLine() { }

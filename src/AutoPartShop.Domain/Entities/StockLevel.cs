@@ -20,7 +20,7 @@ public class StockLevel : AuditableEntity
     public bool IsActive { get; private set; } = true;
 
     // Navigation properties
-    public Part? Part { get; set; }
+    public Product? Part { get; set; }
     public Warehouse? Warehouse { get; set; }
     public Unit? Unit { get; set; }
     public ICollection<StockMovement> Movements { get; set; } = new List<StockMovement>();

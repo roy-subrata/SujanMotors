@@ -1,7 +1,6 @@
 /* ── Layout ─────────────────────────────────────────────────────── */
 .pf-container {
-  max-width: 900px;
-  margin: 0 auto;
+  width: 100%;
   padding: 0 0 2rem;
   display: flex;
   flex-direction: column;
@@ -19,18 +18,32 @@
   font-size: 0.95rem;
 }
 
-/* ── Header ─────────────────────────────────────────────────────── */
-.pf-header {
-  padding: 1.25rem 0 1.5rem;
+/* ── Header action buttons ──────────────────────────────────────── */
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
 }
+.btn-secondary:hover { background-color: var(--color-bg-tertiary); border-color: var(--color-text-muted); }
+.btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
 
+/* ── Header breadcrumb ──────────────────────────────────────────── */
 .pf-breadcrumb {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: var(--text-color-secondary);
-  margin-bottom: 0.4rem;
+  margin-bottom: 0.35rem;
 }
 
 .pf-back {
@@ -43,14 +56,7 @@
 }
 .pf-back:hover { text-decoration: underline; }
 
-.pf-sep { color: var(--surface-border); }
-
-.pf-title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin: 0;
-  color: var(--text-color);
-}
+.pf-sep { color: var(--surface-border); font-size: 0.7rem; }
 
 /* ── Section card ───────────────────────────────────────────────── */
 .pf-section {

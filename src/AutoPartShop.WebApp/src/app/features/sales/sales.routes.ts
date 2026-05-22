@@ -5,6 +5,9 @@ import { SalesOrderFormComponent } from './sales-orders/sales-order-form/sales-o
 import { InvoicesComponent } from './invoices/invoices.component';
 import { InvoicesListComponent } from './invoices/invoices-list/invoices-list.component';
 import { InvoiceFormComponent } from './invoices/invoice-form/invoice-form.component';
+import { InvoicePrintComponent } from './invoices/invoice-print/invoice-print.component';
+import { PendingDeliveriesComponent } from './pending-deliveries/pending-deliveries.component';
+import { ChallanPrintComponent } from './challans/challan-print/challan-print.component';
 import { SalesReturnsComponent } from './sales-returns/sales-returns.component';
 import { SalesReturnsListComponent } from './sales-returns/sales-returns-list/sales-returns-list.component';
 import { SalesReturnFormComponent } from './sales-returns/sales-return-form/sales-return-form.component';
@@ -33,6 +36,15 @@ export const salesRoutes: Routes = [
             { path: 'view', component: SalesOrderFormComponent }
         ]
     },
+
+    // Invoice print — standalone, no shell layout wrapper
+    { path: 'invoices/:id/print', component: InvoicePrintComponent },
+
+    // Pending deliveries
+    { path: 'pending-deliveries', component: PendingDeliveriesComponent },
+
+    // Challan print — standalone (opens in new tab)
+    { path: 'challans/:id/print', component: ChallanPrintComponent },
 
     // Invoices
     {

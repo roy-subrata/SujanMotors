@@ -21,7 +21,7 @@ public class ProductVariantPriceHistory : AuditableEntity
     public DateTime? EndDate { get; private set; }       // null = currently active
     public string? Reason { get; private set; }
 
-    public Part? Part { get; set; }
+    public Product? Part { get; set; }
     public ProductVariant? ProductVariant { get; set; }
 
     private ProductVariantPriceHistory() { }

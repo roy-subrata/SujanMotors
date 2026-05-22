@@ -5,7 +5,7 @@ namespace AutoPartShop.Api.Services;
 
 public sealed class PricingValidationService : IPricingValidationService
 {
-    public decimal ValidateLinePricing(Part part, decimal unitPrice, decimal discountPercent)
+    public decimal ValidateLinePricing(Product part, decimal unitPrice, decimal discountPercent)
     {
         if (part is null) throw new ArgumentException("Part is required for pricing validation.");
         if (unitPrice <= 0) throw new ArgumentException("Selling price must be greater than 0.");
@@ -18,7 +18,7 @@ public sealed class PricingValidationService : IPricingValidationService
         return effectivePrice;
     }
 
-    public PricingCalculationResult CalculateLinePricingSnapshot(Part part, decimal unitPrice, decimal discountPercent)
+    public PricingCalculationResult CalculateLinePricingSnapshot(Product part, decimal unitPrice, decimal discountPercent)
     {
         if (part is null)
             return new PricingCalculationResult(0, 0, false, "Part is required.");

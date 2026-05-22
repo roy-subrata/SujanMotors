@@ -14,7 +14,7 @@ public class ProductMedia : AuditableEntity
     public int SortOrder { get; private set; } = 0;
     public bool IsPrimary { get; private set; } = false;
 
-    public Part? Part { get; set; }
+    public Product? Part { get; set; }
     public ProductVariant? Variant { get; set; }
 
     private ProductMedia() { }

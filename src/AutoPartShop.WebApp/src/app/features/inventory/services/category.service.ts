@@ -1,19 +1,20 @@
-import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Injectable, inject } from '@angular/core';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable, map } from 'rxjs';
 import { environment } from 'src/environments/environment';
-import { PaginatedResponse } from '@/features/sales/services/customer.service';
+
+// ── Models ────────────────────────────────────────────────────────────────────
 
 export interface CategoryResponse {
     id: string;
     name: string;
-    description: string;
+    description: string | null;
     code: string;
     parentCategoryId: string | null;
     isActive: boolean;
     displayOrder: number;
-    createdBy: string;
-    modifiedBy: string;
+    createdBy: string | null;
+    modifiedBy: string | null;
     breadcrumbPath: string;
     depthLevel: number;
     childCount: number;
@@ -22,163 +23,120 @@ export interface CategoryResponse {
 
 export interface CreateCategoryRequest {
     name: string;
-    description: string;
+    description?: string | null;
     code: string;
-    displayOrder: number;
-    parentCategoryId: string | null;
+    displayOrder?: number;
+    parentCategoryId?: string | null;
 }
 
 export interface UpdateCategoryRequest {
-    id: string;
     name: string;
-    description: string;
-    displayOrder: number;
-    isActive: boolean;
-}
-
-export interface SortOption {
-    field: string;
-    direction: 'asc' | 'desc';
+    description?: string | null;
+    displayOrder?: number;
+    isActive?: boolean;
 }
 
 export interface CategoryQuery {
-    pageSize: number;
-    pageNumber: number;
     search?: string;
     isActive?: boolean | null;
-    sorts?: SortOption[];
+    page?: number;
+    pageSize?: number;
 }
 
-@Injectable({
-    providedIn: 'root'
-})
+export interface PaginationMeta {
+    page: number;
+    pageSize: number;
+    totalCount: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+}
+
+export interface PagedCategoryResponse {
+    data: CategoryResponse[];
+    pagination: PaginationMeta;
+}
+
+// ── Service ───────────────────────────────────────────────────────────────────
+
+@Injectable({ providedIn: 'root' })
 export class CategoryService {
-    private readonly apiUrl = `${environment.apiUrl}/categories`;
+    private readonly http = inject(HttpClient);
+    private readonly apiUrl = `${environment.apiUrl}/v1/categories`;
 
-    constructor(private http: HttpClient) {}
+    /** List categories — all filters via query params. */
+    getCategories(query: CategoryQuery): Observable<PagedCategoryResponse> {
+        let params = new HttpParams()
+            .set('page', String(query.page ?? 1))
+            .set('pageSize', String(query.pageSize ?? 10));
 
-    /**
-     * Get all categories
-     */
-    getAllCategories(): Observable<CategoryResponse[]> {
-        return this.http.get<CategoryResponse[]>(this.apiUrl);
+        if (query.search) params = params.set('search', query.search);
+        if (query.isActive !== null && query.isActive !== undefined)
+            params = params.set('isActive', String(query.isActive));
+
+        return this.http.get<PagedCategoryResponse>(this.apiUrl, { params });
     }
 
-    /**
-     * Get active categories only
-     */
+    /** All active categories as a flat array — convenience for dropdowns. */
     getActiveCategories(): Observable<CategoryResponse[]> {
-        return this.http.get<CategoryResponse[]>(`${this.apiUrl}/active`);
+        return this.getCategories({ isActive: true, pageSize: 500 }).pipe(map(r => r.data));
     }
 
-    /**
-     * Get top-level categories (without parents)
-     */
-    getTopLevelCategories(): Observable<CategoryResponse[]> {
-        return this.http.get<CategoryResponse[]>(`${this.apiUrl}/top-level`);
+    /** All categories (active + inactive) as a flat array — convenience for dropdowns. */
+    getAllCategories(): Observable<CategoryResponse[]> {
+        return this.getCategories({ pageSize: 500 }).pipe(map(r => r.data));
     }
 
-    /**
-     * Get category by ID
-     */
-    getCategoryById(id: string): Observable<CategoryResponse> {
-        return this.http.get<CategoryResponse>(`${this.apiUrl}/${id}`);
+    /** Get a single category by ID. */
+    getCategoryById(id: string): Observable<{ data: CategoryResponse }> {
+        return this.http.get<{ data: CategoryResponse }>(`${this.apiUrl}/${id}`);
     }
 
-    /**
-     * Get subcategories of a parent category
-     */
-    getSubcategories(parentCategoryId: string): Observable<CategoryResponse[]> {
-        return this.http.get<CategoryResponse[]>(`${this.apiUrl}/${parentCategoryId}/subcategories`);
+    /** Direct children of a category. */
+    getSubcategories(parentId: string): Observable<{ data: CategoryResponse[] }> {
+        return this.http.get<{ data: CategoryResponse[] }>(`${this.apiUrl}/${parentId}/subcategories`);
     }
 
-    /**
-     * Search categories by name or code
-     */
-    searchCategories(searchTerm: string): Observable<CategoryResponse[]> {
-        return this.http.get<CategoryResponse[]>(`${this.apiUrl}/search/${searchTerm}`);
+    /** Ancestors from immediate parent to root. */
+    getAncestors(id: string): Observable<{ data: CategoryResponse[] }> {
+        return this.http.get<{ data: CategoryResponse[] }>(`${this.apiUrl}/${id}/ancestors`);
     }
 
-    /**
-     * Get paginated categories with optional search filter
-     */
-    getPagedCategories(query: CategoryQuery): Observable<PaginatedResponse<CategoryResponse>> {
-        return this.http.post<PaginatedResponse<CategoryResponse>>(`${this.apiUrl}/list`, query);
+    /** All descendants at every level. */
+    getDescendants(id: string): Observable<{ data: CategoryResponse[] }> {
+        return this.http.get<{ data: CategoryResponse[] }>(`${this.apiUrl}/${id}/descendants`);
     }
 
-    /**
-     * Create a new category
-     */
-    createCategory(request: CreateCategoryRequest): Observable<CategoryResponse> {
-        return this.http.post<CategoryResponse>(this.apiUrl, request);
+    /** Breadcrumb path string. */
+    getBreadcrumb(id: string): Observable<{ data: { categoryId: string; breadcrumbPath: string } }> {
+        return this.http.get<{ data: { categoryId: string; breadcrumbPath: string } }>(`${this.apiUrl}/${id}/breadcrumb`);
     }
 
-    /**
-     * Update an existing category
-     */
-    updateCategory(id: string, request: UpdateCategoryRequest): Observable<CategoryResponse> {
-        return this.http.put<CategoryResponse>(`${this.apiUrl}/${id}`, request);
+    /** Check if re-parenting would create a circular reference. */
+    checkCircularReference(id: string, newParentId: string | null): Observable<{ data: { wouldCreateCircularReference: boolean; message: string } }> {
+        let params = new HttpParams();
+        if (newParentId) params = params.set('newParentId', newParentId);
+        return this.http.post<{ data: { wouldCreateCircularReference: boolean; message: string } }>(
+            `${this.apiUrl}/${id}/check-circular-reference`, {}, { params });
     }
 
-    /**
-     * Delete a category
-     */
+    /** Create a new category. */
+    createCategory(request: CreateCategoryRequest): Observable<{ data: CategoryResponse }> {
+        return this.http.post<{ data: CategoryResponse }>(this.apiUrl, request);
+    }
+
+    /** Full update. ID is in the URL only. */
+    updateCategory(id: string, request: UpdateCategoryRequest): Observable<{ data: CategoryResponse }> {
+        return this.http.put<{ data: CategoryResponse }>(`${this.apiUrl}/${id}`, request);
+    }
+
+    /** Activate or deactivate. */
+    setStatus(id: string, isActive: boolean): Observable<{ data: CategoryResponse }> {
+        return this.http.patch<{ data: CategoryResponse }>(`${this.apiUrl}/${id}/status`, { isActive });
+    }
+
+    /** Soft delete. */
     deleteCategory(id: string): Observable<void> {
         return this.http.delete<void>(`${this.apiUrl}/${id}`);
-    }
-
-    /**
-     * Activate a category
-     */
-    activateCategory(id: string): Observable<CategoryResponse> {
-        return this.http.patch<CategoryResponse>(`${this.apiUrl}/${id}/activate`, {});
-    }
-
-    /**
-     * Deactivate a category
-     */
-    deactivateCategory(id: string): Observable<CategoryResponse> {
-        return this.http.patch<CategoryResponse>(`${this.apiUrl}/${id}/deactivate`, {});
-    }
-
-    /**
-     * Get breadcrumb path for a category
-     */
-    getCategoryBreadcrumb(categoryId: string): Observable<any> {
-        return this.http.get<any>(`${this.apiUrl}/${categoryId}/breadcrumb`);
-    }
-
-    /**
-     * Get ancestors of a category (path to root)
-     */
-    getAncestors(categoryId: string): Observable<CategoryResponse[]> {
-        return this.http.get<CategoryResponse[]>(`${this.apiUrl}/${categoryId}/ancestors`);
-    }
-
-    /**
-     * Get descendants of a category
-     */
-    getDescendants(categoryId: string): Observable<CategoryResponse[]> {
-        return this.http.get<CategoryResponse[]>(`${this.apiUrl}/${categoryId}/descendants`);
-    }
-
-    /**
-     * Get category depth level
-     */
-    getCategoryDepth(categoryId: string): Observable<any> {
-        return this.http.get<any>(`${this.apiUrl}/${categoryId}/depth`);
-    }
-
-    /**
-     * Check if moving a category would create a circular reference
-     */
-    checkCircularReference(categoryId: string, newParentId: string | null): Observable<any> {
-        return this.http.post<any>(
-            `${this.apiUrl}/${categoryId}/check-circular-reference`,
-            {},
-            {
-                params: { newParentId: newParentId || '' }
-            }
-        );
     }
 }

@@ -160,77 +160,117 @@ export interface PartsQuery {
 })
 export class PartService {
     private readonly http = inject(HttpClient);
-    private readonly apiUrl = `${environment.apiUrl}/parts`;
+    private readonly apiUrl = `${environment.apiUrl}/v1/products`;
 
-    /**
-     * Get all parts
-     */
     getAllParts(): Observable<PartResponse[]> {
-        return this.http.get<PartResponse[]>(this.apiUrl);
+        return this.http.get<{ data: PartResponse[] }>(this.apiUrl, { params: new HttpParams().set('pageSize', '500') })
+            .pipe(map(r => r.data));
     }
-
-    /**
-     * Get all active parts
-     */
 
     getActiveParts(): Observable<PartResponse[]> {
-        return this.http.get<PartResponse[]>(`${this.apiUrl}/active`);
+        return this.http.get<{ data: PartResponse[] }>(this.apiUrl, {
+            params: new HttpParams().set('isActive', 'true').set('pageSize', '500')
+        }).pipe(map(r => r.data));
     }
 
-
-    /**
-  * Get paginated suppliers with optional search
-  */
     getParts(rQuery: PartsQuery): Observable<PaginatedResponse<PartResponse>> {
-        return this.http.post<PaginatedResponse<PartResponse>>(`${this.apiUrl}/list`, rQuery);
+        let params = new HttpParams()
+            .set('search', rQuery.search ?? '')
+            .set('page', rQuery.pageNumber.toString())
+            .set('pageSize', rQuery.pageSize.toString())
+            .set('flattenVariants', (rQuery.flattenVariants ?? false).toString());
+        if (rQuery.isActive != null) params = params.set('isActive', rQuery.isActive.toString());
+        return this.http.get<{ data: PartResponse[]; pagination: any }>(this.apiUrl, { params })
+            .pipe(map(r => ({
+                data: r.data,
+                pagination: { ...r.pagination, pageNumber: r.pagination.page }
+            })));
     }
 
-    /**
-     * Get part by ID
-     */
     getPartById(id: string): Observable<PartResponse> {
-        return this.http.get<PartResponse>(`${this.apiUrl}/${id}`);
+        return this.http.get<{ data: any }>(`${this.apiUrl}/${id}`)
+            .pipe(map(r => {
+                const p = r.data;
+                return {
+                    id: p.id,
+                    name: p.name,
+                    displayName: p.name,
+                    description: p.description ?? '',
+                    richDescription: p.richDescription ?? null,
+                    partNumber: p.partNumber,
+                    sku: p.sku,
+                    barcode: p.barcode ?? null,
+                    categoryId: p.category?.id ?? '',
+                    categoryName: p.category?.name ?? '',
+                    brandId: p.brand?.id ?? null,
+                    brandName: p.brand?.name ?? null,
+                    brandCode: p.brand?.code ?? null,
+                    baseUnitId: p.baseUnit?.id ?? null,
+                    baseUnitName: p.baseUnit?.name ?? null,
+                    baseUnitCode: p.baseUnit?.code ?? null,
+                    unitId: p.unit?.id ?? null,
+                    unitName: p.unit?.name ?? null,
+                    unitCode: p.unit?.code ?? null,
+                    costPrice: p.pricing?.costPrice ?? 0,
+                    sellingPrice: p.pricing?.sellingPrice ?? 0,
+                    effectiveCostPrice: p.pricing?.costPrice ?? 0,
+                    effectiveSellingPrice: p.pricing?.sellingPrice ?? 0,
+                    hasVariants: p.hasVariants ?? false,
+                    variantCount: p.variants?.filter((v: any) => !v.isDefault)?.length ?? 0,
+                    isVariant: false,
+                    variantId: null,
+                    variantName: null,
+                    variantCode: null,
+                    variantSKU: null,
+                    variantBarcode: null,
+                    pricingMode: null,
+                    minimumStock: p.minimumStock ?? 0,
+                    isActive: p.isActive ?? true,
+                    tags: p.tags ?? null,
+                    productType: p.productType ?? 'PHYSICAL',
+                    isPerishable: p.isPerishable ?? false,
+                    weightKg: p.dimensions?.weightKg ?? null,
+                    widthCm: p.dimensions?.widthCm ?? null,
+                    heightCm: p.dimensions?.heightCm ?? null,
+                    depthCm: p.dimensions?.depthCm ?? null,
+                    taxCode: p.taxCode ?? null,
+                    hasWarranty: p.warranty?.hasWarranty ?? false,
+                    warrantyPeriodMonths: p.warranty?.periodMonths ?? null,
+                    warrantyType: p.warranty?.type ?? null,
+                    warrantyTerms: p.warranty?.terms ?? null,
+                    warrantyCertificateTemplate: p.warranty?.certificateTemplate ?? null,
+                    createdBy: p.createdBy ?? '',
+                    modifiedBy: p.modifiedBy ?? '',
+                } as PartResponse;
+            }));
     }
 
-    /**
-     * Create new part
-     */
     createPart(request: CreatePartRequest): Observable<PartResponse> {
-        return this.http.post<PartResponse>(this.apiUrl, request);
+        return this.http.post<{ data: PartResponse }>(this.apiUrl, request)
+            .pipe(map(r => r.data));
     }
 
-    /**
-     * Update existing part
-     */
     updatePart(id: string, request: UpdatePartRequest): Observable<PartResponse> {
-        return this.http.put<PartResponse>(`${this.apiUrl}/${id}`, request);
+        return this.http.put<{ data: PartResponse }>(`${this.apiUrl}/${id}`, request)
+            .pipe(map(r => r.data));
     }
 
-    /**
-     * Activate part
-     */
     activatePart(id: string): Observable<PartResponse> {
-        return this.http.patch<PartResponse>(`${this.apiUrl}/${id}/activate`, {});
+        return this.http.patch<{ data: PartResponse }>(`${this.apiUrl}/${id}/status`, { isActive: true })
+            .pipe(map(r => r.data));
     }
 
-    /**
-     * Deactivate part
-     */
     deactivatePart(id: string): Observable<PartResponse> {
-        return this.http.patch<PartResponse>(`${this.apiUrl}/${id}/deactivate`, {});
+        return this.http.patch<{ data: PartResponse }>(`${this.apiUrl}/${id}/status`, { isActive: false })
+            .pipe(map(r => r.data));
     }
 
-    /**
-     * Delete part
-     */
     deletePart(id: string): Observable<void> {
         return this.http.delete<void>(`${this.apiUrl}/${id}`);
     }
 
-    /**
-     * Get compatible vehicles for a part
-     */
     getPartCompatibleVehicles(partId: string): Observable<VehicleCompatibilityResponse[]> {
-        return this.http.get<VehicleCompatibilityResponse[]>(`${this.apiUrl}/${partId}/compatible-vehicles`);
+        return this.http.get<{ data: VehicleCompatibilityResponse[] }>(`${this.apiUrl}/${partId}/compatible-vehicles`)
+            .pipe(map(r => r.data));
     }
 }
