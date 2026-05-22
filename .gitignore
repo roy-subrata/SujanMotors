@@ -29,3 +29,7 @@ node_modules/
 .env
 .env.*
 !.env.example
+appsettings.Development.json
+appsettings.Production.json
+# Claude Code worktrees (temporary agent sandboxes)
+.claude/worktrees/

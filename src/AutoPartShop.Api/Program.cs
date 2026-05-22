@@ -1,6 +1,8 @@
 using System.Text;
 using System.Text.Json.Serialization;
+using AutoPartShop.Api.Hubs;
 using AutoPartShop.Api.Services;
+using AutoPartShop.Application.Interfaces;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
@@ -46,9 +48,13 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy(corsPolicy, policy =>
     {
-        policy.AllowAnyOrigin()   // Allows all origins (perfect for Quick Tunnels)
-              .AllowAnyHeader()   // Allows any headers (e.g., Content-Type, Authorization)
-              .AllowAnyMethod();   // Allows all HTTP methods (GET, POST, etc.)
+        // SetIsOriginAllowed(_ => true) + AllowCredentials() echoes back the specific
+        // requesting origin instead of '*', which is required for SignalR negotiate
+        // (credentials: 'include'). AllowAnyOrigin() would send '*' and break it.
+        policy.SetIsOriginAllowed(_ => true)
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
     });
     // options.AddPolicy(corsPolicy, policy =>
     // {
@@ -190,6 +196,31 @@ builder.Services.AddControllers()
            new JsonStringEnumConverter()
        );
     });
+// SignalR for real-time staff notifications
+builder.Services.AddSignalR();
+
+// Allow SignalR to read JWT from query string (WebSocket/SSE can't set Authorization header)
+builder.Services.Configure<Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerOptions>(
+    Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme,
+    options =>
+    {
+        var existing = options.Events ?? new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents();
+        options.Events = existing;
+        options.Events.OnMessageReceived = ctx =>
+        {
+            var token = ctx.Request.Query["access_token"];
+            if (!string.IsNullOrEmpty(token) &&
+                ctx.HttpContext.Request.Path.StartsWithSegments("/hubs"))
+            {
+                ctx.Token = token;
+            }
+            return Task.CompletedTask;
+        };
+    });
+
+// Broadcaster that adapts ISaleEventBroadcaster → IHubContext<SaleNotificationHub>
+builder.Services.AddScoped<ISaleEventBroadcaster, SignalRSaleEventBroadcaster>();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -263,6 +294,7 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<SaleNotificationHub>("/hubs/sale-notifications");
 
 // Ping the service is live or not
 app.MapGet("/live", () => "I am live");

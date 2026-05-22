@@ -1,5 +1,7 @@
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.Common;
+using AutoPartShop.Application.Interfaces;
+using AutoPartShop.Domain.Events;
 using AutoPartShop.Application.DTOs.SalesOrderDtos;
 using AutoPartShop.Application.SaleOrders;
 using AutoPartShop.Application.SaleOrders.Dtos;
@@ -29,6 +31,8 @@ public class SalesOrderController : ControllerBase
     private readonly IWarrantyService _warrantyService;
     private readonly ICurrentUserService _currentUserService;
     private readonly IPricingValidationService _pricingValidationService;
+    private readonly INotificationService _notificationService;
+    private readonly IDomainEventDispatcher _eventDispatcher;
     private readonly ILogger<SalesOrderController> _logger;
     private readonly AutoPartDbContext _dbContext;
 
@@ -45,6 +49,8 @@ public class SalesOrderController : ControllerBase
         IWarrantyService warrantyService,
         ICurrentUserService currentUserService,
         IPricingValidationService pricingValidationService,
+        INotificationService notificationService,
+        IDomainEventDispatcher eventDispatcher,
         ILogger<SalesOrderController> logger,
         AutoPartDbContext dbContext)
     {
@@ -60,6 +66,8 @@ public class SalesOrderController : ControllerBase
         _warrantyService = warrantyService;
         _currentUserService = currentUserService;
         _pricingValidationService = pricingValidationService;
+        _notificationService = notificationService;
+        _eventDispatcher = eventDispatcher;
         _logger = logger;
         _dbContext = dbContext;
     }
@@ -531,8 +539,14 @@ public class SalesOrderController : ControllerBase
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Could not create warranty registrations for SO {SOId}. Warranties can be created manually.", id);
-                // Continue execution — warranty creation failure should not block order confirmation
             }
+
+            // Dispatch domain events raised by order.Confirm().
+            // Reading directly from the entity after CommitAsync guarantees
+            // a failed commit never triggers external side-effects (SMS, SignalR, etc.).
+            var confirmedEvents = order.DomainEvents.ToList();
+            order.ClearEvents();
+            await _eventDispatcher.DispatchAsync(confirmedEvents, cancellationToken);
 
             return Ok(MapToSalesOrderResponse(order));
         }
@@ -1230,7 +1244,6 @@ public class SalesOrderController : ControllerBase
                 try
                 {
                     await _salesOrderRepository.AddAsync(salesOrder, cancellationToken);
-                    await _codeGenerateService.SaveGenerateCodeAsync("SO", cancellationToken);
 
                     if (request.SaveAsQuotation)
                     {
@@ -1249,7 +1262,6 @@ public class SalesOrderController : ControllerBase
                     invoice.CreatedBy = _currentUserService.GetCurrentUsername();
                     invoice.ModifiedBy = _currentUserService.GetCurrentUsername();
                     await _invoiceRepository.AddAsync(invoice, cancellationToken);
-                    await _codeGenerateService.SaveGenerateCodeAsync("INV", cancellationToken);
 
                     decimal advancePaymentAmount = 0;
                     if (request.UseAdvanceBalance && request.AdvanceAmountToApply > 0 && request.CustomerId.HasValue)
@@ -1452,6 +1464,14 @@ public class SalesOrderController : ControllerBase
 
             _logger.LogInformation("Quick sale created successfully. Invoice: {InvoiceNumber}, SO: {SONumber}",
                 invoiceNumber, soNumber);
+
+            // Dispatch domain events raised by salesOrder.Confirm() — after commit only
+            if (!request.SaveAsQuotation)
+            {
+                var quickSaleEvents = salesOrder.DomainEvents.ToList();
+                salesOrder.ClearEvents();
+                await _eventDispatcher.DispatchAsync(quickSaleEvents, cancellationToken);
+            }
 
             if (request.SaveAsQuotation)
             {

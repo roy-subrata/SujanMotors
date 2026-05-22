@@ -1,9 +1,11 @@
+using AutoPartShop.Domain.Events;
+
 namespace AutoPartShop.Domain.Entities;
 
 /// <summary>
 /// Represents a sales order to a customer
 /// </summary>
-public class SalesOrder : AuditableEntity
+public class SalesOrder : AggregateRoot
 {
     public string SONumber { get; private set; } = string.Empty;
     public Guid CustomerId { get; private set; }  // For future customer module
@@ -95,6 +97,10 @@ public class SalesOrder : AuditableEntity
 
         Status = "CONFIRMED";
         ConfirmedDate = DateTime.UtcNow;
+
+        RaiseEvent(new SaleOrderConfirmedEvent(
+            Id, SONumber, CustomerName, CustomerEmail, CustomerPhone,
+            GrandTotal, Currency, Channel, CreatedBy ?? string.Empty));
     }
 
     public void MarkAsPaid()

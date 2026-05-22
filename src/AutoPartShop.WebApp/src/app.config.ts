@@ -15,7 +15,10 @@ export const appConfig: ApplicationConfig = {
         provideRouter(appRoutes, withInMemoryScrolling({ anchorScrolling: 'enabled', scrollPositionRestoration: 'enabled' }), withEnabledBlockingInitialNavigation()),
         provideHttpClient(withFetch(), withInterceptors([authInterceptor])),
         provideAnimationsAsync(),
-        providePrimeNG({ theme: { preset: Aura, options: { darkModeSelector: '.app-dark' } } }),
+        providePrimeNG({
+            theme: { preset: Aura, options: { darkModeSelector: '.app-dark' } },
+            zIndex: { modal: 1100, overlay: 1200, menu: 1200, tooltip: 1300 }
+        }),
         provideAppInitializer(() => {
             const i18nService = inject(I18nService);
             return firstValueFrom(i18nService.initialize());
