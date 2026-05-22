@@ -1,4 +1,8 @@
 
+using AutoPartShop.Application.Interfaces;
+using AutoPartShop.Domain.Events;
+using AutoPartShop.Infrastructure.Events;
+using AutoPartShop.Infrastructure.Services.Providers;
 using AutoPartShop.Application.Brands;
 using AutoPartShop.Application.Categories;
 using AutoPartShop.Application.Catgories;
@@ -129,6 +133,17 @@ public static class Dependency
         services.AddTransient<ICodeGenerateService, CodeGenerateService>();
         services.AddScoped<IAuditLogService, AuditLogService>();
         services.AddScoped<IUnitConversionService, UnitConversionService>();
+
+        // Notification providers (Twilio + MailKit) — gracefully no-op when not configured
+        services.AddScoped<ISmsProvider, TwilioSmsProvider>();
+        services.AddScoped<IWhatsAppProvider, TwilioWhatsAppProvider>();
+        services.AddScoped<IEmailProvider, SmtpEmailProvider>();
+        services.AddScoped<INotificationService, NotificationService>();
+
+        // Domain event infrastructure
+        services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
+        services.AddScoped<IDomainEventHandler<SaleOrderConfirmedEvent>, SaleOrderConfirmedNotificationHandler>();
+        services.AddScoped<IDomainEventHandler<CustomerPaymentDueEvent>, CustomerPaymentDueNotificationHandler>();
 
         //Read Repository
         services.AddScoped<ICustomerReadRepository, CustomerReadRepository>();
