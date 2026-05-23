@@ -306,6 +306,33 @@
   color: var(--color-danger);
 }
 
+.filter-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.filter-dropdown {
+  min-width: 180px;
+}
+
+:host ::ng-deep .filter-dropdown .p-select {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-secondary);
+}
+
+:host ::ng-deep .filter-dropdown .p-select:hover {
+  border-color: var(--color-text-muted);
+}
+
+:host ::ng-deep .filter-dropdown .p-select.p-focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
+}
+
 .filter-actions {
   flex-direction: row;
   align-items: center;

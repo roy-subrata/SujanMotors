@@ -99,11 +99,54 @@
 .skeleton { background: linear-gradient(90deg,#f0f0f0 25%,#e0e0e0 50%,#f0f0f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 0.375rem; margin-bottom: 0.5rem; }
 .skeleton-text { height: 1rem; width: 60%; } .skeleton-text-sm { height: 0.75rem; width: 40%; }
 @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+@media (max-width: 1024px) {
+  .stats-badge { display: none; }
+  .page-subtitle { display: none; }
+}
 @media (max-width: 768px) {
-  .mobile-only { display: block; } .desktop-only { display: none; }
-  .page-wrapper { padding: 1rem; }
-  .header-content { flex-direction: column; align-items: flex-start; }
-  .action-buttons { width: 100%; } .btn-primary { flex: 1; justify-content: center; }
+  .mobile-only { display: block; }
+  .desktop-only { display: none; }
+  .breadcrumb-bar { padding: 0.5rem 1rem; }
+  .page-wrapper { padding: 0.75rem 0.75rem 0; gap: 0.75rem; }
+  .page-header { padding: 0.875rem 1rem; border-radius: 0.5rem; }
+  .header-content { flex-direction: row; align-items: center; gap: 0.75rem; flex-wrap: nowrap; }
+  .header-left { flex: 1; min-width: 0; }
+  .page-title { font-size: 1.125rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .page-subtitle { display: none; }
+  .stats-badge { display: none; }
+  .header-actions { gap: 0.375rem; }
+  .action-buttons { gap: 0.375rem; }
+  .btn-icon { width: 32px; height: 32px; }
+  .btn-primary span { display: none; }
+  .btn-primary { padding: 0.5rem 0.75rem; flex: unset; }
+  .supplier-banner { border-radius: 0.5rem; padding: 0.625rem 1rem; }
   .filter-container { flex-direction: column; }
   .filter-group, .search-group { width: 100%; min-width: 0; }
+  .cards-section { padding-bottom: 72px; }
+  .mobile-pagination {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 200;
+    margin: 0;
+    padding: 12px 16px;
+    border-radius: 0;
+    border-top: 1px solid #e5e7eb;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+    box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08);
+    background-color: #fff;
+  }
+}
+@media (max-width: 480px) {
+  .breadcrumb-bar { padding: 0.375rem 0.75rem; }
+  .page-wrapper { padding: 0.5rem 0.5rem 0; gap: 0.5rem; }
+  .page-header { padding: 0.75rem; }
+  .page-title { font-size: 1rem; }
+  .btn-icon { width: 28px; height: 28px; }
+  .btn-icon i { font-size: 0.75rem; }
+  .payment-card { padding: 0.75rem; }
+  .cards-section { padding-bottom: 72px; }
 }
