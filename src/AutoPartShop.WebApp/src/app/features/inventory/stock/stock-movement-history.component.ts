@@ -256,7 +256,7 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
       .p-inputtext {
         min-height: 34px;
         border-radius: 8px;
-        border-color: #e5e7eb;
+        border-color: var(--surface-border);
         font-size: 0.8125rem;
       }
 
@@ -266,12 +266,12 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
       }
 
       .p-datepicker-trigger {
-        background: #f9fafb;
-        border-color: #e5e7eb;
+        background: var(--surface-ground);
+        border-color: var(--surface-border);
       }
 
       .p-datepicker-trigger:hover {
-        background: #f3f4f6;
+        background: var(--surface-hover);
       }
     }
 
@@ -282,15 +282,15 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
       position: relative;
       display: flex;
       align-items: center;
-      background: #fff;
-      border: 1px solid #e5e7eb;
+      background: var(--surface-card);
+      border: 1px solid var(--surface-border);
       border-radius: 8px;
       padding: 0 0.75rem;
       min-height: 34px;
     }
 
     .search-input-wrapper i {
-      color: #9ca3af;
+      color: var(--text-color-secondary);
       margin-right: 0.5rem;
       font-size: 0.875rem;
     }
@@ -300,12 +300,14 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
       outline: none;
       font-size: 0.8125rem;
       width: 100%;
+      background: transparent;
+      color: var(--text-color);
     }
 
     .search-clear {
       background: none;
       border: none;
-      color: #9ca3af;
+      color: var(--text-color-secondary);
       cursor: pointer;
       padding: 0;
       margin-left: 0.5rem;
@@ -313,7 +315,7 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
     }
 
     .search-clear:hover {
-      color: #374151;
+      color: var(--text-color);
     }
 
     .btn-search,
@@ -324,7 +326,7 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
       width: 34px;
       height: 34px;
       border-radius: 8px;
-      border: 1px solid #e5e7eb;
+      border: 1px solid var(--surface-border);
       cursor: pointer;
       transition: all 0.2s ease;
       font-size: 0.875rem;
@@ -342,20 +344,20 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
     }
 
     .btn-clear {
-      background: #fff;
-      color: #6b7280;
+      background: var(--surface-card);
+      color: var(--text-color-secondary);
     }
 
     .btn-clear:hover {
-      background: #f3f4f6;
-      border-color: #d1d5db;
+      background: var(--surface-hover);
+      border-color: var(--surface-border);
     }
 
     .search-clear {
       border: none;
       background: transparent;
       cursor: pointer;
-      color: #9ca3af;
+      color: var(--text-color-secondary);
     }
 
     .active-filters {
@@ -368,7 +370,7 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
 
     .active-filters-label {
       font-size: 0.75rem;
-      color: #6b7280;
+      color: var(--text-color-secondary);
       font-weight: 600;
     }
 
@@ -378,7 +380,7 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
       gap: 0.375rem;
       padding: 0.25rem 0.5rem;
       border-radius: 9999px;
-      background: #eff6ff;
+      background: rgba(37, 99, 235, 0.1);
       color: #1d4ed8;
       font-size: 0.75rem;
       font-weight: 600;
@@ -431,7 +433,7 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
     }
 
     .text-gray-600 {
-      color: #4b5563;
+      color: var(--text-color-secondary);
     }
 
     .font-semibold {
@@ -469,13 +471,13 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
 
     .display-unit {
       font-size: 11px;
-      color: #64748b;
+      color: var(--text-color-secondary);
       font-weight: 500;
     }
 
     .base-qty {
       font-size: 11px;
-      color: #94a3b8;
+      color: var(--text-color-secondary);
       font-weight: 400;
     }
 

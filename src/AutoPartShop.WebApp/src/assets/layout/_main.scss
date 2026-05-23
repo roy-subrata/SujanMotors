@@ -9,7 +9,7 @@
     margin-left: 280px;
     margin-top: 70px;
     transition: margin-left 0.3s ease;
-    background-color: #f8f9fa;
+    background-color: var(--surface-ground);
     overflow-y: auto;
     overflow-x: hidden;
 
@@ -61,12 +61,12 @@
 
 // Content card styling
 .content-card {
-    background: #ffffff;
+    background: var(--surface-card);
     border-radius: 0.5rem;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     padding: 1.25rem;
     margin-bottom: 1.5rem;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--surface-border);
 
     @media (max-width: 991px) {
         padding: 1rem;
@@ -88,12 +88,12 @@
 
 // Page header styling
 .page-header {
-    background: #ffffff;
+    background: var(--surface-card);
     border-radius: 0.5rem;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     padding: 1.25rem;
     margin-bottom: 1.5rem;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--surface-border);
 
     .header-content {
         display: flex;
@@ -107,7 +107,7 @@
         margin: 0;
         font-size: 1.5rem;
         font-weight: 600;
-        color: #1f2937;
+        color: var(--text-color);
     }
 
     @media (max-width: 991px) {

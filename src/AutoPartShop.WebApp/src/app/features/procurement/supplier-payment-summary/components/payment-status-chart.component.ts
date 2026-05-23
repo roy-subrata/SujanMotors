@@ -88,7 +88,7 @@ import { PaymentStatusBreakdown } from '../../services/supplier-payment.service'
   styles: [`
     .status-item {
       padding: 0.75rem;
-      background: #f9fafb;
+      background: var(--surface-ground);
       border-radius: 0.375rem;
     }
   `]

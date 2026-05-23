@@ -295,7 +295,7 @@ import { CurrencyService, Currency, ExchangeRate } from '../../../shared/service
   styles: [`
     :host ::ng-deep {
       .p-datatable .p-datatable-thead > tr > th {
-        background-color: #f8f9fa;
+        background-color: var(--surface-ground);
         font-weight: 600;
       }
     }

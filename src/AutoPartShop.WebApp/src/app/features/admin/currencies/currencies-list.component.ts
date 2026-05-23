@@ -306,7 +306,7 @@ import { CurrencyService, Currency } from '../../../shared/services/currency.ser
   styles: [`
     :host ::ng-deep {
       .p-datatable .p-datatable-thead > tr > th {
-        background-color: #f8f9fa;
+        background-color: var(--surface-ground);
         font-weight: 600;
       }
 
@@ -323,7 +323,7 @@ import { CurrencyService, Currency } from '../../../shared/services/currency.ser
           display: block;
           margin-bottom: 0.5rem;
           font-weight: 600;
-          color: #495057;
+          color: var(--text-color);
         }
 
         .p-inputtext,
