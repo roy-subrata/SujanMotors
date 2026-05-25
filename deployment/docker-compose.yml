@@ -25,8 +25,24 @@ services:
     image: smapi:local
     container_name: autopartshop.api
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_HTTP_PORTS=8080
       - ConnectionStrings__AutoPartDb=Server=autopartshop.db,1433;Database=AutoPartShopDb;User=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=True;
+      - JwtSettings__SecretKey=YourSuperSecretKeyForJWTTokenGenerationMustBe32CharsLong!@#
+      - JwtSettings__Issuer=AutoPartShopAPI
+      - JwtSettings__Audience=AutoPartShopClient
+      - JwtSettings__ExpiryInMinutes=60
+      - JwtSettings__RefreshTokenExpiryInDays=7
+      - Twilio__AccountSid=${TWILIO_ACCOUNT_SID:-}
+      - Twilio__AuthToken=${TWILIO_AUTH_TOKEN:-}
+      - Twilio__SmsMsgServiceSid=${TWILIO_SMS_SID:-}
+      - Twilio__WhatsAppMsgServiceSid=${TWILIO_WHATSAPP_SID:-}
+      - Smtp__Host=${SMTP_HOST:-}
+      - Smtp__Port=${SMTP_PORT:-587}
+      - Smtp__Username=${SMTP_USERNAME:-}
+      - Smtp__Password=${SMTP_PASSWORD:-}
+      - Smtp__FromEmail=${SMTP_FROM_EMAIL:-}
+      - Smtp__FromName=SujanMotors
     ports:
       - "5292:8080"
     depends_on:
@@ -39,7 +55,7 @@ services:
       context: ../src/AutoPartShop.WebApp
       dockerfile: dockerfile
       args:
-        ENV_NAME: development
+        ENV_NAME: production
     image: smweb:local
     container_name: autopartshop.web
     ports:

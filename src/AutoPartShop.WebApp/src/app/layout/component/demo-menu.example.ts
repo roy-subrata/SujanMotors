@@ -45,19 +45,13 @@ export const DEMO_MENU_ITEMS: MenuItem[] = [
     {
         label: 'Sales',
         icon: 'pi pi-shopping-cart',
-        badge: {
-            value: '12',
-            severity: 'success'
-        },
+        badge: '12',
         items: [
             {
                 label: 'New Orders',
                 icon: 'pi pi-plus-circle',
                 routerLink: ['/sales/orders/new'],
-                badge: {
-                    value: '5',
-                    severity: 'danger'
-                }
+                badge: '5'
             },
             {
                 label: 'Orders',
@@ -100,10 +94,7 @@ export const DEMO_MENU_ITEMS: MenuItem[] = [
                         label: 'Pending',
                         icon: 'pi pi-clock',
                         routerLink: ['/procurement/purchase-orders/pending'],
-                        badge: {
-                            value: '3',
-                            severity: 'warning'
-                        }
+                        badge: '3'
                     }
                 ]
             },
@@ -144,10 +135,7 @@ export const DEMO_MENU_ITEMS: MenuItem[] = [
                 label: 'Financial Report',
                 icon: 'pi pi-dollar',
                 routerLink: ['/reports/financial'],
-                badge: {
-                    value: 'NEW',
-                    severity: 'info'
-                }
+                badge: 'NEW'
             }
         ]
     },
@@ -219,10 +207,7 @@ export class DynamicMenuExample {
             if (item.label === 'Notifications') {
                 return {
                     ...item,
-                    badge: {
-                        value: this.notificationCount.toString(),
-                        severity: this.notificationCount > 0 ? 'danger' : 'info'
-                    }
+                    badge: this.notificationCount.toString()
                 };
             }
 
@@ -230,10 +215,7 @@ export class DynamicMenuExample {
             if (item.label === 'Pending') {
                 return {
                     ...item,
-                    badge: {
-                        value: this.pendingOrders.toString(),
-                        severity: this.pendingOrders > 5 ? 'danger' : 'warning'
-                    }
+                    badge: this.pendingOrders.toString()
                 };
             }
 
