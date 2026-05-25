@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, ViewChild, inject, OnInit } from '@angular/core';
+import { Component, EventEmitter, Input, Output, ViewChild, inject, OnInit, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -12,6 +12,8 @@ import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmationService, MessageService, MenuItem } from 'primeng/api';
 import { VehicleService, VehicleResponse } from '../services/vehicle.service';
 import { Select } from 'primeng/select';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { I18nService } from '@/shared/services/i18n.service';
 
 @Component({
   selector: 'app-vehicles-list',
@@ -54,59 +56,45 @@ export class VehiclesListComponent implements OnInit {
   private readonly confirmationService = inject(ConfirmationService);
   private readonly messageService = inject(MessageService);
   private readonly router = inject(Router);
+  private readonly i18n = inject(I18nService);
+  private readonly destroyRef = inject(DestroyRef);
 
   ngOnInit(): void {
-    this.initializeContextMenu();
+    this.rebuildContextMenu();
+    this.i18n.translationsLoaded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      if (this.selectedVehicle) this.rebuildContextMenu();
+    });
   }
 
-  private initializeContextMenu(): void {
+  private rebuildContextMenu(): void {
+    const v = this.selectedVehicle;
     this.contextMenuItems = [
       {
-        label: 'View',
+        label: this.i18n.t('common.actions.view'),
         icon: 'pi pi-eye',
-        command: () => {
-          if (this.selectedVehicle) {
-            this.onViewClick(this.selectedVehicle);
-          }
-        }
+        command: () => { if (v) this.onViewClick(v); }
       },
       {
-        label: 'Edit',
+        label: this.i18n.t('common.actions.edit'),
         icon: 'pi pi-pencil',
-        command: () => {
-          if (this.selectedVehicle) {
-            this.onEditClick(this.selectedVehicle);
-          }
-        }
+        command: () => { if (v) this.onEditClick(v); }
       },
       {
-        label: 'Manage Compatibility',
+        label: this.i18n.t('common.actions.manageCompatibility'),
         icon: 'pi pi-sitemap',
-        command: () => {
-          if (this.selectedVehicle) {
-            this.onManageCompatibility(this.selectedVehicle);
-          }
-        }
+        command: () => { if (v) this.onManageCompatibility(v); }
       },
       { separator: true },
       {
-        label: this.selectedVehicle?.isActive ? 'Deactivate' : 'Activate',
-        icon: this.selectedVehicle?.isActive ? 'pi pi-times-circle' : 'pi pi-check-circle',
-        command: () => {
-          if (this.selectedVehicle) {
-            this.toggleActive(this.selectedVehicle);
-          }
-        }
+        label: v?.isActive ? this.i18n.t('common.actions.deactivate') : this.i18n.t('common.actions.activate'),
+        icon: v?.isActive ? 'pi pi-times-circle' : 'pi pi-check-circle',
+        command: () => { if (v) this.toggleActive(v); }
       },
       { separator: true },
       {
-        label: 'Delete',
+        label: this.i18n.t('common.actions.delete'),
         icon: 'pi pi-trash',
-        command: () => {
-          if (this.selectedVehicle) {
-            this.onDeleteClick(this.selectedVehicle);
-          }
-        },
+        command: () => { if (v) this.onDeleteClick(v); },
         styleClass: 'p-menuitem-danger'
       }
     ];
@@ -114,7 +102,7 @@ export class VehiclesListComponent implements OnInit {
 
   showContextMenu(event: MouseEvent, vehicle: VehicleResponse): void {
     this.selectedVehicle = vehicle;
-    this.initializeContextMenu();
+    this.rebuildContextMenu();
     if (this.contextMenu) {
       this.contextMenu.show(event);
     }
@@ -135,10 +123,13 @@ export class VehiclesListComponent implements OnInit {
   }
 
   toggleActive(vehicle: VehicleResponse): void {
-    const action = vehicle.isActive ? 'deactivate' : 'activate';
+    const isDeactivating = vehicle.isActive;
+    const confirmKey = isDeactivating ? 'vehicles.messages.deactivateConfirm' : 'vehicles.messages.activateConfirm';
+    const header = isDeactivating ? this.i18n.t('common.actions.deactivate') : this.i18n.t('common.actions.activate');
+
     this.confirmationService.confirm({
-      message: `Are you sure you want to ${action} "${vehicle.make} ${vehicle.model} ${vehicle.year}"?`,
-      header: `Confirm ${action.charAt(0).toUpperCase() + action.slice(1)}`,
+      message: this.i18n.t(confirmKey),
+      header,
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
         const request$ = vehicle.isActive
@@ -147,18 +138,20 @@ export class VehiclesListComponent implements OnInit {
 
         request$.subscribe({
           next: () => {
+            const detailKey = isDeactivating ? 'vehicles.messages.deactivateSuccess' : 'vehicles.messages.activateSuccess';
             this.messageService.add({
               severity: 'success',
-              summary: 'Success',
-              detail: `Vehicle ${action}d successfully`
+              summary: this.i18n.t('common.messages.success'),
+              detail: this.i18n.t(detailKey)
             });
             this.vehicleDeleted.emit();
           },
           error: (error: any) => {
+            const detailKey = isDeactivating ? 'vehicles.messages.deactivateFailed' : 'vehicles.messages.activateFailed';
             this.messageService.add({
               severity: 'error',
-              summary: 'Error',
-              detail: error?.error?.message || `Failed to ${action} vehicle`
+              summary: this.i18n.t('common.messages.error'),
+              detail: error?.error?.message || this.i18n.t(detailKey)
             });
           }
         });
@@ -167,9 +160,10 @@ export class VehiclesListComponent implements OnInit {
   }
 
   onDeleteClick(vehicle: VehicleResponse): void {
+    const name = `${vehicle.make} ${vehicle.model} ${vehicle.year}`;
     this.confirmationService.confirm({
-      message: `Are you sure you want to delete "${vehicle.make} ${vehicle.model} ${vehicle.year}"?`,
-      header: 'Confirm Deletion',
+      message: this.i18n.t('vehicles.messages.deleteConfirm', { name }),
+      header: this.i18n.t('common.messages.confirmDeletion'),
       icon: 'pi pi-exclamation-triangle',
       acceptButtonStyleClass: 'p-button-danger',
       accept: () => {
@@ -183,16 +177,16 @@ export class VehiclesListComponent implements OnInit {
       next: () => {
         this.messageService.add({
           severity: 'success',
-          summary: 'Success',
-          detail: 'Vehicle deleted successfully'
+          summary: this.i18n.t('common.messages.success'),
+          detail: this.i18n.t('vehicles.messages.deleteSuccess')
         });
         this.vehicleDeleted.emit();
       },
       error: (error: any) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: error?.error?.message || 'Failed to delete vehicle'
+          summary: this.i18n.t('common.messages.error'),
+          detail: error?.error?.message || this.i18n.t('vehicles.messages.deleteFailed')
         });
         console.error('Error deleting vehicle:', error);
       }
@@ -200,14 +194,9 @@ export class VehiclesListComponent implements OnInit {
   }
 
   onPageChange(event: any): void {
-    if (!event || typeof event.first !== 'number' || typeof event.rows !== 'number') {
-      return;
-    }
+    if (!event || typeof event.first !== 'number' || typeof event.rows !== 'number') return;
     const pageNumber = Math.floor(event.first / event.rows) + 1;
-    this.pageChange.emit({
-      page: pageNumber,
-      rows: event.rows
-    });
+    this.pageChange.emit({ page: pageNumber, rows: event.rows });
   }
 
   getStatusSeverity(isActive: boolean): string {
@@ -219,24 +208,15 @@ export class VehiclesListComponent implements OnInit {
   }
 
   get pageNumber(): number {
-    if (!this.totalRecords) {
-      return 0;
-    }
+    if (!this.totalRecords) return 0;
     return Math.floor(this.first / this.rows) + 1;
   }
 
   get totalPages(): number {
-    if (!this.totalRecords) {
-      return 0;
-    }
+    if (!this.totalRecords) return 0;
     return Math.ceil(this.totalRecords / this.rows);
   }
 
-  get pageSize(): number {
-    return this.rows;
-  }
-
-  set pageSize(value: number) {
-    this.rows = value;
-  }
+  get pageSize(): number { return this.rows; }
+  set pageSize(value: number) { this.rows = value; }
 }

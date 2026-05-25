@@ -1,4 +1,4 @@
-import { Component, EventEmitter, inject, Output, OnInit } from '@angular/core';
+import { Component, EventEmitter, inject, Output, OnInit, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
@@ -10,6 +10,8 @@ import { TagModule } from 'primeng/tag';
 import { MessageService } from 'primeng/api';
 import { UnitConversionService, UnitConversionResponse } from '../../services/unit-conversion.service';
 import { Select } from 'primeng/select';
+import { I18nService } from '@/shared/services/i18n.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
     selector: 'app-conversions-list',
@@ -25,6 +27,8 @@ export class ConversionsListComponent implements OnInit {
 
     private readonly conversionService = inject(UnitConversionService);
     private readonly messageService = inject(MessageService);
+    private readonly i18n = inject(I18nService);
+    private readonly destroyRef = inject(DestroyRef);
 
     conversions: UnitConversionResponse[] = [];
     selectedConversions: UnitConversionResponse[] = [];
@@ -39,9 +43,6 @@ export class ConversionsListComponent implements OnInit {
         this.loadConversions();
     }
 
-    /**
-     * Load conversions with pagination and search
-     */
     loadConversions(pageNum: number = 1): void {
         this.loading = true;
         this.pageNumber = pageNum;
@@ -55,17 +56,14 @@ export class ConversionsListComponent implements OnInit {
             error: (error) => {
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Error',
-                    detail: error?.error?.message || 'Failed to load conversions'
+                    summary: this.i18n.t('common.messages.error'),
+                    detail: error?.error?.message || this.i18n.t('conversions.messages.loadFailed')
                 });
                 this.loading = false;
             }
         });
     }
 
-    /**
-     * Handle pagination change
-     */
     onPageChange(event: any): void {
         if (!event || typeof event.first !== 'number' || typeof event.rows !== 'number') {
             return;
@@ -75,57 +73,36 @@ export class ConversionsListComponent implements OnInit {
         this.loadConversions(pageNum);
     }
 
-    /**
-     * Search conversions
-     */
     search(query: string): void {
         this.searchTerm = query;
         this.pageNumber = 1;
         this.loadConversions(1);
     }
 
-    /**
-     * Clear search
-     */
     clearSearch(): void {
         this.searchTerm = '';
         this.pageNumber = 1;
         this.loadConversions(1);
     }
 
-    /**
-     * Handle edit action
-     */
     onEdit(conversion: UnitConversionResponse): void {
         this.editConversion.emit(conversion);
     }
 
-    /**
-     * Handle delete action
-     */
     onDelete(conversion: UnitConversionResponse): void {
         this.deleteConversion.emit(conversion);
     }
 
-    /**
-     * Handle toggle status action
-     */
     onToggleStatus(conversion: UnitConversionResponse): void {
         this.toggleStatus.emit(conversion);
     }
 
-    /**
-     * Reload conversions list
-     */
     reload(): void {
         this.searchTerm = '';
         this.selectedConversions = [];
         this.loadConversions(1);
     }
 
-    /**
-     * Format conversion display
-     */
     getConversionDisplay(conversion: UnitConversionResponse): string {
         return `1 ${conversion.fromUnitCode} = ${conversion.conversionFactor} ${conversion.toUnitCode}`;
     }

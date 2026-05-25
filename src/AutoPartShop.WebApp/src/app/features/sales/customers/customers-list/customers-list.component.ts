@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, inject } from '@angular/core';
+import { Component, OnInit, ViewChild, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -20,6 +20,8 @@ import { CustomerService, CustomerResponse } from '../../services/customer.servi
 import { CustomerTypeService, ItemResponse } from '@/shared/services/CountryService';
 import { CurrencyService } from '../../../../shared/services/currency.service';
 import { tap } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { I18nService } from '@/shared/services/i18n.service';
 
 @Component({
     selector: 'app-customers-list',
@@ -49,37 +51,35 @@ export class CustomersListComponent implements OnInit {
     private readonly messageService = inject(MessageService);
     private readonly confirmationService = inject(ConfirmationService);
     private readonly customerTypeService = inject(CustomerTypeService);
+    private readonly i18n = inject(I18nService);
+    private readonly destroyRef = inject(DestroyRef);
 
     @ViewChild('actionMenu') actionMenu!: Menu;
 
-    // Data state
     customers: CustomerResponse[] = [];
     selectedCustomer: CustomerResponse | null = null;
     loading = false;
 
-    // Pagination state
     totalRecords = 0;
     pageNumber = 1;
     pageSize = 10;
     first = 0;
     pageSizeOptions = [10, 20, 50];
 
-    // Filter state
     searchTerm = '';
     filterType = '';
 
-    // Dropdown options
     customerTypes: ItemResponse[] = [];
-
-    // Action menu items
     actionMenuItems: MenuItem[] = [];
 
-    // Expose Math for template
     Math = Math;
 
     ngOnInit(): void {
         this.loadCustomerTypes();
         this.loadData();
+        this.i18n.translationsLoaded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+            if (this.selectedCustomer) this.buildActionMenuItems(this.selectedCustomer);
+        });
     }
 
     private loadCustomerTypes(): void {
@@ -87,12 +87,8 @@ export class CustomersListComponent implements OnInit {
             .findAll({ query: '', page: 1, pageSize: 100 })
             .pipe(
                 tap({
-                    next: (value) => {
-                        this.customerTypes = value.items;
-                    },
-                    error: (error) => {
-                        console.error('Failed to load customer types:', error);
-                    }
+                    next: (value) => { this.customerTypes = value.items; },
+                    error: (error) => { console.error('Failed to load customer types:', error); }
                 })
             )
             .subscribe();
@@ -100,7 +96,6 @@ export class CustomersListComponent implements OnInit {
 
     loadData(): void {
         this.loading = true;
-
         this.customerService
             .getCustomers({
                 search: this.searchTerm,
@@ -118,8 +113,8 @@ export class CustomersListComponent implements OnInit {
                     console.error('Error loading customers:', err);
                     this.messageService.add({
                         severity: 'error',
-                        summary: 'Error',
-                        detail: 'Failed to load customers'
+                        summary: this.i18n.t('common.messages.error'),
+                        detail: this.i18n.t('customers.messages.loadFailed')
                     });
                     this.loading = false;
                 }
@@ -133,7 +128,6 @@ export class CustomersListComponent implements OnInit {
         this.loadData();
     }
 
-    // Filter methods
     hasActiveFilters(): boolean {
         return !!(this.searchTerm || this.filterType);
     }
@@ -160,7 +154,6 @@ export class CustomersListComponent implements OnInit {
         this.first = 0;
     }
 
-    // Pagination
     onPageChange(event: PaginatorState): void {
         this.first = event.first ?? 0;
         this.pageSize = event.rows ?? 10;
@@ -168,62 +161,62 @@ export class CustomersListComponent implements OnInit {
         this.loadData();
     }
 
-    // Action menu
-    showActionMenu(event: Event, customer: CustomerResponse): void {
-        this.selectedCustomer = customer;
-
+    private buildActionMenuItems(customer: CustomerResponse): void {
         this.actionMenuItems = [
             {
-                label: 'View Details',
+                label: this.i18n.t('common.actions.viewDetails'),
                 icon: 'pi pi-eye',
                 command: () => this.viewCustomer(customer)
             },
             {
-                label: 'Edit Customer',
+                label: this.i18n.t('customers.editCustomer'),
                 icon: 'pi pi-pencil',
                 command: () => this.editCustomer(customer)
             },
             { separator: true },
             ...(customer.status !== 'ACTIVE'
                 ? [{
-                    label: 'Activate',
+                    label: this.i18n.t('common.actions.activate'),
                     icon: 'pi pi-check-circle',
                     command: () => this.activateCustomer(customer)
                 }]
                 : []),
             ...(customer.status === 'ACTIVE'
                 ? [{
-                    label: 'Deactivate',
+                    label: this.i18n.t('common.actions.deactivate'),
                     icon: 'pi pi-times-circle',
                     command: () => this.deactivateCustomer(customer)
                 }]
                 : []),
             ...(customer.status !== 'SUSPENDED'
                 ? [{
-                    label: 'Suspend',
+                    label: this.i18n.t('common.actions.suspend'),
                     icon: 'pi pi-ban',
                     command: () => this.suspendCustomer(customer)
                 }]
                 : []),
             { separator: true },
             {
-                label: 'Record Payment',
+                label: this.i18n.t('common.actions.recordPayment'),
                 icon: 'pi pi-wallet',
                 command: () => this.recordPayment(customer)
             },
             { separator: true },
             {
-                label: 'Delete',
+                label: this.i18n.t('common.actions.delete'),
                 icon: 'pi pi-trash',
                 command: () => this.confirmDelete(customer),
                 styleClass: 'text-red-600'
             }
         ];
+    }
 
+    showActionMenu(event: Event, customer: CustomerResponse): void {
+        this.selectedCustomer = customer;
+        this.buildActionMenuItems(customer);
         this.actionMenu.toggle(event);
     }
 
-    // CRUD operations
     createCustomer(): void {
         this.router.navigate(['/sales/customers/create']);
     }
@@ -242,17 +235,17 @@ export class CustomersListComponent implements OnInit {
 
     activateCustomer(customer: CustomerResponse): void {
         this.confirmationService.confirm({
-            message: `Are you sure you want to activate customer "${customer.fullName}"?`,
-            header: 'Activate Customer',
+            message: this.i18n.t('customers.messages.activateConfirm', { name: customer.fullName }),
+            header: this.i18n.t('common.actions.activate'),
             icon: 'pi pi-check-circle',
             accept: () => {
                 this.customerService.activateCustomer(customer.id).subscribe({
                     next: () => {
-                        this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Customer activated successfully' });
+                        this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: this.i18n.t('customers.messages.activateSuccess') });
                         this.loadData();
                     },
                     error: () => {
-                        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to activate customer' });
+                        this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: this.i18n.t('customers.messages.activateFailed') });
                     }
                 });
             }
@@ -261,17 +254,17 @@ export class CustomersListComponent implements OnInit {
 
     deactivateCustomer(customer: CustomerResponse): void {
         this.confirmationService.confirm({
-            message: `Are you sure you want to deactivate customer "${customer.fullName}"?`,
-            header: 'Deactivate Customer',
+            message: this.i18n.t('customers.messages.deactivateConfirm', { name: customer.fullName }),
+            header: this.i18n.t('common.actions.deactivate'),
             icon: 'pi pi-times-circle',
             accept: () => {
                 this.customerService.deactivateCustomer(customer.id).subscribe({
                     next: () => {
-                        this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Customer deactivated successfully' });
+                        this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: this.i18n.t('customers.messages.deactivateSuccess') });
                         this.loadData();
                     },
                     error: () => {
-                        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to deactivate customer' });
+                        this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: this.i18n.t('customers.messages.deactivateFailed') });
                     }
                 });
             }
@@ -280,17 +273,17 @@ export class CustomersListComponent implements OnInit {
 
     suspendCustomer(customer: CustomerResponse): void {
         this.confirmationService.confirm({
-            message: `Are you sure you want to suspend customer "${customer.fullName}"?`,
-            header: 'Suspend Customer',
+            message: this.i18n.t('customers.messages.suspendConfirm', { name: customer.fullName }),
+            header: this.i18n.t('common.actions.suspend'),
             icon: 'pi pi-ban',
             accept: () => {
                 this.customerService.suspendCustomer(customer.id).subscribe({
                     next: () => {
-                        this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Customer suspended successfully' });
+                        this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: this.i18n.t('customers.messages.suspendSuccess') });
                         this.loadData();
                     },
                     error: () => {
-                        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to suspend customer' });
+                        this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: this.i18n.t('customers.messages.suspendFailed') });
                     }
                 });
             }
@@ -299,18 +292,18 @@ export class CustomersListComponent implements OnInit {
 
     confirmDelete(customer: CustomerResponse): void {
         this.confirmationService.confirm({
-            message: `Are you sure you want to delete customer "${customer.fullName}"? This action cannot be undone.`,
-            header: 'Delete Customer',
+            message: this.i18n.t('customers.messages.deleteConfirm', { name: customer.fullName }),
+            header: this.i18n.t('common.messages.confirmDeletion'),
             icon: 'pi pi-exclamation-triangle',
             acceptButtonStyleClass: 'p-button-danger',
             accept: () => {
                 this.customerService.deleteCustomer(customer.id).subscribe({
                     next: () => {
-                        this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Customer deleted successfully' });
+                        this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: this.i18n.t('customers.messages.deleteSuccess') });
                         this.loadData();
                     },
                     error: () => {
-                        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to delete customer' });
+                        this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: this.i18n.t('customers.messages.deleteFailed') });
                     }
                 });
             }
@@ -321,7 +314,6 @@ export class CustomersListComponent implements OnInit {
         this.loadData();
     }
 
-    // Utility methods
     formatCurrency(amount: number): string {
         const currency = this.currencyService.selectedCurrency();
         return this.currencyService.formatCurrency(amount, currency);

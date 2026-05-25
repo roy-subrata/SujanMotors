@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
@@ -29,6 +29,8 @@ import { CurrencyService } from '../../../shared/services/currency.service';
 import { TechnicianService, TechnicianResponse } from '../../sales/services/technician.service';
 import { SupplierService, SupplierResponse } from '../../inventory/services/supplier.service';
 import { AuthService } from '../../../shared/services/auth.service';
+import { I18nService } from '@/shared/services/i18n.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
     selector: 'app-claims-list',
@@ -61,6 +63,8 @@ export class ClaimsListComponent implements OnInit {
     private readonly technicianService = inject(TechnicianService);
     private readonly supplierService = inject(SupplierService);
     private readonly authService = inject(AuthService);
+    private readonly i18n = inject(I18nService);
+    private readonly destroyRef = inject(DestroyRef);
 
     get currentUsername(): string {
         return this.authService.currentUser()?.username || 'admin';
@@ -72,26 +76,15 @@ export class ClaimsListComponent implements OnInit {
     searchText = '';
     selectedStatus = '';
 
-    // Metrics
     totalPending = 0;
     totalUnderReview = 0;
     totalInProgress = 0;
     totalCompleted = 0;
 
-    statuses = [
-        { label: 'All Statuses', value: '' },
-        { label: 'Pending', value: 'PENDING' },
-        { label: 'Under Review', value: 'UNDER_REVIEW' },
-        { label: 'Approved', value: 'APPROVED' },
-        { label: 'Rejected', value: 'REJECTED' },
-        { label: 'In Progress', value: 'IN_PROGRESS' },
-        { label: 'Completed', value: 'COMPLETED' },
-        { label: 'Closed', value: 'CLOSED' }
-    ];
+    statuses: { label: string; value: string }[] = [];
 
     readonly standardFlow = ['PENDING', 'UNDER_REVIEW', 'APPROVED', 'IN_PROGRESS', 'COMPLETED', 'CLOSED'];
 
-    // Dialog states
     showApproveDialog = false;
     showRejectDialog = false;
     showAssignDialog = false;
@@ -106,7 +99,6 @@ export class ClaimsListComponent implements OnInit {
     replacementLogistics: ReplacementLogisticsResponse | null = null;
     isLoadingReplacementLogistics = false;
 
-    // Form fields
     rejectReason = '';
     resolutionDetails = '';
     refundType: 'CASH_REFUND' | 'STORE_CREDIT' = 'CASH_REFUND';
@@ -137,12 +129,10 @@ export class ClaimsListComponent implements OnInit {
 
     suppliers: SupplierResponse[] = [];
 
-    // Technician assignment
     technicians: TechnicianResponse[] = [];
     filteredTechnicians: TechnicianResponse[] = [];
     selectedTechnician: TechnicianResponse | null = null;
 
-    // Create claim form fields
     activeWarranties: WarrantyRegistrationResponse[] = [];
     filteredWarranties: WarrantyRegistrationResponse[] = [];
     selectedWarranty: WarrantyRegistrationResponse | null = null;
@@ -159,42 +149,47 @@ export class ClaimsListComponent implements OnInit {
     ];
 
     ngOnInit(): void {
+        this.buildStatuses();
+        this.i18n.translationsLoaded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+            this.buildStatuses();
+        });
         this.loadClaims();
         this.loadActiveWarranties();
         this.loadTechnicians();
         this.loadSuppliers();
     }
 
+    private buildStatuses(): void {
+        this.statuses = [
+            { label: this.i18n.t('warrantyClaims.statuses.allStatuses'), value: '' },
+            { label: this.i18n.t('warrantyClaims.statuses.pending'),     value: 'PENDING' },
+            { label: this.i18n.t('warrantyClaims.statuses.underReview'), value: 'UNDER_REVIEW' },
+            { label: this.i18n.t('warrantyClaims.statuses.approved'),    value: 'APPROVED' },
+            { label: this.i18n.t('warrantyClaims.statuses.rejected'),    value: 'REJECTED' },
+            { label: this.i18n.t('warrantyClaims.statuses.inProgress'),  value: 'IN_PROGRESS' },
+            { label: this.i18n.t('warrantyClaims.statuses.completed'),   value: 'COMPLETED' },
+            { label: this.i18n.t('warrantyClaims.statuses.closed'),      value: 'CLOSED' }
+        ];
+    }
+
     loadSuppliers(): void {
         this.supplierService.getActiveSuppliers().subscribe({
-            next: (suppliers) => {
-                this.suppliers = suppliers || [];
-            },
-            error: (error) => {
-                console.error('Error loading suppliers:', error);
-            }
+            next: (suppliers) => { this.suppliers = suppliers || []; },
+            error: (error) => { console.error('Error loading suppliers:', error); }
         });
     }
 
     loadActiveWarranties(): void {
         this.warrantyService.getActiveWarranties().subscribe({
-            next: (warranties) => {
-                this.activeWarranties = warranties;
-            },
-            error: (error) => {
-                console.error('Error loading active warranties:', error);
-            }
+            next: (warranties) => { this.activeWarranties = warranties; },
+            error: (error) => { console.error('Error loading active warranties:', error); }
         });
     }
 
     loadTechnicians(): void {
         this.technicianService.getAllTechnicians().subscribe({
-            next: (techs) => {
-                this.technicians = techs.filter(t => t.status === 'ACTIVE');
-            },
-            error: (error) => {
-                console.error('Error loading technicians:', error);
-            }
+            next: (techs) => { this.technicians = techs.filter(t => t.status === 'ACTIVE'); },
+            error: (error) => { console.error('Error loading technicians:', error); }
         });
     }
 
@@ -208,8 +203,8 @@ export class ClaimsListComponent implements OnInit {
                 this.isLoading = false;
             },
             error: (error) => {
-                const msg = typeof error?.error === 'string' ? error.error : (error?.error?.message || 'Failed to load warranty claims');
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: msg });
+                const msg = typeof error?.error === 'string' ? error.error : (error?.error?.message || this.i18n.t('warrantyClaims.messages.loadFailed'));
+                this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: msg });
                 this.isLoading = false;
             }
         });
@@ -236,18 +231,9 @@ export class ClaimsListComponent implements OnInit {
         });
     }
 
-    onSearch(): void {
-        this.applyFilters();
-    }
-
-    clearSearch(): void {
-        this.searchText = '';
-        this.applyFilters();
-    }
-
-    onStatusChange(): void {
-        this.applyFilters();
-    }
+    onSearch(): void { this.applyFilters(); }
+    clearSearch(): void { this.searchText = ''; this.applyFilters(); }
+    onStatusChange(): void { this.applyFilters(); }
 
     formatDate(date: string | Date | null | undefined): string {
         if (!date) return '—';
@@ -277,13 +263,13 @@ export class ClaimsListComponent implements OnInit {
 
     getStatusLabel(status: string): string {
         const map: Record<string, string> = {
-            'PENDING': 'Pending',
-            'UNDER_REVIEW': 'Under Review',
-            'APPROVED': 'Approved',
-            'REJECTED': 'Rejected',
-            'IN_PROGRESS': 'In Progress',
-            'COMPLETED': 'Completed',
-            'CLOSED': 'Closed'
+            'PENDING': this.i18n.t('warrantyClaims.statuses.pending'),
+            'UNDER_REVIEW': this.i18n.t('warrantyClaims.statuses.underReview'),
+            'APPROVED': this.i18n.t('warrantyClaims.statuses.approved'),
+            'REJECTED': this.i18n.t('warrantyClaims.statuses.rejected'),
+            'IN_PROGRESS': this.i18n.t('warrantyClaims.statuses.inProgress'),
+            'COMPLETED': this.i18n.t('warrantyClaims.statuses.completed'),
+            'CLOSED': this.i18n.t('warrantyClaims.statuses.closed')
         };
         return map[status] || status;
     }
@@ -294,7 +280,6 @@ export class ClaimsListComponent implements OnInit {
             'SELLER': 'Seller',
             'EXTENDED': 'Extended'
         };
-
         return map[(coverageType || '').toUpperCase()] || '—';
     }
 
@@ -304,7 +289,6 @@ export class ClaimsListComponent implements OnInit {
             'SELLER': 'success',
             'EXTENDED': 'warn'
         };
-
         return map[(coverageType || '').toUpperCase()] || 'secondary';
     }
 
@@ -314,7 +298,6 @@ export class ClaimsListComponent implements OnInit {
             'REPLACEMENT': 'Replacement',
             'REFUND': 'Refund'
         };
-
         return map[serviceType] || serviceType;
     }
 
@@ -324,7 +307,6 @@ export class ClaimsListComponent implements OnInit {
             'REPLACEMENT': 'success',
             'REFUND': 'warn'
         };
-
         return map[serviceType] || 'secondary';
     }
 
@@ -356,8 +338,8 @@ export class ClaimsListComponent implements OnInit {
                 this.isLoadingReplacementLogistics = false;
             },
             error: (error: any) => {
-                const msg = typeof error?.error === 'string' ? error.error : (error?.error?.message || 'Failed to load replacement logistics');
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: msg });
+                const msg = typeof error?.error === 'string' ? error.error : (error?.error?.message || this.i18n.t('common.messages.loadFailed'));
+                this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: msg });
                 this.isLoadingReplacementLogistics = false;
             }
         });
@@ -367,12 +349,12 @@ export class ClaimsListComponent implements OnInit {
     submitForReview(claim: WarrantyClaimResponse): void {
         this.warrantyService.submitClaimForReview(claim.id).subscribe({
             next: () => {
-                this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Claim submitted for review' });
+                this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: this.i18n.t('warrantyClaims.messages.submitForReviewSuccess') });
                 this.loadClaims();
             },
             error: (error: any) => {
-                const msg = typeof error?.error === 'string' ? error.error : (error?.error?.message || 'Failed to submit for review');
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: msg });
+                const msg = typeof error?.error === 'string' ? error.error : (error?.error?.message || this.i18n.t('warrantyClaims.messages.submitForReviewFailed'));
+                this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: msg });
             }
         });
     }
@@ -389,13 +371,13 @@ export class ClaimsListComponent implements OnInit {
             approvedBy: this.currentUsername
         }).subscribe({
             next: () => {
-                this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Claim approved successfully' });
+                this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: this.i18n.t('warrantyClaims.messages.approveSuccess') });
                 this.showApproveDialog = false;
                 this.loadClaims();
             },
             error: (error: any) => {
-                const msg = typeof error?.error === 'string' ? error.error : (error?.error?.message || 'Failed to approve claim');
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: msg });
+                const msg = typeof error?.error === 'string' ? error.error : (error?.error?.message || this.i18n.t('warrantyClaims.messages.approveFailed'));
+                this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: msg });
             }
         });
     }
@@ -409,7 +391,7 @@ export class ClaimsListComponent implements OnInit {
 
     rejectClaim(): void {
         if (!this.selectedClaim || !this.rejectReason.trim()) {
-            this.messageService.add({ severity: 'warn', summary: 'Validation', detail: 'Please enter a rejection reason' });
+            this.messageService.add({ severity: 'warn', summary: this.i18n.t('common.messages.warning'), detail: this.i18n.t('warrantyClaims.messages.validationRejectReason') });
             return;
         }
         this.warrantyService.rejectClaim(this.selectedClaim.id, {
@@ -417,13 +399,13 @@ export class ClaimsListComponent implements OnInit {
             rejectedBy: this.currentUsername
         }).subscribe({
             next: () => {
-                this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Claim rejected' });
+                this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: this.i18n.t('warrantyClaims.messages.rejectSuccess') });
                 this.showRejectDialog = false;
                 this.loadClaims();
             },
             error: (error: any) => {
-                const msg = typeof error?.error === 'string' ? error.error : (error?.error?.message || 'Failed to reject claim');
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: msg });
+                const msg = typeof error?.error === 'string' ? error.error : (error?.error?.message || this.i18n.t('warrantyClaims.messages.rejectFailed'));
+                this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: msg });
             }
         });
     }
@@ -447,20 +429,20 @@ export class ClaimsListComponent implements OnInit {
 
     assignTechnician(): void {
         if (!this.selectedClaim || !this.selectedTechnician) {
-            this.messageService.add({ severity: 'warn', summary: 'Validation', detail: 'Please select a technician' });
+            this.messageService.add({ severity: 'warn', summary: this.i18n.t('common.messages.warning'), detail: this.i18n.t('warrantyClaims.messages.validationSelectTechnician') });
             return;
         }
         this.warrantyService.assignTechnician(this.selectedClaim.id, {
             technicianId: this.selectedTechnician.id
         }).subscribe({
             next: () => {
-                this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Technician assigned successfully' });
+                this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: this.i18n.t('warrantyClaims.messages.assignTechnicianSuccess') });
                 this.showAssignDialog = false;
                 this.loadClaims();
             },
             error: (error: any) => {
-                const msg = typeof error?.error === 'string' ? error.error : (error?.error?.message || 'Failed to assign technician');
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: msg });
+                const msg = typeof error?.error === 'string' ? error.error : (error?.error?.message || this.i18n.t('warrantyClaims.messages.assignTechnicianFailed'));
+                this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: msg });
             }
         });
     }
@@ -480,13 +462,13 @@ export class ClaimsListComponent implements OnInit {
             serviceNotes: this.serviceNotes
         }).subscribe({
             next: () => {
-                this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Service cost updated' });
+                this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: this.i18n.t('warrantyClaims.messages.updateServiceCostSuccess') });
                 this.showServiceCostDialog = false;
                 this.loadClaims();
             },
             error: (error: any) => {
-                const msg = typeof error?.error === 'string' ? error.error : (error?.error?.message || 'Failed to update service cost');
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: msg });
+                const msg = typeof error?.error === 'string' ? error.error : (error?.error?.message || this.i18n.t('warrantyClaims.messages.updateServiceCostFailed'));
+                this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: msg });
             }
         });
     }
@@ -506,7 +488,6 @@ export class ClaimsListComponent implements OnInit {
         this.refundNotes = '';
         this.refundReturnItemReceived = true;
         this.refundRestockAsSellable = false;
-        // Pre-fill any previously saved service cost for REPAIR
         this.serviceCost = claim.serviceCost || 0;
         this.serviceNotes = claim.serviceNotes || '';
         this.showCompleteDialog = true;
@@ -514,13 +495,13 @@ export class ClaimsListComponent implements OnInit {
 
     completeClaim(): void {
         if (!this.selectedClaim || !this.resolutionDetails.trim()) {
-            this.messageService.add({ severity: 'warn', summary: 'Validation', detail: 'Please enter resolution details' });
+            this.messageService.add({ severity: 'warn', summary: this.i18n.t('common.messages.warning'), detail: this.i18n.t('warrantyClaims.messages.validationResolutionDetails') });
             return;
         }
 
         if (this.selectedClaim.serviceType === 'REFUND') {
             if (!this.refundAmount || this.refundAmount <= 0) {
-                this.messageService.add({ severity: 'warn', summary: 'Validation', detail: 'Please enter a valid refund amount' });
+                this.messageService.add({ severity: 'warn', summary: this.i18n.t('common.messages.warning'), detail: this.i18n.t('warrantyClaims.messages.validationRefundAmount') });
                 return;
             }
         }
@@ -538,7 +519,6 @@ export class ClaimsListComponent implements OnInit {
             payload.restockAsSellable = this.refundReturnItemReceived ? this.refundRestockAsSellable : undefined;
         }
 
-        // For REPAIR: save service cost before completing if cost > 0 or notes provided
         const saveServiceCost$ = (
             this.selectedClaim.serviceType === 'REPAIR' &&
             (this.serviceCost > 0 || this.serviceNotes.trim())
@@ -552,13 +532,13 @@ export class ClaimsListComponent implements OnInit {
         const doComplete = () => {
             this.warrantyService.completeClaim(this.selectedClaim!.id, payload).subscribe({
                 next: () => {
-                    this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Claim completed successfully' });
+                    this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: this.i18n.t('warrantyClaims.messages.completeSuccess') });
                     this.showCompleteDialog = false;
                     this.loadClaims();
                 },
                 error: (error: any) => {
-                    const msg = typeof error?.error === 'string' ? error.error : (error?.error?.message || 'Failed to complete claim');
-                    this.messageService.add({ severity: 'error', summary: 'Error', detail: msg });
+                    const msg = typeof error?.error === 'string' ? error.error : (error?.error?.message || this.i18n.t('warrantyClaims.messages.completeFailed'));
+                    this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: msg });
                 }
             });
         };
@@ -567,8 +547,8 @@ export class ClaimsListComponent implements OnInit {
             saveServiceCost$.subscribe({
                 next: () => doComplete(),
                 error: (error: any) => {
-                    const msg = typeof error?.error === 'string' ? error.error : (error?.error?.message || 'Failed to save service cost');
-                    this.messageService.add({ severity: 'error', summary: 'Error', detail: msg });
+                    const msg = typeof error?.error === 'string' ? error.error : (error?.error?.message || this.i18n.t('warrantyClaims.messages.updateServiceCostFailed'));
+                    this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: msg });
                 }
             });
         } else {
@@ -605,7 +585,7 @@ export class ClaimsListComponent implements OnInit {
             : this.sendDefectiveForm.manufacturerName.trim();
 
         if (!destination || !this.sendDefectiveForm.responsibleBy.trim()) {
-            this.messageService.add({ severity: 'warn', summary: 'Validation', detail: 'Destination and responsible person are required' });
+            this.messageService.add({ severity: 'warn', summary: this.i18n.t('common.messages.warning'), detail: this.i18n.t('warrantyClaims.messages.validationDestinationRequired') });
             return;
         }
 
@@ -618,14 +598,14 @@ export class ClaimsListComponent implements OnInit {
 
         this.warrantyService.sendDefectiveItem(this.selectedClaim.id, payload).subscribe({
             next: () => {
-                this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Defective item sent and tracked' });
+                this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: this.i18n.t('warrantyClaims.messages.sendDefectiveSuccess') });
                 this.showSendDefectiveDialog = false;
                 this.loadClaims();
                 this.loadReplacementLogistics(this.selectedClaim?.id);
             },
             error: (error: any) => {
-                const msg = typeof error?.error === 'string' ? error.error : (error?.error?.message || 'Failed to send defective item');
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: msg });
+                const msg = typeof error?.error === 'string' ? error.error : (error?.error?.message || this.i18n.t('warrantyClaims.messages.sendDefectiveFailed'));
+                this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: msg });
             }
         });
     }
@@ -652,7 +632,7 @@ export class ClaimsListComponent implements OnInit {
             : this.receiveReplacementForm.manufacturerName.trim();
 
         if (!source || !this.receiveReplacementForm.responsibleBy.trim()) {
-            this.messageService.add({ severity: 'warn', summary: 'Validation', detail: 'Source and responsible person are required' });
+            this.messageService.add({ severity: 'warn', summary: this.i18n.t('common.messages.warning'), detail: this.i18n.t('warrantyClaims.messages.validationSourceRequired') });
             return;
         }
 
@@ -665,14 +645,14 @@ export class ClaimsListComponent implements OnInit {
 
         this.warrantyService.receiveReplacementItem(this.selectedClaim.id, payload).subscribe({
             next: () => {
-                this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Replacement item received and added to stock' });
+                this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: this.i18n.t('warrantyClaims.messages.receiveReplacementSuccess') });
                 this.showReceiveReplacementDialog = false;
                 this.loadClaims();
                 this.loadReplacementLogistics(this.selectedClaim?.id);
             },
             error: (error: any) => {
-                const msg = typeof error?.error === 'string' ? error.error : (error?.error?.message || 'Failed to receive replacement item');
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: msg });
+                const msg = typeof error?.error === 'string' ? error.error : (error?.error?.message || this.i18n.t('warrantyClaims.messages.receiveReplacementFailed'));
+                this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: msg });
             }
         });
     }
@@ -683,54 +663,30 @@ export class ClaimsListComponent implements OnInit {
             closureNotes: this.closureNotes || undefined
         }).subscribe({
             next: () => {
-                this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Claim closed successfully' });
+                this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: this.i18n.t('warrantyClaims.messages.closeSuccess') });
                 this.showCloseDialog = false;
                 this.loadClaims();
             },
             error: (error: any) => {
-                const msg = typeof error?.error === 'string' ? error.error : (error?.error?.message || 'Failed to close claim');
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: msg });
+                const msg = typeof error?.error === 'string' ? error.error : (error?.error?.message || this.i18n.t('warrantyClaims.messages.closeFailed'));
+                this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: msg });
             }
         });
     }
 
     // ==================== PERMISSION CHECKS ====================
-    canSubmitForReview(claim: WarrantyClaimResponse): boolean {
-        return claim.status === 'PENDING';
-    }
-
-    canApprove(claim: WarrantyClaimResponse): boolean {
-        return claim.status === 'UNDER_REVIEW';
-    }
-
-    canReject(claim: WarrantyClaimResponse): boolean {
-        return claim.status === 'UNDER_REVIEW' || claim.status === 'PENDING';
-    }
-
-    canAssignTechnician(claim: WarrantyClaimResponse): boolean {
-        return claim.status === 'APPROVED' && claim.serviceType === 'REPAIR';
-    }
-
+    canSubmitForReview(claim: WarrantyClaimResponse): boolean { return claim.status === 'PENDING'; }
+    canApprove(claim: WarrantyClaimResponse): boolean { return claim.status === 'UNDER_REVIEW'; }
+    canReject(claim: WarrantyClaimResponse): boolean { return claim.status === 'UNDER_REVIEW' || claim.status === 'PENDING'; }
+    canAssignTechnician(claim: WarrantyClaimResponse): boolean { return claim.status === 'APPROVED' && claim.serviceType === 'REPAIR'; }
     canComplete(claim: WarrantyClaimResponse): boolean {
         return claim.status === 'IN_PROGRESS' ||
             (claim.status === 'APPROVED' && (claim.serviceType === 'REPLACEMENT' || claim.serviceType === 'REFUND'));
     }
-
-    canClose(claim: WarrantyClaimResponse): boolean {
-        return claim.status === 'COMPLETED' || claim.status === 'REJECTED';
-    }
-
-    canRunQuickFlow(claim: WarrantyClaimResponse): boolean {
-        return claim.status !== 'REJECTED' && claim.status !== 'CLOSED';
-    }
-
-    canOpenSendDefective(claim: WarrantyClaimResponse): boolean {
-        return claim.serviceType === 'REPLACEMENT' && claim.canSendDefectiveItem;
-    }
-
-    canOpenReceiveReplacement(claim: WarrantyClaimResponse): boolean {
-        return claim.serviceType === 'REPLACEMENT' && claim.canReceiveReplacementItem;
-    }
+    canClose(claim: WarrantyClaimResponse): boolean { return claim.status === 'COMPLETED' || claim.status === 'REJECTED'; }
+    canRunQuickFlow(claim: WarrantyClaimResponse): boolean { return claim.status !== 'REJECTED' && claim.status !== 'CLOSED'; }
+    canOpenSendDefective(claim: WarrantyClaimResponse): boolean { return claim.serviceType === 'REPLACEMENT' && claim.canSendDefectiveItem; }
+    canOpenReceiveReplacement(claim: WarrantyClaimResponse): boolean { return claim.serviceType === 'REPLACEMENT' && claim.canReceiveReplacementItem; }
 
     getLogisticsStateLabel(state: string | undefined): string {
         const map: Record<string, string> = {
@@ -778,39 +734,25 @@ export class ClaimsListComponent implements OnInit {
 
     getQuickFlowLabel(claim: WarrantyClaimResponse): string {
         switch (claim.status) {
-            case 'PENDING':
-                return 'Send to Review';
-            case 'UNDER_REVIEW':
-                return 'Approve';
-            case 'APPROVED':
-                return claim.serviceType === 'REPAIR' ? 'Assign Tech' : 'Complete';
-            case 'IN_PROGRESS':
-                return 'Complete';
-            case 'COMPLETED':
-                return 'Close';
-            case 'REJECTED':
-                return 'Rejected';
-            case 'CLOSED':
-                return 'Closed';
-            default:
-                return 'Next Step';
+            case 'PENDING': return this.i18n.t('common.actions.submitForReview');
+            case 'UNDER_REVIEW': return this.i18n.t('common.actions.approve');
+            case 'APPROVED': return claim.serviceType === 'REPAIR' ? this.i18n.t('common.actions.assignTechnician') : this.i18n.t('common.actions.complete');
+            case 'IN_PROGRESS': return this.i18n.t('common.actions.complete');
+            case 'COMPLETED': return this.i18n.t('common.actions.close');
+            case 'REJECTED': return this.i18n.t('warrantyClaims.statuses.rejected');
+            case 'CLOSED': return this.i18n.t('warrantyClaims.statuses.closed');
+            default: return 'Next Step';
         }
     }
 
     getQuickFlowIcon(claim: WarrantyClaimResponse): string {
         switch (claim.status) {
-            case 'PENDING':
-                return 'pi pi-send';
-            case 'UNDER_REVIEW':
-                return 'pi pi-check';
-            case 'APPROVED':
-                return claim.serviceType === 'REPAIR' ? 'pi pi-user-plus' : 'pi pi-check-circle';
-            case 'IN_PROGRESS':
-                return 'pi pi-check-circle';
-            case 'COMPLETED':
-                return 'pi pi-lock';
-            default:
-                return 'pi pi-step-forward';
+            case 'PENDING': return 'pi pi-send';
+            case 'UNDER_REVIEW': return 'pi pi-check';
+            case 'APPROVED': return claim.serviceType === 'REPAIR' ? 'pi pi-user-plus' : 'pi pi-check-circle';
+            case 'IN_PROGRESS': return 'pi pi-check-circle';
+            case 'COMPLETED': return 'pi pi-lock';
+            default: return 'pi pi-step-forward';
         }
     }
 
@@ -828,7 +770,7 @@ export class ClaimsListComponent implements OnInit {
                     this.messageService.add({
                         severity: 'info',
                         summary: 'Next Step',
-                        detail: 'Assign a technician to continue this claim.'
+                        detail: this.i18n.t('warrantyClaims.messages.nextStepInfo')
                     });
                 } else if (claim.serviceType === 'REFUND') {
                     this.openCompleteDialog(claim);
@@ -850,7 +792,7 @@ export class ClaimsListComponent implements OnInit {
                 this.messageService.add({
                     severity: 'info',
                     summary: 'No Next Step',
-                    detail: 'This claim is already finalized.'
+                    detail: this.i18n.t('warrantyClaims.messages.noNextStep')
                 });
                 return;
         }
@@ -859,12 +801,12 @@ export class ClaimsListComponent implements OnInit {
     private quickApprove(claim: WarrantyClaimResponse): void {
         this.warrantyService.approveClaim(claim.id, { approvedBy: this.currentUsername }).subscribe({
             next: () => {
-                this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Claim approved and ready for technician assignment' });
+                this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: this.i18n.t('warrantyClaims.messages.quickApproveSuccess') });
                 this.loadClaims();
             },
             error: (error: any) => {
-                const msg = typeof error?.error === 'string' ? error.error : (error?.error?.message || 'Failed to approve claim');
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: msg });
+                const msg = typeof error?.error === 'string' ? error.error : (error?.error?.message || this.i18n.t('warrantyClaims.messages.approveFailed'));
+                this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: msg });
             }
         });
     }
@@ -876,12 +818,12 @@ export class ClaimsListComponent implements OnInit {
 
         this.warrantyService.completeClaim(claim.id, { resolutionDetails: resolution }).subscribe({
             next: () => {
-                this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Claim marked as completed' });
+                this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: this.i18n.t('warrantyClaims.messages.quickCompleteSuccess') });
                 this.loadClaims();
             },
             error: (error: any) => {
-                const msg = typeof error?.error === 'string' ? error.error : (error?.error?.message || 'Failed to complete claim');
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: msg });
+                const msg = typeof error?.error === 'string' ? error.error : (error?.error?.message || this.i18n.t('warrantyClaims.messages.completeFailed'));
+                this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: msg });
             }
         });
     }
@@ -891,12 +833,12 @@ export class ClaimsListComponent implements OnInit {
             closureNotes: 'Closed via standard quick flow.'
         }).subscribe({
             next: () => {
-                this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Claim closed' });
+                this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: this.i18n.t('warrantyClaims.messages.quickCloseSuccess') });
                 this.loadClaims();
             },
             error: (error: any) => {
-                const msg = typeof error?.error === 'string' ? error.error : (error?.error?.message || 'Failed to close claim');
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: msg });
+                const msg = typeof error?.error === 'string' ? error.error : (error?.error?.message || this.i18n.t('warrantyClaims.messages.closeFailed'));
+                this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: msg });
             }
         });
     }
@@ -931,11 +873,11 @@ export class ClaimsListComponent implements OnInit {
 
     createClaim(): void {
         if (!this.selectedWarranty) {
-            this.messageService.add({ severity: 'warn', summary: 'Validation', detail: 'Please select a warranty' });
+            this.messageService.add({ severity: 'warn', summary: this.i18n.t('common.messages.warning'), detail: this.i18n.t('warrantyClaims.messages.validationSelectWarranty') });
             return;
         }
         if (!this.newClaim.issueDescription.trim()) {
-            this.messageService.add({ severity: 'warn', summary: 'Validation', detail: 'Please enter issue description' });
+            this.messageService.add({ severity: 'warn', summary: this.i18n.t('common.messages.warning'), detail: this.i18n.t('warrantyClaims.messages.validationIssueDescription') });
             return;
         }
 
@@ -950,13 +892,13 @@ export class ClaimsListComponent implements OnInit {
 
         this.warrantyService.createClaim(request).subscribe({
             next: () => {
-                this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Warranty claim created successfully' });
+                this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: this.i18n.t('warrantyClaims.messages.createSuccess') });
                 this.showCreateDialog = false;
                 this.loadClaims();
             },
             error: (error: any) => {
-                const msg = typeof error?.error === 'string' ? error.error : (error?.error?.message || 'Failed to create warranty claim');
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: msg });
+                const msg = typeof error?.error === 'string' ? error.error : (error?.error?.message || this.i18n.t('warrantyClaims.messages.createFailed'));
+                this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: msg });
             }
         });
     }

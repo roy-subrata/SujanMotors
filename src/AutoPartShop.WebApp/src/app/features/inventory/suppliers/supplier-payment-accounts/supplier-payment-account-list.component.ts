@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, ViewChild, Input } from '@angular/core';
+import { Component, OnInit, inject, ViewChild, Input, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute, RouterModule } from '@angular/router';
@@ -13,6 +13,8 @@ import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
 import { SupplierPaymentAccountService, SupplierPaymentAccountResponse } from '../../services/supplier-payment-account.service';
 import { SupplierService } from '../../services/supplier.service';
+import { I18nService } from '@/shared/services/i18n.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-supplier-payment-account-list',
@@ -44,6 +46,8 @@ export class SupplierPaymentAccountListComponent implements OnInit {
   private readonly confirmationService = inject(ConfirmationService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly i18n = inject(I18nService);
+  private readonly destroyRef = inject(DestroyRef);
 
   accounts: SupplierPaymentAccountResponse[] = [];
   supplierName: string = '';
@@ -52,7 +56,6 @@ export class SupplierPaymentAccountListComponent implements OnInit {
   selectedAccount: SupplierPaymentAccountResponse | null = null;
 
   ngOnInit(): void {
-    // Get supplier ID from route if not provided as input
     if (!this.supplierId) {
       this.route.queryParams.subscribe(params => {
         this.supplierId = params['supplierId'];
@@ -65,7 +68,6 @@ export class SupplierPaymentAccountListComponent implements OnInit {
       this.loadSupplierInfo();
       this.loadAccounts();
     }
-    this.initializeContextMenu();
   }
 
   private loadSupplierInfo(): void {
@@ -80,46 +82,25 @@ export class SupplierPaymentAccountListComponent implements OnInit {
     });
   }
 
-  private initializeContextMenu(): void {
-    this.contextMenuItems = [
-      {
-        label: 'Edit',
-        icon: 'pi pi-pencil',
-        command: () => {
-          if (this.selectedAccount) {
-            this.edit(this.selectedAccount);
-          }
-        }
-      },
-      {
-        label: 'Set as Default',
-        icon: 'pi pi-star',
-        command: () => {
-          if (this.selectedAccount) {
-            this.setAsDefault(this.selectedAccount);
-          }
-        }
-      },
-      { separator: true },
-      {
-        label: 'Delete',
-        icon: 'pi pi-trash',
-        command: () => {
-          if (this.selectedAccount) {
-            this.delete(this.selectedAccount);
-          }
-        }
-      }
-    ];
-  }
-
   showContextMenu(event: MouseEvent, account: SupplierPaymentAccountResponse): void {
     this.selectedAccount = account;
     this.contextMenuItems = [
-      { label: 'Edit', icon: 'pi pi-pencil', command: () => this.edit(account) },
-      ...(!account.isDefault ? [{ label: 'Set as Default', icon: 'pi pi-star', command: () => this.setAsDefault(account) }] : []),
+      {
+        label: this.i18n.t('common.actions.edit'),
+        icon: 'pi pi-pencil',
+        command: () => this.edit(account)
+      },
+      ...(!account.isDefault ? [{
+        label: this.i18n.t('common.actions.setAsDefault'),
+        icon: 'pi pi-star',
+        command: () => this.setAsDefault(account)
+      }] : []),
       { separator: true },
-      { label: 'Delete', icon: 'pi pi-trash', command: () => this.delete(account) }
+      {
+        label: this.i18n.t('common.actions.delete'),
+        icon: 'pi pi-trash',
+        command: () => this.delete(account)
+      }
     ];
     this.actionMenu.toggle(event);
   }
@@ -135,8 +116,8 @@ export class SupplierPaymentAccountListComponent implements OnInit {
       error: (error) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load payment accounts'
+          summary: this.i18n.t('common.messages.error'),
+          detail: this.i18n.t('supplierPaymentAccounts.messages.loadFailed')
         });
         console.error('Error loading payment accounts:', error);
         this.loading = false;
@@ -158,24 +139,24 @@ export class SupplierPaymentAccountListComponent implements OnInit {
 
   delete(account: SupplierPaymentAccountResponse): void {
     this.confirmationService.confirm({
-      message: `Are you sure you want to delete '${account.accountName}'?`,
-      header: 'Delete Payment Account',
+      message: this.i18n.t('supplierPaymentAccounts.messages.deleteConfirm', { name: account.accountName }),
+      header: this.i18n.t('common.messages.confirmDeletion'),
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
         this.service.delete(account.id).subscribe({
           next: () => {
             this.messageService.add({
               severity: 'success',
-              summary: 'Success',
-              detail: `Payment account '${account.accountName}' deleted successfully`
+              summary: this.i18n.t('common.messages.success'),
+              detail: this.i18n.t('supplierPaymentAccounts.messages.deleteSuccess')
             });
             this.loadAccounts();
           },
           error: (error) => {
             this.messageService.add({
               severity: 'error',
-              summary: 'Error',
-              detail: error?.error?.message || 'Failed to delete payment account'
+              summary: this.i18n.t('common.messages.error'),
+              detail: error?.error?.message || this.i18n.t('supplierPaymentAccounts.messages.deleteFailed')
             });
           }
         });
@@ -188,16 +169,16 @@ export class SupplierPaymentAccountListComponent implements OnInit {
       next: () => {
         this.messageService.add({
           severity: 'success',
-          summary: 'Success',
-          detail: `'${account.accountName}' set as default`
+          summary: this.i18n.t('common.messages.success'),
+          detail: this.i18n.t('supplierPaymentAccounts.messages.setDefaultSuccess')
         });
         this.loadAccounts();
       },
       error: (error) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: error?.error?.message || 'Failed to set default account'
+          summary: this.i18n.t('common.messages.error'),
+          detail: error?.error?.message || this.i18n.t('supplierPaymentAccounts.messages.setDefaultFailed')
         });
       }
     });
@@ -209,33 +190,22 @@ export class SupplierPaymentAccountListComponent implements OnInit {
 
   getAccountTypeBadgeSeverity(accountType: string): 'success' | 'secondary' | 'info' | 'warn' | 'danger' | 'contrast' | undefined {
     switch (accountType?.toUpperCase()) {
-      case 'BANK_TRANSFER':
-        return 'info';
-      case 'MOBILE_BANKING':
-        return 'success';
-      case 'CASH':
-        return 'warn';
-      case 'CHECK':
-        return 'secondary';
-      default:
-        return 'secondary';
+      case 'BANK_TRANSFER': return 'info';
+      case 'MOBILE_BANKING': return 'success';
+      case 'CASH': return 'warn';
+      case 'CHECK': return 'secondary';
+      default: return 'secondary';
     }
   }
 
   getAccountTypeLabel(accountType: string): string {
     switch (accountType?.toUpperCase()) {
-      case 'BANK_TRANSFER':
-        return 'Bank Transfer';
-      case 'MOBILE_BANKING':
-        return 'Mobile Banking';
-      case 'CASH':
-        return 'Cash';
-      case 'CHECK':
-        return 'Check';
-      case 'OTHER':
-        return 'Other';
-      default:
-        return accountType;
+      case 'BANK_TRANSFER': return 'Bank Transfer';
+      case 'MOBILE_BANKING': return 'Mobile Banking';
+      case 'CASH': return 'Cash';
+      case 'CHECK': return 'Check';
+      case 'OTHER': return 'Other';
+      default: return accountType;
     }
   }
 

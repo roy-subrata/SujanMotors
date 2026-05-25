@@ -1,6 +1,7 @@
 {
   "menu": {
     "financialDashboard": "আর্থিক ড্যাশবোর্ড",
+    "financial": "আর্থিক",
     "inventory": "ইনভেন্টরি",
     "categories": "বিভাগসমূহ",
     "brands": "ব্র্যান্ডসমূহ",
@@ -35,18 +36,25 @@
     "admin": "অ্যাডমিন",
     "currencies": "মুদ্রা",
     "exchangeRates": "বিনিময় হার",
-    "settings": "সেটিংস"
+    "settings": "সেটিংস",
+    "products": "পণ্যসমূহ"
   },
   "topbar": {
     "profile": "আমার প্রোফাইল",
     "settings": "সেটিংস",
     "logout": "লগআউট",
     "quickSale": "দ্রুত বিক্রয়",
+    "quickSalePos": "দ্রুত বিক্রয় (POS)",
     "darkMode": "ডার্ক মোডে পরিবর্তন করুন",
     "lightMode": "লাইট মোডে পরিবর্তন করুন",
     "notifications": "বিজ্ঞপ্তি",
     "documentation": "ডকুমেন্টেশন",
-    "support": "সহায়তা"
+    "support": "সহায়তা",
+    "markAllRead": "সব পঠিত চিহ্নিত করুন",
+    "clearAll": "সব মুছুন",
+    "noNotifications": "এখনো কোনো বিজ্ঞপ্তি নেই",
+    "switchToBangla": "বাংলায় পরিবর্তন করুন",
+    "switchToEnglish": "ইংরেজিতে পরিবর্তন করুন"
   },
   "pageTitles": {
     "dashboard": "ড্যাশবোর্ড",
@@ -71,7 +79,8 @@
     "salesReturns": "বিক্রয় ফেরত",
     "auditTrail": "অডিট ট্রেইল",
     "adminSettings": "অ্যাডমিন সেটিংস",
-    "autoPartShop": "অটো পার্ট শপ"
+    "autoPartShop": "অটো পার্ট শপ",
+    "quickSale": "দ্রুত বিক্রয়"
   },
   "common": {
     "actions": {
@@ -104,11 +113,37 @@
       "previous": "পূর্ববর্তী",
       "clear": "পরিষ্কার",
       "clearAll": "সব পরিষ্কার",
+      "clearFilters": "ফিল্টার পরিষ্কার",
       "selectAll": "সব নির্বাচন",
       "deselectAll": "সব বাতিল",
       "addSubcategory": "উপবিভাগ যোগ করুন",
       "recordPayment": "পেমেন্ট রেকর্ড করুন",
-      "viewInvoices": "চালান দেখুন"
+      "viewInvoices": "চালান দেখুন",
+      "applyAdvanceCredit": "অগ্রিম ক্রেডিট প্রয়োগ করুন",
+      "paymentAccounts": "পেমেন্ট অ্যাকাউন্ট",
+      "accountSummary": "অ্যাকাউন্ট সারসংক্ষেপ",
+      "markAsAdvance": "অগ্রিম হিসেবে চিহ্নিত করুন",
+      "markAsRegular": "নিয়মিত হিসেবে চিহ্নিত করুন",
+      "reconcile": "মিলিয়ে নিন",
+      "confirmPayment": "পেমেন্ট নিশ্চিত করুন",
+      "confirmOrder": "অর্ডার নিশ্চিত করুন",
+      "manageCompatibility": "সামঞ্জস্যতা পরিচালনা",
+      "issueInvoice": "চালান ইস্যু করুন",
+      "viewSalesOrder": "বিক্রয় অর্ডার দেখুন",
+      "viewConfirmPayments": "পেমেন্ট দেখুন / নিশ্চিত করুন",
+      "toggleStatus": "অবস্থা পরিবর্তন করুন",
+      "approve": "অনুমোদন করুন",
+      "reject": "প্রত্যাখ্যান করুন",
+      "receive": "গ্রহণ করুন",
+      "process": "প্রক্রিয়া করুন",
+      "refund": "ফেরত দিন",
+      "testConnection": "সংযোগ পরীক্ষা করুন",
+      "setAsDefault": "ডিফল্ট হিসেবে সেট করুন",
+      "setAsBase": "বেস হিসেবে সেট করুন",
+      "assignTechnician": "টেকনিশিয়ান নিয়োগ করুন",
+      "void": "বাতিল",
+      "submitForReview": "পর্যালোচনার জন্য জমা দিন",
+      "complete": "সম্পন্ন করুন"
     },
     "status": {
       "active": "সক্রিয়",
@@ -130,7 +165,12 @@
       "overdue": "মেয়াদোত্তীর্ণ",
       "good": "ভাল",
       "overLimit": "সীমা অতিক্রম",
-      "nearLimit": "সীমার কাছাকাছি"
+      "nearLimit": "সীমার কাছাকাছি",
+      "processing": "প্রক্রিয়াধীন",
+      "failed": "ব্যর্থ",
+      "readyForDelivery": "বিতরণের জন্য প্রস্তুত",
+      "all": "সব",
+      "allStatuses": "সব অবস্থা"
     },
     "messages": {
       "success": "সফল",
@@ -138,9 +178,10 @@
       "warning": "সতর্কতা",
       "info": "তথ্য",
       "loading": "লোড হচ্ছে...",
-      "noData": "কোন তথ্য উপলব্ধ নেই",
-      "noRecordsFound": "কোন রেকর্ড পাওয়া যায়নি",
+      "noData": "কোনো তথ্য উপলব্ধ নেই",
+      "noRecordsFound": "কোনো রেকর্ড পাওয়া যায়নি",
       "confirmDelete": "আপনি কি নিশ্চিত যে এই আইটেমটি মুছতে চান?",
+      "confirmDeletion": "মুছে ফেলা নিশ্চিত করুন",
       "deleteSuccess": "আইটেম সফলভাবে মুছে ফেলা হয়েছে",
       "deleteFailed": "আইটেম মুছতে ব্যর্থ হয়েছে",
       "saveSuccess": "সফলভাবে সংরক্ষিত হয়েছে",
@@ -196,7 +237,14 @@
       "root": "রুট",
       "fullName": "পুরো নাম",
       "customerCode": "গ্রাহক কোড",
-      "supplierCode": "সরবরাহকারী কোড"
+      "supplierCode": "সরবরাহকারী কোড",
+      "search": "অনুসন্ধান",
+      "searchPlaceholder": "অনুসন্ধান করুন...",
+      "pageSize": "পৃষ্ঠার আকার",
+      "rowsPerPage": "প্রতি পৃষ্ঠায় সারি",
+      "showing": "দেখানো হচ্ছে",
+      "of": "এর মধ্যে",
+      "records": "রেকর্ড"
     }
   },
   "categories": {
@@ -218,6 +266,87 @@
       "createSuccess": "বিভাগ সফলভাবে তৈরি হয়েছে",
       "updateSuccess": "বিভাগ সফলভাবে আপডেট হয়েছে",
       "toggleSuccess": "বিভাগ স্থিতি আপডেট হয়েছে"
+    }
+  },
+  "brands": {
+    "title": "ব্র্যান্ডসমূহ",
+    "addBrand": "ব্র্যান্ড যোগ করুন",
+    "editBrand": "ব্র্যান্ড সম্পাদনা করুন",
+    "deleteBrand": "ব্র্যান্ড মুছুন",
+    "searchBrands": "ব্র্যান্ড অনুসন্ধান করুন...",
+    "messages": {
+      "loadFailed": "ব্র্যান্ড লোড করতে ব্যর্থ হয়েছে",
+      "deleteConfirm": "আপনি কি নিশ্চিত যে ব্র্যান্ড \"{{name}}\" মুছতে চান?",
+      "deleteSuccess": "ব্র্যান্ড সফলভাবে মুছে ফেলা হয়েছে",
+      "deleteFailed": "ব্র্যান্ড মুছতে ব্যর্থ হয়েছে",
+      "createSuccess": "ব্র্যান্ড সফলভাবে তৈরি হয়েছে",
+      "updateSuccess": "ব্র্যান্ড সফলভাবে আপডেট হয়েছে",
+      "activateSuccess": "ব্র্যান্ড সফলভাবে সক্রিয় হয়েছে",
+      "deactivateSuccess": "ব্র্যান্ড সফলভাবে নিষ্ক্রিয় হয়েছে"
+    }
+  },
+  "units": {
+    "title": "একক",
+    "addUnit": "একক যোগ করুন",
+    "editUnit": "একক সম্পাদনা করুন",
+    "deleteUnit": "একক মুছুন",
+    "searchUnits": "একক অনুসন্ধান করুন...",
+    "symbol": "প্রতীক",
+    "baseUnit": "ভিত্তি একক",
+    "conversionFactor": "রূপান্তর গুণাঙ্ক",
+    "messages": {
+      "loadFailed": "একক লোড করতে ব্যর্থ হয়েছে",
+      "deleteConfirm": "আপনি কি নিশ্চিত যে একক \"{{name}}\" মুছতে চান?",
+      "deleteSuccess": "একক সফলভাবে মুছে ফেলা হয়েছে",
+      "deleteFailed": "একক মুছতে ব্যর্থ হয়েছে",
+      "createSuccess": "একক সফলভাবে তৈরি হয়েছে",
+      "updateSuccess": "একক সফলভাবে আপডেট হয়েছে",
+      "activateSuccess": "একক সফলভাবে সক্রিয় হয়েছে",
+      "deactivateSuccess": "একক সফলভাবে নিষ্ক্রিয় হয়েছে"
+    }
+  },
+  "suppliers": {
+    "title": "সরবরাহকারীগণ",
+    "addSupplier": "সরবরাহকারী যোগ করুন",
+    "editSupplier": "সরবরাহকারী সম্পাদনা করুন",
+    "deleteSupplier": "সরবরাহকারী মুছুন",
+    "viewDetails": "বিস্তারিত দেখুন",
+    "searchSuppliers": "সরবরাহকারী অনুসন্ধান করুন...",
+    "contactPerson": "যোগাযোগ ব্যক্তি",
+    "paymentTerms": "পেমেন্ট শর্ত",
+    "rating": "রেটিং",
+    "paymentAccounts": "পেমেন্ট অ্যাকাউন্ট",
+    "accountSummary": "অ্যাকাউন্ট সারসংক্ষেপ",
+    "messages": {
+      "loadFailed": "সরবরাহকারী লোড করতে ব্যর্থ হয়েছে",
+      "deleteConfirm": "আপনি কি নিশ্চিত যে সরবরাহকারী \"{{name}}\" মুছতে চান? এই কাজটি পূর্বাবস্থায় ফেরানো যাবে না।",
+      "deleteSuccess": "সরবরাহকারী সফলভাবে মুছে ফেলা হয়েছে",
+      "deleteFailed": "সরবরাহকারী মুছতে ব্যর্থ হয়েছে",
+      "createSuccess": "সরবরাহকারী সফলভাবে তৈরি হয়েছে",
+      "updateSuccess": "সরবরাহকারী সফলভাবে আপডেট হয়েছে",
+      "activateSuccess": "সরবরাহকারী সফলভাবে সক্রিয় হয়েছে",
+      "activateFailed": "সরবরাহকারী সক্রিয় করতে ব্যর্থ হয়েছে",
+      "deactivateSuccess": "সরবরাহকারী সফলভাবে নিষ্ক্রিয় হয়েছে",
+      "deactivateFailed": "সরবরাহকারী নিষ্ক্রিয় করতে ব্যর্থ হয়েছে"
+    }
+  },
+  "warehouses": {
+    "title": "গুদামসমূহ",
+    "addWarehouse": "গুদাম যোগ করুন",
+    "editWarehouse": "গুদাম সম্পাদনা করুন",
+    "deleteWarehouse": "গুদাম মুছুন",
+    "searchWarehouses": "গুদাম অনুসন্ধান করুন...",
+    "capacity": "ধারণ ক্ষমতা",
+    "currentStock": "বর্তমান স্টক",
+    "utilization": "ব্যবহার",
+    "location": "অবস্থান",
+    "messages": {
+      "loadFailed": "গুদাম লোড করতে ব্যর্থ হয়েছে",
+      "deleteConfirm": "আপনি কি নিশ্চিত যে গুদাম \"{{name}}\" মুছতে চান?",
+      "deleteSuccess": "গুদাম সফলভাবে মুছে ফেলা হয়েছে",
+      "deleteFailed": "গুদাম মুছতে ব্যর্থ হয়েছে",
+      "createSuccess": "গুদাম সফলভাবে তৈরি হয়েছে",
+      "updateSuccess": "গুদাম সফলভাবে আপডেট হয়েছে"
     }
   },
   "customers": {
@@ -260,6 +389,8 @@
     "expectedDelivery": "প্রত্যাশিত সরবরাহ",
     "supplier": "সরবরাহকারী",
     "totalAmount": "মোট পরিমাণ",
+    "outstandingAmount": "বকেয়া পরিমাণ",
+    "applyAdvanceCredit": "অগ্রিম ক্রেডিট প্রয়োগ করুন",
     "messages": {
       "loadFailed": "ক্রয় অর্ডার লোড করতে ব্যর্থ হয়েছে",
       "deleteConfirm": "আপনি কি নিশ্চিত যে PO #{{number}} মুছতে চান?",
@@ -275,7 +406,455 @@
       "confirmFailed": "ক্রয় অর্ডার নিশ্চিত করতে ব্যর্থ হয়েছে",
       "cancelConfirm": "আপনি কি নিশ্চিত যে PO #{{number}} বাতিল করতে চান?",
       "cancelSuccess": "ক্রয় অর্ডার #{{number}} সফলভাবে বাতিল হয়েছে",
-      "cancelFailed": "ক্রয় অর্ডার বাতিল করতে ব্যর্থ হয়েছে"
+      "cancelFailed": "ক্রয় অর্ডার বাতিল করতে ব্যর্থ হয়েছে",
+      "advanceCreditSuccess": "অগ্রিম ক্রেডিট সফলভাবে প্রয়োগ হয়েছে। ক্রয় অর্ডার আপডেট হয়েছে।"
+    }
+  },
+  "goodsReceipts": {
+    "title": "পণ্য প্রাপ্তি",
+    "addGRN": "পণ্য প্রাপ্তি যোগ করুন",
+    "grnNumber": "GRN নম্বর",
+    "receivedDate": "প্রাপ্তির তারিখ",
+    "searchReceipts": "রসিদ অনুসন্ধান করুন...",
+    "purchaseOrder": "ক্রয় অর্ডার",
+    "receivedBy": "প্রাপক",
+    "messages": {
+      "loadFailed": "পণ্য প্রাপ্তি লোড করতে ব্যর্থ হয়েছে",
+      "deleteConfirm": "আপনি কি নিশ্চিত যে GRN #{{number}} মুছতে চান?",
+      "deleteSuccess": "পণ্য প্রাপ্তি সফলভাবে মুছে ফেলা হয়েছে",
+      "deleteFailed": "পণ্য প্রাপ্তি মুছতে ব্যর্থ হয়েছে",
+      "createSuccess": "পণ্য প্রাপ্তি সফলভাবে তৈরি হয়েছে",
+      "updateSuccess": "পণ্য প্রাপ্তি সফলভাবে আপডেট হয়েছে"
+    }
+  },
+  "salesOrders": {
+    "title": "বিক্রয় অর্ডার",
+    "addOrder": "বিক্রয় অর্ডার যোগ করুন",
+    "editOrder": "বিক্রয় অর্ডার সম্পাদনা করুন",
+    "deleteOrder": "বিক্রয় অর্ডার মুছুন",
+    "orderNumber": "অর্ডার নম্বর",
+    "orderDate": "অর্ডার তারিখ",
+    "customer": "গ্রাহক",
+    "searchOrders": "অর্ডার অনুসন্ধান করুন...",
+    "confirmOrder": "অর্ডার নিশ্চিত করুন",
+    "statusOptions": {
+      "allStatuses": "সব অবস্থা",
+      "pending": "অপেক্ষমাণ",
+      "confirmed": "নিশ্চিত",
+      "readyForDelivery": "বিতরণের জন্য প্রস্তুত",
+      "delivered": "বিতরণ করা হয়েছে",
+      "cancelled": "বাতিল",
+      "paid": "পরিশোধিত",
+      "packed": "প্যাকেট করা",
+      "partiallyShipped": "আংশিক প্রেরিত",
+      "shipped": "প্রেরিত",
+      "completed": "সম্পন্ন",
+      "returned": "ফেরত"
+    },
+    "messages": {
+      "loadFailed": "বিক্রয় অর্ডার লোড করতে ব্যর্থ হয়েছে",
+      "deleteConfirm": "আপনি কি নিশ্চিত যে বিক্রয় অর্ডার {{number}} মুছতে চান? এই কাজটি পূর্বাবস্থায় ফেরানো যাবে না।",
+      "deleteSuccess": "বিক্রয় অর্ডার সফলভাবে মুছে ফেলা হয়েছে",
+      "deleteFailed": "বিক্রয় অর্ডার মুছতে ব্যর্থ হয়েছে",
+      "confirmOrderConfirm": "আপনি কি নিশ্চিত যে বিক্রয় অর্ডার {{number}} নিশ্চিত করতে চান?",
+      "confirmOrderSuccess": "বিক্রয় অর্ডার সফলভাবে নিশ্চিত হয়েছে",
+      "confirmOrderFailed": "বিক্রয় অর্ডার নিশ্চিত করতে ব্যর্থ হয়েছে",
+      "createSuccess": "বিক্রয় অর্ডার সফলভাবে তৈরি হয়েছে",
+      "updateSuccess": "বিক্রয় অর্ডার সফলভাবে আপডেট হয়েছে"
+    }
+  },
+  "supplierPayments": {
+    "title": "সরবরাহকারী পেমেন্ট",
+    "addPayment": "পেমেন্ট যোগ করুন",
+    "editPayment": "পেমেন্ট সম্পাদনা করুন",
+    "paymentDate": "পেমেন্টের তারিখ",
+    "paymentMethod": "পেমেন্ট পদ্ধতি",
+    "paymentType": "পেমেন্টের ধরন",
+    "grossAmount": "মোট পরিমাণ",
+    "paymentFee": "পেমেন্ট ফি",
+    "netAmount": "নিট পরিমাণ",
+    "invoiceRef": "চালান রেফারেন্স",
+    "searchPayments": "পেমেন্ট অনুসন্ধান করুন...",
+    "supplier": "সরবরাহকারী",
+    "statusOptions": {
+      "all": "সব",
+      "pending": "অপেক্ষমাণ",
+      "completed": "সম্পন্ন",
+      "processing": "প্রক্রিয়াধীন",
+      "failed": "ব্যর্থ",
+      "cancelled": "বাতিল"
+    },
+    "messages": {
+      "loadFailed": "সরবরাহকারী পেমেন্ট লোড করতে ব্যর্থ হয়েছে",
+      "deleteConfirm": "আপনি কি নিশ্চিত যে এই পেমেন্টটি মুছতে চান?",
+      "deleteSuccess": "পেমেন্ট সফলভাবে মুছে ফেলা হয়েছে",
+      "deleteFailed": "পেমেন্ট মুছতে ব্যর্থ হয়েছে",
+      "confirmConfirm": "আপনি কি নিশ্চিত যে এই পেমেন্টটি নিশ্চিত করতে চান?",
+      "confirmSuccess": "পেমেন্ট সফলভাবে নিশ্চিত হয়েছে",
+      "confirmFailed": "পেমেন্ট নিশ্চিত করতে ব্যর্থ হয়েছে",
+      "cancelConfirm": "আপনি কি নিশ্চিত যে এই পেমেন্টটি বাতিল করতে চান?",
+      "cancelSuccess": "পেমেন্ট সফলভাবে বাতিল হয়েছে",
+      "cancelFailed": "পেমেন্ট বাতিল করতে ব্যর্থ হয়েছে",
+      "reconcileSuccess": "পেমেন্ট সফলভাবে মিলিয়ে নেওয়া হয়েছে",
+      "reconcileFailed": "পেমেন্ট মিলিয়ে নিতে ব্যর্থ হয়েছে",
+      "markAdvanceSuccess": "পেমেন্ট সফলভাবে অগ্রিম হিসেবে চিহ্নিত হয়েছে",
+      "markRegularSuccess": "পেমেন্ট সফলভাবে নিয়মিত হিসেবে চিহ্নিত হয়েছে",
+      "markFailed": "পেমেন্টের ধরন আপডেট করতে ব্যর্থ হয়েছে",
+      "noDataExport": "রপ্তানির জন্য কোনো সরবরাহকারী পেমেন্ট নেই",
+      "exportCSVSuccess": "সরবরাহকারী পেমেন্ট CSV-এ রপ্তানি হয়েছে",
+      "exportJSONSuccess": "সরবরাহকারী পেমেন্ট JSON-এ রপ্তানি হয়েছে"
+    }
+  },
+  "stock": {
+    "title": "স্টক ব্যবস্থাপনা",
+    "transferStock": "স্টক স্থানান্তর",
+    "adjustStock": "স্টক সমন্বয়",
+    "stockLevel": "স্টক স্তর",
+    "lowStock": "কম স্টক",
+    "outOfStock": "স্টক শেষ",
+    "searchStock": "স্টক অনুসন্ধান করুন...",
+    "warehouse": "গুদাম",
+    "sku": "SKU",
+    "partNumber": "পার্ট নম্বর",
+    "messages": {
+      "loadFailed": "স্টক ডেটা লোড করতে ব্যর্থ হয়েছে",
+      "transferSuccess": "স্টক সফলভাবে স্থানান্তর হয়েছে",
+      "transferFailed": "স্টক স্থানান্তর করতে ব্যর্থ হয়েছে",
+      "adjustSuccess": "স্টক সফলভাবে সমন্বয় হয়েছে",
+      "adjustFailed": "স্টক সমন্বয় করতে ব্যর্থ হয়েছে"
+    }
+  },
+  "vehicles": {
+    "title": "যানবাহন",
+    "addVehicle": "যানবাহন যোগ করুন",
+    "editVehicle": "যানবাহন সম্পাদনা করুন",
+    "deleteVehicle": "যানবাহন মুছুন",
+    "searchVehicles": "যানবাহন অনুসন্ধান করুন...",
+    "make": "প্রস্তুতকারক",
+    "model": "মডেল",
+    "year": "বছর",
+    "messages": {
+      "loadFailed": "যানবাহন লোড করতে ব্যর্থ হয়েছে",
+      "deleteConfirm": "আপনি কি নিশ্চিত যে \"{{name}}\" মুছতে চান?",
+      "deleteSuccess": "যানবাহন সফলভাবে মুছে ফেলা হয়েছে",
+      "deleteFailed": "যানবাহন মুছতে ব্যর্থ হয়েছে",
+      "activateConfirm": "আপনি কি নিশ্চিত যে এই যানবাহনটি সক্রিয় করতে চান?",
+      "activateSuccess": "যানবাহন সফলভাবে সক্রিয় হয়েছে",
+      "activateFailed": "যানবাহন সক্রিয় করতে ব্যর্থ হয়েছে",
+      "deactivateConfirm": "আপনি কি নিশ্চিত যে এই যানবাহনটি নিষ্ক্রিয় করতে চান?",
+      "deactivateSuccess": "যানবাহন সফলভাবে নিষ্ক্রিয় হয়েছে",
+      "deactivateFailed": "যানবাহন নিষ্ক্রিয় করতে ব্যর্থ হয়েছে"
+    }
+  },
+  "technicians": {
+    "title": "টেকনিশিয়ান",
+    "addTechnician": "টেকনিশিয়ান যোগ করুন",
+    "editTechnician": "টেকনিশিয়ান সম্পাদনা করুন",
+    "searchTechnicians": "টেকনিশিয়ান অনুসন্ধান করুন...",
+    "statusOptions": {
+      "allStatuses": "সব অবস্থা",
+      "active": "সক্রিয়",
+      "inactive": "নিষ্ক্রিয়"
+    },
+    "messages": {
+      "loadFailed": "টেকনিশিয়ান লোড করতে ব্যর্থ হয়েছে",
+      "activateConfirm": "আপনি কি নিশ্চিত যে {{name}} সক্রিয় করতে চান?",
+      "activateSuccess": "টেকনিশিয়ান সফলভাবে সক্রিয় হয়েছে",
+      "activateFailed": "টেকনিশিয়ান সক্রিয় করতে ব্যর্থ হয়েছে",
+      "deactivateConfirm": "আপনি কি নিশ্চিত যে {{name}} নিষ্ক্রিয় করতে চান?",
+      "deactivateSuccess": "টেকনিশিয়ান সফলভাবে নিষ্ক্রিয় হয়েছে",
+      "deactivateFailed": "টেকনিশিয়ান নিষ্ক্রিয় করতে ব্যর্থ হয়েছে",
+      "exportNoData": "রপ্তানির জন্য কোনো টেকনিশিয়ান নেই",
+      "exportCSVSuccess": "টেকনিশিয়ান CSV-এ রপ্তানি হয়েছে",
+      "exportJSONSuccess": "টেকনিশিয়ান JSON-এ রপ্তানি হয়েছে"
+    }
+  },
+  "invoices": {
+    "title": "চালান",
+    "statusOptions": {
+      "allStatuses": "সব অবস্থা",
+      "draft": "খসড়া",
+      "issued": "ইস্যু করা",
+      "partiallyPaid": "আংশিক পরিশোধিত",
+      "paid": "পরিশোধিত",
+      "overdue": "মেয়াদোত্তীর্ণ",
+      "cancelled": "বাতিল"
+    },
+    "messages": {
+      "loadFailed": "চালান লোড করতে ব্যর্থ হয়েছে",
+      "issueConfirm": "আপনি কি নিশ্চিত যে চালান {{number}} ইস্যু করতে চান?",
+      "issueSuccess": "চালান সফলভাবে ইস্যু হয়েছে",
+      "issueFailed": "চালান ইস্যু করতে ব্যর্থ হয়েছে",
+      "exportNoData": "রপ্তানির জন্য কোনো চালান নেই",
+      "exportCSVSuccess": "চালান CSV-এ রপ্তানি হয়েছে",
+      "exportJSONSuccess": "চালান JSON-এ রপ্তানি হয়েছে",
+      "recordPaymentFailed": "পেমেন্ট রেকর্ড করতে ব্যর্থ হয়েছে"
+    }
+  },
+  "salesReturns": {
+    "title": "বিক্রয় ফেরত",
+    "statusOptions": {
+      "allStatuses": "সব অবস্থা",
+      "pending": "অপেক্ষমাণ",
+      "approved": "অনুমোদিত",
+      "received": "প্রাপ্ত",
+      "rejected": "প্রত্যাখ্যাত",
+      "processed": "প্রক্রিয়াকৃত"
+    },
+    "messages": {
+      "loadFailed": "বিক্রয় ফেরত লোড করতে ব্যর্থ হয়েছে",
+      "deleteConfirm": "আপনি কি নিশ্চিত যে এই বিক্রয় ফেরত মুছতে চান?",
+      "deleteSuccess": "বিক্রয় ফেরত সফলভাবে মুছে ফেলা হয়েছে",
+      "deleteFailed": "বিক্রয় ফেরত মুছতে ব্যর্থ হয়েছে",
+      "approveConfirm": "আপনি কি নিশ্চিত যে ফেরত {{number}} অনুমোদন করতে চান?",
+      "approveSuccess": "ফেরত সফলভাবে অনুমোদিত হয়েছে",
+      "approveFailed": "ফেরত অনুমোদন করতে ব্যর্থ হয়েছে",
+      "rejectConfirm": "ফেরত {{number}} প্রত্যাখ্যানের কারণ লিখুন:",
+      "rejectSuccess": "ফেরত সফলভাবে প্রত্যাখ্যান হয়েছে",
+      "rejectFailed": "ফেরত প্রত্যাখ্যান করতে ব্যর্থ হয়েছে",
+      "receiveConfirm": "ফেরত {{number}} প্রাপ্ত হিসেবে চিহ্নিত করবেন?",
+      "receiveSuccess": "ফেরত প্রাপ্ত হিসেবে চিহ্নিত হয়েছে",
+      "receiveFailed": "ফেরত প্রাপ্ত হিসেবে চিহ্নিত করতে ব্যর্থ হয়েছে",
+      "processConfirm": "ফেরত {{number}} প্রক্রিয়া করবেন? এটি ফেরত সম্পন্ন করবে।",
+      "processSuccess": "ফেরত সফলভাবে প্রক্রিয়া হয়েছে",
+      "processFailed": "ফেরত প্রক্রিয়া করতে ব্যর্থ হয়েছে",
+      "exportNoData": "রপ্তানির জন্য কোনো বিক্রয় ফেরত নেই",
+      "exportCSVSuccess": "বিক্রয় ফেরত CSV হিসেবে রপ্তানি হয়েছে",
+      "exportJSONSuccess": "বিক্রয় ফেরত JSON হিসেবে রপ্তানি হয়েছে"
+    }
+  },
+  "purchaseReturns": {
+    "title": "ক্রয় ফেরত",
+    "messages": {
+      "loadFailed": "ক্রয় ফেরত লোড করতে ব্যর্থ হয়েছে",
+      "deleteConfirm": "আপনি কি নিশ্চিত যে এই ক্রয় ফেরত মুছতে চান?",
+      "deleteSuccess": "ক্রয় ফেরত সফলভাবে মুছে ফেলা হয়েছে",
+      "deleteFailed": "ক্রয় ফেরত মুছতে ব্যর্থ হয়েছে",
+      "approveSuccess": "ক্রয় ফেরত সফলভাবে অনুমোদিত হয়েছে",
+      "approveFailed": "ক্রয় ফেরত অনুমোদন করতে ব্যর্থ হয়েছে"
+    }
+  },
+  "warranties": {
+    "title": "ওয়ারেন্টি নিবন্ধন",
+    "statuses": {
+      "allStatuses": "সব অবস্থা",
+      "active": "সক্রিয়",
+      "expired": "মেয়াদোত্তীর্ণ",
+      "claimed": "দাবিকৃত",
+      "void": "বাতিল"
+    },
+    "messages": {
+      "loadFailed": "ওয়ারেন্টি লোড করতে ব্যর্থ হয়েছে",
+      "deleteConfirm": "আপনি কি নিশ্চিত যে ওয়ারেন্টি {{number}} মুছতে চান? এই কাজটি পূর্বাবস্থায় ফেরানো যাবে না।",
+      "deleteSuccess": "ওয়ারেন্টি সফলভাবে মুছে ফেলা হয়েছে",
+      "deleteFailed": "ওয়ারেন্টি মুছতে ব্যর্থ হয়েছে",
+      "activateSuccess": "ওয়ারেন্টি সফলভাবে সক্রিয় হয়েছে",
+      "createSuccess": "ওয়ারেন্টি সফলভাবে নিবন্ধিত হয়েছে",
+      "createFailed": "ওয়ারেন্টি তৈরি করতে ব্যর্থ হয়েছে",
+      "voidSuccess": "ওয়ারেন্টি সফলভাবে বাতিল হয়েছে",
+      "voidFailed": "ওয়ারেন্টি বাতিল করতে ব্যর্থ হয়েছে",
+      "voidReasonRequired": "বাতিলের কারণ লিখুন",
+      "soNumberRequired": "একটি বিক্রয় অর্ডার নম্বর লিখুন",
+      "soNotFound": "বিক্রয় অর্ডার পাওয়া যায়নি",
+      "expiredStatus": "মেয়াদোত্তীর্ণ",
+      "voidedStatus": "বাতিলকৃত",
+      "expiresToday": "আজ মেয়াদ শেষ",
+      "daysLeft": "{{days}} দিন বাকি",
+      "oneDayLeft": "১ দিন বাকি"
+    }
+  },
+  "warrantyClaims": {
+    "title": "ওয়ারেন্টি দাবি",
+    "statuses": {
+      "allStatuses": "সব অবস্থা",
+      "pending": "অপেক্ষমাণ",
+      "underReview": "পর্যালোচনাধীন",
+      "approved": "অনুমোদিত",
+      "rejected": "প্রত্যাখ্যাত",
+      "inProgress": "প্রক্রিয়াধীন",
+      "completed": "সম্পন্ন",
+      "closed": "বন্ধ"
+    },
+    "messages": {
+      "loadFailed": "ওয়ারেন্টি দাবি লোড করতে ব্যর্থ হয়েছে",
+      "deleteConfirm": "আপনি কি নিশ্চিত যে এই ওয়ারেন্টি দাবি মুছতে চান?",
+      "deleteSuccess": "ওয়ারেন্টি দাবি সফলভাবে মুছে ফেলা হয়েছে",
+      "deleteFailed": "ওয়ারেন্টি দাবি মুছতে ব্যর্থ হয়েছে",
+      "submitForReviewSuccess": "দাবি পর্যালোচনার জন্য জমা দেওয়া হয়েছে",
+      "submitForReviewFailed": "পর্যালোচনার জন্য জমা দিতে ব্যর্থ হয়েছে",
+      "approveSuccess": "দাবি সফলভাবে অনুমোদিত হয়েছে",
+      "approveFailed": "দাবি অনুমোদন করতে ব্যর্থ হয়েছে",
+      "rejectSuccess": "দাবি প্রত্যাখ্যান হয়েছে",
+      "rejectFailed": "দাবি প্রত্যাখ্যান করতে ব্যর্থ হয়েছে",
+      "assignTechnicianSuccess": "টেকনিশিয়ান সফলভাবে নিয়োগ হয়েছে",
+      "assignTechnicianFailed": "টেকনিশিয়ান নিয়োগ করতে ব্যর্থ হয়েছে",
+      "updateServiceCostSuccess": "সার্ভিস খরচ আপডেট হয়েছে",
+      "updateServiceCostFailed": "সার্ভিস খরচ আপডেট করতে ব্যর্থ হয়েছে",
+      "completeSuccess": "দাবি সফলভাবে সম্পন্ন হয়েছে",
+      "completeFailed": "দাবি সম্পন্ন করতে ব্যর্থ হয়েছে",
+      "closeSuccess": "দাবি সফলভাবে বন্ধ হয়েছে",
+      "closeFailed": "দাবি বন্ধ করতে ব্যর্থ হয়েছে",
+      "sendDefectiveSuccess": "ত্রুটিপূর্ণ আইটেম পাঠানো এবং ট্র্যাক করা হয়েছে",
+      "sendDefectiveFailed": "ত্রুটিপূর্ণ আইটেম পাঠাতে ব্যর্থ হয়েছে",
+      "receiveReplacementSuccess": "প্রতিস্থাপন আইটেম প্রাপ্ত এবং স্টকে যোগ হয়েছে",
+      "receiveReplacementFailed": "প্রতিস্থাপন আইটেম গ্রহণ করতে ব্যর্থ হয়েছে",
+      "createSuccess": "ওয়ারেন্টি দাবি সফলভাবে তৈরি হয়েছে",
+      "createFailed": "ওয়ারেন্টি দাবি তৈরি করতে ব্যর্থ হয়েছে",
+      "quickApproveSuccess": "দাবি অনুমোদিত এবং টেকনিশিয়ান নিয়োগের জন্য প্রস্তুত",
+      "quickCompleteSuccess": "দাবি সম্পন্ন হিসেবে চিহ্নিত হয়েছে",
+      "quickCloseSuccess": "দাবি বন্ধ হয়েছে",
+      "nextStepInfo": "এই দাবি চালিয়ে যেতে একজন টেকনিশিয়ান নিয়োগ করুন।",
+      "noNextStep": "এই দাবি ইতিমধ্যে চূড়ান্ত হয়েছে।",
+      "validationSelectWarranty": "একটি ওয়ারেন্টি নির্বাচন করুন",
+      "validationIssueDescription": "সমস্যার বিবরণ লিখুন",
+      "validationSelectTechnician": "একজন টেকনিশিয়ান নির্বাচন করুন",
+      "validationRejectReason": "প্রত্যাখ্যানের কারণ লিখুন",
+      "validationResolutionDetails": "সমাধানের বিবরণ লিখুন",
+      "validationRefundAmount": "সঠিক ফেরত পরিমাণ লিখুন",
+      "validationSONumber": "একটি বিক্রয় অর্ডার নম্বর লিখুন",
+      "validationDestinationRequired": "গন্তব্য এবং দায়িত্বশীল ব্যক্তি প্রয়োজন",
+      "validationSourceRequired": "উৎস এবং দায়িত্বশীল ব্যক্তি প্রয়োজন"
+    }
+  },
+  "customerPayments": {
+    "title": "গ্রাহক পেমেন্ট",
+    "statusOptions": {
+      "allStatuses": "সব অবস্থা",
+      "pending": "অপেক্ষমাণ",
+      "processing": "প্রক্রিয়াধীন",
+      "completed": "সম্পন্ন",
+      "failed": "ব্যর্থ",
+      "cancelled": "বাতিল",
+      "refunded": "ফেরত দেওয়া"
+    },
+    "reconciledOptions": {
+      "reconciled": "মিলিত",
+      "notReconciled": "অমিলিত"
+    },
+    "messages": {
+      "loadFailed": "গ্রাহক পেমেন্ট লোড করতে ব্যর্থ হয়েছে",
+      "deleteConfirm": "আপনি কি নিশ্চিত যে এই পেমেন্টটি মুছতে চান?",
+      "deleteSuccess": "পেমেন্ট সফলভাবে মুছে ফেলা হয়েছে",
+      "deleteFailed": "পেমেন্ট মুছতে ব্যর্থ হয়েছে",
+      "confirmConfirm": "আপনি কি নিশ্চিত যে এই পেমেন্টটি নিশ্চিত করতে চান?",
+      "confirmSuccess": "পেমেন্ট সফলভাবে নিশ্চিত হয়েছে",
+      "confirmFailed": "পেমেন্ট নিশ্চিত করতে ব্যর্থ হয়েছে",
+      "cancelConfirm": "আপনি কি নিশ্চিত যে এই পেমেন্টটি বাতিল করতে চান?",
+      "cancelSuccess": "পেমেন্ট সফলভাবে বাতিল হয়েছে",
+      "cancelFailed": "পেমেন্ট বাতিল করতে ব্যর্থ হয়েছে",
+      "reconcileConfirm": "আপনি কি নিশ্চিত যে এই পেমেন্টটি মিলাতে চান?",
+      "reconcileSuccess": "পেমেন্ট সফলভাবে মিলানো হয়েছে",
+      "reconcileFailed": "পেমেন্ট মিলাতে ব্যর্থ হয়েছে",
+      "refundConfirm": "আপনি কি নিশ্চিত যে এই পেমেন্টটি ফেরত দিতে চান?",
+      "refundSuccess": "পেমেন্ট সফলভাবে ফেরত দেওয়া হয়েছে",
+      "refundFailed": "পেমেন্ট ফেরত দিতে ব্যর্থ হয়েছে",
+      "markAsAdvanceConfirm": "এই পেমেন্টটি অগ্রিম পেমেন্ট হিসেবে চিহ্নিত করবেন?",
+      "markAsAdvanceSuccess": "পেমেন্ট সফলভাবে অগ্রিম হিসেবে চিহ্নিত হয়েছে",
+      "markAsAdvanceFailed": "পেমেন্ট অগ্রিম হিসেবে চিহ্নিত করতে ব্যর্থ হয়েছে",
+      "markAsRegularConfirm": "এই পেমেন্টটি নিয়মিত পেমেন্ট হিসেবে চিহ্নিত করবেন?",
+      "markAsRegularSuccess": "পেমেন্ট সফলভাবে নিয়মিত হিসেবে চিহ্নিত হয়েছে",
+      "markAsRegularFailed": "পেমেন্ট নিয়মিত হিসেবে চিহ্নিত করতে ব্যর্থ হয়েছে",
+      "exportNoData": "রপ্তানির জন্য কোনো পেমেন্ট নেই",
+      "exportCSVSuccess": "পেমেন্ট CSV হিসেবে রপ্তানি হয়েছে",
+      "exportJSONSuccess": "পেমেন্ট JSON হিসেবে রপ্তানি হয়েছে"
+    }
+  },
+  "paymentProviders": {
+    "title": "পেমেন্ট প্রদানকারী",
+    "addProvider": "প্রদানকারী যোগ করুন",
+    "editProvider": "প্রদানকারী সম্পাদনা করুন",
+    "messages": {
+      "loadFailed": "পেমেন্ট প্রদানকারী লোড করতে ব্যর্থ হয়েছে",
+      "deleteConfirm": "আপনি কি নিশ্চিত যে '{{name}}' মুছতে চান?",
+      "deleteSuccess": "পেমেন্ট প্রদানকারী সফলভাবে মুছে ফেলা হয়েছে",
+      "deleteFailed": "পেমেন্ট প্রদানকারী মুছতে ব্যর্থ হয়েছে",
+      "createSuccess": "পেমেন্ট প্রদানকারী সফলভাবে তৈরি হয়েছে",
+      "updateSuccess": "পেমেন্ট প্রদানকারী সফলভাবে আপডেট হয়েছে",
+      "testConnectionSuccess": "সংযোগ সফল",
+      "testConnectionFailed": "সংযোগ পরীক্ষা ব্যর্থ হয়েছে",
+      "setDefaultSuccess": "পেমেন্ট প্রদানকারী ডিফল্ট হিসেবে সেট হয়েছে",
+      "setDefaultFailed": "ডিফল্ট প্রদানকারী সেট করতে ব্যর্থ হয়েছে"
+    }
+  },
+  "conversions": {
+    "title": "একক রূপান্তর",
+    "messages": {
+      "loadFailed": "একক রূপান্তর লোড করতে ব্যর্থ হয়েছে",
+      "deleteConfirm": "আপনি কি নিশ্চিত যে এই রূপান্তর মুছতে চান?",
+      "deleteSuccess": "রূপান্তর সফলভাবে মুছে ফেলা হয়েছে",
+      "deleteFailed": "রূপান্তর মুছতে ব্যর্থ হয়েছে",
+      "createSuccess": "রূপান্তর সফলভাবে তৈরি হয়েছে",
+      "updateSuccess": "রূপান্তর সফলভাবে আপডেট হয়েছে"
+    }
+  },
+  "currencies": {
+    "title": "মুদ্রা",
+    "messages": {
+      "loadFailed": "মুদ্রা লোড করতে ব্যর্থ হয়েছে",
+      "deleteConfirm": "আপনি কি নিশ্চিত যে {{name}} ({{code}}) মুছতে চান?",
+      "deleteSuccess": "মুদ্রা সফলভাবে মুছে ফেলা হয়েছে",
+      "deleteFailed": "মুদ্রা মুছতে ব্যর্থ হয়েছে",
+      "createSuccess": "মুদ্রা সফলভাবে তৈরি হয়েছে",
+      "updateSuccess": "মুদ্রা সফলভাবে আপডেট হয়েছে",
+      "setDefaultConfirm": "আপনি কি নিশ্চিত যে {{name}} ({{code}}) নতুন লেনদেনের জন্য ডিফল্ট মুদ্রা হিসেবে সেট করতে চান?",
+      "setDefaultSuccess": "মুদ্রা সফলভাবে ডিফল্ট হিসেবে সেট হয়েছে",
+      "setDefaultFailed": "ডিফল্ট মুদ্রা সেট করতে ব্যর্থ হয়েছে",
+      "setBaseConfirm": "আপনি কি নিশ্চিত যে {{name}} ({{code}}) বেস মুদ্রা হিসেবে সেট করতে চান?",
+      "setBaseSuccess": "মুদ্রা বেস মুদ্রা হিসেবে সেট হয়েছে",
+      "setBaseFailed": "বেস মুদ্রা সেট করতে ব্যর্থ হয়েছে",
+      "loadCurrenciesFailed": "মুদ্রা লোড করতে ব্যর্থ হয়েছে"
+    }
+  },
+  "exchangeRates": {
+    "title": "বিনিময় হার",
+    "messages": {
+      "loadFailed": "বিনিময় হার লোড করতে ব্যর্থ হয়েছে",
+      "loadCurrenciesFailed": "মুদ্রা লোড করতে ব্যর্থ হয়েছে",
+      "deleteConfirm": "আপনি কি নিশ্চিত যে এই বিনিময় হার ({{from}} → {{to}}) মুছতে চান?",
+      "deleteSuccess": "বিনিময় হার সফলভাবে মুছে ফেলা হয়েছে",
+      "deleteFailed": "বিনিময় হার মুছতে ব্যর্থ হয়েছে",
+      "createSuccess": "বিনিময় হার সফলভাবে তৈরি হয়েছে",
+      "updateSuccess": "বিনিময় হার সফলভাবে আপডেট হয়েছে"
+    }
+  },
+  "supplierPaymentAccounts": {
+    "title": "পেমেন্ট অ্যাকাউন্ট",
+    "messages": {
+      "loadFailed": "পেমেন্ট অ্যাকাউন্ট লোড করতে ব্যর্থ হয়েছে",
+      "deleteConfirm": "আপনি কি নিশ্চিত যে '{{name}}' মুছতে চান?",
+      "deleteSuccess": "পেমেন্ট অ্যাকাউন্ট সফলভাবে মুছে ফেলা হয়েছে",
+      "deleteFailed": "পেমেন্ট অ্যাকাউন্ট মুছতে ব্যর্থ হয়েছে",
+      "setDefaultSuccess": "পেমেন্ট অ্যাকাউন্ট ডিফল্ট হিসেবে সেট হয়েছে",
+      "setDefaultFailed": "ডিফল্ট অ্যাকাউন্ট সেট করতে ব্যর্থ হয়েছে"
+    }
+  },
+  "stockLevels": {
+    "status": {
+      "lowStock": "কম স্টক",
+      "warning": "সতর্কতা",
+      "inStock": "স্টকে আছে"
+    }
+  },
+  "parts": {
+    "title": "যন্ত্রাংশ",
+    "addPart": "যন্ত্রাংশ যোগ করুন",
+    "editPart": "যন্ত্রাংশ সম্পাদনা করুন",
+    "deletePart": "যন্ত্রাংশ মুছুন",
+    "searchParts": "যন্ত্রাংশ অনুসন্ধান করুন...",
+    "sku": "SKU",
+    "partNumber": "পার্ট নম্বর",
+    "barcode": "বারকোড",
+    "brand": "ব্র্যান্ড",
+    "category": "বিভাগ",
+    "sellingPrice": "বিক্রয় মূল্য",
+    "costPrice": "ক্রয় মূল্য",
+    "messages": {
+      "loadFailed": "যন্ত্রাংশ লোড করতে ব্যর্থ হয়েছে",
+      "deleteConfirm": "আপনি কি নিশ্চিত যে যন্ত্রাংশ \"{{name}}\" মুছতে চান?",
+      "deleteSuccess": "যন্ত্রাংশ সফলভাবে মুছে ফেলা হয়েছে",
+      "deleteFailed": "যন্ত্রাংশ মুছতে ব্যর্থ হয়েছে",
+      "createSuccess": "যন্ত্রাংশ সফলভাবে তৈরি হয়েছে",
+      "updateSuccess": "যন্ত্রাংশ সফলভাবে আপডেট হয়েছে"
     }
   }
 }

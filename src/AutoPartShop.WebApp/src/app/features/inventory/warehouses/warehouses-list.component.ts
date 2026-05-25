@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, ViewChild, inject, OnInit } from '@angular/core';
+import { Component, EventEmitter, Input, Output, ViewChild, inject, OnInit, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -12,6 +12,8 @@ import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmationService, MessageService, MenuItem } from 'primeng/api';
 import { WarehouseService, WarehouseResponse } from '../services/warehouse.service';
 import { Select } from 'primeng/select';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { I18nService } from '@/shared/services/i18n.service';
 
 @Component({
   selector: 'app-warehouses-list',
@@ -54,82 +56,66 @@ export class WarehousesListComponent implements OnInit {
   private readonly confirmationService = inject(ConfirmationService);
   private readonly messageService = inject(MessageService);
   private readonly router = inject(Router);
+  private readonly i18n = inject(I18nService);
+  private readonly destroyRef = inject(DestroyRef);
 
   ngOnInit(): void {
-    this.initializeContextMenu();
+    this.rebuildContextMenu();
+    this.i18n.translationsLoaded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      if (this.selectedWarehouse) this.rebuildContextMenu();
+    });
   }
 
-  /**
-   * Initialize context menu items
-   */
-  private initializeContextMenu(): void {
+  private rebuildContextMenu(): void {
     this.contextMenuItems = [
       {
-        label: 'View',
+        label: this.i18n.t('common.actions.viewDetails'),
         icon: 'pi pi-eye',
         command: () => {
-          if (this.selectedWarehouse) {
-            this.onViewClick(this.selectedWarehouse);
-          }
+          if (this.selectedWarehouse) this.onViewClick(this.selectedWarehouse);
         }
       },
       {
-        label: 'Edit',
+        label: this.i18n.t('common.actions.edit'),
         icon: 'pi pi-pencil',
         command: () => {
-          if (this.selectedWarehouse) {
-            this.onEditClick(this.selectedWarehouse);
-          }
+          if (this.selectedWarehouse) this.onEditClick(this.selectedWarehouse);
         }
       },
       { separator: true },
       {
-        label: 'Delete',
+        label: this.i18n.t('common.actions.delete'),
         icon: 'pi pi-trash',
         command: () => {
-          if (this.selectedWarehouse) {
-            this.onDeleteClick(this.selectedWarehouse);
-          }
+          if (this.selectedWarehouse) this.onDeleteClick(this.selectedWarehouse);
         },
         styleClass: 'p-menuitem-danger'
       }
     ];
   }
 
-  /**
-   * Show context menu
-   */
   showContextMenu(event: MouseEvent, warehouse: WarehouseResponse): void {
     this.selectedWarehouse = warehouse;
-    this.initializeContextMenu();
+    this.rebuildContextMenu();
     if (this.contextMenu) {
       this.contextMenu.show(event);
     }
   }
 
-  /**
-   * Handle view click
-   */
   onViewClick(warehouse: WarehouseResponse): void {
     this.viewClick.emit(warehouse);
     this.router.navigate(['/inventory/warehouses/view'], { queryParams: { id: warehouse.id } });
   }
 
-  /**
-   * Handle edit click
-   */
   onEditClick(warehouse: WarehouseResponse): void {
     this.editClick.emit(warehouse);
     this.router.navigate(['/inventory/warehouses/edit'], { queryParams: { id: warehouse.id } });
   }
 
-  /**
-   * Delete warehouse
-   */
   onDeleteClick(warehouse: WarehouseResponse): void {
     this.confirmationService.confirm({
-      message: `Are you sure you want to delete warehouse "${warehouse.name}"?`,
-      header: 'Confirm Deletion',
+      message: this.i18n.t('warehouses.messages.deleteConfirm', { name: warehouse.name }),
+      header: this.i18n.t('common.messages.confirmDeletion'),
       icon: 'pi pi-exclamation-triangle',
       acceptButtonStyleClass: 'p-button-danger',
       accept: () => {
@@ -138,55 +124,40 @@ export class WarehousesListComponent implements OnInit {
     });
   }
 
-  /**
-   * Delete warehouse via API
-   */
   private deleteWarehouse(id: string): void {
     this.warehouseService.deleteWarehouse(id).subscribe({
       next: () => {
         this.messageService.add({
           severity: 'success',
-          summary: 'Success',
-          detail: 'Warehouse deleted successfully'
+          summary: this.i18n.t('common.messages.success'),
+          detail: this.i18n.t('warehouses.messages.deleteSuccess')
         });
         this.warehouseDeleted.emit();
       },
       error: (error: any) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: error?.error?.message || 'Failed to delete warehouse'
+          summary: this.i18n.t('common.messages.error'),
+          detail: error?.error?.message || this.i18n.t('warehouses.messages.deleteFailed')
         });
         console.error('Error deleting warehouse:', error);
       }
     });
   }
 
-  /**
-   * Handle pagination change
-   */
   onPageChange(event: any): void {
     if (!event || typeof event.first !== 'number' || typeof event.rows !== 'number') {
       return;
     }
     const pageNumber = Math.floor(event.first / event.rows) + 1;
-    this.pageChange.emit({
-      page: pageNumber,
-      rows: event.rows
-    });
+    this.pageChange.emit({ page: pageNumber, rows: event.rows });
   }
 
-  /**
-   * Calculate utilization percentage
-   */
   getUtilizationPercentage(warehouse: WarehouseResponse): number {
     if (!warehouse.capacity || warehouse.capacity === 0) return 0;
     return Math.round((warehouse.currentStock / warehouse.capacity) * 100);
   }
 
-  /**
-   * Get utilization severity
-   */
   getUtilizationSeverity(percentage: number): string {
     if (percentage >= 90) return 'danger';
     if (percentage >= 75) return 'warning';
@@ -194,9 +165,6 @@ export class WarehousesListComponent implements OnInit {
     return 'success';
   }
 
-  /**
-   * Format date
-   */
   formatDate(date: string): string {
     return new Date(date).toLocaleDateString('en-IN');
   }
@@ -206,24 +174,15 @@ export class WarehousesListComponent implements OnInit {
   }
 
   get pageNumber(): number {
-    if (!this.totalRecords) {
-      return 0;
-    }
+    if (!this.totalRecords) return 0;
     return Math.floor(this.first / this.rows) + 1;
   }
 
   get totalPages(): number {
-    if (!this.totalRecords) {
-      return 0;
-    }
+    if (!this.totalRecords) return 0;
     return Math.ceil(this.totalRecords / this.rows);
   }
 
-  get pageSize(): number {
-    return this.rows;
-  }
-
-  set pageSize(value: number) {
-    this.rows = value;
-  }
+  get pageSize(): number { return this.rows; }
+  set pageSize(value: number) { this.rows = value; }
 }

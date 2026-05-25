@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -14,6 +14,8 @@ import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { PaginatorModule, PaginatorState } from 'primeng/paginator';
 import { MessageService, ConfirmationService } from 'primeng/api';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { I18nService } from '@/shared/services/i18n.service';
 
 @Component({
     selector: 'app-technicians-list',
@@ -28,6 +30,8 @@ export class TechniciansListComponent implements OnInit {
     private readonly router = inject(Router);
     private readonly messageService = inject(MessageService);
     private readonly confirmationService = inject(ConfirmationService);
+    private readonly i18n = inject(I18nService);
+    private readonly destroyRef = inject(DestroyRef);
 
     technicians: TechnicianResponse[] = [];
     loading = false;
@@ -36,18 +40,25 @@ export class TechniciansListComponent implements OnInit {
     pageSize = 25;
     pageSizeOptions = [10, 25, 50, 100];
 
-    // Filters
     searchTerm = '';
     filterStatus = '';
 
-    statusOptions = [
-        { label: 'All Statuses', value: '' },
-        { label: 'Active', value: 'ACTIVE' },
-        { label: 'Inactive', value: 'INACTIVE' }
-    ];
+    statusOptions: { label: string; value: string }[] = [];
 
     ngOnInit(): void {
+        this.buildStatusOptions();
+        this.i18n.translationsLoaded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+            this.buildStatusOptions();
+        });
         this.loadTechnicians();
+    }
+
+    private buildStatusOptions(): void {
+        this.statusOptions = [
+            { label: this.i18n.t('technicians.statusOptions.allStatuses'), value: '' },
+            { label: this.i18n.t('technicians.statusOptions.active'),      value: 'ACTIVE' },
+            { label: this.i18n.t('technicians.statusOptions.inactive'),    value: 'INACTIVE' }
+        ];
     }
 
     loadTechnicians(): void {
@@ -61,13 +72,10 @@ export class TechniciansListComponent implements OnInit {
             })
             .subscribe({
                 next: (response) => {
-                    // Apply filters if needed
                     let filteredData = response.data;
-
                     if (this.filterStatus) {
                         filteredData = filteredData.filter((tech) => tech.status === this.filterStatus);
                     }
-
                     this.technicians = filteredData;
                     this.totalRecords = response.pagination.totalCount;
                     this.loading = false;
@@ -75,8 +83,8 @@ export class TechniciansListComponent implements OnInit {
                 error: (err) => {
                     this.messageService.add({
                         severity: 'error',
-                        summary: 'Error',
-                        detail: 'Failed to load technicians'
+                        summary: this.i18n.t('common.messages.error'),
+                        detail: this.i18n.t('technicians.messages.loadFailed')
                     });
                     console.error('Error loading technicians:', err);
                     this.loading = false;
@@ -114,30 +122,25 @@ export class TechniciansListComponent implements OnInit {
     }
 
     exportTechnicians(format: 'csv' | 'json'): void {
-        const dataToExport = this.technicians;
-
-        if (dataToExport.length === 0) {
+        if (this.technicians.length === 0) {
             this.messageService.add({
                 severity: 'warn',
-                summary: 'No Data',
-                detail: 'No technicians available to export'
+                summary: this.i18n.t('common.messages.warning'),
+                detail: this.i18n.t('technicians.messages.exportNoData')
             });
             return;
         }
-
         if (format === 'csv') {
-            this.exportToCSV(dataToExport);
+            this.exportToCSV(this.technicians);
         } else {
-            this.exportToJSON(dataToExport);
+            this.exportToJSON(this.technicians);
         }
     }
 
     private exportToCSV(data: TechnicianResponse[]): void {
         const headers = ['Code', 'Name', 'Phone', 'Shop Name', 'City', 'Status'];
         const csvData = data.map((tech) => [tech.technicianCode, tech.name, tech.phone || '', tech.shopName || '', tech.city || '', tech.status]);
-
         const csvContent = [headers.join(','), ...csvData.map((row) => row.map((cell) => `"${cell}"`).join(','))].join('\n');
-
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -145,11 +148,10 @@ export class TechniciansListComponent implements OnInit {
         link.download = `technicians_${new Date().toISOString().split('T')[0]}.csv`;
         link.click();
         window.URL.revokeObjectURL(url);
-
         this.messageService.add({
             severity: 'success',
-            summary: 'Export Complete',
-            detail: 'Technicians exported as CSV'
+            summary: this.i18n.t('common.messages.success'),
+            detail: this.i18n.t('technicians.messages.exportCSVSuccess')
         });
     }
 
@@ -162,11 +164,10 @@ export class TechniciansListComponent implements OnInit {
         link.download = `technicians_${new Date().toISOString().split('T')[0]}.json`;
         link.click();
         window.URL.revokeObjectURL(url);
-
         this.messageService.add({
             severity: 'success',
-            summary: 'Export Complete',
-            detail: 'Technicians exported as JSON'
+            summary: this.i18n.t('common.messages.success'),
+            detail: this.i18n.t('technicians.messages.exportJSONSuccess')
         });
     }
 
@@ -183,30 +184,34 @@ export class TechniciansListComponent implements OnInit {
     }
 
     toggleStatus(technician: TechnicianResponse): void {
-        const action = technician.status === 'ACTIVE' ? 'deactivate' : 'activate';
-        const message = `Are you sure you want to ${action} ${technician.name}?`;
+        const isDeactivating = technician.status === 'ACTIVE';
+        const confirmKey = isDeactivating ? 'technicians.messages.deactivateConfirm' : 'technicians.messages.activateConfirm';
 
         this.confirmationService.confirm({
-            message: message,
-            header: 'Confirm',
+            message: this.i18n.t(confirmKey, { name: technician.name }),
+            header: this.i18n.t('common.actions.confirm'),
             icon: 'pi pi-exclamation-triangle',
             accept: () => {
-                const serviceAction = technician.status === 'ACTIVE' ? this.technicianService.deactivateTechnician(technician.id) : this.technicianService.activateTechnician(technician.id);
+                const serviceAction = technician.status === 'ACTIVE'
+                    ? this.technicianService.deactivateTechnician(technician.id)
+                    : this.technicianService.activateTechnician(technician.id);
 
                 serviceAction.subscribe({
                     next: () => {
+                        const detailKey = isDeactivating ? 'technicians.messages.deactivateSuccess' : 'technicians.messages.activateSuccess';
                         this.messageService.add({
                             severity: 'success',
-                            summary: 'Success',
-                            detail: `Technician ${action}d successfully`
+                            summary: this.i18n.t('common.messages.success'),
+                            detail: this.i18n.t(detailKey)
                         });
                         this.loadTechnicians();
                     },
                     error: () => {
+                        const detailKey = isDeactivating ? 'technicians.messages.deactivateFailed' : 'technicians.messages.activateFailed';
                         this.messageService.add({
                             severity: 'error',
-                            summary: 'Error',
-                            detail: `Failed to ${action} technician`
+                            summary: this.i18n.t('common.messages.error'),
+                            detail: this.i18n.t(detailKey)
                         });
                     }
                 });

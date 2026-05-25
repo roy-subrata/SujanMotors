@@ -9,6 +9,7 @@ import { BadgeModule } from 'primeng/badge';
 import { MessageService } from 'primeng/api';
 import { UnitService, UnitResponse } from '../../services/unit.service';
 import { Select } from 'primeng/select';
+import { I18nService } from '@/shared/services/i18n.service';
 
 @Component({
   selector: 'app-units-list',
@@ -24,6 +25,7 @@ export class UnitsListComponent implements OnInit {
 
   private readonly unitService = inject(UnitService);
   private readonly messageService = inject(MessageService);
+  private readonly i18n = inject(I18nService);
 
   units: UnitResponse[] = [];
   selectedUnits: UnitResponse[] = [];
@@ -54,8 +56,8 @@ export class UnitsListComponent implements OnInit {
       error: (error) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: error?.error?.message || 'Failed to load units'
+          summary: this.i18n.t('common.messages.error'),
+          detail: error?.error?.message || this.i18n.t('units.messages.loadFailed')
         });
         this.loading = false;
       }

@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, ViewChild } from '@angular/core';
+import { Component, OnInit, inject, ViewChild, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute, RouterModule } from '@angular/router';
@@ -17,6 +17,8 @@ import { SupplierPaymentService, SupplierPaymentResponse, PaginatedSupplierPayme
 import { StatusBadgeComponent } from '../components/status-badge.component';
 import { CurrencyService } from '../../../shared/services/currency.service';
 import { SupplierService } from '../../inventory/services/supplier.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { I18nService } from '@/shared/services/i18n.service';
 
 @Component({
     selector: 'app-supplier-payment-list',
@@ -38,6 +40,8 @@ export class SupplierPaymentListComponent implements OnInit {
     private readonly route = inject(ActivatedRoute);
     private readonly currencyService = inject(CurrencyService);
     private readonly supplierService = inject(SupplierService);
+    private readonly i18n = inject(I18nService);
+    private readonly destroyRef = inject(DestroyRef);
 
     supplierPayments: SupplierPaymentResponse[] = [];
     searchTerm: string = '';
@@ -58,19 +62,16 @@ export class SupplierPaymentListComponent implements OnInit {
     supplierFilter: string | null = null;
     supplierFilterName: string = '';
 
-    statusOptions = [
-        { label: 'All', value: null },
-        { label: 'Pending', value: 'PENDING' },
-        { label: 'Completed', value: 'COMPLETED' },
-        { label: 'Processing', value: 'PROCESSING' },
-        { label: 'Failed', value: 'FAILED' },
-        { label: 'Cancelled', value: 'CANCELLED' }
-    ];
+    statusOptions: { label: string; value: string | null }[] = [];
 
     ngOnInit(): void {
-        this.initializeContextMenu();
+        this.buildStatusOptions();
+        this.rebuildContextMenu();
+        this.i18n.translationsLoaded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+            this.buildStatusOptions();
+            if (this.selectedPayment) this.rebuildContextMenu();
+        });
 
-        // Check for supplier filter from query params
         const supplierId = this.route.snapshot.queryParamMap.get('supplierId');
         if (supplierId) {
             this.supplierFilter = supplierId;
@@ -80,112 +81,82 @@ export class SupplierPaymentListComponent implements OnInit {
         this.loadSupplierPayments();
     }
 
-    /**
-     * Initialize context menu items
-     */
-    private initializeContextMenu(): void {
+    private buildStatusOptions(): void {
+        this.statusOptions = [
+            { label: this.i18n.t('supplierPayments.statusOptions.all'),        value: null },
+            { label: this.i18n.t('supplierPayments.statusOptions.pending'),     value: 'PENDING' },
+            { label: this.i18n.t('supplierPayments.statusOptions.completed'),   value: 'COMPLETED' },
+            { label: this.i18n.t('supplierPayments.statusOptions.processing'),  value: 'PROCESSING' },
+            { label: this.i18n.t('supplierPayments.statusOptions.failed'),      value: 'FAILED' },
+            { label: this.i18n.t('supplierPayments.statusOptions.cancelled'),   value: 'CANCELLED' }
+        ];
+    }
+
+    private rebuildContextMenu(): void {
+        const payment = this.selectedPayment;
         this.contextMenuItems = [
             {
-                label: 'View Details',
+                label: this.i18n.t('common.actions.viewDetails'),
                 icon: 'pi pi-eye',
-                command: () => {
-                    if (this.selectedPayment) {
-                        this.viewDetails(this.selectedPayment);
-                    }
-                }
+                command: () => { if (payment) this.viewDetails(payment); }
             },
             {
-                label: 'Edit',
+                label: this.i18n.t('common.actions.edit'),
                 icon: 'pi pi-pencil',
-                command: () => {
-                    if (this.selectedPayment) {
-                        this.edit(this.selectedPayment);
-                    }
-                },
-                visible: this.selectedPayment ? this.selectedPayment.status !== 'CONFIRMED' && this.selectedPayment.status !== 'RECONCILED' : false
+                command: () => { if (payment) this.edit(payment); },
+                visible: payment ? payment.status !== 'CONFIRMED' && payment.status !== 'RECONCILED' : false
             },
             { separator: true },
             {
-                label: 'Mark as Advance',
+                label: this.i18n.t('common.actions.markAsAdvance'),
                 icon: 'pi pi-arrow-up',
-                command: () => {
-                    if (this.selectedPayment) {
-                        this.markAsAdvance(this.selectedPayment);
-                    }
-                },
-                visible: this.selectedPayment ? this.selectedPayment.paymentType !== 'ADVANCE' : false
+                command: () => { if (payment) this.markAsAdvance(payment); },
+                visible: payment ? payment.paymentType !== 'ADVANCE' : false
             },
             {
-                label: 'Mark as Regular',
+                label: this.i18n.t('common.actions.markAsRegular'),
                 icon: 'pi pi-arrow-down',
-                command: () => {
-                    if (this.selectedPayment) {
-                        this.markAsRegular(this.selectedPayment);
-                    }
-                },
-                visible: this.selectedPayment ? this.selectedPayment.paymentType === 'ADVANCE' : false
+                command: () => { if (payment) this.markAsRegular(payment); },
+                visible: payment ? payment.paymentType === 'ADVANCE' : false
             },
             { separator: true },
             {
-                label: 'Confirm Payment',
+                label: this.i18n.t('common.actions.confirmPayment'),
                 icon: 'pi pi-check-circle',
-                command: () => {
-                    if (this.selectedPayment) {
-                        this.confirmPayment(this.selectedPayment);
-                    }
-                },
-                visible: this.selectedPayment ? (this.selectedPayment.status === 'PENDING' || this.selectedPayment.status === 'PROCESSING') : false
+                command: () => { if (payment) this.confirmPayment(payment); },
+                visible: payment ? (payment.status === 'PENDING' || payment.status === 'PROCESSING') : false
             },
             {
-                label: 'Reconcile',
+                label: this.i18n.t('common.actions.reconcile'),
                 icon: 'pi pi-sync',
-                command: () => {
-                    if (this.selectedPayment) {
-                        this.reconcilePayment(this.selectedPayment);
-                    }
-                },
-                visible: this.selectedPayment ? this.selectedPayment.status === 'CONFIRMED' && !this.selectedPayment.isReconciled : false
+                command: () => { if (payment) this.reconcilePayment(payment); },
+                visible: payment ? payment.status === 'CONFIRMED' && !payment.isReconciled : false
             },
             { separator: true },
             {
-                label: 'Cancel',
+                label: this.i18n.t('common.actions.cancel'),
                 icon: 'pi pi-times',
-                command: () => {
-                    if (this.selectedPayment) {
-                        this.cancelPayment(this.selectedPayment);
-                    }
-                },
-                visible: this.selectedPayment ? this.selectedPayment.status !== 'CONFIRMED' && this.selectedPayment.status !== 'RECONCILED' : false
+                command: () => { if (payment) this.cancelPayment(payment); },
+                visible: payment ? payment.status !== 'CONFIRMED' && payment.status !== 'RECONCILED' : false
             },
             {
-                label: 'Delete',
+                label: this.i18n.t('common.actions.delete'),
                 icon: 'pi pi-trash',
-                command: () => {
-                    if (this.selectedPayment) {
-                        this.deletePayment(this.selectedPayment);
-                    }
-                },
-                visible: this.selectedPayment ? this.selectedPayment.status !== 'CONFIRMED' && this.selectedPayment.status !== 'RECONCILED' : false
+                command: () => { if (payment) this.deletePayment(payment); },
+                visible: payment ? payment.status !== 'CONFIRMED' && payment.status !== 'RECONCILED' : false
             }
         ];
     }
 
-    /**
-     * Show context menu
-     */
     showContextMenu(event: MouseEvent, payment: SupplierPaymentResponse): void {
         this.selectedPayment = payment;
-        this.initializeContextMenu();
+        this.rebuildContextMenu();
         this.contextMenu?.show(event);
     }
 
-    /**
-     * Load supplier payments
-     */
     loadSupplierPayments(): void {
         this.loading = true;
 
-        // Build query object
         const query: SupplierPaymentQuery = {
             pageNumber: this.pageNumber,
             pageSize: this.pageSize,
@@ -194,19 +165,13 @@ export class SupplierPaymentListComponent implements OnInit {
             supplierId: this.supplierFilter || undefined
         };
 
-        // Add date range if selected
         if (this.dateRange && this.dateRange.length === 2 && this.dateRange[0] && this.dateRange[1]) {
             query.fromDate = this.formatDateForApi(this.dateRange[0]);
             query.toDate = this.formatDateForApi(this.dateRange[1]);
         }
 
         if (this.sortField && this.sortOrder) {
-            query.sorts = [
-                {
-                    field: this.sortField,
-                    direction: this.sortOrder === 1 ? 'ASC' : 'DESC'
-                }
-            ];
+            query.sorts = [{ field: this.sortField, direction: this.sortOrder === 1 ? 'ASC' : 'DESC' }];
         }
 
         this.supplierPaymentService.getSupplierPayments(query).subscribe({
@@ -218,8 +183,8 @@ export class SupplierPaymentListComponent implements OnInit {
             error: (error) => {
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Error',
-                    detail: 'Failed to load supplier payments'
+                    summary: this.i18n.t('common.messages.error'),
+                    detail: this.i18n.t('supplierPayments.messages.loadFailed')
                 });
                 console.error('Error loading supplier payments:', error);
                 this.loading = false;
@@ -227,9 +192,6 @@ export class SupplierPaymentListComponent implements OnInit {
         });
     }
 
-    /**
-     * Format date for API - returns YYYY-MM-DD string in local timezone
-     */
     private formatDateForApi(date: Date): string {
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -237,58 +199,43 @@ export class SupplierPaymentListComponent implements OnInit {
         return `${year}-${month}-${day}`;
     }
 
-    /**
-     * Search supplier payments
-     */
     onSearch(): void {
         this.resetPagination();
         this.loadSupplierPayments();
     }
 
-    /**
-     * Create new supplier payment
-     */
     createNew(): void {
         this.router.navigate(['/procurement/supplier-payments/new']);
     }
 
-    /**
-     * Edit supplier payment
-     */
     edit(payment: SupplierPaymentResponse): void {
         this.router.navigate(['/procurement/supplier-payments/edit'], { queryParams: { id: payment.id } });
     }
 
-    /**
-     * View supplier payment details
-     */
     viewDetails(payment: SupplierPaymentResponse): void {
         this.router.navigate(['/procurement/supplier-payments/view'], { queryParams: { id: payment.id } });
     }
 
-    /**
-     * Confirm payment
-     */
     confirmPayment(payment: SupplierPaymentResponse): void {
         this.confirmationService.confirm({
-            message: `Are you sure you want to confirm payment of ${this.formatCurrency(payment.amount)} to ${payment.supplierName}?`,
-            header: 'Confirm Payment',
+            message: this.i18n.t('supplierPayments.messages.confirmConfirm'),
+            header: this.i18n.t('common.actions.confirmPayment'),
             icon: 'pi pi-exclamation-triangle',
             accept: () => {
                 this.supplierPaymentService.confirmPayment(payment.id).subscribe({
                     next: () => {
                         this.messageService.add({
                             severity: 'success',
-                            summary: 'Success',
-                            detail: 'Payment confirmed successfully'
+                            summary: this.i18n.t('common.messages.success'),
+                            detail: this.i18n.t('supplierPayments.messages.confirmSuccess')
                         });
                         this.loadSupplierPayments();
                     },
                     error: (error) => {
                         this.messageService.add({
                             severity: 'error',
-                            summary: 'Error',
-                            detail: error?.error?.message || 'Failed to confirm payment'
+                            summary: this.i18n.t('common.messages.error'),
+                            detail: error?.error?.message || this.i18n.t('supplierPayments.messages.confirmFailed')
                         });
                         console.error('Error confirming payment:', error);
                     }
@@ -297,53 +244,47 @@ export class SupplierPaymentListComponent implements OnInit {
         });
     }
 
-    /**
-     * Reconcile payment
-     */
     reconcilePayment(payment: SupplierPaymentResponse): void {
         this.supplierPaymentService.reconcilePayment(payment.id).subscribe({
             next: () => {
                 this.messageService.add({
                     severity: 'success',
-                    summary: 'Success',
-                    detail: 'Payment reconciled successfully'
+                    summary: this.i18n.t('common.messages.success'),
+                    detail: this.i18n.t('supplierPayments.messages.reconcileSuccess')
                 });
                 this.loadSupplierPayments();
             },
             error: (error) => {
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Error',
-                    detail: error?.error?.message || 'Failed to reconcile payment'
+                    summary: this.i18n.t('common.messages.error'),
+                    detail: error?.error?.message || this.i18n.t('supplierPayments.messages.reconcileFailed')
                 });
                 console.error('Error reconciling payment:', error);
             }
         });
     }
 
-    /**
-     * Cancel payment
-     */
     cancelPayment(payment: SupplierPaymentResponse): void {
         this.confirmationService.confirm({
-            message: `Are you sure you want to cancel this payment?`,
-            header: 'Cancel Payment',
+            message: this.i18n.t('supplierPayments.messages.cancelConfirm'),
+            header: this.i18n.t('common.actions.cancel'),
             icon: 'pi pi-exclamation-triangle',
             accept: () => {
                 this.supplierPaymentService.cancelPayment(payment.id).subscribe({
                     next: () => {
                         this.messageService.add({
                             severity: 'success',
-                            summary: 'Success',
-                            detail: 'Payment cancelled successfully'
+                            summary: this.i18n.t('common.messages.success'),
+                            detail: this.i18n.t('supplierPayments.messages.cancelSuccess')
                         });
                         this.loadSupplierPayments();
                     },
                     error: (error) => {
                         this.messageService.add({
                             severity: 'error',
-                            summary: 'Error',
-                            detail: error?.error?.message || 'Failed to cancel payment'
+                            summary: this.i18n.t('common.messages.error'),
+                            detail: error?.error?.message || this.i18n.t('supplierPayments.messages.cancelFailed')
                         });
                         console.error('Error cancelling payment:', error);
                     }
@@ -352,29 +293,26 @@ export class SupplierPaymentListComponent implements OnInit {
         });
     }
 
-    /**
-     * Delete payment
-     */
     deletePayment(payment: SupplierPaymentResponse): void {
         this.confirmationService.confirm({
-            message: `Are you sure you want to delete this payment?`,
-            header: 'Delete Payment',
+            message: this.i18n.t('supplierPayments.messages.deleteConfirm'),
+            header: this.i18n.t('common.messages.confirmDeletion'),
             icon: 'pi pi-exclamation-triangle',
             accept: () => {
                 this.supplierPaymentService.deleteSupplierPayment(payment.id).subscribe({
                     next: () => {
                         this.messageService.add({
                             severity: 'success',
-                            summary: 'Success',
-                            detail: 'Payment deleted successfully'
+                            summary: this.i18n.t('common.messages.success'),
+                            detail: this.i18n.t('supplierPayments.messages.deleteSuccess')
                         });
                         this.loadSupplierPayments();
                     },
                     error: (error) => {
                         this.messageService.add({
                             severity: 'error',
-                            summary: 'Error',
-                            detail: error?.error?.message || 'Failed to delete payment'
+                            summary: this.i18n.t('common.messages.error'),
+                            detail: error?.error?.message || this.i18n.t('supplierPayments.messages.deleteFailed')
                         });
                         console.error('Error deleting payment:', error);
                     }
@@ -383,29 +321,26 @@ export class SupplierPaymentListComponent implements OnInit {
         });
     }
 
-    /**
-     * Mark payment as advance
-     */
     markAsAdvance(payment: SupplierPaymentResponse): void {
         this.confirmationService.confirm({
-            message: `Mark this payment of ${this.formatCurrency(payment.amount)} as an advance payment?`,
-            header: 'Mark as Advance',
+            message: this.i18n.t('common.actions.markAsAdvance') + '?',
+            header: this.i18n.t('common.actions.markAsAdvance'),
             icon: 'pi pi-info-circle',
             accept: () => {
                 this.supplierPaymentService.markPaymentAsAdvance(payment.id, { description: 'Advance Payment' }).subscribe({
                     next: () => {
                         this.messageService.add({
                             severity: 'success',
-                            summary: 'Success',
-                            detail: 'Payment marked as advance successfully'
+                            summary: this.i18n.t('common.messages.success'),
+                            detail: this.i18n.t('supplierPayments.messages.markAdvanceSuccess')
                         });
                         this.loadSupplierPayments();
                     },
                     error: (error) => {
                         this.messageService.add({
                             severity: 'error',
-                            summary: 'Error',
-                            detail: error?.error?.message || 'Failed to mark payment as advance'
+                            summary: this.i18n.t('common.messages.error'),
+                            detail: error?.error?.message || this.i18n.t('supplierPayments.messages.markFailed')
                         });
                         console.error('Error marking payment as advance:', error);
                     }
@@ -414,29 +349,26 @@ export class SupplierPaymentListComponent implements OnInit {
         });
     }
 
-    /**
-     * Mark payment as regularreconcilePayment
-     */
     markAsRegular(payment: SupplierPaymentResponse): void {
         this.confirmationService.confirm({
-            message: `Mark this payment of ${this.formatCurrency(payment.amount)} as a regular payment?`,
-            header: 'Mark as Regular',
+            message: this.i18n.t('common.actions.markAsRegular') + '?',
+            header: this.i18n.t('common.actions.markAsRegular'),
             icon: 'pi pi-info-circle',
             accept: () => {
-                this.supplierPaymentService.markPaymentAsRegular(payment.id, {description: 'Regular Payment'}).subscribe({
+                this.supplierPaymentService.markPaymentAsRegular(payment.id, { description: 'Regular Payment' }).subscribe({
                     next: () => {
                         this.messageService.add({
                             severity: 'success',
-                            summary: 'Success',
-                            detail: 'Payment marked as regular successfully'
+                            summary: this.i18n.t('common.messages.success'),
+                            detail: this.i18n.t('supplierPayments.messages.markRegularSuccess')
                         });
                         this.loadSupplierPayments();
                     },
                     error: (error) => {
                         this.messageService.add({
                             severity: 'error',
-                            summary: 'Error',
-                            detail: error?.error?.message || 'Failed to mark payment as regular'
+                            summary: this.i18n.t('common.messages.error'),
+                            detail: error?.error?.message || this.i18n.t('supplierPayments.messages.markFailed')
                         });
                         console.error('Error marking payment as regular:', error);
                     }
@@ -445,22 +377,14 @@ export class SupplierPaymentListComponent implements OnInit {
         });
     }
 
-    /**
-     * Handle pagination
-     */
     onPageChange(event: any): void {
-        if (!event || typeof event.first !== 'number' || typeof event.rows !== 'number') {
-            return;
-        }
+        if (!event || typeof event.first !== 'number' || typeof event.rows !== 'number') return;
         this.first = event.first;
         this.pageNumber = event.first / event.rows + 1;
         this.pageSize = event.rows;
         this.loadSupplierPayments();
     }
 
-    /**
-     * Handle PrimeNG table lazy load event (pagination + sorting)
-     */
     onLazyLoad(event: TableLazyLoadEvent): void {
         this.first = event.first ?? 0;
         this.pageSize = event.rows ?? this.pageSize;
@@ -470,9 +394,6 @@ export class SupplierPaymentListComponent implements OnInit {
         this.loadSupplierPayments();
     }
 
-    /**
-     * Clear search
-     */
     clearSearch(): void {
         this.searchTerm = '';
         this.resetPagination();
@@ -497,9 +418,6 @@ export class SupplierPaymentListComponent implements OnInit {
         this.loadSupplierPayments();
     }
 
-    /**
-     * Clear all filters
-     */
     clearFilters(): void {
         this.searchTerm = '';
         this.filterStatus = null;
@@ -535,15 +453,12 @@ export class SupplierPaymentListComponent implements OnInit {
         this.first = 0;
     }
 
-    /**
-     * Export payments to CSV or JSON
-     */
     exportPayments(format: 'csv' | 'json'): void {
         if (this.supplierPayments.length === 0) {
             this.messageService.add({
                 severity: 'warn',
-                summary: 'No Data',
-                detail: 'No supplier payments to export'
+                summary: this.i18n.t('common.messages.warning'),
+                detail: this.i18n.t('supplierPayments.messages.noDataExport')
             });
             return;
         }
@@ -555,9 +470,6 @@ export class SupplierPaymentListComponent implements OnInit {
         }
     }
 
-    /**
-     * Export to CSV
-     */
     private exportToCSV(): void {
         const headers = ['Supplier', 'Payment Type', 'Gross Amount', 'Payment Fee', 'Net Amount', 'Payment Date', 'Payment Method', 'Status', 'Provider', 'Invoice #', 'Reconciled'];
         const rows = this.supplierPayments.map(payment => [
@@ -574,11 +486,7 @@ export class SupplierPaymentListComponent implements OnInit {
             payment.isReconciled ? 'YES' : 'NO'
         ]);
 
-        const csvContent = [
-            headers.join(','),
-            ...rows.map(row => row.join(','))
-        ].join('\n');
-
+        const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
         const blob = new Blob([csvContent], { type: 'text/csv' });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -589,14 +497,11 @@ export class SupplierPaymentListComponent implements OnInit {
 
         this.messageService.add({
             severity: 'success',
-            summary: 'Success',
-            detail: 'Supplier payments exported to CSV'
+            summary: this.i18n.t('common.messages.success'),
+            detail: this.i18n.t('supplierPayments.messages.exportCSVSuccess')
         });
     }
 
-    /**
-     * Export to JSON
-     */
     private exportToJSON(): void {
         const jsonContent = JSON.stringify(this.supplierPayments, null, 2);
         const blob = new Blob([jsonContent], { type: 'application/json' });
@@ -609,14 +514,11 @@ export class SupplierPaymentListComponent implements OnInit {
 
         this.messageService.add({
             severity: 'success',
-            summary: 'Success',
-            detail: 'Supplier payments exported to JSON'
+            summary: this.i18n.t('common.messages.success'),
+            detail: this.i18n.t('supplierPayments.messages.exportJSONSuccess')
         });
     }
 
-    /**
-     * Format currency - uses default currency from settings
-     */
     formatCurrency(value: number): string {
         const currency = this.currencyService.selectedCurrency();
         return this.currencyService.formatCurrency(value, currency);

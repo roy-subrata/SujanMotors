@@ -1,4 +1,4 @@
-import { Component, Output, EventEmitter, ViewChild, Input } from '@angular/core';
+import { Component, Output, EventEmitter, ViewChild, Input, OnInit, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
@@ -10,6 +10,8 @@ import { RippleModule } from 'primeng/ripple';
 import { Select } from 'primeng/select';
 import { MenuItem } from 'primeng/api';
 import { DiscountResponse } from '../../services/discount.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { I18nService } from '@/shared/services/i18n.service';
 
 @Component({
   selector: 'app-discounts-list',
@@ -28,49 +30,51 @@ import { DiscountResponse } from '../../services/discount.service';
   templateUrl: './discounts-list.component.html',
   styleUrls: ['./discounts-list.component.css']
 })
-export class DiscountsListComponent {
+export class DiscountsListComponent implements OnInit {
   @ViewChild('contextMenu') contextMenu: ContextMenu | undefined;
 
-  // Input data from parent
   @Input() discounts: DiscountResponse[] = [];
   @Input() loading = false;
   @Input() totalRecords = 0;
   @Input() rows = 10;
   @Input() currentPage = 1;
 
-  // Output events
   @Output() editDiscount = new EventEmitter<DiscountResponse>();
   @Output() deleteDiscount = new EventEmitter<DiscountResponse>();
   @Output() toggleActive = new EventEmitter<DiscountResponse>();
   @Output() pageChange = new EventEmitter<{ page: number; rows: number }>();
 
-  // Context menu
   contextMenuItems: MenuItem[] = [];
   selectedDiscount: DiscountResponse | null = null;
 
-  // Expose Math for template
   Math = Math;
 
-  /**
-   * Build context menu for a discount
-   */
+  private readonly i18n = inject(I18nService);
+  private readonly destroyRef = inject(DestroyRef);
+
+  ngOnInit(): void {
+    this.i18n.translationsLoaded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      if (this.selectedDiscount) this.buildContextMenu(this.selectedDiscount);
+    });
+  }
+
   private buildContextMenu(discount: DiscountResponse): void {
     this.selectedDiscount = discount;
     this.contextMenuItems = [
       {
-        label: 'Edit',
+        label: this.i18n.t('common.actions.edit'),
         icon: 'pi pi-pencil',
         command: () => this.editDiscount.emit(discount)
       },
       { separator: true },
       {
-        label: discount.isActive ? 'Deactivate' : 'Activate',
+        label: discount.isActive ? this.i18n.t('common.actions.deactivate') : this.i18n.t('common.actions.activate'),
         icon: discount.isActive ? 'pi pi-ban' : 'pi pi-check-circle',
         command: () => this.toggleActive.emit(discount)
       },
       { separator: true },
       {
-        label: 'Delete',
+        label: this.i18n.t('common.actions.delete'),
         icon: 'pi pi-trash',
         command: () => this.deleteDiscount.emit(discount),
         styleClass: 'p-menuitem-danger'
@@ -78,9 +82,6 @@ export class DiscountsListComponent {
     ];
   }
 
-  /**
-   * Show context menu
-   */
   showContextMenu(event: MouseEvent, discount: DiscountResponse): void {
     event.preventDefault();
     event.stopPropagation();
@@ -88,16 +89,10 @@ export class DiscountsListComponent {
     this.contextMenu?.show(event);
   }
 
-  /**
-   * Get status label
-   */
   getStatusLabel(isActive: boolean): string {
-    return isActive ? 'Active' : 'Inactive';
+    return isActive ? this.i18n.t('common.status.active') : this.i18n.t('common.status.inactive');
   }
 
-  /**
-   * Format discount value display
-   */
   formatDiscountValue(discount: DiscountResponse): string {
     if (discount.type === 'PERCENTAGE') {
       return `${discount.value}%`;
@@ -105,9 +100,6 @@ export class DiscountsListComponent {
     return `৳${discount.value.toLocaleString()}`;
   }
 
-  /**
-   * Format valid period display
-   */
   formatValidPeriod(discount: DiscountResponse): string {
     const start = new Date(discount.startDate).toLocaleDateString('en-GB', {
       day: '2-digit', month: 'short', year: 'numeric'
@@ -121,19 +113,11 @@ export class DiscountsListComponent {
     return `${start} → No expiry`;
   }
 
-  /**
-   * Navigate to a specific page
-   */
   goToPage(page: number): void {
-    if (page < 1 || page > this.totalPages) {
-      return;
-    }
+    if (page < 1 || page > this.totalPages) return;
     this.pageChange.emit({ page, rows: this.rows });
   }
 
-  /**
-   * Handle page size change
-   */
   onPageSizeChange(newRows: number): void {
     this.pageChange.emit({ page: 1, rows: newRows });
   }
@@ -143,9 +127,7 @@ export class DiscountsListComponent {
   }
 
   get totalPages(): number {
-    if (!this.totalRecords || !this.rows) {
-      return 0;
-    }
+    if (!this.totalRecords || !this.rows) return 0;
     return Math.ceil(this.totalRecords / this.rows);
   }
 }

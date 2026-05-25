@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
@@ -18,6 +18,8 @@ import { MessageService, ConfirmationService } from 'primeng/api';
 import { WarrantyService, WarrantyRegistrationResponse, CreateWarrantyRegistrationRequest } from '../services/warranty.service';
 import { SalesOrderService, SalesOrderResponse, SalesOrderLineResponse } from '../../sales/services/sales-order.service';
 import { CurrencyService } from '../../../shared/services/currency.service';
+import { I18nService } from '@/shared/services/i18n.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
     selector: 'app-warranties-list',
@@ -49,6 +51,8 @@ export class WarrantiesListComponent implements OnInit {
     private readonly messageService = inject(MessageService);
     private readonly confirmationService = inject(ConfirmationService);
     readonly currencyService = inject(CurrencyService);
+    private readonly i18n = inject(I18nService);
+    private readonly destroyRef = inject(DestroyRef);
 
     warranties: WarrantyRegistrationResponse[] = [];
     filteredWarranties: WarrantyRegistrationResponse[] = [];
@@ -56,21 +60,13 @@ export class WarrantiesListComponent implements OnInit {
     searchText = '';
     selectedStatus = '';
 
-    // Summary metrics
     totalActive = 0;
     totalExpiringSoon = 0;
     totalClaimed = 0;
     totalVoid = 0;
 
-    statuses = [
-        { label: 'All Statuses', value: '' },
-        { label: 'Active', value: 'ACTIVE' },
-        { label: 'Expired', value: 'EXPIRED' },
-        { label: 'Claimed', value: 'CLAIMED' },
-        { label: 'Void', value: 'VOID' }
-    ];
+    statuses: { label: string; value: string }[] = [];
 
-    // Create dialog
     showCreateDialog = false;
     isCreating = false;
     soNumberSearch = '';
@@ -90,17 +86,29 @@ export class WarrantiesListComponent implements OnInit {
         certificateNumber: ''
     };
 
-    // Void dialog
     showVoidDialog = false;
     selectedWarranty: WarrantyRegistrationResponse | null = null;
     voidReason = '';
 
-    // Detail dialog
     showDetailDialog = false;
     detailWarranty: WarrantyRegistrationResponse | null = null;
 
     ngOnInit(): void {
+        this.buildStatuses();
+        this.i18n.translationsLoaded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+            this.buildStatuses();
+        });
         this.loadWarranties();
+    }
+
+    private buildStatuses(): void {
+        this.statuses = [
+            { label: this.i18n.t('warranties.statuses.allStatuses'), value: '' },
+            { label: this.i18n.t('warranties.statuses.active'),      value: 'ACTIVE' },
+            { label: this.i18n.t('warranties.statuses.expired'),     value: 'EXPIRED' },
+            { label: this.i18n.t('warranties.statuses.claimed'),     value: 'CLAIMED' },
+            { label: this.i18n.t('warranties.statuses.void'),        value: 'VOID' }
+        ];
     }
 
     loadWarranties(): void {
@@ -115,8 +123,8 @@ export class WarrantiesListComponent implements OnInit {
             error: (error) => {
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Error',
-                    detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || 'Failed to load warranties')
+                    summary: this.i18n.t('common.messages.error'),
+                    detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || this.i18n.t('warranties.messages.loadFailed'))
                 });
                 this.isLoading = false;
             }
@@ -177,12 +185,12 @@ export class WarrantiesListComponent implements OnInit {
     }
 
     getDaysUntilExpiryDisplay(warranty: WarrantyRegistrationResponse): string {
-        if (warranty.status === 'EXPIRED') return 'Expired';
-        if (warranty.status === 'VOID') return 'Voided';
-        if (warranty.daysUntilExpiry < 0) return 'Expired';
-        if (warranty.daysUntilExpiry === 0) return 'Expires today';
-        if (warranty.daysUntilExpiry === 1) return '1 day left';
-        return `${warranty.daysUntilExpiry} days left`;
+        if (warranty.status === 'EXPIRED') return this.i18n.t('warranties.messages.expiredStatus');
+        if (warranty.status === 'VOID') return this.i18n.t('warranties.messages.voidedStatus');
+        if (warranty.daysUntilExpiry < 0) return this.i18n.t('warranties.messages.expiredStatus');
+        if (warranty.daysUntilExpiry === 0) return this.i18n.t('warranties.messages.expiresToday');
+        if (warranty.daysUntilExpiry === 1) return this.i18n.t('warranties.messages.oneDayLeft');
+        return this.i18n.t('warranties.messages.daysLeft', { days: warranty.daysUntilExpiry });
     }
 
     formatDate(date: Date | string | null): string {
@@ -212,7 +220,7 @@ export class WarrantiesListComponent implements OnInit {
 
     searchSalesOrder(): void {
         if (!this.soNumberSearch.trim()) {
-            this.messageService.add({ severity: 'warn', summary: 'Validation', detail: 'Please enter a sales order number' });
+            this.messageService.add({ severity: 'warn', summary: this.i18n.t('common.messages.warning'), detail: this.i18n.t('warranties.messages.soNumberRequired') });
             return;
         }
 
@@ -228,8 +236,8 @@ export class WarrantiesListComponent implements OnInit {
             error: (error) => {
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Not Found',
-                    detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || 'Sales order not found')
+                    summary: this.i18n.t('common.messages.error'),
+                    detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || this.i18n.t('warranties.messages.soNotFound'))
                 });
                 this.isLoadingOrder = false;
             }
@@ -281,8 +289,8 @@ export class WarrantiesListComponent implements OnInit {
             next: () => {
                 this.messageService.add({
                     severity: 'success',
-                    summary: 'Success',
-                    detail: 'Warranty registered successfully'
+                    summary: this.i18n.t('common.messages.success'),
+                    detail: this.i18n.t('warranties.messages.createSuccess')
                 });
                 this.showCreateDialog = false;
                 this.isCreating = false;
@@ -291,8 +299,8 @@ export class WarrantiesListComponent implements OnInit {
             error: (error) => {
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Error',
-                    detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || 'Failed to create warranty')
+                    summary: this.i18n.t('common.messages.error'),
+                    detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || this.i18n.t('warranties.messages.createFailed'))
                 });
                 this.isCreating = false;
             }
@@ -309,7 +317,7 @@ export class WarrantiesListComponent implements OnInit {
 
     confirmVoid(): void {
         if (!this.selectedWarranty || !this.voidReason.trim()) {
-            this.messageService.add({ severity: 'warn', summary: 'Validation', detail: 'Please enter a reason for voiding' });
+            this.messageService.add({ severity: 'warn', summary: this.i18n.t('common.messages.warning'), detail: this.i18n.t('warranties.messages.voidReasonRequired') });
             return;
         }
 
@@ -317,8 +325,8 @@ export class WarrantiesListComponent implements OnInit {
             next: () => {
                 this.messageService.add({
                     severity: 'success',
-                    summary: 'Success',
-                    detail: 'Warranty voided successfully'
+                    summary: this.i18n.t('common.messages.success'),
+                    detail: this.i18n.t('warranties.messages.voidSuccess')
                 });
                 this.showVoidDialog = false;
                 this.loadWarranties();
@@ -326,8 +334,8 @@ export class WarrantiesListComponent implements OnInit {
             error: (error) => {
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Error',
-                    detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || 'Failed to void warranty')
+                    summary: this.i18n.t('common.messages.error'),
+                    detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || this.i18n.t('warranties.messages.voidFailed'))
                 });
             }
         });
@@ -344,8 +352,8 @@ export class WarrantiesListComponent implements OnInit {
 
     deleteWarranty(warranty: WarrantyRegistrationResponse): void {
         this.confirmationService.confirm({
-            message: `Are you sure you want to delete warranty ${warranty.warrantyNumber}? This action cannot be undone.`,
-            header: 'Confirm Delete',
+            message: this.i18n.t('warranties.messages.deleteConfirm', { number: warranty.warrantyNumber }),
+            header: this.i18n.t('common.messages.confirmDeletion'),
             icon: 'pi pi-exclamation-triangle',
             acceptButtonStyleClass: 'p-button-danger',
             accept: () => {
@@ -353,16 +361,16 @@ export class WarrantiesListComponent implements OnInit {
                     next: () => {
                         this.messageService.add({
                             severity: 'success',
-                            summary: 'Success',
-                            detail: 'Warranty deleted successfully'
+                            summary: this.i18n.t('common.messages.success'),
+                            detail: this.i18n.t('warranties.messages.deleteSuccess')
                         });
                         this.loadWarranties();
                     },
                     error: (error) => {
                         this.messageService.add({
                             severity: 'error',
-                            summary: 'Error',
-                            detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || 'Failed to delete warranty')
+                            summary: this.i18n.t('common.messages.error'),
+                            detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || this.i18n.t('warranties.messages.deleteFailed'))
                         });
                     }
                 });

@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, ViewChild, inject, OnInit } from '@angular/core';
+import { Component, EventEmitter, Input, Output, ViewChild, inject, OnInit, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -9,6 +9,8 @@ import { TooltipModule } from 'primeng/tooltip';
 import { Select } from 'primeng/select';
 import { ConfirmationService, MessageService, MenuItem } from 'primeng/api';
 import { GoodsReceiptService, GoodsReceiptResponse } from '../services/goods-receipt.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { I18nService } from '@/shared/services/i18n.service';
 
 @Component({
   selector: 'app-goods-receipts-list',
@@ -53,8 +55,14 @@ export class GoodsReceiptsListComponent implements OnInit {
   private readonly confirmationService = inject(ConfirmationService);
   private readonly messageService = inject(MessageService);
   private readonly router = inject(Router);
+  private readonly i18n = inject(I18nService);
+  private readonly destroyRef = inject(DestroyRef);
 
-  ngOnInit(): void {}
+  ngOnInit(): void {
+    this.i18n.translationsLoaded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      if (this.selectedGrn) this.buildActionMenuItems(this.selectedGrn);
+    });
+  }
 
   get totalPages(): number {
     return Math.max(1, Math.ceil(this.totalRecords / this.rows));
@@ -64,44 +72,37 @@ export class GoodsReceiptsListComponent implements OnInit {
     return Math.max(0, (this.currentPage - 1) * this.rows);
   }
 
-  /**
-   * Show action menu
-   */
-  showActionMenu(event: Event, grn: GoodsReceiptResponse): void {
-    this.selectedGrn = grn;
-
+  private buildActionMenuItems(grn: GoodsReceiptResponse): void {
     this.actionMenuItems = [
       {
-        label: 'View Details',
+        label: this.i18n.t('common.actions.viewDetails'),
         icon: 'pi pi-eye',
         command: () => this.viewGoodsReceipt(grn)
       },
       {
-        label: 'Delete',
+        label: this.i18n.t('common.actions.delete'),
         icon: 'pi pi-trash',
         command: () => this.deleteGoodsReceipt(grn),
         visible: grn.status === 'PENDING',
         styleClass: 'text-red-600'
       }
     ];
+  }
 
+  showActionMenu(event: Event, grn: GoodsReceiptResponse): void {
+    this.selectedGrn = grn;
+    this.buildActionMenuItems(grn);
     this.actionMenu.toggle(event);
   }
 
-  /**
-   * View goods receipt
-   */
   viewGoodsReceipt(grn: GoodsReceiptResponse): void {
     this.router.navigate(['/procurement/goods-receipts/view'], { queryParams: { id: grn.id } });
   }
 
-  /**
-   * Delete goods receipt
-   */
   deleteGoodsReceipt(grn: GoodsReceiptResponse): void {
     this.confirmationService.confirm({
-      message: `Are you sure you want to delete GRN #${grn.grnNumber}?`,
-      header: 'Confirm Deletion',
+      message: this.i18n.t('goodsReceipts.messages.deleteConfirm', { number: grn.grnNumber }),
+      header: this.i18n.t('common.messages.confirmDeletion'),
       icon: 'pi pi-exclamation-triangle',
       acceptButtonStyleClass: 'p-button-danger',
       accept: () => {
@@ -110,43 +111,31 @@ export class GoodsReceiptsListComponent implements OnInit {
     });
   }
 
-  /**
-   * Delete goods receipt via API
-   */
   private deleteGrnById(id: string): void {
     this.grnService.deleteGoodsReceipt(id).subscribe({
       next: () => {
         this.messageService.add({
           severity: 'success',
-          summary: 'Success',
-          detail: 'Goods Receipt deleted successfully'
+          summary: this.i18n.t('common.messages.success'),
+          detail: this.i18n.t('goodsReceipts.messages.deleteSuccess')
         });
         this.grnDeleted.emit();
       },
       error: (error) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: error?.error?.message || 'Failed to delete goods receipt'
+          summary: this.i18n.t('common.messages.error'),
+          detail: error?.error?.message || this.i18n.t('goodsReceipts.messages.deleteFailed')
         });
         console.error('Error deleting GRN:', error);
       }
     });
   }
 
-  /**
-   * Handle page size change
-   */
   onPageSizeChange(): void {
-    this.pageChange.emit({
-      page: 1,
-      rows: this.rows
-    });
+    this.pageChange.emit({ page: 1, rows: this.rows });
   }
 
-  /**
-   * Pagination helpers
-   */
   goToFirstPage(): void {
     if (this.currentPage === 1) return;
     this.pageChange.emit({ page: 1, rows: this.rows });
@@ -167,9 +156,6 @@ export class GoodsReceiptsListComponent implements OnInit {
     this.pageChange.emit({ page: this.totalPages, rows: this.rows });
   }
 
-  /**
-   * Format date
-   */
   formatDate(date: string): string {
     if (!date) return '-';
     return new Date(date).toLocaleDateString('en-IN', {
@@ -179,9 +165,6 @@ export class GoodsReceiptsListComponent implements OnInit {
     });
   }
 
-  /**
-   * Format status for display
-   */
   formatStatus(status: string): string {
     if (!status) return '-';
     return status
