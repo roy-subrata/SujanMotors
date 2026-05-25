@@ -190,7 +190,7 @@ export class WarrantiesListComponent implements OnInit {
         if (warranty.daysUntilExpiry < 0) return this.i18n.t('warranties.messages.expiredStatus');
         if (warranty.daysUntilExpiry === 0) return this.i18n.t('warranties.messages.expiresToday');
         if (warranty.daysUntilExpiry === 1) return this.i18n.t('warranties.messages.oneDayLeft');
-        return this.i18n.t('warranties.messages.daysLeft', { days: warranty.daysUntilExpiry });
+        return this.i18n.t('warranties.messages.daysLeft', { days: String(warranty.daysUntilExpiry) });
     }
 
     formatDate(date: Date | string | null): string {
