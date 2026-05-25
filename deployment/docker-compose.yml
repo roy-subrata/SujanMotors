@@ -1,8 +1,6 @@
-# Base configuration — shared by all environments.
-# Do NOT use this file directly. Use an override:
-#   Dev:  docker compose -f docker-compose.yml -f docker-compose.dev.yml up
-#   Test: docker compose -f docker-compose.yml -f docker-compose.test.yml up
-#   Prod: docker compose -f docker-compose.yml -f docker-compose.prod.yml up
+# PRODUCTION — used by Hostinger VPS deployment.
+# Secrets come from a .env file on the server (see .env.example).
+# docker compose up --build
 
 services:
   autopartshop.db:
@@ -14,7 +12,7 @@ services:
       - MSSQL_PID=Developer
     volumes:
       - autopart_mssql_data:/var/opt/mssql
-    restart: unless-stopped
+    restart: always
     healthcheck:
       test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P '${DB_PASSWORD:-YourStrong!Passw0rd}' -Q 'SELECT 1' -No || exit 1"]
       interval: 10s
@@ -29,6 +27,7 @@ services:
     image: smapi:local
     container_name: autopartshop.api
     environment:
+      - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_HTTP_PORTS=8080
       - ConnectionStrings__AutoPartDb=Server=autopartshop.db,1433;Database=${DB_NAME:-AutoPartShopDb};User=sa;Password=${DB_PASSWORD:-YourStrong!Passw0rd};TrustServerCertificate=True;
       - JwtSettings__SecretKey=${JWT_SECRET:-YourSuperSecretKeyForJWTTokenGenerationMustBe32CharsLong!@#}
@@ -46,20 +45,25 @@ services:
       - Smtp__Password=${SMTP_PASSWORD:-}
       - Smtp__FromEmail=${SMTP_FROM_EMAIL:-}
       - Smtp__FromName=${SMTP_FROM_NAME:-SujanMotors}
+    # No ports exposed — browser reaches API through nginx reverse proxy
     depends_on:
       autopartshop.db:
         condition: service_healthy
-    restart: unless-stopped
+    restart: always
 
   autopartshop.web:
     build:
       context: ../src/AutoPartShop.WebApp
       dockerfile: dockerfile
+      args:
+        ENV_NAME: production
     image: smweb:local
     container_name: autopartshop.web
+    ports:
+      - "4200:80"
     depends_on:
       - autopartshop.api
-    restart: unless-stopped
+    restart: always
 
 volumes:
   autopart_mssql_data:
