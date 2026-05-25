@@ -1,18 +1,22 @@
+# Base configuration — shared by all environments.
+# Do NOT use this file directly. Use an override:
+#   Dev:  docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+#   Test: docker compose -f docker-compose.yml -f docker-compose.test.yml up
+#   Prod: docker compose -f docker-compose.yml -f docker-compose.prod.yml up
+
 services:
   autopartshop.db:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: autopartshop.db
     environment:
       - ACCEPT_EULA=Y
-      - SA_PASSWORD=YourStrong!Passw0rd
+      - SA_PASSWORD=${DB_PASSWORD:-YourStrong!Passw0rd}
       - MSSQL_PID=Developer
-    ports:
-      - "1433:1433"
     volumes:
       - autopart_mssql_data:/var/opt/mssql
-    restart: always
+    restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'YourStrong!Passw0rd' -Q 'SELECT 1' -No || exit 1"]
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P '${DB_PASSWORD:-YourStrong!Passw0rd}' -Q 'SELECT 1' -No || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -25,14 +29,13 @@ services:
     image: smapi:local
     container_name: autopartshop.api
     environment:
-      - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_HTTP_PORTS=8080
-      - ConnectionStrings__AutoPartDb=Server=autopartshop.db,1433;Database=AutoPartShopDb;User=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=True;
-      - JwtSettings__SecretKey=YourSuperSecretKeyForJWTTokenGenerationMustBe32CharsLong!@#
+      - ConnectionStrings__AutoPartDb=Server=autopartshop.db,1433;Database=${DB_NAME:-AutoPartShopDb};User=sa;Password=${DB_PASSWORD:-YourStrong!Passw0rd};TrustServerCertificate=True;
+      - JwtSettings__SecretKey=${JWT_SECRET:-YourSuperSecretKeyForJWTTokenGenerationMustBe32CharsLong!@#}
       - JwtSettings__Issuer=AutoPartShopAPI
       - JwtSettings__Audience=AutoPartShopClient
-      - JwtSettings__ExpiryInMinutes=60
-      - JwtSettings__RefreshTokenExpiryInDays=7
+      - JwtSettings__ExpiryInMinutes=${JWT_EXPIRY_MINUTES:-60}
+      - JwtSettings__RefreshTokenExpiryInDays=${JWT_REFRESH_DAYS:-7}
       - Twilio__AccountSid=${TWILIO_ACCOUNT_SID:-}
       - Twilio__AuthToken=${TWILIO_AUTH_TOKEN:-}
       - Twilio__SmsMsgServiceSid=${TWILIO_SMS_SID:-}
@@ -42,9 +45,7 @@ services:
       - Smtp__Username=${SMTP_USERNAME:-}
       - Smtp__Password=${SMTP_PASSWORD:-}
       - Smtp__FromEmail=${SMTP_FROM_EMAIL:-}
-      - Smtp__FromName=SujanMotors
-    ports:
-      - "5292:8080"
+      - Smtp__FromName=${SMTP_FROM_NAME:-SujanMotors}
     depends_on:
       autopartshop.db:
         condition: service_healthy
@@ -54,116 +55,11 @@ services:
     build:
       context: ../src/AutoPartShop.WebApp
       dockerfile: dockerfile
-      args:
-        ENV_NAME: production
     image: smweb:local
     container_name: autopartshop.web
-    ports:
-      - "4200:80"
     depends_on:
       - autopartshop.api
     restart: unless-stopped
 
-  # qdrant:
-  #   image: qdrant/qdrant:v1.13.2
-  #   container_name: autopartshop.qdrant
-  #   ports:
-  #     - "6333:6333"
-  #     - "6334:6334"
-  #   volumes:
-  #     - autopart_qdrant_data:/qdrant/storage
-  #   restart: always
-
-  # autopartshop.ai:
-  #   build:
-  #     context: ../src/AutoPartShop.AI
-  #     dockerfile: Dockerfile
-  #   image: smai:local
-  #   environment:
-  #     - APP_NAME=AutoPartShop.AI
-  #     - APP_PORT=8088
-  #     - LOG_LEVEL=INFO
-  #     - OPENAI_API_KEY=${OPENAI_API_KEY:-}
-  #     - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4.1-mini}
-  #     - LLM_TEMPERATURE=${LLM_TEMPERATURE:-0.1}
-  #     - AUTOPARTSHOP_API_BASE_URL=http://autopartshop.api:8080
-  #     - AUTOPARTSHOP_API_TIMEOUT_SECONDS=30
-  #     - AUTOPARTSHOP_API_BEARER_TOKEN=${AUTOPARTSHOP_API_BEARER_TOKEN:-}
-  #     - QDRANT_URL=http://qdrant:6333
-  #     - QDRANT_COLLECTION=autopartshop_customer_memory
-  #     - QDRANT_VECTOR_SIZE=1536
-  #     - DEFAULT_WAREHOUSE=A
-  #     - LOW_STOCK_THRESHOLD=5
-  #   ports:
-  #     - "8088:8088"
-  #   depends_on:
-  #     - qdrant
-  #     - autopartshop.api
-  
-  # ── Observability stack ────────────────────────────────────────────────────
-  # otel-collector:
-  #   image: otel/opentelemetry-collector-contrib:latest
-  #   container_name: autopartshop.otel-collector
-  #   volumes:
-  #     - ./otel-config.yaml:/etc/otelcol-contrib/config.yaml
-  #   ports:
-  #     - "4317:4317"   # OTLP gRPC
-  #     - "4318:4318"   # OTLP HTTP
-  #   depends_on:
-  #     - tempo
-  #     - loki
-  #   restart: unless-stopped
-
-  # prometheus:
-  #   image: prom/prometheus:v3.1.0
-  #   container_name: autopartshop.prometheus
-  #   volumes:
-  #     - ./prometheus.yml:/etc/prometheus/prometheus.yml
-  #   ports:
-  #     - "9090:9090"
-  #   restart: unless-stopped
-
-  # loki:
-  #   image: grafana/loki:3.3.2
-  #   container_name: autopartshop.loki
-  #   command: ["-config.file=/etc/loki/config.yaml"]
-  #   volumes:
-  #     - ./loki-config.yaml:/etc/loki/config.yaml
-  #   ports:
-  #     - "3100:3100"
-  #   restart: unless-stopped
-
-  # tempo:
-  #   image: grafana/tempo:2.7.1
-  #   container_name: autopartshop.tempo
-  #   command: ["-config.file=/etc/tempo.yaml"]
-  #   volumes:
-  #     - ./tempo-config.yaml:/etc/tempo.yaml
-  #   ports:
-  #     - "3200:3200"   # Tempo HTTP API
-  #   restart: unless-stopped
-
-  # grafana:
-  #   image: grafana/grafana:11.4.0
-  #   container_name: autopartshop.grafana
-  #   ports:
-  #     - "3000:3000"
-  #   environment:
-  #     - GF_SECURITY_ADMIN_USER=admin
-  #     - GF_SECURITY_ADMIN_PASSWORD=admin
-  #     - GF_USERS_ALLOW_SIGN_UP=false
-  #     - GF_FEATURE_TOGGLES_ENABLE=traceqlEditor
-  #   volumes:
-  #     - grafana_data:/var/lib/grafana
-  #     - ./grafana/provisioning:/etc/grafana/provisioning
-  #   depends_on:
-  #     - prometheus
-  #     - loki
-  #     - tempo
-  #   restart: unless-stopped
-  # ──────────────────────────────────────────────────────────────────────────
-
 volumes:
   autopart_mssql_data:
-  # autopart_qdrant_data:
-  # grafana_data:

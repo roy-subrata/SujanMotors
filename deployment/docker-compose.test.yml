@@ -1,0 +1,26 @@
+# Test / Staging overrides
+# docker compose -f docker-compose.yml -f docker-compose.test.yml up --build
+
+services:
+  autopartshop.db:
+    environment:
+      - SA_PASSWORD=${DB_PASSWORD:-YourStrong!Passw0rd}
+    volumes:
+      - autopart_mssql_test_data:/var/opt/mssql  # separate volume so test data is isolated
+
+  autopartshop.api:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Staging
+      - ConnectionStrings__AutoPartDb=Server=autopartshop.db,1433;Database=${DB_NAME:-AutoPartShopDb_Test};User=sa;Password=${DB_PASSWORD:-YourStrong!Passw0rd};TrustServerCertificate=True;
+    ports:
+      - "5293:8080"       # different host port to avoid clash with dev
+
+  autopartshop.web:
+    build:
+      args:
+        ENV_NAME: development   # source maps on for debugging test failures
+    ports:
+      - "4201:80"         # different host port to avoid clash with dev
+
+volumes:
+  autopart_mssql_test_data:

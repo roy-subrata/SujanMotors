@@ -1,0 +1,20 @@
+# Development overrides
+# docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+
+services:
+  autopartshop.db:
+    ports:
+      - "1433:1433"       # expose DB for local tools (SSMS, DBeaver)
+
+  autopartshop.api:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    ports:
+      - "5292:8080"       # expose API for Swagger / Postman
+
+  autopartshop.web:
+    build:
+      args:
+        ENV_NAME: development   # sourceMap=true, optimization=false
+    ports:
+      - "4200:80"

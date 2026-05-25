@@ -1,0 +1,20 @@
+# Production overrides
+# docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build
+
+services:
+  autopartshop.db:
+    restart: always       # always restart in prod (not unless-stopped)
+
+  autopartshop.api:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+    # No ports exposed — frontend reaches API through nginx proxy only
+    restart: always
+
+  autopartshop.web:
+    build:
+      args:
+        ENV_NAME: production    # optimization=true, serviceWorker, outputHashing
+    ports:
+      - "4200:80"         # only the web port is public-facing
+    restart: always
