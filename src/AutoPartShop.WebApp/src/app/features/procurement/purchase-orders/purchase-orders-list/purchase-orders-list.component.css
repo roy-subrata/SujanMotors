@@ -617,6 +617,28 @@
   }
 
   .cards-section {
-    padding: 12px;
+    padding: 12px 12px 72px;
+  }
+
+  .mobile-pagination {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 200;
+    margin-top: 0;
+    border-radius: 0;
+    border-top: 1px solid var(--color-border);
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+    box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08);
+    background-color: var(--color-bg-primary);
+  }
+}
+
+@media (max-width: 480px) {
+  .cards-section {
+    padding: 10px 10px 72px;
   }
 }

@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, ViewChild } from '@angular/core';
+import { Component, OnInit, inject, ViewChild, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -20,6 +20,8 @@ import { InputGroupModule } from 'primeng/inputgroup';
 import { InputGroupAddonModule } from 'primeng/inputgroupaddon';
 import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
 import { CurrencyService } from '../../../../shared/services/currency.service';
+import { I18nService } from '@/shared/services/i18n.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-sales-returns-list',
@@ -55,6 +57,8 @@ export class SalesReturnsListComponent implements OnInit {
   private readonly messageService = inject(MessageService);
   private readonly confirmationService = inject(ConfirmationService);
   private readonly currencyService = inject(CurrencyService);
+  private readonly i18n = inject(I18nService);
+  private readonly destroyRef = inject(DestroyRef);
 
   salesReturns: SalesReturnResponse[] = [];
   loading = false;
@@ -66,66 +70,72 @@ export class SalesReturnsListComponent implements OnInit {
   pageSizeSelectOptions = this.pageSizeOptions.map((size) => ({ label: size.toString(), value: size }));
   Math = Math;
 
-  // Filters
   searchTerm = '';
   filterStatus = '';
   dateRange: Date[] = [];
 
-  // Action menu
   actionMenuItems: MenuItem[] = [];
   selectedReturn: SalesReturnResponse | null = null;
 
-  statusOptions = [
-    { label: 'All Statuses', value: '' },
-    { label: 'Pending', value: 'PENDING' },
-    { label: 'Approved', value: 'APPROVED' },
-    { label: 'Received', value: 'RECEIVED' },
-    { label: 'Rejected', value: 'REJECTED' },
-    { label: 'Processed', value: 'PROCESSED' }
-  ];
+  statusOptions: { label: string; value: string }[] = [];
 
   ngOnInit(): void {
+    this.buildStatusOptions();
+    this.i18n.translationsLoaded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.buildStatusOptions();
+    });
     this.loadSalesReturns();
   }
 
-  /**
-   * Show action menu
-   */
-  showActionMenu(event: Event, salesReturn: SalesReturnResponse): void {
-    this.selectedReturn = salesReturn;
-    this.actionMenuItems = [
+  private buildStatusOptions(): void {
+    this.statusOptions = [
+      { label: this.i18n.t('salesReturns.statusOptions.allStatuses'), value: '' },
+      { label: this.i18n.t('salesReturns.statusOptions.pending'),    value: 'PENDING' },
+      { label: this.i18n.t('salesReturns.statusOptions.approved'),   value: 'APPROVED' },
+      { label: this.i18n.t('salesReturns.statusOptions.received'),   value: 'RECEIVED' },
+      { label: this.i18n.t('salesReturns.statusOptions.rejected'),   value: 'REJECTED' },
+      { label: this.i18n.t('salesReturns.statusOptions.processed'),  value: 'PROCESSED' }
+    ];
+  }
+
+  private buildActionMenuItems(salesReturn: SalesReturnResponse): MenuItem[] {
+    return [
       {
-        label: 'View',
+        label: this.i18n.t('common.actions.view'),
         icon: 'pi pi-eye',
         command: () => this.viewReturn(salesReturn)
       },
       { separator: true },
       {
-        label: 'Approve',
+        label: this.i18n.t('common.actions.approve'),
         icon: 'pi pi-check',
         command: () => this.approveReturn(salesReturn, new Event('click')),
         visible: salesReturn.status === 'PENDING'
       },
       {
-        label: 'Reject',
+        label: this.i18n.t('common.actions.reject'),
         icon: 'pi pi-times',
         command: () => this.rejectReturn(salesReturn, new Event('click')),
         visible: salesReturn.status === 'PENDING'
       },
       {
-        label: 'Receive',
+        label: this.i18n.t('common.actions.receive'),
         icon: 'pi pi-inbox',
         command: () => this.receiveReturn(salesReturn, new Event('click')),
         visible: salesReturn.status === 'APPROVED'
       },
       {
-        label: 'Process',
+        label: this.i18n.t('common.actions.process'),
         icon: 'pi pi-cog',
         command: () => this.processReturn(salesReturn, new Event('click')),
         visible: salesReturn.status === 'RECEIVED'
       }
     ];
+  }
 
+  showActionMenu(event: Event, salesReturn: SalesReturnResponse): void {
+    this.selectedReturn = salesReturn;
+    this.actionMenuItems = this.buildActionMenuItems(salesReturn);
     this.actionMenu.toggle(event);
   }
 
@@ -134,34 +144,27 @@ export class SalesReturnsListComponent implements OnInit {
 
     this.salesReturnService.getSalesReturns(this.pageNumber, this.pageSize, this.searchTerm || undefined).subscribe({
       next: (response) => {
-        // Apply filters if needed
         let filteredData = response.data;
-
         if (this.filterStatus) {
           filteredData = filteredData.filter(ret => ret.status === this.filterStatus);
         }
-
         this.salesReturns = filteredData;
         this.totalRecords = response.pagination.totalCount;
         this.loading = false;
       },
       error: (err) => {
-        // If list endpoint doesn't exist, try to get all returns
         this.salesReturnService.getAllSalesReturns().subscribe({
           next: (returns) => {
             let filteredData = returns;
-
             if (this.searchTerm) {
               filteredData = filteredData.filter(r =>
                 r.returnNumber?.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
                 r.salesOrderId?.toLowerCase().includes(this.searchTerm.toLowerCase())
               );
             }
-
             if (this.filterStatus) {
               filteredData = filteredData.filter(r => r.status === this.filterStatus);
             }
-
             this.salesReturns = filteredData;
             this.totalRecords = filteredData.length;
             this.loading = false;
@@ -169,8 +172,8 @@ export class SalesReturnsListComponent implements OnInit {
           error: () => {
             this.messageService.add({
               severity: 'error',
-              summary: 'Error',
-              detail: 'Failed to load sales returns'
+              summary: this.i18n.t('common.messages.error'),
+              detail: this.i18n.t('salesReturns.messages.loadFailed')
             });
             console.error('Error loading sales returns:', err);
             this.loading = false;
@@ -237,8 +240,8 @@ export class SalesReturnsListComponent implements OnInit {
     if (dataToExport.length === 0) {
       this.messageService.add({
         severity: 'warn',
-        summary: 'No Data',
-        detail: 'No sales returns available to export'
+        summary: this.i18n.t('common.messages.warning'),
+        detail: this.i18n.t('salesReturns.messages.exportNoData')
       });
       return;
     }
@@ -276,8 +279,8 @@ export class SalesReturnsListComponent implements OnInit {
 
     this.messageService.add({
       severity: 'success',
-      summary: 'Export Complete',
-      detail: 'Sales returns exported as CSV'
+      summary: this.i18n.t('common.messages.success'),
+      detail: this.i18n.t('salesReturns.messages.exportCSVSuccess')
     });
   }
 
@@ -293,8 +296,8 @@ export class SalesReturnsListComponent implements OnInit {
 
     this.messageService.add({
       severity: 'success',
-      summary: 'Export Complete',
-      detail: 'Sales returns exported as JSON'
+      summary: this.i18n.t('common.messages.success'),
+      detail: this.i18n.t('salesReturns.messages.exportJSONSuccess')
     });
   }
 
@@ -310,24 +313,24 @@ export class SalesReturnsListComponent implements OnInit {
     event.stopPropagation();
 
     this.confirmationService.confirm({
-      message: `Are you sure you want to approve return ${salesReturn.returnNumber}?`,
-      header: 'Confirm',
+      message: this.i18n.t('salesReturns.messages.approveConfirm', { number: salesReturn.returnNumber }),
+      header: this.i18n.t('common.actions.confirm'),
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
         this.salesReturnService.approveSalesReturn(salesReturn.id).subscribe({
           next: () => {
             this.messageService.add({
               severity: 'success',
-              summary: 'Success',
-              detail: 'Return approved successfully'
+              summary: this.i18n.t('common.messages.success'),
+              detail: this.i18n.t('salesReturns.messages.approveSuccess')
             });
             this.loadSalesReturns();
           },
           error: (err) => {
             this.messageService.add({
               severity: 'error',
-              summary: 'Error',
-              detail: typeof err?.error === 'string' ? err.error : (err?.error?.message || 'Failed to approve return')
+              summary: this.i18n.t('common.messages.error'),
+              detail: typeof err?.error === 'string' ? err.error : (err?.error?.message || this.i18n.t('salesReturns.messages.approveFailed'))
             });
           }
         });
@@ -338,24 +341,23 @@ export class SalesReturnsListComponent implements OnInit {
   rejectReturn(salesReturn: SalesReturnResponse, event: Event): void {
     event.stopPropagation();
 
-    // TODO: Add dialog to get rejection reason
-    const reason = prompt(`Enter reason for rejecting return ${salesReturn.returnNumber}:`);
+    const reason = prompt(this.i18n.t('salesReturns.messages.rejectConfirm', { number: salesReturn.returnNumber }));
     if (reason === null) return;
 
     this.salesReturnService.rejectSalesReturn(salesReturn.id, reason).subscribe({
       next: () => {
         this.messageService.add({
           severity: 'success',
-          summary: 'Success',
-          detail: 'Return rejected successfully'
+          summary: this.i18n.t('common.messages.success'),
+          detail: this.i18n.t('salesReturns.messages.rejectSuccess')
         });
         this.loadSalesReturns();
       },
       error: (err) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: typeof err?.error === 'string' ? err.error : (err?.error?.message || 'Failed to reject return')
+          summary: this.i18n.t('common.messages.error'),
+          detail: typeof err?.error === 'string' ? err.error : (err?.error?.message || this.i18n.t('salesReturns.messages.rejectFailed'))
         });
       }
     });
@@ -365,24 +367,24 @@ export class SalesReturnsListComponent implements OnInit {
     event.stopPropagation();
 
     this.confirmationService.confirm({
-      message: `Mark return ${salesReturn.returnNumber} as received?`,
-      header: 'Confirm',
+      message: this.i18n.t('salesReturns.messages.receiveConfirm', { number: salesReturn.returnNumber }),
+      header: this.i18n.t('common.actions.confirm'),
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
         this.salesReturnService.receiveSalesReturn(salesReturn.id).subscribe({
           next: () => {
             this.messageService.add({
               severity: 'success',
-              summary: 'Success',
-              detail: 'Return marked as received'
+              summary: this.i18n.t('common.messages.success'),
+              detail: this.i18n.t('salesReturns.messages.receiveSuccess')
             });
             this.loadSalesReturns();
           },
           error: (err) => {
             this.messageService.add({
               severity: 'error',
-              summary: 'Error',
-              detail: typeof err?.error === 'string' ? err.error : (err?.error?.message || 'Failed to mark return as received')
+              summary: this.i18n.t('common.messages.error'),
+              detail: typeof err?.error === 'string' ? err.error : (err?.error?.message || this.i18n.t('salesReturns.messages.receiveFailed'))
             });
           }
         });
@@ -394,24 +396,24 @@ export class SalesReturnsListComponent implements OnInit {
     event.stopPropagation();
 
     this.confirmationService.confirm({
-      message: `Process return ${salesReturn.returnNumber}? This will complete the return.`,
-      header: 'Confirm',
+      message: this.i18n.t('salesReturns.messages.processConfirm', { number: salesReturn.returnNumber }),
+      header: this.i18n.t('common.actions.confirm'),
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
         this.salesReturnService.processSalesReturn(salesReturn.id).subscribe({
           next: () => {
             this.messageService.add({
               severity: 'success',
-              summary: 'Success',
-              detail: 'Return processed successfully'
+              summary: this.i18n.t('common.messages.success'),
+              detail: this.i18n.t('salesReturns.messages.processSuccess')
             });
             this.loadSalesReturns();
           },
           error: (err) => {
             this.messageService.add({
               severity: 'error',
-              summary: 'Error',
-              detail: typeof err?.error === 'string' ? err.error : (err?.error?.message || 'Failed to process return')
+              summary: this.i18n.t('common.messages.error'),
+              detail: typeof err?.error === 'string' ? err.error : (err?.error?.message || this.i18n.t('salesReturns.messages.processFailed'))
             });
           }
         });

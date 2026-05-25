@@ -175,14 +175,14 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
 
     .info-item label {
       font-size: 0.875rem;
-      color: #6b7280;
+      color: var(--text-color-secondary);
       font-weight: 500;
     }
 
     .info-item .value {
       font-size: 1rem;
       font-weight: 600;
-      color: #1f2937;
+      color: var(--text-color);
     }
 
     .stock-value {
@@ -210,11 +210,13 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
     }
 
     .textarea-input {
-      border: 1px solid #d1d5db;
+      border: 1px solid var(--surface-border);
       border-radius: 4px;
       padding: 0.5rem;
       font-family: inherit;
       resize: vertical;
+      background: var(--surface-card);
+      color: var(--text-color);
     }
 
     .preview-row {
@@ -226,7 +228,7 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
 
     .preview-row label {
       font-weight: 600;
-      color: #1f2937;
+      color: var(--text-color);
     }
 
     .preview-value {

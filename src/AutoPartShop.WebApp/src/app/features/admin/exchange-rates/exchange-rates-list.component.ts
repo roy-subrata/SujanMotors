@@ -1,6 +1,8 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { I18nService } from '../../../shared/services/i18n.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
@@ -295,7 +297,7 @@ import { CurrencyService, Currency, ExchangeRate } from '../../../shared/service
   styles: [`
     :host ::ng-deep {
       .p-datatable .p-datatable-thead > tr > th {
-        background-color: #f8f9fa;
+        background-color: var(--surface-ground);
         font-weight: 600;
       }
     }
@@ -306,6 +308,8 @@ export class ExchangeRatesListComponent implements OnInit {
   private messageService = inject(MessageService);
   private confirmationService = inject(ConfirmationService);
   private fb = inject(FormBuilder);
+  private readonly i18n = inject(I18nService);
+  private readonly destroyRef = inject(DestroyRef);
 
   exchangeRates = signal<ExchangeRate[]>([]);
   currencies = signal<Currency[]>([]);
@@ -338,8 +342,8 @@ export class ExchangeRatesListComponent implements OnInit {
       error: (error) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load currencies'
+          summary: this.i18n.t('common.messages.error'),
+          detail: this.i18n.t('exchangeRates.messages.loadCurrenciesFailed')
         });
       }
     });
@@ -355,8 +359,8 @@ export class ExchangeRatesListComponent implements OnInit {
       error: (error) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load exchange rates'
+          summary: this.i18n.t('common.messages.error'),
+          detail: this.i18n.t('exchangeRates.messages.loadFailed')
         });
         this.loading.set(false);
       }
@@ -419,8 +423,8 @@ export class ExchangeRatesListComponent implements OnInit {
       next: () => {
         this.messageService.add({
           severity: 'success',
-          summary: 'Success',
-          detail: `Exchange rate ${this.isEditing ? 'updated' : 'created'} successfully`
+          summary: this.i18n.t('common.messages.success'),
+          detail: this.i18n.t(this.isEditing ? 'exchangeRates.messages.updateSuccess' : 'exchangeRates.messages.createSuccess')
         });
         this.dialogVisible = false;
         this.loadExchangeRates();
@@ -429,8 +433,8 @@ export class ExchangeRatesListComponent implements OnInit {
       error: (error) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: `Failed to ${this.isEditing ? 'update' : 'create'} exchange rate`
+          summary: this.i18n.t('common.messages.error'),
+          detail: this.i18n.t(this.isEditing ? 'common.messages.updateFailed' : 'common.messages.createFailed')
         });
         this.saving.set(false);
       }
@@ -439,24 +443,24 @@ export class ExchangeRatesListComponent implements OnInit {
 
   confirmDelete(rate: ExchangeRate): void {
     this.confirmationService.confirm({
-      message: `Are you sure you want to delete this exchange rate (${rate.fromCurrencyCode} → ${rate.toCurrencyCode})?`,
-      header: 'Confirm',
+      message: this.i18n.t('exchangeRates.messages.deleteConfirm', { from: rate.fromCurrencyCode, to: rate.toCurrencyCode }),
+      header: this.i18n.t('common.actions.confirm'),
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
         this.currencyService.deleteExchangeRate(rate.id).subscribe({
           next: () => {
             this.messageService.add({
               severity: 'success',
-              summary: 'Success',
-              detail: 'Exchange rate deleted successfully'
+              summary: this.i18n.t('common.messages.success'),
+              detail: this.i18n.t('exchangeRates.messages.deleteSuccess')
             });
             this.loadExchangeRates();
           },
           error: (error) => {
             this.messageService.add({
               severity: 'error',
-              summary: 'Error',
-              detail: 'Failed to delete exchange rate'
+              summary: this.i18n.t('common.messages.error'),
+              detail: this.i18n.t('exchangeRates.messages.deleteFailed')
             });
           }
         });

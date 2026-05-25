@@ -884,6 +884,8 @@
 /* ==================== ATTRIBUTES TABLE ==================== */
 .attributes-table {
   padding: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 :host ::ng-deep .attr-table .p-datatable-thead > tr > th {
@@ -1264,7 +1266,60 @@
   }
 
   .content-section {
+    padding: 12px 12px 72px;
+    gap: 12px;
+  }
+
+  .pagination-section {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 200;
+    margin: 0;
+    padding: 12px 16px;
+    border-radius: 0;
+    border-top: 1px solid var(--color-border);
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+    box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08);
+    background-color: var(--color-bg-primary);
+  }
+
+  .page-size-label {
+    display: none;
+  }
+
+  :host ::ng-deep .page-size-dropdown {
+    display: none;
+  }
+
+  .pagination-controls {
+    gap: 8px;
+  }
+
+  .group-card-header {
     padding: 12px;
+  }
+
+  .group-card-header .group-info {
+    gap: 8px;
+  }
+
+  .templates-card {
+    padding: 16px;
+  }
+
+  .form-actions {
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+
+  .form-actions .btn-save,
+  .form-actions .btn-cancel {
+    width: 100%;
+    justify-content: center;
   }
 
   .inline-row {
@@ -1301,6 +1356,62 @@
   }
 
   .content-section {
+    padding: 10px 10px 72px;
+    gap: 10px;
+  }
+
+  .group-card-header {
     padding: 10px;
+  }
+
+  .group-avatar {
+    width: 30px;
+    height: 30px;
+  }
+
+  .group-avatar i {
+    font-size: 13px;
+  }
+
+  .group-name {
+    font-size: 13px;
+  }
+
+  .group-meta {
+    font-size: 11px;
+  }
+
+  .group-actions .btn-action {
+    width: 28px;
+    height: 28px;
+  }
+
+  .group-actions .btn-action i {
+    font-size: 12px;
+  }
+
+  .templates-card {
+    padding: 12px;
+  }
+
+  .templates-title {
+    font-size: 14px;
+  }
+
+  .templates-hint {
+    font-size: 12px;
+  }
+
+  .template-btn {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
+  .pagination-section {
+    padding: 10px 12px;
+  }
+
+  .pagination-info {
+    font-size: 13px;
   }
 }

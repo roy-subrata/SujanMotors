@@ -133,7 +133,6 @@
   background-color: var(--color-bg-primary);
   border-bottom: none;
   padding: 16px 20px;
-  margin-bottom: 12px;
 }
 
 .filter-container {
@@ -312,40 +311,22 @@
 }
 
 :host ::ng-deep {
-  .p-tabview {
+  .p-tabs {
     background-color: transparent;
-    border-radius: 0;
-    box-shadow: none;
   }
 
-  .p-tabview-nav {
+  .p-tablist {
     background-color: var(--color-bg-primary);
     border-bottom: 1px solid var(--color-border);
   }
 
-  .p-tabview-nav-btn {
-    color: var(--color-text-secondary);
-    font-weight: 600;
-    padding: 1rem 1.5rem;
-    border: none;
-    border-bottom: 3px solid transparent;
-    transition: all 0.2s ease;
-  }
-
-  .p-tabview-nav-btn:hover {
-    color: var(--color-text-primary);
-    background-color: var(--color-bg-tertiary);
-  }
-
-  .p-tabview-nav-btn.p-tabview-selected {
-    color: var(--color-primary);
-    border-bottom-color: var(--color-primary);
-    background-color: var(--color-bg-primary);
-  }
-
-  .p-tabview-panels {
+  .p-tabpanels {
     background-color: var(--color-bg-secondary);
-    padding: 0 0 16px 0;
+    padding: 0;
+  }
+
+  .p-tabpanel {
+    padding: 0;
   }
 }
 

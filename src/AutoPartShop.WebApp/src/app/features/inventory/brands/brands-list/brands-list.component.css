@@ -761,56 +761,24 @@
     display: block !important;
   }
 
-  /*
-   * Simple approach: cards-grid scrolls internally with a viewport-relative
-   * max-height. Pagination sits below naturally — no flex chain needed.
-   * calc: 100svh minus topbar(56) + page-header(52) + filter-section(170) + pagination(56) + buffer(16)
-   */
   .cards-section {
-    padding: 0;
+    padding: 12px 12px 72px;
   }
 
-  .cards-grid {
-    max-height: calc(100svh - 360px);
-    overflow-y: auto;
-    padding: 12px;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior-y: contain;
-  }
-
-  .empty-state-mobile {
-    padding: 12px;
-  }
-
-  /*
-   * Fixed at the very bottom of the viewport — always visible regardless
-   * of how many cards are in the list.
-   * cards-grid gets padding-bottom equal to the pagination height so the
-   * last card is never hidden behind the bar.
-   */
   .mobile-pagination {
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
-    z-index: 100;
+    z-index: 200;
     margin: 0;
     border-radius: 0;
     border-top: 1px solid var(--color-border);
     border-left: none;
     border-right: none;
     border-bottom: none;
-    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08);
     background-color: var(--color-bg-primary);
-  }
-
-  /* Prevent the last card from being hidden under the fixed pagination bar */
-  .cards-grid {
-    padding-bottom: 68px;
-  }
-
-  .empty-state-mobile {
-    padding-bottom: 68px;
   }
 
   :host ::ng-deep .custom-table .p-datatable-thead > tr > th:first-child,
@@ -826,7 +794,7 @@
 
 @media (max-width: 480px) {
   .cards-section {
-    padding: 10px;
+    padding: 10px 10px 72px;
   }
 
   .pagination-section {

@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, ViewChild } from '@angular/core';
+import { Component, OnInit, inject, ViewChild, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -24,6 +24,8 @@ import { MenuModule } from 'primeng/menu';
 import { Menu } from 'primeng/menu';
 import { tap } from 'rxjs';
 import { ApplyCustomerAdvanceCreditDialogComponent } from '../../sales-orders/apply-advance-credit/apply-advance-credit-dialog.component';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { I18nService } from '@/shared/services/i18n.service';
 
 @Component({
     selector: 'app-invoices-list',
@@ -60,6 +62,8 @@ export class InvoicesListComponent implements OnInit {
     private readonly confirmationService = inject(ConfirmationService);
     private readonly paymentProviderService = inject(PaymentProviderService);
     private readonly dialogService = inject(DialogService);
+    private readonly i18n = inject(I18nService);
+    private readonly destroyRef = inject(DestroyRef);
     private activateRoute = inject(ActivatedRoute);
 
     private dialogRef: DynamicDialogRef | null | undefined;
@@ -71,16 +75,13 @@ export class InvoicesListComponent implements OnInit {
     pageSize = 25;
     pageSizeOptions = [10, 25, 50, 100];
 
-    // Context menu
     actionItems: MenuItem[] = [];
 
-    // Filters
     searchTerm = '';
     filterStatus = '';
     dateRange: Date[] = [];
     customerIdFilter: string | null = null;
 
-    // Payment Dialog
     showPaymentDialog = false;
     selectedInvoice: InvoiceResponse | null = null;
     paymentReference = '';
@@ -91,6 +92,8 @@ export class InvoicesListComponent implements OnInit {
     paymentProviders: { label: string; value: string; id: string }[] = [];
     paymentMethods: { label: string; value: string }[] = [];
 
+    statusOptions: { label: string; value: string }[] = [];
+
     get currencyCode(): string {
         return this.currencyService.selectedCurrency();
     }
@@ -99,17 +102,13 @@ export class InvoicesListComponent implements OnInit {
         return this.currencyService.getSelectedCurrencyLocale();
     }
 
-    statusOptions = [
-        { label: 'All Statuses', value: '' },
-        { label: 'Draft', value: 'DRAFT' },
-        { label: 'Issued', value: 'ISSUED' },
-        { label: 'Partially Paid', value: 'PARTIALLY_PAID' },
-        { label: 'Paid', value: 'PAID' },
-        { label: 'Overdue', value: 'OVERDUE' },
-        { label: 'Cancelled', value: 'CANCELLED' }
-    ];
-
     ngOnInit(): void {
+        this.buildStatusOptions();
+        this.i18n.translationsLoaded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+            this.buildStatusOptions();
+            if (this.selectedInvoice) this.actionItems = this.buildActionItems(this.selectedInvoice);
+        });
+
         this.loadPaymentProviders();
         this.activateRoute.queryParams
             .pipe(
@@ -119,13 +118,23 @@ export class InvoicesListComponent implements OnInit {
                             this.customerIdFilter = params['customerId'];
                         }
                     },
-                    error: (err) => {
-                        console.error('Error reading query params:', err);
-                    }
+                    error: (err) => { console.error('Error reading query params:', err); }
                 })
             )
             .subscribe();
         this.loadInvoices();
+    }
+
+    private buildStatusOptions(): void {
+        this.statusOptions = [
+            { label: this.i18n.t('invoices.statusOptions.allStatuses'), value: '' },
+            { label: this.i18n.t('invoices.statusOptions.draft'),        value: 'DRAFT' },
+            { label: this.i18n.t('invoices.statusOptions.issued'),       value: 'ISSUED' },
+            { label: this.i18n.t('invoices.statusOptions.partiallyPaid'), value: 'PARTIALLY_PAID' },
+            { label: this.i18n.t('invoices.statusOptions.paid'),         value: 'PAID' },
+            { label: this.i18n.t('invoices.statusOptions.overdue'),      value: 'OVERDUE' },
+            { label: this.i18n.t('invoices.statusOptions.cancelled'),    value: 'CANCELLED' }
+        ];
     }
 
     private loadPaymentProviders(): void {
@@ -159,8 +168,8 @@ export class InvoicesListComponent implements OnInit {
             searchTerm: this.searchTerm,
             status: this.filterStatus,
             customerId: this.customerIdFilter,
-            fromDate: fromDate,
-            toDate: toDate
+            fromDate,
+            toDate
         };
 
         this.invoiceService.getAllInvoices(this.pageNumber, this.pageSize, filter).subscribe({
@@ -172,8 +181,8 @@ export class InvoicesListComponent implements OnInit {
             error: (err) => {
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Error',
-                    detail: 'Failed to load invoices'
+                    summary: this.i18n.t('common.messages.error'),
+                    detail: this.i18n.t('invoices.messages.loadFailed')
                 });
                 console.error('Error loading invoices:', err);
                 this.loading = false;
@@ -212,21 +221,18 @@ export class InvoicesListComponent implements OnInit {
     }
 
     exportInvoices(format: 'csv' | 'json'): void {
-        const dataToExport = this.invoices;
-
-        if (dataToExport.length === 0) {
+        if (this.invoices.length === 0) {
             this.messageService.add({
                 severity: 'warn',
-                summary: 'No Data',
-                detail: 'No invoices available to export'
+                summary: this.i18n.t('common.messages.warning'),
+                detail: this.i18n.t('invoices.messages.exportNoData')
             });
             return;
         }
-
         if (format === 'csv') {
-            this.exportToCSV(dataToExport);
+            this.exportToCSV(this.invoices);
         } else {
-            this.exportToJSON(dataToExport);
+            this.exportToJSON(this.invoices);
         }
     }
 
@@ -243,11 +249,7 @@ export class InvoicesListComponent implements OnInit {
             invoice.outstandingAmount.toString()
         ]);
 
-        const csvContent = [
-            headers.join(','),
-            ...csvData.map(row => row.map(cell => `"${cell}"`).join(','))
-        ].join('\n');
-
+        const csvContent = [headers.join(','), ...csvData.map(row => row.map(cell => `"${cell}"`).join(','))].join('\n');
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -258,8 +260,8 @@ export class InvoicesListComponent implements OnInit {
 
         this.messageService.add({
             severity: 'success',
-            summary: 'Export Complete',
-            detail: 'Invoices exported as CSV'
+            summary: this.i18n.t('common.messages.success'),
+            detail: this.i18n.t('invoices.messages.exportCSVSuccess')
         });
     }
 
@@ -275,8 +277,8 @@ export class InvoicesListComponent implements OnInit {
 
         this.messageService.add({
             severity: 'success',
-            summary: 'Export Complete',
-            detail: 'Invoices exported as JSON'
+            summary: this.i18n.t('common.messages.success'),
+            detail: this.i18n.t('invoices.messages.exportJSONSuccess')
         });
     }
 
@@ -292,31 +294,29 @@ export class InvoicesListComponent implements OnInit {
     }
 
     viewInvoice(invoice: InvoiceResponse): void {
-        this.router.navigate(['/sales/invoices/view'], {
-            queryParams: { id: invoice.id }
-        });
+        this.router.navigate(['/sales/invoices/view'], { queryParams: { id: invoice.id } });
     }
 
     issueInvoice(invoice: InvoiceResponse): void {
         this.confirmationService.confirm({
-            message: `Are you sure you want to issue Invoice ${invoice.invoiceNumber}?`,
-            header: 'Confirm',
+            message: this.i18n.t('invoices.messages.issueConfirm', { number: invoice.invoiceNumber }),
+            header: this.i18n.t('common.actions.confirm'),
             icon: 'pi pi-exclamation-triangle',
             accept: () => {
                 this.invoiceService.issueInvoice(invoice.id).subscribe({
                     next: () => {
                         this.messageService.add({
                             severity: 'success',
-                            summary: 'Success',
-                            detail: 'Invoice issued successfully'
+                            summary: this.i18n.t('common.messages.success'),
+                            detail: this.i18n.t('invoices.messages.issueSuccess')
                         });
                         this.loadInvoices();
                     },
                     error: () => {
                         this.messageService.add({
                             severity: 'error',
-                            summary: 'Error',
-                            detail: 'Failed to issue invoice'
+                            summary: this.i18n.t('common.messages.error'),
+                            detail: this.i18n.t('invoices.messages.issueFailed')
                         });
                     }
                 });
@@ -345,7 +345,6 @@ export class InvoicesListComponent implements OnInit {
         return new Date(date).toLocaleDateString('en-IN');
     }
 
-    // ==================== CONTEXT MENU ====================
     openActionMenu(event: MouseEvent, invoice: InvoiceResponse): void {
         this.selectedInvoice = invoice;
         this.actionItems = this.buildActionItems(invoice);
@@ -355,12 +354,12 @@ export class InvoicesListComponent implements OnInit {
     private buildActionItems(invoice: InvoiceResponse): MenuItem[] {
         const items: MenuItem[] = [
             {
-                label: 'View Invoice',
+                label: this.i18n.t('common.actions.viewDetails'),
                 icon: 'pi pi-eye',
                 command: () => this.viewInvoice(invoice)
             },
             {
-                label: 'View Sales Order',
+                label: this.i18n.t('common.actions.viewSalesOrder'),
                 icon: 'pi pi-shopping-cart',
                 command: () => this.viewSalesOrder(invoice)
             },
@@ -369,7 +368,7 @@ export class InvoicesListComponent implements OnInit {
 
         if (invoice.status === 'DRAFT') {
             items.push({
-                label: 'Issue Invoice',
+                label: this.i18n.t('common.actions.issueInvoice'),
                 icon: 'pi pi-check-circle',
                 command: () => this.issueInvoice(invoice)
             });
@@ -377,7 +376,7 @@ export class InvoicesListComponent implements OnInit {
 
         if (this.canRecordPayment(invoice)) {
             items.push({
-                label: 'Record Payment',
+                label: this.i18n.t('common.actions.recordPayment'),
                 icon: 'pi pi-dollar',
                 command: () => this.openPaymentDialog(invoice)
             });
@@ -385,14 +384,14 @@ export class InvoicesListComponent implements OnInit {
 
         if (this.canApplyAdvanceCredit(invoice)) {
             items.push({
-                label: 'Apply Advance Credit',
+                label: this.i18n.t('common.actions.applyAdvanceCredit'),
                 icon: 'pi pi-credit-card',
                 command: () => this.applyAdvanceCredit(invoice)
             });
         }
 
         items.push({
-            label: 'View / Confirm Payments',
+            label: this.i18n.t('common.actions.viewConfirmPayments'),
             icon: 'pi pi-wallet',
             command: () => this.viewCustomerPayments(invoice)
         });
@@ -400,7 +399,6 @@ export class InvoicesListComponent implements OnInit {
         return items;
     }
 
-    // ==================== PAYMENT DIALOG ====================
     openPaymentDialog(invoice: InvoiceResponse): void {
         this.selectedInvoice = invoice;
         this.paymentAmount = invoice.outstandingAmount > 0 ? invoice.outstandingAmount : 0;
@@ -427,22 +425,20 @@ export class InvoicesListComponent implements OnInit {
         if (this.paymentAmount <= 0) {
             this.messageService.add({
                 severity: 'error',
-                summary: 'Invalid Amount',
-                detail: 'Payment amount must be greater than 0'
+                summary: this.i18n.t('common.messages.error'),
+                detail: this.i18n.t('common.messages.invalidInput')
             });
             return;
         }
 
-        // Find payment provider ID from selected method
         const provider = this.paymentProviders.find(p => p.value === this.paymentMethod);
         const providerId = provider?.id || null;
 
-        // Show warning for overpayments but allow them (creates credit balance)
         if (this.paymentAmount > this.selectedInvoice.outstandingAmount) {
             const creditAmount = this.paymentAmount - this.selectedInvoice.outstandingAmount;
             this.messageService.add({
                 severity: 'info',
-                summary: 'Overpayment',
+                summary: this.i18n.t('common.messages.info'),
                 detail: `Payment exceeds outstanding by ${this.formatCurrency(creditAmount)}. This will create a credit balance.`,
                 life: 5000
             });
@@ -458,13 +454,11 @@ export class InvoicesListComponent implements OnInit {
             })
             .subscribe({
                 next: (response: any) => {
-                    // Backend returns payment status information
                     const message = response.message || `Payment of ${this.formatCurrency(this.paymentAmount)} recorded successfully`;
                     const severity = response.paymentStatus === 'PENDING' ? 'info' : 'success';
-
                     this.messageService.add({
-                        severity: severity,
-                        summary: response.paymentStatus === 'PENDING' ? 'Payment Created' : 'Payment Recorded',
+                        severity,
+                        summary: response.paymentStatus === 'PENDING' ? this.i18n.t('common.messages.info') : this.i18n.t('common.messages.success'),
                         detail: message,
                         life: response.paymentStatus === 'PENDING' ? 6000 : 3000
                     });
@@ -474,39 +468,28 @@ export class InvoicesListComponent implements OnInit {
                 error: () => {
                     this.messageService.add({
                         severity: 'error',
-                        summary: 'Payment Failed',
-                        detail: 'Failed to record payment'
+                        summary: this.i18n.t('common.messages.error'),
+                        detail: this.i18n.t('invoices.messages.recordPaymentFailed')
                     });
                 }
             });
     }
 
     canRecordPayment(invoice: InvoiceResponse): boolean {
-        // Allow payments for issued invoices (including overpayments that create credit)
         return invoice.status !== 'CANCELLED' && invoice.status !== 'DRAFT';
     }
 
     viewSalesOrder(invoice: InvoiceResponse): void {
-        this.router.navigate(['/sales/sales-orders/view'], {
-            queryParams: { id: invoice.salesOrderId }
-        });
+        this.router.navigate(['/sales/sales-orders/view'], { queryParams: { id: invoice.salesOrderId } });
     }
 
-    /**
-     * Navigate to customer payments to view and confirm payments
-     */
     viewCustomerPayments(invoice: InvoiceResponse): void {
-        this.router.navigate(['/sales/customer-payments'], {
-            queryParams: { customerId: invoice.customerId }
-        });
+        this.router.navigate(['/sales/customer-payments'], { queryParams: { customerId: invoice.customerId } });
     }
 
-    /**
-     * Open dialog to apply customer advance credit to invoice
-     */
     applyAdvanceCredit(invoice: InvoiceResponse): void {
         this.dialogRef = this.dialogService.open(ApplyCustomerAdvanceCreditDialogComponent, {
-            header: `Apply Advance Credit - ${invoice.invoiceNumber}`,
+            header: `${this.i18n.t('common.actions.applyAdvanceCredit')} - ${invoice.invoiceNumber}`,
             width: '900px',
             data: {
                 customerId: invoice.customerId,
@@ -519,17 +502,14 @@ export class InvoicesListComponent implements OnInit {
             if (result) {
                 this.messageService.add({
                     severity: 'success',
-                    summary: 'Success',
-                    detail: result.message || 'Advance credit applied successfully'
+                    summary: this.i18n.t('common.messages.success'),
+                    detail: result.message || this.i18n.t('common.messages.success')
                 });
                 this.loadInvoices();
             }
         });
     }
 
-    /**
-     * Check if invoice can have advance credit applied
-     */
     canApplyAdvanceCredit(invoice: InvoiceResponse): boolean {
         return invoice.status !== 'CANCELLED' && invoice.status !== 'DRAFT' && invoice.outstandingAmount > 0;
     }

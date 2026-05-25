@@ -11,31 +11,42 @@ services:
     volumes:
       - autopart_mssql_data:/var/opt/mssql
     restart: always
-    
-  # autopartshop.api:
-  #   build:
-  #     context: ..
-  #     dockerfile: src/AutoPartShop.Api/Dockerfile
-  #   image: smapi:local
-  #   environment:
-  #     - ASPNETCORE_ENVIRONMENT=Development
-  #     - ConnectionStrings__AutoPartDb=Server=autopartshop.db,1433;Database=AutoPartShopDb;User=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=True;
-  #   ports:
-  #     - "5292:8080"
-  #   depends_on:
-  #     - autopartshop.db
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'YourStrong!Passw0rd' -Q 'SELECT 1' -No || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
-  # autopartshop.web:
-  #   build:
-  #     context: ../src/AutoPartShop.WebApp
-  #     dockerfile: dockerfile
-  #     args:
-  #       ENV_NAME: development
-  #   image: smweb:local
-  #   ports:
-  #     - "4200:80"
-  #   depends_on:
-  #     - autopartshop.api
+  autopartshop.api:
+    build:
+      context: ..
+      dockerfile: src/AutoPartShop.Api/Dockerfile
+    image: smapi:local
+    container_name: autopartshop.api
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__AutoPartDb=Server=autopartshop.db,1433;Database=AutoPartShopDb;User=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=True;
+    ports:
+      - "5292:8080"
+    depends_on:
+      autopartshop.db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  autopartshop.web:
+    build:
+      context: ../src/AutoPartShop.WebApp
+      dockerfile: dockerfile
+      args:
+        ENV_NAME: development
+    image: smweb:local
+    container_name: autopartshop.web
+    ports:
+      - "4200:80"
+    depends_on:
+      - autopartshop.api
+    restart: unless-stopped
 
   # qdrant:
   #   image: qdrant/qdrant:v1.13.2

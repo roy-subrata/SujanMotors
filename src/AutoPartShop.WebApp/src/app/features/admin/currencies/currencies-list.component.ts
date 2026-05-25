@@ -1,6 +1,8 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { I18nService } from '../../../shared/services/i18n.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
@@ -306,7 +308,7 @@ import { CurrencyService, Currency } from '../../../shared/services/currency.ser
   styles: [`
     :host ::ng-deep {
       .p-datatable .p-datatable-thead > tr > th {
-        background-color: #f8f9fa;
+        background-color: var(--surface-ground);
         font-weight: 600;
       }
 
@@ -323,7 +325,7 @@ import { CurrencyService, Currency } from '../../../shared/services/currency.ser
           display: block;
           margin-bottom: 0.5rem;
           font-weight: 600;
-          color: #495057;
+          color: var(--text-color);
         }
 
         .p-inputtext,
@@ -357,6 +359,8 @@ export class CurrenciesListComponent implements OnInit {
   private confirmationService = inject(ConfirmationService);
   private fb = inject(FormBuilder);
   private router = inject(Router);
+  private readonly i18n = inject(I18nService);
+  private readonly destroyRef = inject(DestroyRef);
 
   currencies = signal<Currency[]>([]);
   loading = signal(false);
@@ -398,24 +402,24 @@ export class CurrenciesListComponent implements OnInit {
 
   setAsDefault(currency: Currency): void {
     this.confirmationService.confirm({
-      message: `Are you sure you want to set ${currency.name} (${currency.code}) as the default currency for new transactions?`,
-      header: 'Confirm',
+      message: this.i18n.t('currencies.messages.setDefaultConfirm', { name: currency.name, code: currency.code }),
+      header: this.i18n.t('common.actions.confirm'),
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
         this.currencyService.setDefaultCurrency(currency.id).subscribe({
           next: () => {
             this.messageService.add({
               severity: 'success',
-              summary: 'Success',
-              detail: `${currency.code} set as default currency`
+              summary: this.i18n.t('common.messages.success'),
+              detail: this.i18n.t('currencies.messages.setDefaultSuccess')
             });
             this.loadDefaultCurrency();
           },
           error: () => {
             this.messageService.add({
               severity: 'error',
-              summary: 'Error',
-              detail: 'Failed to set default currency'
+              summary: this.i18n.t('common.messages.error'),
+              detail: this.i18n.t('currencies.messages.setDefaultFailed')
             });
           }
         });
@@ -433,8 +437,8 @@ export class CurrenciesListComponent implements OnInit {
       error: (error) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load currencies'
+          summary: this.i18n.t('common.messages.error'),
+          detail: this.i18n.t('currencies.messages.loadFailed')
         });
         this.loading.set(false);
       }
@@ -497,8 +501,8 @@ export class CurrenciesListComponent implements OnInit {
       next: () => {
         this.messageService.add({
           severity: 'success',
-          summary: 'Success',
-          detail: `Currency ${this.isEditing ? 'updated' : 'created'} successfully`
+          summary: this.i18n.t('common.messages.success'),
+          detail: this.i18n.t(this.isEditing ? 'currencies.messages.updateSuccess' : 'currencies.messages.createSuccess')
         });
         this.dialogVisible = false;
         this.loadCurrencies();
@@ -507,8 +511,8 @@ export class CurrenciesListComponent implements OnInit {
       error: (error) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: `Failed to ${this.isEditing ? 'update' : 'create'} currency`
+          summary: this.i18n.t('common.messages.error'),
+          detail: this.i18n.t(this.isEditing ? 'common.messages.updateFailed' : 'common.messages.createFailed')
         });
         this.saving.set(false);
       }
@@ -517,24 +521,24 @@ export class CurrenciesListComponent implements OnInit {
 
   setAsBase(currency: Currency): void {
     this.confirmationService.confirm({
-      message: `Are you sure you want to set ${currency.name} (${currency.code}) as the base currency?`,
-      header: 'Confirm',
+      message: this.i18n.t('currencies.messages.setBaseConfirm', { name: currency.name, code: currency.code }),
+      header: this.i18n.t('common.actions.confirm'),
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
         this.currencyService.setAsBaseCurrency(currency.id).subscribe({
           next: () => {
             this.messageService.add({
               severity: 'success',
-              summary: 'Success',
-              detail: `${currency.code} set as base currency`
+              summary: this.i18n.t('common.messages.success'),
+              detail: this.i18n.t('currencies.messages.setBaseSuccess')
             });
             this.loadCurrencies();
           },
           error: (error) => {
             this.messageService.add({
               severity: 'error',
-              summary: 'Error',
-              detail: 'Failed to set base currency'
+              summary: this.i18n.t('common.messages.error'),
+              detail: this.i18n.t('currencies.messages.setBaseFailed')
             });
           }
         });
@@ -544,24 +548,24 @@ export class CurrenciesListComponent implements OnInit {
 
   confirmDelete(currency: Currency): void {
     this.confirmationService.confirm({
-      message: `Are you sure you want to delete ${currency.name} (${currency.code})?`,
-      header: 'Confirm',
+      message: this.i18n.t('currencies.messages.deleteConfirm', { name: currency.name, code: currency.code }),
+      header: this.i18n.t('common.actions.confirm'),
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
         this.currencyService.deleteCurrency(currency.id).subscribe({
           next: () => {
             this.messageService.add({
               severity: 'success',
-              summary: 'Success',
-              detail: 'Currency deleted successfully'
+              summary: this.i18n.t('common.messages.success'),
+              detail: this.i18n.t('currencies.messages.deleteSuccess')
             });
             this.loadCurrencies();
           },
           error: (error) => {
             this.messageService.add({
               severity: 'error',
-              summary: 'Error',
-              detail: 'Failed to delete currency'
+              summary: this.i18n.t('common.messages.error'),
+              detail: this.i18n.t('currencies.messages.deleteFailed')
             });
           }
         });

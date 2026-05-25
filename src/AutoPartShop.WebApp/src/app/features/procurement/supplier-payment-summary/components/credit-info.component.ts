@@ -72,7 +72,7 @@ import { SupplierPaymentHistorySummary } from '../../services/supplier-payment.s
   styles: [`
     .info-row {
       padding: 0.75rem;
-      background: #f9fafb;
+      background: var(--surface-ground);
       border-radius: 0.375rem;
     }
   `]

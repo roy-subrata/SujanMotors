@@ -1,4 +1,4 @@
-import { Component, Output, EventEmitter, ViewChild, Input } from '@angular/core';
+import { Component, Output, EventEmitter, ViewChild, Input, inject, OnInit, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
@@ -10,6 +10,8 @@ import { RippleModule } from 'primeng/ripple';
 import { Select } from 'primeng/select';
 import { MenuItem } from 'primeng/api';
 import { BrandResponse } from '../../services/brand.service';
+import { I18nService } from '@/shared/services/i18n.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
     selector: 'app-brands-list',
@@ -18,7 +20,7 @@ import { BrandResponse } from '../../services/brand.service';
     templateUrl: './brands-list.component.html',
     styleUrls: ['./brands-list.component.css']
 })
-export class BrandsListComponent {
+export class BrandsListComponent implements OnInit {
     @ViewChild('contextMenu') contextMenu: ContextMenu | undefined;
 
     @Input() brands: BrandResponse[] = [];
@@ -36,25 +38,40 @@ export class BrandsListComponent {
     selectedBrand: BrandResponse | null = null;
     Math = Math;
 
+    private readonly i18n = inject(I18nService);
+    private readonly destroyRef = inject(DestroyRef);
+
+    ngOnInit(): void {
+        this.i18n.translationsLoaded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+            if (this.selectedBrand) this.rebuildContextMenu(this.selectedBrand);
+        });
+    }
+
     showContextMenu(event: MouseEvent, brand: BrandResponse): void {
         event.preventDefault();
         event.stopPropagation();
         this.selectedBrand = brand;
+        this.rebuildContextMenu(brand);
+        this.contextMenu?.show(event);
+    }
+
+    private rebuildContextMenu(brand: BrandResponse): void {
         this.contextMenuItems = [
-            { label: 'Edit', icon: 'pi pi-pencil', command: () => this.editBrand.emit(brand) },
+            { label: this.i18n.t('common.actions.edit'), icon: 'pi pi-pencil', command: () => this.editBrand.emit(brand) },
             { separator: true },
             {
-                label: brand.isActive ? 'Deactivate' : 'Activate',
+                label: brand.isActive ? this.i18n.t('common.actions.deactivate') : this.i18n.t('common.actions.activate'),
                 icon: brand.isActive ? 'pi pi-ban' : 'pi pi-check-circle',
                 command: () => this.toggleStatus.emit(brand)
             },
             { separator: true },
-            { label: 'Delete', icon: 'pi pi-trash', command: () => this.deleteBrand.emit(brand), styleClass: 'p-menuitem-danger' }
+            { label: this.i18n.t('common.actions.delete'), icon: 'pi pi-trash', command: () => this.deleteBrand.emit(brand), styleClass: 'p-menuitem-danger' }
         ];
-        this.contextMenu?.show(event);
     }
 
-    getStatusLabel(isActive: boolean): string { return isActive ? 'Active' : 'Inactive'; }
+    getStatusLabel(isActive: boolean): string {
+        return isActive ? this.i18n.t('common.status.active') : this.i18n.t('common.status.inactive');
+    }
 
     goToPage(page: number): void {
         if (page < 1 || page > this.totalPages) return;

@@ -1,4 +1,4 @@
-import { Component, Output, EventEmitter, ViewChild, Input } from '@angular/core';
+import { Component, Output, EventEmitter, ViewChild, Input, OnInit, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
@@ -10,6 +10,8 @@ import { RippleModule } from 'primeng/ripple';
 import { Select } from 'primeng/select';
 import { MenuItem } from 'primeng/api';
 import { CategoryResponse } from '../../services/category.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { I18nService } from '@/shared/services/i18n.service';
 
 @Component({
     selector: 'app-categories-list',
@@ -28,56 +30,58 @@ import { CategoryResponse } from '../../services/category.service';
     templateUrl: './categories-list.component.html',
     styleUrls: ['./categories-list.component.css']
 })
-export class CategoriesListComponent {
+export class CategoriesListComponent implements OnInit {
     @ViewChild('contextMenu') contextMenu: ContextMenu | undefined;
 
-    // Input data from parent
     @Input() categories: CategoryResponse[] = [];
     @Input() loading = false;
     @Input() totalRecords = 0;
     @Input() rows = 10;
     @Input() currentPage = 1;
 
-    // Output events
     @Output() editCategory = new EventEmitter<CategoryResponse>();
     @Output() deleteCategory = new EventEmitter<CategoryResponse>();
     @Output() addSubcategory = new EventEmitter<CategoryResponse>();
     @Output() toggleCategoryStatus = new EventEmitter<CategoryResponse>();
     @Output() pageChange = new EventEmitter<{ page: number; rows: number }>();
 
-    // Context menu
     contextMenuItems: MenuItem[] = [];
     selectedCategory: CategoryResponse | null = null;
     pageSizeOptions = [10, 20, 50];
 
-    // Expose Math for template
     Math = Math;
 
-    /**
-     * Build context menu for a category
-     */
+    private readonly i18n = inject(I18nService);
+    private readonly destroyRef = inject(DestroyRef);
+
+    ngOnInit(): void {
+        this.i18n.translationsLoaded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+            if (this.selectedCategory) this.buildContextMenu(this.selectedCategory);
+        });
+    }
+
     private buildContextMenu(category: CategoryResponse): void {
         this.selectedCategory = category;
         this.contextMenuItems = [
             {
-                label: 'Edit',
+                label: this.i18n.t('common.actions.edit'),
                 icon: 'pi pi-pencil',
                 command: () => this.editCategory.emit(category)
             },
             {
-                label: 'Add Subcategory',
+                label: this.i18n.t('common.actions.addSubcategory'),
                 icon: 'pi pi-plus',
                 command: () => this.addSubcategory.emit(category)
             },
             { separator: true },
             {
-                label: category.isActive ? 'Deactivate' : 'Activate',
+                label: category.isActive ? this.i18n.t('common.actions.deactivate') : this.i18n.t('common.actions.activate'),
                 icon: category.isActive ? 'pi pi-times' : 'pi pi-check',
                 command: () => this.toggleCategoryStatus.emit(category)
             },
             { separator: true },
             {
-                label: 'Delete',
+                label: this.i18n.t('common.actions.delete'),
                 icon: 'pi pi-trash',
                 command: () => this.deleteCategory.emit(category),
                 styleClass: 'p-menuitem-danger'
@@ -85,9 +89,6 @@ export class CategoriesListComponent {
         ];
     }
 
-    /**
-     * Show context menu
-     */
     showContextMenu(event: MouseEvent, category: CategoryResponse): void {
         event.preventDefault();
         event.stopPropagation();
@@ -95,55 +96,27 @@ export class CategoriesListComponent {
         this.contextMenu?.show(event);
     }
 
-    /**
-     * Handle pagination change
-     */
     onPageChange(event: any): void {
-        if (!event || typeof event.first !== 'number' || typeof event.rows !== 'number') {
-            return;
-        }
+        if (!event || typeof event.first !== 'number' || typeof event.rows !== 'number') return;
         const pageNumber = Math.floor(event.first / event.rows) + 1;
-        this.pageChange.emit({
-            page: pageNumber,
-            rows: event.rows
-        });
+        this.pageChange.emit({ page: pageNumber, rows: event.rows });
     }
 
-    /**
-     * Navigate to a specific page
-     */
     goToPage(page: number): void {
-        if (page < 1 || page > this.totalPages) {
-            return;
-        }
-        this.pageChange.emit({
-            page: page,
-            rows: this.rows
-        });
+        if (page < 1 || page > this.totalPages) return;
+        this.pageChange.emit({ page, rows: this.rows });
     }
 
-    /**
-     * Handle page size change
-     */
     onPageSizeChange(newRows: number): void {
-        this.pageChange.emit({
-            page: 1,
-            rows: newRows
-        });
+        this.pageChange.emit({ page: 1, rows: newRows });
     }
 
-    /**
-     * Get status label
-     */
     getStatusLabel(isActive: boolean): string {
-        return isActive ? 'Active' : 'Inactive';
+        return isActive ? this.i18n.t('common.status.active') : this.i18n.t('common.status.inactive');
     }
 
-    /**
-     * Get level display
-     */
     getLevelDisplay(level: number): string {
-        return level === 0 ? 'Root' : `Level ${level}`;
+        return level === 0 ? this.i18n.t('common.labels.root') : `${this.i18n.t('common.labels.level')} ${level}`;
     }
 
     get first(): number {
@@ -151,9 +124,7 @@ export class CategoriesListComponent {
     }
 
     get totalPages(): number {
-        if (!this.totalRecords || !this.rows) {
-            return 0;
-        }
+        if (!this.totalRecords || !this.rows) return 0;
         return Math.ceil(this.totalRecords / this.rows);
     }
 }

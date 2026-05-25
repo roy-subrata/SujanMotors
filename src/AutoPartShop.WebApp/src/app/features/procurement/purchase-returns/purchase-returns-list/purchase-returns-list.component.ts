@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, ViewChild, inject, OnInit } from '@angular/core';
+import { Component, EventEmitter, Input, Output, ViewChild, inject, OnInit, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -16,6 +16,8 @@ import { InputTextModule } from 'primeng/inputtext';
 import { ConfirmationService, MessageService, MenuItem } from 'primeng/api';
 import { PurchaseReturnService, PurchaseReturnResponse } from '../../services/purchase-return.service';
 import { CurrencyService } from '../../../../shared/services/currency.service';
+import { I18nService } from '@/shared/services/i18n.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-purchase-returns-list',
@@ -65,98 +67,71 @@ export class PurchaseReturnsListComponent implements OnInit {
   private readonly messageService = inject(MessageService);
   private readonly router = inject(Router);
   private readonly currencyService = inject(CurrencyService);
+  private readonly i18n = inject(I18nService);
+  private readonly destroyRef = inject(DestroyRef);
 
   ngOnInit(): void {
-    this.initializeContextMenu();
+    this.rebuildContextMenu();
+    this.i18n.translationsLoaded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      if (this.selectedPurchaseReturn) this.rebuildContextMenu();
+    });
   }
 
-  /**
-   * Initialize context menu items based on return status
-   */
-  private initializeContextMenu(): void {
-    const status = this.selectedPurchaseReturn?.status;
+  private rebuildContextMenu(): void {
+    const pr = this.selectedPurchaseReturn;
+    const status = pr?.status;
 
     this.contextMenuItems = [
       {
-        label: 'View Details',
+        label: this.i18n.t('common.actions.viewDetails'),
         icon: 'pi pi-eye',
-        command: () => {
-          if (this.selectedPurchaseReturn) {
-            this.viewDetails(this.selectedPurchaseReturn);
-          }
-        }
+        command: () => { if (pr) this.viewDetails(pr); }
       },
       {
-        label: 'Edit',
+        label: this.i18n.t('common.actions.edit'),
         icon: 'pi pi-pencil',
-        command: () => {
-          if (this.selectedPurchaseReturn) {
-            this.onEditClick(this.selectedPurchaseReturn);
-          }
-        },
+        command: () => { if (pr) this.onEditClick(pr); },
         visible: status === 'PENDING'
       },
       { separator: true },
       {
-        label: 'Delete',
+        label: this.i18n.t('common.actions.delete'),
         icon: 'pi pi-trash',
-        command: () => {
-          if (this.selectedPurchaseReturn) {
-            this.onDeleteClick(this.selectedPurchaseReturn);
-          }
-        },
+        command: () => { if (pr) this.onDeleteClick(pr); },
         visible: status === 'PENDING',
         styleClass: 'p-menuitem-danger'
       }
     ];
   }
 
-  /**
-   * Show context menu
-   */
   showContextMenu(event: any, pr: PurchaseReturnResponse): void {
     this.selectedPurchaseReturn = pr;
-    this.initializeContextMenu();
+    this.rebuildContextMenu();
     if (this.contextMenu) {
       this.contextMenu.show(event);
     }
   }
 
-  /**
-   * View purchase return details
-   */
   viewPurchaseReturn(pr: PurchaseReturnResponse): void {
     this.router.navigate(['/procurement/purchase-returns/view'], { queryParams: { id: pr.id } });
   }
 
-  /**
-   * Edit purchase return
-   */
   editPurchaseReturn(pr: PurchaseReturnResponse): void {
     this.router.navigate(['/procurement/purchase-returns/edit'], { queryParams: { id: pr.id } });
   }
 
-  /**
-   * Handle edit click (legacy for context menu)
-   */
   onEditClick(pr: PurchaseReturnResponse): void {
     this.editPurchaseReturn(pr);
   }
 
-  /**
-   * View details (legacy for context menu)
-   */
   viewDetails(pr: PurchaseReturnResponse): void {
     this.viewPurchaseReturn(pr);
   }
 
-  /**
-   * Delete purchase return
-   */
   deletePurchaseReturn(pr: PurchaseReturnResponse): void {
     this.confirmationService.confirm({
-      message: `Are you sure you want to delete return #${pr.returnNumber}?`,
-      header: 'Confirm Deletion',
+      message: this.i18n.t('purchaseReturns.messages.deleteConfirm'),
+      header: this.i18n.t('common.messages.confirmDeletion'),
       icon: 'pi pi-exclamation-triangle',
       acceptButtonStyleClass: 'p-button-danger',
       accept: () => {
@@ -165,40 +140,31 @@ export class PurchaseReturnsListComponent implements OnInit {
     });
   }
 
-  /**
-   * Delete purchase return (legacy for context menu)
-   */
   onDeleteClick(pr: PurchaseReturnResponse): void {
     this.deletePurchaseReturn(pr);
   }
 
-  /**
-   * Delete purchase return via API
-   */
   private deletePurchaseReturnById(id: string): void {
     this.prService.deletePurchaseReturn(id).subscribe({
       next: () => {
         this.messageService.add({
           severity: 'success',
-          summary: 'Success',
-          detail: 'Purchase Return deleted successfully'
+          summary: this.i18n.t('common.messages.success'),
+          detail: this.i18n.t('purchaseReturns.messages.deleteSuccess')
         });
         this.onReturnDeleted.emit();
       },
       error: (error) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: error?.error?.message || 'Failed to delete purchase return'
+          summary: this.i18n.t('common.messages.error'),
+          detail: error?.error?.message || this.i18n.t('purchaseReturns.messages.deleteFailed')
         });
         console.error('Error deleting purchase return:', error);
       }
     });
   }
 
-  /**
-   * Handle pagination change
-   */
   onPageChange(event: any): void {
     if (!event || typeof event.first !== 'number' || typeof event.rows !== 'number') {
       return;
@@ -210,9 +176,6 @@ export class PurchaseReturnsListComponent implements OnInit {
     });
   }
 
-  /**
-   * Handle search
-   */
   onSearchInput(event: Event): void {
     const value = (event.target as HTMLInputElement).value;
     this.searchValue = value;
@@ -221,47 +184,28 @@ export class PurchaseReturnsListComponent implements OnInit {
     }
   }
 
-  /**
-   * Clear search
-   */
   clearSearch(): void {
     this.searchValue = '';
     this.onSearchClear.emit();
   }
 
-  /**
-   * Get status badge severity
-   */
   getStatusSeverity(status: string): string {
     switch (status?.toUpperCase()) {
-      case 'PENDING':
-        return 'warning';
-      case 'APPROVED':
-        return 'info';
-      case 'RETURNED':
-        return 'primary';
-      case 'RECEIVED':
-        return 'success';
-      case 'CREDITED':
-        return 'success';
-      case 'REJECTED':
-        return 'danger';
-      default:
-        return 'secondary';
+      case 'PENDING': return 'warning';
+      case 'APPROVED': return 'info';
+      case 'RETURNED': return 'primary';
+      case 'RECEIVED': return 'success';
+      case 'CREDITED': return 'success';
+      case 'REJECTED': return 'danger';
+      default: return 'secondary';
     }
   }
 
-  /**
-   * Format currency - uses default currency from settings
-   */
   formatCurrency(value: number): string {
     const currency = this.currencyService.selectedCurrency();
     return this.currencyService.formatCurrency(value, currency);
   }
 
-  /**
-   * Format date
-   */
   formatDate(date: string): string {
     return new Date(date).toLocaleDateString('en-IN');
   }

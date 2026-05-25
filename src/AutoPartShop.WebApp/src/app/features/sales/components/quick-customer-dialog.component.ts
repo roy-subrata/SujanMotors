@@ -118,13 +118,13 @@ import { CustomerService, CreateCustomerRequest } from '../services/customer.ser
 
                 .p-dialog-content {
                     padding: 1.5rem;
-                    background: #ffffff;
+                    background: var(--surface-card);
                 }
 
                 .p-dialog-footer {
                     padding: 1rem 1.5rem;
-                    background: #f8fafc;
-                    border-top: 1px solid #e2e8f0;
+                    background: var(--surface-ground);
+                    border-top: 1px solid var(--surface-border);
                     border-radius: 0 0 12px 12px;
                 }
             }
@@ -189,7 +189,7 @@ import { CustomerService, CreateCustomerRequest } from '../services/customer.ser
             .form-field label {
                 font-size: 0.85rem;
                 font-weight: 600;
-                color: #475569;
+                color: var(--text-color);
                 display: flex;
                 align-items: center;
                 gap: 0.5rem;
@@ -197,7 +197,7 @@ import { CustomerService, CreateCustomerRequest } from '../services/customer.ser
 
             .form-field label i {
                 font-size: 0.8rem;
-                color: #64748b;
+                color: var(--text-color-secondary);
             }
 
             .form-field label .required {
@@ -208,8 +208,10 @@ import { CustomerService, CreateCustomerRequest } from '../services/customer.ser
                 width: 100%;
                 padding: 0.75rem 1rem;
                 font-size: 0.95rem;
-                border: 1px solid #e2e8f0;
+                border: 1px solid var(--surface-border);
                 border-radius: 8px;
+                background: var(--surface-card);
+                color: var(--text-color);
                 transition: all 0.2s ease;
             }
 
@@ -221,11 +223,11 @@ import { CustomerService, CreateCustomerRequest } from '../services/customer.ser
 
             .form-field input.invalid {
                 border-color: #ef4444;
-                background: #fef2f2;
+                background: rgba(239, 68, 68, 0.05);
             }
 
             .form-field input::placeholder {
-                color: #94a3b8;
+                color: var(--text-color-secondary);
             }
 
             :host ::ng-deep .form-field .p-select {

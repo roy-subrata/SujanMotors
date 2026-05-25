@@ -1410,6 +1410,25 @@
   .page-title {
     font-size: 16px;
   }
+
+  .cards-section {
+    padding: 0.75rem 0.75rem 4.5rem;
+  }
+
+  .mobile-pagination {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 200;
+    margin-top: 0;
+    border-radius: 0;
+    border: none;
+    border-top: 1px solid #e5e7eb;
+    box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08);
+    background: #fff;
+    padding: 0.75rem 1rem;
+  }
 }
 
 @media (max-width: 640px) {
@@ -1436,5 +1455,9 @@
 
   .alert-content {
     align-items: center;
+  }
+
+  .cards-section {
+    padding: 0.5rem 0.5rem 4.5rem;
   }
 }

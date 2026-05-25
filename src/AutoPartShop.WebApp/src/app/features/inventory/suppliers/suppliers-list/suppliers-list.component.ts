@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, inject } from '@angular/core';
+import { Component, OnInit, ViewChild, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
@@ -15,6 +15,8 @@ import { MenuItem } from 'primeng/api';
 import { SupplierService, SupplierResponse } from '../../services/supplier.service';
 import { CurrencyService } from '../../../../shared/services/currency.service';
 import { Router } from '@angular/router';
+import { I18nService } from '@/shared/services/i18n.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-suppliers-list',
@@ -46,9 +48,14 @@ export class SuppliersListComponent implements OnInit {
   private readonly confirmationService = inject(ConfirmationService);
   private readonly messageService = inject(MessageService);
   private readonly router = inject(Router);
+  private readonly i18n = inject(I18nService);
+  private readonly destroyRef = inject(DestroyRef);
 
   ngOnInit(): void {
     this.loadData();
+    this.i18n.translationsLoaded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      if (this.selectedSupplier) this.buildActionMenuItems(this.selectedSupplier);
+    });
   }
 
   loadData(): void {
@@ -66,8 +73,8 @@ export class SuppliersListComponent implements OnInit {
       error: (error) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load suppliers'
+          summary: this.i18n.t('common.messages.error'),
+          detail: this.i18n.t('suppliers.messages.loadFailed')
         });
         console.error('Error loading suppliers:', error);
         this.loading = false;
@@ -120,56 +127,58 @@ export class SuppliersListComponent implements OnInit {
   // Action menu
   showActionMenu(event: Event, supplier: SupplierResponse): void {
     this.selectedSupplier = supplier;
+    this.buildActionMenuItems(supplier);
+    this.actionMenu.toggle(event);
+  }
 
+  private buildActionMenuItems(supplier: SupplierResponse): void {
     this.actionMenuItems = [
       {
-        label: 'View Details',
+        label: this.i18n.t('common.actions.viewDetails'),
         icon: 'pi pi-eye',
         command: () => this.viewSupplier(supplier)
       },
       {
-        label: 'Edit Supplier',
+        label: this.i18n.t('suppliers.editSupplier'),
         icon: 'pi pi-pencil',
         command: () => this.onEditClick(supplier)
       },
       { separator: true },
       ...(supplier.isActive
         ? [{
-            label: 'Deactivate',
+            label: this.i18n.t('common.actions.deactivate'),
             icon: 'pi pi-times-circle',
             command: () => this.deactivateSupplier(supplier.id)
           }]
         : [{
-            label: 'Activate',
+            label: this.i18n.t('common.actions.activate'),
             icon: 'pi pi-check-circle',
             command: () => this.activateSupplier(supplier.id)
           }]),
       { separator: true },
       {
-        label: 'Payment Accounts',
+        label: this.i18n.t('common.actions.paymentAccounts'),
         icon: 'pi pi-credit-card',
         command: () => this.viewPaymentAccounts(supplier)
       },
       {
-        label: 'Record Payment',
+        label: this.i18n.t('common.actions.recordPayment'),
         icon: 'pi pi-wallet',
         command: () => this.recordPayment(supplier)
       },
       {
-        label: 'Account Summary',
+        label: this.i18n.t('common.actions.accountSummary'),
         icon: 'pi pi-chart-line',
         command: () => this.viewAccountSummary(supplier)
       },
       { separator: true },
       {
-        label: 'Delete',
+        label: this.i18n.t('common.actions.delete'),
         icon: 'pi pi-trash',
         command: () => this.onDeleteClick(supplier),
         styleClass: 'text-red-600'
       }
     ];
-
-    this.actionMenu.toggle(event);
   }
 
   // Navigation
@@ -200,18 +209,18 @@ export class SuppliersListComponent implements OnInit {
   // CRUD
   onDeleteClick(supplier: SupplierResponse): void {
     this.confirmationService.confirm({
-      message: `Are you sure you want to delete supplier '${supplier.name}'? This action cannot be undone.`,
-      header: 'Delete Confirmation',
+      message: this.i18n.t('suppliers.messages.deleteConfirm', { name: supplier.name }),
+      header: this.i18n.t('common.messages.confirmDeletion'),
       icon: 'pi pi-exclamation-triangle',
       acceptButtonStyleClass: 'p-button-danger',
       accept: () => {
         this.supplierService.deleteSupplier(supplier.id).subscribe({
           next: () => {
-            this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Supplier deleted successfully' });
+            this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: this.i18n.t('suppliers.messages.deleteSuccess') });
             this.loadData();
           },
           error: (error) => {
-            this.messageService.add({ severity: 'error', summary: 'Error', detail: error?.error?.message || 'Failed to delete supplier' });
+            this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: error?.error?.message || this.i18n.t('suppliers.messages.deleteFailed') });
           }
         });
       }
@@ -221,11 +230,11 @@ export class SuppliersListComponent implements OnInit {
   private activateSupplier(supplierId: string): void {
     this.supplierService.activateSupplier(supplierId).subscribe({
       next: () => {
-        this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Supplier activated successfully' });
+        this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: this.i18n.t('suppliers.messages.activateSuccess') });
         this.loadData();
       },
       error: (error) => {
-        this.messageService.add({ severity: 'error', summary: 'Error', detail: error?.error?.message || 'Failed to activate supplier' });
+        this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: error?.error?.message || this.i18n.t('suppliers.messages.activateFailed') });
       }
     });
   }
@@ -233,18 +242,18 @@ export class SuppliersListComponent implements OnInit {
   private deactivateSupplier(supplierId: string): void {
     this.supplierService.deactivateSupplier(supplierId).subscribe({
       next: () => {
-        this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Supplier deactivated successfully' });
+        this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: this.i18n.t('suppliers.messages.deactivateSuccess') });
         this.loadData();
       },
       error: (error) => {
-        this.messageService.add({ severity: 'error', summary: 'Error', detail: error?.error?.message || 'Failed to deactivate supplier' });
+        this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: error?.error?.message || this.i18n.t('suppliers.messages.deactivateFailed') });
       }
     });
   }
 
   // Utility methods
   formatStatus(isActive: boolean): string {
-    return isActive ? 'Active' : 'Inactive';
+    return isActive ? this.i18n.t('common.status.active') : this.i18n.t('common.status.inactive');
   }
 
   formatCurrency(amount: number): string {

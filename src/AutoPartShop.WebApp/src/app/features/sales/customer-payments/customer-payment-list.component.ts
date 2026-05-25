@@ -23,6 +23,7 @@ import { CustomerPaymentService, CustomerPaymentResponse } from '../services/cus
 import { CustomerService, PaginatedResponse } from '../services/customer.service';
 import { CurrencyService } from '../../../shared/services/currency.service';
 import { AppCurrencyPipe } from '../../../shared/pipes/app-currency.pipe';
+import { I18nService } from '@/shared/services/i18n.service';
 
 @Component({
     selector: 'app-customer-payment-list',
@@ -60,6 +61,7 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
     private readonly route = inject(ActivatedRoute);
     private readonly customerService = inject(CustomerService);
     private readonly currencyService = inject(CurrencyService);
+    private readonly i18n = inject(I18nService);
 
     private readonly destroy$ = new Subject<void>();
     private readonly searchSubject$ = new Subject<string>();
@@ -73,41 +75,29 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
     totalCount: number = 0;
     first: number = 0;
 
-    // Customer filter (from query params when navigating from customer detail)
     customerFilter: string | null = null;
     customerFilterName: string = '';
 
-    // Computed page number for API (1-based)
     get pageNumber(): number {
         return Math.floor(this.first / this.pageSize) + 1;
     }
     loading: boolean = false;
     contextMenuItems: MenuItem[] = [];
     selectedPayment: CustomerPaymentResponse | null = null;
-  
 
-    statusOptions = [
-        { label: 'All Statuses', value: '' },
-        { label: 'Pending', value: 'PENDING' },
-        { label: 'Processing', value: 'PROCESSING' },
-        { label: 'Completed', value: 'COMPLETED' },
-        { label: 'Failed', value: 'FAILED' },
-        { label: 'Cancelled', value: 'CANCELLED' },
-        { label: 'Refunded', value: 'REFUNDED' }
-    ];
-
-    reconciledOptions = [
-        { label: 'Reconciled', value: true },
-        { label: 'Not Reconciled', value: false }
-    ];
-
+    statusOptions: { label: string; value: string }[] = [];
+    reconciledOptions: { label: string; value: boolean }[] = [];
     reconciledFilter: boolean | null = null;
 
     ngOnInit(): void {
-        this.initializeContextMenu();
+        this.buildStatusOptions();
+        this.i18n.translationsLoaded$.pipe(takeUntil(this.destroy$)).subscribe(() => {
+            this.buildStatusOptions();
+            if (this.selectedPayment) this.rebuildContextMenu();
+        });
+        this.rebuildContextMenu();
         this.setupSearchDebounce();
 
-        // Check for customer filter from query params (e.g., from customer detail page)
         const customerId = this.route.snapshot.queryParamMap.get('customerId');
         if (customerId) {
             this.customerFilter = customerId;
@@ -122,9 +112,22 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
         this.destroy$.complete();
     }
 
-    /**
-     * Setup debounced search
-     */
+    private buildStatusOptions(): void {
+        this.statusOptions = [
+            { label: this.i18n.t('customerPayments.statusOptions.allStatuses'), value: '' },
+            { label: this.i18n.t('customerPayments.statusOptions.pending'),     value: 'PENDING' },
+            { label: this.i18n.t('customerPayments.statusOptions.processing'),  value: 'PROCESSING' },
+            { label: this.i18n.t('customerPayments.statusOptions.completed'),   value: 'COMPLETED' },
+            { label: this.i18n.t('customerPayments.statusOptions.failed'),      value: 'FAILED' },
+            { label: this.i18n.t('customerPayments.statusOptions.cancelled'),   value: 'CANCELLED' },
+            { label: this.i18n.t('customerPayments.statusOptions.refunded'),    value: 'REFUNDED' }
+        ];
+        this.reconciledOptions = [
+            { label: this.i18n.t('customerPayments.reconciledOptions.reconciled'),    value: true },
+            { label: this.i18n.t('customerPayments.reconciledOptions.notReconciled'), value: false }
+        ];
+    }
+
     private setupSearchDebounce(): void {
         this.searchSubject$.pipe(debounceTime(400), distinctUntilChanged(), takeUntil(this.destroy$)).subscribe(() => {
             this.first = 0;
@@ -132,139 +135,89 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
         });
     }
 
-    /**
-     * Handle search input change
-     */
     onSearchInput(): void {
         this.searchSubject$.next(this.searchTerm);
     }
 
-    /**
-     * Initialize context menu items
-     */
-    private initializeContextMenu(): void {
+    private rebuildContextMenu(): void {
+        const p = this.selectedPayment;
         this.contextMenuItems = [
             {
-                label: 'View Details',
+                label: this.i18n.t('common.actions.viewDetails'),
                 icon: 'pi pi-eye',
-                command: () => {
-                    if (this.selectedPayment) {
-                        this.viewDetails(this.selectedPayment);
-                    }
-                }
+                command: () => { if (p) this.viewDetails(p); }
             },
             {
-                label: 'Edit',
+                label: this.i18n.t('common.actions.edit'),
                 icon: 'pi pi-pencil',
-                command: () => {
-                    if (this.selectedPayment) {
-                        this.edit(this.selectedPayment);
-                    }
-                },
-                visible: this.selectedPayment ? this.selectedPayment.status !== 'COMPLETED' && this.selectedPayment.status !== 'REFUNDED' : false
+                command: () => { if (p) this.edit(p); },
+                visible: p ? p.status !== 'COMPLETED' && p.status !== 'REFUNDED' : false
             },
             { separator: true },
             {
-                label: 'Mark as Advance',
+                label: this.i18n.t('common.actions.markAsAdvance'),
                 icon: 'pi pi-arrow-up',
-                command: () => {
-                    if (this.selectedPayment) {
-                        this.markAsAdvance(this.selectedPayment);
-                    }
-                },
-                visible: this.selectedPayment ? this.selectedPayment.paymentType !== 'ADVANCE' : false
+                command: () => { if (p) this.markAsAdvance(p); },
+                visible: p ? p.paymentType !== 'ADVANCE' : false
             },
             {
-                label: 'Mark as Regular',
+                label: this.i18n.t('common.actions.markAsRegular'),
                 icon: 'pi pi-arrow-down',
-                command: () => {
-                    if (this.selectedPayment) {
-                        this.markAsRegular(this.selectedPayment);
-                    }
-                },
-                visible: this.selectedPayment ? this.selectedPayment.paymentType === 'ADVANCE' : false
+                command: () => { if (p) this.markAsRegular(p); },
+                visible: p ? p.paymentType === 'ADVANCE' : false
             },
             { separator: true },
             {
-                label: 'Confirm',
+                label: this.i18n.t('common.actions.confirm'),
                 icon: 'pi pi-check',
-                command: () => {
-                    if (this.selectedPayment) {
-                        this.confirmPayment(this.selectedPayment);
-                    }
-                },
-                visible: this.selectedPayment ? this.selectedPayment.status === 'PENDING' : false
+                command: () => { if (p) this.confirmPayment(p); },
+                visible: p ? p.status === 'PENDING' : false
             },
             {
-                label: 'Reconcile',
+                label: this.i18n.t('common.actions.reconcile'),
                 icon: 'pi pi-check-square',
-                command: () => {
-                    if (this.selectedPayment) {
-                        this.reconcilePayment(this.selectedPayment);
-                    }
-                },
-                visible: this.selectedPayment ? this.selectedPayment.status === 'COMPLETED' && !this.selectedPayment.isReconciled : false
+                command: () => { if (p) this.reconcilePayment(p); },
+                visible: p ? p.status === 'COMPLETED' && !p.isReconciled : false
             },
             {
-                label: 'Refund',
+                label: this.i18n.t('common.actions.refund'),
                 icon: 'pi pi-replay',
-                command: () => {
-                    if (this.selectedPayment) {
-                        this.refundPayment(this.selectedPayment);
-                    }
-                },
-                visible: this.selectedPayment ? this.selectedPayment.status === 'COMPLETED' && !this.selectedPayment.isReconciled : false
+                command: () => { if (p) this.refundPayment(p); },
+                visible: p ? p.status === 'COMPLETED' && !p.isReconciled : false
             },
             { separator: true },
             {
-                label: 'Cancel',
+                label: this.i18n.t('common.actions.cancel'),
                 icon: 'pi pi-times',
-                command: () => {
-                    if (this.selectedPayment) {
-                        this.cancelPayment(this.selectedPayment);
-                    }
-                },
-                visible: this.selectedPayment ? this.selectedPayment.status !== 'COMPLETED' && this.selectedPayment.status !== 'REFUNDED' : false
+                command: () => { if (p) this.cancelPayment(p); },
+                visible: p ? p.status !== 'COMPLETED' && p.status !== 'REFUNDED' : false
             },
             {
-                label: 'Delete',
+                label: this.i18n.t('common.actions.delete'),
                 icon: 'pi pi-trash',
-                command: () => {
-                    if (this.selectedPayment) {
-                        this.deletePayment(this.selectedPayment);
-                    }
-                },
-                visible: this.selectedPayment ? this.selectedPayment.status !== 'COMPLETED' && this.selectedPayment.status !== 'REFUNDED' : false
+                command: () => { if (p) this.deletePayment(p); },
+                visible: p ? p.status !== 'COMPLETED' && p.status !== 'REFUNDED' : false
             }
         ];
     }
 
-    /**
-     * Show context menu
-     */
     showContextMenu(event: MouseEvent, payment: CustomerPaymentResponse): void {
         this.selectedPayment = payment;
-        this.initializeContextMenu();
+        this.rebuildContextMenu();
         this.contextMenu?.show(event);
     }
 
-    /**
-     * Load customer payments
-     */
     loadCustomerPayments(): void {
         this.loading = true;
 
-        // Prepare date range for API - format as local date strings to avoid timezone issues
         let fromDateStr: string | undefined;
         let toDateStr: string | undefined;
 
         if (this.dateRange && this.dateRange.length === 2 && this.dateRange[0] && this.dateRange[1]) {
-            // Format as YYYY-MM-DD to preserve local date
             fromDateStr = this.formatDateForApi(this.dateRange[0]);
             toDateStr = this.formatDateForApi(this.dateRange[1]);
         }
 
-        // Load all payments with pagination
         this.customerPaymentService
             .getCustomerPayments({
                 search: this.searchTerm,
@@ -285,8 +238,8 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
                 error: (error) => {
                     this.messageService.add({
                         severity: 'error',
-                        summary: 'Error',
-                        detail: 'Failed to load customer payments'
+                        summary: this.i18n.t('common.messages.error'),
+                        detail: this.i18n.t('customerPayments.messages.loadFailed')
                     });
                     console.error('Error loading customer payments:', error);
                     this.loading = false;
@@ -294,39 +247,26 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
             });
     }
 
-    /**
-     * Filter change handler - triggers on status or date range change
-     */
     onFilterChange(): void {
         this.first = 0;
         this.loadCustomerPayments();
     }
 
-    /**
-     * Handle date range selection
-     */
     onDateRangeSelect(): void {
-        // Only filter when both dates are selected
         if (this.dateRange && this.dateRange.length === 2 && this.dateRange[0] && this.dateRange[1]) {
             this.first = 0;
             this.loadCustomerPayments();
         }
     }
 
-    /**
-     * Handle date range change (including clear)
-     */
     onDateRangeChange(value: Date[] | null): void {
-        // If cleared (null or empty), reload without date filter
         if (!value || value.length === 0) {
             this.dateRange = [];
             this.first = 0;
             this.loadCustomerPayments();
         }
     }
-    /**
-     * Clear all filters
-     */
+
     clearFilters(): void {
         this.searchTerm = '';
         this.statusFilter = null;
@@ -335,24 +275,18 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
         this.customerFilter = null;
         this.customerFilterName = '';
         this.first = 0;
-        this.router.navigate(['/sales/customer-payments']); // Clear query params
+        this.router.navigate(['/sales/customer-payments']);
         this.loadCustomerPayments();
     }
 
-    /**
-     * Clear just the customer filter
-     */
     clearCustomerFilter(): void {
         this.customerFilter = null;
         this.customerFilterName = '';
         this.first = 0;
-        this.router.navigate(['/sales/customer-payments']); // Clear query params
+        this.router.navigate(['/sales/customer-payments']);
         this.loadCustomerPayments();
     }
 
-    /**
-     * Load customer name for the filter chip display
-     */
     private loadCustomerName(customerId: string): void {
         this.customerService.getCustomerById(customerId).subscribe({
             next: (customer) => {
@@ -364,58 +298,42 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
         });
     }
 
-    /**
-     * Get filtered payments — server already filters by status,
-     * so just return the loaded data directly to avoid paginator mismatch
-     */
     get filteredPayments(): CustomerPaymentResponse[] {
         return this.customerPayments;
     }
 
-    /**
-     * Create new customer payment
-     */
     createNew(): void {
         this.router.navigate(['/sales/customer-payments/new']);
     }
 
-    /**
-     * Edit customer payment
-     */
     edit(payment: CustomerPaymentResponse): void {
         this.router.navigate(['/sales/customer-payments/edit'], { queryParams: { id: payment.id } });
     }
 
-    /**
-     * View customer payment details
-     */
     viewDetails(payment: CustomerPaymentResponse): void {
         this.router.navigate(['/sales/customer-payments/view'], { queryParams: { id: payment.id } });
     }
 
-    /**
-     * Confirm payment
-     */
     confirmPayment(payment: CustomerPaymentResponse): void {
         this.confirmationService.confirm({
-            message: 'Are you sure you want to confirm payment of ' + this.formatCurrency(payment.amount) + ' from ' + payment.customerName + '?',
-            header: 'Confirm Payment',
+            message: this.i18n.t('customerPayments.messages.confirmConfirm'),
+            header: this.i18n.t('common.actions.confirmPayment'),
             icon: 'pi pi-exclamation-triangle',
             accept: () => {
                 this.customerPaymentService.confirmPayment(payment.id).subscribe({
                     next: () => {
                         this.messageService.add({
                             severity: 'success',
-                            summary: 'Success',
-                            detail: 'Payment confirmed successfully'
+                            summary: this.i18n.t('common.messages.success'),
+                            detail: this.i18n.t('customerPayments.messages.confirmSuccess')
                         });
                         this.loadCustomerPayments();
                     },
                     error: (error) => {
                         this.messageService.add({
                             severity: 'error',
-                            summary: 'Error',
-                            detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || 'Failed to confirm payment')
+                            summary: this.i18n.t('common.messages.error'),
+                            detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || this.i18n.t('customerPayments.messages.confirmFailed'))
                         });
                         console.error('Error confirming payment:', error);
                     }
@@ -424,29 +342,26 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
         });
     }
 
-    /**
-     * Mark payment as advance
-     */
     markAsAdvance(payment: CustomerPaymentResponse): void {
         this.confirmationService.confirm({
-            message: `Mark this payment of ${this.formatCurrency(payment.amount)} as an advance payment?`,
-            header: 'Mark as Advance',
+            message: this.i18n.t('customerPayments.messages.markAsAdvanceConfirm'),
+            header: this.i18n.t('common.actions.markAsAdvance'),
             icon: 'pi pi-info-circle',
             accept: () => {
                 this.customerPaymentService.markPaymentAsAdvance(payment.id, 'Advance Payment').subscribe({
                     next: () => {
                         this.messageService.add({
                             severity: 'success',
-                            summary: 'Success',
-                            detail: 'Payment marked as advance successfully'
+                            summary: this.i18n.t('common.messages.success'),
+                            detail: this.i18n.t('customerPayments.messages.markAsAdvanceSuccess')
                         });
                         this.loadCustomerPayments();
                     },
                     error: (error) => {
                         this.messageService.add({
                             severity: 'error',
-                            summary: 'Error',
-                            detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || 'Failed to mark payment as advance')
+                            summary: this.i18n.t('common.messages.error'),
+                            detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || this.i18n.t('customerPayments.messages.markAsAdvanceFailed'))
                         });
                         console.error('Error marking payment as advance:', error);
                     }
@@ -455,29 +370,26 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
         });
     }
 
-    /**
-     * Mark payment as regular
-     */
     markAsRegular(payment: CustomerPaymentResponse): void {
         this.confirmationService.confirm({
-            message: `Mark this payment of ${this.formatCurrency(payment.amount)} as a regular payment?`,
-            header: 'Mark as Regular',
+            message: this.i18n.t('customerPayments.messages.markAsRegularConfirm'),
+            header: this.i18n.t('common.actions.markAsRegular'),
             icon: 'pi pi-info-circle',
             accept: () => {
                 this.customerPaymentService.markPaymentAsRegular(payment.id, 'Regular Payment').subscribe({
                     next: () => {
                         this.messageService.add({
                             severity: 'success',
-                            summary: 'Success',
-                            detail: 'Payment marked as regular successfully'
+                            summary: this.i18n.t('common.messages.success'),
+                            detail: this.i18n.t('customerPayments.messages.markAsRegularSuccess')
                         });
                         this.loadCustomerPayments();
                     },
                     error: (error) => {
                         this.messageService.add({
                             severity: 'error',
-                            summary: 'Error',
-                            detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || 'Failed to mark payment as regular')
+                            summary: this.i18n.t('common.messages.error'),
+                            detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || this.i18n.t('customerPayments.messages.markAsRegularFailed'))
                         });
                         console.error('Error marking payment as regular:', error);
                     }
@@ -486,29 +398,26 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
         });
     }
 
-    /**
-     * Reconcile payment
-     */
     reconcilePayment(payment: CustomerPaymentResponse): void {
         this.confirmationService.confirm({
-            message: 'Are you sure you want to reconcile payment of ' + this.formatCurrency(payment.amount) + ' from ' + payment.customerName + '?',
-            header: 'Reconcile Payment',
+            message: this.i18n.t('customerPayments.messages.reconcileConfirm'),
+            header: this.i18n.t('common.actions.reconcile'),
             icon: 'pi pi-exclamation-triangle',
             accept: () => {
                 this.customerPaymentService.reconcilePayment(payment.id).subscribe({
                     next: () => {
                         this.messageService.add({
                             severity: 'success',
-                            summary: 'Success',
-                            detail: 'Payment reconciled successfully'
+                            summary: this.i18n.t('common.messages.success'),
+                            detail: this.i18n.t('customerPayments.messages.reconcileSuccess')
                         });
                         this.loadCustomerPayments();
                     },
                     error: (error) => {
                         this.messageService.add({
                             severity: 'error',
-                            summary: 'Error',
-                            detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || 'Failed to reconcile payment')
+                            summary: this.i18n.t('common.messages.error'),
+                            detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || this.i18n.t('customerPayments.messages.reconcileFailed'))
                         });
                         console.error('Error reconciling payment:', error);
                     }
@@ -517,29 +426,26 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
         });
     }
 
-    /**
-     * Refund payment
-     */
     refundPayment(payment: CustomerPaymentResponse): void {
         this.confirmationService.confirm({
-            message: 'Are you sure you want to refund payment of ' + this.formatCurrency(payment.amount) + ' to ' + payment.customerName + '?',
-            header: 'Refund Payment',
+            message: this.i18n.t('customerPayments.messages.refundConfirm'),
+            header: this.i18n.t('common.actions.refund'),
             icon: 'pi pi-exclamation-triangle',
             accept: () => {
                 this.customerPaymentService.refundPayment(payment.id).subscribe({
                     next: () => {
                         this.messageService.add({
                             severity: 'success',
-                            summary: 'Success',
-                            detail: 'Payment refunded successfully'
+                            summary: this.i18n.t('common.messages.success'),
+                            detail: this.i18n.t('customerPayments.messages.refundSuccess')
                         });
                         this.loadCustomerPayments();
                     },
                     error: (error) => {
                         this.messageService.add({
                             severity: 'error',
-                            summary: 'Error',
-                            detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || 'Failed to refund payment')
+                            summary: this.i18n.t('common.messages.error'),
+                            detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || this.i18n.t('customerPayments.messages.refundFailed'))
                         });
                         console.error('Error refunding payment:', error);
                     }
@@ -548,29 +454,26 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
         });
     }
 
-    /**
-     * Cancel payment
-     */
     cancelPayment(payment: CustomerPaymentResponse): void {
         this.confirmationService.confirm({
-            message: 'Are you sure you want to cancel this payment?',
-            header: 'Cancel Payment',
+            message: this.i18n.t('customerPayments.messages.cancelConfirm'),
+            header: this.i18n.t('common.actions.cancel'),
             icon: 'pi pi-exclamation-triangle',
             accept: () => {
                 this.customerPaymentService.cancelPayment(payment.id).subscribe({
                     next: () => {
                         this.messageService.add({
                             severity: 'success',
-                            summary: 'Success',
-                            detail: 'Payment cancelled successfully'
+                            summary: this.i18n.t('common.messages.success'),
+                            detail: this.i18n.t('customerPayments.messages.cancelSuccess')
                         });
                         this.loadCustomerPayments();
                     },
                     error: (error) => {
                         this.messageService.add({
                             severity: 'error',
-                            summary: 'Error',
-                            detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || 'Failed to cancel payment')
+                            summary: this.i18n.t('common.messages.error'),
+                            detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || this.i18n.t('customerPayments.messages.cancelFailed'))
                         });
                         console.error('Error cancelling payment:', error);
                     }
@@ -579,29 +482,26 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
         });
     }
 
-    /**
-     * Delete payment
-     */
     deletePayment(payment: CustomerPaymentResponse): void {
         this.confirmationService.confirm({
-            message: 'Are you sure you want to delete this payment?',
-            header: 'Delete Payment',
+            message: this.i18n.t('customerPayments.messages.deleteConfirm'),
+            header: this.i18n.t('common.messages.confirmDeletion'),
             icon: 'pi pi-exclamation-triangle',
             accept: () => {
                 this.customerPaymentService.deleteCustomerPayment(payment.id).subscribe({
                     next: () => {
                         this.messageService.add({
                             severity: 'success',
-                            summary: 'Success',
-                            detail: 'Payment deleted successfully'
+                            summary: this.i18n.t('common.messages.success'),
+                            detail: this.i18n.t('customerPayments.messages.deleteSuccess')
                         });
                         this.loadCustomerPayments();
                     },
                     error: (error) => {
                         this.messageService.add({
                             severity: 'error',
-                            summary: 'Error',
-                            detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || 'Failed to delete payment')
+                            summary: this.i18n.t('common.messages.error'),
+                            detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || this.i18n.t('customerPayments.messages.deleteFailed'))
                         });
                         console.error('Error deleting payment:', error);
                     }
@@ -610,26 +510,20 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
         });
     }
 
-    /**
-     * Handle pagination
-     */
     onPageChange(event: PaginatorState): void {
         this.first = event.first ?? 0;
         this.pageSize = event.rows ?? this.pageSize;
         this.loadCustomerPayments();
     }
 
-    /**
-     * Export payments to CSV or JSON
-     */
     exportPayments(format: 'csv' | 'json'): void {
         const dataToExport = this.filteredPayments;
 
         if (dataToExport.length === 0) {
             this.messageService.add({
                 severity: 'warn',
-                summary: 'No Data',
-                detail: 'No payments available to export'
+                summary: this.i18n.t('common.messages.warning'),
+                detail: this.i18n.t('customerPayments.messages.exportNoData')
             });
             return;
         }
@@ -641,9 +535,6 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
         }
     }
 
-    /**
-     * Export data to CSV
-     */
     private exportToCSV(data: CustomerPaymentResponse[]): void {
         const headers = ['Customer', 'Amount', 'Date', 'Method', 'Status', 'Provider', 'Invoice', 'Reconciled', 'Transaction', 'Reference'];
         const csvData = data.map((payment) => [
@@ -671,14 +562,11 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
 
         this.messageService.add({
             severity: 'success',
-            summary: 'Export Complete',
-            detail: 'Payments exported as CSV'
+            summary: this.i18n.t('common.messages.success'),
+            detail: this.i18n.t('customerPayments.messages.exportCSVSuccess')
         });
     }
 
-    /**
-     * Export data to JSON
-     */
     private exportToJSON(data: CustomerPaymentResponse[]): void {
         const jsonContent = JSON.stringify(data, null, 2);
         const blob = new Blob([jsonContent], { type: 'application/json' });
@@ -691,31 +579,22 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
 
         this.messageService.add({
             severity: 'success',
-            summary: 'Export Complete',
-            detail: 'Payments exported as JSON'
+            summary: this.i18n.t('common.messages.success'),
+            detail: this.i18n.t('customerPayments.messages.exportJSONSuccess')
         });
     }
 
-    /**
-     * Format currency - uses default currency from settings
-     */
     formatCurrency(value: number): string {
         const currency = this.currencyService.selectedCurrency();
         return this.currencyService.formatCurrency(value, currency);
     }
 
-    /**
-     * Clear search input and reload
-     */
     clearSearch(): void {
         this.searchTerm = '';
         this.first = 0;
         this.loadCustomerPayments();
     }
 
-    /**
-     * Format date for API - returns YYYY-MM-DD string in local timezone
-     */
     private formatDateForApi(date: Date): string {
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -723,58 +602,36 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
         return `${year}-${month}-${day}`;
     }
 
-    /**
-     * Get severity for status tag
-     */
     getStatusSeverity(status: string): 'success' | 'secondary' | 'info' | 'warn' | 'danger' | 'contrast' | undefined {
         switch (status?.toUpperCase()) {
-            case 'COMPLETED':
-                return 'success';
-            case 'PENDING':
-                return 'warn';
+            case 'COMPLETED': return 'success';
+            case 'PENDING': return 'warn';
             case 'FAILED':
-            case 'CANCELLED':
-                return 'danger';
-            case 'REFUNDED':
-                return 'secondary';
-            case 'PROCESSING':
-                return 'info';
-            default:
-                return 'secondary';
+            case 'CANCELLED': return 'danger';
+            case 'REFUNDED': return 'secondary';
+            case 'PROCESSING': return 'info';
+            default: return 'secondary';
         }
     }
 
-    /**
-     * Get severity for payment method tag
-     */
     getMethodSeverity(method: string): 'success' | 'secondary' | 'info' | 'warn' | 'danger' | 'contrast' | undefined {
         switch (method?.toUpperCase()) {
-            case 'CASH':
-                return 'success';
+            case 'CASH': return 'success';
             case 'CARD':
             case 'CREDIT_CARD':
-            case 'DEBIT_CARD':
-                return 'info';
-            case 'UPI':
-                return 'contrast';
+            case 'DEBIT_CARD': return 'info';
+            case 'UPI': return 'contrast';
             case 'BANK_TRANSFER':
             case 'NEFT':
-            case 'RTGS':
-                return 'warn';
-            case 'CHEQUE':
-                return 'secondary';
-            case 'REFUND':
-                return 'danger';
-            default:
-                return 'secondary';
+            case 'RTGS': return 'warn';
+            case 'CHEQUE': return 'secondary';
+            case 'REFUND': return 'danger';
+            default: return 'secondary';
         }
     }
 
-    /**
-     * Handle context menu select event
-     */
     onContextMenuSelect(event: TableContextMenuSelectEvent): void {
         this.selectedPayment = event.data;
-        this.initializeContextMenu();
+        this.rebuildContextMenu();
     }
 }

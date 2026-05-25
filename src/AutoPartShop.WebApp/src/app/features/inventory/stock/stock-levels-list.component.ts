@@ -1,10 +1,11 @@
-import { Component, EventEmitter, Input, Output, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, EventEmitter, Input, Output, OnChanges, SimpleChanges, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
 import { StockLevelResponse } from '../services/stock.service';
+import { I18nService } from '@/shared/services/i18n.service';
 
 @Component({
   selector: 'app-stock-levels-list',
@@ -27,6 +28,8 @@ export class StockLevelsListComponent implements OnChanges {
   @Input() currentPage = 1;
   @Input() getPartInfo: ((partId: string) => string) | null = null;
   @Input() getWarehouseName: ((warehouseId: string) => string) | null = null;
+
+  private readonly i18n = inject(I18nService);
 
   ngOnChanges(_changes: SimpleChanges): void { }
 
@@ -55,8 +58,8 @@ export class StockLevelsListComponent implements OnChanges {
   }
 
   getStockStatus(stock: StockLevelResponse): string {
-    if (stock.needsReorder) return 'Low Stock';
-    if (stock.availableQuantityInBaseUnit < stock.reorderLevel * 1.5) return 'Warning';
-    return 'In Stock';
+    if (stock.needsReorder) return this.i18n.t('stockLevels.status.lowStock');
+    if (stock.availableQuantityInBaseUnit < stock.reorderLevel * 1.5) return this.i18n.t('stockLevels.status.warning');
+    return this.i18n.t('stockLevels.status.inStock');
   }
 }

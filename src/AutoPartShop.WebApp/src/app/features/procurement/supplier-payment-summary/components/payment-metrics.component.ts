@@ -167,7 +167,7 @@ import { CurrencyService } from '../../../../shared/services/currency.service';
     .metric-card {
       padding: 1.25rem;
       border-radius: 0.375rem;
-      background: white;
+      background: var(--surface-card);
     }
 
     .metric-card i {

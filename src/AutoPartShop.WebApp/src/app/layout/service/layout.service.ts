@@ -62,7 +62,7 @@ export class LayoutService {
 
     overlayOpen$ = this.overlayOpen.asObservable();
 
-    theme = computed(() => (this.layoutConfig()?.darkTheme ? 'light' : 'dark'));
+    theme = computed(() => (this.layoutConfig()?.darkTheme ? 'dark' : 'light'));
 
     isSidebarActive = computed(() => this.layoutState().overlayMenuActive || this.layoutState().staticMenuMobileActive);
 
@@ -89,6 +89,9 @@ export class LayoutService {
                 console.error('Error loading config:', e);
             }
         }
+
+        // Apply dark mode class immediately so page reload reflects saved preference
+        this.toggleDarkMode();
 
         effect(() => {
             const config = this.layoutConfig();

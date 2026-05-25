@@ -706,43 +706,24 @@
     display: block !important;
   }
 
-  /* cards-grid scrolls; pagination fixed at bottom */
   .cards-section {
-    padding: 0;
+    padding: 12px 12px 72px;
   }
-
-  .cards-grid {
-    max-height: calc(100svh - 360px);
-    overflow-y: auto;
-    padding: 12px;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior-y: contain;
-  }
-
-  .empty-state-mobile { padding: 12px; }
 
   .mobile-pagination {
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
-    z-index: 100;
+    z-index: 200;
     margin: 0;
     border-radius: 0;
     border-top: 1px solid var(--color-border);
     border-left: none;
     border-right: none;
     border-bottom: none;
-    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08);
     background-color: var(--color-bg-primary);
-  }
-
-  .cards-grid {
-    padding-bottom: 68px;
-  }
-
-  .cards-section {
-    padding: 12px;
   }
 
   :host ::ng-deep .custom-table .p-datatable-thead > tr > th:first-child,
@@ -758,7 +739,7 @@
 
 @media (max-width: 480px) {
   .cards-section {
-    padding: 10px;
+    padding: 10px 10px 72px;
   }
 
   .pagination-section {

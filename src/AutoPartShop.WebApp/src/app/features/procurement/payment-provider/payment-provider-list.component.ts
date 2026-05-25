@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, ViewChild } from '@angular/core';
+import { Component, OnInit, inject, ViewChild, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -14,6 +14,8 @@ import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
 import { PaymentProviderService, PaymentProviderResponse, PaginatedPaymentProviderResponse } from '../services/payment-provider.service';
 import { TagModule } from 'primeng/tag';
 import { AppCurrencyPipe } from '../../../shared/pipes/app-currency.pipe';
+import { I18nService } from '@/shared/services/i18n.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-payment-provider-list',
@@ -43,6 +45,8 @@ export class PaymentProviderListComponent implements OnInit {
   private readonly messageService = inject(MessageService);
   private readonly confirmationService = inject(ConfirmationService);
   private readonly router = inject(Router);
+  private readonly i18n = inject(I18nService);
+  private readonly destroyRef = inject(DestroyRef);
 
   paymentProviders: PaymentProviderResponse[] = [];
   searchTerm: string = '';
@@ -54,68 +58,47 @@ export class PaymentProviderListComponent implements OnInit {
   selectedProvider: PaymentProviderResponse | null = null;
 
   ngOnInit(): void {
-    this.initializeContextMenu();
+    this.rebuildContextMenu();
+    this.i18n.translationsLoaded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      if (this.selectedProvider) this.rebuildContextMenu();
+    });
     this.loadPaymentProviders();
   }
 
-  /**
-   * Initialize context menu items
-   */
-  private initializeContextMenu(): void {
+  private rebuildContextMenu(): void {
+    const p = this.selectedProvider;
     this.contextMenuItems = [
       {
-        label: 'Edit',
+        label: this.i18n.t('common.actions.edit'),
         icon: 'pi pi-pencil',
-        command: () => {
-          if (this.selectedProvider) {
-            this.edit(this.selectedProvider);
-          }
-        }
+        command: () => { if (p) this.edit(p); }
       },
       {
-        label: 'Test Connection',
+        label: this.i18n.t('common.actions.testConnection'),
         icon: 'pi pi-refresh',
-        command: () => {
-          if (this.selectedProvider) {
-            this.testConnection(this.selectedProvider);
-          }
-        }
+        command: () => { if (p) this.testConnection(p); }
       },
       {
-        label: 'Set as Default',
+        label: this.i18n.t('common.actions.setAsDefault'),
         icon: 'pi pi-star',
-        command: () => {
-          if (this.selectedProvider) {
-            this.setAsDefault(this.selectedProvider);
-          }
-        },
-        visible: this.selectedProvider ? !this.selectedProvider.isDefault : false
+        command: () => { if (p) this.setAsDefault(p); },
+        visible: p ? !p.isDefault : false
       },
       { separator: true },
       {
-        label: 'Delete',
+        label: this.i18n.t('common.actions.delete'),
         icon: 'pi pi-trash',
-        command: () => {
-          if (this.selectedProvider) {
-            this.delete(this.selectedProvider);
-          }
-        }
+        command: () => { if (p) this.delete(p); }
       }
     ];
   }
 
-  /**
-   * Show context menu
-   */
   showContextMenu(event: MouseEvent, provider: PaymentProviderResponse): void {
     this.selectedProvider = provider;
-    this.initializeContextMenu();
+    this.rebuildContextMenu();
     this.contextMenu?.show(event);
   }
 
-  /**
-   * Load payment providers
-   */
   loadPaymentProviders(): void {
     this.loading = true;
     this.paymentProviderService.getPaymentProviders(this.pageNumber, this.pageSize, this.searchTerm).subscribe({
@@ -127,8 +110,8 @@ export class PaymentProviderListComponent implements OnInit {
       error: (error) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load payment providers'
+          summary: this.i18n.t('common.messages.error'),
+          detail: this.i18n.t('paymentProviders.messages.loadFailed')
         });
         console.error('Error loading payment providers:', error);
         this.loading = false;
@@ -136,51 +119,39 @@ export class PaymentProviderListComponent implements OnInit {
     });
   }
 
-  /**
-   * Search payment providers
-   */
   onSearch(): void {
     this.pageNumber = 1;
     this.loadPaymentProviders();
   }
 
-  /**
-   * Create new payment provider
-   */
   createNew(): void {
     this.router.navigate(['/procurement/payment-providers/new']);
   }
 
-  /**
-   * Edit payment provider
-   */
   edit(provider: PaymentProviderResponse): void {
     this.router.navigate(['/procurement/payment-providers/edit'], { queryParams: { id: provider.id } });
   }
 
-  /**
-   * Delete payment provider
-   */
   delete(provider: PaymentProviderResponse): void {
     this.confirmationService.confirm({
-      message: `Are you sure you want to delete '${provider.providerName}'?`,
-      header: 'Delete Payment Provider',
+      message: this.i18n.t('paymentProviders.messages.deleteConfirm', { name: provider.providerName }),
+      header: this.i18n.t('common.messages.confirmDeletion'),
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
         this.paymentProviderService.deletePaymentProvider(provider.id).subscribe({
           next: () => {
             this.messageService.add({
               severity: 'success',
-              summary: 'Success',
-              detail: `Payment Provider '${provider.providerName}' deleted successfully`
+              summary: this.i18n.t('common.messages.success'),
+              detail: this.i18n.t('paymentProviders.messages.deleteSuccess')
             });
             this.loadPaymentProviders();
           },
           error: (error) => {
             this.messageService.add({
               severity: 'error',
-              summary: 'Error',
-              detail: error?.error?.message || 'Failed to delete payment provider'
+              summary: this.i18n.t('common.messages.error'),
+              detail: error?.error?.message || this.i18n.t('paymentProviders.messages.deleteFailed')
             });
             console.error('Error deleting payment provider:', error);
           }
@@ -189,39 +160,33 @@ export class PaymentProviderListComponent implements OnInit {
     });
   }
 
-  /**
-   * Set as default payment provider
-   */
   setAsDefault(provider: PaymentProviderResponse): void {
     this.paymentProviderService.setDefault(provider.id).subscribe({
       next: () => {
         this.messageService.add({
           severity: 'success',
-          summary: 'Success',
-          detail: `'${provider.providerName}' set as default`
+          summary: this.i18n.t('common.messages.success'),
+          detail: this.i18n.t('paymentProviders.messages.setDefaultSuccess')
         });
         this.loadPaymentProviders();
       },
       error: (error) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: error?.error?.message || 'Failed to set default provider'
+          summary: this.i18n.t('common.messages.error'),
+          detail: error?.error?.message || this.i18n.t('paymentProviders.messages.setDefaultFailed')
         });
         console.error('Error setting default:', error);
       }
     });
   }
 
-  /**
-   * Test payment provider connection
-   */
   testConnection(provider: PaymentProviderResponse): void {
     this.paymentProviderService.testConnection(provider.id).subscribe({
       next: (response) => {
         this.messageService.add({
           severity: response.success ? 'success' : 'error',
-          summary: response.success ? 'Success' : 'Failed',
+          summary: response.success ? this.i18n.t('common.messages.success') : this.i18n.t('common.messages.error'),
           detail: response.message
         });
         this.loadPaymentProviders();
@@ -229,70 +194,46 @@ export class PaymentProviderListComponent implements OnInit {
       error: (error) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: error?.error?.message || 'Failed to test connection'
+          summary: this.i18n.t('common.messages.error'),
+          detail: error?.error?.message || this.i18n.t('paymentProviders.messages.testConnectionFailed')
         });
         console.error('Error testing connection:', error);
       }
     });
   }
 
-  /**
-   * Handle pagination
-   */
   onPageChange(event: any): void {
     this.pageNumber = (event.first / event.rows) + 1;
     this.pageSize = event.rows;
     this.loadPaymentProviders();
   }
 
-  /**
-   * Get status badge severity
-   */
   getStatusSeverity(status: string): 'success' | 'warn' | 'danger' | 'info' {
     switch (status?.toUpperCase()) {
-      case 'ACTIVE':
-        return 'success';
-      case 'INACTIVE':
-        return 'warn';
-      case 'DISABLED':
-        return 'danger';
-      default:
-        return 'info';
+      case 'ACTIVE': return 'success';
+      case 'INACTIVE': return 'warn';
+      case 'DISABLED': return 'danger';
+      default: return 'info';
     }
   }
 
-  /**
-   * Get account/number display based on provider type
-   */
   getAccountDisplay(provider: PaymentProviderResponse): string {
     switch (provider.providerType?.toUpperCase()) {
-      case 'BANK_TRANSFER':
-        return provider.bankAccountNumber || '-';
-      case 'MOBILE_BANKING':
-        return provider.mobileNumber || '-';
+      case 'BANK_TRANSFER': return provider.bankAccountNumber || '-';
+      case 'MOBILE_BANKING': return provider.mobileNumber || '-';
       case 'ONLINE_GATEWAY':
-      case 'CRYPTO':
-        return provider.merchantId || '-';
-      default:
-        return '-';
+      case 'CRYPTO': return provider.merchantId || '-';
+      default: return '-';
     }
   }
 
-  /**
-   * Get account label based on provider type
-   */
   getAccountLabel(providerType: string): string {
     switch (providerType?.toUpperCase()) {
-      case 'BANK_TRANSFER':
-        return 'Account';
-      case 'MOBILE_BANKING':
-        return 'Mobile';
+      case 'BANK_TRANSFER': return 'Account';
+      case 'MOBILE_BANKING': return 'Mobile';
       case 'ONLINE_GATEWAY':
-      case 'CRYPTO':
-        return 'Merchant';
-      default:
-        return 'Account';
+      case 'CRYPTO': return 'Merchant';
+      default: return 'Account';
     }
   }
 }
