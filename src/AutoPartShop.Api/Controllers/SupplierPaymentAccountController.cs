@@ -2,12 +2,14 @@ using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.SupplierDtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AutoPartShop.Api.Controllers;
 
 [Route("api/supplier-payment-accounts")]
 [ApiController]
+[Authorize]
 [Produces("application/json")]
 public class SupplierPaymentAccountController : ControllerBase
 {
@@ -86,7 +88,7 @@ public class SupplierPaymentAccountController : ControllerBase
     /// <summary>
     /// Get active payment accounts for a supplier (for dropdown selection)
     /// </summary>
-    [HttpGet("active/by-supplier/{supplierId:guid}")]
+    [HttpGet("by-supplier/{supplierId:guid}/active")]
     public async Task<IActionResult> GetActiveBySupplier(Guid supplierId, CancellationToken cancellationToken)
     {
         try
@@ -104,7 +106,7 @@ public class SupplierPaymentAccountController : ControllerBase
     /// <summary>
     /// Get default payment account for a supplier
     /// </summary>
-    [HttpGet("default/by-supplier/{supplierId:guid}")]
+    [HttpGet("by-supplier/{supplierId:guid}/default")]
     public async Task<IActionResult> GetDefaultBySupplier(Guid supplierId, CancellationToken cancellationToken)
     {
         try
@@ -286,7 +288,7 @@ public class SupplierPaymentAccountController : ControllerBase
             if (account is null) return NotFound(new { message = "Payment account not found" });
 
             await _repository.DeleteAsync(id, cancellationToken);
-            return Ok(new { message = "Payment account deleted successfully" });
+            return NoContent();
         }
         catch (Exception ex)
         {

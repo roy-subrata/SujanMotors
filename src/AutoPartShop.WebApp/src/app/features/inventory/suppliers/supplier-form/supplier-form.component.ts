@@ -48,6 +48,7 @@ export class SupplierFormComponent implements OnInit {
   mode = signal<'create' | 'edit' | 'view'>('create');
   supplierId = signal<string | null>(null);
   generatingCode = signal(false);
+  private loadedIsActive = true;
 
   paymentTermsOptions = [
     { label: 'Net 15', value: 'NET15' },
@@ -82,15 +83,13 @@ export class SupplierFormComponent implements OnInit {
         this.supplierId.set(id);
         this.mode.set(mode === 'view' ? 'view' : 'edit');
         this.loadSupplier(id);
+        if (mode === 'view') {
+          this.supplierForm.disable();
+        }
       } else {
-        // Create mode - generate supplier code automatically
         this.generateSupplierCode();
       }
     });
-
-    if (this.mode() === 'view') {
-      this.supplierForm.disable();
-    }
   }
 
   generateSupplierCode(): void {
@@ -128,6 +127,7 @@ export class SupplierFormComponent implements OnInit {
     this.loading.set(true);
     this.supplierService.getSupplierById(id).subscribe({
       next: (supplier) => {
+        this.loadedIsActive = supplier.isActive;
         this.supplierForm.patchValue({
           code: supplier.code,
           name: supplier.name,
@@ -228,7 +228,7 @@ export class SupplierFormComponent implements OnInit {
       postalCode: formValue.postalCode,
       paymentTerms: formValue.paymentTerms,
       creditLimit: formValue.creditLimit,
-      isActive: true
+      isActive: this.loadedIsActive
     };
 
     this.supplierService.updateSupplier(this.supplierId()!, request).subscribe({

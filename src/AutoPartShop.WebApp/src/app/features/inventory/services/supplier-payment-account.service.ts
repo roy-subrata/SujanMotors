@@ -98,14 +98,14 @@ export class SupplierPaymentAccountService {
    * Get active payment accounts for a supplier (for dropdown selection)
    */
   getActiveBySupplier(supplierId: string): Observable<SupplierPaymentAccountResponse[]> {
-    return this.http.get<SupplierPaymentAccountResponse[]>(`${this.apiUrl}/active/by-supplier/${supplierId}`);
+    return this.http.get<SupplierPaymentAccountResponse[]>(`${this.apiUrl}/by-supplier/${supplierId}/active`);
   }
 
   /**
    * Get default payment account for a supplier
    */
   getDefaultBySupplier(supplierId: string): Observable<SupplierPaymentAccountResponse> {
-    return this.http.get<SupplierPaymentAccountResponse>(`${this.apiUrl}/default/by-supplier/${supplierId}`);
+    return this.http.get<SupplierPaymentAccountResponse>(`${this.apiUrl}/by-supplier/${supplierId}/default`);
   }
 
   /**

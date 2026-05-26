@@ -114,9 +114,9 @@ public class SupplierPaymentSummaryService
     /// <summary>
     /// Get payment status breakdown for a supplier
     /// </summary>
-    public PaymentStatusBreakdown GetStatusBreakdownAsync(Guid supplierId)
+    public async Task<PaymentStatusBreakdown> GetStatusBreakdownAsync(Guid supplierId, CancellationToken cancellationToken = default)
     {
-        var payments = _paymentRepository.GetBySupplierAsync(supplierId).Result.ToList();
+        var payments = (await _paymentRepository.GetBySupplierAsync(supplierId, cancellationToken)).ToList();
         return GetStatusBreakdown(payments);
     }
 
@@ -295,7 +295,7 @@ public class SupplierPaymentSummaryService
             ConfirmedBy = payment.ConfirmedBy,
             IsReconciled = payment.IsReconciled,
             ReconciledDate = payment.ReconciledDate,
-            CreatedAt = DateTime.UtcNow,
+            CreatedAt = payment.CreatedDate,
             PaymentType = payment.PaymentType,
             Description = payment.Description
         };

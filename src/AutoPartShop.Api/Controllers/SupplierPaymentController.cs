@@ -8,12 +8,14 @@ using iText.Kernel.Pdf;
 using iText.Layout;
 using iText.Layout.Element;
 using iText.Layout.Properties;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AutoPartShop.Api.Controllers;
 
-[Route("api/supplier-payment")]
+[Route("api/supplier-payments")]
 [ApiController]
+[Authorize]
 public class SupplierPaymentController : ControllerBase
 {
     private readonly ISupplierPaymentRepository _repository;
@@ -88,7 +90,7 @@ public class SupplierPaymentController : ControllerBase
         }
     }
 
-    [HttpGet("status/{status}")]
+    [HttpGet("by-status/{status}")]
     public async Task<IActionResult> GetByStatus(string status, CancellationToken cancellationToken)
     {
         try
@@ -175,11 +177,11 @@ public class SupplierPaymentController : ControllerBase
     }
 
     [HttpGet("supplier/{supplierId:guid}/status-breakdown")]
-    public IActionResult GetStatusBreakdown(Guid supplierId)
+    public async Task<IActionResult> GetStatusBreakdown(Guid supplierId, CancellationToken cancellationToken)
     {
         try
         {
-            var breakdown = _summaryService.GetStatusBreakdownAsync(supplierId);
+            var breakdown = await _summaryService.GetStatusBreakdownAsync(supplierId, cancellationToken);
             return Ok(breakdown);
         }
         catch (Exception ex)
@@ -233,7 +235,7 @@ public class SupplierPaymentController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error generating payment summary report for supplier: {SupplierId}", supplierId);
-            return StatusCode(500, new { message = ex.Message });
+            return StatusCode(500, new { message = "An error occurred while generating the report" });
         }
     }
 
@@ -344,7 +346,7 @@ public class SupplierPaymentController : ControllerBase
                     {
                         historyTable.AddCell(new Cell().Add(new Paragraph(payment.PaymentDate.ToString())));
                         historyTable.AddCell(new Cell().Add(new Paragraph($"₹ {payment.Amount:N2}")));
-                        historyTable.AddCell(new Cell().Add(new Paragraph(payment.PaymentType.GetType().GetEnumValues().ToString())));
+                        historyTable.AddCell(new Cell().Add(new Paragraph(payment.PaymentType.ToString())));
                         historyTable.AddCell(new Cell().Add(new Paragraph(payment.PaymentMethod)));
                         historyTable.AddCell(new Cell().Add(new Paragraph(payment.InvoiceNumber)));
                         historyTable.AddCell(new Cell().Add(new Paragraph(payment.Status)));
@@ -453,7 +455,7 @@ public class SupplierPaymentController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/mark-processed")]
-    public async Task<IActionResult> MarkProcessed(Guid id, [FromBody] string processedBy, CancellationToken cancellationToken)
+    public async Task<IActionResult> MarkProcessed(Guid id, CancellationToken cancellationToken)
     {
         try
         {
@@ -461,7 +463,7 @@ public class SupplierPaymentController : ControllerBase
             if (payment is null) return NotFound();
 
             var currentUser = _currentUserService.GetCurrentUsername();
-            payment.MarkAsProcessed(processedBy);
+            payment.MarkAsProcessed(currentUser);
             payment.ModifiedBy = currentUser;
             await _repository.UpdateAsync(payment, cancellationToken);
 
@@ -503,7 +505,7 @@ public class SupplierPaymentController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/confirm-receipt")]
-    public async Task<IActionResult> ConfirmReceipt(Guid id, [FromBody] string confirmedBy, CancellationToken cancellationToken)
+    public async Task<IActionResult> ConfirmReceipt(Guid id, CancellationToken cancellationToken)
     {
         try
         {
@@ -511,7 +513,7 @@ public class SupplierPaymentController : ControllerBase
             if (payment is null) return NotFound();
 
             var currentUser = _currentUserService.GetCurrentUsername();
-            payment.ConfirmReceipt(confirmedBy);
+            payment.ConfirmReceipt(currentUser);
             payment.ModifiedBy = currentUser;
             await _repository.UpdateAsync(payment, cancellationToken);
             return Ok(await MapResponse(payment));
@@ -531,7 +533,7 @@ public class SupplierPaymentController : ControllerBase
             var payment = await _repository.GetByIdAsync(id, cancellationToken);
             if (payment is null) return NotFound();
             payment.Reconcile();
-            payment.ModifiedBy = "System";
+            payment.ModifiedBy = _currentUserService.GetCurrentUsername();
             await _repository.UpdateAsync(payment, cancellationToken);
             return Ok(await MapResponse(payment));
         }
@@ -552,17 +554,18 @@ public class SupplierPaymentController : ControllerBase
 
             var currentUser = _currentUserService.GetCurrentUsername();
 
-            // Mark as processed and confirmed
+            // Track whether PO was already updated by a prior mark-processed call
+            var alreadyProcessed = payment.ProcessedDate.HasValue;
+
             payment.MarkAsProcessed(currentUser);
             payment.ConfirmReceipt(currentUser);
             payment.ModifiedBy = currentUser;
             await _repository.UpdateAsync(payment, cancellationToken);
 
-            // Only update PO and supplier balance for REGULAR payments
-            // ADVANCE payments don't affect balance until they're applied to a PO
-            if (payment.PaymentType == PaymentType.REGULAR)
+            // Only update PO for REGULAR payments that have NOT yet had mark-processed called
+            // (mark-processed already records the payment on the PO; calling it again would double-count)
+            if (payment.PaymentType == PaymentType.REGULAR && !alreadyProcessed)
             {
-                // Update purchase order paid amount if linked
                 if (payment.PurchaseOrderId.HasValue)
                 {
                     var purchaseOrder = await _purchaseOrderRepository.GetByIdAsync(payment.PurchaseOrderId.Value, cancellationToken);
@@ -575,14 +578,12 @@ public class SupplierPaymentController : ControllerBase
                     }
                 }
 
-                // NOTE: Supplier balance is NOT updated here.
-                // Balance is now calculated from transactions via SupplierLedgerService.
                 _logger.LogInformation("Payment {TxnNumber} confirmed. Amount: {Amount}. Balance calculated from transactions.",
                     payment.TransactionNumber, payment.Amount);
             }
             else
             {
-                _logger.LogInformation("ADVANCE payment {TransactionNumber} confirmed. Balance calculated from transactions.",
+                _logger.LogInformation("Payment {TransactionNumber} confirmed (PO already updated). Balance calculated from transactions.",
                     payment.TransactionNumber);
             }
 
@@ -604,7 +605,7 @@ public class SupplierPaymentController : ControllerBase
             if (payment is null) return NotFound(new { message = "Supplier payment not found" });
 
             payment.Cancel();
-            payment.ModifiedBy = "System";
+            payment.ModifiedBy = _currentUserService.GetCurrentUsername();
             await _repository.UpdateAsync(payment, cancellationToken);
             return Ok(await MapResponse(payment));
         }
@@ -660,7 +661,7 @@ public class SupplierPaymentController : ControllerBase
             if (!string.IsNullOrEmpty(request.Notes))
                 payment.UpdateNotes(request.Notes);
 
-            payment.ModifiedBy = "System";
+            payment.ModifiedBy = _currentUserService.GetCurrentUsername();
             await _repository.UpdateAsync(payment, cancellationToken);
             return Ok(await MapResponse(payment));
         }
@@ -797,7 +798,7 @@ public class SupplierPaymentController : ControllerBase
             ConfirmedBy = p.ConfirmedBy,
             IsReconciled = p.IsReconciled,
             ReconciledDate = p.ReconciledDate,
-            CreatedAt = DateTime.UtcNow,
+            CreatedAt = p.CreatedDate,
             PaymentType = p.PaymentType,
             Description = p.Description,
             RemainingAmount = p.RemainingAmount,

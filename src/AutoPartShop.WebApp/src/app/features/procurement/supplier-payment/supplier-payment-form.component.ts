@@ -111,7 +111,6 @@ export class SupplierPaymentFormComponent implements OnInit {
         // Watch for supplier changes to load their payment accounts
         this.form.get('supplierId')?.valueChanges.subscribe((value) => {
             if (value) {
-                debugger;
                 const supplierId = typeof value === 'string' ? value : value?.id;
                 if (supplierId) {
                     this.loadSupplierPaymentAccounts(supplierId);
@@ -161,7 +160,6 @@ export class SupplierPaymentFormComponent implements OnInit {
 
         this.route.queryParams.subscribe((params) => {
             if (params['id']) {
-                debugger;
                 this.paymentId = params['id'];
                 this.isEditing = true;
                 this.loadPayment();
@@ -425,6 +423,7 @@ export class SupplierPaymentFormComponent implements OnInit {
 
     onSubmit(): void {
         if (!this.form.valid) {
+            this.form.markAllAsTouched();
             this.messageService.add({
                 severity: 'error',
                 summary: 'Validation Error',

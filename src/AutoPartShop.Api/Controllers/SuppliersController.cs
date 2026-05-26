@@ -4,29 +4,29 @@ using AutoPartShop.Application.DTOs.SupplierDtos;
 using AutoPartShop.Application.Suppliers;
 using AutoPartShop.Application.Suppliers.Dtos;
 using AutoPartShop.Domain.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AutoPartShop.Api.Controllers;
 
-[Route("api/[controller]")]
+[Route("api/suppliers")]
 [ApiController]
+[Authorize]
 [Produces("application/json")]
 public class SuppliersController : ControllerBase
 {
     private readonly ISupplierRepository _supplierRepository;
     private readonly ISupplierReadRepository _supplierReadRepository;
     private readonly ILogger<SuppliersController> _logger;
-    private readonly ICodeGenerateService _codeGenerateService;
     private readonly ICurrentUserService _currentUserService;
 
     public SuppliersController(ISupplierRepository supplierRepository,
         ISupplierReadRepository supplierReadRepository,
-        ICodeGenerateService codeGenerateService, ICurrentUserService currentUserService, ILogger<SuppliersController> logger)
+        ICurrentUserService currentUserService, ILogger<SuppliersController> logger)
     {
         _supplierRepository = supplierRepository;
-        _codeGenerateService = codeGenerateService;
         _currentUserService = currentUserService;
-        _supplierReadRepository=supplierReadRepository;
+        _supplierReadRepository = supplierReadRepository;
         _logger = logger;
     }
     [HttpPost("list")]
@@ -57,8 +57,8 @@ public class SuppliersController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting all customers");
-            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving customers");
+            _logger.LogError(ex, "Error getting all suppliers");
+            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving suppliers");
         }
 
     }
@@ -235,25 +235,6 @@ public class SuppliersController : ControllerBase
         }
     }
 
-    [HttpPatch("{id:guid}/bank-details")]
-    public async Task<IActionResult> SetBankDetails(Guid id, [FromBody] BankDetailsRequest request, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var supplier = await _supplierRepository.GetByIdAsync(id, cancellationToken);
-            if (supplier is null) return NotFound(new { message = "Supplier not found" });
-            supplier.ModifiedBy = _currentUserService.GetCurrentUsername();
-            await _supplierRepository.UpdateAsync(supplier, cancellationToken);
-
-            return Ok(MapToResponse(supplier));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error setting bank details");
-            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while setting bank details");
-        }
-    }
-
     [HttpPatch("{id:guid}/rating")]
     public async Task<IActionResult> SetRating(Guid id, [FromBody] RatingRequest request, CancellationToken cancellationToken)
     {
@@ -303,14 +284,6 @@ public class SuppliersController : ControllerBase
             ModifiedBy = supplier.ModifiedBy
         };
     }
-}
-
-public class BankDetailsRequest
-{
-    public string BankName { get; set; } = string.Empty;
-    public string AccountNumber { get; set; } = string.Empty;
-    public string IFSC { get; set; } = string.Empty;
-    public string TaxID { get; set; } = string.Empty;
 }
 
 public class RatingRequest
