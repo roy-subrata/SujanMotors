@@ -15,17 +15,20 @@ public class SupplierPaymentAccountController : ControllerBase
 {
     private readonly ISupplierPaymentAccountRepository _repository;
     private readonly ISupplierRepository _supplierRepository;
+    private readonly ISupplierPaymentRepository _paymentRepository;
     private readonly ILogger<SupplierPaymentAccountController> _logger;
     private readonly ICurrentUserService _currentUserService;
 
     public SupplierPaymentAccountController(
         ISupplierPaymentAccountRepository repository,
         ISupplierRepository supplierRepository,
+        ISupplierPaymentRepository paymentRepository,
         ICurrentUserService currentUserService,
         ILogger<SupplierPaymentAccountController> logger)
     {
         _repository = repository;
         _supplierRepository = supplierRepository;
+        _paymentRepository = paymentRepository;
         _currentUserService = currentUserService;
         _logger = logger;
     }
@@ -169,13 +172,14 @@ public class SupplierPaymentAccountController : ControllerBase
             account.CreatedBy = currentUser;
             account.ModifiedBy = currentUser;
 
-            // If this is default, clear other defaults for this supplier
+            // If this is default, unset all existing defaults for this supplier first
             if (request.IsDefault)
             {
                 var existingAccounts = await _repository.GetBySupplierAsync(request.SupplierId, cancellationToken);
                 foreach (var existingAccount in existingAccounts.Where(a => a.IsDefault))
                 {
                     existingAccount.SetAsDefault(false);
+                    existingAccount.ModifiedBy = account.CreatedBy;
                     await _repository.UpdateAsync(existingAccount, cancellationToken);
                 }
             }
@@ -255,17 +259,21 @@ public class SupplierPaymentAccountController : ControllerBase
             var account = await _repository.GetByIdAsync(id, cancellationToken);
             if (account is null) return NotFound(new { message = "Payment account not found" });
 
-            // Clear other defaults for this supplier
-            var existingAccounts = await _repository.GetBySupplierAsync(account.SupplierId, cancellationToken);
-            foreach (var existingAccount in existingAccounts.Where(a => a.IsDefault && a.Id != id))
-            {
-                existingAccount.SetAsDefault(false);
-                await _repository.UpdateAsync(existingAccount, cancellationToken);
-            }
+            var currentUser = _currentUserService.GetCurrentUsername();
 
+            // Set the target as default first — if subsequent unsets fail the intended default is at least in place
             account.SetAsDefault(true);
-            account.ModifiedBy = _currentUserService.GetCurrentUsername();
+            account.ModifiedBy = currentUser;
             await _repository.UpdateAsync(account, cancellationToken);
+
+            // Unset all other defaults for this supplier
+            var existingAccounts = await _repository.GetBySupplierAsync(account.SupplierId, cancellationToken);
+            foreach (var other in existingAccounts.Where(a => a.IsDefault && a.Id != id))
+            {
+                other.SetAsDefault(false);
+                other.ModifiedBy = currentUser;
+                await _repository.UpdateAsync(other, cancellationToken);
+            }
 
             return Ok(MapResponse(account));
         }
@@ -286,6 +294,10 @@ public class SupplierPaymentAccountController : ControllerBase
         {
             var account = await _repository.GetByIdAsync(id, cancellationToken);
             if (account is null) return NotFound(new { message = "Payment account not found" });
+
+            var payments = await _paymentRepository.GetBySupplierAsync(account.SupplierId, cancellationToken);
+            if (payments.Any(p => p.SupplierPaymentAccountId == id))
+                return Conflict(new { message = "Cannot delete a payment account that is linked to existing payments." });
 
             await _repository.DeleteAsync(id, cancellationToken);
             return NoContent();

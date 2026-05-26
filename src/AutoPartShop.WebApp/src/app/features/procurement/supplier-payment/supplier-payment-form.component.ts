@@ -54,9 +54,7 @@ export class SupplierPaymentFormComponent implements OnInit {
     supplierPaymentAccounts: SupplierPaymentAccountResponse[] = [];
     filteredSupplierPaymentAccounts: SupplierPaymentAccountResponse[] = [];
 
-    // Use shared payment methods from centralized constants
-    paymentMethods: PaymentMethodOption[] = SUPPLIER_PAYMENT_METHODS;
-    filteredPaymentMethods: PaymentMethodOption[] = [];
+    private readonly paymentMethods: PaymentMethodOption[] = SUPPLIER_PAYMENT_METHODS;
 
     // Use shared payment types from centralized constants
     paymentTypes: PaymentTypeOption[] = PAYMENT_TYPES;
@@ -97,8 +95,6 @@ export class SupplierPaymentFormComponent implements OnInit {
         this.loadSuppliers();
         this.loadPaymentProviders();
         this.loadPurchaseOrders();
-        this.filteredPaymentMethods = this.paymentMethods;
-
         // Watch for payment type changes
         this.form.get('paymentType')?.valueChanges.subscribe((value) => {
             this.isAdvancePayment = value === 'ADVANCE';
@@ -368,14 +364,6 @@ export class SupplierPaymentFormComponent implements OnInit {
     filterPaymentProviders(event: any): void {
         const query = event.query.toLowerCase();
         this.filteredPaymentProviders = this.paymentProviders.filter((provider) => provider.providerName.toLowerCase().includes(query));
-    }
-
-    /**
-     * Filter payment methods (using shared constants)
-     */
-    filterPaymentMethods(event: any): void {
-        const query = event.query.toLowerCase();
-        this.filteredPaymentMethods = this.paymentMethods.filter((method) => method.label.toLowerCase().includes(query));
     }
 
     /**

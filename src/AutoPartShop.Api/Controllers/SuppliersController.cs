@@ -6,6 +6,7 @@ using AutoPartShop.Application.Suppliers.Dtos;
 using AutoPartShop.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
 
 namespace AutoPartShop.Api.Controllers;
 
@@ -17,14 +18,17 @@ public class SuppliersController : ControllerBase
 {
     private readonly ISupplierRepository _supplierRepository;
     private readonly ISupplierReadRepository _supplierReadRepository;
+    private readonly ISupplierPaymentRepository _supplierPaymentRepository;
     private readonly ILogger<SuppliersController> _logger;
     private readonly ICurrentUserService _currentUserService;
 
     public SuppliersController(ISupplierRepository supplierRepository,
         ISupplierReadRepository supplierReadRepository,
+        ISupplierPaymentRepository supplierPaymentRepository,
         ICurrentUserService currentUserService, ILogger<SuppliersController> logger)
     {
         _supplierRepository = supplierRepository;
+        _supplierPaymentRepository = supplierPaymentRepository;
         _currentUserService = currentUserService;
         _supplierReadRepository = supplierReadRepository;
         _logger = logger;
@@ -225,6 +229,10 @@ public class SuppliersController : ControllerBase
             if (!await _supplierRepository.ExistsAsync(id, cancellationToken))
                 return NotFound(new { message = "Supplier not found" });
 
+            var totalPayments = await _supplierPaymentRepository.GetTotalBySupplierAsync(id, cancellationToken);
+            if (totalPayments > 0)
+                return Conflict(new { message = "Cannot delete supplier with existing payment history. Deactivate the supplier instead." });
+
             await _supplierRepository.DeleteAsync(id, cancellationToken);
             return NoContent();
         }
@@ -236,7 +244,7 @@ public class SuppliersController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/rating")]
-    public async Task<IActionResult> SetRating(Guid id, [FromBody] RatingRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> SetRating(Guid id, [FromBody] SupplierRatingRequest request, CancellationToken cancellationToken)
     {
         try
         {
@@ -286,7 +294,3 @@ public class SuppliersController : ControllerBase
     }
 }
 
-public class RatingRequest
-{
-    public int Rating { get; set; }
-}
