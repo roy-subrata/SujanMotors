@@ -255,7 +255,6 @@ export class CustomerPaymentFormComponent implements OnInit {
     if (this.isEditing && this.paymentId) {
       // For update, only send mutable fields
       const updateRequest = {
-        status: '',
         referenceNumber: this.form.get('referenceNumber')?.value || '',
         authorizationCode: this.form.get('authorizationCode')?.value || '',
         notes: this.form.get('notes')?.value || ''

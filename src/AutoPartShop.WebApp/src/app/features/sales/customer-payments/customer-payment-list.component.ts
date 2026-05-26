@@ -7,7 +7,6 @@ import { TableModule, TableContextMenuSelectEvent } from 'primeng/table';
 import { InputTextModule } from 'primeng/inputtext';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
-import { DialogModule } from 'primeng/dialog';
 import { TagModule } from 'primeng/tag';
 import { SelectModule } from 'primeng/select';
 import { ContextMenuModule, ContextMenu } from 'primeng/contextmenu';
@@ -36,7 +35,6 @@ import { I18nService } from '@/shared/services/i18n.service';
         InputTextModule,
         ToastModule,
         ConfirmDialogModule,
-        DialogModule,
         TagModule,
         SelectModule,
         ContextMenuModule,
@@ -298,10 +296,6 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
         });
     }
 
-    get filteredPayments(): CustomerPaymentResponse[] {
-        return this.customerPayments;
-    }
-
     createNew(): void {
         this.router.navigate(['/sales/customer-payments/new']);
     }
@@ -517,7 +511,7 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
     }
 
     exportPayments(format: 'csv' | 'json'): void {
-        const dataToExport = this.filteredPayments;
+        const dataToExport = this.customerPayments;
 
         if (dataToExport.length === 0) {
             this.messageService.add({

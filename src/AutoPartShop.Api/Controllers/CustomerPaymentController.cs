@@ -4,13 +4,15 @@ using AutoPartShop.Application.CustomerPayment;
 using AutoPartShop.Application.CustomerPayment.Dtos;
 using AutoPartShop.Application.DTOs.PaymentDtos;
 using AutoPartShop.Domain.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace AutoPartShop.Api.Controllers;
 
-[Route("api/[controller]")]
+[Route("api/customer-payments")]
 [ApiController]
+[Authorize]
 public class CustomerPaymentController : ControllerBase
 {
     private readonly ICustomerPaymentRepository _repository;
@@ -141,13 +143,12 @@ public class CustomerPaymentController : ControllerBase
             var pending = payments.Where(p => p.Status == "PENDING").ToList();
             var failed = payments.Where(p => p.Status == "FAILED").ToList();
 
-            // Get all invoices for this customer
-            var allInvoices = await _dbContext.Invoices
+            // Get invoices for this customer directly via sales order relationship
+            var customerInvoices = await _dbContext.Invoices
                 .Include(i => i.SalesOrder)
                 .Include(i => i.CustomerPayments)
-                .Where(i => !i.Isdeleted)
+                .Where(i => !i.Isdeleted && i.SalesOrder != null && i.SalesOrder.CustomerId == customerId)
                 .ToListAsync(cancellationToken);
-            var customerInvoices = allInvoices.Where(i => i.SalesOrder != null && i.SalesOrder.CustomerId == customerId).ToList();
 
             // Calculate invoice totals
             var totalInvoiceAmount = customerInvoices.Sum(i => i.TotalAmount);

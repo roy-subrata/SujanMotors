@@ -1,11 +1,13 @@
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.CustomerDtos;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AutoPartShop.Api.Controllers;
 
 [Route("api/customer-account-summary")]
 [ApiController]
+[Authorize]
 [Produces("application/json")]
 public class CustomerAccountSummaryController : ControllerBase
 {

@@ -4,14 +4,16 @@ using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
 using AutoPartShop.Infrastructure.Data;
 using CustomerCreditNoteListQuery = AutoPartShop.Application.DTOs.CustomerCreditNoteDtos.CustomerCreditNoteListQuery;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Data;
 
 namespace AutoPartShop.Api.Controllers;
 
-[Route("api/[controller]")]
+[Route("api/customer-credit-notes")]
 [ApiController]
+[Authorize]
 [Produces("application/json")]
 public class CustomerCreditNoteController : ControllerBase
 {
@@ -275,6 +277,7 @@ public class CustomerCreditNoteController : ControllerBase
             if (creditNote.UsedAmount > 0)
                 return BadRequest(new { message = "Cannot cancel a credit note that has been partially used" });
 
+            creditNote.ModifiedBy = _currentUserService.GetCurrentUsername();
             creditNote.Cancel(reason);
             await _creditNoteRepository.UpdateAsync(creditNote, cancellationToken);
 

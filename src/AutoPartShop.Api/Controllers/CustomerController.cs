@@ -4,29 +4,37 @@ using AutoPartShop.Application.Customers;
 using AutoPartShop.Application.Customers.Dtos;
 using AutoPartShop.Application.DTOs.CustomerDtos;
 using AutoPartShop.Domain.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AutoPartShop.Api.Controllers;
 
-[Route("api/[controller]")]
+[Route("api/customers")]
 [ApiController]
+[Authorize]
 [Produces("application/json")]
 public class CustomerController : ControllerBase
 {
     private readonly ICustomerRepository _customerRepository;
     private readonly ICustomerReadRepository _customerReadRepository;
+    private readonly ISalesOrderRepository _salesOrderRepository;
+    private readonly ICustomerPaymentRepository _customerPaymentRepository;
     private readonly ILogger<CustomerController> _logger;
     private readonly ICodeGenerateService _codeGenerateService;
     private readonly ICurrentUserService _currentUserService;
 
     public CustomerController(
-        ICustomerRepository customerRepository, 
+        ICustomerRepository customerRepository,
         ICustomerReadRepository customerReadRepository,
+        ISalesOrderRepository salesOrderRepository,
+        ICustomerPaymentRepository customerPaymentRepository,
         ICodeGenerateService codeGenerateService,
         ICurrentUserService currentUserService,
         ILogger<CustomerController> logger)
     {
         _customerRepository = customerRepository;
+        _salesOrderRepository = salesOrderRepository;
+        _customerPaymentRepository = customerPaymentRepository;
         _codeGenerateService = codeGenerateService;
         _currentUserService = currentUserService;
         _customerReadRepository = customerReadRepository;
@@ -474,6 +482,14 @@ public class CustomerController : ControllerBase
             if (!await _customerRepository.ExistsAsync(id, cancellationToken))
                 return NotFound(new { message = "Customer not found" });
 
+            var salesOrders = await _salesOrderRepository.GetByCustomerAsync(id, cancellationToken);
+            if (salesOrders.Any())
+                return Conflict(new { message = "Cannot delete customer with existing sales orders" });
+
+            var payments = await _customerPaymentRepository.GetByCustomerAsync(id, cancellationToken);
+            if (payments.Any())
+                return Conflict(new { message = "Cannot delete customer with existing payments" });
+
             await _customerRepository.DeleteAsync(id, cancellationToken);
             return NoContent();
         }
@@ -513,7 +529,7 @@ public class CustomerController : ControllerBase
             LastPurchaseDate = customer.LastPurchaseDate,
             TotalPurchaseAmount = customer.TotalPurchaseAmount,
             Notes = customer.Notes,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = customer.CreatedDate
         };
     }
 }

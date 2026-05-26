@@ -31,13 +31,12 @@ export class CustomerPaymentSummaryComponent implements OnInit, OnDestroy {
   private readonly destroy$ = new Subject<void>();
 
   customerId: string = '';
-  customerName: string = 'Customer';
+  customerName: string = '';
   summary: CustomerPaymentHistorySummary | null = null;
   loading = true;
   error: string | null = null;
 
   ngOnInit(): void {
-    // Get customerId from route params
     this.activatedRoute.params.pipe(takeUntil(this.destroy$)).subscribe((params) => {
       this.customerId = params['customerId'];
       if (this.customerId) {
@@ -77,7 +76,13 @@ export class CustomerPaymentSummaryComponent implements OnInit, OnDestroy {
   }
 
   goBack(): void {
-    this.router.navigate(['/sales/customer-payments']);
+    if (this.customerId) {
+      this.router.navigate(['/sales/customers/detail'], {
+        queryParams: { id: this.customerId }
+      });
+    } else {
+      this.router.navigate(['/sales/customers']);
+    }
   }
 
   viewAllPayments(): void {

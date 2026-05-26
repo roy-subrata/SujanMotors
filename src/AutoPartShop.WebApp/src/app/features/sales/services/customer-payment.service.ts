@@ -18,7 +18,7 @@ export interface CreateCustomerPaymentRequest {
 }
 
 export interface UpdateCustomerPaymentRequest {
-    status: string;
+    status?: string;
     referenceNumber: string;
     authorizationCode: string;
     notes: string;
@@ -92,15 +92,6 @@ export interface PaymentHistoryItem {
     isReconciled:boolean
 }
 
-// export interface PaginatedCustomerPaymentResponse {
-//     items: CustomerPaymentResponse[];
-//     pageNumber: number;
-//     pageSize: number;
-//     totalCount: number;
-//     totalPages: number;
-//     hasPreviousPage: boolean;
-//     hasNextPage: boolean;
-// }
 
 export interface AvailableCustomerAdvancePayment {
     id: string;
@@ -143,7 +134,7 @@ export interface CustomerPaymentQuery {
 })
 export class CustomerPaymentService {
     private readonly http = inject(HttpClient);
-    private readonly apiUrl = `${environment.apiUrl}/customerpayment`;
+    private readonly apiUrl = `${environment.apiUrl}/customer-payments`;
 
     /**
      * Get all customer payments
