@@ -298,10 +298,6 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
         });
     }
 
-    get filteredPayments(): CustomerPaymentResponse[] {
-        return this.customerPayments;
-    }
-
     createNew(): void {
         this.router.navigate(['/sales/customer-payments/new']);
     }
@@ -517,7 +513,7 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
     }
 
     exportPayments(format: 'csv' | 'json'): void {
-        const dataToExport = this.filteredPayments;
+        const dataToExport = this.customerPayments;
 
         if (dataToExport.length === 0) {
             this.messageService.add({

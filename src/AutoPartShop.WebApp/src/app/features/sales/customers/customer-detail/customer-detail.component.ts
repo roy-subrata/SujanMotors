@@ -1,6 +1,7 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, DestroyRef, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
@@ -25,6 +26,7 @@ export class CustomerDetailComponent implements OnInit {
     private readonly customerService = inject(CustomerService);
     private readonly paymentService = inject(CustomerPaymentService);
     private readonly messageService = inject(MessageService);
+    private readonly destroyRef = inject(DestroyRef);
 
     customerId = signal<string>('');
     customer = signal<CustomerResponse | null>(null);
@@ -32,7 +34,7 @@ export class CustomerDetailComponent implements OnInit {
     loading = signal(true);
 
     ngOnInit(): void {
-        this.route.queryParams.subscribe((params) => {
+        this.route.queryParams.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
             const id = params['id'];
             if (id) {
                 this.customerId.set(id);
@@ -46,35 +48,39 @@ export class CustomerDetailComponent implements OnInit {
     loadCustomerData(): void {
         this.loading.set(true);
 
-        this.customerService.getCustomerById(this.customerId()).subscribe({
-            next: (customer) => {
-                this.customer.set(customer);
-            },
-            error: (error) => {
-                this.messageService.add({
-                    severity: 'error',
-                    summary: 'Error',
-                    detail: 'Failed to load customer details'
-                });
-                console.error('Error loading customer:', error);
-            }
-        });
+        this.customerService.getCustomerById(this.customerId())
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe({
+                next: (customer) => {
+                    this.customer.set(customer);
+                },
+                error: (error) => {
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail: 'Failed to load customer details'
+                    });
+                    console.error('Error loading customer:', error);
+                }
+            });
 
-        this.paymentService.getCustomerPaymentSummary(this.customerId()).subscribe({
-            next: (summary) => {
-                this.paymentSummary.set(summary);
-                this.loading.set(false);
-            },
-            error: (error) => {
-                this.messageService.add({
-                    severity: 'error',
-                    summary: 'Error',
-                    detail: 'Failed to load payment summary'
-                });
-                console.error('Error loading payment summary:', error);
-                this.loading.set(false);
-            }
-        });
+        this.paymentService.getCustomerPaymentSummary(this.customerId())
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe({
+                next: (summary) => {
+                    this.paymentSummary.set(summary);
+                    this.loading.set(false);
+                },
+                error: (error) => {
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail: 'Failed to load payment summary'
+                    });
+                    console.error('Error loading payment summary:', error);
+                    this.loading.set(false);
+                }
+            });
     }
 
     getInitials(customer: CustomerResponse): string {
@@ -119,7 +125,9 @@ export class CustomerDetailComponent implements OnInit {
     }
 
     viewPaymentSummary(): void {
-        this.router.navigate(['/sales/customer-payments/summary', this.customerId()]);
+        this.router.navigate(['/sales/customer-payments/summary', this.customerId()], {
+            state: { summary: this.paymentSummary() }
+        });
     }
 
     goBack(): void {

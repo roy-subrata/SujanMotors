@@ -72,7 +72,9 @@ export class CustomersListComponent implements OnInit {
     customerTypes: ItemResponse[] = [];
     actionMenuItems: MenuItem[] = [];
 
-    Math = Math;
+    get totalPages(): number {
+        return Math.ceil(this.totalRecords / this.pageSize);
+    }
 
     ngOnInit(): void {
         this.loadCustomerTypes();

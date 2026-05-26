@@ -284,11 +284,11 @@
           <button class="page-btn" [disabled]="first === 0" (click)="onPageChange({first: first - pageSize, rows: pageSize})">
             <i class="pi pi-angle-left"></i>
           </button>
-          <span class="page-indicator">{{ pageNumber }} / {{ Math.ceil(totalRecords / pageSize) }}</span>
+          <span class="page-indicator">{{ pageNumber }} / {{ totalPages }}</span>
           <button class="page-btn" [disabled]="first + pageSize >= totalRecords" (click)="onPageChange({first: first + pageSize, rows: pageSize})">
             <i class="pi pi-angle-right"></i>
           </button>
-          <button class="page-btn" [disabled]="first + pageSize >= totalRecords" (click)="onPageChange({first: (Math.ceil(totalRecords / pageSize) - 1) * pageSize, rows: pageSize})">
+          <button class="page-btn" [disabled]="first + pageSize >= totalRecords" (click)="onPageChange({first: (totalPages - 1) * pageSize, rows: pageSize})">
             <i class="pi pi-angle-double-right"></i>
           </button>
         </div>
