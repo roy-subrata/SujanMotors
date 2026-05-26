@@ -1,4 +1,5 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
@@ -40,6 +41,7 @@ export class SupplierPaymentFormComponent implements OnInit {
     private readonly poService = inject(PurchaseOrderService);
     private readonly supplierPaymentAccountService = inject(SupplierPaymentAccountService);
     private readonly currencyService = inject(CurrencyService);
+    private readonly destroyRef = inject(DestroyRef);
     filteredPOs: PurchaseOrderResponse[] = [];
     purchaseOrders: PurchaseOrderResponse[] = [];
     form: FormGroup;
@@ -95,7 +97,7 @@ export class SupplierPaymentFormComponent implements OnInit {
         this.loadSuppliers();
         this.loadPaymentProviders();
         // Watch for payment type changes
-        this.form.get('paymentType')?.valueChanges.subscribe((value) => {
+        this.form.get('paymentType')?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((value) => {
             this.isAdvancePayment = value === 'ADVANCE';
             // Clear PO selection when switching to ADVANCE
             if (this.isAdvancePayment) {
@@ -104,7 +106,7 @@ export class SupplierPaymentFormComponent implements OnInit {
         });
 
         // Watch for supplier changes to load their payment accounts and purchase orders
-        this.form.get('supplierId')?.valueChanges.subscribe((value) => {
+        this.form.get('supplierId')?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((value) => {
             if (value) {
                 const supplierId = typeof value === 'string' ? value : value?.id;
                 if (supplierId) {
@@ -122,7 +124,7 @@ export class SupplierPaymentFormComponent implements OnInit {
         });
 
         // Watch for payment provider changes to auto-set payment method
-        this.form.get('paymentProviderId')?.valueChanges.subscribe((value) => {
+        this.form.get('paymentProviderId')?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((value) => {
             if (value) {
                 const provider = typeof value === 'object' ? value : this.paymentProviders.find((p) => p.id === value);
                 if (provider?.providerType) {
@@ -135,10 +137,10 @@ export class SupplierPaymentFormComponent implements OnInit {
             }
         });
 
-        this.form.get('purchaseOrderId')?.valueChanges.subscribe((purchase) => {
+        this.form.get('purchaseOrderId')?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((purchase) => {
             if (purchase && purchase.id) {
                 // Pre-select the purchase order after POs are loaded
-                this.poService.getPurchaseOrderById(purchase.id).subscribe({
+                this.poService.getPurchaseOrderById(purchase.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
                     next: (po) => {
                         if (po && po.outstandingAmount > 0) {
                             this.form.get('amount')?.addValidators([Validators.max(po.outstandingAmount)]);
@@ -157,7 +159,7 @@ export class SupplierPaymentFormComponent implements OnInit {
             }
         });
 
-        this.route.queryParams.subscribe((params) => {
+        this.route.queryParams.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
             if (params['id']) {
                 this.paymentId = params['id'];
                 this.isEditing = true;
@@ -186,7 +188,7 @@ export class SupplierPaymentFormComponent implements OnInit {
     isFromPurchaseOrder = false;
 
     private loadPurchaseOrdersBySupplier(supplierId: string): void {
-        this.poService.getPurchaseOrdersBySupplier(supplierId).subscribe({
+        this.poService.getPurchaseOrdersBySupplier(supplierId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
             next: (pos) => {
                 this.purchaseOrders = pos.filter((po) => po.status === 'CONFIRMED' || po.status === 'PARTIAL');
                 this.filteredPOs = this.purchaseOrders;
@@ -201,7 +203,7 @@ export class SupplierPaymentFormComponent implements OnInit {
      * Pre-select a supplier by ID (used when navigating from supplier list)
      */
     private preSelectSupplier(supplierId: string): void {
-        this.supplierService.getSupplierById(supplierId).subscribe({
+        this.supplierService.getSupplierById(supplierId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
             next: (supplier) => {
                 this.form.patchValue({ supplierId: supplier });
             },
@@ -223,7 +225,7 @@ export class SupplierPaymentFormComponent implements OnInit {
     private preSelectFromPurchaseOrder(purchaseOrderId: string, supplierId?: string): void {
         // First load the supplier and disable the field
         if (supplierId) {
-            this.supplierService.getSupplierById(supplierId).subscribe({
+            this.supplierService.getSupplierById(supplierId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
                 next: (supplier) => {
                     this.form.patchValue({ supplierId: supplier });
                     // Disable supplier field - it's determined by PO
@@ -236,7 +238,7 @@ export class SupplierPaymentFormComponent implements OnInit {
         }
 
         // Pre-select the purchase order after POs are loaded
-        this.poService.getPurchaseOrderById(purchaseOrderId).subscribe({
+        this.poService.getPurchaseOrderById(purchaseOrderId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
             next: (po) => {
                 this.form.patchValue({ purchaseOrderId: po });
                 // Disable PO field - it's passed via URL
@@ -261,7 +263,7 @@ export class SupplierPaymentFormComponent implements OnInit {
      * Load suppliers for autocomplete
      */
     private loadSuppliers(): void {
-        this.supplierService.getAllSuppliers().subscribe({
+        this.supplierService.getAllSuppliers().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
             next: (suppliers) => {
                 this.suppliers = Array.isArray(suppliers) ? suppliers : [];
                 this.filteredSuppliers = this.suppliers;
@@ -276,7 +278,7 @@ export class SupplierPaymentFormComponent implements OnInit {
      * Load payment providers for autocomplete
      */
     private loadPaymentProviders(): void {
-        this.paymentProviderService.getAllPaymentProviders().subscribe({
+        this.paymentProviderService.getAllPaymentProviders().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
             next: (providers) => {
                 this.paymentProviders = Array.isArray(providers) ? providers : [];
                 this.filteredPaymentProviders = this.paymentProviders;
@@ -292,7 +294,7 @@ export class SupplierPaymentFormComponent implements OnInit {
      */
     private loadDefaultCurrency(): void {
         // Load active currencies for dropdown
-        this.currencyService.getActiveCurrencies().subscribe({
+        this.currencyService.getActiveCurrencies().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
             next: (currencies) => {
                 this.currencies = currencies;
             },
@@ -302,7 +304,7 @@ export class SupplierPaymentFormComponent implements OnInit {
         });
 
         // Subscribe to default currency changes
-        this.currencyService.defaultCurrency$.subscribe((currency) => {
+        this.currencyService.defaultCurrency$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((currency) => {
             if (currency && currency.code) {
                 this.defaultCurrency = currency;
                 // Set as selected if no currency selected yet
@@ -329,7 +331,7 @@ export class SupplierPaymentFormComponent implements OnInit {
      * Load supplier payment accounts for autocomplete
      */
     private loadSupplierPaymentAccounts(supplierId: string): void {
-        this.supplierPaymentAccountService.getActiveBySupplier(supplierId).subscribe({
+        this.supplierPaymentAccountService.getActiveBySupplier(supplierId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
             next: (accounts) => {
                 this.supplierPaymentAccounts = Array.isArray(accounts) ? accounts : [];
                 this.filteredSupplierPaymentAccounts = this.supplierPaymentAccounts;
@@ -379,7 +381,7 @@ export class SupplierPaymentFormComponent implements OnInit {
     loadPayment(): void {
         if (!this.paymentId) return;
         this.loading = true;
-        this.service.getSupplierPaymentById(this.paymentId).subscribe({
+        this.service.getSupplierPaymentById(this.paymentId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
             next: (payment) => {
                 this.form.patchValue({
                     supplierId: payment.supplierId,
@@ -434,12 +436,11 @@ export class SupplierPaymentFormComponent implements OnInit {
         if (this.isEditing && this.paymentId) {
             // For update, only send mutable fields
             const updateRequest = {
-                status: '',
                 referenceNumber: this.form.get('referenceNumber')?.value || '',
                 authorizationCode: this.form.get('authorizationCode')?.value || '',
                 notes: this.form.get('notes')?.value || ''
             };
-            this.service.updateSupplierPayment(this.paymentId, updateRequest).subscribe({
+            this.service.updateSupplierPayment(this.paymentId, updateRequest).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
                 next: () => {
                     this.messageService.add({
                         severity: 'success',
@@ -492,7 +493,7 @@ export class SupplierPaymentFormComponent implements OnInit {
                 notes: this.form.get('notes')?.value || '',
                 description: this.form.get('description')?.value || ''
             };
-            this.service.createSupplierPayment(createRequest).subscribe({
+            this.service.createSupplierPayment(createRequest).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
                 next: () => {
                     this.messageService.add({
                         severity: 'success',

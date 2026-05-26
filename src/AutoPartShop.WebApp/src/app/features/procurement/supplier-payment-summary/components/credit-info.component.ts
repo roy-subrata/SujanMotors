@@ -55,15 +55,9 @@ import { SupplierPaymentHistorySummary } from '../../services/supplier-payment.s
 
         <!-- Additional Info -->
         <div class="mt-4 pt-4 border-t border-gray-200">
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <p class="text-xs text-gray-600">Payment Terms</p>
-              <p class="text-sm font-semibold text-gray-900">N/A</p>
-            </div>
-            <div>
-              <p class="text-xs text-gray-600">Supplier Code</p>
-              <p class="text-sm font-semibold text-gray-900">{{ summary.supplierCode }}</p>
-            </div>
+          <div>
+            <p class="text-xs text-gray-600">Supplier Code</p>
+            <p class="text-sm font-semibold text-gray-900">{{ summary.supplierCode }}</p>
           </div>
         </div>
       </div>

@@ -29,7 +29,7 @@ export interface MarkPaymentAsRegularRequest {
     description: string;
 }
 export interface UpdateSupplierPaymentRequest {
-    status: string;
+    status?: string;
     referenceNumber: string;
     authorizationCode: string;
     notes: string;
