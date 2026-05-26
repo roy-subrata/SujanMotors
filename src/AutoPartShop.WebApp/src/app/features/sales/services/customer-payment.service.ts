@@ -92,15 +92,6 @@ export interface PaymentHistoryItem {
     isReconciled:boolean
 }
 
-// export interface PaginatedCustomerPaymentResponse {
-//     items: CustomerPaymentResponse[];
-//     pageNumber: number;
-//     pageSize: number;
-//     totalCount: number;
-//     totalPages: number;
-//     hasPreviousPage: boolean;
-//     hasNextPage: boolean;
-// }
 
 export interface AvailableCustomerAdvancePayment {
     id: string;

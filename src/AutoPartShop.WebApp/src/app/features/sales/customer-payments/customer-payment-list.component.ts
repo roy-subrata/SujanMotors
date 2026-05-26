@@ -7,7 +7,6 @@ import { TableModule, TableContextMenuSelectEvent } from 'primeng/table';
 import { InputTextModule } from 'primeng/inputtext';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
-import { DialogModule } from 'primeng/dialog';
 import { TagModule } from 'primeng/tag';
 import { SelectModule } from 'primeng/select';
 import { ContextMenuModule, ContextMenu } from 'primeng/contextmenu';
@@ -36,7 +35,6 @@ import { I18nService } from '@/shared/services/i18n.service';
         InputTextModule,
         ToastModule,
         ConfirmDialogModule,
-        DialogModule,
         TagModule,
         SelectModule,
         ContextMenuModule,
