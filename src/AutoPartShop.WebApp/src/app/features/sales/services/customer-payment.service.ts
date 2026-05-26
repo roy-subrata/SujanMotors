@@ -143,7 +143,7 @@ export interface CustomerPaymentQuery {
 })
 export class CustomerPaymentService {
     private readonly http = inject(HttpClient);
-    private readonly apiUrl = `${environment.apiUrl}/customerpayment`;
+    private readonly apiUrl = `${environment.apiUrl}/customer-payments`;
 
     /**
      * Get all customer payments
