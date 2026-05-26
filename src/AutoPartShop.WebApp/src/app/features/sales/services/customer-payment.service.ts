@@ -18,7 +18,7 @@ export interface CreateCustomerPaymentRequest {
 }
 
 export interface UpdateCustomerPaymentRequest {
-    status: string;
+    status?: string;
     referenceNumber: string;
     authorizationCode: string;
     notes: string;
