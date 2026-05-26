@@ -1,4 +1,5 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
@@ -26,6 +27,7 @@ export class SupplierDetailComponent implements OnInit {
     private readonly paymentService = inject(SupplierPaymentService);
     private readonly currencyService = inject(CurrencyService);
     private readonly messageService = inject(MessageService);
+    private readonly destroyRef = inject(DestroyRef);
 
     supplierId = signal<string>('');
     supplier = signal<SupplierResponse | null>(null);
@@ -33,7 +35,7 @@ export class SupplierDetailComponent implements OnInit {
     loading = signal(true);
 
     ngOnInit(): void {
-        this.route.queryParams.subscribe((params) => {
+        this.route.queryParams.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
             const id = params['id'];
             if (id) {
                 this.supplierId.set(id);
@@ -47,9 +49,10 @@ export class SupplierDetailComponent implements OnInit {
     loadSupplierData(): void {
         this.loading.set(true);
 
-        this.supplierService.getSupplierById(this.supplierId()).subscribe({
+        this.supplierService.getSupplierById(this.supplierId()).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
             next: (supplier) => {
                 this.supplier.set(supplier);
+                this.loading.set(false);
             },
             error: (error) => {
                 this.loading.set(false);
@@ -62,10 +65,9 @@ export class SupplierDetailComponent implements OnInit {
             }
         });
 
-        this.paymentService.getSupplierPaymentSummary(this.supplierId()).subscribe({
+        this.paymentService.getSupplierPaymentSummary(this.supplierId()).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
             next: (summary) => {
                 this.paymentSummary.set(summary);
-                this.loading.set(false);
             },
             error: (error) => {
                 this.messageService.add({
@@ -74,7 +76,6 @@ export class SupplierDetailComponent implements OnInit {
                     detail: 'Failed to load payment summary'
                 });
                 console.error('Error loading payment summary:', error);
-                this.loading.set(false);
             }
         });
     }
