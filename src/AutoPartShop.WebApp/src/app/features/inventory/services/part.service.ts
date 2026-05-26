@@ -58,6 +58,7 @@ export interface PartResponse {
     warrantyType: string | null;
     warrantyTerms: string | null;
     warrantyCertificateTemplate: string | null;
+    oemNumber?: string | null;
     createdBy: string;
     modifiedBy: string;
 }
@@ -67,7 +68,7 @@ export interface CreatePartRequest {
     description: string;
     richDescription?: string | null;
     partNumber: string;
-    sku: string;
+    oemNumber?: string | null;
     barcode?: string | null;
     categoryId: string;
     brandId: string | null;
@@ -98,7 +99,7 @@ export interface UpdatePartRequest {
     name: string;
     description: string;
     richDescription?: string | null;
-    sku: string;
+    oemNumber?: string | null;
     barcode?: string | null;
     categoryId: string;
     brandId: string | null;

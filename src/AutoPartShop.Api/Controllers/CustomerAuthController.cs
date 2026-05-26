@@ -84,7 +84,6 @@ public class CustomerAuthController(
             customer.ModifiedBy = "ECOMMERCE";
 
             await _customerRepository.AddAsync(customer, cancellationToken);
-            await _codeGenerateService.SaveGenerateCodeAsync("CUST", cancellationToken);
 
             // UserName = phone (unique, always available); Email = real or placeholder
             var user = new ApplicationUser

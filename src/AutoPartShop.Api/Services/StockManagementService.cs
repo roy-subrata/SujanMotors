@@ -158,8 +158,6 @@ public class StockManagementService
                 stockLot.CreatedBy = "System";
                 stockLot.ModifiedBy = "System";
                 await _stockLotRepository.AddAsync(stockLot, cancellationToken);
-                // Persist LOT sequence so future receipts don't reuse the same lot number.
-                await _codeGenerateService.SaveGenerateCodeAsync("LOT", cancellationToken);
 
                 // Record initial RECEIPT movement so the lot has a full movement history from day one
                 var lotMovement = StockLotMovement.Create(

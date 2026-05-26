@@ -238,7 +238,6 @@ public class PurchaseReturnController : ControllerBase
             purchaseReturn.ModifiedBy = _currentUserService.GetCurrentUsername();
 
             await _purchaseReturnRepository.AddAsync(purchaseReturn, cancellationToken);
-            await _codeGenerateService.SaveGenerateCodeAsync("PR", cancellationToken);
 
             return CreatedAtAction(nameof(GetById), new { id = purchaseReturn.Id }, MapToPurchaseReturnResponse(purchaseReturn));
         }

@@ -15,8 +15,7 @@ namespace AutoPartShop.Api.Controllers;
 public class CategoriesController(
     ILogger<CategoriesController> _logger,
     ICategoryRepository _categoryRepository,
-    ICategoryReadRepository _categoryReadRepository,
-    ICodeGenerateService _codeGenerateService) : ControllerBase
+    ICategoryReadRepository _categoryReadRepository) : ControllerBase
 {
     // ── List ──────────────────────────────────────────────────────────────────
 
@@ -163,7 +162,6 @@ public class CategoriesController(
             normalizedCode, request.DisplayOrder, request.ParentCategoryId);
 
         await _categoryRepository.AddAsync(category, cancellationToken);
-        await _codeGenerateService.SaveGenerateCodeAsync("CAT", cancellationToken);
 
         _logger.LogInformation("Created category {Name} ({Code}) id={Id}", category.Name, category.Code, category.Id);
         return CreatedAtAction(nameof(GetById), new { id = category.Id },

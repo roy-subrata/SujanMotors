@@ -32,8 +32,12 @@ public class PartEntityConfiguration : IEntityTypeConfiguration<Product>
               .IsRequired(false);
 
         builder.Property(p => p.SKU)
-        .HasMaxLength(100)
-        .IsRequired();
+            .HasMaxLength(100)
+            .IsRequired();
+
+        builder.Property(p => p.OemNumber)
+            .HasMaxLength(100)
+            .IsRequired(false);
 
         builder.Property(p => p.CostPrice)
                .HasColumnType("decimal(18,2)")  // SQL column type

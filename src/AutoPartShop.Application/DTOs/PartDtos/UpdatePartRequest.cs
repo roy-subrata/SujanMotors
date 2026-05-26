@@ -6,7 +6,6 @@ public class UpdatePartRequest
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string? RichDescription { get; set; }
-    public string SKU { get; set; } = string.Empty;
     public Guid CategoryId { get; set; }
     public Guid? BrandId { get; set; }
     public Guid? BaseUnitId { get; set; }  // Base unit for stock/inventory tracking
@@ -21,6 +20,8 @@ public class UpdatePartRequest
     public string? WarrantyType { get; set; }
     public string? WarrantyTerms { get; set; }
     public string? WarrantyCertificateTemplate { get; set; }
+
+    public string? OemNumber { get; set; }                     // Manufacturer OEM part number (optional)
 
     // Universal product fields
     public string? Barcode { get; set; }

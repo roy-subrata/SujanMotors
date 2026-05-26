@@ -14,6 +14,7 @@ public class Product : AuditableEntity
     public string? RichDescription { get; private set; }                  // Full HTML/markdown for product pages
     public PartNumber PartNumber { get; private set; } = null!;  // Item/product code
     public string SKU { get; private set; } = string.Empty;
+    public string? OemNumber { get; private set; }  // Manufacturer OEM part number (optional)
     public string? Barcode { get; private set; }  // UPC / EAN / QR — for POS scanner & ecommerce
 
     // ── Classification ───────────────────────────────────────────────────────
@@ -72,7 +73,7 @@ public class Product : AuditableEntity
         string? barcode = null, string? tags = null, string productType = "PHYSICAL",
         bool isPerishable = false, decimal? weightKg = null,
         decimal? widthCm = null, decimal? heightCm = null, decimal? depthCm = null,
-        string? taxCode = null)
+        string? taxCode = null, string? oemNumber = null)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Name cannot be empty", nameof(name));
@@ -89,8 +90,8 @@ public class Product : AuditableEntity
         if (name.Length > 200)
             throw new ArgumentException("Name cannot exceed 200 characters", nameof(name));
 
-        if (sku.Length > 50)
-            throw new ArgumentException("SKU cannot exceed 50 characters", nameof(sku));
+        if (sku.Length > 100)
+            throw new ArgumentException("SKU cannot exceed 100 characters", nameof(sku));
 
         if (costPrice < 0)
             throw new ArgumentException("Cost price cannot be negative", nameof(costPrice));
@@ -125,6 +126,7 @@ public class Product : AuditableEntity
             RichDescription = richDescription?.Trim(),
             PartNumber = partNumber,
             SKU = sku.Trim().ToUpper(),
+            OemNumber = oemNumber?.Trim().ToUpperInvariant(),
             Barcode = barcode?.Trim(),
             CategoryId = categoryId,
             BrandId = brandId,
@@ -158,7 +160,7 @@ public class Product : AuditableEntity
         string? barcode = null, string? tags = null, string productType = "PHYSICAL",
         bool isPerishable = false, decimal? weightKg = null,
         decimal? widthCm = null, decimal? heightCm = null, decimal? depthCm = null,
-        string? taxCode = null, string? richDescription = null)
+        string? taxCode = null, string? richDescription = null, string? oemNumber = null)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Name cannot be empty", nameof(name));
@@ -199,6 +201,7 @@ public class Product : AuditableEntity
         Description = description?.Trim() ?? string.Empty;
         RichDescription = richDescription?.Trim();
         SKU = sku.Trim().ToUpper();
+        OemNumber = oemNumber?.Trim().ToUpperInvariant();
         Barcode = barcode?.Trim();
         CategoryId = categoryId;
         BrandId = brandId;

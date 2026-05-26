@@ -76,27 +76,23 @@ export class PartsFormDialogComponent implements OnInit {
         this.loadCategories();
         this.loadUnits();
         this.loadBrands();
-        this.setCode();
     }
 
-    private setCode(): void {
-        if (!this.selectedPart) {
-            this.CodeGenerationService.getCode('Part')
-                .pipe(
-                    tap({
-                        next: (code) => {
-                            if (code) {
-                                this.createForm.get('partNumber')?.setValue(code);
-                                this.createForm.get('sku')?.setValue(code);
-                            }
-                        },
-                        error: (err) => {
-                            console.log('Error Generaete code');
+    onCreateDialogShow(): void {
+        this.CodeGenerationService.getCode('Part')
+            .pipe(
+                tap({
+                    next: (code) => {
+                        if (code) {
+                            this.createForm.get('partNumber')?.setValue(code);
                         }
-                    })
-                )
-                .subscribe();
-        }
+                    },
+                    error: () => {
+                        console.log('Error generating part number code');
+                    }
+                })
+            )
+            .subscribe();
     }
 
     /**
@@ -167,7 +163,7 @@ export class PartsFormDialogComponent implements OnInit {
             name: ['', [Validators.required, Validators.maxLength(200)]],
             description: [''],
             partNumber: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(20)]],
-            sku: ['', [Validators.required, Validators.maxLength(50)]],
+            oemNumber: [null, [Validators.maxLength(100)]],
             categoryId: ['', [Validators.required]],
             brandId: [null],
             baseUnitId: [null],
@@ -186,7 +182,7 @@ export class PartsFormDialogComponent implements OnInit {
             id: [''],
             name: ['', [Validators.required, Validators.maxLength(200)]],
             description: [''],
-            sku: ['', [Validators.required, Validators.maxLength(50)]],
+            oemNumber: [null, [Validators.maxLength(100)]],
             categoryId: ['', [Validators.required]],
             brandId: [null],
             baseUnitId: [null],
@@ -246,7 +242,7 @@ export class PartsFormDialogComponent implements OnInit {
                 id: this.selectedPart.id,
                 name: this.selectedPart.name,
                 description: this.selectedPart.description,
-                sku: this.selectedPart.sku,
+                oemNumber: this.selectedPart.oemNumber ?? null,
                 categoryId: this.selectedPart.categoryId,
                 brandId: this.selectedPart.brandId,
                 baseUnitId: this.selectedPart.baseUnitId,
@@ -508,7 +504,7 @@ export class PartsFormDialogComponent implements OnInit {
             name: this.createForm.get('name')?.value ?? '',
             description: this.createForm.get('description')?.value ?? '',
             partNumber: this.createForm.get('partNumber')?.value ?? '',
-            sku: this.createForm.get('sku')?.value ?? '',
+            oemNumber: this.createForm.get('oemNumber')?.value || null,
             categoryId: this.selectedCreateCategory?.id ?? '',
             brandId: this.selectedCreateBrand?.id ?? null,
             baseUnitId: this.selectedCreateBaseUnit?.id ?? null,
@@ -567,7 +563,7 @@ export class PartsFormDialogComponent implements OnInit {
             id: partId,
             name: this.updateForm.get('name')?.value ?? '',
             description: this.updateForm.get('description')?.value ?? '',
-            sku: this.updateForm.get('sku')?.value ?? '',
+            oemNumber: this.updateForm.get('oemNumber')?.value || null,
             categoryId: this.selectedUpdateCategory?.id ?? '',
             brandId: this.selectedUpdateBrand?.id ?? null,
             baseUnitId: this.selectedUpdateBaseUnit?.id ?? null,
@@ -643,7 +639,7 @@ export class PartsFormDialogComponent implements OnInit {
         const labels: { [key: string]: string } = {
             name: 'Part Name',
             partNumber: 'Part Number',
-            sku: 'SKU',
+            oemNumber: 'OEM Number',
             categoryId: 'Category',
             costPrice: 'Cost Price',
             sellingPrice: 'Selling Price',

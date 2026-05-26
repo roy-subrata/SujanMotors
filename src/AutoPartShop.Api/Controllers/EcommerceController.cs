@@ -332,14 +332,6 @@ public class EcommerceController(
                 }
             });
 
-            // Persist code-sequence increments AFTER the outer transaction commits
-            await _codeGenerateService.SaveGenerateCodeAsync("SO", cancellationToken);
-            await _codeGenerateService.SaveGenerateCodeAsync("INV", cancellationToken);
-            if (!string.IsNullOrWhiteSpace(transactionNumber))
-                await _codeGenerateService.SaveGenerateCodeAsync("TXN", cancellationToken);
-            if (isNewCustomer)
-                await _codeGenerateService.SaveGenerateCodeAsync("CUST", cancellationToken);
-
             var dueBalance = salesOrder.GrandTotal - paidAmount;
             return Ok(new EcommerceCheckoutResponse
             {
@@ -482,8 +474,6 @@ public class EcommerceController(
                     throw;
                 }
             });
-
-            await _codeGenerateService.SaveGenerateCodeAsync("TXN", cancellationToken);
 
             return Ok(new
             {
@@ -825,14 +815,6 @@ public class EcommerceController(
                     throw;
                 }
             });
-
-            // Persist code-sequence increments AFTER the outer transaction commits
-            await _codeGenerateService.SaveGenerateCodeAsync("SO", cancellationToken);
-            await _codeGenerateService.SaveGenerateCodeAsync("INV", cancellationToken);
-            if (!string.IsNullOrWhiteSpace(transactionNumber))
-                await _codeGenerateService.SaveGenerateCodeAsync("TXN", cancellationToken);
-            if (isNewCustomer)
-                await _codeGenerateService.SaveGenerateCodeAsync("CUST", cancellationToken);
 
             var dueBalance = salesOrder.GrandTotal - paidAmount;
             return Ok(new EcommerceCheckoutResponse

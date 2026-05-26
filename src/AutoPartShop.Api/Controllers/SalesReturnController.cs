@@ -118,7 +118,6 @@ namespace AutoPartShop.Api.Controllers
             salesReturn.CalculateRefund();
 
             await _salesReturnRepository.AddAsync(salesReturn);
-            await _codeGenerateService.SaveGenerateCodeAsync("SR");
 
             return CreatedAtAction(nameof(Get), new { id = salesReturn.Id }, MapToResponse(salesReturn));
         }

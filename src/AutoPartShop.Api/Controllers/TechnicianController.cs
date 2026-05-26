@@ -148,7 +148,6 @@ public class TechnicianController : ControllerBase
             technician.CreatedBy = currentUser;
             technician.ModifiedBy = currentUser;
 
-            await _codeGenerateService.SaveGenerateCodeAsync("TECH", cancellationToken);
             await _technicianRepository.AddAsync(technician, cancellationToken);
 
             return CreatedAtAction(nameof(GetById), new { id = technician.Id }, MapToResponse(technician));

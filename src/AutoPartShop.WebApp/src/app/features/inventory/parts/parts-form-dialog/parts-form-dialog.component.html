@@ -1,7 +1,7 @@
 <!-- Create Dialog -->
 <p-dialog [(visible)]="displayCreateDialog" (visibleChange)="displayCreateDialogChange.emit($event)"
   [header]="'Create New Part'" [modal]="true" [style]="{width: '100%', maxWidth: '600px'}" [draggable]="true"
-  [resizable]="false" (onHide)="onCreateDialogHide()">
+  [resizable]="false" (onShow)="onCreateDialogShow()" (onHide)="onCreateDialogHide()">
 
   <form [formGroup]="createForm" class="form-container">
     <!-- Name Field -->
@@ -44,24 +44,18 @@
       <small class="hint-message">Code is auto-generated and cannot be changed</small>
     </div>
 
-    <!-- SKU Field -->
+    <!-- OEM Number Field -->
     <div class="form-group">
-      <label for="create-sku" class="form-label">
-        <span class="required">*</span> SKU
-      </label>
+      <label for="create-oem-number" class="form-label">OEM Number</label>
       <input
-        id="create-sku"
+        id="create-oem-number"
         pInputText
         type="text"
-        formControlName="sku"
-        placeholder="Auto-generated"
-        [readonly]="true"
-        [class.error]="hasError(createForm, 'sku')"
-        [class.success]="isFieldValid(createForm, 'sku')"
+        formControlName="oemNumber"
+        placeholder="Manufacturer OEM part number (optional)"
+        [class.error]="hasError(createForm, 'oemNumber')"
         class="form-input" />
-      <small class="error-message" *ngIf="hasError(createForm, 'sku')">
-        {{ getErrorMessage(createForm, 'sku') }}
-      </small>
+      <small class="hint-message">Optional — leave blank if not applicable</small>
     </div>
 
     <!-- Category Field -->
@@ -372,24 +366,18 @@
       </small>
     </div>
 
-    <!-- SKU Field -->
+    <!-- OEM Number Field -->
     <div class="form-group">
-      <label for="update-sku" class="form-label">
-        <span class="required">*</span> SKU
-      </label>
+      <label for="update-oem-number" class="form-label">OEM Number</label>
       <input
-        id="update-sku"
+        id="update-oem-number"
         pInputText
         type="text"
-        formControlName="sku"
-        placeholder="Auto-generated"
-        [readonly]="true"
-        [class.error]="hasError(updateForm, 'sku')"
-        [class.success]="isFieldValid(updateForm, 'sku')"
+        formControlName="oemNumber"
+        placeholder="Manufacturer OEM part number (optional)"
+        [class.error]="hasError(updateForm, 'oemNumber')"
         class="form-input" />
-      <small class="error-message" *ngIf="hasError(updateForm, 'sku')">
-        {{ getErrorMessage(updateForm, 'sku') }}
-      </small>
+      <small class="hint-message">Optional — leave blank if not applicable</small>
     </div>
 
     <!-- Category Field -->

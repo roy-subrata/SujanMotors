@@ -188,7 +188,6 @@ public class UnitsController : ControllerBase
             unit.CreatedBy = currentUser;
             unit.ModifiedBy = currentUser;
 
-            await _codeGenerateService.SaveGenerateCodeAsync("UNI", cancellationToken);
             await _unitRepository.AddAsync(unit, cancellationToken);
 
             var response = MapToResponse(unit);

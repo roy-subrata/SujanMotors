@@ -331,7 +331,6 @@ public class CustomerController : ControllerBase
             var currentUser = _currentUserService.GetCurrentUsername();
             customer.CreatedBy = currentUser;
             customer.ModifiedBy = currentUser;
-            await _codeGenerateService.SaveGenerateCodeAsync("CUST", cancellationToken);
             await _customerRepository.AddAsync(customer, cancellationToken);
 
             return CreatedAtAction(nameof(GetById), new { id = customer.Id }, MapToCustomerResponse(customer));

@@ -14,6 +14,7 @@ public sealed class ProductResponse
     public string? RichDescription { get; init; }
     public string PartNumber { get; init; } = string.Empty;
     public string SKU { get; init; } = string.Empty;
+    public string? OemNumber { get; init; }
     public string? Barcode { get; init; }
     public string? Tags { get; init; }
     public string ProductType { get; init; } = string.Empty;

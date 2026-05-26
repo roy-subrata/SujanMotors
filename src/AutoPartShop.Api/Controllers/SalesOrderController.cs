@@ -242,7 +242,6 @@ public class SalesOrderController : ControllerBase
             order.CreatedBy = _currentUserService.GetCurrentUsername();
             order.ModifiedBy = _currentUserService.GetCurrentUsername();
 
-            await _codeGenerateService.SaveGenerateCodeAsync("SO", cancellationToken);
             await _salesOrderRepository.AddAsync(order, cancellationToken);
 
             return CreatedAtAction(nameof(GetById), new { id = order.Id }, MapToSalesOrderResponse(order));
@@ -833,7 +832,6 @@ public class SalesOrderController : ControllerBase
             invoice.ModifiedBy = _currentUserService.GetCurrentUsername();
 
             await _invoiceRepository.AddAsync(invoice, cancellationToken);
-            await _codeGenerateService.SaveGenerateCodeAsync("INV", cancellationToken);
 
             return CreatedAtAction(nameof(GetInvoiceById), new { id = invoice.Id }, MapToInvoiceResponse(invoice));
         }
@@ -1019,8 +1017,6 @@ public class SalesOrderController : ControllerBase
                 await tx.RollbackAsync(cancellationToken);
                 throw;
             }
-
-            await _codeGenerateService.SaveGenerateCodeAsync("TXN", cancellationToken);
 
             return Ok(new
             {
