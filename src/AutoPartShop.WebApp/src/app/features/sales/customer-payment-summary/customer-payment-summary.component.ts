@@ -31,25 +31,16 @@ export class CustomerPaymentSummaryComponent implements OnInit, OnDestroy {
   private readonly destroy$ = new Subject<void>();
 
   customerId: string = '';
-  customerName: string = 'Customer';
+  customerName: string = '';
   summary: CustomerPaymentHistorySummary | null = null;
   loading = true;
   error: string | null = null;
 
   ngOnInit(): void {
-    // Use summary passed via navigation state to avoid a redundant API call
-    const navState = history.state as { summary?: CustomerPaymentHistorySummary };
-
     this.activatedRoute.params.pipe(takeUntil(this.destroy$)).subscribe((params) => {
       this.customerId = params['customerId'];
       if (this.customerId) {
-        if (navState?.summary) {
-          this.summary = navState.summary;
-          this.customerName = navState.summary.customerName;
-          this.loading = false;
-        } else {
-          this.loadSummary();
-        }
+        this.loadSummary();
       } else {
         this.error = 'Customer ID not provided';
         this.loading = false;

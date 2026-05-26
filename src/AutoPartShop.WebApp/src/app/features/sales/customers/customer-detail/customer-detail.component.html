@@ -1,7 +1,7 @@
 <div class="customer-detail-container">
   <p-toast></p-toast>
 
-  <!-- Integrated Customer Header -->
+  <!-- Customer Header -->
   <div class="customer-header-section" *ngIf="customer() as cust">
     <!-- Top Bar: Back button, Title, Actions -->
     <div class="header-top-bar">
@@ -11,6 +11,8 @@
         <span class="header-title">Customer Details</span>
       </div>
       <div class="header-actions">
+        <button pButton label="Payments" icon="pi pi-list" class="action-btn action-btn-secondary"
+          (click)="viewPayments()"></button>
         <button pButton label="New Payment" icon="pi pi-wallet" class="action-btn action-btn-primary"
           (click)="recordPayment()"></button>
         <button pButton label="Edit" icon="pi pi-pencil" class="action-btn action-btn-secondary"
@@ -41,27 +43,27 @@
         </div>
       </div>
 
-      <!-- Summary Stats -->
-      <div class="summary-stats" *ngIf="paymentSummary() as summary">
+      <!-- Summary Stats (sourced from customer entity, no extra API call) -->
+      <div class="summary-stats">
         <div class="stat-item stat-blue">
           <div class="stat-icon"><i class="pi pi-dollar"></i></div>
           <div class="stat-content">
-            <span class="stat-label">Total Paid</span>
-            <span class="stat-value">{{ summary.totalPaid | appCurrency }}</span>
+            <span class="stat-label">Total Purchases</span>
+            <span class="stat-value">{{ cust.totalPurchaseAmount | appCurrency }}</span>
           </div>
         </div>
         <div class="stat-item stat-orange">
           <div class="stat-icon"><i class="pi pi-exclamation-triangle"></i></div>
           <div class="stat-content">
             <span class="stat-label">Outstanding</span>
-            <span class="stat-value">{{ summary.totalOutstanding | appCurrency }}</span>
+            <span class="stat-value">{{ cust.dueAmount | appCurrency }}</span>
           </div>
         </div>
         <div class="stat-item stat-purple">
           <div class="stat-icon"><i class="pi pi-credit-card"></i></div>
           <div class="stat-content">
-            <span class="stat-label">Advance</span>
-            <span class="stat-value">{{ summary.availableAdvance | appCurrency }}</span>
+            <span class="stat-label">Advance Credit</span>
+            <span class="stat-value">{{ cust.advanceAmount | appCurrency }}</span>
           </div>
         </div>
       </div>
@@ -94,34 +96,6 @@
         <i class="pi pi-calendar"></i>
         <span>Member Since {{ cust.createdAt | date:'MMM dd, yyyy' }}</span>
       </div>
-    </div>
-  </div>
-
-  <!-- Quick Links Section -->
-  <div class="quick-links-section" *ngIf="customer()">
-    <div class="quick-link-card" (click)="viewPayments()">
-      <div class="quick-link-icon ql-blue"><i class="pi pi-wallet"></i></div>
-      <div class="quick-link-content">
-        <span class="quick-link-title">View Payments</span>
-        <span class="quick-link-desc">Payment history & transactions</span>
-      </div>
-      <i class="pi pi-arrow-right quick-link-arrow"></i>
-    </div>
-    <div class="quick-link-card" (click)="viewAccountSummary()">
-      <div class="quick-link-icon ql-purple"><i class="pi pi-file-check"></i></div>
-      <div class="quick-link-content">
-        <span class="quick-link-title">Account Summary</span>
-        <span class="quick-link-desc">Purchase items & due report</span>
-      </div>
-      <i class="pi pi-arrow-right quick-link-arrow"></i>
-    </div>
-    <div class="quick-link-card" (click)="viewPaymentSummary()">
-      <div class="quick-link-icon ql-green"><i class="pi pi-chart-bar"></i></div>
-      <div class="quick-link-content">
-        <span class="quick-link-title">Payment Summary</span>
-        <span class="quick-link-desc">Financial overview & analytics</span>
-      </div>
-      <i class="pi pi-arrow-right quick-link-arrow"></i>
     </div>
   </div>
 </div>

@@ -9,7 +9,6 @@ import { TooltipModule } from 'primeng/tooltip';
 import { AvatarModule } from 'primeng/avatar';
 import { MessageService } from 'primeng/api';
 import { CustomerService, CustomerResponse } from '../../services/customer.service';
-import { CustomerPaymentService, CustomerPaymentHistorySummary } from '../../services/customer-payment.service';
 import { AppCurrencyPipe } from '../../../../shared/pipes/app-currency.pipe';
 
 @Component({
@@ -24,13 +23,11 @@ export class CustomerDetailComponent implements OnInit {
     private readonly route = inject(ActivatedRoute);
     private readonly router = inject(Router);
     private readonly customerService = inject(CustomerService);
-    private readonly paymentService = inject(CustomerPaymentService);
     private readonly messageService = inject(MessageService);
     private readonly destroyRef = inject(DestroyRef);
 
     customerId = signal<string>('');
     customer = signal<CustomerResponse | null>(null);
-    paymentSummary = signal<CustomerPaymentHistorySummary | null>(null);
     loading = signal(true);
 
     ngOnInit(): void {
@@ -47,12 +44,12 @@ export class CustomerDetailComponent implements OnInit {
 
     loadCustomerData(): void {
         this.loading.set(true);
-
         this.customerService.getCustomerById(this.customerId())
             .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe({
                 next: (customer) => {
                     this.customer.set(customer);
+                    this.loading.set(false);
                 },
                 error: (error) => {
                     this.messageService.add({
@@ -61,23 +58,6 @@ export class CustomerDetailComponent implements OnInit {
                         detail: 'Failed to load customer details'
                     });
                     console.error('Error loading customer:', error);
-                }
-            });
-
-        this.paymentService.getCustomerPaymentSummary(this.customerId())
-            .pipe(takeUntilDestroyed(this.destroyRef))
-            .subscribe({
-                next: (summary) => {
-                    this.paymentSummary.set(summary);
-                    this.loading.set(false);
-                },
-                error: (error) => {
-                    this.messageService.add({
-                        severity: 'error',
-                        summary: 'Error',
-                        detail: 'Failed to load payment summary'
-                    });
-                    console.error('Error loading payment summary:', error);
                     this.loading.set(false);
                 }
             });
@@ -91,14 +71,10 @@ export class CustomerDetailComponent implements OnInit {
 
     getStatusSeverity(status: string): 'success' | 'secondary' | 'info' | 'warn' | 'danger' | 'contrast' | undefined {
         switch (status?.toUpperCase()) {
-            case 'ACTIVE':
-                return 'success';
-            case 'INACTIVE':
-                return 'secondary';
-            case 'SUSPENDED':
-                return 'danger';
-            default:
-                return 'info';
+            case 'ACTIVE':   return 'success';
+            case 'INACTIVE': return 'secondary';
+            case 'SUSPENDED': return 'danger';
+            default:         return 'info';
         }
     }
 
@@ -117,16 +93,6 @@ export class CustomerDetailComponent implements OnInit {
     viewPayments(): void {
         this.router.navigate(['/sales/customer-payments'], {
             queryParams: { customerId: this.customerId() }
-        });
-    }
-
-    viewAccountSummary(): void {
-        this.router.navigate(['/sales/customer-account-summary']);
-    }
-
-    viewPaymentSummary(): void {
-        this.router.navigate(['/sales/customer-payments/summary', this.customerId()], {
-            state: { summary: this.paymentSummary() }
         });
     }
 
