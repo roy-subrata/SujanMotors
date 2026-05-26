@@ -1,7 +1,6 @@
 using AutoPartShop.Application.DTOs.LedgerDtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
-using Microsoft.EntityFrameworkCore;
 
 namespace AutoPartShop.Api.Services;
 
@@ -139,55 +138,19 @@ public class SupplierLedgerService : ISupplierLedgerService
         return entries.OrderByDescending(e => e.TransactionDate).ToList();
     }
 
-    public async Task<decimal> GetTotalPurchasesAsync(Guid supplierId, CancellationToken ct = default)
-    {
-        var purchaseOrders = await _purchaseOrderRepository.GetBySuppliersAsync(supplierId, ct);
+    public Task<decimal> GetTotalPurchasesAsync(Guid supplierId, CancellationToken ct = default)
+        => _purchaseOrderRepository.GetTotalPurchaseAmountBySupplierAsync(supplierId, ct);
 
-        // Only include confirmed or later POs (not DRAFT, SUBMITTED, or CANCELLED)
-        return purchaseOrders
-            .Where(po => po.Status != "DRAFT" &&
-                        po.Status != "SUBMITTED" &&
-                        po.Status != "CANCELLED")
-            .Sum(po => po.TotalAmount);
-    }
+    public Task<decimal> GetTotalPaymentsAsync(Guid supplierId, CancellationToken ct = default)
+        => _supplierPaymentRepository.GetTotalCompletedPaymentsBySupplierAsync(supplierId, ct);
 
-    public async Task<decimal> GetTotalPaymentsAsync(Guid supplierId, CancellationToken ct = default)
-    {
-        var payments = await _supplierPaymentRepository.GetBySupplierAsync(supplierId, ct);
-
-        // Only include COMPLETED payments
-        // Exclude payments created from advance credit application to avoid double-counting
-        // (the original advance payment is already counted)
-        return payments
-            .Where(p => p.Status == "COMPLETED" &&
-                       p.PaymentMethod != "REFUND" &&  // Exclude old refund records
-                       (p.PaymentType == PaymentType.ADVANCE || p.SourceAdvancePaymentId == null))
-            .Sum(p => p.Amount);
-    }
-
-    public async Task<decimal> GetTotalRefundsAsync(Guid supplierId, CancellationToken ct = default)
-    {
-        var returns = await _purchaseReturnRepository.GetBySupplierAsync(supplierId, ct);
-
-        // Sum settled return amounts
-        return returns
-            .Where(r => r.SettlementStatus == "SETTLED")
-            .Sum(r => r.SettledAmount);
-    }
+    public Task<decimal> GetTotalRefundsAsync(Guid supplierId, CancellationToken ct = default)
+        => _purchaseReturnRepository.GetTotalSettledRefundsBySupplierAsync(supplierId, ct);
 
     public async Task<decimal> GetAvailableAdvanceCreditAsync(Guid supplierId, CancellationToken ct = default)
     {
-        // Get advance payment credits
-        var payments = await _supplierPaymentRepository.GetBySupplierAsync(supplierId, ct);
-        var advanceCredit = payments
-            .Where(p => p.PaymentType == PaymentType.ADVANCE &&
-                       p.Status == "COMPLETED" &&
-                       p.RemainingAmount > 0)
-            .Sum(p => p.RemainingAmount);
-
-        // Get credit note credits (from returns)
+        var advanceCredit = await _supplierPaymentRepository.GetAvailableAdvanceCreditBySupplierAsync(supplierId, ct);
         var creditNoteCredit = await _creditNoteRepository.GetTotalAvailableCreditAsync(supplierId, ct);
-
         return advanceCredit + creditNoteCredit;
     }
 

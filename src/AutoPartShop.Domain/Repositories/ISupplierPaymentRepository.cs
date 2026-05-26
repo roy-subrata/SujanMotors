@@ -15,5 +15,6 @@ public interface ISupplierPaymentRepository : IBaseRepository<SupplierPayment>
     Task<decimal> GetTotalByDateRangeAsync(DateTime startDate, DateTime endDate, CancellationToken cancellationToken = default);
     Task<(IEnumerable<SupplierPayment> payments, int totalCount)> GetPagedAsync(int pageNumber, int pageSize, CancellationToken cancellationToken = default);
     Task<(IEnumerable<SupplierPayment> payments, int totalCount)> GetBySupplierPagedAsync(Guid supplierId, int pageNumber, int pageSize, CancellationToken cancellationToken = default);
-
+    Task<decimal> GetTotalCompletedPaymentsBySupplierAsync(Guid supplierId, CancellationToken cancellationToken = default);
+    Task<decimal> GetAvailableAdvanceCreditBySupplierAsync(Guid supplierId, CancellationToken cancellationToken = default);
 }
