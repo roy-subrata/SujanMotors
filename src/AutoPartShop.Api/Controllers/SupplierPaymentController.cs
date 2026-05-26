@@ -20,7 +20,6 @@ public class SupplierPaymentController : ControllerBase
 {
     private readonly ISupplierPaymentRepository _repository;
     public readonly ISupplierPaymentReadRespository _supplierPaymentReadRespository;
-    private readonly ISupplierRepository _supplierRepository;
     private readonly IPurchaseOrderRepository _purchaseOrderRepository;
     private readonly SupplierPaymentSummaryService _summaryService;
     private readonly ICurrentUserService _currentUserService;
@@ -29,14 +28,12 @@ public class SupplierPaymentController : ControllerBase
     public SupplierPaymentController(
         ISupplierPaymentRepository repository,
         ISupplierPaymentReadRespository supplierPaymentReadRespository,
-        ISupplierRepository supplierRepository,
         IPurchaseOrderRepository purchaseOrderRepository,
         SupplierPaymentSummaryService summaryService,
         ICurrentUserService currentUserService,
         ILogger<SupplierPaymentController> logger)
     {
         _repository = repository;
-        _supplierRepository = supplierRepository;
         _purchaseOrderRepository = purchaseOrderRepository;
         _summaryService = summaryService;
         _currentUserService = currentUserService;
@@ -50,8 +47,7 @@ public class SupplierPaymentController : ControllerBase
         try
         {
             var payments = await _repository.GetAllAsync(cancellationToken);
-            var responses = await Task.WhenAll(payments.Select(MapResponse));
-            return Ok(responses);
+            return Ok(payments.Select(MapResponse));
         }
         catch (Exception ex)
         {
@@ -96,8 +92,7 @@ public class SupplierPaymentController : ControllerBase
         try
         {
             var payments = await _repository.GetByStatusAsync(status, cancellationToken);
-            var responses = await Task.WhenAll(payments.Select(MapResponse));
-            return Ok(responses);
+            return Ok(payments.Select(MapResponse));
         }
         catch (Exception ex)
         {
@@ -113,7 +108,7 @@ public class SupplierPaymentController : ControllerBase
         {
             var payment = await _repository.GetByIdAsync(id, cancellationToken);
             if (payment is null) return NotFound();
-            return Ok(await MapResponse(payment));
+            return Ok(MapResponse(payment));
         }
         catch (Exception ex)
         {
@@ -128,8 +123,7 @@ public class SupplierPaymentController : ControllerBase
         try
         {
             var (payments, totalCount) = await _repository.GetBySupplierPagedAsync(supplierId, 1, 50, cancellationToken);
-            var responses = await Task.WhenAll(payments.Select(MapResponse));
-            return Ok(new { data = responses, totalCount });
+            return Ok(new { data = payments.Select(MapResponse), totalCount });
         }
         catch (Exception ex)
         {
@@ -441,7 +435,8 @@ public class SupplierPaymentController : ControllerBase
             }
 
             await _repository.AddAsync(payment, cancellationToken);
-            return CreatedAtAction(nameof(GetById), new { id = payment.Id }, await MapResponse(payment));
+            var created = await _repository.GetByIdAsync(payment.Id, cancellationToken);
+            return CreatedAtAction(nameof(GetById), new { id = payment.Id }, MapResponse(created!));
         }
         catch (ArgumentException ex)
         {
@@ -495,7 +490,7 @@ public class SupplierPaymentController : ControllerBase
                     payment.TransactionNumber);
             }
 
-            return Ok(await MapResponse(payment));
+            return Ok(MapResponse(payment));
         }
         catch (Exception ex)
         {
@@ -516,7 +511,7 @@ public class SupplierPaymentController : ControllerBase
             payment.ConfirmReceipt(currentUser);
             payment.ModifiedBy = currentUser;
             await _repository.UpdateAsync(payment, cancellationToken);
-            return Ok(await MapResponse(payment));
+            return Ok(MapResponse(payment));
         }
         catch (Exception ex)
         {
@@ -535,7 +530,7 @@ public class SupplierPaymentController : ControllerBase
             payment.Reconcile();
             payment.ModifiedBy = _currentUserService.GetCurrentUsername();
             await _repository.UpdateAsync(payment, cancellationToken);
-            return Ok(await MapResponse(payment));
+            return Ok(MapResponse(payment));
         }
         catch (Exception ex)
         {
@@ -587,7 +582,7 @@ public class SupplierPaymentController : ControllerBase
                     payment.TransactionNumber);
             }
 
-            return Ok(await MapResponse(payment));
+            return Ok(MapResponse(payment));
         }
         catch (Exception ex)
         {
@@ -607,7 +602,7 @@ public class SupplierPaymentController : ControllerBase
             payment.Cancel();
             payment.ModifiedBy = _currentUserService.GetCurrentUsername();
             await _repository.UpdateAsync(payment, cancellationToken);
-            return Ok(await MapResponse(payment));
+            return Ok(MapResponse(payment));
         }
         catch (InvalidOperationException ex)
         {
@@ -663,7 +658,7 @@ public class SupplierPaymentController : ControllerBase
 
             payment.ModifiedBy = _currentUserService.GetCurrentUsername();
             await _repository.UpdateAsync(payment, cancellationToken);
-            return Ok(await MapResponse(payment));
+            return Ok(MapResponse(payment));
         }
         catch (Exception ex)
         {
@@ -682,7 +677,7 @@ public class SupplierPaymentController : ControllerBase
 
             // If payment was already ADVANCE, nothing to do
             if (payment.PaymentType == PaymentType.ADVANCE)
-                return Ok(await MapResponse(payment));
+                return Ok(MapResponse(payment));
 
             // Block conversion for COMPLETED payments - once applied, cannot be converted
             // To "unapply" a payment, use proper reversal/refund process instead
@@ -700,7 +695,7 @@ public class SupplierPaymentController : ControllerBase
             _logger.LogInformation("Converted PENDING payment {TransactionNumber} from REGULAR to ADVANCE. Amount: {Amount}",
                 payment.TransactionNumber, payment.Amount);
 
-            return Ok(await MapResponse(payment));
+            return Ok(MapResponse(payment));
         }
         catch (Exception ex)
         {
@@ -719,7 +714,7 @@ public class SupplierPaymentController : ControllerBase
 
             // If payment was already REGULAR, nothing to do
             if (payment.PaymentType == PaymentType.REGULAR)
-                return Ok(await MapResponse(payment));
+                return Ok(MapResponse(payment));
 
             var currentUser = _currentUserService.GetCurrentUsername();
 
@@ -757,7 +752,7 @@ public class SupplierPaymentController : ControllerBase
             _logger.LogInformation("Converted payment {TransactionNumber} from ADVANCE to REGULAR. Amount: {Amount}",
                 payment.TransactionNumber, payment.Amount);
 
-            return Ok(await MapResponse(payment));
+            return Ok(MapResponse(payment));
         }
         catch (Exception ex)
         {
@@ -766,88 +761,41 @@ public class SupplierPaymentController : ControllerBase
         }
     }
 
-    private async Task<SupplierPaymentResponse> MapResponse(SupplierPayment p)
+    private static SupplierPaymentResponse MapResponse(SupplierPayment p) => new()
     {
-        var supplier = await _supplierRepository.GetByIdAsync(p.SupplierId);
-        return new()
-        {
-            Id = p.Id,
-            SupplierId = p.SupplierId,
-            SupplierName = supplier?.Name ?? "",
-            PurchaseOrderId = p.PurchaseOrderId,
-            GoodsReceiptId = p.GoodsReceiptId,
-            PaymentProviderId = p.PaymentProviderId,
-            ProviderName = p.PaymentProvider?.ProviderName ?? "",
-            SupplierPaymentAccountId = p.SupplierPaymentAccountId,
-            SupplierPaymentAccountName = p.SupplierPaymentAccount?.GetDisplayText() ?? "",
-            TransactionNumber = p.TransactionNumber,
-            Amount = p.Amount,
-            PaymentFee = p.PaymentFee,
-            NetAmount = p.NetAmount,
-            Currency = p.Currency,
-            PaymentDate = p.PaymentDate,
-            PaymentMethod = p.PaymentMethod,
-            Status = p.Status,
-            ReferenceNumber = p.ReferenceNumber,
-            AuthorizationCode = p.AuthorizationCode,
-            InvoiceNumber = p.InvoiceNumber,
-            Notes = p.Notes,
-            ProcessedDate = p.ProcessedDate,
-            ProcessedBy = p.ProcessedBy,
-            ConfirmedDate = p.ConfirmedDate,
-            ConfirmedBy = p.ConfirmedBy,
-            IsReconciled = p.IsReconciled,
-            ReconciledDate = p.ReconciledDate,
-            CreatedAt = p.CreatedDate,
-            PaymentType = p.PaymentType,
-            Description = p.Description,
-            RemainingAmount = p.RemainingAmount,
-            SourceAdvancePaymentId = p.SourceAdvancePaymentId
-        };
-    }
-
-    /// <summary>
-    /// Sync version of MapResponse that uses already-loaded navigation properties
-    /// Used for paginated queries where Supplier is already included
-    /// </summary>
-    private SupplierPaymentResponse MapResponseSync(SupplierPayment p)
-    {
-        return new()
-        {
-            Id = p.Id,
-            SupplierId = p.SupplierId,
-            SupplierName = p.Supplier?.Name ?? "",
-            PurchaseOrderId = p.PurchaseOrderId,
-            GoodsReceiptId = p.GoodsReceiptId,
-            PaymentProviderId = p.PaymentProviderId,
-            ProviderName = p.PaymentProvider?.ProviderName ?? "",
-            SupplierPaymentAccountId = p.SupplierPaymentAccountId,
-            SupplierPaymentAccountName = p.SupplierPaymentAccount?.GetDisplayText() ?? "",
-            TransactionNumber = p.TransactionNumber,
-            Amount = p.Amount,
-            PaymentFee = p.PaymentFee,
-            NetAmount = p.NetAmount,
-            Currency = p.Currency,
-            PaymentDate = p.PaymentDate,
-            PaymentMethod = p.PaymentMethod,
-            Status = p.Status,
-            ReferenceNumber = p.ReferenceNumber,
-            AuthorizationCode = p.AuthorizationCode,
-            InvoiceNumber = p.InvoiceNumber,
-            Notes = p.Notes,
-            ProcessedDate = p.ProcessedDate,
-            ProcessedBy = p.ProcessedBy,
-            ConfirmedDate = p.ConfirmedDate,
-            ConfirmedBy = p.ConfirmedBy,
-            IsReconciled = p.IsReconciled,
-            ReconciledDate = p.ReconciledDate,
-            CreatedAt = p.CreatedDate,
-            PaymentType = p.PaymentType,
-            Description = p.Description,
-            RemainingAmount = p.RemainingAmount,
-            SourceAdvancePaymentId = p.SourceAdvancePaymentId
-        };
-    }
+        Id = p.Id,
+        SupplierId = p.SupplierId,
+        SupplierName = p.Supplier?.Name ?? "",
+        PurchaseOrderId = p.PurchaseOrderId,
+        GoodsReceiptId = p.GoodsReceiptId,
+        PaymentProviderId = p.PaymentProviderId,
+        ProviderName = p.PaymentProvider?.ProviderName ?? "",
+        SupplierPaymentAccountId = p.SupplierPaymentAccountId,
+        SupplierPaymentAccountName = p.SupplierPaymentAccount?.GetDisplayText() ?? "",
+        TransactionNumber = p.TransactionNumber,
+        Amount = p.Amount,
+        PaymentFee = p.PaymentFee,
+        NetAmount = p.NetAmount,
+        Currency = p.Currency,
+        PaymentDate = p.PaymentDate,
+        PaymentMethod = p.PaymentMethod,
+        Status = p.Status,
+        ReferenceNumber = p.ReferenceNumber,
+        AuthorizationCode = p.AuthorizationCode,
+        InvoiceNumber = p.InvoiceNumber,
+        Notes = p.Notes,
+        ProcessedDate = p.ProcessedDate,
+        ProcessedBy = p.ProcessedBy,
+        ConfirmedDate = p.ConfirmedDate,
+        ConfirmedBy = p.ConfirmedBy,
+        IsReconciled = p.IsReconciled,
+        ReconciledDate = p.ReconciledDate,
+        CreatedAt = p.CreatedDate,
+        PaymentType = p.PaymentType,
+        Description = p.Description,
+        RemainingAmount = p.RemainingAmount,
+        SourceAdvancePaymentId = p.SourceAdvancePaymentId
+    };
 
     [HttpGet("supplier/{supplierId:guid}/available-advances")]
     public async Task<IActionResult> GetAvailableAdvances(Guid supplierId, CancellationToken cancellationToken = default)

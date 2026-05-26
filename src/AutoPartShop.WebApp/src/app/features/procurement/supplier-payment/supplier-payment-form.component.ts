@@ -94,7 +94,6 @@ export class SupplierPaymentFormComponent implements OnInit {
         // Load suppliers and payment providers
         this.loadSuppliers();
         this.loadPaymentProviders();
-        this.loadPurchaseOrders();
         // Watch for payment type changes
         this.form.get('paymentType')?.valueChanges.subscribe((value) => {
             this.isAdvancePayment = value === 'ADVANCE';
@@ -104,17 +103,21 @@ export class SupplierPaymentFormComponent implements OnInit {
             }
         });
 
-        // Watch for supplier changes to load their payment accounts
+        // Watch for supplier changes to load their payment accounts and purchase orders
         this.form.get('supplierId')?.valueChanges.subscribe((value) => {
             if (value) {
                 const supplierId = typeof value === 'string' ? value : value?.id;
                 if (supplierId) {
                     this.loadSupplierPaymentAccounts(supplierId);
+                    this.loadPurchaseOrdersBySupplier(supplierId);
                 }
             } else {
                 this.supplierPaymentAccounts = [];
                 this.filteredSupplierPaymentAccounts = [];
                 this.form.get('supplierPaymentAccountId')?.setValue('');
+                this.purchaseOrders = [];
+                this.filteredPOs = [];
+                this.form.get('purchaseOrderId')?.setValue('');
             }
         });
 
@@ -182,20 +185,14 @@ export class SupplierPaymentFormComponent implements OnInit {
     // Flag to track if payment is being recorded from a purchase order
     isFromPurchaseOrder = false;
 
-    private loadPurchaseOrders(): void {
-        this.poService.getAllPurchaseOrders().subscribe({
+    private loadPurchaseOrdersBySupplier(supplierId: string): void {
+        this.poService.getPurchaseOrdersBySupplier(supplierId).subscribe({
             next: (pos) => {
-                // Only show purchase orders that are approved and ready to receive goods
                 this.purchaseOrders = pos.filter((po) => po.status === 'CONFIRMED' || po.status === 'PARTIAL');
                 this.filteredPOs = this.purchaseOrders;
             },
             error: (error) => {
-                this.messageService.add({
-                    severity: 'error',
-                    summary: 'Error',
-                    detail: 'Failed to load purchase orders'
-                });
-                console.error('Error loading POs:', error);
+                console.error('Error loading POs for supplier:', error);
             }
         });
     }
