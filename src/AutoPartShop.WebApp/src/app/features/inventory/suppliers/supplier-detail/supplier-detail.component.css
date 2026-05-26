@@ -235,93 +235,6 @@
   font-size: 0.625rem;
 }
 
-/* ========================= */
-/* Quick Links Section        */
-/* ========================= */
-.quick-links-section {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1rem;
-}
-
-.quick-link-card {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem 1.25rem;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-.quick-link-card:hover {
-  border-color: #667eea;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
-  transform: translateY(-2px);
-}
-
-.quick-link-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.25rem;
-  flex-shrink: 0;
-}
-
-.quick-link-icon.ql-blue {
-  background: linear-gradient(135deg, #eff6ff, #dbeafe);
-  color: #3b82f6;
-}
-
-.quick-link-icon.ql-purple {
-  background: linear-gradient(135deg, #f5f3ff, #ede9fe);
-  color: #8b5cf6;
-}
-
-.quick-link-icon.ql-green {
-  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
-  color: #22c55e;
-}
-
-.quick-link-icon.ql-orange {
-  background: linear-gradient(135deg, #fffbeb, #fef3c7);
-  color: #f59e0b;
-}
-
-.quick-link-content {
-  display: flex;
-  flex-direction: column;
-  gap: 0.125rem;
-  flex: 1;
-}
-
-.quick-link-title {
-  font-size: 0.9375rem;
-  font-weight: 600;
-  color: #1f2937;
-}
-
-.quick-link-desc {
-  font-size: 0.75rem;
-  color: #9ca3af;
-}
-
-.quick-link-arrow {
-  color: #d1d5db;
-  font-size: 0.875rem;
-  transition: color 0.2s ease;
-}
-
-.quick-link-card:hover .quick-link-arrow {
-  color: #667eea;
-}
-
 /* Responsive */
 @media (max-width: 1100px) {
   .profile-section {
@@ -333,10 +246,6 @@
   .summary-stats {
     width: 100%;
     justify-content: flex-start;
-  }
-
-  .quick-links-section {
-    grid-template-columns: repeat(2, 1fr);
   }
 }
 
@@ -401,10 +310,6 @@
 
   .contact-item {
     width: 100%;
-  }
-
-  .quick-links-section {
-    grid-template-columns: 1fr;
   }
 }
 
