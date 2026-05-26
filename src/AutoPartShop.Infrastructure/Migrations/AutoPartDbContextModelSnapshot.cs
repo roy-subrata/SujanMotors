@@ -592,6 +592,14 @@ namespace AutoPartsShop.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("DriverName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("DriverPhone")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<Guid?>("InvoiceId")
                         .HasColumnType("uniqueidentifier");
 
@@ -624,6 +632,14 @@ namespace AutoPartsShop.Infrastructure.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("TransportCompany")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("VehicleNumber")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -1910,7 +1926,6 @@ namespace AutoPartsShop.Infrastructure.Migrations
                     b.ToTable("NotificationLogs");
                 });
 
-
             modelBuilder.Entity("AutoPartShop.Domain.Entities.PartVehicleCompatibility", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2217,6 +2232,10 @@ namespace AutoPartsShop.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("OemNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("ProductType")
                         .IsRequired()

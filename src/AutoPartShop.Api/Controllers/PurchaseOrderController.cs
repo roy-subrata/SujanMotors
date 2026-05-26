@@ -257,7 +257,6 @@ public class PurchaseOrderController : ControllerBase
             order.ModifiedBy = currentUser;
 
             await _purchaseOrderRepository.AddAsync(order, cancellationToken);
-            await _codeGenerateService.SaveGenerateCodeAsync("PO", cancellationToken);
 
             // Reload the order with navigation properties using repository
             var createdOrder = await _purchaseOrderReadRepository.GetPurchaseOrderByIdAsync(order.Id, cancellationToken);
@@ -627,8 +626,6 @@ public class PurchaseOrderController : ControllerBase
             }
 
             await _goodsReceiptRepository.AddAsync(grn, cancellationToken);
-            await _codeGenerateService.SaveGenerateCodeAsync("GRN", cancellationToken);
-            await _codeGenerateService.SaveGenerateCodeAsync("LOT", cancellationToken);  // In case PO number sequence needs to be updated
             return CreatedAtAction(nameof(GetGRNById), new { id = grn.Id }, MapToGoodsReceiptResponse(grn));
         }
         catch (ArgumentException ex)

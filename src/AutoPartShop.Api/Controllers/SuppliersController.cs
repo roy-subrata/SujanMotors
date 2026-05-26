@@ -132,7 +132,6 @@ public class SuppliersController : ControllerBase
             supplier.CreatedBy = currentUser;
             supplier.ModifiedBy = currentUser;
 
-            await _codeGenerateService.SaveGenerateCodeAsync("SUP", cancellationToken);
             await _supplierRepository.AddAsync(supplier, cancellationToken);
 
             return CreatedAtAction(nameof(GetById), new { id = supplier.Id }, MapToResponse(supplier));

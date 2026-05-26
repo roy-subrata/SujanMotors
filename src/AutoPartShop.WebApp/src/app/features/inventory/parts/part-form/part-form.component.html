@@ -111,9 +111,9 @@
 
       <div class="pf-row">
         <div class="pf-field">
-          <label>SKU</label>
-          <input pInputText formControlName="sku" [readonly]="true" [disabled]="isViewMode" />
-          <small class="pf-hint"><i class="pi pi-lock"></i> Auto-generated, read-only</small>
+          <label>OEM Number</label>
+          <input pInputText formControlName="oemNumber" placeholder="Manufacturer OEM part number (optional)" [disabled]="isViewMode" />
+          <small class="pf-hint">Optional — manufacturer reference number</small>
         </div>
         <div class="pf-field">
           <label>Barcode <span class="pf-tag">UPC / EAN / QR</span></label>

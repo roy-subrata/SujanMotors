@@ -227,32 +227,30 @@ public class ProductsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Create([FromBody] CreatePartRequest request, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(request.Name) || string.IsNullOrWhiteSpace(request.SKU) ||
+        if (string.IsNullOrWhiteSpace(request.Name) ||
             string.IsNullOrWhiteSpace(request.PartNumber) || request.CategoryId == Guid.Empty)
-            return BadRequest(ApiError.Validation("Name, PartNumber, SKU, and CategoryId are required", instance: Request.Path));
+            return BadRequest(ApiError.Validation("Name, PartNumber, and CategoryId are required", instance: Request.Path));
 
         if (!await _categoryRepository.ExistsAsync(request.CategoryId, cancellationToken))
             return BadRequest(ApiError.Validation("Category does not exist", instance: Request.Path));
 
-        if (await _productRepository.SKUExistsAsync(request.SKU, null, cancellationToken))
-            return Conflict(ApiError.Conflict($"SKU '{request.SKU}' is already in use", Request.Path));
-
+        var sku = await _codeGenerateService.GenerateAsync("SKU", cancellationToken);
         var partNumber = PartNumber.Create(request.PartNumber);
         var part = Product.Create(
-            request.Name, partNumber, request.SKU, request.CategoryId,
+            request.Name, partNumber, sku, request.CategoryId,
             request.BrandId, request.BaseUnitId, request.UnitId,
             request.Description, request.RichDescription,
             request.CostPrice, request.SellingPrice, request.MinimumStock,
             request.HasWarranty, request.WarrantyPeriodMonths, request.WarrantyType,
             request.WarrantyTerms, request.WarrantyCertificateTemplate,
             request.Barcode, request.Tags, request.ProductType, request.IsPerishable,
-            request.WeightKg, request.WidthCm, request.HeightCm, request.DepthCm, request.TaxCode);
+            request.WeightKg, request.WidthCm, request.HeightCm, request.DepthCm, request.TaxCode,
+            request.OemNumber);
 
         var currentUser = _currentUserService.GetCurrentUsername();
         part.CreatedBy = currentUser;
         part.ModifiedBy = currentUser;
 
-        await _codeGenerateService.SaveGenerateCodeAsync("SKU", cancellationToken);
         await _productRepository.AddAsync(part, cancellationToken);
 
         if (request.SellingPrice > 0)
@@ -279,8 +277,8 @@ public class ProductsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdatePartRequest request, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(request.Name) || string.IsNullOrWhiteSpace(request.SKU) || request.CategoryId == Guid.Empty)
-            return BadRequest(ApiError.Validation("Name, SKU, and CategoryId are required", instance: Request.Path));
+        if (string.IsNullOrWhiteSpace(request.Name) || request.CategoryId == Guid.Empty)
+            return BadRequest(ApiError.Validation("Name and CategoryId are required", instance: Request.Path));
 
         var part = await _productRepository.GetByIdAsync(id, cancellationToken);
         if (part is null)
@@ -289,21 +287,18 @@ public class ProductsController : ControllerBase
         if (!await _categoryRepository.ExistsAsync(request.CategoryId, cancellationToken))
             return BadRequest(ApiError.Validation("Category does not exist", instance: Request.Path));
 
-        if (await _productRepository.SKUExistsAsync(request.SKU, id, cancellationToken))
-            return Conflict(ApiError.Conflict($"SKU '{request.SKU}' is already in use", Request.Path));
-
         var oldSellingPrice = part.SellingPrice;
         var oldWarranty = (part.HasWarranty, part.WarrantyPeriodMonths, part.WarrantyType,
                            part.WarrantyTerms, part.WarrantyCertificateTemplate);
 
-        part.Update(request.Name, request.Description, request.SKU, request.CategoryId, request.BrandId,
+        part.Update(request.Name, request.Description, part.SKU, request.CategoryId, request.BrandId,
             request.BaseUnitId, request.UnitId,
             request.CostPrice, request.SellingPrice, request.MinimumStock, request.IsActive,
             request.HasWarranty, request.WarrantyPeriodMonths, request.WarrantyType,
             request.WarrantyTerms, request.WarrantyCertificateTemplate,
             request.Barcode, request.Tags, request.ProductType,
             request.IsPerishable, request.WeightKg, request.WidthCm, request.HeightCm, request.DepthCm,
-            request.TaxCode, request.RichDescription);
+            request.TaxCode, request.RichDescription, request.OemNumber);
         part.ModifiedBy = _currentUserService.GetCurrentUsername();
 
         await _productRepository.UpdateAsync(part, cancellationToken);
@@ -394,6 +389,7 @@ public class ProductsController : ControllerBase
             RichDescription = part.RichDescription,
             PartNumber = part.PartNumber.Value,
             SKU = part.SKU,
+            OemNumber = part.OemNumber,
             Barcode = part.Barcode,
             Tags = part.Tags,
             ProductType = part.ProductType,

@@ -107,7 +107,6 @@ public class ShipmentController(
             try
             {
                 await _dbContext.Shipments.AddAsync(shipment, cancellationToken);
-                await _codeGenerateService.SaveGenerateCodeAsync("SHP", cancellationToken);
                 await _dbContext.SaveChangesAsync(cancellationToken);
                 await tx.CommitAsync(cancellationToken);
             }

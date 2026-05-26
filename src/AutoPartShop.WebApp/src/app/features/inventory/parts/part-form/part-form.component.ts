@@ -166,7 +166,7 @@ export class PartFormComponent implements OnInit {
                 tap({
                     next: (code) => {
                         if (code) {
-                            this.partForm.patchValue({ partNumber: code, sku: code });
+                            this.partForm.patchValue({ partNumber: code });
                         }
                     },
                     error: (err) => console.error('Error generating code:', err)
@@ -216,7 +216,7 @@ export class PartFormComponent implements OnInit {
             description: part.description,
             richDescription: part.richDescription || '',
             partNumber: part.partNumber,
-            sku: part.sku,
+            oemNumber: part.oemNumber || null,
             barcode: part.barcode || '',
             categoryId: part.categoryId,
             brandId: part.brandId,
@@ -247,7 +247,7 @@ export class PartFormComponent implements OnInit {
             description: [''],
             richDescription: [''],
             partNumber: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(20), Validators.pattern(/^[A-Za-z]/)]],
-            sku: ['', [Validators.required, Validators.maxLength(50)]],
+            oemNumber: [null, [Validators.maxLength(100)]],
             categoryId: ['', [Validators.required]],
             brandId: [null],
             baseUnitId: [null],
@@ -575,7 +575,7 @@ export class PartFormComponent implements OnInit {
             description: v.description || '',
             richDescription: v.richDescription?.trim() || null,
             partNumber: v.partNumber.trim(),
-            sku: v.sku.trim(),
+            oemNumber: v.oemNumber?.trim() || null,
             barcode: v.barcode?.trim() || null,
             categoryId: v.categoryId,
             brandId: v.brandId || null,
@@ -631,7 +631,7 @@ export class PartFormComponent implements OnInit {
             name: v.name.trim(),
             description: v.description || '',
             richDescription: v.richDescription?.trim() || null,
-            sku: v.sku.trim(),
+            oemNumber: v.oemNumber?.trim() || null,
             barcode: v.barcode?.trim() || null,
             categoryId: v.categoryId,
             brandId: v.brandId || null,
@@ -732,7 +732,7 @@ export class PartFormComponent implements OnInit {
 
     private getFieldLabel(fieldName: string): string {
         const labels: Record<string, string> = {
-            name: 'Part Name', partNumber: 'Part Number', sku: 'SKU',
+            name: 'Part Name', partNumber: 'Part Number', oemNumber: 'OEM Number',
             categoryId: 'Category', costPrice: 'Cost Price',
             minimumStock: 'Minimum Stock', warrantyPeriodMonths: 'Warranty Period',
             warrantyType: 'Warranty Type'

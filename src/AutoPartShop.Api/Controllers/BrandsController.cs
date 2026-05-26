@@ -136,7 +136,6 @@ public class BrandsController : ControllerBase
         brand.CreatedBy = user;
         brand.ModifiedBy = user;
 
-        await _codeGenerateService.SaveGenerateCodeAsync("BRD", cancellationToken);
         await _brandRepository.AddAsync(brand, cancellationToken);
 
         return CreatedAtAction(nameof(GetById), new { id = brand.Id },

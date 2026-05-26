@@ -6,7 +6,6 @@ public class CreatePartRequest
     public string Description { get; set; } = string.Empty;       // Short summary (max 255 chars)
     public string? RichDescription { get; set; }                  // Full HTML/markdown for product pages
     public string PartNumber { get; set; } = string.Empty;
-    public string SKU { get; set; } = string.Empty;
     public Guid CategoryId { get; set; }
     public Guid? BrandId { get; set; }
     public Guid? BaseUnitId { get; set; }  // Base unit for stock/inventory tracking
@@ -20,6 +19,8 @@ public class CreatePartRequest
     public string? WarrantyType { get; set; }
     public string? WarrantyTerms { get; set; }
     public string? WarrantyCertificateTemplate { get; set; }
+
+    public string? OemNumber { get; set; }                     // Manufacturer OEM part number (optional)
 
     // Universal product fields
     public string? Barcode { get; set; }                      // UPC / EAN / QR

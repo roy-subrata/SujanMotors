@@ -15,7 +15,6 @@ public class WarehousesController(
     IWarehouseRepository _warehouseRepository,
     IWarehouseReadRepository _warehouseReadRepository,
     ICurrentUserService _currentUserService,
-    ICodeGenerateService _codeGenerateService,
     ILogger<WarehousesController> _logger
 ) : ControllerBase
 {
@@ -102,7 +101,6 @@ public class WarehousesController(
             var currentUser = _currentUserService.GetCurrentUsername();
             warehouse.CreatedBy = currentUser;
             warehouse.ModifiedBy = currentUser;
-            await _codeGenerateService.SaveGenerateCodeAsync("WH", cancellationToken);
             await _warehouseRepository.AddAsync(warehouse, cancellationToken);
 
             var created = await _warehouseReadRepository.GetByIdAsync(warehouse.Id, cancellationToken);
