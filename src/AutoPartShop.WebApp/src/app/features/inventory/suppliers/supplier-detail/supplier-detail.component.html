@@ -11,6 +11,12 @@
         <span class="header-title">Supplier Details</span>
       </div>
       <div class="header-actions">
+        <button pButton label="Payments" icon="pi pi-list" class="action-btn action-btn-secondary"
+          pTooltip="View payment history" tooltipPosition="bottom" (click)="viewPayments()"></button>
+        <button pButton label="Accounts" icon="pi pi-credit-card" class="action-btn action-btn-secondary"
+          pTooltip="Payment accounts" tooltipPosition="bottom" (click)="viewPaymentAccounts()"></button>
+        <button pButton label="Summary" icon="pi pi-file-check" class="action-btn action-btn-secondary"
+          pTooltip="Account summary & ledger" tooltipPosition="bottom" (click)="viewAccountSummary()"></button>
         <button pButton label="New Payment" icon="pi pi-wallet" class="action-btn action-btn-primary"
           (click)="recordPayment()"></button>
         <button pButton label="Edit" icon="pi pi-pencil" class="action-btn action-btn-secondary"
@@ -93,31 +99,4 @@
     </div>
   </div>
 
-  <!-- Quick Links Section -->
-  <div class="quick-links-section" *ngIf="supplier()">
-    <div class="quick-link-card" (click)="viewPayments()">
-      <div class="quick-link-icon ql-blue"><i class="pi pi-wallet"></i></div>
-      <div class="quick-link-content">
-        <span class="quick-link-title">View Payments</span>
-        <span class="quick-link-desc">Payment history & transactions</span>
-      </div>
-      <i class="pi pi-arrow-right quick-link-arrow"></i>
-    </div>
-    <div class="quick-link-card" (click)="viewPaymentAccounts()">
-      <div class="quick-link-icon ql-purple"><i class="pi pi-credit-card"></i></div>
-      <div class="quick-link-content">
-        <span class="quick-link-title">Payment Accounts</span>
-        <span class="quick-link-desc">Bank accounts & payment methods</span>
-      </div>
-      <i class="pi pi-arrow-right quick-link-arrow"></i>
-    </div>
-    <div class="quick-link-card" (click)="viewAccountSummary()">
-      <div class="quick-link-icon ql-green"><i class="pi pi-file-check"></i></div>
-      <div class="quick-link-content">
-        <span class="quick-link-title">Account Summary</span>
-        <span class="quick-link-desc">Ledger, balances & transaction history</span>
-      </div>
-      <i class="pi pi-arrow-right quick-link-arrow"></i>
-    </div>
-  </div>
 </div>

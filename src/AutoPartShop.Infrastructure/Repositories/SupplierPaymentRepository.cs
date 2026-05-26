@@ -142,6 +142,24 @@ public class SupplierPaymentRepository(AutoPartDbContext _db) : ISupplierPayment
             .Where(x => x.PaymentDate >= startDate && x.PaymentDate <= endDate && x.Status == "COMPLETED" && !x.Isdeleted)
             .SumAsync(x => x.Amount, cancellationToken);
 
+    public async Task<decimal> GetTotalCompletedPaymentsBySupplierAsync(Guid supplierId, CancellationToken cancellationToken = default)
+        => await _db.SupplierPayments
+            .Where(x => x.SupplierId == supplierId &&
+                        x.Status == "COMPLETED" &&
+                        x.PaymentMethod != "REFUND" &&
+                        (x.PaymentType == PaymentType.ADVANCE || x.SourceAdvancePaymentId == null) &&
+                        !x.Isdeleted)
+            .SumAsync(x => x.Amount, cancellationToken);
+
+    public async Task<decimal> GetAvailableAdvanceCreditBySupplierAsync(Guid supplierId, CancellationToken cancellationToken = default)
+        => await _db.SupplierPayments
+            .Where(x => x.SupplierId == supplierId &&
+                        x.PaymentType == PaymentType.ADVANCE &&
+                        x.Status == "COMPLETED" &&
+                        x.RemainingAmount > 0 &&
+                        !x.Isdeleted)
+            .SumAsync(x => x.RemainingAmount, cancellationToken);
+
     #endregion
 
     #region Pagination Methods

@@ -187,7 +187,7 @@
     <div class="pagination-section" *ngIf="totalCount > 0">
       <div class="pagination-info">
         Showing <strong>{{ first + 1 }}</strong> to
-        <strong>{{ Math.min(first + pageSize, totalCount) }}</strong>
+        <strong>{{ displayedEnd }}</strong>
         of <strong>{{ totalCount }}</strong> payments
       </div>
       <div class="pagination-controls">
@@ -202,11 +202,11 @@
           <button class="page-btn" [disabled]="first === 0" (click)="onPageChange({ first: first - pageSize, rows: pageSize })">
             <i class="pi pi-angle-left"></i>
           </button>
-          <span class="page-indicator">{{ pageNumber }} / {{ Math.ceil(totalCount / pageSize) }}</span>
+          <span class="page-indicator">{{ pageNumber }} / {{ totalPages }}</span>
           <button class="page-btn" [disabled]="first + pageSize >= totalCount" (click)="onPageChange({ first: first + pageSize, rows: pageSize })">
             <i class="pi pi-angle-right"></i>
           </button>
-          <button class="page-btn" [disabled]="first + pageSize >= totalCount" (click)="onPageChange({ first: (Math.ceil(totalCount / pageSize) - 1) * pageSize, rows: pageSize })">
+          <button class="page-btn" [disabled]="first + pageSize >= totalCount" (click)="onPageChange({ first: (totalPages - 1) * pageSize, rows: pageSize })">
             <i class="pi pi-angle-double-right"></i>
           </button>
         </div>
@@ -268,7 +268,7 @@
 
     <!-- Mobile Pagination -->
     <div *ngIf="!loading && supplierPayments.length > 0" class="mobile-pagination">
-      <span class="pagination-info-mobile">{{ first + 1 }}–{{ Math.min(first + pageSize, totalCount) }} of {{ totalCount }}</span>
+      <span class="pagination-info-mobile">{{ first + 1 }}–{{ displayedEnd }} of {{ totalCount }}</span>
       <div class="pagination-nav-mobile">
         <button class="page-btn" [disabled]="first === 0" (click)="onPageChange({ first: first - pageSize, rows: pageSize })">
           <i class="pi pi-chevron-left"></i>

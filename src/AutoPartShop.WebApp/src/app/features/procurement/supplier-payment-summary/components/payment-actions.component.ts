@@ -89,7 +89,7 @@ export class PaymentActionsComponent {
 
   viewAllPayments(): void {
     this.router.navigate(['/procurement/supplier-payments'], {
-      queryParams: { supplier: this.supplierId }
+      queryParams: { supplierId: this.supplierId }
     });
   }
 

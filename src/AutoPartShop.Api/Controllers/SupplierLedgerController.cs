@@ -1,5 +1,6 @@
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.LedgerDtos;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AutoPartShop.Api.Controllers;
@@ -10,6 +11,7 @@ namespace AutoPartShop.Api.Controllers;
 /// </summary>
 [Route("api/supplier-ledger")]
 [ApiController]
+[Authorize]
 [Produces("application/json")]
 public class SupplierLedgerController : ControllerBase
 {

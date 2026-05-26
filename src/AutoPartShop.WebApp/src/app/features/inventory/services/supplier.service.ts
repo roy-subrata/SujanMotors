@@ -70,7 +70,6 @@ export interface SupplierQuery {
     search: string;
     pageSize: number;
     pageNumber: number;
-    customerType?: string;
 }
 @Injectable({
   providedIn: 'root'

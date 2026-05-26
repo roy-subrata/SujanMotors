@@ -11,4 +11,5 @@ public interface IPurchaseReturnRepository : IBaseRepository<PurchaseReturn>
     Task<IEnumerable<PurchaseReturn>> GetPendingApprovalsAsync(CancellationToken cancellationToken = default);
     Task<(IEnumerable<PurchaseReturn> returns, int totalCount)> GetPagedAsync(int pageNumber, int pageSize, CancellationToken cancellationToken = default);
     Task<(IEnumerable<PurchaseReturn> returns, int totalCount)> SearchPagedAsync(string searchTerm, int pageNumber, int pageSize, CancellationToken cancellationToken = default);
+    Task<decimal> GetTotalSettledRefundsBySupplierAsync(Guid supplierId, CancellationToken cancellationToken = default);
 }

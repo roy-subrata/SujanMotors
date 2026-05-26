@@ -58,7 +58,6 @@ export class SupplierPaymentListComponent implements OnInit {
     sortOrder: number | null = null;
     pageSizeOptions = [10, 25, 50, 100];
     pageSizeSelectOptions = this.pageSizeOptions.map((size) => ({ label: size.toString(), value: size }));
-    Math = Math;
     supplierFilter: string | null = null;
     supplierFilterName: string = '';
 
@@ -517,6 +516,14 @@ export class SupplierPaymentListComponent implements OnInit {
             summary: this.i18n.t('common.messages.success'),
             detail: this.i18n.t('supplierPayments.messages.exportJSONSuccess')
         });
+    }
+
+    get totalPages(): number {
+        return Math.ceil(this.totalCount / this.pageSize);
+    }
+
+    get displayedEnd(): number {
+        return Math.min(this.first + this.pageSize, this.totalCount);
     }
 
     formatCurrency(value: number): string {

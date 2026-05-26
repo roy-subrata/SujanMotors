@@ -80,7 +80,8 @@
       "PowerShell(Set-Location \"d:\\\\AI\\\\SujanMotors\\\\src\\\\AutoPartShop.WebApp\"; npx ng build 2>&1 | Where-Object { $_ -match \"ERROR|error TS|\\\\w+\\\\.ts:\\\\d+\" } | Select-Object -First 60)",
       "Bash(Get-ChildItem *)",
       "PowerShell(Get-ChildItem -Path \"D:\\\\AI\\\\SujanMotors\" | Where-Object { $_.PSIsContainer } | Select-Object Name)",
-      "PowerShell(Get-ChildItem -Path \"D:\\\\AI\\\\SujanMotors\\\\src\" | Where-Object { $_.PSIsContainer } | Select-Object Name)"
+      "PowerShell(Get-ChildItem -Path \"D:\\\\AI\\\\SujanMotors\\\\src\" | Where-Object { $_.PSIsContainer } | Select-Object Name)",
+      "Bash(git commit *)"
     ],
     "deny": [],
     "ask": []

@@ -29,7 +29,7 @@ export interface MarkPaymentAsRegularRequest {
     description: string;
 }
 export interface UpdateSupplierPaymentRequest {
-    status: string;
+    status?: string;
     referenceNumber: string;
     authorizationCode: string;
     notes: string;
@@ -174,7 +174,7 @@ export interface SupplierPaymentQuery {
 })
 export class SupplierPaymentService {
     private readonly http = inject(HttpClient);
-    private readonly apiUrl = `${environment.apiUrl}/supplier-payment`;
+    private readonly apiUrl = `${environment.apiUrl}/supplier-payments`;
 
     /**
      * Get all supplier payments
@@ -237,7 +237,7 @@ export class SupplierPaymentService {
      * Get payments by status
      */
     getPaymentsByStatus(status: string): Observable<SupplierPaymentResponse[]> {
-        return this.http.get<SupplierPaymentResponse[]>(`${this.apiUrl}/status/${status}`);
+        return this.http.get<SupplierPaymentResponse[]>(`${this.apiUrl}/by-status/${status}`);
     }
 
     /**

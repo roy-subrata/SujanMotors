@@ -169,4 +169,11 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
 
         return (items, totalCount);
     }
+
+    public async Task<decimal> GetTotalSettledRefundsBySupplierAsync(Guid supplierId, CancellationToken cancellationToken = default)
+        => await _dbContext.PurchaseReturns
+            .Where(x => x.SupplierId == supplierId &&
+                        x.SettlementStatus == "SETTLED" &&
+                        !x.Isdeleted)
+            .SumAsync(x => x.SettledAmount, cancellationToken);
 }

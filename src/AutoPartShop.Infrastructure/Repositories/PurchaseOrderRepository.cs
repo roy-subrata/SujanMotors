@@ -133,5 +133,14 @@ public class PurchaseOrderRepository(AutoPartDbContext _db) : IPurchaseOrderRepo
         return (paged, all.Count());
     }
     public async Task<(IEnumerable<PurchaseOrder> orders, int totalCount)> SearchPagedAsync(string searchTerm, int pageNumber, int pageSize, CancellationToken cancellationToken = default) => await GetPagedAsync(pageNumber, pageSize, cancellationToken);
+
+    public async Task<decimal> GetTotalPurchaseAmountBySupplierAsync(Guid supplierId, CancellationToken cancellationToken = default)
+        => await _db.PurchaseOrders
+            .Where(x => x.SupplierId == supplierId &&
+                        x.Status != "DRAFT" &&
+                        x.Status != "SUBMITTED" &&
+                        x.Status != "CANCELLED" &&
+                        !x.Isdeleted)
+            .SumAsync(x => x.TotalAmount, cancellationToken);
 }
 
