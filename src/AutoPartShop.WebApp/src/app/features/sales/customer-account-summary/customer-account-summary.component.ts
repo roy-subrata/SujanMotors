@@ -9,8 +9,9 @@ import { DatePickerModule } from 'primeng/datepicker';
 import { TooltipModule } from 'primeng/tooltip';
 import { PaginatorModule, PaginatorState } from 'primeng/paginator';
 import { SkeletonModule } from 'primeng/skeleton';
-import { Subject, takeUntil } from 'rxjs';
-import { SmAutocompleteComponent, AutocompleteDataSource } from '../../../shared/components/sm-autocomplete/sm-autocomplete.component';
+import { Observable, Subject, takeUntil } from 'rxjs';
+import { map } from 'rxjs/operators';
+import { LazyAutocompleteComponent, LazyRequest, LazyResponse } from '../../../shared/components/lazy-autocomplete/lazy-autocomplete.component';
 import { CustomerService, CustomerResponse } from '../services/customer.service';
 import {
     CustomerAccountSummaryService,
@@ -33,7 +34,7 @@ import { InvoicePdfService } from '../services/invoice-pdf.service';
         TooltipModule,
         PaginatorModule,
         SkeletonModule,
-        SmAutocompleteComponent
+        LazyAutocompleteComponent
     ],
     providers: [MessageService],
     templateUrl: './customer-account-summary.component.html',
@@ -71,18 +72,12 @@ export class CustomerAccountSummaryComponent implements OnInit, OnDestroy {
     // Company config
     companyConfig = this.invoicePdfService.getCompanyConfig();
 
-    // Customer autocomplete data source
-    customerDataSource: AutocompleteDataSource<CustomerResponse> = {
-        fetchData: (search, pageNumber, pageSize) => {
-            return this.customerService.getCustomers({
-                search,
-                pageNumber,
-                pageSize
-            });
-        },
-        displayField: (item) => `${item.firstName} ${item.lastName}`,
-        subtitleField: (item) => `${item.customerCode} | ${item.phone}`
-    };
+    customerFetchFn = (req: LazyRequest): Observable<LazyResponse<CustomerResponse>> =>
+        this.customerService.getCustomers({
+            search: req.search,
+            pageNumber: req.pageNumber,
+            pageSize: req.pageSize
+        }).pipe(map(res => ({ items: res.data, totalCount: res.pagination.totalCount })));
 
     ngOnInit(): void {}
 

@@ -53,6 +53,10 @@ export class LazyAutocompleteComponent<T = any> implements ControlValueAccessor,
     @Input() emptyMessage = 'No results found';
     @Input() loadingMessage = 'Loading...';
 
+    get useVirtualScroll(): boolean {
+        const maxVisible = Math.floor(parseInt(this.scrollHeight, 10) / this.itemSize);
+        return this.suggestions.length > maxVisible;
+    }
 
     /* ================= OUTPUTS ================= */
     @Output() onItemSelect = new EventEmitter<T>();

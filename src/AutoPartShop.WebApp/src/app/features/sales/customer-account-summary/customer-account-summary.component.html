@@ -21,12 +21,13 @@
     <div class="as-filter-bar">
         <div class="filter-field customer-field">
             <label class="filter-label">Customer</label>
-            <sm-autocomplete
-                [dataSource]="customerDataSource"
+            <app-lazy-autocomplete
+                [fetchFn]="customerFetchFn"
+                optionLabel="fullName"
                 placeholder="Search customer..."
-                (itemSelected)="onCustomerSelected($event)"
-                (cleared)="onCustomerCleared()">
-            </sm-autocomplete>
+                (onItemSelect)="onCustomerSelected($event)"
+                (onClearEvent)="onCustomerCleared()">
+            </app-lazy-autocomplete>
         </div>
         <div class="filter-field date-field">
             <label class="filter-label">From</label>
