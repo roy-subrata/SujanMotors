@@ -1087,6 +1087,10 @@ public class SalesOrderController : ControllerBase
         var shopPhone   = await Setting("SHOP_PHONE");
         var shopEmail   = await Setting("SHOP_EMAIL");
         var shopTaxNo   = await Setting("SHOP_TAX_NUMBER");
+        var shopLogoUrl = await Setting("SHOP_LOGO_URL");
+        var shopTagline = await Setting("SHOP_TAGLINE");
+        var footerRaw   = await Setting("INVOICE_FOOTER_TEXT");
+        var footerText  = string.IsNullOrWhiteSpace(footerRaw) ? "Thank you for your business!" : footerRaw;
 
         var so = invoice.SalesOrder;
         var lines = so?.LineItems.OrderBy(l => l.LineNumber).Select(l => new
@@ -1110,11 +1114,14 @@ public class SalesOrderController : ControllerBase
         {
             shop = new
             {
-                name    = string.IsNullOrWhiteSpace(shopName)    ? "SujanMotors Auto Parts" : shopName,
-                address = string.IsNullOrWhiteSpace(shopAddress) ? string.Empty             : shopAddress,
-                phone   = string.IsNullOrWhiteSpace(shopPhone)   ? string.Empty             : shopPhone,
-                email   = string.IsNullOrWhiteSpace(shopEmail)   ? string.Empty             : shopEmail,
-                taxNo   = string.IsNullOrWhiteSpace(shopTaxNo)   ? string.Empty             : shopTaxNo
+                name       = string.IsNullOrWhiteSpace(shopName)    ? "SujanMotors Auto Parts" : shopName,
+                address    = shopAddress,
+                phone      = shopPhone,
+                email      = shopEmail,
+                taxNo      = shopTaxNo,
+                logoUrl    = shopLogoUrl,
+                tagline    = shopTagline,
+                footerText = footerText
             },
             invoice = MapToInvoiceResponse(invoice),
             lines,

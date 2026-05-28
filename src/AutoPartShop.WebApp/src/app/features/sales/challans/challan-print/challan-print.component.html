@@ -24,8 +24,15 @@
   <!-- Header -->
   <div class="doc-header">
     <div class="shop-info">
-      <div class="shop-name">SujanMotors Auto Parts</div>
-      <div class="shop-sub">Delivery Challan</div>
+      <img *ngIf="shop()?.logoUrl && !shop()?.logoUrl?.startsWith('assets')"
+           [src]="shop()?.logoUrl" class="shop-logo" alt="logo">
+      <div class="shop-name">{{ shop()?.name || 'Your Company' }}</div>
+      <div class="shop-sub" *ngIf="shop()?.tagline">{{ shop()?.tagline }}</div>
+      <div class="shop-sub" *ngIf="!shop()?.tagline">Delivery Challan</div>
+      <div class="shop-detail" *ngIf="shop()?.address">{{ shop()?.address }}</div>
+      <div class="shop-detail" *ngIf="shop()?.phone">{{ shop()?.phone }}</div>
+      <div class="shop-detail" *ngIf="shop()?.email">{{ shop()?.email }}</div>
+      <div class="shop-detail" *ngIf="shop()?.taxNo">Tax Reg: {{ shop()?.taxNo }}</div>
     </div>
     <div class="doc-meta">
       <div class="doc-type">DELIVERY CHALLAN</div>
@@ -116,7 +123,7 @@
   </div>
 
   <div class="doc-footer">
-    <p>This is a computer-generated delivery challan. Goods once dispatched will not be accepted back without prior notice.</p>
+    <p>{{ shop()?.challanFooterText || 'Goods once dispatched will not be accepted back without prior notice.' }}</p>
   </div>
 
 </div>

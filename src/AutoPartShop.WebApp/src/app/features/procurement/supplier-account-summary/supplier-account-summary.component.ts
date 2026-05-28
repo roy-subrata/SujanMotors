@@ -76,8 +76,8 @@ export class SupplierAccountSummaryComponent implements OnInit, OnDestroy {
     pageSize = 20;
     first = 0;
 
-    // Company config
-    companyConfig = this.invoicePdfService.getCompanyConfig();
+    // Getter so the template always reads the latest DB-sourced values.
+    get companyConfig() { return this.invoicePdfService.getCompanyConfig(); }
     today = new Date().toISOString();
 
     fetchSuppliersLazy = (req: LazyRequest) =>

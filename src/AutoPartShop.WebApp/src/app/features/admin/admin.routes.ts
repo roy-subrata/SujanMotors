@@ -3,6 +3,12 @@ import { roleGuard } from '../../shared/guards/role.guard';
 
 export const adminRoutes: Routes = [
   {
+    path: 'company-profile',
+    loadComponent: () => import('./company-profile/company-profile.component').then(m => m.CompanyProfileComponent),
+    canActivate: [roleGuard],
+    data: { roles: ['Admin'] }
+  },
+  {
     path: 'currencies',
     loadComponent: () => import('./currencies/currencies-list.component').then(m => m.CurrenciesListComponent),
     canActivate: [roleGuard],

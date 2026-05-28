@@ -29,14 +29,33 @@
 }
 
 /* Header */
-.doc-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
-.shop-name { font-size: 22px; font-weight: 800; color: #1e293b; }
-.shop-sub  { font-size: 12px; color: #64748b; margin-top: 2px; }
-.doc-type  { font-size: 20px; font-weight: 800; color: #1e3a5f; margin-bottom: 8px; letter-spacing: -0.3px; text-align: right; }
-.meta-table { border-collapse: collapse; margin-left: auto; }
-.meta-table td { padding: 2px 6px; font-size: 12.5px; }
-.meta-table td:first-child { color: #64748b; text-align: right; padding-right: 10px; }
-.meta-table td:last-child  { color: #1e293b; font-size: 13px; }
+.doc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+}
+
+.shop-info {
+  flex: 3 1 0;
+  min-width: 0;
+}
+
+.shop-logo   { max-height: 48px; max-width: 140px; object-fit: contain; margin-bottom: 6px; display: block; }
+.shop-name   { font-size: 18px; font-weight: 800; color: #1e293b; line-height: 1.25; margin-bottom: 2px; }
+.shop-sub    { font-size: 11px; color: #64748b; margin-top: 2px; }
+.shop-detail { font-size: 11px; color: #64748b; line-height: 1.55; }
+
+.doc-meta {
+  flex: 2 0 auto;
+  text-align: right;
+}
+
+.doc-type   { font-size: 20px; font-weight: 800; color: #1e3a5f; margin-bottom: 10px; letter-spacing: -0.3px; }
+.meta-table { border-collapse: collapse; width: 100%; }
+.meta-table td { padding: 2px 0; font-size: 11.5px; vertical-align: middle; }
+.meta-table td:first-child { color: #94a3b8; font-weight: 500; text-align: left; white-space: nowrap; padding-right: 14px; }
+.meta-table td:last-child  { color: #1e293b; font-weight: 600; text-align: right; }
 .status-pill { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
 .status-pill[data-status="DRAFT"]     { background: #f1f5f9; color: #64748b; }
 .status-pill[data-status="ISSUED"]    { background: #dbeafe; color: #1d4ed8; }
@@ -78,7 +97,32 @@
 @media print {
   .no-print { display: none !important; }
   body { margin: 0; background: #fff; }
-  .document { max-width: 100%; margin: 0; padding: 16px 20px; border: none; border-radius: 0; box-shadow: none; font-size: 12px; }
-  .items-table th { background: #f0f0f0 !important; -webkit-print-color-adjust: exact; }
-  @page { margin: 15mm; size: A4; }
+
+  .document {
+    max-width: 100%; margin: 0; padding: 14px 18px;
+    border: none; border-radius: 0; box-shadow: none; font-size: 11px;
+  }
+
+  /* Re-assert header flex for print engines */
+  .doc-header {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: flex-start !important;
+    gap: 24px !important;
+    page-break-inside: avoid;
+  }
+  .shop-info { flex: 3 1 0 !important; }
+  .doc-meta  { flex: 2 0 auto !important; text-align: right !important; }
+
+  .doc-type  { font-size: 18px !important; }
+  .shop-name { font-size: 16px !important; }
+
+  .items-table th {
+    background: #f0f0f0 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .status-pill { border: 1px solid #ccc !important; }
+
+  @page { margin: 12mm 14mm; size: A4 portrait; }
 }

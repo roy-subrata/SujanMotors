@@ -833,26 +833,48 @@ public class DatabaseSeeder
 
     private static async Task SeedBusinessSettingsAsync(AutoPartDbContext context, ILogger logger)
     {
-        var keys = new[] { "SHOP_NAME", "SHOP_ADDRESS", "SHOP_PHONE", "SHOP_EMAIL", "SHOP_TAX_NUMBER" };
-        if (await context.ApplicationSettings.AnyAsync(s => keys.Contains(s.Key)))
+        // Upsert pattern — only inserts keys that don't already exist,
+        // so new keys are added to existing installations without touching live values.
+        var defaults = new (string Key, string Value, string Description)[]
         {
-            logger.LogInformation("Business settings already exist, skipping seed");
-            return;
-        }
-
-        var settings = new[]
-        {
-            ApplicationSettings.Create("SHOP_NAME",       "SujanMotors Auto Parts", "STRING", "BUSINESS", "Business name on invoices",       isSystemSetting: true),
-            ApplicationSettings.Create("SHOP_ADDRESS",    "Dhaka, Bangladesh",       "STRING", "BUSINESS", "Business address on invoices",    isSystemSetting: true),
-            ApplicationSettings.Create("SHOP_PHONE",      "+880 1XXXXXXXXX",         "STRING", "BUSINESS", "Contact phone",                   isSystemSetting: true),
-            ApplicationSettings.Create("SHOP_EMAIL",      "info@sujanmotors.com",    "STRING", "BUSINESS", "Business email on invoices",      isSystemSetting: true),
-            ApplicationSettings.Create("SHOP_TAX_NUMBER", "",                        "STRING", "BUSINESS", "Tax/VAT registration number",     isSystemSetting: true),
+            ("SHOP_NAME",           "SujanMotors Auto Parts",   "Business name printed on all documents"),
+            ("SHOP_ADDRESS",        "Dhaka, Bangladesh",         "Business address printed on all documents"),
+            ("SHOP_PHONE",          "+880 1XXXXXXXXX",           "Contact phone printed on documents"),
+            ("SHOP_EMAIL",          "info@sujanmotors.com",      "Business email printed on documents"),
+            ("SHOP_TAX_NUMBER",     "",                          "Tax / VAT registration number"),
+            ("SHOP_LOGO_URL",       "assets/logo.png",           "Logo URL (relative path or https:// URL)"),
+            ("SHOP_TAGLINE",        "",                          "Optional tagline shown below the company name"),
+            ("INVOICE_FOOTER_TEXT", "Thank you for your business!",
+                                                                 "Footer message on every invoice"),
+            ("CHALLAN_FOOTER_TEXT", "Goods once dispatched will not be accepted back without prior notice.",
+                                                                 "Footer message on every delivery challan"),
         };
 
-        foreach (var s in settings) { s.CreatedBy = "System"; s.ModifiedBy = "System"; }
-        context.ApplicationSettings.AddRange(settings);
-        await context.SaveChangesAsync();
-        logger.LogInformation("Seeded business settings");
+        var existingKeys = await context.ApplicationSettings
+            .Where(s => !s.Isdeleted)
+            .Select(s => s.Key)
+            .ToListAsync();
+
+        int added = 0;
+        foreach (var (key, value, desc) in defaults)
+        {
+            if (existingKeys.Contains(key)) continue;
+            var s = ApplicationSettings.Create(key, value, "STRING", "BUSINESS", desc, isSystemSetting: true);
+            s.CreatedBy = "System";
+            s.ModifiedBy = "System";
+            context.ApplicationSettings.Add(s);
+            added++;
+        }
+
+        if (added > 0)
+        {
+            await context.SaveChangesAsync();
+            logger.LogInformation("Seeded {Count} business setting(s)", added);
+        }
+        else
+        {
+            logger.LogInformation("Business settings already up to date");
+        }
     }
 
 }

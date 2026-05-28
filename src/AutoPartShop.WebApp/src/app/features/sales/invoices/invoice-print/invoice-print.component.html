@@ -29,7 +29,10 @@
   <!-- ── Document header ──────────────────────────────────────────── -->
   <div class="doc-header">
     <div class="shop-info">
+      <img *ngIf="d.shop.logoUrl && !d.shop.logoUrl.startsWith('assets')"
+           [src]="d.shop.logoUrl" class="shop-logo" alt="logo">
       <div class="shop-name">{{ d.shop.name }}</div>
+      <div class="shop-detail shop-tagline" *ngIf="d.shop.tagline">{{ d.shop.tagline }}</div>
       <div class="shop-detail" *ngIf="d.shop.address">{{ d.shop.address }}</div>
       <div class="shop-detail" *ngIf="d.shop.phone">Tel: {{ d.shop.phone }}</div>
       <div class="shop-detail" *ngIf="d.shop.email">{{ d.shop.email }}</div>
@@ -187,7 +190,7 @@
   <!-- ── Footer ───────────────────────────────────────────────────── -->
   <div class="doc-footer">
     <div class="footer-note" *ngIf="d.invoice.notes">{{ d.invoice.notes }}</div>
-    <div class="footer-thanks">Thank you for your business!</div>
+    <div class="footer-thanks">{{ d.shop.footerText || 'Thank you for your business!' }}</div>
   </div>
 
 </div>

@@ -123,7 +123,16 @@ export interface InvoicePrintLineItem {
 }
 
 export interface InvoicePrintData {
-  shop: { name: string; address: string; phone: string; email: string; taxNo: string; };
+  shop: {
+    name: string;
+    address: string;
+    phone: string;
+    email: string;
+    taxNo: string;
+    logoUrl?: string;
+    tagline?: string;
+    footerText?: string;
+  };
   invoice: InvoiceResponse;
   lines: InvoicePrintLineItem[];
   customer: { name: string; phone: string; email: string; address: string; };
