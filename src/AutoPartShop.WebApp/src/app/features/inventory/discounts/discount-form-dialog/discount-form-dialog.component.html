@@ -112,9 +112,12 @@
         (onItemSelect)="onPartSelected($event)"
         (onClearEvent)="onPartCleared()">
         <ng-template let-part>
-          <div class="autocomplete-item">
-            <span class="autocomplete-item-name">{{ part.name }}</span>
-            <span class="autocomplete-item-meta">{{ part.sku }} · {{ part.categoryName }}</span>
+          <div class="part-row"
+               [pTooltip]="part.partNumber + (part.brandName ? '  ·  ' + part.brandName : '') + '  ·  ' + part.categoryName"
+               tooltipPosition="right" [showDelay]="300">
+            <span class="part-row-name">{{ part.displayName || part.name }}</span>
+            <span class="part-row-sep">·</span>
+            <span class="part-row-sku">{{ part.variantSKU || part.sku }}</span>
           </div>
         </ng-template>
       </app-lazy-autocomplete>

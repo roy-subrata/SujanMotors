@@ -39,7 +39,7 @@ public class ProductVariantController : ControllerBase
             return NotFound(ApiError.NotFound($"Product '{productId}' not found", Request.Path));
 
         var variants = await _db.ProductVariants
-            .Where(v => v.PartId == productId)
+            .Where(v => v.PartId == productId && !v.Isdeleted)
             .Include(v => v.Attributes).ThenInclude(av => av.Attribute)
             .Include(v => v.Attributes).ThenInclude(av => av.Option)
             .OrderBy(v => v.Name)
@@ -54,7 +54,7 @@ public class ProductVariantController : ControllerBase
     public async Task<IActionResult> GetById(Guid productId, Guid id, CancellationToken ct)
     {
         var variant = await _db.ProductVariants
-            .Where(v => v.PartId == productId && v.Id == id)
+            .Where(v => v.PartId == productId && v.Id == id && !v.Isdeleted)
             .Include(v => v.Attributes).ThenInclude(av => av.Attribute)
             .Include(v => v.Attributes).ThenInclude(av => av.Option)
             .AsNoTracking()
@@ -74,10 +74,10 @@ public class ProductVariantController : ControllerBase
             return NotFound(ApiError.NotFound($"Product '{productId}' not found", Request.Path));
 
         if (!string.IsNullOrWhiteSpace(req.SKU) &&
-            await _db.ProductVariants.AnyAsync(v => v.SKU == req.SKU.Trim().ToUpperInvariant(), ct))
+            await _db.ProductVariants.AnyAsync(v => !v.Isdeleted && v.SKU == req.SKU.Trim().ToUpperInvariant(), ct))
             return Conflict(ApiError.Conflict($"Variant SKU '{req.SKU}' already exists", Request.Path));
 
-        if (await _db.ProductVariants.AnyAsync(v => v.PartId == productId && v.Code == req.Code.Trim().ToUpperInvariant(), ct))
+        if (await _db.ProductVariants.AnyAsync(v => !v.Isdeleted && v.PartId == productId && v.Code == req.Code.Trim().ToUpperInvariant(), ct))
             return Conflict(ApiError.Conflict($"Variant code '{req.Code}' already exists for this product", Request.Path));
 
         var variant = ProductVariant.Create(
@@ -114,16 +114,16 @@ public class ProductVariantController : ControllerBase
     {
         var variant = await _db.ProductVariants
             .Include(v => v.Attributes)
-            .FirstOrDefaultAsync(v => v.PartId == productId && v.Id == id, ct);
+            .FirstOrDefaultAsync(v => v.PartId == productId && v.Id == id && !v.Isdeleted, ct);
 
         if (variant is null)
             return NotFound(ApiError.NotFound($"Variant '{id}' not found on product '{productId}'", Request.Path));
 
         if (!string.IsNullOrWhiteSpace(req.SKU) &&
-            await _db.ProductVariants.AnyAsync(v => v.SKU == req.SKU.Trim().ToUpperInvariant() && v.Id != id, ct))
+            await _db.ProductVariants.AnyAsync(v => !v.Isdeleted && v.SKU == req.SKU.Trim().ToUpperInvariant() && v.Id != id, ct))
             return Conflict(ApiError.Conflict($"Variant SKU '{req.SKU}' is used by another variant", Request.Path));
 
-        if (await _db.ProductVariants.AnyAsync(v => v.PartId == productId && v.Code == req.Code.Trim().ToUpperInvariant() && v.Id != id, ct))
+        if (await _db.ProductVariants.AnyAsync(v => !v.Isdeleted && v.PartId == productId && v.Code == req.Code.Trim().ToUpperInvariant() && v.Id != id, ct))
             return Conflict(ApiError.Conflict($"Variant code '{req.Code}' is used by another variant of this product", Request.Path));
 
         var oldSellingPrice = variant.SellingPrice;
@@ -157,12 +157,13 @@ public class ProductVariantController : ControllerBase
     public async Task<IActionResult> Delete(Guid productId, Guid id, CancellationToken ct)
     {
         var variant = await _db.ProductVariants
-            .FirstOrDefaultAsync(v => v.PartId == productId && v.Id == id, ct);
+            .FirstOrDefaultAsync(v => v.PartId == productId && v.Id == id && !v.Isdeleted, ct);
 
         if (variant is null)
             return NotFound(ApiError.NotFound($"Variant '{id}' not found on product '{productId}'", Request.Path));
 
-        _db.ProductVariants.Remove(variant);
+        variant.Isdeleted = true;
+        variant.ModifiedBy = _currentUserService.GetCurrentUsername();
         await _db.SaveChangesAsync(ct);
         return NoContent();
     }
@@ -203,7 +204,7 @@ public class ProductVariantController : ControllerBase
     private static object MapVariant(ProductVariant v) => new
     {
         v.Id,
-        productId = v.PartId,
+        partId = v.PartId,
         v.Name,
         v.Code,
         v.SKU,

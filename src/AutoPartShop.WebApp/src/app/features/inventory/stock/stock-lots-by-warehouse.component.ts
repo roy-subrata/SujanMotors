@@ -71,7 +71,8 @@ export class StockLotsByWarehouseComponent implements OnInit {
       search: req.search || '',
       pageNumber: req.pageNumber,
       pageSize: req.pageSize,
-      isActive: true
+      isActive: true,
+      flattenVariants: true
     }).pipe(
       map((res) => ({
         items: res.data ?? [],

@@ -10,6 +10,7 @@ import { SelectModule } from 'primeng/select';
 import { DatePickerModule } from 'primeng/datepicker';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { ToastModule } from 'primeng/toast';
+import { TooltipModule } from 'primeng/tooltip';
 import { MessageService } from 'primeng/api';
 import { map } from 'rxjs/operators';
 import { of } from 'rxjs';
@@ -31,7 +32,7 @@ import { LazyAutocompleteComponent, LazyRequest, LazyResponse } from '@/shared/c
     CommonModule, FormsModule, ReactiveFormsModule,
     DialogModule, ButtonModule, InputTextModule, TextareaModule,
     InputNumberModule, SelectModule, DatePickerModule, ToggleSwitchModule,
-    ToastModule, LazyAutocompleteComponent
+    ToastModule, TooltipModule, LazyAutocompleteComponent
   ],
   templateUrl: './discount-form-dialog.component.html',
   styleUrls: ['./discount-form-dialog.component.css'],
@@ -73,7 +74,8 @@ export class DiscountFormDialogComponent implements OnChanges {
       search: req.search,
       pageNumber: req.pageNumber,
       pageSize: req.pageSize,
-      isActive: true
+      isActive: true,
+      flattenVariants: true
     }).pipe(
       map(res => ({
         items: res.data,

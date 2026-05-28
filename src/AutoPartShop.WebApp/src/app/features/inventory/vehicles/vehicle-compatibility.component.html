@@ -28,26 +28,23 @@
         <!-- Part Autocomplete -->
         <div class="form-field">
           <label for="part" class="required">Part</label>
-          <p-autoComplete
-            inputId="part"
+          <app-lazy-autocomplete
             [(ngModel)]="selectedPart"
             [ngModelOptions]="{standalone: true}"
-            [suggestions]="filteredParts"
-            (completeMethod)="filterParts($event)"
-            (onSelect)="onPartSelected($event)"
-            [dropdown]="true"
-            field="name"
-            optionLabel="name"
+            [fetchFn]="fetchPartsLazy"
+            optionLabel="displayName"
             placeholder="Search by part name or SKU"
             [class.ng-invalid]="hasError('part')"
-            [class.ng-dirty]="hasError('part')">
-            <ng-template let-part pTemplate="item">
+            [class.ng-dirty]="hasError('part')"
+            (onItemSelect)="onPartSelected($event)"
+            (onClearEvent)="onPartCleared()">
+            <ng-template let-part>
               <div class="autocomplete-item">
-                <div class="part-name">{{ part.name }}</div>
-                <div class="part-sku">SKU: {{ part.sku }}</div>
+                <div class="part-name">{{ part.displayName || part.name }}</div>
+                <div class="part-sku">SKU: {{ part.variantSKU || part.sku }}</div>
               </div>
             </ng-template>
-          </p-autoComplete>
+          </app-lazy-autocomplete>
           <small class="p-error" *ngIf="hasError('part')">
             Part is required
           </small>

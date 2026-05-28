@@ -2,31 +2,15 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
-import { SupplierService, SupplierResponse } from '@/features/inventory/services/supplier.service';
 import { CustomerService, CustomerResponse } from '@/features/sales/services/customer.service';
-import { PartService, PartResponse } from '@/features/inventory/services/part.service';
 import { AutocompleteDataSource, PaginatedData } from './sm-autocomplete.component';
 
-/**
- * Factory service for creating autocomplete data sources
- * This service provides pre-configured data sources for common entities
- */
 @Injectable({
     providedIn: 'root'
 })
 export class AutocompleteDataSourceFactory {
-    private readonly supplierService = inject(SupplierService);
     private readonly customerService = inject(CustomerService);
-    private readonly partService = inject(PartService);
 
-    /**
-     * Create a data source for Supplier autocomplete
-     */
- 
-
-    /**
-     * Create a data source for Customer autocomplete
-     */
     createCustomerDataSource(): AutocompleteDataSource<CustomerResponse> {
         return {
             fetchData: (search: string, pageNumber: number, pageSize: number): Observable<PaginatedData<CustomerResponse>> => {
@@ -47,28 +31,6 @@ export class AutocompleteDataSourceFactory {
         };
     }
 
-    /**
-     * Create a data source for Part/Product autocomplete
-     */
-    // createPartDataSource(): AutocompleteDataSource<PartResponse> {
-    //     return {
-    //         fetchData: (search: string, pageNumber: number, pageSize: number): Observable<PaginatedData<PartResponse>> => {
-    //             return this.partService.getParts({
-    //                 search,
-    //                 pageNumber,
-    //                 pageSize
-    //             }).pipe(
-    //                 map(response => ({
-    //                     data: response.data as PartResponse[],
-    //                     pagination: response.pagination
-    //                 }))
-    //             );
-    //         },
-    //         displayField: (part: PartResponse) => part.name,
-    //         subtitleField: (part: PartResponse) => `${part.partNumber} - Stock: ${part.stockQuantity}`,
-    //         valueField: (part: PartResponse) => part.id
-    //     };
-    // }
 }
 
 /**

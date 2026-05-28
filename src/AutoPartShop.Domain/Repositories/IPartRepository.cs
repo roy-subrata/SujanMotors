@@ -12,6 +12,7 @@ public interface IProductRepository : IBaseRepository<Product>
     Task<IEnumerable<Product>> GetByCategoryAsync(Guid categoryId, CancellationToken cancellationToken = default);
     Task<bool> HasActiveVariantsAsync(Guid partId, CancellationToken cancellationToken = default);
     Task<Product?> GetByBarcodeOrPartNumberAsync(string code, CancellationToken cancellationToken = default);
+    Task<(Product Product, ProductVariant Variant)?> GetByVariantCodeAsync(string code, CancellationToken cancellationToken = default);
 }
 
 

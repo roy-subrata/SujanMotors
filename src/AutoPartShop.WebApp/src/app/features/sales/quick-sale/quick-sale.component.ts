@@ -96,11 +96,9 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
   showSummaryDialog = false;
 
   // Parts search
-  parts = signal<PublicPartResponse[]>([]);
-  filteredParts = signal<PublicPartResponse[]>([]);
+  parts = signal<PublicPartResponse[]>([]); // lookup cache for pricing/unit validation
   selectedPart = signal<PublicPartResponse | null>(null);
   selectedPartModel: PublicPartResponse | null = null; // For ngModel binding
-  searchingParts = signal(false);
   fetchPartsLazy = (req: LazyRequest) =>
     this.partService.getParts({
       search: req.search || '',
@@ -383,46 +381,20 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
   loadInitialData(): void {
     this.loading.set(true);
     let loadedCount = 0;
-    const totalLoads = 3; // Parts, VAT Config, Units
+    const totalLoads = 2; // VAT Config, Units
 
     const checkComplete = () => {
       loadedCount++;
       if (loadedCount === totalLoads) {
         this.loading.set(false);
-        this.messageService.add({
-          severity: 'success',
-          summary: 'Ready',
-          detail: `Loaded ${this.parts().length} parts and ${this.units().length} units`,
-          life: 3000
-        });
       }
     };
 
-    // Load active parts
-    this.searchingParts.set(true);
+    // Background-load parts for internal pricing/unit validation lookups
     this.partService.getActiveParts().subscribe({
-      next: (parts) => {
-        this.parts.set(parts);
-        this.filteredParts.set(parts);
-        this.searchingParts.set(false);
-        checkComplete();
-      },
-      error: (err) => {
-        console.error('Error loading parts:', err);
-        this.searchingParts.set(false);
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load parts. Please refresh the page.',
-          life: 5000
-        });
-        checkComplete();
-      }
+      next: (parts) => this.parts.set(parts),
+      error: (err) => console.error('Error loading parts cache:', err)
     });
-
-    // Load recent customers for possible quick access patterns (optional)
-    // Customers will be loaded lazily via autocomplete
-    // Technicians will be loaded lazily via autocomplete
 
     // Load VAT configuration
     this.quickSaleService.getVATConfig().subscribe({
@@ -530,21 +502,6 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
         this.invoiceNumber.set(`INV-${Date.now()}`);
       }
     });
-  }
-
-  // Part search
-  filterParts(event: any): void {
-    const query = event.query.toLowerCase();
-    const filtered = this.parts().filter(p =>
-      p.name.toLowerCase().includes(query) ||
-      p.partNumber.toLowerCase().includes(query) ||
-      p.sku.toLowerCase().includes(query)
-    );
-    this.filteredParts.set(filtered);
-  }
-
-  onPartSearch(event: any): void {
-    this.filterParts(event);
   }
 
   selectPart(event: any): void {
@@ -1785,39 +1742,34 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
     this.quickSaleService.getPriceByCode(searchValue).subscribe({
       next: (part) => {
         if (part) {
-          // Find the full part from parts list
-          const fullPart = this.parts().find(p => p.id === part.partId);
-          if (fullPart) {
-            this.selectedPartModel = fullPart;
-            this.addPartToCart();
-            this.barcodeValue = '';
-            this.messageService.add({
-              severity: 'success',
-              summary: 'Part Added',
-              detail: `${part.name} added to cart`,
-              life: 2000
-            });
-          } else {
-            // Add directly to cart without using selectedPartModel
-            const cartItem: QuickSaleLineItem = {
-              partId: part.partId,
-              partName: part.name,
-              partNumber: part.partNumber,
-              sku: part.sku,
-              quantity: 1,
-              unitPrice: part.sellingPrice,
-              discount: 0,
-              stockAvailable: part.stockLevel
-            };
-            this.cartItems.update(items => [...items, cartItem]);
-            this.barcodeValue = '';
-            this.messageService.add({
-              severity: 'success',
-              summary: 'Part Added',
-              detail: `${part.name} added to cart`,
-              life: 2000
-            });
+          const displayName = part.variantName ? `${part.name} - ${part.variantName}` : part.name;
+          // When a variant barcode is scanned, always add directly so the variant ID is captured.
+          // For product-level scans without a variant, try to find and use the full part for unit/stock data.
+          if (!part.variantId) {
+            const fullPart = this.parts().find(p => p.id === part.partId);
+            if (fullPart) {
+              this.selectedPartModel = fullPart;
+              this.addPartToCart();
+              this.barcodeValue = '';
+              this.messageService.add({ severity: 'success', summary: 'Part Added', detail: `${displayName} added to cart`, life: 2000 });
+              return;
+            }
           }
+          // Direct add — used for variant scans and when the part isn't in the loaded list
+          const cartItem: QuickSaleLineItem = {
+            partId: part.partId,
+            productVariantId: part.variantId ?? undefined,
+            partName: displayName,
+            partNumber: part.partNumber,
+            sku: part.variantCode ?? part.sku,
+            quantity: 1,
+            unitPrice: part.sellingPrice,
+            discount: 0,
+            stockAvailable: part.stockLevel
+          };
+          this.cartItems.update(items => [...items, cartItem]);
+          this.barcodeValue = '';
+          this.messageService.add({ severity: 'success', summary: 'Part Added', detail: `${displayName} added to cart`, life: 2000 });
         } else {
           this.messageService.add({
             severity: 'error',

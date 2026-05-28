@@ -130,12 +130,13 @@
             appendTo="body"
             styleClass="product-search">
             <ng-template let-part>
-              <div class="product-option">
-                <div class="product-details">
-                  <strong>{{ part.displayName || part.name }}</strong>
-                  <span class="product-meta">{{ part.partNumber }} • {{ part.variantSKU || part.sku }}</span>
-                </div>
-                <span class="product-price">{{ formatCurrency(part.effectiveSellingPrice ?? part.sellingPrice) }}</span>
+              <div class="part-row"
+                   [pTooltip]="part.partNumber + (part.brandName ? '  ·  ' + part.brandName : '') + '  ·  ' + part.categoryName"
+                   tooltipPosition="right" [showDelay]="300">
+                <span class="part-row-name">{{ part.displayName || part.name }}</span>
+                <span class="part-row-sep">·</span>
+                <span class="part-row-sku">{{ part.variantSKU || part.sku }}</span>
+                <span class="part-row-price">{{ formatCurrency(part.effectiveSellingPrice ?? part.sellingPrice) }}</span>
               </div>
             </ng-template>
           </app-lazy-autocomplete>

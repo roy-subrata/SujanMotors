@@ -5,7 +5,6 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, FormsModule, Validators } 
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
 import { TableModule } from 'primeng/table';
-import { AutoCompleteModule } from 'primeng/autocomplete';
 import { TextareaModule } from 'primeng/textarea';
 import { CheckboxModule } from 'primeng/checkbox';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
@@ -14,6 +13,8 @@ import { ToastModule } from 'primeng/toast';
 import { TagModule } from 'primeng/tag';
 import { VehicleService, VehicleResponse, PartCompatibilityResponse, CreatePartCompatibilityRequest } from '../services/vehicle.service';
 import { PartService, PartResponse } from '../services/part.service';
+import { LazyAutocompleteComponent, LazyRequest, LazyResponse } from '../../../shared/components/lazy-autocomplete';
+import { map } from 'rxjs';
 
 @Component({
   selector: 'app-vehicle-compatibility',
@@ -25,12 +26,12 @@ import { PartService, PartResponse } from '../services/part.service';
     ButtonModule,
     CardModule,
     TableModule,
-    AutoCompleteModule,
     TextareaModule,
     CheckboxModule,
     ConfirmDialogModule,
     ToastModule,
-    TagModule
+    TagModule,
+    LazyAutocompleteComponent
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: './vehicle-compatibility.component.html',
@@ -53,9 +54,19 @@ export class VehicleCompatibilityComponent implements OnInit {
 
   // Add compatibility form
   addForm: FormGroup;
-  selectedPart: any = null;
-  filteredParts: PartResponse[] = [];
-  allParts: PartResponse[] = [];
+  selectedPart: PartResponse | null = null;
+
+  fetchPartsLazy = (req: LazyRequest) =>
+    this.partService.getParts({
+      search: req.search || '',
+      pageNumber: req.pageNumber,
+      pageSize: req.pageSize,
+      isActive: true,
+      flattenVariants: true
+    }).pipe(map(res => ({
+      items: res.data ?? [],
+      totalCount: res.pagination?.totalCount ?? 0
+    } as LazyResponse<PartResponse>)));
 
   constructor() {
     this.addForm = this.createForm();
@@ -67,7 +78,6 @@ export class VehicleCompatibilityComponent implements OnInit {
         this.vehicleId = params['vehicleId'];
         this.loadVehicle();
         this.loadCompatibilities();
-        this.loadParts();
       } else {
         this.messageService.add({
           severity: 'error',
@@ -126,33 +136,14 @@ export class VehicleCompatibilityComponent implements OnInit {
     });
   }
 
-  private loadParts(): void {
-    this.partService.getAllParts().subscribe({
-      next: (parts: PartResponse[]) => {
-        this.allParts = parts;
-      },
-      error: (error: any) => {
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load parts'
-        });
-        console.error('Error loading parts:', error);
-      }
-    });
+  onPartSelected(part: PartResponse): void {
+    this.selectedPart = part;
+    this.addForm.patchValue({ part });
   }
 
-  filterParts(event: { query: string }): void {
-    const query = event.query.toLowerCase();
-    this.filteredParts = this.allParts.filter(part =>
-      part.name.toLowerCase().includes(query) ||
-      part.sku.toLowerCase().includes(query)
-    );
-  }
-
-  onPartSelected(event: any): void {
-    this.selectedPart = event.value;
-    this.addForm.patchValue({ part: event.value });
+  onPartCleared(): void {
+    this.selectedPart = null;
+    this.addForm.patchValue({ part: null });
   }
 
   addCompatibility(): void {

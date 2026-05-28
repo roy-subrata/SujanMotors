@@ -63,7 +63,10 @@ export class PublicPartService {
 
   getActiveParts(): Observable<PublicPartResponse[]> {
     return this.http.get<{ data: PublicPartResponse[] }>(this.apiUrl, {
-      params: new HttpParams().set('isActive', 'true').set('pageSize', '500')
+      params: new HttpParams()
+        .set('isActive', 'true')
+        .set('pageSize', '500')
+        .set('flattenVariants', 'true')
     }).pipe(map(r => r.data));
   }
 

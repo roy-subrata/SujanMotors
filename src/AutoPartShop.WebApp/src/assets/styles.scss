@@ -5,6 +5,64 @@
 @use './demo/demo.scss';
 
 /* ========================================
+   LAZY AUTOCOMPLETE PANEL (appended to body)
+   ======================================== */
+
+/* ── Lazy Autocomplete panel (PrimeNG v20) ────────────────────────────────
+   Panel class: p-autocomplete-overlay  (gets panelStyleClass="lz-ac-panel")
+   List wrap:   p-autocomplete-list-container
+   Scroller:    p-scroller (rendered by p-scroller component)
+   Items:       p-autocomplete-option
+   ──────────────────────────────────────────────────────────────────────── */
+
+/* Outer panel — width is set by PrimeNG overlay to match the input */
+.lz-ac-panel {
+  max-width: 95vw !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+
+/* List container — fixed height, scroll only when items overflow */
+.lz-ac-panel .p-autocomplete-list-container {
+  height: 320px !important;
+  max-height: 320px !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Scroller fills the list container width */
+.lz-ac-panel .p-autocomplete-list-container .p-scroller {
+  width: 100% !important;
+  overflow: visible !important;
+}
+
+/* Each option fills the full width */
+.lz-ac-panel .p-autocomplete-option {
+  width: 100% !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  padding: 0.55rem 0.875rem !important;
+}
+
+/* Tablet */
+@media (max-width: 768px) {
+  .lz-ac-panel .p-autocomplete-list-container {
+    height: 260px !important;
+    max-height: 260px !important;
+  }
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+  .lz-ac-panel .p-autocomplete-list-container {
+    height: 220px !important;
+    max-height: 220px !important;
+  }
+}
+
+/* ========================================
    RESPONSIVE TYPOGRAPHY
    Font sizes adapt to different screen sizes
    ======================================== */

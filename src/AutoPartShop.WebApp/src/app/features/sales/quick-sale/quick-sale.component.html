@@ -172,21 +172,13 @@
                 [minLength]="1"
                 (onItemSelect)="selectPart($event)">
                 <ng-template let-part>
-                  <div class="part-dropdown-item">
-                    <div class="part-image">
-                      <i class="pi pi-cog"></i>
-                    </div>
-                    <div class="part-details">
-                      <strong>{{ part.displayName || part.name }}</strong>
-                      <div class="part-meta">
-                        <span class="sku">{{ part.partNumber }}</span>
-                        <span class="separator">•</span>
-                        <span class="sku">{{ part.variantSKU || part.sku }}</span>
-                      </div>
-                    </div>
-                    <div class="part-pricing">
-                      <span class="selling-price">{{ formatCurrency(part.effectiveSellingPrice ?? part.sellingPrice) }}</span>
-                    </div>
+                  <div class="part-row"
+                       [pTooltip]="part.partNumber + (part.brandName ? '  ·  ' + part.brandName : '') + '  ·  ' + part.categoryName"
+                       tooltipPosition="right" [showDelay]="300">
+                    <span class="part-row-name">{{ part.displayName || part.name }}</span>
+                    <span class="part-row-sep">·</span>
+                    <span class="part-row-sku">{{ part.variantSKU || part.sku }}</span>
+                    <span class="part-row-price">{{ formatCurrency(part.effectiveSellingPrice ?? part.sellingPrice) }}</span>
                   </div>
                 </ng-template>
               </app-lazy-autocomplete>

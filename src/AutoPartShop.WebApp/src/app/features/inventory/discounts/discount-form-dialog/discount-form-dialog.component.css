@@ -138,15 +138,36 @@
   padding: 2px 0;
 }
 
-.autocomplete-item-name {
+.part-row {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  width: 100%;
+  overflow: hidden;
+}
+
+.part-row-name {
   font-size: 0.875rem;
   font-weight: 500;
   color: #111827;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
-.autocomplete-item-meta {
+.part-row-sep {
   font-size: 0.75rem;
-  color: #6B7280;
+  color: #D1D5DB;
+  flex-shrink: 0;
+}
+
+.part-row-sku {
+  font-size: 0.75rem;
+  color: #9CA3AF;
+  font-family: ui-monospace, monospace;
+  flex-shrink: 0;
 }
 
 /* Scope notes */

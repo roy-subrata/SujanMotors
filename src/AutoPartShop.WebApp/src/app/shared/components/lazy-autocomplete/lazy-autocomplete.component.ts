@@ -49,7 +49,7 @@ export class LazyAutocompleteComponent<T = any> implements ControlValueAccessor,
     @Input() itemSize = 48;
     @Input() showClear = true;
     @Input() minLength = 0;
-    @Input() scrollHeight = '300px';
+    @Input() scrollHeight = '320px';
     @Input() emptyMessage = 'No results found';
     @Input() loadingMessage = 'Loading...';
 
@@ -135,16 +135,15 @@ export class LazyAutocompleteComponent<T = any> implements ControlValueAccessor,
 
     onLazyLoad(event: { first?: number; last?: number } | null): void {
         if (!event) return;
+        if (this.loading) return;
+        // Don't trigger scroll-fetch before the first search/dropdown open
+        if (!this.dataLoaded) return;
+        // All pages already loaded
+        if (this.cachedItems.length >= this.totalCount) return;
 
         const last = event.last ?? 0;
-
-        // Check if we need to load more data
-        if (this.loading) return;
-        if (this.totalCount > 0 && this.cachedItems.length >= this.totalCount) return;
-
-        // Load more when approaching the end of loaded items
         const loadThreshold = Math.max(0, this.cachedItems.length - 5);
-        if (last >= loadThreshold && this.cachedItems.length < this.totalCount) {
+        if (last >= loadThreshold) {
             this.fetchData(this.lastQuery);
         }
     }
@@ -170,6 +169,7 @@ export class LazyAutocompleteComponent<T = any> implements ControlValueAccessor,
         this.onChange(this.value);
         this.onTouched();
         this.onClearEvent.emit();
+        this.resetState('');
     }
 
     /* ================= PUBLIC METHODS ================= */
@@ -183,8 +183,7 @@ export class LazyAutocompleteComponent<T = any> implements ControlValueAccessor,
 
     /** Clear selection and reset state */
     clear(): void {
-        this.onClearValue();
-        this.resetState('');
+        this.onClearValue(); // resetState is called inside onClearValue
     }
 
     /** Get current loading state */

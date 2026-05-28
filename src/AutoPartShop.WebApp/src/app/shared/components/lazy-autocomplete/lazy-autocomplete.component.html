@@ -5,6 +5,7 @@
   [optionLabel]="optionLabel"
   [virtualScroll]="true"
   [virtualScrollItemSize]="itemSize"
+  [virtualScrollOptions]="{ showSpacer: false }"
   [lazy]="true"
   [dropdown]="true"
   [forceSelection]="false"
@@ -14,6 +15,7 @@
   [disabled]="disabled"
   [minLength]="minLength"
   [scrollHeight]="scrollHeight"
+  panelStyleClass="lz-ac-panel"
   [style]="{ width: '100%' }"
   [inputStyle]="{ width: '100%' }"
   (completeMethod)="onSearch($event)"
@@ -26,11 +28,11 @@
   </ng-template>
   <ng-template pTemplate="loader">
     <div style="padding: 10px; text-align: center; color: #6b7280;">
-      <i class="pi pi-spin pi-spinner" style="margin-right: 8px;"></i>Loading...
+      <i class="pi pi-spin pi-spinner" style="margin-right: 8px;"></i>{{ loadingMessage }}
     </div>
   </ng-template>
   <ng-template pTemplate="empty">
-    <div style="padding: 12px; text-align: center; color: #6b7280;">No results found</div>
+    <div style="padding: 12px; text-align: center; color: #6b7280;">{{ emptyMessage }}</div>
   </ng-template>
 </p-autoComplete>
 

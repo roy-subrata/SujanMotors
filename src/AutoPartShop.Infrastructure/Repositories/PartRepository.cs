@@ -136,6 +136,21 @@ public class ProductRepository(AutoPartDbContext _db) : IProductRepository
             .FirstOrDefaultAsync(p => !p.Isdeleted && p.IsActive &&
                 (p.Barcode == normalized || p.PartNumber.Value == normalized), cancellationToken);
     }
+
+    public async Task<(Product Product, ProductVariant Variant)?> GetByVariantCodeAsync(string code, CancellationToken cancellationToken = default)
+    {
+        var normalized = code.Trim().ToUpperInvariant();
+        var variant = await _db.ProductVariants
+            .Include(v => v.Part).ThenInclude(p => p!.Unit)
+            .FirstOrDefaultAsync(v =>
+                !v.Isdeleted && v.IsActive &&
+                v.Part != null && !v.Part.Isdeleted && v.Part.IsActive &&
+                (v.SKU == normalized || v.Barcode == normalized),
+                cancellationToken);
+
+        if (variant?.Part is null) return null;
+        return (variant.Part, variant);
+    }
 }
 
 public class VehicleRepository(AutoPartDbContext _db) : IVehicleRepository

@@ -161,13 +161,12 @@ export class PurchaseReturnsFormComponent implements OnInit {
   }
 
   /**
-   * Load parts from API
+   * Load parts for ID→name lookup (used by getPartName and addPOLineItem helpers)
    */
   private loadParts(): void {
-    this.partService.getActiveParts().subscribe({
-      next: (parts) => {
-        this.parts = Array.isArray(parts) ? parts : [];
-        this.filteredParts = this.parts;
+    this.partService.getParts({ search: '', pageNumber: 1, pageSize: 500, isActive: true, flattenVariants: true }).subscribe({
+      next: (res) => {
+        this.parts = Array.isArray(res.data) ? res.data : [];
       },
       error: (error) => {
         console.error('Error loading parts:', error);
@@ -489,30 +488,12 @@ export class PurchaseReturnsFormComponent implements OnInit {
   }
 
   /**
-   * Filter parts for autocomplete
+   * Filter parts for autocomplete — DB-backed search per query
    */
-  filterParts(event: any, rowIndex: number): void {
-    const filtered: PartResponse[] = [];
-    const query = event.query;
-
-    if (query && query.trim() !== '') {
-      const queryLower = query.toLowerCase();
-      for (const part of this.parts) {
-        if (
-          part.name.toLowerCase().includes(queryLower) ||
-          part.partNumber.toLowerCase().includes(queryLower) ||
-          part.sku.toLowerCase().includes(queryLower)
-        ) {
-          filtered.push(part);
-        }
-      }
-    } else {
-      for (const part of this.parts) {
-        filtered.push(part);
-      }
-    }
-
-    this.filteredParts = filtered.slice(0, 10);
+  filterParts(event: any, _rowIndex: number): void {
+    const query: string = event.query ?? '';
+    this.partService.getParts({ search: query, pageNumber: 1, pageSize: 20, isActive: true, flattenVariants: true })
+      .subscribe({ next: (res) => { this.filteredParts = res.data ?? []; } });
   }
 
   /**

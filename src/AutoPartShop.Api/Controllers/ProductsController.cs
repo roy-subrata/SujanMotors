@@ -138,27 +138,58 @@ public class ProductsController : ControllerBase
             return BadRequest(ApiError.Validation("'code' query parameter is required", instance: Request.Path));
 
         var normalizedCode = code.Trim().ToUpperInvariant();
+
+        // 1. Try product-level SKU / barcode / part number
         var part = await _productRepository.GetBySKUAsync(normalizedCode, cancellationToken)
                    ?? await _productRepository.GetByBarcodeOrPartNumberAsync(normalizedCode, cancellationToken);
 
-        if (part is null)
+        if (part is not null)
+        {
+            var lotPrice    = await GetFifoLotSellingPriceAsync(part.Id, cancellationToken);
+            var totalStock  = await GetTotalAvailableStockAsync(part.Id, cancellationToken);
+            return Ok(ApiResponse<object>.Ok(new
+            {
+                productId            = part.Id,
+                name                 = part.Name,
+                sku                  = part.SKU,
+                partNumber           = part.PartNumber?.Value ?? string.Empty,
+                sellingPrice         = lotPrice > 0 ? lotPrice : part.SellingPrice,
+                fallbackSellingPrice = part.SellingPrice,
+                hasLotPrice          = lotPrice > 0,
+                stockLevel           = totalStock,
+                unitId               = part.UnitId,
+                unitName             = part.Unit?.Name,
+                variantId            = (Guid?)null,
+                variantName          = (string?)null,
+                variantCode          = (string?)null
+            }));
+        }
+
+        // 2. Try variant-level SKU / barcode
+        var variantMatch = await _productRepository.GetByVariantCodeAsync(normalizedCode, cancellationToken);
+        if (variantMatch is null)
             return NotFound(ApiError.NotFound($"No product found for code '{code}'", Request.Path));
 
-        var lotPrice = await GetFifoLotSellingPriceAsync(part.Id, cancellationToken);
-        var totalStock = await GetTotalAvailableStockAsync(part.Id, cancellationToken);
+        var (variantPart, variant) = variantMatch.Value;
+        var variantLotPrice   = await GetFifoLotSellingPriceAsync(variantPart.Id, cancellationToken);
+        var variantTotalStock = await GetTotalAvailableStockAsync(variantPart.Id, cancellationToken);
+        var variantPrice      = variant.SellingPrice > 0 ? variant.SellingPrice : variantPart.SellingPrice;
 
         return Ok(ApiResponse<object>.Ok(new
         {
-            productId = part.Id,
-            name = part.Name,
-            sku = part.SKU,
-            partNumber = part.PartNumber?.Value ?? string.Empty,
-            sellingPrice = lotPrice > 0 ? lotPrice : part.SellingPrice,
-            fallbackSellingPrice = part.SellingPrice,
-            hasLotPrice = lotPrice > 0,
-            stockLevel = totalStock,
-            unitId = part.UnitId,
-            unitName = part.Unit?.Name
+            productId            = variantPart.Id,
+            name                 = variantPart.Name,
+            sku                  = variantPart.SKU,
+            partNumber           = variantPart.PartNumber?.Value ?? string.Empty,
+            sellingPrice         = variantLotPrice > 0 ? variantLotPrice : variantPrice,
+            fallbackSellingPrice = variantPrice,
+            hasLotPrice          = variantLotPrice > 0,
+            stockLevel           = variantTotalStock,
+            unitId               = variantPart.UnitId,
+            unitName             = variantPart.Unit?.Name,
+            variantId            = variant.Id,
+            variantName          = variant.Name,
+            variantCode          = variant.Code
         }));
     }
 

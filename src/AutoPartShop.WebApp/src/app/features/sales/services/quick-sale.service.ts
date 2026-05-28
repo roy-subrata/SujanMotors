@@ -345,9 +345,20 @@ export class QuickSaleService {
    * Search part by SKU, barcode, or part number. Returns current FIFO lot selling price
    * (falls back to Part.SellingPrice when no lot price is set).
    */
-  getPriceByCode(code: string): Observable<{ partId: string; name: string; partNumber: string; sku: string; sellingPrice: number; fallbackSellingPrice: number; hasLotPrice: boolean; stockLevel: number; unitId: string | null } | null> {
+  getPriceByCode(code: string): Observable<{
+    partId: string; name: string; partNumber: string; sku: string;
+    sellingPrice: number; fallbackSellingPrice: number; hasLotPrice: boolean;
+    stockLevel: number; unitId: string | null;
+    variantId: string | null; variantName: string | null; variantCode: string | null;
+  } | null> {
     return this.http.get<{ data: any }>(`${this.apiUrl}/v1/products/by-code?code=${encodeURIComponent(code)}`)
-      .pipe(map(r => r.data ? { ...r.data, partId: r.data.productId } : null));
+      .pipe(map(r => r.data ? {
+        ...r.data,
+        partId: r.data.productId,
+        variantId: r.data.variantId ?? null,
+        variantName: r.data.variantName ?? null,
+        variantCode: r.data.variantCode ?? null
+      } : null));
   }
 
   // ===== RETURNS =====

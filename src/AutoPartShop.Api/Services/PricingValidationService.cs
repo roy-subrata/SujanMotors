@@ -23,15 +23,15 @@ public sealed class PricingValidationService : IPricingValidationService
         if (part is null)
             return new PricingCalculationResult(0, 0, false, "Part is required.");
 
-        var effectivePrice = unitPrice - (unitPrice * (discountPercent / 100));
         var mrp = part.SellingPrice;
 
         if (unitPrice <= 0)
-            return new PricingCalculationResult(effectivePrice, mrp, false, "Selling price must be greater than 0.");
+            return new PricingCalculationResult(0, mrp, false, "Selling price must be greater than 0.");
 
         if (discountPercent < 0 || discountPercent > 100)
-            return new PricingCalculationResult(effectivePrice, mrp, false, "Discount must be between 0 and 100.");
+            return new PricingCalculationResult(unitPrice, mrp, false, "Discount must be between 0 and 100.");
 
+        var effectivePrice = unitPrice - (unitPrice * (discountPercent / 100));
         return new PricingCalculationResult(effectivePrice, mrp, true, null);
     }
 }

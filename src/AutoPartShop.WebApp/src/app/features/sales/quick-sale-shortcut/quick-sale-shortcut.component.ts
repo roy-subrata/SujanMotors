@@ -519,28 +519,33 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     this.quickSaleService.getPriceByCode(code).subscribe({
       next: (result) => {
         if (result) {
-          const existing = this.cartItems().find(item => item.partId === result.partId);
+          const variantId = result.variantId ?? undefined;
+          const existing = this.cartItems().find(
+            item => item.partId === result.partId && (item.productVariantId ?? null) === (result.variantId ?? null)
+          );
+          const displayName = result.variantName ? `${result.name} - ${result.variantName}` : result.name;
           if (existing) {
-            // Increment quantity if already in cart
             this.cartItems.update(items =>
-              items.map(item => item.partId === result.partId
-                ? { ...item, quantity: item.quantity + 1 }
-                : item)
+              items.map(item =>
+                item.partId === result.partId && (item.productVariantId ?? null) === (result.variantId ?? null)
+                  ? { ...item, quantity: item.quantity + 1 }
+                  : item)
             );
-            this.messageService.add({ severity: 'info', summary: 'Qty Updated', detail: `${result.name} quantity increased` });
+            this.messageService.add({ severity: 'info', summary: 'Qty Updated', detail: `${displayName} quantity increased` });
           } else {
             const newItem: QuickSaleLineItem = {
               partId: result.partId,
-              partName: result.name,
+              productVariantId: variantId,
+              partName: displayName,
               partNumber: result.partNumber,
-              sku: result.sku,
+              sku: result.variantCode ?? result.sku,
               unitId: result.unitId || undefined,
               quantity: 1,
               unitPrice: result.sellingPrice,
               discount: 0
             };
             this.cartItems.update(items => [...items, newItem]);
-            this.messageService.add({ severity: 'success', summary: 'Added', detail: `${result.name} added` });
+            this.messageService.add({ severity: 'success', summary: 'Added', detail: `${displayName} added` });
           }
         }
         this.barcodeValue = '';

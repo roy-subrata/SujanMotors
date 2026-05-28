@@ -17,7 +17,7 @@ export interface PricingCalculationResponse {
 @Injectable({ providedIn: 'root' })
 export class PricingValidationService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = `${environment.apiUrl}/pricing`;
+  private readonly apiUrl = `${environment.apiUrl}/v1/pricing`;
 
   validateLine(partId: string, unitPrice: number, discountPercent: number, unitId?: string | null): Observable<PricingValidationResponse> {
     return this.http.post<PricingValidationResponse>(`${this.apiUrl}/validate-line`, {

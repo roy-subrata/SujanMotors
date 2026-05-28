@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace AutoPartShop.Api.Controllers;
 
-[Route("api/[controller]")]
+[Route("api/v1/pricing")]
 [ApiController]
 [Produces("application/json")]
 public class PricingController : ControllerBase
