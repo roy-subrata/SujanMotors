@@ -42,6 +42,15 @@ public interface IWarrantyService
         string rejectionReason,
         string rejectedBy,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Closes a warranty claim. For REPAIR claims, reactivates the warranty when no
+    /// other active claims remain. Both updates happen atomically.
+    /// </summary>
+    Task<WarrantyClaim> CloseClaimAsync(
+        Guid claimId,
+        string? closureNotes,
+        CancellationToken cancellationToken = default);
 }
 
 public class WarrantyService(
@@ -261,6 +270,53 @@ public class WarrantyService(
                 {
                     warranty.ReactivateAfterClaimRejection();
                     await warrantyRepository.UpdateAsync(warranty, cancellationToken);
+                }
+            }
+
+            await tx.CommitAsync(cancellationToken);
+        }
+        catch
+        {
+            await tx.RollbackAsync(cancellationToken);
+            throw;
+        }
+
+        return claim;
+    }
+
+    public async Task<WarrantyClaim> CloseClaimAsync(
+        Guid claimId,
+        string? closureNotes,
+        CancellationToken cancellationToken = default)
+    {
+        var claim = await claimRepository.GetByIdAsync(claimId, cancellationToken)
+            ?? throw new InvalidOperationException("Warranty claim not found");
+
+        await using var tx = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            claim.Close(closureNotes);
+            await claimRepository.UpdateAsync(claim, cancellationToken);
+
+            // REPAIR is non-terminal — reactivate warranty so customer can file again.
+            // REPLACEMENT and REFUND consume the warranty; it stays CLAIMED.
+            if (claim.ServiceType.Equals("REPAIR", StringComparison.OrdinalIgnoreCase))
+            {
+                var warranty = await warrantyRepository.GetByIdAsync(claim.WarrantyRegistrationId, cancellationToken);
+                if (warranty != null && warranty.Status == "CLAIMED")
+                {
+                    var activeStatuses = new[] { "PENDING", "UNDER_REVIEW", "APPROVED", "IN_PROGRESS" };
+                    var allClaims = await claimRepository.GetByWarrantyRegistrationIdAsync(
+                        claim.WarrantyRegistrationId, cancellationToken);
+                    var hasOtherActiveClaims = allClaims.Any(c =>
+                        c.Id != claim.Id &&
+                        activeStatuses.Contains(c.Status, StringComparer.OrdinalIgnoreCase));
+
+                    if (!hasOtherActiveClaims)
+                    {
+                        warranty.ReactivateAfterClaimClosure();
+                        await warrantyRepository.UpdateAsync(warranty, cancellationToken);
+                    }
                 }
             }
 

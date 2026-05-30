@@ -54,11 +54,12 @@ public class TechnicianRepository : ITechnicianRepository
     public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var entity = await _dbContext.Technicians
-            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+            .FirstOrDefaultAsync(x => x.Id == id && !x.Isdeleted, cancellationToken);
 
         if (entity != null)
         {
-            _dbContext.Technicians.Remove(entity);
+            entity.Isdeleted = true;
+            _dbContext.Technicians.Update(entity);
             await _dbContext.SaveChangesAsync(cancellationToken);
         }
     }

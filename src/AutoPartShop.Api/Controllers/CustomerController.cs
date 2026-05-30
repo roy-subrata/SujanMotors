@@ -307,16 +307,13 @@ public class CustomerController : ControllerBase
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(request.CustomerCode) || string.IsNullOrWhiteSpace(request.FirstName) || string.IsNullOrWhiteSpace(request.LastName))
-                return BadRequest(new { message = "CustomerCode, FirstName, and LastName are required" });
+            if (string.IsNullOrWhiteSpace(request.FirstName) || string.IsNullOrWhiteSpace(request.LastName))
+                return BadRequest(new { message = "FirstName and LastName are required" });
 
-            // Check if customer code already exists
-            var existing = await _customerRepository.GetByCodeAsync(request.CustomerCode, cancellationToken);
-            if (existing != null)
-                return BadRequest(new { message = "Customer with this code already exists" });
+            var customerCode = await _codeGenerateService.GenerateAsync("CUST", cancellationToken);
 
             var customer = Customer.Create(
-                request.CustomerCode,
+                customerCode,
                 request.FirstName,
                 request.LastName,
                 request.Email,

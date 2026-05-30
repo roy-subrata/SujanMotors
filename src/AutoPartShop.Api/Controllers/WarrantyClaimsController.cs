@@ -751,36 +751,7 @@ public class WarrantyClaimsController : ControllerBase
     {
         try
         {
-            var claim = await _claimRepository.GetByIdAsync(id, cancellationToken);
-            if (claim == null)
-                return NotFound(new { message = "Warranty claim not found" });
-
-            // Fix #2: persist closure notes via domain method
-            claim.Close(request?.ClosureNotes);
-            await _claimRepository.UpdateAsync(claim, cancellationToken);
-
-            // Fix #8: REPAIR is a non-terminal resolution — reactivate warranty so the
-            // customer can file again within the warranty period.
-            // REPLACEMENT and REFUND consume the warranty; it stays CLAIMED.
-            if (claim.ServiceType.Equals("REPAIR", StringComparison.OrdinalIgnoreCase))
-            {
-                var warranty = await _warrantyRepository.GetByIdAsync(claim.WarrantyRegistrationId, cancellationToken);
-                if (warranty != null && warranty.Status == "CLAIMED")
-                {
-                    var activeStatuses = new[] { "PENDING", "UNDER_REVIEW", "APPROVED", "IN_PROGRESS" };
-                    var allClaims = await _claimRepository.GetByWarrantyRegistrationIdAsync(
-                        claim.WarrantyRegistrationId, cancellationToken);
-                    var hasOtherActiveClaims = allClaims.Any(c =>
-                        c.Id != claim.Id &&
-                        activeStatuses.Contains(c.Status, StringComparer.OrdinalIgnoreCase));
-
-                    if (!hasOtherActiveClaims)
-                    {
-                        warranty.ReactivateAfterClaimClosure();
-                        await _warrantyRepository.UpdateAsync(warranty, cancellationToken);
-                    }
-                }
-            }
+            var claim = await _warrantyService.CloseClaimAsync(id, request?.ClosureNotes, cancellationToken);
 
             return Ok(await MapToResponseWithLogisticsAsync(claim, cancellationToken));
         }

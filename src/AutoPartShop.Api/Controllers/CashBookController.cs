@@ -12,28 +12,62 @@ namespace AutoPartShop.Api.Controllers;
 [Produces("application/json")]
 public class CashBookController(AutoPartDbContext _db) : ControllerBase
 {
+    // Payment methods that represent deferred credit, not immediate cash receipt.
+    private static readonly HashSet<string> CreditMethods =
+        new(StringComparer.OrdinalIgnoreCase) { "DUE", "PART_PAY" };
+
     /// <summary>
     /// Daily cash book — aggregates all money movement for a date range.
-    /// Cash In : customer payments (COMPLETED | PENDING-COD)
-    /// Cash Out: daily expenses + supplier payments (COMPLETED)
+    /// Cash In : COMPLETED customer payments (positive amounts only)
+    /// Cash Out: daily expenses + COMPLETED supplier payments + refund payments (negative customer payments)
+    /// Opening balance: cumulative net of all prior COMPLETED transactions before dateFrom
+    /// tzOffsetMinutes: browser's -getTimezoneOffset() value (e.g. 360 for UTC+6).
+    ///   Shifts the UTC datetime window so "today" matches the user's local calendar date.
     /// </summary>
     [HttpGet("daily")]
     public async Task<IActionResult> GetDaily(
         [FromQuery] DateOnly? date,
         [FromQuery] DateOnly? from,
         [FromQuery] DateOnly? to,
-        CancellationToken ct)
+        [FromQuery] int       tzOffsetMinutes = 0,
+        CancellationToken ct = default)
     {
-        // Resolve range — single date wins over range params; default to today
-        var dateFrom = (from ?? date ?? DateOnly.FromDateTime(DateTime.UtcNow)).ToDateTime(TimeOnly.MinValue);
-        var dateTo   = (to   ?? date ?? DateOnly.FromDateTime(DateTime.UtcNow)).ToDateTime(TimeOnly.MaxValue);
+        // Clamp offset to a sane range (UTC-14 to UTC+14).
+        tzOffsetMinutes = Math.Clamp(tzOffsetMinutes, -840, 840);
+        var tzShift = TimeSpan.FromMinutes(tzOffsetMinutes);
+
+        // Resolve local-calendar range, then shift to UTC so DB comparisons are correct.
+        var localFrom = from ?? date ?? DateOnly.FromDateTime(DateTime.UtcNow.Add(tzShift));
+        var localTo   = to   ?? date ?? DateOnly.FromDateTime(DateTime.UtcNow.Add(tzShift));
+        var dateFrom  = localFrom.ToDateTime(TimeOnly.MinValue) - tzShift;
+        var dateTo    = localTo  .ToDateTime(TimeOnly.MaxValue) - tzShift;
 
         if (dateFrom > dateTo) return BadRequest(ApiError.Validation("'from' must not be after 'to'", instance: Request.Path));
 
-        // ── Customer payments (cash in) ─────────────────────────────────
+        // Guard against huge ranges that would load the entire ledger into memory.
+        var daySpan = (localTo.DayNumber - localFrom.DayNumber) + 1;
+        if (daySpan > 366)
+            return BadRequest(ApiError.Validation("Date range cannot exceed 366 days. Split into smaller periods.", instance: Request.Path));
+
+        // ── Opening balance (all COMPLETED transactions before dateFrom) ─
+        var priorCustomerNet = await _db.CustomerPayments
+            .Where(p => p.PaymentDate < dateFrom && p.Status == "COMPLETED")
+            .SumAsync(p => (decimal?)p.Amount, ct) ?? 0m;
+
+        var priorExpenseTotal = await _db.DailyExpenses
+            .Where(e => e.ExpenseDate < dateFrom)
+            .SumAsync(e => (decimal?)e.Amount, ct) ?? 0m;
+
+        var priorSupplierTotal = await _db.SupplierPayments
+            .Where(p => p.PaymentDate < dateFrom && p.Status == "COMPLETED")
+            .SumAsync(p => (decimal?)(p.NetAmount > 0 ? p.NetAmount : p.Amount), ct) ?? 0m;
+
+        var openingBalance = priorCustomerNet - priorExpenseTotal - priorSupplierTotal;
+
+        // ── Customer payments — COMPLETED only ─────────────────────────
         var customerPayments = await _db.CustomerPayments
             .Where(p => p.PaymentDate >= dateFrom && p.PaymentDate <= dateTo
-                     && (p.Status == "COMPLETED" || p.Status == "PENDING"))
+                     && p.Status == "COMPLETED")
             .Include(p => p.Customer)
             .Include(p => p.Invoice)
             .AsNoTracking()
@@ -56,30 +90,40 @@ public class CashBookController(AutoPartDbContext _db) : ControllerBase
             .OrderBy(p => p.PaymentDate)
             .ToListAsync(ct);
 
-        // ── Build cash-in list ─────────────────────────────────────────
-        var cashIn = customerPayments.Select(p =>
+        // ── Build cash-in / cash-out from customer payments ────────────
+        // Negative-amount payments (refunds from warranty claims / sales returns)
+        // are reclassified as cash-out with their absolute value.
+        var cashIn  = new List<CashBookEntry>();
+        var cashOut = new List<CashBookEntry>();
+
+        foreach (var p in customerPayments)
         {
             var customerName = p.Customer != null
                 ? $"{p.Customer.FirstName} {p.Customer.LastName}".Trim()
                 : "Customer";
             var invoiceRef = p.Invoice != null ? $" · {p.Invoice.InvoiceNumber}" : string.Empty;
-            return new CashBookEntry
+            var isRefund   = p.Amount < 0;
+
+            var entry = new CashBookEntry
             {
                 Id            = p.Id,
                 Time          = p.PaymentDate,
-                Type          = "CUSTOMER_PAYMENT",
-                Description   = $"{customerName}{invoiceRef}",
+                Type          = isRefund ? "REFUND" : "CUSTOMER_PAYMENT",
+                Description   = isRefund
+                    ? $"Refund to {customerName}{invoiceRef}"
+                    : $"{customerName}{invoiceRef}",
                 Reference     = !string.IsNullOrEmpty(p.TransactionNumber) ? p.TransactionNumber : p.ReferenceNumber,
                 PaymentMethod = p.PaymentMethod,
-                Amount        = p.Amount,
+                Amount        = Math.Abs(p.Amount),
                 Currency      = p.Currency,
                 Status        = p.Status,
-                Notes         = string.IsNullOrWhiteSpace(p.Notes) ? null : p.Notes
+                Notes         = string.IsNullOrWhiteSpace(p.Notes) ? null : p.Notes,
+                IsCreditSale  = !isRefund && CreditMethods.Contains(p.PaymentMethod)
             };
-        }).ToList();
 
-        // ── Build cash-out list ────────────────────────────────────────
-        var cashOut = new List<CashBookEntry>();
+            if (isRefund) cashOut.Add(entry);
+            else          cashIn.Add(entry);
+        }
 
         cashOut.AddRange(expenses.Select(e => new CashBookEntry
         {
@@ -113,16 +157,18 @@ public class CashBookController(AutoPartDbContext _db) : ControllerBase
 
         cashOut = cashOut.OrderBy(e => e.Time).ToList();
 
-        var totalIn  = cashIn .Sum(e => e.Amount);
-        var totalOut = cashOut.Sum(e => e.Amount);
+        var totalIn       = cashIn.Sum(e => e.Amount);
+        var totalOut      = cashOut.Sum(e => e.Amount);
+        var totalCreditIn = cashIn.Where(e => e.IsCreditSale).Sum(e => e.Amount);
+        var totalActualCashIn = totalIn - totalCreditIn;
 
-        // ── Running balance (combined chronological ledger) ─────────────
+        // ── Running balance starting from opening balance ───────────────
         var allEntries = cashIn.Select(e => new { entry = e, flow = "IN" })
             .Concat(cashOut.Select(e => new { entry = e, flow = "OUT" }))
             .OrderBy(x => x.entry.Time)
             .ToList();
 
-        decimal running = 0;
+        decimal running = openingBalance;
         var ledger = allEntries.Select(x =>
         {
             running += x.flow == "IN" ? x.entry.Amount : -x.entry.Amount;
@@ -164,17 +210,21 @@ public class CashBookController(AutoPartDbContext _db) : ControllerBase
 
         return Ok(ApiResponse<object>.Ok(new
         {
-            from          = dateFrom.ToString("yyyy-MM-dd"),
-            to            = dateTo  .ToString("yyyy-MM-dd"),
-            isSingleDay   = dateFrom.Date == dateTo.Date,
+            from               = localFrom.ToString("yyyy-MM-dd"),
+            to                 = localTo  .ToString("yyyy-MM-dd"),
+            isSingleDay        = localFrom == localTo,
+            openingBalance,
             cashIn,
             cashOut,
             ledger,
-            totalCashIn   = totalIn,
-            totalCashOut  = totalOut,
-            netCash        = totalIn - totalOut,
-            closingBalance = running,
-            entryCount    = cashIn.Count + cashOut.Count,
+            totalCashIn        = totalIn,
+            totalActualCashIn,
+            totalCreditIn,
+            totalCashOut       = totalOut,
+            netCash            = totalIn - totalOut,
+            netActualCash      = totalActualCashIn - totalOut,
+            closingBalance     = running,
+            entryCount         = cashIn.Count + cashOut.Count,
             paymentMethodBreakdown = breakdown
         }));
     }
@@ -194,6 +244,11 @@ public sealed class CashBookEntry
     public string?  Notes         { get; set; }
     public string?  Category      { get; set; }
     public string?  Vendor        { get; set; }
+    /// <summary>
+    /// True for DUE / PART_PAY entries — cash has not yet been physically received.
+    /// Excluded from totalActualCashIn; included in totalCreditIn.
+    /// </summary>
+    public bool     IsCreditSale  { get; set; }
 }
 
 public sealed class LedgerRow

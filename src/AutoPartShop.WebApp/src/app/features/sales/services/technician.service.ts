@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
 
@@ -91,13 +91,7 @@ export class TechnicianService {
         return this.http.delete<void>(`${this.apiUrl}/${id}`);
     }
 
-    searchTechnicians(query: string): Observable<TechnicianResponse[]> {
-        return this.http.get<TechnicianResponse[]>(`${this.apiUrl}/search`, {
-            params: new HttpParams().set('query', query)
-        });
-    }
-
     getActiveTechnicians(): Observable<TechnicianResponse[]> {
-        return this.http.get<TechnicianResponse[]>(`${this.apiUrl}/active`);
+        return this.http.get<TechnicianResponse[]>(`${this.apiUrl}/status/ACTIVE`);
     }
 }

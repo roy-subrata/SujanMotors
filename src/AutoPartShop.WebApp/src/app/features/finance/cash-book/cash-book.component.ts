@@ -8,11 +8,14 @@ import { DatePickerModule } from 'primeng/datepicker';
 import { TooltipModule } from 'primeng/tooltip';
 import { SelectModule } from 'primeng/select';
 import { MessageService } from 'primeng/api';
-import { CashBookService, DailyCashBook, LedgerRow } from '../services/cash-book.service';
+import { CashBookService, DailyCashBook, LedgerRow, CashBookEntry } from '../services/cash-book.service';
 import { CurrencyService } from '@/shared/services/currency.service';
 
 type Preset = 'today' | 'yesterday' | 'this_week' | 'this_month' | 'custom';
 type ViewMode = 'ledger' | 'split';
+
+const MAX_RANGE_DAYS = 366;
+const CREDIT_METHODS = new Set(['DUE', 'PART_PAY']);
 
 @Component({
   selector: 'app-cash-book',
@@ -66,9 +69,14 @@ export class CashBookComponent implements OnInit {
       : b.cashOut;
   });
 
-  filteredIn  = computed(() => this.cashInRows().reduce((s, r) => s + r.amount, 0));
-  filteredOut = computed(() => this.cashOutRows().reduce((s, r) => s + r.amount, 0));
-  filteredNet = computed(() => this.filteredIn() - this.filteredOut());
+  filteredIn        = computed(() => this.cashInRows().reduce((s, r) => s + r.amount, 0));
+  filteredOut       = computed(() => this.cashOutRows().reduce((s, r) => s + r.amount, 0));
+  filteredNet       = computed(() => this.filteredIn() - this.filteredOut());
+  filteredCreditIn  = computed(() => this.cashInRows().filter(r => r.isCreditSale).reduce((s, r) => s + r.amount, 0));
+  filteredActualIn  = computed(() => this.filteredIn() - this.filteredCreditIn());
+  filteredActualNet = computed(() => this.filteredActualIn() - this.filteredOut());
+
+  hasCreditSales = computed(() => this.cashInRows().some(r => r.isCreditSale));
 
   methodOptions = computed(() => {
     const b = this.book();
@@ -129,7 +137,19 @@ export class CashBookComponent implements OnInit {
     this.load();
   }
 
-  onDateChange(): void { this.preset.set('custom'); this.load(); }
+  onDateChange(): void {
+    const days = this.daysBetween(this.dateFrom, this.dateTo);
+    if (days > MAX_RANGE_DAYS) {
+      this.toast.add({
+        severity: 'warn',
+        summary: 'Range Too Large',
+        detail: `Maximum range is ${MAX_RANGE_DAYS} days. Please narrow your selection.`
+      });
+      return;
+    }
+    this.preset.set('custom');
+    this.load();
+  }
 
   load(): void {
     this.loading.set(true);
@@ -139,11 +159,42 @@ export class CashBookComponent implements OnInit {
 
     obs.subscribe({
       next: b => { this.book.set(b); this.loading.set(false); },
-      error: () => {
-        this.toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to load cash book' });
+      error: (err) => {
+        const msg = err?.error?.data?.detail ?? err?.error?.message ?? 'Failed to load cash book';
+        this.toast.add({ severity: 'error', summary: 'Error', detail: msg });
         this.loading.set(false);
       }
     });
+  }
+
+  // ── CSV Export ────────────────────────────────────────────────────
+  exportCsv(): void {
+    const b = this.book();
+    if (!b) return;
+
+    const rows = this.ledgerRows();
+    const header = ['Time', 'Type', 'Description', 'Reference', 'Payment Method', 'Cash In', 'Cash Out', 'Balance', 'Status', 'Notes'].join(',');
+    const lines  = rows.map(r => [
+      `"${new Date(r.time).toLocaleString('en-GB')}"`,
+      `"${this.typeLabel(r.type)}"`,
+      `"${r.description.replace(/"/g, '""')}"`,
+      `"${r.reference ?? ''}"`,
+      `"${this.methodLabel(r.paymentMethod)}"`,
+      r.cashIn  != null ? r.cashIn  : '',
+      r.cashOut != null ? r.cashOut : '',
+      r.balance,
+      `"${r.status}"`,
+      `"${(r.notes ?? '').replace(/"/g, '""')}"`
+    ].join(','));
+
+    const csv     = [header, ...lines].join('\n');
+    const blob    = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url     = URL.createObjectURL(blob);
+    const anchor  = document.createElement('a');
+    anchor.href   = url;
+    anchor.download = `cashbook-${b.from}${b.isSingleDay ? '' : '_to_' + b.to}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
   }
 
   // ── Helpers ──────────────────────────────────────────────────────
@@ -153,6 +204,14 @@ export class CashBookComponent implements OnInit {
 
   isToday(): boolean {
     return this.isSingleDay() && this.dateFrom.toDateString() === new Date().toDateString();
+  }
+
+  isCreditMethod(method: string): boolean {
+    return CREDIT_METHODS.has(method?.toUpperCase());
+  }
+
+  daysBetween(a: Date, b: Date): number {
+    return Math.round(Math.abs(b.getTime() - a.getTime()) / 86_400_000);
   }
 
   formatCurrency(v: number | null | undefined): string {
@@ -172,7 +231,8 @@ export class CashBookComponent implements OnInit {
     const m: Record<string, string> = {
       CUSTOMER_PAYMENT: 'pi-arrow-circle-down',
       EXPENSE:          'pi-receipt',
-      SUPPLIER_PAYMENT: 'pi-arrow-circle-up'
+      SUPPLIER_PAYMENT: 'pi-arrow-circle-up',
+      REFUND:           'pi-replay'
     };
     return m[type] ?? 'pi-circle';
   }
@@ -181,7 +241,8 @@ export class CashBookComponent implements OnInit {
     const m: Record<string, string> = {
       CUSTOMER_PAYMENT: 'Sale / Receipt',
       EXPENSE:          'Expense',
-      SUPPLIER_PAYMENT: 'Supplier Pmt'
+      SUPPLIER_PAYMENT: 'Supplier Pmt',
+      REFUND:           'Refund'
     };
     return m[type] ?? type;
   }
@@ -190,7 +251,8 @@ export class CashBookComponent implements OnInit {
     const map: Record<string, string> = {
       CASH: 'Cash', MOBILE_BANKING: 'Mobile Banking', CARD: 'Card',
       BANK_TRANSFER: 'Bank Transfer', CHEQUE: 'Cheque', CHECK: 'Cheque',
-      DUE: 'Due / Credit', PART_PAY: 'Part Pay', ADVANCE: 'Advance'
+      DUE: 'Due / Credit', PART_PAY: 'Part Pay', ADVANCE: 'Advance',
+      REFUND: 'Refund', REFUND_REVERSAL: 'Refund Reversal'
     };
     return map[m] ?? m;
   }
@@ -199,7 +261,8 @@ export class CashBookComponent implements OnInit {
     const map: Record<string, string> = {
       CASH: 'pi-money-bill', MOBILE_BANKING: 'pi-mobile',
       CARD: 'pi-credit-card', BANK_TRANSFER: 'pi-building',
-      CHEQUE: 'pi-file', CHECK: 'pi-file', DUE: 'pi-clock'
+      CHEQUE: 'pi-file', CHECK: 'pi-file', DUE: 'pi-clock',
+      PART_PAY: 'pi-clock', REFUND: 'pi-undo'
     };
     return map[m] ?? 'pi-wallet';
   }

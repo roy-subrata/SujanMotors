@@ -133,8 +133,13 @@ public class TechnicianController : ControllerBase
     {
         try
         {
+            if (string.IsNullOrWhiteSpace(request.Name) || string.IsNullOrWhiteSpace(request.Phone))
+                return BadRequest(new { message = "Name and Phone are required" });
+
+            var technicianCode = await _codeGenerateService.GenerateAsync("TECH", cancellationToken);
+
             var technician = Technician.Create(
-                request.TechnicianCode,
+                technicianCode,
                 request.Name,
                 request.Phone,
                 request.Email,

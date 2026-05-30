@@ -68,6 +68,22 @@ namespace AutoPartShop.Api.Controllers
             if (!returnableStatuses.Contains(salesOrder.Status))
                 return BadRequest($"Cannot create a return for a sales order with status '{salesOrder.Status}'. Only confirmed, shipped, or delivered orders can be returned.");
 
+            // Block if any returned line has an active warranty claim to prevent double-refunds.
+            var lineIds = request.Lines.Select(l => l.SalesOrderLineId).ToList();
+            var activeClaimStatuses = new[] { "PENDING", "UNDER_REVIEW", "APPROVED", "IN_PROGRESS" };
+            var conflictingClaim = await _dbContext.Set<WarrantyRegistration>()
+                .Where(w => lineIds.Contains(w.SalesOrderLineId))
+                .Join(_dbContext.Set<WarrantyClaim>(),
+                    w => w.Id,
+                    c => c.WarrantyRegistrationId,
+                    (w, c) => new { c.ClaimNumber, c.Status })
+                .Where(x => activeClaimStatuses.Contains(x.Status))
+                .Select(x => x.ClaimNumber)
+                .FirstOrDefaultAsync();
+
+            if (conflictingClaim != null)
+                return BadRequest($"Cannot create a sales return while active warranty claim '{conflictingClaim}' exists for one of these items. Resolve the claim first.");
+
             // Load existing returns for this sales order to check cumulative quantities
             var existingReturns = await _salesReturnRepository.GetBySalesOrderAsync(request.SalesOrderId);
             var activeReturns = existingReturns

@@ -21,16 +21,20 @@ public class SuppliersController : ControllerBase
     private readonly ISupplierPaymentRepository _supplierPaymentRepository;
     private readonly ILogger<SuppliersController> _logger;
     private readonly ICurrentUserService _currentUserService;
+    private readonly ICodeGenerateService _codeGenerateService;
 
     public SuppliersController(ISupplierRepository supplierRepository,
         ISupplierReadRepository supplierReadRepository,
         ISupplierPaymentRepository supplierPaymentRepository,
-        ICurrentUserService currentUserService, ILogger<SuppliersController> logger)
+        ICurrentUserService currentUserService,
+        ICodeGenerateService codeGenerateService,
+        ILogger<SuppliersController> logger)
     {
         _supplierRepository = supplierRepository;
         _supplierPaymentRepository = supplierPaymentRepository;
         _currentUserService = currentUserService;
         _supplierReadRepository = supplierReadRepository;
+        _codeGenerateService = codeGenerateService;
         _logger = logger;
     }
     [HttpPost("list")]
@@ -122,13 +126,12 @@ public class SuppliersController : ControllerBase
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(request.Name) || string.IsNullOrWhiteSpace(request.Code))
-                return BadRequest(new { message = "Name and Code are required" });
+            if (string.IsNullOrWhiteSpace(request.Name))
+                return BadRequest(new { message = "Name is required" });
 
-            if (await _supplierRepository.CodeExistsAsync(request.Code, null, cancellationToken))
-                return Conflict(new { message = "Supplier code already exists" });
+            var supplierCode = await _codeGenerateService.GenerateAsync("SUP", cancellationToken);
 
-            var supplier = Supplier.Create(request.Name, request.Code, request.ContactPerson, request.Email, request.Phone,
+            var supplier = Supplier.Create(request.Name, supplierCode, request.ContactPerson, request.Email, request.Phone,
                 request.Address, request.City, request.State, request.Country, request.PostalCode,
                 request.PaymentTerms, request.CreditLimit);
 
