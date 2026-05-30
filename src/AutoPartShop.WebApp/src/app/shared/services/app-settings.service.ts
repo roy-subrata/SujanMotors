@@ -26,6 +26,18 @@ export interface NotificationSettings {
   signalRRoles: string[];
 }
 
+export interface ShopProfile {
+  name: string;
+  address: string;
+  phone: string;
+  email: string;
+  taxNo: string;
+  logoUrl: string;
+  tagline: string;
+  invoiceFooterText: string;
+  challanFooterText: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AppSettingsService {
   private readonly http = inject(HttpClient);
@@ -34,6 +46,10 @@ export class AppSettingsService {
 
   getByCategory(category: string): Observable<AppSetting[]> {
     return this.http.get<AppSetting[]>(`${this.baseUrl}/category/${category}`);
+  }
+
+  getShopProfile(): Observable<ShopProfile> {
+    return this.http.get<ShopProfile>(`${this.baseUrl}/public/shop`);
   }
 
   update(key: string, request: UpdateSettingRequest): Observable<void> {

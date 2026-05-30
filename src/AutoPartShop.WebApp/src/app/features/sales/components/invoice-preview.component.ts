@@ -42,24 +42,23 @@ import { InvoicePdfService, InvoicePdfData } from '../services/invoice-pdf.servi
         <div class="invoice-paper" *ngIf="invoiceData">
           <!-- Header -->
           <div class="header">
-            <div class="logo-section">
-              <div class="logo">SM</div>
-              <div class="company-block">
-                <div class="company-name">{{ invoiceData.companyName }}</div>
-                <div class="company-detail">{{ invoiceData.companyAddress }}</div>
-                <div class="company-detail">{{ invoiceData.companyPhone }}</div>
-                <div class="company-detail">{{ invoiceData.companyEmail }}</div>
-                <div class="company-tax" *ngIf="invoiceData.companyTaxId">{{ invoiceData.companyTaxId }}</div>
-              </div>
+            <div class="company-block">
+              <img *ngIf="invoiceData.companyLogo && !invoiceData.companyLogo.startsWith('assets')"
+                   [src]="invoiceData.companyLogo" class="company-logo" alt="logo">
+              <div class="company-name">{{ invoiceData.companyName }}</div>
+              <div class="company-detail" *ngIf="invoiceData.companyAddress">{{ invoiceData.companyAddress }}</div>
+              <div class="company-detail" *ngIf="invoiceData.companyPhone">{{ invoiceData.companyPhone }}</div>
+              <div class="company-detail" *ngIf="invoiceData.companyEmail">{{ invoiceData.companyEmail }}</div>
+              <div class="company-tax" *ngIf="invoiceData.companyTaxId">{{ invoiceData.companyTaxId }}</div>
             </div>
             <div class="title-section">
               <h1>Invoice</h1>
-              <div class="invoice-meta">
-                <div><span>Invoice no.:</span> <span class="value">{{ invoiceData.invoiceNumber }}</span></div>
-                <div><span>Invoice date:</span> <span class="value">{{ formatDate(invoiceData.invoiceDate) }}</span></div>
-                <div *ngIf="invoiceData.dueDate"><span>Due date:</span> <span class="value">{{ formatDate(invoiceData.dueDate) }}</span></div>
-                <div *ngIf="invoiceData.salesOrderNumber"><span>SO #:</span> <span class="value">{{ invoiceData.salesOrderNumber }}</span></div>
-              </div>
+              <table class="meta-table">
+                <tr><td>Invoice no.</td><td>{{ invoiceData.invoiceNumber }}</td></tr>
+                <tr><td>Date</td><td>{{ formatDate(invoiceData.invoiceDate) }}</td></tr>
+                <tr *ngIf="invoiceData.dueDate"><td>Due date</td><td>{{ formatDate(invoiceData.dueDate) }}</td></tr>
+                <tr *ngIf="invoiceData.salesOrderNumber"><td>SO #</td><td>{{ invoiceData.salesOrderNumber }}</td></tr>
+              </table>
             </div>
           </div>
 
@@ -303,68 +302,81 @@ import { InvoicePdfService, InvoicePdfData } from '../services/invoice-pdf.servi
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
+      gap: 24px;
       margin-bottom: 20px;
     }
 
-    .logo-section {
-      display: flex;
-      align-items: center;
-      gap: 10px;
+    /* Left column: grows, never squeezes the right */
+    .company-block {
+      flex: 3 1 0;
+      min-width: 0;
     }
 
-    .logo {
-      width: 60px;
-      height: 60px;
-      background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-size: 24px;
-      font-weight: 700;
+    .company-logo {
+      max-height: 44px;
+      max-width: 140px;
+      object-fit: contain;
+      margin-bottom: 6px;
+      display: block;
     }
 
     .company-name {
-      font-size: 22px;
+      font-size: 18px;
       font-weight: 700;
       color: #1976d2;
+      line-height: 1.25;
       margin-bottom: 2px;
     }
 
     .company-detail {
       font-size: 11px;
       color: #666;
-      line-height: 1.4;
+      line-height: 1.45;
     }
 
     .company-tax {
-      margin-top: 4px;
+      margin-top: 3px;
       font-size: 11px;
       color: #333;
       font-weight: 600;
     }
 
+    /* Right column: fixed proportion, right-aligned */
     .title-section {
+      flex: 2 0 auto;
       text-align: right;
     }
 
     .title-section h1 {
-      font-size: 28px;
+      font-size: 26px;
       color: #1976d2;
       font-weight: 300;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
     }
 
-    .invoice-meta {
+    /* Two-column meta table: label left, value right */
+    .meta-table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+
+    .meta-table td {
+      padding: 2px 0;
       font-size: 11px;
-      color: #666;
-      line-height: 1.6;
+      vertical-align: middle;
     }
 
-    .invoice-meta .value {
+    .meta-table td:first-child {
+      color: #999;
+      text-align: left;
+      white-space: nowrap;
+      padding-right: 12px;
+    }
+
+    .meta-table td:last-child {
       color: #333;
       font-weight: 500;
+      text-align: right;
     }
 
     /* Address Section */
@@ -585,7 +597,7 @@ import { InvoicePdfService, InvoicePdfData } from '../services/invoice-pdf.servi
       margin-top: 4px;
     }
 
-    /* Print Styles */
+    /* Print / PDF Styles */
     @media print {
       .invoice-container {
         padding: 0;
@@ -598,6 +610,18 @@ import { InvoicePdfService, InvoicePdfData } from '../services/invoice-pdf.servi
         box-shadow: none;
         padding: 0;
       }
+
+      /* Re-assert header flex for print engines */
+      .header {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: flex-start !important;
+        gap: 24px !important;
+        page-break-inside: avoid;
+      }
+
+      .company-block { flex: 3 1 0 !important; }
+      .title-section { flex: 2 0 auto !important; text-align: right !important; }
     }
   `]
 })

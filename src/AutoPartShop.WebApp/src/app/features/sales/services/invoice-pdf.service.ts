@@ -1,8 +1,15 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable, of } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { shareReplay } from 'rxjs/operators';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { CurrencyService } from '../../../shared/services/currency.service';
+import { AppSettingsService, ShopProfile } from '../../../shared/services/app-settings.service';
+
+const DEFAULT_PROFILE: ShopProfile = {
+  name: '', address: '', phone: '', email: '', taxNo: '',
+  logoUrl: 'assets/logo.png', tagline: '',
+  invoiceFooterText: 'Thank you for your business!',
+  challanFooterText: 'Goods once dispatched will not be accepted back without prior notice.'
+};
 
 export interface InvoicePdfData {
   // Company Info
@@ -70,24 +77,26 @@ export interface InvoicePdfPayment {
 
 @Injectable({ providedIn: 'root' })
 export class InvoicePdfService {
-  private readonly http = inject(HttpClient);
   private readonly currencyService = inject(CurrencyService);
+  private readonly appSettings = inject(AppSettingsService);
 
-  // Company configuration - In real app, this would come from settings/API
-  private readonly companyConfig = {
-    companyName: 'Sujan Motors',
-    companyAddress: 'Kathmandu, Nepal',
-    companyPhone: '+977-1-4XXXXXX',
-    companyEmail: 'info@sujanmotors.com',
-    companyTaxId: 'PAN: XXXXXXXXX',
-    companyLogo: 'assets/logo.png'
-  };
+  /** Loaded once from DB; all print components read this signal. */
+  readonly shopProfile = toSignal(
+    this.appSettings.getShopProfile().pipe(shareReplay(1)),
+    { initialValue: DEFAULT_PROFILE }
+  );
 
-  /**
-   * Get company configuration
-   */
+  /** Backward-compatible accessor — returns current profile values. */
   getCompanyConfig() {
-    return this.companyConfig;
+    const p = this.shopProfile();
+    return {
+      companyName:    p.name,
+      companyAddress: p.address,
+      companyPhone:   p.phone,
+      companyEmail:   p.email,
+      companyTaxId:   p.taxNo,
+      companyLogo:    p.logoUrl
+    };
   }
 
   /**

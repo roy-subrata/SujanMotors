@@ -278,6 +278,12 @@ export class AppMenuComponent implements OnInit {
                 icon: 'pi pi-cog',
                 items: [
                     {
+                        label: 'Company Profile',
+                        icon: 'pi pi-building',
+                        routerLink: ['/admin/company-profile'],
+                        visible: this.hasAdminRole()
+                    },
+                    {
                         label: 'Currencies',
                         icon: 'pi pi-dollar',
                         routerLink: ['/admin/currencies'],

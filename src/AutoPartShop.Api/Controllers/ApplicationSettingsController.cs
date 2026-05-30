@@ -22,6 +22,36 @@ public class ApplicationSettingsController : ControllerBase
     }
 
     /// <summary>
+    /// Get the public shop profile used by print templates (no auth required).
+    /// Returns all BUSINESS-category settings as a typed object.
+    /// </summary>
+    [HttpGet("public/shop")]
+    [AllowAnonymous]
+    public async Task<ActionResult> GetPublicShopProfile()
+    {
+        var settings = await _settingsRepository.GetByCategoryAsync("BUSINESS");
+
+        string Get(string key, string fallback = "")
+        {
+            var v = settings.FirstOrDefault(s => s.Key == key && !s.Isdeleted)?.Value;
+            return string.IsNullOrWhiteSpace(v) ? fallback : v;
+        }
+
+        return Ok(new
+        {
+            name              = Get("SHOP_NAME"),
+            address           = Get("SHOP_ADDRESS"),
+            phone             = Get("SHOP_PHONE"),
+            email             = Get("SHOP_EMAIL"),
+            taxNo             = Get("SHOP_TAX_NUMBER"),
+            logoUrl           = Get("SHOP_LOGO_URL", "assets/logo.png"),
+            tagline           = Get("SHOP_TAGLINE"),
+            invoiceFooterText = Get("INVOICE_FOOTER_TEXT", "Thank you for your business!"),
+            challanFooterText = Get("CHALLAN_FOOTER_TEXT", "Goods once dispatched will not be accepted back without prior notice.")
+        });
+    }
+
+    /// <summary>
     /// Get all application settings (Admin only)
     /// </summary>
     [HttpGet]
