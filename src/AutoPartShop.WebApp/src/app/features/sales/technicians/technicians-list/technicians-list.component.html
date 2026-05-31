@@ -1,149 +1,150 @@
 <p-toast></p-toast>
 <p-confirmDialog></p-confirmDialog>
 
-<div class="technicians-container">
-  <!-- Header -->
-  <div class="page-header">
-    <div class="header-content">
-      <div class="header-title-section">
-        <h1 class="header-title">
-          <i class="pi pi-users mr-3"></i>
-          Technicians
-        </h1>
-        <p class="header-subtitle">Manage technicians and service providers</p>
-      </div>
-      <div class="header-actions">
-        <button pButton type="button" label="Add Technician" icon="pi pi-plus" class="p-button-success" (click)="createTechnician()"></button>
-        <button pButton type="button" label="Export CSV" icon="pi pi-file" class="p-button-outlined" (click)="exportTechnicians('csv')"></button>
-        <button pButton type="button" label="Export JSON" icon="pi pi-file-export" class="p-button-outlined" (click)="exportTechnicians('json')"></button>
+<app-page-container>
+
+  <!-- ==================== HEADER ==================== -->
+  <app-page-header
+    title="Technicians"
+    subtitle="Manage technicians and service providers"
+    [breadcrumb]="[{ label: 'Sales' }, { label: 'Technicians' }]"
+    [count]="totalRecords" countLabel="technicians" countIcon="pi pi-users">
+    <ng-container actions>
+      <button class="btn-icon" pTooltip="Export CSV" tooltipPosition="bottom" (click)="exportTechnicians('csv')">
+        <i class="pi pi-file"></i>
+      </button>
+      <button class="btn-icon" pTooltip="Export JSON" tooltipPosition="bottom" (click)="exportTechnicians('json')">
+        <i class="pi pi-file-export"></i>
+      </button>
+      <button class="btn-primary" (click)="createTechnician()">
+        <i class="pi pi-plus"></i>
+        <span>Add Technician</span>
+      </button>
+    </ng-container>
+  </app-page-header>
+
+  <!-- ==================== FILTERS ==================== -->
+  <app-filter-bar>
+    <div search class="filter-group search-group">
+      <div class="search-input-wrapper">
+        <i class="pi pi-search"></i>
+        <input type="text" [(ngModel)]="searchTerm" placeholder="Search by name, code, phone, shop..."
+          class="search-input" (keyup.enter)="onSearch()">
+        <button *ngIf="searchTerm" class="search-clear" (click)="clearSearch()"><i class="pi pi-times"></i></button>
       </div>
     </div>
-  </div>
 
-  <!-- Filters Card -->
-  <p-card styleClass="filters-card mb-4">
-    <div class="filters-container">
-      <!-- Search -->
-      <div class="filter-item search-filter">
-        <div class="search-container">
-          <i class="pi pi-search search-icon"></i>
-          <input type="text" [(ngModel)]="searchTerm" placeholder="Search by name, code, phone, shop..."
-            class="search-input" (keyup.enter)="onSearch()">
-          <i *ngIf="searchTerm" class="pi pi-times clear-icon" (click)="clearSearch()"></i>
+    <div filters class="filter-group">
+      <label class="filter-label">Status</label>
+      <p-select [options]="statusOptions" [(ngModel)]="filterStatus" placeholder="All Statuses"
+        [showClear]="true" (onChange)="onFilterChange()" appendTo="body" styleClass="filter-dropdown"></p-select>
+    </div>
+
+    <div filterActions class="filter-group filter-actions">
+      <button class="btn-search" (click)="onSearch()"><i class="pi pi-search"></i> Search</button>
+      <button *ngIf="searchTerm || filterStatus" class="btn-clear" (click)="clearFilters()">
+        <i class="pi pi-filter-slash"></i> Clear
+      </button>
+    </div>
+  </app-filter-bar>
+
+  <!-- ==================== DATA TABLE (Desktop) ==================== -->
+  <section class="table-section desktop-only">
+    <div class="table-container">
+      <p-table [value]="technicians" [loading]="loading" [lazy]="true" [paginator]="false"
+        [rows]="pageSize" [totalRecords]="totalRecords" [scrollable]="true" scrollHeight="flex"
+        styleClass="app-table" dataKey="id">
+
+        <ng-template #header>
+          <tr>
+            <th class="col-code">Code</th>
+            <th class="col-name">Name</th>
+            <th class="col-phone">Phone</th>
+            <th class="col-shop">Shop Name</th>
+            <th class="col-city">City</th>
+            <th class="col-status">Status</th>
+            <th class="col-actions">Actions</th>
+          </tr>
+        </ng-template>
+
+        <ng-template #body let-technician>
+          <tr class="data-row" (dblclick)="viewTechnician(technician)">
+            <td class="col-code"><span class="code-link" (click)="viewTechnician(technician)">{{ technician.technicianCode }}</span></td>
+            <td class="col-name"><span class="cell-primary">{{ technician.name }}</span></td>
+            <td class="col-phone">{{ technician.phone || '-' }}</td>
+            <td class="col-shop"><span class="text-muted">{{ technician.shopName || '-' }}</span></td>
+            <td class="col-city"><span class="text-muted">{{ technician.city || '-' }}</span></td>
+            <td class="col-status">
+              <span class="status-pill" [attr.data-status]="technician.status.toLowerCase()">{{ technician.status }}</span>
+            </td>
+            <td class="col-actions">
+              <div class="action-cell">
+                <button class="btn-action" pTooltip="View" (click)="viewTechnician(technician)"><i class="pi pi-eye"></i></button>
+                <button class="btn-action" pTooltip="Edit" (click)="editTechnician(technician)"><i class="pi pi-pencil"></i></button>
+                <button class="btn-action" [pTooltip]="technician.status === 'ACTIVE' ? 'Deactivate' : 'Activate'" (click)="toggleStatus(technician)">
+                  <i class="pi" [ngClass]="technician.status === 'ACTIVE' ? 'pi-ban' : 'pi-check'"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+
+        <ng-template #emptymessage>
+          <tr>
+            <td colspan="7">
+              <div class="empty-state">
+                <div class="empty-icon"><i class="pi pi-users"></i></div>
+                <h3>No Technicians Found</h3>
+                <p>{{ searchTerm ? 'Try adjusting your filters or search criteria' : 'Start by adding a new technician' }}</p>
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </div>
+  </section>
+
+  <!-- ==================== MOBILE CARDS ==================== -->
+  <section class="cards-section mobile-only">
+    <div *ngIf="!loading && technicians.length === 0" class="empty-state-mobile">
+      <div class="empty-icon"><i class="pi pi-users"></i></div>
+      <h3>No Technicians</h3>
+      <p>{{ searchTerm ? 'Try different filters' : 'Add your first technician' }}</p>
+    </div>
+
+    <div *ngIf="technicians.length > 0" class="cards-grid">
+      <div *ngFor="let technician of technicians" class="order-card" (click)="viewTechnician(technician)">
+        <div class="card-header">
+          <span class="card-so-number">{{ technician.technicianCode }}</span>
+          <span class="status-pill" [attr.data-status]="technician.status.toLowerCase()">{{ technician.status }}</span>
+        </div>
+        <div class="card-body">
+          <div class="card-customer">
+            <div class="customer-avatar small">{{ (technician.name || 'T')[0].toUpperCase() }}</div>
+            <span class="customer-name">{{ technician.name }}</span>
+          </div>
+          <div class="card-meta">
+            <span *ngIf="technician.phone" class="card-meta-item"><i class="pi pi-phone"></i> {{ technician.phone }}</span>
+            <span *ngIf="technician.shopName" class="card-meta-item"><i class="pi pi-shop"></i> {{ technician.shopName }}</span>
+            <span *ngIf="technician.city" class="card-meta-item"><i class="pi pi-map-marker"></i> {{ technician.city }}</span>
+          </div>
+        </div>
+        <div class="card-footer">
+          <button class="btn-card-action" (click)="editTechnician(technician); $event.stopPropagation()"><i class="pi pi-pencil"></i></button>
         </div>
       </div>
-
-      <!-- Status Filter -->
-      <div class="filter-item">
-        <p-select [options]="statusOptions" [(ngModel)]="filterStatus" placeholder="Status"
-          [showClear]="true" (onChange)="onFilterChange()" class="w-full"></p-select>
-      </div>
-
-      <!-- Filter Actions -->
-      <div class="filter-actions">
-        <button pButton type="button" label="Search" icon="pi pi-search" (click)="onSearch()"></button>
-        <button pButton type="button" label="Clear" icon="pi pi-times" class="p-button-outlined" (click)="clearFilters()"></button>
-      </div>
     </div>
-  </p-card>
+  </section>
 
-  <!-- Technicians Table -->
-  <div class="table-container">
-    <p-table
-      #dt
-      [value]="technicians"
-      [loading]="loading"
-      [lazy]="true"
-      [paginator]="false"
-      [rows]="pageSize"
-      [totalRecords]="totalRecords"
-      responsiveLayout="scroll"
-      styleClass="p-datatable-striped"
-      [tableStyle]="{ 'min-width': '50rem' }"
-      dataKey="id">
+  <!-- ==================== PAGINATION ==================== -->
+  <app-data-pagination
+    [first]="(pageNumber - 1) * pageSize"
+    [pageSize]="pageSize"
+    [totalRecords]="totalRecords"
+    [pageSizeOptions]="pageSizeOptions"
+    itemLabel="technicians"
+    (pageChange)="onPageChange({ page: $event - 1, rows: pageSize })"
+    (pageSizeChange)="onPageChange({ page: 0, rows: $event })">
+  </app-data-pagination>
 
-      <ng-template pTemplate="header">
-        <tr>
-          <th pSortableColumn="technicianCode">
-            Code <p-sortIcon field="technicianCode"></p-sortIcon>
-          </th>
-          <th pSortableColumn="name">
-            Name <p-sortIcon field="name"></p-sortIcon>
-          </th>
-          <th pSortableColumn="phone">
-            Phone <p-sortIcon field="phone"></p-sortIcon>
-          </th>
-          <th pSortableColumn="shopName">
-            Shop Name <p-sortIcon field="shopName"></p-sortIcon>
-          </th>
-          <th pSortableColumn="city">
-            City <p-sortIcon field="city"></p-sortIcon>
-          </th>
-          <th pSortableColumn="status">
-            Status <p-sortIcon field="status"></p-sortIcon>
-          </th>
-          <th class="text-center">Actions</th>
-        </tr>
-      </ng-template>
-
-      <ng-template pTemplate="body" let-technician>
-        <tr class="technician-row">
-          <td>
-            <span class="technician-code" (click)="viewTechnician(technician)">{{ technician.technicianCode }}</span>
-          </td>
-          <td>
-            <span class="technician-name">{{ technician.name }}</span>
-          </td>
-          <td>
-            <span class="phone-number">{{ technician.phone }}</span>
-          </td>
-          <td>
-            <span class="shop-name">{{ technician.shopName || '-' }}</span>
-          </td>
-          <td>
-            <span class="city-name">{{ technician.city || '-' }}</span>
-          </td>
-          <td>
-            <p-tag [value]="technician.status" [severity]="getStatusSeverity(technician.status)"></p-tag>
-          </td>
-          <td class="text-center">
-            <div class="flex justify-center gap-1">
-              <button pButton type="button" icon="pi pi-eye" class="p-button-text p-button-sm"
-                (click)="viewTechnician(technician)" pTooltip="View" tooltipPosition="left"></button>
-              <button pButton type="button" icon="pi pi-pencil" class="p-button-text p-button-sm"
-                (click)="editTechnician(technician)" pTooltip="Edit" tooltipPosition="left"></button>
-              <button pButton type="button"
-                [icon]="technician.status === 'ACTIVE' ? 'pi pi-ban' : 'pi pi-check'"
-                [class]="technician.status === 'ACTIVE' ? 'p-button-text p-button-danger p-button-sm' : 'p-button-text p-button-success p-button-sm'"
-                (click)="toggleStatus(technician)"
-                [pTooltip]="technician.status === 'ACTIVE' ? 'Deactivate' : 'Activate'"
-                tooltipPosition="left"></button>
-            </div>
-          </td>
-        </tr>
-      </ng-template>
-
-      <ng-template pTemplate="emptymessage">
-        <tr>
-          <td colspan="7" class="text-center p-6">
-            <div class="empty-state">
-              <i class="pi pi-users text-5xl text-gray-300 mb-3"></i>
-              <h3 class="text-gray-500 mb-2">No technicians found</h3>
-              <p class="text-gray-400">{{ searchTerm ? 'Try adjusting your filters or search criteria' : 'Start by adding a new technician' }}</p>
-            </div>
-          </td>
-        </tr>
-      </ng-template>
-    </p-table>
-
-    <!-- Paginator -->
-    <p-paginator
-      [rows]="pageSize"
-      [totalRecords]="totalRecords"
-      [rowsPerPageOptions]="pageSizeOptions"
-      [showCurrentPageReport]="true"
-      currentPageReportTemplate="Showing {first} to {last} of {totalRecords} technicians"
-      (onPageChange)="onPageChange($event)">
-    </p-paginator>
-  </div>
-</div>
+</app-page-container>

@@ -7,16 +7,16 @@ import { TooltipModule } from 'primeng/tooltip';
 import { TagModule } from 'primeng/tag';
 import { ContextMenuModule, ContextMenu } from 'primeng/contextmenu';
 import { RippleModule } from 'primeng/ripple';
-import { Select } from 'primeng/select';
 import { MenuItem } from 'primeng/api';
 import { BrandResponse } from '../../services/brand.service';
 import { I18nService } from '@/shared/services/i18n.service';
+import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
     selector: 'app-brands-list',
     standalone: true,
-    imports: [CommonModule, FormsModule, TableModule, ButtonModule, TooltipModule, TagModule, ContextMenuModule, RippleModule, Select],
+    imports: [CommonModule, FormsModule, TableModule, ButtonModule, TooltipModule, TagModule, ContextMenuModule, RippleModule, DataPaginationComponent],
     templateUrl: './brands-list.component.html',
     styleUrls: ['./brands-list.component.css']
 })

@@ -18,6 +18,8 @@ import { MessageService, ConfirmationService } from 'primeng/api';
 import { AdminService, UserResponse, RoleResponse, PermissionResponse } from '../../shared/services/admin.service';
 import { PriceCodeService } from '../../shared/services/price-code.service';
 import { AppSettingsService, NotificationSettings } from '../../shared/services/app-settings.service';
+import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
+import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 
 @Component({
   selector: 'app-admin-settings',
@@ -38,7 +40,9 @@ import { AppSettingsService, NotificationSettings } from '../../shared/services/
     CheckboxModule,
     PasswordModule,
     TooltipModule,
-    ToggleSwitchModule
+    ToggleSwitchModule,
+    PageContainerComponent,
+    PageHeaderComponent
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: './admin-settings.component.html',

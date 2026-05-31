@@ -1,92 +1,70 @@
 <!-- ============================================================
-     CATEGORIES LIST - ENTERPRISE UI (MATCHES SALES ORDERS LAYOUT)
+     BRANDS LIST — standardized data-page layout
      ============================================================ -->
 
 <p-toast position="top-right"></p-toast>
 <p-confirmDialog></p-confirmDialog>
 
-<div class="page-wrapper">
-  <!-- ==================== PAGE HEADER ==================== -->
-  <header class="page-header">
-    <div class="header-content">
-      <!-- Left: Title & Subtitle -->
-      <div class="header-left">
-        <h1 class="page-title">Brands</h1>
-        <p class="page-subtitle">Manage part brands and manufacturers</p>
-      </div>
+<app-page-container>
 
-      <!-- Right: Actions -->
-      <div class="header-actions">
-        <!-- Stats Badge -->
-        <div class="stats-badge">
-          <i class="pi pi-tags"></i>
-          <div class="stats-info">
-            <span class="stats-value">{{ totalRecords }}</span>
-            <span class="stats-label">brands</span>
-          </div>
-        </div>
+  <!-- ==================== HEADER ==================== -->
+  <app-page-header
+    title="Brands"
+    subtitle="Manage part brands and manufacturers"
+    [breadcrumb]="[{ label: 'Inventory' }, { label: 'Brands' }]"
+    [count]="totalRecords" countLabel="brands" countIcon="pi pi-tags">
+    <ng-container actions>
+      <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="refreshData()">
+        <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
+      </button>
+      <button class="btn-primary" (click)="createBrand()">
+        <i class="pi pi-plus"></i>
+        <span>New Brand</span>
+      </button>
+    </ng-container>
+  </app-page-header>
 
-        <!-- Action Buttons -->
-        <div class="action-buttons">
-          <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="refreshData()">
-            <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
-          </button>
-          <button class="btn-primary" (click)="createBrand()">
-            <i class="pi pi-plus"></i>
-            <span>New Brand</span>
-          </button>
-        </div>
-      </div>
-    </div>
-  </header>
-
-  <!-- ==================== FILTER SECTION ==================== -->
-  <section class="filter-section">
-    <div class="filter-container">
-      <!-- Search Input -->
-      <div class="filter-group search-group">
-        <div class="search-input-wrapper">
-          <i class="pi pi-search"></i>
-          <input
-            type="text"
-            [(ngModel)]="searchTerm"
-            placeholder="Search brands..."
-            (keyup.enter)="onSearch()"
-            class="search-input" />
-          <button *ngIf="searchTerm" class="search-clear" (click)="clearSearchInput(); onSearch()">
-            <i class="pi pi-times"></i>
-          </button>
-        </div>
-      </div>
-
-      <!-- Status Filter -->
-      <div class="filter-group">
-        <label class="filter-label">Status</label>
-        <p-select
-          [options]="statusOptions"
-          [(ngModel)]="filterStatus"
-          placeholder="All Statuses"
-          [showClear]="true"
-          appendTo="body"
-          styleClass="filter-dropdown">
-        </p-select>
-      </div>
-
-      <!-- Filter Actions -->
-      <div class="filter-group filter-actions">
-        <button class="btn-search" (click)="onSearch()">
-          <i class="pi pi-search"></i>
-          Apply
-        </button>
-        <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
-          <i class="pi pi-filter-slash"></i>
-          Clear
+  <!-- ==================== FILTERS ==================== -->
+  <app-filter-bar>
+    <div search class="filter-group search-group">
+      <div class="search-input-wrapper">
+        <i class="pi pi-search"></i>
+        <input
+          type="text"
+          [(ngModel)]="searchTerm"
+          placeholder="Search brands..."
+          (keyup.enter)="onSearch()"
+          class="search-input" />
+        <button *ngIf="searchTerm" class="search-clear" (click)="clearSearchInput(); onSearch()">
+          <i class="pi pi-times"></i>
         </button>
       </div>
     </div>
 
-    <!-- Active Filters Display -->
-    <div *ngIf="hasActiveFilters()" class="active-filters">
+    <div filters class="filter-group">
+      <label class="filter-label">Status</label>
+      <p-select
+        [options]="statusOptions"
+        [(ngModel)]="filterStatus"
+        placeholder="All Statuses"
+        [showClear]="true"
+        appendTo="body"
+        styleClass="filter-dropdown">
+      </p-select>
+    </div>
+
+    <div filterActions class="filter-group filter-actions">
+      <button class="btn-search" (click)="onSearch()">
+        <i class="pi pi-search"></i>
+        Apply
+      </button>
+      <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
+        <i class="pi pi-filter-slash"></i>
+        Clear
+      </button>
+    </div>
+
+    <div activeFilters *ngIf="hasActiveFilters()" class="active-filters">
       <span class="active-filters-label">Active filters:</span>
       <span *ngIf="searchTerm" class="filter-chip">
         Search: "{{ searchTerm }}"
@@ -97,23 +75,22 @@
         <i class="pi pi-times" (click)="filterStatus = null; onFilterChange()"></i>
       </span>
     </div>
-  </section>
+  </app-filter-bar>
 
   <!-- ==================== LIST SECTION ==================== -->
-  <div class="list-wrapper">
-    <app-brands-list
-      [brands]="brands"
-      [loading]="loading"
-      [totalRecords]="totalRecords"
-      [rows]="rows"
-      [currentPage]="currentPage"
-      (editBrand)="selectAndOpenUpdate($event)"
-      (deleteBrand)="selectAndDelete($event)"
-      (toggleStatus)="toggleBrandStatus($event)"
-      (pageChange)="onPageChange($event)">
-    </app-brands-list>
-  </div>
-</div>
+  <app-brands-list
+    [brands]="brands"
+    [loading]="loading"
+    [totalRecords]="totalRecords"
+    [rows]="rows"
+    [currentPage]="currentPage"
+    (editBrand)="selectAndOpenUpdate($event)"
+    (deleteBrand)="selectAndDelete($event)"
+    (toggleStatus)="toggleBrandStatus($event)"
+    (pageChange)="onPageChange($event)">
+  </app-brands-list>
+
+</app-page-container>
 
 <!-- ==================== FORM DIALOG ==================== -->
 <app-brands-form-dialog

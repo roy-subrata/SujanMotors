@@ -7,6 +7,12 @@
   overflow: hidden;
 }
 
+/* Gradient page-header (shared design system) as a fixed-height flex child */
+app-page-header {
+  display: block;
+  flex-shrink: 0;
+}
+
 /* ===== HEADER ===== */
 .as-header {
   display: flex;

@@ -1,175 +1,186 @@
 <p-toast></p-toast>
 <p-confirmDialog></p-confirmDialog>
 
-<div class="invoices-container">
-  <!-- Header -->
-  <div class="page-header">
-    <div class="header-content">
-      <div class="header-title-section">
-        <h1 class="header-title">
-          <i class="pi pi-file-invoice mr-3"></i>
-          Sales Invoices
-        </h1>
-        <p class="header-subtitle">Manage and track all customer invoices and payments</p>
-      </div>
-      <div class="header-actions">
-        <button pButton type="button" label="New Invoice" icon="pi pi-plus" class="p-button-success" (click)="createInvoice()"></button>
-        <button pButton type="button" label="Export CSV" icon="pi pi-file" class="p-button-outlined" (click)="exportInvoices('csv')"></button>
-        <button pButton type="button" label="Export JSON" icon="pi pi-file-export" class="p-button-outlined" (click)="exportInvoices('json')"></button>
+<app-page-container>
+
+  <!-- ==================== HEADER ==================== -->
+  <app-page-header
+    title="Sales Invoices"
+    subtitle="Manage and track all customer invoices and payments"
+    [breadcrumb]="[{ label: 'Sales' }, { label: 'Invoices' }]"
+    [count]="totalRecords" countLabel="invoices" countIcon="pi pi-file-invoice">
+    <ng-container actions>
+      <button class="btn-icon" pTooltip="Export CSV" tooltipPosition="bottom" (click)="exportInvoices('csv')">
+        <i class="pi pi-file"></i>
+      </button>
+      <button class="btn-icon" pTooltip="Export JSON" tooltipPosition="bottom" (click)="exportInvoices('json')">
+        <i class="pi pi-file-export"></i>
+      </button>
+      <button class="btn-primary" (click)="createInvoice()">
+        <i class="pi pi-plus"></i>
+        <span>New Invoice</span>
+      </button>
+    </ng-container>
+  </app-page-header>
+
+  <!-- ==================== FILTERS ==================== -->
+  <app-filter-bar>
+    <div search class="filter-group search-group">
+      <div class="search-input-wrapper">
+        <i class="pi pi-search"></i>
+        <input type="text" [(ngModel)]="searchTerm" placeholder="Search by invoice number, customer..."
+          class="search-input" (keyup.enter)="onSearch()">
+        <button *ngIf="searchTerm" class="search-clear" (click)="clearSearch()"><i class="pi pi-times"></i></button>
       </div>
     </div>
-  </div>
 
-  <!-- Filters Card -->
-  <p-card styleClass="filters-card mb-4">
-    <div class="filters-container">
-      <!-- Search -->
-      <div class="filter-item search-filter">
-        <div class="search-container">
-          <i class="pi pi-search search-icon"></i>
-          <input type="text" [(ngModel)]="searchTerm" placeholder="Search by invoice number, customer..."
-            class="search-input" (keyup.enter)="onSearch()">
-          <i *ngIf="searchTerm" class="pi pi-times clear-icon" (click)="clearSearch()"></i>
+    <div filters class="filter-group">
+      <label class="filter-label">Status</label>
+      <p-select [options]="statusOptions" [(ngModel)]="filterStatus" placeholder="All Statuses"
+        [showClear]="true" (onChange)="onFilterChange()" appendTo="body" styleClass="filter-dropdown"></p-select>
+    </div>
+
+    <div filters class="filter-group">
+      <label class="filter-label">Invoice Date</label>
+      <p-datepicker [(ngModel)]="dateRange" selectionMode="range" [showIcon]="true"
+        placeholder="Date range" dateFormat="M dd, yy" [showButtonBar]="true"
+        (onSelect)="onFilterChange()" (onClear)="onFilterChange()" appendTo="body" styleClass="filter-datepicker"></p-datepicker>
+    </div>
+
+    <div filterActions class="filter-group filter-actions">
+      <button class="btn-search" (click)="onSearch()"><i class="pi pi-search"></i> Search</button>
+      <button *ngIf="searchTerm || filterStatus || (dateRange && dateRange.length)" class="btn-clear" (click)="clearFilters()">
+        <i class="pi pi-filter-slash"></i> Clear
+      </button>
+    </div>
+  </app-filter-bar>
+
+  <!-- ==================== DATA TABLE (Desktop) ==================== -->
+  <section class="table-section desktop-only">
+    <div class="table-container">
+      <p-table [value]="invoices" [loading]="loading" [lazy]="true" [paginator]="false"
+        [rows]="pageSize" [totalRecords]="totalRecords" [scrollable]="true" scrollHeight="flex"
+        styleClass="app-table" dataKey="id">
+
+        <ng-template #header>
+          <tr>
+            <th class="col-invoice">Invoice #</th>
+            <th class="col-so">Sales Order</th>
+            <th class="col-customer">Customer</th>
+            <th class="col-date">Invoice Date</th>
+            <th class="col-date">Due Date</th>
+            <th class="col-status">Status</th>
+            <th class="col-amount">Total</th>
+            <th class="col-amount">Outstanding</th>
+            <th class="col-actions">Actions</th>
+          </tr>
+        </ng-template>
+
+        <ng-template #body let-invoice>
+          <tr class="data-row" [class.row-overdue]="invoice.isOverdue" (dblclick)="viewInvoice(invoice)">
+            <td class="col-invoice">
+              <div class="so-cell">
+                <span class="so-link" (click)="viewInvoice(invoice)">{{ invoice.invoiceNumber }}</span>
+                <span *ngIf="invoice.isOverdue" class="overdue-badge">Overdue</span>
+              </div>
+            </td>
+            <td class="col-so">
+              <span *ngIf="invoice.salesOrderNumber" class="so-link" (click)="viewSalesOrder(invoice)">{{ invoice.salesOrderNumber }}</span>
+              <span *ngIf="!invoice.salesOrderNumber" class="text-muted">-</span>
+            </td>
+            <td class="col-customer">
+              <div class="customer-info">
+                <span class="customer-name">{{ invoice.customerName || '-' }}</span>
+                <span class="customer-phone">{{ invoice.customerPhone }}</span>
+              </div>
+            </td>
+            <td class="col-date"><span class="date-text">{{ formatDate(invoice.invoiceDate) }}</span></td>
+            <td class="col-date"><span class="date-text" [class.text-danger]="invoice.isOverdue">{{ formatDate(invoice.dueDate) }}</span></td>
+            <td class="col-status">
+              <span class="status-pill" [attr.data-status]="invoice.status.toLowerCase()">{{ invoice.status }}</span>
+            </td>
+            <td class="col-amount"><span class="amount-value">{{ formatCurrency(invoice.grandTotal) }}</span></td>
+            <td class="col-amount">
+              <span class="amount-value" [class.text-danger]="invoice.outstandingAmount > 0">{{ formatCurrency(invoice.outstandingAmount) }}</span>
+            </td>
+            <td class="col-actions">
+              <div class="action-cell">
+                <button class="btn-action" pTooltip="Actions" (click)="openActionMenu($event, invoice)"><i class="pi pi-ellipsis-v"></i></button>
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+
+        <ng-template #emptymessage>
+          <tr>
+            <td colspan="9">
+              <div class="empty-state">
+                <div class="empty-icon"><i class="pi pi-file-invoice"></i></div>
+                <h3>No Invoices Found</h3>
+                <p>{{ searchTerm ? 'Try adjusting your filters or search criteria' : 'Start by creating a new invoice' }}</p>
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </div>
+  </section>
+
+  <!-- ==================== MOBILE CARDS ==================== -->
+  <section class="cards-section mobile-only">
+    <div *ngIf="!loading && invoices.length === 0" class="empty-state-mobile">
+      <div class="empty-icon"><i class="pi pi-file-invoice"></i></div>
+      <h3>No Invoices</h3>
+      <p>{{ searchTerm ? 'Try different filters' : 'Create your first invoice' }}</p>
+    </div>
+
+    <div *ngIf="invoices.length > 0" class="cards-grid">
+      <div *ngFor="let invoice of invoices" class="order-card" [class.card-overdue]="invoice.isOverdue" (click)="viewInvoice(invoice)">
+        <div class="card-header">
+          <span class="card-so-number">{{ invoice.invoiceNumber }}</span>
+          <span class="status-pill" [attr.data-status]="invoice.status.toLowerCase()">{{ invoice.status }}</span>
+        </div>
+        <div class="card-body">
+          <div class="card-customer">
+            <div class="customer-avatar small">{{ (invoice.customerName || 'C')[0].toUpperCase() }}</div>
+            <span class="customer-name">{{ invoice.customerName || '-' }}</span>
+          </div>
+          <div class="card-dates">
+            <span class="card-date"><i class="pi pi-calendar"></i> {{ formatDate(invoice.invoiceDate) }}</span>
+            <span *ngIf="invoice.isOverdue" class="overdue-badge">Overdue</span>
+          </div>
+        </div>
+        <div class="card-footer">
+          <div class="card-amount">
+            <span class="amount-label">Total</span>
+            <span class="amount-value">{{ formatCurrency(invoice.grandTotal) }}</span>
+          </div>
+          <div class="card-amount">
+            <span class="amount-label">Outstanding</span>
+            <span class="amount-value" [class.text-danger]="invoice.outstandingAmount > 0">{{ formatCurrency(invoice.outstandingAmount) }}</span>
+          </div>
+          <button class="btn-card-action" (click)="openActionMenu($event, invoice); $event.stopPropagation()"><i class="pi pi-ellipsis-h"></i></button>
         </div>
       </div>
-
-      <!-- Status Filter -->
-      <div class="filter-item">
-        <p-select [options]="statusOptions" [(ngModel)]="filterStatus" placeholder="Status"
-          [showClear]="true" (onChange)="onFilterChange()" class="w-full"></p-select>
-      </div>
-
-      <!-- Date Range -->
-      <div class="filter-item date-filter">
-        <p-datepicker [(ngModel)]="dateRange" selectionMode="range" [showIcon]="true"
-          placeholder="Invoice date range" dateFormat="M dd, yy" [showButtonBar]="true"
-          (onSelect)="onFilterChange()" (onClear)="onFilterChange()" class="w-full"></p-datepicker>
-      </div>
-
-      <!-- Filter Actions -->
-      <div class="filter-actions">
-        <button pButton type="button" label="Search" icon="pi pi-search" (click)="onSearch()"></button>
-        <button pButton type="button" label="Clear" icon="pi pi-times" class="p-button-outlined" (click)="clearFilters()"></button>
-      </div>
     </div>
-  </p-card>
+  </section>
 
-  <!-- Invoices Table -->
-  <div class="table-container">
-    <p-table
-      #dt
-      [value]="invoices"
-      [loading]="loading"
-      [lazy]="true"
-      [paginator]="false"
-      [rows]="pageSize"
-      [totalRecords]="totalRecords"
-      responsiveLayout="scroll"
-      styleClass="p-datatable-striped"
-      [tableStyle]="{ 'min-width': '50rem' }"
-      dataKey="id">
-
-      <ng-template pTemplate="header">
-        <tr>
-          <th pSortableColumn="invoiceNumber">
-            Invoice # <p-sortIcon field="invoiceNumber"></p-sortIcon>
-          </th>
-          <th>Sales Order</th>
-          <th pSortableColumn="customerName">
-            Customer <p-sortIcon field="customerName"></p-sortIcon>
-          </th>
-          <th pSortableColumn="invoiceDate">
-            Invoice Date <p-sortIcon field="invoiceDate"></p-sortIcon>
-          </th>
-          <th pSortableColumn="dueDate">
-            Due Date <p-sortIcon field="dueDate"></p-sortIcon>
-          </th>
-          <th pSortableColumn="status">
-            Status <p-sortIcon field="status"></p-sortIcon>
-          </th>
-          <th class="text-right">Total</th>
-          <th class="text-right">Outstanding</th>
-          <th class="text-center">Actions</th>
-        </tr>
-      </ng-template>
-
-      <ng-template pTemplate="body" let-invoice>
-        <tr class="invoice-row">
-          <td>
-            <div class="invoice-info">
-              <span class="invoice-number" (click)="viewInvoice(invoice)">{{ invoice.invoiceNumber }}</span>
-              <span *ngIf="invoice.isOverdue" class="overdue-badge">Overdue</span>
-            </div>
-          </td>
-          <td>
-            <span *ngIf="invoice.salesOrderNumber" class="sales-order-number" (click)="viewSalesOrder(invoice)">
-              {{ invoice.salesOrderNumber }}
-            </span>
-            <span *ngIf="!invoice.salesOrderNumber" class="no-value">-</span>
-          </td>
-          <td>
-            <div class="customer-info">
-              <span class="customer-name">{{ invoice.customerName || '-' }}</span>
-              <span class="customer-phone">{{ invoice.customerPhone }}</span>
-            </div>
-          </td>
-          <td>
-            <span class="timestamp">{{ formatDate(invoice.invoiceDate) }}</span>
-          </td>
-          <td>
-            <span class="timestamp" [class.text-danger]="invoice.isOverdue">
-              {{ formatDate(invoice.dueDate) }}
-            </span>
-          </td>
-          <td>
-            <p-tag [value]="invoice.status" [severity]="getStatusSeverity(invoice.status)"></p-tag>
-          </td>
-          <td class="text-right">
-            <span class="amount">{{ formatCurrency(invoice.grandTotal) }}</span>
-          </td>
-          <td class="text-right">
-            <span class="amount" [class.text-danger]="invoice.outstandingAmount > 0">
-              {{ formatCurrency(invoice.outstandingAmount) }}
-            </span>
-          </td>
-          <td class="text-center">
-            <button pButton type="button" icon="pi pi-ellipsis-v"
-              class="p-button-text p-button-sm p-button-secondary"
-              pTooltip="Actions" tooltipPosition="left"
-              (click)="openActionMenu($event, invoice)"></button>
-          </td>
-        </tr>
-      </ng-template>
-
-      <ng-template pTemplate="emptymessage">
-        <tr>
-          <td colspan="9" class="text-center p-6">
-            <div class="empty-state">
-              <i class="pi pi-file-invoice text-5xl text-gray-300 mb-3"></i>
-              <h3 class="text-gray-500 mb-2">No invoices found</h3>
-              <p class="text-gray-400">{{ searchTerm ? 'Try adjusting your filters or search criteria' : 'Start by creating a new invoice' }}</p>
-            </div>
-          </td>
-        </tr>
-      </ng-template>
-    </p-table>
-
-    <!-- Paginator -->
-    <p-paginator
-      [rows]="pageSize"
-      [totalRecords]="totalRecords"
-      [rowsPerPageOptions]="pageSizeOptions"
-      [showCurrentPageReport]="true"
-      currentPageReportTemplate="Showing {first} to {last} of {totalRecords} invoices"
-      (onPageChange)="onPageChange($event)">
-    </p-paginator>
-  </div>
+  <!-- ==================== PAGINATION ==================== -->
+  <app-data-pagination
+    [first]="(pageNumber - 1) * pageSize"
+    [pageSize]="pageSize"
+    [totalRecords]="totalRecords"
+    [pageSizeOptions]="pageSizeOptions"
+    itemLabel="invoices"
+    (pageChange)="onPageChange({ page: $event - 1, rows: pageSize })"
+    (pageSizeChange)="onPageChange({ page: 0, rows: $event })">
+  </app-data-pagination>
 
   <!-- Context Action Menu (shared, single instance) -->
   <p-menu #actionMenu [popup]="true" [model]="actionItems" appendTo="body"></p-menu>
 
   <!-- Payment Dialog -->
-  <p-dialog  header="Record Payment" [(visible)]="showPaymentDialog" [modal]="true" [style]="{width: '500px'}"
+  <p-dialog header="Record Payment" [(visible)]="showPaymentDialog" [modal]="true" [style]="{width: '500px'}"
     [closable]="true" appendTo="body" (onHide)="closePaymentDialog()">
     <div *ngIf="selectedInvoice" class="payment-content">
       <!-- Invoice Summary -->
@@ -206,7 +217,6 @@
           <small class="text-gray-500 mt-1 block">You can enter more than the outstanding amount to create a credit balance</small>
         </div>
 
-        <!-- Fix #10: allow user to choose payment date -->
         <div class="form-field">
           <label class="block text-sm font-medium text-gray-700 mb-2">Payment Date</label>
           <p-datepicker [(ngModel)]="paymentDate" [showIcon]="true" dateFormat="M dd, yy"
@@ -254,4 +264,5 @@
       <button pButton type="button" label="Record Payment" icon="pi pi-check" (click)="recordPayment()"></button>
     </ng-template>
   </p-dialog>
-</div>
+
+</app-page-container>

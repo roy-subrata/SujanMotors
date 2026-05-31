@@ -14,6 +14,8 @@ import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { CurrencyService, Currency } from '../../../shared/services/currency.service';
+import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
+import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 
 @Component({
   selector: 'app-currencies-list',
@@ -29,31 +31,30 @@ import { CurrencyService, Currency } from '../../../shared/services/currency.ser
     InputNumberModule,
     CheckboxModule,
     ToastModule,
-    ConfirmDialogModule
+    ConfirmDialogModule,
+    PageContainerComponent,
+    PageHeaderComponent
   ],
   providers: [MessageService, ConfirmationService],
   template: `
-    <div class="container mx-auto px-4 py-6">
-      <p-toast></p-toast>
-      <p-confirmDialog></p-confirmDialog>
+    <p-toast></p-toast>
+    <p-confirmDialog></p-confirmDialog>
 
-      <!-- Header -->
-      <div class="flex justify-between items-center mb-6">
-        <div>
-          <h1 class="text-3xl font-bold text-gray-800">Currency Management</h1>
-          <p class="text-gray-600 mt-2">Manage system currencies and exchange rates</p>
-        </div>
-        <button
-          pButton
-          type="button"
-          label="Add Currency"
-          icon="pi pi-plus"
-          class="p-button-success"
-          (click)="openDialog()">
-        </button>
-      </div>
+    <app-page-container>
+      <app-page-header
+        title="Currency Management"
+        subtitle="Manage system currencies and exchange rates"
+        [breadcrumb]="[{ label: 'Admin' }, { label: 'Currencies' }]"
+        [count]="currencies().length" countLabel="currencies" countIcon="pi pi-dollar">
+        <ng-container actions>
+          <button class="btn-primary" (click)="openDialog()">
+            <i class="pi pi-plus"></i><span>Add Currency</span>
+          </button>
+        </ng-container>
+      </app-page-header>
 
-      <!-- Currencies Table -->
+      <section class="table-section desktop-only">
+        <div class="table-container">
       <p-table
         [value]="currencies()"
         [loading]="loading()"
@@ -61,8 +62,8 @@ import { CurrencyService, Currency } from '../../../shared/services/currency.ser
         [rows]="10"
         [rowsPerPageOptions]="[10, 25, 50]"
         [globalFilterFields]="['code', 'name', 'symbol']"
-        responsiveLayout="scroll"
-        styleClass="p-datatable-gridlines">
+        [scrollable]="true"
+        styleClass="app-table">
 
         <ng-template pTemplate="header">
           <tr>
@@ -85,12 +86,7 @@ import { CurrencyService, Currency } from '../../../shared/services/currency.ser
             <td><span class="text-lg">{{ currency.symbol }}</span></td>
             <td>{{ currency.decimalPlaces }}</td>
             <td>
-              <span
-                class="px-2 py-1 rounded text-xs font-semibold"
-                [class.bg-green-100]="currency.isActive"
-                [class.text-green-800]="currency.isActive"
-                [class.bg-red-100]="!currency.isActive"
-                [class.text-red-800]="!currency.isActive">
+              <span class="status-pill" [attr.data-status]="currency.isActive ? 'active' : 'inactive'">
                 {{ currency.isActive ? 'Active' : 'Inactive' }}
               </span>
             </td>
@@ -157,6 +153,8 @@ import { CurrencyService, Currency } from '../../../shared/services/currency.ser
           </tr>
         </ng-template>
       </p-table>
+        </div>
+      </section>
 
       <!-- Currency Dialog -->
       <p-dialog
@@ -303,7 +301,7 @@ import { CurrencyService, Currency } from '../../../shared/services/currency.ser
           </div>
         </form>
       </p-dialog>
-    </div>
+    </app-page-container>
   `,
   styles: [`
     :host ::ng-deep {

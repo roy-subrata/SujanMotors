@@ -31,6 +31,9 @@ import { SupplierService, SupplierResponse } from '../../inventory/services/supp
 import { AuthService } from '../../../shared/services/auth.service';
 import { I18nService } from '@/shared/services/i18n.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
+import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
+import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 
 @Component({
     selector: 'app-claims-list',
@@ -50,7 +53,10 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
         AutoCompleteModule,
         DatePickerModule,
         SelectModule,
-        InputNumberModule
+        InputNumberModule,
+        PageContainerComponent,
+        PageHeaderComponent,
+        FilterBarComponent
     ],
     providers: [MessageService],
     templateUrl: './claims-list.component.html',

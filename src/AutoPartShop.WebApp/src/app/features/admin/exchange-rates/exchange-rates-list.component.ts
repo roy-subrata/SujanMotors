@@ -16,6 +16,8 @@ import { CheckboxModule } from 'primeng/checkbox';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { CurrencyService, Currency, ExchangeRate } from '../../../shared/services/currency.service';
+import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
+import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 
 @Component({
   selector: 'app-exchange-rates-list',
@@ -33,39 +35,38 @@ import { CurrencyService, Currency, ExchangeRate } from '../../../shared/service
     ToastModule,
     ConfirmDialogModule,
     CheckboxModule,
-    InputTextModule
+    InputTextModule,
+    PageContainerComponent,
+    PageHeaderComponent
   ],
   providers: [MessageService, ConfirmationService],
   template: `
-    <div class="container mx-auto px-4 py-6">
-      <p-toast></p-toast>
-      <p-confirmDialog></p-confirmDialog>
+    <p-toast></p-toast>
+    <p-confirmDialog></p-confirmDialog>
 
-      <!-- Header -->
-      <div class="flex justify-between items-center mb-6">
-        <div>
-          <h1 class="text-3xl font-bold text-gray-800">Exchange Rate Management</h1>
-          <p class="text-gray-600 mt-2">Manage currency exchange rates</p>
-        </div>
-        <button
-          pButton
-          type="button"
-          label="Add Exchange Rate"
-          icon="pi pi-plus"
-          class="p-button-success"
-          (click)="openDialog()">
-        </button>
-      </div>
+    <app-page-container>
+      <app-page-header
+        title="Exchange Rate Management"
+        subtitle="Manage currency exchange rates"
+        [breadcrumb]="[{ label: 'Admin' }, { label: 'Exchange Rates' }]"
+        [count]="exchangeRates().length" countLabel="rates" countIcon="pi pi-sync">
+        <ng-container actions>
+          <button class="btn-primary" (click)="openDialog()">
+            <i class="pi pi-plus"></i><span>Add Exchange Rate</span>
+          </button>
+        </ng-container>
+      </app-page-header>
 
-      <!-- Exchange Rates Table -->
+      <section class="table-section desktop-only">
+        <div class="table-container">
       <p-table
         [value]="exchangeRates()"
         [loading]="loading()"
         [paginator]="true"
         [rows]="15"
         [rowsPerPageOptions]="[15, 30, 50]"
-        responsiveLayout="scroll"
-        styleClass="p-datatable-gridlines">
+        [scrollable]="true"
+        styleClass="app-table">
 
         <ng-template pTemplate="header">
           <tr>
@@ -102,12 +103,7 @@ import { CurrencyService, Currency, ExchangeRate } from '../../../shared/service
               </span>
             </td>
             <td>
-              <span
-                class="px-2 py-1 rounded text-xs font-semibold"
-                [class.bg-green-100]="rate.isActive"
-                [class.text-green-800]="rate.isActive"
-                [class.bg-red-100]="!rate.isActive"
-                [class.text-red-800]="!rate.isActive">
+              <span class="status-pill" [attr.data-status]="rate.isActive ? 'active' : 'inactive'">
                 {{ rate.isActive ? 'Active' : 'Inactive' }}
               </span>
             </td>
@@ -142,6 +138,8 @@ import { CurrencyService, Currency, ExchangeRate } from '../../../shared/service
           </tr>
         </ng-template>
       </p-table>
+        </div>
+      </section>
 
       <!-- Exchange Rate Dialog -->
       <p-dialog
@@ -292,7 +290,7 @@ import { CurrencyService, Currency, ExchangeRate } from '../../../shared/service
           </div>
         </form>
       </p-dialog>
-    </div>
+    </app-page-container>
   `,
   styles: [`
     :host ::ng-deep {

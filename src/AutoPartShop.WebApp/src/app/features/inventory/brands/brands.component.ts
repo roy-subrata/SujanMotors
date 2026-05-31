@@ -9,6 +9,10 @@ import { MessageService, ConfirmationService } from 'primeng/api';
 import { BrandResponse, BrandService } from '../services/brand.service';
 import { BrandsListComponent } from './brands-list/brands-list.component';
 import { BrandsFormDialogComponent } from './brands-form-dialog/brands-form-dialog.component';
+import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
+import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
+import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
+import { TooltipModule } from 'primeng/tooltip';
 import { tap } from 'rxjs';
 
 @Component({
@@ -21,8 +25,12 @@ import { tap } from 'rxjs';
     ConfirmDialogModule,
     ButtonModule,
     Select,
+    TooltipModule,
     BrandsListComponent,
-    BrandsFormDialogComponent
+    BrandsFormDialogComponent,
+    PageContainerComponent,
+    PageHeaderComponent,
+    FilterBarComponent
   ],
   providers: [BrandService, MessageService, ConfirmationService],
   templateUrl: './brands.component.html',

@@ -9,6 +9,8 @@ import { CardModule } from 'primeng/card';
 import { DividerModule } from 'primeng/divider';
 import { MessageService } from 'primeng/api';
 import { AppSettingsService } from '../../../shared/services/app-settings.service';
+import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
+import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { forkJoin } from 'rxjs';
 
 interface FieldDef {
@@ -45,20 +47,21 @@ const FIELDS: FieldDef[] = [
     ToastModule,
     CardModule,
     DividerModule,
+    PageContainerComponent,
+    PageHeaderComponent,
   ],
   providers: [MessageService],
   template: `
     <p-toast></p-toast>
 
-    <div class="container mx-auto px-4 py-6 max-w-2xl">
+    <app-page-container>
+      <app-page-header
+        title="Company Profile"
+        subtitle="Printed on every invoice, delivery challan, and account statement"
+        [breadcrumb]="[{ label: 'Admin' }, { label: 'Company Profile' }]">
+      </app-page-header>
 
-      <div class="mb-6">
-        <h1 class="text-3xl font-bold text-gray-800">Company Profile</h1>
-        <p class="text-gray-500 mt-1">
-          This information is printed on every invoice, delivery challan, and account statement.
-          Update it here and all documents reflect the change immediately.
-        </p>
-      </div>
+      <div class="w-full px-4 py-6">
 
       <div *ngIf="loading()" class="flex justify-center py-16">
         <i class="pi pi-spin pi-spinner text-3xl text-gray-400"></i>
@@ -187,7 +190,8 @@ const FIELDS: FieldDef[] = [
         </div>
 
       </form>
-    </div>
+      </div>
+    </app-page-container>
   `
 })
 export class CompanyProfileComponent implements OnInit {

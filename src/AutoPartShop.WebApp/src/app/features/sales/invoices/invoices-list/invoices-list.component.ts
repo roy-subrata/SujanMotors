@@ -14,11 +14,9 @@ import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
 import { DatePickerModule } from 'primeng/datepicker';
 import { TableModule } from 'primeng/table';
 import { InputTextModule } from 'primeng/inputtext';
-import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
-import { CardModule } from 'primeng/card';
-import { PaginatorModule, PaginatorState } from 'primeng/paginator';
+import { PaginatorState } from 'primeng/paginator';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { MenuModule } from 'primeng/menu';
 import { Menu } from 'primeng/menu';
@@ -26,6 +24,10 @@ import { tap } from 'rxjs';
 import { ApplyCustomerAdvanceCreditDialogComponent } from '../../sales-orders/apply-advance-credit/apply-advance-credit-dialog.component';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { I18nService } from '@/shared/services/i18n.service';
+import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
+import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
+import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
+import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 
 @Component({
     selector: 'app-invoices-list',
@@ -41,12 +43,13 @@ import { I18nService } from '@/shared/services/i18n.service';
         DialogModule,
         InputNumberModule,
         ToastModule,
-        TagModule,
         TooltipModule,
         ConfirmDialogModule,
-        CardModule,
-        PaginatorModule,
-        MenuModule
+        MenuModule,
+        PageContainerComponent,
+        PageHeaderComponent,
+        FilterBarComponent,
+        DataPaginationComponent
     ],
     providers: [MessageService, ConfirmationService, DialogService],
     templateUrl: './invoices-list.component.html',

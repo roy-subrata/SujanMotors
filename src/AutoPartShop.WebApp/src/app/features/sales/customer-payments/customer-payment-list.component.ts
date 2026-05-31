@@ -12,9 +12,12 @@ import { SelectModule } from 'primeng/select';
 import { ContextMenuModule, ContextMenu } from 'primeng/contextmenu';
 import { RippleModule } from 'primeng/ripple';
 import { TooltipModule } from 'primeng/tooltip';
-import { CardModule } from 'primeng/card';
 import { DatePickerModule } from 'primeng/datepicker';
-import { PaginatorModule, PaginatorState } from 'primeng/paginator';
+import { PaginatorState } from 'primeng/paginator';
+import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
+import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
+import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
+import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
@@ -40,10 +43,12 @@ import { I18nService } from '@/shared/services/i18n.service';
         ContextMenuModule,
         RippleModule,
         TooltipModule,
-        CardModule,
         DatePickerModule,
-        PaginatorModule,
-        AppCurrencyPipe
+        AppCurrencyPipe,
+        PageContainerComponent,
+        PageHeaderComponent,
+        FilterBarComponent,
+        DataPaginationComponent
     ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './customer-payment-list.component.html',

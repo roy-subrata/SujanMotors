@@ -1,28 +1,25 @@
 <p-toast />
 <p-confirmDialog />
 
-<div class="page-container">
+<app-page-container>
   <!-- Page Header -->
-  <div class="page-header">
-    <div class="header-content">
-      <div class="header-title-section">
-        <h1 class="header-title">
-          <i class="pi pi-shield mr-3"></i>
-          Warranty Registrations
-        </h1>
-        <p class="header-subtitle">Register, track and manage product warranties</p>
-      </div>
-      <div class="header-actions">
-        <button pButton type="button" label="Register Warranty" icon="pi pi-plus"
-          class="p-button-success" (click)="openCreateDialog()"></button>
-        <button pButton type="button" icon="pi pi-refresh" label="Refresh"
-          class="p-button-outlined" (click)="loadWarranties()"></button>
-      </div>
-    </div>
-  </div>
+  <app-page-header
+    title="Warranty Registrations"
+    subtitle="Register, track and manage product warranties"
+    [breadcrumb]="[{ label: 'Warranty' }, { label: 'Registrations' }]"
+    [count]="filteredWarranties.length" countLabel="warranties" countIcon="pi pi-shield">
+    <ng-container actions>
+      <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="loadWarranties()">
+        <i class="pi pi-refresh"></i>
+      </button>
+      <button class="btn-primary" (click)="openCreateDialog()">
+        <i class="pi pi-plus"></i><span>Register Warranty</span>
+      </button>
+    </ng-container>
+  </app-page-header>
 
   <!-- Summary Metrics -->
-  <div class="metrics-row">
+  <div class="metrics-row" style="padding: var(--page-gutter-y) var(--page-gutter-x) 0;">
     <div class="metric-card metric-active">
       <div class="metric-icon"><i class="pi pi-check-circle"></i></div>
       <div class="metric-info">
@@ -54,26 +51,26 @@
   </div>
 
   <!-- Filters -->
-  <div class="filters-card">
-    <div class="filters-container">
-      <div class="filter-item search-filter">
-        <div class="search-container">
-          <i class="pi pi-search search-icon"></i>
-          <input type="text" [(ngModel)]="searchText" (input)="onSearch()"
-            placeholder="Search by warranty#, part, customer, certificate..."
-            class="search-input" />
-          <i *ngIf="searchText" class="pi pi-times clear-icon" (click)="clearSearch()"></i>
-        </div>
-      </div>
-      <div class="filter-item">
-        <p-select [options]="statuses" [(ngModel)]="selectedStatus" optionLabel="label" optionValue="value"
-          (onChange)="onStatusChange()" styleClass="w-full" appendTo="body"></p-select>
+  <app-filter-bar>
+    <div search class="filter-group search-group">
+      <div class="search-input-wrapper">
+        <i class="pi pi-search"></i>
+        <input type="text" [(ngModel)]="searchText" (input)="onSearch()"
+          placeholder="Search by warranty#, part, customer, certificate..."
+          class="search-input" />
+        <button *ngIf="searchText" class="search-clear" (click)="clearSearch()"><i class="pi pi-times"></i></button>
       </div>
     </div>
-  </div>
+    <div filters class="filter-group">
+      <label class="filter-label">Status</label>
+      <p-select [options]="statuses" [(ngModel)]="selectedStatus" optionLabel="label" optionValue="value"
+        (onChange)="onStatusChange()" styleClass="filter-dropdown" appendTo="body"></p-select>
+    </div>
+  </app-filter-bar>
 
   <!-- Warranties Table -->
-  <div class="table-container">
+  <section class="table-section desktop-only">
+    <div class="table-container">
     <p-table
       [value]="filteredWarranties"
       [loading]="isLoading"
@@ -82,7 +79,8 @@
       [rowsPerPageOptions]="[10, 25, 50]"
       [showCurrentPageReport]="true"
       currentPageReportTemplate="Showing {first} to {last} of {totalRecords} warranties"
-      styleClass="p-datatable-sm p-datatable-gridlines">
+      [scrollable]="true"
+      styleClass="app-table">
       <ng-template #header>
         <tr>
           <th pSortableColumn="warrantyNumber">Warranty # <p-sortIcon field="warrantyNumber"/></th>
@@ -159,8 +157,9 @@
         </tr>
       </ng-template>
     </p-table>
-  </div>
-</div>
+    </div>
+  </section>
+</app-page-container>
 
 <!-- Create Warranty Registration Dialog -->
 <p-dialog

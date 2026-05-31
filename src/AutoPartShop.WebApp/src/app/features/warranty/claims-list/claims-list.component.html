@@ -1,22 +1,24 @@
 <p-toast />
 
-<div class="page-container">
+<app-page-container>
   <!-- Header -->
-  <div class="page-header">
-    <div class="header-content">
-      <div>
-        <h1 class="header-title"><i class="pi pi-file-check" style="margin-right: 0.5rem;"></i> Warranty Claims</h1>
-        <p class="header-subtitle">Manage warranty claims, approvals, and service assignments</p>
-      </div>
-      <div class="header-actions">
-        <button pButton type="button" icon="pi pi-plus" label="New Claim" (click)="openCreateDialog()"></button>
-        <button pButton type="button" icon="pi pi-refresh" class="p-button-outlined" pTooltip="Refresh" (click)="loadClaims()"></button>
-      </div>
-    </div>
-  </div>
+  <app-page-header
+    title="Warranty Claims"
+    subtitle="Manage warranty claims, approvals, and service assignments"
+    [breadcrumb]="[{ label: 'Warranty' }, { label: 'Claims' }]"
+    [count]="filteredClaims.length" countLabel="claims" countIcon="pi pi-file-check">
+    <ng-container actions>
+      <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="loadClaims()">
+        <i class="pi pi-refresh"></i>
+      </button>
+      <button class="btn-primary" (click)="openCreateDialog()">
+        <i class="pi pi-plus"></i><span>New Claim</span>
+      </button>
+    </ng-container>
+  </app-page-header>
 
   <!-- Metrics -->
-  <div class="metrics-row">
+  <div class="metrics-row" style="padding: var(--page-gutter-y) var(--page-gutter-x) 0;">
     <div class="metric-card metric-pending">
       <div class="metric-icon"><i class="pi pi-clock"></i></div>
       <div class="metric-info">
@@ -48,24 +50,23 @@
   </div>
 
   <!-- Filters -->
-  <div class="filters-card">
-    <div class="filters-container">
-      <div class="filter-item search-filter">
-        <div class="search-container">
-          <i class="pi pi-search search-icon"></i>
-          <input type="text" class="search-input" [(ngModel)]="searchText" (input)="onSearch()"
-            placeholder="Search claims, warranties, parts, customers, technicians..." />
-          <i *ngIf="searchText" class="pi pi-times clear-icon" (click)="clearSearch()"></i>
-        </div>
-      </div>
-      <div class="filter-item">
-        <p-select [(ngModel)]="selectedStatus" [options]="statuses" optionLabel="label" optionValue="value"
-          (onChange)="onStatusChange()" styleClass="w-full" appendTo="body"></p-select>
+  <app-filter-bar>
+    <div search class="filter-group search-group">
+      <div class="search-input-wrapper">
+        <i class="pi pi-search"></i>
+        <input type="text" class="search-input" [(ngModel)]="searchText" (input)="onSearch()"
+          placeholder="Search claims, warranties, parts, customers, technicians..." />
+        <button *ngIf="searchText" class="search-clear" (click)="clearSearch()"><i class="pi pi-times"></i></button>
       </div>
     </div>
-  </div>
+    <div filters class="filter-group">
+      <label class="filter-label">Status</label>
+      <p-select [(ngModel)]="selectedStatus" [options]="statuses" optionLabel="label" optionValue="value"
+        (onChange)="onStatusChange()" styleClass="filter-dropdown" appendTo="body"></p-select>
+    </div>
+  </app-filter-bar>
 
-  <div class="flow-guide">
+  <div class="flow-guide" style="margin: 0 var(--page-gutter-x);">
     <span class="flow-guide-label">Standard Flow</span>
     <span class="flow-step">1. Receive</span>
     <i class="pi pi-angle-right"></i>
@@ -81,11 +82,12 @@
   </div>
 
   <!-- Claims Table -->
-  <div class="table-container">
+  <section class="table-section desktop-only">
+    <div class="table-container">
     <p-table [value]="filteredClaims" [loading]="isLoading" [paginator]="true" [rows]="10"
       [rowsPerPageOptions]="[10, 25, 50]" [showCurrentPageReport]="true"
       currentPageReportTemplate="Showing {first} to {last} of {totalRecords} claims"
-      styleClass="p-datatable-sm" [sortField]="'claimDate'" [sortOrder]="-1">
+      [scrollable]="true" styleClass="app-table" [sortField]="'claimDate'" [sortOrder]="-1">
       <ng-template #header>
         <tr>
           <th pSortableColumn="claimNumber">Claim # <p-sortIcon field="claimNumber" /></th>
@@ -209,8 +211,9 @@
         </tr>
       </ng-template>
     </p-table>
-  </div>
-</div>
+    </div>
+  </section>
+</app-page-container>
 
 <!-- ==================== DETAIL DIALOG ==================== -->
 <p-dialog [(visible)]="showDetailDialog" header="Claim Details" [modal]="true"

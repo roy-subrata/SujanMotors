@@ -15,6 +15,9 @@ import { TextareaModule } from 'primeng/textarea';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { MessageService, ConfirmationService } from 'primeng/api';
+import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
+import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
+import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { WarrantyService, WarrantyRegistrationResponse, CreateWarrantyRegistrationRequest } from '../services/warranty.service';
 import { SalesOrderService, SalesOrderResponse, SalesOrderLineResponse } from '../../sales/services/sales-order.service';
 import { CurrencyService } from '../../../shared/services/currency.service';
@@ -39,7 +42,10 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
         DatePickerModule,
         TextareaModule,
         InputNumberModule,
-        ConfirmDialogModule
+        ConfirmDialogModule,
+        PageContainerComponent,
+        PageHeaderComponent,
+        FilterBarComponent
     ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './warranties-list.component.html',

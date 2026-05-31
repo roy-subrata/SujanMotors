@@ -1,31 +1,28 @@
-<div class="admin-settings-container">
-  <p-toast></p-toast>
-  <p-confirmDialog></p-confirmDialog>
+<p-toast></p-toast>
+<p-confirmDialog></p-confirmDialog>
 
-  <!-- ==================== PAGE HEADER ==================== -->
-  <header class="page-header">
-    <div class="header-content">
-      <div class="header-left">
-        <h1 class="page-title">
-          <i class="pi pi-cog"></i>
-          Settings
-        </h1>
-        <p class="page-subtitle">Manage users, roles, permissions & configuration</p>
-      </div>
-      <div class="header-actions">
-        <div class="stats-badge">
-          <i class="pi pi-users"></i>
+<app-page-container>
+  <app-page-header
+    title="Settings"
+    subtitle="Manage users, roles, permissions & configuration"
+    [breadcrumb]="[{ label: 'Admin' }, { label: 'Settings' }]">
+    <ng-container actions>
+      <div class="stats-badge">
+        <i class="pi pi-users"></i>
+        <div class="stats-info">
           <span class="stats-value">{{ users().length }}</span>
           <span class="stats-label">users</span>
         </div>
-        <div class="stats-badge">
-          <i class="pi pi-shield"></i>
+      </div>
+      <div class="stats-badge">
+        <i class="pi pi-shield"></i>
+        <div class="stats-info">
           <span class="stats-value">{{ roles().length }}</span>
           <span class="stats-label">roles</span>
         </div>
       </div>
-    </div>
-  </header>
+    </ng-container>
+  </app-page-header>
 
   <!-- ==================== TABS ==================== -->
   <div class="settings-body">
@@ -713,4 +710,4 @@
       </div>
     }
   </p-dialog>
-</div>
+</app-page-container>

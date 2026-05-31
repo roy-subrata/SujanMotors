@@ -7,20 +7,23 @@ import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { Select } from 'primeng/select';
-import { CardModule } from 'primeng/card';
-import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
-import { PaginatorModule, PaginatorState } from 'primeng/paginator';
+import { PaginatorState } from 'primeng/paginator';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { I18nService } from '@/shared/services/i18n.service';
+import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
+import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
+import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
+import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 
 @Component({
     selector: 'app-technicians-list',
     standalone: true,
-    imports: [CommonModule, FormsModule, TableModule, ButtonModule, InputTextModule, Select, CardModule, TagModule, TooltipModule, ToastModule, ConfirmDialogModule, PaginatorModule],
+    imports: [CommonModule, FormsModule, TableModule, ButtonModule, InputTextModule, Select, TooltipModule, ToastModule, ConfirmDialogModule,
+        PageContainerComponent, PageHeaderComponent, FilterBarComponent, DataPaginationComponent],
     providers: [MessageService, ConfirmationService],
     templateUrl: './technicians-list.component.html',
     styleUrls: ['./technicians-list.component.css']

@@ -9,7 +9,6 @@ import { InputNumberModule } from 'primeng/inputnumber';
 import { SelectModule } from 'primeng/select';
 import { DatePickerModule } from 'primeng/datepicker';
 import { TextareaModule } from 'primeng/textarea';
-import { CardModule } from 'primeng/card';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { CheckboxModule } from 'primeng/checkbox';
@@ -23,6 +22,8 @@ import {
 } from '../services/daily-expense.service';
 import { CurrencyService } from '../../../shared/services/currency.service';
 import { EXPENSE_PAYMENT_METHODS, PaymentMethodOption } from '../../../shared/constants/payment-methods.constants';
+import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
+import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 
 @Component({
     selector: 'app-daily-expenses',
@@ -38,10 +39,11 @@ import { EXPENSE_PAYMENT_METHODS, PaymentMethodOption } from '../../../shared/co
         SelectModule,
         DatePickerModule,
         TextareaModule,
-        CardModule,
         ToastModule,
         ConfirmDialogModule,
-        CheckboxModule
+        CheckboxModule,
+        PageContainerComponent,
+        PageHeaderComponent
     ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './daily-expenses.component.html',

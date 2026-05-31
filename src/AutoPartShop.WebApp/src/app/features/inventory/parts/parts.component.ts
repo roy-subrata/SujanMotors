@@ -18,6 +18,10 @@ import { BarcodeDialogComponent } from './barcode-dialog/barcode-dialog.componen
 import { PartService, PartResponse } from '../services/part.service';
 import { CurrencyService } from '@/shared/services/currency.service';
 import { PriceCodeService } from '@/shared/services/price-code.service';
+import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
+import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
+import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
+import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 
 @Component({
     selector: 'app-parts',
@@ -34,7 +38,11 @@ import { PriceCodeService } from '@/shared/services/price-code.service';
         TooltipModule,
         ToastModule,
         ConfirmDialogModule,
-        SkeletonModule
+        SkeletonModule,
+        PageContainerComponent,
+        PageHeaderComponent,
+        FilterBarComponent,
+        DataPaginationComponent
     ],
     providers: [MessageService, ConfirmationService, DialogService],
     templateUrl: './parts.component.html',

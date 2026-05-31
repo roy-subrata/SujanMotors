@@ -1,24 +1,27 @@
 <p-toast></p-toast>
 <p-confirmDialog></p-confirmDialog>
 
-<div class="customer-payments-container">
-  <!-- Header -->
-  <div class="page-header">
-    <div class="header-content">
-      <div class="header-title-section">
-        <h1 class="header-title">
-          <i class="pi pi-wallet mr-3"></i>
-          Customer Payments
-        </h1>
-        <p class="header-subtitle">Track and manage customer payments, refunds, and reconciliations</p>
-      </div>
-      <div class="header-actions">
-        <button pButton type="button" label="New Payment" icon="pi pi-plus" class="p-button-success" (click)="createNew()"></button>
-        <button pButton type="button" label="Export CSV" icon="pi pi-file" class="p-button-outlined" (click)="exportPayments('csv')"></button>
-        <button pButton type="button" label="Export JSON" icon="pi pi-file-export" class="p-button-outlined" (click)="exportPayments('json')"></button>
-      </div>
-    </div>
-  </div>
+<app-page-container>
+
+  <!-- ==================== HEADER ==================== -->
+  <app-page-header
+    title="Customer Payments"
+    subtitle="Track and manage customer payments, refunds, and reconciliations"
+    [breadcrumb]="[{ label: 'Sales' }, { label: 'Customer Payments' }]"
+    [count]="totalCount" countLabel="payments" countIcon="pi pi-wallet">
+    <ng-container actions>
+      <button class="btn-icon" pTooltip="Export CSV" tooltipPosition="bottom" (click)="exportPayments('csv')">
+        <i class="pi pi-file"></i>
+      </button>
+      <button class="btn-icon" pTooltip="Export JSON" tooltipPosition="bottom" (click)="exportPayments('json')">
+        <i class="pi pi-file-export"></i>
+      </button>
+      <button class="btn-primary" (click)="createNew()">
+        <i class="pi pi-plus"></i>
+        <span>New Payment</span>
+      </button>
+    </ng-container>
+  </app-page-header>
 
   <!-- Active Customer Filter Banner -->
   <div *ngIf="customerFilter" class="customer-filter-banner">
@@ -30,209 +33,152 @@
       class="p-button-sm p-button-outlined" (click)="clearCustomerFilter()"></button>
   </div>
 
-  <!-- Filters Card -->
-  <p-card styleClass="filters-card mb-4">
-    <div class="filters-container">
-      <!-- Search -->
-      <div class="filter-item search-filter">
-        <div class="search-container">
-          <i class="pi pi-search search-icon"></i>
-          <input type="text" [(ngModel)]="searchTerm" placeholder="Search by customer, invoice, transaction..."
-            class="search-input" (input)="onSearchInput()" />
-          <i *ngIf="searchTerm" class="pi pi-times clear-icon" (click)="clearSearch()"></i>
+  <!-- ==================== FILTERS ==================== -->
+  <app-filter-bar>
+    <div search class="filter-group search-group">
+      <div class="search-input-wrapper">
+        <i class="pi pi-search"></i>
+        <input type="text" [(ngModel)]="searchTerm" placeholder="Search by customer, invoice, transaction..."
+          class="search-input" (input)="onSearchInput()" />
+        <button *ngIf="searchTerm" class="search-clear" (click)="clearSearch()"><i class="pi pi-times"></i></button>
+      </div>
+    </div>
+
+    <div filters class="filter-group">
+      <label class="filter-label">Status</label>
+      <p-select [options]="statusOptions" [(ngModel)]="statusFilter" placeholder="All Statuses"
+        [showClear]="true" (onChange)="onFilterChange()" appendTo="body" styleClass="filter-dropdown"></p-select>
+    </div>
+
+    <div filters class="filter-group">
+      <label class="filter-label">Payment Date</label>
+      <p-datepicker [(ngModel)]="dateRange" selectionMode="range" [showIcon]="true"
+        placeholder="Date range" dateFormat="M dd, yy" [showButtonBar]="true"
+        (onSelect)="onDateRangeSelect()" (ngModelChange)="onDateRangeChange($event)" appendTo="body" styleClass="filter-datepicker"></p-datepicker>
+    </div>
+
+    <div filters class="filter-group">
+      <label class="filter-label">Reconciled</label>
+      <p-select [options]="reconciledOptions" [(ngModel)]="reconciledFilter" placeholder="All"
+        [showClear]="true" (onChange)="onFilterChange()" appendTo="body" styleClass="filter-dropdown"></p-select>
+    </div>
+  </app-filter-bar>
+
+  <!-- ==================== DATA TABLE (Desktop) ==================== -->
+  <section class="table-section desktop-only">
+    <div class="table-container">
+      <p-table [value]="customerPayments" [loading]="loading" [lazy]="true" [paginator]="false"
+        [rows]="pageSize" [totalRecords]="totalCount"
+        [contextMenu]="contextMenu" [(contextMenuSelection)]="selectedPayment" (onContextMenuSelect)="onContextMenuSelect($event)"
+        [scrollable]="true" scrollHeight="flex" styleClass="app-table" dataKey="id">
+
+        <ng-template #header>
+          <tr>
+            <th class="col-customer">Customer</th>
+            <th class="col-amount">Amount</th>
+            <th class="col-date">Date</th>
+            <th class="col-method">Method</th>
+            <th class="col-status">Status</th>
+            <th class="col-provider">Provider</th>
+            <th class="col-invoice">Invoice</th>
+            <th class="col-reconciled">Reconciled</th>
+            <th class="col-actions">Actions</th>
+          </tr>
+        </ng-template>
+
+        <ng-template #body let-payment>
+          <tr [pContextMenuRow]="payment" class="data-row">
+            <td class="col-customer"><span class="customer-name" (click)="viewDetails(payment)">{{ payment.customerName }}</span></td>
+            <td class="col-amount"><span class="amount-value">{{ payment.amount | appCurrency }}</span></td>
+            <td class="col-date"><span class="date-text">{{ payment.paymentDate | date:'MMM dd, yyyy' }}</span></td>
+            <td class="col-method"><p-tag [value]="payment.paymentMethod" [severity]="getMethodSeverity(payment.paymentMethod)"></p-tag></td>
+            <td class="col-status"><p-tag [value]="payment.status" [severity]="getStatusSeverity(payment.status)"></p-tag></td>
+            <td class="col-provider"><span class="text-muted">{{ payment.providerName || '-' }}</span></td>
+            <td class="col-invoice">
+              <span class="so-link" *ngIf="payment.invoiceNumber">{{ payment.invoiceNumber }}</span>
+              <span class="text-muted" *ngIf="!payment.invoiceNumber">-</span>
+            </td>
+            <td class="col-reconciled">
+              <p-tag *ngIf="payment.isReconciled" value="Yes" severity="success" icon="pi pi-check"></p-tag>
+              <p-tag *ngIf="!payment.isReconciled" value="No" severity="warn" icon="pi pi-clock"></p-tag>
+            </td>
+            <td class="col-actions">
+              <div class="action-cell">
+                <button *ngIf="payment.status === 'PENDING'" pButton pRipple type="button" icon="pi pi-check"
+                  class="p-button-success p-button-sm" pTooltip="Confirm Payment" tooltipPosition="left" (click)="confirmPayment(payment)"></button>
+                <button *ngIf="payment.status === 'COMPLETED' && !payment.isReconciled" pButton pRipple type="button" icon="pi pi-check-square"
+                  class="p-button-info p-button-sm" pTooltip="Reconcile Payment" tooltipPosition="left" (click)="reconcilePayment(payment)"></button>
+                <button *ngIf="payment.status === 'COMPLETED' && !payment.isReconciled" pButton pRipple type="button" icon="pi pi-replay"
+                  class="p-button-warning p-button-sm" pTooltip="Refund Payment" tooltipPosition="left" (click)="refundPayment(payment)"></button>
+                <button *ngIf="payment.status === 'PENDING' || payment.status === 'PROCESSING'" pButton pRipple type="button" icon="pi pi-times"
+                  class="p-button-danger p-button-sm" pTooltip="Cancel Payment" tooltipPosition="left" (click)="cancelPayment(payment)"></button>
+                <button class="btn-action" pTooltip="More Actions" (contextmenu)="showContextMenu($event, payment)" (click)="showContextMenu($event, payment)">
+                  <i class="pi pi-ellipsis-v"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+
+        <ng-template #emptymessage>
+          <tr>
+            <td colspan="9">
+              <div class="empty-state">
+                <div class="empty-icon"><i class="pi pi-wallet"></i></div>
+                <h3>No Payments Found</h3>
+                <p>{{ searchTerm ? 'Try adjusting your filters or search criteria' : 'Start by recording a new payment' }}</p>
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </div>
+  </section>
+
+  <!-- ==================== MOBILE CARDS ==================== -->
+  <section class="cards-section mobile-only">
+    <div *ngIf="!loading && customerPayments.length === 0" class="empty-state-mobile">
+      <div class="empty-icon"><i class="pi pi-wallet"></i></div>
+      <h3>No Payments</h3>
+      <p>{{ searchTerm ? 'Try different filters' : 'Record your first payment' }}</p>
+    </div>
+
+    <div *ngIf="customerPayments.length > 0" class="cards-grid">
+      <div *ngFor="let payment of customerPayments" class="order-card" (click)="viewDetails(payment)">
+        <div class="card-header">
+          <span class="card-so-number">{{ payment.customerName }}</span>
+          <p-tag [value]="payment.status" [severity]="getStatusSeverity(payment.status)"></p-tag>
+        </div>
+        <div class="card-body">
+          <div class="card-meta">
+            <span class="card-meta-item"><i class="pi pi-calendar"></i> {{ payment.paymentDate | date:'MMM dd, yyyy' }}</span>
+            <span class="card-meta-item"><i class="pi pi-credit-card"></i> {{ payment.paymentMethod }}</span>
+            <span *ngIf="payment.invoiceNumber" class="card-meta-item"><i class="pi pi-file"></i> {{ payment.invoiceNumber }}</span>
+          </div>
+        </div>
+        <div class="card-footer">
+          <div class="card-amount">
+            <span class="amount-label">Amount</span>
+            <span class="amount-value">{{ payment.amount | appCurrency }}</span>
+          </div>
+          <button class="btn-card-action" (click)="showContextMenu($event, payment); $event.stopPropagation()"><i class="pi pi-ellipsis-h"></i></button>
         </div>
       </div>
-
-      <!-- Status Filter -->
-      <div class="filter-item">
-        <p-select [options]="statusOptions" [(ngModel)]="statusFilter" placeholder="Status"
-          [showClear]="true" (onChange)="onFilterChange()" class="w-full"></p-select>
-      </div>
-
-      <!-- Date Range -->
-      <div class="filter-item date-filter">
-        <p-datepicker [(ngModel)]="dateRange" selectionMode="range" [showIcon]="true"
-          placeholder="Payment date range" dateFormat="M dd, yy" [showButtonBar]="true"
-          (onSelect)="onDateRangeSelect()" (ngModelChange)="onDateRangeChange($event)" class="w-full"></p-datepicker>
-      </div>
-
-      <!-- Reconciled Filter -->
-      <div class="filter-item">
-        <p-select [options]="reconciledOptions" [(ngModel)]="reconciledFilter" placeholder="Reconciled"
-          [showClear]="true" (onChange)="onFilterChange()" class="w-full"></p-select>
-      </div>
-
     </div>
-  </p-card>
+  </section>
 
-  <!-- Payments Table -->
-  <div class="table-container">
-    <p-table
-      #dt
-      [value]="customerPayments"
-      [loading]="loading"
-      [lazy]="true"
-      [paginator]="false"
-      [rows]="pageSize"
-      [totalRecords]="totalCount"
-      [contextMenu]="contextMenu"
-      [(contextMenuSelection)]="selectedPayment"
-      (onContextMenuSelect)="onContextMenuSelect($event)"
-      responsiveLayout="scroll"
-      styleClass="p-datatable-striped" 
-      [tableStyle]="{ 'min-width': '50rem' }" 
-      dataKey="id">
-
-      <ng-template pTemplate="header">
-        <tr>
-          <th pSortableColumn="customerName">
-            Customer <p-sortIcon field="customerName"></p-sortIcon>
-          </th>
-          <th pSortableColumn="amount" class="text-right">
-            Amount <p-sortIcon field="amount"></p-sortIcon>
-          </th>
-          <th pSortableColumn="paymentDate" >
-            Date <p-sortIcon field="paymentDate"></p-sortIcon>
-          </th>
-          <th style="width: 10%">Method</th>
-          <th pSortableColumn="status" >
-            Status <p-sortIcon field="status"></p-sortIcon>
-          </th>
-          <th >Provider</th>
-          <th >Invoice</th>
-          <th >Reconciled</th>
-          <th >Actions</th>
-        </tr>
-      </ng-template>
-
-      <ng-template pTemplate="body" let-payment>
-        <tr [pContextMenuRow]="payment" class="payment-row">
-          <td>
-            <div class="customer-info">
-              <span class="customer-name" (click)="viewDetails(payment)">{{ payment.customerName }}</span>
-            </div>
-          </td>
-          <td class="text-right">
-            <span class="amount">{{ payment.amount | appCurrency }}</span>
-          </td>
-          <td>
-            <span class="timestamp">{{ payment.paymentDate | date:'MMM dd, yyyy' }}</span>
-          </td>
-          <td>
-            <p-tag [value]="payment.paymentMethod" [severity]="getMethodSeverity(payment.paymentMethod)"></p-tag>
-          </td>
-          <td>
-            <p-tag [value]="payment.status" [severity]="getStatusSeverity(payment.status)"></p-tag>
-          </td>
-          <td>
-            <span class="provider-name">{{ payment.providerName || '-' }}</span>
-          </td>
-          <td>
-            <span class="invoice-number" *ngIf="payment.invoiceNumber">{{ payment.invoiceNumber }}</span>
-            <span class="no-value" *ngIf="!payment.invoiceNumber">-</span>
-          </td>
-          <td class="text-center">
-            <p-tag *ngIf="payment.isReconciled" value="Yes" severity="success" icon="pi pi-check"></p-tag>
-            <p-tag *ngIf="!payment.isReconciled" value="No" severity="warn" icon="pi pi-clock"></p-tag>
-          </td>
-          <td class="text-center">
-            <div class="flex justify-center gap-1">
-              <!-- PENDING: Show Confirm button -->
-              <button
-                *ngIf="payment.status === 'PENDING'"
-                pButton
-                pRipple
-                type="button"
-                icon="pi pi-check"
-                class="p-button-success p-button-sm"
-                pTooltip="Confirm Payment"
-                tooltipPosition="left"
-                (click)="confirmPayment(payment)">
-              </button>
-
-              <!-- COMPLETED but not reconciled: Show Reconcile and Refund buttons -->
-              <button
-                *ngIf="payment.status === 'COMPLETED' && !payment.isReconciled"
-                pButton
-                pRipple
-                type="button"
-                icon="pi pi-check-square"
-                class="p-button-info p-button-sm"
-                pTooltip="Reconcile Payment"
-                tooltipPosition="left"
-                (click)="reconcilePayment(payment)">
-              </button>
-              <button
-                *ngIf="payment.status === 'COMPLETED' && !payment.isReconciled"
-                pButton
-                pRipple
-                type="button"
-                icon="pi pi-replay"
-                class="p-button-warning p-button-sm"
-                pTooltip="Refund Payment"
-                tooltipPosition="left"
-                (click)="refundPayment(payment)">
-              </button>
-
-              <!-- PENDING or PROCESSING: Show Cancel button -->
-              <button
-                *ngIf="payment.status === 'PENDING' || payment.status === 'PROCESSING'"
-                pButton
-                pRipple
-                type="button"
-                icon="pi pi-times"
-                class="p-button-danger p-button-sm"
-                pTooltip="Cancel Payment"
-                tooltipPosition="left"
-                (click)="cancelPayment(payment)">
-              </button>
-
-              <!-- More options menu for all statuses -->
-              <button
-                pButton
-                pRipple
-                type="button"
-                icon="pi pi-ellipsis-v"
-                class="p-button-text p-button-sm"
-                pTooltip="More Actions"
-                tooltipPosition="left"
-                (contextmenu)="showContextMenu($event, payment)"
-                (click)="showContextMenu($event, payment)">
-              </button>
-            </div>
-          </td>
-        </tr>
-      </ng-template>
-
-      <ng-template pTemplate="emptymessage">
-        <tr>
-          <td colspan="9" class="text-center p-6">
-            <div class="empty-state">
-              <i class="pi pi-wallet text-5xl text-gray-300 mb-3"></i>
-              <h3 class="text-gray-500 mb-2">No payments found</h3>
-              <p class="text-gray-400">{{ searchTerm ? 'Try adjusting your filters or search criteria' : 'Start by recording a new payment' }}</p>
-            </div>
-          </td>
-        </tr>
-      </ng-template>
-    </p-table>
-
-    <!-- Paginator -->
-    <p-paginator
-      [first]="first"
-      [rows]="pageSize"
-      [totalRecords]="totalCount"
-      [rowsPerPageOptions]="pageSizeOptions"
-      [showCurrentPageReport]="true"
-      currentPageReportTemplate="Showing {first} to {last} of {totalRecords} payments"
-      (onPageChange)="onPageChange($event)">
-    </p-paginator>
-  </div>
+  <!-- ==================== PAGINATION ==================== -->
+  <app-data-pagination
+    [first]="first"
+    [pageSize]="pageSize"
+    [totalRecords]="totalCount"
+    [pageSizeOptions]="pageSizeOptions"
+    itemLabel="payments"
+    (pageChange)="onPageChange({ page: $event - 1, rows: pageSize })"
+    (pageSizeChange)="onPageChange({ page: 0, rows: $event })">
+  </app-data-pagination>
 
   <!-- Context Menu -->
-  <p-contextMenu
-    #contextMenu
-    [model]="contextMenuItems"
-    [appendTo]="'body'">
-  </p-contextMenu>
-</div>
+  <p-contextMenu #contextMenu [model]="contextMenuItems" [appendTo]="'body'"></p-contextMenu>
+
+</app-page-container>

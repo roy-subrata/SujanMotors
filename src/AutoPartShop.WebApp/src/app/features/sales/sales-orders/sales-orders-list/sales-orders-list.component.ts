@@ -26,6 +26,10 @@ import { SalesOrderService, SalesOrderResponse } from '../../services/sales-orde
 import { CurrencyService } from '../../../../shared/services/currency.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { I18nService } from '@/shared/services/i18n.service';
+import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
+import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
+import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
+import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 
 @Component({
     selector: 'app-sales-orders-list',
@@ -48,7 +52,11 @@ import { I18nService } from '@/shared/services/i18n.service';
         PaginatorModule,
         SkeletonModule,
         InputGroupModule,
-        InputGroupAddonModule
+        InputGroupAddonModule,
+        PageContainerComponent,
+        PageHeaderComponent,
+        FilterBarComponent,
+        DataPaginationComponent
     ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './sales-orders-list.component.html',

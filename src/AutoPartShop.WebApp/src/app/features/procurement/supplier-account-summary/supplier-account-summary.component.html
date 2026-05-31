@@ -2,20 +2,25 @@
     <p-toast></p-toast>
 
     <!-- HEADER -->
-    <div class="as-header">
-        <div class="as-header-left">
-            <button pButton class="p-button-text p-button-rounded" pTooltip="Back" (click)="goBack()">
+    <app-page-header
+        title="Supplier Account Summary"
+        subtitle="Ledger entries and outstanding balance">
+        <ng-container actions>
+            <button class="btn-icon" pTooltip="Back" tooltipPosition="bottom" (click)="goBack()">
                 <i class="pi pi-arrow-left"></i>
             </button>
-            <h2 class="as-title">Supplier Account Summary</h2>
-        </div>
-        <div class="as-header-right" *ngIf="summary()">
-            <button pButton type="button" icon="pi pi-file-pdf" class="p-button-text p-button-rounded"
-                pTooltip="Download PDF" [loading]="pdfLoading()" (click)="onDownloadPdf()"></button>
-            <button pButton type="button" icon="pi pi-print" class="p-button-text p-button-rounded"
-                pTooltip="Print" [loading]="pdfLoading()" (click)="onPrint()"></button>
-        </div>
-    </div>
+            @if (summary()) {
+                <button class="btn-icon" pTooltip="Download PDF" tooltipPosition="bottom"
+                    [disabled]="pdfLoading()" (click)="onDownloadPdf()">
+                    <i class="pi" [ngClass]="pdfLoading() ? 'pi-spin pi-spinner' : 'pi-file-pdf'"></i>
+                </button>
+                <button class="btn-icon" pTooltip="Print" tooltipPosition="bottom"
+                    [disabled]="pdfLoading()" (click)="onPrint()">
+                    <i class="pi pi-print"></i>
+                </button>
+            }
+        </ng-container>
+    </app-page-header>
 
     <!-- FILTER BAR -->
     <div class="as-filter-bar">

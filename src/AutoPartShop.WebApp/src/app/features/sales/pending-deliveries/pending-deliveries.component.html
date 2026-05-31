@@ -1,32 +1,23 @@
 <p-toast position="top-right"></p-toast>
 <p-confirmDialog></p-confirmDialog>
 
-<div class="page-wrapper">
+<app-page-container>
 
   <!-- ══ HEADER ══════════════════════════════════════════════════════ -->
-  <header class="page-header">
-    <div class="header-content">
-      <div class="header-left">
-        <h1 class="page-title"><i class="pi pi-truck"></i> Pending Deliveries</h1>
-        <p class="page-subtitle">Orders confirmed and waiting to be delivered</p>
-      </div>
-      <div class="header-actions">
-        <div class="stats-badge" *ngIf="!loading()">
-          <i class="pi pi-box"></i>
-          <div class="stats-info">
-            <span class="stats-value">{{ orders().length }}</span>
-            <span class="stats-label">orders</span>
-          </div>
-        </div>
-        <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="load()">
-          <i class="pi pi-refresh" [class.pi-spin]="loading()"></i>
-        </button>
-        <a routerLink="/sales/sales-orders" class="btn-icon" pTooltip="All Orders" tooltipPosition="bottom">
-          <i class="pi pi-list"></i>
-        </a>
-      </div>
-    </div>
-  </header>
+  <app-page-header
+    title="Pending Deliveries"
+    subtitle="Orders confirmed and waiting to be delivered"
+    [breadcrumb]="[{ label: 'Sales' }, { label: 'Pending Deliveries' }]"
+    [count]="orders().length" countLabel="orders" countIcon="pi pi-box">
+    <ng-container actions>
+      <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="load()">
+        <i class="pi pi-refresh" [class.pi-spin]="loading()"></i>
+      </button>
+      <a routerLink="/sales/sales-orders" class="btn-icon" pTooltip="All Orders" tooltipPosition="bottom">
+        <i class="pi pi-list"></i>
+      </a>
+    </ng-container>
+  </app-page-header>
 
   <!-- ══ LOADING ══════════════════════════════════════════════════════ -->
   <div *ngIf="loading()" class="pd-loading">
@@ -113,7 +104,7 @@
 
   </div>
 
-</div>
+</app-page-container>
 
 <!-- ══ Challan Dialog ══════════════════════════════════════════════ -->
 <p-dialog header="Generate Delivery Challan" [(visible)]="showChallanDialog"

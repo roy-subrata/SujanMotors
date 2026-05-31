@@ -13,11 +13,13 @@ import { MessageService, ConfirmationService } from 'primeng/api';
 import { SalesOrderService, SalesOrderResponse } from '../services/sales-order.service';
 import { ChallanService } from '../services/challan.service';
 import { CurrencyService } from '@/shared/services/currency.service';
+import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
+import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 
 @Component({
   selector: 'app-pending-deliveries',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, ToastModule, TooltipModule, ConfirmDialogModule, DialogModule, DividerModule, InputTextModule, TextareaModule],
+  imports: [CommonModule, FormsModule, RouterModule, ToastModule, TooltipModule, ConfirmDialogModule, DialogModule, DividerModule, InputTextModule, TextareaModule, PageContainerComponent, PageHeaderComponent],
   providers: [MessageService, ConfirmationService],
   templateUrl: './pending-deliveries.component.html',
   styleUrls: ['./pending-deliveries.component.css']

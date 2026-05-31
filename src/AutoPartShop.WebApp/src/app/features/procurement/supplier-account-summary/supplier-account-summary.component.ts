@@ -23,6 +23,7 @@ import {
 } from '../services/supplier-ledger.service';
 import { CurrencyService } from '../../../shared/services/currency.service';
 import { InvoicePdfService } from '../../sales/services/invoice-pdf.service';
+import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 
 @Component({
     selector: 'app-supplier-account-summary',
@@ -36,7 +37,8 @@ import { InvoicePdfService } from '../../sales/services/invoice-pdf.service';
         TooltipModule,
         PaginatorModule,
         SkeletonModule,
-        LazyAutocompleteComponent
+        LazyAutocompleteComponent,
+        PageHeaderComponent
     ],
     providers: [MessageService],
     templateUrl: './supplier-account-summary.component.html',
