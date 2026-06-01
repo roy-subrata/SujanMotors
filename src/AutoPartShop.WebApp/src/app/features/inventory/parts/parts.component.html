@@ -7,6 +7,12 @@
 <p-confirmDialog></p-confirmDialog>
 <p-menu #actionMenu [model]="actionMenuItems" [popup]="true" appendTo="body"></p-menu>
 
+<!-- Bulk import dialog -->
+<app-parts-import-dialog
+  [(visible)]="importDialogVisible"
+  (imported)="onPartsImported($event)">
+</app-parts-import-dialog>
+
 <app-page-container>
 
   <!-- ==================== HEADER ==================== -->
@@ -23,6 +29,10 @@
       }
       <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="refreshData()">
         <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
+      </button>
+      <button class="btn-secondary" pTooltip="Import parts from Excel" tooltipPosition="bottom" (click)="openImportDialog()">
+        <i class="pi pi-file-import"></i>
+        <span>Import</span>
       </button>
       <button class="btn-primary" (click)="createPart()">
         <i class="pi pi-plus"></i>

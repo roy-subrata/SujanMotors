@@ -15,6 +15,7 @@ import { SkeletonModule } from 'primeng/skeleton';
 import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
 import { DialogService } from 'primeng/dynamicdialog';
 import { BarcodeDialogComponent } from './barcode-dialog/barcode-dialog.component';
+import { PartsImportDialogComponent } from './parts-import-dialog/parts-import-dialog.component';
 import { PartService, PartResponse } from '../services/part.service';
 import { CurrencyService } from '@/shared/services/currency.service';
 import { PriceCodeService } from '@/shared/services/price-code.service';
@@ -42,7 +43,8 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
         PageContainerComponent,
         PageHeaderComponent,
         FilterBarComponent,
-        DataPaginationComponent
+        DataPaginationComponent,
+        PartsImportDialogComponent
     ],
     providers: [MessageService, ConfirmationService, DialogService],
     templateUrl: './parts.component.html',
@@ -69,6 +71,7 @@ export class PartsComponent implements OnInit {
     filterStatus = '';
 
     actionMenuItems: MenuItem[] = [];
+    importDialogVisible = false;
 
     statusOptions = [
         { label: 'All Statuses', value: '' },
@@ -124,6 +127,27 @@ export class PartsComponent implements OnInit {
      */
     createPart(): void {
         this.router.navigate(['/inventory/parts/create']);
+    }
+
+    /**
+     * Open the bulk import dialog
+     */
+    openImportDialog(): void {
+        this.importDialogVisible = true;
+    }
+
+    /**
+     * Handle a completed import: notify and refresh the list
+     */
+    onPartsImported(createdCount: number): void {
+        if (createdCount > 0) {
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Import Complete',
+                detail: `${createdCount} part(s) imported successfully`
+            });
+            this.loadData(1, this.pageSize);
+        }
     }
 
     /**

@@ -188,6 +188,9 @@ builder.Services.AddScoped<IWarrantyService, WarrantyService>();
 // Register discount and pricing services
 builder.Services.AddScoped<IDiscountResolutionService, DiscountResolutionService>();
 
+// Bulk product import (Excel)
+builder.Services.AddScoped<IProductImportService, ProductImportService>();
+
 // Configure JSON serialization to use camelCase
 builder.Services.AddControllers()
     .AddJsonOptions(options =>

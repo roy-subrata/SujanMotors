@@ -1,0 +1,153 @@
+<p-dialog
+  [visible]="visible"
+  (visibleChange)="visible = $event; visibleChange.emit($event)"
+  (onShow)="onShow()"
+  (onHide)="onHide()"
+  [modal]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [style]="{ width: '900px', maxWidth: '95vw' }"
+  header="Import Parts from Excel"
+  [dismissableMask]="true">
+
+  <!-- Error banner -->
+  <div *ngIf="errorMessage" class="import-error">
+    <i class="pi pi-exclamation-triangle"></i>
+    <span>{{ errorMessage }}</span>
+  </div>
+
+  <!-- ==================== STEP 1: UPLOAD ==================== -->
+  <div *ngIf="step === 'upload'" class="import-step">
+    <ol class="import-instructions">
+      <li>Download the template and fill in one part per row.</li>
+      <li><strong>Category</strong>, <strong>Brand</strong>, and <strong>Unit</strong> are matched by name and must already exist.</li>
+      <li>SKU is generated automatically &mdash; do not include it.</li>
+      <li>Upload the completed file, review the validation report, then confirm the import.</li>
+    </ol>
+
+    <div class="import-actions-row">
+      <button class="btn-secondary" (click)="downloadTemplate()" [disabled]="downloading">
+        <i class="pi" [ngClass]="downloading ? 'pi-spin pi-spinner' : 'pi-download'"></i>
+        <span>Download Template</span>
+      </button>
+    </div>
+
+    <div class="import-upload">
+      <label class="upload-label">
+        <input type="file" accept=".xlsx" (change)="onFileSelected($event)" />
+      </label>
+      <span *ngIf="selectedFile" class="upload-filename">
+        <i class="pi pi-file-excel"></i> {{ selectedFile.name }}
+      </span>
+    </div>
+  </div>
+
+  <!-- ==================== STEP 2: REVIEW ==================== -->
+  <div *ngIf="step === 'review' && validation" class="import-step">
+    <div class="import-summary">
+      <div class="summary-stat">
+        <span class="stat-value">{{ validation.totalRows }}</span>
+        <span class="stat-label">Total rows</span>
+      </div>
+      <div class="summary-stat valid">
+        <span class="stat-value">{{ validation.validCount }}</span>
+        <span class="stat-label">Valid</span>
+      </div>
+      <div class="summary-stat error">
+        <span class="stat-value">{{ validation.errorCount }}</span>
+        <span class="stat-label">With errors</span>
+      </div>
+    </div>
+
+    <p *ngIf="validation.errorCount > 0" class="import-hint">
+      Only the {{ validation.validCount }} valid row(s) will be imported. Fix the errors below in your file and re-upload to import the rest.
+    </p>
+
+    <p-table [value]="validation.rows" [scrollable]="true" scrollHeight="320px" styleClass="app-table import-table">
+      <ng-template #header>
+        <tr>
+          <th style="width: 70px">Row</th>
+          <th style="width: 90px">Status</th>
+          <th>Name</th>
+          <th style="width: 130px">Part No.</th>
+          <th>Issues</th>
+        </tr>
+      </ng-template>
+      <ng-template #body let-r>
+        <tr [class.row-error]="!r.isValid">
+          <td>{{ r.rowNumber }}</td>
+          <td>
+            <p-tag *ngIf="r.isValid" severity="success" value="Valid"></p-tag>
+            <p-tag *ngIf="!r.isValid" severity="danger" value="Error"></p-tag>
+          </td>
+          <td>{{ r.name || '—' }}</td>
+          <td>{{ r.partNumber || '—' }}</td>
+          <td>
+            <ul *ngIf="r.errors.length" class="error-list">
+              <li *ngFor="let e of r.errors">{{ e }}</li>
+            </ul>
+            <span *ngIf="!r.errors.length" class="text-muted">—</span>
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+
+  <!-- ==================== STEP 3: DONE ==================== -->
+  <div *ngIf="step === 'done' && commitResult" class="import-step">
+    <div class="import-result-banner" [class.has-failures]="commitResult.failedCount > 0">
+      <i class="pi" [ngClass]="commitResult.failedCount > 0 ? 'pi-exclamation-circle' : 'pi-check-circle'"></i>
+      <div>
+        <strong>{{ commitResult.createdCount }} part(s) imported.</strong>
+        <span *ngIf="commitResult.failedCount > 0"> {{ commitResult.failedCount }} row(s) failed.</span>
+      </div>
+    </div>
+
+    <p-table *ngIf="commitResult.failures.length" [value]="commitResult.failures" [scrollable]="true" scrollHeight="280px" styleClass="app-table import-table">
+      <ng-template #header>
+        <tr>
+          <th style="width: 70px">Row</th>
+          <th>Name</th>
+          <th style="width: 130px">Part No.</th>
+          <th>Issues</th>
+        </tr>
+      </ng-template>
+      <ng-template #body let-r>
+        <tr class="row-error">
+          <td>{{ r.rowNumber }}</td>
+          <td>{{ r.name || '—' }}</td>
+          <td>{{ r.partNumber || '—' }}</td>
+          <td>
+            <ul class="error-list">
+              <li *ngFor="let e of r.errors">{{ e }}</li>
+            </ul>
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+
+  <!-- ==================== FOOTER ==================== -->
+  <ng-template #footer>
+    <ng-container *ngIf="step === 'upload'">
+      <button class="btn-secondary" (click)="close()">Cancel</button>
+      <button class="btn-primary" (click)="runValidate()" [disabled]="!selectedFile || validating">
+        <i class="pi" [ngClass]="validating ? 'pi-spin pi-spinner' : 'pi-search'"></i>
+        <span>Validate</span>
+      </button>
+    </ng-container>
+
+    <ng-container *ngIf="step === 'review'">
+      <button class="btn-secondary" (click)="backToUpload()" [disabled]="committing">Back</button>
+      <button class="btn-primary" (click)="runCommit()" [disabled]="!canImport">
+        <i class="pi" [ngClass]="committing ? 'pi-spin pi-spinner' : 'pi-check'"></i>
+        <span>Import {{ validation?.validCount || 0 }} valid row(s)</span>
+      </button>
+    </ng-container>
+
+    <ng-container *ngIf="step === 'done'">
+      <button class="btn-primary" (click)="close()">Done</button>
+    </ng-container>
+  </ng-template>
+
+</p-dialog>

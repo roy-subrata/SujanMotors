@@ -81,7 +81,15 @@
       "Bash(Get-ChildItem *)",
       "PowerShell(Get-ChildItem -Path \"D:\\\\AI\\\\SujanMotors\" | Where-Object { $_.PSIsContainer } | Select-Object Name)",
       "PowerShell(Get-ChildItem -Path \"D:\\\\AI\\\\SujanMotors\\\\src\" | Where-Object { $_.PSIsContainer } | Select-Object Name)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "PowerShell(head *)",
+      "Bash(Remove-Item *)",
+      "Bash(Select-Object FullName)",
+      "Bash(git *)",
+      "Bash(Select-Object -First 30)",
+      "Bash(Format-Table FullName)",
+      "Bash(grep -nA6 '\"paths\"' tsconfig.json)",
+      "Bash(find src/app/shared -maxdepth 2 -type d)"
     ],
     "deny": [],
     "ask": []

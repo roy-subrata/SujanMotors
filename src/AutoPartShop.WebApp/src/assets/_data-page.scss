@@ -210,6 +210,29 @@
 .page-header .btn-primary:hover { background: #f8f9ff; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); }
 .page-header .btn-primary i { font-size: 12px; }
 
+/* Secondary header action — translucent, matches btn-icon language but with a label */
+.page-header .btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  background-color: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-sm);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.page-header .btn-secondary:hover {
+  background-color: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.page-header .btn-secondary i { font-size: 12px; }
+
 /* ==================== GENERAL BUTTONS (empty states, etc.) ==================== */
 .btn-primary {
   display: inline-flex;
@@ -909,8 +932,10 @@
   .page-header .header-actions { margin-left: auto; gap: 8px; }
   .page-header .page-title { font-size: 16px; }
   .page-header .btn-icon { width: 32px; height: 32px; }
-  .page-header .btn-primary span { display: none; }
+  .page-header .btn-primary span,
+  .page-header .btn-secondary span { display: none; }
   .page-header .btn-primary { padding: 8px 12px; }
+  .page-header .btn-secondary { padding: 8px 12px; }
 
   /* Hide the breadcrumb bar on mobile to reclaim vertical space */
   .breadcrumb-bar { display: none; }
@@ -951,4 +976,6 @@
   .page-header .btn-icon i { font-size: 12px; }
   .page-header .btn-primary { padding: 6px 10px; font-size: 12px; }
   .page-header .btn-primary i { font-size: 11px; }
+  .page-header .btn-secondary { padding: 6px 10px; font-size: 12px; }
+  .page-header .btn-secondary i { font-size: 11px; }
 }
