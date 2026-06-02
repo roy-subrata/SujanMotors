@@ -721,32 +721,119 @@
   </p-dialog>
 
   <!-- Price Check Dialog -->
-  <p-dialog [(visible)]="showPriceCheckDialog" [modal]="true" [style]="{ width: '400px' }" header="Price Check">
+  <p-dialog [(visible)]="showPriceCheckDialog" [modal]="true" [style]="{ width: '440px' }" header="Price Check">
     <div class="price-check-content">
-      <input type="text" pInputText [(ngModel)]="priceCheckCode" [ngModelOptions]="{standalone: true}" placeholder="Enter SKU or part number..." (keydown.enter)="searchPrice()" />
-      <div class="price-result" *ngIf="priceCheckResult">
-        <p><strong>{{ priceCheckResult.name }}</strong></p>
-        <p>SKU: {{ priceCheckResult.sku }}</p>
-        <p>Price: {{ formatCurrency(priceCheckResult.sellingPrice) }}</p>
-        <p>Stock: {{ priceCheckResult.stockLevel }}</p>
-        <button class="action-btn primary" (click)="addPriceCheckToCart()">
-          <i class="pi pi-plus"></i> Add to Cart
-        </button>
+      <div class="price-search">
+        <input type="text" pInputText class="price-search-input" [(ngModel)]="priceCheckCode" [ngModelOptions]="{standalone: true}"
+               placeholder="Scan or enter barcode, SKU, or part number…" (keydown.enter)="searchPrice()" />
+        <button pButton icon="pi pi-search" (click)="searchPrice()" [loading]="priceCheckLoading"></button>
+      </div>
+
+      <div class="price-loading" *ngIf="priceCheckLoading">
+        <i class="pi pi-spin pi-spinner"></i> Searching…
+      </div>
+
+      <div class="price-empty" *ngIf="priceCheckNotFound && !priceCheckLoading">
+        <i class="pi pi-search-minus"></i>
+        <p>No product found for that code.</p>
+      </div>
+
+      <div class="price-card" *ngIf="priceCheckResult && !priceCheckLoading">
+        <div class="price-card-head">
+          <div class="price-name">
+            {{ priceCheckResult.name }}
+            <span class="price-variant" *ngIf="priceCheckResult.variantName"> · {{ priceCheckResult.variantName }}</span>
+          </div>
+          <span class="price-tag" [class.lot]="priceCheckResult.hasLotPrice">
+            {{ priceCheckResult.hasLotPrice ? 'Lot price' : 'List price' }}
+          </span>
+        </div>
+
+        <div class="price-amount">{{ formatCurrency(priceCheckResult.sellingPrice) }}</div>
+
+        <div class="price-rows">
+          <div class="price-row"><span>Part No</span><strong>{{ priceCheckResult.partNumber || '—' }}</strong></div>
+          <div class="price-row"><span>SKU</span><strong>{{ priceCheckResult.sku || '—' }}</strong></div>
+          <div class="price-row">
+            <span>Stock</span>
+            <strong [class.out-of-stock]="priceCheckResult.stockLevel <= 0">{{ priceCheckResult.stockLevel }}</strong>
+          </div>
+        </div>
+
+        <button pButton class="price-add" icon="pi pi-plus" label="Add to Cart" (click)="addPriceCheckToCart()"></button>
       </div>
     </div>
     <ng-template pTemplate="footer">
-      <button pButton label="Search" icon="pi pi-search" (click)="searchPrice()"></button>
+      <button pButton label="Close" class="p-button-text" (click)="showPriceCheckDialog = false"></button>
+      <button pButton label="Search" icon="pi pi-search" (click)="searchPrice()" [loading]="priceCheckLoading"></button>
     </ng-template>
   </p-dialog>
 
-  <!-- Stock Check Dialog -->
-  <p-dialog [(visible)]="showStockSearchDialog" [modal]="true" [style]="{ width: '450px' }" header="Stock Check">
-    <div class="stock-check-content">
-      <input type="text" pInputText [(ngModel)]="stockSearchCode" [ngModelOptions]="{standalone: true}" placeholder="Search by part name, SKU, or part number..." />
+  <!-- Stock Check / Product Search Dialog -->
+  <p-dialog [(visible)]="showStockSearchDialog" [modal]="true"
+            [style]="{ width: '70vw', maxWidth: '960px' }"
+            [contentStyle]="{ minHeight: '50vh', maxHeight: '75vh', overflow: 'auto' }"
+            [breakpoints]="{ '960px': '95vw' }"
+            [draggable]="false" [resizable]="false" header="Stock Check / Product Search">
+    <div class="stock-search-content">
+      <div class="stock-search-toolbar">
+        <input type="text" pInputText class="stock-search-input" [(ngModel)]="stockSearchTerm" [ngModelOptions]="{standalone: true}"
+               [placeholder]="semanticMode ? 'Describe the part (e.g. front brake pad for toyota)…' : 'Search by name, SKU, part no, or OEM…'"
+               (keydown.enter)="runStockSearch(1)" />
+        <label class="semantic-switch">
+          <p-toggleswitch [(ngModel)]="semanticMode" [ngModelOptions]="{standalone: true}" (onChange)="onSemanticToggle()" />
+          <span><i class="pi pi-sparkles"></i> Semantic</span>
+        </label>
+        <button pButton icon="pi pi-search" label="Search" (click)="runStockSearch(1)"></button>
+      </div>
+
+      <div class="stock-empty" *ngIf="!stockSearchLoading && stockSearchResults.length === 0">
+        <i class="pi pi-box"></i>
+        <p>No products found.</p>
+      </div>
+
+      <table class="stock-table" *ngIf="stockSearchResults.length">
+        <thead>
+          <tr>
+            <th class="col-item">Product</th>
+            <th>Part No</th>
+            <th>OEM</th>
+            <th>SKU</th>
+            <th class="col-num">Price</th>
+            <th class="col-num">Stock</th>
+            <th class="col-num" *ngIf="semanticMode">Match</th>
+            <th class="col-action"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let p of stockSearchResults">
+            <td class="col-item">{{ p.displayName || p.name }}</td>
+            <td>{{ p.partNumber }}</td>
+            <td>{{ p.oemNumber || '—' }}</td>
+            <td>{{ p.variantSKU || p.sku }}</td>
+            <td class="col-num">{{ formatCurrency(p.effectiveSellingPrice) }}</td>
+            <td class="col-num">
+              <span *ngIf="stockFor(p.id) !== null" [class.out-of-stock]="stockFor(p.id)! <= 0">{{ stockFor(p.id) }}</span>
+              <span *ngIf="stockFor(p.id) === null" class="stock-muted">—</span>
+            </td>
+            <td class="col-num" *ngIf="semanticMode">{{ p.similarityScore != null ? ((p.similarityScore * 100) | number:'1.0-0') + '%' : '—' }}</td>
+            <td class="col-action">
+              <button pButton icon="pi pi-plus" size="small" [text]="true" pTooltip="Add to cart" (click)="addStockRow(p)"></button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
     <ng-template pTemplate="footer">
-      <button pButton label="Cancel" class="p-button-text" (click)="showStockSearchDialog = false"></button>
-      <button pButton label="Search" icon="pi pi-search" (click)="searchStock()"></button>
+      <div class="stock-footer">
+        <span class="stock-count" *ngIf="stockSearchTotal">{{ stockSearchTotal }} result(s)</span>
+        <div class="stock-pager" *ngIf="stockSearchTotalPages > 1">
+          <button pButton icon="pi pi-chevron-left" [text]="true" [disabled]="stockSearchPage <= 1" (click)="runStockSearch(stockSearchPage - 1)"></button>
+          <span>Page {{ stockSearchPage }} / {{ stockSearchTotalPages }}</span>
+          <button pButton icon="pi pi-chevron-right" [text]="true" [disabled]="stockSearchPage >= stockSearchTotalPages" (click)="runStockSearch(stockSearchPage + 1)"></button>
+        </div>
+        <button pButton label="Close" class="p-button-text" (click)="showStockSearchDialog = false"></button>
+      </div>
     </ng-template>
   </p-dialog>
 

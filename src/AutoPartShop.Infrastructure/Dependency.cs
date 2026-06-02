@@ -21,6 +21,7 @@ using AutoPartShop.Application.Warehouse;
 using AutoPartShop.Domain.Repositories;
 using AutoPartShop.Infrastructure.Repositories;
 using AutoPartShop.Infrastructure.Services;
+using AutoPartShop.Infrastructure.Services.Embedding;
 using AutoPartsShop.Infrastructure.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
@@ -121,6 +122,10 @@ public static class Dependency
 
         // Variant pricing repository
         services.AddScoped<IProductVariantPriceHistoryRepository, ProductVariantPriceHistoryRepository>();
+
+        // Product semantic search: embedding store + embedding generator (OpenAI-compatible, JSON-configured)
+        services.AddScoped<IProductEmbeddingRepository, ProductEmbeddingRepository>();
+        services.AddHttpClient<IEmbeddingService, OpenAiCompatibleEmbeddingService>();
 
 
         //Application

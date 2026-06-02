@@ -1,12 +1,15 @@
 using AutoPartShop.Api.Common;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.PartDtos;
+using AutoPartShop.Application.Interfaces;
 using AutoPartShop.Application.Parts;
 using AppProductResponse = AutoPartShop.Application.Parts.Dtos.ProductResponse;
 using AppProductPublicResponse = AutoPartShop.Application.Parts.Dtos.ProductPublicResponse;
 using AppProductQuery = AutoPartShop.Application.Parts.Dtos.ProductQuery;
+using SemanticSearchRequest = AutoPartShop.Application.Parts.Dtos.SemanticSearchRequest;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
+using AutoPartShop.Infrastructure.Services.Embedding;
 using AutoPartsShop.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -34,6 +37,8 @@ public class ProductsController : ControllerBase
     private readonly IStockLotRepository _stockLotRepository;
     private readonly ICodeGenerateService _codeGenerateService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IEmbeddingService _embeddingService;
+    private readonly IProductEmbeddingRepository _embeddingRepository;
     private readonly ILogger<ProductsController> _logger;
 
     public ProductsController(
@@ -46,6 +51,8 @@ public class ProductsController : ControllerBase
         IStockLotRepository stockLotRepository,
         ICodeGenerateService codeGenerateService,
         ICurrentUserService currentUserService,
+        IEmbeddingService embeddingService,
+        IProductEmbeddingRepository embeddingRepository,
         ILogger<ProductsController> logger)
     {
         _productRepository = productRepository;
@@ -57,6 +64,8 @@ public class ProductsController : ControllerBase
         _stockLotRepository = stockLotRepository;
         _codeGenerateService = codeGenerateService;
         _currentUserService = currentUserService;
+        _embeddingService = embeddingService;
+        _embeddingRepository = embeddingRepository;
         _logger = logger;
     }
 
@@ -294,6 +303,10 @@ public class ProductsController : ControllerBase
             await _variantPriceHistoryRepository.AddAsync(initialPrice, cancellationToken);
         }
 
+        // Re-fetch so Category/Brand names are available for richer embedding text.
+        var withNavs = await _productRepository.GetByIdAsync(part.Id, cancellationToken) ?? part;
+        await TryUpsertEmbeddingAsync(withNavs, cancellationToken);
+
         return CreatedAtAction(nameof(GetById), new { id = part.Id },
             ApiResponse<ProductResponse>.Ok(MapToProductResponse(part, isAdmin: true)));
     }
@@ -356,7 +369,87 @@ public class ProductsController : ControllerBase
             await _variantPriceHistoryRepository.SetNewPriceAsync(vph, cancellationToken);
         }
 
+        // Keep the embedding in sync with the latest product fields (part has Category/Brand loaded).
+        await TryUpsertEmbeddingAsync(part, cancellationToken);
+
         return Ok(ApiResponse<ProductResponse>.Ok(MapToProductResponse(part, isAdmin: true)));
+    }
+
+    // ── Semantic search ─────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Natural-language product search. Embeds the query and ranks products by cosine similarity
+    /// (SQL Server vector search). Falls back to keyword search when embeddings are not configured.
+    /// </summary>
+    [HttpPost("search-semantic")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> SearchSemantic([FromBody] SemanticSearchRequest request, CancellationToken cancellationToken)
+    {
+        if (request is null || string.IsNullOrWhiteSpace(request.Query))
+            return BadRequest(ApiError.Validation("Query is required", instance: Request.Path));
+
+        var page = request.Page < 1 ? 1 : request.Page;
+        var pageSize = request.PageSize is < 1 or > 100 ? 20 : request.PageSize;
+
+        var vector = await _embeddingService.EmbedAsync(request.Query, cancellationToken);
+
+        // Graceful fallback: embeddings unconfigured/unavailable → keyword search, same response shape.
+        if (vector is null)
+        {
+            var query = new AppProductQuery
+            {
+                Search = request.Query,
+                PageNumber = page,
+                PageSize = pageSize,
+                IsActive = request.IsActive,
+                FlattenVariants = false
+            };
+            var (kw, kwTotal) = await _productReadRepository.FindAllAsync(query, cancellationToken);
+            return Ok(PagedApiResponse<AppProductResponse>.Create(kw, kwTotal, page, pageSize));
+        }
+
+        var (items, total) = await _productReadRepository.SearchSemanticAsync(
+            vector, request.IsActive, page, pageSize, cancellationToken);
+        return Ok(PagedApiResponse<AppProductResponse>.Create(items, total, page, pageSize));
+    }
+
+    /// <summary>
+    /// Generate (or refresh) the product's embedding and store it. Best-effort: any failure is logged
+    /// and swallowed so it never blocks the product create/update that already committed.
+    /// </summary>
+    private async Task TryUpsertEmbeddingAsync(Product part, CancellationToken cancellationToken)
+    {
+        if (!_embeddingService.IsEnabled) return;
+
+        try
+        {
+            var text = EmbeddingTextBuilder.Build(part);
+            if (string.IsNullOrWhiteSpace(text)) return;
+
+            var vector = await _embeddingService.EmbedAsync(text, cancellationToken);
+            if (vector is null) return;
+
+            var partNumber = part.PartNumber?.Value ?? string.Empty;
+            var existing = await _embeddingRepository.GetByProductIdAsync(part.Id, cancellationToken);
+            if (existing is null)
+            {
+                var embedding = ProductEmbedding.Create(part.Id, vector, _embeddingService.Model, text, partNumber, part.OemNumber);
+                embedding.CreatedBy = _currentUserService.GetCurrentUsername();
+                embedding.ModifiedBy = embedding.CreatedBy;
+                await _embeddingRepository.UpsertAsync(embedding, cancellationToken);
+            }
+            else
+            {
+                existing.Update(vector, _embeddingService.Model, text, partNumber, part.OemNumber);
+                existing.ModifiedBy = _currentUserService.GetCurrentUsername();
+                await _embeddingRepository.UpsertAsync(existing, cancellationToken);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to upsert embedding for product {ProductId}", part.Id);
+        }
     }
 
     // ── Status ────────────────────────────────────────────────────────────────

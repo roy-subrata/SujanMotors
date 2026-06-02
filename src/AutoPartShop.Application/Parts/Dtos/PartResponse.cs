@@ -57,5 +57,8 @@
 
         public string CreatedBy { get; set; } = string.Empty;
         public string ModifiedBy { get; set; } = string.Empty;
+
+        /// <summary>Cosine similarity (0..1, higher = closer) — populated only by semantic search.</summary>
+        public double? SimilarityScore { get; set; }
     }
 }

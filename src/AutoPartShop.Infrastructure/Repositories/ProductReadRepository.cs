@@ -2,12 +2,88 @@ using AutoPartShop.Application.Parts;
 using AutoPartShop.Application.Parts.Dtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartsShop.Infrastructure.Extensions;
+using Microsoft.Data.SqlTypes;
 using Microsoft.EntityFrameworkCore;
 
 namespace AutoPartShop.Infrastructure.Repositories;
 
 public class ProductReadRepository(AutoPartDbContext _db) : IProductReadRepository
 {
+    // Semantic search: rank products by cosine distance between their stored embedding and the
+    // query vector, entirely server-side (SQL Server 2025 VECTOR_DISTANCE), then paginate.
+    public async Task<(IEnumerable<ProductResponse> Parts, int TotalCount)> SearchSemanticAsync(
+        float[] queryVector, bool? isActive, int pageNumber, int pageSize, CancellationToken cancellationToken = default)
+    {
+        var sqlVector = new SqlVector<float>(queryVector);
+
+        var ranked = _db.ProductEmbeddings
+            .Where(e => !e.Isdeleted && e.Product != null && !e.Product.Isdeleted
+                && (isActive == null || e.Product.IsActive == isActive))
+            .Select(e => new
+            {
+                e.Product,
+                Distance = EF.Functions.VectorDistance("cosine", e.Embedding, sqlVector)
+            });
+
+        var totalCount = await ranked.CountAsync(cancellationToken);
+
+        var items = await ranked
+            .OrderBy(x => x.Distance)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .Select(x => new ProductResponse
+            {
+                Id = x.Product!.Id,
+                Name = x.Product.Name,
+                DisplayName = x.Product.Name,
+                Description = x.Product.Description,
+                RichDescription = x.Product.RichDescription,
+                PartNumber = x.Product.PartNumber.Value,
+                SKU = x.Product.SKU,
+                OemNumber = x.Product.OemNumber,
+                CategoryId = x.Product.CategoryId,
+                CategoryName = x.Product.Category != null ? x.Product.Category.Name : string.Empty,
+                BrandId = x.Product.BrandId,
+                BrandName = x.Product.Brand != null ? x.Product.Brand.Name : null,
+                BrandCode = x.Product.Brand != null ? x.Product.Brand.Code : null,
+                BaseUnitId = x.Product.BaseUnitId,
+                BaseUnitName = x.Product.BaseUnit != null ? x.Product.BaseUnit.Name : null,
+                BaseUnitCode = x.Product.BaseUnit != null ? x.Product.BaseUnit.Code : null,
+                UnitId = x.Product.UnitId,
+                UnitName = x.Product.Unit != null ? x.Product.Unit.Name : null,
+                CostPrice = x.Product.CostPrice,
+                SellingPrice = x.Product.SellingPrice,
+                EffectiveCostPrice = x.Product.CostPrice,
+                EffectiveSellingPrice = x.Product.SellingPrice,
+                HasVariants = x.Product.Variants.Any(v => v.IsActive && !v.Isdeleted),
+                VariantCount = x.Product.Variants.Count(v => v.IsActive && !v.Isdeleted),
+                IsVariant = false,
+                MinimumStock = x.Product.MinimumStock,
+                IsActive = x.Product.IsActive,
+                HasWarranty = x.Product.HasWarranty,
+                WarrantyPeriodMonths = x.Product.WarrantyPeriodMonths,
+                WarrantyType = x.Product.WarrantyType,
+                WarrantyTerms = x.Product.WarrantyTerms,
+                WarrantyCertificateTemplate = x.Product.WarrantyCertificateTemplate,
+                Barcode = x.Product.Barcode,
+                Tags = x.Product.Tags,
+                ProductType = x.Product.ProductType,
+                IsPerishable = x.Product.IsPerishable,
+                WeightKg = x.Product.WeightKg,
+                WidthCm = x.Product.WidthCm,
+                HeightCm = x.Product.HeightCm,
+                DepthCm = x.Product.DepthCm,
+                TaxCode = x.Product.TaxCode,
+                CreatedBy = x.Product.CreatedBy,
+                ModifiedBy = x.Product.ModifiedBy,
+                // Cosine distance ∈ [0,2]; convert to a 0..1 similarity (higher = closer).
+                SimilarityScore = 1 - x.Distance
+            })
+            .ToListAsync(cancellationToken);
+
+        return (items, totalCount);
+    }
+
     public async Task<(IEnumerable<ProductResponse> Parts, int TotalCount)> FindAllAsync(ProductQuery query, CancellationToken cancellationToken = default)
     {
         var term = query.Search.ToLower();

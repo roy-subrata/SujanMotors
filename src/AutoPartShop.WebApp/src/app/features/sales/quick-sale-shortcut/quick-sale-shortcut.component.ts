@@ -17,6 +17,7 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { TooltipModule } from 'primeng/tooltip';
 import { DialogModule } from 'primeng/dialog';
 import { SelectModule } from 'primeng/select';
+import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { TextareaModule } from 'primeng/textarea';
 import { MessageService, ConfirmationService } from 'primeng/api';
 
@@ -56,6 +57,7 @@ import { LazyAutocompleteComponent, LazyRequest, LazyResponse } from '../../../s
     DialogModule,
     TooltipModule,
     SelectModule,
+    ToggleSwitchModule,
     TextareaModule,
     RouterLink,
     QuickCustomerDialogComponent,
@@ -254,8 +256,19 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
   returnLines: { partId: string; partName: string; soldQty: number; unitPrice: number; returnQty: number; selected: boolean }[] = [];
   priceCheckCode = '';
   priceCheckResult: any = null;
-  stockSearchCode = '';
+  priceCheckLoading = false;
+  priceCheckNotFound = false;
   bulkDiscountPercent = 0;
+
+  // Stock Check / product search dialog
+  stockSearchTerm = '';
+  semanticMode = false;
+  stockSearchResults: (PublicPartResponse & { similarityScore?: number })[] = [];
+  stockSearchLoading = false;
+  stockSearchPage = 1;
+  stockSearchPageSize = 10;
+  stockSearchTotal = 0;
+  stockLevels = new Map<string, number>();
 
   // Barcode
   barcodeModeActive = false;
@@ -839,45 +852,112 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     this.showPriceCheckDialog = true;
     this.priceCheckCode = '';
     this.priceCheckResult = null;
+    this.priceCheckNotFound = false;
+    this.priceCheckLoading = false;
   }
 
   searchPrice(): void {
-    if (!this.priceCheckCode.trim()) return;
-    this.quickSaleService.getPriceByCode(this.priceCheckCode.trim()).subscribe({
-      next: (result) => this.priceCheckResult = result,
-      error: () => this.messageService.add({ severity: 'error', summary: 'Not Found' })
+    const code = this.priceCheckCode.trim();
+    if (!code) return;
+    this.priceCheckLoading = true;
+    this.priceCheckNotFound = false;
+    this.quickSaleService.getPriceByCode(code).subscribe({
+      next: (result) => {
+        this.priceCheckLoading = false;
+        this.priceCheckResult = result;
+        if (!result) {
+          this.priceCheckNotFound = true;
+          this.messageService.add({ severity: 'warn', summary: 'Not Found', detail: `No product found for "${code}"` });
+        }
+      },
+      error: () => {
+        this.priceCheckLoading = false;
+        this.priceCheckResult = null;
+        this.priceCheckNotFound = true;
+        this.messageService.add({ severity: 'error', summary: 'Not Found', detail: `No product found for "${code}"` });
+      }
     });
   }
 
   addPriceCheckToCart(): void {
-    if (!this.priceCheckResult) return;
-    const existing = this.cartItems().find(item => item.partId === this.priceCheckResult.partId);
-    if (existing) {
-      this.messageService.add({ severity: 'info', summary: 'Already Added', detail: 'This part is already in the cart' });
-      this.showPriceCheckDialog = false;
-      return;
-    }
-    const newItem: QuickSaleLineItem = {
-      partId: this.priceCheckResult.partId,
-      partName: this.priceCheckResult.name,
-      partNumber: this.priceCheckResult.partNumber,
-      sku: this.priceCheckResult.sku,
-      unitId: this.priceCheckResult.unitId || undefined,
-      quantity: 1,
-      unitPrice: this.priceCheckResult.sellingPrice,
-      discount: 0
-    };
-    this.cartItems.update(items => [...items, newItem]);
+    const r = this.priceCheckResult;
+    if (!r) return;
+    // Reuse selectPart so variant id/name, dedupe and lot-price logic stay in one place.
+    const variantSuffix = r.variantName ? ` - ${r.variantName}` : (r.variantCode ? ` - ${r.variantCode}` : '');
+    this.selectPart({
+      id: r.partId,
+      variantId: r.variantId ?? null,
+      name: r.name,
+      displayName: r.name + variantSuffix,
+      partNumber: r.partNumber,
+      sku: r.sku,
+      variantSKU: null,
+      unitId: r.unitId,
+      sellingPrice: r.sellingPrice,
+      effectiveSellingPrice: r.sellingPrice
+    });
     this.showPriceCheckDialog = false;
-    this.messageService.add({ severity: 'success', summary: 'Added' });
   }
 
   openStockSearch(): void {
     this.showStockSearchDialog = true;
+    this.stockSearchTerm = '';
+    this.semanticMode = false;
+    this.stockSearchResults = [];
+    this.stockLevels.clear();
+    this.runStockSearch(1);
+  }
+
+  onSemanticToggle(): void {
+    this.runStockSearch(1);
+  }
+
+  runStockSearch(page: number): void {
+    this.stockSearchPage = page;
+    this.stockSearchLoading = true;
+    const term = this.stockSearchTerm.trim();
+
+    const source = (this.semanticMode && term)
+      ? this.partService.searchSemantic(term, page, this.stockSearchPageSize, true)
+      : this.partService.getParts({ search: term, pageNumber: page, pageSize: this.stockSearchPageSize, isActive: true, flattenVariants: true });
+
+    source.subscribe({
+      next: (res) => {
+        this.stockSearchResults = res.data;
+        this.stockSearchTotal = res.pagination.totalCount;
+        this.stockSearchLoading = false;
+        this.loadStockLevels(res.data.map(r => r.id));
+      },
+      error: () => {
+        this.stockSearchLoading = false;
+        this.messageService.add({ severity: 'error', summary: 'Search failed' });
+      }
+    });
+  }
+
+  private loadStockLevels(partIds: string[]): void {
+    const ids = Array.from(new Set(partIds));
+    if (ids.length === 0) return;
+    this.quickSaleService.checkMultipleStock(ids.map(partId => ({ partId, quantity: 1 }))).subscribe({
+      next: (results) => results.forEach(r => this.stockLevels.set(r.partId, r.stockAvailable)),
+      error: () => {}
+    });
+  }
+
+  stockFor(partId: string): number | null {
+    return this.stockLevels.has(partId) ? this.stockLevels.get(partId)! : null;
+  }
+
+  get stockSearchTotalPages(): number {
+    return Math.max(1, Math.ceil(this.stockSearchTotal / this.stockSearchPageSize));
+  }
+
+  addStockRow(row: PublicPartResponse): void {
+    this.selectPart(row);
   }
 
   searchStock(): void {
-    this.messageService.add({ severity: 'info', summary: 'Stock Check' });
+    this.runStockSearch(1);
   }
 
   openBulkDiscount(): void {

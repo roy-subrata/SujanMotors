@@ -10,6 +10,8 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Identity.Stores" Version="10.0.0" />
+    <!-- Provides SqlVector<float> for the product-embedding vector column (SQL Server 2025). -->
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.1" />
   </ItemGroup>
 
   <ItemGroup>

@@ -10,6 +10,7 @@ export interface PublicPartResponse {
   displayName: string;
   description: string;
   partNumber: string;
+  oemNumber?: string | null;
   sku: string;
   categoryId: string;
   categoryName: string;
@@ -82,6 +83,17 @@ export class PublicPartService {
         data: r.data,
         pagination: { ...r.pagination, pageNumber: r.pagination.page }
       })));
+  }
+
+  /** Natural-language semantic search (backend falls back to keyword when embeddings are unconfigured). */
+  searchSemantic(query: string, pageNumber: number, pageSize: number, isActive = true)
+    : Observable<PaginatedResponse<PublicPartResponse & { similarityScore?: number }>> {
+    return this.http.post<{ data: any[]; pagination: any }>(`${this.apiUrl}/search-semantic`, {
+      query, page: pageNumber, pageSize, isActive
+    }).pipe(map(r => ({
+      data: r.data,
+      pagination: { ...r.pagination, pageNumber: r.pagination.page }
+    })));
   }
 
   getPartById(id: string): Observable<PublicPartResponse> {

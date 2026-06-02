@@ -1967,20 +1967,254 @@
   gap: 8px;
 }
 
-.price-result {
-  padding: 16px;
-  background: var(--pos-surface-hover);
-  border-radius: var(--pos-radius);
+/* ===== Stock Check / Product Search dialog ===== */
+.stock-search-content {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
-.price-result p {
-  margin: 8px 0;
+.stock-search-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.stock-search-input {
+  flex: 1;
+}
+
+.semantic-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
   font-size: 0.9rem;
+  color: var(--pos-text);
+  cursor: pointer;
+}
+
+.semantic-switch i {
+  color: var(--pos-primary);
+}
+
+.stock-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 40px 16px;
+  color: var(--pos-text-muted);
+  text-align: center;
+}
+
+.stock-empty i {
+  font-size: 2rem;
+}
+
+.stock-empty p {
+  margin: 0;
+}
+
+.stock-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--pos-border);
+  border-radius: var(--pos-radius);
+  overflow: hidden;
+}
+
+.stock-table thead th {
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--pos-text-secondary);
+  background: var(--pos-surface-hover);
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--pos-border);
+}
+
+.stock-table tbody td {
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  color: var(--pos-text);
+  border-bottom: 1px solid var(--pos-border);
+  vertical-align: middle;
+}
+
+.stock-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.stock-table tbody tr:hover {
+  background: var(--pos-surface-hover);
+}
+
+.stock-table .col-item {
+  font-weight: 500;
+}
+
+.stock-table .col-num {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.stock-table .col-action {
+  width: 48px;
+  text-align: center;
+}
+
+.stock-table .out-of-stock {
+  color: var(--pos-danger);
+  font-weight: 600;
+}
+
+.stock-table .stock-muted {
+  color: var(--pos-text-muted);
+}
+
+.stock-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 16px;
+}
+
+.stock-count {
+  font-size: 0.85rem;
   color: var(--pos-text-secondary);
 }
 
-.price-result p strong {
+.stock-pager {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--pos-text-secondary);
+}
+
+/* Price Check dialog */
+.price-search {
+  display: flex;
+  gap: 8px;
+}
+
+.price-search-input {
+  flex: 1;
+}
+
+.price-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 20px 4px;
+  color: var(--pos-text-secondary);
+  font-size: 0.9rem;
+}
+
+.price-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 32px 16px;
+  color: var(--pos-text-muted);
+  text-align: center;
+}
+
+.price-empty i {
+  font-size: 1.8rem;
+}
+
+.price-empty p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.price-card {
+  border: 1px solid var(--pos-border);
+  border-radius: var(--pos-radius);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.price-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.price-name {
+  font-weight: 600;
   color: var(--pos-text);
+}
+
+.price-variant {
+  color: var(--pos-text-secondary);
+  font-weight: 500;
+}
+
+.price-tag {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--pos-surface-hover);
+  color: var(--pos-text-secondary);
+}
+
+.price-tag.lot {
+  background: var(--pos-primary-light);
+  color: var(--pos-primary);
+}
+
+.price-amount {
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: var(--pos-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.price-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.price-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.88rem;
+}
+
+.price-row span {
+  color: var(--pos-text-muted);
+}
+
+.price-row strong {
+  color: var(--pos-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.price-row .out-of-stock {
+  color: var(--pos-danger);
+}
+
+.price-add {
+  width: 100%;
 }
 
 /* ============================================

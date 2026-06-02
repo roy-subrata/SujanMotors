@@ -72,6 +72,9 @@ public class AutoPartDbContext : IdentityDbContext<ApplicationUser, ApplicationR
     // Variant time-based pricing
     public DbSet<ProductVariantPriceHistory> ProductVariantPriceHistories { get; set; }
 
+    // Product semantic-search embeddings (SQL Server 2025 native vector)
+    public DbSet<ProductEmbedding> ProductEmbeddings { get; set; }
+
     // Notification audit trail
     public DbSet<NotificationLog> NotificationLogs { get; set; }
 
