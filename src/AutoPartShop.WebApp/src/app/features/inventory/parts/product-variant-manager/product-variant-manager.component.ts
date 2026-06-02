@@ -157,7 +157,7 @@ export class ProductVariantManagerComponent implements OnInit, OnChanges {
 
     // Pre-populate only the attributes this variant already has values for
     this.selectedAttrRows = [];
-    variant.attributeValues.forEach(av => {
+    (variant.attributeValues ?? []).forEach(av => {
       const attr = this.allAttributes.find(a => a.id === av.attributeId);
       if (!attr) return;
       this.addAttrRowForAttribute(attr);

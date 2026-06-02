@@ -2792,7 +2792,13 @@ namespace AutoPartsShop.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("SKU");
+                    b.HasIndex("Barcode")
+                        .IsUnique()
+                        .HasFilter("[Barcode] IS NOT NULL AND [Isdeleted] = 0");
+
+                    b.HasIndex("SKU")
+                        .IsUnique()
+                        .HasFilter("[SKU] IS NOT NULL AND [Isdeleted] = 0");
 
                     b.HasIndex("PartId", "Code")
                         .IsUnique();

@@ -69,13 +69,13 @@
           </span>
         </td>
         <td>
-          <div *ngIf="v.attributeValues.length > 0" class="attr-chips">
+          <div *ngIf="v.attributeValues?.length" class="attr-chips">
             <span class="attr-chip" *ngFor="let av of v.attributeValues">
               <b>{{ av.attributeName }}:</b>
               {{ av.optionValue ?? av.valueText ?? av.valueNumber ?? (av.valueBool != null ? (av.valueBool ? 'Yes' : 'No') : '—') }}
             </span>
           </div>
-          <span *ngIf="v.attributeValues.length === 0" class="text-secondary text-sm">None</span>
+          <span *ngIf="!v.attributeValues?.length" class="text-secondary text-sm">None</span>
         </td>
         <td>
           <p-tag [value]="v.isActive ? 'Active' : 'Inactive'" [severity]="v.isActive ? 'success' : 'secondary'"></p-tag>

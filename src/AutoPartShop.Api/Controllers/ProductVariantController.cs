@@ -73,12 +73,9 @@ public class ProductVariantController : ControllerBase
         if (!await _db.Parts.AnyAsync(p => p.Id == productId, ct))
             return NotFound(ApiError.NotFound($"Product '{productId}' not found", Request.Path));
 
-        if (!string.IsNullOrWhiteSpace(req.SKU) &&
-            await _db.ProductVariants.AnyAsync(v => !v.Isdeleted && v.SKU == req.SKU.Trim().ToUpperInvariant(), ct))
-            return Conflict(ApiError.Conflict($"Variant SKU '{req.SKU}' already exists", Request.Path));
-
-        if (await _db.ProductVariants.AnyAsync(v => !v.Isdeleted && v.PartId == productId && v.Code == req.Code.Trim().ToUpperInvariant(), ct))
-            return Conflict(ApiError.Conflict($"Variant code '{req.Code}' already exists for this product", Request.Path));
+        var conflict = await CheckUniquenessAsync(productId, req, excludeVariantId: null, ct);
+        if (conflict is not null)
+            return Conflict(conflict);
 
         var variant = ProductVariant.Create(
             productId, req.Name, req.Code,
@@ -119,12 +116,9 @@ public class ProductVariantController : ControllerBase
         if (variant is null)
             return NotFound(ApiError.NotFound($"Variant '{id}' not found on product '{productId}'", Request.Path));
 
-        if (!string.IsNullOrWhiteSpace(req.SKU) &&
-            await _db.ProductVariants.AnyAsync(v => !v.Isdeleted && v.SKU == req.SKU.Trim().ToUpperInvariant() && v.Id != id, ct))
-            return Conflict(ApiError.Conflict($"Variant SKU '{req.SKU}' is used by another variant", Request.Path));
-
-        if (await _db.ProductVariants.AnyAsync(v => !v.Isdeleted && v.PartId == productId && v.Code == req.Code.Trim().ToUpperInvariant() && v.Id != id, ct))
-            return Conflict(ApiError.Conflict($"Variant code '{req.Code}' is used by another variant of this product", Request.Path));
+        var conflict = await CheckUniquenessAsync(productId, req, excludeVariantId: id, ct);
+        if (conflict is not null)
+            return Conflict(conflict);
 
         var oldSellingPrice = variant.SellingPrice;
         var user = _currentUserService.GetCurrentUsername();
@@ -169,6 +163,44 @@ public class ProductVariantController : ControllerBase
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Validates that the variant's Code, SKU and Barcode do not collide with another
+    /// variant or a base product. Code is unique per product; SKU and Barcode are unique
+    /// across both the ProductVariants and Parts tables (so a variant can never shadow a
+    /// product on code/barcode lookup). Returns an ApiError to surface, or null when clear.
+    /// </summary>
+    private async Task<ApiError?> CheckUniquenessAsync(Guid productId, CreateVariantRequest req, Guid? excludeVariantId, CancellationToken ct)
+    {
+        var normalizedCode = req.Code.Trim().ToUpperInvariant();
+        var normalizedSku = string.IsNullOrWhiteSpace(req.SKU) ? null : req.SKU.Trim().ToUpperInvariant();
+        var normalizedBarcode = string.IsNullOrWhiteSpace(req.Barcode) ? null : req.Barcode.Trim();
+
+        // Code: unique among this product's variants
+        if (await _db.ProductVariants.AnyAsync(v => !v.Isdeleted && v.PartId == productId
+                && v.Code == normalizedCode && v.Id != excludeVariantId, ct))
+            return ApiError.Conflict($"Variant code '{req.Code}' already exists for this product", Request.Path);
+
+        // SKU: unique across variants and base products
+        if (normalizedSku is not null)
+        {
+            if (await _db.ProductVariants.AnyAsync(v => !v.Isdeleted && v.SKU == normalizedSku && v.Id != excludeVariantId, ct))
+                return ApiError.Conflict($"SKU '{req.SKU}' is already used by another variant", Request.Path);
+            if (await _db.Parts.AnyAsync(p => !p.Isdeleted && p.SKU == normalizedSku, ct))
+                return ApiError.Conflict($"SKU '{req.SKU}' is already used by a product", Request.Path);
+        }
+
+        // Barcode: unique across variants and base products
+        if (normalizedBarcode is not null)
+        {
+            if (await _db.ProductVariants.AnyAsync(v => !v.Isdeleted && v.Barcode == normalizedBarcode && v.Id != excludeVariantId, ct))
+                return ApiError.Conflict($"Barcode '{req.Barcode}' is already used by another variant", Request.Path);
+            if (await _db.Parts.AnyAsync(p => !p.Isdeleted && p.Barcode == normalizedBarcode, ct))
+                return ApiError.Conflict($"Barcode '{req.Barcode}' is already used by a product", Request.Path);
+        }
+
+        return null;
+    }
 
     private async Task SyncVariantPriceHistory(Guid productId, Guid variantId, decimal sellingPrice, string currency, string user, CancellationToken ct)
     {
@@ -218,7 +250,7 @@ public class ProductVariantController : ControllerBase
         v.WidthCm,
         v.HeightCm,
         v.DepthCm,
-        attributes = v.Attributes.Select(av => new
+        attributeValues = v.Attributes.Select(av => new
         {
             av.Id,
             av.AttributeId,

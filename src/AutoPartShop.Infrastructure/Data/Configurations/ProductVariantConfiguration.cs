@@ -75,6 +75,16 @@ public class ProductVariantConfiguration : IEntityTypeConfiguration<ProductVaria
             .OnDelete(DeleteBehavior.NoAction);
 
         builder.HasIndex(x => new { x.PartId, x.Code }).IsUnique();
-        builder.HasIndex(x => x.SKU).IsUnique(false);
+
+        // SKU / Barcode unique among live variants (filtered: ignore NULLs and soft-deleted rows).
+        // The app layer additionally enforces uniqueness against base products (Parts table),
+        // which a single-table index cannot cover.
+        builder.HasIndex(x => x.SKU)
+            .IsUnique()
+            .HasFilter("[SKU] IS NOT NULL AND [Isdeleted] = 0");
+
+        builder.HasIndex(x => x.Barcode)
+            .IsUnique()
+            .HasFilter("[Barcode] IS NOT NULL AND [Isdeleted] = 0");
     }
 }
