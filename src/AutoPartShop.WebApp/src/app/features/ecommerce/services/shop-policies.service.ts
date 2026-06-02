@@ -10,7 +10,7 @@ export class ShopPoliciesService {
 
   // Fetched once per app session, shared to all subscribers
   private readonly policies$: Observable<ShopPolicies> = this.http
-    .get<ShopPolicies>(`${environment.apiUrl}/catalog/shop-policies`)
+    .get<ShopPolicies>(`${environment.apiUrl}/v1/catalog/shop-policies`)
     .pipe(
       catchError(() => of(DEFAULT_SHOP_POLICIES)),
       shareReplay(1)

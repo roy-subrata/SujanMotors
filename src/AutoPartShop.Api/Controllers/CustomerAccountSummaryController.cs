@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace AutoPartShop.Api.Controllers;
 
 [Route("api/customer-account-summary")]
+[Route("api/v1/customer-account-summary")]
 [ApiController]
 [Authorize]
 [Produces("application/json")]

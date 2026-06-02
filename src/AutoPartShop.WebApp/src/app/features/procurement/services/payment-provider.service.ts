@@ -104,7 +104,7 @@ export interface PaginatedPaymentProviderResponse {
 })
 export class PaymentProviderService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = `${environment.apiUrl}/payment-provider`;
+  private readonly apiUrl = `${environment.apiUrl}/v1/payment-provider`;
 
   /**
    * Get all payment providers

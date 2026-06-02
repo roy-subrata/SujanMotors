@@ -1,7 +1,9 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using AutoPartShop.Api.Common;
 using AutoPartShop.Domain.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -11,6 +13,7 @@ namespace AutoPartShop.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Route("api/v1/[controller]")]
 public class AuthController : ControllerBase
 {
     private readonly UserManager<ApplicationUser> _userManager;
@@ -49,7 +52,7 @@ public class AuthController : ControllerBase
 
             if (user == null || !user.IsActive)
             {
-                return Unauthorized(new { message = "Invalid credentials or account is inactive" });
+                return Unauthorized(ApiError.Unauthorized("Invalid credentials or account is inactive", Request.Path));
             }
 
             var result = await _signInManager.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: true);
@@ -58,9 +61,9 @@ public class AuthController : ControllerBase
             {
                 if (result.IsLockedOut)
                 {
-                    return Unauthorized(new { message = "Account is locked. Please try again later." });
+                    return Unauthorized(ApiError.Unauthorized("Account is locked. Please try again later.", Request.Path));
                 }
-                return Unauthorized(new { message = "Invalid credentials" });
+                return Unauthorized(ApiError.Unauthorized("Invalid credentials", Request.Path));
             }
 
             // Update last login
@@ -84,7 +87,7 @@ public class AuthController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error during login");
-            return StatusCode(500, new { message = "An error occurred during login" });
+            return StatusCode(StatusCodes.Status500InternalServerError, ApiError.Internal(HttpContext.TraceIdentifier));
         }
     }
 
@@ -98,12 +101,12 @@ public class AuthController : ControllerBase
         {
             if (await _userManager.FindByEmailAsync(request.Email) != null)
             {
-                return BadRequest(new { message = "Email already exists" });
+                return BadRequest(ApiError.Validation("Email already exists", instance: Request.Path));
             }
 
             if (await _userManager.FindByNameAsync(request.Username) != null)
             {
-                return BadRequest(new { message = "Username already exists" });
+                return BadRequest(ApiError.Validation("Username already exists", instance: Request.Path));
             }
 
             var user = new ApplicationUser
@@ -122,11 +125,13 @@ public class AuthController : ControllerBase
 
             if (!result.Succeeded)
             {
-                return BadRequest(new
-                {
-                    message = "User creation failed",
-                    errors = result.Errors.Select(e => e.Description)
-                });
+                return BadRequest(ApiError.Validation(
+                    "User creation failed",
+                    errors: new Dictionary<string, string[]>
+                    {
+                        ["password"] = result.Errors.Select(e => e.Description).ToArray()
+                    },
+                    instance: Request.Path));
             }
 
             // Assign default role if specified
@@ -148,7 +153,7 @@ public class AuthController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error during registration");
-            return StatusCode(500, new { message = "An error occurred during registration" });
+            return StatusCode(StatusCodes.Status500InternalServerError, ApiError.Internal(HttpContext.TraceIdentifier));
         }
     }
 
@@ -163,19 +168,19 @@ public class AuthController : ControllerBase
             var principal = GetPrincipalFromExpiredToken(request.Token);
             if (principal == null)
             {
-                return Unauthorized(new { message = "Invalid token" });
+                return Unauthorized(ApiError.Unauthorized("Invalid token", Request.Path));
             }
 
             var username = principal.Identity?.Name;
             if (string.IsNullOrEmpty(username))
             {
-                return Unauthorized(new { message = "Invalid token" });
+                return Unauthorized(ApiError.Unauthorized("Invalid token", Request.Path));
             }
 
             var user = await _userManager.FindByNameAsync(username);
             if (user == null || !user.IsActive)
             {
-                return Unauthorized(new { message = "User not found or inactive" });
+                return Unauthorized(ApiError.Unauthorized("User not found or inactive", Request.Path));
             }
 
             var newToken = await GenerateJwtToken(user);
@@ -185,33 +190,37 @@ public class AuthController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error during token refresh");
-            return StatusCode(500, new { message = "An error occurred during token refresh" });
+            return StatusCode(StatusCodes.Status500InternalServerError, ApiError.Internal(HttpContext.TraceIdentifier));
         }
     }
 
     /// <summary>
     /// Change password for authenticated user
     /// </summary>
+    [Authorize]
     [HttpPost("change-password")]
     public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
     {
         try
         {
-            var user = await _userManager.FindByNameAsync(request.Username);
+            // Bind to the authenticated principal — never trust a username from the body.
+            var user = await _userManager.GetUserAsync(User);
             if (user == null)
             {
-                return NotFound(new { message = "User not found" });
+                return Unauthorized(ApiError.Unauthorized("User not found", Request.Path));
             }
 
             var result = await _userManager.ChangePasswordAsync(user, request.CurrentPassword, request.NewPassword);
 
             if (!result.Succeeded)
             {
-                return BadRequest(new
-                {
-                    message = "Password change failed",
-                    errors = result.Errors.Select(e => e.Description)
-                });
+                return BadRequest(ApiError.Validation(
+                    "Password change failed",
+                    errors: new Dictionary<string, string[]>
+                    {
+                        ["password"] = result.Errors.Select(e => e.Description).ToArray()
+                    },
+                    instance: Request.Path));
             }
 
             return Ok(new { message = "Password changed successfully" });
@@ -219,7 +228,7 @@ public class AuthController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error changing password");
-            return StatusCode(500, new { message = "An error occurred while changing password" });
+            return StatusCode(StatusCodes.Status500InternalServerError, ApiError.Internal(HttpContext.TraceIdentifier));
         }
     }
 

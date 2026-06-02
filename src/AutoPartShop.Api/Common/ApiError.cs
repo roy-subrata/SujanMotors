@@ -10,6 +10,14 @@ public sealed class ApiError
     public string? TraceId { get; init; }
     public IDictionary<string, string[]>? Errors { get; init; }
 
+    /// <summary>
+    /// Backward-compatibility alias for <see cref="Detail"/>, serialized as "message".
+    /// The Angular client reads <c>error.message</c> in many places; emitting it keeps
+    /// existing error handling working as controllers migrate to ApiError. New clients
+    /// should prefer <c>detail</c> (or use the shared extractApiError helper).
+    /// </summary>
+    public string Message => Detail;
+
     public static ApiError NotFound(string detail, string? instance = null) => new()
     {
         Type = "NOT_FOUND", Title = "Resource not found",
@@ -20,6 +28,12 @@ public sealed class ApiError
     {
         Type = "VALIDATION_ERROR", Title = "Validation failed",
         Status = 400, Detail = detail, Errors = errors, Instance = instance
+    };
+
+    public static ApiError Unauthorized(string detail, string? instance = null) => new()
+    {
+        Type = "UNAUTHORIZED", Title = "Authentication failed",
+        Status = 401, Detail = detail, Instance = instance
     };
 
     public static ApiError Conflict(string detail, string? instance = null) => new()

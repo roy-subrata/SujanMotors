@@ -42,7 +42,7 @@ export interface WarehouseQuery {
 })
 export class WarehouseService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = `${environment.apiUrl}/warehouses`;
+  private readonly apiUrl = `${environment.apiUrl}/v1/warehouses`;
 
 
   /**

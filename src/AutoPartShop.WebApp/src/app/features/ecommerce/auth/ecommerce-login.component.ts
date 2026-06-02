@@ -3,6 +3,7 @@ import { CommonModule, DOCUMENT } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { CustomerAuthService } from '../services/customer-auth.service';
+import { extractApiError } from '../../../shared/utils/api-error.util';
 
 @Component({
   selector: 'app-ecommerce-login',
@@ -124,7 +125,7 @@ export class EcommerceLoginComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.loading.set(false);
-        this.error.set(err?.error?.message ?? 'Invalid credentials. Please try again.');
+        this.error.set(extractApiError(err, 'Invalid credentials. Please try again.'));
       }
     });
   }

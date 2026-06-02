@@ -8,6 +8,7 @@ namespace AutoPartShop.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Route("api/v1/[controller]")]
 //[Authorize(Roles = "Admin")] // Uncomment when authentication is fully implemented
 public class AdminController : ControllerBase
 {

@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../shared/services/auth.service';
 import { CustomerAuthService } from '../../features/ecommerce/services/customer-auth.service';
+import { extractApiError } from '../../shared/utils/api-error.util';
 
 type LoginMode = 'customer' | 'staff';
 
@@ -95,7 +96,7 @@ export class UnifiedLoginComponent implements OnInit, OnDestroy {
         },
         error: (err) => {
           this.loading.set(false);
-          this.error.set(err?.error?.message ?? 'Invalid credentials. Please try again.');
+          this.error.set(extractApiError(err, 'Invalid credentials. Please try again.'));
         },
       });
     } else {
@@ -106,9 +107,9 @@ export class UnifiedLoginComponent implements OnInit, OnDestroy {
         },
         error: (err) => {
           this.loading.set(false);
-          let msg = 'Invalid username or password';
-          if (err?.error?.message) msg = err.error.message;
-          else if (err?.status === 0) msg = 'Unable to connect to server. Please try again.';
+          const msg = err?.status === 0
+            ? 'Unable to connect to server. Please try again.'
+            : extractApiError(err, 'Invalid username or password');
           this.error.set(msg);
         },
       });

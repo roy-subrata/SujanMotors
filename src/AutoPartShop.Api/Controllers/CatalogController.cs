@@ -7,6 +7,7 @@ namespace AutoPartShop.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Route("api/v1/[controller]")]
 [Produces("application/json")]
 public class CatalogController(
     ICatalogReadRepository _catalogReadRepository,

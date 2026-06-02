@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace AutoPartShop.Api.Controllers;
 
 [Route("api/supplier-payment-accounts")]
+[Route("api/v1/supplier-payment-accounts")]
 [ApiController]
 [Authorize]
 [Produces("application/json")]

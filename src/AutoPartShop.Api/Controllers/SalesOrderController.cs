@@ -15,6 +15,7 @@ using Microsoft.EntityFrameworkCore;
 namespace AutoPartShop.Api.Controllers;
 
 [Route("api/[controller]")]
+[Route("api/v1/[controller]")]
 [ApiController]
 [Authorize]
 [Produces("application/json")]
@@ -23,6 +24,7 @@ public class SalesOrderController : ControllerBase
     private readonly ISalesOrderRepository _salesOrderRepository;
     private readonly ISaleOrderReadRepository _saleOrderReadRepository;
     private readonly IInvoiceRepository _invoiceRepository;
+    private readonly ISalesReturnRepository _salesReturnRepository;
     private readonly ICustomerRepository _customerRepository;
     private readonly IProductRepository _productRepository;
     private readonly IStockLevelRepository _stockLevelRepository;
@@ -41,6 +43,7 @@ public class SalesOrderController : ControllerBase
         ISalesOrderRepository salesOrderRepository,
         ISaleOrderReadRepository saleOrderReadRepository,
         IInvoiceRepository invoiceRepository,
+        ISalesReturnRepository salesReturnRepository,
         ICustomerRepository customerRepository,
         IProductRepository productRepository,
         IStockLevelRepository stockLevelRepository,
@@ -58,6 +61,7 @@ public class SalesOrderController : ControllerBase
         _salesOrderRepository = salesOrderRepository;
         _saleOrderReadRepository = saleOrderReadRepository;
         _invoiceRepository = invoiceRepository;
+        _salesReturnRepository = salesReturnRepository;
         _customerRepository = customerRepository;
         _productRepository = productRepository;
         _stockLevelRepository = stockLevelRepository;
@@ -877,6 +881,164 @@ public class SalesOrderController : ControllerBase
         {
             _logger.LogError(ex, "Error getting invoice by number: {InvoiceNumber}", invoiceNumber);
             return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving the invoice");
+        }
+    }
+
+    /// <summary>
+    /// POS lookup: resolve an invoice by its number and return a quick-sale style summary.
+    /// Used by the Quick Sale screen when starting a return from a printed receipt.
+    /// </summary>
+    [HttpGet("by-invoice/{invoiceNumber}")]
+    public async Task<IActionResult> GetByInvoiceNumber(string invoiceNumber, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var invoice = await _invoiceRepository.GetByNumberAsync(invoiceNumber, cancellationToken);
+            if (invoice is null) return NotFound(new { message = "Invoice not found" });
+
+            var salesOrder = await _salesOrderRepository.GetByIdAsync(invoice.SalesOrderId, cancellationToken);
+
+            var response = new QuickSaleResponse
+            {
+                Id = invoice.Id,
+                InvoiceNumber = invoice.InvoiceNumber,
+                SalesOrderId = invoice.SalesOrderId,
+                SalesOrderNumber = salesOrder?.SONumber ?? string.Empty,
+                CustomerId = salesOrder?.CustomerId,
+                CustomerName = salesOrder?.CustomerName ?? string.Empty,
+                Subtotal = invoice.SubTotal,
+                DiscountAmount = invoice.DiscountAmount,
+                VatAmount = invoice.TaxAmount,
+                GrandTotal = invoice.GrandTotal,
+                PaidAmount = invoice.AmountPaid,
+                DueAmount = invoice.OutstandingAmount,
+                Status = invoice.Status,
+                IsQuotation = false,
+                CreatedAt = invoice.InvoiceDate,
+                Lines = salesOrder?.LineItems.Select(l => new QuickSaleResponseLine
+                {
+                    PartId = l.PartId,
+                    PartName = l.Description,
+                    Quantity = l.Quantity,
+                    UnitPrice = l.UnitPrice
+                }).ToList() ?? new List<QuickSaleResponseLine>()
+            };
+
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error looking up sale by invoice number: {InvoiceNumber}", invoiceNumber);
+            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while looking up the sale");
+        }
+    }
+
+    /// <summary>
+    /// POS quick return: resolve the original invoice, match returned parts to the sales-order lines,
+    /// and create a PENDING <see cref="SalesReturn"/>. It then follows the normal approve/receive/process
+    /// lifecycle on the Sales Returns screen (no stock or refund side effects happen here).
+    /// </summary>
+    [HttpPost("return")]
+    public async Task<IActionResult> CreateQuickReturn([FromBody] QuickReturnRequest request, CancellationToken cancellationToken)
+    {
+        if (request is null || string.IsNullOrWhiteSpace(request.OriginalInvoiceNumber))
+            return BadRequest(new { message = "OriginalInvoiceNumber is required" });
+
+        if (request.Items is null || request.Items.Count == 0)
+            return BadRequest(new { message = "At least one return item is required" });
+
+        try
+        {
+            var invoice = await _invoiceRepository.GetByNumberAsync(request.OriginalInvoiceNumber, cancellationToken);
+            if (invoice is null) return NotFound(new { message = "Invoice not found" });
+
+            var salesOrder = await _salesOrderRepository.GetByIdAsync(invoice.SalesOrderId, cancellationToken);
+            if (salesOrder is null) return NotFound(new { message = "Sales order not found for this invoice" });
+
+            var returnableStatuses = new[] { "CONFIRMED", "PARTIALLY_SHIPPED", "SHIPPED", "DELIVERED", "COMPLETED" };
+            if (!returnableStatuses.Contains(salesOrder.Status))
+                return BadRequest(new { message = $"Cannot return a sales order with status '{salesOrder.Status}'." });
+
+            // Quick sales are not tied to a warehouse, so fall back to the order's warehouse or the first active one.
+            var warehouseId = salesOrder.WarehouseId ?? (await _dbContext.Warehouses
+                .Where(w => !w.Isdeleted)
+                .OrderBy(w => w.Code)
+                .Select(w => (Guid?)w.Id)
+                .FirstOrDefaultAsync(cancellationToken));
+
+            if (warehouseId is null || warehouseId == Guid.Empty)
+                return BadRequest(new { message = "No warehouse is configured to receive the return." });
+
+            var reason = request.Items.FirstOrDefault(i => !string.IsNullOrWhiteSpace(i.Reason))?.Reason
+                         ?? "POS quick return";
+
+            var returnNumber = await _codeGenerateService.GenerateAsync("SR", cancellationToken);
+            var salesReturn = SalesReturn.Create(returnNumber, salesOrder.Id, invoice.Id, reason, warehouseId.Value, DateTime.UtcNow, string.Empty);
+            // SetRefundType validates against CASH_REFUND | STORE_CREDIT and throws ArgumentException (→ 400) on a bad value.
+            salesReturn.SetRefundType(string.IsNullOrWhiteSpace(request.RefundType) ? "CASH_REFUND" : request.RefundType);
+
+            foreach (var item in request.Items)
+            {
+                var orderLine = salesOrder.LineItems.FirstOrDefault(ol => ol.PartId == item.PartId);
+                if (orderLine is null)
+                    return BadRequest(new { message = $"Part {item.PartId} was not on the original sale." });
+
+                var soldQty = orderLine.ShippedQuantity > 0 ? orderLine.ShippedQuantity : orderLine.Quantity;
+                if (item.Quantity <= 0 || item.Quantity > soldQty)
+                    return BadRequest(new { message = $"Return quantity ({item.Quantity}) is invalid for part {item.PartId}. Sold: {soldQty}." });
+
+                // Scale the order line's base-unit figures to the returned quantity.
+                var quantityInBaseUnit = orderLine.Quantity > 0
+                    ? (int)Math.Round((decimal)orderLine.QuantityInBaseUnit * item.Quantity / orderLine.Quantity)
+                    : item.Quantity;
+                var unitPriceInBaseUnit = orderLine.QuantityInBaseUnit > 0
+                    ? orderLine.UnitPrice * orderLine.Quantity / orderLine.QuantityInBaseUnit
+                    : orderLine.UnitPrice;
+
+                var returnLine = SalesReturnLine.Create(
+                    salesReturn.Id,
+                    orderLine.Id,
+                    item.PartId,
+                    item.Quantity,
+                    orderLine.UnitPrice,
+                    condition: "OPENED",
+                    unitId: orderLine.UnitId,
+                    quantityInBaseUnit: quantityInBaseUnit,
+                    unitPriceInBaseUnit: unitPriceInBaseUnit);
+                returnLine.AddNotes(item.Reason ?? string.Empty);
+                salesReturn.LineItems.Add(returnLine);
+            }
+
+            salesReturn.CalculateRefund();
+            salesReturn.CreatedBy = _currentUserService.GetCurrentUsername();
+            salesReturn.ModifiedBy = _currentUserService.GetCurrentUsername();
+            await _salesReturnRepository.AddAsync(salesReturn, cancellationToken);
+
+            _logger.LogInformation("POS quick return {ReturnNumber} created from invoice {InvoiceNumber}",
+                returnNumber, request.OriginalInvoiceNumber);
+
+            return Ok(new
+            {
+                id = salesReturn.Id,
+                returnNumber = salesReturn.ReturnNumber,
+                salesOrderId = salesReturn.SalesOrderId,
+                status = salesReturn.Status,
+                refundAmount = salesReturn.RefundAmount,
+                message = "Return created in PENDING status. Approve and receive it from the Sales Returns screen."
+            });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating quick return for invoice {InvoiceNumber}", request.OriginalInvoiceNumber);
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while creating the return" });
         }
     }
 

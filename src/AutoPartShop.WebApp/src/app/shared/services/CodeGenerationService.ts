@@ -10,7 +10,7 @@ export type CodeType = 'unit' | 'category' | 'brand' | 'part' | 'warehouse' | 'i
 })
 export class CodeGenerationService {
     private readonly httpClient = inject(HttpClient);
-    private readonly apiUrl = `${environment.apiUrl}/code-generate`;
+    private readonly apiUrl = `${environment.apiUrl}/v1/code-generate`;
 
     /**
      * Generate code for a specific entity type

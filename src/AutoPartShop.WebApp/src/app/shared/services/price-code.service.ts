@@ -12,7 +12,7 @@ const SUFFIX_KEY = 'PRICE_CODE_SUFFIX';
 })
 export class PriceCodeService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = `${environment.apiUrl}/applicationsettings`;
+  private readonly apiUrl = `${environment.apiUrl}/v1/applicationsettings`;
 
   /** The magic word (10 unique letters mapping to digits 1-9, 0) */
   magicWord = signal<string>('');

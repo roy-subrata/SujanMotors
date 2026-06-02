@@ -1782,16 +1782,189 @@
   background: var(--pos-primary-hover);
 }
 
-.return-invoice {
-  padding: 12px;
-  background: var(--pos-surface-hover);
-  border-radius: var(--pos-radius);
+/* Empty state before an invoice is looked up */
+.return-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 40px 16px;
+  color: var(--pos-text-muted);
+  text-align: center;
 }
 
-.return-invoice p {
-  margin: 6px 0;
+.return-empty i {
+  font-size: 2rem;
+}
+
+.return-empty p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+/* Invoice summary row */
+.return-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--pos-border);
+  border: 1px solid var(--pos-border);
+  border-radius: var(--pos-radius);
+  overflow: hidden;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  background: var(--pos-surface);
+}
+
+.summary-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--pos-text-muted);
+}
+
+.summary-value {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--pos-text);
+}
+
+/* Sections */
+.return-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.section-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--pos-text-secondary);
+}
+
+/* Items table */
+.return-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--pos-border);
+  border-radius: var(--pos-radius);
+  overflow: hidden;
+}
+
+.return-table thead th {
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--pos-text-secondary);
+  background: var(--pos-surface-hover);
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--pos-border);
+}
+
+.return-table tbody td {
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  color: var(--pos-text);
+  border-bottom: 1px solid var(--pos-border);
+  vertical-align: middle;
+}
+
+.return-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.return-table .col-check {
+  width: 40px;
+  text-align: center;
+}
+
+.return-table .col-num {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.return-table .col-qty {
+  width: 110px;
+}
+
+.return-table .col-qty input {
+  width: 100%;
+  text-align: right;
+}
+
+.return-table tr.row-disabled td:not(.col-check) {
+  opacity: 0.45;
+}
+
+/* Refund method options */
+.refund-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.refund-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--pos-border);
+  border-radius: var(--pos-radius);
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--pos-text);
+  transition: var(--pos-transition);
+}
+
+.refund-option:hover {
+  border-color: var(--pos-primary);
+}
+
+.refund-option.active {
+  border-color: var(--pos-primary);
+  background: var(--pos-primary-light);
+  color: var(--pos-primary);
+  font-weight: 600;
+}
+
+.refund-option i {
+  font-size: 1rem;
+}
+
+/* Footer */
+.return-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 16px;
+}
+
+.footer-total {
   font-size: 0.9rem;
   color: var(--pos-text-secondary);
+}
+
+.footer-total strong {
+  font-size: 1.05rem;
+  color: var(--pos-text);
+  margin-left: 6px;
+}
+
+.footer-actions {
+  display: flex;
+  gap: 8px;
 }
 
 .price-result {

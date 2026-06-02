@@ -3,6 +3,7 @@ import { CommonModule, DOCUMENT } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { CustomerAuthService } from '../services/customer-auth.service';
+import { extractApiError } from '../../../shared/utils/api-error.util';
 
 @Component({
   selector: 'app-ecommerce-register',
@@ -156,12 +157,7 @@ export class EcommerceRegisterComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.loading.set(false);
-        const errors = err?.error?.errors;
-        if (errors?.length) {
-          this.error.set(errors.join(' '));
-        } else {
-          this.error.set(err?.error?.message ?? 'Registration failed. Please try again.');
-        }
+        this.error.set(extractApiError(err, 'Registration failed. Please try again.'));
       }
     });
   }

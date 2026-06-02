@@ -12,6 +12,7 @@ namespace AutoPartShop.Api.Controllers;
 
 [ApiController]
 [Route("api/customer-auth")]
+[Route("api/v1/customer-auth")]
 [Produces("application/json")]
 public class CustomerAuthController(
     UserManager<ApplicationUser> _userManager,

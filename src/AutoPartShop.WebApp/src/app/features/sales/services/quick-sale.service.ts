@@ -79,6 +79,7 @@ export interface QuickSaleResponse {
   status: string;
   isQuotation?: boolean;
   createdAt: string;
+  lines?: { partId: string; partName: string; quantity: number; unitPrice: number }[];
 }
 
 export interface StockCheckRequest {
@@ -122,7 +123,7 @@ export class QuickSaleService {
    * Create a quick sale (sales order + invoice + payments in one transaction)
    */
   createQuickSale(request: QuickSaleRequest): Observable<QuickSaleResponse> {
-    return this.http.post<QuickSaleResponse>(`${this.apiUrl}/salesorder/quick-sale`, request).pipe(
+    return this.http.post<QuickSaleResponse>(`${this.apiUrl}/v1/salesorder/quick-sale`, request).pipe(
       tap(() => this.clearDraft()) // Clear draft on successful sale
     );
   }
@@ -131,35 +132,35 @@ export class QuickSaleService {
    * Check stock availability for a part
    */
   checkStock(partId: string, quantity: number): Observable<StockCheckResponse> {
-    return this.http.post<StockCheckResponse>(`${this.apiUrl}/stock/check`, { partId, quantity });
+    return this.http.post<StockCheckResponse>(`${this.apiUrl}/v1/stock/check`, { partId, quantity });
   }
 
   /**
    * Check multiple items stock availability
    */
   checkMultipleStock(items: StockCheckRequest[]): Observable<StockCheckResponse[]> {
-    return this.http.post<StockCheckResponse[]>(`${this.apiUrl}/stock/check-multiple`, items);
+    return this.http.post<StockCheckResponse[]>(`${this.apiUrl}/v1/stock/check-multiple`, items);
   }
 
   /**
    * Generate next invoice number
    */
   generateInvoiceNumber(): Observable<{ invoiceNumber: string }> {
-    return this.http.get<{ invoiceNumber: string }>(`${this.apiUrl}/code-generate/invoice`);
+    return this.http.get<{ invoiceNumber: string }>(`${this.apiUrl}/v1/code-generate/invoice`);
   }
 
   /**
    * Get recent customers (last 50)
    */
   getRecentCustomers(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.apiUrl}/customer/recent?limit=50`);
+    return this.http.get<any[]>(`${this.apiUrl}/v1/customers/recent?limit=50`);
   }
 
   /**
    * Search customer by phone number
    */
   searchCustomerByPhone(phone: string): Observable<any | null> {
-    return this.http.get<any>(`${this.apiUrl}/customer/search-by-phone?phone=${phone}`);
+    return this.http.get<any>(`${this.apiUrl}/v1/customers/search-by-phone?phone=${phone}`);
   }
 
   /**
@@ -365,15 +366,15 @@ export class QuickSaleService {
   /**
    * Process a return
    */
-  processReturn(request: { originalInvoiceNumber: string; items: { partId: string; quantity: number; reason: string }[] }): Observable<any> {
-    return this.http.post(`${this.apiUrl}/salesorder/return`, request);
+  processReturn(request: { originalInvoiceNumber: string; refundType?: 'CASH_REFUND' | 'STORE_CREDIT'; items: { partId: string; quantity: number; reason: string }[] }): Observable<any> {
+    return this.http.post(`${this.apiUrl}/v1/salesorder/return`, request);
   }
 
   /**
    * Lookup invoice for returns
    */
   lookupInvoice(invoiceNumber: string): Observable<QuickSaleResponse | null> {
-    return this.http.get<QuickSaleResponse>(`${this.apiUrl}/salesorder/by-invoice/${encodeURIComponent(invoiceNumber)}`);
+    return this.http.get<QuickSaleResponse>(`${this.apiUrl}/v1/salesorder/by-invoice/${encodeURIComponent(invoiceNumber)}`);
   }
 
   // ===== CUSTOMER CREDIT =====
@@ -381,14 +382,14 @@ export class QuickSaleService {
    * Get customer credit info
    */
   getCustomerCredit(customerId: string): Observable<{ creditLimit: number; usedCredit: number; availableCredit: number; dueBalance: number }> {
-    return this.http.get<any>(`${this.apiUrl}/customer/${customerId}/credit`);
+    return this.http.get<any>(`${this.apiUrl}/v1/customers/${customerId}/credit`);
   }
 
   /**
    * Get customer purchase history
    */
   getCustomerHistory(customerId: string, limit: number = 10): Observable<QuickSaleResponse[]> {
-    return this.http.get<QuickSaleResponse[]>(`${this.apiUrl}/salesorder/customer/${customerId}`);
+    return this.http.get<QuickSaleResponse[]>(`${this.apiUrl}/v1/salesorder/customer/${customerId}`);
   }
 
   // ===== QUOTE GENERATION =====
@@ -396,6 +397,6 @@ export class QuickSaleService {
    * Generate a quote
    */
   generateQuote(request: Partial<QuickSaleRequest>): Observable<{ quoteId: string; quoteNumber: string }> {
-    return this.http.post<{ quoteId: string; quoteNumber: string }>(`${this.apiUrl}/quotes`, request);
+    return this.http.post<{ quoteId: string; quoteNumber: string }>(`${this.apiUrl}/v1/quotes`, request);
   }
 }

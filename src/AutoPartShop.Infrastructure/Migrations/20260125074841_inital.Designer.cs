@@ -12,7 +12,7 @@ namespace AutoPartsShop.Infrastructure.Migrations
 {
     [DbContext(typeof(AutoPartDbContext))]
     [Migration("20260125074841_inital")]
-    partial class inital
+    partial class Initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

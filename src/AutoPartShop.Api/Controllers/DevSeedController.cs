@@ -1,6 +1,7 @@
 using AutoPartShop.Application.Services;
 using AutoPartShop.Domain.Entities;
 using AutoPartsShop.Domain.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,14 +10,21 @@ namespace AutoPartShop.Api.Controllers;
 /// <summary>
 /// Dev-only endpoint: wipes and re-seeds the e-commerce catalog.
 /// Call POST /api/dev/seed-catalog to reset demo data.
+/// Restricted to Admins and only available in the Development environment.
 /// </summary>
 [Route("api/dev")]
+[Route("api/v1/dev")]
 [ApiController]
-public class DevSeedController(AutoPartDbContext _db, ICodeGenerateService _code, ILogger<DevSeedController> _logger) : ControllerBase
+[Authorize(Roles = "Admin")]
+public class DevSeedController(AutoPartDbContext _db, ICodeGenerateService _code, IHostEnvironment _env, ILogger<DevSeedController> _logger) : ControllerBase
 {
     [HttpPost("seed-catalog")]
     public async Task<IActionResult> SeedCatalog(CancellationToken ct)
     {
+        // Destructive operation — never expose outside Development.
+        if (!_env.IsDevelopment())
+            return NotFound();
+
         _logger.LogInformation("Dev seed: clearing and re-seeding catalog...");
 
         // ── Clear catalog data via raw SQL in correct FK order ───────────────

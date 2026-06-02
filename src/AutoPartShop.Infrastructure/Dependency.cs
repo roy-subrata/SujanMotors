@@ -20,12 +20,10 @@ using AutoPartShop.Application.Technecians;
 using AutoPartShop.Application.Warehouse;
 using AutoPartShop.Domain.Repositories;
 using AutoPartShop.Infrastructure.Repositories;
-using AutoPartShop.Application.Services;
 using AutoPartShop.Infrastructure.Services;
 using AutoPartsShop.Infrastructure.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -67,14 +65,14 @@ public static class Dependency
                         errorNumbersToAdd: null    // null = default transient errors
                     );
                 });
-            // Enable detailed logging in Development only
-            options.EnableSensitiveDataLogging();   // Only in dev
-            options.EnableDetailedErrors();         // Useful for debugging
-            
-            // Suppress pending model changes warning
-            // Required because model snapshot may not match after manual schema updates
-            options.ConfigureWarnings(warnings =>
-                warnings.Ignore(RelationalEventId.PendingModelChangesWarning));
+            // Enable detailed logging in Development only — these expose query
+            // parameter values (PII, payment amounts) and must never run in production.
+            var environment = serviceProvider.GetRequiredService<IHostEnvironment>();
+            if (environment.IsDevelopment())
+            {
+                options.EnableSensitiveDataLogging();
+                options.EnableDetailedErrors();
+            }
         });
 
         // Register repositories

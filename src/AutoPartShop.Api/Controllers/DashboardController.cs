@@ -1,11 +1,15 @@
+using AutoPartShop.Api.Common;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.DashboardDtos;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AutoPartShop.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Route("api/v1/[controller]")]
+[Authorize]
 public class DashboardController(IFinancialSummaryService financialSummaryService, ILogger<DashboardController> logger) : ControllerBase
 {
     /// <summary>
@@ -26,7 +30,7 @@ public class DashboardController(IFinancialSummaryService financialSummaryServic
         catch (Exception ex)
         {
             logger.LogError(ex, "Error getting dashboard data");
-            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while retrieving dashboard data" });
+            return StatusCode(StatusCodes.Status500InternalServerError, ApiError.Internal(HttpContext.TraceIdentifier));
         }
     }
 
@@ -47,7 +51,7 @@ public class DashboardController(IFinancialSummaryService financialSummaryServic
         catch (Exception ex)
         {
             logger.LogError(ex, "Error getting financial summary");
-            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while retrieving financial summary" });
+            return StatusCode(StatusCodes.Status500InternalServerError, ApiError.Internal(HttpContext.TraceIdentifier));
         }
     }
 
@@ -68,7 +72,7 @@ public class DashboardController(IFinancialSummaryService financialSummaryServic
         catch (Exception ex)
         {
             logger.LogError(ex, "Error getting sales trend");
-            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while retrieving sales trend" });
+            return StatusCode(StatusCodes.Status500InternalServerError, ApiError.Internal(HttpContext.TraceIdentifier));
         }
     }
 
@@ -96,7 +100,7 @@ public class DashboardController(IFinancialSummaryService financialSummaryServic
         catch (Exception ex)
         {
             logger.LogError(ex, "Error getting today's stats");
-            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while retrieving today's stats" });
+            return StatusCode(StatusCodes.Status500InternalServerError, ApiError.Internal(HttpContext.TraceIdentifier));
         }
     }
 
@@ -124,7 +128,7 @@ public class DashboardController(IFinancialSummaryService financialSummaryServic
         catch (Exception ex)
         {
             logger.LogError(ex, "Error getting month stats");
-            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while retrieving month stats" });
+            return StatusCode(StatusCodes.Status500InternalServerError, ApiError.Internal(HttpContext.TraceIdentifier));
         }
     }
 
@@ -151,7 +155,7 @@ public class DashboardController(IFinancialSummaryService financialSummaryServic
         catch (Exception ex)
         {
             logger.LogError(ex, "Error getting year stats");
-            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while retrieving year stats" });
+            return StatusCode(StatusCodes.Status500InternalServerError, ApiError.Internal(HttpContext.TraceIdentifier));
         }
     }
 }

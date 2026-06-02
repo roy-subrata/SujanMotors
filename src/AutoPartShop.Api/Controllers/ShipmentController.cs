@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 namespace AutoPartShop.Api.Controllers;
 
 [Route("api/[controller]")]
+[Route("api/v1/[controller]")]
 [ApiController]
 [Authorize]
 [Produces("application/json")]

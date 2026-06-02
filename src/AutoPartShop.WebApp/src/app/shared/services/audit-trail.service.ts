@@ -171,7 +171,7 @@ export interface AuditLogFilterRequest {
 })
 export class AuditTrailService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = `${environment.apiUrl}/auditlog`;
+  private readonly apiUrl = `${environment.apiUrl}/v1/auditlog`;
 
   /**
    * Get paginated audit logs with filters

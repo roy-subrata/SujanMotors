@@ -11,6 +11,7 @@ import { MessageModule } from 'primeng/message';
 import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
 import { AuthService } from '../../shared/services/auth.service';
+import { extractApiError } from '../../shared/utils/api-error.util';
 
 @Component({
   selector: 'app-login',
@@ -88,13 +89,11 @@ export class LoginComponent implements OnInit {
         this.loading.set(false);
         console.error('Login error:', error);
 
-        let errorMsg = 'Invalid username or password';
-        if (error.error?.message) {
-          errorMsg = error.error.message;
-        } else if (error.status === 0) {
+        let errorMsg: string;
+        if (error.status === 0) {
           errorMsg = 'Unable to connect to server. Please try again later.';
-        } else if (error.status === 401) {
-          errorMsg = 'Invalid credentials or account is inactive';
+        } else {
+          errorMsg = extractApiError(error, 'Invalid username or password');
         }
 
         this.errorMessage.set(errorMsg);

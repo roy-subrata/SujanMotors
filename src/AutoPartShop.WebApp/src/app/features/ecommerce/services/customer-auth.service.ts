@@ -35,7 +35,7 @@ export interface CustomerRegisterRequest {
 export class CustomerAuthService {
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
-  private readonly apiUrl = `${environment.apiUrl}/customer-auth`;
+  private readonly apiUrl = `${environment.apiUrl}/v1/customer-auth`;
 
   private readonly TOKEN_KEY = 'customer_token';
   private readonly USER_KEY = 'customer_user';

@@ -9,7 +9,7 @@ export class CartService {
   private readonly http = inject(HttpClient);
   private readonly CART_KEY = 'sm_ecommerce_cart';
   private readonly SESSION_KEY = 'sm_cart_session';
-  private readonly baseUrl = `${environment.apiUrl}/ecommerce/stock`;
+  private readonly baseUrl = `${environment.apiUrl}/v1/ecommerce/stock`;
 
   readonly items = signal<CartItem[]>(this.loadCart());
   readonly itemCount = computed(() => this.items().reduce((sum, i) => sum + i.quantity, 0));

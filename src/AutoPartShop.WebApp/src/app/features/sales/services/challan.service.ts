@@ -57,7 +57,7 @@ export interface DeliverChallanRequest {
 @Injectable({ providedIn: 'root' })
 export class ChallanService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = `${environment.apiUrl}/challans`;
+  private readonly apiUrl = `${environment.apiUrl}/v1/challans`;
 
   generate(salesOrderId: string, req: GenerateChallanRequest = {}): Observable<ChallanResponse> {
     return this.http.post<{ data: ChallanResponse }>(`${this.apiUrl}/sales-order/${salesOrderId}`, req)

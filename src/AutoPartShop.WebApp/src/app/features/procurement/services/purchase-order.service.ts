@@ -109,7 +109,7 @@ export interface PurchaeOrderQuery {
 })
 export class PurchaseOrderService {
     private readonly http = inject(HttpClient);
-    private readonly apiUrl = `${environment.apiUrl}/purchaseorder`;
+    private readonly apiUrl = `${environment.apiUrl}/v1/purchaseorder`;
 
     /**
      * Get all purchase orders

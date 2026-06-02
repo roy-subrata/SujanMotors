@@ -14,7 +14,7 @@ import {
 @Injectable({ providedIn: 'root' })
 export class CatalogService {
   private readonly http = inject(HttpClient);
-  private readonly baseUrl = `${environment.apiUrl}/catalog`;
+  private readonly baseUrl = `${environment.apiUrl}/v1/catalog`;
 
   getLanding(): Observable<CatalogLandingResponse> {
     return this.http.get<CatalogLandingResponse>(`${this.baseUrl}/landing`).pipe(

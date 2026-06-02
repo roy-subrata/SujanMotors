@@ -45,7 +45,7 @@ export interface UnitListResponse {
   providedIn: 'root'
 })
 export class UnitService {
-  private readonly apiUrl = `${environment.apiUrl}/units`;
+  private readonly apiUrl = `${environment.apiUrl}/v1/units`;
 
   constructor(private http: HttpClient) {}
 

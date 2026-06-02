@@ -3,6 +3,7 @@ using AutoPartShop.Application.DTOs.CreditNoteDtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
 using AutoPartShop.Infrastructure.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using CreditNoteListQuery = AutoPartShop.Application.DTOs.CreditNoteDtos.CreditNoteListQuery;
@@ -10,8 +11,10 @@ using CreditNoteListQuery = AutoPartShop.Application.DTOs.CreditNoteDtos.CreditN
 namespace AutoPartShop.Api.Controllers;
 
 [Route("api/[controller]")]
+[Route("api/v1/[controller]")]
 [ApiController]
 [Produces("application/json")]
+[Authorize]
 public class CreditNoteController : ControllerBase
 {
     private readonly ICreditNoteRepository _creditNoteRepository;

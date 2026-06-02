@@ -1,13 +1,16 @@
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.CustomerPayment.Dtos;
 using AutoPartShop.Domain.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AutoPartShop.Api.Controllers;
 
 [Route("api/payment-provider")]
+[Route("api/v1/payment-provider")]
 [ApiController]
 [Produces("application/json")]
+[Authorize]
 public class PaymentProviderController : ControllerBase
 {
     private readonly IPaymentProviderRepository _repository;

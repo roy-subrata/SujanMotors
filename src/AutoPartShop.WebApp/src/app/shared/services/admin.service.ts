@@ -80,7 +80,7 @@ export interface AssignPermissionsRequest {
 })
 export class AdminService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl =`${environment.apiUrl}/admin`; 
+  private readonly apiUrl =`${environment.apiUrl}/v1/admin`; 
 
   // User Management
   getAllUsers(): Observable<UserResponse[]> {

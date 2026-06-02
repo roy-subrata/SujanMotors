@@ -216,8 +216,8 @@ export interface PagedResponse<T> {
 })
 export class WarrantyService {
     private readonly http = inject(HttpClient);
-    private readonly apiUrl = `${environment.apiUrl}/warrantyregistrations`;
-    private readonly claimsApiUrl = `${environment.apiUrl}/warrantyclaims`;
+    private readonly apiUrl = `${environment.apiUrl}/v1/warrantyregistrations`;
+    private readonly claimsApiUrl = `${environment.apiUrl}/v1/warrantyclaims`;
 
     // ==================== WARRANTY REGISTRATIONS ====================
 

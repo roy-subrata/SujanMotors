@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using AutoPartShop.Api.Common;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.Services;
 using AutoPartShop.Domain.Entities;
@@ -10,6 +11,7 @@ using Microsoft.EntityFrameworkCore;
 namespace AutoPartShop.Api.Controllers;
 
 [Route("api/ecommerce")]
+[Route("api/v1/ecommerce")]
 [ApiController]
 [Produces("application/json")]
 public class EcommerceController(
@@ -361,7 +363,7 @@ public class EcommerceController(
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error processing e-commerce checkout");
-            return StatusCode(500, new { message = "An error occurred while placing your order. Please try again." });
+            return StatusCode(StatusCodes.Status500InternalServerError, ApiError.Internal(HttpContext.TraceIdentifier));
         }
     }
 
@@ -495,7 +497,7 @@ public class EcommerceController(
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error collecting COD payment for order {SONumber}", soNumber);
-            return StatusCode(500, new { message = "An error occurred while collecting the payment. Please try again." });
+            return StatusCode(StatusCodes.Status500InternalServerError, ApiError.Internal(HttpContext.TraceIdentifier));
         }
     }
 
@@ -848,7 +850,7 @@ public class EcommerceController(
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error processing in-store checkout");
-            return StatusCode(500, new { message = "An error occurred while placing the order. Please try again." });
+            return StatusCode(StatusCodes.Status500InternalServerError, ApiError.Internal(HttpContext.TraceIdentifier));
         }
     }
 
@@ -988,7 +990,7 @@ public class EcommerceController(
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error reserving stock for part {PartId}", request.PartId);
-            return StatusCode(500, new { message = "Could not reserve stock" });
+            return StatusCode(StatusCodes.Status500InternalServerError, ApiError.Internal(HttpContext.TraceIdentifier));
         }
     }
 
@@ -1043,7 +1045,7 @@ public class EcommerceController(
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error releasing stock for part {PartId}", request.PartId);
-            return StatusCode(500, new { message = "Could not release stock" });
+            return StatusCode(StatusCodes.Status500InternalServerError, ApiError.Internal(HttpContext.TraceIdentifier));
         }
     }
 
@@ -1102,7 +1104,7 @@ public class EcommerceController(
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error releasing session reservations for {SessionId}", request.SessionId);
-            return StatusCode(500, new { message = "Could not release session reservations" });
+            return StatusCode(StatusCodes.Status500InternalServerError, ApiError.Internal(HttpContext.TraceIdentifier));
         }
     }
 

@@ -6,14 +6,17 @@ using AutoPartShop.Application.Stock;
 using AutoPartShop.Application.Stock.Dtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Infrastructure.Repositories;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace AutoPartShop.Api.Controllers;
 
 [Route("api/[controller]")]
+[Route("api/v1/[controller]")]
 [ApiController]
 [Produces("application/json")]
+[Authorize]
 public class StockController : ControllerBase
 {
     private readonly IStockLevelRepository _stockLevelRepository;
@@ -43,6 +46,72 @@ public class StockController : ControllerBase
         _currentUserService = currentUserService;
         _unitConversionService = unitConversionService;
         _logger = logger;
+    }
+
+    /// <summary>
+    /// POS quick-sale availability probe: returns net available stock (on-hand minus reserved,
+    /// in base units) for a single part and whether the requested quantity can be met.
+    /// </summary>
+    [HttpPost("check")]
+    public async Task<IActionResult> CheckStock([FromBody] StockCheckRequest request, CancellationToken cancellationToken)
+    {
+        if (request is null || request.PartId == Guid.Empty)
+            return BadRequest(new { message = "PartId is required" });
+
+        try
+        {
+            var response = await CheckStockInternalAsync(request.PartId, request.Quantity, cancellationToken);
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error checking stock for part {PartId}", request.PartId);
+            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while checking stock");
+        }
+    }
+
+    /// <summary>Batch variant of <see cref="CheckStock"/> — one response per requested part.</summary>
+    [HttpPost("check-multiple")]
+    public async Task<IActionResult> CheckMultipleStock([FromBody] List<StockCheckRequest> requests, CancellationToken cancellationToken)
+    {
+        if (requests is null || requests.Count == 0)
+            return BadRequest(new { message = "At least one stock check request is required" });
+
+        try
+        {
+            var responses = new List<StockCheckResponse>(requests.Count);
+            foreach (var request in requests)
+                responses.Add(await CheckStockInternalAsync(request.PartId, request.Quantity, cancellationToken));
+
+            return Ok(responses);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error checking stock for multiple parts");
+            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while checking stock");
+        }
+    }
+
+    private async Task<StockCheckResponse> CheckStockInternalAsync(Guid partId, int quantity, CancellationToken cancellationToken)
+    {
+        var stockLevels = (await _stockLevelRepository.GetByPartAsync(partId, cancellationToken)).ToList();
+
+        // Net available in base units: prefer base-unit columns, fall back to display-unit columns.
+        var totalAvailable = stockLevels.Sum(sl =>
+            (sl.QuantityOnHandInBaseUnit > 0 ? sl.QuantityOnHandInBaseUnit : sl.QuantityOnHand) -
+            (sl.QuantityReservedInBaseUnit > 0 ? sl.QuantityReservedInBaseUnit : sl.QuantityReserved));
+
+        var available = totalAvailable >= quantity;
+
+        return new StockCheckResponse
+        {
+            PartId = partId,
+            StockAvailable = totalAvailable,
+            Available = available,
+            Message = available
+                ? null
+                : $"Insufficient stock. Available: {totalAvailable}, Required: {quantity}"
+        };
     }
 
     [HttpGet("levels")]

@@ -66,7 +66,7 @@ export interface ResolveDiscountResult {
 @Injectable({ providedIn: 'root' })
 export class DiscountService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = `${environment.apiUrl}/discounts`;
+  private readonly apiUrl = `${environment.apiUrl}/v1/discounts`;
 
   getAllDiscounts(): Observable<DiscountResponse[]> {
     return this.http.get<DiscountResponse[]>(this.apiUrl);

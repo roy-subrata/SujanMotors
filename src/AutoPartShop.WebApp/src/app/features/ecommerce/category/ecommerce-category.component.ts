@@ -122,7 +122,7 @@ export class EcommerceCategoryComponent implements OnInit, OnDestroy {
     });
 
     // Load vehicles for fitment filter — always shown, loading state while fetching
-    this.http.get<VehicleOption[]>(`${environment.apiUrl}/vehicles`)
+    this.http.get<VehicleOption[]>(`${environment.apiUrl}/v1/vehicles`)
       .pipe(catchError(() => of([])), takeUntil(this.destroy$))
       .subscribe(data => {
         this.vehicles = data;

@@ -70,7 +70,7 @@ export interface PagedGroupResult {
 @Injectable({ providedIn: 'root' })
 export class ProductAttributeService {
   private readonly http = inject(HttpClient);
-  private readonly base = `${environment.apiUrl}/attribute-groups`;
+  private readonly base = `${environment.apiUrl}/v1/attribute-groups`;
 
   getAllGroups(): Observable<ProductAttributeGroup[]> {
     return this.http.get<ProductAttributeGroup[]>(this.base);

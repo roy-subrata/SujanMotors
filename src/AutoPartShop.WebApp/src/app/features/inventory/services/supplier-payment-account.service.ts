@@ -71,7 +71,7 @@ export interface UpdateSupplierPaymentAccountRequest {
 })
 export class SupplierPaymentAccountService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = `${environment.apiUrl}/supplier-payment-accounts`;
+  private readonly apiUrl = `${environment.apiUrl}/v1/supplier-payment-accounts`;
 
   /**
    * Get all supplier payment accounts

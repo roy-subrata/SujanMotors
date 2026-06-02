@@ -366,7 +366,7 @@ export class InstoreCheckoutComponent {
         if (isPhone) {
           // Phone search — returns single customer or 404
           return this.http
-            .get<CustomerLookup>(`${environment.apiUrl}/customer/search-by-phone?phone=${encodeURIComponent(q)}`)
+            .get<CustomerLookup>(`${environment.apiUrl}/v1/customers/search-by-phone?phone=${encodeURIComponent(q)}`)
             .pipe(
               catchError(err => {
                 if (err.status === 404) return of(null);
@@ -374,9 +374,9 @@ export class InstoreCheckoutComponent {
               })
             );
         } else {
-          // Name search — POST /api/customer/list with Search field
+          // Name search — POST /api/v1/customers/list with Search field
           return this.http
-            .post<{ data: CustomerLookup[] }>(`${environment.apiUrl}/customer/list`, {
+            .post<{ data: CustomerLookup[] }>(`${environment.apiUrl}/v1/customers/list`, {
               search: q, pageNumber: 1, pageSize: 8
             })
             .pipe(

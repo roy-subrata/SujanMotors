@@ -11,6 +11,7 @@ using Microsoft.EntityFrameworkCore;
 namespace AutoPartShop.Api.Controllers;
 
 [Route("api/customer-payments")]
+[Route("api/v1/customer-payments")]
 [ApiController]
 [Authorize]
 public class CustomerPaymentController : ControllerBase

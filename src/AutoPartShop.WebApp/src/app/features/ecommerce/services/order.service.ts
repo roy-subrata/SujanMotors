@@ -70,7 +70,7 @@ export interface InstoreCheckoutRequest extends EcommerceCheckoutRequest {
 @Injectable({ providedIn: 'root' })
 export class OrderService {
   private readonly http = inject(HttpClient);
-  private readonly baseUrl = `${environment.apiUrl}/ecommerce`;
+  private readonly baseUrl = `${environment.apiUrl}/v1/ecommerce`;
 
   validatePromoCode(code: string, cartTotal: number): Observable<PromoValidationResult> {
     const params = `code=${encodeURIComponent(code)}&cartTotal=${cartTotal}`;

@@ -165,7 +165,7 @@ export interface PaginatedResponse<T> {
 })
 export class StockService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = `${environment.apiUrl}/stock`;
+  private readonly apiUrl = `${environment.apiUrl}/v1/stock`;
 
   /**
    * Get all stock levels

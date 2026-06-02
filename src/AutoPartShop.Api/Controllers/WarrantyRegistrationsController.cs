@@ -3,13 +3,16 @@ using AutoPartShop.Application.DTOs.WarrantyDtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AutoPartShop.Api.Controllers;
 
 [Route("api/[controller]")]
+[Route("api/v1/[controller]")]
 [ApiController]
 [Produces("application/json")]
+[Authorize]
 public class WarrantyRegistrationsController : ControllerBase
 {
     private readonly IWarrantyRegistrationRepository _warrantyRepository;

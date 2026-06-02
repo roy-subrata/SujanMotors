@@ -110,7 +110,7 @@ export interface PaginatedResponse<T> {
 })
 export class StockLotService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = `${environment.apiUrl}/stocklot`;
+  private readonly apiUrl = `${environment.apiUrl}/v1/stocklot`;
 
   /**
    * Get all lots for a specific part

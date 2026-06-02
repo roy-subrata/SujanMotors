@@ -10,6 +10,7 @@ namespace AutoPartShop.Api.Controllers;
 /// Provides unified view of all supplier transactions (purchases, payments, refunds).
 /// </summary>
 [Route("api/supplier-ledger")]
+[Route("api/v1/supplier-ledger")]
 [ApiController]
 [Authorize]
 [Produces("application/json")]

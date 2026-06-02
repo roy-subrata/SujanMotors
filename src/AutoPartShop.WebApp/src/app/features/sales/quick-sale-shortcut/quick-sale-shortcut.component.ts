@@ -31,6 +31,7 @@ import { TechnicianService, TechnicianResponse } from '../services/technician.se
 import { InvoicePdfService, InvoicePdfData } from '../services/invoice-pdf.service';
 import { CurrencyService } from '../../../shared/services/currency.service';
 import { PricingValidationService } from '../../../shared/services/pricing-validation.service';
+import { extractApiError } from '../../../shared/utils/api-error.util';
 
 // Components
 import { QuickCustomerDialogComponent } from '../components/quick-customer-dialog.component';
@@ -249,6 +250,8 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
   lastSale: any = null;
   returnInvoiceNumber = '';
   returnInvoice: any = null;
+  returnRefundType: 'CASH_REFUND' | 'STORE_CREDIT' = 'CASH_REFUND';
+  returnLines: { partId: string; partName: string; soldQty: number; unitPrice: number; returnQty: number; selected: boolean }[] = [];
   priceCheckCode = '';
   priceCheckResult: any = null;
   stockSearchCode = '';
@@ -721,24 +724,83 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     this.showReturnsDialog = true;
     this.returnInvoiceNumber = '';
     this.returnInvoice = null;
+    this.returnRefundType = 'CASH_REFUND';
+    this.returnLines = [];
   }
 
   lookupReturnInvoice(): void {
     if (!this.returnInvoiceNumber.trim()) return;
     this.quickSaleService.lookupInvoice(this.returnInvoiceNumber.trim()).subscribe({
-      next: (invoice) => this.returnInvoice = invoice,
+      next: (invoice) => {
+        this.returnInvoice = invoice;
+        // Default: every sold line selected, full quantity — cashier trims as needed.
+        this.returnLines = (invoice?.lines ?? []).map(l => ({
+          partId: l.partId,
+          partName: l.partName,
+          soldQty: l.quantity,
+          unitPrice: l.unitPrice,
+          returnQty: l.quantity,
+          selected: true
+        }));
+      },
       error: () => this.messageService.add({ severity: 'error', summary: 'Not Found' })
     });
   }
 
+  /** Running total of the selected return lines — shown in the dialog footer. */
+  get returnRefundTotal(): number {
+    return this.returnLines
+      .filter(l => l.selected)
+      .reduce((sum, l) => sum + (l.unitPrice * (l.returnQty || 0)), 0);
+  }
+
   processReturn(): void {
+    if (!this.returnInvoice) return;
+
+    const chosen = this.returnLines.filter(l => l.selected && l.returnQty > 0);
+
+    if (chosen.length === 0) {
+      this.messageService.add({ severity: 'warn', summary: 'Nothing to Return', detail: 'Select at least one item with a quantity greater than zero.' });
+      return;
+    }
+
+    const invalid = chosen.find(l => l.returnQty > l.soldQty);
+    if (invalid) {
+      this.messageService.add({ severity: 'warn', summary: 'Invalid Quantity', detail: `Cannot return more than ${invalid.soldQty} of "${invalid.partName}".` });
+      return;
+    }
+
+    const items = chosen.map(l => ({
+      partId: l.partId,
+      quantity: l.returnQty,
+      reason: 'POS quick return'
+    }));
+
+    const refundLabel = this.returnRefundType === 'STORE_CREDIT' ? 'store credit' : 'cash refund';
     this.confirmationService.confirm({
-      message: 'Process this return?',
+      message: `Create a return for ${chosen.length} item(s) (${this.formatCurrency(this.returnRefundTotal)}) on invoice ${this.returnInvoice.invoiceNumber} as ${refundLabel}?`,
       header: 'Confirm Return',
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
-        this.showReturnsDialog = false;
-        this.messageService.add({ severity: 'success', summary: 'Return Processed' });
+        this.quickSaleService.processReturn({
+          originalInvoiceNumber: this.returnInvoice.invoiceNumber,
+          refundType: this.returnRefundType,
+          items
+        }).subscribe({
+          next: (res: any) => {
+            this.showReturnsDialog = false;
+            this.messageService.add({
+              severity: 'success',
+              summary: 'Return Created',
+              detail: `${res?.returnNumber ?? 'Return'} created (PENDING). Approve & receive it on the Sales Returns screen.`
+            });
+          },
+          error: (err) => this.messageService.add({
+            severity: 'error',
+            summary: 'Return Failed',
+            detail: extractApiError(err, 'Could not create the return')
+          })
+        });
       }
     });
   }

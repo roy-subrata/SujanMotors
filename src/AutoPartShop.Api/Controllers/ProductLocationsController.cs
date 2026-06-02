@@ -3,6 +3,7 @@ using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.ProductLocationDtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AutoPartShop.Api.Controllers;
@@ -14,6 +15,7 @@ namespace AutoPartShop.Api.Controllers;
 [Route("api/v1/products/{productId:guid}/locations")]
 [ApiController]
 [Produces("application/json")]
+[Authorize]
 public class ProductLocationsController : ControllerBase
 {
     private readonly IProductLocationRepository _locationRepository;

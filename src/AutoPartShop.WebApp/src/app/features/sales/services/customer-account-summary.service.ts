@@ -50,7 +50,7 @@ export interface CustomerAccountSummary {
 @Injectable({ providedIn: 'root' })
 export class CustomerAccountSummaryService {
     private readonly http = inject(HttpClient);
-    private readonly apiUrl = `${environment.apiUrl}/customer-account-summary`;
+    private readonly apiUrl = `${environment.apiUrl}/v1/customer-account-summary`;
 
     getAccountSummary(customerId: string, query: CustomerAccountSummaryQuery): Observable<CustomerAccountSummary> {
         return this.http.post<CustomerAccountSummary>(`${this.apiUrl}/${customerId}`, query);

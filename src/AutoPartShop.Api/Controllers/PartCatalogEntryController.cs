@@ -2,6 +2,7 @@ using AutoPartShop.Api.Common;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Infrastructure.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,6 +11,7 @@ namespace AutoPartShop.Api.Controllers;
 [Route("api/v1/products/{productId:guid}/catalog-entry")]
 [ApiController]
 [Produces("application/json")]
+[Authorize]
 public class PartCatalogEntryController(
     AutoPartDbContext _db,
     ICurrentUserService _currentUserService,

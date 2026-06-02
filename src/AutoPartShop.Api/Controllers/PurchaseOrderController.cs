@@ -4,14 +4,17 @@ using AutoPartShop.Application.DTOs.PurchaseOrderDtos;
 using AutoPartShop.Application.PurchaseOrders;
 using AutoPartShop.Application.Services;
 using AutoPartShop.Domain.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 
 namespace AutoPartShop.Api.Controllers;
 
 [Route("api/[controller]")]
+[Route("api/v1/[controller]")]
 [ApiController]
 [Produces("application/json")]
+[Authorize]
 public class PurchaseOrderController : ControllerBase
 {
     private readonly IPurchaseOrderRepository _purchaseOrderRepository;

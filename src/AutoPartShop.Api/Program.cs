@@ -44,52 +44,32 @@ builder.Host.UseSerilog((ctx, lc) => lc
 // --------------------------------
 
 // Configure CORS
+// In Development we echo back any origin (required for SignalR negotiate with
+// credentials: 'include' — AllowAnyOrigin() would send '*' and break it).
+// In all other environments we restrict to an explicit allow-list supplied via
+// configuration ("Cors:AllowedOrigins"), so production never trusts arbitrary origins.
 var corsPolicy = "AllowAllApps";
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+                     ?? Array.Empty<string>();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(corsPolicy, policy =>
     {
-        // SetIsOriginAllowed(_ => true) + AllowCredentials() echoes back the specific
-        // requesting origin instead of '*', which is required for SignalR negotiate
-        // (credentials: 'include'). AllowAnyOrigin() would send '*' and break it.
-        policy.SetIsOriginAllowed(_ => true)
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials();
+        if (builder.Environment.IsDevelopment())
+        {
+            policy.SetIsOriginAllowed(_ => true)
+                  .AllowAnyHeader()
+                  .AllowAnyMethod()
+                  .AllowCredentials();
+        }
+        else
+        {
+            policy.WithOrigins(allowedOrigins)
+                  .AllowAnyHeader()
+                  .AllowAnyMethod()
+                  .AllowCredentials();
+        }
     });
-    // options.AddPolicy(corsPolicy, policy =>
-    // {
-        
-    //     policy.WithOrigins(
-    //            // Angular App
-    //            "https://restaurant-theatre-gcc-stripes.trycloudflare.com",
-    //            "http://localhost:4200",  // Angular dev server
-    //            "https://localhost:4200" // Angular dev server HTTPS
-    //        )
-    //        .AllowAnyHeader()
-    //        .AllowAnyMethod()
-    //        .AllowCredentials();
-    //     //if (builder.Environment.IsDevelopment())
-    //     //{
-    //     //    // For development, allow any origin without credentials
-    //     //    policy.AllowAnyOrigin()
-    //     //          .AllowAnyHeader()
-    //     //          .AllowAnyMethod();
-    //     //}
-    //     //else
-    //     //{
-    //     //    // For production, allow specific origins
-    //     //    policy.WithOrigins(
-    //     //        // Angular App
-    //     //        "https://polite-meadow-01b03a000.4.azurestaticapps.net",
-    //     //        "http://localhost:4200",  // Angular dev server
-    //     //        "https://localhost:4200" // Angular dev server HTTPS
-    //     //    )
-    //     //    .AllowAnyHeader()
-    //     //    .AllowAnyMethod()
-    //     //    .AllowCredentials();
-    //     //}
-    // });
 });
 
 builder.Services.AddInfrastructure(builder.Configuration);
@@ -134,7 +114,13 @@ builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
 
 // Configure JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-var secretKey = jwtSettings["SecretKey"] ?? "YourSuperSecretKeyForJWTTokenGenerationMustBe32Chars";
+var secretKey = jwtSettings["SecretKey"];
+if (string.IsNullOrWhiteSpace(secretKey))
+{
+    throw new InvalidOperationException(
+        "JwtSettings:SecretKey is not configured. Provide it via user-secrets (dev), " +
+        "environment variables, or a secrets vault. The API will not start without a signing key.");
+}
 var issuer = jwtSettings["Issuer"] ?? "AutoPartShopAPI";
 var audience = jwtSettings["Audience"] ?? "AutoPartShopClient";
 

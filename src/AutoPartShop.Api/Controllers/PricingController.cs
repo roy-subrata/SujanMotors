@@ -2,6 +2,7 @@ using AutoPartShop.Api.Services;
 using AutoPartShop.Application.Services;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AutoPartShop.Api.Controllers;
@@ -9,6 +10,7 @@ namespace AutoPartShop.Api.Controllers;
 [Route("api/v1/pricing")]
 [ApiController]
 [Produces("application/json")]
+[Authorize]
 public class PricingController : ControllerBase
 {
     private readonly IProductRepository _productRepository;

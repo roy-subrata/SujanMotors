@@ -628,23 +628,95 @@
   </p-dialog>
 
   <!-- Returns Dialog -->
-  <p-dialog [(visible)]="showReturnsDialog" [modal]="true" [style]="{ width: '500px' }" header="Process Return">
+  <p-dialog [(visible)]="showReturnsDialog" [modal]="true"
+            [style]="{ width: '60vw', maxWidth: '880px' }"
+            [contentStyle]="{ maxHeight: '70vh', overflow: 'auto' }"
+            [breakpoints]="{ '960px': '95vw' }"
+            [draggable]="false" [resizable]="false" header="Process Return">
     <div class="returns-content">
       <div class="return-search">
-        <input type="text" pInputText [(ngModel)]="returnInvoiceNumber" [ngModelOptions]="{standalone: true}" placeholder="Enter invoice number..." />
+        <input type="text" pInputText [(ngModel)]="returnInvoiceNumber" [ngModelOptions]="{standalone: true}"
+               placeholder="Enter invoice number…" (keydown.enter)="lookupReturnInvoice()" />
         <button class="search-btn" (click)="lookupReturnInvoice()">
           <i class="pi pi-search"></i>
         </button>
       </div>
-      <div class="return-invoice" *ngIf="returnInvoice">
-        <p><strong>Invoice:</strong> {{ returnInvoice.invoiceNumber }}</p>
-        <p><strong>Customer:</strong> {{ returnInvoice.customerName }}</p>
-        <p><strong>Total:</strong> {{ formatCurrency(returnInvoice.grandTotal) }}</p>
+
+      <div class="return-empty" *ngIf="!returnInvoice">
+        <i class="pi pi-receipt"></i>
+        <p>Look up an invoice to start a return.</p>
       </div>
+
+      <ng-container *ngIf="returnInvoice">
+        <div class="return-summary">
+          <div class="summary-item">
+            <span class="summary-label">Invoice</span>
+            <span class="summary-value">{{ returnInvoice.invoiceNumber }}</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Customer</span>
+            <span class="summary-value">{{ returnInvoice.customerName || '—' }}</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Invoice total</span>
+            <span class="summary-value">{{ formatCurrency(returnInvoice.grandTotal) }}</span>
+          </div>
+        </div>
+
+        <div class="return-section" *ngIf="returnLines.length">
+          <div class="section-title">Items to return</div>
+          <table class="return-table">
+            <thead>
+              <tr>
+                <th class="col-check"></th>
+                <th class="col-item">Item</th>
+                <th class="col-num">Sold</th>
+                <th class="col-qty">Return qty</th>
+                <th class="col-num">Refund</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let l of returnLines" [class.row-disabled]="!l.selected">
+                <td class="col-check">
+                  <input type="checkbox" [(ngModel)]="l.selected" [ngModelOptions]="{standalone: true}" />
+                </td>
+                <td class="col-item">{{ l.partName }}</td>
+                <td class="col-num">{{ l.soldQty }}</td>
+                <td class="col-qty">
+                  <input type="number" pInputText min="1" [max]="l.soldQty" [(ngModel)]="l.returnQty"
+                         [ngModelOptions]="{standalone: true}" [disabled]="!l.selected" />
+                </td>
+                <td class="col-num">{{ formatCurrency(l.unitPrice * (l.selected ? (l.returnQty || 0) : 0)) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="return-section">
+          <div class="section-title">Refund method</div>
+          <div class="refund-options">
+            <label class="refund-option" [class.active]="returnRefundType === 'CASH_REFUND'">
+              <input type="radio" name="refundType" value="CASH_REFUND" [(ngModel)]="returnRefundType" [ngModelOptions]="{standalone: true}" />
+              <i class="pi pi-money-bill"></i>
+              <span>Cash refund</span>
+            </label>
+            <label class="refund-option" [class.active]="returnRefundType === 'STORE_CREDIT'">
+              <input type="radio" name="refundType" value="STORE_CREDIT" [(ngModel)]="returnRefundType" [ngModelOptions]="{standalone: true}" />
+              <i class="pi pi-wallet"></i>
+              <span>Store credit</span>
+            </label>
+          </div>
+        </div>
+      </ng-container>
     </div>
     <ng-template pTemplate="footer">
-      <button pButton label="Cancel" class="p-button-text" (click)="showReturnsDialog = false"></button>
-      <button pButton label="Process Return" icon="pi pi-check" (click)="processReturn()" [disabled]="!returnInvoice"></button>
+      <div class="return-footer">
+        <span class="footer-total" *ngIf="returnInvoice">Total refund <strong>{{ formatCurrency(returnRefundTotal) }}</strong></span>
+        <div class="footer-actions">
+          <button pButton label="Cancel" class="p-button-text" (click)="showReturnsDialog = false"></button>
+          <button pButton label="Process Return" icon="pi pi-check" (click)="processReturn()" [disabled]="!returnInvoice || returnRefundTotal <= 0"></button>
+        </div>
+      </div>
     </ng-template>
   </p-dialog>
 

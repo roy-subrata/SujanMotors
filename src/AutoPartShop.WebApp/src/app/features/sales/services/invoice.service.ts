@@ -65,7 +65,7 @@ export interface InvoiceListResponse {
 @Injectable({ providedIn: 'root' })
 export class InvoiceService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = `${environment.apiUrl}/salesorder/invoices`;
+  private readonly apiUrl = `${environment.apiUrl}/v1/salesorder/invoices`;
 
   getAllInvoices(pageNumber: number = 1, pageSize: number = 10, filter: { searchTerm?: string; status?: string; customerId?: string; fromDate?: string; toDate?: string } = {}): Observable<InvoiceListResponse> {
     let params: any = { pageNumber: pageNumber.toString(), pageSize: pageSize.toString() };

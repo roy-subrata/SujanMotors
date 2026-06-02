@@ -53,7 +53,7 @@ export interface PaginatedCreditNotesResponse {
 })
 export class CreditNoteService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = `${environment.apiUrl}/creditnote`;
+  private readonly apiUrl = `${environment.apiUrl}/v1/creditnote`;
 
   /**
    * Get all credit notes for a supplier

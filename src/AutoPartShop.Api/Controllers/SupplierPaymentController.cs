@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace AutoPartShop.Api.Controllers;
 
 [Route("api/supplier-payments")]
+[Route("api/v1/supplier-payments")]
 [ApiController]
 [Authorize]
 public class SupplierPaymentController : ControllerBase

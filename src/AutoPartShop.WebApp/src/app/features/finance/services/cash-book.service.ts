@@ -82,7 +82,7 @@ function tzOffsetMinutes(): number {
 @Injectable({ providedIn: 'root' })
 export class CashBookService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = `${environment.apiUrl}/cash-book`;
+  private readonly apiUrl = `${environment.apiUrl}/v1/cash-book`;
 
   getDaily(date: Date): Observable<DailyCashBook> {
     const params = new HttpParams()

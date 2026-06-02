@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 namespace AutoPartShop.Api.Controllers;
 
 [Route("api/challans")]
+[Route("api/v1/challans")]
 [ApiController]
 [Authorize]
 [Produces("application/json")]

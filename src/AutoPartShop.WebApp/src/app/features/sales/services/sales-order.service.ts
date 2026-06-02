@@ -94,7 +94,7 @@ export interface PaginatedResponse<T> {
 @Injectable({ providedIn: 'root' })
 export class SalesOrderService {
     private readonly http = inject(HttpClient);
-    private readonly apiUrl = `${environment.apiUrl}/salesorder`;
+    private readonly apiUrl = `${environment.apiUrl}/v1/salesorder`;
 
     getAllSalesOrders(): Observable<SalesOrderResponse[]> {
         return this.http.get<SalesOrderResponse[]>(this.apiUrl);

@@ -77,7 +77,7 @@ export interface ExpenseCategory {
 })
 export class DailyExpenseService {
     private readonly http = inject(HttpClient);
-    private readonly apiUrl = `${environment.apiUrl}/daily-expense`;
+    private readonly apiUrl = `${environment.apiUrl}/v1/daily-expense`;
 
     getAll(): Observable<DailyExpenseResponse[]> {
         return this.http.get<DailyExpenseResponse[]>(this.apiUrl);

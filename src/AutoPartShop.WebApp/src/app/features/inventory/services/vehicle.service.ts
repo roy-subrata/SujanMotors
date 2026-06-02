@@ -55,7 +55,7 @@ export interface CreatePartCompatibilityRequest {
 })
 export class VehicleService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = `${environment.apiUrl}/vehicles`;
+  private readonly apiUrl = `${environment.apiUrl}/v1/vehicles`;
 
   /**
    * Get all vehicles

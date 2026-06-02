@@ -58,6 +58,22 @@ public class QuickSalePayment
     public string Notes { get; set; } = string.Empty;
 }
 
+/// <summary>POS quick return initiated from a printed receipt / invoice number.</summary>
+public class QuickReturnRequest
+{
+    public string OriginalInvoiceNumber { get; set; } = string.Empty;
+    /// <summary>CASH_REFUND | STORE_CREDIT — how the customer is refunded when the return is processed.</summary>
+    public string RefundType { get; set; } = "CASH_REFUND";
+    public List<QuickReturnItem> Items { get; set; } = new();
+}
+
+public class QuickReturnItem
+{
+    public Guid PartId { get; set; }
+    public int Quantity { get; set; }
+    public string? Reason { get; set; }
+}
+
 public class QuickSaleResponse
 {
     public Guid Id { get; set; }
@@ -78,4 +94,14 @@ public class QuickSaleResponse
     public string Status { get; set; } = string.Empty;
     public bool IsQuotation { get; set; }
     public DateTime CreatedAt { get; set; }
+    /// <summary>Populated by the by-invoice lookup so the POS return screen knows what was sold.</summary>
+    public List<QuickSaleResponseLine> Lines { get; set; } = new();
+}
+
+public class QuickSaleResponseLine
+{
+    public Guid PartId { get; set; }
+    public string PartName { get; set; } = string.Empty;
+    public int Quantity { get; set; }
+    public decimal UnitPrice { get; set; }
 }

@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace AutoPartShop.Api.Controllers;
 
 [Route("api/customers")]
+[Route("api/v1/customers")]
 [ApiController]
 [Authorize]
 [Produces("application/json")]

@@ -76,7 +76,7 @@ export interface SupplierQuery {
 })
 export class SupplierService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = `${environment.apiUrl}/suppliers`;
+  private readonly apiUrl = `${environment.apiUrl}/v1/suppliers`;
 
   /**
    * Get all suppliers

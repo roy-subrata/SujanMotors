@@ -1,6 +1,7 @@
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.UnitDtos;
 using AutoPartShop.Domain.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AutoPartShop.Api.Controllers;
@@ -9,8 +10,10 @@ namespace AutoPartShop.Api.Controllers;
 /// Controller for managing units (measurement units like kg, liters, pieces, etc.)
 /// </summary>
 [Route("api/[controller]")]
+[Route("api/v1/[controller]")]
 [ApiController]
 [Produces("application/json")]
+[Authorize]
 public class UnitsController : ControllerBase
 {
     private readonly IUnitRepository _unitRepository;

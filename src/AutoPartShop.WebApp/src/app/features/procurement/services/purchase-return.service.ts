@@ -101,7 +101,7 @@ export interface PaginatedPurchaseReturnResponse {
 })
 export class PurchaseReturnService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = `${environment.apiUrl}/purchasereturn`;
+  private readonly apiUrl = `${environment.apiUrl}/v1/purchasereturn`;
 
   /**
    * Get all purchase returns

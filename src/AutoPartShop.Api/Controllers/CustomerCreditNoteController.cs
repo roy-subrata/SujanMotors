@@ -12,6 +12,7 @@ using System.Data;
 namespace AutoPartShop.Api.Controllers;
 
 [Route("api/customer-credit-notes")]
+[Route("api/v1/customer-credit-notes")]
 [ApiController]
 [Authorize]
 [Produces("application/json")]

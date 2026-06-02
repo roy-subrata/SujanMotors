@@ -12,6 +12,7 @@ namespace AutoPartsShop.Api.Controllers;
 /// (e.g., showing "next SO number" in a form header before the user submits).
 /// </summary>
 [Route("api/code-generate")]
+[Route("api/v1/code-generate")]
 [ApiController]
 [Authorize]
 [Produces("application/json")]

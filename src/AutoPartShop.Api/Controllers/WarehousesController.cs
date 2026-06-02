@@ -4,13 +4,16 @@ using AutoPartShop.Application.DTOs.WarehouseDtos;
 using AutoPartShop.Application.Warehouse;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AutoPartShop.Api.Controllers;
 
 [Route("api/[controller]")]
+[Route("api/v1/[controller]")]
 [ApiController]
 [Produces("application/json")]
+[Authorize]
 public class WarehousesController(
     IWarehouseRepository _warehouseRepository,
     IWarehouseReadRepository _warehouseReadRepository,

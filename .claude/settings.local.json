@@ -89,7 +89,10 @@
       "Bash(Select-Object -First 30)",
       "Bash(Format-Table FullName)",
       "Bash(grep -nA6 '\"paths\"' tsconfig.json)",
-      "Bash(find src/app/shared -maxdepth 2 -type d)"
+      "Bash(find src/app/shared -maxdepth 2 -type d)",
+      "PowerShell(dotnet build *)",
+      "PowerShell(Push-Location \"src/AutoPartShop.WebApp\"; if \\(Test-Path \"tsconfig.app.json\"\\) { npx tsc -p tsconfig.app.json --noEmit } else { npx tsc --noEmit }; $code = $LASTEXITCODE; Pop-Location; Write-Output \"TSC_EXIT=$code\")",
+      "PowerShell($dir = \"src/AutoPartShop.Infrastructure/Repositories\"; if \\(Test-Path \"$dir/ProductReadRepository.cs\"\\) { Write-Output \"COLLISION: ProductReadRepository.cs already exists\" } else { git mv \"$dir/PartReadRepository.cs\" \"$dir/ProductReadRepository.cs\"; Write-Output \"RENAMED exit=$LASTEXITCODE\" })"
     ],
     "deny": [],
     "ask": []

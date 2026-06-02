@@ -41,7 +41,7 @@ export interface User {
 export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
-  private readonly apiUrl =`${environment.apiUrl}/auth`; 
+  private readonly apiUrl =`${environment.apiUrl}/v1/auth`; 
 
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   public currentUser$ = this.currentUserSubject.asObservable();

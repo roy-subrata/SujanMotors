@@ -1,12 +1,15 @@
 using AutoPartShop.Domain.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace AutoPartShop.Api.Controllers;
 
 [Route("api/attribute-groups")]
+[Route("api/v1/attribute-groups")]
 [ApiController]
 [Produces("application/json")]
+[Authorize]
 public class ProductAttributeGroupController : ControllerBase
 {
     private readonly AutoPartDbContext _db;

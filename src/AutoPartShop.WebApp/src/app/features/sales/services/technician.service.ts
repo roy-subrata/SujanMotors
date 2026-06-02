@@ -57,7 +57,7 @@ export interface TechnicianQuery {
 @Injectable({ providedIn: 'root' })
 export class TechnicianService {
     private readonly http = inject(HttpClient);
-    private readonly apiUrl = `${environment.apiUrl}/technician`;
+    private readonly apiUrl = `${environment.apiUrl}/v1/technician`;
 
     getAllTechnicians(): Observable<TechnicianResponse[]> {
         return this.http.get<TechnicianResponse[]>(this.apiUrl);

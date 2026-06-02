@@ -114,7 +114,7 @@ export interface PaginatedGoodsReceiptResponse {
 })
 export class GoodsReceiptService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = `${environment.apiUrl}/purchaseorder/grn`;
+  private readonly apiUrl = `${environment.apiUrl}/v1/purchaseorder/grn`;
 
   /**
    * Get all goods receipts

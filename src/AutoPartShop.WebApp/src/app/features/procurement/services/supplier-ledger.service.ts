@@ -65,7 +65,7 @@ export interface SettlePurchaseReturnRequest {
 })
 export class SupplierLedgerService {
     private readonly http = inject(HttpClient);
-    private readonly apiUrl = `${environment.apiUrl}/supplier-ledger`;
+    private readonly apiUrl = `${environment.apiUrl}/v1/supplier-ledger`;
 
     /**
      * Get full ledger summary for a supplier including recent entries

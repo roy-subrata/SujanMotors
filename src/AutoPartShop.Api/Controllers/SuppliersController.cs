@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Http;
 namespace AutoPartShop.Api.Controllers;
 
 [Route("api/suppliers")]
+[Route("api/v1/suppliers")]
 [ApiController]
 [Authorize]
 [Produces("application/json")]

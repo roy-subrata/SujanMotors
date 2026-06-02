@@ -41,8 +41,8 @@ export interface ShopProfile {
 @Injectable({ providedIn: 'root' })
 export class AppSettingsService {
   private readonly http = inject(HttpClient);
-  private readonly baseUrl = `${environment.apiUrl}/applicationsettings`;
-  private readonly notifUrl = `${environment.apiUrl}/notifications`;
+  private readonly baseUrl = `${environment.apiUrl}/v1/applicationsettings`;
+  private readonly notifUrl = `${environment.apiUrl}/v1/notifications`;
 
   getByCategory(category: string): Observable<AppSetting[]> {
     return this.http.get<AppSetting[]>(`${this.baseUrl}/category/${category}`);

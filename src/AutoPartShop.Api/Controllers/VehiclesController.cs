@@ -1,13 +1,16 @@
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.VehicleDtos;
 using AutoPartShop.Domain.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AutoPartShop.Api.Controllers;
 
 [Route("api/[controller]")]
+[Route("api/v1/[controller]")]
 [ApiController]
 [Produces("application/json")]
+[Authorize]
 public class VehiclesController : ControllerBase
 {
     private readonly IVehicleRepository _vehicleRepository;

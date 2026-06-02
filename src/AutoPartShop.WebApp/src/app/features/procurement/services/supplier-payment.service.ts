@@ -174,7 +174,7 @@ export interface SupplierPaymentQuery {
 })
 export class SupplierPaymentService {
     private readonly http = inject(HttpClient);
-    private readonly apiUrl = `${environment.apiUrl}/supplier-payments`;
+    private readonly apiUrl = `${environment.apiUrl}/v1/supplier-payments`;
 
     /**
      * Get all supplier payments
