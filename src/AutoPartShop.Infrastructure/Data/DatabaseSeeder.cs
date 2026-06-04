@@ -22,16 +22,12 @@ public class DatabaseSeeder
             // Ensure database is created / migrated to the latest schema.
             await context.Database.MigrateAsync();
 
-            // Essential bootstrap only — roles, the admin login, and permissions.
-            // Demo/sample data (customers, e-commerce catalog, stock, vehicles,
-            // compatibilities) is intentionally NOT seeded.
+            // Essential bootstrap only — roles, permissions, and one login per role.
+            // No application config (shop policies / business settings) and no
+            // demo/sample data (customers, catalog, stock, vehicles) is seeded.
             await SeedRolesAsync(roleManager, logger);
-            await SeedAdminUserAsync(userManager, logger);
             await SeedPermissionsAsync(context, logger);
-
-            // Application configuration defaults (shop policies + business settings).
-            await SeedShopPoliciesAsync(context, logger);
-            await SeedBusinessSettingsAsync(context, logger);
+            await SeedUsersAsync(userManager, logger);
 
             logger.LogInformation("Database seeding completed successfully");
         }
@@ -79,53 +75,58 @@ public class DatabaseSeeder
         }
     }
 
-    private static async Task SeedAdminUserAsync(UserManager<ApplicationUser> userManager, ILogger logger)
+    private static async Task SeedUsersAsync(UserManager<ApplicationUser> userManager, ILogger logger)
     {
-        const string adminUsername = "admin";
-        const string adminEmail = "admin@autopartshop.com";
-        const string adminPassword = "Admin@1990";
-
-        var adminUser = await userManager.FindByNameAsync(adminUsername);
-        if (adminUser == null)
+        // One login per role so each access level can be exercised out of the box.
+        var users = new[]
         {
-            adminUser = new ApplicationUser
+            new { Username = "admin",   Email = "admin@autopartshop.com",   Password = "Admin@1990",   FirstName = "System",  LastName = "Administrator", Role = "Admin" },
+            new { Username = "manager", Email = "manager@autopartshop.com", Password = "Manager@1990", FirstName = "Demo",    LastName = "Manager",       Role = "Manager" },
+            new { Username = "user",    Email = "user@autopartshop.com",    Password = "User@1990",    FirstName = "Demo",    LastName = "User",          Role = "User" },
+            new { Username = "viewer",  Email = "viewer@autopartshop.com",  Password = "Viewer@1990",  FirstName = "Demo",    LastName = "Viewer",        Role = "Viewer" },
+        };
+
+        foreach (var u in users)
+        {
+            var existing = await userManager.FindByNameAsync(u.Username);
+            if (existing != null)
             {
-                UserName = adminUsername,
-                Email = adminEmail,
+                logger.LogInformation("User '{Username}' already exists", u.Username);
+                continue;
+            }
+
+            var appUser = new ApplicationUser
+            {
+                UserName = u.Username,
+                Email = u.Email,
                 EmailConfirmed = true,
-                FirstName = "System",
-                LastName = "Administrator",
+                FirstName = u.FirstName,
+                LastName = u.LastName,
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow,
                 CreatedBy = "System"
             };
 
-            var result = await userManager.CreateAsync(adminUser, adminPassword);
-            if (result.Succeeded)
+            var result = await userManager.CreateAsync(appUser, u.Password);
+            if (!result.Succeeded)
             {
-                logger.LogInformation("Admin user created successfully");
+                logger.LogError("Failed to create user '{Username}': {Errors}",
+                    u.Username, string.Join(", ", result.Errors.Select(e => e.Description)));
+                continue;
+            }
 
-                // Assign Admin role
-                var roleResult = await userManager.AddToRoleAsync(adminUser, "Admin");
-                if (roleResult.Succeeded)
-                {
-                    logger.LogInformation("Admin role assigned to admin user successfully");
-                }
-                else
-                {
-                    logger.LogError("Failed to assign Admin role: {Errors}",
-                        string.Join(", ", roleResult.Errors.Select(e => e.Description)));
-                }
+            logger.LogInformation("User '{Username}' created successfully", u.Username);
+
+            var roleResult = await userManager.AddToRoleAsync(appUser, u.Role);
+            if (roleResult.Succeeded)
+            {
+                logger.LogInformation("Role '{Role}' assigned to user '{Username}'", u.Role, u.Username);
             }
             else
             {
-                logger.LogError("Failed to create admin user: {Errors}",
-                    string.Join(", ", result.Errors.Select(e => e.Description)));
+                logger.LogError("Failed to assign role '{Role}' to user '{Username}': {Errors}",
+                    u.Role, u.Username, string.Join(", ", roleResult.Errors.Select(e => e.Description)));
             }
-        }
-        else
-        {
-            logger.LogInformation("Admin user already exists");
         }
     }
 
@@ -186,85 +187,6 @@ public class DatabaseSeeder
         else
         {
             logger.LogInformation("Permissions already exist, skipping seed");
-        }
-    }
-
-    private static async Task SeedShopPoliciesAsync(AutoPartDbContext context, ILogger logger)
-    {
-        var keys = new[]
-        {
-            "SHOP_FREE_SHIPPING_ENABLED",
-            "SHOP_FREE_SHIPPING_THRESHOLD",
-            "SHOP_FREE_SHIPPING_CURRENCY",
-            "SHOP_RETURN_POLICY_DAYS",
-            "SHOP_RETURN_POLICY_TEXT"
-        };
-
-        if (await context.ApplicationSettings.AnyAsync(s => keys.Contains(s.Key)))
-        {
-            logger.LogInformation("Shop policy settings already exist, skipping seed");
-            return;
-        }
-
-        var policies = new[]
-        {
-            ApplicationSettings.Create("SHOP_FREE_SHIPPING_ENABLED",  "true",                   "BOOL",    "SHOP", "Enable free shipping badge on product pages",     isSystemSetting: true),
-            ApplicationSettings.Create("SHOP_FREE_SHIPPING_THRESHOLD", "5000",                  "DECIMAL", "SHOP", "Minimum order amount for free shipping (BDT)",    isSystemSetting: true),
-            ApplicationSettings.Create("SHOP_FREE_SHIPPING_CURRENCY",  "BDT",                   "STRING",  "SHOP", "Currency code shown with free shipping threshold", isSystemSetting: true),
-            ApplicationSettings.Create("SHOP_RETURN_POLICY_DAYS",      "30",                    "INT",     "SHOP", "Number of days in the store return policy",       isSystemSetting: true),
-            ApplicationSettings.Create("SHOP_RETURN_POLICY_TEXT",      "30-day return policy",  "STRING",  "SHOP", "Return policy label shown on product pages",      isSystemSetting: true),
-        };
-
-        foreach (var s in policies) { s.CreatedBy = "System"; s.ModifiedBy = "System"; }
-        context.ApplicationSettings.AddRange(policies);
-        await context.SaveChangesAsync();
-
-        logger.LogInformation("Seeded shop policy settings");
-    }
-
-    private static async Task SeedBusinessSettingsAsync(AutoPartDbContext context, ILogger logger)
-    {
-        // Upsert pattern — only inserts keys that don't already exist,
-        // so new keys are added to existing installations without touching live values.
-        var defaults = new (string Key, string Value, string Description)[]
-        {
-            ("SHOP_NAME",           "SujanMotors Auto Parts",   "Business name printed on all documents"),
-            ("SHOP_ADDRESS",        "Dhaka, Bangladesh",         "Business address printed on all documents"),
-            ("SHOP_PHONE",          "+880 1XXXXXXXXX",           "Contact phone printed on documents"),
-            ("SHOP_EMAIL",          "info@sujanmotors.com",      "Business email printed on documents"),
-            ("SHOP_TAX_NUMBER",     "",                          "Tax / VAT registration number"),
-            ("SHOP_LOGO_URL",       "assets/logo.png",           "Logo URL (relative path or https:// URL)"),
-            ("SHOP_TAGLINE",        "",                          "Optional tagline shown below the company name"),
-            ("INVOICE_FOOTER_TEXT", "Thank you for your business!",
-                                                                 "Footer message on every invoice"),
-            ("CHALLAN_FOOTER_TEXT", "Goods once dispatched will not be accepted back without prior notice.",
-                                                                 "Footer message on every delivery challan"),
-        };
-
-        var existingKeys = await context.ApplicationSettings
-            .Where(s => !s.Isdeleted)
-            .Select(s => s.Key)
-            .ToListAsync();
-
-        int added = 0;
-        foreach (var (key, value, desc) in defaults)
-        {
-            if (existingKeys.Contains(key)) continue;
-            var s = ApplicationSettings.Create(key, value, "STRING", "BUSINESS", desc, isSystemSetting: true);
-            s.CreatedBy = "System";
-            s.ModifiedBy = "System";
-            context.ApplicationSettings.Add(s);
-            added++;
-        }
-
-        if (added > 0)
-        {
-            await context.SaveChangesAsync();
-            logger.LogInformation("Seeded {Count} business setting(s)", added);
-        }
-        else
-        {
-            logger.LogInformation("Business settings already up to date");
         }
     }
 }
