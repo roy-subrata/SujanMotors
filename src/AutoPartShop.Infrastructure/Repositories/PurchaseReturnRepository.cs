@@ -20,6 +20,8 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
                 .ThenInclude(li => li.Part)
             .Include(x => x.Supplier)
             .Include(x => x.PurchaseOrder)
+                .ThenInclude(po => po!.LineItems)
+                    .ThenInclude(pol => pol.Variant)
             .Where(x => !x.Isdeleted)
             .OrderByDescending(x => x.ReturnDate)
             .ToListAsync(cancellationToken);
@@ -32,6 +34,8 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
                 .ThenInclude(li => li.Part)
             .Include(x => x.Supplier)
             .Include(x => x.PurchaseOrder)
+                .ThenInclude(po => po!.LineItems)
+                    .ThenInclude(pol => pol.Variant)
             .FirstOrDefaultAsync(x => x.Id == id && !x.Isdeleted, cancellationToken);
     }
 
@@ -78,6 +82,8 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
                 .ThenInclude(li => li.Part)
             .Include(x => x.Supplier)
             .Include(x => x.PurchaseOrder)
+                .ThenInclude(po => po!.LineItems)
+                    .ThenInclude(pol => pol.Variant)
             .FirstOrDefaultAsync(x => x.ReturnNumber == returnNumber && !x.Isdeleted, cancellationToken);
     }
 
@@ -88,6 +94,8 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
                 .ThenInclude(li => li.Part)
             .Include(x => x.Supplier)
             .Include(x => x.PurchaseOrder)
+                .ThenInclude(po => po!.LineItems)
+                    .ThenInclude(pol => pol.Variant)
             .Where(x => x.PurchaseOrderId == purchaseOrderId && !x.Isdeleted)
             .OrderByDescending(x => x.ReturnDate)
             .ToListAsync(cancellationToken);
@@ -100,6 +108,8 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
                 .ThenInclude(li => li.Part)
             .Include(x => x.Supplier)
             .Include(x => x.PurchaseOrder)
+                .ThenInclude(po => po!.LineItems)
+                    .ThenInclude(pol => pol.Variant)
             .Where(x => x.SupplierId == supplierId && !x.Isdeleted)
             .OrderByDescending(x => x.ReturnDate)
             .ToListAsync(cancellationToken);
@@ -112,6 +122,8 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
                 .ThenInclude(li => li.Part)
             .Include(x => x.Supplier)
             .Include(x => x.PurchaseOrder)
+                .ThenInclude(po => po!.LineItems)
+                    .ThenInclude(pol => pol.Variant)
             .Where(x => x.Status == status && !x.Isdeleted)
             .OrderByDescending(x => x.ReturnDate)
             .ToListAsync(cancellationToken);
@@ -124,6 +136,8 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
                 .ThenInclude(li => li.Part)
             .Include(x => x.Supplier)
             .Include(x => x.PurchaseOrder)
+                .ThenInclude(po => po!.LineItems)
+                    .ThenInclude(pol => pol.Variant)
             .Where(x => x.Status == "PENDING" && !x.Isdeleted)
             .OrderBy(x => x.ReturnDate)
             .ToListAsync(cancellationToken);
@@ -136,6 +150,8 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
                 .ThenInclude(li => li.Part)
             .Include(x => x.Supplier)
             .Include(x => x.PurchaseOrder)
+                .ThenInclude(po => po!.LineItems)
+                    .ThenInclude(pol => pol.Variant)
             .Where(x => !x.Isdeleted)
             .OrderByDescending(x => x.ReturnDate);
 
@@ -155,6 +171,8 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
                 .ThenInclude(li => li.Part)
             .Include(x => x.Supplier)
             .Include(x => x.PurchaseOrder)
+                .ThenInclude(po => po!.LineItems)
+                    .ThenInclude(pol => pol.Variant)
             .Where(x => !x.Isdeleted &&
                 (x.ReturnNumber.Contains(searchTerm) ||
                  x.Reason.Contains(searchTerm) ||

@@ -27,7 +27,6 @@ public class AutoPartDbContext : IdentityDbContext<ApplicationUser, ApplicationR
     public DbSet<CategoryAttribute> CategoryAttributes { get; set; }
     public DbSet<VariantAttributeValue> VariantAttributeValues { get; set; }
     public DbSet<ProductMedia> ProductMedias { get; set; }
-    public DbSet<VariantStockLevel> VariantStockLevels { get; set; }
     public DbSet<CompatibilityRule> CompatibilityRules { get; set; }
     public DbSet<Vehicle> Vehicles { get; set; }
     public DbSet<PartVehicleCompatibility> PartVehicleCompatibilities { get; set; }

@@ -96,9 +96,10 @@ public class StockManagementService
                     baseUnitCost = grnLine.UnitCost / conversionFactor;
                 }
 
-                // Get or create stock level for this part in this warehouse
+                // Get or create stock level for this part/variant in this warehouse
                 var stockLevel = await GetOrCreateStockLevelAsync(
                     grnLine.PartId,
+                    grnLine.VariantId,
                     goodsReceipt.WarehouseId,
                     part.BaseUnitId,
                     cancellationToken);
@@ -152,7 +153,8 @@ public class StockManagementService
                     hasWarranty: grnLine.HasWarranty ?? part.HasWarranty,
                     warrantyPeriodMonths: grnLine.WarrantyPeriodMonths ?? part.WarrantyPeriodMonths,
                     warrantyType: grnLine.WarrantyType ?? part.WarrantyType,
-                    warrantyTerms: grnLine.WarrantyTerms ?? part.WarrantyTerms
+                    warrantyTerms: grnLine.WarrantyTerms ?? part.WarrantyTerms,
+                    variantId: grnLine.VariantId  // SKU-level lot
                 );
 
                 stockLot.CreatedBy = "System";
@@ -203,16 +205,18 @@ public class StockManagementService
             // Update received quantities for each line item based on ALL accepted GRNs
             foreach (var poLine in purchaseOrder.LineItems)
             {
-                // Calculate total accepted quantity for this part from ALL accepted GRNs
-                var totalAcceptedForPart = purchaseOrder.GoodsReceipts
+                // Calculate total accepted quantity for THIS PO line from ALL accepted GRNs.
+                // Match on PurchaseOrderLineId so multiple lines of the same part (e.g. different
+                // variants) each receive only their own quantity instead of the combined total.
+                var totalAcceptedForLine = purchaseOrder.GoodsReceipts
                     .Where(gr => gr.Status == "ACCEPTED")
                     .SelectMany(gr => gr.LineItems)
-                    .Where(l => l.PartId == poLine.PartId)
+                    .Where(l => l.PurchaseOrderLineId == poLine.Id)
                     .Sum(l => l.AcceptedQuantity);
 
-                if (totalAcceptedForPart > 0)
+                if (totalAcceptedForLine > 0)
                 {
-                    poLine.UpdateReceivedQuantity(totalAcceptedForPart);
+                    poLine.UpdateReceivedQuantity(totalAcceptedForLine);
                 }
             }
 
@@ -272,6 +276,7 @@ public class StockManagementService
 
                 var stockLevel = await GetOrCreateStockLevelAsync(
                     grnLine.PartId,
+                    grnLine.VariantId,
                     goodsReceipt.WarehouseId,
                     part.BaseUnitId,
                     cancellationToken);
@@ -312,20 +317,21 @@ public class StockManagementService
     /// Gets existing stock level or creates a new one if it doesn't exist
     /// </summary>
     private async Task<StockLevel> GetOrCreateStockLevelAsync(
-        Guid partId, 
-        Guid warehouseId, 
+        Guid partId,
+        Guid? variantId,
+        Guid warehouseId,
         Guid? baseUnitId,
         CancellationToken cancellationToken = default)
     {
-        // Try to find existing stock level
-        var existingStockLevels = await _stockLevelRepository.GetAllAsync(cancellationToken);
-        var stockLevel = existingStockLevels.FirstOrDefault(sl => sl.PartId == partId && sl.WarehouseId == warehouseId);
+        // Try to find existing stock level for this exact (part, variant, warehouse)
+        var stockLevel = await _stockLevelRepository.GetByPartVariantAndWarehouseAsync(
+            partId, variantId, warehouseId, cancellationToken);
 
         if (stockLevel != null)
             return stockLevel;
 
         // Create new stock level if it doesn't exist
-        stockLevel = StockLevel.Create(partId, warehouseId, unitId: baseUnitId);
+        stockLevel = StockLevel.Create(partId, warehouseId, unitId: baseUnitId, variantId: variantId);
         await _stockLevelRepository.AddAsync(stockLevel, cancellationToken);
         return stockLevel;
     }

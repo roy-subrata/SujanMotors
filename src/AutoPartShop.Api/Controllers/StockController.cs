@@ -60,7 +60,7 @@ public class StockController : ControllerBase
 
         try
         {
-            var response = await CheckStockInternalAsync(request.PartId, request.Quantity, cancellationToken);
+            var response = await CheckStockInternalAsync(request.PartId, request.VariantId, request.Quantity, cancellationToken);
             return Ok(response);
         }
         catch (Exception ex)
@@ -81,7 +81,7 @@ public class StockController : ControllerBase
         {
             var responses = new List<StockCheckResponse>(requests.Count);
             foreach (var request in requests)
-                responses.Add(await CheckStockInternalAsync(request.PartId, request.Quantity, cancellationToken));
+                responses.Add(await CheckStockInternalAsync(request.PartId, request.VariantId, request.Quantity, cancellationToken));
 
             return Ok(responses);
         }
@@ -92,9 +92,12 @@ public class StockController : ControllerBase
         }
     }
 
-    private async Task<StockCheckResponse> CheckStockInternalAsync(Guid partId, int quantity, CancellationToken cancellationToken)
+    private async Task<StockCheckResponse> CheckStockInternalAsync(Guid partId, Guid? variantId, int quantity, CancellationToken cancellationToken)
     {
-        var stockLevels = (await _stockLevelRepository.GetByPartAsync(partId, cancellationToken)).ToList();
+        // When a variant is specified, check only that SKU's stock; otherwise sum the part's levels.
+        var stockLevels = (variantId.HasValue
+            ? await _stockLevelRepository.GetByPartAndVariantAsync(partId, variantId, cancellationToken)
+            : await _stockLevelRepository.GetByPartAsync(partId, cancellationToken)).ToList();
 
         // Net available in base units: prefer base-unit columns, fall back to display-unit columns.
         var totalAvailable = stockLevels.Sum(sl =>
@@ -106,6 +109,7 @@ public class StockController : ControllerBase
         return new StockCheckResponse
         {
             PartId = partId,
+            VariantId = variantId,
             StockAvailable = totalAvailable,
             Available = available,
             Message = available
@@ -253,7 +257,8 @@ public class StockController : ControllerBase
                 request.PartId,
                 request.WarehouseId,
                 request.ReorderLevel,
-                request.ReorderQuantity
+                request.ReorderQuantity,
+                variantId: request.VariantId
             );
             stockLevel.CreatedBy = _currentUserService.GetCurrentUsername();
             stockLevel.ModifiedBy = _currentUserService.GetCurrentUsername();
@@ -432,8 +437,8 @@ public class StockController : ControllerBase
                 return NotFound(new { message = "Destination warehouse not found" });
 
             // Get or create source stock level
-            var sourceStockLevel = await _stockLevelRepository.GetByPartAndWarehouseAsync(
-                request.PartId, request.FromWarehouseId, cancellationToken);
+            var sourceStockLevel = await _stockLevelRepository.GetByPartVariantAndWarehouseAsync(
+                request.PartId, request.VariantId, request.FromWarehouseId, cancellationToken);
 
             if (sourceStockLevel == null)
                 return BadRequest(new { message = "Part not available in source warehouse" });
@@ -457,8 +462,8 @@ public class StockController : ControllerBase
                 return BadRequest(new { message = $"Insufficient stock. Available: {sourceStockLevel.QuantityAvailableInBaseUnit}, Requested: {quantityInBaseUnit}" });
 
             // Get or create destination stock level
-            var destStockLevel = await _stockLevelRepository.GetByPartAndWarehouseAsync(
-                request.PartId, request.ToWarehouseId, cancellationToken);
+            var destStockLevel = await _stockLevelRepository.GetByPartVariantAndWarehouseAsync(
+                request.PartId, request.VariantId, request.ToWarehouseId, cancellationToken);
 
             if (destStockLevel == null)
             {
@@ -466,7 +471,8 @@ public class StockController : ControllerBase
                     request.PartId,
                     request.ToWarehouseId,
                     0,
-                    0
+                    0,
+                    variantId: request.VariantId
                 );
                 destStockLevel.CreatedBy = _currentUserService.GetCurrentUsername();
                 destStockLevel.ModifiedBy = _currentUserService.GetCurrentUsername();
@@ -581,8 +587,8 @@ public class StockController : ControllerBase
                 return NotFound(new { message = "Warehouse not found" });
 
             // Get or create stock level
-            var stockLevel = await _stockLevelRepository.GetByPartAndWarehouseAsync(
-                request.PartId, request.WarehouseId, cancellationToken);
+            var stockLevel = await _stockLevelRepository.GetByPartVariantAndWarehouseAsync(
+                request.PartId, request.VariantId, request.WarehouseId, cancellationToken);
 
             if (stockLevel == null)
             {
@@ -590,7 +596,8 @@ public class StockController : ControllerBase
                     request.PartId,
                     request.WarehouseId,
                     0,
-                    0
+                    0,
+                    variantId: request.VariantId
                 );
                 stockLevel.CreatedBy = _currentUserService.GetCurrentUsername();
                 stockLevel.ModifiedBy = _currentUserService.GetCurrentUsername();

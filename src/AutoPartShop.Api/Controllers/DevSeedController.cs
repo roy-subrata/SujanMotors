@@ -32,7 +32,6 @@ public class DevSeedController(AutoPartDbContext _db, ICodeGenerateService _code
         {
             "DELETE FROM CartReservations",
             "DELETE FROM StockMovements",
-            "DELETE FROM VariantStockLevels",
             "DELETE FROM StockLotMovements",
             "DELETE FROM StockLots",
             "DELETE FROM StockLevels",
@@ -71,47 +70,30 @@ public class DevSeedController(AutoPartDbContext _db, ICodeGenerateService _code
         _db.Warehouses.Add(wh); await _db.SaveChangesAsync(ct);
 
         // ── Brands ───────────────────────────────────────────────────────────
-        var (bosch, denso, ngk, brembo, monroe, mann, castrol, hella) = (
-            B("Bosch",   "Germany"), B("Denso",  "Japan"),  B("NGK",    "Japan"),
-            B("Brembo",  "Italy"),   B("Monroe", "USA"),    B("Mann",   "Germany"),
-            B("Castrol", "UK"),      B("Hella",  "Germany"));
-        _db.Brands.AddRange(bosch, denso, ngk, brembo, monroe, mann, castrol, hella);
+        var (bosch, denso, ngk, brembo, castrol) = (
+            B("Bosch",   "Germany"), B("Denso",  "Japan"),  B("NGK", "Japan"),
+            B("Brembo",  "Italy"),   B("Castrol","UK"));
+        _db.Brands.AddRange(bosch, denso, ngk, brembo, castrol);
         await _db.SaveChangesAsync(ct);
 
         // ── Categories ───────────────────────────────────────────────────────
-        var (catEng, catBrk, catSus, catElc, catOil, catFlt, catBdy, catTyr) = (
+        var (catEng, catBrk, catSus, catOil, catFlt) = (
             C("Engine Parts",   "CAT-ENG", 1),
             C("Brake System",   "CAT-BRK", 2),
             C("Suspension",     "CAT-SUS", 3),
-            C("Electrical",     "CAT-ELC", 4),
-            C("Oils & Fluids",  "CAT-OIL", 5),
-            C("Filters",        "CAT-FLT", 6),
-            C("Body Parts",     "CAT-BDY", 7),
-            C("Tires & Wheels", "CAT-TYR", 8));
-        _db.Categories.AddRange(catEng, catBrk, catSus, catElc, catOil, catFlt, catBdy, catTyr);
+            C("Oils & Fluids",  "CAT-OIL", 4),
+            C("Filters",        "CAT-FLT", 5));
+        _db.Categories.AddRange(catEng, catBrk, catSus, catOil, catFlt);
         await _db.SaveChangesAsync(ct);
 
         // ── Vehicles ─────────────────────────────────────────────────────────
         var vehicles = new[]
         {
-            V("Toyota",     "Corolla",    2022, "1.6L Inline-4"),
-            V("Toyota",     "Corolla",    2020, "1.6L Inline-4"),
-            V("Toyota",     "Hilux",      2022, "2.4L Diesel"),
-            V("Toyota",     "Land Cruiser",2021,"4.0L V6"),
-            V("Honda",      "Civic",      2022, "1.5T Inline-4"),
-            V("Honda",      "Accord",     2021, "2.0T Inline-4"),
-            V("Honda",      "CR-V",       2022, "1.5T Inline-4"),
-            V("Nissan",     "Sunny",      2021, "1.5L Inline-4"),
-            V("Nissan",     "X-Trail",    2022, "2.5L Inline-4"),
-            V("Mitsubishi", "Lancer",     2019, "2.0L Inline-4"),
-            V("Mitsubishi", "Pajero",     2021, "3.2L Diesel"),
-            V("Suzuki",     "Swift",      2023, "1.2L Inline-3"),
-            V("Suzuki",     "Wagon R",    2022, "1.0L Inline-3"),
-            V("Hyundai",    "Tucson",     2022, "2.0L Inline-4"),
-            V("Hyundai",    "Elantra",    2022, "1.6L Inline-4"),
-            V("BMW",        "3 Series",   2021, "2.0L B48"),
-            V("BMW",        "5 Series",   2020, "2.0L B47 Diesel"),
-            V("Mercedes",   "C-Class",    2021, "2.0L M264"),
+            V("Toyota",     "Corolla", 2022, "1.6L Inline-4"),
+            V("Honda",      "Civic",   2022, "1.5T Inline-4"),
+            V("Nissan",     "X-Trail", 2022, "2.5L Inline-4"),
+            V("Suzuki",     "Swift",   2023, "1.2L Inline-3"),
+            V("Mitsubishi", "Pajero",  2021, "3.2L Diesel"),
         };
         _db.Vehicles.AddRange(vehicles);
         await _db.SaveChangesAsync(ct);
@@ -173,14 +155,10 @@ public class DevSeedController(AutoPartDbContext _db, ICodeGenerateService _code
         CA(catBrk.Id, aGrade.Id,   "select", 1); CA(catBrk.Id, aBrakeTyp.Id,"select", 2); CA(catBrk.Id, aPos.Id,    "select", 3);
         // Suspension: Grade, Position, Material
         CA(catSus.Id, aGrade.Id,   "select", 1); CA(catSus.Id, aPos.Id,     "select", 2); CA(catSus.Id, aMat.Id,    "select", 3);
-        // Electrical: Grade
-        CA(catElc.Id, aGrade.Id,   "select", 1);
         // Oils: Viscosity, Volume
         CA(catOil.Id, aVisc.Id,    "select", 1); CA(catOil.Id, aVol.Id,     "select", 2);
         // Filters: Grade
         CA(catFlt.Id, aGrade.Id,   "select", 1);
-        // Body: Position, Material
-        CA(catBdy.Id, aPos.Id,     "select", 1); CA(catBdy.Id, aMat.Id,     "select", 2);
         await _db.SaveChangesAsync(ct);
 
         // ── Products ─────────────────────────────────────────────────────────
@@ -241,11 +219,15 @@ public class DevSeedController(AutoPartDbContext _db, ICodeGenerateService _code
             entry.CreatedBy = entry.ModifiedBy = "System";
             _db.ProductCatalogEntries.Add(entry);
 
-            // Part-level stock
-            var sl = StockLevel.Create(part.Id, wh.Id, reorderLevel: 5, reorderQuantity: 20, unitId: pcs.Id);
-            sl.AddStock(variants.Sum(v => v.stock));
-            sl.CreatedBy = sl.ModifiedBy = "System";
-            _db.StockLevels.Add(sl);
+            // Part-level stock — only for parts WITHOUT variants. Variant parts get variant-scoped
+            // rows below; mixing both would double-count the part's on-hand.
+            if (variants.Length == 0)
+            {
+                var sl = StockLevel.Create(part.Id, wh.Id, reorderLevel: 5, reorderQuantity: 20, unitId: pcs.Id);
+                sl.AddStock(25);
+                sl.CreatedBy = sl.ModifiedBy = "System";
+                _db.StockLevels.Add(sl);
+            }
 
             // Discount on part
             if (discPct.HasValue)
@@ -294,227 +276,89 @@ public class DevSeedController(AutoPartDbContext _db, ICodeGenerateService _code
                 if (engType != null)  AV(aEngType.Id,  engType);
                 await _db.SaveChangesAsync(ct);
 
-                // Variant stock
-                var vsl = VariantStockLevel.Create(variant.Id, wh.Id);
+                // Variant-scoped stock (unified StockLevels table)
+                var vsl = StockLevel.Create(part.Id, wh.Id, variantId: variant.Id);
                 vsl.AddStock(stock);
                 vsl.CreatedBy = vsl.ModifiedBy = "System";
-                _db.VariantStockLevels.Add(vsl);
+                _db.StockLevels.Add(vsl);
                 await _db.SaveChangesAsync(ct);
             }
         }
 
         // ════════════════════════════════════════════════════════════════════
-        // ENGINE PARTS
+        // Lean demo catalog — 5 products covering the key variant-stock scenarios.
         // ════════════════════════════════════════════════════════════════════
-        await AddProduct("Bosch Timing Belt Kit", "TBK-001", catEng.Id, bosch.Id,
-            cost: 1800, sell: 2800,
-            desc: "Complete timing belt kit with tensioner and idler pulley. Fits 1.6L–2.0L petrol engines. Replace every 60,000 km for optimal performance and engine protection.",
-            shortDesc: "Complete timing belt kit with tensioner — OEM quality",
-            img: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=640&q=80",
-            featured: true, rank: 1, pop: 95,
-            warranty: true, wMonths: 12, wType: "SELLER",
-            variants: new (string, string?, string?, string?, string?, string?, string?, decimal, decimal, int)[]
-            {
-                ("Standard", null, null, "Steel",    null, null, "Petrol", 1.0m, 1.0m, 20),
-                ("Premium",  null, null, "Steel",    null, null, "Petrol", 1.2m, 1.3m, 15),
-                ("OEM",      null, null, "Steel",    null, null, "Diesel", 1.4m, 1.6m, 10),
-            });
 
-        await AddProduct("NGK Iridium Spark Plug Set (4pcs)", "SPK-001", catEng.Id, ngk.Id,
-            cost: 380, sell: 650,
-            desc: "Set of 4 NGK iridium spark plugs. Superior ignitability with 100,000 km service life. Compatible with most 4-cylinder petrol engines.",
-            shortDesc: "NGK iridium spark plugs × 4 — 100,000 km life",
-            img: "https://images.unsplash.com/photo-1583121274602-3e2820c69888?w=640&q=80",
-            featured: true, rank: 2, pop: 90,
-            warranty: false, wMonths: 0, wType: "SELLER",
-            variants: new (string, string?, string?, string?, string?, string?, string?, decimal, decimal, int)[]
-            {
-                ("Standard", null, null, null, null, null, "Petrol", 1.0m, 1.0m, 50),
-                ("Premium",  null, null, null, null, null, "Petrol", 1.1m, 1.25m, 30),
-            },
-            discPct: 15);
-
-        await AddProduct("Bosch Fuel Injector", "FI-001", catEng.Id, bosch.Id,
-            cost: 2200, sell: 3500,
-            desc: "High-precision petrol fuel injector. Ensures optimal fuel atomisation for improved combustion efficiency and reduced emissions.",
-            shortDesc: "High-precision fuel injector — improved combustion",
-            img: "https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?w=640&q=80",
-            featured: false, rank: 0, pop: 72,
-            warranty: true, wMonths: 6, wType: "MANUFACTURER",
-            variants: new (string, string?, string?, string?, string?, string?, string?, decimal, decimal, int)[]
-            {
-                ("Standard", null, null, null, null, null, "Petrol", 1.0m, 1.0m, 12),
-                ("OEM",      null, null, null, null, null, "Diesel", 1.3m, 1.5m,  8),
-            });
-
-        await AddProduct("Water Pump with Gasket", "WP-001", catEng.Id, bosch.Id,
-            cost: 900, sell: 1600,
-            desc: "OEM-spec water pump complete with new gasket. Reliable engine cooling for all driving conditions. Fits Toyota, Honda, and Nissan models.",
-            shortDesc: "OEM water pump with gasket — reliable cooling",
-            img: "https://images.unsplash.com/photo-1632912515069-45e9f2bf0b36?w=640&q=80",
-            featured: true, rank: 4, pop: 65,
-            warranty: true, wMonths: 12, wType: "SELLER",
-            variants: new (string, string?, string?, string?, string?, string?, string?, decimal, decimal, int)[]
-            {
-                ("Standard", null, null, "Aluminium", null, null, "Petrol", 1.0m, 1.0m, 15),
-                ("OEM",      null, null, "Aluminium", null, null, "Diesel", 1.2m, 1.4m, 10),
-            });
-
-        // ════════════════════════════════════════════════════════════════════
-        // BRAKE SYSTEM
-        // ════════════════════════════════════════════════════════════════════
-        await AddProduct("Brembo Brake Pad Set", "BP-F-001", catBrk.Id, brembo.Id,
+        // 1) Brake pads — Front/Rear × compound (multi-variant, discounted)
+        await AddProduct("Brembo Brake Pad Set", "BP-001", catBrk.Id, brembo.Id,
             cost: 950, sell: 1800,
-            desc: "Brembo high-performance brake pads. Available in ceramic, semi-metallic and organic compounds. OEM fitment for most vehicles.",
+            desc: "Brembo high-performance brake pads in ceramic and semi-metallic compounds. OEM fitment for most vehicles.",
             shortDesc: "Brembo brake pads — superior stopping power",
             img: "https://images.unsplash.com/photo-1621252179027-94459d278660?w=640&q=80",
-            featured: true, rank: 3, pop: 98,
+            featured: true, rank: 1, pop: 98,
             warranty: true, wMonths: 6, wType: "MANUFACTURER",
             variants: new (string, string?, string?, string?, string?, string?, string?, decimal, decimal, int)[]
             {
-                ("Standard", "Front", "Ceramic",      null, null, null, null, 1.0m, 1.0m, 30),
-                ("Premium",  "Front", "Ceramic",      null, null, null, null, 1.2m, 1.4m, 20),
-                ("Standard", "Rear",  "Semi-Metallic",null, null, null, null, 0.9m, 0.9m, 25),
-                ("Premium",  "Rear",  "Ceramic",      null, null, null, null, 1.1m, 1.3m, 15),
-                ("Standard", "Front", "Organic",      null, null, null, null, 0.8m, 0.85m, 20),
+                ("Standard", "Front", "Ceramic",       null, null, null, null, 1.0m, 1.0m, 30),
+                ("Premium",  "Front", "Ceramic",       null, null, null, null, 1.2m, 1.4m, 20),
+                ("Standard", "Rear",  "Semi-Metallic", null, null, null, null, 0.9m, 0.9m, 25),
             },
             discPct: 20);
 
-        await AddProduct("Vented Brake Disc Rotors (Pair)", "BDR-001", catBrk.Id, brembo.Id,
-            cost: 1400, sell: 2600,
-            desc: "Precision-balanced vented brake disc rotors, sold as a pair. High-carbon steel for superior heat dissipation and fade resistance.",
-            shortDesc: "Vented brake disc rotors pair — high-carbon steel",
-            img: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=640&q=80",
-            featured: false, rank: 0, pop: 82,
-            warranty: true, wMonths: 12, wType: "MANUFACTURER",
-            variants: new (string, string?, string?, string?, string?, string?, string?, decimal, decimal, int)[]
-            {
-                ("Standard", "Front", null, "Steel",       null, null, null, 1.0m, 1.0m, 18),
-                ("Premium",  "Front", null, "Steel",       null, null, null, 1.2m, 1.35m, 12),
-                ("Standard", "Rear",  null, "Steel",       null, null, null, 1.0m, 0.95m, 18),
-                ("OEM",      "Front", null, "Carbon Fibre",null, null, null, 1.5m, 1.8m,  6),
-            });
-
-        // ════════════════════════════════════════════════════════════════════
-        // SUSPENSION
-        // ════════════════════════════════════════════════════════════════════
-        await AddProduct("Monroe Shock Absorbers", "SA-001", catSus.Id, monroe.Id,
-            cost: 2800, sell: 4800,
-            desc: "Monroe OESpectrum shock absorbers. Restores original ride comfort and vehicle stability. Available for front and rear axle.",
-            shortDesc: "Monroe shock absorbers — front & rear — OESpectrum",
-            img: "https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?w=640&q=80",
-            featured: true, rank: 5, pop: 85,
-            warranty: true, wMonths: 24, wType: "MANUFACTURER",
-            variants: new (string, string?, string?, string?, string?, string?, string?, decimal, decimal, int)[]
-            {
-                ("Standard", "Front", null, "Steel",     null, null, null, 1.0m, 1.0m, 12),
-                ("Premium",  "Front", null, "Steel",     null, null, null, 1.15m, 1.3m, 8),
-                ("Standard", "Rear",  null, "Steel",     null, null, null, 0.95m, 0.95m,12),
-                ("Premium",  "Rear",  null, "Steel",     null, null, null, 1.1m,  1.25m, 8),
-            },
-            discPct: 10);
-
+        // 2) Lower control arm — Left/Right (canonical distinct physical SKU example)
         await AddProduct("Lower Control Arm", "LCA-001", catSus.Id, bosch.Id,
             cost: 1200, sell: 2200,
-            desc: "Heavy-duty lower control arm with pre-installed ball joint. Fits Toyota Corolla 2018–2023 and Honda Civic 2016–2022.",
+            desc: "Heavy-duty lower control arm with pre-installed ball joint. Distinct left and right units.",
             shortDesc: "Lower control arm with ball joint — heavy duty",
             img: "https://images.unsplash.com/photo-1632912515069-45e9f2bf0b36?w=640&q=80",
-            featured: false, rank: 0, pop: 60,
+            featured: true, rank: 2, pop: 70,
             warranty: true, wMonths: 12, wType: "SELLER",
             variants: new (string, string?, string?, string?, string?, string?, string?, decimal, decimal, int)[]
             {
-                ("Standard", "Left",  null, "Steel",     null, null, null, 1.0m, 1.0m, 14),
-                ("Standard", "Right", null, "Steel",     null, null, null, 1.0m, 1.0m, 14),
-                ("OEM",      "Left",  null, "Aluminium", null, null, null, 1.3m, 1.4m,  6),
-                ("OEM",      "Right", null, "Aluminium", null, null, null, 1.3m, 1.4m,  6),
+                ("Standard", "Left",  null, "Steel", null, null, null, 1.0m, 1.0m, 10),
+                ("Standard", "Right", null, "Steel", null, null, null, 1.0m, 1.0m,  5),
             });
 
-        // ════════════════════════════════════════════════════════════════════
-        // ELECTRICAL
-        // ════════════════════════════════════════════════════════════════════
-        await AddProduct("Bosch Alternator", "ALT-001", catElc.Id, bosch.Id,
-            cost: 5500, sell: 8500,
-            desc: "Remanufactured Bosch alternator. Available in 65A and 90A output ratings. Fully tested. New voltage regulator included.",
-            shortDesc: "Bosch remanufactured alternator — 65A / 90A",
+        // 3) Timing belt kit — Standard/Premium/OEM (grade variants)
+        await AddProduct("Bosch Timing Belt Kit", "TBK-001", catEng.Id, bosch.Id,
+            cost: 1800, sell: 2800,
+            desc: "Complete timing belt kit with tensioner and idler pulley. Fits 1.6L–2.0L petrol engines.",
+            shortDesc: "Complete timing belt kit with tensioner — OEM quality",
             img: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=640&q=80",
-            featured: false, rank: 0, pop: 70,
-            warranty: true, wMonths: 12, wType: "MANUFACTURER",
+            featured: true, rank: 3, pop: 90,
+            warranty: true, wMonths: 12, wType: "SELLER",
             variants: new (string, string?, string?, string?, string?, string?, string?, decimal, decimal, int)[]
             {
-                ("Standard", null, null, null, null, null, "Petrol", 1.0m, 1.0m, 6),
-                ("Premium",  null, null, null, null, null, "Diesel", 1.15m,1.2m, 4),
-                ("OEM",      null, null, null, null, null, "Petrol", 1.3m, 1.4m, 3),
+                ("Standard", null, null, "Steel", null, null, "Petrol", 1.0m, 1.0m, 20),
+                ("Premium",  null, null, "Steel", null, null, "Petrol", 1.2m, 1.3m, 15),
+                ("OEM",      null, null, "Steel", null, null, "Diesel", 1.4m, 1.6m, 10),
             });
 
-        await AddProduct("Hella H7 Halogen Bulbs (Pack of 2)", "HLB-001", catElc.Id, hella.Id,
-            cost: 220, sell: 450,
-            desc: "H7 12V 55W halogen headlight bulbs, pack of 2. ECE approved. Long-life tungsten filament for reliable illumination.",
-            shortDesc: "Hella H7 halogen headlight bulbs × 2",
-            img: "https://images.unsplash.com/photo-1583121274602-3e2820c69888?w=640&q=80",
-            featured: true, rank: 6, pop: 92,
-            warranty: false, wMonths: 0, wType: "SELLER",
-            variants: new (string, string?, string?, string?, string?, string?, string?, decimal, decimal, int)[]
-            {
-                ("Standard", null, null, null, null, null, null, 1.0m, 1.0m, 60),
-                ("Premium",  null, null, null, null, null, null, 1.1m, 1.3m, 40),
-            },
-            discPct: 25);
-
-        // ════════════════════════════════════════════════════════════════════
-        // OILS & FLUIDS
-        // ════════════════════════════════════════════════════════════════════
+        // 4) Engine oil — viscosity/volume variants (discounted)
         await AddProduct("Castrol GTX Engine Oil", "OIL-001", catOil.Id, castrol.Id,
             cost: 650, sell: 1050,
-            desc: "Castrol GTX fully synthetic engine oil. Available in 5W-30 and 10W-40 viscosities. ACEA A3/B4 and API SN/CF approved.",
+            desc: "Castrol GTX fully synthetic engine oil. ACEA A3/B4 and API SN/CF approved.",
             shortDesc: "Castrol GTX engine oil — fully synthetic",
             img: "https://images.unsplash.com/photo-1629451399979-59fb59ebeef3?w=640&q=80",
-            featured: true, rank: 7, pop: 99,
+            featured: true, rank: 4, pop: 99,
             warranty: false, wMonths: 0, wType: "SELLER",
             variants: new (string, string?, string?, string?, string?, string?, string?, decimal, decimal, int)[]
             {
-                ("Standard", null, null, null, "5W-30", "4L",  "Petrol", 1.0m, 1.0m, 80),
-                ("Standard", null, null, null, "5W-30", "5L",  "Petrol", 1.1m, 1.1m, 60),
-                ("Standard", null, null, null, "5W-40", "4L",  "Diesel", 1.05m,1.05m,50),
-                ("Standard", null, null, null, "10W-40","4L",  "Petrol", 0.9m, 0.95m,70),
-                ("Standard", null, null, null, "0W-20", "4L",  "Hybrid", 1.2m, 1.25m,30),
-                ("Premium",  null, null, null, "5W-30", "4L",  "Petrol", 1.25m,1.4m, 40),
-                ("Premium",  null, null, null, "5W-40", "4L",  "Diesel", 1.3m, 1.45m,35),
-                ("Premium",  null, null, null, "10W-40","4L",  "Petrol", 1.15m,1.3m, 45),
-                ("OEM",      null, null, null, "5W-30", "1L",  "Petrol", 0.3m, 0.28m,100),
-                ("OEM",      null, null, null, "15W-50","4L",  "Diesel", 1.1m, 1.2m, 25),
+                ("Standard", null, null, null, "5W-30",  "4L", "Petrol", 1.0m, 1.0m,  40),
+                ("Standard", null, null, null, "10W-40", "4L", "Petrol", 0.9m, 0.95m, 35),
+                ("Premium",  null, null, null, "5W-30",  "4L", "Petrol", 1.25m,1.4m,  25),
             },
             discPct: 12);
 
-        // ════════════════════════════════════════════════════════════════════
-        // FILTERS
-        // ════════════════════════════════════════════════════════════════════
-        await AddProduct("Mann+Hummel Oil Filter", "OF-001", catFlt.Id, mann.Id,
-            cost: 180, sell: 320,
-            desc: "Mann+Hummel oil filter with 20-micron precision filtration. Integrated bypass valve prevents oil starvation on cold starts.",
-            shortDesc: "Mann oil filter — 20-micron precision filtration",
-            img: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=640&q=80",
-            featured: true, rank: 8, pop: 95,
-            warranty: false, wMonths: 0, wType: "SELLER",
-            variants: new (string, string?, string?, string?, string?, string?, string?, decimal, decimal, int)[]
-            {
-                ("Standard", null, null, null, null, null, null, 1.0m, 1.0m, 80),
-                ("Premium",  null, null, null, null, null, null, 1.2m, 1.4m, 50),
-                ("OEM",      null, null, null, null, null, null, 1.5m, 1.7m, 25),
-            },
-            discPct: 18);
-
+        // 5) Air filter — NO variants (exercises the part-level / VariantId-null path)
         await AddProduct("Bosch Air Filter", "AF-001", catFlt.Id, bosch.Id,
             cost: 220, sell: 420,
-            desc: "Bosch high-flow air filter. OEM replacement quality. Blocks fine dust and debris while allowing maximum airflow for engine performance.",
+            desc: "Bosch high-flow air filter. OEM replacement quality. No variants — a plain part-level SKU.",
             shortDesc: "Bosch high-flow air filter — OEM quality",
             img: "https://images.unsplash.com/photo-1583121274602-3e2820c69888?w=640&q=80",
             featured: false, rank: 0, pop: 80,
             warranty: false, wMonths: 0, wType: "SELLER",
-            variants: new (string, string?, string?, string?, string?, string?, string?, decimal, decimal, int)[]
-            {
-                ("Standard", null, null, null, null, null, null, 1.0m, 1.0m, 60),
-                ("Premium",  null, null, null, null, null, null, 1.15m,1.3m, 40),
-            });
+            variants: System.Array.Empty<(string, string?, string?, string?, string?, string?, string?, decimal, decimal, int)>());
 
         await _db.SaveChangesAsync(ct);
 
@@ -530,7 +374,7 @@ public class DevSeedController(AutoPartDbContext _db, ICodeGenerateService _code
             products  = productCount,
             variants  = variantCount,
             discounts = discountCount,
-            categories = 8,
+            categories = 5,
             attributes = 7,
             vehicles = vehicles.Length
         });

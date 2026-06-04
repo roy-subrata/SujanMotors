@@ -351,7 +351,9 @@ public class PurchaseReturnController : ControllerBase
                 int acceptedQuantity = line.Quantity - line.RejectedQuantity;
                 if (acceptedQuantity <= 0) continue;
 
-                var stockLevels = await _stockLevelRepository.GetByPartAsync(line.PartId, cancellationToken);
+                var variantId = purchaseReturn.PurchaseOrder?.LineItems
+                    .FirstOrDefault(pol => pol.Id == line.PurchaseOrderLineId)?.VariantId;
+                var stockLevels = await _stockLevelRepository.GetByPartAndVariantAsync(line.PartId, variantId, cancellationToken);
                 var stockLevel = stockLevels.FirstOrDefault();
                 if (stockLevel == null)
                     return BadRequest(new { message = $"No stock level found for part {line.PartId}. Cannot process return." });
@@ -372,7 +374,9 @@ public class PurchaseReturnController : ControllerBase
                 int acceptedQuantity = line.Quantity - line.RejectedQuantity;
                 if (acceptedQuantity <= 0) continue;
 
-                var stockLevels = await _stockLevelRepository.GetByPartAsync(line.PartId, cancellationToken);
+                var variantId = purchaseReturn.PurchaseOrder?.LineItems
+                    .FirstOrDefault(pol => pol.Id == line.PurchaseOrderLineId)?.VariantId;
+                var stockLevels = await _stockLevelRepository.GetByPartAndVariantAsync(line.PartId, variantId, cancellationToken);
                 var stockLevel = stockLevels.FirstOrDefault();
 
                 if (stockLevel != null)
@@ -444,7 +448,7 @@ public class PurchaseReturnController : ControllerBase
                         // IMPORTANT: Filter to get lots from THIS SUPPLIER only (using FIFO within supplier lots)
                         // This ensures we return items from the same supplier we purchased from
                         var supplierLots = allLots
-                            .Where(l => l.SupplierId == purchaseReturn.SupplierId && l.QuantityAvailable > 0)
+                            .Where(l => l.SupplierId == purchaseReturn.SupplierId && l.VariantId == variantId && l.QuantityAvailable > 0)
                             .OrderBy(l => l.ReceivingDate)  // FIFO - oldest lots first
                             .ToList();
 
@@ -833,20 +837,28 @@ public class PurchaseReturnController : ControllerBase
             SettlementMethod = purchaseReturn.SettlementMethod,
             SettlementNotes = purchaseReturn.SettlementNotes,
             IsSettled = purchaseReturn.IsSettled,
-            Lines = purchaseReturn.LineItems.Select(l => new PurchaseReturnLineResponse
+            Lines = purchaseReturn.LineItems.Select(l =>
             {
-                Id = l.Id,
-                PartId = l.PartId,
-                PartName = l.Part?.Name ?? string.Empty,
-                PartSku = l.Part?.SKU ?? string.Empty,
-                StockLotId = l.StockLotId,
-                LotNumber = l.StockLot?.LotNumber,
-                Quantity = l.Quantity,
-                RejectedQuantity = l.RejectedQuantity,
-                UnitPrice = l.UnitPrice,
-                RefundAmount = l.RefundAmount,
-                Condition = l.Condition,
-                Notes = l.Notes
+                var variantName = purchaseReturn.PurchaseOrder?.LineItems
+                    .FirstOrDefault(pol => pol.Id == l.PurchaseOrderLineId)?.Variant?.Name;
+                var partName = l.Part?.Name ?? string.Empty;
+                return new PurchaseReturnLineResponse
+                {
+                    Id = l.Id,
+                    PartId = l.PartId,
+                    PartName = partName,
+                    PartSku = l.Part?.SKU ?? string.Empty,
+                    VariantName = variantName,
+                    DisplayName = string.IsNullOrEmpty(variantName) ? partName : $"{partName} - {variantName}",
+                    StockLotId = l.StockLotId,
+                    LotNumber = l.StockLot?.LotNumber,
+                    Quantity = l.Quantity,
+                    RejectedQuantity = l.RejectedQuantity,
+                    UnitPrice = l.UnitPrice,
+                    RefundAmount = l.RefundAmount,
+                    Condition = l.Condition,
+                    Notes = l.Notes
+                };
             }).ToList(),
             CreatedAt = DateTime.UtcNow
         };

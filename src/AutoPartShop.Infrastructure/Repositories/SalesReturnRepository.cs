@@ -19,6 +19,8 @@ public class SalesReturnRepository : ISalesReturnRepository
             .Include(x => x.LineItems)
                 .ThenInclude(li => li.Part)
             .Include(x => x.SalesOrder)
+                .ThenInclude(so => so!.LineItems)
+                    .ThenInclude(sol => sol.ProductVariant)
             .Where(x => !x.Isdeleted)
             .OrderByDescending(x => x.ReturnDate)
             .ToListAsync(cancellationToken);
@@ -30,6 +32,8 @@ public class SalesReturnRepository : ISalesReturnRepository
             .Include(x => x.LineItems)
                 .ThenInclude(li => li.Part)
             .Include(x => x.SalesOrder)
+                .ThenInclude(so => so!.LineItems)
+                    .ThenInclude(sol => sol.ProductVariant)
             .FirstOrDefaultAsync(x => x.Id == id && !x.Isdeleted, cancellationToken);
     }
 
@@ -81,6 +85,8 @@ public class SalesReturnRepository : ISalesReturnRepository
             .Include(x => x.LineItems)
                 .ThenInclude(li => li.Part)
             .Include(x => x.SalesOrder)
+                .ThenInclude(so => so!.LineItems)
+                    .ThenInclude(sol => sol.ProductVariant)
             .FirstOrDefaultAsync(x => x.ReturnNumber == returnNumber && !x.Isdeleted, cancellationToken);
     }
 
@@ -90,6 +96,8 @@ public class SalesReturnRepository : ISalesReturnRepository
             .Include(x => x.LineItems)
                 .ThenInclude(li => li.Part)
             .Include(x => x.SalesOrder)
+                .ThenInclude(so => so!.LineItems)
+                    .ThenInclude(sol => sol.ProductVariant)
             .Where(x => x.SalesOrderId == salesOrderId && !x.Isdeleted)
             .OrderByDescending(x => x.ReturnDate)
             .ToListAsync(cancellationToken);
@@ -101,6 +109,8 @@ public class SalesReturnRepository : ISalesReturnRepository
             .Include(x => x.LineItems)
                 .ThenInclude(li => li.Part)
             .Include(x => x.SalesOrder)
+                .ThenInclude(so => so!.LineItems)
+                    .ThenInclude(sol => sol.ProductVariant)
             .Where(x => x.Status == status && !x.Isdeleted)
             .OrderByDescending(x => x.ReturnDate)
             .ToListAsync(cancellationToken);
@@ -112,6 +122,8 @@ public class SalesReturnRepository : ISalesReturnRepository
             .Include(x => x.LineItems)
                 .ThenInclude(li => li.Part)
             .Include(x => x.SalesOrder)
+                .ThenInclude(so => so!.LineItems)
+                    .ThenInclude(sol => sol.ProductVariant)
             .Where(x => x.Status == "PENDING" && !x.Isdeleted)
             .OrderByDescending(x => x.ReturnDate)
             .ToListAsync(cancellationToken);
@@ -123,6 +135,8 @@ public class SalesReturnRepository : ISalesReturnRepository
             .Include(x => x.LineItems)
                 .ThenInclude(li => li.Part)
             .Include(x => x.SalesOrder)
+                .ThenInclude(so => so!.LineItems)
+                    .ThenInclude(sol => sol.ProductVariant)
             .Where(x => !x.Isdeleted);
 
         if (!string.IsNullOrWhiteSpace(searchTerm))

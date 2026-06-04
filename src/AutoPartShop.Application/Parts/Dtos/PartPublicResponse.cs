@@ -21,7 +21,7 @@ namespace AutoPartShop.Application.Parts.Dtos
         public string? UnitName { get; set; }
         public decimal SellingPrice { get; set; }
         public decimal EffectiveSellingPrice { get; set; }
-        // "Engine Oil" for base, "Engine Oil - 5W-30 1L" for variant
+        // "Engine Oil" for base, "Engine Oil - 5W-30 1L" for variant (base name + variant label, composed)
         public string DisplayName { get; set; } = string.Empty;
         // Variant fields — populated when flattenVariants = true
         public bool HasVariants { get; set; } = false;

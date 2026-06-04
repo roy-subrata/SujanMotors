@@ -384,7 +384,7 @@ public class SalesOrderController : ControllerBase
                     // Check stock — throw so the transaction rolls back on insufficient stock
                     foreach (var line in order.LineItems)
                     {
-                        var stockLevel = await _stockLevelRepository.GetByPartAndWarehouseAsync(line.PartId, warehouseId, cancellationToken);
+                        var stockLevel = await _stockLevelRepository.GetByPartVariantAndWarehouseAsync(line.PartId, line.ProductVariantId, warehouseId, cancellationToken);
                         if (stockLevel == null || stockLevel.QuantityAvailableInBaseUnit < line.QuantityInBaseUnit)
                         {
                             var part = await _productRepository.GetByIdAsync(line.PartId, cancellationToken);
@@ -395,7 +395,7 @@ public class SalesOrderController : ControllerBase
                     // Deduct stock and create movement history
                     foreach (var line in order.LineItems)
                     {
-                        var stockLevel = await _stockLevelRepository.GetByPartAndWarehouseAsync(line.PartId, warehouseId, cancellationToken);
+                        var stockLevel = await _stockLevelRepository.GetByPartVariantAndWarehouseAsync(line.PartId, line.ProductVariantId, warehouseId, cancellationToken);
                         if (stockLevel != null)
                         {
                             stockLevel.RemoveStock(line.QuantityInBaseUnit, line.QuantityInBaseUnit, $"Sales Order {order.SONumber}");
@@ -452,9 +452,10 @@ public class SalesOrderController : ControllerBase
                             }
                             else
                             {
-                                // FIFO — oldest lot first (expiry date, then receipt date)
+                                // FIFO — oldest lot first (expiry date, then receipt date), scoped to the variant
                                 var stockLots = await _dbContext.StockLots
                                     .Where(sl => sl.PartId == line.PartId &&
+                                                sl.VariantId == line.ProductVariantId &&
                                                 sl.WarehouseId == warehouseId &&
                                                 sl.QuantityAvailableInBaseUnit > 0 &&
                                                 !sl.Isdeleted)
@@ -898,6 +899,18 @@ public class SalesOrderController : ControllerBase
 
             var salesOrder = await _salesOrderRepository.GetByIdAsync(invoice.SalesOrderId, cancellationToken);
 
+            // Resolve variant names so the POS return screen can show distinct variant lines.
+            var variantIds = salesOrder?.LineItems
+                .Where(l => l.ProductVariantId.HasValue)
+                .Select(l => l.ProductVariantId!.Value)
+                .Distinct()
+                .ToList() ?? new List<Guid>();
+            var variantNames = variantIds.Count > 0
+                ? await _dbContext.ProductVariants
+                    .Where(v => variantIds.Contains(v.Id))
+                    .ToDictionaryAsync(v => v.Id, v => v.Name, cancellationToken)
+                : new Dictionary<Guid, string>();
+
             var response = new QuickSaleResponse
             {
                 Id = invoice.Id,
@@ -917,7 +930,10 @@ public class SalesOrderController : ControllerBase
                 CreatedAt = invoice.InvoiceDate,
                 Lines = salesOrder?.LineItems.Select(l => new QuickSaleResponseLine
                 {
+                    SalesOrderLineId = l.Id,
                     PartId = l.PartId,
+                    ProductVariantId = l.ProductVariantId,
+                    VariantName = l.ProductVariantId.HasValue && variantNames.TryGetValue(l.ProductVariantId.Value, out var vn) ? vn : null,
                     PartName = l.Description,
                     Quantity = l.Quantity,
                     UnitPrice = l.UnitPrice
@@ -979,7 +995,12 @@ public class SalesOrderController : ControllerBase
 
             foreach (var item in request.Items)
             {
-                var orderLine = salesOrder.LineItems.FirstOrDefault(ol => ol.PartId == item.PartId);
+                // Match the exact sold line by id when provided so multiple variant lines of the same
+                // part are disambiguated; fall back to PartId match for older clients.
+                var orderLine = (item.SalesOrderLineId is Guid solId && solId != Guid.Empty
+                        ? salesOrder.LineItems.FirstOrDefault(ol => ol.Id == solId)
+                        : null)
+                    ?? salesOrder.LineItems.FirstOrDefault(ol => ol.PartId == item.PartId);
                 if (orderLine is null)
                     return BadRequest(new { message = $"Part {item.PartId} was not on the original sale." });
 
@@ -1769,7 +1790,7 @@ public class SalesOrderController : ControllerBase
 
                     foreach (var line in salesOrder.LineItems)
                     {
-                        var stockLevels = await _stockLevelRepository.GetByPartAsync(line.PartId, cancellationToken);
+                        var stockLevels = await _stockLevelRepository.GetByPartAndVariantAsync(line.PartId, line.ProductVariantId, cancellationToken);
                         var remainingQty = line.QuantityInBaseUnit;
                         foreach (var stockLevel in stockLevels.OrderByDescending(sl => sl.QuantityAvailableInBaseUnit))
                         {
@@ -1791,6 +1812,7 @@ public class SalesOrderController : ControllerBase
                                 {
                                     var stockLots = await _dbContext.StockLots
                                         .Where(l => l.PartId == line.PartId &&
+                                                   l.VariantId == line.ProductVariantId &&
                                                    l.WarehouseId == stockLevel.WarehouseId &&
                                                    l.QuantityAvailableInBaseUnit > 0)
                                         .OrderBy(l => l.ReceivingDate)

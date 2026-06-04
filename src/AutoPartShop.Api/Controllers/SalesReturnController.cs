@@ -279,10 +279,14 @@ namespace AutoPartShop.Api.Controllers
                     // Use InBaseUnit quantities if available, otherwise fall back to regular quantities
                     var returnQuantity = line.QuantityInBaseUnit > 0 ? line.QuantityInBaseUnit : line.Quantity;
 
-                    var stockLevel = await _dbContext.StockLevels.FirstOrDefaultAsync(sl => sl.PartId == line.PartId && sl.WarehouseId == warehouseId);
+                    // Resolve the variant from the original sold line so stock returns to the right SKU
+                    var variantId = salesOrder?.LineItems
+                        .FirstOrDefault(ol => ol.Id == line.SalesOrderLineId)?.ProductVariantId;
+
+                    var stockLevel = await _dbContext.StockLevels.FirstOrDefaultAsync(sl => sl.PartId == line.PartId && sl.VariantId == variantId && sl.WarehouseId == warehouseId);
                     if (stockLevel == null)
                     {
-                        stockLevel = Domain.Entities.StockLevel.Create(line.PartId, warehouseId, unitId: line.UnitId);
+                        stockLevel = Domain.Entities.StockLevel.Create(line.PartId, warehouseId, unitId: line.UnitId, variantId: variantId);
                         stockLevel.CreatedBy = _currentUserService.GetCurrentUsername();
                         _dbContext.StockLevels.Add(stockLevel);
                     }
@@ -315,6 +319,7 @@ namespace AutoPartShop.Api.Controllers
                         // Try to find existing lots for this part
                         var existingLot = await _dbContext.StockLots
                             .Where(sl => sl.PartId == line.PartId &&
+                                        sl.VariantId == variantId &&
                                         sl.WarehouseId == warehouseId &&
                                         sl.QuantityAvailable > 0)
                             .OrderByDescending(sl => sl.CreatedDate)
@@ -351,7 +356,8 @@ namespace AutoPartShop.Api.Controllers
                                 notes: $"Created from sales return {salesReturn.ReturnNumber}",
                                 unitId: line.UnitId,
                                 quantityReceivedInBaseUnit: returnQuantity,
-                                costPriceInBaseUnit: line.UnitPriceInBaseUnit > 0 ? line.UnitPriceInBaseUnit : line.UnitPrice
+                                costPriceInBaseUnit: line.UnitPriceInBaseUnit > 0 ? line.UnitPriceInBaseUnit : line.UnitPrice,
+                                variantId: variantId
                             );
                             targetLot.CreatedBy = _currentUserService.GetCurrentUsername();
                             targetLot.ModifiedBy = _currentUserService.GetCurrentUsername();
@@ -513,12 +519,19 @@ namespace AutoPartShop.Api.Controllers
 
                     if (salesReturn.Status == "PROCESSED")
                     {
+                        // Map each return line back to the variant it was sold under
+                        var soLineIds = salesReturn.LineItems.Select(l => l.SalesOrderLineId).Distinct().ToList();
+                        var variantByLine = await _dbContext.Set<Domain.Entities.SalesOrderLine>()
+                            .Where(ol => soLineIds.Contains(ol.Id))
+                            .ToDictionaryAsync(ol => ol.Id, ol => ol.ProductVariantId, cancellationToken);
+
                         foreach (var line in salesReturn.LineItems)
                         {
                             var reverseQuantity = line.QuantityInBaseUnit > 0 ? line.QuantityInBaseUnit : line.Quantity;
+                            var variantId = variantByLine.TryGetValue(line.SalesOrderLineId, out var v) ? v : null;
 
                             var stockLevel = await _dbContext.StockLevels
-                                .FirstOrDefaultAsync(sl => sl.PartId == line.PartId && sl.WarehouseId == salesReturn.WarehouseId, cancellationToken);
+                                .FirstOrDefaultAsync(sl => sl.PartId == line.PartId && sl.VariantId == variantId && sl.WarehouseId == salesReturn.WarehouseId, cancellationToken);
 
                             if (stockLevel == null)
                                 throw new InvalidOperationException($"Cannot reverse return stock: no stock level found for part {line.PartId}.");
@@ -543,7 +556,7 @@ namespace AutoPartShop.Api.Controllers
                             var remaining = line.Quantity;
                             var remainingBase = reverseQuantity;
                             var lots = await _dbContext.StockLots
-                                .Where(l => l.PartId == line.PartId && l.WarehouseId == salesReturn.WarehouseId && l.IsActive && l.QuantityAvailable > 0)
+                                .Where(l => l.PartId == line.PartId && l.VariantId == variantId && l.WarehouseId == salesReturn.WarehouseId && l.IsActive && l.QuantityAvailable > 0)
                                 .OrderByDescending(l => l.Notes.Contains(salesReturn.ReturnNumber))
                                 .ThenByDescending(l => l.CreatedDate)
                                 .ToListAsync(cancellationToken);
@@ -688,22 +701,30 @@ namespace AutoPartShop.Api.Controllers
                 RefundType = entity.RefundType,
                 Notes = entity.Notes,
                 CreatedAt = entity.CreatedDate,
-                Lines = entity.LineItems.Select(line => new SalesReturnLineResponse
+                Lines = entity.LineItems.Select(line =>
                 {
-                    Id = line.Id,
-                    PartId = line.PartId,
-                    PartName = line.Part?.Name ?? string.Empty,
-                    PartSku = line.Part?.SKU ?? string.Empty,
-                    Quantity = line.Quantity,
-                    QuantityInBaseUnit = line.QuantityInBaseUnit,
-                    UnitPrice = line.UnitPrice,
-                    UnitPriceInBaseUnit = line.UnitPriceInBaseUnit,
-                    RefundAmount = line.RefundAmount,
-                    UnitId = line.UnitId,
-                    UnitName = line.Unit?.Name,
-                    UnitSymbol = line.Unit?.Symbol,
-                    Condition = line.Condition,
-                    Notes = line.Notes
+                    var variantName = entity.SalesOrder?.LineItems
+                        .FirstOrDefault(sol => sol.Id == line.SalesOrderLineId)?.ProductVariant?.Name;
+                    var partName = line.Part?.Name ?? string.Empty;
+                    return new SalesReturnLineResponse
+                    {
+                        Id = line.Id,
+                        PartId = line.PartId,
+                        PartName = partName,
+                        PartSku = line.Part?.SKU ?? string.Empty,
+                        VariantName = variantName,
+                        DisplayName = string.IsNullOrEmpty(variantName) ? partName : $"{partName} - {variantName}",
+                        Quantity = line.Quantity,
+                        QuantityInBaseUnit = line.QuantityInBaseUnit,
+                        UnitPrice = line.UnitPrice,
+                        UnitPriceInBaseUnit = line.UnitPriceInBaseUnit,
+                        RefundAmount = line.RefundAmount,
+                        UnitId = line.UnitId,
+                        UnitName = line.Unit?.Name,
+                        UnitSymbol = line.Unit?.Symbol,
+                        Condition = line.Condition,
+                        Notes = line.Notes
+                    };
                 }).ToList()
             };
         }

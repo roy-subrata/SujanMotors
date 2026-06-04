@@ -27,6 +27,8 @@ namespace AutoPartsShop.Infrastructure.Data.Configurations
             builder.Property(p => p.SubTotal).HasColumnType("decimal(18,2)");
             builder.Property(p => p.TaxAmount).HasColumnType("decimal(18,2)");
             builder.Property(p => p.DiscountAmount).HasColumnType("decimal(18,2)");
+            builder.Property(p => p.DiscountFixedAmount).HasColumnType("decimal(18,2)");
+            builder.Property(p => p.DiscountType).HasMaxLength(10).HasDefaultValue("TOTAL");
             builder.Property(p => p.TotalAmount).HasColumnType("decimal(18,2)");
             builder.Property(p => p.PaidAmount).HasColumnType("decimal(18,2)");
             builder.Property(p => p.CreditAppliedAmount).HasColumnType("decimal(18,2)");
@@ -200,6 +202,13 @@ namespace AutoPartsShop.Infrastructure.Data.Configurations
             builder.HasOne(gl => gl.Part)
                 .WithMany()
                 .HasForeignKey(gl => gl.PartId);
+
+            // Variant (optional — SKU-level receipt)
+            builder.HasOne(gl => gl.Variant)
+                .WithMany()
+                .HasForeignKey(gl => gl.VariantId)
+                .OnDelete(DeleteBehavior.NoAction)
+                .IsRequired(false);
         }
     }
 

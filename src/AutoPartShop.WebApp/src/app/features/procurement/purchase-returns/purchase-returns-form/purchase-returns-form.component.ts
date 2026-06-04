@@ -258,6 +258,7 @@ export class PurchaseReturnsFormComponent implements OnInit {
       purchaseOrderLineId: [lineData?.purchaseOrderLineId || ''],
       part: [partObj, Validators.required],
       partId: [lineData?.partId || '', Validators.required],
+      displayName: [lineData?.displayName || partObj?.name || ''],
       stockLotId: [lineData?.stockLotId || null],  // Optional: specific lot to return from
       quantity: [lineData?.quantity || 1, [Validators.required, Validators.min(1)]],
       rejectedQuantity: [lineData?.rejectedQuantity || 0, Validators.min(0)],
@@ -477,6 +478,7 @@ export class PurchaseReturnsFormComponent implements OnInit {
       purchaseOrderLineId: [poLine.id, Validators.required],
       part: [partObj, Validators.required],
       partId: [poLine.partId, Validators.required],
+      displayName: [poLine.displayName || partObj?.name || ''],
       stockLotId: [null],  // Optional: specific lot to return from
       quantity: [poLine.quantity, [Validators.required, Validators.min(1)]],
       rejectedQuantity: [0, Validators.min(0)],
@@ -862,7 +864,7 @@ export class PurchaseReturnsFormComponent implements OnInit {
     const lineItemsHtml = (pr.lines || []).map(line => `
       <tr>
         <td class="desc-cell">
-          <div class="item-name">${line.partName || line.partSku || 'N/A'}</div>
+          <div class="item-name">${line.displayName || line.partName || line.partSku || 'N/A'}</div>
           <div class="item-desc">${line.condition || '-'}</div>
         </td>
         <td class="num-cell">${line.quantity}</td>

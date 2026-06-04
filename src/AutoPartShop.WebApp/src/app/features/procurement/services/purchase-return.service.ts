@@ -9,6 +9,8 @@ export interface PurchaseReturnLineResponse {
   partId: string;
   partName?: string;
   partSku?: string;
+  variantName?: string | null;
+  displayName?: string;
   stockLotId?: string;
   lotNumber?: string;
   quantity: number;

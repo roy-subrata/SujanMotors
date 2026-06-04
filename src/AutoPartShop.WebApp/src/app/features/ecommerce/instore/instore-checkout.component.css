@@ -60,6 +60,7 @@
 .summary-item { display:flex; justify-content:space-between; align-items:center; font-size:13px; }
 .summary-item-info { display:flex; gap:8px; min-width:0; }
 .summary-item-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#3f4550; }
+.summary-item-variant { color:var(--sf-muted); font-size:12px; flex-shrink:0; }
 .summary-item-qty { color:var(--sf-muted); flex-shrink:0; }
 .summary-item-price { font-weight:600; color:var(--sf-ink); flex-shrink:0; }
 .summary-divider { border-top:1px solid var(--sf-border); margin:14px 0; }

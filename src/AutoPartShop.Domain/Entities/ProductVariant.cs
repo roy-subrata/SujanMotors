@@ -28,7 +28,6 @@ public class ProductVariant : AuditableEntity
     public Product? Part { get; set; }
     public ICollection<VariantAttributeValue> Attributes { get; set; } = new List<VariantAttributeValue>();
     public ICollection<ProductMedia> Media { get; set; } = new List<ProductMedia>();
-    public ICollection<VariantStockLevel> StockLevels { get; set; } = new List<VariantStockLevel>();
 
     private ProductVariant() { }
 

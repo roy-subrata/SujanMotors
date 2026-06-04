@@ -15,8 +15,10 @@ public class PurchaseOrder : AuditableEntity
     public decimal SubTotal { get; private set; } = 0;
     public decimal TaxAmount { get; private set; } = 0;
     public decimal TaxPercentage { get; private set; } = 0;
-    public decimal DiscountAmount { get; private set; } = 0;
+    public decimal DiscountAmount { get; private set; } = 0;  // Computed final discount applied to the total
     public decimal DiscountPercentage { get; private set; } = 0;
+    public decimal DiscountFixedAmount { get; private set; } = 0;  // User-entered fixed discount amount (optional)
+    public string DiscountType { get; private set; } = "TOTAL";  // BULK or TOTAL
     public decimal TotalAmount { get; private set; } = 0;
     public string PaymentStatus { get; private set; } = "PENDING";  // PENDING, PARTIAL, PAID
     public decimal PaidAmount { get; private set; } = 0;
@@ -97,8 +99,9 @@ public class PurchaseOrder : AuditableEntity
         // Calculate tax amount
         TaxAmount = SubTotal * (TaxPercentage / 100);
 
-        // Calculate discount amount
-        DiscountAmount = SubTotal * (DiscountPercentage / 100);
+        // Calculate discount: the larger of the percentage-derived amount and the fixed amount
+        var percentageDiscount = SubTotal * (DiscountPercentage / 100);
+        DiscountAmount = Math.Max(percentageDiscount, DiscountFixedAmount);
 
         // Calculate final total: SubTotal + Tax - Discount
         TotalAmount = SubTotal + TaxAmount - DiscountAmount;
@@ -121,6 +124,26 @@ public class PurchaseOrder : AuditableEntity
             throw new ArgumentException("Discount percentage cannot exceed 100%", nameof(percentage));
 
         DiscountPercentage = percentage;
+    }
+
+    /// <summary>
+    /// Sets the discount inputs (percentage and/or fixed amount). The effective discount is
+    /// computed in <see cref="CalculateTotal"/> as the larger of the two.
+    /// </summary>
+    public void SetDiscount(decimal percentage, decimal fixedAmount, string discountType)
+    {
+        if (percentage < 0)
+            throw new ArgumentException("Discount percentage cannot be negative", nameof(percentage));
+
+        if (percentage > 100)
+            throw new ArgumentException("Discount percentage cannot exceed 100%", nameof(percentage));
+
+        if (fixedAmount < 0)
+            throw new ArgumentException("Discount amount cannot be negative", nameof(fixedAmount));
+
+        DiscountPercentage = percentage;
+        DiscountFixedAmount = fixedAmount;
+        DiscountType = string.IsNullOrWhiteSpace(discountType) ? "TOTAL" : discountType.Trim().ToUpper();
     }
 
     public void RecordPayment(decimal amount)

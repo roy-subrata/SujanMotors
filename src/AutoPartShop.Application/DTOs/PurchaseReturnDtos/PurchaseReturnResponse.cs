@@ -42,6 +42,8 @@ public class PurchaseReturnLineResponse
     public Guid PartId { get; set; }
     public string PartName { get; set; } = string.Empty;
     public string PartSku { get; set; } = string.Empty;
+    public string? VariantName { get; set; }
+    public string DisplayName { get; set; } = string.Empty;  // PartName, or "PartName - VariantName" when a variant was purchased
     public Guid? StockLotId { get; set; }
     public string? LotNumber { get; set; }  // Lot number for display
     public int Quantity { get; set; }

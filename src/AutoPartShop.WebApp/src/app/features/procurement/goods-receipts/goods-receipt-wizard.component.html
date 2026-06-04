@@ -80,7 +80,7 @@
             </thead>
             <tbody>
               <tr *ngFor="let item of lineItems">
-                <td>{{ item.partName }}</td>
+                <td>{{ item.displayName || item.partName }}</td>
                 <td>{{ item.quantity }}</td>
                 <td>{{ item.receivedQuantity }}</td>
                 <td>{{ item.remainingQuantity }}</td>
@@ -108,7 +108,7 @@
           <!-- Per-item Setup Modal -->
           <div class="modal" *ngIf="showItemSetupDialog">
             <div class="modal-content">
-              <h3>Setup for {{ selectedItem?.partName }}</h3>
+              <h3>Setup for {{ selectedItem?.displayName || selectedItem?.partName }}</h3>
               <label>Selling Price</label>
               <input type="number" [(ngModel)]="selectedItem.sellingPrice">
               <label>
@@ -167,7 +167,7 @@
             </thead>
             <tbody>
               <tr *ngFor="let item of reviewSummary.items">
-                <td>{{ item.partName }}</td>
+                <td>{{ item.displayName || item.partName }}</td>
                 <td>{{ item.receivingQuantity }}</td>
                 <td>{{ item.condition }}</td>
                 <td>{{ item.hasDiscrepancy ? 'Yes' : 'No' }}</td>

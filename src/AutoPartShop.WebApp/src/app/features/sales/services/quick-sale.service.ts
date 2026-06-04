@@ -79,16 +79,18 @@ export interface QuickSaleResponse {
   status: string;
   isQuotation?: boolean;
   createdAt: string;
-  lines?: { partId: string; partName: string; quantity: number; unitPrice: number }[];
+  lines?: { salesOrderLineId: string; partId: string; productVariantId?: string | null; variantName?: string | null; partName: string; quantity: number; unitPrice: number }[];
 }
 
 export interface StockCheckRequest {
   partId: string;
+  variantId?: string | null;
   quantity: number;
 }
 
 export interface StockCheckResponse {
   partId: string;
+  variantId?: string | null;
   available: boolean;
   stockAvailable: number;
   warehouseLocation?: string;
@@ -131,8 +133,8 @@ export class QuickSaleService {
   /**
    * Check stock availability for a part
    */
-  checkStock(partId: string, quantity: number): Observable<StockCheckResponse> {
-    return this.http.post<StockCheckResponse>(`${this.apiUrl}/v1/stock/check`, { partId, quantity });
+  checkStock(partId: string, quantity: number, variantId?: string | null): Observable<StockCheckResponse> {
+    return this.http.post<StockCheckResponse>(`${this.apiUrl}/v1/stock/check`, { partId, variantId, quantity });
   }
 
   /**
@@ -366,7 +368,7 @@ export class QuickSaleService {
   /**
    * Process a return
    */
-  processReturn(request: { originalInvoiceNumber: string; refundType?: 'CASH_REFUND' | 'STORE_CREDIT'; items: { partId: string; quantity: number; reason: string }[] }): Observable<any> {
+  processReturn(request: { originalInvoiceNumber: string; refundType?: 'CASH_REFUND' | 'STORE_CREDIT'; items: { partId: string; salesOrderLineId?: string | null; quantity: number; reason: string }[] }): Observable<any> {
     return this.http.post(`${this.apiUrl}/v1/salesorder/return`, request);
   }
 

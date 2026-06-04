@@ -8,6 +8,7 @@ public class GoodsReceiptLine : AuditableEntity
     public Guid GoodsReceiptId { get; private set; }
     public Guid PurchaseOrderLineId { get; private set; }
     public Guid PartId { get; private set; }
+    public Guid? VariantId { get; private set; }  // Variant received (SKU-level); null for non-variant parts
     public Guid? UnitId { get; private set; }  // Unit of measurement for the received quantity
     public int OrderedQuantity { get; private set; }
     public int OrderedQuantityInBaseUnit { get; private set; }  // Converted to Part's base unit
@@ -40,6 +41,7 @@ public class GoodsReceiptLine : AuditableEntity
 
     public PurchaseOrderLine? PurchaseOrderLine { get; set; }
     public Product? Part { get; set; }
+    public ProductVariant? Variant { get; set; }
 
     // Computed properties
     public bool HasDiscrepancy => ReceivedQuantity != OrderedQuantity || RejectedQuantity > 0;
@@ -58,7 +60,7 @@ public class GoodsReceiptLine : AuditableEntity
         int receivedQuantityInBaseUnit = 0, int rejectedQuantityInBaseUnit = 0, decimal unitCostInBaseUnit = 0,
         decimal? sellingPrice = null, bool? hasWarranty = null, int? warrantyPeriodMonths = null,
         string? warrantyType = null, string? warrantyTerms = null,
-        string? batchNumber = null, DateTime? expiryDate = null)
+        string? batchNumber = null, DateTime? expiryDate = null, Guid? variantId = null)
     {
         if (goodsReceiptId == Guid.Empty)
             throw new ArgumentException("GoodsReceiptId cannot be empty", nameof(goodsReceiptId));
@@ -87,6 +89,7 @@ public class GoodsReceiptLine : AuditableEntity
             GoodsReceiptId = goodsReceiptId,
             PurchaseOrderLineId = purchaseOrderLineId,
             PartId = partId,
+            VariantId = variantId,
             OrderedQuantity = orderedQuantity,
             OrderedQuantityInBaseUnit = orderedQuantityInBaseUnit > 0 ? orderedQuantityInBaseUnit : orderedQuantity,
             ReceivedQuantity = receivedQuantity,
@@ -122,6 +125,11 @@ public class GoodsReceiptLine : AuditableEntity
     public void AddSerialNumbers(string serialNumbers)
     {
         SerialNumbers = serialNumbers?.Trim() ?? string.Empty;
+    }
+
+    public void SetNotes(string notes)
+    {
+        Notes = notes?.Trim() ?? string.Empty;
     }
 
     public void UpdatePricing(decimal? sellingPrice, bool? hasWarranty, int? warrantyPeriodMonths,

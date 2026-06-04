@@ -84,6 +84,14 @@ public class StockLotRepository : IStockLotRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IEnumerable<StockLot>> GetAvailableLotsAsync(Guid partId, Guid? variantId, Guid warehouseId, CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.StockLots
+            .Where(x => x.PartId == partId && x.VariantId == variantId && x.WarehouseId == warehouseId && x.QuantityAvailable > 0 && !x.Isdeleted)
+            .OrderBy(x => x.ReceivingDate)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<StockLot?> GetByLotNumberAsync(string lotNumber, CancellationToken cancellationToken = default)
     {
         return await _dbContext.StockLots

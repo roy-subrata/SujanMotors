@@ -512,10 +512,10 @@ public class DatabaseSeeder
 
                 await context.SaveChangesAsync();
 
-                // Variant stock level — starts at 0; real stock enters via Goods Receipts
-                var vsl = VariantStockLevel.Create(variant.Id, wh.Id);
+                // Variant-scoped stock level — starts at 0; real stock enters via Goods Receipts
+                var vsl = StockLevel.Create(part.Id, wh.Id, reorderLevel: 5, reorderQuantity: 20, unitId: unitPcs.Id, variantId: variant.Id);
                 vsl.CreatedBy = "System"; vsl.ModifiedBy = "System";
-                context.VariantStockLevels.Add(vsl);
+                context.StockLevels.Add(vsl);
                 await context.SaveChangesAsync();
             }
 
@@ -760,13 +760,10 @@ public class DatabaseSeeder
 
     private static async Task EnsureDemoStockAsync(AutoPartDbContext context, ILogger logger)
     {
-        var anyStock = await context.VariantStockLevels
-            .AnyAsync(vsl => !vsl.Isdeleted && vsl.IsActive && vsl.QuantityOnHand > 0);
-
         var anyPartStock = await context.StockLevels
             .AnyAsync(sl => !sl.Isdeleted && sl.IsActive && sl.QuantityOnHand > 0);
 
-        if (anyStock || anyPartStock)
+        if (anyPartStock)
         {
             logger.LogInformation("Demo stock already present, skipping top-up");
             return;
@@ -774,23 +771,21 @@ public class DatabaseSeeder
 
         logger.LogInformation("All stock levels are 0 — adding demo stock for development");
 
-        // Top up variant stock levels
-        var variantLevels = await context.VariantStockLevels
-            .Where(vsl => !vsl.Isdeleted && vsl.IsActive)
-            .ToListAsync();
-
-        foreach (var vsl in variantLevels)
-            vsl.AddStock(20);
-
-        // Top up part-level stock levels
-        var partLevels = await context.StockLevels
+        // All stock now lives in StockLevels; variant-scoped rows have VariantId set.
+        var allLevels = await context.StockLevels
             .Where(sl => !sl.Isdeleted && sl.IsActive)
             .ToListAsync();
 
+        // Variant-scoped levels get 20; part-level (non-variant) levels get 50.
+        var variantLevels = allLevels.Where(sl => sl.VariantId != null).ToList();
+        var partLevels = allLevels.Where(sl => sl.VariantId == null).ToList();
+
+        foreach (var sl in variantLevels)
+            sl.AddStock(20);
         foreach (var sl in partLevels)
             sl.AddStock(50);
 
-        if (variantLevels.Any() || partLevels.Any())
+        if (allLevels.Any())
         {
             await context.SaveChangesAsync();
             logger.LogInformation("Demo stock topped up: {V} variant levels, {P} part levels",

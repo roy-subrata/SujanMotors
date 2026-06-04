@@ -52,7 +52,7 @@
         public string? VariantBarcode { get; set; }
         public decimal EffectiveCostPrice { get; set; }
         public decimal EffectiveSellingPrice { get; set; }
-        // "Engine Oil" for base, "Engine Oil - 5W-30 1L" for variant
+        // "Engine Oil" for base, "Engine Oil - 5W-30 1L" for variant (base name + variant label, composed)
         public string DisplayName { get; set; } = string.Empty;
 
         public string CreatedBy { get; set; } = string.Empty;

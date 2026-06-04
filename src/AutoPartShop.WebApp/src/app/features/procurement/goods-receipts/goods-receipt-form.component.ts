@@ -708,7 +708,10 @@ export class GoodsReceiptFormComponent implements OnInit {
 
       const group = this.fb.group({
         partId:                  [line.partId, Validators.required],
+        purchaseOrderLineId:     [line.id],
         partName:                [line.partName],
+        variantName:             [line.variantName || null],
+        displayName:             [line.displayName || line.partName],
         orderedQuantity:         [this.toNumber(line.quantity)],
         receivedQuantity:        [this.toNumber(line.receivedQuantity)],
         remainingQuantity:       [remainingQty],
@@ -755,7 +758,10 @@ export class GoodsReceiptFormComponent implements OnInit {
     linesArray.clear();
 
     grn.lines?.forEach((line, index) => {
-      const poLine = po?.lines?.find((l) => l.partId === line.partId);
+      // Match the exact PO line (disambiguates same-part variant lines); fall back to partId for older data.
+      const poLine =
+        (line.purchaseOrderLineId ? po?.lines?.find((l) => l.id === line.purchaseOrderLineId) : undefined) ??
+        po?.lines?.find((l) => l.partId === line.partId);
       const orderedQty = this.toNumber(poLine?.quantity);
       const alreadyReceived = this.toNumber(poLine?.receivedQuantity);
       const remainingQty = this.toNumber(poLine?.remainingQuantity ?? orderedQty - alreadyReceived);
@@ -764,7 +770,10 @@ export class GoodsReceiptFormComponent implements OnInit {
       linesArray.push(
         this.fb.group({
           partId: [line.partId, Validators.required],
+          purchaseOrderLineId: [line.purchaseOrderLineId || poLine?.id || null],
           partName: [poLine?.partName || ''],
+          variantName: [poLine?.variantName || null],
+          displayName: [poLine?.displayName || poLine?.partName || ''],
           orderedQuantity: [orderedQty],
           receivedQuantity: [alreadyReceived],
           remainingQuantity: [remainingQty],
@@ -887,6 +896,7 @@ export class GoodsReceiptFormComponent implements OnInit {
         const warrantyMonths = line.get('warrantyPeriodMonths')?.value;
         return {
           partId:              line.get('partId')?.value,
+          purchaseOrderLineId: line.get('purchaseOrderLineId')?.value ?? null,
           receivedQuantity:    receivedQty,
           condition:           line.get('condition')?.value,
           notes:               this.toTrimmedOrEmpty(line.get('notes')?.value),

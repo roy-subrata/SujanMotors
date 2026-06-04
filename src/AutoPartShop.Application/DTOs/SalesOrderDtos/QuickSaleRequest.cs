@@ -70,6 +70,8 @@ public class QuickReturnRequest
 public class QuickReturnItem
 {
     public Guid PartId { get; set; }
+    /// <summary>Identifies the exact sold line — disambiguates multiple variant lines of the same part. Falls back to PartId match when absent.</summary>
+    public Guid? SalesOrderLineId { get; set; }
     public int Quantity { get; set; }
     public string? Reason { get; set; }
 }
@@ -100,7 +102,10 @@ public class QuickSaleResponse
 
 public class QuickSaleResponseLine
 {
+    public Guid SalesOrderLineId { get; set; }
     public Guid PartId { get; set; }
+    public Guid? ProductVariantId { get; set; }
+    public string? VariantName { get; set; }
     public string PartName { get; set; } = string.Empty;
     public int Quantity { get; set; }
     public decimal UnitPrice { get; set; }

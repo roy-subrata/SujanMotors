@@ -194,7 +194,7 @@
             <tbody>
               <tr *ngFor="let line of lines.controls; let i = index" [formGroupName]="i">
                 <td>
-                  <div class="item-name">{{ line.get('partName')?.value || 'Unknown Part' }}</div>
+                  <div class="item-name">{{ line.get('displayName')?.value || line.get('partName')?.value || 'Unknown Part' }}</div>
                   <div class="item-sub">SKU: {{ line.get('partSku')?.value || 'N/A' }}</div>
                 </td>
                 <td>{{ line.get('maxQuantity')?.value }}</td>

@@ -401,13 +401,13 @@ public class SupplierPaymentController : ControllerBase
             payment.CreatedBy = currentUser;
             payment.ModifiedBy = currentUser;
 
-            // Auto-confirm CASH payments since money is immediately in hand
-            if (request.PaymentMethod?.Equals("CASH", StringComparison.OrdinalIgnoreCase) == true)
+            // Auto-confirm every recorded payment so it counts immediately toward the
+            // supplier balance / PO outstanding (recording a payment means money has moved).
             {
-                _logger.LogInformation("Auto-confirming CASH payment of {Amount} for supplier {SupplierId}, Type: {PaymentType}",
-                    request.Amount, request.SupplierId, request.PaymentType);
+                _logger.LogInformation("Auto-confirming {Method} payment of {Amount} for supplier {SupplierId}, Type: {PaymentType}",
+                    request.PaymentMethod, request.Amount, request.SupplierId, request.PaymentType);
                 payment.MarkAsProcessed(currentUser + " - Auto-confirmed");
-                payment.ConfirmReceipt(currentUser + " - Cash Payment");
+                payment.ConfirmReceipt(currentUser + " - Recorded payment");
 
                 // For REGULAR payments: Update purchase order and supplier balance
                 if (request.PaymentType == PaymentType.REGULAR)
@@ -646,16 +646,15 @@ public class SupplierPaymentController : ControllerBase
             var payment = await _repository.GetByIdAsync(id, cancellationToken);
             if (payment is null) return NotFound(new { message = "Supplier payment not found" });
 
-            // Only allow updates if not confirmed or reconciled
-            if (payment.Status == "COMPLETED" || payment.Status == "RECONCILED")
-                return BadRequest(new { message = "Cannot update completed or reconciled payments" });
+            if (payment.Status == "CANCELLED")
+                return BadRequest(new { message = "Cannot update a cancelled payment" });
 
-            // Update mutable fields
-            if (!string.IsNullOrEmpty(request.AuthorizationCode))
-                payment.SetAuthorizationCode(request.AuthorizationCode);
-
-            if (!string.IsNullOrEmpty(request.Notes))
-                payment.UpdateNotes(request.Notes);
+            // Only non-financial reference info is editable after creation. These are set
+            // unconditionally so a field can also be cleared.
+            payment.SetReferenceNumber(request.ReferenceNumber);
+            payment.SetAuthorizationCode(request.AuthorizationCode);
+            payment.SetInvoiceNumber(request.InvoiceNumber);
+            payment.UpdateNotes(request.Notes);
 
             payment.ModifiedBy = _currentUserService.GetCurrentUsername();
             await _repository.UpdateAsync(payment, cancellationToken);

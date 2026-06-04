@@ -23,6 +23,9 @@ public class CreateGoodsReceiptRequest
 public class CreateGoodsReceiptLineRequest
 {
     public Guid PartId { get; set; }
+    // Identifies the exact PO line this receipt is for. Required to disambiguate when a PO has
+    // multiple lines for the same PartId (e.g. different variants). Falls back to PartId match when absent.
+    public Guid? PurchaseOrderLineId { get; set; }
     public int ReceivedQuantity { get; set; }
     public string Condition { get; set; } = "GOOD"; // GOOD, DAMAGED, MISSING
     public string Notes { get; set; } = string.Empty;

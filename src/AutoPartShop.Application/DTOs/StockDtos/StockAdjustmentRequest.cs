@@ -3,6 +3,7 @@ namespace AutoPartShop.Application.DTOs.StockDtos;
 public class StockAdjustmentRequest
 {
     public Guid PartId { get; set; }
+    public Guid? VariantId { get; set; }
     public Guid WarehouseId { get; set; }
     public int Quantity { get; set; } // Positive for increase, negative for decrease
     public int QuantityInBaseUnit { get; set; }

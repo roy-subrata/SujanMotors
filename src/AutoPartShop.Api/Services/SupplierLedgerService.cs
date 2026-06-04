@@ -51,10 +51,11 @@ public class SupplierLedgerService : ISupplierLedgerService
 
         // Get ledger entries
         var entries = await GetLedgerEntriesAsync(supplierId, null, null, ct);
-        var recentEntries = entries.OrderByDescending(e => e.TransactionDate).Take(entryLimit).ToList();
 
-        // Calculate running balances for entries
-        CalculateRunningBalances(recentEntries);
+        // Calculate running balances over the FULL history first so each entry's balance
+        // carries the prior balance forward, then take the most recent N for display.
+        CalculateRunningBalances(entries);
+        var recentEntries = entries.OrderByDescending(e => e.TransactionDate).Take(entryLimit).ToList();
 
         return new SupplierLedgerSummaryDto
         {

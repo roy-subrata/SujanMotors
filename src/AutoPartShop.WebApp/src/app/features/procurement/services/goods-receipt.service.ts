@@ -6,6 +6,7 @@ import { environment } from 'src/environments/environment';
 
 export interface GoodsReceiptLineResponse {
   id: string;
+  purchaseOrderLineId: string;
   partId: string;
   partName: string;
   partSKU: string;
@@ -80,6 +81,7 @@ export interface CreateGoodsReceiptRequest {
 
 export interface CreateGoodsReceiptLineRequest {
   partId: string;
+  purchaseOrderLineId?: string | null;
   receivedQuantity: number;
   condition: string;
   notes?: string;

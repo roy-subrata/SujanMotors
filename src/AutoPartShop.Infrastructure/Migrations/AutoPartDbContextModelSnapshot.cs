@@ -1720,6 +1720,9 @@ namespace AutoPartsShop.Infrastructure.Migrations
                     b.Property<Guid?>("UnitId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("VariantId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<int?>("WarrantyPeriodMonths")
                         .HasColumnType("int");
 
@@ -1736,6 +1739,8 @@ namespace AutoPartsShop.Infrastructure.Migrations
                     b.HasIndex("PartId");
 
                     b.HasIndex("PurchaseOrderLineId");
+
+                    b.HasIndex("VariantId");
 
                     b.ToTable("GoodsReceiptLines", (string)null);
                 });
@@ -2901,8 +2906,18 @@ namespace AutoPartsShop.Infrastructure.Migrations
                     b.Property<decimal>("DiscountAmount")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<decimal>("DiscountFixedAmount")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<decimal>("DiscountPercentage")
                         .HasColumnType("decimal(5,2)");
+
+                    b.Property<string>("DiscountType")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)")
+                        .HasDefaultValue("TOTAL");
 
                     b.Property<DateTime>("ExpectedDeliveryDate")
                         .HasColumnType("datetime2");
@@ -3828,6 +3843,9 @@ namespace AutoPartsShop.Infrastructure.Migrations
                     b.Property<Guid?>("UnitId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("VariantId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid>("WarehouseId")
                         .HasColumnType("uniqueidentifier");
 
@@ -3837,10 +3855,17 @@ namespace AutoPartsShop.Infrastructure.Migrations
 
                     b.HasIndex("UnitId");
 
+                    b.HasIndex("VariantId");
+
                     b.HasIndex("WarehouseId");
 
                     b.HasIndex("PartId", "WarehouseId")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[VariantId] IS NULL");
+
+                    b.HasIndex("PartId", "VariantId", "WarehouseId")
+                        .IsUnique()
+                        .HasFilter("[VariantId] IS NOT NULL");
 
                     b.ToTable("StockLevels", (string)null);
                 });
@@ -3934,6 +3959,9 @@ namespace AutoPartsShop.Infrastructure.Migrations
                     b.Property<Guid?>("UnitId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("VariantId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid>("WarehouseId")
                         .HasColumnType("uniqueidentifier");
 
@@ -3957,7 +3985,11 @@ namespace AutoPartsShop.Infrastructure.Migrations
 
                     b.HasIndex("UnitId");
 
+                    b.HasIndex("VariantId");
+
                     b.HasIndex("WarehouseId");
+
+                    b.HasIndex("PartId", "VariantId", "WarehouseId");
 
                     b.ToTable("StockLots");
                 });
@@ -4735,64 +4767,6 @@ namespace AutoPartsShop.Infrastructure.Migrations
                     b.ToTable("VariantAttributeValues");
                 });
 
-            modelBuilder.Entity("AutoPartShop.Domain.Entities.VariantStockLevel", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("CreatedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("Isdeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Location")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ModifiedBy")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("ModifiedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("QuantityOnHand")
-                        .HasColumnType("int");
-
-                    b.Property<int>("QuantityReserved")
-                        .HasColumnType("int");
-
-                    b.Property<int>("ReorderLevel")
-                        .HasColumnType("int");
-
-                    b.Property<int>("ReorderQuantity")
-                        .HasColumnType("int");
-
-                    b.Property<Guid>("VariantId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("WarehouseId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("WarehouseId");
-
-                    b.HasIndex("VariantId", "WarehouseId")
-                        .IsUnique();
-
-                    b.ToTable("VariantStockLevels");
-                });
-
             modelBuilder.Entity("AutoPartShop.Domain.Entities.Vehicle", b =>
                 {
                     b.Property<Guid>("Id")
@@ -5515,11 +5489,18 @@ namespace AutoPartsShop.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
+                    b.HasOne("AutoPartShop.Domain.Entities.ProductVariant", "Variant")
+                        .WithMany()
+                        .HasForeignKey("VariantId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.Navigation("GoodsReceipt");
 
                     b.Navigation("Part");
 
                     b.Navigation("PurchaseOrderLine");
+
+                    b.Navigation("Variant");
                 });
 
             modelBuilder.Entity("AutoPartShop.Domain.Entities.Invoice", b =>
@@ -6015,6 +5996,11 @@ namespace AutoPartsShop.Infrastructure.Migrations
                         .HasForeignKey("UnitId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("AutoPartShop.Domain.Entities.ProductVariant", "Variant")
+                        .WithMany()
+                        .HasForeignKey("VariantId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("AutoPartShop.Domain.Entities.Warehouse", "Warehouse")
                         .WithMany()
                         .HasForeignKey("WarehouseId")
@@ -6024,6 +6010,8 @@ namespace AutoPartsShop.Infrastructure.Migrations
                     b.Navigation("Part");
 
                     b.Navigation("Unit");
+
+                    b.Navigation("Variant");
 
                     b.Navigation("Warehouse");
                 });
@@ -6047,6 +6035,11 @@ namespace AutoPartsShop.Infrastructure.Migrations
                         .HasForeignKey("UnitId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("AutoPartShop.Domain.Entities.ProductVariant", "Variant")
+                        .WithMany()
+                        .HasForeignKey("VariantId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("AutoPartShop.Domain.Entities.Warehouse", "Warehouse")
                         .WithMany()
                         .HasForeignKey("WarehouseId")
@@ -6058,6 +6051,8 @@ namespace AutoPartsShop.Infrastructure.Migrations
                     b.Navigation("Supplier");
 
                     b.Navigation("Unit");
+
+                    b.Navigation("Variant");
 
                     b.Navigation("Warehouse");
                 });
@@ -6199,25 +6194,6 @@ namespace AutoPartsShop.Infrastructure.Migrations
                     b.Navigation("Option");
 
                     b.Navigation("Variant");
-                });
-
-            modelBuilder.Entity("AutoPartShop.Domain.Entities.VariantStockLevel", b =>
-                {
-                    b.HasOne("AutoPartShop.Domain.Entities.ProductVariant", "Variant")
-                        .WithMany("StockLevels")
-                        .HasForeignKey("VariantId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.HasOne("AutoPartShop.Domain.Entities.Warehouse", "Warehouse")
-                        .WithMany()
-                        .HasForeignKey("WarehouseId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.Navigation("Variant");
-
-                    b.Navigation("Warehouse");
                 });
 
             modelBuilder.Entity("AutoPartShop.Domain.Entities.WarrantyClaim", b =>
@@ -6399,8 +6375,6 @@ namespace AutoPartsShop.Infrastructure.Migrations
                     b.Navigation("Attributes");
 
                     b.Navigation("Media");
-
-                    b.Navigation("StockLevels");
                 });
 
             modelBuilder.Entity("AutoPartShop.Domain.Entities.PurchaseOrder", b =>

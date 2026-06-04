@@ -33,6 +33,8 @@ export interface SalesOrderLineResponse {
     partId: string;
     partName?: string;
     partSku?: string;
+    variantName?: string | null;
+    displayName?: string;
     unitId?: string;
     unitName?: string;
     unitSymbol?: string;

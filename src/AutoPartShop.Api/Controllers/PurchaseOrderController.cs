@@ -185,9 +185,9 @@ public class PurchaseOrderController : ControllerBase
                 request.Currency
             );
 
-            // Set tax and discount percentages
+            // Set tax and discount
             order.SetTaxPercentage(request.TaxPercentage);
-            order.SetDiscountPercentage(request.DiscountPercentage);
+            order.SetDiscount(request.DiscountPercentage, request.DiscountAmount, request.DiscountType);
 
             // Add line items if provided
             if (request.LineItems?.Any() == true)
@@ -342,7 +342,7 @@ public class PurchaseOrderController : ControllerBase
 
             // Update order properties
             order.SetTaxPercentage(request.TaxPercentage);
-            order.SetDiscountPercentage(request.DiscountPercentage);
+            order.SetDiscount(request.DiscountPercentage, request.DiscountAmount, request.DiscountType);
             order.UpdateNotes(request.Notes);
             order.UpdateExpectedDeliveryDate(request.DeliveryDate);
 
@@ -538,24 +538,29 @@ public class PurchaseOrderController : ControllerBase
             {
                 foreach (var lineRequest in request.Lines)
                 {
-                    // Find matching PO line to get OrderedQuantity and PurchaseOrderLineId
-                    var poLine = purchaseOrder.LineItems.FirstOrDefault(l => l.PartId == lineRequest.PartId);
+                    // Find matching PO line to get OrderedQuantity and PurchaseOrderLineId.
+                    // Match by PurchaseOrderLineId when provided so multiple lines of the same part
+                    // (e.g. different variants) are disambiguated; fall back to PartId for older clients.
+                    var poLine = (lineRequest.PurchaseOrderLineId is Guid polId && polId != Guid.Empty
+                            ? purchaseOrder.LineItems.FirstOrDefault(l => l.Id == polId)
+                            : null)
+                        ?? purchaseOrder.LineItems.FirstOrDefault(l => l.PartId == lineRequest.PartId);
                     if (poLine is null)
                         return BadRequest(new { message = $"Part {lineRequest.PartId} not found in purchase order" });
 
-                    // Calculate remaining quantity considering already accepted/verified GRNs
+                    // Calculate remaining quantity considering already accepted/verified GRNs for THIS PO line
                     var alreadyReceived = purchaseOrder.GoodsReceipts
                         .Where(gr => gr.Status == "ACCEPTED" || gr.Status == "VERIFIED")
                         .SelectMany(gr => gr.LineItems)
-                        .Where(grl => grl.PartId == lineRequest.PartId)
+                        .Where(grl => grl.PurchaseOrderLineId == poLine.Id)
                         .Sum(grl => grl.ReceivedQuantity);
 
                     var remainingQty = poLine.Quantity - alreadyReceived;
 
                     if (lineRequest.ReceivedQuantity > remainingQty)
                     {
-                        return BadRequest(new { 
-                            message = $"Received quantity ({lineRequest.ReceivedQuantity}) exceeds remaining ordered quantity ({remainingQty}) for part {lineRequest.PartId}. Already received: {alreadyReceived}, Ordered: {poLine.Quantity}" 
+                        return BadRequest(new {
+                            message = $"Received quantity ({lineRequest.ReceivedQuantity}) exceeds remaining ordered quantity ({remainingQty}) for part {lineRequest.PartId}. Already received: {alreadyReceived}, Ordered: {poLine.Quantity}"
                         });
                     }
 
@@ -570,26 +575,29 @@ public class PurchaseOrderController : ControllerBase
                     int receivedQuantityInBaseUnit = lineRequest.ReceivedQuantity;
                     decimal unitCostInBaseUnit = lineRequest.UnitCost;
 
-                    // Only convert if part has a base unit AND received unit differs from base unit
+                    // Only convert if part has a base unit AND received unit differs from base unit.
+                    // Fail fast if the conversion is required but not configured — stock is tracked
+                    // in base units, so silently using display quantities would corrupt on-hand stock.
                     if (part.BaseUnitId.HasValue && lineRequest.UnitId.HasValue && lineRequest.UnitId.Value != part.BaseUnitId.Value)
                     {
+                        decimal conversionFactor;
                         try
                         {
-                            var conversionFactor = await _unitConversionService.GetConversionFactorAsync(
+                            conversionFactor = await _unitConversionService.GetConversionFactorAsync(
                                 lineRequest.UnitId.Value,
                                 part.BaseUnitId.Value);
-
-                            if (conversionFactor > 0)
-                            {
-                                orderedQuantityInBaseUnit = (int)Math.Round(poLine.Quantity * conversionFactor, MidpointRounding.AwayFromZero);
-                                receivedQuantityInBaseUnit = (int)Math.Round(lineRequest.ReceivedQuantity * conversionFactor, MidpointRounding.AwayFromZero);
-                                unitCostInBaseUnit = lineRequest.UnitCost / conversionFactor;
-                            }
                         }
                         catch (Exception ex)
                         {
-                            _logger.LogWarning(ex, "Unit conversion failed for part {PartId}, using display quantities as base", lineRequest.PartId);
+                            return BadRequest(new { message = $"Unit conversion not configured for part '{part.Name}': {ex.Message}" });
                         }
+
+                        if (conversionFactor <= 0)
+                            return BadRequest(new { message = $"Unit conversion not configured for part '{part.Name}'." });
+
+                        orderedQuantityInBaseUnit = (int)Math.Round(poLine.Quantity * conversionFactor, MidpointRounding.AwayFromZero);
+                        receivedQuantityInBaseUnit = (int)Math.Round(lineRequest.ReceivedQuantity * conversionFactor, MidpointRounding.AwayFromZero);
+                        unitCostInBaseUnit = lineRequest.UnitCost / conversionFactor;
                     }
 
                     // Create GRN line item with cost information and base unit quantities
@@ -613,12 +621,13 @@ public class PurchaseOrderController : ControllerBase
                         lineRequest.WarrantyType,
                         lineRequest.WarrantyTerms,
                         lineRequest.BatchNumber,
-                        lineRequest.ExpiryDate
+                        lineRequest.ExpiryDate,
+                        poLine.VariantId  // carry variant from the matched PO line (SKU-level stock)
                     );
 
                     if (!string.IsNullOrEmpty(lineRequest.Notes))
                     {
-                        grnLine.RejectQuantity(0, 0, lineRequest.Notes);
+                        grnLine.SetNotes(lineRequest.Notes);
                     }
 
                     grn.LineItems.Add(grnLine);
@@ -748,24 +757,29 @@ public class PurchaseOrderController : ControllerBase
             {
                 foreach (var lineRequest in request.Lines)
                 {
-                    // Find matching PO line to get OrderedQuantity and PurchaseOrderLineId
-                    var poLine = purchaseOrder.LineItems.FirstOrDefault(l => l.PartId == lineRequest.PartId);
+                    // Find matching PO line to get OrderedQuantity and PurchaseOrderLineId.
+                    // Match by PurchaseOrderLineId when provided so multiple lines of the same part
+                    // (e.g. different variants) are disambiguated; fall back to PartId for older clients.
+                    var poLine = (lineRequest.PurchaseOrderLineId is Guid polId && polId != Guid.Empty
+                            ? purchaseOrder.LineItems.FirstOrDefault(l => l.Id == polId)
+                            : null)
+                        ?? purchaseOrder.LineItems.FirstOrDefault(l => l.PartId == lineRequest.PartId);
                     if (poLine is null)
                         return BadRequest(new { message = $"Part {lineRequest.PartId} not found in purchase order" });
 
-                    // Calculate remaining quantity considering already accepted/verified GRNs (excluding current GRN being updated)
+                    // Calculate remaining quantity considering already accepted/verified GRNs for THIS PO line (excluding current GRN being updated)
                     var alreadyReceived = purchaseOrder.GoodsReceipts
                         .Where(gr => (gr.Status == "ACCEPTED" || gr.Status == "VERIFIED") && gr.Id != id)
                         .SelectMany(gr => gr.LineItems)
-                        .Where(grl => grl.PartId == lineRequest.PartId)
+                        .Where(grl => grl.PurchaseOrderLineId == poLine.Id)
                         .Sum(grl => grl.ReceivedQuantity);
 
                     var remainingQty = poLine.Quantity - alreadyReceived;
 
                     if (lineRequest.ReceivedQuantity > remainingQty)
                     {
-                        return BadRequest(new { 
-                            message = $"Received quantity ({lineRequest.ReceivedQuantity}) exceeds remaining ordered quantity ({remainingQty}) for part {lineRequest.PartId}. Already received: {alreadyReceived}, Ordered: {poLine.Quantity}" 
+                        return BadRequest(new {
+                            message = $"Received quantity ({lineRequest.ReceivedQuantity}) exceeds remaining ordered quantity ({remainingQty}) for part {lineRequest.PartId}. Already received: {alreadyReceived}, Ordered: {poLine.Quantity}"
                         });
                     }
 
@@ -780,26 +794,29 @@ public class PurchaseOrderController : ControllerBase
                     int receivedQuantityInBaseUnit = lineRequest.ReceivedQuantity;
                     decimal unitCostInBaseUnit = lineRequest.UnitCost;
 
-                    // Only convert if part has a base unit AND received unit differs from base unit
+                    // Only convert if part has a base unit AND received unit differs from base unit.
+                    // Fail fast if the conversion is required but not configured — stock is tracked
+                    // in base units, so silently using display quantities would corrupt on-hand stock.
                     if (part.BaseUnitId.HasValue && lineRequest.UnitId.HasValue && lineRequest.UnitId.Value != part.BaseUnitId.Value)
                     {
+                        decimal conversionFactor;
                         try
                         {
-                            var conversionFactor = await _unitConversionService.GetConversionFactorAsync(
+                            conversionFactor = await _unitConversionService.GetConversionFactorAsync(
                                 lineRequest.UnitId.Value,
                                 part.BaseUnitId.Value);
-
-                            if (conversionFactor > 0)
-                            {
-                                orderedQuantityInBaseUnit = (int)Math.Round(poLine.Quantity * conversionFactor, MidpointRounding.AwayFromZero);
-                                receivedQuantityInBaseUnit = (int)Math.Round(lineRequest.ReceivedQuantity * conversionFactor, MidpointRounding.AwayFromZero);
-                                unitCostInBaseUnit = lineRequest.UnitCost / conversionFactor;
-                            }
                         }
                         catch (Exception ex)
                         {
-                            _logger.LogWarning(ex, "Unit conversion failed for part {PartId}, using display quantities as base", lineRequest.PartId);
+                            return BadRequest(new { message = $"Unit conversion not configured for part '{part.Name}': {ex.Message}" });
                         }
+
+                        if (conversionFactor <= 0)
+                            return BadRequest(new { message = $"Unit conversion not configured for part '{part.Name}'." });
+
+                        orderedQuantityInBaseUnit = (int)Math.Round(poLine.Quantity * conversionFactor, MidpointRounding.AwayFromZero);
+                        receivedQuantityInBaseUnit = (int)Math.Round(lineRequest.ReceivedQuantity * conversionFactor, MidpointRounding.AwayFromZero);
+                        unitCostInBaseUnit = lineRequest.UnitCost / conversionFactor;
                     }
 
                     // Create GRN line item with cost information and base unit quantities
@@ -823,12 +840,13 @@ public class PurchaseOrderController : ControllerBase
                         lineRequest.WarrantyType,
                         lineRequest.WarrantyTerms,
                         lineRequest.BatchNumber,
-                        lineRequest.ExpiryDate
+                        lineRequest.ExpiryDate,
+                        poLine.VariantId  // carry variant from the matched PO line (SKU-level stock)
                     );
 
                     if (!string.IsNullOrEmpty(lineRequest.Notes))
                     {
-                        grnLine.RejectQuantity(0, 0, lineRequest.Notes);
+                        grnLine.SetNotes(lineRequest.Notes);
                     }
 
                     grn.LineItems.Add(grnLine);
@@ -994,6 +1012,8 @@ public class PurchaseOrderController : ControllerBase
             TaxPercentage = order.TaxPercentage,
             Discount = order.DiscountAmount,
             DiscountPercentage = order.DiscountPercentage,
+            DiscountAmount = order.DiscountFixedAmount,
+            DiscountType = order.DiscountType,
             GrandTotal = order.TotalAmount,
             AmountPaid = order.PaidAmount,
             OutstandingAmount = order.TotalAmount - order.PaidAmount,
@@ -1054,6 +1074,7 @@ public class PurchaseOrderController : ControllerBase
             Lines = grn.LineItems.Select(l => new GoodsReceiptLineResponse
             {
                 Id = l.Id,
+                PurchaseOrderLineId = l.PurchaseOrderLineId,
                 PartId = l.PartId,
                 PartName = l.Part?.Name ?? string.Empty,
                 PartSKU = l.Part?.SKU ?? string.Empty,

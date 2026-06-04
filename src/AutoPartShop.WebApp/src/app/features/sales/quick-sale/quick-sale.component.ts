@@ -37,6 +37,7 @@ import { PricingValidationService } from '../../../shared/services/pricing-valid
 import { QuickCustomerDialogComponent } from '../components/quick-customer-dialog.component';
 import { InvoicePreviewComponent } from '../components/invoice-preview.component';
 import { LazyAutocompleteComponent, LazyRequest, LazyResponse } from '../../../shared/components/lazy-autocomplete';
+import { composeVariantDisplayName } from '../../../shared/utils/variant-name.util';
 
 @Component({
   selector: 'app-quick-sale',
@@ -1742,7 +1743,7 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
     this.quickSaleService.getPriceByCode(searchValue).subscribe({
       next: (part) => {
         if (part) {
-          const displayName = part.variantName ? `${part.name} - ${part.variantName}` : part.name;
+          const displayName = composeVariantDisplayName(part.name, part.variantName);
           // When a variant barcode is scanned, always add directly so the variant ID is captured.
           // For product-level scans without a variant, try to find and use the full part for unit/stock data.
           if (!part.variantId) {

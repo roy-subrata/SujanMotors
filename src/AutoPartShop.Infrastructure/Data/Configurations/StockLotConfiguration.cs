@@ -33,6 +33,12 @@ public class StockLotConfiguration : IEntityTypeConfiguration<StockLot>
             .HasForeignKey(sl => sl.PartId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.HasOne(sl => sl.Variant)
+            .WithMany()
+            .HasForeignKey(sl => sl.VariantId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired(false);
+
         builder.HasOne(sl => sl.Warehouse)
             .WithMany()
             .HasForeignKey(sl => sl.WarehouseId)
@@ -57,6 +63,8 @@ public class StockLotConfiguration : IEntityTypeConfiguration<StockLot>
         // Indexes
         builder.HasIndex(sl => sl.LotNumber).IsUnique();
         builder.HasIndex(sl => sl.PartId);
+        builder.HasIndex(sl => new { sl.PartId, sl.VariantId, sl.WarehouseId });
+        builder.HasIndex(sl => sl.VariantId);
         builder.HasIndex(sl => sl.WarehouseId);
         builder.HasIndex(sl => sl.SupplierId);
     }

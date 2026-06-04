@@ -139,6 +139,7 @@
         <div class="summary-item" *ngFor="let item of cartService.items()">
           <div class="summary-item-info">
             <span class="summary-item-name">{{ item.name }}</span>
+            <span class="summary-item-variant" *ngIf="item.variantName">{{ item.variantName }}</span>
             <span class="summary-item-qty">x{{ item.quantity }}</span>
           </div>
           <span class="summary-item-price">{{ item.currency }} {{ item.price * item.quantity | number:'1.0-0' }}</span>

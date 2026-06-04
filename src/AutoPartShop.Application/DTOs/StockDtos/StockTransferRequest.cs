@@ -3,6 +3,7 @@ namespace AutoPartShop.Application.DTOs.StockDtos;
 public class StockTransferRequest
 {
     public Guid PartId { get; set; }
+    public Guid? VariantId { get; set; }
     public Guid FromWarehouseId { get; set; }
     public Guid ToWarehouseId { get; set; }
     public int Quantity { get; set; }

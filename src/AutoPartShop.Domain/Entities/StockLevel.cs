@@ -6,6 +6,7 @@ namespace AutoPartShop.Domain.Entities;
 public class StockLevel : AuditableEntity
 {
     public Guid PartId { get; private set; }
+    public Guid? VariantId { get; private set; }  // null = part-level stock; set = variant-scoped (SKU-level) stock
     public Guid WarehouseId { get; private set; }
     public Guid? UnitId { get; private set; }  // Unit in which stock quantities are measured
     public int QuantityOnHand { get; private set; } = 0;  // Current stock
@@ -21,14 +22,15 @@ public class StockLevel : AuditableEntity
 
     // Navigation properties
     public Product? Part { get; set; }
+    public ProductVariant? Variant { get; set; }
     public Warehouse? Warehouse { get; set; }
     public Unit? Unit { get; set; }
     public ICollection<StockMovement> Movements { get; set; } = new List<StockMovement>();
 
     private StockLevel() { }
 
-    public static StockLevel Create(Guid partId, Guid warehouseId, int reorderLevel = 0, 
-        int reorderQuantity = 0, string location = "", Guid? unitId = null)
+    public static StockLevel Create(Guid partId, Guid warehouseId, int reorderLevel = 0,
+        int reorderQuantity = 0, string location = "", Guid? unitId = null, Guid? variantId = null)
     {
         if (partId == Guid.Empty)
             throw new ArgumentException("PartId cannot be empty", nameof(partId));
@@ -45,6 +47,7 @@ public class StockLevel : AuditableEntity
         return new StockLevel
         {
             PartId = partId,
+            VariantId = variantId,
             WarehouseId = warehouseId,
             UnitId = unitId,
             ReorderLevel = reorderLevel,

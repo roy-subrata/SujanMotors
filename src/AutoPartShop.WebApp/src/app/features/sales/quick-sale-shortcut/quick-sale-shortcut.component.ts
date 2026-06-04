@@ -33,6 +33,7 @@ import { InvoicePdfService, InvoicePdfData } from '../services/invoice-pdf.servi
 import { CurrencyService } from '../../../shared/services/currency.service';
 import { PricingValidationService } from '../../../shared/services/pricing-validation.service';
 import { extractApiError } from '../../../shared/utils/api-error.util';
+import { composeVariantDisplayName } from '../../../shared/utils/variant-name.util';
 
 // Components
 import { QuickCustomerDialogComponent } from '../components/quick-customer-dialog.component';
@@ -253,7 +254,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
   returnInvoiceNumber = '';
   returnInvoice: any = null;
   returnRefundType: 'CASH_REFUND' | 'STORE_CREDIT' = 'CASH_REFUND';
-  returnLines: { partId: string; partName: string; soldQty: number; unitPrice: number; returnQty: number; selected: boolean }[] = [];
+  returnLines: { salesOrderLineId: string; partId: string; partName: string; soldQty: number; unitPrice: number; returnQty: number; selected: boolean }[] = [];
   priceCheckCode = '';
   priceCheckResult: any = null;
   priceCheckLoading = false;
@@ -539,7 +540,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
           const existing = this.cartItems().find(
             item => item.partId === result.partId && (item.productVariantId ?? null) === (result.variantId ?? null)
           );
-          const displayName = result.variantName ? `${result.name} - ${result.variantName}` : result.name;
+          const displayName = composeVariantDisplayName(result.name, result.variantName);
           if (existing) {
             this.cartItems.update(items =>
               items.map(item =>
@@ -748,8 +749,9 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
         this.returnInvoice = invoice;
         // Default: every sold line selected, full quantity — cashier trims as needed.
         this.returnLines = (invoice?.lines ?? []).map(l => ({
+          salesOrderLineId: l.salesOrderLineId,
           partId: l.partId,
-          partName: l.partName,
+          partName: l.variantName ? `${l.partName} - ${l.variantName}` : l.partName,
           soldQty: l.quantity,
           unitPrice: l.unitPrice,
           returnQty: l.quantity,
@@ -785,6 +787,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
 
     const items = chosen.map(l => ({
       partId: l.partId,
+      salesOrderLineId: l.salesOrderLineId,
       quantity: l.returnQty,
       reason: 'POS quick return'
     }));

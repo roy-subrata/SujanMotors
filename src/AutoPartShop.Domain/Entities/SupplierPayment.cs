@@ -111,6 +111,11 @@ public class SupplierPayment : AuditableEntity
         InvoiceNumber = invoiceNumber?.Trim() ?? string.Empty;
     }
 
+    public void SetReferenceNumber(string referenceNumber)
+    {
+        ReferenceNumber = referenceNumber?.Trim() ?? string.Empty;
+    }
+
     public void MarkAsProcessing()
     {
         if (Status != "PENDING")

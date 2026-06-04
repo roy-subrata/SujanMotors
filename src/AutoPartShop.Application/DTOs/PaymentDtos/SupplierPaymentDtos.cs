@@ -44,6 +44,7 @@ public class UpdateSupplierPaymentRequest
     public string Status { get; set; } = string.Empty;
     public string ReferenceNumber { get; set; } = string.Empty;
     public string AuthorizationCode { get; set; } = string.Empty;
+    public string InvoiceNumber { get; set; } = string.Empty;
     public string Notes { get; set; } = string.Empty;
 }
 

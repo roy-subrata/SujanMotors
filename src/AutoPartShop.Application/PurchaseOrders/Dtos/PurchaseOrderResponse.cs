@@ -16,6 +16,8 @@ public class PurchaseOrderResponse
     public decimal TaxPercentage { get; set; }
     public decimal Discount { get; set; }
     public decimal DiscountPercentage { get; set; }
+    public decimal DiscountAmount { get; set; }
+    public string DiscountType { get; set; } = "TOTAL";
     public decimal GrandTotal { get; set; }
     public string Currency { get; set; } = string.Empty;
     public decimal AmountPaid { get; set; }

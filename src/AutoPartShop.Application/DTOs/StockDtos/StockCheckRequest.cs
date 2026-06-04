@@ -4,12 +4,14 @@ namespace AutoPartShop.Application.DTOs.StockDtos;
 public class StockCheckRequest
 {
     public Guid PartId { get; set; }
+    public Guid? VariantId { get; set; }  // when set, checks the specific variant's stock
     public int Quantity { get; set; }
 }
 
 public class StockCheckResponse
 {
     public Guid PartId { get; set; }
+    public Guid? VariantId { get; set; }
     public bool Available { get; set; }
     public int StockAvailable { get; set; }
     public string? WarehouseLocation { get; set; }

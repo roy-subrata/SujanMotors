@@ -164,13 +164,13 @@ export class SupplierPaymentFormComponent implements OnInit {
                 this.paymentId = params['id'];
                 this.isEditing = true;
                 this.loadPayment();
-                // Disable fields that shouldn't be edited after creation
+                // Lock fields that shouldn't change after creation.
+                // Reference info (referenceNumber, invoiceNumber, authorizationCode, notes)
+                // stays editable.
                 this.form.get('supplierId')?.disable();
                 this.form.get('paymentProviderId')?.disable();
                 this.form.get('amount')?.disable();
                 this.form.get('transactionNumber')?.disable();
-                this.form.get('referenceNumber')?.disable();
-                this.form.get('invoiceNumber')?.disable();
                 this.form.get('paymentDate')?.disable();
                 this.form.get('purchaseOrderId')?.disable();
             } else if (params['purchaseOrderId']) {
@@ -419,16 +419,19 @@ export class SupplierPaymentFormComponent implements OnInit {
             return;
         }
 
-        // Additional validation: REGULAR payments require a Purchase Order
-        const paymentType = this.form.get('paymentType')?.value;
-        const purchaseOrderId = this.form.get('purchaseOrderId')?.value;
-        if (paymentType === 'REGULAR' && !purchaseOrderId) {
-            this.messageService.add({
-                severity: 'error',
-                summary: 'Validation Error',
-                detail: 'Regular payments must be linked to a purchase order. Select a PO or choose Advance Payment type.'
-            });
-            return;
+        // Additional validation (create only): REGULAR payments require a Purchase Order.
+        // On edit, the PO/type are locked and not part of the update payload.
+        if (!this.isEditing) {
+            const paymentType = this.form.get('paymentType')?.value;
+            const purchaseOrderId = this.form.get('purchaseOrderId')?.value;
+            if (paymentType === 'REGULAR' && !purchaseOrderId) {
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Validation Error',
+                    detail: 'Regular payments must be linked to a purchase order. Select a PO or choose Advance Payment type.'
+                });
+                return;
+            }
         }
 
         this.loading = true;
@@ -438,6 +441,7 @@ export class SupplierPaymentFormComponent implements OnInit {
             const updateRequest = {
                 referenceNumber: this.form.get('referenceNumber')?.value || '',
                 authorizationCode: this.form.get('authorizationCode')?.value || '',
+                invoiceNumber: this.form.get('invoiceNumber')?.value || '',
                 notes: this.form.get('notes')?.value || ''
             };
             this.service.updateSupplierPayment(this.paymentId, updateRequest).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({

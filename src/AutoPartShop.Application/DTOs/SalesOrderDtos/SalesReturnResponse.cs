@@ -22,6 +22,8 @@ public class SalesReturnLineResponse
     public Guid PartId { get; set; }
     public string PartName { get; set; } = string.Empty;
     public string PartSku { get; set; } = string.Empty;
+    public string? VariantName { get; set; }
+    public string DisplayName { get; set; } = string.Empty;  // PartName, or "PartName - VariantName" when a variant was sold
     public int Quantity { get; set; }
     public int QuantityInBaseUnit { get; set; }
     public decimal UnitPrice { get; set; }

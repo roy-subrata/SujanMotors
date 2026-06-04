@@ -29,6 +29,8 @@ export interface SalesReturnLineResponse {
   partId: string;
   partName: string;
   partSku: string;
+  variantName?: string | null;
+  displayName?: string;
   unitId: string | null;
   unitName: string | null;
   unitSymbol: string | null;

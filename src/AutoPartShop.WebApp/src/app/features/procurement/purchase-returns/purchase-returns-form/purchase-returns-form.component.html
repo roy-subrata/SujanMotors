@@ -248,7 +248,7 @@
                     </p-autoComplete>
                   </div>
                   <div *ngIf="isViewMode" class="part-name-wrapper">
-                    <span class="part-name-value">{{ item.get('part')?.value?.name || 'N/A' }}</span>
+                    <span class="part-name-value">{{ item.get('displayName')?.value || item.get('part')?.value?.name || 'N/A' }}</span>
                   </div>
                 </td>
                 <td class="lot-cell" data-label="Stock Lot">
@@ -446,7 +446,7 @@
           </p-checkbox>
           <label [for]="'item-' + i" class="item-label">
             <div class="item-info">
-              <span class="item-name">{{ getPartName(item.partId) }}</span>
+              <span class="item-name">{{ item.displayName || getPartName(item.partId) }}</span>
               <span class="item-details">Qty: {{ item.quantity }} | Price: {{ item.unitPrice | currency:currencyCode:'symbol':'1.2-2' }}</span>
             </div>
             <span class="item-total">{{ (item.quantity * item.unitPrice) | currency:currencyCode:'symbol':'1.2-2' }}</span>

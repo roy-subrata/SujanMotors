@@ -10,6 +10,8 @@ public interface IStockLotRepository : IBaseRepository<StockLot>
     Task<IEnumerable<StockLot>> GetByPartAndWarehouseAsync(Guid partId, Guid warehouseId, CancellationToken cancellationToken = default);
     Task<StockLot?> GetByLotNumberAsync(string lotNumber, CancellationToken cancellationToken = default);
     Task<IEnumerable<StockLot>> GetAvailableLotsAsync(Guid partId, Guid warehouseId, CancellationToken cancellationToken = default);
+    // Variant-scoped FIFO lots — variantId null = part-level (rows where VariantId IS NULL).
+    Task<IEnumerable<StockLot>> GetAvailableLotsAsync(Guid partId, Guid? variantId, Guid warehouseId, CancellationToken cancellationToken = default);
     Task<IEnumerable<StockLot>> GetExpiredLotsAsync(CancellationToken cancellationToken = default);
     Task<IEnumerable<StockLot>> GetLowStockLotsAsync(CancellationToken cancellationToken = default);
     Task<IEnumerable<StockLot>> GetByGoodsReceiptLineAsync(Guid goodsReceiptLineId, CancellationToken cancellationToken = default);

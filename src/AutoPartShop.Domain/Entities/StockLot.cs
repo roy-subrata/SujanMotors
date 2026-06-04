@@ -9,6 +9,7 @@ public class StockLot : AuditableEntity
 {
     public string LotNumber { get; private set; } = string.Empty;  // Unique lot identifier
     public Guid PartId { get; private set; }
+    public Guid? VariantId { get; private set; }  // null = part-level lot; set = variant-scoped (SKU-level) lot
     public Guid WarehouseId { get; private set; }
     public Guid SupplierId { get; private set; }
     public Guid GoodsReceiptLineId { get; private set; }  // Reference to goods receipt that created this lot
@@ -36,6 +37,7 @@ public class StockLot : AuditableEntity
 
     // Navigation properties
     public Product? Part { get; set; }
+    public ProductVariant? Variant { get; set; }
     public Warehouse? Warehouse { get; set; }
     public Supplier? Supplier { get; set; }
     public Unit? Unit { get; set; }
@@ -45,11 +47,11 @@ public class StockLot : AuditableEntity
 
     public static StockLot Create(string lotNumber, Guid partId, Guid warehouseId, Guid supplierId,
         Guid goodsReceiptLineId, int quantityReceived, decimal costPrice, DateTime receivingDate,
-        string manufacturerLotNumber = "", DateTime? expiryDate = null, string currency = "USD", 
-        string notes = "", Guid? unitId = null, int quantityReceivedInBaseUnit = 0, 
+        string manufacturerLotNumber = "", DateTime? expiryDate = null, string currency = "USD",
+        string notes = "", Guid? unitId = null, int quantityReceivedInBaseUnit = 0,
         decimal costPriceInBaseUnit = 0, decimal sellingPrice = 0,
         bool hasWarranty = false, int? warrantyPeriodMonths = null,
-        string? warrantyType = null, string? warrantyTerms = null)
+        string? warrantyType = null, string? warrantyTerms = null, Guid? variantId = null)
     {
         if (string.IsNullOrWhiteSpace(lotNumber))
             throw new ArgumentException("LotNumber cannot be empty", nameof(lotNumber));
@@ -82,6 +84,7 @@ public class StockLot : AuditableEntity
         {
             LotNumber = lotNumber.Trim().ToUpper(),
             PartId = partId,
+            VariantId = variantId,
             WarehouseId = warehouseId,
             SupplierId = supplierId,
             GoodsReceiptLineId = goodsReceiptLineId,
@@ -151,7 +154,7 @@ public class StockLot : AuditableEntity
         int quantityReceived, decimal costPrice, DateTime receivingDate,
         string returnNumber = "", string currency = "USD", string notes = "",
         Guid? unitId = null, int quantityReceivedInBaseUnit = 0, decimal costPriceInBaseUnit = 0,
-        decimal sellingPrice = 0)
+        decimal sellingPrice = 0, Guid? variantId = null)
     {
         if (string.IsNullOrWhiteSpace(lotNumber))
             throw new ArgumentException("LotNumber cannot be empty", nameof(lotNumber));
@@ -172,6 +175,7 @@ public class StockLot : AuditableEntity
         {
             LotNumber = lotNumber.Trim().ToUpper(),
             PartId = partId,
+            VariantId = variantId,
             WarehouseId = warehouseId,
             SupplierId = Guid.Empty,
             GoodsReceiptLineId = Guid.Empty,

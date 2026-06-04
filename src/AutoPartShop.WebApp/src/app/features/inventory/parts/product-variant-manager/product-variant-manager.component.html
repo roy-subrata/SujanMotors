@@ -114,8 +114,8 @@
     <div class="vd-section">
       <div class="vd-row">
         <div class="vd-field">
-          <label>Variant Name *</label>
-          <input pInputText formControlName="name" placeholder="e.g. Red / Large" class="w-full" />
+          <label>Variant Name * <span style="font-size:0.78rem;color:#6b7280;font-weight:400">(short label only — e.g. LH, RH, Red / Large; the product name is added automatically)</span></label>
+          <input pInputText formControlName="name" placeholder="e.g. LH" class="w-full" />
           <small class="p-error" *ngIf="variantForm.get('name')?.invalid && variantForm.get('name')?.touched">Required</small>
         </div>
         <div class="vd-field">

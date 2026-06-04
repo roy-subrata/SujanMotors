@@ -870,16 +870,16 @@ public class EcommerceController(
             await CleanupExpiredReservationsAsync(request.PartId, cancellationToken);
 
             // If no variantId was supplied (e.g. item added from landing page),
-            // check whether the part has variants and auto-pick the one with most available stock.
+            // auto-pick the variant with the most available stock.
             if (!request.VariantId.HasValue)
             {
                 var bestVariant = await (
                     from v in _dbContext.ProductVariants
                     where v.PartId == request.PartId && !v.Isdeleted && v.IsActive
-                    join vsl in _dbContext.VariantStockLevels
-                        on v.Id equals vsl.VariantId
-                    where !vsl.Isdeleted && vsl.IsActive
-                    group vsl by v.Id into g
+                    join sl in _dbContext.StockLevels
+                        on v.Id equals sl.VariantId
+                    where !sl.Isdeleted && sl.IsActive
+                    group sl by v.Id into g
                     where g.Sum(x => x.QuantityOnHand - x.QuantityReserved) >= request.Quantity
                     orderby g.Sum(x => x.QuantityOnHand - x.QuantityReserved) descending
                     select g.Key
@@ -889,34 +889,12 @@ public class EcommerceController(
                     request.VariantId = bestVariant;
             }
 
-            // Rule: variant products → VariantStockLevels; plain products → StockLevels
-            var isVariant = request.VariantId.HasValue;
+            // Unified stock: rows live in StockLevels scoped by (PartId, VariantId?). VariantId null = part-level.
+            var stockLevels = await _dbContext.StockLevels
+                .Where(sl => sl.PartId == request.PartId && sl.VariantId == request.VariantId && sl.IsActive && !sl.Isdeleted)
+                .ToListAsync(cancellationToken);
 
-            var variantStockLevels = isVariant
-                ? await _dbContext.VariantStockLevels
-                    .Where(vsl => vsl.VariantId == request.VariantId!.Value && vsl.IsActive && !vsl.Isdeleted)
-                    .ToListAsync(cancellationToken)
-                : new List<VariantStockLevel>();
-
-            // If a variantId was supplied but the variant has no VariantStockLevel records,
-            // fall back to part-level StockLevels — mirrors the catalog's own inStock fallback.
-            // Also null the variantId so the CartReservation stores null and the release uses
-            // StockLevels too (keeps reserve and release consistent).
-            if (isVariant && variantStockLevels.Count == 0)
-            {
-                isVariant = false;
-                request.VariantId = null;
-            }
-
-            var partStockLevels = !isVariant
-                ? await _dbContext.StockLevels
-                    .Where(sl => sl.PartId == request.PartId && sl.IsActive && !sl.Isdeleted)
-                    .ToListAsync(cancellationToken)
-                : new List<StockLevel>();
-
-            var totalAvailable = isVariant
-                ? variantStockLevels.Sum(vsl => vsl.QuantityAvailable)
-                : partStockLevels.Sum(sl => sl.QuantityAvailable);
+            var totalAvailable = stockLevels.Sum(sl => sl.QuantityAvailable);
 
             if (totalAvailable < request.Quantity)
                 return BadRequest(new { message = $"Only {totalAvailable} unit(s) available", available = totalAvailable });
@@ -934,31 +912,16 @@ public class EcommerceController(
 
                 if (delta > 0)
                 {
-                    if (isVariant)
-                        variantStockLevels.OrderByDescending(vsl => vsl.QuantityAvailable).First().ReserveStock(delta);
-                    else
-                        partStockLevels.OrderByDescending(sl => sl.QuantityAvailable).First().ReserveStock(delta);
+                    stockLevels.OrderByDescending(sl => sl.QuantityAvailable).First().ReserveStock(delta);
                 }
                 else if (delta < 0)
                 {
                     var toRelease = -delta;
-                    if (isVariant)
+                    foreach (var sl in stockLevels)
                     {
-                        foreach (var vsl in variantStockLevels)
-                        {
-                            if (toRelease <= 0) break;
-                            var r = Math.Min(vsl.QuantityReserved, toRelease);
-                            if (r > 0) { vsl.ReleaseReservedStock(r); toRelease -= r; }
-                        }
-                    }
-                    else
-                    {
-                        foreach (var sl in partStockLevels)
-                        {
-                            if (toRelease <= 0) break;
-                            var r = Math.Min(sl.QuantityReserved, toRelease);
-                            if (r > 0) { sl.ReleaseReservedStock(r); toRelease -= r; }
-                        }
+                        if (toRelease <= 0) break;
+                        var r = Math.Min(sl.QuantityReserved, toRelease);
+                        if (r > 0) { sl.ReleaseReservedStock(r); toRelease -= r; }
                     }
                 }
 
@@ -971,10 +934,7 @@ public class EcommerceController(
                     request.SessionId, request.PartId, request.Quantity,
                     productVariantId: request.VariantId);
 
-                if (isVariant)
-                    variantStockLevels.OrderByDescending(vsl => vsl.QuantityAvailable).First().ReserveStock(request.Quantity);
-                else
-                    partStockLevels.OrderByDescending(sl => sl.QuantityAvailable).First().ReserveStock(request.Quantity);
+                stockLevels.OrderByDescending(sl => sl.QuantityAvailable).First().ReserveStock(request.Quantity);
 
                 await _dbContext.CartReservations.AddAsync(reservation, cancellationToken);
             }
@@ -1011,31 +971,16 @@ public class EcommerceController(
 
             var qtyToRelease = reservation.Quantity;
 
-            if (reservation.ProductVariantId.HasValue)
-            {
-                var variantLevels = await _dbContext.VariantStockLevels
-                    .Where(vsl => vsl.VariantId == reservation.ProductVariantId.Value && vsl.IsActive && !vsl.Isdeleted)
-                    .ToListAsync(cancellationToken);
+            // Unified: release against StockLevels scoped to the reservation's (PartId, VariantId?).
+            var stockLevels = await _dbContext.StockLevels
+                .Where(sl => sl.PartId == request.PartId && sl.VariantId == reservation.ProductVariantId && sl.IsActive && !sl.Isdeleted)
+                .ToListAsync(cancellationToken);
 
-                foreach (var vsl in variantLevels)
-                {
-                    if (qtyToRelease <= 0) break;
-                    var canRelease = Math.Min(vsl.QuantityReserved, qtyToRelease);
-                    if (canRelease > 0) { vsl.ReleaseReservedStock(canRelease); qtyToRelease -= canRelease; }
-                }
-            }
-            else
+            foreach (var sl in stockLevels)
             {
-                var stockLevels = await _dbContext.StockLevels
-                    .Where(sl => sl.PartId == request.PartId && sl.IsActive && !sl.Isdeleted)
-                    .ToListAsync(cancellationToken);
-
-                foreach (var sl in stockLevels)
-                {
-                    if (qtyToRelease <= 0) break;
-                    var canRelease = Math.Min(sl.QuantityReserved, qtyToRelease);
-                    if (canRelease > 0) { sl.ReleaseReservedStock(canRelease); qtyToRelease -= canRelease; }
-                }
+                if (qtyToRelease <= 0) break;
+                var canRelease = Math.Min(sl.QuantityReserved, qtyToRelease);
+                if (canRelease > 0) { sl.ReleaseReservedStock(canRelease); qtyToRelease -= canRelease; }
             }
 
             reservation.Release();
@@ -1068,31 +1013,16 @@ public class EcommerceController(
             {
                 var qtyToRelease = reservation.Quantity;
 
-                if (reservation.ProductVariantId.HasValue)
-                {
-                    var variantLevels = await _dbContext.VariantStockLevels
-                        .Where(vsl => vsl.VariantId == reservation.ProductVariantId.Value && vsl.IsActive && !vsl.Isdeleted)
-                        .ToListAsync(cancellationToken);
+                // Unified: release against StockLevels scoped to the reservation's (PartId, VariantId?).
+                var stockLevels = await _dbContext.StockLevels
+                    .Where(sl => sl.PartId == reservation.PartId && sl.VariantId == reservation.ProductVariantId && sl.IsActive && !sl.Isdeleted)
+                    .ToListAsync(cancellationToken);
 
-                    foreach (var vsl in variantLevels)
-                    {
-                        if (qtyToRelease <= 0) break;
-                        var canRelease = Math.Min(vsl.QuantityReserved, qtyToRelease);
-                        if (canRelease > 0) { vsl.ReleaseReservedStock(canRelease); qtyToRelease -= canRelease; }
-                    }
-                }
-                else
+                foreach (var sl in stockLevels)
                 {
-                    var stockLevels = await _dbContext.StockLevels
-                        .Where(sl => sl.PartId == reservation.PartId && sl.IsActive && !sl.Isdeleted)
-                        .ToListAsync(cancellationToken);
-
-                    foreach (var sl in stockLevels)
-                    {
-                        if (qtyToRelease <= 0) break;
-                        var canRelease = Math.Min(sl.QuantityReserved, qtyToRelease);
-                        if (canRelease > 0) { sl.ReleaseReservedStock(canRelease); qtyToRelease -= canRelease; }
-                    }
+                    if (qtyToRelease <= 0) break;
+                    var canRelease = Math.Min(sl.QuantityReserved, qtyToRelease);
+                    if (canRelease > 0) { sl.ReleaseReservedStock(canRelease); qtyToRelease -= canRelease; }
                 }
 
                 reservation.Release();
@@ -1116,6 +1046,7 @@ public class EcommerceController(
 
         if (!expired.Any()) return;
 
+        // All StockLevels for this part (any variant); each reservation releases against its own variant scope.
         var stockLevels = await _dbContext.StockLevels
             .Where(sl => sl.PartId == partId && sl.IsActive && !sl.Isdeleted)
             .ToListAsync(ct);
@@ -1124,27 +1055,11 @@ public class EcommerceController(
         {
             var qtyToRelease = reservation.Quantity;
 
-            if (reservation.ProductVariantId.HasValue)
+            foreach (var sl in stockLevels.Where(s => s.VariantId == reservation.ProductVariantId))
             {
-                var variantLevels = await _dbContext.VariantStockLevels
-                    .Where(vsl => vsl.VariantId == reservation.ProductVariantId.Value && vsl.IsActive && !vsl.Isdeleted)
-                    .ToListAsync(ct);
-
-                foreach (var vsl in variantLevels)
-                {
-                    if (qtyToRelease <= 0) break;
-                    var canRelease = Math.Min(vsl.QuantityReserved, qtyToRelease);
-                    if (canRelease > 0) { vsl.ReleaseReservedStock(canRelease); qtyToRelease -= canRelease; }
-                }
-            }
-            else
-            {
-                foreach (var sl in stockLevels)
-                {
-                    if (qtyToRelease <= 0) break;
-                    var canRelease = Math.Min(sl.QuantityReserved, qtyToRelease);
-                    if (canRelease > 0) { sl.ReleaseReservedStock(canRelease); qtyToRelease -= canRelease; }
-                }
+                if (qtyToRelease <= 0) break;
+                var canRelease = Math.Min(sl.QuantityReserved, qtyToRelease);
+                if (canRelease > 0) { sl.ReleaseReservedStock(canRelease); qtyToRelease -= canRelease; }
             }
 
             reservation.Release();
@@ -1159,57 +1074,14 @@ public class EcommerceController(
     {
         var reference = $"Ecommerce Order {soNumber}";
 
-        if (variantId.HasValue)
-        {
-            var levels = await _dbContext.VariantStockLevels
-                .Where(v => v.VariantId == variantId.Value && v.IsActive && !v.Isdeleted)
-                .ToListAsync(ct);
-
-            if (levels.Any())
-            {
-                var toRelease = qty;
-                foreach (var v in levels.OrderByDescending(x => x.QuantityReserved))
-                {
-                    if (toRelease <= 0) break;
-                    var r = Math.Min(v.QuantityReserved, toRelease);
-                    if (r > 0) { v.ReleaseReservedStock(r); toRelease -= r; }
-                }
-                var toRemove = qty;
-                foreach (var v in levels.OrderByDescending(x => x.QuantityAvailable))
-                {
-                    if (toRemove <= 0) break;
-                    var r = Math.Min(v.QuantityAvailable, toRemove);
-                    if (r > 0) { v.RemoveStock(r); toRemove -= r; }
-                }
-                if (toRemove > 0)
-                    throw new InvalidOperationException(
-                        $"Insufficient stock for variant {variantId}: ordered {qty}, only {qty - toRemove} available.");
-
-                // StockMovement audit via the part-level StockLevel for this warehouse
-                var partLevel = await _dbContext.StockLevels
-                    .FirstOrDefaultAsync(s => s.PartId == partId && s.WarehouseId == warehouseId && s.IsActive && !s.Isdeleted, ct);
-                if (partLevel != null)
-                {
-                    var movement = StockMovement.Create(partLevel.Id, "OUT", qty, reference, soNumber, quantityInBaseUnit: qty);
-                    movement.Approve("ECOMMERCE");
-                    movement.CreatedBy = "ECOMMERCE";
-                    movement.ModifiedBy = "ECOMMERCE";
-                    await _dbContext.StockMovements.AddAsync(movement, ct);
-                }
-
-                await _dbContext.SaveChangesAsync(ct);
-                return;
-            }
-        }
-
-        // Non-variant or no variant stock levels — use part-level StockLevels
+        // Unified: stock lives in StockLevels scoped by (PartId, VariantId?). VariantId null = part-level.
         var partLevels = await _dbContext.StockLevels
-            .Where(s => s.PartId == partId && s.IsActive && !s.Isdeleted)
+            .Where(s => s.PartId == partId && s.VariantId == variantId && s.IsActive && !s.Isdeleted)
             .ToListAsync(ct);
 
         if (!partLevels.Any())
             throw new InvalidOperationException(
-                $"No stock levels configured for part {partId}. Cannot fulfil this order line.");
+                $"No stock levels configured for part {partId}{(variantId.HasValue ? $" / variant {variantId}" : "")}. Cannot fulfil this order line.");
 
         var releaseRemaining = qty;
         foreach (var s in partLevels.OrderByDescending(x => x.QuantityReserved))
@@ -1241,7 +1113,7 @@ public class EcommerceController(
         try
         {
             var lots = await _dbContext.StockLots
-                .Where(l => l.PartId == partId && l.WarehouseId == warehouseId
+                .Where(l => l.PartId == partId && l.VariantId == variantId && l.WarehouseId == warehouseId
                     && l.QuantityAvailableInBaseUnit > 0 && !l.Isdeleted)
                 .OrderBy(l => l.ReceivingDate)
                 .ToListAsync(ct);

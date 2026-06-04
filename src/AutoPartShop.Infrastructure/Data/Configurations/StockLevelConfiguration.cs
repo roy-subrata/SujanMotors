@@ -18,6 +18,12 @@ public class StockLevelConfiguration : IEntityTypeConfiguration<StockLevel>
             .HasForeignKey(sl => sl.PartId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.HasOne(sl => sl.Variant)
+            .WithMany()
+            .HasForeignKey(sl => sl.VariantId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired(false);
+
         builder.HasOne(sl => sl.Warehouse)
             .WithMany()
             .HasForeignKey(sl => sl.WarehouseId)
@@ -34,9 +40,18 @@ public class StockLevelConfiguration : IEntityTypeConfiguration<StockLevel>
             .HasForeignKey(m => m.StockLevelId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // Indexes
-        builder.HasIndex(sl => new { sl.PartId, sl.WarehouseId }).IsUnique();
+        // Indexes — stock-keeping unit is (Part, Variant?, Warehouse). Two filtered unique indexes:
+        //  • variant rows: unique per (Part, Variant, Warehouse)
+        //  • part-level rows (VariantId NULL): unique per (Part, Warehouse)
+        // Split is needed because a single unique index over a nullable column lets multiple NULLs through.
+        builder.HasIndex(sl => new { sl.PartId, sl.VariantId, sl.WarehouseId })
+            .IsUnique()
+            .HasFilter("[VariantId] IS NOT NULL");
+        builder.HasIndex(sl => new { sl.PartId, sl.WarehouseId })
+            .IsUnique()
+            .HasFilter("[VariantId] IS NULL");
         builder.HasIndex(sl => sl.PartId);
+        builder.HasIndex(sl => sl.VariantId);
         builder.HasIndex(sl => sl.WarehouseId);
     }
 }

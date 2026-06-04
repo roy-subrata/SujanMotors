@@ -32,6 +32,7 @@ export interface UpdateSupplierPaymentRequest {
     status?: string;
     referenceNumber: string;
     authorizationCode: string;
+    invoiceNumber: string;
     notes: string;
 }
 

@@ -356,9 +356,9 @@ public class CatalogReadRepository(AutoPartDbContext _db) : ICatalogReadReposito
 
         var variantIds = variants.Select(v => v.Id).ToList();
 
-        var variantStock = await _db.VariantStockLevels
-            .Where(s => !s.Isdeleted && s.IsActive && variantIds.Contains(s.VariantId))
-            .GroupBy(s => s.VariantId)
+        var variantStock = await _db.StockLevels
+            .Where(s => !s.Isdeleted && s.IsActive && s.VariantId != null && variantIds.Contains(s.VariantId.Value))
+            .GroupBy(s => s.VariantId!.Value)
             .Select(g => new { VariantId = g.Key, Available = g.Sum(x => x.QuantityOnHand - x.QuantityReserved) })
             .ToListAsync(cancellationToken);
 
@@ -572,7 +572,8 @@ public class CatalogReadRepository(AutoPartDbContext _db) : ICatalogReadReposito
         item.IsOnSale = true;
     }
 
-    // Parts with variants → VariantStockLevels; parts without variants → StockLevels.
+    // Availability from unified StockLevels: variant parts use variant-scoped rows (VariantId set),
+    // plain parts use part-level rows (VariantId null).
     private async Task<HashSet<Guid>> GetInStockPartIdsAsync(List<Guid> partIds, CancellationToken ct)
     {
         if (!partIds.Any()) return new HashSet<Guid>();
@@ -601,9 +602,9 @@ public class CatalogReadRepository(AutoPartDbContext _db) : ICatalogReadReposito
             var variantIds = variantIdToPartId.Select(x => x.Id).ToList();
 
             // Step 2 — find which variants have available stock
-            var inStockVariantIds = await _db.VariantStockLevels
-                .Where(s => !s.Isdeleted && s.IsActive && variantIds.Contains(s.VariantId))
-                .GroupBy(s => s.VariantId)
+            var inStockVariantIds = await _db.StockLevels
+                .Where(s => !s.Isdeleted && s.IsActive && s.VariantId != null && variantIds.Contains(s.VariantId.Value))
+                .GroupBy(s => s.VariantId!.Value)
                 .Select(g => new { VariantId = g.Key, Available = g.Sum(x => x.QuantityOnHand - x.QuantityReserved) })
                 .Where(x => x.Available > 0)
                 .Select(x => x.VariantId)
@@ -637,9 +638,9 @@ public class CatalogReadRepository(AutoPartDbContext _db) : ICatalogReadReposito
     {
         if (!variantIds.Any()) return new HashSet<Guid>();
 
-        var inStock = await _db.VariantStockLevels
-            .Where(s => !s.Isdeleted && s.IsActive && variantIds.Contains(s.VariantId))
-            .GroupBy(s => s.VariantId)
+        var inStock = await _db.StockLevels
+            .Where(s => !s.Isdeleted && s.IsActive && s.VariantId != null && variantIds.Contains(s.VariantId.Value))
+            .GroupBy(s => s.VariantId!.Value)
             .Select(g => new { VariantId = g.Key, Available = g.Sum(x => x.QuantityOnHand - x.QuantityReserved) })
             .Where(x => x.Available > 0)
             .Select(x => x.VariantId)
@@ -673,9 +674,9 @@ public class CatalogReadRepository(AutoPartDbContext _db) : ICatalogReadReposito
 
     private async Task<HashSet<Guid>> GetInStockVariantIdsAsync(CancellationToken ct)
     {
-        var inStock = await _db.VariantStockLevels
-            .Where(s => !s.Isdeleted && s.IsActive)
-            .GroupBy(s => s.VariantId)
+        var inStock = await _db.StockLevels
+            .Where(s => !s.Isdeleted && s.IsActive && s.VariantId != null)
+            .GroupBy(s => s.VariantId!.Value)
             .Select(g => new { VariantId = g.Key, Available = g.Sum(x => x.QuantityOnHand - x.QuantityReserved) })
             .Where(x => x.Available > 0)
             .Select(x => x.VariantId)

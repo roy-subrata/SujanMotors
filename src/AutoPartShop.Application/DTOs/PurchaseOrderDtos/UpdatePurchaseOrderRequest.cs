@@ -9,6 +9,8 @@ public class UpdatePurchaseOrderRequest
     public DateTime DeliveryDate { get; set; }
     public decimal TaxPercentage { get; set; } = 0;
     public decimal DiscountPercentage { get; set; } = 0;
+    public decimal DiscountAmount { get; set; } = 0;
+    public string DiscountType { get; set; } = "TOTAL";
     public string Notes { get; set; } = string.Empty;
     public string Currency { get; set; } = "BDT";
     public List<UpdatePurchaseOrderLineRequest> LineItems { get; set; } = new();

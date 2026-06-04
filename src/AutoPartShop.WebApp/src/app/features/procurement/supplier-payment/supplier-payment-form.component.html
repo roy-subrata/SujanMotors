@@ -330,8 +330,9 @@
         <div class="form-row">
           <div class="form-group">
             <label>Transaction Number</label>
-            <input pInputText formControlName="transactionNumber" placeholder="Transaction number"
-              [readonly]="isEditing" />
+            <input pInputText formControlName="transactionNumber" placeholder="Auto-generated"
+              [readonly]="true" />
+            <small class="field-hint">Generated automatically on save</small>
           </div>
           <div class="form-group">
             <label>Reference Number</label>
@@ -341,7 +342,7 @@
         <div class="form-row">
           <div class="form-group">
             <label>Invoice Number</label>
-            <input pInputText formControlName="invoiceNumber" placeholder="Invoice number" [readonly]="isEditing" />
+            <input pInputText formControlName="invoiceNumber" placeholder="Invoice number" />
           </div>
           <div class="form-group" *ngIf="isEditing">
             <label>Authorization Code</label>
