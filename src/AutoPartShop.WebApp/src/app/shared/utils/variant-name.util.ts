@@ -15,5 +15,12 @@
  * @param variantName Short variant label, if the line is a variant.
  */
 export function composeVariantDisplayName(name: string, variantName?: string | null): string {
-  return variantName?.trim() ? `${name} - ${variantName}` : name;
+  const base = (name ?? '').trim();
+  const variant = (variantName ?? '').trim();
+  if (!variant) return base;
+  if (!base) return variant;
+  // Defensive: some legacy/seed variant labels already embed the full base name
+  // ("Bosch Alternator 65A — Standard"). Avoid duplicating it.
+  if (variant.toLowerCase().startsWith(base.toLowerCase())) return variant;
+  return `${base} - ${variant}`;
 }

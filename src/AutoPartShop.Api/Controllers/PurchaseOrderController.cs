@@ -4,6 +4,7 @@ using AutoPartShop.Application.DTOs.PurchaseOrderDtos;
 using AutoPartShop.Application.PurchaseOrders;
 using AutoPartShop.Application.Services;
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Common;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -1027,9 +1028,7 @@ public class PurchaseOrderController : ControllerBase
                 VariantId = l.VariantId,
                 VariantName = l.Variant?.Name,
                 VariantCode = l.Variant?.Code,
-                DisplayName = l.Variant != null
-                    ? (l.Part != null ? l.Part.Name + " - " + l.Variant.Name : l.Variant.Name)
-                    : (l.Part?.Name ?? string.Empty),
+                DisplayName = VariantNaming.Compose(l.Part?.Name, l.Variant?.Name),
                 PartBaseUnitId = l.Part?.UnitId,
                 UnitId = l.UnitId,
                 UnitName = l.Unit?.Name ?? string.Empty,

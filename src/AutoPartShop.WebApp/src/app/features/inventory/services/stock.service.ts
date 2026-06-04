@@ -6,7 +6,13 @@ import { environment } from 'src/environments/environment';
 export interface StockLevelResponse {
   id: string;
   partId: string;
+  partName?: string | null;
+  partSku?: string | null;
+  variantId?: string | null;
+  variantName?: string | null;
+  variantSku?: string | null;
   warehouseId: string;
+  warehouseName?: string | null;
   unitId: string | null;
   unitName: string | null;
   unitSymbol: string | null;
@@ -29,6 +35,7 @@ export interface StockLevelQuery {
   pageSize: number;
   pageNumber: number;
   partId?: string;
+  variantId?: string;
   warehouseId?: string;
   status?: string;
   lowStockOnly?: boolean;
@@ -36,6 +43,7 @@ export interface StockLevelQuery {
 
 export interface CreateStockLevelRequest {
   partId: string;
+  variantId?: string | null;
   warehouseId: string;
   reorderLevel: number;
   reorderQuantity: number;
@@ -123,6 +131,7 @@ export interface StockTransferResponse {
 
 export interface StockAdjustmentRequest {
   partId: string;
+  variantId?: string | null;
   warehouseId: string;
   quantity: number;
   quantityInBaseUnit?: number;

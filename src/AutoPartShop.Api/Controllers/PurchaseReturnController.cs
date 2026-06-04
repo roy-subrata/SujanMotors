@@ -2,6 +2,7 @@ using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.LedgerDtos;
 using AutoPartShop.Application.DTOs.PurchaseReturnDtos;
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Common;
 using AutoPartShop.Domain.Repositories;
 using AutoPartShop.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Authorization;
@@ -849,7 +850,7 @@ public class PurchaseReturnController : ControllerBase
                     PartName = partName,
                     PartSku = l.Part?.SKU ?? string.Empty,
                     VariantName = variantName,
-                    DisplayName = string.IsNullOrEmpty(variantName) ? partName : $"{partName} - {variantName}",
+                    DisplayName = VariantNaming.Compose(partName, variantName),
                     StockLotId = l.StockLotId,
                     LotNumber = l.StockLot?.LotNumber,
                     Quantity = l.Quantity,

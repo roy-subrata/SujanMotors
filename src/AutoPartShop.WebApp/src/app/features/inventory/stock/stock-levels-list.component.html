@@ -32,10 +32,12 @@
   <ng-template pTemplate="body" let-stock>
     <tr>
       <td>
-        <span class="font-semibold">{{ getPartInfo ? getPartInfo(stock.partId) : stock.partId }}</span>
+        <span class="font-semibold">{{ stock.partName || (getPartInfo ? getPartInfo(stock.partId) : stock.partId) }}</span>
+        <span class="variant-tag" *ngIf="stock.variantName">{{ stock.variantName }}</span>
+        <div class="text-gray-500" style="font-size: 0.75rem" *ngIf="stock.variantSku || stock.partSku">{{ stock.variantSku || stock.partSku }}</div>
       </td>
       <td>
-        <span class="text-gray-600">{{ getWarehouseName ? getWarehouseName(stock.warehouseId) : stock.warehouseId }}</span>
+        <span class="text-gray-600">{{ stock.warehouseName || (getWarehouseName ? getWarehouseName(stock.warehouseId) : stock.warehouseId) }}</span>
       </td>
       <td class="text-right">
         <div class="dual-unit-cell">

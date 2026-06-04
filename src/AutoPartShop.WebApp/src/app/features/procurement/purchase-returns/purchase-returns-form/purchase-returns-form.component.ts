@@ -507,6 +507,7 @@ export class PurchaseReturnsFormComponent implements OnInit {
       if (lineItemControl) {
         lineItemControl.patchValue({
           partId: event.id,
+          displayName: event.displayName || event.name,
           unitPrice: event.costPrice || 0,
           stockLotId: null  // Reset lot selection when part changes
         });

@@ -86,7 +86,7 @@ public class PurchaseOrderReadRepository(AutoPartDbContext _dbContext) : IPurcha
                     VariantName = l.Variant != null ? l.Variant.Name : null,
                     VariantCode = l.Variant != null ? l.Variant.Code : null,
                     DisplayName = l.Variant != null
-                        ? (l.Part != null ? l.Part.Name + " - " + l.Variant.Name : l.Variant.Name)
+                        ? (l.Part != null ? (l.Variant.Name.StartsWith(l.Part.Name) ? l.Variant.Name : l.Part.Name + " - " + l.Variant.Name) : l.Variant.Name)
                         : (l.Part != null ? l.Part.Name : string.Empty),
                     PartBaseUnitId = l.Part != null ? l.Part.UnitId : null,
                     UnitId = l.UnitId,
@@ -151,7 +151,7 @@ public class PurchaseOrderReadRepository(AutoPartDbContext _dbContext) : IPurcha
                      VariantName = pl.Variant != null ? pl.Variant.Name : null,
                      VariantCode = pl.Variant != null ? pl.Variant.Code : null,
                      DisplayName = pl.Variant != null
-                         ? (pl.Part != null ? pl.Part.Name + " - " + pl.Variant.Name : pl.Variant.Name)
+                         ? (pl.Part != null ? (pl.Variant.Name.StartsWith(pl.Part.Name) ? pl.Variant.Name : pl.Part.Name + " - " + pl.Variant.Name) : pl.Variant.Name)
                          : (pl.Part != null ? pl.Part.Name : string.Empty),
                      PartBaseUnitId = pl.Part != null ? pl.Part.UnitId : null,
                      UnitPrice = pl.UnitPrice,

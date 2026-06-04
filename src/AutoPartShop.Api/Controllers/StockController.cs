@@ -705,7 +705,13 @@ public class StockController : ControllerBase
         {
             Id = level.Id,
             PartId = level.PartId,
+            PartName = level.Part?.Name,
+            PartSku = level.Part?.SKU,
+            VariantId = level.VariantId,
+            VariantName = level.Variant?.Name,
+            VariantSku = level.Variant?.SKU,
             WarehouseId = level.WarehouseId,
+            WarehouseName = level.Warehouse?.Name,
             UnitId = level.UnitId,
             UnitName = level.Unit?.Name,
             UnitSymbol = level.Unit?.Symbol,

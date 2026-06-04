@@ -12,7 +12,7 @@ services:
     ports:
       - "1433:1433"           # open for SSMS / DBeaver
     volumes:
-      - autopart_mssql_dev_data:/var/opt/mssql
+      - autopart_mssql_dev1_data:/var/opt/mssql
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'YourStrong!Passw0rd' -Q 'SELECT 1' -No || exit 1"]
@@ -58,4 +58,4 @@ services:
     restart: unless-stopped
 
 volumes:
-  autopart_mssql_dev_data:
+  autopart_mssql_dev1_data:

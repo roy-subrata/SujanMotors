@@ -230,8 +230,8 @@
                       [suggestions]="filteredParts"
                       (completeMethod)="filterParts($event, i)"
                       (onSelect)="onPartSelected($event, i)"
-                      field="partNumber"
-                      optionLabel="name"
+                      field="displayName"
+                      optionLabel="displayName"
                       [forceSelection]="true"
                       [showEmptyMessage]="true"
                       emptyMessage="No parts found"
@@ -241,8 +241,8 @@
                       [style]="{ width: '100%' }">
                       <ng-template let-part pTemplate="item">
                         <div class="part-item">
-                          <span class="item-name">{{ part.partNumber }}</span>
-                          <span class="item-code">{{ part.name }}</span>
+                          <span class="item-name">{{ part.displayName || part.name }}</span>
+                          <span class="item-code">SKU: {{ part.variantSKU || part.sku }} | PN: {{ part.partNumber }}</span>
                         </div>
                       </ng-template>
                     </p-autoComplete>

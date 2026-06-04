@@ -20,6 +20,8 @@
         </div>
 
         <div class="action-buttons">
+          <button pButton type="button" icon="pi pi-plus" label="New Stock Entry"
+            class="p-button-sm" (click)="onNewStockEntry()"></button>
           <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="onRefresh()">
             <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
           </button>
@@ -122,15 +124,18 @@
                     <i class="pi pi-cog"></i>
                   </div>
                   <div class="part-info">
-                    <span class="part-name">{{ getPartName(stock.partId) }}</span>
-                    <span class="part-sku">{{ getPartSku(stock.partId) }}</span>
+                    <span class="part-name">
+                      {{ stock.partName || getPartName(stock.partId) }}
+                      <span class="variant-tag" *ngIf="stock.variantName">{{ stock.variantName }}</span>
+                    </span>
+                    <span class="part-sku">{{ stock.variantSku || stock.partSku || getPartSku(stock.partId) }}</span>
                   </div>
                 </div>
               </td>
               <td>
                 <div class="warehouse-cell">
                   <i class="pi pi-building"></i>
-                  <span>{{ getWarehouseName(stock.warehouseId) }}</span>
+                  <span>{{ stock.warehouseName || getWarehouseName(stock.warehouseId) }}</span>
                 </div>
               </td>
               <td class="text-right">
@@ -216,8 +221,11 @@
                     <i class="pi pi-cog"></i>
                   </div>
                   <div>
-                    <div class="card-title">{{ getPartName(stock.partId) }}</div>
-                    <div class="card-subtitle">{{ getPartSku(stock.partId) }}</div>
+                    <div class="card-title">
+                      {{ stock.partName || getPartName(stock.partId) }}
+                      <span class="variant-tag" *ngIf="stock.variantName">{{ stock.variantName }}</span>
+                    </div>
+                    <div class="card-subtitle">{{ stock.variantSku || stock.partSku || getPartSku(stock.partId) }}</div>
                   </div>
                 </div>
                 <span class="status-pill" [attr.data-status]="getStatusClass(stock)">
@@ -228,7 +236,7 @@
               <div class="card-body">
                 <div class="card-row">
                   <span class="label">Warehouse</span>
-                  <span class="value">{{ getWarehouseName(stock.warehouseId) }}</span>
+                  <span class="value">{{ stock.warehouseName || getWarehouseName(stock.warehouseId) }}</span>
                 </div>
                 <div class="card-row">
                   <span class="label">On Hand</span>
@@ -338,15 +346,18 @@
                     <i class="pi pi-cog"></i>
                   </div>
                   <div class="part-info">
-                    <span class="part-name">{{ getPartName(stock.partId) }}</span>
-                    <span class="part-sku">{{ getPartSku(stock.partId) }}</span>
+                    <span class="part-name">
+                      {{ stock.partName || getPartName(stock.partId) }}
+                      <span class="variant-tag" *ngIf="stock.variantName">{{ stock.variantName }}</span>
+                    </span>
+                    <span class="part-sku">{{ stock.variantSku || stock.partSku || getPartSku(stock.partId) }}</span>
                   </div>
                 </div>
               </td>
               <td>
                 <div class="warehouse-cell">
                   <i class="pi pi-building"></i>
-                  <span>{{ getWarehouseName(stock.warehouseId) }}</span>
+                  <span>{{ stock.warehouseName || getWarehouseName(stock.warehouseId) }}</span>
                 </div>
               </td>
               <td class="text-right">
@@ -414,8 +425,11 @@
                     <i class="pi pi-cog"></i>
                   </div>
                   <div>
-                    <div class="card-title">{{ getPartName(stock.partId) }}</div>
-                    <div class="card-subtitle">{{ getPartSku(stock.partId) }}</div>
+                    <div class="card-title">
+                      {{ stock.partName || getPartName(stock.partId) }}
+                      <span class="variant-tag" *ngIf="stock.variantName">{{ stock.variantName }}</span>
+                    </div>
+                    <div class="card-subtitle">{{ stock.variantSku || stock.partSku || getPartSku(stock.partId) }}</div>
                   </div>
                 </div>
                 <span class="status-pill" data-status="status-low">
@@ -426,7 +440,7 @@
               <div class="card-body">
                 <div class="card-row">
                   <span class="label">Warehouse</span>
-                  <span class="value">{{ getWarehouseName(stock.warehouseId) }}</span>
+                  <span class="value">{{ stock.warehouseName || getWarehouseName(stock.warehouseId) }}</span>
                 </div>
                 <div class="card-row">
                   <span class="label">Available</span>
