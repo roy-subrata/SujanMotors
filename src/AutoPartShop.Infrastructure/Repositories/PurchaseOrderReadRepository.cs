@@ -34,6 +34,19 @@ public class PurchaseOrderReadRepository(AutoPartDbContext _dbContext) : IPurcha
             purchaseOrders = purchaseOrders.Where(x => statuses.Contains(x.Status));
         }
 
+        // Goods Receipt picker: keep only POs with at least one line that still has
+        // outstanding quantity to receive (ordered - received - in-flight PENDING/VERIFIED).
+        if (query.HasReceivableQuantity == true)
+        {
+            purchaseOrders = purchaseOrders.Where(x => x.LineItems.Any(l =>
+                l.Quantity - l.ReceivedQuantity
+                - (x.GoodsReceipts
+                    .Where(gr => gr.Status == "PENDING" || gr.Status == "VERIFIED")
+                    .SelectMany(gr => gr.LineItems)
+                    .Where(grl => grl.PurchaseOrderLineId == l.Id)
+                    .Sum(grl => (int?)grl.ReceivedQuantity) ?? 0) > 0));
+        }
+
         if (query.FromDate.HasValue && query.ToDate.HasValue)
         {
             purchaseOrders = purchaseOrders.Where(x => x.ExpectedDeliveryDate >= query.FromDate.Value && x.ExpectedDeliveryDate <= query.ToDate.Value);

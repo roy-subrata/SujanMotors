@@ -101,7 +101,9 @@ export interface PurchaeOrderQuery {
     status?:string,
     supplierId?: string;
     fromDate?:string;
-    toDate?:string
+    toDate?:string;
+    /** GRN picker: only POs with at least one line still receivable. */
+    hasReceivableQuantity?: boolean;
 }
 
 @Injectable({

@@ -117,7 +117,8 @@ export class GoodsReceiptFormComponent implements OnInit {
         pageNumber: req.pageNumber,
         pageSize: req.pageSize,
         search: req.search,
-        status: 'CONFIRMED,PARTIAL'
+        status: 'CONFIRMED,PARTIAL',
+        hasReceivableQuantity: true
       })
       .pipe(
         map(
