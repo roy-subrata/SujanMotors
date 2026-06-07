@@ -7,6 +7,7 @@ public class PurchaseReturn : AuditableEntity
 {
     public string ReturnNumber { get; private set; } = string.Empty;
     public Guid PurchaseOrderId { get; private set; }
+    public Guid? GoodsReceiptId { get; private set; }  // Originating GRN (audit trail PO -> GR -> PR), null for manual returns
     public Guid SupplierId { get; private set; }
     public DateTime ReturnDate { get; private set; }
     public string Reason { get; private set; } = string.Empty;  // DAMAGED, DEFECTIVE, WRONG_ITEM, EXCESS_STOCK, QUALITY_ISSUE, etc.
@@ -29,6 +30,7 @@ public class PurchaseReturn : AuditableEntity
 
     // Navigation properties
     public PurchaseOrder? PurchaseOrder { get; set; }
+    public GoodsReceipt? GoodsReceipt { get; set; }
     public Supplier? Supplier { get; set; }
     public CreditNote? CreditNote { get; set; }
     public ICollection<PurchaseReturnLine> LineItems { get; set; } = new List<PurchaseReturnLine>();
@@ -60,6 +62,17 @@ public class PurchaseReturn : AuditableEntity
             Status = "PENDING",
             Notes = notes?.Trim() ?? string.Empty
         };
+    }
+
+    /// <summary>
+    /// Link this return to the goods receipt that triggered it (audit trail PO -> GR -> PR).
+    /// </summary>
+    public void LinkToGoodsReceipt(Guid goodsReceiptId)
+    {
+        if (goodsReceiptId == Guid.Empty)
+            throw new ArgumentException("GoodsReceiptId cannot be empty", nameof(goodsReceiptId));
+
+        GoodsReceiptId = goodsReceiptId;
     }
 
     public void Approve(string approvedBy)

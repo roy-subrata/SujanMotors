@@ -101,6 +101,8 @@ public class StockLevelReadRepository : IStockLevelReadRepository
                 ReservedQuantityInBaseUnit = level.QuantityReservedInBaseUnit,
                 AvailableQuantity = level.QuantityAvailable,
                 AvailableQuantityInBaseUnit = level.QuantityAvailableInBaseUnit,
+                DamagedQuantity = level.QuantityDamaged,
+                QuarantineQuantity = level.QuantityQuarantine,
                 ReorderLevel = level.ReorderLevel,
                 ReorderQuantity = level.ReorderQuantity,
                 NeedsReorder = level.NeedsReorder,

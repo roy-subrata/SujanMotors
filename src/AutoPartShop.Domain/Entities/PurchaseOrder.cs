@@ -212,6 +212,37 @@ public class PurchaseOrder : AuditableEntity
         }
     }
 
+    /// <summary>
+    /// Computes the still-outstanding quantity for a PO line that can be received on a new/edited GRN.
+    /// Single source of truth for "remaining to receive":
+    ///   outstanding = OrderedQty
+    ///     - sum of AcceptedQuantity over ACCEPTED GRN lines           (rejected units are freed)
+    ///     - sum of ReceivedQuantity over not-yet-accepted GRN lines   (in-flight PENDING/VERIFIED is reserved)
+    /// Pass <paramref name="excludeGoodsReceiptId"/> when editing a GRN so its own lines are not double-counted.
+    /// Requires <see cref="GoodsReceipts"/> (and their LineItems) to be loaded.
+    /// </summary>
+    public int GetOutstandingQuantity(Guid purchaseOrderLineId, Guid? excludeGoodsReceiptId = null)
+    {
+        var poLine = LineItems.FirstOrDefault(l => l.Id == purchaseOrderLineId);
+        if (poLine is null)
+            return 0;
+
+        var accepted = GoodsReceipts
+            .Where(gr => gr.Status == "ACCEPTED")
+            .SelectMany(gr => gr.LineItems)
+            .Where(grl => grl.PurchaseOrderLineId == purchaseOrderLineId)
+            .Sum(grl => grl.AcceptedQuantity);
+
+        var inFlight = GoodsReceipts
+            .Where(gr => (gr.Status == "PENDING" || gr.Status == "VERIFIED")
+                && gr.Id != (excludeGoodsReceiptId ?? Guid.Empty))
+            .SelectMany(gr => gr.LineItems)
+            .Where(grl => grl.PurchaseOrderLineId == purchaseOrderLineId)
+            .Sum(grl => grl.ReceivedQuantity);
+
+        return poLine.Quantity - accepted - inFlight;
+    }
+
     public void UpdateNotes(string notes)
     {
         Notes = notes?.Trim() ?? string.Empty;

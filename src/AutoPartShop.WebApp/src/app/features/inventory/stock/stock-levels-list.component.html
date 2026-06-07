@@ -19,12 +19,14 @@
       <th style="width: 15%">Part Name</th>
       <th style="width: 12%">Warehouse</th>
       <th style="width: 14%" class="text-right">On Hand</th>
-      <th style="width: 14%" class="text-right">Reserved</th>
-      <th style="width: 16%" class="text-right">Available</th>
-      <th style="width: 10%" class="text-right">Reorder Level</th>
-      <th style="width: 10%" class="text-right">Reorder Qty</th>
-      <th style="width: 10%">Status</th>
-      <th style="width: 9%">Actions</th>
+      <th style="width: 12%" class="text-right">Reserved</th>
+      <th style="width: 13%" class="text-right">Available</th>
+      <th style="width: 9%" class="text-right">Damaged</th>
+      <th style="width: 9%" class="text-right">Quarantine</th>
+      <th style="width: 8%" class="text-right">Reorder Level</th>
+      <th style="width: 8%" class="text-right">Reorder Qty</th>
+      <th style="width: 9%">Status</th>
+      <th style="width: 8%">Actions</th>
     </tr>
   </ng-template>
 
@@ -67,6 +69,12 @@
         </div>
       </td>
       <td class="text-right">
+        <span class="display-qty" [class.text-red-600]="stock.damagedQuantity > 0" [class.text-gray-400]="!stock.damagedQuantity">{{ stock.damagedQuantity || 0 }}</span>
+      </td>
+      <td class="text-right">
+        <span class="display-qty" [class.text-orange-600]="stock.quarantineQuantity > 0" [class.text-gray-400]="!stock.quarantineQuantity">{{ stock.quarantineQuantity || 0 }}</span>
+      </td>
+      <td class="text-right">
         <span class="text-gray-600">{{ stock.reorderLevel }}</span>
       </td>
       <td class="text-right">
@@ -98,7 +106,7 @@
   <!-- Empty Message -->
   <ng-template pTemplate="emptymessage">
     <tr>
-      <td colspan="9" class="text-center py-4">
+      <td colspan="11" class="text-center py-4">
         <i class="pi pi-inbox mr-2"></i>
         No stock levels found.
       </td>

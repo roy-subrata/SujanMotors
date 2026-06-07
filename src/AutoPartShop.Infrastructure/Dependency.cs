@@ -155,6 +155,7 @@ public static class Dependency
         services.AddScoped<IBrandReadRepository, BrandReadRepository>();
 
         services.AddScoped<ISupplierReadRepository, SupplierReadRepository>();
+        services.AddScoped<ISupplierPerformanceReadRepository, SupplierPerformanceReadRepository>();
         services.AddScoped<ISupplierPaymentReadRespository, SupplierPaymentReadRespository>();
 
         services.AddScoped<IProductReadRepository, ProductReadRepository>();

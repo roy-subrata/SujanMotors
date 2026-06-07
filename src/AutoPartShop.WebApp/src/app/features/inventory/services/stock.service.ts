@@ -24,6 +24,8 @@ export interface StockLevelResponse {
   reservedQuantityInBaseUnit: number;
   availableQuantity: number;
   availableQuantityInBaseUnit: number;
+  damagedQuantity: number;
+  quarantineQuantity: number;
   reorderLevel: number;
   reorderQuantity: number;
   needsReorder: boolean;

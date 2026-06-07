@@ -27,6 +27,11 @@ public class StockLotConfiguration : IEntityTypeConfiguration<StockLot>
             .IsRequired()
             .HasMaxLength(10);
 
+        builder.Property(sl => sl.Status)
+            .IsRequired()
+            .HasMaxLength(20)
+            .HasDefaultValue("AVAILABLE");
+
         // Relationships
         builder.HasOne(sl => sl.Part)
             .WithMany()
@@ -67,5 +72,6 @@ public class StockLotConfiguration : IEntityTypeConfiguration<StockLot>
         builder.HasIndex(sl => sl.VariantId);
         builder.HasIndex(sl => sl.WarehouseId);
         builder.HasIndex(sl => sl.SupplierId);
+        builder.HasIndex(sl => sl.Status);
     }
 }

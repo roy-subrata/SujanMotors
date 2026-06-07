@@ -12,8 +12,10 @@ export interface GoodsReceiptLineResponse {
   partSKU: string;
   orderedQuantity: number;
   receivedQuantity: number;
-  rejectedQuantity: number;
-  acceptedQuantity: number;
+  damagedQuantity: number;
+  wrongQuantity: number;
+  rejectedQuantity: number; // damaged + wrong
+  acceptedQuantity: number; // "Good"
   condition: string;
   notes: string;
   hasDiscrepancy: boolean;
@@ -46,6 +48,11 @@ export interface GoodsReceiptResponse {
   notes: string;
   totalItemsReceived: number;
   discrepancyCount: number;
+  // Summary totals
+  goodItems: number;
+  damagedItems: number;
+  wrongItems: number;
+  potentialReturns: number;
   verifiedBy: string;
   verificationDate?: string;
   lines: GoodsReceiptLineResponse[];
@@ -83,6 +90,9 @@ export interface CreateGoodsReceiptLineRequest {
   partId: string;
   purchaseOrderLineId?: string | null;
   receivedQuantity: number;
+  damagedQuantity?: number;
+  wrongQuantity?: number;
+  rejectionReason?: string;
   condition: string;
   notes?: string;
   hasDiscrepancy?: boolean;
@@ -207,10 +217,11 @@ export class GoodsReceiptService {
   }
 
   /**
-   * Accept goods receipt
+   * Accept goods receipt. When createReturn is true, the backend also raises a draft
+   * Purchase Return for the damaged/wrong lines (spec: "Post & Create Return").
    */
-  acceptGoodsReceipt(id: string): Observable<GoodsReceiptResponse> {
-    return this.http.patch<GoodsReceiptResponse>(`${this.apiUrl}/${id}/accept`, {});
+  acceptGoodsReceipt(id: string, createReturn = false): Observable<GoodsReceiptResponse> {
+    return this.http.patch<GoodsReceiptResponse>(`${this.apiUrl}/${id}/accept?createReturn=${createReturn}`, {});
   }
 
   /**

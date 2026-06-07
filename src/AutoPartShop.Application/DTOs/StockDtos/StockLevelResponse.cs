@@ -17,6 +17,9 @@ public class StockLevelResponse
     public int ReservedQuantityInBaseUnit { get; set; }
     public int AvailableQuantity { get; set; }
     public int AvailableQuantityInBaseUnit { get; set; }
+    // Non-sellable buckets (received damaged / wrong items held in quarantine)
+    public int DamagedQuantity { get; set; }
+    public int QuarantineQuantity { get; set; }
     public int ReorderLevel { get; set; }
     public int ReorderQuantity { get; set; }
     public bool NeedsReorder { get; set; }

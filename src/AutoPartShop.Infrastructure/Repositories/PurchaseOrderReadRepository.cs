@@ -96,6 +96,11 @@ public class PurchaseOrderReadRepository(AutoPartDbContext _dbContext) : IPurcha
                     QuantityInBaseUnit = l.QuantityInBaseUnit,
                     ReceivedQuantity = l.ReceivedQuantity,
                     ReceivedQuantityInBaseUnit = l.ReceivedQuantityInBaseUnit,
+                    InFlightReceivedQuantity = po.GoodsReceipts
+                        .Where(gr => gr.Status == "PENDING" || gr.Status == "VERIFIED")
+                        .SelectMany(gr => gr.LineItems)
+                        .Where(grl => grl.PurchaseOrderLineId == l.Id)
+                        .Sum(grl => (int?)grl.ReceivedQuantity) ?? 0,
                     UnitPrice = l.UnitPrice,
                     LineTotal = l.TotalPrice,
                     PartDefaultSellingPrice = l.Part != null ? l.Part.SellingPrice : 0,
@@ -159,6 +164,11 @@ public class PurchaseOrderReadRepository(AutoPartDbContext _dbContext) : IPurcha
                      QuantityInBaseUnit = pl.QuantityInBaseUnit,
                      ReceivedQuantity = pl.ReceivedQuantity,
                      ReceivedQuantityInBaseUnit = pl.ReceivedQuantityInBaseUnit,
+                     InFlightReceivedQuantity = po.GoodsReceipts
+                         .Where(gr => gr.Status == "PENDING" || gr.Status == "VERIFIED")
+                         .SelectMany(gr => gr.LineItems)
+                         .Where(grl => grl.PurchaseOrderLineId == pl.Id)
+                         .Sum(grl => (int?)grl.ReceivedQuantity) ?? 0,
                      UnitId = pl.UnitId,
                      UnitName = pl.Unit != null ? pl.Unit.Name : string.Empty,
                      UnitSymbol = pl.Unit != null ? pl.Unit.Symbol : string.Empty,

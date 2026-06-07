@@ -68,19 +68,44 @@
    Font sizes adapt to different screen sizes
    ======================================== */
 :root {
-    /* Base font sizes - Desktop (default) */
-    --font-size-xs: 0.75rem;      /* 12px */
-    --font-size-sm: 0.875rem;     /* 14px */
-    --font-size-base: 1rem;       /* 16px */
-    --font-size-lg: 1.125rem;     /* 18px */
-    --font-size-xl: 1.25rem;      /* 20px */
-    --font-size-2xl: 1.5rem;      /* 24px */
-    --font-size-3xl: 1.875rem;    /* 30px */
-    --font-size-4xl: 2.25rem;     /* 36px */
+    /* Base font sizes — relative to the 14px desktop root (1rem = 14px) */
+    --font-size-xs: 0.75rem;      /* ~10.5px */
+    --font-size-sm: 0.875rem;     /* ~12.25px */
+    --font-size-base: 1rem;       /* 14px */
+    --font-size-lg: 1.125rem;     /* ~15.75px */
+    --font-size-xl: 1.25rem;      /* ~17.5px */
+    --font-size-2xl: 1.5rem;      /* ~21px */
+    --font-size-3xl: 1.875rem;    /* ~26px */
+    --font-size-4xl: 2.25rem;     /* ~31.5px */
+
+    /* ---- Design tokens (form system) ---- */
+    /* Spacing scale */
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+    --space-5: 1.25rem;
+    --space-6: 1.5rem;
+
+    /* Corner radii */
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+
+    /* Form field standard */
+    --field-pad-y: 0.45rem;
+    --field-pad-x: 0.6rem;
+    --field-height: 38px;
+
+    /* Label standard */
+    --label-size: 0.8125rem;
+    --label-weight: 600;
+    --label-color: #374151;
+    --label-gap: 0.35rem;
 }
 
 html {
-    font-size: 16px; /* Base for desktop */
+    font-size: 14px; /* Base for desktop — POS/ERP density (scales the whole rem-based app) */
 }
 
 /* Tablet (768px - 991px) */
@@ -307,6 +332,108 @@ html {
     .p-radiobutton .p-radiobutton-box {
         width: 20px !important;
         height: 20px !important;
+    }
+}
+
+/* ========================================
+   FORM SYSTEM — app-wide standard
+   One consistent look for inputs, labels and form spacing across every page.
+   Universal rules (below) apply on all devices; sizing/spacing is set on the
+   desktop baseline (>=992px) so it never collides with the touch-friendly
+   tablet/mobile overrides in the "GLOBAL MOBILE RESPONSIVE STYLES" section.
+   Uses !important to win over per-component drift (matches this file's convention).
+   ======================================== */
+
+/* Universal control normalization — scoped to real form fields so navbars,
+   toolbars and inline widgets keep their own input sizing. */
+.form-group,
+.field {
+    .p-inputtext,
+    .p-inputnumber,
+    .p-inputnumber-input,
+    .p-select,
+    .p-textarea,
+    .p-autocomplete,
+    .p-autocomplete-input,
+    .p-password,
+    .p-password input,
+    .p-datepicker {
+        width: 100%;
+        box-sizing: border-box;
+        border-radius: var(--radius-md);
+    }
+
+    label {
+        font-weight: var(--label-weight) !important;
+        color: var(--label-color) !important;
+    }
+}
+
+/* Desktop baseline (>=992px) — the standard sizing & spacing */
+@media (min-width: 992px) {
+    /* Controls: equal height, padding and font (inside form fields only) */
+    .form-group,
+    .field {
+        .p-inputtext,
+        .p-inputnumber-input,
+        .p-select .p-select-label,
+        .p-textarea,
+        .p-autocomplete-input,
+        .p-password input,
+        .p-datepicker .p-inputtext {
+            min-height: var(--field-height) !important;
+            padding: var(--field-pad-y) var(--field-pad-x) !important;
+            font-size: 1rem !important;
+            line-height: 1.4 !important;
+        }
+    }
+
+    /* Field wrapper + label */
+    .form-group,
+    .field {
+        display: flex;
+        flex-direction: column;
+        gap: var(--label-gap) !important;
+    }
+
+    .form-group label,
+    .field label {
+        font-size: var(--label-size) !important;
+        margin-bottom: 0.1rem !important;
+    }
+
+    /* Two-column field rows — a sensible default only (NOT forced, so components
+       that intentionally use 1- or 3-column rows keep their own layout). */
+    .form-row {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--space-4);
+        margin-bottom: var(--space-4);
+    }
+
+    .form-row .form-group.full,
+    .form-row .full,
+    .form-row .col-span-2 {
+        grid-column: 1 / -1;
+    }
+
+    /* Sections — consistent padding/radius */
+    .form-section {
+        padding: var(--space-4) !important;
+        border-radius: var(--radius-lg) !important;
+    }
+
+    .section-title {
+        font-size: 0.95rem !important;
+        margin: 0 0 var(--space-3) !important;
+    }
+
+    /* Action bar */
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: var(--space-3) !important;
     }
 }
 

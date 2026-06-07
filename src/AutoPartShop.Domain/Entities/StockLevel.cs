@@ -13,6 +13,11 @@ public class StockLevel : AuditableEntity
     public int QuantityOnHandInBaseUnit { get; private set; } = 0;  // Stock in base unit
     public int QuantityReserved { get; private set; } = 0;  // Reserved for orders
     public int QuantityReservedInBaseUnit { get; private set; } = 0;  // Reserved in base unit
+    // Non-sellable inventory buckets (GRN spec): tracked for traceability, NOT part of QuantityAvailable.
+    public int QuantityDamaged { get; private set; } = 0;  // Damaged stock (received damaged / write-off candidate)
+    public int QuantityDamagedInBaseUnit { get; private set; } = 0;
+    public int QuantityQuarantine { get; private set; } = 0;  // Quarantine stock (wrong/incorrect items, under review)
+    public int QuantityQuarantineInBaseUnit { get; private set; } = 0;
     public int QuantityAvailable => QuantityOnHand - QuantityReserved;  // Available for sale
     public int QuantityAvailableInBaseUnit => QuantityOnHandInBaseUnit - QuantityReservedInBaseUnit;
     public int ReorderLevel { get; private set; } = 0;  // Minimum stock level
@@ -80,6 +85,44 @@ public class StockLevel : AuditableEntity
 
         QuantityOnHand -= quantity;
         QuantityOnHandInBaseUnit -= baseUnitToRemove;
+    }
+
+    // --- Damaged stock bucket (not sellable) ---
+    public void AddDamagedStock(int quantity, int quantityInBaseUnit = 0, string reason = "")
+    {
+        if (quantity <= 0)
+            throw new ArgumentException("Quantity must be greater than 0", nameof(quantity));
+
+        QuantityDamaged += quantity;
+        QuantityDamagedInBaseUnit += quantityInBaseUnit > 0 ? quantityInBaseUnit : quantity;
+    }
+
+    public void RemoveDamagedStock(int quantity, int quantityInBaseUnit = 0, string reason = "")
+    {
+        if (quantity <= 0)
+            throw new ArgumentException("Quantity must be greater than 0", nameof(quantity));
+
+        QuantityDamaged = Math.Max(0, QuantityDamaged - quantity);
+        QuantityDamagedInBaseUnit = Math.Max(0, QuantityDamagedInBaseUnit - (quantityInBaseUnit > 0 ? quantityInBaseUnit : quantity));
+    }
+
+    // --- Quarantine stock bucket (not sellable) ---
+    public void AddQuarantineStock(int quantity, int quantityInBaseUnit = 0, string reason = "")
+    {
+        if (quantity <= 0)
+            throw new ArgumentException("Quantity must be greater than 0", nameof(quantity));
+
+        QuantityQuarantine += quantity;
+        QuantityQuarantineInBaseUnit += quantityInBaseUnit > 0 ? quantityInBaseUnit : quantity;
+    }
+
+    public void RemoveQuarantineStock(int quantity, int quantityInBaseUnit = 0, string reason = "")
+    {
+        if (quantity <= 0)
+            throw new ArgumentException("Quantity must be greater than 0", nameof(quantity));
+
+        QuantityQuarantine = Math.Max(0, QuantityQuarantine - quantity);
+        QuantityQuarantineInBaseUnit = Math.Max(0, QuantityQuarantineInBaseUnit - (quantityInBaseUnit > 0 ? quantityInBaseUnit : quantity));
     }
 
     public void ReserveStock(int quantity, int quantityInBaseUnit = 0)

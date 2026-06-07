@@ -1655,6 +1655,12 @@ namespace AutoPartsShop.Infrastructure.Migrations
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)");
 
+                    b.Property<int>("DamagedQuantity")
+                        .HasColumnType("int");
+
+                    b.Property<int>("DamagedQuantityInBaseUnit")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("ExpiryDate")
                         .HasColumnType("datetime2");
 
@@ -1697,11 +1703,9 @@ namespace AutoPartsShop.Infrastructure.Migrations
                     b.Property<int>("ReceivedQuantityInBaseUnit")
                         .HasColumnType("int");
 
-                    b.Property<int>("RejectedQuantity")
-                        .HasColumnType("int");
-
-                    b.Property<int>("RejectedQuantityInBaseUnit")
-                        .HasColumnType("int");
+                    b.Property<string>("RejectionReason")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal?>("SellingPrice")
                         .HasColumnType("decimal(18,2)");
@@ -1731,6 +1735,12 @@ namespace AutoPartsShop.Infrastructure.Migrations
 
                     b.Property<string>("WarrantyType")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("WrongQuantity")
+                        .HasColumnType("int");
+
+                    b.Property<int>("WrongQuantityInBaseUnit")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
@@ -3082,6 +3092,9 @@ namespace AutoPartsShop.Infrastructure.Migrations
                     b.Property<Guid?>("CreditNoteId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("GoodsReceiptId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<bool>("Isdeleted")
                         .HasColumnType("bit");
 
@@ -3159,6 +3172,8 @@ namespace AutoPartsShop.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CreditNoteId");
+
+                    b.HasIndex("GoodsReceiptId");
 
                     b.HasIndex("PurchaseOrderId");
 
@@ -3822,10 +3837,22 @@ namespace AutoPartsShop.Infrastructure.Migrations
                     b.Property<Guid>("PartId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<int>("QuantityDamaged")
+                        .HasColumnType("int");
+
+                    b.Property<int>("QuantityDamagedInBaseUnit")
+                        .HasColumnType("int");
+
                     b.Property<int>("QuantityOnHand")
                         .HasColumnType("int");
 
                     b.Property<int>("QuantityOnHandInBaseUnit")
+                        .HasColumnType("int");
+
+                    b.Property<int>("QuantityQuarantine")
+                        .HasColumnType("int");
+
+                    b.Property<int>("QuantityQuarantineInBaseUnit")
                         .HasColumnType("int");
 
                     b.Property<int>("QuantityReserved")
@@ -3953,6 +3980,13 @@ namespace AutoPartsShop.Infrastructure.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("AVAILABLE");
+
                     b.Property<Guid>("SupplierId")
                         .HasColumnType("uniqueidentifier");
 
@@ -3980,6 +4014,8 @@ namespace AutoPartsShop.Infrastructure.Migrations
                         .IsUnique();
 
                     b.HasIndex("PartId");
+
+                    b.HasIndex("Status");
 
                     b.HasIndex("SupplierId");
 
@@ -5766,6 +5802,11 @@ namespace AutoPartsShop.Infrastructure.Migrations
                         .HasForeignKey("CreditNoteId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("AutoPartShop.Domain.Entities.GoodsReceipt", "GoodsReceipt")
+                        .WithMany()
+                        .HasForeignKey("GoodsReceiptId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("AutoPartShop.Domain.Entities.PurchaseOrder", "PurchaseOrder")
                         .WithMany()
                         .HasForeignKey("PurchaseOrderId")
@@ -5779,6 +5820,8 @@ namespace AutoPartsShop.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("CreditNote");
+
+                    b.Navigation("GoodsReceipt");
 
                     b.Navigation("PurchaseOrder");
 
