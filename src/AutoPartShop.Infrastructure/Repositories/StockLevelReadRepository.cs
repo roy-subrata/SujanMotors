@@ -88,6 +88,14 @@ public class StockLevelReadRepository : IStockLevelReadRepository
                 VariantId = level.VariantId,
                 VariantName = level.Variant != null ? level.Variant.Name : null,
                 VariantSku = level.Variant != null ? level.Variant.SKU : null,
+                // Composed display name: "Base - Variant" (mirrors PurchaseOrderReadRepository).
+                DisplayName = level.Variant != null
+                    ? (level.Part != null
+                        ? (level.Variant.Name.StartsWith(level.Part.Name)
+                            ? level.Variant.Name
+                            : level.Part.Name + " - " + level.Variant.Name)
+                        : level.Variant.Name)
+                    : (level.Part != null ? level.Part.Name : null),
                 WarehouseId = level.WarehouseId,
                 WarehouseName = level.Warehouse != null ? level.Warehouse.Name : null,
                 UnitId = level.UnitId,

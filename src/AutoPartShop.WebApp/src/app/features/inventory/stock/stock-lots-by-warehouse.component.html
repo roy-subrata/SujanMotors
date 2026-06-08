@@ -12,15 +12,15 @@
           [fetchFn]="fetchPartsLazy"
           (onItemSelect)="onPartSelected($event)"
           (onClearEvent)="onPartSelected(null)"
-          optionLabel="name"
+          optionLabel="displayName"
           placeholder="Select part"
           [minLength]="0"
           [pageSize]="20"
           scrollHeight="300px">
           <ng-template let-part>
             <div class="part-autocomplete-item">
-              <div class="part-name">{{ part.name }}</div>
-              <div class="part-sku">{{ part.sku }}</div>
+              <div class="part-name">{{ part.displayName || part.name }}</div>
+              <div class="part-sku">{{ part.variantSKU || part.sku }}</div>
             </div>
           </ng-template>
         </app-lazy-autocomplete>

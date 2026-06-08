@@ -9,6 +9,8 @@ public class StockLevelResponse
     public Guid? VariantId { get; set; }
     public string? VariantName { get; set; }
     public string? VariantSku { get; set; }
+    // Full part name composed for display: base part name + " - " + variant label (when a variant exists).
+    public string? DisplayName { get; set; }
     public Guid WarehouseId { get; set; }
     public string? WarehouseName { get; set; }
     public int Quantity { get; set; }

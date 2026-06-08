@@ -6,4 +6,5 @@ public class StockLotQuery : BaseQuery
 {
     public string PartId { get; set; }
     public string WarehouseId { get; set; }
+    public string? VariantId { get; set; }
 }

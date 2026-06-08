@@ -11,6 +11,7 @@ export interface StockLevelResponse {
   variantId?: string | null;
   variantName?: string | null;
   variantSku?: string | null;
+  displayName?: string | null;
   warehouseId: string;
   warehouseName?: string | null;
   unitId: string | null;
@@ -61,6 +62,10 @@ export interface StockMovementResponse {
   partId: string;
   partName: string;
   partCode: string;
+  variantId?: string | null;
+  variantName?: string | null;
+  variantSku?: string | null;
+  displayName?: string | null;
   warehouseId: string;
   warehouseName: string;
   warehouseCode: string;

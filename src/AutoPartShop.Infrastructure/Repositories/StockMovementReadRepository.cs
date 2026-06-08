@@ -23,6 +23,8 @@ public class StockMovementReadRepository : IStockMovementReadRepository
                 .ThenInclude(sl => sl!.Part)
                     .ThenInclude(p => p!.BaseUnit)
             .Include(x => x.StockLevel)
+                .ThenInclude(sl => sl!.Variant)
+            .Include(x => x.StockLevel)
                 .ThenInclude(sl => sl!.Warehouse)
             .Include(x => x.Unit)
             .Where(x => !x.Isdeleted);
@@ -74,6 +76,9 @@ public class StockMovementReadRepository : IStockMovementReadRepository
                  (EF.Functions.Like(x.StockLevel.Part.Name.ToLower(), $"%{term}%") ||
                   EF.Functions.Like(x.StockLevel.Part.SKU.ToLower(), $"%{term}%") ||
                   (x.StockLevel.Part.PartNumber != null && EF.Functions.Like(x.StockLevel.Part.PartNumber.Value.ToLower(), $"%{term}%")))) ||
+                (x.StockLevel != null && x.StockLevel.Variant != null &&
+                 (EF.Functions.Like(x.StockLevel.Variant.Name.ToLower(), $"%{term}%") ||
+                  (x.StockLevel.Variant.SKU != null && EF.Functions.Like(x.StockLevel.Variant.SKU.ToLower(), $"%{term}%")))) ||
                 (x.StockLevel != null && x.StockLevel.Warehouse != null &&
                  (EF.Functions.Like(x.StockLevel.Warehouse.Name.ToLower(), $"%{term}%") ||
                   EF.Functions.Like(x.StockLevel.Warehouse.Code.ToLower(), $"%{term}%"))) ||
@@ -96,6 +101,16 @@ public class StockMovementReadRepository : IStockMovementReadRepository
                 PartCode = movement.StockLevel != null && movement.StockLevel.Part != null
                     ? (movement.StockLevel.Part.PartNumber != null ? movement.StockLevel.Part.PartNumber.Value : movement.StockLevel.Part.SKU)
                     : string.Empty,
+                VariantId = movement.StockLevel != null ? movement.StockLevel.VariantId : null,
+                VariantName = movement.StockLevel != null && movement.StockLevel.Variant != null ? movement.StockLevel.Variant.Name : null,
+                VariantSku = movement.StockLevel != null && movement.StockLevel.Variant != null ? movement.StockLevel.Variant.SKU : null,
+                DisplayName = movement.StockLevel != null && movement.StockLevel.Variant != null
+                    ? (movement.StockLevel.Part != null
+                        ? (movement.StockLevel.Variant.Name.StartsWith(movement.StockLevel.Part.Name)
+                            ? movement.StockLevel.Variant.Name
+                            : movement.StockLevel.Part.Name + " - " + movement.StockLevel.Variant.Name)
+                        : movement.StockLevel.Variant.Name)
+                    : (movement.StockLevel != null && movement.StockLevel.Part != null ? movement.StockLevel.Part.Name : string.Empty),
                 WarehouseId = movement.StockLevel != null ? movement.StockLevel.WarehouseId : Guid.Empty,
                 WarehouseName = movement.StockLevel != null && movement.StockLevel.Warehouse != null ? movement.StockLevel.Warehouse.Name : string.Empty,
                 WarehouseCode = movement.StockLevel != null && movement.StockLevel.Warehouse != null ? movement.StockLevel.Warehouse.Code : string.Empty,

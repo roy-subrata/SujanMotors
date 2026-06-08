@@ -38,7 +38,7 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
           <div class="info-row">
             <div class="info-item">
               <label>Part</label>
-              <span class="value">{{ part?.name }} ({{ part?.sku }})</span>
+              <span class="value">{{ currentStock?.displayName || part?.name }} ({{ currentStock?.variantSku || part?.sku }})</span>
             </div>
             <div class="info-item">
               <label>From Warehouse</label>
