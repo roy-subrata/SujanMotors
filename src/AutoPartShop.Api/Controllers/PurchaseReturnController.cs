@@ -205,6 +205,15 @@ public class PurchaseReturnController : ControllerBase
             if (request.PurchaseOrderId == Guid.Empty || request.SupplierId == Guid.Empty)
                 return BadRequest(new { message = "PurchaseOrderId and SupplierId are required" });
 
+            if (request.Lines == null || request.Lines.Count == 0)
+                return BadRequest(new { message = "A purchase return must have at least one line item" });
+
+            // Option A: every line must belong to the selected purchase order (and supplier).
+            var createValidationError = await ValidateReturnLinesAgainstPoAsync(
+                request.PurchaseOrderId, request.SupplierId, request.Lines, cancellationToken);
+            if (createValidationError != null)
+                return BadRequest(new { message = createValidationError });
+
             var returnNumber = await _codeGenerateService.GenerateAsync("PR", cancellationToken);
             var purchaseReturn = PurchaseReturn.Create(
                 returnNumber,
@@ -266,6 +275,15 @@ public class PurchaseReturnController : ControllerBase
 
             if (purchaseReturn.Status != "PENDING")
                 return BadRequest(new { message = "Only pending purchase returns can be edited" });
+
+            if (request.Lines == null || request.Lines.Count == 0)
+                return BadRequest(new { message = "A purchase return must have at least one line item" });
+
+            // Option A: every line must belong to this return's purchase order (and supplier).
+            var updateValidationError = await ValidateReturnLinesAgainstPoAsync(
+                purchaseReturn.PurchaseOrderId, purchaseReturn.SupplierId, request.Lines, cancellationToken);
+            if (updateValidationError != null)
+                return BadRequest(new { message = updateValidationError });
 
             // Clear existing line items
             purchaseReturn.LineItems.Clear();
@@ -346,7 +364,9 @@ public class PurchaseReturnController : ControllerBase
             var purchaseReturn = await _purchaseReturnRepository.GetByIdAsync(id, cancellationToken);
             if (purchaseReturn is null) return NotFound(new { message = "Purchase return not found" });
 
-            // Validate all lines have sufficient stock BEFORE modifying anything
+            // Validate all lines have sufficient stock BEFORE modifying anything.
+            // The inventory bucket (Available/Damaged/Quarantine) is derived from the selected lot's status;
+            // lines without a lot draw from the sellable Available bucket (legacy FIFO behaviour).
             foreach (var line in purchaseReturn.LineItems)
             {
                 int acceptedQuantity = line.Quantity - line.RejectedQuantity;
@@ -359,8 +379,18 @@ public class PurchaseReturnController : ControllerBase
                 if (stockLevel == null)
                     return BadRequest(new { message = $"No stock level found for part {line.PartId}. Cannot process return." });
 
-                if (stockLevel.QuantityAvailable < acceptedQuantity)
-                    return BadRequest(new { message = $"Insufficient available stock for part {line.Part?.Name ?? line.PartId.ToString()}. Available: {stockLevel.QuantityAvailable}, Required: {acceptedQuantity}" });
+                var bucket = "AVAILABLE";
+                if (line.StockLotId.HasValue)
+                {
+                    var lot = await _stockLotRepository.GetByIdAsync(line.StockLotId.Value, cancellationToken);
+                    if (lot == null)
+                        return BadRequest(new { message = $"Selected stock lot not found for part {line.Part?.Name ?? line.PartId.ToString()}." });
+                    bucket = NormalizeBucket(lot.Status);
+                }
+
+                int bucketAvailable = GetBucketAvailable(stockLevel, bucket);
+                if (bucketAvailable < acceptedQuantity)
+                    return BadRequest(new { message = $"Insufficient {bucket.ToLower()} stock for part {line.Part?.Name ?? line.PartId.ToString()}. {bucket}: {bucketAvailable}, Required: {acceptedQuantity}" });
             }
 
             purchaseReturn.MarkAsReturned();
@@ -401,8 +431,10 @@ public class PurchaseReturnController : ControllerBase
                             return BadRequest(new { message = $"Insufficient stock in selected lot. Available: {selectedLot.QuantityAvailable}, Required: {acceptedQuantity}" });
                         }
 
-                        // Reduce stock - items are being returned to supplier
-                        stockLevel.RemoveStock(acceptedQuantity, acceptedQuantity, "Purchase Return");
+                        // Reduce stock from the bucket matching the lot's status (Available/Damaged/Quarantine).
+                        // Items are being returned to supplier.
+                        var bucket = NormalizeBucket(selectedLot.Status);
+                        RemoveFromBucket(stockLevel, bucket, acceptedQuantity);
                         await _stockLevelRepository.UpdateAsync(stockLevel, cancellationToken);
 
                         // Create stock movement record
@@ -448,8 +480,9 @@ public class PurchaseReturnController : ControllerBase
 
                         // IMPORTANT: Filter to get lots from THIS SUPPLIER only (using FIFO within supplier lots)
                         // This ensures we return items from the same supplier we purchased from
+                        // No lot selected => sellable Available bucket only (Damaged/Quarantine returns must pick a lot).
                         var supplierLots = allLots
-                            .Where(l => l.SupplierId == purchaseReturn.SupplierId && l.VariantId == variantId && l.QuantityAvailable > 0)
+                            .Where(l => l.SupplierId == purchaseReturn.SupplierId && l.VariantId == variantId && l.QuantityAvailable > 0 && l.Status == "AVAILABLE")
                             .OrderBy(l => l.ReceivingDate)  // FIFO - oldest lots first
                             .ToList();
 
@@ -464,7 +497,7 @@ public class PurchaseReturnController : ControllerBase
                             // Fall back to any available lots if supplier-specific lots are insufficient
                             // This handles edge cases where stock was already sold/moved
                             var otherLots = allLots
-                                .Where(l => l.SupplierId != purchaseReturn.SupplierId && l.QuantityAvailable > 0)
+                                .Where(l => l.SupplierId != purchaseReturn.SupplierId && l.QuantityAvailable > 0 && l.Status == "AVAILABLE")
                                 .OrderBy(l => l.ReceivingDate)
                                 .ToList();
                             supplierLots.AddRange(otherLots);
@@ -739,6 +772,7 @@ public class PurchaseReturnController : ControllerBase
     public async Task<IActionResult> GetAvailableLotsForReturn(
         Guid partId,
         [FromQuery] Guid? supplierId = null,
+        [FromQuery] string? bucket = null,
         CancellationToken cancellationToken = default)
     {
         try
@@ -758,9 +792,12 @@ public class PurchaseReturnController : ControllerBase
                 stockLevel.WarehouseId,
                 cancellationToken);
 
-            // Filter to lots with available quantity
+            // Filter to lots with available quantity, optionally restricted to a single inventory bucket
+            // (AVAILABLE / DAMAGED / QUARANTINE) so the return form can show only matching-status lots.
+            var normalizedBucket = string.IsNullOrWhiteSpace(bucket) ? null : NormalizeBucket(bucket);
             var availableLots = allLots
                 .Where(l => l.QuantityAvailable > 0)
+                .Where(l => normalizedBucket == null || NormalizeBucket(l.Status) == normalizedBucket)
                 .Select(l => new AvailableLotForReturnDto
                 {
                     LotId = l.Id,
@@ -774,7 +811,8 @@ public class PurchaseReturnController : ControllerBase
                     CostPrice = l.CostPrice,
                     ReceivingDate = l.ReceivingDate,
                     ExpiryDate = l.ExpiryDate,
-                    IsFromSameSupplier = supplierId.HasValue && l.SupplierId == supplierId.Value
+                    IsFromSameSupplier = supplierId.HasValue && l.SupplierId == supplierId.Value,
+                    Status = NormalizeBucket(l.Status)
                 })
                 .OrderByDescending(l => l.IsFromSameSupplier)  // Same supplier lots first
                 .ThenBy(l => l.ReceivingDate)  // Then FIFO
@@ -788,6 +826,121 @@ public class PurchaseReturnController : ControllerBase
             return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving available lots");
         }
     }
+
+    /// <summary>
+    /// Builds a draft Purchase Return payload from an accepted Goods Receipt: one line per GRN line that
+    /// still has un-returned damaged or wrong units, each pointing at the specific DAMAGED/QUARANTINE lot
+    /// that GRN line created. Powers the "Create Return" action on the Goods Receipt view.
+    /// </summary>
+    [HttpGet("from-goods-receipt/{goodsReceiptId:guid}")]
+    public async Task<IActionResult> GetReturnPrefillFromGrn(Guid goodsReceiptId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var grn = await _dbContext.GoodsReceipts
+                .AsNoTracking()
+                .Include(g => g.LineItems).ThenInclude(l => l.Part)
+                .Include(g => g.LineItems).ThenInclude(l => l.Variant)
+                .Include(g => g.PurchaseOrder).ThenInclude(p => p!.Supplier)
+                .Include(g => g.PurchaseOrder).ThenInclude(p => p!.LineItems)
+                .FirstOrDefaultAsync(g => g.Id == goodsReceiptId, cancellationToken);
+
+            if (grn == null)
+                return NotFound(new { message = "Goods receipt not found" });
+
+            var po = grn.PurchaseOrder;
+            if (po == null)
+                return BadRequest(new { message = "Goods receipt has no associated purchase order" });
+
+            // Lots created by this GRN's lines (damaged/quarantine lots carry the matching Status)
+            var grnLineIds = grn.LineItems.Select(l => l.Id).ToList();
+            var lots = await _dbContext.StockLots
+                .AsNoTracking()
+                .Where(l => grnLineIds.Contains(l.GoodsReceiptLineId))
+                .ToListAsync(cancellationToken);
+
+            // Units already returned per lot (so re-opening the draft excludes what's gone back already)
+            var lotIds = lots.Select(l => l.Id).ToList();
+            var returnedMap = (await _dbContext.PurchaseReturns
+                .AsNoTracking()
+                .SelectMany(r => r.LineItems)
+                .Where(li => li.StockLotId != null && lotIds.Contains(li.StockLotId.Value))
+                .GroupBy(li => li.StockLotId!.Value)
+                .Select(g => new { LotId = g.Key, Qty = g.Sum(x => x.Quantity) })
+                .ToListAsync(cancellationToken))
+                .ToDictionary(x => x.LotId, x => x.Qty);
+
+            var prefill = new ReturnPrefillFromGrnDto
+            {
+                GoodsReceiptId = grn.Id,
+                GrnNumber = grn.GRNNumber,
+                PurchaseOrderId = po.Id,
+                PurchaseOrderNumber = po.PONumber,
+                SupplierId = po.SupplierId,
+                SupplierName = po.Supplier?.Name
+            };
+
+            bool anyDamaged = false, anyWrong = false;
+
+            foreach (var grnLine in grn.LineItems)
+            {
+                var unitPrice = grnLine.UnitCost > 0
+                    ? grnLine.UnitCost
+                    : (po.LineItems.FirstOrDefault(l => l.Id == grnLine.PurchaseOrderLineId)?.UnitPrice ?? grnLine.UnitCost);
+                var displayName = VariantNaming.Compose(grnLine.Part?.Name ?? string.Empty, grnLine.Variant?.Name);
+                var partSku = grnLine.Part?.SKU ?? string.Empty;
+
+                void AddLine(int bucketQty, string bucket, string condition, string defaultNote)
+                {
+                    var lot = lots.FirstOrDefault(l => l.GoodsReceiptLineId == grnLine.Id && NormalizeBucket(l.Status) == bucket);
+                    int already = lot != null && returnedMap.TryGetValue(lot.Id, out var q) ? q : 0;
+                    int remaining = bucketQty - already;
+                    if (lot != null) remaining = Math.Min(remaining, lot.QuantityAvailable);
+                    if (remaining <= 0) return;
+
+                    if (bucket == "DAMAGED") anyDamaged = true; else anyWrong = true;
+                    prefill.Lines.Add(new ReturnPrefillLineDto
+                    {
+                        PurchaseOrderLineId = grnLine.PurchaseOrderLineId,
+                        PartId = grnLine.PartId,
+                        DisplayName = displayName,
+                        PartSku = partSku,
+                        StockLotId = lot?.Id,
+                        LotNumber = lot?.LotNumber,
+                        Bucket = bucket,
+                        Quantity = remaining,
+                        UnitPrice = unitPrice,
+                        Condition = condition,
+                        Notes = string.IsNullOrWhiteSpace(grnLine.RejectionReason) ? defaultNote : grnLine.RejectionReason
+                    });
+                }
+
+                if (grnLine.DamagedQuantity > 0)
+                    AddLine(grnLine.DamagedQuantity, "DAMAGED", MapGrnConditionToReturn(grnLine.Condition), "Damaged on receipt");
+
+                if (grnLine.WrongQuantity > 0)
+                    AddLine(grnLine.WrongQuantity, "QUARANTINE", "OPENED", "Wrong / incorrect item");
+            }
+
+            prefill.Reason = anyWrong && !anyDamaged ? "WRONG_ITEM" : "DAMAGED";
+            return Ok(prefill);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error building return prefill from goods receipt: {GoodsReceiptId}", goodsReceiptId);
+            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while building the return draft");
+        }
+    }
+
+    /// <summary>
+    /// Maps a GoodsReceiptLine condition (GOOD/ACCEPTABLE/DAMAGED/DEFECTIVE/MISSING) to a valid
+    /// PurchaseReturnLine condition (UNOPENED/OPENED/DAMAGED/DEFECTIVE).
+    /// </summary>
+    private static string MapGrnConditionToReturn(string? grnCondition) => grnCondition?.ToUpper() switch
+    {
+        "DEFECTIVE" => "DEFECTIVE",
+        _ => "DAMAGED"
+    };
 
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
@@ -808,6 +961,77 @@ public class PurchaseReturnController : ControllerBase
         {
             _logger.LogError(ex, "Error deleting purchase return: {ReturnId}", id);
             return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while deleting the purchase return");
+        }
+    }
+
+    /// <summary>
+    /// Option A guard: every return line must reference a line on the given purchase order,
+    /// the line's part must match that PO line, the PO must belong to the supplier, and the
+    /// return quantity may not exceed the ordered quantity. This keeps returns scoped to what
+    /// was actually purchased from this supplier (correct variant/lot/supplier resolution and
+    /// credit-note valuation downstream). Returns an error message, or null when valid.
+    /// </summary>
+    private async Task<string?> ValidateReturnLinesAgainstPoAsync(
+        Guid purchaseOrderId, Guid supplierId,
+        IEnumerable<CreatePurchaseReturnLineRequest> lines,
+        CancellationToken cancellationToken)
+    {
+        var po = await _dbContext.PurchaseOrders
+            .Include(p => p.LineItems)
+            .FirstOrDefaultAsync(p => p.Id == purchaseOrderId, cancellationToken);
+
+        if (po == null)
+            return "Selected purchase order not found.";
+        if (po.SupplierId != supplierId)
+            return "Supplier does not match the selected purchase order.";
+
+        foreach (var line in lines)
+        {
+            var poLine = po.LineItems.FirstOrDefault(l => l.Id == line.PurchaseOrderLineId);
+            if (poLine == null)
+                return $"A return line references an item that is not on purchase order {po.PONumber}. Only items from the selected purchase order can be returned.";
+            if (poLine.PartId != line.PartId)
+                return "A return line's product does not match its purchase order line.";
+            if (line.Quantity > poLine.Quantity)
+                return $"Return quantity ({line.Quantity}) exceeds the ordered quantity ({poLine.Quantity}) for an item on purchase order {po.PONumber}.";
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Normalises a StockLot.Status into one of the three inventory buckets.
+    /// Anything that isn't DAMAGED/QUARANTINE is treated as the sellable AVAILABLE bucket.
+    /// </summary>
+    private static string NormalizeBucket(string? status) => status?.Trim().ToUpper() switch
+    {
+        "DAMAGED" => "DAMAGED",
+        "QUARANTINE" => "QUARANTINE",
+        _ => "AVAILABLE"
+    };
+
+    /// <summary>Available units in the given StockLevel bucket.</summary>
+    private static int GetBucketAvailable(StockLevel stockLevel, string bucket) => bucket switch
+    {
+        "DAMAGED" => stockLevel.QuantityDamaged,
+        "QUARANTINE" => stockLevel.QuantityQuarantine,
+        _ => stockLevel.QuantityAvailable
+    };
+
+    /// <summary>Removes units from the given StockLevel bucket (Available/Damaged/Quarantine).</summary>
+    private static void RemoveFromBucket(StockLevel stockLevel, string bucket, int quantity)
+    {
+        switch (bucket)
+        {
+            case "DAMAGED":
+                stockLevel.RemoveDamagedStock(quantity, quantity, "Purchase Return");
+                break;
+            case "QUARANTINE":
+                stockLevel.RemoveQuarantineStock(quantity, quantity, "Purchase Return");
+                break;
+            default:
+                stockLevel.RemoveStock(quantity, quantity, "Purchase Return");
+                break;
         }
     }
 

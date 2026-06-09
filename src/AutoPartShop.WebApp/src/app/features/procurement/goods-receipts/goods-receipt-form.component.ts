@@ -602,6 +602,17 @@ export class GoodsReceiptFormComponent implements OnInit {
     });
   }
 
+  /**
+   * Open the Purchase Return form pre-filled from this accepted receipt's remaining damaged/wrong units.
+   * For when the receipt was accepted without creating a return, or damage is actioned later.
+   */
+  createReturnFromGrn(): void {
+    if (!this.grnId) return;
+    this.router.navigate(['/procurement/purchase-returns/create'], {
+      queryParams: { goodsReceiptId: this.grnId }
+    });
+  }
+
   rejectGoodsReceipt(): void {
     if (!this.grnId || !this.currentGRN) {
       return;

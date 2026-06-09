@@ -149,12 +149,14 @@
         </div>
       </div>
 
-      <!-- Section 2: Add Items (only in create/edit mode) -->
+      <!-- Section 2: Add Items (only in create/edit mode, when a PO with items is loaded) -->
       <div class="form-section" *ngIf="!isViewMode && availablePOItems.length > 0">
         <h3 class="section-title">
           <i class="pi pi-search section-icon"></i>
           Add Return Items
         </h3>
+
+        <!-- PO-based add (all items, or pick specific items) -->
         <div class="form-row">
           <div class="form-group full">
             <div class="add-items-buttons">
@@ -177,15 +179,6 @@
                 (click)="showSelectItemsDialog()"
                 [disabled]="!availablePOItems.length"
                 pTooltip="Choose specific items to return">
-              </button>
-              <button
-                type="button"
-                pButton
-                label="Add Manual Item"
-                icon="pi pi-plus"
-                class="p-button-sm p-button-outlined"
-                (click)="addLineItem()"
-                pTooltip="Manually add an item">
               </button>
             </div>
             <small class="field-hint">
@@ -212,6 +205,7 @@
             <thead>
               <tr>
                 <th class="col-name">Product</th>
+                <th class="col-source">Source</th>
                 <th class="col-lot">Stock Lot</th>
                 <th class="col-qty">Quantity</th>
                 <th class="col-price">Unit Price</th>
@@ -224,45 +218,37 @@
             <tbody formArrayName="lineItems">
               <tr *ngFor="let item of lineItemsArray.controls; let i = index" [formGroupName]="i" class="line-item-row">
                 <td class="part-name-cell" data-label="Product">
-                  <div *ngIf="!isViewMode">
-                    <p-autoComplete
-                      formControlName="part"
-                      [suggestions]="filteredParts"
-                      (completeMethod)="filterParts($event, i)"
-                      (onSelect)="onPartSelected($event, i)"
-                      field="displayName"
-                      optionLabel="displayName"
-                      [forceSelection]="true"
-                      [showEmptyMessage]="true"
-                      emptyMessage="No parts found"
-                      placeholder="Search part..."
-                      [dropdown]="true"
-                      appendTo="body"
-                      [style]="{ width: '100%' }">
-                      <ng-template let-part pTemplate="item">
-                        <div class="part-item">
-                          <span class="item-name">{{ part.displayName || part.name }}</span>
-                          <span class="item-code">SKU: {{ part.variantSKU || part.sku }} | PN: {{ part.partNumber }}</span>
-                        </div>
-                      </ng-template>
-                    </p-autoComplete>
-                  </div>
-                  <div *ngIf="isViewMode" class="part-name-wrapper">
+                  <div class="part-name-wrapper">
                     <span class="part-name-value">{{ item.get('displayName')?.value || item.get('part')?.value?.name || 'N/A' }}</span>
                   </div>
+                </td>
+                <td class="source-cell" data-label="Source">
+                  <p-select
+                    *ngIf="!isViewMode"
+                    formControlName="sourceBucket"
+                    [options]="bucketOptions"
+                    optionLabel="label"
+                    optionValue="value"
+                    appendTo="body"
+                    (onChange)="onSourceBucketChange(i)"
+                    pTooltip="Which stock bucket to return from. Damaged/Quarantine require selecting a lot."
+                    tooltipPosition="top"
+                    [style]="{ width: '100%' }">
+                  </p-select>
+                  <span *ngIf="isViewMode" class="source-display">{{ item.get('sourceBucket')?.value }}</span>
                 </td>
                 <td class="lot-cell" data-label="Stock Lot">
                   <p-select
                     *ngIf="!isViewMode"
                     formControlName="stockLotId"
-                    [options]="getAvailableLotsForPart(item.get('partId')?.value)"
+                    [options]="getLotsForLine(item.get('partId')?.value, item.get('sourceBucket')?.value)"
                     optionLabel="lotNumber"
                     optionValue="lotId"
-                    placeholder="Auto (FIFO)"
+                    [placeholder]="item.get('sourceBucket')?.value === 'AVAILABLE' ? 'Auto (FIFO)' : 'Select lot *'"
                     [showClear]="true"
                     appendTo="body"
                     [loading]="isLoadingLots(item.get('partId')?.value)"
-                    pTooltip="Leave empty for automatic FIFO selection"
+                    [pTooltip]="item.get('sourceBucket')?.value === 'AVAILABLE' ? 'Leave empty for automatic FIFO selection' : 'Damaged/Quarantine returns must reference a specific lot'"
                     tooltipPosition="top"
                     [style]="{ width: '100%' }">
                     <ng-template let-lot pTemplate="item">

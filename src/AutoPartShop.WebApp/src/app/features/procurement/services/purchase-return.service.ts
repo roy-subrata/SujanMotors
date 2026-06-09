@@ -34,6 +34,33 @@ export interface AvailableLotForReturn {
   receivingDate: string;
   expiryDate?: string;
   isFromSameSupplier: boolean;
+  status: string; // AVAILABLE, DAMAGED, QUARANTINE - which inventory bucket the lot belongs to
+}
+
+/** Draft payload to pre-fill a new return from an accepted Goods Receipt's damaged/wrong lines. */
+export interface ReturnPrefillFromGrn {
+  goodsReceiptId: string;
+  grnNumber: string;
+  purchaseOrderId: string;
+  purchaseOrderNumber?: string;
+  supplierId: string;
+  supplierName?: string;
+  reason: string;
+  lines: ReturnPrefillLine[];
+}
+
+export interface ReturnPrefillLine {
+  purchaseOrderLineId: string;
+  partId: string;
+  displayName: string;
+  partSku: string;
+  stockLotId?: string;
+  lotNumber?: string;
+  bucket: string; // DAMAGED or QUARANTINE
+  quantity: number;
+  unitPrice: number;
+  condition: string;
+  notes: string;
 }
 
 export interface PurchaseReturnResponse {
@@ -239,12 +266,23 @@ export class PurchaseReturnService {
    * Get available stock lots for a part (for return selection)
    * @param partId The part ID
    * @param supplierId Optional supplier ID to prioritize lots from same supplier
+   * @param bucket Optional inventory bucket filter (AVAILABLE, DAMAGED, QUARANTINE)
    */
-  getAvailableLotsForReturn(partId: string, supplierId?: string): Observable<AvailableLotForReturn[]> {
+  getAvailableLotsForReturn(partId: string, supplierId?: string, bucket?: string): Observable<AvailableLotForReturn[]> {
     let params = new HttpParams();
     if (supplierId) {
       params = params.set('supplierId', supplierId);
     }
+    if (bucket) {
+      params = params.set('bucket', bucket);
+    }
     return this.http.get<AvailableLotForReturn[]>(`${this.apiUrl}/available-lots/${partId}`, { params });
+  }
+
+  /**
+   * Build a draft return from an accepted Goods Receipt's remaining damaged/wrong units.
+   */
+  getReturnPrefillFromGrn(goodsReceiptId: string): Observable<ReturnPrefillFromGrn> {
+    return this.http.get<ReturnPrefillFromGrn>(`${this.apiUrl}/from-goods-receipt/${goodsReceiptId}`);
   }
 }

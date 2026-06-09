@@ -60,6 +60,10 @@ public class StockManagementService
             if (purchaseOrder == null)
                 throw new InvalidOperationException($"Purchase order not found for goods receipt {goodsReceipt.GRNNumber}");
 
+            // Capture the damaged/quarantine lots created per GRN line so the auto-return (below) can
+            // link each return line to the specific lot it should draw down on "mark returned".
+            var rejectedLotsByGrnLine = new Dictionary<Guid, (StockLot? damaged, StockLot? quarantine)>();
+
             foreach (var grnLine in goodsReceipt.LineItems)
             {
                 var part = await _productRepository.GetByIdAsync(grnLine.PartId, cancellationToken);
@@ -94,19 +98,22 @@ public class StockManagementService
                     qty: grnLine.AcceptedQuantity, baseQty: ToBase(grnLine.AcceptedQuantity, grnLine.AcceptedQuantityInBaseUnit),
                     baseUnitCost, status: "AVAILABLE", movementReason: "GRN", cancellationToken);
 
-                await PostBucketAsync(goodsReceipt, grnLine, part, purchaseOrder,
+                var damagedLot = await PostBucketAsync(goodsReceipt, grnLine, part, purchaseOrder,
                     qty: grnLine.DamagedQuantity, baseQty: ToBase(grnLine.DamagedQuantity, grnLine.DamagedQuantityInBaseUnit),
                     baseUnitCost, status: "DAMAGED", movementReason: "GRN-DAMAGED", cancellationToken);
 
-                await PostBucketAsync(goodsReceipt, grnLine, part, purchaseOrder,
+                var quarantineLot = await PostBucketAsync(goodsReceipt, grnLine, part, purchaseOrder,
                     qty: grnLine.WrongQuantity, baseQty: ToBase(grnLine.WrongQuantity, grnLine.WrongQuantityInBaseUnit),
                     baseUnitCost, status: "QUARANTINE", movementReason: "GRN-QUARANTINE", cancellationToken);
+
+                if (damagedLot != null || quarantineLot != null)
+                    rejectedLotsByGrnLine[grnLine.Id] = (damagedLot, quarantineLot);
             }
 
             // Optionally raise a draft Purchase Return for the damaged/wrong lines (spec: "Post & Create
             // Return"). PO -> GoodsReceipt -> PurchaseReturn audit trail. Created PENDING for approval/settlement.
             if (createReturn)
-                await CreatePurchaseReturnForRejectedLinesAsync(goodsReceipt, purchaseOrder, cancellationToken);
+                await CreatePurchaseReturnForRejectedLinesAsync(goodsReceipt, purchaseOrder, rejectedLotsByGrnLine, cancellationToken);
 
             // Update Purchase Order line received quantities and receipt status
             // This is done here because the PO is already loaded and tracked by DbContext
@@ -124,13 +131,13 @@ public class StockManagementService
     /// status: updates the StockLevel bucket, records a StockMovement, and creates a status-tagged StockLot
     /// with its own RECEIPT movement. No-op when quantity is 0.
     /// </summary>
-    private async Task PostBucketAsync(
+    private async Task<StockLot?> PostBucketAsync(
         GoodsReceipt goodsReceipt, GoodsReceiptLine grnLine, Product part, PurchaseOrder purchaseOrder,
         int qty, int baseQty, decimal baseUnitCost, string status, string movementReason,
         CancellationToken cancellationToken)
     {
         if (qty <= 0 || baseQty <= 0)
-            return;
+            return null;
 
         // Get or create stock level for this part/variant in this warehouse
         var stockLevel = await GetOrCreateStockLevelAsync(
@@ -209,6 +216,8 @@ public class StockManagementService
         lotMovement.CreatedBy = "System";
         lotMovement.ModifiedBy = "System";
         await _stockLotMovementRepository.AddAsync(lotMovement, cancellationToken);
+
+        return stockLot;
     }
 
     /// <summary>
@@ -217,7 +226,9 @@ public class StockManagementService
     /// was rejected.
     /// </summary>
     private async Task CreatePurchaseReturnForRejectedLinesAsync(
-        GoodsReceipt goodsReceipt, PurchaseOrder purchaseOrder, CancellationToken cancellationToken)
+        GoodsReceipt goodsReceipt, PurchaseOrder purchaseOrder,
+        IReadOnlyDictionary<Guid, (StockLot? damaged, StockLot? quarantine)> rejectedLotsByGrnLine,
+        CancellationToken cancellationToken)
     {
         var rejectedLines = goodsReceipt.LineItems
             .Where(l => l.DamagedQuantity > 0 || l.WrongQuantity > 0)
@@ -248,15 +259,18 @@ public class StockManagementService
             // (always > 0) when the receipt didn't capture a cost.
             var poLine = purchaseOrder.LineItems.FirstOrDefault(l => l.Id == grnLine.PurchaseOrderLineId);
             var unitPrice = grnLine.UnitCost > 0 ? grnLine.UnitCost : (poLine?.UnitPrice ?? grnLine.UnitCost);
+            rejectedLotsByGrnLine.TryGetValue(grnLine.Id, out var lots);
 
             // One return line per bucket so the physical condition is recorded accurately:
             //  Damaged units -> DAMAGED/DEFECTIVE; Wrong units -> OPENED (physically fine but incorrect item).
+            // Each line is linked to the specific lot it should draw down (bucket is derived from lot.Status).
             if (grnLine.DamagedQuantity > 0)
             {
                 var damagedLine = PurchaseReturnLine.Create(
                     purchaseReturn.Id, grnLine.PurchaseOrderLineId, grnLine.PartId,
                     quantity: grnLine.DamagedQuantity, unitPrice: unitPrice,
-                    condition: MapToReturnCondition(grnLine.Condition));
+                    condition: MapToReturnCondition(grnLine.Condition),
+                    stockLotId: lots.damaged?.Id);
                 damagedLine.AddNotes(string.IsNullOrWhiteSpace(grnLine.RejectionReason) ? "Damaged on receipt" : grnLine.RejectionReason);
                 damagedLine.CreatedBy = "System";
                 damagedLine.ModifiedBy = "System";
@@ -268,7 +282,8 @@ public class StockManagementService
                 var wrongLine = PurchaseReturnLine.Create(
                     purchaseReturn.Id, grnLine.PurchaseOrderLineId, grnLine.PartId,
                     quantity: grnLine.WrongQuantity, unitPrice: unitPrice,
-                    condition: "OPENED");
+                    condition: "OPENED",
+                    stockLotId: lots.quarantine?.Id);
                 wrongLine.AddNotes(string.IsNullOrWhiteSpace(grnLine.RejectionReason) ? "Wrong / incorrect item" : grnLine.RejectionReason);
                 wrongLine.CreatedBy = "System";
                 wrongLine.ModifiedBy = "System";

@@ -924,6 +924,18 @@
             </button>
 
             <button
+              *ngIf="currentGRN.status === 'ACCEPTED' && hasReturnableItems"
+              pButton
+              type="button"
+              label="Create Return"
+              icon="pi pi-replay"
+              class="p-button-warning"
+              (click)="createReturnFromGrn()"
+              pTooltip="Raise a Purchase Return for the damaged/wrong items received on this receipt."
+              tooltipPosition="top">
+            </button>
+
+            <button
               *ngIf="currentGRN.status === 'PENDING' || currentGRN.status === 'VERIFIED'"
               pButton
               type="button"

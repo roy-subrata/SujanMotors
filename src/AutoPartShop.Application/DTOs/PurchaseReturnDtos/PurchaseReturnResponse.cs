@@ -71,4 +71,5 @@ public class AvailableLotForReturnDto
     public DateTime ReceivingDate { get; set; }
     public DateTime? ExpiryDate { get; set; }
     public bool IsFromSameSupplier { get; set; }  // True if lot is from the return's supplier
+    public string Status { get; set; } = string.Empty;  // AVAILABLE, DAMAGED, QUARANTINE - which inventory bucket the lot belongs to
 }
