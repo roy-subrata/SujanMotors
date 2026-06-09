@@ -827,6 +827,102 @@
 
 .text-blue  { color: #2563eb; }
 .text-orange { color: #ea580c; }
+
+/* ── Inline receipt-items table (matches the purchase order form) ───────── */
+.table-wrapper {
+  overflow-x: auto;
+  background: #fff;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+}
+
+.line-items-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0;
+}
+
+.line-items-table thead {
+  background: #f9fafb;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.line-items-table thead th {
+  padding: 0.6rem 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.line-items-table tbody tr.line-item-row {
+  border-bottom: 1px solid #eef2f7;
+}
+
+.line-items-table tbody tr.line-item-row:hover {
+  background: #fafcff;
+}
+
+.line-items-table tbody td {
+  padding: 0.55rem 0.75rem;
+  color: #374151;
+  font-size: 0.88rem;
+  vertical-align: top;
+}
+
+.line-item-row.line-fully-received {
+  opacity: 0.6;
+  background: #f8fafc;
+}
+
+/* Column widths */
+.grn-line-items-table .col-item      { width: 23%; }
+.grn-line-items-table .col-qtys      { width: 16%; }
+.grn-line-items-table .col-receiving { width: 12%; }
+.grn-line-items-table .col-condition { width: 25%; }
+.grn-line-items-table .col-cost      { width: 13%; }
+.grn-line-items-table .col-details   { width: 11%; text-align: center; }
+
+.grn-line-items-table .details-cell { text-align: center; }
+
+.item-cell-inner,
+.condition-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.receiving-cell .p-error { margin-top: 0.2rem; display: block; }
+
+/* Details expandable row spans the full table width */
+.line-items-table tbody tr.details-row td {
+  padding: 0 0.75rem 0.6rem;
+  background: #fafcff;
+}
+.details-row .line-details-panel { margin-top: 0; }
+
+/* View-only chips row (edit/view mode) */
+.view-details-row td {
+  padding: 0 0.75rem 0.65rem !important;
+}
+.view-details-row .line-view-details { margin-top: 0; border-top: none; padding-top: 0; }
+
+/* Compact inputs inside table cells (same treatment as the old grid) */
+:host ::ng-deep .line-items-table .p-inputnumber-input,
+:host ::ng-deep .line-items-table input.p-inputtext,
+:host ::ng-deep .line-items-table .p-select .p-select-label {
+  padding: 0.3rem 0.5rem;
+  line-height: 1.35;
+}
+:host ::ng-deep .line-items-table .p-inputnumber { width: 100%; }
+
+/* Small screens: let the table scroll horizontally rather than break the rows */
+@media (max-width: 1024px) {
+  .grn-line-items-table { min-width: 880px; }
+}
 .text-green { color: #16a34a; }
 
 /* Step header: hint + quick actions on one row */
