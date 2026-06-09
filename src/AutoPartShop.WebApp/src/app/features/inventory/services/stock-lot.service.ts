@@ -9,6 +9,10 @@ export interface StockLotResponse {
   partId: string;
   partName: string;
   partSKU: string;
+  variantId?: string | null;
+  variantName?: string | null;
+  variantSku?: string | null;
+  displayName?: string | null;
   warehouseId: string;
   warehouseName: string;
   supplierId: string;
@@ -92,6 +96,7 @@ export interface StockLotQuery {
   pageSize: number;
   pageNumber: number;
   partId?: string;
+  variantId?: string;
   warehouseId?: string;
 }
 
@@ -122,9 +127,10 @@ export class StockLotService {
   /**
    * Get price history for a part (all lots sorted by date)
    */
-  getPriceHistory(partId: string, pageNumber = 1, pageSize = 10): Observable<StockLotPriceHistoryResponse> {
+  getPriceHistory(partId: string, pageNumber = 1, pageSize = 10, variantId?: string | null): Observable<StockLotPriceHistoryResponse> {
+    const variantParam = variantId ? `&variantId=${variantId}` : '';
     return this.http.get<StockLotPriceHistoryResponse>(
-      `${this.apiUrl}/price-history/${partId}?pageNumber=${pageNumber}&pageSize=${pageSize}`
+      `${this.apiUrl}/price-history/${partId}?pageNumber=${pageNumber}&pageSize=${pageSize}${variantParam}`
     );
   }
 

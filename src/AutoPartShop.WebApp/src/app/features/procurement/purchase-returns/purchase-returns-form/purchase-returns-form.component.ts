@@ -18,7 +18,7 @@ import { CheckboxModule } from 'primeng/checkbox';
 import { TagModule } from 'primeng/tag';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { MessageService, ConfirmationService } from 'primeng/api';
-import { PurchaseReturnService, PurchaseReturnResponse, AvailableLotForReturn } from '../../services/purchase-return.service';
+import { PurchaseReturnService, PurchaseReturnResponse, AvailableLotForReturn, ReturnPrefillFromGrn } from '../../services/purchase-return.service';
 import { PurchaseOrderService, PurchaseOrderResponse } from '../../services/purchase-order.service';
 import { PartService, PartResponse } from '../../../inventory/services/part.service';
 import { CurrencyService } from '../../../../shared/services/currency.service';
@@ -59,7 +59,6 @@ export class PurchaseReturnsFormComponent implements OnInit {
   filteredPurchaseOrders: PurchaseOrderResponse[] = [];
   purchaseOrders: PurchaseOrderResponse[] = [];
   parts: PartResponse[] = [];
-  filteredParts: PartResponse[] = [];
   availablePOItems: any[] = [];
   showItemSelectionDialog = false;
   selectedPOItems: any[] = [];
@@ -77,6 +76,14 @@ export class PurchaseReturnsFormComponent implements OnInit {
     { label: 'Opened', value: 'OPENED' },
     { label: 'Damaged', value: 'DAMAGED' },
     { label: 'Defective', value: 'DEFECTIVE' }
+  ];
+
+  // Which inventory bucket the returned units come from. Filters the lot picker; the actual bucket
+  // is derived server-side from the chosen lot's status (Damaged/Quarantine require a specific lot).
+  bucketOptions = [
+    { label: 'Available', value: 'AVAILABLE' },
+    { label: 'Damaged', value: 'DAMAGED' },
+    { label: 'Quarantine (Wrong)', value: 'QUARANTINE' }
   ];
 
   reasonOptions = [
@@ -114,6 +121,9 @@ export class PurchaseReturnsFormComponent implements OnInit {
     this.loadPurchaseOrders();
     this.loadParts();
     this.checkEditMode();
+    if (!this.returnId) {
+      this.checkPrefillFromGrn();
+    }
   }
 
   /**
@@ -242,13 +252,94 @@ export class PurchaseReturnsFormComponent implements OnInit {
   }
 
   /**
+   * If opened with a ?goodsReceiptId= query param, pre-fill the return from that GRN's
+   * remaining damaged/wrong units (each line pre-pointed at its damaged/quarantine lot).
+   */
+  private checkPrefillFromGrn(): void {
+    const grnId = this.route.snapshot.queryParamMap.get('goodsReceiptId');
+    if (!grnId) return;
+
+    this.prService.getReturnPrefillFromGrn(grnId).subscribe({
+      next: (prefill) => this.applyPrefill(prefill),
+      error: (error) => {
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: error?.error?.message || 'Failed to load return draft from goods receipt'
+        });
+      }
+    });
+  }
+
+  /**
+   * Apply a GRN-based draft: load the PO, then build one line per remaining damaged/wrong unit.
+   */
+  private applyPrefill(prefill: ReturnPrefillFromGrn): void {
+    if (!prefill.lines || prefill.lines.length === 0) {
+      this.messageService.add({
+        severity: 'info',
+        summary: 'Nothing to return',
+        detail: `Goods receipt ${prefill.grnNumber} has no remaining damaged/wrong units to return.`
+      });
+      return;
+    }
+
+    this.poService.getPurchaseOrderById(prefill.purchaseOrderId).subscribe({
+      next: (po) => {
+        this.selectedPurchaseOrder = po;
+        this.availablePOItems = po.lines || [];
+        if (!this.purchaseOrders.find(p => p.id === po.id)) {
+          this.purchaseOrders = [po, ...this.purchaseOrders];
+        }
+
+        this.form.patchValue({
+          purchaseOrderId: po,
+          reason: prefill.reason === 'WRONG_ITEM' ? 'Wrong Item' : 'Damaged',
+          notes: `Created from GRN ${prefill.grnNumber}`
+        });
+
+        this.lineItemsArray.clear();
+        prefill.lines.forEach(line => {
+          this.lineItemsArray.push(this.createLineItem({
+            purchaseOrderLineId: line.purchaseOrderLineId,
+            partId: line.partId,
+            displayName: line.displayName,
+            stockLotId: line.stockLotId,
+            quantity: line.quantity,
+            unitPrice: line.unitPrice,
+            condition: line.condition,
+            notes: line.notes,
+            sourceBucket: line.bucket
+          }));
+        });
+
+        this.messageService.add({
+          severity: 'info',
+          summary: 'Draft from Goods Receipt',
+          detail: `${prefill.lines.length} damaged/wrong line(s) loaded from GRN ${prefill.grnNumber}.`,
+          life: 5000
+        });
+      },
+      error: () => {
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Failed to load purchase order for the return draft'
+        });
+      }
+    });
+  }
+
+  /**
    * Create line item form group
    */
   private createLineItem(lineData?: any): FormGroup {
-    // Find the part object if we have a partId
-    let partObj = null;
+    // Find the part object if we have a partId; fall back to a minimal object built from the line
+    // (display name) so the required `part` control is satisfied even when the part isn't in the cache.
+    let partObj: any = null;
     if (lineData?.partId) {
-      partObj = this.parts.find(p => p.id === lineData.partId);
+      partObj = this.parts.find(p => p.id === lineData.partId)
+        || (lineData.displayName ? { id: lineData.partId, name: lineData.displayName, displayName: lineData.displayName } : null);
       // Load available lots for this part
       this.loadAvailableLotsForPart(lineData.partId);
     }
@@ -259,6 +350,7 @@ export class PurchaseReturnsFormComponent implements OnInit {
       part: [partObj, Validators.required],
       partId: [lineData?.partId || '', Validators.required],
       displayName: [lineData?.displayName || partObj?.name || ''],
+      sourceBucket: [lineData?.sourceBucket || 'AVAILABLE'],  // Filters the lot picker; not persisted
       stockLotId: [lineData?.stockLotId || null],  // Optional: specific lot to return from
       quantity: [lineData?.quantity || 1, [Validators.required, Validators.min(1)]],
       rejectedQuantity: [lineData?.rejectedQuantity || 0, Validators.min(0)],
@@ -278,10 +370,21 @@ export class PurchaseReturnsFormComponent implements OnInit {
     const supplierId = this.selectedPurchaseOrder?.supplierId;
 
     this.loadingLotsMap.set(partId, true);
+    // Load all buckets for the part; the per-line Source dropdown filters client-side.
     this.prService.getAvailableLotsForReturn(partId, supplierId).subscribe({
       next: (lots) => {
         this.availableLotsMap.set(partId, lots);
         this.loadingLotsMap.set(partId, false);
+        // Reconcile each line's Source bucket with its selected lot's status (edit/view of existing returns)
+        this.lineItemsArray.controls.forEach(ctrl => {
+          if (ctrl.get('partId')?.value === partId) {
+            const lotId = ctrl.get('stockLotId')?.value;
+            if (lotId) {
+              const lot = lots.find(l => l.lotId === lotId);
+              if (lot?.status) ctrl.get('sourceBucket')?.setValue(lot.status, { emitEvent: false });
+            }
+          }
+        });
       },
       error: (error) => {
         console.error('Error loading available lots for part:', partId, error);
@@ -299,17 +402,26 @@ export class PurchaseReturnsFormComponent implements OnInit {
   }
 
   /**
+   * Lots for a line, filtered to the chosen Source bucket (client-side).
+   */
+  getLotsForLine(partId: string, bucket: string): AvailableLotForReturn[] {
+    const all = this.availableLotsMap.get(partId) || [];
+    const b = bucket || 'AVAILABLE';
+    return all.filter(l => (l.status || 'AVAILABLE') === b);
+  }
+
+  /**
+   * Source bucket changed for a line: clear the previously selected lot (options have changed).
+   */
+  onSourceBucketChange(rowIndex: number): void {
+    this.lineItemsArray.at(rowIndex)?.patchValue({ stockLotId: null });
+  }
+
+  /**
    * Check if lots are loading for a part
    */
   isLoadingLots(partId: string): boolean {
     return this.loadingLotsMap.get(partId) || false;
-  }
-
-  /**
-   * Add new line item
-   */
-  addLineItem(): void {
-    this.lineItemsArray.push(this.createLineItem());
   }
 
   /**
@@ -479,6 +591,7 @@ export class PurchaseReturnsFormComponent implements OnInit {
       part: [partObj, Validators.required],
       partId: [poLine.partId, Validators.required],
       displayName: [poLine.displayName || partObj?.name || ''],
+      sourceBucket: ['AVAILABLE'],  // Filters the lot picker; not persisted
       stockLotId: [null],  // Optional: specific lot to return from
       quantity: [poLine.quantity, [Validators.required, Validators.min(1)]],
       rejectedQuantity: [0, Validators.min(0)],
@@ -487,34 +600,6 @@ export class PurchaseReturnsFormComponent implements OnInit {
       notes: ['']
     });
     this.lineItemsArray.push(lineItem);
-  }
-
-  /**
-   * Filter parts for autocomplete — DB-backed search per query
-   */
-  filterParts(event: any, _rowIndex: number): void {
-    const query: string = event.query ?? '';
-    this.partService.getParts({ search: query, pageNumber: 1, pageSize: 20, isActive: true, flattenVariants: true })
-      .subscribe({ next: (res) => { this.filteredParts = res.data ?? []; } });
-  }
-
-  /**
-   * Handle part selection
-   */
-  onPartSelected(event: any, rowIndex: number): void {
-    if (event && event.id) {
-      const lineItemControl = this.lineItemsArray.at(rowIndex);
-      if (lineItemControl) {
-        lineItemControl.patchValue({
-          partId: event.id,
-          unitPrice: event.costPrice || 0,
-          stockLotId: null  // Reset lot selection when part changes
-        });
-
-        // Load available lots for the selected part
-        this.loadAvailableLotsForPart(event.id);
-      }
-    }
   }
 
   /**

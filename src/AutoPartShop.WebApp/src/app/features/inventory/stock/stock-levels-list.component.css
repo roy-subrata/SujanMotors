@@ -2,6 +2,24 @@
   font-weight: 600;
 }
 
+.variant-tag {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0.05rem 0.45rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #2563eb;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.text-gray-500 {
+  color: #6b7280;
+}
+
 .text-gray-600 {
   color: #666;
 }

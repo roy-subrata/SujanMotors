@@ -18,6 +18,10 @@ public class CreateGoodsReceiptRequest
     public string CarrierName { get; set; } = string.Empty;
     public string DriverName { get; set; } = string.Empty;
     public string DeliveryNotes { get; set; } = string.Empty;
+
+    // When true, accepting this receipt also raises a draft Purchase Return for the damaged/wrong
+    // lines (spec: "Post & Create Return"). Used by the accept endpoint.
+    public bool CreateReturn { get; set; } = false;
 }
 
 public class CreateGoodsReceiptLineRequest
@@ -27,7 +31,10 @@ public class CreateGoodsReceiptLineRequest
     // multiple lines for the same PartId (e.g. different variants). Falls back to PartId match when absent.
     public Guid? PurchaseOrderLineId { get; set; }
     public int ReceivedQuantity { get; set; }
-    public string Condition { get; set; } = "GOOD"; // GOOD, DAMAGED, MISSING
+    public int DamagedQuantity { get; set; } = 0;  // Damaged units -> Damaged stock (+ optional Purchase Return)
+    public int WrongQuantity { get; set; } = 0;    // Wrong/incorrect units -> Quarantine stock (+ optional Purchase Return)
+    public string RejectionReason { get; set; } = string.Empty;  // Why units were damaged/wrong
+    public string Condition { get; set; } = "GOOD"; // GOOD, ACCEPTABLE, DAMAGED, DEFECTIVE, MISSING
     public string Notes { get; set; } = string.Empty;
 
     // Cost Information - actual cost paid

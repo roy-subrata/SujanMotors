@@ -631,9 +631,12 @@ export class StockMovementHistoryComponent implements OnInit {
   }
 
   getPartDisplay(movement: StockMovementResponse): string {
-    // Use partName and partCode directly from the API response
-    if (movement.partName) {
-      return movement.partCode ? `${movement.partName} (${movement.partCode})` : movement.partName;
+    // Prefer the composed "Base - Variant" name so variant rows are distinguishable.
+    const name = movement.displayName || movement.partName;
+    // Variant rows use their own SKU; non-variant rows use the base part code.
+    const code = movement.variantSku || movement.partCode;
+    if (name) {
+      return code ? `${name} (${code})` : name;
     }
     // Fallback: try to find in local parts array
     const part = this.parts.find(p => p.id === movement.partId);

@@ -117,7 +117,8 @@ export class GoodsReceiptFormComponent implements OnInit {
         pageNumber: req.pageNumber,
         pageSize: req.pageSize,
         search: req.search,
-        status: 'CONFIRMED,PARTIAL'
+        status: 'CONFIRMED,PARTIAL',
+        hasReceivableQuantity: true
       })
       .pipe(
         map(
@@ -198,6 +199,50 @@ export class GoodsReceiptFormComponent implements OnInit {
     }
 
     return this.getTotalCostAllItems() / totalQuantity;
+  }
+
+  /** Good (accepted) quantity for a line = Receiving - Damaged - Wrong, floored at 0. */
+  getGoodQuantity(ctrl: any): number {
+    const good =
+      this.toNumber(ctrl.get('receivingQuantity')?.value) -
+      this.toNumber(ctrl.get('damagedQuantity')?.value) -
+      this.toNumber(ctrl.get('wrongQuantity')?.value);
+    return Math.max(good, 0);
+  }
+
+  getTotalGoodQuantity(): number {
+    return this.lineItemsArray.controls.reduce((sum, ctrl) => sum + this.getGoodQuantity(ctrl), 0);
+  }
+
+  getTotalDamagedQuantity(): number {
+    return this.lineItemsArray.value.reduce((sum: number, line: any) => sum + this.toNumber(line.damagedQuantity), 0);
+  }
+
+  getTotalWrongQuantity(): number {
+    return this.lineItemsArray.value.reduce((sum: number, line: any) => sum + this.toNumber(line.wrongQuantity), 0);
+  }
+
+  /** Number of lines that would generate a return line (any damaged or wrong qty). */
+  getPotentialReturns(): number {
+    return this.lineItemsArray.value.filter(
+      (line: any) => this.toNumber(line.damagedQuantity) > 0 || this.toNumber(line.wrongQuantity) > 0
+    ).length;
+  }
+
+  /** Quick action: receive everything in perfect condition (Damaged = Wrong = 0). */
+  acceptAll(): void {
+    this.lineItemsArray.controls.forEach((ctrl, index) => {
+      if (ctrl.get('receivingQuantity')?.disabled) {
+        return;
+      }
+      const remaining = this.toNumber(ctrl.get('remainingQuantity')?.value);
+      ctrl.patchValue(
+        { receivingQuantity: remaining, damagedQuantity: 0, wrongQuantity: 0, rejectionReason: '', condition: 'GOOD' },
+        { emitEvent: false }
+      );
+      this.updateLineDiscrepancy(index);
+    });
+    this.refreshLineWarnings();
   }
 
   getPageTitle(): string {
@@ -519,30 +564,52 @@ export class GoodsReceiptFormComponent implements OnInit {
     });
   }
 
-  acceptGoodsReceipt(): void {
+  /** True when the receipt has damaged/wrong items that could be returned to the supplier. */
+  get hasReturnableItems(): boolean {
+    return !!this.currentGRN && this.currentGRN.lines?.some((l) => (l.damagedQuantity ?? 0) > 0 || (l.wrongQuantity ?? 0) > 0);
+  }
+
+  acceptGoodsReceipt(createReturn = false): void {
     if (!this.grnId || !this.currentGRN) {
       return;
     }
 
+    const message = createReturn
+      ? `Accept receipt ${this.currentGRN.grnNumber} and create a draft Purchase Return for the damaged/wrong items?`
+      : `Accept receipt ${this.currentGRN.grnNumber}? This updates stock on hand.`;
+
     this.confirmationService.confirm({
-      header: 'Accept Goods Receipt',
-      message: `Accept receipt ${this.currentGRN.grnNumber}? This updates stock on hand.`,
+      header: createReturn ? 'Accept & Create Return' : 'Accept Goods Receipt',
+      message,
       icon: 'pi pi-exclamation-triangle',
       acceptButtonStyleClass: 'p-button-success',
       accept: () => {
-        this.grnService.acceptGoodsReceipt(this.grnId!).subscribe({
+        this.grnService.acceptGoodsReceipt(this.grnId!, createReturn).subscribe({
           next: (grn) => {
             this.currentGRN = grn;
             this.messageService.add({
               severity: 'success',
               summary: 'Accepted',
-              detail: `Goods Receipt ${grn.grnNumber} accepted successfully.`
+              detail: createReturn
+                ? `Goods Receipt ${grn.grnNumber} accepted and a draft Purchase Return was created.`
+                : `Goods Receipt ${grn.grnNumber} accepted successfully.`
             });
             this.loadGoodsReceipt(this.grnId!);
           },
           error: (error) => this.showApiError('Acceptance Failed', error, 'Failed to accept goods receipt.')
         });
       }
+    });
+  }
+
+  /**
+   * Open the Purchase Return form pre-filled from this accepted receipt's remaining damaged/wrong units.
+   * For when the receipt was accepted without creating a return, or damage is actioned later.
+   */
+  createReturnFromGrn(): void {
+    if (!this.grnId) return;
+    this.router.navigate(['/procurement/purchase-returns/create'], {
+      queryParams: { goodsReceiptId: this.grnId }
     });
   }
 
@@ -698,7 +765,9 @@ export class GoodsReceiptFormComponent implements OnInit {
     linesArray.clear();
 
     this.selectedPO.lines?.forEach((line, index) => {
-      const remainingQty = Math.max(this.toNumber(line.remainingQuantity || line.quantity - line.receivedQuantity), 0);
+      // Trust the API-computed remaining (accepted net of rejections, minus in-flight GRNs).
+      // Use ?? so a legitimate remaining of 0 isn't treated as falsy and recomputed locally.
+      const remainingQty = Math.max(this.toNumber(line.remainingQuantity ?? 0), 0);
       const receivingNow = remainingQty;
 
       const defaultSell = this.toNumber(line.partDefaultSellingPrice);
@@ -717,6 +786,9 @@ export class GoodsReceiptFormComponent implements OnInit {
         remainingQuantity:       [remainingQty],
         maxReceivableQuantity:   [remainingQty],
         receivingQuantity:       [receivingNow, [Validators.required, Validators.min(0), Validators.max(remainingQty)]],
+        damagedQuantity:         [0, [Validators.min(0), Validators.max(remainingQty)]],
+        wrongQuantity:           [0, [Validators.min(0), Validators.max(remainingQty)]],
+        rejectionReason:         [''],
         condition:               ['GOOD', Validators.required],
         notes:                   [''],
         hasDiscrepancy:          [false],
@@ -742,6 +814,9 @@ export class GoodsReceiptFormComponent implements OnInit {
       if (remainingQty === 0) {
         group.get('receivingQuantity')?.setValue(0);
         group.get('receivingQuantity')?.disable();
+        group.get('damagedQuantity')?.disable();
+        group.get('wrongQuantity')?.disable();
+        group.get('rejectionReason')?.disable();
         group.get('condition')?.disable();
         group.get('unitCost')?.disable();
       }
@@ -782,6 +857,9 @@ export class GoodsReceiptFormComponent implements OnInit {
             this.toNumber(line.receivedQuantity),
             [Validators.required, Validators.min(0), Validators.max(maxReceivableQty)]
           ],
+          damagedQuantity: [this.toNumber(line.damagedQuantity), [Validators.min(0), Validators.max(maxReceivableQty)]],
+          wrongQuantity: [this.toNumber(line.wrongQuantity), [Validators.min(0), Validators.max(maxReceivableQty)]],
+          rejectionReason: [''],
           condition: [line.condition, Validators.required],
           notes: [line.notes || ''],
           hasDiscrepancy: [!!line.hasDiscrepancy],
@@ -857,6 +935,9 @@ export class GoodsReceiptFormComponent implements OnInit {
       const partName = line.get('partName')?.value || `Item ${index + 1}`;
       const receivingQty = this.toNumber(line.get('receivingQuantity')?.value);
       const maxReceivableQty = this.toNumber(line.get('maxReceivableQuantity')?.value);
+      const damagedQty = this.toNumber(line.get('damagedQuantity')?.value);
+      const wrongQty = this.toNumber(line.get('wrongQuantity')?.value);
+      const rejectionReason = this.toTrimmedOrNull(line.get('rejectionReason')?.value);
       const condition = this.toTrimmedOrNull(line.get('condition')?.value);
 
       if (receivingQty < 0) {
@@ -865,6 +946,18 @@ export class GoodsReceiptFormComponent implements OnInit {
 
       if (receivingQty > maxReceivableQty) {
         errors.push(`${partName}: receiving quantity exceeds allowed remaining quantity.`);
+      }
+
+      if (damagedQty < 0 || wrongQty < 0) {
+        errors.push(`${partName}: damaged/wrong quantity cannot be negative.`);
+      }
+
+      if (damagedQty + wrongQty > receivingQty) {
+        errors.push(`${partName}: damaged + wrong quantity cannot exceed received quantity.`);
+      }
+
+      if (damagedQty + wrongQty > 0 && !rejectionReason) {
+        errors.push(`${partName}: a reason is required when reporting damaged or wrong items.`);
       }
 
       if (!condition) {
@@ -898,6 +991,9 @@ export class GoodsReceiptFormComponent implements OnInit {
           partId:              line.get('partId')?.value,
           purchaseOrderLineId: line.get('purchaseOrderLineId')?.value ?? null,
           receivedQuantity:    receivedQty,
+          damagedQuantity:     this.toNumber(line.get('damagedQuantity')?.value),
+          wrongQuantity:       this.toNumber(line.get('wrongQuantity')?.value),
+          rejectionReason:     this.toTrimmedOrEmpty(line.get('rejectionReason')?.value),
           condition:           line.get('condition')?.value,
           notes:               this.toTrimmedOrEmpty(line.get('notes')?.value),
           hasDiscrepancy:      !!line.get('hasDiscrepancy')?.value,

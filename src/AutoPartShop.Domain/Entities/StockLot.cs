@@ -28,6 +28,8 @@ public class StockLot : AuditableEntity
     public string ManufacturerLotNumber { get; private set; } = string.Empty;  // Manufacturer's lot/batch number
     public string Notes { get; private set; } = string.Empty;
     public bool IsActive { get; private set; } = true;
+    // Inventory status (GRN spec): AVAILABLE = sellable; DAMAGED / QUARANTINE = held, excluded from sale.
+    public string Status { get; private set; } = "AVAILABLE";
 
     // Lot-level warranty (some lots may not have warranty even if the part normally does)
     public bool HasWarranty { get; private set; } = false;
@@ -51,7 +53,8 @@ public class StockLot : AuditableEntity
         string notes = "", Guid? unitId = null, int quantityReceivedInBaseUnit = 0,
         decimal costPriceInBaseUnit = 0, decimal sellingPrice = 0,
         bool hasWarranty = false, int? warrantyPeriodMonths = null,
-        string? warrantyType = null, string? warrantyTerms = null, Guid? variantId = null)
+        string? warrantyType = null, string? warrantyTerms = null, Guid? variantId = null,
+        string status = "AVAILABLE")
     {
         if (string.IsNullOrWhiteSpace(lotNumber))
             throw new ArgumentException("LotNumber cannot be empty", nameof(lotNumber));
@@ -105,7 +108,8 @@ public class StockLot : AuditableEntity
             ManufacturerLotNumber = manufacturerLotNumber?.Trim() ?? string.Empty,
             Notes = notes?.Trim() ?? string.Empty,
             UnitId = unitId,
-            IsActive = true
+            IsActive = true,
+            Status = string.IsNullOrWhiteSpace(status) ? "AVAILABLE" : status.Trim().ToUpper()
         };
     }
 

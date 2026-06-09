@@ -71,6 +71,18 @@ export interface SupplierQuery {
     pageSize: number;
     pageNumber: number;
 }
+
+export interface SupplierPerformanceResponse {
+  supplierId: string;
+  supplierName: string;
+  supplierCode: string;
+  grnCount: number;
+  totalReceivedQty: number;
+  totalRejectedQty: number;
+  totalAcceptedQty: number;
+  returnCount: number;
+  damagedRatePct: number;
+}
 @Injectable({
   providedIn: 'root'
 })
@@ -104,6 +116,14 @@ export class SupplierService {
    */
   getSupplierById(id: string): Observable<SupplierResponse> {
     return this.http.get<SupplierResponse>(`${this.apiUrl}/${id}`);
+  }
+
+  /**
+   * Supplier performance metrics (damaged rate from accepted goods receipts + return counts)
+   */
+  getPerformance(search?: string): Observable<SupplierPerformanceResponse[]> {
+    const params = search ? `?search=${encodeURIComponent(search)}` : '';
+    return this.http.get<SupplierPerformanceResponse[]>(`${this.apiUrl}/performance${params}`);
   }
 
   /**

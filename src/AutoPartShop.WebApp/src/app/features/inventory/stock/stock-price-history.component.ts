@@ -90,7 +90,7 @@ export class StockPriceHistoryComponent implements OnInit {
     }
 
     this.loading = true;
-    this.stockLotService.getPriceHistory(this.selectedPart.id, this.pageNumber, this.pageSize).subscribe({
+    this.stockLotService.getPriceHistory(this.selectedPart.id, this.pageNumber, this.pageSize, this.selectedPart.variantId).subscribe({
       next: (history) => {
         this.priceHistory = history;
         this.totalRecords = history.pagination?.totalCount ?? 0;

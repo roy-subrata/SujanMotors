@@ -12,6 +12,7 @@ import { SupplierPaymentFormComponent } from './supplier-payment/supplier-paymen
 import { SupplierPaymentSummaryComponent } from './supplier-payment-summary/supplier-payment-summary.component';
 import { SupplierAccountSummaryComponent } from './supplier-account-summary/supplier-account-summary.component';
 import { DailyExpensesComponent } from './daily-expenses/daily-expenses.component';
+import { SupplierPerformanceComponent } from './supplier-performance/supplier-performance.component';
 
 export const procurementRoutes: Routes = [
   // Purchase Orders
@@ -47,6 +48,9 @@ export const procurementRoutes: Routes = [
   { path: 'supplier-account-summary', component: SupplierAccountSummaryComponent },
 
   // Daily Expenses
-  { path: 'daily-expenses', component: DailyExpensesComponent }
+  { path: 'daily-expenses', component: DailyExpensesComponent },
+
+  // Supplier Performance report (damaged rate)
+  { path: 'supplier-performance', component: SupplierPerformanceComponent }
 ];
 

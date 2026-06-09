@@ -218,93 +218,121 @@
             Step 2: Receipt Items
             <span class="items-count" *ngIf="lineItemsArray.length > 0">({{ lineItemsArray.length }})</span>
           </h3>
-          <span class="section-hint">Receiving quantities are pre-filled with remaining quantities.</span>
+          <div class="section-header-actions">
+            <span class="section-hint">Receiving quantities are pre-filled with remaining quantities.</span>
+            <button
+              *ngIf="lineItemsArray.length > 0"
+              pButton
+              type="button"
+              label="Accept All"
+              icon="pi pi-check-circle"
+              class="p-button-sm p-button-outlined p-button-success"
+              (click)="acceptAll()"
+              pTooltip="Receive every line in full, with no damaged or wrong items."
+              tooltipPosition="top">
+            </button>
+          </div>
         </div>
 
-        <div *ngIf="lineItemsArray.length > 0" formArrayName="lineItems" class="line-items-container">
-          <div
-            *ngFor="let line of lineItemsArray.controls; let i = index"
-            [formGroupName]="i"
-            class="line-item-card"
-            [class.line-fully-received]="isFullyReceived(line)">
+        <div *ngIf="lineItemsArray.length > 0" class="table-wrapper">
+          <table class="line-items-table grn-line-items-table" formArrayName="lineItems">
+            <thead>
+              <tr>
+                <th class="col-item">Item</th>
+                <th class="col-qtys">Ordered / Received / Remaining</th>
+                <th class="col-receiving">Receiving Now *</th>
+                <th class="col-condition">Damaged / Wrong → Good</th>
+                <th class="col-cost">Unit Cost *</th>
+                <th class="col-details">Details</th>
+              </tr>
+            </thead>
+            <tbody>
+              <ng-container *ngFor="let line of lineItemsArray.controls; let i = index" [formGroupName]="i">
+                <tr class="line-item-row" [class.line-fully-received]="isFullyReceived(line)">
 
-            <div class="line-item-header">
-              <div class="line-header-left">
-                <span class="line-number">Item #{{ i + 1 }}</span>
-                <span *ngIf="isFullyReceived(line)" class="fully-received-badge">
-                  <i class="pi pi-check-circle"></i> Fully Received
-                </span>
-              </div>
-              <button
-                type="button"
-                class="details-toggle-btn"
-                [class.details-has-data]="hasDetails(line)"
-                (click)="toggleDetails(i)"
-                [title]="isDetailOpen(i) ? 'Close details' : 'Set sell price, warranty, expiry, notes'">
-                <i class="pi" [class.pi-sliders-h]="!isDetailOpen(i)" [class.pi-chevron-up]="isDetailOpen(i)"></i>
-                <span>{{ isDetailOpen(i) ? 'Close' : 'Details' }}</span>
-                <span *ngIf="hasDetails(line) && !isDetailOpen(i)" class="details-dot"></span>
-              </button>
-            </div>
+                  <!-- Item name + unit sub-text -->
+                  <td class="item-cell" data-label="Item">
+                    <div class="item-cell-inner">
+                      <span class="part-name-value">{{ line.get('displayName')?.value || line.get('partName')?.value }}</span>
+                      <span class="part-unit-sub" *ngIf="line.get('unitName')?.value">
+                        {{ line.get('unitName')?.value }}<span *ngIf="line.get('unitSymbol')?.value"> ({{ line.get('unitSymbol')?.value }})</span>
+                      </span>
+                      <span *ngIf="isFullyReceived(line)" class="fully-received-badge">
+                        <i class="pi pi-check-circle"></i> Fully Received
+                      </span>
+                      <span *ngIf="line.get('hasDiscrepancy')?.value" class="discrepancy-badge">
+                        <i class="pi pi-exclamation-triangle"></i> Discrepancy
+                      </span>
+                    </div>
+                  </td>
 
-            <div class="line-item-content">
+                  <!-- Qty summary (ordered / received / remaining) -->
+                  <td class="qtys-cell" data-label="Quantities">
+                    <div class="qty-stack">
+                      <div class="qty-row"><span class="qty-lbl">Ordered</span><span class="qty-val">{{ line.get('orderedQuantity')?.value }}</span></div>
+                      <div class="qty-row"><span class="qty-lbl">Received</span><span class="qty-val text-blue">{{ line.get('receivedQuantity')?.value || 0 }}</span></div>
+                      <div class="qty-row"><span class="qty-lbl">Remaining</span><span class="qty-val text-orange font-semibold">{{ line.get('remainingQuantity')?.value || 0 }}</span></div>
+                    </div>
+                  </td>
 
-              <!-- Col 1: Item name + unit sub-text -->
-              <div class="li-col">
-                <label class="li-label">Item</label>
-                <span class="part-name-value">{{ line.get('displayName')?.value || line.get('partName')?.value }}</span>
-                <span class="part-unit-sub" *ngIf="line.get('unitName')?.value">
-                  {{ line.get('unitName')?.value }}<span *ngIf="line.get('unitSymbol')?.value"> ({{ line.get('unitSymbol')?.value }})</span>
-                </span>
-                <span *ngIf="line.get('hasDiscrepancy')?.value" class="discrepancy-badge">
-                  <i class="pi pi-exclamation-triangle"></i> Discrepancy
-                </span>
-              </div>
+                  <!-- Receiving Now -->
+                  <td class="receiving-cell" data-label="Receiving Now">
+                    <p-inputNumber formControlName="receivingQuantity" [min]="0" [max]="line.get('maxReceivableQuantity')?.value" (onInput)="onReceivingQuantityChanged(i)" [style]="{ width: '100%' }"></p-inputNumber>
+                    <small class="p-error" *ngIf="line.get('receivingQuantity')?.hasError('max')">Cannot exceed {{ line.get('maxReceivableQuantity')?.value }}.</small>
+                  </td>
 
-              <!-- Col 2: Qty summary (ordered / received / remaining) -->
-              <div class="li-col">
-                <label class="li-label">Quantities</label>
-                <div class="qty-stack">
-                  <div class="qty-row"><span class="qty-lbl">Ordered</span><span class="qty-val">{{ line.get('orderedQuantity')?.value }}</span></div>
-                  <div class="qty-row"><span class="qty-lbl">Received</span><span class="qty-val text-blue">{{ line.get('receivedQuantity')?.value || 0 }}</span></div>
-                  <div class="qty-row"><span class="qty-lbl">Remaining</span><span class="qty-val text-orange font-semibold">{{ line.get('remainingQuantity')?.value || 0 }}</span></div>
+                  <!-- Condition split — Damaged / Wrong, Good auto-calculated -->
+                  <td class="condition-cell" data-label="Damaged / Wrong">
+                    <div class="condition-stack">
+                      <div class="split-row">
+                        <span class="split-lbl">Damaged</span>
+                        <p-inputNumber formControlName="damagedQuantity" [min]="0" [max]="line.get('receivingQuantity')?.value" (onInput)="onReceivingQuantityChanged(i)" [style]="{ width: '100%' }" inputStyleClass="split-input"></p-inputNumber>
+                      </div>
+                      <div class="split-row">
+                        <span class="split-lbl">Wrong</span>
+                        <p-inputNumber formControlName="wrongQuantity" [min]="0" [max]="line.get('receivingQuantity')?.value" (onInput)="onReceivingQuantityChanged(i)" [style]="{ width: '100%' }" inputStyleClass="split-input"></p-inputNumber>
+                      </div>
+                      <div class="split-good"><i class="pi pi-check-circle"></i> Good: <strong>{{ getGoodQuantity(line) }}</strong></div>
+                      <input *ngIf="line.get('damagedQuantity')?.value > 0 || line.get('wrongQuantity')?.value > 0" pInputText type="text" formControlName="rejectionReason" placeholder="Reason for damaged / wrong *" [style]="{ width: '100%' }" />
+                      <small class="p-error" *ngIf="(line.get('damagedQuantity')?.value > 0 || line.get('wrongQuantity')?.value > 0) && !line.get('rejectionReason')?.value">Reason required.</small>
+                    </div>
+                  </td>
+
+                  <!-- Unit Cost (batch / package no. live in the Details panel) -->
+                  <td class="cost-cell" data-label="Unit Cost">
+                    <p-inputNumber formControlName="unitCost" [min]="0" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="4" [style]="{ width: '100%' }" (onInput)="onUnitCostChanged(i)"></p-inputNumber>
+                  </td>
+
+                  <!-- Details toggle -->
+                  <td class="details-cell" data-label="Details">
+                    <button
+                      type="button"
+                      class="details-toggle-btn"
+                      [class.details-has-data]="hasDetails(line)"
+                      (click)="toggleDetails(i)"
+                      [title]="isDetailOpen(i) ? 'Close details' : 'Set sell price, warranty, expiry, notes'">
+                      <i class="pi" [class.pi-sliders-h]="!isDetailOpen(i)" [class.pi-chevron-up]="isDetailOpen(i)"></i>
+                      <span>{{ isDetailOpen(i) ? 'Close' : 'Details' }}</span>
+                      <span *ngIf="hasDetails(line) && !isDetailOpen(i)" class="details-dot"></span>
+                    </button>
+                  </td>
+                </tr>
+
+                <!-- ── Details panel (expandable full-width row) ─────────────── -->
+                <tr class="details-row" *ngIf="isDetailOpen(i)">
+                  <td colspan="6">
+                    <div class="line-details-panel">
+                      <div class="details-panel-grid">
+
+                <!-- Supplier Batch No. (package-level identifier) | Currency -->
+                <div class="details-field">
+                  <div class="dl-label-wrap">
+                    <span class="dl-title"><i class="pi pi-box"></i> Supplier Batch No.</span>
+                    <span class="dl-hint">From packaging label → saved as Manufacturer Lot No. in stock</span>
+                  </div>
+                  <input pInputText type="text" formControlName="batchNumber" placeholder="From packaging label / delivery note" [style]="{ width: '100%' }" />
                 </div>
-              </div>
 
-              <!-- Col 3: Receiving Now -->
-              <div class="li-col">
-                <label class="li-label">Receiving Now *</label>
-                <p-inputNumber formControlName="receivingQuantity" [min]="0" [max]="line.get('maxReceivableQuantity')?.value" [showButtons]="true" (onInput)="onReceivingQuantityChanged(i)" [style]="{ width: '100%' }"></p-inputNumber>
-                <small class="p-error" *ngIf="line.get('receivingQuantity')?.hasError('max')">Cannot exceed {{ line.get('maxReceivableQuantity')?.value }}.</small>
-              </div>
-
-              <!-- Col 4: Condition -->
-              <div class="li-col">
-                <label class="li-label">Condition *</label>
-                <p-select formControlName="condition" [options]="conditions" optionLabel="label" optionValue="value" placeholder="Condition" appendTo="body" styleClass="w-full" (onChange)="onConditionChanged()"></p-select>
-              </div>
-
-              <!-- Col 5: Supplier Batch No. -->
-              <div class="li-col">
-                <label class="li-label">Supplier Batch No.</label>
-                <input pInputText type="text" formControlName="batchNumber" placeholder="From packaging label / delivery note" [style]="{ width: '100%' }" />
-                <small class="field-hint"><i class="pi pi-info-circle"></i> Supplier's physical batch ID → saved as Manufacturer Lot No. in stock</small>
-              </div>
-
-              <!-- Col 6: Unit Cost only (Currency moves to Details panel) -->
-              <div class="li-col">
-                <label class="li-label">Unit Cost *</label>
-                <p-inputNumber formControlName="unitCost" [min]="0" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="4" [style]="{ width: '100%' }" (onInput)="onUnitCostChanged(i)"></p-inputNumber>
-                <small class="field-hint"><i class="pi pi-info-circle"></i> Currency &amp; sell price → Details</small>
-              </div>
-
-            </div>
-
-            <!-- ── Details panel ──────────────────────────────────────────── -->
-            <div class="line-details-panel" *ngIf="isDetailOpen(i)">
-              <div class="details-panel-grid">
-
-                <!-- Row 1: Currency | Sell Price -->
                 <div class="details-field">
                   <div class="dl-label-wrap">
                     <span class="dl-title"><i class="pi pi-globe"></i> Currency</span>
@@ -402,11 +430,14 @@
                     placeholder="Enter any notes about this lot..." class="w-full"></textarea>
                 </div>
 
-              </div>
-            </div>
-            <!-- ── end details panel ──────────────────────────────────────── -->
-
-          </div>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+                <!-- ── end details panel ────────────────────────────────────── -->
+              </ng-container>
+            </tbody>
+          </table>
         </div>
 
         <div class="empty-lines" *ngIf="lineItemsArray.length === 0">
@@ -441,6 +472,10 @@
             <div class="summary-row"><span>Total Ordered</span><strong>{{ getTotalOrderedQuantity() }}</strong></div>
             <div class="summary-row"><span>Already Received</span><strong>{{ getTotalReceivedQuantity() }}</strong></div>
             <div class="summary-row"><span>Receiving Now</span><strong>{{ getTotalReceivingQuantity() }}</strong></div>
+            <div class="summary-row"><span>Good Items</span><strong class="text-green">{{ getTotalGoodQuantity() }}</strong></div>
+            <div class="summary-row"><span>Damaged Items</span><strong [class.text-danger]="getTotalDamagedQuantity() > 0">{{ getTotalDamagedQuantity() }}</strong></div>
+            <div class="summary-row"><span>Wrong Items</span><strong [class.text-danger]="getTotalWrongQuantity() > 0">{{ getTotalWrongQuantity() }}</strong></div>
+            <div class="summary-row"><span>Potential Returns</span><strong [class.text-orange]="getPotentialReturns() > 0">{{ getPotentialReturns() }}</strong></div>
             <div class="summary-row"><span>Items Being Received</span><strong>{{ totalLinesWithReceivingQty }}</strong></div>
             <div class="summary-row"><span>Discrepancies</span><strong [class.text-danger]="getDiscrepancyCount() > 0">{{ getDiscrepancyCount() }}</strong></div>
             <div class="summary-row"><span>Total Cost</span><strong [class.coded-price]="priceCodeService.getDisplayPrice(getTotalCostAllItems()) !== null">{{ formatCostPrice(getTotalCostAllItems()) }}</strong></div>
@@ -453,8 +488,10 @@
             <thead>
               <tr>
                 <th>Item</th>
-                <th>Qty</th>
-                <th>Condition</th>
+                <th class="text-right">Received</th>
+                <th class="text-right">Good</th>
+                <th class="text-right">Damaged</th>
+                <th class="text-right">Wrong</th>
                 <th>Supplier Batch No.</th>
                 <th>Expiry</th>
                 <th>Unit Cost</th>
@@ -464,8 +501,10 @@
             <tbody>
               <tr *ngFor="let line of lineItemsArray.controls">
                 <td>{{ line.get('displayName')?.value || line.get('partName')?.value }}</td>
-                <td>{{ line.get('receivingQuantity')?.value }}</td>
-                <td>{{ line.get('condition')?.value }}</td>
+                <td class="text-right">{{ line.get('receivingQuantity')?.value }}</td>
+                <td class="text-right text-green">{{ getGoodQuantity(line) }}</td>
+                <td class="text-right" [class.text-danger]="line.get('damagedQuantity')?.value > 0">{{ line.get('damagedQuantity')?.value || 0 }}</td>
+                <td class="text-right" [class.text-danger]="line.get('wrongQuantity')?.value > 0">{{ line.get('wrongQuantity')?.value || 0 }}</td>
                 <td>
                   <span *ngIf="line.get('batchNumber')?.value" class="batch-chip">{{ line.get('batchNumber')?.value }}</span>
                   <span *ngIf="!line.get('batchNumber')?.value" class="text-secondary">—</span>
@@ -644,73 +683,108 @@
             </h3>
           </div>
 
-          <div *ngIf="lineItemsArray.length > 0" formArrayName="lineItems" class="line-items-container">
-            <div *ngFor="let line of lineItemsArray.controls; let i = index" [formGroupName]="i" class="line-item-card">
-              <div class="line-item-header">
-                <span class="line-number">Item #{{ i + 1 }}</span>
-              </div>
+          <div *ngIf="lineItemsArray.length > 0" class="table-wrapper">
+            <table class="line-items-table grn-line-items-table" formArrayName="lineItems">
+              <thead>
+                <tr>
+                  <th class="col-item">Item</th>
+                  <th class="col-qtys">Ordered / Received / Remaining</th>
+                  <th class="col-receiving">Receiving Now</th>
+                  <th class="col-condition">Damaged / Wrong → Good</th>
+                  <th class="col-cost">Unit Cost</th>
+                  <th class="col-details" *ngIf="mode !== 'view'">Details</th>
+                </tr>
+              </thead>
+              <tbody>
+                <ng-container *ngFor="let line of lineItemsArray.controls; let i = index" [formGroupName]="i">
+                  <tr class="line-item-row">
 
-              <div class="line-item-content" [class.line-item-view]="mode === 'view'">
+                    <!-- Item + unit sub-text -->
+                    <td class="item-cell" data-label="Item">
+                      <div class="item-cell-inner">
+                        <span class="part-name-value">{{ line.get('displayName')?.value || line.get('partName')?.value }}</span>
+                        <span class="part-unit-sub" *ngIf="line.get('unitName')?.value">
+                          {{ line.get('unitName')?.value }}<span *ngIf="line.get('unitSymbol')?.value"> ({{ line.get('unitSymbol')?.value }})</span>
+                        </span>
+                        <span *ngIf="line.get('hasDiscrepancy')?.value" class="discrepancy-badge">
+                          <i class="pi pi-exclamation-triangle"></i> Discrepancy
+                        </span>
+                      </div>
+                    </td>
 
-                <!-- Col 1: Item + unit sub-text -->
-                <div class="li-col">
-                  <label class="li-label">Item</label>
-                  <span class="part-name-value">{{ line.get('displayName')?.value || line.get('partName')?.value }}</span>
-                  <span class="part-unit-sub" *ngIf="line.get('unitName')?.value">
-                    {{ line.get('unitName')?.value }}<span *ngIf="line.get('unitSymbol')?.value"> ({{ line.get('unitSymbol')?.value }})</span>
-                  </span>
-                  <span *ngIf="line.get('hasDiscrepancy')?.value" class="discrepancy-badge">
-                    <i class="pi pi-exclamation-triangle"></i> Discrepancy
-                  </span>
-                </div>
+                    <!-- Qty summary -->
+                    <td class="qtys-cell" data-label="Quantities">
+                      <div class="qty-stack">
+                        <div class="qty-row"><span class="qty-lbl">Ordered</span><span class="qty-val">{{ line.get('orderedQuantity')?.value }}</span></div>
+                        <div class="qty-row"><span class="qty-lbl">Received</span><span class="qty-val text-blue">{{ line.get('receivedQuantity')?.value || 0 }}</span></div>
+                        <div class="qty-row"><span class="qty-lbl">Remaining</span><span class="qty-val text-orange font-semibold">{{ line.get('remainingQuantity')?.value || 0 }}</span></div>
+                      </div>
+                    </td>
 
-                <!-- Col 2: Qty summary -->
-                <div class="li-col">
-                  <label class="li-label">Quantities</label>
-                  <div class="qty-stack">
-                    <div class="qty-row"><span class="qty-lbl">Ordered</span><span class="qty-val">{{ line.get('orderedQuantity')?.value }}</span></div>
-                    <div class="qty-row"><span class="qty-lbl">Received</span><span class="qty-val text-blue">{{ line.get('receivedQuantity')?.value || 0 }}</span></div>
-                    <div class="qty-row"><span class="qty-lbl">Remaining</span><span class="qty-val text-orange font-semibold">{{ line.get('remainingQuantity')?.value || 0 }}</span></div>
+                    <!-- Receiving Now / qty display -->
+                    <td class="receiving-cell" data-label="Receiving Now">
+                      <p-inputNumber *ngIf="mode !== 'view'" formControlName="receivingQuantity" [min]="0" [max]="line.get('maxReceivableQuantity')?.value" (onInput)="onReceivingQuantityChanged(i)" [style]="{ width: '100%' }"></p-inputNumber>
+                      <span *ngIf="mode === 'view'" class="qty-display font-semibold">{{ line.get('receivingQuantity')?.value }}</span>
+                    </td>
+
+                    <!-- Condition split — Damaged / Wrong, Good auto-calculated -->
+                    <td class="condition-cell" data-label="Damaged / Wrong">
+                      <div class="condition-stack" *ngIf="mode !== 'view'">
+                        <div class="split-row">
+                          <span class="split-lbl">Damaged</span>
+                          <p-inputNumber formControlName="damagedQuantity" [min]="0" [max]="line.get('receivingQuantity')?.value" (onInput)="onReceivingQuantityChanged(i)" [style]="{ width: '100%' }" inputStyleClass="split-input"></p-inputNumber>
+                        </div>
+                        <div class="split-row">
+                          <span class="split-lbl">Wrong</span>
+                          <p-inputNumber formControlName="wrongQuantity" [min]="0" [max]="line.get('receivingQuantity')?.value" (onInput)="onReceivingQuantityChanged(i)" [style]="{ width: '100%' }" inputStyleClass="split-input"></p-inputNumber>
+                        </div>
+                        <div class="split-good"><i class="pi pi-check-circle"></i> Good: <strong>{{ getGoodQuantity(line) }}</strong></div>
+                        <input *ngIf="line.get('damagedQuantity')?.value > 0 || line.get('wrongQuantity')?.value > 0" pInputText type="text" formControlName="rejectionReason" placeholder="Reason for damaged / wrong *" [style]="{ width: '100%' }" />
+                      </div>
+                      <div *ngIf="mode === 'view'" class="split-view">
+                        <span class="split-view-item"><span class="split-lbl">Good</span><strong class="text-green">{{ getGoodQuantity(line) }}</strong></span>
+                        <span class="split-view-item"><span class="split-lbl">Damaged</span><strong [class.text-danger]="line.get('damagedQuantity')?.value > 0">{{ line.get('damagedQuantity')?.value || 0 }}</strong></span>
+                        <span class="split-view-item"><span class="split-lbl">Wrong</span><strong [class.text-danger]="line.get('wrongQuantity')?.value > 0">{{ line.get('wrongQuantity')?.value || 0 }}</strong></span>
+                      </div>
+                    </td>
+
+                    <!-- Unit Cost -->
+                    <td class="cost-cell" data-label="Unit Cost">
+                      <p-inputNumber *ngIf="mode !== 'view'" formControlName="unitCost" [min]="0" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="4" [style]="{ width: '100%' }"></p-inputNumber>
+                      <span *ngIf="mode === 'view'" class="view-text font-semibold">
+                        {{ line.get('unitCost')?.value | number:'1.2-2' }}
+                        <span class="text-secondary"> {{ line.get('currency')?.value }}</span>
+                      </span>
+                    </td>
+
+                    <!-- Details toggle (edit only) -->
+                    <td class="details-cell" data-label="Details" *ngIf="mode !== 'view'">
+                      <button
+                        type="button"
+                        class="details-toggle-btn"
+                        [class.details-has-data]="hasDetails(line)"
+                        (click)="toggleDetails(i)"
+                        [title]="isDetailOpen(i) ? 'Close details' : 'Set sell price, warranty, expiry, notes'">
+                        <i class="pi" [class.pi-sliders-h]="!isDetailOpen(i)" [class.pi-chevron-up]="isDetailOpen(i)"></i>
+                        <span>{{ isDetailOpen(i) ? 'Close' : 'Details' }}</span>
+                        <span *ngIf="hasDetails(line) && !isDetailOpen(i)" class="details-dot"></span>
+                      </button>
+                    </td>
+                  </tr>
+
+                  <!-- Details panel for edit mode (expandable full-width row) -->
+                  <tr class="details-row" *ngIf="isDetailOpen(i) && mode !== 'view'">
+                    <td colspan="6">
+                      <div class="line-details-panel">
+                        <div class="details-panel-grid">
+
+                  <div class="details-field">
+                    <div class="dl-label-wrap">
+                      <span class="dl-title"><i class="pi pi-box"></i> Supplier Batch No.</span>
+                      <span class="dl-hint">From packaging label → saved as Manufacturer Lot No. in stock</span>
+                    </div>
+                    <input pInputText type="text" formControlName="batchNumber" placeholder="From packaging label / delivery note" [style]="{ width: '100%' }" />
                   </div>
-                </div>
-
-                <!-- Col 3: Receiving Now / qty display -->
-                <div class="li-col">
-                  <label class="li-label">Receiving Now</label>
-                  <p-inputNumber *ngIf="mode !== 'view'" formControlName="receivingQuantity" [min]="0" [max]="line.get('maxReceivableQuantity')?.value" [showButtons]="true" (onInput)="onReceivingQuantityChanged(i)" [style]="{ width: '100%' }"></p-inputNumber>
-                  <span *ngIf="mode === 'view'" class="qty-display font-semibold">{{ line.get('receivingQuantity')?.value }}</span>
-                </div>
-
-                <!-- Col 4: Condition -->
-                <div class="li-col">
-                  <label class="li-label">Condition</label>
-                  <p-select *ngIf="mode !== 'view'" formControlName="condition" [options]="conditions" optionLabel="label" optionValue="value" appendTo="body" styleClass="w-full" (onChange)="onConditionChanged()"></p-select>
-                  <span *ngIf="mode === 'view'" class="view-text">{{ line.get('condition')?.value }}</span>
-                </div>
-
-                <!-- Col 5: Supplier Batch No. -->
-                <div class="li-col">
-                  <label class="li-label">Supplier Batch No.</label>
-                  <input *ngIf="mode !== 'view'" pInputText type="text" formControlName="batchNumber" placeholder="From packaging label / delivery note" [style]="{ width: '100%' }" />
-                  <span *ngIf="mode === 'view'" class="view-text font-semibold">{{ line.get('batchNumber')?.value || '—' }}</span>
-                  <small *ngIf="mode !== 'view'" class="field-hint"><i class="pi pi-info-circle"></i> Saved as Manufacturer Lot No. in stock</small>
-                </div>
-
-                <!-- Col 6: Unit Cost only (Currency in Details panel) -->
-                <div class="li-col">
-                  <label class="li-label">Unit Cost</label>
-                  <p-inputNumber *ngIf="mode !== 'view'" formControlName="unitCost" [min]="0" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="4" [style]="{ width: '100%' }"></p-inputNumber>
-                  <span *ngIf="mode === 'view'" class="view-text font-semibold">
-                    {{ line.get('unitCost')?.value | number:'1.2-2' }}
-                    <span class="text-secondary"> {{ line.get('currency')?.value }}</span>
-                  </span>
-                </div>
-
-              </div>
-
-              <!-- Details panel for edit mode (same structure as create) -->
-              <div class="line-details-panel" *ngIf="isDetailOpen(i) && mode !== 'view'">
-                <div class="details-panel-grid">
 
                   <div class="details-field">
                     <div class="dl-label-wrap">
@@ -764,26 +838,37 @@
                     <textarea pTextarea formControlName="notes" rows="2" placeholder="Enter any notes about this lot..." class="w-full"></textarea>
                   </div>
 
-                </div>
-              </div>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
 
-              <!-- View-only details summary -->
-              <div class="line-view-details" *ngIf="mode === 'view'">
-                <span *ngIf="line.get('sellingPrice')?.value" class="view-detail-chip">
-                  <i class="pi pi-tag"></i> Sell: {{ line.get('sellingPrice')?.value | number:'1.2-2' }}
-                </span>
-                <span *ngIf="line.get('warrantyPeriodMonths')?.value > 0" class="view-detail-chip warranty-chip">
-                  <i class="pi pi-shield"></i> {{ line.get('warrantyPeriodMonths')?.value }}m {{ line.get('warrantyType')?.value }}
-                </span>
-                <span *ngIf="line.get('expiryDate')?.value" class="view-detail-chip expiry-chip">
-                  <i class="pi pi-calendar"></i> Exp: {{ line.get('expiryDate')?.value }}
-                </span>
-                <span *ngIf="line.get('notes')?.value" class="view-detail-chip notes-chip">
-                  <i class="pi pi-pencil"></i> {{ line.get('notes')?.value }}
-                </span>
-              </div>
-
-            </div>
+                  <!-- View-only details summary (full-width row) -->
+                  <tr class="details-row view-details-row"
+                    *ngIf="mode === 'view' && (line.get('batchNumber')?.value || line.get('sellingPrice')?.value || line.get('warrantyPeriodMonths')?.value > 0 || line.get('expiryDate')?.value || line.get('notes')?.value)">
+                    <td colspan="5">
+                      <div class="line-view-details">
+                        <span *ngIf="line.get('batchNumber')?.value" class="view-detail-chip">
+                          <i class="pi pi-box"></i> Batch: {{ line.get('batchNumber')?.value }}
+                        </span>
+                        <span *ngIf="line.get('sellingPrice')?.value" class="view-detail-chip">
+                          <i class="pi pi-tag"></i> Sell: {{ line.get('sellingPrice')?.value | number:'1.2-2' }}
+                        </span>
+                        <span *ngIf="line.get('warrantyPeriodMonths')?.value > 0" class="view-detail-chip warranty-chip">
+                          <i class="pi pi-shield"></i> {{ line.get('warrantyPeriodMonths')?.value }}m {{ line.get('warrantyType')?.value }}
+                        </span>
+                        <span *ngIf="line.get('expiryDate')?.value" class="view-detail-chip expiry-chip">
+                          <i class="pi pi-calendar"></i> Exp: {{ line.get('expiryDate')?.value }}
+                        </span>
+                        <span *ngIf="line.get('notes')?.value" class="view-detail-chip notes-chip">
+                          <i class="pi pi-pencil"></i> {{ line.get('notes')?.value }}
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                </ng-container>
+              </tbody>
+            </table>
           </div>
 
           <div class="empty-lines" *ngIf="lineItemsArray.length === 0">
@@ -811,6 +896,10 @@
               <div class="summary-row"><span>Total Ordered</span><strong>{{ getTotalOrderedQuantity() }}</strong></div>
               <div class="summary-row"><span>Already Received</span><strong>{{ getTotalReceivedQuantity() }}</strong></div>
               <div class="summary-row"><span>Receiving Now</span><strong>{{ getTotalReceivingQuantity() }}</strong></div>
+              <div class="summary-row"><span>Good Items</span><strong class="text-green">{{ currentGRN?.goodItems ?? getTotalGoodQuantity() }}</strong></div>
+              <div class="summary-row"><span>Damaged Items</span><strong [class.text-danger]="(currentGRN?.damagedItems ?? getTotalDamagedQuantity()) > 0">{{ currentGRN?.damagedItems ?? getTotalDamagedQuantity() }}</strong></div>
+              <div class="summary-row"><span>Wrong Items</span><strong [class.text-danger]="(currentGRN?.wrongItems ?? getTotalWrongQuantity()) > 0">{{ currentGRN?.wrongItems ?? getTotalWrongQuantity() }}</strong></div>
+              <div class="summary-row"><span>Potential Returns</span><strong [class.text-orange]="(currentGRN?.potentialReturns ?? getPotentialReturns()) > 0">{{ currentGRN?.potentialReturns ?? getPotentialReturns() }}</strong></div>
               <div class="summary-row"><span>Discrepancies</span><strong [class.text-danger]="getDiscrepancyCount() > 0">{{ getDiscrepancyCount() }}</strong></div>
               <div class="summary-row"><span>Total Cost</span><strong [class.coded-price]="priceCodeService.getDisplayPrice(getTotalCostAllItems()) !== null">{{ formatCostPrice(getTotalCostAllItems()) }}</strong></div>
               <div class="summary-row"><span>Average Unit Cost</span><strong [class.coded-price]="priceCodeService.getDisplayPrice(getAverageUnitCost()) !== null">{{ formatCostPrice(getAverageUnitCost()) }}</strong></div>
@@ -845,8 +934,32 @@
               label="Accept & Update Stock"
               icon="pi pi-check-circle"
               class="p-button-success"
-              (click)="acceptGoodsReceipt()"
+              (click)="acceptGoodsReceipt(false)"
               pTooltip="Accept this receipt and update inventory stock."
+              tooltipPosition="top">
+            </button>
+
+            <button
+              *ngIf="currentGRN.status === 'VERIFIED' && hasReturnableItems"
+              pButton
+              type="button"
+              label="Accept & Create Return"
+              icon="pi pi-replay"
+              class="p-button-warning"
+              (click)="acceptGoodsReceipt(true)"
+              pTooltip="Accept this receipt, update stock, and raise a draft Purchase Return for damaged/wrong items."
+              tooltipPosition="top">
+            </button>
+
+            <button
+              *ngIf="currentGRN.status === 'ACCEPTED' && hasReturnableItems"
+              pButton
+              type="button"
+              label="Create Return"
+              icon="pi pi-replay"
+              class="p-button-warning"
+              (click)="createReturnFromGrn()"
+              pTooltip="Raise a Purchase Return for the damaged/wrong items received on this receipt."
               tooltipPosition="top">
             </button>
 

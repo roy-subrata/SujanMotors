@@ -73,6 +73,10 @@ public class ProductVariantController : ControllerBase
         if (!await _db.Parts.AnyAsync(p => p.Id == productId, ct))
             return NotFound(ApiError.NotFound($"Product '{productId}' not found", Request.Path));
 
+        // SKU is required: auto-generate a globally-unique "{ParentPartSKU}-{Code}" when left blank.
+        if (string.IsNullOrWhiteSpace(req.SKU))
+            req.SKU = await GenerateVariantSkuAsync(productId, req.Code, excludeVariantId: null, ct);
+
         var conflict = await CheckUniquenessAsync(productId, req, excludeVariantId: null, ct);
         if (conflict is not null)
             return Conflict(conflict);
@@ -115,6 +119,10 @@ public class ProductVariantController : ControllerBase
 
         if (variant is null)
             return NotFound(ApiError.NotFound($"Variant '{id}' not found on product '{productId}'", Request.Path));
+
+        // SKU is required: auto-generate a globally-unique "{ParentPartSKU}-{Code}" when left blank.
+        if (string.IsNullOrWhiteSpace(req.SKU))
+            req.SKU = await GenerateVariantSkuAsync(productId, req.Code, excludeVariantId: id, ct);
 
         var conflict = await CheckUniquenessAsync(productId, req, excludeVariantId: id, ct);
         if (conflict is not null)
@@ -200,6 +208,37 @@ public class ProductVariantController : ControllerBase
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Builds a globally-unique SKU for a variant as "{ParentPartSKU}-{Code}" (e.g. BRK100-FRONT).
+    /// Falls back to the bare code when the parent has no SKU, and appends -2, -3, … if the
+    /// candidate is already taken by a variant or a base product. Used to auto-fill the SKU
+    /// when the caller leaves it blank, so every variant always has a unique stock identifier.
+    /// </summary>
+    private async Task<string> GenerateVariantSkuAsync(Guid productId, string code, Guid? excludeVariantId, CancellationToken ct)
+    {
+        var partSku = await _db.Parts.Where(p => p.Id == productId).Select(p => p.SKU).FirstOrDefaultAsync(ct);
+        var normalizedCode = code.Trim().ToUpperInvariant();
+        var baseSku = string.IsNullOrWhiteSpace(partSku)
+            ? normalizedCode
+            : $"{partSku.Trim().ToUpperInvariant()}-{normalizedCode}";
+
+        var candidate = baseSku;
+        var suffix = 1;
+        while (await SkuExistsAsync(candidate, excludeVariantId, ct))
+            candidate = $"{baseSku}-{++suffix}";
+
+        return candidate;
+    }
+
+    /// <summary>True when the SKU is already used by a live variant (other than the excluded one) or a base product.</summary>
+    private async Task<bool> SkuExistsAsync(string sku, Guid? excludeVariantId, CancellationToken ct)
+    {
+        var normalized = sku.ToUpperInvariant();
+        if (await _db.ProductVariants.AnyAsync(v => !v.Isdeleted && v.SKU == normalized && v.Id != excludeVariantId, ct))
+            return true;
+        return await _db.Parts.AnyAsync(p => !p.Isdeleted && p.SKU == normalized, ct);
     }
 
     private async Task SyncVariantPriceHistory(Guid productId, Guid variantId, decimal sellingPrice, string currency, string user, CancellationToken ct)

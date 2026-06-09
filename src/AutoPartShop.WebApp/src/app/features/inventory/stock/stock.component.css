@@ -848,15 +848,26 @@
   font-weight: 600;
   color: #111827;
   font-size: 0.875rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .part-sku {
   font-size: 0.75rem;
   color: #9ca3af;
   font-family: 'SF Mono', 'Consolas', monospace;
+}
+
+.variant-tag {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0.05rem 0.45rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #2563eb;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  vertical-align: middle;
+  white-space: nowrap;
 }
 
 /* Warehouse Cell */

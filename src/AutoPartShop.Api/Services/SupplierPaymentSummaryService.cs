@@ -14,17 +14,20 @@ public class SupplierPaymentSummaryService
     private readonly ISupplierRepository _supplierRepository;
     private readonly IPurchaseOrderRepository _purchaseOrderRepository;
     private readonly IGoodsReceiptRepository _goodsReceiptRepository;
+    private readonly IPurchaseReturnRepository _purchaseReturnRepository;
 
     public SupplierPaymentSummaryService(
         ISupplierPaymentRepository paymentRepository,
         ISupplierRepository supplierRepository,
         IPurchaseOrderRepository purchaseOrderRepository,
-        IGoodsReceiptRepository goodsReceiptRepository)
+        IGoodsReceiptRepository goodsReceiptRepository,
+        IPurchaseReturnRepository purchaseReturnRepository)
     {
         _paymentRepository = paymentRepository;
         _supplierRepository = supplierRepository;
         _purchaseOrderRepository = purchaseOrderRepository;
         _goodsReceiptRepository = goodsReceiptRepository;
+        _purchaseReturnRepository = purchaseReturnRepository;
     }
 
     /// <summary>
@@ -215,9 +218,13 @@ public class SupplierPaymentSummaryService
         // Calculate total amount from all confirmed/active purchase orders
         decimal totalPOAmount = purchaseOrders.Sum(po => po.TotalAmount);
 
-        // Total due = Total PO amount - All regular payments (linked or unlinked)
-        // This ensures that payments made before linking to a PO are also counted
-        decimal totalDue = Math.Max(0, totalPOAmount - totalRegularPaymentsAmount);
+        // Settled purchase returns (credit notes / refunds) reduce what we owe the supplier.
+        decimal settledReturnCredit = await _purchaseReturnRepository.GetTotalSettledRefundsBySupplierAsync(supplierId, cancellationToken);
+
+        // Total due = Total PO amount - All regular payments (linked or unlinked) - settled return credit.
+        // This ensures that payments made before linking to a PO are also counted, and that goods
+        // returned to the supplier are netted off the payable.
+        decimal totalDue = Math.Max(0, totalPOAmount - totalRegularPaymentsAmount - settledReturnCredit);
 
         return totalDue;
     }

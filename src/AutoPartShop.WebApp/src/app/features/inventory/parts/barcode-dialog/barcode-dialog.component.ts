@@ -1,6 +1,6 @@
-import { Component, OnInit, inject, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { ButtonModule } from 'primeng/button';
@@ -11,19 +11,16 @@ import { MessageService } from 'primeng/api';
 import { ToastModule } from 'primeng/toast';
 import { InputTextModule } from 'primeng/inputtext';
 import { CheckboxModule } from 'primeng/checkbox';
-import { QRCodeComponent } from 'angularx-qrcode';
-import { BarcodeService, BarcodeType, BarcodeConfig } from '../../services/barcode.service';
+import QRCode from 'qrcode';
+import { BarcodeService, BarcodeType } from '../../services/barcode.service';
 import { PartResponse } from '../../services/part.service';
-
-/**
- * Barcode item for bulk printing
- */
-export interface BarcodeItem {
-    index: number;
-    barcodeHTML: string;
-    barcodeValue: string;
-    barcodeType: BarcodeType;
-}
+import {
+    LABEL_CSS,
+    LABEL_SIZE_PRESETS,
+    DEFAULT_FIELDS_BY_SIZE,
+    LabelSizeKey,
+    buildLabelMarkup,
+} from './label-template';
 
 /**
  * Dynamic label field definition
@@ -33,22 +30,28 @@ export interface LabelField {
     label: string;
     value: string;
     visible: boolean;
-    position: 'header-left' | 'header-right' | 'bottom-row' | 'sidebar-left' | 'sidebar-right';
 }
+
+/** Bar dimensions (jsbarcode units) tuned per label size. */
+const LINEAR_DIMS: Record<LabelSizeKey, { width: number; height: number }> = {
+    large: { width: 2, height: 60 },
+    standard: { width: 1.6, height: 45 },
+    compact: { width: 1.2, height: 32 },
+    tiny: { width: 1, height: 30 },
+    custom: { width: 1.6, height: 45 },
+};
+
+const LABEL_STYLE_ELEMENT_ID = 'apl-label-styles';
 
 @Component({
     selector: 'app-barcode-dialog',
     standalone: true,
-    imports: [CommonModule, FormsModule, ButtonModule, CardModule, SelectModule, TooltipModule, ToastModule, InputTextModule, CheckboxModule, QRCodeComponent],
+    imports: [CommonModule, FormsModule, ButtonModule, CardModule, SelectModule, TooltipModule, ToastModule, InputTextModule, CheckboxModule],
     providers: [MessageService],
     templateUrl: './barcode-dialog.component.html',
     styleUrls: ['./barcode-dialog.component.css']
 })
 export class BarcodeDialogComponent implements OnInit {
-    @ViewChild('barcodeContainer') barcodeContainer: ElementRef | undefined;
-    @ViewChild('printContainer') printContainer: ElementRef | undefined;
-    @ViewChild('labelPreview') labelPreview: ElementRef | undefined;
-
     private readonly barcodeService = inject(BarcodeService);
     private readonly messageService = inject(MessageService);
     private readonly dialogRef = inject(DynamicDialogRef);
@@ -56,21 +59,22 @@ export class BarcodeDialogComponent implements OnInit {
     private readonly sanitizer = inject(DomSanitizer);
 
     public part: PartResponse | null = null;
-    selectedBarcodeType: BarcodeType = 'qrcode';
+    selectedBarcodeType: BarcodeType = 'code128';
     barcodeValue: string = '';
-    barcodeHTML: string = '';
-    barcodeHTMLSafe: SafeHtml | null = null;
+    /** Inline SVG (linear or QR) for the current barcode. */
+    barcodeSvg: string = '';
+    /** Rendered label HTML (single source of truth, shared with print). */
+    labelHtmlSafe: SafeHtml | null = null;
     validationMessage: string = '';
     isGenerating = false;
     isDownloading = false;
 
-    // Size management
-    selectedSize: string = 'medium';
-    customWidth: number = 2;
-    customHeight: number = 100;
-    barcodeWidth: number = 2;
-    barcodeHeight: number = 100;
-    qrCodeSize: number = 300;
+    // Size management (physical label stock, in mm)
+    selectedSize: LabelSizeKey = 'standard';
+    widthMm: number = LABEL_SIZE_PRESETS.standard.widthMm;
+    heightMm: number = LABEL_SIZE_PRESETS.standard.heightMm;
+    customWidthMm: number = 50;
+    customHeightMm: number = 40;
 
     // Quantity management
     quantity: number = 1;
@@ -80,31 +84,30 @@ export class BarcodeDialogComponent implements OnInit {
     selectedValueSource: string = 'sku';
     customValue: string = '';
 
-    // Label mode
-    showLabelPreview: boolean = true;
+    // Label fields
     companyName: string = 'SM Motors';
     labelFields: LabelField[] = [];
 
     barcodeTypes = [
-        { label: 'QR Code', value: 'qrcode' },
         { label: 'Code128', value: 'code128' },
         { label: 'Code39', value: 'code39' },
-        { label: 'EAN13', value: 'ean13' }
+        { label: 'EAN13', value: 'ean13' },
+        { label: 'QR Code', value: 'qrcode' }
     ];
 
     barcodeValueSources = [
         { label: 'SKU', value: 'sku' },
         { label: 'Part Number', value: 'partNumber' },
         { label: 'SKU + Part #', value: 'sku-part' },
-        { label: 'Custom', value: 'custom' },
-        { label: 'Full Details (QR Only)', value: 'details', disabled: true }
+        { label: 'Custom', value: 'custom' }
     ];
 
-    barcodeSize = [
-        { label: 'Small (50mm)', value: 'small' },
-        { label: 'Medium (80mm)', value: 'medium' },
-        { label: 'Large (100mm)', value: 'large' },
-        { label: 'Custom', value: 'custom' }
+    barcodeSizeOptions = [
+        { label: 'Large — 100 × 50 mm', value: 'large' },
+        { label: 'Standard — 50 × 40 mm', value: 'standard' },
+        { label: 'Compact — 40 × 25 mm', value: 'compact' },
+        { label: 'Tiny — 30 × 15 mm', value: 'tiny' },
+        { label: 'Custom (mm)', value: 'custom' }
     ];
 
     ngOnInit(): void {
@@ -118,8 +121,21 @@ export class BarcodeDialogComponent implements OnInit {
             return;
         }
 
+        this.ensureLabelStyles();
         this.initializeLabelFields();
-        this.initializeBarcode();
+        this.applySizeDefaults('standard');
+        void this.generateBarcode(this.selectedBarcodeType);
+    }
+
+    /** Inject the canonical label CSS into <head> once (preview = print). */
+    private ensureLabelStyles(): void {
+        if (document.getElementById(LABEL_STYLE_ELEMENT_ID)) {
+            return;
+        }
+        const style = document.createElement('style');
+        style.id = LABEL_STYLE_ELEMENT_ID;
+        style.textContent = LABEL_CSS;
+        document.head.appendChild(style);
     }
 
     /**
@@ -129,25 +145,19 @@ export class BarcodeDialogComponent implements OnInit {
         if (!this.part) return;
 
         this.labelFields = [
-            { key: 'categoryName', label: 'Category', value: this.part.categoryName || '', visible: true, position: 'header-left' },
-            { key: 'brandName', label: 'Brand', value: this.part.brandName || '', visible: true, position: 'header-right' },
-            { key: 'sku', label: 'SKU', value: this.part.sku || '', visible: true, position: 'sidebar-left' },
-            { key: 'unitCode', label: 'Unit', value: this.part.unitCode || this.part.unitName || '', visible: !!(this.part.unitCode || this.part.unitName), position: 'sidebar-right' },
-            { key: 'partNumber', label: 'Part #', value: this.part.partNumber || '', visible: true, position: 'bottom-row' },
-            { key: 'sellingPrice', label: 'M.R.P.', value: this.part.sellingPrice ? `৳ ${this.part.sellingPrice.toLocaleString()}` : '', visible: !!this.part.sellingPrice, position: 'bottom-row' },
-            { key: 'name', label: 'Name', value: this.part.name || '', visible: true, position: 'bottom-row' },
+            { key: 'categoryName', label: 'Category', value: this.part.categoryName || '', visible: true },
+            { key: 'brandName', label: 'Brand', value: this.part.brandName || '', visible: true },
+            { key: 'name', label: 'Name', value: this.part.name || '', visible: true },
+            { key: 'sku', label: 'SKU', value: this.part.sku || '', visible: true },
+            { key: 'partNumber', label: 'Part #', value: this.part.partNumber || '', visible: true },
+            { key: 'oemNumber', label: 'OEM #', value: this.part.oemNumber || '', visible: !!this.part.oemNumber },
+            { key: 'unitCode', label: 'Unit', value: this.part.unitCode || this.part.unitName || '', visible: true },
+            { key: 'sellingPrice', label: 'M.R.P.', value: this.part.sellingPrice ? `৳ ${this.part.sellingPrice.toLocaleString()}` : '', visible: !!this.part.sellingPrice },
         ];
     }
 
     /**
-     * Get label fields by position
-     */
-    getFieldsByPosition(position: string): LabelField[] {
-        return this.labelFields.filter(f => f.visible && f.position === position);
-    }
-
-    /**
-     * Get a specific field value
+     * Get a specific field value (empty when the field is hidden)
      */
     getFieldValue(key: string): string {
         const field = this.labelFields.find(f => f.key === key);
@@ -155,20 +165,9 @@ export class BarcodeDialogComponent implements OnInit {
     }
 
     /**
-     * Initialize barcode from part data
+     * Generate barcode value + SVG for the selected type, then rebuild the label.
      */
-    private initializeBarcode(): void {
-        if (!this.part) {
-            return;
-        }
-
-        this.generateBarcode(this.selectedBarcodeType);
-    }
-
-    /**
-     * Generate barcode based on selected type
-     */
-    generateBarcode(type: BarcodeType): void {
+    async generateBarcode(type: BarcodeType): Promise<void> {
         if (!this.part) {
             return;
         }
@@ -178,58 +177,22 @@ export class BarcodeDialogComponent implements OnInit {
         this.validationMessage = '';
 
         try {
-            // Determine the barcode value based on type
-            let value = '';
-            switch (type) {
-                case 'qrcode':
-                    if (this.selectedValueSource === 'details') {
-                        // QR code encodes part information as JSON
-                        value = JSON.stringify({
-                            id: this.part.id,
-                            sku: this.part.sku,
-                            name: this.part.name,
-                            partNumber: this.part.partNumber
-                        });
-                    } else {
-                        value = this.getBaseBarcodeValue();
-                    }
-                    this.barcodeValue = value;
-                    break;
-
-                case 'code128':
-                    value = this.getBaseBarcodeValue();
-                    if (!this.validateLinearValue(type, value)) {
-                        return;
-                    }
-                    this.barcodeValue = value;
-                    this.generateLinearBarcode({ type, value });
-                    break;
-
-                case 'code39':
-                    value = this.getBaseBarcodeValue();
-                    if (!this.validateLinearValue(type, value)) {
-                        return;
-                    }
-                    this.barcodeValue = value;
-                    this.generateLinearBarcode({ type, value });
-                    break;
-
-                case 'ean13':
-                    // EAN13 - generate from SKU
-                    value = this.barcodeService.generateEAN13FromSKU(this.getBaseBarcodeValue());
-                    if (!this.validateLinearValue(type, value)) {
-                        return;
-                    }
-                    this.barcodeValue = value;
-                    this.generateLinearBarcode({ type, value });
-                    break;
+            let value: string;
+            if (type === 'ean13') {
+                value = this.barcodeService.generateEAN13FromSKU(this.getBaseBarcodeValue());
+            } else {
+                value = this.getBaseBarcodeValue();
             }
 
-            this.messageService.add({
-                severity: 'success',
-                summary: 'Success',
-                detail: `${type.toUpperCase()} barcode generated`
-            });
+            if (type !== 'qrcode' && !this.validateLinearValue(type, value)) {
+                this.barcodeSvg = '';
+                this.rebuildLabel();
+                return;
+            }
+
+            this.barcodeValue = value;
+            this.barcodeSvg = await this.generateBarcodeSvg(type, value);
+            this.rebuildLabel();
         } catch (error) {
             console.error('Error generating barcode:', error);
             this.messageService.add({
@@ -242,21 +205,52 @@ export class BarcodeDialogComponent implements OnInit {
         }
     }
 
+    /** Produce inline SVG markup for either a QR or a linear barcode. */
+    private async generateBarcodeSvg(type: BarcodeType, value: string): Promise<string> {
+        if (type === 'qrcode') {
+            return await QRCode.toString(value, { type: 'svg', margin: 0, errorCorrectionLevel: 'M' });
+        }
+        const dims = LINEAR_DIMS[this.selectedSize];
+        // displayText: '' suppresses jsbarcode's own text — the label renders it separately.
+        return this.barcodeService.generateLinearBarcode({
+            type,
+            value,
+            displayText: '',
+            width: dims.width,
+            height: dims.height
+        });
+    }
+
+    /** Rebuild the label HTML from current fields + barcode. */
+    private rebuildLabel(): void {
+        const html = buildLabelMarkup({
+            sizeKey: this.selectedSize,
+            widthMm: this.widthMm,
+            heightMm: this.heightMm,
+            isQr: this.selectedBarcodeType === 'qrcode',
+            barcodeSvg: this.barcodeSvg,
+            barcodeValue: this.barcodeValue,
+            companyName: this.companyName,
+            category: this.getFieldValue('categoryName'),
+            brand: this.getFieldValue('brandName'),
+            name: this.getFieldValue('name'),
+            sku: this.getFieldValue('sku'),
+            partNumber: this.getFieldValue('partNumber'),
+            oemNumber: this.getFieldValue('oemNumber'),
+            unit: this.getFieldValue('unitCode'),
+            price: this.getFieldValue('sellingPrice'),
+        });
+        this.labelHtmlSafe = this.sanitizer.bypassSecurityTrustHtml(html);
+    }
+
+    /** Called when a label field value or visibility toggle changes. */
+    onFieldChange(): void {
+        this.rebuildLabel();
+    }
+
     onValueSourceChange(source: string): void {
         this.selectedValueSource = source;
-        if (this.selectedValueSource === 'details' && this.selectedBarcodeType !== 'qrcode') {
-            this.messageService.add({
-                severity: 'warn',
-                summary: 'QR Only',
-                detail: 'Full details are only available for QR codes. Linear barcodes will use SKU.'
-            });
-        }
-        if (this.selectedBarcodeType === 'ean13') {
-            // EAN13 requires numeric input; regenerate through generator
-            this.generateBarcode(this.selectedBarcodeType);
-            return;
-        }
-        this.generateBarcode(this.selectedBarcodeType);
+        void this.generateBarcode(this.selectedBarcodeType);
     }
 
     private getBaseBarcodeValue(): string {
@@ -271,9 +265,6 @@ export class BarcodeDialogComponent implements OnInit {
                 return `${this.part.sku}-${this.part.partNumber}`;
             case 'custom':
                 return this.customValue?.trim() || this.part.sku;
-            case 'details':
-                // Details are only used for QR codes; fall back to SKU for linear types
-                return this.part.sku;
             case 'sku':
             default:
                 return this.part.sku;
@@ -287,8 +278,6 @@ export class BarcodeDialogComponent implements OnInit {
             return true;
         }
 
-        this.barcodeHTML = '';
-        this.barcodeHTMLSafe = null;
         this.validationMessage = this.getValidationMessage(type, value);
         this.messageService.add({
             severity: 'warn',
@@ -311,68 +300,33 @@ export class BarcodeDialogComponent implements OnInit {
         }
     }
 
-    get valueSourceOptions() {
-        const isQr = this.selectedBarcodeType === 'qrcode';
-        return this.barcodeValueSources.map(option =>
-            option.value === 'details'
-                ? { ...option, disabled: !isQr }
-                : option
-        );
+    /**
+     * Handle label size change — applies stock dimensions + default field set.
+     */
+    onSizeChange(size: LabelSizeKey): void {
+        this.applySizeDefaults(size);
+        void this.generateBarcode(this.selectedBarcodeType);
     }
 
-    /**
-     * Generate linear barcode (Code128, Code39, EAN13)
-     */
-    private generateLinearBarcode(config: BarcodeConfig): void {
-        try {
-            const svg = this.barcodeService.generateLinearBarcode({
-                ...config,
-                displayText: config.value,
-                width: this.barcodeWidth,
-                height: this.barcodeHeight
-            });
-            this.barcodeHTML = svg || '';
-            this.barcodeHTMLSafe = svg ? this.sanitizer.bypassSecurityTrustHtml(svg) : null;
-        } catch (error) {
-            console.error('Error generating linear barcode:', error);
-            this.barcodeHTML = '';
-            this.barcodeHTMLSafe = null;
-        }
-    }
-
-    /**
-     * Handle barcode size change
-     */
-    onSizeChange(size: string): void {
+    /** Apply mm dimensions + the recommended visible-field set for a size. */
+    private applySizeDefaults(size: LabelSizeKey): void {
         this.selectedSize = size;
 
-        switch (size) {
-            case 'small':
-                this.barcodeWidth = 1.5;
-                this.barcodeHeight = 80;
-                this.qrCodeSize = 200;
-                break;
-            case 'medium':
-                this.barcodeWidth = 2;
-                this.barcodeHeight = 100;
-                this.qrCodeSize = 300;
-                break;
-            case 'large':
-                this.barcodeWidth = 2.5;
-                this.barcodeHeight = 120;
-                this.qrCodeSize = 400;
-                break;
-            case 'custom':
-                // Use custom values
-                this.barcodeWidth = this.customWidth;
-                this.barcodeHeight = this.customHeight;
-                break;
+        if (size === 'custom') {
+            this.widthMm = this.customWidthMm;
+            this.heightMm = this.customHeightMm;
+            return;
         }
 
-        // Regenerate barcode with new size
-        if (this.selectedBarcodeType !== 'qrcode') {
-            this.generateBarcode(this.selectedBarcodeType);
-        }
+        const preset = LABEL_SIZE_PRESETS[size];
+        this.widthMm = preset.widthMm;
+        this.heightMm = preset.heightMm;
+
+        const defaults = DEFAULT_FIELDS_BY_SIZE[size];
+        this.labelFields.forEach(f => {
+            // Never show a field that has no value, even if the size would include it.
+            f.visible = defaults.includes(f.key) && !!f.value;
+        });
     }
 
     /**
@@ -380,13 +334,9 @@ export class BarcodeDialogComponent implements OnInit {
      */
     onCustomSizeChange(): void {
         if (this.selectedSize === 'custom') {
-            this.barcodeWidth = this.customWidth;
-            this.barcodeHeight = this.customHeight;
-
-            // Regenerate barcode
-            if (this.selectedBarcodeType !== 'qrcode') {
-                this.generateBarcode(this.selectedBarcodeType);
-            }
+            this.widthMm = this.customWidthMm;
+            this.heightMm = this.customHeightMm;
+            void this.generateBarcode(this.selectedBarcodeType);
         }
     }
 
@@ -401,20 +351,8 @@ export class BarcodeDialogComponent implements OnInit {
         }
     }
 
-    /**
-     * Generate array of barcodes for printing
-     */
-    generateBarcodes(): BarcodeItem[] {
-        const barcodes: BarcodeItem[] = [];
-        for (let i = 0; i < this.quantity; i++) {
-            barcodes.push({
-                index: i + 1,
-                barcodeHTML: this.barcodeHTML,
-                barcodeValue: this.barcodeValue,
-                barcodeType: this.selectedBarcodeType
-            });
-        }
-        return barcodes;
+    get valueSourceOptions() {
+        return this.barcodeValueSources;
     }
 
     /**
@@ -431,7 +369,8 @@ export class BarcodeDialogComponent implements OnInit {
             const filename = `barcode-${this.part.sku}-${Date.now()}`;
 
             if (this.selectedBarcodeType === 'qrcode') {
-                await this.barcodeService.downloadBarcodeAsPNG({ type: this.selectedBarcodeType, value: this.barcodeValue }, filename, true);
+                const dataUrl = await QRCode.toDataURL(this.barcodeValue, { margin: 1, width: 512 });
+                this.triggerDownload(dataUrl, `${filename}.png`);
             } else {
                 await this.barcodeService.downloadBarcodeAsPNG(
                     {
@@ -461,29 +400,29 @@ export class BarcodeDialogComponent implements OnInit {
         }
     }
 
+    private triggerDownload(href: string, filename: string): void {
+        const link = document.createElement('a');
+        link.href = href;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
     /**
      * Download barcode as SVG
      */
     downloadBarcodeSVG(): void {
-        if (!this.part || this.selectedBarcodeType === 'qrcode') {
-            this.messageService.add({
-                severity: 'warn',
-                summary: 'Warning',
-                detail: 'SVG download is only available for linear barcodes'
-            });
+        if (!this.part) {
             return;
         }
 
         try {
             const filename = `barcode-${this.part.sku}-${Date.now()}`;
-            this.barcodeService.downloadBarcodeAsSVG(
-                {
-                    type: this.selectedBarcodeType,
-                    value: this.barcodeValue,
-                    displayText: this.barcodeValue
-                },
-                filename
-            );
+            const blob = new Blob([this.barcodeSvg], { type: 'image/svg+xml' });
+            const url = window.URL.createObjectURL(blob);
+            this.triggerDownload(url, `${filename}.svg`);
+            window.URL.revokeObjectURL(url);
 
             this.messageService.add({
                 severity: 'success',
@@ -501,7 +440,7 @@ export class BarcodeDialogComponent implements OnInit {
     }
 
     /**
-     * Print barcodes (single or bulk)
+     * Print labels (single or bulk) — reuses the exact preview markup.
      */
     printBarcode(): void {
         if (!this.part) {
@@ -509,185 +448,59 @@ export class BarcodeDialogComponent implements OnInit {
         }
 
         try {
-            const printWindow = window.open('', '', 'width=800,height=600');
+            const printWindow = window.open('', '', 'width=900,height=650');
             if (!printWindow) {
                 throw new Error('Could not open print window');
             }
 
-            let labelsHTML = '';
+            const labelHtml = buildLabelMarkup({
+                sizeKey: this.selectedSize,
+                widthMm: this.widthMm,
+                heightMm: this.heightMm,
+                isQr: this.selectedBarcodeType === 'qrcode',
+                barcodeSvg: this.barcodeSvg,
+                barcodeValue: this.barcodeValue,
+                companyName: this.companyName,
+                category: this.getFieldValue('categoryName'),
+                brand: this.getFieldValue('brandName'),
+                name: this.getFieldValue('name'),
+                sku: this.getFieldValue('sku'),
+                partNumber: this.getFieldValue('partNumber'),
+                oemNumber: this.getFieldValue('oemNumber'),
+                unit: this.getFieldValue('unitCode'),
+                price: this.getFieldValue('sellingPrice'),
+            });
 
-            // Get field values for label
-            const categoryName = this.getFieldValue('categoryName');
-            const brandName = this.getFieldValue('brandName');
-            const sku = this.getFieldValue('sku');
-            const unitCode = this.getFieldValue('unitCode');
-            const partNumber = this.getFieldValue('partNumber');
-            const sellingPrice = this.getFieldValue('sellingPrice');
-            const partName = this.getFieldValue('name');
-
-            // Get barcode image
-            let barcodeContent = '';
-            if (this.selectedBarcodeType === 'qrcode') {
-                const qrCanvas = this.barcodeContainer?.nativeElement?.querySelector('canvas') as HTMLCanvasElement | null;
-                const qrDataUrl = qrCanvas ? qrCanvas.toDataURL('image/png') : '';
-                if (!qrDataUrl) {
-                    throw new Error('Could not capture QR code canvas');
-                }
-                barcodeContent = `<img src="${qrDataUrl}" class="qr-img" alt="QR Code" />`;
-            } else {
-                barcodeContent = this.barcodeHTML;
-            }
-
-            for (let i = 0; i < this.quantity; i++) {
-                labelsHTML += `
-                <div class="label-card">
-                    <div class="label-header">
-                        <span class="label-header-left">${categoryName}</span>
-                        <span class="label-company">${this.companyName}</span>
-                        <span class="label-header-right">${brandName}</span>
-                    </div>
-                    <div class="label-id-row">
-                        <span class="label-sku">${sku}</span>
-                        ${unitCode ? `<span class="label-unit">${unitCode}</span>` : ''}
-                    </div>
-                    <div class="label-body">
-                        ${sku ? `<div class="label-sidebar label-sidebar-left"><span>${sku}</span></div>` : ''}
-                        <div class="label-barcode-area">
-                            ${barcodeContent}
-                        </div>
-                        ${unitCode ? `<div class="label-sidebar label-sidebar-right"><span>${unitCode}</span></div>` : ''}
-                    </div>
-                    <div class="label-barcode-value">${this.barcodeValue}</div>
-                    ${partNumber ? `<div class="label-part-number">${partNumber}</div>` : ''}
-                    <div class="label-footer">
-                        ${sellingPrice ? `<span class="label-price">${sellingPrice}</span>` : ''}
-                        ${partName ? `<span class="label-name">${partName}</span>` : ''}
-                    </div>
-                </div>`;
-            }
-
-            const htmlContent = `
-            <html>
-            <head>
-                <title>${this.part.name} - Labels</title>
-                <style>
-                    * { margin: 0; padding: 0; box-sizing: border-box; }
-                    body {
-                        font-family: 'Arial', 'Helvetica Neue', sans-serif;
-                        padding: 10px;
-                        background: #f5f5f5;
-                    }
-                    .print-grid {
-                        display: grid;
-                        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-                        gap: 10px;
-                    }
-                    .label-card {
-                        background: white;
-                        border: 2px solid #000;
-                        padding: 8px 10px;
-                        page-break-inside: avoid;
-                        width: 100%;
-                        max-width: 350px;
-                    }
-                    .label-header {
-                        display: flex;
-                        justify-content: space-between;
-                        align-items: center;
-                        font-weight: 700;
-                        font-size: 11px;
-                        text-transform: uppercase;
-                        border-bottom: 1px solid #000;
-                        padding-bottom: 3px;
-                        margin-bottom: 3px;
-                    }
-                    .label-company {
-                        font-size: 10px;
-                        font-weight: 800;
-                        color: #333;
-                    }
-                    .label-id-row {
-                        display: flex;
-                        justify-content: space-between;
-                        font-size: 9px;
-                        color: #333;
-                        margin-bottom: 4px;
-                    }
-                    .label-body {
-                        display: flex;
-                        align-items: stretch;
-                        justify-content: center;
-                        min-height: 80px;
-                        margin: 4px 0;
-                    }
-                    .label-sidebar {
-                        writing-mode: vertical-rl;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        font-size: 10px;
-                        font-weight: 700;
-                        color: #333;
-                        padding: 0 2px;
-                        min-width: 16px;
-                    }
-                    .label-sidebar-left { text-orientation: mixed; transform: rotate(180deg); }
-                    .label-sidebar-right { text-orientation: mixed; }
-                    .label-barcode-area {
-                        flex: 1;
-                        display: flex;
-                        justify-content: center;
-                        align-items: center;
-                        padding: 4px;
-                    }
-                    .label-barcode-area svg { max-width: 100%; height: auto; max-height: 80px; }
-                    .label-barcode-area .qr-img { max-width: 80px; max-height: 80px; }
-                    .label-barcode-value {
-                        text-align: center;
-                        font-size: 9px;
-                        font-family: 'Courier New', monospace;
-                        letter-spacing: 1px;
-                        margin: 2px 0;
-                    }
-                    .label-part-number {
-                        text-align: center;
-                        font-size: 9px;
-                        font-weight: 600;
-                        margin: 2px 0;
-                        letter-spacing: 0.5px;
-                    }
-                    .label-footer {
-                        display: flex;
-                        justify-content: space-between;
-                        align-items: center;
-                        border-top: 1px solid #000;
-                        padding-top: 3px;
-                        margin-top: 3px;
-                        font-size: 10px;
-                    }
-                    .label-price { font-weight: 700; }
-                    .label-name { font-weight: 500; color: #333; font-size: 9px; text-align: right; }
-                    @media print {
-                        body { background: white; padding: 0; }
-                        .print-grid { gap: 2px; }
-                        .label-card { border: 1px solid #000; }
-                    }
-                </style>
-            </head>
-            <body>
-                <div class="print-grid">
-                    ${labelsHTML}
-                </div>
-            </body>
-            </html>`;
+            const htmlContent = `<!DOCTYPE html>
+<html>
+<head>
+    <title>${this.escapeHtml(this.part.name)} — Labels</title>
+    <style>
+        @page { size: ${this.widthMm}mm ${this.heightMm}mm; margin: 0; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #fff; }
+        .apl-sheet { display: flex; flex-wrap: wrap; gap: 2mm; padding: 2mm; }
+        .apl-label-slot { page-break-inside: avoid; break-inside: avoid; }
+        ${LABEL_CSS}
+        @media print {
+            body { background: #fff; }
+            .apl-sheet { gap: 0; padding: 0; }
+            .apl-label-slot { page-break-after: always; }
+            .apl-label-slot:last-child { page-break-after: auto; }
+        }
+    </style>
+</head>
+<body>
+    <div class="apl-sheet">
+        ${Array.from({ length: this.quantity }, () => `<div class="apl-label-slot">${labelHtml}</div>`).join('')}
+    </div>
+    <script>window.onload = function () { setTimeout(function () { window.print(); }, 200); };</script>
+</body>
+</html>`;
 
             printWindow.document.open();
             printWindow.document.write(htmlContent);
             printWindow.document.close();
-
-            setTimeout(() => {
-                printWindow.print();
-            }, 500);
 
             this.messageService.add({
                 severity: 'success',
@@ -702,6 +515,10 @@ export class BarcodeDialogComponent implements OnInit {
                 detail: 'Failed to print labels'
             });
         }
+    }
+
+    private escapeHtml(value: string): string {
+        return (value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
 
     /**

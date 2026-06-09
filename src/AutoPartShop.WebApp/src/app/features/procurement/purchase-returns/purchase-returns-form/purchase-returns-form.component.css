@@ -323,11 +323,15 @@
 }
 
 .line-items-table thead tr th.col-name {
-  width: 22%;
+  width: 18%;
+}
+
+.line-items-table thead tr th.col-source {
+  width: 11%;
 }
 
 .line-items-table thead tr th.col-lot {
-  width: 15%;
+  width: 13%;
 }
 
 .line-items-table thead tr th.col-qty {

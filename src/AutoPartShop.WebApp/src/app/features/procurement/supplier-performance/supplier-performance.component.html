@@ -1,0 +1,70 @@
+<p-toast></p-toast>
+
+<app-page-container>
+  <app-page-header
+    title="Supplier Performance"
+    subtitle="Damaged/rejected rate from accepted goods receipts"
+    [breadcrumb]="[{ label: 'Procurement' }, { label: 'Supplier Performance' }]"
+    [count]="rows.length" countLabel="suppliers" countIcon="pi pi-chart-bar">
+  </app-page-header>
+
+  <app-filter-bar>
+    <div search class="filter-group search-group">
+      <div class="search-input-wrapper">
+        <i class="pi pi-search"></i>
+        <input
+          type="text"
+          class="search-input"
+          placeholder="Search by supplier name or code..."
+          [(ngModel)]="searchTerm"
+          (keyup.enter)="onSearch()" />
+        <button *ngIf="searchTerm" class="search-clear" (click)="searchTerm = ''; onSearch()">
+          <i class="pi pi-times"></i>
+        </button>
+      </div>
+    </div>
+  </app-filter-bar>
+
+  <section class="table-section">
+    <div class="table-container">
+      <p-table [value]="rows" [paginator]="true" [rows]="pageSize" [(first)]="first"
+        [loading]="loading" [rowsPerPageOptions]="[10, 20, 50]" styleClass="app-table">
+
+        <ng-template pTemplate="header">
+          <tr>
+            <th pSortableColumn="supplierName">Supplier <p-sortIcon field="supplierName"></p-sortIcon></th>
+            <th>Code</th>
+            <th pSortableColumn="grnCount" class="text-right">GRNs <p-sortIcon field="grnCount"></p-sortIcon></th>
+            <th pSortableColumn="totalReceivedQty" class="text-right">Received <p-sortIcon field="totalReceivedQty"></p-sortIcon></th>
+            <th pSortableColumn="totalRejectedQty" class="text-right">Rejected <p-sortIcon field="totalRejectedQty"></p-sortIcon></th>
+            <th pSortableColumn="returnCount" class="text-right">Returns <p-sortIcon field="returnCount"></p-sortIcon></th>
+            <th pSortableColumn="damagedRatePct" class="text-right">Damaged Rate <p-sortIcon field="damagedRatePct"></p-sortIcon></th>
+          </tr>
+        </ng-template>
+
+        <ng-template pTemplate="body" let-row>
+          <tr>
+            <td>{{ row.supplierName }}</td>
+            <td>{{ row.supplierCode }}</td>
+            <td class="text-right">{{ row.grnCount }}</td>
+            <td class="text-right">{{ row.totalReceivedQty }}</td>
+            <td class="text-right">{{ row.totalRejectedQty }}</td>
+            <td class="text-right">{{ row.returnCount }}</td>
+            <td class="text-right">
+              <p-tag [value]="(row.damagedRatePct | number:'1.0-2') + '%'" [severity]="rateSeverity(row.damagedRatePct)"></p-tag>
+            </td>
+          </tr>
+        </ng-template>
+
+        <ng-template pTemplate="emptymessage">
+          <tr>
+            <td colspan="7" class="empty-state">
+              <i class="pi pi-inbox"></i>
+              <p>No accepted goods receipts found.</p>
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </div>
+  </section>
+</app-page-container>

@@ -30,15 +30,58 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
   template: `
     <p-toast></p-toast>
     <div class="adjustment-dialog">
-      <h2 class="dialog-title">Stock Adjustment</h2>
+      <h2 class="dialog-title">{{ mode === 'create' ? 'New Stock Entry' : 'Stock Adjustment' }}</h2>
 
       <form [formGroup]="form" (ngSubmit)="onSubmit()" class="adjustment-form">
-        <!-- Current Stock Info -->
-        <p-card class="info-card">
+        <!-- Create mode: pick product (incl. variant) and warehouse -->
+        <ng-container *ngIf="mode === 'create'">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="product">Product / Variant *</label>
+              <p-select
+                id="product"
+                [options]="productOptions"
+                optionLabel="label"
+                optionValue="value"
+                formControlName="productKey"
+                [filter]="true"
+                filterBy="label"
+                placeholder="Select a product or variant"
+                [showClear]="true">
+              </p-select>
+              <small class="text-danger" *ngIf="form.get('productKey')?.invalid && form.get('productKey')?.touched">
+                Product is required
+              </small>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="warehouse">Warehouse *</label>
+              <p-select
+                id="warehouse"
+                [options]="warehouseOptions"
+                optionLabel="label"
+                optionValue="value"
+                formControlName="warehouseId"
+                placeholder="Select a warehouse"
+                [showClear]="true">
+              </p-select>
+              <small class="text-danger" *ngIf="form.get('warehouseId')?.invalid && form.get('warehouseId')?.touched">
+                Warehouse is required
+              </small>
+            </div>
+          </div>
+        </ng-container>
+
+        <!-- Current Stock Info (adjust mode) -->
+        <p-card class="info-card" *ngIf="mode === 'adjust'">
           <div class="info-row">
             <div class="info-item">
               <label>Part</label>
-              <span class="value">{{ part?.name }} ({{ part?.sku }})</span>
+              <span class="value">
+                {{ part?.name }} ({{ currentStock?.variantSku || part?.sku }})
+                <span class="variant-tag" *ngIf="currentStock?.variantName">{{ currentStock?.variantName }}</span>
+              </span>
             </div>
             <div class="info-item">
               <label>Warehouse</label>
@@ -110,7 +153,7 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
         </div>
 
         <!-- New Stock Preview -->
-        <p-card class="preview-card" *ngIf="form.get('quantity')?.value > 0 && form.get('type')?.value">
+        <p-card class="preview-card" *ngIf="mode === 'adjust' && form.get('quantity')?.value > 0 && form.get('type')?.value">
           <div class="preview-row">
             <label>New On-Hand After Adjustment:</label>
             <span class="preview-value" [ngClass]="getNewStock() < 0 ? 'text-danger' : 'text-success'">
@@ -188,6 +231,20 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
     .stock-value {
       color: #059669;
       font-size: 1.1rem;
+    }
+
+    .variant-tag {
+      display: inline-block;
+      margin-left: 0.4rem;
+      padding: 0.05rem 0.45rem;
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: #2563eb;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 999px;
+      vertical-align: middle;
+      white-space: nowrap;
     }
 
     .form-row {
@@ -289,9 +346,14 @@ export class StockAdjustmentDialogComponent implements OnInit {
 
   form: FormGroup;
   isSubmitting = false;
+  mode: 'adjust' | 'create' = 'adjust';
   part: PartResponse | null = null;
   warehouse: WarehouseResponse | null = null;
   currentStock: StockLevelResponse | null = null;
+
+  // Create-mode option lists
+  productOptions: { label: string; value: string; partId: string; variantId: string | null; unitId: string | null }[] = [];
+  warehouseOptions: { label: string; value: string }[] = [];
 
   adjustmentTypes = [
     { label: 'Increase Stock (Found)', value: 'FOUND' },
@@ -304,6 +366,8 @@ export class StockAdjustmentDialogComponent implements OnInit {
 
   constructor() {
     this.form = this.fb.group({
+      productKey: [''],
+      warehouseId: [''],
       type: ['', Validators.required],
       quantity: [0, [Validators.required, Validators.min(1)]],
       notes: ['']
@@ -311,8 +375,56 @@ export class StockAdjustmentDialogComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.currentStock = this.config.data.stock;
-    this.loadPartAndWarehouse();
+    this.mode = this.config.data?.mode === 'create' ? 'create' : 'adjust';
+
+    if (this.mode === 'create') {
+      this.form.get('productKey')?.addValidators(Validators.required);
+      this.form.get('warehouseId')?.addValidators(Validators.required);
+      this.loadProducts();
+      this.loadWarehouseOptions();
+    } else {
+      this.currentStock = this.config.data.stock;
+      this.loadPartAndWarehouse();
+    }
+  }
+
+  private loadProducts(): void {
+    this.partService.getParts({ search: '', pageNumber: 1, pageSize: 500, isActive: true, flattenVariants: true }).subscribe({
+      next: (res) => {
+        const parts = res.data ?? [];
+        this.productOptions = parts
+          // Skip parent rows that have variants (the variant rows are listed separately)
+          .filter(p => !(p.hasVariants && !p.isVariant))
+          .map(p => {
+            const variantId = p.isVariant ? (p.variantId ?? null) : null;
+            const label = p.isVariant
+              ? `${p.name} — ${p.variantName} (${p.variantSKU || p.sku})`
+              : `${p.name} (${p.sku})`;
+            return {
+              label,
+              value: variantId ? `${p.id}::${variantId}` : p.id,
+              partId: p.id,
+              variantId,
+              unitId: p.unitId ?? null
+            };
+          });
+      },
+      error: (_error) => {
+        console.error('Error loading products:', _error);
+      }
+    });
+  }
+
+  private loadWarehouseOptions(): void {
+    this.warehouseService.getWarehouses({ search: '', pageNumber: 1, pageSize: 1000, sorts: [{ field: 'name', direction: 'asc' }] }).subscribe({
+      next: (res) => {
+        const warehouses = res.data ?? [];
+        this.warehouseOptions = (Array.isArray(warehouses) ? warehouses : []).map(w => ({ label: w.name, value: w.id }));
+      },
+      error: (_error) => {
+        console.error('Error loading warehouses:', _error);
+      }
+    });
   }
 
   private loadPartAndWarehouse(): void {
@@ -362,11 +474,11 @@ export class StockAdjustmentDialogComponent implements OnInit {
   }
 
   onSubmit(): void {
-    if (!this.form.valid || !this.currentStock) {
+    if (!this.form.valid) {
+      this.form.markAllAsTouched();
       return;
     }
 
-    this.isSubmitting = true;
     const type = this.form.get('type')?.value;
     const quantity = this.form.get('quantity')?.value;
 
@@ -374,12 +486,35 @@ export class StockAdjustmentDialogComponent implements OnInit {
     const isIncrease = type === 'FOUND' || type === 'COUNT_CORRECTION_UP';
     const adjustmentQuantity = isIncrease ? quantity : -quantity;
 
+    // Resolve target part/variant/warehouse/unit from the active mode
+    let partId: string;
+    let variantId: string | null;
+    let warehouseId: string;
+    let unitId: string | undefined;
+
+    if (this.mode === 'create') {
+      const selected = this.productOptions.find(p => p.value === this.form.get('productKey')?.value);
+      if (!selected) return;
+      partId = selected.partId;
+      variantId = selected.variantId;
+      warehouseId = this.form.get('warehouseId')?.value;
+      unitId = selected.unitId || undefined;
+    } else {
+      if (!this.currentStock) return;
+      partId = this.currentStock.partId;
+      variantId = this.currentStock.variantId ?? null;
+      warehouseId = this.currentStock.warehouseId;
+      unitId = this.currentStock.unitId || undefined;
+    }
+
+    this.isSubmitting = true;
     const request = {
-      partId: this.currentStock.partId,
-      warehouseId: this.currentStock.warehouseId,
+      partId,
+      variantId: variantId ?? undefined,
+      warehouseId,
       quantity: adjustmentQuantity,
       quantityInBaseUnit: undefined,  // Backend will calculate if not provided
-      unitId: this.currentStock.unitId || undefined,
+      unitId,
       reason: type,
       reference: '',
       notes: this.form.get('notes')?.value || ''

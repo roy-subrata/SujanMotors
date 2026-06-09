@@ -108,6 +108,7 @@ public class StockLotController(
     [HttpGet("price-history/{partId:guid}")]
     public async Task<IActionResult> GetPriceHistory(
         Guid partId,
+        [FromQuery] Guid? variantId = null,
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 10,
         CancellationToken cancellationToken = default)
@@ -118,6 +119,9 @@ public class StockLotController(
             if (part is null) return NotFound("Part not found");
 
             var lots = await _repository.GetByPartAsync(partId, cancellationToken);
+            // Scope to a single variant when requested (SKU-level price history).
+            if (variantId.HasValue && variantId.Value != Guid.Empty)
+                lots = lots.Where(l => l.VariantId == variantId.Value).ToList();
             var sortedLots = lots.OrderByDescending(l => l.ReceivingDate).ToList();
             var totalCount = sortedLots.Count;
             if (pageNumber < 1) pageNumber = 1;

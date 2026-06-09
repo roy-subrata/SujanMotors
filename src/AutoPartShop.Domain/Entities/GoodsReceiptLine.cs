@@ -14,9 +14,13 @@ public class GoodsReceiptLine : AuditableEntity
     public int OrderedQuantityInBaseUnit { get; private set; }  // Converted to Part's base unit
     public int ReceivedQuantity { get; private set; }
     public int ReceivedQuantityInBaseUnit { get; private set; }  // Converted to Part's base unit
-    public int RejectedQuantity { get; private set; } = 0;
-    public int RejectedQuantityInBaseUnit { get; private set; } = 0;  // Converted to Part's base unit
-    public string Condition { get; private set; } = "GOOD";  // GOOD, DAMAGED, MISSING
+    // Discrepancy buckets (spec: Good = Received - Damaged - Wrong).
+    public int DamagedQuantity { get; private set; } = 0;            // Damaged units -> Damaged stock + return
+    public int DamagedQuantityInBaseUnit { get; private set; } = 0;  // Converted to Part's base unit
+    public int WrongQuantity { get; private set; } = 0;             // Wrong/incorrect units -> Quarantine stock + return
+    public int WrongQuantityInBaseUnit { get; private set; } = 0;    // Converted to Part's base unit
+    public string Condition { get; private set; } = "GOOD";  // GOOD, ACCEPTABLE, DAMAGED, DEFECTIVE, MISSING
+    public string RejectionReason { get; private set; } = string.Empty;  // Why units were rejected (kept separate from Notes)
     public string SerialNumbers { get; private set; } = string.Empty;
     public string Notes { get; private set; } = string.Empty;
 
@@ -44,7 +48,11 @@ public class GoodsReceiptLine : AuditableEntity
     public ProductVariant? Variant { get; set; }
 
     // Computed properties
+    // Rejected = Damaged + Wrong (kept as a convenience for return creation / reporting)
+    public int RejectedQuantity => DamagedQuantity + WrongQuantity;
+    public int RejectedQuantityInBaseUnit => DamagedQuantityInBaseUnit + WrongQuantityInBaseUnit;
     public bool HasDiscrepancy => ReceivedQuantity != OrderedQuantity || RejectedQuantity > 0;
+    // "Good" quantity = Received - Damaged - Wrong (this is what enters Available stock)
     public int AcceptedQuantity => ReceivedQuantity - RejectedQuantity;
     public int AcceptedQuantityInBaseUnit => ReceivedQuantityInBaseUnit - RejectedQuantityInBaseUnit;
     public decimal TotalCost => ReceivedQuantity * UnitCost;  // Total cost for all received items
@@ -57,10 +65,12 @@ public class GoodsReceiptLine : AuditableEntity
     public static GoodsReceiptLine Create(Guid goodsReceiptId, Guid purchaseOrderLineId, Guid partId,
         int orderedQuantity, int receivedQuantity, string condition = "GOOD", decimal unitCost = 0,
         string currency = "INR", Guid? unitId = null, int orderedQuantityInBaseUnit = 0,
-        int receivedQuantityInBaseUnit = 0, int rejectedQuantityInBaseUnit = 0, decimal unitCostInBaseUnit = 0,
+        int receivedQuantityInBaseUnit = 0, int damagedQuantityInBaseUnit = 0, int wrongQuantityInBaseUnit = 0,
+        decimal unitCostInBaseUnit = 0,
         decimal? sellingPrice = null, bool? hasWarranty = null, int? warrantyPeriodMonths = null,
         string? warrantyType = null, string? warrantyTerms = null,
-        string? batchNumber = null, DateTime? expiryDate = null, Guid? variantId = null)
+        string? batchNumber = null, DateTime? expiryDate = null, Guid? variantId = null,
+        int damagedQuantity = 0, int wrongQuantity = 0, string rejectionReason = "")
     {
         if (goodsReceiptId == Guid.Empty)
             throw new ArgumentException("GoodsReceiptId cannot be empty", nameof(goodsReceiptId));
@@ -80,9 +90,18 @@ public class GoodsReceiptLine : AuditableEntity
         if (unitCost < 0)
             throw new ArgumentException("UnitCost cannot be negative", nameof(unitCost));
 
-        var validConditions = new[] { "GOOD", "DAMAGED", "MISSING" };
+        var validConditions = new[] { "GOOD", "ACCEPTABLE", "DAMAGED", "DEFECTIVE", "MISSING" };
         if (!validConditions.Contains(condition.ToUpper()))
             throw new ArgumentException($"Condition must be one of: {string.Join(", ", validConditions)}", nameof(condition));
+
+        if (damagedQuantity < 0)
+            throw new ArgumentException("DamagedQuantity cannot be negative", nameof(damagedQuantity));
+
+        if (wrongQuantity < 0)
+            throw new ArgumentException("WrongQuantity cannot be negative", nameof(wrongQuantity));
+
+        if (damagedQuantity + wrongQuantity > receivedQuantity)
+            throw new InvalidOperationException("Damaged + Wrong quantity cannot exceed ReceivedQuantity");
 
         return new GoodsReceiptLine
         {
@@ -94,6 +113,11 @@ public class GoodsReceiptLine : AuditableEntity
             OrderedQuantityInBaseUnit = orderedQuantityInBaseUnit > 0 ? orderedQuantityInBaseUnit : orderedQuantity,
             ReceivedQuantity = receivedQuantity,
             ReceivedQuantityInBaseUnit = receivedQuantityInBaseUnit > 0 ? receivedQuantityInBaseUnit : receivedQuantity,
+            DamagedQuantity = damagedQuantity,
+            DamagedQuantityInBaseUnit = damagedQuantityInBaseUnit > 0 ? damagedQuantityInBaseUnit : damagedQuantity,
+            WrongQuantity = wrongQuantity,
+            WrongQuantityInBaseUnit = wrongQuantityInBaseUnit > 0 ? wrongQuantityInBaseUnit : wrongQuantity,
+            RejectionReason = rejectionReason?.Trim() ?? string.Empty,
             Condition = condition.ToUpper(),
             UnitCost = unitCost,
             UnitCostInBaseUnit = unitCostInBaseUnit > 0 ? unitCostInBaseUnit : unitCost,
@@ -109,17 +133,27 @@ public class GoodsReceiptLine : AuditableEntity
         };
     }
 
-    public void RejectQuantity(int quantity, int quantityInBaseUnit = 0, string reason = "")
+    /// <summary>
+    /// Records the damaged and wrong (incorrect) quantities for this line.
+    /// Damaged -> Damaged stock; Wrong -> Quarantine stock. Both can also raise a Purchase Return.
+    /// </summary>
+    public void SetDiscrepancy(int damagedQuantity, int wrongQuantity,
+        int damagedQuantityInBaseUnit = 0, int wrongQuantityInBaseUnit = 0, string reason = "")
     {
-        if (quantity <= 0)
-            throw new ArgumentException("Quantity must be greater than 0", nameof(quantity));
+        if (damagedQuantity < 0)
+            throw new ArgumentException("DamagedQuantity cannot be negative", nameof(damagedQuantity));
 
-        if (quantity > ReceivedQuantity)
-            throw new InvalidOperationException("Cannot reject more than received");
+        if (wrongQuantity < 0)
+            throw new ArgumentException("WrongQuantity cannot be negative", nameof(wrongQuantity));
 
-        RejectedQuantity = quantity;
-        RejectedQuantityInBaseUnit = quantityInBaseUnit > 0 ? quantityInBaseUnit : quantity;
-        Notes = reason?.Trim() ?? string.Empty;
+        if (damagedQuantity + wrongQuantity > ReceivedQuantity)
+            throw new InvalidOperationException("Damaged + Wrong quantity cannot exceed ReceivedQuantity");
+
+        DamagedQuantity = damagedQuantity;
+        DamagedQuantityInBaseUnit = damagedQuantityInBaseUnit > 0 ? damagedQuantityInBaseUnit : damagedQuantity;
+        WrongQuantity = wrongQuantity;
+        WrongQuantityInBaseUnit = wrongQuantityInBaseUnit > 0 ? wrongQuantityInBaseUnit : wrongQuantity;
+        RejectionReason = reason?.Trim() ?? string.Empty;
     }
 
     public void AddSerialNumbers(string serialNumbers)

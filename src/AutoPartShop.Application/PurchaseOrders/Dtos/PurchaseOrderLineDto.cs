@@ -17,7 +17,9 @@ public class PurchaseOrderLineDto
     public int QuantityInBaseUnit { get; set; }
     public int ReceivedQuantity { get; set; }
     public int ReceivedQuantityInBaseUnit { get; set; }
-    public int RemainingQuantity => Quantity - ReceivedQuantity;
+    // Qty sitting in not-yet-accepted (PENDING/VERIFIED) GRNs; reserved so it isn't offered again.
+    public int InFlightReceivedQuantity { get; set; }
+    public int RemainingQuantity => Quantity - ReceivedQuantity - InFlightReceivedQuantity;
     public decimal UnitPrice { get; set; }
     public decimal LineTotal { get; set; }
     public decimal PartDefaultSellingPrice { get; set; }

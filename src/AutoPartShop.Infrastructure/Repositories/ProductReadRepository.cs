@@ -244,7 +244,7 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
             {
                 Id = v.PartId,
                 Name = v.Part!.Name,
-                DisplayName = v.Part.Name + " - " + v.Name,
+                DisplayName = v.Name.StartsWith(v.Part.Name) ? v.Name : v.Part.Name + " - " + v.Name,
                 Description = v.Part.Description,
                 RichDescription = v.Part.RichDescription,
                 PartNumber = v.Part.PartNumber.Value,
@@ -452,7 +452,7 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
             {
                 Id = v.PartId,
                 Name = v.Part!.Name,
-                DisplayName = v.Part.Name + " - " + v.Name,
+                DisplayName = v.Name.StartsWith(v.Part.Name) ? v.Name : v.Part.Name + " - " + v.Name,
                 Description = v.Part.Description,
                 RichDescription = v.Part.RichDescription,
                 PartNumber = v.Part.PartNumber.Value,

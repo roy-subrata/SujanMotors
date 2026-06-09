@@ -10,15 +10,15 @@
           [fetchFn]="fetchPartsLazy"
           (onItemSelect)="onPartSelected($event)"
           (onClearEvent)="onPartSelected(null)"
-          optionLabel="name"
+          optionLabel="displayName"
           placeholder="Select part"
           [minLength]="0"
           [pageSize]="20"
           scrollHeight="300px">
           <ng-template let-part>
             <div class="part-autocomplete-item">
-              <div class="part-name">{{ part.name }}</div>
-              <div class="part-sku">{{ part.sku }}</div>
+              <div class="part-name">{{ part.displayName || part.name }}</div>
+              <div class="part-sku">{{ part.variantSKU || part.sku }}</div>
             </div>
           </ng-template>
         </app-lazy-autocomplete>
@@ -38,7 +38,7 @@
     <ng-template pTemplate="header">
       <div class="card-header">
         <div>
-          <h3>{{ priceHistory.partName }} ({{ priceHistory.partSKU }})</h3>
+          <h3>{{ selectedPart?.displayName || priceHistory.partName }} ({{ selectedPart?.variantSKU || priceHistory.partSKU }})</h3>
           <p class="text-sm text-gray-600">Price tracking across {{ priceHistory.lots.length }} purchase(s)</p>
         </div>
         @if (priceCodeService.isConfigured()) {

@@ -99,7 +99,7 @@ export class StockLotsByWarehouseComponent implements OnInit {
   onPartSelected(part: PartResponse | null): void {
     if (part) {
       this.selectedPart = part;
-      this.selectedPartName = `${part.name} (${part.sku})`;
+      this.selectedPartName = `${part.displayName || part.name} (${part.variantSKU || part.sku})`;
     } else {
       this.selectedPart = null;
       this.selectedPartName = '';
@@ -125,6 +125,7 @@ export class StockLotsByWarehouseComponent implements OnInit {
     this.loading = true;
     this.stockLotService.getStockLots({
       partId: this.selectedPart.id,
+      variantId: this.selectedPart.variantId ?? undefined,
       warehouseId: this.selectedWarehouseId,
       pageNumber: this.pageNumber,
       pageSize: this.pageSize

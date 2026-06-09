@@ -19,6 +19,7 @@ public class SuppliersController : ControllerBase
 {
     private readonly ISupplierRepository _supplierRepository;
     private readonly ISupplierReadRepository _supplierReadRepository;
+    private readonly ISupplierPerformanceReadRepository _supplierPerformanceReadRepository;
     private readonly ISupplierPaymentRepository _supplierPaymentRepository;
     private readonly ILogger<SuppliersController> _logger;
     private readonly ICurrentUserService _currentUserService;
@@ -26,6 +27,7 @@ public class SuppliersController : ControllerBase
 
     public SuppliersController(ISupplierRepository supplierRepository,
         ISupplierReadRepository supplierReadRepository,
+        ISupplierPerformanceReadRepository supplierPerformanceReadRepository,
         ISupplierPaymentRepository supplierPaymentRepository,
         ICurrentUserService currentUserService,
         ICodeGenerateService codeGenerateService,
@@ -35,8 +37,27 @@ public class SuppliersController : ControllerBase
         _supplierPaymentRepository = supplierPaymentRepository;
         _currentUserService = currentUserService;
         _supplierReadRepository = supplierReadRepository;
+        _supplierPerformanceReadRepository = supplierPerformanceReadRepository;
         _codeGenerateService = codeGenerateService;
         _logger = logger;
+    }
+
+    /// <summary>
+    /// Supplier quality/performance metrics (damaged rate from accepted goods receipts + return counts).
+    /// </summary>
+    [HttpGet("performance")]
+    public async Task<IActionResult> GetPerformance([FromQuery] string? search, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var data = await _supplierPerformanceReadRepository.GetPerformanceAsync(search, cancellationToken);
+            return Ok(data);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting supplier performance report");
+            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving supplier performance");
+        }
     }
     [HttpPost("list")]
     public async Task<IActionResult> FindAll(SupplierQuery query, CancellationToken cancellationToken)

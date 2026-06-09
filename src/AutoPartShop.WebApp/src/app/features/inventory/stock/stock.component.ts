@@ -224,6 +224,32 @@ export class StockComponent implements OnInit {
     });
   }
 
+  onNewStockEntry(): void {
+    const dialogRef = this.dialogService.open(StockAdjustmentDialogComponent, {
+      header: 'New Stock Entry',
+      width: '720px',
+      breakpoints: {
+        '960px': '95vw',
+        '640px': '100vw'
+      },
+      styleClass: 'stock-adjustment-dialog',
+      modal: true,
+      data: { mode: 'create' }
+    });
+
+    dialogRef!.onClose.subscribe((result: any) => {
+      if (result?.success) {
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Success',
+          detail: 'Stock entry created successfully'
+        });
+        this.loadAllStock();
+        this.loadLowStock();
+      }
+    });
+  }
+
   loadParts(): void {
     this.partService.getParts({ search: '', pageNumber: 1, pageSize: 500, isActive: true }).subscribe({
       next: (res) => {

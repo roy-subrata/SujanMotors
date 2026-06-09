@@ -20,6 +20,7 @@ public class StockLotReadRepository : IStockLotReadRepository
     {
         var lots = _dbContext.StockLots
             .Include(x => x.Part).ThenInclude(p => p != null ? p.BaseUnit : null)
+            .Include(x => x.Variant)
             .Include(x => x.Unit)
             .Include(x => x.Warehouse)
             .Include(x => x.Supplier)
@@ -28,6 +29,11 @@ public class StockLotReadRepository : IStockLotReadRepository
         if (!string.IsNullOrWhiteSpace(query.PartId) && Guid.TryParse(query.PartId, out var partId) && partId != Guid.Empty)
         {
             lots = lots.Where(x => x.PartId == partId);
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.VariantId) && Guid.TryParse(query.VariantId, out var variantId) && variantId != Guid.Empty)
+        {
+            lots = lots.Where(x => x.VariantId == variantId);
         }
 
         if (!string.IsNullOrWhiteSpace(query.WarehouseId) && Guid.TryParse(query.WarehouseId, out var warehouseId) && warehouseId != Guid.Empty)
@@ -42,6 +48,8 @@ public class StockLotReadRepository : IStockLotReadRepository
                 EF.Functions.Like(x.LotNumber.ToLower(), $"%{term}%") ||
                 (x.Part != null && EF.Functions.Like(x.Part.Name.ToLower(), $"%{term}%")) ||
                 (x.Part != null && EF.Functions.Like(x.Part.SKU.ToLower(), $"%{term}%")) ||
+                (x.Variant != null && EF.Functions.Like(x.Variant.Name.ToLower(), $"%{term}%")) ||
+                (x.Variant != null && x.Variant.SKU != null && EF.Functions.Like(x.Variant.SKU.ToLower(), $"%{term}%")) ||
                 (x.Warehouse != null && EF.Functions.Like(x.Warehouse.Name.ToLower(), $"%{term}%")) ||
                 (x.Supplier != null && EF.Functions.Like(x.Supplier.Name.ToLower(), $"%{term}%")));
         }
@@ -59,6 +67,16 @@ public class StockLotReadRepository : IStockLotReadRepository
                 PartId = lot.PartId,
                 PartName = lot.Part != null ? lot.Part.Name : string.Empty,
                 PartSKU = lot.Part != null ? lot.Part.SKU : string.Empty,
+                VariantId = lot.VariantId,
+                VariantName = lot.Variant != null ? lot.Variant.Name : null,
+                VariantSku = lot.Variant != null ? lot.Variant.SKU : null,
+                DisplayName = lot.Variant != null
+                    ? (lot.Part != null
+                        ? (lot.Variant.Name.StartsWith(lot.Part.Name)
+                            ? lot.Variant.Name
+                            : lot.Part.Name + " - " + lot.Variant.Name)
+                        : lot.Variant.Name)
+                    : (lot.Part != null ? lot.Part.Name : string.Empty),
                 WarehouseId = lot.WarehouseId,
                 WarehouseName = lot.Warehouse != null ? lot.Warehouse.Name : string.Empty,
                 SupplierId = lot.SupplierId,

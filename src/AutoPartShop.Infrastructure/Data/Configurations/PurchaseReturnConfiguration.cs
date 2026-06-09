@@ -54,6 +54,12 @@ public class PurchaseReturnConfiguration : IEntityTypeConfiguration<PurchaseRetu
             .HasForeignKey(pr => pr.PurchaseOrderId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        // Originating goods receipt (audit trail PO -> GR -> PR); optional for manual returns
+        builder.HasOne(pr => pr.GoodsReceipt)
+            .WithMany()
+            .HasForeignKey(pr => pr.GoodsReceiptId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasOne(pr => pr.Supplier)
             .WithMany()
             .HasForeignKey(pr => pr.SupplierId)
@@ -67,6 +73,7 @@ public class PurchaseReturnConfiguration : IEntityTypeConfiguration<PurchaseRetu
         // Indexes
         builder.HasIndex(pr => pr.ReturnNumber).IsUnique();
         builder.HasIndex(pr => pr.PurchaseOrderId);
+        builder.HasIndex(pr => pr.GoodsReceiptId);
         builder.HasIndex(pr => pr.SupplierId);
         builder.HasIndex(pr => pr.Status);
     }

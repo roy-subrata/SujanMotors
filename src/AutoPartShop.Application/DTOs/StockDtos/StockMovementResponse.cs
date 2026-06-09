@@ -6,6 +6,11 @@ public class StockMovementResponse
     public Guid PartId { get; set; }
     public string PartName { get; set; } = string.Empty;
     public string PartCode { get; set; } = string.Empty;
+    public Guid? VariantId { get; set; }
+    public string? VariantName { get; set; }
+    public string? VariantSku { get; set; }
+    // "Base - Variant" composed for display (falls back to the base part name).
+    public string DisplayName { get; set; } = string.Empty;
     public Guid WarehouseId { get; set; }
     public string WarehouseName { get; set; } = string.Empty;
     public string WarehouseCode { get; set; } = string.Empty;

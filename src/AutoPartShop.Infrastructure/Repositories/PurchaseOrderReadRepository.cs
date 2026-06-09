@@ -34,6 +34,19 @@ public class PurchaseOrderReadRepository(AutoPartDbContext _dbContext) : IPurcha
             purchaseOrders = purchaseOrders.Where(x => statuses.Contains(x.Status));
         }
 
+        // Goods Receipt picker: keep only POs with at least one line that still has
+        // outstanding quantity to receive (ordered - received - in-flight PENDING/VERIFIED).
+        if (query.HasReceivableQuantity == true)
+        {
+            purchaseOrders = purchaseOrders.Where(x => x.LineItems.Any(l =>
+                l.Quantity - l.ReceivedQuantity
+                - (x.GoodsReceipts
+                    .Where(gr => gr.Status == "PENDING" || gr.Status == "VERIFIED")
+                    .SelectMany(gr => gr.LineItems)
+                    .Where(grl => grl.PurchaseOrderLineId == l.Id)
+                    .Sum(grl => (int?)grl.ReceivedQuantity) ?? 0) > 0));
+        }
+
         if (query.FromDate.HasValue && query.ToDate.HasValue)
         {
             purchaseOrders = purchaseOrders.Where(x => x.ExpectedDeliveryDate >= query.FromDate.Value && x.ExpectedDeliveryDate <= query.ToDate.Value);
@@ -86,7 +99,7 @@ public class PurchaseOrderReadRepository(AutoPartDbContext _dbContext) : IPurcha
                     VariantName = l.Variant != null ? l.Variant.Name : null,
                     VariantCode = l.Variant != null ? l.Variant.Code : null,
                     DisplayName = l.Variant != null
-                        ? (l.Part != null ? l.Part.Name + " - " + l.Variant.Name : l.Variant.Name)
+                        ? (l.Part != null ? (l.Variant.Name.StartsWith(l.Part.Name) ? l.Variant.Name : l.Part.Name + " - " + l.Variant.Name) : l.Variant.Name)
                         : (l.Part != null ? l.Part.Name : string.Empty),
                     PartBaseUnitId = l.Part != null ? l.Part.UnitId : null,
                     UnitId = l.UnitId,
@@ -96,6 +109,11 @@ public class PurchaseOrderReadRepository(AutoPartDbContext _dbContext) : IPurcha
                     QuantityInBaseUnit = l.QuantityInBaseUnit,
                     ReceivedQuantity = l.ReceivedQuantity,
                     ReceivedQuantityInBaseUnit = l.ReceivedQuantityInBaseUnit,
+                    InFlightReceivedQuantity = po.GoodsReceipts
+                        .Where(gr => gr.Status == "PENDING" || gr.Status == "VERIFIED")
+                        .SelectMany(gr => gr.LineItems)
+                        .Where(grl => grl.PurchaseOrderLineId == l.Id)
+                        .Sum(grl => (int?)grl.ReceivedQuantity) ?? 0,
                     UnitPrice = l.UnitPrice,
                     LineTotal = l.TotalPrice,
                     PartDefaultSellingPrice = l.Part != null ? l.Part.SellingPrice : 0,
@@ -151,7 +169,7 @@ public class PurchaseOrderReadRepository(AutoPartDbContext _dbContext) : IPurcha
                      VariantName = pl.Variant != null ? pl.Variant.Name : null,
                      VariantCode = pl.Variant != null ? pl.Variant.Code : null,
                      DisplayName = pl.Variant != null
-                         ? (pl.Part != null ? pl.Part.Name + " - " + pl.Variant.Name : pl.Variant.Name)
+                         ? (pl.Part != null ? (pl.Variant.Name.StartsWith(pl.Part.Name) ? pl.Variant.Name : pl.Part.Name + " - " + pl.Variant.Name) : pl.Variant.Name)
                          : (pl.Part != null ? pl.Part.Name : string.Empty),
                      PartBaseUnitId = pl.Part != null ? pl.Part.UnitId : null,
                      UnitPrice = pl.UnitPrice,
@@ -159,6 +177,11 @@ public class PurchaseOrderReadRepository(AutoPartDbContext _dbContext) : IPurcha
                      QuantityInBaseUnit = pl.QuantityInBaseUnit,
                      ReceivedQuantity = pl.ReceivedQuantity,
                      ReceivedQuantityInBaseUnit = pl.ReceivedQuantityInBaseUnit,
+                     InFlightReceivedQuantity = po.GoodsReceipts
+                         .Where(gr => gr.Status == "PENDING" || gr.Status == "VERIFIED")
+                         .SelectMany(gr => gr.LineItems)
+                         .Where(grl => grl.PurchaseOrderLineId == pl.Id)
+                         .Sum(grl => (int?)grl.ReceivedQuantity) ?? 0,
                      UnitId = pl.UnitId,
                      UnitName = pl.Unit != null ? pl.Unit.Name : string.Empty,
                      UnitSymbol = pl.Unit != null ? pl.Unit.Symbol : string.Empty,

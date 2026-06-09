@@ -4,13 +4,24 @@ public class StockLevelResponse
 {
     public Guid Id { get; set; }
     public Guid PartId { get; set; }
+    public string? PartName { get; set; }
+    public string? PartSku { get; set; }
+    public Guid? VariantId { get; set; }
+    public string? VariantName { get; set; }
+    public string? VariantSku { get; set; }
+    // Full part name composed for display: base part name + " - " + variant label (when a variant exists).
+    public string? DisplayName { get; set; }
     public Guid WarehouseId { get; set; }
+    public string? WarehouseName { get; set; }
     public int Quantity { get; set; }
     public int QuantityInBaseUnit { get; set; }
     public int ReservedQuantity { get; set; }
     public int ReservedQuantityInBaseUnit { get; set; }
     public int AvailableQuantity { get; set; }
     public int AvailableQuantityInBaseUnit { get; set; }
+    // Non-sellable buckets (received damaged / wrong items held in quarantine)
+    public int DamagedQuantity { get; set; }
+    public int QuarantineQuantity { get; set; }
     public int ReorderLevel { get; set; }
     public int ReorderQuantity { get; set; }
     public bool NeedsReorder { get; set; }

@@ -22,6 +22,7 @@ public class SupplierPaymentController : ControllerBase
     private readonly ISupplierPaymentRepository _repository;
     public readonly ISupplierPaymentReadRespository _supplierPaymentReadRespository;
     private readonly IPurchaseOrderRepository _purchaseOrderRepository;
+    private readonly IGoodsReceiptRepository _goodsReceiptRepository;
     private readonly SupplierPaymentSummaryService _summaryService;
     private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<SupplierPaymentController> _logger;
@@ -30,12 +31,14 @@ public class SupplierPaymentController : ControllerBase
         ISupplierPaymentRepository repository,
         ISupplierPaymentReadRespository supplierPaymentReadRespository,
         IPurchaseOrderRepository purchaseOrderRepository,
+        IGoodsReceiptRepository goodsReceiptRepository,
         SupplierPaymentSummaryService summaryService,
         ICurrentUserService currentUserService,
         ILogger<SupplierPaymentController> logger)
     {
         _repository = repository;
         _purchaseOrderRepository = purchaseOrderRepository;
+        _goodsReceiptRepository = goodsReceiptRepository;
         _summaryService = summaryService;
         _currentUserService = currentUserService;
         _supplierPaymentReadRespository = supplierPaymentReadRespository;
@@ -376,6 +379,19 @@ public class SupplierPaymentController : ControllerBase
             if (request.PaymentType == PaymentType.REGULAR && !request.PurchaseOrderId.HasValue)
             {
                 return BadRequest(new { message = "Regular payments must be linked to a purchase order. Use ADVANCE payment type for prepayments without a specific order." });
+            }
+
+            // A supplier invoice should only cover ACCEPTED goods. When a payment is tied to a GRN,
+            // it cannot exceed the accepted value (accepted qty x unit cost) of that receipt.
+            if (request.GoodsReceiptId.HasValue)
+            {
+                var grn = await _goodsReceiptRepository.GetByIdAsync(request.GoodsReceiptId.Value, cancellationToken);
+                if (grn is null)
+                    return BadRequest(new { message = "Linked goods receipt not found." });
+
+                var acceptedValue = grn.LineItems.Sum(l => l.AcceptedTotalCost);
+                if (request.Amount > acceptedValue)
+                    return BadRequest(new { message = $"Payment amount ({request.Amount:N2}) exceeds the accepted value of goods receipt {grn.GRNNumber} ({acceptedValue:N2}). Rejected/damaged items are excluded from the supplier invoice." });
             }
 
             var payment = SupplierPayment.Create(request.SupplierId, request.PaymentProviderId, request.Amount, request.PaymentMethod, request.TransactionNumber, request.ReferenceNumber, request.PaymentDate);

@@ -21,6 +21,7 @@ public class StockLevelReadRepository : IStockLevelReadRepository
         var levels = _dbContext.StockLevels
             .Include(x => x.Part)
                 .ThenInclude(p => p.BaseUnit)
+            .Include(x => x.Variant)
             .Include(x => x.Warehouse)
             .Include(x => x.Unit)
             .Where(x => !x.Isdeleted);
@@ -28,6 +29,11 @@ public class StockLevelReadRepository : IStockLevelReadRepository
         if (!string.IsNullOrWhiteSpace(query.PartId) && Guid.TryParse(query.PartId, out var partId) && partId != Guid.Empty)
         {
             levels = levels.Where(x => x.PartId == partId);
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.VariantId) && Guid.TryParse(query.VariantId, out var variantId) && variantId != Guid.Empty)
+        {
+            levels = levels.Where(x => x.VariantId == variantId);
         }
 
         if (!string.IsNullOrWhiteSpace(query.WarehouseId) && Guid.TryParse(query.WarehouseId, out var warehouseId) && warehouseId != Guid.Empty)
@@ -61,6 +67,8 @@ public class StockLevelReadRepository : IStockLevelReadRepository
             levels = levels.Where(x =>
                 (x.Part != null && EF.Functions.Like(x.Part.Name.ToLower(), $"%{term}%")) ||
                 (x.Part != null && EF.Functions.Like(x.Part.SKU.ToLower(), $"%{term}%")) ||
+                (x.Variant != null && EF.Functions.Like(x.Variant.Name.ToLower(), $"%{term}%")) ||
+                (x.Variant != null && x.Variant.SKU != null && EF.Functions.Like(x.Variant.SKU.ToLower(), $"%{term}%")) ||
                 (x.Warehouse != null && EF.Functions.Like(x.Warehouse.Name.ToLower(), $"%{term}%")) ||
                 (x.Warehouse != null && EF.Functions.Like(x.Warehouse.Code.ToLower(), $"%{term}%")));
         }
@@ -75,7 +83,21 @@ public class StockLevelReadRepository : IStockLevelReadRepository
             {
                 Id = level.Id,
                 PartId = level.PartId,
+                PartName = level.Part != null ? level.Part.Name : null,
+                PartSku = level.Part != null ? level.Part.SKU : null,
+                VariantId = level.VariantId,
+                VariantName = level.Variant != null ? level.Variant.Name : null,
+                VariantSku = level.Variant != null ? level.Variant.SKU : null,
+                // Composed display name: "Base - Variant" (mirrors PurchaseOrderReadRepository).
+                DisplayName = level.Variant != null
+                    ? (level.Part != null
+                        ? (level.Variant.Name.StartsWith(level.Part.Name)
+                            ? level.Variant.Name
+                            : level.Part.Name + " - " + level.Variant.Name)
+                        : level.Variant.Name)
+                    : (level.Part != null ? level.Part.Name : null),
                 WarehouseId = level.WarehouseId,
+                WarehouseName = level.Warehouse != null ? level.Warehouse.Name : null,
                 UnitId = level.UnitId,
                 UnitName = level.Unit != null ? level.Unit.Name : null,
                 UnitSymbol = level.Unit != null ? level.Unit.Symbol : null,
@@ -87,6 +109,8 @@ public class StockLevelReadRepository : IStockLevelReadRepository
                 ReservedQuantityInBaseUnit = level.QuantityReservedInBaseUnit,
                 AvailableQuantity = level.QuantityAvailable,
                 AvailableQuantityInBaseUnit = level.QuantityAvailableInBaseUnit,
+                DamagedQuantity = level.QuantityDamaged,
+                QuarantineQuantity = level.QuantityQuarantine,
                 ReorderLevel = level.ReorderLevel,
                 ReorderQuantity = level.ReorderQuantity,
                 NeedsReorder = level.NeedsReorder,

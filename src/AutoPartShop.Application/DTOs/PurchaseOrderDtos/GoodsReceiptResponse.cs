@@ -12,6 +12,13 @@ public class GoodsReceiptResponse
     public string Status { get; set; } = string.Empty;
     public int TotalItemsReceived { get; set; }
     public int DiscrepancyCount { get; set; }
+
+    // Summary totals (spec summary panel)
+    public int GoodItems { get; set; }       // Sum of Good (accepted) quantities
+    public int DamagedItems { get; set; }    // Sum of damaged quantities
+    public int WrongItems { get; set; }      // Sum of wrong/incorrect quantities
+    public int PotentialReturns { get; set; } // Number of lines with damaged or wrong qty > 0
+
     public string VerifiedBy { get; set; } = string.Empty;
     public DateTime? VerificationDate { get; set; }
     public List<GoodsReceiptLineResponse> Lines { get; set; } = new();
@@ -39,9 +46,12 @@ public class GoodsReceiptLineResponse
     public string PartSKU { get; set; } = string.Empty;
     public int OrderedQuantity { get; set; }
     public int ReceivedQuantity { get; set; }
-    public int RejectedQuantity { get; set; }
-    public int AcceptedQuantity { get; set; }
+    public int DamagedQuantity { get; set; }
+    public int WrongQuantity { get; set; }
+    public int RejectedQuantity { get; set; }  // Damaged + Wrong
+    public int AcceptedQuantity { get; set; }   // "Good" = Received - Damaged - Wrong
     public string Condition { get; set; } = string.Empty;
+    public string RejectionReason { get; set; } = string.Empty;
     public string Notes { get; set; } = string.Empty;
     public bool HasDiscrepancy { get; set; }
 

@@ -8,6 +8,7 @@ using AutoPartShop.Application.SaleOrders;
 using AutoPartShop.Application.SaleOrders.Dtos;
 using AutoPartShop.Application.Services;
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Common;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -1359,9 +1360,7 @@ public class SalesOrderController : ControllerBase
                 VariantName = l.ProductVariant?.Name,
                 VariantCode = l.ProductVariant?.Code,
                 VariantSku = l.ProductVariant?.SKU,
-                DisplayName = l.ProductVariant != null
-                    ? (l.Part != null ? l.Part.Name + " - " + l.ProductVariant.Name : l.ProductVariant.Name)
-                    : (l.Part?.Name ?? string.Empty),
+                DisplayName = VariantNaming.Compose(l.Part?.Name, l.ProductVariant?.Name),
                 UnitId = l.UnitId,
                 UnitName = l.Unit?.Name ?? string.Empty,
                 UnitSymbol = l.Unit?.Symbol ?? string.Empty,

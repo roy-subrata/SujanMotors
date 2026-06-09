@@ -1,6 +1,7 @@
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.SalesOrderDtos;
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Common;
 using AutoPartShop.Domain.Repositories;
 using AutoPartShop.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Authorization;
@@ -713,7 +714,7 @@ namespace AutoPartShop.Api.Controllers
                         PartName = partName,
                         PartSku = line.Part?.SKU ?? string.Empty,
                         VariantName = variantName,
-                        DisplayName = string.IsNullOrEmpty(variantName) ? partName : $"{partName} - {variantName}",
+                        DisplayName = VariantNaming.Compose(partName, variantName),
                         Quantity = line.Quantity,
                         QuantityInBaseUnit = line.QuantityInBaseUnit,
                         UnitPrice = line.UnitPrice,

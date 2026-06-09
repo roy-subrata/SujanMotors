@@ -4,6 +4,7 @@ using AutoPartShop.Application.DTOs.PurchaseOrderDtos;
 using AutoPartShop.Application.PurchaseOrders;
 using AutoPartShop.Application.Services;
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Common;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -548,21 +549,22 @@ public class PurchaseOrderController : ControllerBase
                     if (poLine is null)
                         return BadRequest(new { message = $"Part {lineRequest.PartId} not found in purchase order" });
 
-                    // Calculate remaining quantity considering already accepted/verified GRNs for THIS PO line
-                    var alreadyReceived = purchaseOrder.GoodsReceipts
-                        .Where(gr => gr.Status == "ACCEPTED" || gr.Status == "VERIFIED")
-                        .SelectMany(gr => gr.LineItems)
-                        .Where(grl => grl.PurchaseOrderLineId == poLine.Id)
-                        .Sum(grl => grl.ReceivedQuantity);
-
-                    var remainingQty = poLine.Quantity - alreadyReceived;
+                    // Calculate remaining quantity using the single authoritative formula
+                    // (accepted qty net of rejections, minus in-flight not-yet-accepted GRNs).
+                    var remainingQty = purchaseOrder.GetOutstandingQuantity(poLine.Id);
 
                     if (lineRequest.ReceivedQuantity > remainingQty)
                     {
                         return BadRequest(new {
-                            message = $"Received quantity ({lineRequest.ReceivedQuantity}) exceeds remaining ordered quantity ({remainingQty}) for part {lineRequest.PartId}. Already received: {alreadyReceived}, Ordered: {poLine.Quantity}"
+                            message = $"Received quantity ({lineRequest.ReceivedQuantity}) exceeds remaining ordered quantity ({remainingQty}) for part {lineRequest.PartId}. Ordered: {poLine.Quantity}"
                         });
                     }
+
+                    // Damaged units -> Damaged stock; Wrong units -> Quarantine stock. Both can also
+                    // raise a Purchase Return on accept. The Good (accepted) portion counts toward the PO line.
+                    if (lineRequest.DamagedQuantity < 0 || lineRequest.WrongQuantity < 0 ||
+                        lineRequest.DamagedQuantity + lineRequest.WrongQuantity > lineRequest.ReceivedQuantity)
+                        return BadRequest(new { message = $"Damaged ({lineRequest.DamagedQuantity}) + Wrong ({lineRequest.WrongQuantity}) must be between 0 and received quantity ({lineRequest.ReceivedQuantity}) for part {lineRequest.PartId}." });
 
                     // Get the Part to calculate base unit quantities
                     var part = await _productRepository.GetByIdAsync(lineRequest.PartId, cancellationToken);
@@ -573,6 +575,8 @@ public class PurchaseOrderController : ControllerBase
                     // Calculate base unit quantities if unit conversion is needed
                     int orderedQuantityInBaseUnit = poLine.Quantity;
                     int receivedQuantityInBaseUnit = lineRequest.ReceivedQuantity;
+                    int damagedQuantityInBaseUnit = lineRequest.DamagedQuantity;
+                    int wrongQuantityInBaseUnit = lineRequest.WrongQuantity;
                     decimal unitCostInBaseUnit = lineRequest.UnitCost;
 
                     // Only convert if part has a base unit AND received unit differs from base unit.
@@ -597,6 +601,8 @@ public class PurchaseOrderController : ControllerBase
 
                         orderedQuantityInBaseUnit = (int)Math.Round(poLine.Quantity * conversionFactor, MidpointRounding.AwayFromZero);
                         receivedQuantityInBaseUnit = (int)Math.Round(lineRequest.ReceivedQuantity * conversionFactor, MidpointRounding.AwayFromZero);
+                        damagedQuantityInBaseUnit = (int)Math.Round(lineRequest.DamagedQuantity * conversionFactor, MidpointRounding.AwayFromZero);
+                        wrongQuantityInBaseUnit = (int)Math.Round(lineRequest.WrongQuantity * conversionFactor, MidpointRounding.AwayFromZero);
                         unitCostInBaseUnit = lineRequest.UnitCost / conversionFactor;
                     }
 
@@ -613,7 +619,8 @@ public class PurchaseOrderController : ControllerBase
                         lineRequest.UnitId,
                         orderedQuantityInBaseUnit,
                         receivedQuantityInBaseUnit,
-                        0, // rejectedQuantityInBaseUnit
+                        damagedQuantityInBaseUnit,
+                        wrongQuantityInBaseUnit,
                         unitCostInBaseUnit,
                         lineRequest.SellingPrice,
                         lineRequest.HasWarranty,
@@ -622,7 +629,10 @@ public class PurchaseOrderController : ControllerBase
                         lineRequest.WarrantyTerms,
                         lineRequest.BatchNumber,
                         lineRequest.ExpiryDate,
-                        poLine.VariantId  // carry variant from the matched PO line (SKU-level stock)
+                        poLine.VariantId,  // carry variant from the matched PO line (SKU-level stock)
+                        damagedQuantity: lineRequest.DamagedQuantity,
+                        wrongQuantity: lineRequest.WrongQuantity,
+                        rejectionReason: lineRequest.RejectionReason
                     );
 
                     if (!string.IsNullOrEmpty(lineRequest.Notes))
@@ -767,21 +777,22 @@ public class PurchaseOrderController : ControllerBase
                     if (poLine is null)
                         return BadRequest(new { message = $"Part {lineRequest.PartId} not found in purchase order" });
 
-                    // Calculate remaining quantity considering already accepted/verified GRNs for THIS PO line (excluding current GRN being updated)
-                    var alreadyReceived = purchaseOrder.GoodsReceipts
-                        .Where(gr => (gr.Status == "ACCEPTED" || gr.Status == "VERIFIED") && gr.Id != id)
-                        .SelectMany(gr => gr.LineItems)
-                        .Where(grl => grl.PurchaseOrderLineId == poLine.Id)
-                        .Sum(grl => grl.ReceivedQuantity);
-
-                    var remainingQty = poLine.Quantity - alreadyReceived;
+                    // Calculate remaining quantity using the single authoritative formula,
+                    // excluding the GRN currently being updated so its own lines aren't double-counted.
+                    var remainingQty = purchaseOrder.GetOutstandingQuantity(poLine.Id, excludeGoodsReceiptId: id);
 
                     if (lineRequest.ReceivedQuantity > remainingQty)
                     {
                         return BadRequest(new {
-                            message = $"Received quantity ({lineRequest.ReceivedQuantity}) exceeds remaining ordered quantity ({remainingQty}) for part {lineRequest.PartId}. Already received: {alreadyReceived}, Ordered: {poLine.Quantity}"
+                            message = $"Received quantity ({lineRequest.ReceivedQuantity}) exceeds remaining ordered quantity ({remainingQty}) for part {lineRequest.PartId}. Ordered: {poLine.Quantity}"
                         });
                     }
+
+                    // Damaged units -> Damaged stock; Wrong units -> Quarantine stock. Both can also
+                    // raise a Purchase Return on accept. The Good (accepted) portion counts toward the PO line.
+                    if (lineRequest.DamagedQuantity < 0 || lineRequest.WrongQuantity < 0 ||
+                        lineRequest.DamagedQuantity + lineRequest.WrongQuantity > lineRequest.ReceivedQuantity)
+                        return BadRequest(new { message = $"Damaged ({lineRequest.DamagedQuantity}) + Wrong ({lineRequest.WrongQuantity}) must be between 0 and received quantity ({lineRequest.ReceivedQuantity}) for part {lineRequest.PartId}." });
 
                     // Get the Part to calculate base unit quantities
                     var part = await _productRepository.GetByIdAsync(lineRequest.PartId, cancellationToken);
@@ -792,6 +803,8 @@ public class PurchaseOrderController : ControllerBase
                     // Calculate base unit quantities if unit conversion is needed
                     int orderedQuantityInBaseUnit = poLine.Quantity;
                     int receivedQuantityInBaseUnit = lineRequest.ReceivedQuantity;
+                    int damagedQuantityInBaseUnit = lineRequest.DamagedQuantity;
+                    int wrongQuantityInBaseUnit = lineRequest.WrongQuantity;
                     decimal unitCostInBaseUnit = lineRequest.UnitCost;
 
                     // Only convert if part has a base unit AND received unit differs from base unit.
@@ -816,6 +829,8 @@ public class PurchaseOrderController : ControllerBase
 
                         orderedQuantityInBaseUnit = (int)Math.Round(poLine.Quantity * conversionFactor, MidpointRounding.AwayFromZero);
                         receivedQuantityInBaseUnit = (int)Math.Round(lineRequest.ReceivedQuantity * conversionFactor, MidpointRounding.AwayFromZero);
+                        damagedQuantityInBaseUnit = (int)Math.Round(lineRequest.DamagedQuantity * conversionFactor, MidpointRounding.AwayFromZero);
+                        wrongQuantityInBaseUnit = (int)Math.Round(lineRequest.WrongQuantity * conversionFactor, MidpointRounding.AwayFromZero);
                         unitCostInBaseUnit = lineRequest.UnitCost / conversionFactor;
                     }
 
@@ -832,7 +847,8 @@ public class PurchaseOrderController : ControllerBase
                         lineRequest.UnitId,
                         orderedQuantityInBaseUnit,
                         receivedQuantityInBaseUnit,
-                        0, // rejectedQuantityInBaseUnit
+                        damagedQuantityInBaseUnit,
+                        wrongQuantityInBaseUnit,
                         unitCostInBaseUnit,
                         lineRequest.SellingPrice,
                         lineRequest.HasWarranty,
@@ -841,7 +857,10 @@ public class PurchaseOrderController : ControllerBase
                         lineRequest.WarrantyTerms,
                         lineRequest.BatchNumber,
                         lineRequest.ExpiryDate,
-                        poLine.VariantId  // carry variant from the matched PO line (SKU-level stock)
+                        poLine.VariantId,  // carry variant from the matched PO line (SKU-level stock)
+                        damagedQuantity: lineRequest.DamagedQuantity,
+                        wrongQuantity: lineRequest.WrongQuantity,
+                        rejectionReason: lineRequest.RejectionReason
                     );
 
                     if (!string.IsNullOrEmpty(lineRequest.Notes))
@@ -897,7 +916,7 @@ public class PurchaseOrderController : ControllerBase
     }
 
     [HttpPatch("grn/{id:guid}/accept")]
-    public async Task<IActionResult> AcceptGRN(Guid id, CancellationToken cancellationToken)
+    public async Task<IActionResult> AcceptGRN(Guid id, [FromQuery] bool createReturn, CancellationToken cancellationToken)
     {
         try
         {
@@ -911,8 +930,9 @@ public class PurchaseOrderController : ControllerBase
             if (grn.Status == "ACCEPTED")
                 return BadRequest(new { message = "This goods receipt has already been accepted" });
 
-            // Update stock levels and update PO receipt status (handled inside ProcessGoodsReceiptAsync)
-            await _stockManagementService.ProcessGoodsReceiptAsync(grn, cancellationToken);
+            // Update stock levels (Good->Available, Damaged->Damaged, Wrong->Quarantine) and PO receipt
+            // status. When createReturn is true, a draft Purchase Return is also raised for damaged/wrong lines.
+            await _stockManagementService.ProcessGoodsReceiptAsync(grn, createReturn, cancellationToken);
 
             // Update GRN status to accepted
             grn.Accept();
@@ -1027,9 +1047,7 @@ public class PurchaseOrderController : ControllerBase
                 VariantId = l.VariantId,
                 VariantName = l.Variant?.Name,
                 VariantCode = l.Variant?.Code,
-                DisplayName = l.Variant != null
-                    ? (l.Part != null ? l.Part.Name + " - " + l.Variant.Name : l.Variant.Name)
-                    : (l.Part?.Name ?? string.Empty),
+                DisplayName = VariantNaming.Compose(l.Part?.Name, l.Variant?.Name),
                 PartBaseUnitId = l.Part?.UnitId,
                 UnitId = l.UnitId,
                 UnitName = l.Unit?.Name ?? string.Empty,
@@ -1061,6 +1079,10 @@ public class PurchaseOrderController : ControllerBase
             Status = grn.Status,
             TotalItemsReceived = grn.TotalItemsReceived,
             DiscrepancyCount = grn.DiscrepancyCount,
+            GoodItems = grn.LineItems.Sum(l => l.AcceptedQuantity),
+            DamagedItems = grn.LineItems.Sum(l => l.DamagedQuantity),
+            WrongItems = grn.LineItems.Sum(l => l.WrongQuantity),
+            PotentialReturns = grn.LineItems.Count(l => l.DamagedQuantity > 0 || l.WrongQuantity > 0),
             VerifiedBy = grn.VerifiedBy,
             VerificationDate = grn.VerificationDate,
             SupplierInvoiceNumber = grn.SupplierInvoiceNumber,
@@ -1080,9 +1102,12 @@ public class PurchaseOrderController : ControllerBase
                 PartSKU = l.Part?.SKU ?? string.Empty,
                 OrderedQuantity = l.OrderedQuantity,
                 ReceivedQuantity = l.ReceivedQuantity,
+                DamagedQuantity = l.DamagedQuantity,
+                WrongQuantity = l.WrongQuantity,
                 RejectedQuantity = l.RejectedQuantity,
                 AcceptedQuantity = l.AcceptedQuantity,
                 Condition = l.Condition,
+                RejectionReason = l.RejectionReason,
                 Notes = l.Notes,
                 HasDiscrepancy = l.HasDiscrepancy,
                 BatchNumber = l.BatchNumber,
