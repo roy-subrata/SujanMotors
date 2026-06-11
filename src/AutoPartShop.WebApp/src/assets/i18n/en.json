@@ -37,7 +37,22 @@
     "currencies": "Currencies",
     "exchangeRates": "Exchange Rates",
     "settings": "Settings",
-    "products": "Products"
+    "products": "Products",
+    "catalog": "Catalog",
+    "discounts": "Discounts",
+    "attributeGroups": "Attribute Groups",
+    "purchasing": "Purchasing",
+    "supplierStatements": "Supplier Statements",
+    "customerStatements": "Customer Statements",
+    "pendingDeliveries": "Pending Deliveries",
+    "serviceWarranty": "Service & Warranty",
+    "finance": "Finance",
+    "dailyCashBook": "Daily Cash Book",
+    "onlineStore": "Online Store",
+    "administration": "Administration",
+    "companyProfile": "Company Profile",
+    "shopPolicies": "Shop Policies",
+    "auditDashboard": "Audit Dashboard"
   },
   "topbar": {
     "profile": "My Profile",

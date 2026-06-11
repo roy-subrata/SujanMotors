@@ -31,58 +31,62 @@ export class AppMenuComponent implements OnInit {
     }
 
     private buildMenu(): void {
+        const adminOnly = this.hasAdminRole();
+
         this.model = [
             // ==================== DASHBOARD ====================
             {
-                label: 'Dashboard',
+                label: this.i18n.t('menu.dashboard'),
                 icon: 'pi pi-home',
                 routerLink: ['/']
+            },
+
+            // ==================== CATALOG ====================
+            {
+                label: this.i18n.t('menu.catalog'),
+                icon: 'pi pi-box',
+                items: [
+                    {
+                        label: this.i18n.t('menu.parts'),
+                        icon: 'pi pi-shopping-bag',
+                        routerLink: ['/inventory/parts']
+                    },
+                    {
+                        label: this.i18n.t('menu.categories'),
+                        icon: 'pi pi-list',
+                        routerLink: ['/inventory/categories']
+                    },
+                    {
+                        label: this.i18n.t('menu.brands'),
+                        icon: 'pi pi-tag',
+                        routerLink: ['/inventory/brands']
+                    },
+                    {
+                        label: this.i18n.t('menu.units'),
+                        icon: 'pi pi-sitemap',
+                        routerLink: ['/inventory/units']
+                    },
+                    {
+                        label: this.i18n.t('menu.attributeGroups'),
+                        icon: 'pi pi-sliders-h',
+                        routerLink: ['/inventory/attribute-groups']
+                    },
+                    {
+                        label: this.i18n.t('menu.discounts'),
+                        icon: 'pi pi-percentage',
+                        routerLink: ['/inventory/discounts']
+                    }
+                ]
             },
 
             // ==================== INVENTORY ====================
             {
                 label: this.i18n.t('menu.inventory'),
-                icon: 'pi pi-box',
+                icon: 'pi pi-warehouse',
                 items: [
                     {
-                        label: 'Products',
-                        icon: 'pi pi-shopping-bag',
-                        items: [
-                            {
-                                label: this.i18n.t('menu.parts'),
-                                icon: 'pi pi-shopping-bag',
-                                routerLink: ['/inventory/parts']
-                            },
-                            {
-                                label: this.i18n.t('menu.categories'),
-                                icon: 'pi pi-list',
-                                routerLink: ['/inventory/categories']
-                            },
-                            {
-                                label: this.i18n.t('menu.brands'),
-                                icon: 'pi pi-tag',
-                                routerLink: ['/inventory/brands']
-                            },
-                            {
-                                label: 'Discounts',
-                                icon: 'pi pi-percentage',
-                                routerLink: ['/inventory/discounts']
-                            },
-                            {
-                                label: this.i18n.t('menu.units'),
-                                icon: 'pi pi-sitemap',
-                                routerLink: ['/inventory/units']
-                            },
-                            {
-                                label: 'Attribute Groups',
-                                icon: 'pi pi-sliders-h',
-                                routerLink: ['/inventory/attribute-groups']
-                            }
-                        ]
-                    },
-                    {
                         label: this.i18n.t('menu.stockManagement'),
-                        icon: 'pi pi-warehouse',
+                        icon: 'pi pi-chart-bar',
                         routerLink: ['/inventory/stock']
                     },
                     {
@@ -93,68 +97,50 @@ export class AppMenuComponent implements OnInit {
                 ]
             },
 
-            // ==================== PROCUREMENT ====================
+            // ==================== PURCHASING ====================
             {
-                label: this.i18n.t('menu.procurement'),
+                label: this.i18n.t('menu.purchasing'),
                 icon: 'pi pi-briefcase',
                 items: [
                     {
-                        label: 'Suppliers',
+                        label: this.i18n.t('menu.purchaseOrders'),
+                        icon: 'pi pi-file',
+                        routerLink: ['/procurement/purchase-orders']
+                    },
+                    {
+                        label: this.i18n.t('menu.goodsReceipts'),
+                        icon: 'pi pi-inbox',
+                        routerLink: ['/procurement/goods-receipts']
+                    },
+                    {
+                        label: this.i18n.t('menu.purchaseReturns'),
+                        icon: 'pi pi-reply',
+                        routerLink: ['/procurement/purchase-returns']
+                    },
+                    {
+                        label: this.i18n.t('menu.suppliers'),
                         icon: 'pi pi-truck',
-                        items: [
-                            {
-                                label: 'Suppliers',
-                                icon: 'pi pi-truck',
-                                routerLink: ['/inventory/suppliers']
-                            },
-                            {
-                                label: 'Supplier Payments',
-                                icon: 'pi pi-money-bill',
-                                routerLink: ['/procurement/supplier-payments']
-                            },
-                            {
-                                label: 'Account Summary',
-                                icon: 'pi pi-chart-line',
-                                routerLink: ['/procurement/supplier-account-summary']
-                            }
-                        ]
+                        routerLink: ['/inventory/suppliers']
                     },
                     {
-                        label: 'Purchasing',
-                        icon: 'pi pi-shopping-cart',
-                        items: [
-                            {
-                                label: this.i18n.t('menu.purchaseOrders'),
-                                icon: 'pi pi-file',
-                                routerLink: ['/procurement/purchase-orders']
-                            },
-                            {
-                                label: this.i18n.t('menu.goodsReceipts'),
-                                icon: 'pi pi-inbox',
-                                routerLink: ['/procurement/goods-receipts']
-                            },
-                            {
-                                label: this.i18n.t('menu.purchaseReturns'),
-                                icon: 'pi pi-reply',
-                                routerLink: ['/procurement/purchase-returns']
-                            }
-                        ]
+                        label: this.i18n.t('menu.supplierPayments'),
+                        icon: 'pi pi-money-bill',
+                        routerLink: ['/procurement/supplier-payments']
                     },
                     {
-                        label: 'Expenses',
-                        icon: 'pi pi-wallet',
-                        items: [
-                            {
-                                label: this.i18n.t('menu.dailyExpenses'),
-                                icon: 'pi pi-receipt',
-                                routerLink: ['/procurement/daily-expenses']
-                            },
-                            {
-                                label: this.i18n.t('menu.paymentProviders'),
-                                icon: 'pi pi-credit-card',
-                                routerLink: ['/procurement/payment-providers']
-                            }
-                        ]
+                        label: this.i18n.t('menu.supplierStatements'),
+                        icon: 'pi pi-chart-line',
+                        routerLink: ['/procurement/supplier-account-summary']
+                    },
+                    {
+                        label: this.i18n.t('menu.dailyExpenses'),
+                        icon: 'pi pi-receipt',
+                        routerLink: ['/procurement/daily-expenses']
+                    },
+                    {
+                        label: this.i18n.t('menu.paymentProviders'),
+                        icon: 'pi pi-credit-card',
+                        routerLink: ['/procurement/payment-providers']
                     }
                 ]
             },
@@ -165,74 +151,46 @@ export class AppMenuComponent implements OnInit {
                 icon: 'pi pi-shopping-cart',
                 items: [
                     {
-                        label: 'Online Store',
-                        icon: 'pi pi-globe',
-                        routerLink: ['/shop']
-                    },
-                    {
-                        label: 'Sales Orders',
+                        label: this.i18n.t('menu.salesOrders'),
                         icon: 'pi pi-file',
-                        items: [
-                            {
-                                label: this.i18n.t('menu.salesOrders'),
-                                icon: 'pi pi-file',
-                                routerLink: ['/sales/sales-orders']
-                            },
-                            {
-                                label: 'Pending Deliveries',
-                                icon: 'pi pi-truck',
-                                routerLink: ['/sales/pending-deliveries']
-                            },
-                            {
-                                label: this.i18n.t('menu.salesReturns'),
-                                icon: 'pi pi-replay',
-                                routerLink: ['/sales/sales-returns']
-                            }
-                        ]
+                        routerLink: ['/sales/sales-orders']
                     },
                     {
-                        label: 'Customers',
+                        label: this.i18n.t('menu.invoices'),
+                        icon: 'pi pi-file-check',
+                        routerLink: ['/sales/invoices']
+                    },
+                    {
+                        label: this.i18n.t('menu.pendingDeliveries'),
+                        icon: 'pi pi-truck',
+                        routerLink: ['/sales/pending-deliveries']
+                    },
+                    {
+                        label: this.i18n.t('menu.salesReturns'),
+                        icon: 'pi pi-replay',
+                        routerLink: ['/sales/sales-returns']
+                    },
+                    {
+                        label: this.i18n.t('menu.customers'),
                         icon: 'pi pi-users',
-                        items: [
-                            {
-                                label: 'Manage Customers',
-                                icon: 'pi pi-users',
-                                routerLink: ['/sales/customers']
-                            },
-                            {
-                                label: this.i18n.t('menu.customerPayments'),
-                                icon: 'pi pi-dollar',
-                                routerLink: ['/sales/customer-payments']
-                            },
-                            {
-                                label: 'Account Summary',
-                                icon: 'pi pi-chart-line',
-                                routerLink: ['/sales/customer-account-summary']
-                            }
-                        ]
+                        routerLink: ['/sales/customers']
                     },
                     {
-                        label: 'Warranty',
-                        icon: 'pi pi-shield',
-                        items: [
-                            {
-                                label: this.i18n.t('menu.warrantyRegistrations'),
-                                icon: 'pi pi-check-square',
-                                routerLink: ['/warranty/registrations']
-                            },
-                            {
-                                label: this.i18n.t('menu.warrantyClaims'),
-                                icon: 'pi pi-exclamation-triangle',
-                                routerLink: ['/warranty/claims']
-                            }
-                        ]
+                        label: this.i18n.t('menu.customerPayments'),
+                        icon: 'pi pi-dollar',
+                        routerLink: ['/sales/customer-payments']
+                    },
+                    {
+                        label: this.i18n.t('menu.customerStatements'),
+                        icon: 'pi pi-chart-line',
+                        routerLink: ['/sales/customer-account-summary']
                     }
                 ]
             },
 
-            // ==================== SERVICE ====================
+            // ==================== SERVICE & WARRANTY ====================
             {
-                label: 'Service',
+                label: this.i18n.t('menu.serviceWarranty'),
                 icon: 'pi pi-wrench',
                 items: [
                     {
@@ -244,78 +202,81 @@ export class AppMenuComponent implements OnInit {
                         label: this.i18n.t('menu.vehicles'),
                         icon: 'pi pi-car',
                         routerLink: ['/inventory/vehicles']
+                    },
+                    {
+                        label: this.i18n.t('menu.warrantyRegistrations'),
+                        icon: 'pi pi-check-square',
+                        routerLink: ['/warranty/registrations']
+                    },
+                    {
+                        label: this.i18n.t('menu.warrantyClaims'),
+                        icon: 'pi pi-exclamation-triangle',
+                        routerLink: ['/warranty/claims']
                     }
                 ]
             },
 
             // ==================== FINANCE ====================
             {
-                label: 'Finance',
+                label: this.i18n.t('menu.finance'),
                 icon: 'pi pi-chart-line',
                 items: [
                     {
-                        label: 'Daily Cash Book',
+                        label: this.i18n.t('menu.dailyCashBook'),
                         icon: 'pi pi-book',
                         routerLink: ['/finance/cash-book']
-                    },
-                    {
-                        label: this.i18n.t('menu.invoices'),
-                        icon: 'pi pi-file-invoice',
-                        routerLink: ['/sales/invoices']
                     },
                     {
                         label: this.i18n.t('menu.exchangeRates'),
                         icon: 'pi pi-percentage',
                         routerLink: ['/admin/exchange-rates'],
-                        visible: this.hasAdminRole()
+                        visible: adminOnly
                     }
                 ]
             },
 
-            // ==================== ADMIN ====================
+            // ==================== ONLINE STORE ====================
             {
-                label: this.i18n.t('menu.admin'),
+                label: this.i18n.t('menu.onlineStore'),
+                icon: 'pi pi-globe',
+                routerLink: ['/shop']
+            },
+
+            // ==================== ADMINISTRATION (admin only) ====================
+            {
+                label: this.i18n.t('menu.administration'),
                 icon: 'pi pi-cog',
+                visible: adminOnly,
                 items: [
                     {
-                        label: 'Company Profile',
+                        label: this.i18n.t('menu.companyProfile'),
                         icon: 'pi pi-building',
-                        routerLink: ['/admin/company-profile'],
-                        visible: this.hasAdminRole()
+                        routerLink: ['/admin/company-profile']
                     },
                     {
-                        label: 'Currencies',
+                        label: this.i18n.t('menu.currencies'),
                         icon: 'pi pi-dollar',
-                        routerLink: ['/admin/currencies'],
-                        visible: this.hasAdminRole()
+                        routerLink: ['/admin/currencies']
                     },
                     {
-                        label: 'Shop Policies',
-                        icon: 'pi pi-truck',
-                        routerLink: ['/admin/shop-policies'],
-                        visible: this.hasAdminRole()
+                        label: this.i18n.t('menu.shopPolicies'),
+                        icon: 'pi pi-shield',
+                        routerLink: ['/admin/shop-policies']
                     },
                     {
                         label: this.i18n.t('menu.settings'),
                         icon: 'pi pi-cog',
-                        routerLink: ['/admin-settings'],
-                        visible: this.hasAdminRole()
+                        routerLink: ['/admin-settings']
                     },
                     {
-                        label: 'Audit',
+                        label: this.i18n.t('menu.auditDashboard'),
+                        icon: 'pi pi-chart-bar',
+                        routerLink: ['/audit/dashboard']
+                    },
+                    {
+                        label: this.i18n.t('menu.auditTrail'),
                         icon: 'pi pi-history',
-                        items: [
-                            {
-                                label: this.i18n.t('menu.dashboard'),
-                                icon: 'pi pi-chart-bar',
-                                routerLink: ['/audit/dashboard']
-                            },
-                            {
-                                label: this.i18n.t('menu.auditTrail'),
-                                icon: 'pi pi-list',
-                                routerLink: ['/audit/logs']
-                            }
-                        ]
+                        routerLink: ['/audit/logs']
                     }
                 ]
             }

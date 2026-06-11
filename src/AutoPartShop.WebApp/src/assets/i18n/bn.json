@@ -37,7 +37,22 @@
     "currencies": "মুদ্রা",
     "exchangeRates": "বিনিময় হার",
     "settings": "সেটিংস",
-    "products": "পণ্যসমূহ"
+    "products": "পণ্যসমূহ",
+    "catalog": "ক্যাটালগ",
+    "discounts": "ছাড়",
+    "attributeGroups": "অ্যাট্রিবিউট গ্রুপ",
+    "purchasing": "ক্রয়",
+    "supplierStatements": "সরবরাহকারী বিবরণী",
+    "customerStatements": "গ্রাহক বিবরণী",
+    "pendingDeliveries": "বিতরণের অপেক্ষায়",
+    "serviceWarranty": "সার্ভিস ও ওয়ারেন্টি",
+    "finance": "অর্থ",
+    "dailyCashBook": "দৈনিক ক্যাশ বুক",
+    "onlineStore": "অনলাইন স্টোর",
+    "administration": "প্রশাসন",
+    "companyProfile": "কোম্পানি প্রোফাইল",
+    "shopPolicies": "দোকানের নীতিমালা",
+    "auditDashboard": "অডিট ড্যাশবোর্ড"
   },
   "topbar": {
     "profile": "আমার প্রোফাইল",
