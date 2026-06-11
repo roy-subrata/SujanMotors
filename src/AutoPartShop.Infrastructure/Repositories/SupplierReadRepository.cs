@@ -13,7 +13,6 @@ namespace AutoPartShop.Infrastructure.Repositories
         {
             var term = query.Search.ToLower();
             var suppliers = _db.Suppliers
-                .Include(x => x.SupplierPayments)
                 .Where(x => !x.Isdeleted && (
                  (EF.Functions.Like(x.Name, $"%{term}%") ||
                  EF.Functions.Like(x.Country, $"%{term}%") ||
@@ -58,6 +57,50 @@ namespace AutoPartShop.Infrastructure.Repositories
                     ModifiedBy = supplier.ModifiedBy
                 })
                 .ToListAsync(cancellationToken);
+
+            // Balance is derived live from transactions, NOT from the stored Supplier.CurrentBalance
+            // column (which defaults to 0 and is never updated). Formula mirrors
+            // SupplierLedgerService.CalculateCurrentBalanceAsync: purchases - payments - refunds.
+            // Positive balance => we owe the supplier.
+            var ids = items.Select(i => i.Id).ToList();
+            if (ids.Count > 0)
+            {
+                var purchases = await _db.PurchaseOrders
+                    .Where(x => ids.Contains(x.SupplierId) &&
+                                x.Status != "DRAFT" &&
+                                x.Status != "SUBMITTED" &&
+                                x.Status != "CANCELLED" &&
+                                !x.Isdeleted)
+                    .GroupBy(x => x.SupplierId)
+                    .Select(g => new { SupplierId = g.Key, Total = g.Sum(x => x.TotalAmount) })
+                    .ToDictionaryAsync(x => x.SupplierId, x => x.Total, cancellationToken);
+
+                var payments = await _db.SupplierPayments
+                    .Where(x => ids.Contains(x.SupplierId) &&
+                                x.Status == "COMPLETED" &&
+                                x.PaymentMethod != "REFUND" &&
+                                (x.PaymentType == PaymentType.ADVANCE || x.SourceAdvancePaymentId == null) &&
+                                !x.Isdeleted)
+                    .GroupBy(x => x.SupplierId)
+                    .Select(g => new { SupplierId = g.Key, Total = g.Sum(x => x.Amount) })
+                    .ToDictionaryAsync(x => x.SupplierId, x => x.Total, cancellationToken);
+
+                var refunds = await _db.PurchaseReturns
+                    .Where(x => ids.Contains(x.SupplierId) &&
+                                x.SettlementStatus == "SETTLED" &&
+                                !x.Isdeleted)
+                    .GroupBy(x => x.SupplierId)
+                    .Select(g => new { SupplierId = g.Key, Total = g.Sum(x => x.SettledAmount) })
+                    .ToDictionaryAsync(x => x.SupplierId, x => x.Total, cancellationToken);
+
+                foreach (var item in items)
+                {
+                    item.CurrentBalance =
+                        purchases.GetValueOrDefault(item.Id)
+                        - payments.GetValueOrDefault(item.Id)
+                        - refunds.GetValueOrDefault(item.Id);
+                }
+            }
 
             return (items, totalCount);
         }

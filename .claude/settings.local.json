@@ -95,7 +95,11 @@
       "PowerShell($dir = \"src/AutoPartShop.Infrastructure/Repositories\"; if \\(Test-Path \"$dir/ProductReadRepository.cs\"\\) { Write-Output \"COLLISION: ProductReadRepository.cs already exists\" } else { git mv \"$dir/PartReadRepository.cs\" \"$dir/ProductReadRepository.cs\"; Write-Output \"RENAMED exit=$LASTEXITCODE\" })",
       "PowerShell(dotnet ef database *)",
       "Bash(grep -n \"VariantId\\\\|ProductVariant\" StockLot.cs StockMovement.cs StockLevel.cs)",
-      "Bash(grep -n \"VariantId\\\\|ProductVariant\\\\|PartId\\\\|SalesOrderLineId\\\\|PurchaseOrderLineId\" SalesReturnLine.cs PurchaseReturnLine.cs)"
+      "Bash(grep -n \"VariantId\\\\|ProductVariant\\\\|PartId\\\\|SalesOrderLineId\\\\|PurchaseOrderLineId\" SalesReturnLine.cs PurchaseReturnLine.cs)",
+      "PowerShell(docker exec *)",
+      "PowerShell(docker volume ls *)",
+      "PowerShell(docker rm autopartshop.db gmailapp gmailapp-sqlserver; Write-Output \"---- removing volumes ----\"; docker volume rm blazor-gmail_gmailapp_data blazor-gmail_sqlserver_data deployment_autopart_mssql_data deployment_autopart_mssql_dev1_data deployment_autopart_mssql_dev_data)",
+      "PowerShell(Stop-Process *)"
     ],
     "deny": [],
     "ask": []

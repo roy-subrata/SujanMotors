@@ -19,8 +19,10 @@ import {
     LABEL_SIZE_PRESETS,
     DEFAULT_FIELDS_BY_SIZE,
     LabelSizeKey,
+    LabelLayout,
     buildLabelMarkup,
 } from './label-template';
+import { LabelData, labelFromPart } from './label-data';
 
 /**
  * Dynamic label field definition
@@ -58,7 +60,10 @@ export class BarcodeDialogComponent implements OnInit {
     private readonly dialogConfig = inject(DynamicDialogConfig);
     private readonly sanitizer = inject(DomSanitizer);
 
-    public part: PartResponse | null = null;
+    /** Normalised label data, regardless of where the dialog was opened from. */
+    public data: LabelData | null = null;
+    /** Visual style: classic (id-row label) or combo (company + fields + barcode, retail). */
+    selectedLayout: LabelLayout = 'classic';
     selectedBarcodeType: BarcodeType = 'code128';
     barcodeValue: string = '';
     /** Inline SVG (linear or QR) for the current barcode. */
@@ -78,7 +83,12 @@ export class BarcodeDialogComponent implements OnInit {
 
     // Quantity management
     quantity: number = 1;
-    maxQuantity: number = 100;
+    maxQuantity: number = 500;
+
+    layoutOptions = [
+        { label: 'Classic (id rows)', value: 'classic' as LabelLayout },
+        { label: 'Product (company + barcode)', value: 'combo' as LabelLayout },
+    ];
 
     // Barcode value source
     selectedValueSource: string = 'sku';
@@ -97,6 +107,7 @@ export class BarcodeDialogComponent implements OnInit {
 
     barcodeValueSources = [
         { label: 'SKU', value: 'sku' },
+        { label: 'Stored Barcode', value: 'barcode' },
         { label: 'Part Number', value: 'partNumber' },
         { label: 'SKU + Part #', value: 'sku-part' },
         { label: 'Custom', value: 'custom' }
@@ -111,19 +122,40 @@ export class BarcodeDialogComponent implements OnInit {
     ];
 
     ngOnInit(): void {
-        this.part = this.dialogConfig.data.part;
-        if (!this.part) {
+        const cfg = this.dialogConfig.data ?? {};
+        // Accept normalised LabelData, or adapt a raw PartResponse for back-compat.
+        this.data = cfg.label ?? (cfg.part ? labelFromPart(cfg.part as PartResponse) : null);
+        if (!this.data) {
             this.messageService.add({
                 severity: 'warn',
                 summary: 'Missing Data',
-                detail: 'No part data provided for barcode generation'
+                detail: 'No data provided for barcode generation'
             });
             return;
         }
 
+        // Default to the combo layout when lot context (batch/dates) is present.
+        this.selectedLayout = cfg.layout
+            ?? (this.data.batchNumber || this.data.expiryDate || this.data.mfgDate ? 'combo' : 'classic');
+
+        // Auto-quantity: pre-fill with the caller's default (e.g. received qty).
+        this.quantity = Math.min(Math.max(this.data.defaultQuantity ?? 1, 1), this.maxQuantity);
+
+        // Prefer the stored manufacturer barcode as the value source when present.
+        if (this.data.barcode) {
+            this.selectedValueSource = 'barcode';
+        }
+
         this.ensureLabelStyles();
         this.initializeLabelFields();
-        this.applySizeDefaults('standard');
+        this.applySizeDefaults(this.selectedLayout === 'combo' ? 'large' : 'standard');
+        void this.generateBarcode(this.selectedBarcodeType);
+    }
+
+    /** Switch label style (classic/combo) and regenerate. */
+    onLayoutChange(layout: LabelLayout): void {
+        this.selectedLayout = layout;
+        this.applySizeDefaults(layout === 'combo' ? 'large' : this.selectedSize);
         void this.generateBarcode(this.selectedBarcodeType);
     }
 
@@ -142,18 +174,30 @@ export class BarcodeDialogComponent implements OnInit {
      * Initialize dynamic label fields from part data
      */
     private initializeLabelFields(): void {
-        if (!this.part) return;
+        const d = this.data;
+        if (!d) return;
 
         this.labelFields = [
-            { key: 'categoryName', label: 'Category', value: this.part.categoryName || '', visible: true },
-            { key: 'brandName', label: 'Brand', value: this.part.brandName || '', visible: true },
-            { key: 'name', label: 'Name', value: this.part.name || '', visible: true },
-            { key: 'sku', label: 'SKU', value: this.part.sku || '', visible: true },
-            { key: 'partNumber', label: 'Part #', value: this.part.partNumber || '', visible: true },
-            { key: 'oemNumber', label: 'OEM #', value: this.part.oemNumber || '', visible: !!this.part.oemNumber },
-            { key: 'unitCode', label: 'Unit', value: this.part.unitCode || this.part.unitName || '', visible: true },
-            { key: 'sellingPrice', label: 'M.R.P.', value: this.part.sellingPrice ? `৳ ${this.part.sellingPrice.toLocaleString()}` : '', visible: !!this.part.sellingPrice },
+            { key: 'categoryName', label: 'Category', value: d.category || '', visible: true },
+            { key: 'brandName', label: 'Brand', value: d.brand || '', visible: true },
+            { key: 'name', label: 'Name', value: d.name || '', visible: true },
+            { key: 'sku', label: 'SKU', value: d.sku || '', visible: true },
+            { key: 'partNumber', label: 'Part #', value: d.partNumber || '', visible: !!d.partNumber },
+            { key: 'oemNumber', label: 'OEM #', value: d.oemNumber || '', visible: !!d.oemNumber },
+            { key: 'unitCode', label: 'Unit', value: d.unit || '', visible: true },
+            { key: 'batchNumber', label: 'Batch', value: d.batchNumber || '', visible: !!d.batchNumber },
+            { key: 'mfgDate', label: 'Mfg Date', value: this.formatDate(d.mfgDate), visible: !!d.mfgDate },
+            { key: 'expiryDate', label: 'Expiry', value: this.formatDate(d.expiryDate), visible: !!d.expiryDate },
+            { key: 'sellingPrice', label: 'M.R.P.', value: d.price ? `৳ ${d.price.toLocaleString()}` : '', visible: !!d.price },
         ];
+    }
+
+    /** Format an ISO date to dd-MMM-yyyy for the label; empty when missing. */
+    private formatDate(iso?: string | null): string {
+        if (!iso) return '';
+        const dt = new Date(iso);
+        if (isNaN(dt.getTime())) return '';
+        return dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
     }
 
     /**
@@ -168,7 +212,7 @@ export class BarcodeDialogComponent implements OnInit {
      * Generate barcode value + SVG for the selected type, then rebuild the label.
      */
     async generateBarcode(type: BarcodeType): Promise<void> {
-        if (!this.part) {
+        if (!this.data) {
             return;
         }
 
@@ -177,21 +221,35 @@ export class BarcodeDialogComponent implements OnInit {
         this.validationMessage = '';
 
         try {
-            let value: string;
-            if (type === 'ean13') {
-                value = this.barcodeService.generateEAN13FromSKU(this.getBaseBarcodeValue());
-            } else {
-                value = this.getBaseBarcodeValue();
+            const isCombo = this.selectedLayout === 'combo';
+            // In combo mode a linear barcode always anchors the bottom; if the user
+            // picked "QR Code" as the type we fall back to Code128 for that bar.
+            const linearType: BarcodeType = type === 'qrcode' ? (isCombo ? 'code128' : 'qrcode') : type;
+
+            let value = this.getBaseBarcodeValue();
+            if (linearType === 'ean13') {
+                // Keep a value that's already a valid EAN-13 (e.g. a real stored barcode).
+                value = this.barcodeService.validateBarcodeValue('ean13', value)
+                    ? value
+                    : this.barcodeService.generateEAN13FromSKU(value);
             }
 
-            if (type !== 'qrcode' && !this.validateLinearValue(type, value)) {
+            this.barcodeValue = value;
+
+            if (linearType === 'qrcode') {
+                // Classic + QR: the single barcode is the QR itself.
+                this.barcodeSvg = await QRCode.toString(value, { type: 'svg', margin: 0, errorCorrectionLevel: 'M' });
+                this.rebuildLabel();
+                return;
+            }
+
+            if (!this.validateLinearValue(linearType, value)) {
                 this.barcodeSvg = '';
                 this.rebuildLabel();
                 return;
             }
 
-            this.barcodeValue = value;
-            this.barcodeSvg = await this.generateBarcodeSvg(type, value);
+            this.barcodeSvg = await this.generateBarcodeSvg(linearType, value);
             this.rebuildLabel();
         } catch (error) {
             console.error('Error generating barcode:', error);
@@ -221,10 +279,11 @@ export class BarcodeDialogComponent implements OnInit {
         });
     }
 
-    /** Rebuild the label HTML from current fields + barcode. */
-    private rebuildLabel(): void {
-        const html = buildLabelMarkup({
+    /** Current label options — single source shared by preview and print. */
+    private labelOptions() {
+        return {
             sizeKey: this.selectedSize,
+            layout: this.selectedLayout,
             widthMm: this.widthMm,
             heightMm: this.heightMm,
             isQr: this.selectedBarcodeType === 'qrcode',
@@ -239,7 +298,15 @@ export class BarcodeDialogComponent implements OnInit {
             oemNumber: this.getFieldValue('oemNumber'),
             unit: this.getFieldValue('unitCode'),
             price: this.getFieldValue('sellingPrice'),
-        });
+            batchNumber: this.getFieldValue('batchNumber'),
+            mfgDate: this.getFieldValue('mfgDate'),
+            expiryDate: this.getFieldValue('expiryDate'),
+        };
+    }
+
+    /** Rebuild the label HTML from current fields + barcode. */
+    private rebuildLabel(): void {
+        const html = buildLabelMarkup(this.labelOptions());
         this.labelHtmlSafe = this.sanitizer.bypassSecurityTrustHtml(html);
     }
 
@@ -254,20 +321,23 @@ export class BarcodeDialogComponent implements OnInit {
     }
 
     private getBaseBarcodeValue(): string {
-        if (!this.part) {
+        const d = this.data;
+        if (!d) {
             return '';
         }
 
         switch (this.selectedValueSource) {
+            case 'barcode':
+                return d.barcode || d.sku;
             case 'partNumber':
-                return this.part.partNumber || this.part.sku;
+                return d.partNumber || d.sku;
             case 'sku-part':
-                return `${this.part.sku}-${this.part.partNumber}`;
+                return d.partNumber ? `${d.sku}-${d.partNumber}` : d.sku;
             case 'custom':
-                return this.customValue?.trim() || this.part.sku;
+                return this.customValue?.trim() || d.sku;
             case 'sku':
             default:
-                return this.part.sku;
+                return d.sku;
         }
     }
 
@@ -322,7 +392,12 @@ export class BarcodeDialogComponent implements OnInit {
         this.widthMm = preset.widthMm;
         this.heightMm = preset.heightMm;
 
-        const defaults = DEFAULT_FIELDS_BY_SIZE[size];
+        // The combo (retail) layout uses a slim, fixed field set so the company
+        // header + fields + barcode fit the label; the classic layout keys off
+        // the size preset. Extra fields can still be toggled on manually.
+        const defaults = this.selectedLayout === 'combo'
+            ? ['name', 'sku', 'batchNumber', 'mfgDate', 'expiryDate', 'sellingPrice']
+            : DEFAULT_FIELDS_BY_SIZE[size];
         this.labelFields.forEach(f => {
             // Never show a field that has no value, even if the size would include it.
             f.visible = defaults.includes(f.key) && !!f.value;
@@ -355,18 +430,43 @@ export class BarcodeDialogComponent implements OnInit {
         return this.barcodeValueSources;
     }
 
+    // ── Preview scaling ──
+    // The label renders at exact physical mm (so preview == print). To keep any
+    // size visible inside the fixed preview panel, scale it down to fit while
+    // preserving aspect ratio (never scaled above 1:1).
+    private readonly MM_TO_PX = 96 / 25.4;
+    private readonly PREVIEW_MAX_W = 330;
+    private readonly PREVIEW_MAX_H = 340;
+
+    /** Factor that fits the current label within the preview area (<= 1). */
+    get previewScale(): number {
+        const w = this.widthMm * this.MM_TO_PX;
+        const h = this.heightMm * this.MM_TO_PX;
+        if (!w || !h) return 1;
+        return Math.min(1, this.PREVIEW_MAX_W / w, this.PREVIEW_MAX_H / h);
+    }
+
+    /** Outer box size (px) after scaling — keeps layout flow correct. */
+    get previewBox(): { w: number; h: number } {
+        const s = this.previewScale;
+        return {
+            w: this.widthMm * this.MM_TO_PX * s,
+            h: this.heightMm * this.MM_TO_PX * s,
+        };
+    }
+
     /**
      * Download barcode as PNG
      */
     async downloadBarcode(): Promise<void> {
-        if (!this.part) {
+        if (!this.data) {
             return;
         }
 
         this.isDownloading = true;
 
         try {
-            const filename = `barcode-${this.part.sku}-${Date.now()}`;
+            const filename = `barcode-${this.data.sku}-${Date.now()}`;
 
             if (this.selectedBarcodeType === 'qrcode') {
                 const dataUrl = await QRCode.toDataURL(this.barcodeValue, { margin: 1, width: 512 });
@@ -413,12 +513,12 @@ export class BarcodeDialogComponent implements OnInit {
      * Download barcode as SVG
      */
     downloadBarcodeSVG(): void {
-        if (!this.part) {
+        if (!this.data) {
             return;
         }
 
         try {
-            const filename = `barcode-${this.part.sku}-${Date.now()}`;
+            const filename = `barcode-${this.data.sku}-${Date.now()}`;
             const blob = new Blob([this.barcodeSvg], { type: 'image/svg+xml' });
             const url = window.URL.createObjectURL(blob);
             this.triggerDownload(url, `${filename}.svg`);
@@ -443,7 +543,7 @@ export class BarcodeDialogComponent implements OnInit {
      * Print labels (single or bulk) — reuses the exact preview markup.
      */
     printBarcode(): void {
-        if (!this.part) {
+        if (!this.data) {
             return;
         }
 
@@ -453,28 +553,12 @@ export class BarcodeDialogComponent implements OnInit {
                 throw new Error('Could not open print window');
             }
 
-            const labelHtml = buildLabelMarkup({
-                sizeKey: this.selectedSize,
-                widthMm: this.widthMm,
-                heightMm: this.heightMm,
-                isQr: this.selectedBarcodeType === 'qrcode',
-                barcodeSvg: this.barcodeSvg,
-                barcodeValue: this.barcodeValue,
-                companyName: this.companyName,
-                category: this.getFieldValue('categoryName'),
-                brand: this.getFieldValue('brandName'),
-                name: this.getFieldValue('name'),
-                sku: this.getFieldValue('sku'),
-                partNumber: this.getFieldValue('partNumber'),
-                oemNumber: this.getFieldValue('oemNumber'),
-                unit: this.getFieldValue('unitCode'),
-                price: this.getFieldValue('sellingPrice'),
-            });
+            const labelHtml = buildLabelMarkup(this.labelOptions());
 
             const htmlContent = `<!DOCTYPE html>
 <html>
 <head>
-    <title>${this.escapeHtml(this.part.name)} — Labels</title>
+    <title>${this.escapeHtml(this.data.name)} — Labels</title>
     <style>
         @page { size: ${this.widthMm}mm ${this.heightMm}mm; margin: 0; }
         * { margin: 0; padding: 0; box-sizing: border-box; }

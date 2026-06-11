@@ -159,6 +159,17 @@
   align-items: center;
 }
 
+/* Scaled-to-fit wrapper: the box takes the scaled size (keeps layout/centring
+   correct) while the inner element renders the label at true mm then scales. */
+.label-scale-box {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.label-scale-inner {
+  transform-origin: top left;
+}
+
 .label-preview-stage .apl-label {
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
 }

@@ -93,6 +93,7 @@
           <th style="width: 7%">Warranty</th>
           <th style="width: 7%">Status</th>
           <th style="width: 7%">Expiry</th>
+          <th style="width: 6%" class="text-center">Label</th>
         </tr>
       </ng-template>
 
@@ -186,13 +187,20 @@
             </p-tag>
             <span class="text-gray-500" *ngIf="!lot.expiryDate">N/A</span>
           </td>
+          <td class="text-center">
+            <button pButton type="button" icon="pi pi-print"
+              class="p-button-text p-button-sm p-button-rounded"
+              (click)="printLabel(lot)"
+              pTooltip="Print / reprint label" tooltipPosition="left">
+            </button>
+          </td>
         </tr>
       </ng-template>
 
       <!-- Empty Message -->
       <ng-template pTemplate="emptymessage">
         <tr>
-          <td colspan="11" class="text-center py-4">
+          <td colspan="12" class="text-center py-4">
             <i class="pi pi-inbox mr-2"></i>
             No stock lots found
           </td>

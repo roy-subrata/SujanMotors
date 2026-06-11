@@ -9,6 +9,15 @@
 
 export type LabelSizeKey = 'large' | 'standard' | 'compact' | 'tiny' | 'custom';
 
+/**
+ * Label visual style.
+ * - `classic`: the original auto-parts label (single barcode, id rows).
+ * - `combo`:   retail/product style matching docs/barcode.png — a left field
+ *              column + QR (top-right) + a full-width linear barcode at the
+ *              bottom. Used for receiving (GRN) and stock-lot reprints.
+ */
+export type LabelLayout = 'classic' | 'combo';
+
 /** Physical label-stock presets (thermal roll), width x height in millimetres. */
 export const LABEL_SIZE_PRESETS: Record<Exclude<LabelSizeKey, 'custom'>, { widthMm: number; heightMm: number }> = {
     large: { widthMm: 100, heightMm: 50 },
@@ -27,6 +36,8 @@ export const DEFAULT_FIELDS_BY_SIZE: Record<Exclude<LabelSizeKey, 'custom'>, str
 
 export interface LabelMarkupOptions {
     sizeKey: LabelSizeKey;
+    /** Visual style. Defaults to `classic` when omitted. */
+    layout?: LabelLayout;
     widthMm: number;
     heightMm: number;
     isQr: boolean;
@@ -34,6 +45,10 @@ export interface LabelMarkupOptions {
     barcodeSvg: string;
     /** Human-readable value printed under a linear barcode. */
     barcodeValue: string;
+    /** Inline QR SVG for the `combo` layout (rendered alongside the linear barcode). */
+    qrSvg?: string;
+    /** Caption shown under the QR in the `combo` layout. */
+    qrCaption?: string;
     companyName: string;
     category: string;
     brand: string;
@@ -43,6 +58,12 @@ export interface LabelMarkupOptions {
     oemNumber: string;
     unit: string;
     price: string;
+    // ── Lot / batch fields (combo layout) ──
+    batchNumber?: string;
+    /** Pre-formatted manufacture/production date string. */
+    mfgDate?: string;
+    /** Pre-formatted expiry date string. */
+    expiryDate?: string;
 }
 
 function esc(value: string): string {
@@ -64,6 +85,9 @@ function idRow(label: string, value: string): string {
  * element sized to exact mm; styling comes from {@link LABEL_CSS}.
  */
 export function buildLabelMarkup(o: LabelMarkupOptions): string {
+    if (o.layout === 'combo') {
+        return buildComboMarkup(o);
+    }
     const headerRight = [o.brand, o.category].filter(Boolean).map(esc).join(' &middot; ');
     const header = (o.companyName || headerRight)
         ? `<div class="apl-header">
@@ -104,6 +128,50 @@ export function buildLabelMarkup(o: LabelMarkupOptions): string {
         ${nameRow}
         ${main}
         ${footer}
+    </div>`;
+}
+
+/** A colon-aligned `Key : Value` row for the combo layout. Empty values skipped. */
+function comboRow(label: string, value: string): string {
+    if (!value) return '';
+    return `<div class="apl-c-row"><span class="apl-c-key">${esc(label)}</span><span class="apl-c-sep">:</span><span class="apl-c-val">${esc(value)}</span></div>`;
+}
+
+/**
+ * Build the `combo` (retail/product) label: a company-name header, a
+ * colon-aligned field column (incl. batch/mfg/expiry), and a full-width linear
+ * barcode with its digits across the bottom.
+ */
+function buildComboMarkup(o: LabelMarkupOptions): string {
+    const company = o.companyName
+        ? `<div class="apl-c-company">${esc(o.companyName)}</div>`
+        : '';
+
+    const fields = [
+        comboRow('Name', o.name),
+        comboRow('Brand', o.brand),
+        comboRow('SKU', o.sku),
+        comboRow('Part#', o.partNumber),
+        comboRow('Unit', o.unit),
+        comboRow('Batch', o.batchNumber ?? ''),
+        comboRow('Mfg', o.mfgDate ?? ''),
+        comboRow('Expiry', o.expiryDate ?? ''),
+        comboRow('M.R.P.', o.price),
+    ].join('');
+
+    const barcodeBlock = o.barcodeSvg
+        ? `<div class="apl-c-barcode">
+             ${o.barcodeSvg}
+             ${o.barcodeValue ? `<div class="apl-barcode-text">${esc(o.barcodeValue)}</div>` : ''}
+           </div>`
+        : '';
+
+    return `<div class="apl-label apl-combo apl-${o.sizeKey}" style="width:${o.widthMm}mm;height:${o.heightMm}mm">
+        ${company}
+        <div class="apl-c-top">
+            <div class="apl-c-fields">${fields}</div>
+        </div>
+        ${barcodeBlock}
     </div>`;
 }
 
@@ -252,4 +320,86 @@ export const LABEL_CSS = `
 .apl-custom .apl-company { font-size: 8pt; }
 .apl-custom .apl-name { font-size: 9pt; }
 .apl-custom .apl-price { font-size: 10pt; }
+
+/* ── Combo (retail/product) layout — company header + fields + barcode ── */
+.apl-combo { padding: 1.2mm 1.6mm; gap: 0.8mm; line-height: 1.05; justify-content: center; }
+.apl-combo .apl-c-company {
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.2mm;
+    text-align: center;
+    border-bottom: 0.3mm solid #000;
+    padding-bottom: 0.4mm;
+    flex-shrink: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.apl-combo .apl-c-top {
+    display: flex;
+    align-items: flex-start;
+    gap: 2mm;
+    flex: 0 1 auto;     /* size to content (no growth → no gap); shrink + clip if overfull */
+    min-height: 0;
+    overflow: hidden;
+}
+.apl-combo .apl-c-fields {
+    display: grid;
+    grid-template-columns: auto auto 1fr;
+    align-content: start;
+    column-gap: 0.6mm;
+    row-gap: 0.3mm;
+    min-width: 0;
+    flex: 1;
+}
+.apl-combo .apl-c-row { display: contents; }
+.apl-combo .apl-c-key { font-weight: 700; white-space: nowrap; }
+.apl-combo .apl-c-sep { font-weight: 700; }
+.apl-combo .apl-c-val {
+    font-weight: 500;
+    padding-left: 1mm;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+}
+.apl-combo .apl-c-barcode {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    flex-shrink: 0;
+    margin-top: 0.4mm;
+}
+.apl-combo .apl-c-barcode svg { display: block; width: 100%; height: auto; }
+.apl-combo .apl-barcode-text {
+    font-family: 'Courier New', monospace;
+    letter-spacing: 0.8mm;
+    text-align: center;
+    margin-top: 0.3mm;
+    width: 100%;
+}
+
+/* Combo typography per stock size (kept small so content fits the stock) */
+.apl-combo.apl-large { font-size: 8.5pt; }
+.apl-combo.apl-large .apl-c-company { font-size: 11pt; }
+.apl-combo.apl-large .apl-barcode-text { font-size: 9pt; }
+.apl-combo.apl-large .apl-c-barcode svg { max-height: 16mm; }
+.apl-combo.apl-standard { font-size: 6pt; }
+.apl-combo.apl-standard .apl-c-company { font-size: 7.5pt; }
+.apl-combo.apl-standard .apl-barcode-text { font-size: 6pt; letter-spacing: 0.4mm; }
+.apl-combo.apl-standard .apl-c-barcode svg { max-height: 12mm; }
+.apl-combo.apl-compact { font-size: 4.5pt; padding: 0.8mm 1mm; }
+.apl-combo.apl-compact .apl-c-company { font-size: 5.5pt; }
+.apl-combo.apl-compact .apl-barcode-text { font-size: 4.5pt; letter-spacing: 0.3mm; }
+.apl-combo.apl-compact .apl-c-barcode svg { max-height: 8mm; }
+.apl-combo.apl-tiny { font-size: 4pt; padding: 0.6mm 0.8mm; }
+.apl-combo.apl-tiny .apl-c-company,
+.apl-combo.apl-tiny .apl-c-top { display: none; }
+.apl-combo.apl-tiny .apl-c-barcode svg { max-height: 9mm; }
+.apl-combo.apl-tiny .apl-barcode-text { font-size: 4pt; letter-spacing: 0.2mm; }
+.apl-combo.apl-custom { font-size: 7pt; }
+.apl-combo.apl-custom .apl-c-company { font-size: 9pt; }
+.apl-combo.apl-custom .apl-barcode-text { font-size: 7pt; }
+.apl-combo.apl-custom .apl-c-barcode svg { max-height: 14mm; }
 `;

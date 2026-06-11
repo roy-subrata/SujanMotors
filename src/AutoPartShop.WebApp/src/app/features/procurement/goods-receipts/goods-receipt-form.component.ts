@@ -4,6 +4,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { FormArray, FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ConfirmationService, MessageService } from 'primeng/api';
+import { DialogService } from 'primeng/dynamicdialog';
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
@@ -22,10 +23,13 @@ import { LazyAutocompleteComponent, LazyRequest, LazyResponse } from '../../../s
 import { CurrencyService } from '../../../shared/services/currency.service';
 import { PriceCodeService } from '../../../shared/services/price-code.service';
 import {
+  GoodsReceiptLineResponse,
   GoodsReceiptResponse,
   GoodsReceiptService
 } from '../services/goods-receipt.service';
 import { PurchaseOrderResponse, PurchaseOrderService } from '../services/purchase-order.service';
+import { BarcodeDialogComponent } from '../../inventory/parts/barcode-dialog/barcode-dialog.component';
+import { labelFromGrnLine } from '../../inventory/parts/barcode-dialog/label-data';
 
 type WorkflowStatus = 'PENDING' | 'VERIFIED' | 'ACCEPTED';
 
@@ -54,7 +58,7 @@ interface SubmitValidationResult {
     TextareaModule,
     CheckboxModule
   ],
-  providers: [MessageService, ConfirmationService],
+  providers: [MessageService, ConfirmationService, DialogService],
   templateUrl: './goods-receipt-form.component.html',
   styleUrls: ['./goods-receipt-form.component.css']
 })
@@ -67,6 +71,7 @@ export class GoodsReceiptFormComponent implements OnInit {
   readonly priceCodeService = inject(PriceCodeService);
   private readonly messageService = inject(MessageService);
   private readonly confirmationService = inject(ConfirmationService);
+  private readonly dialogService = inject(DialogService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
@@ -567,6 +572,29 @@ export class GoodsReceiptFormComponent implements OnInit {
   /** True when the receipt has damaged/wrong items that could be returned to the supplier. */
   get hasReturnableItems(): boolean {
     return !!this.currentGRN && this.currentGRN.lines?.some((l) => (l.damagedQuantity ?? 0) > 0 || (l.wrongQuantity ?? 0) > 0);
+  }
+
+  /** Lines with at least one accepted ("good") unit — the ones worth labelling. */
+  get printableLines(): GoodsReceiptLineResponse[] {
+    return (this.currentGRN?.lines ?? []).filter(
+      (l) => (l.acceptedQuantity ?? l.receivedQuantity ?? 0) > 0
+    );
+  }
+
+  /**
+   * Open the label dialog for one received line. Quantity defaults to the
+   * accepted ("good") quantity (auto-qty) and batch/expiry flow into the label.
+   */
+  printLineLabel(line: GoodsReceiptLineResponse): void {
+    this.dialogService.open(BarcodeDialogComponent, {
+      data: { label: labelFromGrnLine(line, this.currentGRN?.receivedDate), layout: 'combo' },
+      header: 'Print Labels',
+      width: '100vw',
+      height: '100vh',
+      styleClass: 'fullscreen-dialog',
+      modal: true,
+      closable: true
+    });
   }
 
   acceptGoodsReceipt(createReturn = false): void {

@@ -976,6 +976,25 @@
             </button>
           </div>
         </div>
+
+        <!-- Barcode / Label printing — available once stock has been accepted -->
+        <div class="workflow-actions" *ngIf="mode === 'view' && currentGRN?.status === 'ACCEPTED' && printableLines.length > 0">
+          <h4 class="workflow-actions-title"><i class="pi pi-print"></i> Print Labels</h4>
+          <p class="text-secondary" style="margin: 0 0 0.5rem;">Print barcode labels for the accepted items. Quantity defaults to the received quantity.</p>
+          <div class="grn-label-list">
+            <div class="grn-label-row" *ngFor="let line of printableLines">
+              <div class="grn-label-info">
+                <span class="grn-label-name">{{ line.displayName || line.partName }}</span>
+                <span class="grn-label-sub">{{ line.variantSKU || line.partSKU }} · {{ line.acceptedQuantity }} pcs</span>
+              </div>
+              <button pButton type="button" label="Print Labels" icon="pi pi-print"
+                class="p-button-sm p-button-outlined"
+                (click)="printLineLabel(line)"
+                pTooltip="Open the label dialog for this item" tooltipPosition="left">
+              </button>
+            </div>
+          </div>
+        </div>
       </form>
     </ng-template>
   </p-card>

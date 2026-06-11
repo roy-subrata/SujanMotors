@@ -10,7 +10,10 @@ import { TagModule } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { MessageService } from 'primeng/api';
+import { DialogService } from 'primeng/dynamicdialog';
 import { StockLotService, StockLotResponse } from '../services/stock-lot.service';
+import { BarcodeDialogComponent } from '../parts/barcode-dialog/barcode-dialog.component';
+import { labelFromStockLot } from '../parts/barcode-dialog/label-data';
 import { PartService, PartResponse } from '../services/part.service';
 import { WarehouseService, WarehouseResponse } from '../services/warehouse.service';
 import { CurrencyService } from '../../../shared/services/currency.service';
@@ -34,7 +37,7 @@ import { map } from 'rxjs';
     TooltipModule,
     LazyAutocompleteComponent
   ],
-  providers: [MessageService],
+  providers: [MessageService, DialogService],
   templateUrl: './stock-lots-by-warehouse.component.html',
   styleUrls: ['./stock-lots-by-warehouse.component.css']
 })
@@ -43,6 +46,7 @@ export class StockLotsByWarehouseComponent implements OnInit {
   private readonly partService = inject(PartService);
   private readonly warehouseService = inject(WarehouseService);
   private readonly messageService = inject(MessageService);
+  private readonly dialogService = inject(DialogService);
   private readonly currencyService = inject(CurrencyService);
   readonly priceCodeService = inject(PriceCodeService);
 
@@ -171,6 +175,19 @@ export class StockLotsByWarehouseComponent implements OnInit {
     const totalQuantity = this.stockLots.reduce((sum, lot) => sum + (lot.quantityAvailableInBaseUnit || 0), 0);
     if (totalQuantity === 0) return 0;
     return this.getTotalAvailableCost() / totalQuantity;
+  }
+
+  /** Open the label dialog to reprint barcodes for a stock lot (batch/dates carry over). */
+  printLabel(lot: StockLotResponse): void {
+    this.dialogService.open(BarcodeDialogComponent, {
+      data: { label: labelFromStockLot(lot), layout: 'combo' },
+      header: 'Print Label',
+      width: '100vw',
+      height: '100vh',
+      styleClass: 'fullscreen-dialog',
+      modal: true,
+      closable: true
+    });
   }
 
   getExpiryDisplay(lot: StockLotResponse): string {

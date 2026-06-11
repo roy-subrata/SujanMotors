@@ -10,6 +10,13 @@ export interface GoodsReceiptLineResponse {
   partId: string;
   partName: string;
   partSKU: string;
+  barcode?: string | null;
+  // Variant identity (populated when the received line is a product variant)
+  variantId?: string | null;
+  variantName?: string | null;
+  variantSKU?: string | null;
+  variantBarcode?: string | null;
+  displayName?: string | null;
   orderedQuantity: number;
   receivedQuantity: number;
   damagedQuantity: number;
