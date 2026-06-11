@@ -108,18 +108,51 @@ public class FinancialSummaryService : IFinancialSummaryService
         }
         var dailyExpensesCount = dailyExpenses.Count;
 
-        // Get outstanding balances
-        var customersWithDue = await _dbContext.Customers
-            .Where(c => c.CurrentBalance > 0 && !c.Isdeleted)
-            .ToListAsync(cancellationToken);
+        // Get outstanding balances — derived live from transactions. The stored CurrentBalance
+        // column on Customer/Supplier defaults to 0 and is never updated, so it cannot be trusted.
+        // Customer due mirrors OutstandingAmount = GrandTotal - PaidAmount across open sales orders.
+        var customerDuesPositive = (await _dbContext.SalesOrders
+            .Where(o => o.Status != "CANCELLED" && o.Status != "RETURNED" && !o.Isdeleted)
+            .GroupBy(o => o.CustomerId)
+            .Select(g => g.Sum(o => o.TotalAmount + o.TaxAmount - o.PaidAmount))
+            .ToListAsync(cancellationToken))
+            .Where(d => d > 0)
+            .ToList();
 
-        var suppliersWithDue = await _dbContext.Suppliers
-            .Where(s => s.CurrentBalance < 0 && !s.Isdeleted)
-            .ToListAsync(cancellationToken);
+        // Supplier balance mirrors SupplierLedgerService.CalculateCurrentBalanceAsync:
+        // purchases - payments - refunds (positive => we owe the supplier).
+        var supplierPurchaseTotals = await _dbContext.PurchaseOrders
+            .Where(x => x.Status != "DRAFT" && x.Status != "SUBMITTED" && x.Status != "CANCELLED" && !x.Isdeleted)
+            .GroupBy(x => x.SupplierId)
+            .Select(g => new { SupplierId = g.Key, Total = g.Sum(x => x.TotalAmount) })
+            .ToDictionaryAsync(x => x.SupplierId, x => x.Total, cancellationToken);
+
+        var supplierPaymentTotals = await _dbContext.SupplierPayments
+            .Where(x => x.Status == "COMPLETED" && x.PaymentMethod != "REFUND" &&
+                        (x.PaymentType == AutoPartShop.Domain.Entities.PaymentType.ADVANCE || x.SourceAdvancePaymentId == null) &&
+                        !x.Isdeleted)
+            .GroupBy(x => x.SupplierId)
+            .Select(g => new { SupplierId = g.Key, Total = g.Sum(x => x.Amount) })
+            .ToDictionaryAsync(x => x.SupplierId, x => x.Total, cancellationToken);
+
+        var supplierRefundTotals = await _dbContext.PurchaseReturns
+            .Where(x => x.SettlementStatus == "SETTLED" && !x.Isdeleted)
+            .GroupBy(x => x.SupplierId)
+            .Select(g => new { SupplierId = g.Key, Total = g.Sum(x => x.SettledAmount) })
+            .ToDictionaryAsync(x => x.SupplierId, x => x.Total, cancellationToken);
+
+        var supplierBalancesPositive = supplierPurchaseTotals.Keys
+            .Union(supplierPaymentTotals.Keys)
+            .Union(supplierRefundTotals.Keys)
+            .Select(id => supplierPurchaseTotals.GetValueOrDefault(id)
+                          - supplierPaymentTotals.GetValueOrDefault(id)
+                          - supplierRefundTotals.GetValueOrDefault(id))
+            .Where(b => b > 0)
+            .ToList();
 
         // Calculate overdue (simplified - you may want to add due date logic)
-        var customerOverdue = customersWithDue.Sum(c => c.CurrentBalance);
-        var supplierOverdue = suppliersWithDue.Sum(s => Math.Abs(s.CurrentBalance));
+        var customerOverdue = customerDuesPositive.Sum();
+        var supplierOverdue = supplierBalancesPositive.Sum();
 
         // Get inventory value
         var inventoryValue = await _dbContext.StockLevels
@@ -178,16 +211,16 @@ public class FinancialSummaryService : IFinancialSummaryService
             ProfitMargin = profitMargin,
 
             // Outstanding
-            CustomerDueAmount = customersWithDue.Sum(c => c.CurrentBalance),
-            CustomerDueCount = customersWithDue.Count(),
-            SupplierDueAmount = Math.Abs(suppliersWithDue.Sum(s => s.CurrentBalance)),
-            SupplierDueCount = suppliersWithDue.Count(),
+            CustomerDueAmount = customerDuesPositive.Sum(),
+            CustomerDueCount = customerDuesPositive.Count,
+            SupplierDueAmount = supplierBalancesPositive.Sum(),
+            SupplierDueCount = supplierBalancesPositive.Count,
 
             // Overdue
             CustomerOverdueAmount = customerOverdue,
-            CustomerOverdueCount = customersWithDue.Count(c => c.CurrentBalance > 0),
+            CustomerOverdueCount = customerDuesPositive.Count,
             SupplierOverdueAmount = supplierOverdue,
-            SupplierOverdueCount = suppliersWithDue.Count(),
+            SupplierOverdueCount = supplierBalancesPositive.Count,
 
             // Inventory
             InventoryValue = inventoryValue,

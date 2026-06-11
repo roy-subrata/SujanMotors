@@ -63,7 +63,7 @@ public class CustomerReadRepository(AutoPartDbContext _dbContext) : ICustomerRea
                  Status = customer.Status,
                  CurrentBalance = customer.CurrentBalance,
                  AdvanceAmount = customer.AdvanceAmount,  // Available advance credit (sum of RemainingAmount)
-                 DueAmount = customer.CurrentBalance,      // Outstanding balance (due)
+                 DueAmount = 0,                            // Computed below from open sales orders
                  CanPlaceOrder = customer.CanPlaceOrder(),
                  PrimaryContactPerson = customer.PrimaryContactPerson,
                  LastPurchaseDate = customer.LastPurchaseDate,
@@ -73,6 +73,30 @@ public class CustomerReadRepository(AutoPartDbContext _dbContext) : ICustomerRea
 
              })
             .ToListAsync(cancellationToken);
+
+        // Due is derived live from open sales orders, NOT from the stored Customer.CurrentBalance
+        // column (which defaults to 0 and is never updated). Mirrors the established
+        // OutstandingAmount = GrandTotal - PaidAmount pattern (GrandTotal = TotalAmount + TaxAmount).
+        var ids = items.Select(i => i.Id).ToList();
+        if (ids.Count > 0)
+        {
+            var dues = await _dbContext.SalesOrders
+                .Where(o => ids.Contains(o.CustomerId) &&
+                            o.Status != "CANCELLED" &&
+                            o.Status != "RETURNED" &&
+                            !o.Isdeleted)
+                .GroupBy(o => o.CustomerId)
+                .Select(g => new { CustomerId = g.Key, Total = g.Sum(o => o.TotalAmount + o.TaxAmount - o.PaidAmount) })
+                .ToDictionaryAsync(x => x.CustomerId, x => x.Total, cancellationToken);
+
+            foreach (var item in items)
+            {
+                var due = dues.GetValueOrDefault(item.Id);
+                if (due < 0) due = 0;
+                item.DueAmount = due;
+                item.CurrentBalance = due;
+            }
+        }
 
         return (items, totalCount);
     }
