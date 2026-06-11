@@ -28,19 +28,9 @@ public interface ICategoryRepository : IBaseRepository<Category>
     Task<IEnumerable<Category>> GetSubcategoriesAsync(Guid parentCategoryId, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Check if category code already exists
-    /// </summary>
-    Task<bool> CodeExistsAsync(string code, Guid? excludeId = null, CancellationToken cancellationToken = default);
-
-    /// <summary>
     /// Check if category name already exists
     /// </summary>
     Task<bool> NameExistsAsync(string name, Guid? excludeId = null, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Get category by code
-    /// </summary>
-    Task<Category?> GetByCategoryCodeAsync(string code, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Get category by name
@@ -48,13 +38,13 @@ public interface ICategoryRepository : IBaseRepository<Category>
     Task<Category?> GetByCategoryNameAsync(string name, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Search categories by name or code
+    /// Search categories by name
     /// </summary>
     Task<IEnumerable<Category>> SearchAsync(string searchTerm, CancellationToken cancellationToken = default);
 
 
     /// <summary>
-    /// Search categories by name or code with pagination
+    /// Search categories by name with pagination
     /// </summary>
     Task<(IEnumerable<Category> Items, int TotalCount)> SearchPagedAsync(string searchTerm, int pageNumber, int pageSize, CancellationToken cancellationToken = default);
 

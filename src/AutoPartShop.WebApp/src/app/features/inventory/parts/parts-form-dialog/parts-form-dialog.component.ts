@@ -289,7 +289,7 @@ export class PartsFormDialogComponent implements OnInit {
      */
     onCategoryEvent(event: any): void {
         const query = event.query || '';
-        this.filteredCategories = this.categories.filter((category) => category.name.toLowerCase().includes(query.toLowerCase()) || category.code.toLowerCase().includes(query.toLowerCase()));
+        this.filteredCategories = this.categories.filter((category) => category.name.toLowerCase().includes(query.toLowerCase()));
     }
 
     /**
@@ -297,7 +297,7 @@ export class PartsFormDialogComponent implements OnInit {
      */
     onUnitEvent(event: any): void {
         const query = event.query || '';
-        this.filteredUnits = this.units.filter((unit) => unit.name.toLowerCase().includes(query.toLowerCase()) || unit.code.toLowerCase().includes(query.toLowerCase()));
+        this.filteredUnits = this.units.filter((unit) => unit.name.toLowerCase().includes(query.toLowerCase()) || unit.symbol.toLowerCase().includes(query.toLowerCase()));
     }
 
     /**
@@ -337,7 +337,7 @@ export class PartsFormDialogComponent implements OnInit {
      */
     onBaseUnitEvent(event: any): void {
         const query = event.query || '';
-        this.filteredBaseUnits = this.units.filter((unit) => unit.name.toLowerCase().includes(query.toLowerCase()) || unit.code.toLowerCase().includes(query.toLowerCase()));
+        this.filteredBaseUnits = this.units.filter((unit) => unit.name.toLowerCase().includes(query.toLowerCase()) || unit.symbol.toLowerCase().includes(query.toLowerCase()));
     }
 
     /**
@@ -366,7 +366,7 @@ export class PartsFormDialogComponent implements OnInit {
      */
     onBrandEvent(event: any): void {
         const query = event.query || '';
-        this.filteredBrands = this.brands.filter((brand) => brand.name.toLowerCase().includes(query.toLowerCase()) || brand.code.toLowerCase().includes(query.toLowerCase()));
+        this.filteredBrands = this.brands.filter((brand) => brand.name.toLowerCase().includes(query.toLowerCase()));
     }
 
     /**
@@ -390,7 +390,7 @@ export class PartsFormDialogComponent implements OnInit {
      */
     onUpdateCategoryEvent(event: any): void {
         const query = event.query || '';
-        this.filteredCategories = this.categories.filter((category) => category.name.toLowerCase().includes(query.toLowerCase()) || category.code.toLowerCase().includes(query.toLowerCase()));
+        this.filteredCategories = this.categories.filter((category) => category.name.toLowerCase().includes(query.toLowerCase()));
     }
 
     /**
@@ -398,7 +398,7 @@ export class PartsFormDialogComponent implements OnInit {
      */
     onUpdateUnitEvent(event: any): void {
         const query = event.query || '';
-        this.filteredUnits = this.units.filter((unit) => unit.name.toLowerCase().includes(query.toLowerCase()) || unit.code.toLowerCase().includes(query.toLowerCase()));
+        this.filteredUnits = this.units.filter((unit) => unit.name.toLowerCase().includes(query.toLowerCase()) || unit.symbol.toLowerCase().includes(query.toLowerCase()));
     }
 
     /**
@@ -438,7 +438,7 @@ export class PartsFormDialogComponent implements OnInit {
      */
     onUpdateBaseUnitEvent(event: any): void {
         const query = event.query || '';
-        this.filteredBaseUnits = this.units.filter((unit) => unit.name.toLowerCase().includes(query.toLowerCase()) || unit.code.toLowerCase().includes(query.toLowerCase()));
+        this.filteredBaseUnits = this.units.filter((unit) => unit.name.toLowerCase().includes(query.toLowerCase()) || unit.symbol.toLowerCase().includes(query.toLowerCase()));
     }
 
     /**
@@ -467,7 +467,7 @@ export class PartsFormDialogComponent implements OnInit {
      */
     onUpdateBrandEvent(event: any): void {
         const query = event.query || '';
-        this.filteredBrands = this.brands.filter((brand) => brand.name.toLowerCase().includes(query.toLowerCase()) || brand.code.toLowerCase().includes(query.toLowerCase()));
+        this.filteredBrands = this.brands.filter((brand) => brand.name.toLowerCase().includes(query.toLowerCase()));
     }
 
     /**

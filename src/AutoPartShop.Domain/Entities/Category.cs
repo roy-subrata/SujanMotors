@@ -21,11 +21,6 @@ public class Category : AuditableEntity
     public string Description { get; private set; } = string.Empty;
 
     /// <summary>
-    /// Category code for reference (e.g., ENG-001, ELE-001)
-    /// </summary>
-    public string Code { get; private set; } = string.Empty;
-
-    /// <summary>
     /// Parent category ID for nested categories (nullable for top-level categories)
     /// </summary>
     public Guid? ParentCategoryId { get; private set; }
@@ -73,7 +68,6 @@ public class Category : AuditableEntity
     /// </summary>
     /// <param name="name">Category name</param>
     /// <param name="description">Category description</param>
-    /// <param name="code">Category code (unique identifier)</param>
     /// <param name="displayOrder">Display order in lists</param>
     /// <param name="parentCategoryId">Parent category ID (for subcategories)</param>
     /// <param name="breadcrumbPath">Breadcrumb path (auto-populated if parent is provided)</param>
@@ -81,7 +75,6 @@ public class Category : AuditableEntity
     public static Category Create(
         string name,
         string description,
-        string code,
         int displayOrder = 0,
         Guid? parentCategoryId = null,
         string? breadcrumbPath = null,
@@ -92,19 +85,9 @@ public class Category : AuditableEntity
             throw new ArgumentException("Category name cannot be empty", nameof(name));
         }
 
-        if (string.IsNullOrWhiteSpace(code))
-        {
-            throw new ArgumentException("Category code cannot be empty", nameof(code));
-        }
-
         if (name.Length > 100)
         {
             throw new ArgumentException("Category name cannot exceed 100 characters", nameof(name));
-        }
-
-        if (code.Length > 20)
-        {
-            throw new ArgumentException("Category code cannot exceed 20 characters", nameof(code));
         }
 
         if (displayOrder < 0)
@@ -121,7 +104,6 @@ public class Category : AuditableEntity
         {
             Name = name.Trim(),
             Description = description?.Trim() ?? string.Empty,
-            Code = code.Trim().ToUpperInvariant(),
             DisplayOrder = displayOrder,
             ParentCategoryId = parentCategoryId,
             BreadcrumbPath = breadcrumbPath?.Trim() ?? name.Trim(),

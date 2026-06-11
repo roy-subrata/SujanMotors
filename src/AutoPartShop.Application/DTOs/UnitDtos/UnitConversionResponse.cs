@@ -6,9 +6,9 @@ public class UnitConversionResponse
     public Guid FromUnitId { get; set; }
     public Guid ToUnitId { get; set; }
     public string FromUnitName { get; set; } = string.Empty;
-    public string FromUnitCode { get; set; } = string.Empty;
+    public string FromUnitCode { get; set; } = string.Empty;  // unit symbol (e.g. "kg") — kept as "Code" for API back-compat
     public string ToUnitName { get; set; } = string.Empty;
-    public string ToUnitCode { get; set; } = string.Empty;
+    public string ToUnitCode { get; set; } = string.Empty;    // unit symbol (e.g. "g")  — kept as "Code" for API back-compat
     public decimal ConversionFactor { get; set; }
     public string Description { get; set; } = string.Empty;
     public bool IsActive { get; set; }

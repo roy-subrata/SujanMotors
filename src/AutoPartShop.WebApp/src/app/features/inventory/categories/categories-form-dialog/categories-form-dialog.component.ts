@@ -10,7 +10,6 @@ import { InputNumberModule } from 'primeng/inputnumber';
 import { CategoryResponse, CategoryService, CreateCategoryRequest, UpdateCategoryRequest } from '../../services/category.service';
 import { MessageService } from 'primeng/api';
 import { ToastModule } from 'primeng/toast';
-import { CodeGenerationService } from '@/shared/services/CodeGenerationService';
 import { LazyAutocompleteComponent, LazyRequest, LazyResponse } from '@/shared/components/lazy-autocomplete/lazy-autocomplete.component';
 import { Observable } from 'rxjs';
 
@@ -40,9 +39,7 @@ export class CategoriesFormDialogComponent implements OnChanges {
     private readonly fb = inject(FormBuilder);
     private readonly categoryService = inject(CategoryService);
     private readonly messageService = inject(MessageService);
-    private readonly codeGenerationService = inject(CodeGenerationService);
 
-    generatingCode = false;
     isCreating = signal(false);
     isUpdating = signal(false);
 
@@ -51,7 +48,6 @@ export class CategoriesFormDialogComponent implements OnChanges {
     createForm = this.fb.group({
         name:             ['', [Validators.required, Validators.minLength(3), Validators.maxLength(100)]],
         description:      [''],
-        code:             [{ value: '', disabled: true }, [Validators.required, Validators.maxLength(20)]],
         displayOrder:     [0, [Validators.required, Validators.min(0)]],
         isActive:         [true],
         parentCategoryId: [null as string | null],
@@ -96,7 +92,6 @@ export class CategoriesFormDialogComponent implements OnChanges {
         return {
             id: null as any,
             name: 'None (Root Category)',
-            code: 'ROOT',
             description: 'Create as top-level category with no parent',
             parentCategoryId: null,
             displayOrder: 0,
@@ -143,24 +138,12 @@ export class CategoriesFormDialogComponent implements OnChanges {
                 parentCategory: this.selectedParentCategory
             });
         }
-        this.generateCategoryCode();
     }
 
     onCreateDialogHide(): void {
         this.displayCreateDialogChange.emit(false);
         this.createForm.reset({ displayOrder: 0, isActive: true, parentCategoryId: null, parentCategory: null });
         this.onParentCategoryCleared();
-    }
-
-    generateCategoryCode(): void {
-        this.generatingCode = true;
-        this.codeGenerationService.generateCategoryCode().subscribe({
-            next: (code) => { this.createForm.patchValue({ code }); this.generatingCode = false; },
-            error: () => {
-                this.messageService.add({ severity: 'warn', summary: 'Warning', detail: 'Could not auto-generate code. Please enter manually.' });
-                this.generatingCode = false;
-            }
-        });
     }
 
     // ── Update dialog hooks ───────────────────────────────────────────────────
@@ -185,7 +168,6 @@ export class CategoriesFormDialogComponent implements OnChanges {
 
         const request: CreateCategoryRequest = {
             name:             v.name!,
-            code:             v.code!,
             description:      v.description || null,
             displayOrder:     v.displayOrder ?? 0,
             parentCategoryId: this.selectedParentCategory?.id ?? null
@@ -250,7 +232,7 @@ export class CategoriesFormDialogComponent implements OnChanges {
     // ── Parent category autocomplete handlers ─────────────────────────────────
 
     onParentCategorySelect(category: CategoryResponse): void {
-        const isRoot = !category?.id || category.code === 'ROOT';
+        const isRoot = !category?.id;
         if (isRoot) {
             this.selectedParentCategory = null;
             this.createForm.patchValue({ parentCategory: null, parentCategoryId: null });

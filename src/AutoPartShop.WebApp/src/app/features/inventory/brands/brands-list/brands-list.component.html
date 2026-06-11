@@ -21,7 +21,6 @@
         <tr>
           <th class="col-logo">Logo</th>
           <th class="col-name">Name</th>
-          <th class="col-code">Code</th>
           <th class="col-country">Country</th>
           <th class="col-website">Website</th>
           <th class="col-order">Order</th>
@@ -53,11 +52,6 @@
                 {{ brand.description }}
               </span>
             </div>
-          </td>
-
-          <!-- Code -->
-          <td class="col-code">
-            <span class="code-badge">{{ brand.code }}</span>
           </td>
 
           <!-- Country -->
@@ -161,7 +155,7 @@
         <div class="card-logo-name">
           <img *ngIf="brand.logoUrl" [src]="brand.logoUrl" [alt]="brand.name" class="card-logo-img" />
           <div *ngIf="!brand.logoUrl" class="customer-avatar small">{{ (brand.name || 'B')[0].toUpperCase() }}</div>
-          <span class="card-so-number">{{ brand.code }}</span>
+          <span class="card-so-number">{{ brand.name }}</span>
         </div>
         <span class="status-pill" [attr.data-status]="brand.isActive ? 'active' : 'inactive'">
           {{ getStatusLabel(brand.isActive) }}

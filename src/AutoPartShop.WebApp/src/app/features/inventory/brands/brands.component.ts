@@ -147,7 +147,6 @@ export class BrandsComponent implements OnInit {
 
     this.brandService.updateBrand(brand.id, {
       name: brand.name,
-      code: brand.code,
       description: brand.description,
       logoUrl: brand.logoUrl,
       website: brand.website,

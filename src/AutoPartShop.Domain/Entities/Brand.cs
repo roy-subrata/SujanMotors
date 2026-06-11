@@ -11,11 +11,6 @@ public class Brand : AuditableEntity
     public string Name { get; private set; } = string.Empty;
 
     /// <summary>
-    /// Brand code for reference (e.g., BOSCH, DENSO)
-    /// </summary>
-    public string Code { get; private set; } = string.Empty;
-
-    /// <summary>
     /// Description of the brand
     /// </summary>
     public string Description { get; private set; } = string.Empty;
@@ -62,26 +57,19 @@ public class Brand : AuditableEntity
 
     private Brand() { }
 
-    public static Brand Create(string name, string code, string description = "", string country = "",
+    public static Brand Create(string name, string description = "", string country = "",
         string logoUrl = "", string website = "", string contactEmail = "", string contactPhone = "",
         int displayOrder = 0, bool isActive = true)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Brand name cannot be empty", nameof(name));
 
-        if (string.IsNullOrWhiteSpace(code))
-            throw new ArgumentException("Brand code cannot be empty", nameof(code));
-
         if (name.Length > 100)
             throw new ArgumentException("Brand name cannot exceed 100 characters", nameof(name));
-
-        if (code.Length > 20)
-            throw new ArgumentException("Brand code cannot exceed 20 characters", nameof(code));
 
         return new Brand
         {
             Name = name.Trim(),
-            Code = code.Trim().ToUpper(),
             Description = description?.Trim() ?? string.Empty,
             Country = country?.Trim() ?? string.Empty,
             LogoUrl = logoUrl?.Trim() ?? string.Empty,
@@ -93,18 +81,14 @@ public class Brand : AuditableEntity
         };
     }
 
-    public void Update(string name, string code, string description, string logoUrl, 
-        string website, string country, string contactEmail, string contactPhone, 
+    public void Update(string name, string description, string logoUrl,
+        string website, string country, string contactEmail, string contactPhone,
         int displayOrder, bool isActive)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Brand name cannot be empty", nameof(name));
 
-        if (string.IsNullOrWhiteSpace(code))
-            throw new ArgumentException("Brand code cannot be empty", nameof(code));
-
         Name = name.Trim();
-        Code = code.Trim().ToUpper();
         Description = description?.Trim() ?? string.Empty;
         LogoUrl = logoUrl?.Trim() ?? string.Empty;
         Website = website?.Trim() ?? string.Empty;

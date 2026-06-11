@@ -3,7 +3,7 @@ import { inject, Injectable } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { environment } from 'src/environments/environment';
 
-export type CodeType = 'unit' | 'category' | 'brand' | 'part' | 'warehouse' | 'invoice' | 'sales-order' | 'customer' | 'supplier' | 'purchase-order' | 'technician' | 'goods-receipt' | 'sales-return';
+export type CodeType = 'part' | 'warehouse' | 'invoice' | 'sales-order' | 'customer' | 'supplier' | 'purchase-order' | 'technician' | 'goods-receipt' | 'sales-return';
 
 @Injectable({
     providedIn: 'root'
@@ -21,9 +21,6 @@ export class CodeGenerationService {
         // Map old type names to new endpoint names for backward compatibility
         const typeMap: Record<string, string> = {
             'Part': 'part',
-            'Unit': 'unit',
-            'Category': 'category',
-            'Brand': 'brand',
             'Warehouse': 'warehouse',
             'Invoice': 'invoice',
             'SalesOrder': 'sales-order',
@@ -49,27 +46,6 @@ export class CodeGenerationService {
                 return String(response);
             })
         );
-    }
-
-    /**
-     * Generate unit code
-     */
-    generateUnitCode(): Observable<string> {
-        return this.getCode('unit');
-    }
-
-    /**
-     * Generate category code
-     */
-    generateCategoryCode(): Observable<string> {
-        return this.getCode('category');
-    }
-
-    /**
-     * Generate brand code
-     */
-    generateBrandCode(): Observable<string> {
-        return this.getCode('brand');
     }
 
     /**

@@ -23,19 +23,9 @@ public interface IUnitRepository : IBaseRepository<Unit>
     Task<(IEnumerable<Unit> Units, int TotalCount)> SearchPagedAsync(string searchTerm, int pageNumber, int pageSize, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Check if unit code already exists (excluding a specific unit ID for updates)
-    /// </summary>
-    Task<bool> CodeExistsAsync(string code, Guid? excludeUnitId = null, CancellationToken cancellationToken = default);
-
-    /// <summary>
     /// Check if unit name already exists (excluding a specific unit ID for updates)
     /// </summary>
     Task<bool> NameExistsAsync(string name, Guid? excludeUnitId = null, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Get unit by code
-    /// </summary>
-    Task<Unit?> GetByCodeAsync(string code, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Get unit by name

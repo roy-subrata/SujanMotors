@@ -386,25 +386,25 @@ export class PartFormComponent implements OnInit {
     onCategorySearch(event: any): void {
         const q = (event.query || '').toLowerCase();
         this.filteredCategories = this.categories.filter(c =>
-            c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q));
+            c.name.toLowerCase().includes(q));
     }
 
     onUnitSearch(event: any): void {
         const q = (event.query || '').toLowerCase();
         this.filteredUnits = this.units.filter(u =>
-            u.name.toLowerCase().includes(q) || u.code.toLowerCase().includes(q));
+            u.name.toLowerCase().includes(q) || u.symbol.toLowerCase().includes(q));
     }
 
     onBaseUnitSearch(event: any): void {
         const q = (event.query || '').toLowerCase();
         this.filteredBaseUnits = this.baseUnits.filter(u =>
-            u.name.toLowerCase().includes(q) || u.code.toLowerCase().includes(q));
+            u.name.toLowerCase().includes(q) || u.symbol.toLowerCase().includes(q));
     }
 
     onBrandSearch(event: any): void {
         const q = (event.query || '').toLowerCase();
         this.filteredBrands = this.brands.filter(b =>
-            b.name.toLowerCase().includes(q) || b.code.toLowerCase().includes(q));
+            b.name.toLowerCase().includes(q));
     }
 
     onVehicleSearch(event: any): void {

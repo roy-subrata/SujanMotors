@@ -6,7 +6,6 @@ import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageService } from 'primeng/api';
 import { UnitService, UnitResponse } from '../../services/unit.service';
-import { CodeGenerationService } from '@/shared/services/CodeGenerationService';
 
 @Component({
   selector: 'app-units-form-dialog',
@@ -28,12 +27,10 @@ export class UnitsFormDialogComponent implements OnChanges {
   private readonly unitService = inject(UnitService);
   private readonly messageService = inject(MessageService);
   private readonly formBuilder = inject(FormBuilder);
-  private readonly codeGenerationService = inject(CodeGenerationService);
 
   createForm!: FormGroup;
   updateForm!: FormGroup;
   isSubmitting = false;
-  generatingCode = false;
 
   constructor() {
     this.initializeForms();
@@ -45,7 +42,6 @@ export class UnitsFormDialogComponent implements OnChanges {
   private initializeForms(): void {
     this.createForm = this.formBuilder.group({
       name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
-      code: ['', [Validators.required, Validators.minLength(1), Validators.maxLength(50)]],
       symbol: ['', [Validators.required, Validators.minLength(1), Validators.maxLength(20)]],
       description: ['', [Validators.maxLength(500)]]
     });
@@ -53,7 +49,6 @@ export class UnitsFormDialogComponent implements OnChanges {
     this.updateForm = this.formBuilder.group({
       id: [''],
       name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
-      code: ['', [Validators.required, Validators.minLength(1), Validators.maxLength(50)]],
       symbol: ['', [Validators.required, Validators.minLength(1), Validators.maxLength(20)]],
       description: ['', [Validators.maxLength(500)]],
       isActive: [true],
@@ -69,7 +64,6 @@ export class UnitsFormDialogComponent implements OnChanges {
       this.updateForm.patchValue({
         id: this.selectedUnit.id,
         name: this.selectedUnit.name,
-        code: this.selectedUnit.code,
         symbol: this.selectedUnit.symbol,
         description: this.selectedUnit.description,
         isActive: this.selectedUnit.isActive,
@@ -91,29 +85,6 @@ export class UnitsFormDialogComponent implements OnChanges {
    */
   onCreateDialogShow(): void {
     this.createForm.reset();
-    this.generateUnitCode();
-  }
-
-  /**
-   * Generate unit code automatically
-   */
-  private generateUnitCode(): void {
-    this.generatingCode = true;
-    this.codeGenerationService.generateUnitCode().subscribe({
-      next: (code) => {
-        this.createForm.patchValue({ code });
-        this.generatingCode = false;
-      },
-      error: (error) => {
-        console.error('Error generating unit code:', error);
-        this.messageService.add({
-          severity: 'warn',
-          summary: 'Warning',
-          detail: 'Failed to generate unit code. Please enter manually.'
-        });
-        this.generatingCode = false;
-      }
-    });
   }
 
   /**
@@ -179,7 +150,6 @@ export class UnitsFormDialogComponent implements OnChanges {
     const unitId = this.updateForm.get('id')?.value;
     const request = {
       name: this.updateForm.get('name')?.value,
-      code: this.updateForm.get('code')?.value,
       symbol: this.updateForm.get('symbol')?.value,
       description: this.updateForm.get('description')?.value,
       isActive: this.updateForm.get('isActive')?.value,

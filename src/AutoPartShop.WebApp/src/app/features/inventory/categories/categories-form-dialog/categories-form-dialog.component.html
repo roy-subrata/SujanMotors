@@ -30,13 +30,13 @@
                 (onItemSelect)="onParentCategorySelect($event)"
                 (onClearEvent)="onParentCategoryCleared()">
                 <ng-template let-cat #item>
-                    <div class="autocomplete-item">{{ cat.name }} <span class="autocomplete-code">({{ cat.code }})</span></div>
+                    <div class="autocomplete-item">{{ cat.name }}</div>
                 </ng-template>
             </app-lazy-autocomplete>
             <small class="hint-message">Leave empty to create a root (top-level) category</small>
         </div>
 
-        <!-- Row: Name + Code -->
+        <!-- Row: Name -->
         <div class="form-row">
             <div class="form-group">
                 <label for="c-name" class="form-label"><span class="required">*</span> Name</label>
@@ -45,15 +45,6 @@
                 <small class="form-error" *ngIf="createForm.get('name')?.touched && createForm.get('name')?.invalid">
                     Name is required (3–100 characters)
                 </small>
-            </div>
-            <div class="form-group">
-                <label for="c-code" class="form-label"><span class="required">*</span> Code</label>
-                <div class="code-input-wrapper">
-                    <input type="text" pInputText id="c-code" formControlName="code"
-                           placeholder="Auto-generated" class="form-input" style="text-transform:uppercase" />
-                    <i *ngIf="generatingCode" class="pi pi-spin pi-spinner code-spinner"></i>
-                </div>
-                <small class="hint-message">Auto-generated unique identifier</small>
             </div>
         </div>
 

@@ -24,9 +24,6 @@ public class CategoryRepository(AutoPartDbContext dbContext) : ICategoryReposito
         if (entity == null)
             throw new ArgumentNullException(nameof(entity));
 
-        if (dbContext.Categories.Any(c => c.Code == entity.Code && !c.Isdeleted))
-            throw new InvalidOperationException($"Category with code '{entity.Code}' already exists");
-
         // If this category has a parent, calculate depth level and breadcrumb path
         if (entity.ParentCategoryId.HasValue)
         {
@@ -122,15 +119,6 @@ public class CategoryRepository(AutoPartDbContext dbContext) : ICategoryReposito
         return await dbContext.Categories.Where(c => c.ParentCategoryId == parentCategoryId && !c.Isdeleted).ToListAsync(cancellationToken);
     }
 
-    public async Task<bool> CodeExistsAsync(string code, Guid? excludeId = null, CancellationToken cancellationToken = default)
-    {
-        var query = dbContext.Categories.Where(c => c.Code == code && !c.Isdeleted);
-        if (excludeId.HasValue)
-            query = query.Where(c => c.Id != excludeId.Value);
-
-        return await query.AnyAsync(cancellationToken);
-    }
-
     public async Task<bool> NameExistsAsync(string name, Guid? excludeId = null, CancellationToken cancellationToken = default)
     {
         var normalizedName = name.Trim().ToLowerInvariant();
@@ -139,12 +127,6 @@ public class CategoryRepository(AutoPartDbContext dbContext) : ICategoryReposito
             query = query.Where(c => c.Id != excludeId.Value);
 
         return await query.AnyAsync(cancellationToken);
-    }
-
-    public async Task<Category?> GetByCategoryCodeAsync(string code, CancellationToken cancellationToken = default)
-    {
-
-        return await dbContext.Categories.FirstOrDefaultAsync(c => c.Code == code && !c.Isdeleted, cancellationToken);
     }
 
     public async Task<Category?> GetByCategoryNameAsync(string name, CancellationToken cancellationToken = default)
@@ -159,7 +141,6 @@ public class CategoryRepository(AutoPartDbContext dbContext) : ICategoryReposito
         return await dbContext.Categories.Where(c =>
             !c.Isdeleted &&
             (c.Name.ToLowerInvariant().Contains(lowerTerm) ||
-             c.Code.ToLowerInvariant().Contains(lowerTerm) ||
              c.Description.ToLowerInvariant().Contains(lowerTerm))
         ).ToListAsync(cancellationToken);
     }
@@ -264,9 +245,8 @@ public class CategoryRepository(AutoPartDbContext dbContext) : ICategoryReposito
         var query = dbContext.Categories.Where(c => !c.Isdeleted);
         if (!string.IsNullOrEmpty(searchTerm))
         {
-            var lowerTerm = searchTerm.ToLower();
             query = query.Where(x =>
-             EF.Functions.Like(x.Name, $"%{searchTerm}%") || EF.Functions.Like(x.Code, $"%{searchTerm}%") || EF.Functions.Like(x.Description, $"%{searchTerm}%")
+             EF.Functions.Like(x.Name, $"%{searchTerm}%") || EF.Functions.Like(x.Description, $"%{searchTerm}%")
           );
         }
         var totalCount = await query.CountAsync(cancellationToken);

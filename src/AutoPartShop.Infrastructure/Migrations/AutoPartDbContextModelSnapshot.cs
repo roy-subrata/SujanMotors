@@ -323,11 +323,6 @@ namespace AutoPartsShop.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("Code")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
                     b.Property<string>("ContactEmail")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -392,10 +387,6 @@ namespace AutoPartsShop.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Code")
-                        .IsUnique()
-                        .HasFilter("[Isdeleted] = 0");
-
                     b.HasIndex("Name");
 
                     b.ToTable("Brands", (string)null);
@@ -459,11 +450,6 @@ namespace AutoPartsShop.Infrastructure.Migrations
                     b.Property<int>("ChildCount")
                         .HasColumnType("int");
 
-                    b.Property<string>("Code")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
                     b.Property<string>("CreatedBy")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -503,9 +489,6 @@ namespace AutoPartsShop.Infrastructure.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("Code")
-                        .IsUnique();
 
                     b.HasIndex("IsActive");
 
@@ -4652,11 +4635,6 @@ namespace AutoPartsShop.Infrastructure.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Code")
-                        .IsRequired()
-                        .HasMaxLength(250)
-                        .HasColumnType("nvarchar(250)");
 
                     b.Property<string>("CreatedBy")
                         .IsRequired()

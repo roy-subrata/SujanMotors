@@ -80,9 +80,7 @@
         [ngModelOptions]="{standalone: true}">
         <ng-template let-category #item>
           <div class="category-autocomplete-item">
-            <div class="font-semibold">{{ category.name }}</div>
-            <div class="text-sm text-gray-500">{{ category.code }}</div>
-          </div>
+            <div class="font-semibold">{{ category.name }}</div>          </div>
         </ng-template>
       </p-autocomplete>
       <small class="error-message" *ngIf="hasError(createForm, 'categoryId')">
@@ -114,7 +112,7 @@
         <ng-template let-unit #item>
           <div class="unit-autocomplete-item">
             <div class="font-semibold">{{ unit.name }}</div>
-            <div class="text-sm text-gray-500">{{ unit.code }}</div>
+            <div class="text-sm text-gray-500">{{ unit.symbol }}</div>
           </div>
         </ng-template>
       </p-autocomplete>
@@ -142,7 +140,7 @@
         <ng-template let-unit #item>
           <div class="unit-autocomplete-item">
             <div class="font-semibold">{{ unit.name }}</div>
-            <div class="text-sm text-gray-500">{{ unit.code }}</div>
+            <div class="text-sm text-gray-500">{{ unit.symbol }}</div>
           </div>
         </ng-template>
       </p-autocomplete>
@@ -168,9 +166,7 @@
         [ngModelOptions]="{standalone: true}">
         <ng-template let-brand #item>
           <div class="brand-autocomplete-item">
-            <div class="font-semibold">{{ brand.name }}</div>
-            <div class="text-sm text-gray-500">{{ brand.code }}</div>
-          </div>
+            <div class="font-semibold">{{ brand.name }}</div>          </div>
         </ng-template>
       </p-autocomplete>
     </div>
@@ -402,9 +398,7 @@
         [ngModelOptions]="{standalone: true}">
         <ng-template let-category #item>
           <div class="category-autocomplete-item">
-            <div class="font-semibold">{{ category.name }}</div>
-            <div class="text-sm text-gray-500">{{ category.code }}</div>
-          </div>
+            <div class="font-semibold">{{ category.name }}</div>          </div>
         </ng-template>
       </p-autocomplete>
       <small class="error-message" *ngIf="hasError(updateForm, 'categoryId')">
@@ -436,7 +430,7 @@
         <ng-template let-unit #item>
           <div class="unit-autocomplete-item">
             <div class="font-semibold">{{ unit.name }}</div>
-            <div class="text-sm text-gray-500">{{ unit.code }}</div>
+            <div class="text-sm text-gray-500">{{ unit.symbol }}</div>
           </div>
         </ng-template>
       </p-autocomplete>
@@ -464,7 +458,7 @@
         <ng-template let-unit #item>
           <div class="unit-autocomplete-item">
             <div class="font-semibold">{{ unit.name }}</div>
-            <div class="text-sm text-gray-500">{{ unit.code }}</div>
+            <div class="text-sm text-gray-500">{{ unit.symbol }}</div>
           </div>
         </ng-template>
       </p-autocomplete>
@@ -490,9 +484,7 @@
         [ngModelOptions]="{standalone: true}">
         <ng-template let-brand #item>
           <div class="brand-autocomplete-item">
-            <div class="font-semibold">{{ brand.name }}</div>
-            <div class="text-sm text-gray-500">{{ brand.code }}</div>
-          </div>
+            <div class="font-semibold">{{ brand.name }}</div>          </div>
         </ng-template>
       </p-autocomplete>
     </div>

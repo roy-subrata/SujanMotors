@@ -142,16 +142,8 @@ public class CategoriesController(
         if (string.IsNullOrWhiteSpace(request.Name))
             return BadRequest(ApiError.Validation("Name is required", instance: Request.Path));
 
-        if (string.IsNullOrWhiteSpace(request.Code))
-            return BadRequest(ApiError.Validation("Code is required", instance: Request.Path));
-
-        var normalizedCode = request.Code.Trim().ToUpperInvariant();
-
         if (await _categoryRepository.NameExistsAsync(request.Name.Trim(), null, cancellationToken))
             return Conflict(ApiError.Conflict($"Category name '{request.Name}' already exists", Request.Path));
-
-        if (await _categoryRepository.CodeExistsAsync(normalizedCode, null, cancellationToken))
-            return Conflict(ApiError.Conflict($"Category code '{normalizedCode}' already exists", Request.Path));
 
         if (request.ParentCategoryId.HasValue &&
             !await _categoryRepository.ExistsAsync(request.ParentCategoryId.Value, cancellationToken))
@@ -159,11 +151,11 @@ public class CategoriesController(
 
         var category = Category.Create(
             request.Name.Trim(), request.Description ?? string.Empty,
-            normalizedCode, request.DisplayOrder, request.ParentCategoryId);
+            request.DisplayOrder, request.ParentCategoryId);
 
         await _categoryRepository.AddAsync(category, cancellationToken);
 
-        _logger.LogInformation("Created category {Name} ({Code}) id={Id}", category.Name, category.Code, category.Id);
+        _logger.LogInformation("Created category {Name} id={Id}", category.Name, category.Id);
         return CreatedAtAction(nameof(GetById), new { id = category.Id },
             ApiResponse<CategoryResponse>.Ok(MapToResponse(category)));
     }
@@ -251,7 +243,6 @@ public class CategoriesController(
             Id              = category.Id,
             Name            = category.Name,
             Description     = string.IsNullOrWhiteSpace(category.Description) ? null : category.Description,
-            Code            = category.Code,
             ParentCategoryId = category.ParentCategoryId,
             IsActive        = category.IsActive,
             DisplayOrder    = category.DisplayOrder,

@@ -531,20 +531,17 @@ public class ProductsController : ControllerBase
             Brand = part.BrandId.HasValue ? new ProductBrandSummary
             {
                 Id = part.BrandId.Value,
-                Name = part.Brand?.Name ?? string.Empty,
-                Code = part.Brand?.Code
+                Name = part.Brand?.Name ?? string.Empty
             } : null,
             BaseUnit = part.BaseUnitId.HasValue ? new ProductUnitSummary
             {
                 Id = part.BaseUnitId.Value,
-                Name = part.BaseUnit?.Name ?? string.Empty,
-                Code = part.BaseUnit?.Code
+                Name = part.BaseUnit?.Name ?? string.Empty
             } : null,
             Unit = part.UnitId.HasValue ? new ProductUnitSummary
             {
                 Id = part.UnitId.Value,
-                Name = part.Unit?.Name ?? string.Empty,
-                Code = part.Unit?.Code
+                Name = part.Unit?.Name ?? string.Empty
             } : null,
             Pricing = new ProductPricingSummary
             {

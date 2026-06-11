@@ -12,11 +12,6 @@ public class CreateCategory
     public string Description { get; set; } = string.Empty;
 
     /// <summary>
-    /// Category code (required, max 20 characters, will be converted to uppercase)
-    /// </summary>
-    public string Code { get; set; } = string.Empty;
-
-    /// <summary>
     /// Parent category ID for subcategories (optional)
     /// </summary>
     public Guid? ParentCategoryId { get; set; }

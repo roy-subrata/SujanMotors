@@ -30,25 +30,6 @@
       </small>
     </div>
 
-    <!-- Code Field (Disabled) -->
-    <div class="form-group">
-      <label for="create-code" class="form-label">
-        <span class="required">*</span> Code
-      </label>
-      <div class="code-input-wrapper">
-        <input
-          id="create-code"
-          pInputText
-          type="text"
-          formControlName="code"
-          placeholder="Auto-generated"
-          class="form-input disabled-field"
-          [disabled]="true" />
-        <i *ngIf="generatingCode" class="pi pi-spin pi-spinner code-spinner"></i>
-      </div>
-      <small class="hint-message">Code is auto-generated and cannot be modified</small>
-    </div>
-
     <!-- Symbol Field -->
     <div class="form-group">
       <label for="create-symbol" class="form-label">
@@ -141,22 +122,6 @@
       <small class="error-message" *ngIf="hasError(updateForm, 'name')">
         {{ getErrorMessage(updateForm, 'name') }}
       </small>
-    </div>
-
-    <!-- Code Field (Disabled) -->
-    <div class="form-group">
-      <label for="update-code" class="form-label">
-        <span class="required">*</span> Code
-      </label>
-      <input
-        id="update-code"
-        pInputText
-        type="text"
-        formControlName="code"
-        placeholder="e.g., KG"
-        class="form-input disabled-field"
-        [disabled]="true" />
-      <small class="hint-message">Code cannot be modified</small>
     </div>
 
     <!-- Symbol Field -->

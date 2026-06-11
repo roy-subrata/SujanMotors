@@ -6,7 +6,6 @@ import { environment } from 'src/environments/environment';
 export interface UnitResponse {
   id: string;
   name: string;
-  code: string;
   symbol: string;
   description: string;
   isActive: boolean;
@@ -17,14 +16,12 @@ export interface UnitResponse {
 
 export interface CreateUnitRequest {
   name: string;
-  code: string;
   symbol: string;
   description: string;
 }
 
 export interface UpdateUnitRequest {
   name: string;
-  code: string;
   symbol: string;
   description: string;
   isActive: boolean;
