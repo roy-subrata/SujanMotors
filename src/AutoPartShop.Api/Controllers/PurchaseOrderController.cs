@@ -1100,6 +1100,14 @@ public class PurchaseOrderController : ControllerBase
                 PartId = l.PartId,
                 PartName = l.Part?.Name ?? string.Empty,
                 PartSKU = l.Part?.SKU ?? string.Empty,
+                Barcode = l.Part?.Barcode,
+                VariantId = l.VariantId,
+                VariantName = l.Variant?.Name,
+                VariantSKU = l.Variant?.SKU,
+                VariantBarcode = l.Variant?.Barcode,
+                DisplayName = l.Variant != null
+                    ? $"{l.Part?.Name} - {l.Variant.Name}"
+                    : l.Part?.Name,
                 OrderedQuantity = l.OrderedQuantity,
                 ReceivedQuantity = l.ReceivedQuantity,
                 DamagedQuantity = l.DamagedQuantity,

@@ -44,6 +44,14 @@ public class GoodsReceiptLineResponse
     public Guid PartId { get; set; }
     public string PartName { get; set; } = string.Empty;
     public string PartSKU { get; set; } = string.Empty;
+    public string? Barcode { get; set; }
+
+    // Variant identity (populated when the received line is a product variant)
+    public Guid? VariantId { get; set; }
+    public string? VariantName { get; set; }
+    public string? VariantSKU { get; set; }
+    public string? VariantBarcode { get; set; }
+    public string? DisplayName { get; set; }
     public int OrderedQuantity { get; set; }
     public int ReceivedQuantity { get; set; }
     public int DamagedQuantity { get; set; }

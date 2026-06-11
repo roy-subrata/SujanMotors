@@ -1191,3 +1191,35 @@
     padding: 0.9rem;
   }
 }
+
+/* GRN label printing list (view mode, accepted receipts) */
+.grn-label-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.grn-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--surface-border, #e5e7eb);
+  border-radius: 8px;
+  background: var(--surface-section, #fff);
+}
+.grn-label-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.grn-label-name {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.grn-label-sub {
+  font-size: 0.8rem;
+  color: var(--text-color-secondary, #6b7280);
+}

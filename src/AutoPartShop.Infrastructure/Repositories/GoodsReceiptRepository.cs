@@ -11,7 +11,10 @@ public class GoodsReceiptRepository(AutoPartDbContext _db) : IGoodsReceiptReposi
             .Where(x => !x.Isdeleted)
             .Include(x => x.PurchaseOrder)
             .Include(x => x.Warehouse)
-            .Include(x => x.LineItems);
+            .Include(x => x.LineItems)
+                .ThenInclude(l => l.Part)
+            .Include(x => x.LineItems)
+                .ThenInclude(l => l.Variant);
     }
 
     public async Task<IEnumerable<GoodsReceipt>> GetAllAsync(CancellationToken cancellationToken = default)

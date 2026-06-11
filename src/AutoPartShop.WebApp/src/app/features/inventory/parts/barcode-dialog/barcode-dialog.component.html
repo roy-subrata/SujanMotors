@@ -7,6 +7,19 @@
     <div class="barcode-controls-panel">
       <h4 class="panel-title"><i class="pi pi-cog"></i> Settings</h4>
 
+      <!-- Label Style -->
+      <div class="field">
+        <label for="labelLayout">Label Style</label>
+        <p-select id="labelLayout"
+          [(ngModel)]="selectedLayout"
+          [options]="layoutOptions"
+          optionLabel="label"
+          optionValue="value"
+          (onChange)="onLayoutChange($event.value)"
+          styleClass="w-full">
+        </p-select>
+      </div>
+
       <!-- Label Size -->
       <div class="field">
         <label for="barcodeSize">Label Size</label>
@@ -133,7 +146,14 @@
       <!-- Label rendered from the single source of truth (matches print) -->
       <div class="label-preview-wrapper">
         <div class="label-preview-stage">
-          <div *ngIf="labelHtmlSafe && !validationMessage" [innerHTML]="labelHtmlSafe"></div>
+          <div class="label-scale-box"
+            *ngIf="labelHtmlSafe && !validationMessage"
+            [style.width.px]="previewBox.w"
+            [style.height.px]="previewBox.h">
+            <div class="label-scale-inner"
+              [style.transform]="'scale(' + previewScale + ')'"
+              [innerHTML]="labelHtmlSafe"></div>
+          </div>
 
           <div class="preview-error" *ngIf="validationMessage && !isGenerating">
             <i class="pi pi-exclamation-triangle"></i>

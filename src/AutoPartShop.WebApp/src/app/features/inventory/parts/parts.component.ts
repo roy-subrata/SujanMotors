@@ -13,8 +13,6 @@ import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { SkeletonModule } from 'primeng/skeleton';
 import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
-import { DialogService } from 'primeng/dynamicdialog';
-import { BarcodeDialogComponent } from './barcode-dialog/barcode-dialog.component';
 import { PartsImportDialogComponent } from './parts-import-dialog/parts-import-dialog.component';
 import { PartService, PartResponse } from '../services/part.service';
 import { CurrencyService } from '@/shared/services/currency.service';
@@ -46,14 +44,13 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
         DataPaginationComponent,
         PartsImportDialogComponent
     ],
-    providers: [MessageService, ConfirmationService, DialogService],
+    providers: [MessageService, ConfirmationService],
     templateUrl: './parts.component.html',
     styleUrls: ['./parts.component.css']
 })
 export class PartsComponent implements OnInit {
     private readonly partService = inject(PartService);
     private readonly messageService = inject(MessageService);
-    private readonly dialogService = inject(DialogService);
     private readonly confirmationService = inject(ConfirmationService);
     private readonly currencyService = inject(CurrencyService);
     readonly priceCodeService = inject(PriceCodeService);
@@ -191,11 +188,6 @@ export class PartsComponent implements OnInit {
                 icon: 'pi pi-pencil',
                 command: () => this.editPart(part)
             },
-            {
-                label: 'Show Barcode',
-                icon: 'pi pi-qrcode',
-                command: () => this.showBarcode(part)
-            },
             { separator: true },
             {
                 label: 'Activate',
@@ -234,21 +226,6 @@ export class PartsComponent implements OnInit {
     editPart(part: PartResponse): void {
         this.router.navigate(['/inventory/parts/edit'], {
             queryParams: { id: part.id, mode: 'edit' }
-        });
-    }
-
-    /**
-     * Show barcode dialog
-     */
-    showBarcode(part: PartResponse): void {
-        this.dialogService.open(BarcodeDialogComponent, {
-            data: { part: part },
-            header: 'Label & Barcode Generator',
-            width: '100vw',
-            height: '100vh',
-            styleClass: 'fullscreen-dialog',
-            modal: true,
-            closable: true
         });
     }
 
