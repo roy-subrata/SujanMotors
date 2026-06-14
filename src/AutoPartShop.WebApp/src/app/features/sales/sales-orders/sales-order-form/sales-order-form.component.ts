@@ -33,6 +33,7 @@ import { WarehouseService, WarehouseResponse } from '../../../inventory/services
 import { StockLotService } from '../../../inventory/services/stock-lot.service';
 import { ApplyCustomerCreditNotesComponent } from '../../credits/apply-customer-credit-notes.component';
 import { CustomerCreditNoteService } from '../../services/customer-credit-note.service';
+import { AppBrandingService } from '../../../../shared/services/app-branding.service';
 
 @Component({
     selector: 'app-sales-order-form',
@@ -80,6 +81,7 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
     private readonly unitConversionService = inject(UnitConversionService);
     private readonly warehouseService = inject(WarehouseService);
     private readonly stockLotService = inject(StockLotService);
+    private readonly branding = inject(AppBrandingService);
 
     // Credit note state
     totalCreditApplied = 0;
@@ -929,6 +931,13 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
         const orderDiscount = this.orderDiscount();
         const orderDiscountAmount = this.orderDiscountAmount();
 
+        // Company identity from the configured business profile (SHOP_* settings).
+        const shop = this.branding.profile();
+        const shopName = this.escapeHtml(shop?.name) || 'Your Company';
+        const shopTagline = this.escapeHtml(shop?.tagline);
+        const shopAddress = this.escapeHtml(shop?.address);
+        const shopInitials = shopName.split(/\s+/).filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase();
+
         let lineItemsHTML = '';
         this.lines.controls.forEach((line) => {
             const part = line.get('part')?.value as PublicPartResponse | null;
@@ -1030,8 +1039,8 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
 <body>
     <div class="header">
         <div class="logo-section">
-            <div class="logo">SM</div>
-            <div class="company-name">Sujan Motors</div>
+            <div class="logo">${shopInitials}</div>
+            <div class="company-name">${shopName}</div>
         </div>
         <div class="title-section">
             <h1>Pro Forma Invoice</h1>
@@ -1046,10 +1055,10 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
     <div class="address-section">
         <div class="address-block">
             <div class="address-label">From</div>
-            <div class="address-name">Sujan Motors</div>
+            <div class="address-name">${shopName}</div>
             <div class="address-detail">
-                Auto Parts & Accessories<br>
-                Dhaka, Bangladesh
+                ${shopTagline ? shopTagline + '<br>' : ''}
+                ${shopAddress}
             </div>
         </div>
         <div class="address-block right">
@@ -1124,7 +1133,7 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
     </div>
 
     <div class="footer">
-        <p>Thank you for choosing Sujan Motors | For inquiries, please contact us</p>
+        <p>Thank you for choosing ${shopName} | For inquiries, please contact us</p>
     </div>
 
     <div class="no-print">

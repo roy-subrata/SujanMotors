@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 
 import { LayoutService } from '../service/layout.service';
 import { AuthService } from '../../shared/services/auth.service';
+import { AppBrandingService } from '../../shared/services/app-branding.service';
 import { AvatarModule } from 'primeng/avatar';
 import { TooltipModule } from 'primeng/tooltip';
 import { AppMenuComponent } from './app-menu/app.menu.component';
@@ -16,11 +17,16 @@ import { AppMenuComponent } from './app-menu/app.menu.component';
             <!-- Logo and Toggle -->
             <div class="sidebar-header">
                 <div class="logo-container" [class.collapsed]="isCollapsed()">
-                    <i class="pi pi-box logo-icon"></i>
-                    @if (!isCollapsed()) {
-                        
+                    @if (branding.appLogoUrl(); as logo) {
+                        @if (!logo.startsWith('assets')) {
+                            <img [src]="logo" alt="" class="logo-icon" style="object-fit: contain;" (error)="onLogoError($event)" />
+                        } @else {
+                            <i class="pi pi-box logo-icon"></i>
+                        }
+                    } @else {
+                        <i class="pi pi-box logo-icon"></i>
                     }
-                    <span class="logo-text">Auto Part Shop</span>
+                    <span class="logo-text">{{ branding.appName() }}</span>
                 </div>
                 <button
                     class="sidebar-toggle"
@@ -70,6 +76,7 @@ import { AppMenuComponent } from './app-menu/app.menu.component';
 export class AppSidebar {
     private layoutService = inject(LayoutService);
     private authService = inject(AuthService);
+    protected branding = inject(AppBrandingService);
 
     isCollapsed = computed(() => this.layoutService.layoutState().staticMenuDesktopInactive);
     currentUser = computed(() => this.authService.currentUser());
@@ -78,6 +85,10 @@ export class AppSidebar {
 
     toggleSidebar() {
         this.layoutService.onMenuToggle();
+    }
+
+    onLogoError(event: Event) {
+        (event.target as HTMLImageElement).style.display = 'none';
     }
 
     getUserInitials(): string {

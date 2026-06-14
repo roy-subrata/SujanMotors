@@ -19,6 +19,7 @@ import { PartService, PartResponse, PartsQuery } from '../../../inventory/servic
 import { UnitService, UnitResponse } from '../../../inventory/services/unit.service';
 import { UnitConversionService } from '../../../inventory/services/unit-conversion.service';
 import { CurrencyService } from '../../../../shared/services/currency.service';
+import { AppBrandingService } from '../../../../shared/services/app-branding.service';
 import { CurrencySelectorComponent } from '../../../../shared/components/currency-selector/currency-selector.component';
 import { LazyAutocompleteComponent, LazyRequest, LazyResponse } from '../../../../shared/components/lazy-autocomplete';
 import { DatePicker } from 'primeng/datepicker';
@@ -131,6 +132,7 @@ export class PurchaseOrderFormComponent implements OnInit {
     private readonly fb = inject(FormBuilder);
     private readonly route = inject(ActivatedRoute);
     private readonly router = inject(Router);
+    private readonly branding = inject(AppBrandingService);
 
     constructor() {
         this.form = this.createForm();
@@ -873,6 +875,13 @@ export class PurchaseOrderFormComponent implements OnInit {
         const deliveryDate = po.deliveryDate ? new Date(po.deliveryDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '-';
         const currencyCode = this.form.get('currency')?.value || this.currencyService.selectedCurrency();
 
+        // Company identity from the configured business profile (SHOP_* settings).
+        const shop = this.branding.profile();
+        const shopName = shop?.name || 'Your Company';
+        const shopTagline = shop?.tagline || '';
+        const shopAddress = shop?.address || '';
+        const shopInitials = shopName.split(/\s+/).filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase();
+
         const lineItemsHtml = (po.lines || []).map((line) => `
             <tr>
                 <td class="desc-cell">
@@ -943,11 +952,11 @@ export class PurchaseOrderFormComponent implements OnInit {
 <body>
     <div class="header">
         <div class="logo-section">
-            <div class="logo">SM</div>
+            <div class="logo">${shopInitials}</div>
             <div>
-                <div class="company-name">Sujan Motors</div>
-                <div class="address-detail">Auto Parts & Accessories</div>
-                <div class="address-detail">Dhaka, Bangladesh</div>
+                <div class="company-name">${shopName}</div>
+                ${shopTagline ? `<div class="address-detail">${shopTagline}</div>` : ''}
+                ${shopAddress ? `<div class="address-detail">${shopAddress}</div>` : ''}
             </div>
         </div>
         <div class="title-section">
@@ -965,10 +974,10 @@ export class PurchaseOrderFormComponent implements OnInit {
     <div class="address-section">
         <div class="address-block">
             <div class="address-label">From</div>
-            <div class="address-name">Sujan Motors</div>
+            <div class="address-name">${shopName}</div>
             <div class="address-detail">
-                Auto Parts & Accessories<br>
-                Dhaka, Bangladesh
+                ${shopTagline ? shopTagline + '<br>' : ''}
+                ${shopAddress}
             </div>
         </div>
         <div class="address-block right">
@@ -1020,7 +1029,7 @@ export class PurchaseOrderFormComponent implements OnInit {
     </div>
 
     <div class="footer">
-        <p>Thank you for choosing Sujan Motors | For inquiries, please contact us</p>
+        <p>Thank you for choosing ${shopName} | For inquiries, please contact us</p>
     </div>
 
     <div class="no-print">

@@ -32,6 +32,7 @@ import { TechnicianService, TechnicianResponse } from '../services/technician.se
 import { InvoicePdfService, InvoicePdfData } from '../services/invoice-pdf.service';
 import { CurrencyService } from '../../../shared/services/currency.service';
 import { PricingValidationService } from '../../../shared/services/pricing-validation.service';
+import { AppBrandingService } from '../../../shared/services/app-branding.service';
 
 // Components
 import { QuickCustomerDialogComponent } from '../components/quick-customer-dialog.component';
@@ -81,6 +82,7 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
   private readonly confirmationService = inject(ConfirmationService);
   private readonly invoicePdfService = inject(InvoicePdfService);
   private readonly pricingValidationService = inject(PricingValidationService);
+  protected readonly branding = inject(AppBrandingService);
   private readonly discountService = inject(DiscountService);
 
   @ViewChild(QuickCustomerDialogComponent) quickCustomerDialog!: QuickCustomerDialogComponent;

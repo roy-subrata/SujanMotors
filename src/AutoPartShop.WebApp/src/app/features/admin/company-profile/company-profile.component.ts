@@ -9,6 +9,7 @@ import { CardModule } from 'primeng/card';
 import { DividerModule } from 'primeng/divider';
 import { MessageService } from 'primeng/api';
 import { AppSettingsService } from '../../../shared/services/app-settings.service';
+import { AppBrandingService } from '../../../shared/services/app-branding.service';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { forkJoin } from 'rxjs';
@@ -68,6 +69,37 @@ const FIELDS: FieldDef[] = [
       </div>
 
       <form *ngIf="!loading()" [formGroup]="form" (ngSubmit)="save()">
+
+        <!-- Application branding (white-label) -->
+        <p-card styleClass="mb-4">
+          <ng-template pTemplate="header">
+            <div class="flex items-center gap-2 px-5 pt-4">
+              <i class="pi pi-desktop text-indigo-500 text-xl"></i>
+              <h2 class="text-lg font-semibold text-gray-700 m-0">Application Branding</h2>
+            </div>
+          </ng-template>
+
+          <div class="flex flex-col gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-600 mb-1">Application Name</label>
+              <input pInputText formControlName="appName"
+                placeholder="e.g. Auto Part Shop" class="w-full" />
+              <small class="text-gray-400">Shown in the browser tab, sidebar, login page, and storefront. Independent of the business name on documents.</small>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-600 mb-1">Application Logo URL</label>
+              <input pInputText formControlName="appLogoUrl"
+                placeholder="https://... or assets/logo.png" class="w-full" />
+              <small class="text-gray-400">HTTPS image URL or relative path. Leave blank or use <code>assets/logo.png</code> for the built-in icon.</small>
+
+              <div *ngIf="form.get('appLogoUrl')?.value && !form.get('appLogoUrl')?.value?.startsWith('assets')"
+                   class="mt-3 p-3 bg-gray-50 border border-gray-200 rounded-lg inline-block">
+                <img [src]="form.get('appLogoUrl')?.value" alt="preview"
+                     class="max-h-16 object-contain" (error)="onLogoError($event)">
+              </div>
+            </div>
+          </div>
+        </p-card>
 
         <!-- Identity -->
         <p-card styleClass="mb-4">
@@ -196,6 +228,7 @@ const FIELDS: FieldDef[] = [
 })
 export class CompanyProfileComponent implements OnInit {
   private readonly settingsService = inject(AppSettingsService);
+  private readonly branding        = inject(AppBrandingService);
   private readonly messageService  = inject(MessageService);
   private readonly fb              = inject(FormBuilder);
 
@@ -207,6 +240,8 @@ export class CompanyProfileComponent implements OnInit {
   );
 
   form: FormGroup = this.fb.group({
+    appName:       ['', Validators.required],
+    appLogoUrl:    [''],
     name:          ['', Validators.required],
     tagline:       [''],
     address:       [''],
@@ -222,6 +257,8 @@ export class CompanyProfileComponent implements OnInit {
     this.settingsService.getShopProfile().subscribe({
       next: p => {
         this.form.patchValue({
+          appName:       p.appName,
+          appLogoUrl:    p.appLogoUrl,
           name:          p.name,
           tagline:       p.tagline,
           address:       p.address,
@@ -246,24 +283,30 @@ export class CompanyProfileComponent implements OnInit {
     this.saving.set(true);
 
     const v = this.form.value;
-    const keyMap: Record<string, string> = {
-      name:          'SHOP_NAME',
-      tagline:       'SHOP_TAGLINE',
-      address:       'SHOP_ADDRESS',
-      phone:         'SHOP_PHONE',
-      email:         'SHOP_EMAIL',
-      taxNo:         'SHOP_TAX_NUMBER',
-      logoUrl:       'SHOP_LOGO_URL',
-      invoiceFooter: 'INVOICE_FOOTER_TEXT',
-      challanFooter: 'CHALLAN_FOOTER_TEXT',
+    // Application brand (white-label) lives in the BRANDING category; the business
+    // identity used on documents stays in BUSINESS.
+    const keyMap: Record<string, { key: string; category: string }> = {
+      appName:       { key: 'APP_NAME',           category: 'BRANDING' },
+      appLogoUrl:    { key: 'APP_LOGO_URL',        category: 'BRANDING' },
+      name:          { key: 'SHOP_NAME',           category: 'BUSINESS' },
+      tagline:       { key: 'SHOP_TAGLINE',        category: 'BUSINESS' },
+      address:       { key: 'SHOP_ADDRESS',        category: 'BUSINESS' },
+      phone:         { key: 'SHOP_PHONE',          category: 'BUSINESS' },
+      email:         { key: 'SHOP_EMAIL',          category: 'BUSINESS' },
+      taxNo:         { key: 'SHOP_TAX_NUMBER',      category: 'BUSINESS' },
+      logoUrl:       { key: 'SHOP_LOGO_URL',        category: 'BUSINESS' },
+      invoiceFooter: { key: 'INVOICE_FOOTER_TEXT',  category: 'BUSINESS' },
+      challanFooter: { key: 'CHALLAN_FOOTER_TEXT',  category: 'BUSINESS' },
     };
 
-    const updates = Object.entries(keyMap).map(([ctrl, key]) =>
-      this.settingsService.update(key, { value: v[ctrl] ?? '', dataType: 'STRING', category: 'BUSINESS', isSystemSetting: true })
+    const updates = Object.entries(keyMap).map(([ctrl, { key, category }]) =>
+      this.settingsService.update(key, { value: v[ctrl] ?? '', dataType: 'STRING', category, isSystemSetting: true })
     );
 
     forkJoin(updates).subscribe({
       next: () => {
+        // Re-apply the live brand (tab title, sidebar, storefront) without a reload.
+        this.branding.refresh();
         this.messageService.add({ severity: 'success', summary: 'Saved', detail: 'Company profile updated. All documents will reflect the new information immediately.' });
         this.saving.set(false);
       },

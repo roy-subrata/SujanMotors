@@ -16,10 +16,10 @@
   <div class="header-inner">
     <!-- Logo -->
     <a routerLink="/shop" class="logo" (click)="onNavLink()">
-      <span class="logo-mark">SM</span>
+      <span class="logo-mark">{{ brandInitials }}</span>
       <div class="logo-text">
-        <span class="logo-title">Sujan Motors</span>
-        <span class="logo-sub">Auto Parts Store</span>
+        <span class="logo-title">{{ branding.appName() }}</span>
+        <span class="logo-sub">{{ branding.tagline() || 'Online Store' }}</span>
       </div>
     </a>
 

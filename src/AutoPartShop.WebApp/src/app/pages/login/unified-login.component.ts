@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../shared/services/auth.service';
 import { CustomerAuthService } from '../../features/ecommerce/services/customer-auth.service';
+import { AppBrandingService } from '../../shared/services/app-branding.service';
 import { extractApiError } from '../../shared/utils/api-error.util';
 
 type LoginMode = 'customer' | 'staff';
@@ -21,9 +22,18 @@ export class UnifiedLoginComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly doc = inject(DOCUMENT);
+  protected readonly branding = inject(AppBrandingService);
 
   // Determined by route data — never changed by the user
   mode: LoginMode = 'customer';
+
+  /** Up-to-2-letter monogram derived from the configured application name. */
+  get brandInitials(): string {
+    const words = this.branding.appName().trim().split(/\s+/).filter(Boolean);
+    if (words.length === 0) return '?';
+    if (words.length === 1) return words[0].substring(0, 2).toUpperCase();
+    return (words[0][0] + words[words.length - 1][0]).toUpperCase();
+  }
 
   identifier = '';
   password = '';

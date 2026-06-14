@@ -21,8 +21,10 @@
     <meta name="theme-color" content="#667eea" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#1e1e2e" media="(prefers-color-scheme: dark)">
 
-    <!-- PWA Manifest -->
-    <link rel="manifest" href="manifest.webmanifest">
+    <!-- PWA Manifest — served dynamically from the configured application brand.
+         Same-origin via the dev proxy / prod reverse proxy. Falls back to the static
+         manifest.webmanifest (shipped in the build) if the API is unavailable. -->
+    <link rel="manifest" href="/api/v1/applicationsettings/public/manifest">
 
     <!-- Favicons and App Icons -->
     <link rel="icon" type="image/svg+xml" href="assets/icons/icon.svg">
