@@ -16,7 +16,6 @@ export interface PublicPartResponse {
   categoryName: string;
   brandId: string | null;
   brandName: string | null;
-  brandCode: string | null;
   unitId: string | null;
   unitName: string | null;
   sellingPrice: number;

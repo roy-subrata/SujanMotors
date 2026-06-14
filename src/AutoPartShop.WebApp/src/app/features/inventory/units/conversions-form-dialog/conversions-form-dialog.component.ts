@@ -75,7 +75,7 @@ export class ConversionsFormDialogComponent implements OnInit, OnChanges {
         this.filteredFromUnits = response;
         this.filteredToUnits = response;
         this.unitsDropdown = response.map((unit) => ({
-          label: `${unit.name} (${unit.code})`,
+          label: `${unit.name} (${unit.symbol})`,
           value: unit.id,
           icon: 'pi pi-fw pi-check'
         }));
@@ -174,7 +174,7 @@ export class ConversionsFormDialogComponent implements OnInit, OnChanges {
    */
   getUnitName(unitId: string): string {
     const unit = this.allUnits.find((u) => u.id === unitId);
-    return unit ? `${unit.name} (${unit.code})` : unitId;
+    return unit ? `${unit.name} (${unit.symbol})` : unitId;
   }
 
   /**
@@ -184,7 +184,7 @@ export class ConversionsFormDialogComponent implements OnInit, OnChanges {
     const query = event.query || '';
     this.filteredFromUnits = this.allUnits.filter((unit) =>
       unit.name.toLowerCase().includes(query.toLowerCase()) ||
-      unit.code.toLowerCase().includes(query.toLowerCase())
+      unit.symbol.toLowerCase().includes(query.toLowerCase())
     );
   }
 
@@ -195,7 +195,7 @@ export class ConversionsFormDialogComponent implements OnInit, OnChanges {
     const query = event.query || '';
     this.filteredToUnits = this.allUnits.filter((unit) =>
       unit.name.toLowerCase().includes(query.toLowerCase()) ||
-      unit.code.toLowerCase().includes(query.toLowerCase())
+      unit.symbol.toLowerCase().includes(query.toLowerCase())
     );
   }
 

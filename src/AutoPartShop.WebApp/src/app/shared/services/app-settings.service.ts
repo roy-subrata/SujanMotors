@@ -27,6 +27,8 @@ export interface NotificationSettings {
 }
 
 export interface ShopProfile {
+  appName: string;
+  appLogoUrl: string;
   name: string;
   address: string;
   phone: string;

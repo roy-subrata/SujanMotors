@@ -4,8 +4,8 @@
       <!-- About -->
       <div class="footer-col">
         <div class="footer-logo">
-          <span class="logo-mark">SM</span>
-          <span class="logo-title">Sujan Motors</span>
+          <span class="logo-mark">{{ brandInitials }}</span>
+          <span class="logo-title">{{ branding.appName() }}</span>
         </div>
         <p class="footer-desc">
           Your trusted source for premium auto parts and accessories. Quality components for every vehicle, backed by expert support.
@@ -70,7 +70,7 @@
   <!-- Copyright -->
   <div class="footer-bottom">
     <div class="footer-bottom-inner">
-      <span>&copy; {{ currentYear }} Sujan Motors. All rights reserved.</span>
+      <span>&copy; {{ currentYear }} {{ branding.appName() }}. All rights reserved.</span>
       <div class="payment-icons">
         <i class="pi pi-credit-card" title="Credit Card"></i>
         <i class="pi pi-wallet" title="Mobile Banking"></i>

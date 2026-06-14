@@ -69,7 +69,6 @@
             <ng-template let-c pTemplate="item">
               <div class="pf-ac-item">
                 <span>{{ c.name }}</span>
-                <span class="pf-ac-code">{{ c.code }}</span>
               </div>
             </ng-template>
           </p-autoComplete>
@@ -97,7 +96,6 @@
             <ng-template let-b pTemplate="item">
               <div class="pf-ac-item">
                 <span>{{ b.name }}</span>
-                <span class="pf-ac-code">{{ b.code }}</span>
               </div>
             </ng-template>
           </p-autoComplete>
@@ -141,7 +139,7 @@
             [disabled]="isSubmitting || isViewMode"
             [style]="{ width: '100%' }">
             <ng-template let-u pTemplate="item">
-              <div class="pf-ac-item"><span>{{ u.name }}</span><span class="pf-ac-code">{{ u.code }}</span></div>
+              <div class="pf-ac-item"><span>{{ u.name }}</span><span class="pf-ac-code">{{ u.symbol }}</span></div>
             </ng-template>
           </p-autoComplete>
         </div>
@@ -163,7 +161,7 @@
             [disabled]="isSubmitting || isViewMode"
             [style]="{ width: '100%' }">
             <ng-template let-u pTemplate="item">
-              <div class="pf-ac-item"><span>{{ u.name }}</span><span class="pf-ac-code">{{ u.code }}</span></div>
+              <div class="pf-ac-item"><span>{{ u.name }}</span><span class="pf-ac-code">{{ u.symbol }}</span></div>
             </ng-template>
           </p-autoComplete>
         </div>

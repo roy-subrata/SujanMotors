@@ -11,7 +11,6 @@ import { InputGroupModule } from 'primeng/inputgroup';
 import { BrandResponse, BrandService, CreateBrandRequest, UpdateBrandRequest } from '../../services/brand.service';
 import { MessageService } from 'primeng/api';
 import { ToastModule } from 'primeng/toast';
-import { CodeGenerationService } from '@/shared/services/CodeGenerationService';
 
 @Component({
   selector: 'app-brands-form-dialog',
@@ -38,9 +37,7 @@ export class BrandsFormDialogComponent implements OnChanges {
   private readonly fb = inject(FormBuilder);
   private readonly brandService = inject(BrandService);
   private readonly messageService = inject(MessageService);
-  private readonly codeGenerationService = inject(CodeGenerationService);
 
-  generatingCode = false;
   isCreating = signal(false);
   isUpdating = signal(false);
 
@@ -48,7 +45,6 @@ export class BrandsFormDialogComponent implements OnChanges {
 
   createForm = this.fb.group({
     name:         ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
-    code:         [{ value: '', disabled: true }, [Validators.required, Validators.maxLength(20)]],
     description:  [''],
     logoUrl:      [''],
     website:      ['', Validators.pattern(/^(https?:\/\/.+)?$/)],
@@ -63,7 +59,6 @@ export class BrandsFormDialogComponent implements OnChanges {
 
   updateForm = this.fb.group({
     name:         ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
-    code:         ['', [Validators.required, Validators.maxLength(20)]],
     description:  [''],
     logoUrl:      [''],
     website:      ['', Validators.pattern(/^(https?:\/\/.+)?$/)],
@@ -78,7 +73,6 @@ export class BrandsFormDialogComponent implements OnChanges {
     if (changes['selectedBrand'] && this.selectedBrand) {
       this.updateForm.patchValue({
         name:         this.selectedBrand.name,
-        code:         this.selectedBrand.code,
         description:  this.selectedBrand.description ?? '',
         logoUrl:      this.selectedBrand.logoUrl ?? '',
         website:      this.selectedBrand.website ?? '',
@@ -95,26 +89,11 @@ export class BrandsFormDialogComponent implements OnChanges {
 
   onCreateDialogShow(): void {
     this.createForm.reset({ displayOrder: 0, isActive: true });
-    this.generateBrandCode();
   }
 
   onCreateDialogHide(): void {
     this.displayCreateDialogChange.emit(false);
     this.createForm.reset({ displayOrder: 0, isActive: true });
-  }
-
-  generateBrandCode(): void {
-    this.generatingCode = true;
-    this.codeGenerationService.generateBrandCode().subscribe({
-      next: (code) => {
-        this.createForm.patchValue({ code });
-        this.generatingCode = false;
-      },
-      error: () => {
-        this.messageService.add({ severity: 'warn', summary: 'Warning', detail: 'Could not auto-generate code. Please enter manually.' });
-        this.generatingCode = false;
-      }
-    });
   }
 
   // ── Update dialog hooks ─────────────────────────────────────────────────
@@ -141,7 +120,6 @@ export class BrandsFormDialogComponent implements OnChanges {
 
     const request: CreateBrandRequest = {
       name:         v.name!,
-      code:         v.code!,
       description:  v.description || null,
       logoUrl:      v.logoUrl || null,
       website:      v.website || null,
@@ -183,7 +161,6 @@ export class BrandsFormDialogComponent implements OnChanges {
 
     const request: UpdateBrandRequest = {
       name:         v.name!,
-      code:         v.code!,
       description:  v.description || null,
       logoUrl:      v.logoUrl || null,
       website:      v.website || null,

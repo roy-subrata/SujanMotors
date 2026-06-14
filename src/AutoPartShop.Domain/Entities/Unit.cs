@@ -7,7 +7,6 @@ namespace AutoPartShop.Domain.Entities;
 public class Unit : AuditableEntity
 {
     public string Name { get; private set; } = string.Empty;
-    public string Code { get; private set; } = string.Empty;  // e.g., "PC", "KG", "LTR"
     public string Symbol { get; private set; } = string.Empty;  // e.g., "pcs", "kg", "L"
     public string Description { get; private set; } = string.Empty;
     public bool IsActive { get; private set; } = true;
@@ -24,13 +23,10 @@ public class Unit : AuditableEntity
     /// <summary>
     /// Factory method to create a new Unit with validation
     /// </summary>
-    public static Unit Create(string name, string code, string symbol, string description = "")
+    public static Unit Create(string name, string symbol, string description = "")
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Unit name cannot be empty", nameof(name));
-
-        if (string.IsNullOrWhiteSpace(code))
-            throw new ArgumentException("Unit code cannot be empty", nameof(code));
 
         if (string.IsNullOrWhiteSpace(symbol))
             throw new ArgumentException("Unit symbol cannot be empty", nameof(symbol));
@@ -38,16 +34,12 @@ public class Unit : AuditableEntity
         if (name.Length > 100)
             throw new ArgumentException("Unit name cannot exceed 100 characters", nameof(name));
 
-        if (code.Length > 20)
-            throw new ArgumentException("Unit code cannot exceed 20 characters", nameof(code));
-
         if (symbol.Length > 10)
             throw new ArgumentException("Unit symbol cannot exceed 10 characters", nameof(symbol));
 
         return new Unit
         {
             Name = name.Trim(),
-            Code = code.Trim().ToUpper(),
             Symbol = symbol.Trim(),
             Description = description?.Trim() ?? string.Empty,
             IsActive = true,
@@ -58,13 +50,10 @@ public class Unit : AuditableEntity
     /// <summary>
     /// Update unit details
     /// </summary>
-    public void Update(string name, string code, string symbol, string description, bool isActive, int displayOrder)
+    public void Update(string name, string symbol, string description, bool isActive, int displayOrder)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Unit name cannot be empty", nameof(name));
-
-        if (string.IsNullOrWhiteSpace(code))
-            throw new ArgumentException("Unit code cannot be empty", nameof(code));
 
         if (string.IsNullOrWhiteSpace(symbol))
             throw new ArgumentException("Unit symbol cannot be empty", nameof(symbol));
@@ -72,14 +61,10 @@ public class Unit : AuditableEntity
         if (name.Length > 100)
             throw new ArgumentException("Unit name cannot exceed 100 characters", nameof(name));
 
-        if (code.Length > 20)
-            throw new ArgumentException("Unit code cannot exceed 20 characters", nameof(code));
-
         if (symbol.Length > 10)
             throw new ArgumentException("Unit symbol cannot exceed 10 characters", nameof(symbol));
 
         Name = name.Trim();
-        Code = code.Trim().ToUpper();
         Symbol = symbol.Trim();
         Description = description?.Trim() ?? string.Empty;
         IsActive = isActive;

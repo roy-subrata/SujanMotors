@@ -7,6 +7,7 @@ import { CartService } from '../../services/cart.service';
 import { CatalogService } from '../../services/catalog.service';
 import { CustomerAuthService } from '../../services/customer-auth.service';
 import { AuthService } from '../../../../shared/services/auth.service';
+import { AppBrandingService } from '../../../../shared/services/app-branding.service';
 import { CatalogCategory } from '../../models/catalog.model';
 
 export interface NavCategory {
@@ -28,8 +29,17 @@ export class StoreHeaderComponent implements OnInit {
   readonly cartService = inject(CartService);
   readonly customerAuthService = inject(CustomerAuthService);
   readonly staffAuthService = inject(AuthService);
+  readonly branding = inject(AppBrandingService);
   private readonly catalogService = inject(CatalogService);
   private readonly router = inject(Router);
+
+  /** Up-to-2-letter monogram derived from the configured application name. */
+  get brandInitials(): string {
+    const words = this.branding.appName().trim().split(/\s+/).filter(Boolean);
+    if (words.length === 0) return '?';
+    if (words.length === 1) return words[0].substring(0, 2).toUpperCase();
+    return (words[0][0] + words[words.length - 1][0]).toUpperCase();
+  }
 
   // Keep for backward compat (search fallback)
   categories = signal<CatalogCategory[]>([]);

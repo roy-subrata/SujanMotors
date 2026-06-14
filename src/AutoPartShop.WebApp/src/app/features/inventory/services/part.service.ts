@@ -19,7 +19,6 @@ export interface PartResponse {
     categoryName: string;
     brandId: string | null;
     brandName: string | null;
-    brandCode: string | null;
     baseUnitId: string | null;
     baseUnitName: string | null;
     baseUnitCode: string | null;
@@ -205,13 +204,12 @@ export class PartService {
                     categoryName: p.category?.name ?? '',
                     brandId: p.brand?.id ?? null,
                     brandName: p.brand?.name ?? null,
-                    brandCode: p.brand?.code ?? null,
                     baseUnitId: p.baseUnit?.id ?? null,
                     baseUnitName: p.baseUnit?.name ?? null,
-                    baseUnitCode: p.baseUnit?.code ?? null,
+                    baseUnitCode: p.baseUnit?.symbol ?? null,
                     unitId: p.unit?.id ?? null,
                     unitName: p.unit?.name ?? null,
-                    unitCode: p.unit?.code ?? null,
+                    unitCode: p.unit?.symbol ?? null,
                     costPrice: p.pricing?.costPrice ?? 0,
                     sellingPrice: p.pricing?.sellingPrice ?? 0,
                     effectiveCostPrice: p.pricing?.costPrice ?? 0,

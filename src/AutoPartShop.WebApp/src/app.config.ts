@@ -8,6 +8,7 @@ import { providePrimeNG } from 'primeng/config';
 import { appRoutes } from './app.routes';
 import { authInterceptor } from './app/shared/interceptors/auth.interceptor';
 import { I18nService } from './app/shared/services/i18n.service';
+import { AppBrandingService } from './app/shared/services/app-branding.service';
 import { firstValueFrom } from 'rxjs';
 
 export const appConfig: ApplicationConfig = {
@@ -22,6 +23,10 @@ export const appConfig: ApplicationConfig = {
         provideAppInitializer(() => {
             const i18nService = inject(I18nService);
             return firstValueFrom(i18nService.initialize());
+        }),
+        provideAppInitializer(() => {
+            const branding = inject(AppBrandingService);
+            return firstValueFrom(branding.initialize());
         }),
         provideServiceWorker('ngsw-worker.js', {
             enabled: !isDevMode(),

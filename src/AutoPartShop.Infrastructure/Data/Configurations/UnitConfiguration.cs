@@ -15,10 +15,6 @@ public class UnitConfiguration : IEntityTypeConfiguration<Unit>
         .IsRequired()
         .HasMaxLength(250);
 
-        builder.Property(u => u.Code)
-               .IsRequired()
-               .HasMaxLength(250);
-
         builder.Property(u => u.Symbol)
                 .IsRequired()
                 .HasMaxLength(5);

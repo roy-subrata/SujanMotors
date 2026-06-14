@@ -16,10 +16,6 @@ public class BrandConfiguration : IEntityTypeConfiguration<Brand>
             .IsRequired()
             .HasMaxLength(100);
 
-        builder.Property(b => b.Code)
-            .IsRequired()
-            .HasMaxLength(20);
-
         builder.Property(b => b.Description)
             .HasMaxLength(500);
 
@@ -43,11 +39,6 @@ public class BrandConfiguration : IEntityTypeConfiguration<Brand>
 
         builder.Property(b => b.IsActive)
             .HasDefaultValue(true);
-
-        // Unique index on Code
-        builder.HasIndex(b => b.Code)
-            .IsUnique()
-            .HasFilter("[Isdeleted] = 0");
 
         // Index on Name for searching
         builder.HasIndex(b => b.Name);

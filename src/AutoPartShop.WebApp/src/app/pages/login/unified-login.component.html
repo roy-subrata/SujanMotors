@@ -3,10 +3,10 @@
 
     <!-- Logo -->
     <div class="ul-logo">
-      <div class="ul-logo-mark">SM</div>
+      <div class="ul-logo-mark">{{ brandInitials }}</div>
       <div class="ul-logo-text">
-        <span class="ul-logo-title">Sujan Motors</span>
-        <span class="ul-logo-sub">{{ mode === 'staff' ? 'Management System' : 'Auto Parts Shop' }}</span>
+        <span class="ul-logo-title">{{ branding.appName() }}</span>
+        <span class="ul-logo-sub">{{ mode === 'staff' ? 'Management System' : 'Sign in to shop' }}</span>
       </div>
     </div>
 

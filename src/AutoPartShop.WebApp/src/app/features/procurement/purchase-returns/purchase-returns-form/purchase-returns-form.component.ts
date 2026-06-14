@@ -22,6 +22,7 @@ import { PurchaseReturnService, PurchaseReturnResponse, AvailableLotForReturn, R
 import { PurchaseOrderService, PurchaseOrderResponse } from '../../services/purchase-order.service';
 import { PartService, PartResponse } from '../../../inventory/services/part.service';
 import { CurrencyService } from '../../../../shared/services/currency.service';
+import { AppBrandingService } from '../../../../shared/services/app-branding.service';
 
 @Component({
   selector: 'app-purchase-returns-form',
@@ -105,6 +106,7 @@ export class PurchaseReturnsFormComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly branding = inject(AppBrandingService);
 
   constructor() {
     this.form = this.createForm();
@@ -946,6 +948,13 @@ export class PurchaseReturnsFormComponent implements OnInit {
   private generatePrintContent(): string {
     const pr = this.currentReturn!;
     const returnDate = pr.returnDate ? new Date(pr.returnDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '-';
+
+    // Company identity from the configured business profile (SHOP_* settings).
+    const shop = this.branding.profile();
+    const shopName = shop?.name || 'Your Company';
+    const shopTagline = shop?.tagline || '';
+    const shopAddress = shop?.address || '';
+    const shopInitials = shopName.split(/\s+/).filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase();
     const lineItemsHtml = (pr.lines || []).map(line => `
       <tr>
         <td class="desc-cell">
@@ -1017,11 +1026,11 @@ export class PurchaseReturnsFormComponent implements OnInit {
       <body>
         <div class="header">
           <div class="logo-section">
-            <div class="logo">SM</div>
+            <div class="logo">${shopInitials}</div>
             <div>
-              <div class="company-name">Sujan Motors</div>
-              <div class="address-detail">Auto Parts & Accessories</div>
-              <div class="address-detail">Dhaka, Bangladesh</div>
+              <div class="company-name">${shopName}</div>
+              ${shopTagline ? `<div class="address-detail">${shopTagline}</div>` : ''}
+              ${shopAddress ? `<div class="address-detail">${shopAddress}</div>` : ''}
             </div>
           </div>
           <div class="title-section">
@@ -1039,10 +1048,10 @@ export class PurchaseReturnsFormComponent implements OnInit {
         <div class="address-section">
           <div class="address-block">
             <div class="address-label">From</div>
-            <div class="address-name">Sujan Motors</div>
+            <div class="address-name">${shopName}</div>
             <div class="address-detail">
-              Auto Parts & Accessories<br>
-              Dhaka, Bangladesh
+              ${shopTagline ? shopTagline + '<br>' : ''}
+              ${shopAddress}
             </div>
           </div>
           <div class="address-block right">
@@ -1101,7 +1110,7 @@ export class PurchaseReturnsFormComponent implements OnInit {
         </div>
 
         <div class="footer">
-          <p>Thank you for choosing Sujan Motors | Printed on ${new Date().toLocaleString()}</p>
+          <p>Thank you for choosing ${shopName} | Printed on ${new Date().toLocaleString()}</p>
         </div>
       </body>
       </html>

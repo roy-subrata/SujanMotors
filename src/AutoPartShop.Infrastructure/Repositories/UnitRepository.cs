@@ -75,7 +75,7 @@ public class UnitRepository(AutoPartDbContext dbContext) : IUnitRepository
             var term = $"%{searchTerm}%"; // LIKE pattern
             query = query.Where(u =>
                 EF.Functions.Like(u.Name, term) ||
-                EF.Functions.Like(u.Code, term)
+                EF.Functions.Like(u.Symbol, term)
             );
         }
 
@@ -91,22 +91,10 @@ public class UnitRepository(AutoPartDbContext dbContext) : IUnitRepository
     }
 
 
-    public async Task<bool> CodeExistsAsync(string code, Guid? excludeUnitId = null, CancellationToken cancellationToken = default)
-    {
-        var normalizedCode = code.ToUpper();
-        return await dbContext.Units.AnyAsync(u => u.Code == normalizedCode && !u.Isdeleted && (excludeUnitId == null || u.Id != excludeUnitId), cancellationToken);
-    }
-
     public async Task<bool> NameExistsAsync(string name, Guid? excludeUnitId = null, CancellationToken cancellationToken = default)
     {
         var normalizedName = name.ToLower();
         return await dbContext.Units.AnyAsync(u => u.Name.ToLower() == normalizedName && !u.Isdeleted && (excludeUnitId == null || u.Id != excludeUnitId), cancellationToken);
-    }
-
-    public async Task<Unit?> GetByCodeAsync(string code, CancellationToken cancellationToken = default)
-    {
-        var normalizedCode = code.ToUpper();
-        return await dbContext.Units.FirstOrDefaultAsync(u => u.Code == normalizedCode && !u.Isdeleted, cancellationToken);
     }
 
     public async Task<Unit?> GetByNameAsync(string name, CancellationToken cancellationToken = default)
@@ -250,8 +238,8 @@ public class UnitConversionRepository(AutoPartDbContext dbContext) : IUnitConver
             query = query.Where(c =>
                 (c.FromUnit != null && c.FromUnit.Name.ToLower().Contains(search)) ||
                 (c.ToUnit != null && c.ToUnit.Name.ToLower().Contains(search)) ||
-                (c.FromUnit != null && c.FromUnit.Code.ToLower().Contains(search)) ||
-                (c.ToUnit != null && c.ToUnit.Code.ToLower().Contains(search)));
+                (c.FromUnit != null && c.FromUnit.Symbol.ToLower().Contains(search)) ||
+                (c.ToUnit != null && c.ToUnit.Symbol.ToLower().Contains(search)));
         }
 
         var totalCount = await query.CountAsync(cancellationToken);

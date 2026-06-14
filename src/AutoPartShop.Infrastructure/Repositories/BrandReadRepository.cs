@@ -17,7 +17,6 @@ public class BrandReadRepository(AutoPartDbContext dbContext) : IBrandReadReposi
             var lowerTerm = query.Search.ToLower();
             brands = brands.Where(b =>
                 EF.Functions.Like(b.Name, $"%{lowerTerm}%") ||
-                EF.Functions.Like(b.Code, $"%{lowerTerm}%") ||
                 EF.Functions.Like(b.Description, $"%{lowerTerm}%") ||
                 EF.Functions.Like(b.Country, $"%{lowerTerm}%")
             );
@@ -46,7 +45,6 @@ public class BrandReadRepository(AutoPartDbContext dbContext) : IBrandReadReposi
             orderedBrands = firstSort.Field.ToLower() switch
             {
                 "name" => firstSort.IsAscending ? brands.OrderBy(b => b.Name) : brands.OrderByDescending(b => b.Name),
-                "code" => firstSort.IsAscending ? brands.OrderBy(b => b.Code) : brands.OrderByDescending(b => b.Code),
                 "country" => firstSort.IsAscending ? brands.OrderBy(b => b.Country) : brands.OrderByDescending(b => b.Country),
                 "displayorder" => firstSort.IsAscending ? brands.OrderBy(b => b.DisplayOrder) : brands.OrderByDescending(b => b.DisplayOrder),
                 "isactive" => firstSort.IsAscending ? brands.OrderBy(b => b.IsActive) : brands.OrderByDescending(b => b.IsActive),
@@ -61,7 +59,6 @@ public class BrandReadRepository(AutoPartDbContext dbContext) : IBrandReadReposi
                 orderedBrands = sort.Field.ToLower() switch
                 {
                     "name" => sort.IsAscending ? orderedBrands.ThenBy(b => b.Name) : orderedBrands.ThenByDescending(b => b.Name),
-                    "code" => sort.IsAscending ? orderedBrands.ThenBy(b => b.Code) : orderedBrands.ThenByDescending(b => b.Code),
                     "country" => sort.IsAscending ? orderedBrands.ThenBy(b => b.Country) : orderedBrands.ThenByDescending(b => b.Country),
                     "displayorder" => sort.IsAscending ? orderedBrands.ThenBy(b => b.DisplayOrder) : orderedBrands.ThenByDescending(b => b.DisplayOrder),
                     "isactive" => sort.IsAscending ? orderedBrands.ThenBy(b => b.IsActive) : orderedBrands.ThenByDescending(b => b.IsActive),
@@ -94,7 +91,6 @@ public class BrandReadRepository(AutoPartDbContext dbContext) : IBrandReadReposi
         {
             Id = brand.Id,
             Name = brand.Name,
-            Code = brand.Code,
             Description = brand.Description,
             LogoUrl = brand.LogoUrl,
             Website = brand.Website,

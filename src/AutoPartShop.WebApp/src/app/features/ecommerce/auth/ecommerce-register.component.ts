@@ -3,6 +3,7 @@ import { CommonModule, DOCUMENT } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { CustomerAuthService } from '../services/customer-auth.service';
+import { AppBrandingService } from '../../../shared/services/app-branding.service';
 import { extractApiError } from '../../../shared/utils/api-error.util';
 
 @Component({
@@ -13,9 +14,9 @@ import { extractApiError } from '../../../shared/utils/api-error.util';
     <div class="auth-page">
       <div class="auth-card">
         <div class="auth-logo">
-          <span class="logo-mark">SM</span>
+          <span class="logo-mark">{{ brandInitials }}</span>
           <div class="logo-text">
-            <span class="logo-title">Sujan Motors</span>
+            <span class="logo-title">{{ branding.appName() }}</span>
             <span class="logo-sub">Create Account</span>
           </div>
         </div>
@@ -107,6 +108,15 @@ export class EcommerceRegisterComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly doc = inject(DOCUMENT);
+  protected readonly branding = inject(AppBrandingService);
+
+  /** Up-to-2-letter monogram derived from the configured application name. */
+  get brandInitials(): string {
+    const words = this.branding.appName().trim().split(/\s+/).filter(Boolean);
+    if (words.length === 0) return '?';
+    if (words.length === 1) return words[0].substring(0, 2).toUpperCase();
+    return (words[0][0] + words[words.length - 1][0]).toUpperCase();
+  }
 
   ngOnInit(): void {
     this.doc.body.classList.add('storefront-scroll');

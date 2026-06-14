@@ -13,6 +13,7 @@ import { Popover } from 'primeng/popover';
 import { LayoutService } from '../service/layout.service';
 import { AuthService } from '../../shared/services/auth.service';
 import { I18nService } from '../../shared/services/i18n.service';
+import { AppBrandingService } from '../../shared/services/app-branding.service';
 import { NotificationHubService, SaleNotificationEvent } from '../../shared/services/notification-hub.service';
 import { LanguageSwitcherComponent } from '../../shared/components/language-switcher/language-switcher.component';
 import { ToastModule } from 'primeng/toast';
@@ -467,6 +468,7 @@ export class AppTopbar implements OnInit, OnDestroy {
     private authService = inject(AuthService);
     private router = inject(Router);
     private i18n = inject(I18nService);
+    private branding = inject(AppBrandingService);
     private notificationHub = inject(NotificationHubService);
     private messageService = inject(MessageService);
 
@@ -596,35 +598,66 @@ export class AppTopbar implements OnInit, OnDestroy {
     }
 
     updatePageTitle() {
-        const url = this.router.url;
+        const url = this.router.url.split('?')[0];
+
+        // Leaf route -> menu translation key, kept in sync with app.menu.component.ts
+        // so the topbar shows the same label as the navigation menu.
         const titleKeyMap: { [key: string]: string } = {
-            '/': 'pageTitles.dashboard',
-            '/inventory/categories': 'pageTitles.categories',
-            '/inventory/brands': 'pageTitles.brands',
-            '/inventory/units': 'pageTitles.units',
-            '/inventory/parts': 'pageTitles.parts',
-            '/inventory/suppliers': 'pageTitles.suppliers',
-            '/inventory/warehouses': 'pageTitles.warehouses',
-            '/inventory/vehicles': 'pageTitles.vehicles',
-            '/inventory/stock': 'pageTitles.stockManagement',
-            '/procurement/purchase-orders': 'pageTitles.purchaseOrders',
-            '/procurement/purchase-returns': 'pageTitles.purchaseReturns',
-            '/procurement/goods-receipts': 'pageTitles.goodsReceipts',
-            '/procurement/payment-providers': 'pageTitles.paymentProviders',
-            '/procurement/supplier-payments': 'pageTitles.supplierPayments',
-            '/sales/sales-orders': 'pageTitles.salesOrders',
-            '/sales/invoices': 'pageTitles.invoices',
-            '/sales/customers': 'pageTitles.customers',
-            '/sales/technicians': 'pageTitles.technicians',
-            '/sales/customer-payments': 'pageTitles.customerPayments',
-            '/sales/sales-returns': 'pageTitles.salesReturns',
-            '/audit/dashboard': 'pageTitles.auditTrail',
-            '/audit/logs': 'pageTitles.auditTrail',
-            '/admin-settings': 'pageTitles.adminSettings'
+            '/': 'menu.dashboard',
+            '/inventory/parts': 'menu.parts',
+            '/inventory/categories': 'menu.categories',
+            '/inventory/brands': 'menu.brands',
+            '/inventory/units': 'menu.units',
+            '/inventory/attribute-groups': 'menu.attributeGroups',
+            '/inventory/discounts': 'menu.discounts',
+            '/inventory/stock': 'menu.stockManagement',
+            '/inventory/warehouses': 'menu.warehouses',
+            '/inventory/suppliers': 'menu.suppliers',
+            '/inventory/vehicles': 'menu.vehicles',
+            '/procurement/purchase-orders': 'menu.purchaseOrders',
+            '/procurement/goods-receipts': 'menu.goodsReceipts',
+            '/procurement/purchase-returns': 'menu.purchaseReturns',
+            '/procurement/supplier-payments': 'menu.supplierPayments',
+            '/procurement/supplier-account-summary': 'menu.supplierStatements',
+            '/procurement/daily-expenses': 'menu.dailyExpenses',
+            '/procurement/payment-providers': 'menu.paymentProviders',
+            '/sales/sales-orders': 'menu.salesOrders',
+            '/sales/invoices': 'menu.invoices',
+            '/sales/pending-deliveries': 'menu.pendingDeliveries',
+            '/sales/sales-returns': 'menu.salesReturns',
+            '/sales/customers': 'menu.customers',
+            '/sales/customer-payments': 'menu.customerPayments',
+            '/sales/customer-account-summary': 'menu.customerStatements',
+            '/sales/technicians': 'menu.technicians',
+            '/warranty/registrations': 'menu.warrantyRegistrations',
+            '/warranty/claims': 'menu.warrantyClaims',
+            '/finance/cash-book': 'menu.dailyCashBook',
+            '/admin/company-profile': 'menu.companyProfile',
+            '/admin/currencies': 'menu.currencies',
+            '/admin/exchange-rates': 'menu.exchangeRates',
+            '/admin/shop-policies': 'menu.shopPolicies',
+            '/admin-settings': 'menu.settings',
+            '/audit/dashboard': 'menu.auditDashboard',
+            '/audit/logs': 'menu.auditTrail',
         };
 
-        const key = titleKeyMap[url] || 'pageTitles.autoPartShop';
-        this.pageTitle.set(this.i18n.t(key));
+        // Exact match, else inherit the nearest parent list page (e.g. /sales/sales-orders/create).
+        let key = titleKeyMap[url];
+        if (!key) {
+            const prefix = Object.keys(titleKeyMap)
+                .filter(k => k !== '/' && url.startsWith(k + '/'))
+                .sort((a, b) => b.length - a.length)[0];
+            if (prefix) key = titleKeyMap[prefix];
+        }
+        if (key) {
+            this.pageTitle.set(this.i18n.t(key));
+            return;
+        }
+
+        // Unmapped: humanize the last URL segment (e.g. /admin/foo-bar -> "Foo Bar").
+        const segment = url.split('/').filter(Boolean).pop() ?? '';
+        const humanized = segment.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        this.pageTitle.set(humanized || this.branding.appName());
     }
 
     toggleDarkMode() {

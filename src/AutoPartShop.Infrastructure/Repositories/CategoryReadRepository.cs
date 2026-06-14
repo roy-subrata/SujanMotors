@@ -20,7 +20,7 @@ public class CategoryReadRepository(AutoPartDbContext dbContext) : ICategoryRead
         {
             var lowerTerm = query.Search.ToLower();
             categories = categories.Where(x =>
-             EF.Functions.Like(x.Name, $"%{lowerTerm}%") || EF.Functions.Like(x.Code, $"%{lowerTerm}%") || EF.Functions.Like(x.Description, $"%{lowerTerm}%")
+             EF.Functions.Like(x.Name, $"%{lowerTerm}%") || EF.Functions.Like(x.Description, $"%{lowerTerm}%")
           );
         }
         
@@ -40,7 +40,6 @@ public class CategoryReadRepository(AutoPartDbContext dbContext) : ICategoryRead
             orderedCategories = firstSort.Field.ToLower() switch
             {
                 "name" => firstSort.IsAscending ? categories.OrderBy(c => c.Name) : categories.OrderByDescending(c => c.Name),
-                "code" => firstSort.IsAscending ? categories.OrderBy(c => c.Code) : categories.OrderByDescending(c => c.Code),
                 "displayorder" => firstSort.IsAscending ? categories.OrderBy(c => c.DisplayOrder) : categories.OrderByDescending(c => c.DisplayOrder),
                 "isactive" => firstSort.IsAscending ? categories.OrderBy(c => c.IsActive) : categories.OrderByDescending(c => c.IsActive),
                 "createddate" => firstSort.IsAscending ? categories.OrderBy(c => c.CreatedDate) : categories.OrderByDescending(c => c.CreatedDate),
@@ -54,7 +53,6 @@ public class CategoryReadRepository(AutoPartDbContext dbContext) : ICategoryRead
                 orderedCategories = sort.Field.ToLower() switch
                 {
                     "name" => sort.IsAscending ? orderedCategories.ThenBy(c => c.Name) : orderedCategories.ThenByDescending(c => c.Name),
-                    "code" => sort.IsAscending ? orderedCategories.ThenBy(c => c.Code) : orderedCategories.ThenByDescending(c => c.Code),
                     "displayorder" => sort.IsAscending ? orderedCategories.ThenBy(c => c.DisplayOrder) : orderedCategories.ThenByDescending(c => c.DisplayOrder),
                     "isactive" => sort.IsAscending ? orderedCategories.ThenBy(c => c.IsActive) : orderedCategories.ThenByDescending(c => c.IsActive),
                     "createddate" => sort.IsAscending ? orderedCategories.ThenBy(c => c.CreatedDate) : orderedCategories.ThenByDescending(c => c.CreatedDate),
@@ -93,7 +91,6 @@ public class CategoryReadRepository(AutoPartDbContext dbContext) : ICategoryRead
             Id = category.Id,
             Name = category.Name,
             Description = category.Description,
-            Code = category.Code,
             ParentCategoryId = category.ParentCategoryId,
             IsActive = category.IsActive,
             DisplayOrder = category.DisplayOrder,

@@ -5,6 +5,7 @@ import { CurrencyService } from '../../../shared/services/currency.service';
 import { AppSettingsService, ShopProfile } from '../../../shared/services/app-settings.service';
 
 const DEFAULT_PROFILE: ShopProfile = {
+  appName: 'Auto Part Shop', appLogoUrl: 'assets/logo.png',
   name: '', address: '', phone: '', email: '', taxNo: '',
   logoUrl: 'assets/logo.png', tagline: '',
   invoiceFooterText: 'Thank you for your business!',

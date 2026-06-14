@@ -31,6 +31,7 @@ public class ApplicationSettingsController : ControllerBase
     public async Task<ActionResult> GetPublicShopProfile()
     {
         var settings = await _settingsRepository.GetByCategoryAsync("BUSINESS");
+        var branding = await _settingsRepository.GetByCategoryAsync("BRANDING");
 
         string Get(string key, string fallback = "")
         {
@@ -38,8 +39,17 @@ public class ApplicationSettingsController : ControllerBase
             return string.IsNullOrWhiteSpace(v) ? fallback : v;
         }
 
+        string GetBranding(string key, string fallback = "")
+        {
+            var v = branding.FirstOrDefault(s => s.Key == key && !s.Isdeleted)?.Value;
+            return string.IsNullOrWhiteSpace(v) ? fallback : v;
+        }
+
         return Ok(new
         {
+            // Application brand (white-label) — independent of the business identity below.
+            appName           = GetBranding("APP_NAME", "Auto Part Shop"),
+            appLogoUrl        = GetBranding("APP_LOGO_URL", "assets/logo.png"),
             name              = Get("SHOP_NAME"),
             address           = Get("SHOP_ADDRESS"),
             phone             = Get("SHOP_PHONE"),
@@ -50,6 +60,46 @@ public class ApplicationSettingsController : ControllerBase
             invoiceFooterText = Get("INVOICE_FOOTER_TEXT", "Thank you for your business!"),
             challanFooterText = Get("CHALLAN_FOOTER_TEXT", "Goods once dispatched will not be accepted back without prior notice.")
         });
+    }
+
+    /// <summary>
+    /// Dynamic PWA manifest built from the configured application brand (no auth required).
+    /// Served at a route without a file extension so static-file middleware does not intercept it;
+    /// referenced from index.html via &lt;link rel="manifest"&gt;. Icon and start_url paths are
+    /// root-relative so they resolve against the page origin (dev proxy / prod reverse proxy).
+    /// </summary>
+    [HttpGet("public/manifest")]
+    [AllowAnonymous]
+    public async Task<ActionResult> GetManifest()
+    {
+        var appName = await _settingsRepository.GetValueAsync("APP_NAME");
+        var name = string.IsNullOrWhiteSpace(appName) ? "Auto Part Shop" : appName;
+        var shortName = name.Length > 12 ? name[..12] : name;
+
+        var manifest = new Dictionary<string, object?>
+        {
+            ["name"] = name,
+            ["short_name"] = shortName,
+            ["description"] = $"{name} - Inventory and Sales Management System",
+            ["theme_color"] = "#667eea",
+            ["background_color"] = "#ffffff",
+            ["display"] = "standalone",
+            ["orientation"] = "portrait-primary",
+            ["scope"] = "/",
+            ["start_url"] = "/",
+            ["id"] = "/",
+            ["icons"] = new object[]
+            {
+                new { src = "/assets/icons/manifest-icon-192.maskable.png", sizes = "192x192", type = "image/png", purpose = "any" },
+                new { src = "/assets/icons/manifest-icon-192.maskable.png", sizes = "192x192", type = "image/png", purpose = "maskable" },
+                new { src = "/assets/icons/manifest-icon-512.maskable.png", sizes = "512x512", type = "image/png", purpose = "any" },
+                new { src = "/assets/icons/manifest-icon-512.maskable.png", sizes = "512x512", type = "image/png", purpose = "maskable" },
+                new { src = "/assets/icons/icon.svg", sizes = "any", type = "image/svg+xml", purpose = "any" }
+            },
+            ["categories"] = new[] { "business", "productivity" }
+        };
+
+        return new JsonResult(manifest) { ContentType = "application/manifest+json" };
     }
 
     /// <summary>

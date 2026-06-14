@@ -20,7 +20,6 @@
       <ng-template #header>
         <tr>
           <th class="col-name">Name</th>
-          <th class="col-code">Code</th>
           <th class="col-breadcrumb">Breadcrumb</th>
           <th class="col-level">Level</th>
           <th class="col-children">Children</th>
@@ -43,11 +42,6 @@
                       [title]="category.description">{{ category.description }}</span>
               </div>
             </div>
-          </td>
-
-          <!-- Code -->
-          <td class="col-code">
-            <span class="code-badge">{{ category.code }}</span>
           </td>
 
           <!-- Breadcrumb -->
@@ -184,7 +178,7 @@
     <div *ngFor="let category of categories" class="order-card" (click)="editCategory.emit(category)">
 
       <div class="card-header">
-        <span class="card-so-number">{{ category.code }}</span>
+        <span class="card-so-number">{{ category.name }}</span>
         <span class="status-pill" [attr.data-status]="category.isActive ? 'active' : 'inactive'">
           {{ getStatusLabel(category.isActive) }}
         </span>

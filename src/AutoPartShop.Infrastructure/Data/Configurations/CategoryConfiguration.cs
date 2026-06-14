@@ -21,10 +21,6 @@ public class CategoryConfiguration : IEntityTypeConfiguration<Category>
                     .HasMaxLength(500)
                     .IsRequired(false);
 
-        builder.Property(c => c.Code)
-            .IsRequired()
-            .HasMaxLength(20);
-
         builder.HasOne(c => c.ParentCategory)
                .WithMany(c => c.SubCategories)
                .HasForeignKey(c => c.ParentCategoryId)
@@ -49,8 +45,6 @@ public class CategoryConfiguration : IEntityTypeConfiguration<Category>
 
         builder.HasIndex(c => c.IsActive);
         builder.HasIndex(c => c.Name);
-
-        builder.HasIndex(c => c.Code).IsUnique();
 
         // Configure relationships if any
         // Example: builder.HasMany(c => c.Parts).WithOne(p => p.Category);

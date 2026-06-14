@@ -21,7 +21,6 @@
       <ng-template #header>
         <tr>
           <th class="col-name">Unit</th>
-          <th class="col-code">Code</th>
           <th class="col-symbol">Symbol</th>
           <th class="col-desc">Description</th>
           <th class="col-status">Status</th>
@@ -41,9 +40,6 @@
                 <span *ngIf="unit.description" class="customer-phone">{{ unit.description }}</span>
               </div>
             </div>
-          </td>
-          <td class="col-code">
-            <span class="code-badge">{{ unit.code }}</span>
           </td>
           <td class="col-symbol">
             <span class="date-text">{{ unit.symbol || '-' }}</span>
@@ -161,7 +157,7 @@
   <div *ngIf="!loading && units.length > 0" class="cards-grid">
     <div *ngFor="let unit of units" class="order-card">
       <div class="card-header">
-        <span class="card-so-number">{{ unit.code }}</span>
+        <span class="card-so-number">{{ unit.name }}</span>
         <span class="status-pill" [attr.data-status]="unit.isActive ? 'active' : 'inactive'">
           {{ unit.isActive ? 'Active' : 'Inactive' }}
         </span>
@@ -188,8 +184,8 @@
 
       <div class="card-footer">
         <div class="card-amount">
-          <span class="amount-label">Actions</span>
-          <span class="amount-value">{{ unit.code }}</span>
+          <span class="amount-label">Symbol</span>
+          <span class="amount-value">{{ unit.symbol }}</span>
         </div>
         <div class="action-cell">
           <button class="btn-card-action" (click)="onEdit(unit)">

@@ -19,11 +19,6 @@ namespace AutoPartShop.Application.Categories.Dtos
         public string? Description { get; set; }
 
         /// <summary>
-        /// Category code
-        /// </summary>
-        public string Code { get; set; } = string.Empty;
-
-        /// <summary>
         /// Parent category ID (if this is a subcategory)
         /// </summary>
         public Guid? ParentCategoryId { get; set; }

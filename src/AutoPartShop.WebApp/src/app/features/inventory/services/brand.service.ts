@@ -8,7 +8,6 @@ import { environment } from 'src/environments/environment';
 export interface BrandResponse {
   id: string;
   name: string;
-  code: string;
   description: string | null;
   logoUrl: string | null;
   website: string | null;
@@ -23,7 +22,6 @@ export interface BrandResponse {
 
 export interface CreateBrandRequest {
   name: string;
-  code: string;
   description?: string | null;
   logoUrl?: string | null;
   website?: string | null;
@@ -36,7 +34,6 @@ export interface CreateBrandRequest {
 
 export interface UpdateBrandRequest {
   name: string;
-  code: string;
   description?: string | null;
   logoUrl?: string | null;
   website?: string | null;
@@ -93,12 +90,6 @@ export class BrandService {
   /** Get a single brand by ID. */
   getBrandById(id: string): Observable<{ data: BrandResponse }> {
     return this.http.get<{ data: BrandResponse }>(`${this.apiUrl}/${id}`);
-  }
-
-  /** Look up a brand by its unique code (e.g. "NGK"). */
-  getBrandByCode(code: string): Observable<{ data: BrandResponse }> {
-    const params = new HttpParams().set('code', code);
-    return this.http.get<{ data: BrandResponse }>(`${this.apiUrl}/by-code`, { params });
   }
 
   /** Create a new brand. Returns the created brand wrapped in { data }. */

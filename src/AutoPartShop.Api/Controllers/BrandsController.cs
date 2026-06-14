@@ -85,22 +85,6 @@ public class BrandsController : ControllerBase
 
     // ── Single by code ────────────────────────────────────────────────────────
 
-    /// <summary>Look up a brand by its unique code (e.g. "NGK", "BOSCH"). Case-insensitive.</summary>
-    [HttpGet("by-code")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetByCode([FromQuery] string code, CancellationToken cancellationToken)
-    {
-        if (string.IsNullOrWhiteSpace(code))
-            return BadRequest(ApiError.Validation("'code' query parameter is required", instance: Request.Path));
-
-        var brand = await _brandRepository.GetByCodeAsync(code.Trim().ToUpperInvariant(), cancellationToken);
-        if (brand is null)
-            return NotFound(ApiError.NotFound($"Brand with code '{code}' not found", Request.Path));
-
-        return Ok(ApiResponse<BrandResponse>.Ok(MapToResponse(brand)));
-    }
-
     // ── Create ────────────────────────────────────────────────────────────────
 
     [HttpPost]
@@ -113,17 +97,8 @@ public class BrandsController : ControllerBase
         if (string.IsNullOrWhiteSpace(request.Name))
             return BadRequest(ApiError.Validation("Name is required", instance: Request.Path));
 
-        if (string.IsNullOrWhiteSpace(request.Code))
-            return BadRequest(ApiError.Validation("Code is required", instance: Request.Path));
-
-        // Normalise code — always stored uppercase, no leading/trailing whitespace
-        var normalizedCode = request.Code.Trim().ToUpperInvariant();
-
-        if (await _brandRepository.ExistsByCodeAsync(normalizedCode, cancellationToken))
-            return Conflict(ApiError.Conflict($"Brand code '{normalizedCode}' is already in use", Request.Path));
-
         var brand = Brand.Create(
-            request.Name.Trim(), normalizedCode,
+            request.Name.Trim(),
             request.Description ?? string.Empty,
             request.Country ?? string.Empty,
             request.LogoUrl ?? string.Empty,
@@ -155,22 +130,12 @@ public class BrandsController : ControllerBase
         if (string.IsNullOrWhiteSpace(request.Name))
             return BadRequest(ApiError.Validation("Name is required", instance: Request.Path));
 
-        if (string.IsNullOrWhiteSpace(request.Code))
-            return BadRequest(ApiError.Validation("Code is required", instance: Request.Path));
-
         var brand = await _brandRepository.GetByIdAsync(id, cancellationToken);
         if (brand is null)
             return NotFound(ApiError.NotFound($"Brand '{id}' not found", Request.Path));
 
-        var normalizedCode = request.Code.Trim().ToUpperInvariant();
-
-        // Only check for conflict if the code is actually changing
-        if (!brand.Code.Equals(normalizedCode, StringComparison.OrdinalIgnoreCase) &&
-            await _brandRepository.ExistsByCodeAsync(normalizedCode, cancellationToken))
-            return Conflict(ApiError.Conflict($"Brand code '{normalizedCode}' is already in use", Request.Path));
-
         brand.Update(
-            request.Name.Trim(), normalizedCode,
+            request.Name.Trim(),
             request.Description ?? string.Empty,
             request.LogoUrl ?? string.Empty,
             request.Website ?? string.Empty,
@@ -180,15 +145,7 @@ public class BrandsController : ControllerBase
             request.DisplayOrder, request.IsActive);
         brand.ModifiedBy = _currentUserService.GetCurrentUsername();
 
-        try
-        {
-            await _brandRepository.UpdateAsync(brand, cancellationToken);
-        }
-        catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("duplicate key", StringComparison.OrdinalIgnoreCase) == true)
-        {
-            // Concurrent request created the same code between our check and update
-            return Conflict(ApiError.Conflict($"Brand code '{normalizedCode}' is already in use", Request.Path));
-        }
+        await _brandRepository.UpdateAsync(brand, cancellationToken);
 
         return Ok(ApiResponse<BrandResponse>.Ok(MapToResponse(brand)));
     }
@@ -215,7 +172,6 @@ public class BrandsController : ControllerBase
     {
         Id = brand.Id,
         Name = brand.Name,
-        Code = brand.Code,
         // Normalise empty strings stored by the domain to null so the response
         // matches the declared nullable types and frontend null-checks work correctly
         Description  = NullIfEmpty(brand.Description),

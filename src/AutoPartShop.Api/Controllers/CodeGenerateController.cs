@@ -20,18 +20,6 @@ public class CodeGenerateController(ICodeGenerateService _codeGenerator) : Contr
 {
     // ── Inventory ─────────────────────────────────────────────────────────────
 
-    [HttpGet("unit")]
-    public async Task<IActionResult> PreviewUnitCode(CancellationToken ct) =>
-        Ok(new { code = await _codeGenerator.PeekAsync("UNI", ct) });
-
-    [HttpGet("category")]
-    public async Task<IActionResult> PreviewCategoryCode(CancellationToken ct) =>
-        Ok(new { code = await _codeGenerator.PeekAsync("CAT", ct) });
-
-    [HttpGet("brand")]
-    public async Task<IActionResult> PreviewBrandCode(CancellationToken ct) =>
-        Ok(new { code = await _codeGenerator.PeekAsync("BRD", ct) });
-
     [HttpGet("part")]
     public async Task<IActionResult> PreviewPartCode(CancellationToken ct) =>
         Ok(new { code = await _codeGenerator.PeekAsync("SKU", ct) });

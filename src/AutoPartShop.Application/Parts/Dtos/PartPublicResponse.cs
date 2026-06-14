@@ -13,7 +13,6 @@ namespace AutoPartShop.Application.Parts.Dtos
         public string CategoryName { get; set; } = string.Empty;
         public Guid? BrandId { get; set; }
         public string? BrandName { get; set; }
-        public string? BrandCode { get; set; }
         public Guid? BaseUnitId { get; set; }
         public string? BaseUnitName { get; set; }
         public string? BaseUnitCode { get; set; }

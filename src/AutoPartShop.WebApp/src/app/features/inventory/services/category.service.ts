@@ -9,7 +9,6 @@ export interface CategoryResponse {
     id: string;
     name: string;
     description: string | null;
-    code: string;
     parentCategoryId: string | null;
     isActive: boolean;
     displayOrder: number;
@@ -24,7 +23,6 @@ export interface CategoryResponse {
 export interface CreateCategoryRequest {
     name: string;
     description?: string | null;
-    code: string;
     displayOrder?: number;
     parentCategoryId?: string | null;
 }

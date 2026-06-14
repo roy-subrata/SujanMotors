@@ -167,17 +167,10 @@ public class UnitsController : ControllerBase
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(request.Name) || string.IsNullOrWhiteSpace(request.Code) || string.IsNullOrWhiteSpace(request.Symbol))
-                return BadRequest(new { message = "Name, Code, and Symbol are required" });
+            if (string.IsNullOrWhiteSpace(request.Name) || string.IsNullOrWhiteSpace(request.Symbol))
+                return BadRequest(new { message = "Name and Symbol are required" });
 
-            _logger.LogInformation("Creating new unit: {UnitName} ({UnitCode})", request.Name, request.Code);
-
-            // Check for duplicate code
-            if (await _unitRepository.CodeExistsAsync(request.Code, null, cancellationToken))
-            {
-                _logger.LogWarning("Unit code already exists: {UnitCode}", request.Code);
-                return Conflict(new { message = $"Unit code '{request.Code}' already exists" });
-            }
+            _logger.LogInformation("Creating new unit: {UnitName} ({UnitSymbol})", request.Name, request.Symbol);
 
             // Check for duplicate name
             if (await _unitRepository.NameExistsAsync(request.Name, null, cancellationToken))
@@ -186,7 +179,7 @@ public class UnitsController : ControllerBase
                 return Conflict(new { message = $"Unit name '{request.Name}' already exists" });
             }
 
-            var unit = Unit.Create(request.Name, request.Code, request.Symbol, request.Description);
+            var unit = Unit.Create(request.Name, request.Symbol, request.Description);
             var currentUser = _currentUserService.GetCurrentUsername();
             unit.CreatedBy = currentUser;
             unit.ModifiedBy = currentUser;
@@ -220,8 +213,8 @@ public class UnitsController : ControllerBase
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(request.Name) || string.IsNullOrWhiteSpace(request.Code) || string.IsNullOrWhiteSpace(request.Symbol))
-                return BadRequest(new { message = "Name, Code, and Symbol are required" });
+            if (string.IsNullOrWhiteSpace(request.Name) || string.IsNullOrWhiteSpace(request.Symbol))
+                return BadRequest(new { message = "Name and Symbol are required" });
 
             _logger.LogInformation("Updating unit: {UnitId}", id);
 
@@ -232,13 +225,6 @@ public class UnitsController : ControllerBase
                 return NotFound(new { message = "Unit not found" });
             }
 
-            // Check for duplicate code (excluding current unit)
-            if (await _unitRepository.CodeExistsAsync(request.Code, id, cancellationToken))
-            {
-                _logger.LogWarning("Unit code already exists: {UnitCode}", request.Code);
-                return Conflict(new { message = $"Unit code '{request.Code}' already exists" });
-            }
-
             // Check for duplicate name (excluding current unit)
             if (await _unitRepository.NameExistsAsync(request.Name, id, cancellationToken))
             {
@@ -246,7 +232,7 @@ public class UnitsController : ControllerBase
                 return Conflict(new { message = $"Unit name '{request.Name}' already exists" });
             }
 
-            unit.Update(request.Name, request.Code, request.Symbol, request.Description, request.IsActive, request.DisplayOrder);
+            unit.Update(request.Name, request.Symbol, request.Description, request.IsActive, request.DisplayOrder);
             unit.ModifiedBy = _currentUserService.GetCurrentUsername();
 
             await _unitRepository.UpdateAsync(unit, cancellationToken);
@@ -515,9 +501,9 @@ public class UnitsController : ControllerBase
                 FromUnitId = fromUnitId,
                 ToUnitId = toUnitId,
                 FromUnitName = reverseConversion.ToUnit?.Name ?? string.Empty,
-                FromUnitCode = reverseConversion.ToUnit?.Code ?? string.Empty,
+                FromUnitCode = reverseConversion.ToUnit?.Symbol ?? string.Empty,
                 ToUnitName = reverseConversion.FromUnit?.Name ?? string.Empty,
-                ToUnitCode = reverseConversion.FromUnit?.Code ?? string.Empty,
+                ToUnitCode = reverseConversion.FromUnit?.Symbol ?? string.Empty,
                 ConversionFactor = invertedFactor,
                 Description = reverseConversion.Description,
                 IsActive = reverseConversion.IsActive,
@@ -724,7 +710,6 @@ public class UnitsController : ControllerBase
         {
             Id = unit.Id,
             Name = unit.Name,
-            Code = unit.Code,
             Symbol = unit.Symbol,
             Description = unit.Description,
             IsActive = unit.IsActive,
@@ -742,9 +727,9 @@ public class UnitsController : ControllerBase
             FromUnitId = conversion.FromUnitId,
             ToUnitId = conversion.ToUnitId,
             FromUnitName = fromUnit?.Name ?? string.Empty,
-            FromUnitCode = fromUnit?.Code ?? string.Empty,
+            FromUnitCode = fromUnit?.Symbol ?? string.Empty,
             ToUnitName = toUnit?.Name ?? string.Empty,
-            ToUnitCode = toUnit?.Code ?? string.Empty,
+            ToUnitCode = toUnit?.Symbol ?? string.Empty,
             ConversionFactor = conversion.ConversionFactor,
             Description = conversion.Description,
             IsActive = conversion.IsActive,

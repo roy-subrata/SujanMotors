@@ -28,12 +28,6 @@ public class BrandRepository : IBrandRepository
             .FirstOrDefaultAsync(x => x.Id == id && !x.Isdeleted, cancellationToken);
     }
 
-    public async Task<Brand?> GetByCodeAsync(string code, CancellationToken cancellationToken = default)
-    {
-        return await _dbContext.Set<Brand>()
-            .FirstOrDefaultAsync(x => x.Code == code.ToUpper() && !x.Isdeleted, cancellationToken);
-    }
-
     public async Task<IEnumerable<Brand>> GetActiveBrandsAsync(CancellationToken cancellationToken = default)
     {
         return await _dbContext.Set<Brand>()
@@ -41,12 +35,6 @@ public class BrandRepository : IBrandRepository
             .OrderBy(x => x.DisplayOrder)
             .ThenBy(x => x.Name)
             .ToListAsync(cancellationToken);
-    }
-
-    public async Task<bool> ExistsByCodeAsync(string code, CancellationToken cancellationToken = default)
-    {
-        return await _dbContext.Set<Brand>()
-            .AnyAsync(x => x.Code == code.ToUpper() && !x.Isdeleted, cancellationToken);
     }
 
     public async Task AddAsync(Brand entity, CancellationToken cancellationToken = default)
