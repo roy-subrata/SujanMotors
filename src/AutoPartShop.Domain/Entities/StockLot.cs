@@ -145,53 +145,6 @@ public class StockLot : AuditableEntity
         QuantityReceivedInBaseUnit += quantityInBaseUnit > 0 ? quantityInBaseUnit : quantity;
     }
 
-    /// <summary>
-    /// Factory method for creating lots from sales returns (no supplier/goods receipt required)
-    /// </summary>
-    public static StockLot CreateForReturn(string lotNumber, Guid partId, Guid warehouseId,
-        int quantityReceived, decimal costPrice, DateTime receivingDate,
-        string returnNumber = "", string currency = "USD", string notes = "",
-        Guid? unitId = null, int quantityReceivedInBaseUnit = 0, decimal costPriceInBaseUnit = 0,
-        Guid? variantId = null)
-    {
-        if (string.IsNullOrWhiteSpace(lotNumber))
-            throw new ArgumentException("LotNumber cannot be empty", nameof(lotNumber));
-
-        if (partId == Guid.Empty)
-            throw new ArgumentException("PartId cannot be empty", nameof(partId));
-
-        if (warehouseId == Guid.Empty)
-            throw new ArgumentException("WarehouseId cannot be empty", nameof(warehouseId));
-
-        if (quantityReceived <= 0)
-            throw new ArgumentException("QuantityReceived must be greater than 0", nameof(quantityReceived));
-
-        if (costPrice < 0)
-            throw new ArgumentException("CostPrice cannot be negative", nameof(costPrice));
-
-        return new StockLot
-        {
-            LotNumber = lotNumber.Trim().ToUpper(),
-            PartId = partId,
-            VariantId = variantId,
-            WarehouseId = warehouseId,
-            SupplierId = Guid.Empty,
-            GoodsReceiptLineId = Guid.Empty,
-            QuantityReceived = quantityReceived,
-            QuantityReceivedInBaseUnit = quantityReceivedInBaseUnit > 0 ? quantityReceivedInBaseUnit : quantityReceived,
-            QuantityAvailable = quantityReceived,
-            QuantityAvailableInBaseUnit = quantityReceivedInBaseUnit > 0 ? quantityReceivedInBaseUnit : quantityReceived,
-            CostPrice = costPrice,
-            CostPriceInBaseUnit = costPriceInBaseUnit > 0 ? costPriceInBaseUnit : costPrice,
-            Currency = currency.Trim().ToUpper(),
-            ReceivingDate = receivingDate,
-            ManufacturerLotNumber = returnNumber?.Trim() ?? string.Empty,
-            Notes = notes?.Trim() ?? string.Empty,
-            UnitId = unitId,
-            IsActive = true
-        };
-    }
-
     public decimal GetTotalCost() => QuantityReceived * CostPrice;
     public decimal GetTotalCostInBaseUnit() => QuantityReceivedInBaseUnit * CostPriceInBaseUnit;
     public decimal GetAvailableCost() => QuantityAvailable * CostPrice;
