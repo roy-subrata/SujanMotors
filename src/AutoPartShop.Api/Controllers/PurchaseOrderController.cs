@@ -622,7 +622,6 @@ public class PurchaseOrderController : ControllerBase
                         damagedQuantityInBaseUnit,
                         wrongQuantityInBaseUnit,
                         unitCostInBaseUnit,
-                        lineRequest.SellingPrice,
                         lineRequest.HasWarranty,
                         lineRequest.WarrantyPeriodMonths,
                         lineRequest.WarrantyType,
@@ -850,7 +849,6 @@ public class PurchaseOrderController : ControllerBase
                         damagedQuantityInBaseUnit,
                         wrongQuantityInBaseUnit,
                         unitCostInBaseUnit,
-                        lineRequest.SellingPrice,
                         lineRequest.HasWarranty,
                         lineRequest.WarrantyPeriodMonths,
                         lineRequest.WarrantyType,
@@ -968,8 +966,7 @@ public class PurchaseOrderController : ControllerBase
                 var line = grn.LineItems.FirstOrDefault(l => l.Id == linePricing.LineId);
                 if (line is not null)
                 {
-                    line.UpdatePricing(
-                        linePricing.SellingPrice,
+                    line.UpdateWarranty(
                         linePricing.HasWarranty,
                         linePricing.WarrantyPeriodMonths,
                         linePricing.WarrantyType,
@@ -1125,7 +1122,6 @@ public class PurchaseOrderController : ControllerBase
                 UnitId = l.UnitId,
                 TotalCost = l.TotalCost,
                 AcceptedTotalCost = l.AcceptedTotalCost,
-                SellingPrice = l.SellingPrice,
                 HasWarranty = l.HasWarranty,
                 WarrantyPeriodMonths = l.WarrantyPeriodMonths,
                 WarrantyType = l.WarrantyType,

@@ -264,7 +264,10 @@ export class PartDetailsComponent implements OnInit {
 
         this.pricingService.setPrice(this.setPriceTarget.partId, {
             sellingPrice: v.sellingPrice!,
-            startDate: (v.startDate as Date).toISOString(),
+            // Send the picked calendar day as a local date-only string. Using toISOString()
+            // would shift the day backwards in positive-offset timezones (e.g. June 15 local
+            // midnight becomes June 14 in UTC+6), making the price effective a day early.
+            startDate: this.toLocalDateString(v.startDate as Date),
             currency: v.currency || 'BDT',
             reason: v.reason || undefined
         }, this.setPriceTarget.variantId).subscribe({
@@ -293,6 +296,14 @@ export class PartDetailsComponent implements OnInit {
                 this.savingPrice.set(false);
             }
         });
+    }
+
+    /** Formats a Date as a local-timezone `yyyy-MM-dd` string (no UTC conversion). */
+    private toLocalDateString(d: Date): string {
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
     }
 
     // ── Online Listing tab ─────────────────────────────────────────────────

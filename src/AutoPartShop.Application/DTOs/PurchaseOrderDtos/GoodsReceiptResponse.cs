@@ -74,8 +74,7 @@ public class GoodsReceiptLineResponse
     public decimal TotalCost { get; set; }
     public decimal AcceptedTotalCost { get; set; }
 
-    // Lot-level selling price & warranty overrides
-    public decimal? SellingPrice { get; set; }
+    // Lot-level warranty overrides
     public bool? HasWarranty { get; set; }
     public int? WarrantyPeriodMonths { get; set; }
     public string? WarrantyType { get; set; }

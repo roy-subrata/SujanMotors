@@ -1690,9 +1690,6 @@ namespace AutoPartsShop.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<decimal?>("SellingPrice")
-                        .HasColumnType("decimal(18,2)");
-
                     b.Property<string>("SerialNumbers")
                         .IsRequired()
                         .HasMaxLength(500)
@@ -3958,10 +3955,6 @@ namespace AutoPartsShop.Infrastructure.Migrations
 
                     b.Property<DateTime>("ReceivingDate")
                         .HasColumnType("datetime2");
-
-                    b.Property<decimal>("SellingPrice")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("Status")
                         .IsRequired()

@@ -163,7 +163,6 @@ public class StockLotController(
                     QuantityReceived = l.QuantityReceived,
                     QuantityAvailable = l.QuantityAvailable,
                     CostPrice = l.CostPrice,
-                    SellingPrice = l.SellingPrice,
                     HasWarranty = l.HasWarranty,
                     WarrantyPeriodMonths = l.WarrantyPeriodMonths,
                     WarrantyType = l.WarrantyType,
@@ -330,7 +329,6 @@ public class StockLotController(
                 request.UnitId,
                 request.QuantityReceivedInBaseUnit,
                 request.CostPriceInBaseUnit,
-                request.SellingPrice,
                 request.HasWarranty,
                 request.WarrantyPeriodMonths,
                 request.WarrantyType,
@@ -364,10 +362,9 @@ public class StockLotController(
 
             lot.UpdateDetails(request.ManufacturerLotNumber, request.ExpiryDate, request.Notes);
 
-            if (request.SellingPrice.HasValue || request.HasWarranty.HasValue)
+            if (request.HasWarranty.HasValue)
             {
-                lot.UpdatePriceAndWarranty(
-                    request.SellingPrice ?? lot.SellingPrice,
+                lot.UpdateWarranty(
                     request.HasWarranty ?? lot.HasWarranty,
                     request.WarrantyPeriodMonths ?? lot.WarrantyPeriodMonths,
                     request.WarrantyType ?? lot.WarrantyType,
@@ -425,8 +422,7 @@ public class StockLotController(
                 HasAvailableLot = true,
                 LotId = fifoLot.Id,
                 LotNumber = fifoLot.LotNumber,
-                SellingPrice = fifoLot.SellingPrice > 0 ? fifoLot.SellingPrice
-                    : (await _productRepository.GetByIdAsync(partId, cancellationToken))?.SellingPrice ?? 0,
+                SellingPrice = (await _productRepository.GetByIdAsync(partId, cancellationToken))?.SellingPrice ?? 0,
                 HasWarranty = fifoLot.HasWarranty,
                 WarrantyPeriodMonths = fifoLot.WarrantyPeriodMonths,
                 WarrantyType = fifoLot.WarrantyType,
@@ -519,7 +515,6 @@ public class StockLotController(
             BaseUnitName = part?.BaseUnit?.Name,
             BaseUnitCode = part?.BaseUnit?.Symbol,
             CostPrice = lot.CostPrice,
-            SellingPrice = lot.SellingPrice,
             Currency = lot.Currency,
             TotalCost = lot.GetTotalCost(),
             AvailableCost = lot.GetAvailableCost(),

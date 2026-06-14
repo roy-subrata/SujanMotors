@@ -123,6 +123,9 @@ public static class Dependency
         // Variant pricing repository
         services.AddScoped<IProductVariantPriceHistoryRepository, ProductVariantPriceHistoryRepository>();
 
+        // Promotes future-dated scheduled prices into the denormalized SellingPrice columns once effective.
+        services.AddHostedService<ScheduledPriceSyncService>();
+
         // Product semantic search: embedding store + embedding generator (OpenAI-compatible, JSON-configured)
         services.AddScoped<IProductEmbeddingRepository, ProductEmbeddingRepository>();
         services.AddHttpClient<IEmbeddingService, OpenAiCompatibleEmbeddingService>();

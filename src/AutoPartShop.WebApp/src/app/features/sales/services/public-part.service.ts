@@ -99,9 +99,4 @@ export class PublicPartService {
     return this.http.get<{ data: PublicPartResponse }>(`${this.apiUrl}/${id}`)
       .pipe(map(r => r.data));
   }
-
-  getLotPrice(partId: string): Observable<{ productId: string; sellingPrice: number; lotSellingPrice: number | null; fallbackSellingPrice: number; hasLotPrice: boolean; stockAvailable: number }> {
-    return this.http.get<{ data: any }>(`${this.apiUrl}/${partId}/lot-price`)
-      .pipe(map(r => r.data));
-  }
 }

@@ -154,7 +154,6 @@ public class ProductsController : ControllerBase
 
         if (part is not null)
         {
-            var lotPrice    = await GetFifoLotSellingPriceAsync(part.Id, cancellationToken);
             var totalStock  = await GetTotalAvailableStockAsync(part.Id, cancellationToken);
             return Ok(ApiResponse<object>.Ok(new
             {
@@ -162,9 +161,9 @@ public class ProductsController : ControllerBase
                 name                 = part.Name,
                 sku                  = part.SKU,
                 partNumber           = part.PartNumber?.Value ?? string.Empty,
-                sellingPrice         = lotPrice > 0 ? lotPrice : part.SellingPrice,
+                sellingPrice         = part.SellingPrice,
                 fallbackSellingPrice = part.SellingPrice,
-                hasLotPrice          = lotPrice > 0,
+                hasLotPrice          = false,
                 stockLevel           = totalStock,
                 unitId               = part.UnitId,
                 unitName             = part.Unit?.Name,
@@ -180,9 +179,8 @@ public class ProductsController : ControllerBase
             return NotFound(ApiError.NotFound($"No product found for code '{code}'", Request.Path));
 
         var (variantPart, variant) = variantMatch.Value;
-        var variantLotPrice   = await GetFifoLotSellingPriceAsync(variantPart.Id, cancellationToken);
         var variantTotalStock = await GetTotalAvailableStockAsync(variantPart.Id, cancellationToken);
-        var variantPrice      = variant.SellingPrice > 0 ? variant.SellingPrice : variantPart.SellingPrice;
+        var variantPrice      = CatalogPrice.Resolve(variantPart.SellingPrice, variant.SellingPrice);
 
         return Ok(ApiResponse<object>.Ok(new
         {
@@ -190,9 +188,9 @@ public class ProductsController : ControllerBase
             name                 = variantPart.Name,
             sku                  = variantPart.SKU,
             partNumber           = variantPart.PartNumber?.Value ?? string.Empty,
-            sellingPrice         = variantLotPrice > 0 ? variantLotPrice : variantPrice,
+            sellingPrice         = variantPrice,
             fallbackSellingPrice = variantPrice,
-            hasLotPrice          = variantLotPrice > 0,
+            hasLotPrice          = false,
             stockLevel           = variantTotalStock,
             unitId               = variantPart.UnitId,
             unitName             = variantPart.Unit?.Name,
@@ -216,16 +214,15 @@ public class ProductsController : ControllerBase
         if (part is null)
             return NotFound(ApiError.NotFound($"Product '{id}' not found", Request.Path));
 
-        var lotPrice = await GetFifoLotSellingPriceAsync(id, cancellationToken);
         var totalStock = await GetTotalAvailableStockAsync(id, cancellationToken);
 
         return Ok(ApiResponse<object>.Ok(new
         {
             productId = id,
-            sellingPrice = lotPrice > 0 ? lotPrice : part.SellingPrice,
-            lotSellingPrice = lotPrice > 0 ? (decimal?)lotPrice : null,
+            sellingPrice = part.SellingPrice,
+            lotSellingPrice = (decimal?)null,
             fallbackSellingPrice = part.SellingPrice,
-            hasLotPrice = lotPrice > 0,
+            hasLotPrice = false,
             stockAvailable = totalStock
         }));
     }
@@ -619,16 +616,6 @@ public class ProductsController : ControllerBase
     };
 
     // ── Private helpers ───────────────────────────────────────────────────────
-
-    private async Task<decimal> GetFifoLotSellingPriceAsync(Guid partId, CancellationToken ct)
-    {
-        var lots = await _stockLotRepository.GetByPartAsync(partId, ct);
-        return lots
-            .Where(l => l.QuantityAvailable > 0 && !l.IsExpired)
-            .OrderBy(l => l.ReceivingDate)
-            .FirstOrDefault(l => l.SellingPrice > 0)
-            ?.SellingPrice ?? 0m;
-    }
 
     private async Task<int> GetTotalAvailableStockAsync(Guid partId, CancellationToken ct)
     {

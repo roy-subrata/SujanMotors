@@ -35,8 +35,7 @@ export interface GoodsReceiptLineResponse {
   unitId?: string;
   totalCost: number;
   acceptedTotalCost: number;
-  // Lot-level selling price & warranty overrides
-  sellingPrice?: number | null;
+  // Lot-level warranty overrides
   hasWarranty?: boolean | null;
   warrantyPeriodMonths?: number | null;
   warrantyType?: string | null;
@@ -110,8 +109,7 @@ export interface CreateGoodsReceiptLineRequest {
   unitCost: number;
   currency: string;
   unitId?: string | null;
-  // Lot-level selling price & warranty (optional overrides — defaults to Part master if omitted)
-  sellingPrice?: number | null;
+  // Lot-level warranty (optional overrides — defaults to Part master if omitted)
   hasWarranty?: boolean | null;
   warrantyPeriodMonths?: number | null;
   warrantyType?: string | null;

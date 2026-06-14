@@ -13,7 +13,6 @@ public class CreateStockLotRequest
     public int QuantityReceivedInBaseUnit { get; set; }
     public decimal CostPrice { get; set; }
     public decimal CostPriceInBaseUnit { get; set; }
-    public decimal SellingPrice { get; set; }
     public Guid? UnitId { get; set; }
     public DateTime ReceivingDate { get; set; }
     public string ManufacturerLotNumber { get; set; } = string.Empty;
@@ -31,7 +30,6 @@ public class UpdateStockLotRequest
     public DateTime? ExpiryDate { get; set; }
     public string ManufacturerLotNumber { get; set; } = string.Empty;
     public string Notes { get; set; } = string.Empty;
-    public decimal? SellingPrice { get; set; }
     public bool? HasWarranty { get; set; }
     public int? WarrantyPeriodMonths { get; set; }
     public string? WarrantyType { get; set; }
@@ -64,7 +62,6 @@ public class StockLotResponse
     public string? BaseUnitName { get; set; }
     public string? BaseUnitCode { get; set; }
     public decimal CostPrice { get; set; }
-    public decimal SellingPrice { get; set; }
     public string Currency { get; set; } = string.Empty;
     public decimal TotalCost { get; set; }
     public decimal AvailableCost { get; set; }
@@ -106,7 +103,6 @@ public class StockLotHistoryItem
     public int QuantityAvailableInBaseUnit { get; set; }
     public decimal CostPrice { get; set; }
     public decimal CostPriceInBaseUnit { get; set; }
-    public decimal SellingPrice { get; set; }
     public Guid? UnitId { get; set; }
     public string? UnitName { get; set; }
     public string? UnitSymbol { get; set; }

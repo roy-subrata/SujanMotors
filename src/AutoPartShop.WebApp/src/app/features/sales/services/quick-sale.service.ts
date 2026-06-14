@@ -17,6 +17,9 @@ export interface QuickSaleLineItem {
   unitId?: string;
   quantity: number;
   unitPrice: number;
+  /** MRP / catalog selling price captured (fresh) when the line was added, used for local
+   *  price validation so a concurrent admin price change can't validate against stale cache. */
+  mrp?: number;
   discount: number;
   stockAvailable?: number;
   warehouseLocation?: string;

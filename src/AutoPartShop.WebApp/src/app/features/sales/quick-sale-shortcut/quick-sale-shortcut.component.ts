@@ -404,23 +404,6 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     this.cartItems.update(items => [...items, newItem]);
     this.selectedPartModel = null;
 
-    // For OVERRIDE variants their effectiveSellingPrice is already definitive.
-    // Only fetch FIFO lot price for base products (no variant) as lot prices are not variant-specific yet.
-    if (!part.variantId) {
-      this.partService.getLotPrice(part.id).subscribe({
-        next: (priceInfo) => {
-          if (priceInfo.hasLotPrice && priceInfo.sellingPrice > 0) {
-            this.cartItems.update(items =>
-              items.map(item =>
-                item.partId === part.id && !item.productVariantId ? { ...item, unitPrice: priceInfo.sellingPrice } : item
-              )
-            );
-          }
-        },
-        error: () => {}
-      });
-    }
-
     this.messageService.add({ severity: 'success', summary: 'Part Added', detail: `${part.displayName || part.name} added to cart` });
   }
 
