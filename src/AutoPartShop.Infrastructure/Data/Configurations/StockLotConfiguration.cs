@@ -20,9 +20,6 @@ public class StockLotConfiguration : IEntityTypeConfiguration<StockLot>
         builder.Property(sl => sl.CostPriceInBaseUnit)
             .HasPrecision(18, 2);
 
-        builder.Property(sl => sl.SellingPrice)
-            .HasPrecision(18, 2);
-
         builder.Property(sl => sl.Currency)
             .IsRequired()
             .HasMaxLength(10);

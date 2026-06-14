@@ -86,7 +86,6 @@
           <th style="width: 14%" class="text-right">Qty Received</th>
           <th style="width: 14%" class="text-right">Available</th>
           <th style="width: 10%" class="text-right">Unit Cost</th>
-          <th style="width: 10%" class="text-right">Selling Price</th>
           <th style="width: 9%" class="text-right">Total Cost</th>
           <th style="width: 9%" class="text-right">Available Cost</th>
           <th style="width: 9%">Receiving Date</th>
@@ -135,13 +134,6 @@
               <span class="coded-price">{{ priceCodeService.getDisplayPrice(lot.costPrice) }}</span>
             } @else {
               {{ lot.costPrice | currency:lot.currency:'symbol':'1.2-2' }}
-            }
-          </td>
-          <td class="text-right font-semibold">
-            @if (lot.sellingPrice > 0) {
-              {{ lot.sellingPrice | currency:lot.currency:'symbol':'1.2-2' }}
-            } @else {
-              <span class="text-gray-400 text-sm">—</span>
             }
           </td>
           <td class="text-right">

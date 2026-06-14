@@ -164,10 +164,6 @@ namespace AutoPartsShop.Infrastructure.Data.Configurations
             builder.Property(gl => gl.UnitCost)
                 .HasColumnType("decimal(18,2)");
 
-            builder.Property(gl => gl.SellingPrice)
-                .HasColumnType("decimal(18,2)")
-                .IsRequired(false);
-
             builder.Property(gl => gl.UnitCostInBaseUnit)
                 .HasColumnType("decimal(18,2)");
 

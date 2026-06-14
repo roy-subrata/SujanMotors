@@ -744,9 +744,7 @@
             {{ priceCheckResult.name }}
             <span class="price-variant" *ngIf="priceCheckResult.variantName"> · {{ priceCheckResult.variantName }}</span>
           </div>
-          <span class="price-tag" [class.lot]="priceCheckResult.hasLotPrice">
-            {{ priceCheckResult.hasLotPrice ? 'Lot price' : 'List price' }}
-          </span>
+          <span class="price-tag">List price</span>
         </div>
 
         <div class="price-amount">{{ formatCurrency(priceCheckResult.sellingPrice) }}</div>

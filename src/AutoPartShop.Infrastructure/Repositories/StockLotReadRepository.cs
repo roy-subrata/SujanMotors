@@ -91,7 +91,6 @@ public class StockLotReadRepository : IStockLotReadRepository
                 BaseUnitName = lot.Part != null && lot.Part.BaseUnit != null ? lot.Part.BaseUnit.Name : null,
                 BaseUnitCode = lot.Part != null && lot.Part.BaseUnit != null ? lot.Part.BaseUnit.Symbol : null,
                 CostPrice = lot.CostPrice,
-                SellingPrice = lot.SellingPrice,
                 Currency = lot.Currency,
                 TotalCost = lot.GetTotalCost(),
                 AvailableCost = lot.GetAvailableCost(),

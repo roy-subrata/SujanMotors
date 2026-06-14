@@ -189,7 +189,6 @@ public class StockManagementService
             unitId: part.BaseUnitId,
             quantityReceivedInBaseUnit: baseQty,
             costPriceInBaseUnit: baseUnitCost,
-            sellingPrice: grnLine.SellingPrice ?? part.SellingPrice,
             hasWarranty: grnLine.HasWarranty ?? part.HasWarranty,
             warrantyPeriodMonths: grnLine.WarrantyPeriodMonths ?? part.WarrantyPeriodMonths,
             warrantyType: grnLine.WarrantyType ?? part.WarrantyType,

@@ -69,7 +69,8 @@ export function labelFromGrnLine(line: GoodsReceiptLineResponse, receivedDate?: 
         name: line.displayName || line.partName,
         sku: line.variantSKU || line.partSKU,
         barcode: line.variantBarcode ?? line.barcode ?? null,
-        price: line.sellingPrice ?? null,
+        // Price is the catalog MRP, not a per-lot value; receiving labels omit it.
+        price: null,
         batchNumber: line.batchNumber ?? null,
         mfgDate: receivedDate ?? null,
         expiryDate: line.expiryDate ?? null,
@@ -88,7 +89,8 @@ export function labelFromStockLot(lot: StockLotResponse): LabelData {
     return {
         name: lot.displayName || lot.partName,
         sku: lot.variantSku || lot.partSKU,
-        price: lot.sellingPrice ?? null,
+        // Price is the catalog MRP, not a per-lot value; reprint labels omit it.
+        price: null,
         batchNumber: lot.manufacturerLotNumber || lot.lotNumber || null,
         mfgDate: lot.receivingDate ?? null,
         expiryDate: lot.expiryDate ?? null,

@@ -564,6 +564,7 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
       unitId: part.unitId || undefined,
       quantity: 1,
       unitPrice: part.effectiveSellingPrice ?? part.sellingPrice,
+      mrp: part.effectiveSellingPrice ?? part.sellingPrice,
       discount: 0,
       stockAvailable: undefined,
       warehouseLocation: '',
@@ -947,31 +948,38 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
     });
   }
 
-  private getLocalPricingError(part: PublicPartResponse, unitPrice: number, discount: number, unitId?: string): string | null {
+  private getLocalPricingError(mrp: number, unitPrice: number, discount: number, isBaseUnit: boolean): string | null {
     if (unitPrice <= 0) return 'Selling price must be greater than 0.';
     if (discount < 0 || discount > 100) return 'Discount percentage must be between 0 and 100.';
-    if (part.sellingPrice <= 0) return 'MRP must be configured before sale.';
-    const isBaseUnit = !unitId || !part.unitId || unitId === part.unitId;
-    if (isBaseUnit && unitPrice > part.sellingPrice) return 'Selling price cannot exceed MRP.';
-    if (discount > 100) {
-      return `Discount cannot exceed 100%.`;
-    }
+    if (mrp <= 0) return 'MRP must be configured before sale.';
+    if (isBaseUnit && unitPrice > mrp) return 'Selling price cannot exceed MRP.';
     return null;
+  }
+
+  /** Resolves the cached part row for a cart line, matching both part and variant
+   *  (the cache is flattened, so many rows share the same id). Falls back to a
+   *  part-only match when the specific variant isn't in the loaded cache. */
+  private findCachedPart(item: QuickSaleLineItem): PublicPartResponse | undefined {
+    return this.parts().find(p => p.id === item.partId && (p.variantId ?? null) === (item.productVariantId ?? null))
+        ?? this.parts().find(p => p.id === item.partId);
   }
 
   private validatePricingBeforeSubmit() {
     if (this.cartItems().length === 0) return of(true);
 
     const validations = this.cartItems().map((item, index) => {
-      const part = this.parts().find(p => p.id === item.partId);
-      if (!part) {
+      const part = this.findCachedPart(item);
+      // Prefer the MRP captured (fresh) when the line was added; fall back to cache.
+      const mrp = item.mrp ?? part?.sellingPrice ?? 0;
+      if (mrp <= 0 && !part) {
         this.pricingErrors.set(index, 'Part details not found.');
         return of(false);
       }
 
       const unitPrice = Number(item.unitPrice || 0);
       const discount = Number(item.discount || 0);
-      const localError = this.getLocalPricingError(part, unitPrice, discount, item.unitId);
+      const isBaseUnit = !item.unitId || !part?.unitId || item.unitId === part.unitId;
+      const localError = this.getLocalPricingError(mrp, unitPrice, discount, isBaseUnit);
       if (localError) {
         this.pricingErrors.set(index, localError);
         return of(false);
@@ -1031,7 +1039,7 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
   }
 
   onCartUnitChanged(item: QuickSaleLineItem, index: number): void {
-    const part = this.parts().find(p => p.id === item.partId);
+    const part = this.findCachedPart(item);
     if (!part?.unitId) {
       this.cartUnitSelection.set(index, item.unitId || null);
       return;
@@ -1765,8 +1773,11 @@ export class QuickSaleComponent implements OnInit, OnDestroy {
             partName: displayName,
             partNumber: part.partNumber,
             sku: part.variantCode ?? part.sku,
+            unitId: part.unitId ?? undefined,
             quantity: 1,
             unitPrice: part.sellingPrice,
+            // MRP for local validation is the catalog price, not the (possibly higher) lot price.
+            mrp: part.fallbackSellingPrice ?? part.sellingPrice,
             discount: 0,
             stockAvailable: part.stockLevel
           };

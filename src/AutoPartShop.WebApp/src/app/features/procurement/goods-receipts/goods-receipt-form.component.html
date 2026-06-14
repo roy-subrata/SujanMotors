@@ -343,42 +343,6 @@
                   </p-select>
                 </div>
 
-                <div class="details-field">
-                  <div class="dl-label-wrap">
-                    <span class="dl-title"><i class="pi pi-tag"></i> Sell Price <span class="dl-stored-badge">saved</span></span>
-                    <span class="dl-hint">Lot-level MRP override → falls back to Part default if left blank</span>
-                  </div>
-                  <div class="sell-price-row">
-                    <p-inputNumber
-                      formControlName="sellingPrice"
-                      [min]="0" [minFractionDigits]="2" [maxFractionDigits]="2"
-                      mode="decimal" placeholder="0.00"
-                      [style]="{ flex: '1' }"
-                      (onInput)="onSellingPriceChanged(i)">
-                    </p-inputNumber>
-                    <div class="margin-calc-group"
-                      pTooltip="Calculator only — not saved. Change to compute Sell Price from margin %."
-                      tooltipPosition="top">
-                      <p-inputNumber
-                        formControlName="sellingMarginPercent"
-                        [minFractionDigits]="1" [maxFractionDigits]="2"
-                        mode="decimal" placeholder="—"
-                        [style]="{ width: '80px' }"
-                        (onInput)="onMarginPercentChanged(i)">
-                      </p-inputNumber>
-                      <span class="margin-pct-label">%</span>
-                    </div>
-                    <button pButton type="button" icon="pi pi-refresh"
-                      class="p-button-outlined p-button-sm p-button-secondary recalc-btn"
-                      pTooltip="Apply margin % to cost → update sell price"
-                      (click)="recalculateSellingPrice(i)">
-                    </button>
-                  </div>
-                  <small class="dl-hint margin-calc-note">
-                    <i class="pi pi-calculator"></i>
-                    Margin % is a calculator — only Sell Price is saved to this lot
-                  </small>
-                </div>
 
                 <!-- Row 2: Expiry Date | Warranty (months) -->
                 <div class="details-field">
@@ -797,17 +761,6 @@
 
                   <div class="details-field">
                     <div class="dl-label-wrap">
-                      <span class="dl-title"><i class="pi pi-tag"></i> Sell Price</span>
-                      <span class="dl-hint">Cost: {{ line.get('unitCost')?.value | number:'1.2-2' }} · Margin: {{ line.get('partMinMarginPercent')?.value }}%</span>
-                    </div>
-                    <div class="sell-price-row">
-                      <p-inputNumber formControlName="sellingPrice" [min]="0" [minFractionDigits]="2" [maxFractionDigits]="2" mode="decimal" placeholder="0.00" [style]="{ width: '100%' }"></p-inputNumber>
-                      <button pButton type="button" icon="pi pi-refresh" class="p-button-outlined p-button-sm p-button-secondary recalc-btn" pTooltip="Recalculate: Cost × (1 + Margin%)" (click)="recalculateSellingPrice(i)"></button>
-                    </div>
-                  </div>
-
-                  <div class="details-field">
-                    <div class="dl-label-wrap">
                       <span class="dl-title"><i class="pi pi-calendar"></i> Expiry Date</span>
                       <span class="dl-hint">grocery, pharmacy, dated items</span>
                     </div>
@@ -845,14 +798,11 @@
 
                   <!-- View-only details summary (full-width row) -->
                   <tr class="details-row view-details-row"
-                    *ngIf="mode === 'view' && (line.get('batchNumber')?.value || line.get('sellingPrice')?.value || line.get('warrantyPeriodMonths')?.value > 0 || line.get('expiryDate')?.value || line.get('notes')?.value)">
+                    *ngIf="mode === 'view' && (line.get('batchNumber')?.value || line.get('warrantyPeriodMonths')?.value > 0 || line.get('expiryDate')?.value || line.get('notes')?.value)">
                     <td colspan="5">
                       <div class="line-view-details">
                         <span *ngIf="line.get('batchNumber')?.value" class="view-detail-chip">
                           <i class="pi pi-box"></i> Batch: {{ line.get('batchNumber')?.value }}
-                        </span>
-                        <span *ngIf="line.get('sellingPrice')?.value" class="view-detail-chip">
-                          <i class="pi pi-tag"></i> Sell: {{ line.get('sellingPrice')?.value | number:'1.2-2' }}
                         </span>
                         <span *ngIf="line.get('warrantyPeriodMonths')?.value > 0" class="view-detail-chip warranty-chip">
                           <i class="pi pi-shield"></i> {{ line.get('warrantyPeriodMonths')?.value }}m {{ line.get('warrantyType')?.value }}

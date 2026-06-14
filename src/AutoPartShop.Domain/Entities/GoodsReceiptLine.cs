@@ -33,8 +33,7 @@ public class GoodsReceiptLine : AuditableEntity
     public string BatchNumber { get; private set; } = string.Empty;  // Supplier's batch or lot number
     public DateTime? ExpiryDate { get; private set; }  // Expiry date for this lot (grocery, pharmacy, etc.)
 
-    // Lot-level selling price & warranty (optional — used as lot overrides when creating the StockLot)
-    public decimal? SellingPrice { get; private set; }
+    // Lot-level warranty (optional — used as lot override when creating the StockLot)
     public bool? HasWarranty { get; private set; }
     public int? WarrantyPeriodMonths { get; private set; }
     public string? WarrantyType { get; private set; }
@@ -67,7 +66,7 @@ public class GoodsReceiptLine : AuditableEntity
         string currency = "INR", Guid? unitId = null, int orderedQuantityInBaseUnit = 0,
         int receivedQuantityInBaseUnit = 0, int damagedQuantityInBaseUnit = 0, int wrongQuantityInBaseUnit = 0,
         decimal unitCostInBaseUnit = 0,
-        decimal? sellingPrice = null, bool? hasWarranty = null, int? warrantyPeriodMonths = null,
+        bool? hasWarranty = null, int? warrantyPeriodMonths = null,
         string? warrantyType = null, string? warrantyTerms = null,
         string? batchNumber = null, DateTime? expiryDate = null, Guid? variantId = null,
         int damagedQuantity = 0, int wrongQuantity = 0, string rejectionReason = "")
@@ -125,7 +124,6 @@ public class GoodsReceiptLine : AuditableEntity
             UnitId = unitId,
             BatchNumber = batchNumber?.Trim() ?? string.Empty,
             ExpiryDate = expiryDate,
-            SellingPrice = sellingPrice,
             HasWarranty = hasWarranty,
             WarrantyPeriodMonths = warrantyPeriodMonths,
             WarrantyType = warrantyType?.Trim(),
@@ -166,10 +164,9 @@ public class GoodsReceiptLine : AuditableEntity
         Notes = notes?.Trim() ?? string.Empty;
     }
 
-    public void UpdatePricing(decimal? sellingPrice, bool? hasWarranty, int? warrantyPeriodMonths,
+    public void UpdateWarranty(bool? hasWarranty, int? warrantyPeriodMonths,
         string? warrantyType, string? warrantyTerms)
     {
-        SellingPrice = sellingPrice;
         HasWarranty = hasWarranty;
         WarrantyPeriodMonths = warrantyPeriodMonths;
         WarrantyType = warrantyType?.Trim();

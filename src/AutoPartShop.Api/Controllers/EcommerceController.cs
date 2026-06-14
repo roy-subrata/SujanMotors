@@ -21,7 +21,6 @@ public class EcommerceController(
     IInvoiceRepository _invoiceRepository,
     ICustomerPaymentRepository _customerPaymentRepository,
     ICodeGenerateService _codeGenerateService,
-    IProductVariantPriceHistoryRepository _priceHistoryRepository,
     ICurrentUserService _currentUserService,
     ILogger<EcommerceController> _logger) : ControllerBase
 {
@@ -110,8 +109,8 @@ public class EcommerceController(
                 if (part == null)
                     return BadRequest(new { message = $"Product {item.PartId} not found" });
 
-                // Resolve price: canonical scheduled price first, denormalized field as fallback
-                decimal serverPrice = 0;
+                // Catalog selling price — single source of truth, kept current by the price scheduler.
+                decimal serverPrice;
                 if (item.VariantId.HasValue)
                 {
                     var variant = await _dbContext.Set<ProductVariant>()
@@ -119,13 +118,11 @@ public class EcommerceController(
                     if (variant == null)
                         return BadRequest(new { message = $"Variant not found for '{part.Name}'." });
 
-                    var canonical = await _priceHistoryRepository.ResolveActivePriceAsync(item.PartId, item.VariantId.Value, cancellationToken);
-                    serverPrice = canonical?.SellingPrice ?? (variant.SellingPrice > 0 ? variant.SellingPrice : part.SellingPrice);
+                    serverPrice = CatalogPrice.Resolve(part.SellingPrice, variant.SellingPrice);
                 }
                 else
                 {
-                    var canonical = await _priceHistoryRepository.ResolveActivePriceAsync(item.PartId, null, cancellationToken);
-                    serverPrice = canonical?.SellingPrice ?? part.SellingPrice;
+                    serverPrice = CatalogPrice.Resolve(part.SellingPrice, null);
                 }
 
                 if (serverPrice <= 0)
@@ -563,13 +560,11 @@ public class EcommerceController(
                     if (variant == null)
                         return BadRequest(new { message = $"Variant not found for '{part.Name}'." });
 
-                    var canonical = await _priceHistoryRepository.ResolveActivePriceAsync(item.PartId, item.VariantId.Value, cancellationToken);
-                    serverPrice = canonical?.SellingPrice ?? (variant.SellingPrice > 0 ? variant.SellingPrice : part.SellingPrice);
+                    serverPrice = CatalogPrice.Resolve(part.SellingPrice, variant.SellingPrice);
                 }
                 else
                 {
-                    var canonical = await _priceHistoryRepository.ResolveActivePriceAsync(item.PartId, null, cancellationToken);
-                    serverPrice = canonical?.SellingPrice ?? part.SellingPrice;
+                    serverPrice = CatalogPrice.Resolve(part.SellingPrice, null);
                 }
 
                 if (serverPrice <= 0)

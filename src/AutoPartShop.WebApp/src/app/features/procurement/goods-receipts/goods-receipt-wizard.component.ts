@@ -150,9 +150,6 @@ export class GoodsReceiptWizardComponent implements OnInit {
         if (this.lineItems.some(i => i.hasWarranty && !i.warrantyPeriod)) {
             this.submitError = 'Warranty period is required for items with warranty.'; this.isSubmitting = false; return;
         }
-        if (this.lineItems.some(i => i.sellingPrice !== undefined && i.sellingPrice < 0)) {
-            this.submitError = 'Selling price cannot be negative.'; this.isSubmitting = false; return;
-        }
         const po = this.selectedPO as any;
         const request = {
             purchaseOrderId: this.selectedPO.id,
@@ -172,7 +169,6 @@ export class GoodsReceiptWizardComponent implements OnInit {
                 unitCost: item.unitPrice,
                 currency: po.currency || 'NPR',
                 unitId: item.unitId || '',
-                sellingPrice: item.sellingPrice && item.sellingPrice > 0 ? item.sellingPrice : null,
                 hasWarranty: !!item.hasWarranty,
                 warrantyPeriodMonths: item.hasWarranty && item.warrantyPeriod ? item.warrantyPeriod : null,
                 warrantyType: item.hasWarranty && item.warrantyType ? item.warrantyType : null,

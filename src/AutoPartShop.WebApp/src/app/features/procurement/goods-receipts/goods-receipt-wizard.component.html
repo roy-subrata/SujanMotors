@@ -98,8 +98,6 @@
                 </td>
                 <td>
                   <button type="button" (click)="openItemSetupDialog(item)">Setup</button>
-                  <span *ngIf="item.sellingPrice">✔️</span>
-                  <span *ngIf="!item.sellingPrice">❌</span>
                 </td>
               </tr>
             </tbody>
@@ -109,8 +107,6 @@
           <div class="modal" *ngIf="showItemSetupDialog">
             <div class="modal-content">
               <h3>Setup for {{ selectedItem?.displayName || selectedItem?.partName }}</h3>
-              <label>Selling Price</label>
-              <input type="number" [(ngModel)]="selectedItem.sellingPrice">
               <label>
                 <input type="checkbox" [(ngModel)]="selectedItem.hasWarranty"> Has Warranty
               </label>

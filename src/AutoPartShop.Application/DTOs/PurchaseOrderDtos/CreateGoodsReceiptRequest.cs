@@ -46,8 +46,7 @@ public class CreateGoodsReceiptLineRequest
     public string? BatchNumber { get; set; }      // Supplier's batch / lot number
     public DateTime? ExpiryDate { get; set; }     // Expiry date for this lot (grocery, pharmacy, etc.)
 
-    // Lot-level selling price & warranty (overrides Part master defaults)
-    public decimal? SellingPrice { get; set; }
+    // Lot-level warranty (overrides Part master defaults)
     public bool? HasWarranty { get; set; }
     public int? WarrantyPeriodMonths { get; set; }
     public string? WarrantyType { get; set; }

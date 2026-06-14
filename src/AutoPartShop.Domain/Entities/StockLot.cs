@@ -20,8 +20,6 @@ public class StockLot : AuditableEntity
     public int QuantityAvailableInBaseUnit { get; private set; } = 0;  // Available in base unit
     public decimal CostPrice { get; private set; } = 0;  // Unit cost from supplier
     public decimal CostPriceInBaseUnit { get; private set; } = 0;  // Cost per base unit
-    // Lot-level selling price (source of truth for FIFO pricing — overrides Part.SellingPrice for this lot)
-    public decimal SellingPrice { get; private set; } = 0;
     public string Currency { get; private set; } = "USD";
     public DateTime ReceivingDate { get; private set; }
     public DateTime? ExpiryDate { get; private set; }  // Optional expiry date for perishables
@@ -51,7 +49,7 @@ public class StockLot : AuditableEntity
         Guid goodsReceiptLineId, int quantityReceived, decimal costPrice, DateTime receivingDate,
         string manufacturerLotNumber = "", DateTime? expiryDate = null, string currency = "USD",
         string notes = "", Guid? unitId = null, int quantityReceivedInBaseUnit = 0,
-        decimal costPriceInBaseUnit = 0, decimal sellingPrice = 0,
+        decimal costPriceInBaseUnit = 0,
         bool hasWarranty = false, int? warrantyPeriodMonths = null,
         string? warrantyType = null, string? warrantyTerms = null, Guid? variantId = null,
         string status = "AVAILABLE")
@@ -77,9 +75,6 @@ public class StockLot : AuditableEntity
         if (costPrice < 0)
             throw new ArgumentException("CostPrice cannot be negative", nameof(costPrice));
 
-        if (sellingPrice < 0)
-            throw new ArgumentException("SellingPrice cannot be negative", nameof(sellingPrice));
-
         if (expiryDate.HasValue && expiryDate.Value < receivingDate.Date)
             throw new ArgumentException("ExpiryDate cannot be before ReceivingDate", nameof(expiryDate));
 
@@ -97,7 +92,6 @@ public class StockLot : AuditableEntity
             QuantityAvailableInBaseUnit = quantityReceivedInBaseUnit > 0 ? quantityReceivedInBaseUnit : quantityReceived,
             CostPrice = costPrice,
             CostPriceInBaseUnit = costPriceInBaseUnit > 0 ? costPriceInBaseUnit : costPrice,
-            SellingPrice = sellingPrice,
             HasWarranty = hasWarranty,
             WarrantyPeriodMonths = warrantyPeriodMonths,
             WarrantyType = warrantyType?.Trim(),
@@ -158,7 +152,7 @@ public class StockLot : AuditableEntity
         int quantityReceived, decimal costPrice, DateTime receivingDate,
         string returnNumber = "", string currency = "USD", string notes = "",
         Guid? unitId = null, int quantityReceivedInBaseUnit = 0, decimal costPriceInBaseUnit = 0,
-        decimal sellingPrice = 0, Guid? variantId = null)
+        Guid? variantId = null)
     {
         if (string.IsNullOrWhiteSpace(lotNumber))
             throw new ArgumentException("LotNumber cannot be empty", nameof(lotNumber));
@@ -189,7 +183,6 @@ public class StockLot : AuditableEntity
             QuantityAvailableInBaseUnit = quantityReceivedInBaseUnit > 0 ? quantityReceivedInBaseUnit : quantityReceived,
             CostPrice = costPrice,
             CostPriceInBaseUnit = costPriceInBaseUnit > 0 ? costPriceInBaseUnit : costPrice,
-            SellingPrice = sellingPrice,
             Currency = currency.Trim().ToUpper(),
             ReceivingDate = receivingDate,
             ManufacturerLotNumber = returnNumber?.Trim() ?? string.Empty,
@@ -222,16 +215,11 @@ public class StockLot : AuditableEntity
     }
 
     /// <summary>
-    /// Updates the lot-level selling price and warranty data.
-    /// Called when an operator adjusts per-lot pricing after receipt.
+    /// Updates the lot-level warranty data. Called when an operator adjusts per-lot warranty after receipt.
     /// </summary>
-    public void UpdatePriceAndWarranty(decimal sellingPrice, bool hasWarranty,
+    public void UpdateWarranty(bool hasWarranty,
         int? warrantyPeriodMonths, string? warrantyType, string? warrantyTerms)
     {
-        if (sellingPrice < 0)
-            throw new ArgumentException("SellingPrice cannot be negative", nameof(sellingPrice));
-
-        SellingPrice = sellingPrice;
         HasWarranty = hasWarranty;
         WarrantyPeriodMonths = hasWarranty ? warrantyPeriodMonths : null;
         WarrantyType = hasWarranty ? warrantyType?.Trim() : null;

@@ -386,7 +386,6 @@ export class GoodsReceiptFormComponent implements OnInit {
   /** True if any lot-level detail field has a value — drives the icon badge */
   hasDetails(ctrl: any): boolean {
     return !!(
-      this.toNumber(ctrl.get('sellingPrice')?.value) > 0 ||
       this.toNumber(ctrl.get('warrantyPeriodMonths')?.value) > 0 ||
       ctrl.get('expiryDate')?.value ||
       ctrl.get('notes')?.value?.trim()
@@ -397,64 +396,10 @@ export class GoodsReceiptFormComponent implements OnInit {
     return this.toNumber(ctrl.get('remainingQuantity')?.value) === 0;
   }
 
-  /** Auto-calculate sell price when unit cost changes, if not already manually set */
+  /** Recompute discrepancy & warnings when unit cost changes. */
   onUnitCostChanged(index: number): void {
-    const ctrl = this.lineItemsArray.at(index);
-    if (!ctrl) return;
-
-    const cost = this.toNumber(ctrl.get('unitCost')?.value);
-    const existing = ctrl.get('sellingPrice')?.value;
-    if (existing != null && existing !== '') {
-      // Cost changed — keep the sell price but recalculate displayed margin
-      this._syncMarginFromPrice(ctrl, cost);
-      return;
-    }
-
-    const defaultSell = this.toNumber(ctrl.get('partDefaultSellingPrice')?.value);
-    const margin = this.toNumber(ctrl.get('sellingMarginPercent')?.value) || 0;
-    const suggested = defaultSell > 0 ? defaultSell : cost * (1 + margin / 100);
-    if (suggested > 0) {
-      ctrl.patchValue({ sellingPrice: Math.round(suggested * 100) / 100 }, { emitEvent: false });
-      this._syncMarginFromPrice(ctrl, cost);
-    }
     this.updateLineDiscrepancy(index);
     this.refreshLineWarnings();
-  }
-
-  /** User changed the sell price → recalculate and show the resulting margin % */
-  onSellingPriceChanged(index: number): void {
-    const ctrl = this.lineItemsArray.at(index);
-    if (!ctrl) return;
-    this._syncMarginFromPrice(ctrl, this.toNumber(ctrl.get('unitCost')?.value));
-  }
-
-  /** User changed the margin % → recalculate and set the sell price */
-  onMarginPercentChanged(index: number): void {
-    const ctrl = this.lineItemsArray.at(index);
-    if (!ctrl) return;
-    const cost   = this.toNumber(ctrl.get('unitCost')?.value);
-    const margin = this.toNumber(ctrl.get('sellingMarginPercent')?.value);
-    if (cost > 0 && margin >= 0) {
-      const sell = Math.round(cost * (1 + margin / 100) * 100) / 100;
-      ctrl.patchValue({ sellingPrice: sell }, { emitEvent: false });
-    }
-  }
-
-  /** Force-recalculate sell price using the current editable margin % */
-  recalculateSellingPrice(index: number): void {
-    const ctrl = this.lineItemsArray.at(index);
-    if (!ctrl) return;
-    const cost   = this.toNumber(ctrl.get('unitCost')?.value);
-    const margin = this.toNumber(ctrl.get('sellingMarginPercent')?.value) || 0;
-    ctrl.patchValue({ sellingPrice: Math.round(cost * (1 + margin / 100) * 100) / 100 }, { emitEvent: false });
-  }
-
-  private _syncMarginFromPrice(ctrl: any, cost: number): void {
-    const sell = this.toNumber(ctrl.get('sellingPrice')?.value);
-    if (cost > 0 && sell >= 0) {
-      const margin = Math.round(((sell - cost) / cost) * 10000) / 100;
-      ctrl.patchValue({ sellingMarginPercent: margin }, { emitEvent: false });
-    }
   }
 
   onSubmit(): void {
@@ -798,10 +743,7 @@ export class GoodsReceiptFormComponent implements OnInit {
       const remainingQty = Math.max(this.toNumber(line.remainingQuantity ?? 0), 0);
       const receivingNow = remainingQty;
 
-      const defaultSell = this.toNumber(line.partDefaultSellingPrice);
-      const margin     = this.toNumber(line.partMinMarginPercent) || 0;
-      const cost       = this.toNumber(line.unitPrice);
-      const autoSell   = defaultSell > 0 ? defaultSell : Math.round(cost * (1 + margin / 100) * 100) / 100;
+      const cost = this.toNumber(line.unitPrice);
 
       const group = this.fb.group({
         partId:                  [line.partId, Validators.required],
@@ -827,16 +769,10 @@ export class GoodsReceiptFormComponent implements OnInit {
         unitSymbol:              [line.unitSymbol || ''],
         batchNumber:             [''],
         expiryDate:              [''],
-        // Lot-level pricing & warranty (details panel)
-        sellingPrice:            [autoSell > 0 ? autoSell : null],
+        // Lot-level warranty (details panel)
         warrantyPeriodMonths:    [null],
         warrantyType:            [''],
-        warrantyTerms:           [''],
-        // Hidden helpers for auto-calculation
-        partDefaultSellingPrice: [defaultSell],
-        partMinMarginPercent:    [margin],
-        // Editable margin % for this lot (starts at product default, user can override)
-        sellingMarginPercent:    [margin]
+        warrantyTerms:           ['']
       });
 
       if (remainingQty === 0) {
@@ -898,16 +834,10 @@ export class GoodsReceiptFormComponent implements OnInit {
           unitSymbol: [poLine?.unitSymbol || ''],
           batchNumber:             [line.batchNumber || ''],
           expiryDate:              [line.expiryDate ? line.expiryDate.split('T')[0] : ''],
-          // Lot-level pricing & warranty from saved GRN
-          sellingPrice:            [line.sellingPrice ?? null],
+          // Lot-level warranty from saved GRN
           warrantyPeriodMonths:    [line.warrantyPeriodMonths ?? null],
           warrantyType:            [line.warrantyType ?? ''],
-          warrantyTerms:           [line.warrantyTerms ?? ''],
-          partDefaultSellingPrice: [0],
-          partMinMarginPercent:    [0],
-          sellingMarginPercent:    [line.sellingPrice && this.toNumber(line.unitCost) > 0
-            ? Math.round(((this.toNumber(line.sellingPrice) - this.toNumber(line.unitCost)) / this.toNumber(line.unitCost)) * 10000) / 100
-            : 0]
+          warrantyTerms:           [line.warrantyTerms ?? '']
         })
       );
 
@@ -1013,7 +943,6 @@ export class GoodsReceiptFormComponent implements OnInit {
       .map((line) => {
         const receivedQty = this.toNumber(line.get('receivingQuantity')?.value);
         if (receivedQty <= 0) return null;
-        const sellPrice = line.get('sellingPrice')?.value;
         const warrantyMonths = line.get('warrantyPeriodMonths')?.value;
         return {
           partId:              line.get('partId')?.value,
@@ -1030,8 +959,7 @@ export class GoodsReceiptFormComponent implements OnInit {
           unitId:              this.toTrimmedOrNull(line.get('unitId')?.value),
           batchNumber:         this.toTrimmedOrNull(line.get('batchNumber')?.value),
           expiryDate:          this.toTrimmedOrNull(line.get('expiryDate')?.value),
-          // Lot-level pricing & warranty
-          sellingPrice:        sellPrice != null && sellPrice !== '' ? this.toNumber(sellPrice) : null,
+          // Lot-level warranty
           hasWarranty:         this.toNumber(warrantyMonths) > 0 ? true : null,
           warrantyPeriodMonths: this.toNumber(warrantyMonths) > 0 ? this.toNumber(warrantyMonths) : null,
           warrantyType:        this.toTrimmedOrNull(line.get('warrantyType')?.value),

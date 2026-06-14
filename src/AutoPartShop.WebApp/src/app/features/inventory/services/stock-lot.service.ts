@@ -27,7 +27,6 @@ export interface StockLotResponse {
   baseUnitName: string | null;
   baseUnitCode: string | null;
   costPrice: number;
-  sellingPrice: number;
   hasWarranty: boolean;
   warrantyPeriodMonths: number | null;
   warrantyType: string | null;
@@ -65,7 +64,6 @@ export interface StockLotHistoryItem {
   quantityReceived: number;
   quantityAvailable: number;
   costPrice: number;
-  sellingPrice: number;
   hasWarranty: boolean;
   warrantyPeriodMonths: number | null;
   warrantyType: string | null;
