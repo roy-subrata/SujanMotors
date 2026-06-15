@@ -4,7 +4,6 @@ import { Dashboard } from './app/pages/dashboard/dashboard';
 import { DashboardComponent } from './app/features/dashboard/dashboard.component';
 import { Landing } from './app/pages/landing/landing';
 import { Notfound } from './app/pages/notfound/notfound';
-import { QuickSaleComponent } from './app/features/sales/quick-sale/quick-sale.component';
 import { QuickSaleShortcutComponent } from './app/features/sales/quick-sale-shortcut/quick-sale-shortcut.component';
 import { UnifiedLoginComponent } from './app/pages/login/unified-login.component';
 import { AdminSettingsComponent } from './app/pages/admin-settings/admin-settings.component';
@@ -15,8 +14,7 @@ export const appRoutes: Routes = [
     // Login - standalone (no layout) — shared unified login, staff mode default
     { path: 'login', component: UnifiedLoginComponent, data: { mode: 'staff' } },
 
-    // Quick Sale - standalone layout (no sidebar/header) — auth required
-    { path: 'quick-sale', component: QuickSaleComponent, canActivate: [authGuard] },
+    // Quick Sale (POS) - standalone layout (no sidebar/header) — auth required
     { path: 'quick-sale-shortcut', component: QuickSaleShortcutComponent, canActivate: [authGuard] },
 
     // E-commerce storefront - public module
