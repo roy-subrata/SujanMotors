@@ -1554,9 +1554,11 @@ public class SalesOrderController : ControllerBase
             var insufficientStockMessage = "";
             foreach (var item in request.Items)
             {
-                var stockLevels = await _stockLevelRepository.GetByPartAsync(item.PartId, cancellationToken);
+                // Scope availability to the specific variant so one variant's stock can't satisfy
+                // a sale of a different variant of the same part.
+                var stockLevels = await _stockLevelRepository.GetByPartAndVariantAsync(item.PartId, item.ProductVariantId, cancellationToken);
                 // Use base unit quantities for accurate comparison across different units
-                var totalAvailable = stockLevels.Sum(sl => 
+                var totalAvailable = stockLevels.Sum(sl =>
                     (sl.QuantityOnHandInBaseUnit > 0 ? sl.QuantityOnHandInBaseUnit : sl.QuantityOnHand) - 
                     (sl.QuantityReservedInBaseUnit > 0 ? sl.QuantityReservedInBaseUnit : sl.QuantityReserved));
 
