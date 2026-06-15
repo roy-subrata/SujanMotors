@@ -497,7 +497,7 @@
           <div class="option-row">
             <label class="checkbox-label">
               <input type="checkbox" [(ngModel)]="printReceipt" [ngModelOptions]="{standalone: true}" />
-              <span>Print Receipt</span>
+              <span>Print thermal receipt (80mm)</span>
             </label>
           </div>
           <textarea pTextarea [(ngModel)]="saleNotes" [ngModelOptions]="{standalone: true}" rows="2" placeholder="Notes..."></textarea>
@@ -511,14 +511,12 @@
           <span>{{ hasDuePayments() ? 'Complete (Due Sale)' : 'Complete Sale' }}</span>
         </button>
         <div class="secondary-actions">
-          <button class="action-btn" (click)="saveAndPrint()" [disabled]="!selectedCustomer()">
-            <i class="pi pi-print"></i>
-            <span>Save & Print</span>
+          <button type="button" class="action-btn" (click)="moreMenu.toggle($event)"
+            [disabled]="cartItems().length === 0" pTooltip="More actions">
+            <i class="pi pi-ellipsis-h"></i>
+            <span>More</span>
           </button>
-          <button class="action-btn" (click)="processQuotation()" [disabled]="!selectedCustomer()">
-            <i class="pi pi-file-edit"></i>
-            <span>Save as Quote</span>
-          </button>
+          <p-menu #moreMenu [model]="moreActions" [popup]="true" appendTo="body"></p-menu>
         </div>
       </div>
     </aside>

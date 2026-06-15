@@ -664,10 +664,6 @@ export class AppTopbar implements OnInit, OnDestroy {
         this.layoutService.layoutConfig.update((state) => ({ ...state, darkTheme: !state.darkTheme }));
     }
 
-    navigateToQuickSale() {
-        this.router.navigate(['/quick-sale']);
-    }
-
     navigateToQuickSaleShortcut() {
         this.router.navigate(['/quick-sale-shortcut']);
     }

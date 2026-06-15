@@ -8,6 +8,7 @@ import { map } from 'rxjs/operators';
 // PrimeNG Imports
 import { AutoCompleteModule } from 'primeng/autocomplete';
 import { ButtonModule } from 'primeng/button';
+import { MenuModule } from 'primeng/menu';
 import { InputTextModule } from 'primeng/inputtext';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { TableModule } from 'primeng/table';
@@ -19,7 +20,7 @@ import { DialogModule } from 'primeng/dialog';
 import { SelectModule } from 'primeng/select';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { TextareaModule } from 'primeng/textarea';
-import { MessageService, ConfirmationService } from 'primeng/api';
+import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
 
 // Services
 import { QuickSaleService, QuickSaleLineItem, PaymentDetail, PaymentMethod, PaymentResponsibility } from '../services/quick-sale.service';
@@ -30,6 +31,7 @@ import { UnitConversionService } from '../../inventory/services/unit-conversion.
 import { CustomerService } from '../services/customer.service';
 import { TechnicianService, TechnicianResponse } from '../services/technician.service';
 import { InvoicePdfService, InvoicePdfData } from '../services/invoice-pdf.service';
+import { ThermalReceiptService } from '../services/thermal-receipt.service';
 import { CurrencyService } from '../../../shared/services/currency.service';
 import { PricingValidationService } from '../../../shared/services/pricing-validation.service';
 import { extractApiError } from '../../../shared/utils/api-error.util';
@@ -49,6 +51,7 @@ import { LazyAutocompleteComponent, LazyRequest, LazyResponse } from '../../../s
     FormsModule,
     AutoCompleteModule,
     ButtonModule,
+    MenuModule,
     InputTextModule,
     InputNumberModule,
     TableModule,
@@ -83,6 +86,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
   private readonly messageService = inject(MessageService);
   private readonly confirmationService = inject(ConfirmationService);
   private readonly invoicePdfService = inject(InvoicePdfService);
+  private readonly thermalReceipt = inject(ThermalReceiptService);
   private readonly pricingValidationService = inject(PricingValidationService);
   private readonly paymentProviderService = inject(PaymentProviderService);
 
@@ -230,7 +234,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
 
   // Options
   autoCreatePO = false;
-  printReceipt = false;
+  printReceipt = true;
   sendSmsNotification = false;
   saleNotes = '';
   paymentResponsibility: PaymentResponsibility = 'CUSTOMER';
@@ -712,9 +716,23 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     return !!this.quickSaleService.getLastSale();
   }
 
+  /** Secondary checkout actions, shown in the "More" overflow to keep one clear primary action. */
+  get moreActions(): MenuItem[] {
+    const noCustomer = !this.selectedCustomer();
+    return [
+      { label: 'Save as Quotation', icon: 'pi pi-file-edit', disabled: noCustomer || this.saving(), command: () => this.processQuotation() },
+      { label: 'Save Draft', icon: 'pi pi-save', disabled: this.cartItems().length === 0, command: () => this.saveDraft() },
+      { label: 'Hold Sale', icon: 'pi pi-pause', disabled: this.cartItems().length === 0, command: () => this.holdSale() },
+    ];
+  }
+
   printLastSaleReceipt(): void {
     this.showLastSaleDialog = false;
-    this.messageService.add({ severity: 'info', summary: 'Print Receipt' });
+    if (this.invoicePreviewData) {
+      this.thermalReceipt.print(this.invoicePreviewData, (n) => this.formatCurrency(n));
+    } else {
+      this.messageService.add({ severity: 'warn', summary: 'No Receipt', detail: 'No recent sale available to print.' });
+    }
   }
 
   openReturns(): void {
@@ -1080,15 +1098,63 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
       next: (result) => {
         this.quickSaleService.saveLastSale(result);
         this.messageService.add({ severity: 'success', summary: 'Sale Completed', detail: result.invoiceNumber });
+
+        // Capture the receipt + print flag BEFORE resetForm() (which clears printReceipt).
+        this.invoicePreviewData = this.buildReceiptData(result, request);
+        const receipt = this.invoicePreviewData;
+        const shouldPrint = this.printReceipt;
+
         this.saving.set(false);
         this.resetForm();
         this.generateInvoiceNumber();
+
+        // Auto-print the 80mm thermal receipt when the cashier opted in.
+        if (shouldPrint && receipt) {
+          this.thermalReceipt.print(receipt, (n) => this.formatCurrency(n));
+        }
       },
       error: (err) => {
         this.saving.set(false);
         this.messageService.add({ severity: 'error', summary: 'Sale Failed', detail: err.error?.message || 'Failed' });
       }
     });
+  }
+
+  /** Assemble InvoicePdfData (used by the thermal receipt) from a completed sale. */
+  private buildReceiptData(result: any, request: any): InvoicePdfData {
+    const c = this.invoicePdfService.getCompanyConfig();
+    return {
+      companyName: c.companyName,
+      companyAddress: c.companyAddress,
+      companyPhone: c.companyPhone,
+      companyEmail: c.companyEmail,
+      companyTaxId: c.companyTaxId,
+      invoiceNumber: result.invoiceNumber,
+      invoiceDate: new Date(),
+      salesOrderNumber: result.salesOrderNumber,
+      customerName: request.customerName,
+      customerPhone: request.customerPhone,
+      technicianName: this.selectedTechnician()?.name,
+      items: request.items.map((item: any, i: number) => ({
+        slNo: i + 1,
+        partNumber: item.partNumber || item.sku || '',
+        description: item.partName || '',
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        discount: item.discount || 0,
+        total: (item.quantity * item.unitPrice) - (item.discount || 0)
+      })),
+      subtotal: request.subtotal,
+      discountAmount: request.discountAmount,
+      vatPercentage: request.vatPercentage,
+      vatAmount: request.vatAmount,
+      grandTotal: request.grandTotal,
+      payments: (request.payments || []).map((p: any) => ({ method: p.method, amount: p.amount, reference: p.reference })),
+      paidAmount: request.paidAmount,
+      dueAmount: request.dueAmount,
+      notes: request.notes,
+      paymentTerms: 'Thank you for your business!'
+    };
   }
 
   // ===== INVOICE =====
