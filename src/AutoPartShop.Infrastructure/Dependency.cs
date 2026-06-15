@@ -140,8 +140,17 @@ public static class Dependency
         services.AddScoped<IAuditLogService, AuditLogService>();
         services.AddScoped<IUnitConversionService, UnitConversionService>();
 
-        // Notification providers (Twilio + MailKit) — gracefully no-op when not configured
-        services.AddScoped<ISmsProvider, TwilioSmsProvider>();
+        // Notification providers — gracefully no-op when not configured.
+        // SMS provider is selectable via "Sms:Provider" (smsnetbd | twilio); defaults to
+        // smsnetbd when an "Sms:ApiKey" is present, otherwise Twilio.
+        var smsProvider = (configuration["Sms:Provider"]
+            ?? (!string.IsNullOrWhiteSpace(configuration["Sms:ApiKey"]) ? "smsnetbd" : "twilio"))
+            .Trim().ToLowerInvariant();
+        if (smsProvider == "smsnetbd")
+            services.AddHttpClient<ISmsProvider, SmsNetBdSmsProvider>();
+        else
+            services.AddScoped<ISmsProvider, TwilioSmsProvider>();
+
         services.AddScoped<IWhatsAppProvider, TwilioWhatsAppProvider>();
         services.AddScoped<IEmailProvider, SmtpEmailProvider>();
         services.AddScoped<INotificationService, NotificationService>();
