@@ -34,7 +34,7 @@ public class ProductsController : ControllerBase
     private readonly IPartVehicleCompatibilityRepository _compatibilityRepository;
     private readonly IProductVariantPriceHistoryRepository _variantPriceHistoryRepository;
     private readonly IWarrantyRegistrationRepository _warrantyRegistrationRepository;
-    private readonly IStockLotRepository _stockLotRepository;
+    private readonly IStockLevelRepository _stockLevelRepository;
     private readonly ICodeGenerateService _codeGenerateService;
     private readonly ICurrentUserService _currentUserService;
     private readonly IEmbeddingService _embeddingService;
@@ -48,7 +48,7 @@ public class ProductsController : ControllerBase
         IPartVehicleCompatibilityRepository compatibilityRepository,
         IProductVariantPriceHistoryRepository variantPriceHistoryRepository,
         IWarrantyRegistrationRepository warrantyRegistrationRepository,
-        IStockLotRepository stockLotRepository,
+        IStockLevelRepository stockLevelRepository,
         ICodeGenerateService codeGenerateService,
         ICurrentUserService currentUserService,
         IEmbeddingService embeddingService,
@@ -61,7 +61,7 @@ public class ProductsController : ControllerBase
         _compatibilityRepository = compatibilityRepository;
         _variantPriceHistoryRepository = variantPriceHistoryRepository;
         _warrantyRegistrationRepository = warrantyRegistrationRepository;
-        _stockLotRepository = stockLotRepository;
+        _stockLevelRepository = stockLevelRepository;
         _codeGenerateService = codeGenerateService;
         _currentUserService = currentUserService;
         _embeddingService = embeddingService;
@@ -154,7 +154,7 @@ public class ProductsController : ControllerBase
 
         if (part is not null)
         {
-            var totalStock  = await GetTotalAvailableStockAsync(part.Id, cancellationToken);
+            var totalStock  = await GetTotalAvailableStockAsync(part.Id, null, cancellationToken);
             return Ok(ApiResponse<object>.Ok(new
             {
                 productId            = part.Id,
@@ -179,7 +179,7 @@ public class ProductsController : ControllerBase
             return NotFound(ApiError.NotFound($"No product found for code '{code}'", Request.Path));
 
         var (variantPart, variant) = variantMatch.Value;
-        var variantTotalStock = await GetTotalAvailableStockAsync(variantPart.Id, cancellationToken);
+        var variantTotalStock = await GetTotalAvailableStockAsync(variantPart.Id, variant.Id, cancellationToken);
         var variantPrice      = CatalogPrice.Resolve(variantPart.SellingPrice, variant.SellingPrice);
 
         return Ok(ApiResponse<object>.Ok(new
@@ -208,13 +208,13 @@ public class ProductsController : ControllerBase
     [HttpGet("{id:guid}/lot-price")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetLotPrice(Guid id, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetLotPrice(Guid id, [FromQuery] Guid? variantId, CancellationToken cancellationToken)
     {
         var part = await _productRepository.GetByIdAsync(id, cancellationToken);
         if (part is null)
             return NotFound(ApiError.NotFound($"Product '{id}' not found", Request.Path));
 
-        var totalStock = await GetTotalAvailableStockAsync(id, cancellationToken);
+        var totalStock = await GetTotalAvailableStockAsync(id, variantId, cancellationToken);
 
         return Ok(ApiResponse<object>.Ok(new
         {
@@ -617,10 +617,25 @@ public class ProductsController : ControllerBase
 
     // ── Private helpers ───────────────────────────────────────────────────────
 
-    private async Task<int> GetTotalAvailableStockAsync(Guid partId, CancellationToken ct)
+    /// <summary>
+    /// Sellable stock for a part = on-hand minus reservations (e.g. open ecommerce carts),
+    /// read from StockLevel which is the source of truth for availability. When
+    /// <paramref name="variantId"/> is supplied only that variant is counted, so two variants of
+    /// the same part never report each other's stock; otherwise all variants are summed.
+    /// </summary>
+    private async Task<int> GetTotalAvailableStockAsync(Guid partId, Guid? variantId, CancellationToken ct)
     {
-        var lots = await _stockLotRepository.GetByPartAsync(partId, ct);
-        return lots.Where(l => !l.IsExpired).Sum(l => l.QuantityAvailable);
+        var levels = variantId.HasValue
+            ? await _stockLevelRepository.GetByPartAndVariantAsync(partId, variantId, ct)
+            : await _stockLevelRepository.GetByPartAsync(partId, ct);
+
+        return levels.Sum(sl =>
+        {
+            var onHand   = sl.QuantityOnHandInBaseUnit   > 0 ? sl.QuantityOnHandInBaseUnit   : sl.QuantityOnHand;
+            var reserved = sl.QuantityReservedInBaseUnit > 0 ? sl.QuantityReservedInBaseUnit : sl.QuantityReserved;
+            var available = onHand - reserved;
+            return available > 0 ? available : 0;
+        });
     }
 
     private async Task SyncWarrantyRegistrationsAsync(Product part, CancellationToken ct)
