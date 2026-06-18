@@ -8,5 +8,6 @@ namespace AutoPartShop.Application.SaleOrders.Dtos
         public DateTime? ToDate { get; set; }
         public string? Status { get; set; }
         public string? Channel { get; set; }
+        public Guid? CustomerId { get; set; }
     }
 }

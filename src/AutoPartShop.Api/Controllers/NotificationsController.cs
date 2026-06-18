@@ -23,17 +23,20 @@ public class NotificationsController : ControllerBase
     private readonly INotificationService _notificationService;
     private readonly IApplicationSettingsRepository _settings;
     private readonly ISaleEventBroadcaster _broadcaster;
+    private readonly ICustomerRepository _customerRepository;
     private readonly ILogger<NotificationsController> _logger;
 
     public NotificationsController(
         INotificationService notificationService,
         IApplicationSettingsRepository settings,
         ISaleEventBroadcaster broadcaster,
+        ICustomerRepository customerRepository,
         ILogger<NotificationsController> logger)
     {
         _notificationService = notificationService;
         _settings = settings;
         _broadcaster = broadcaster;
+        _customerRepository = customerRepository;
         _logger = logger;
     }
 
@@ -89,6 +92,68 @@ public class NotificationsController : ControllerBase
         {
             _logger.LogError(ex, "Error sending invoice email for order {Id}", salesOrderId);
             return StatusCode(500, new { message = "Failed to send invoice email" });
+        }
+    }
+
+    /// <summary>Staff-triggered: remind a customer about their outstanding payment due.</summary>
+    [HttpPost("send-payment-reminder/{customerId:guid}")]
+    public async Task<IActionResult> SendPaymentReminder(
+        Guid customerId,
+        [FromBody] SendPaymentReminderRequest? request,
+        CancellationToken cancellationToken)
+    {
+        var customer = await _customerRepository.GetByIdAsync(customerId, cancellationToken);
+        if (customer is null)
+            return NotFound(new { message = "Customer not found" });
+
+        var channel = (request?.Channel ?? "SMS").Trim().ToUpperInvariant();
+        var due = customer.CurrentBalance;
+        var name = customer.GetFullName();
+
+        // Compose a friendly default reminder when no custom message is supplied.
+        var message = string.IsNullOrWhiteSpace(request?.Message)
+            ? $"Dear {name}, your outstanding due at Sujan Motors is BDT {due:N2}. " +
+              "Please clear it at your earliest convenience. Thank you."
+            : request!.Message!;
+
+        try
+        {
+            switch (channel)
+            {
+                case "SMS":
+                    if (string.IsNullOrWhiteSpace(customer.Phone))
+                        return BadRequest(new { message = "Customer has no phone number" });
+                    if (!await IsEnabled(SmsKey, cancellationToken))
+                        return BadRequest(new { message = "SMS channel is disabled in notification settings" });
+                    await _notificationService.SendSmsAsync(customer.Phone, message, cancellationToken);
+                    return Ok(new { message = "Payment reminder sent by SMS", channel, recipient = customer.Phone, due });
+
+                case "WHATSAPP":
+                    if (string.IsNullOrWhiteSpace(customer.Phone))
+                        return BadRequest(new { message = "Customer has no phone number" });
+                    if (!await IsEnabled(WhatsAppKey, cancellationToken))
+                        return BadRequest(new { message = "WhatsApp channel is disabled in notification settings" });
+                    await _notificationService.SendWhatsAppAsync(customer.Phone, message, cancellationToken);
+                    return Ok(new { message = "Payment reminder sent by WhatsApp", channel, recipient = customer.Phone, due });
+
+                case "EMAIL":
+                    if (string.IsNullOrWhiteSpace(customer.Email))
+                        return BadRequest(new { message = "Customer has no email address" });
+                    var html = $"<p>Dear <strong>{System.Net.WebUtility.HtmlEncode(name)}</strong>,</p>" +
+                               $"<p>Your outstanding due at <strong>Sujan Motors</strong> is " +
+                               $"<strong>BDT {due:N2}</strong>.</p>" +
+                               "<p>Please clear it at your earliest convenience. Thank you.</p>";
+                    await _notificationService.SendEmailAsync(customer.Email, "Payment Reminder — Sujan Motors", html, cancellationToken);
+                    return Ok(new { message = "Payment reminder sent by email", channel, recipient = customer.Email, due });
+
+                default:
+                    return BadRequest(new { message = $"Unsupported channel '{channel}'. Use SMS, WHATSAPP or EMAIL." });
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error sending payment reminder to customer {CustomerId} via {Channel}", customerId, channel);
+            return StatusCode(500, new { message = "Failed to send payment reminder" });
         }
     }
 
@@ -170,6 +235,12 @@ public class NotificationsController : ControllerBase
     }
 
     // ── private ────────────────────────────────────────────────────────────
+
+    private async Task<bool> IsEnabled(string key, CancellationToken ct)
+    {
+        var val = await _settings.GetValueAsync(key, ct);
+        return val?.Equals("true", StringComparison.OrdinalIgnoreCase) == true;
+    }
 
     private static string BuildInvoiceHtml(SalesOrder order)
     {

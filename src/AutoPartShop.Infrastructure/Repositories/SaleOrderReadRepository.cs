@@ -28,6 +28,9 @@ namespace AutoPartShop.Infrastructure.Repositories
                 );
             }
 
+            if (query.CustomerId.HasValue && query.CustomerId.Value != Guid.Empty)
+                salesOrders = salesOrders.Where(x => x.CustomerId == query.CustomerId.Value);
+
             if (!string.IsNullOrWhiteSpace(query.Status))
                 salesOrders = salesOrders.Where(x => x.Status == query.Status);
 
