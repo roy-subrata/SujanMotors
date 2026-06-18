@@ -54,6 +54,7 @@ import { ThermalReceiptService } from '../services/thermal-receipt.service';
             </div>
             <div class="title-section">
               <h1>Invoice</h1>
+              <div class="status-badge" [ngClass]="paymentStatusClass">{{ paymentStatusLabel }}</div>
               <table class="meta-table">
                 <tr><td>Invoice no.</td><td>{{ invoiceData.invoiceNumber }}</td></tr>
                 <tr><td>Date</td><td>{{ formatDate(invoiceData.invoiceDate) }}</td></tr>
@@ -291,12 +292,30 @@ import { ThermalReceiptService } from '../services/thermal-receipt.service';
       background: white;
       max-width: 800px;
       margin: 0 auto;
-      padding: 20px;
+      padding: 32px 30px 24px;
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
       border-radius: 4px;
+      border-top: 5px solid #1976d2;
       font-family: 'Segoe UI', Arial, sans-serif;
       color: #333;
     }
+
+    /* Payment status badge */
+    .status-badge {
+      display: inline-block;
+      margin: 4px 0 10px;
+      padding: 4px 14px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      border: 1.5px solid;
+    }
+
+    .status-badge.paid { color: #1b7f4b; border-color: #1b7f4b; background: #e9f8f0; }
+    .status-badge.partial { color: #b9770a; border-color: #b9770a; background: #fdf4e3; }
+    .status-badge.due { color: #c62828; border-color: #c62828; background: #fdecec; }
 
     /* Header */
     .header {
@@ -518,13 +537,17 @@ import { ThermalReceiptService } from '../services/thermal-receipt.service';
     }
 
     .totals-row.total {
-      border-top: 2px solid #1976d2;
-      margin-top: 8px;
-      padding-top: 10px;
-      font-size: 14px;
-      font-weight: 600;
-      color: #1976d2;
+      margin-top: 10px;
+      padding: 10px 12px;
+      background: #1976d2;
+      color: #fff;
+      border-radius: 4px;
+      font-size: 15px;
+      font-weight: 700;
     }
+
+    .totals-row.total .totals-label,
+    .totals-row.total .totals-value { color: #fff; }
 
     .totals-label {
       color: #666;
@@ -639,6 +662,8 @@ export class InvoicePreviewComponent implements OnInit {
   downloading = signal(false);
   amountInWords = '';
   currentDateTime = '';
+  paymentStatusLabel = '';
+  paymentStatusClass = 'paid';
 
   ngOnInit(): void {
     this.updateDerivedValues();
@@ -658,6 +683,16 @@ export class InvoicePreviewComponent implements OnInit {
         hour: '2-digit',
         minute: '2-digit'
       });
+
+      const due = this.invoiceData.dueAmount || 0;
+      const paid = this.invoiceData.paidAmount || 0;
+      if (due > 0.001) {
+        this.paymentStatusClass = paid > 0.001 ? 'partial' : 'due';
+        this.paymentStatusLabel = paid > 0.001 ? 'Partially Paid' : 'Unpaid';
+      } else {
+        this.paymentStatusClass = 'paid';
+        this.paymentStatusLabel = 'Paid';
+      }
     }
   }
 
