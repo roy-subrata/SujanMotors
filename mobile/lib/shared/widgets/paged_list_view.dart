@@ -51,6 +51,10 @@ class _PagedListViewState<T> extends State<PagedListView<T>> {
   bool _initialDone = false;
   String? _error;
 
+  // Bumped on every reload; in-flight fetches from an older generation (e.g. a
+  // previous filter) are ignored when they complete, preventing stale results.
+  int _generation = 0;
+
   @override
   void initState() {
     super.initState();
@@ -78,9 +82,11 @@ class _PagedListViewState<T> extends State<PagedListView<T>> {
 
   Future<void> _reload() async {
     setState(() {
+      _generation++;
       _items.clear();
       _page = 0;
       _hasMore = true;
+      _loading = false; // release any in-flight guard so the new fetch runs
       _initialDone = false;
       _error = null;
     });
@@ -89,13 +95,14 @@ class _PagedListViewState<T> extends State<PagedListView<T>> {
 
   Future<void> _fetchNext() async {
     if (_loading || !_hasMore) return;
+    final gen = _generation;
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
       final chunk = await widget.fetch(_page + 1);
-      if (!mounted) return;
+      if (!mounted || gen != _generation) return; // superseded by a reload
       setState(() {
         _page++;
         _items.addAll(chunk.items);
@@ -105,7 +112,7 @@ class _PagedListViewState<T> extends State<PagedListView<T>> {
       });
       widget.onLoaded?.call(chunk.totalCount);
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted || gen != _generation) return;
       setState(() {
         _error = e is AppException ? e.message : 'Failed to load.';
         _loading = false;

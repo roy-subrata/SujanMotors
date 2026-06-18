@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../shared/format.dart';
@@ -46,12 +45,7 @@ class NotificationsScreen extends ConsumerWidget {
               separatorBuilder: (_, _) => const Divider(height: 1),
               itemBuilder: (context, index) => _NotificationTile(
                 notification: state.items[index],
-                onTap: () {
-                  controller.markRead(index);
-                  context.push(
-                    '/product/${state.items[index].sale.salesOrderId}',
-                  );
-                },
+                onTap: () => controller.markRead(state.items[index]),
               ),
             ),
     );

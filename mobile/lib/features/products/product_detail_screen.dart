@@ -192,15 +192,20 @@ class _StockSection extends ConsumerWidget {
     final levelsAsync = ref.watch(stockLevelsProvider(partId));
     final lotsAsync = ref.watch(stockLotsProvider(partId));
 
-    // Surface a loading/error state while either source is pending/failed.
+    // Wait until both sources have settled (data or error) to avoid flicker.
     if (levelsAsync.isLoading || lotsAsync.isLoading) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 24),
         child: LoadingView(),
       );
     }
-    final error = levelsAsync.error ?? lotsAsync.error;
-    if (error != null) {
+
+    final levelsErr = levelsAsync.hasError;
+    final lotsErr = lotsAsync.hasError;
+
+    // Only a hard error when nothing usable loaded at all.
+    if (levelsErr && lotsErr) {
+      final error = levelsAsync.error;
       return ErrorView(
         message: error is AppException ? error.message : 'Failed to load stock.',
         onRetry: () {
@@ -213,7 +218,7 @@ class _StockSection extends ConsumerWidget {
     final levels = levelsAsync.value ?? const <StockLevel>[];
     final lots = lotsAsync.value ?? const <StockLot>[];
 
-    // Build the set of warehouses from both sources.
+    // Build the set of warehouses from whichever source(s) loaded.
     final lotsByWarehouse = <String, List<StockLot>>{};
     for (final lot in lots) {
       lotsByWarehouse.putIfAbsent(lot.warehouseId, () => []).add(lot);
@@ -224,7 +229,7 @@ class _StockSection extends ConsumerWidget {
       ...lotsByWarehouse.keys,
     };
 
-    if (warehouseIds.isEmpty) {
+    if (warehouseIds.isEmpty && !levelsErr && !lotsErr) {
       return const EmptyView(
         message: 'No stock records for this part yet.',
         icon: Icons.warehouse_outlined,
@@ -233,6 +238,17 @@ class _StockSection extends ConsumerWidget {
 
     return Column(
       children: [
+        // One source failed — show what we have and offer a targeted retry.
+        if (lotsErr)
+          _StockNotice(
+            message: 'Purchase costs & buying dates couldn’t load.',
+            onRetry: () => ref.invalidate(stockLotsProvider(partId)),
+          ),
+        if (levelsErr)
+          _StockNotice(
+            message: 'Live availability couldn’t load.',
+            onRetry: () => ref.invalidate(stockLevelsProvider(partId)),
+          ),
         for (final id in warehouseIds)
           _WarehouseCard(
             level: levelByWarehouse[id],
@@ -426,6 +442,46 @@ class _LotRow extends StatelessWidget {
               Text(formatDate(lot.receivingDate),
                   style: theme.textTheme.bodySmall),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Inline amber notice shown when one stock source fails but the other loaded.
+class _StockNotice extends StatelessWidget {
+  const _StockNotice({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
+      decoration: BoxDecoration(
+        color: scheme.tertiaryContainer.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.warning_amber_rounded,
+              size: 18, color: scheme.onTertiaryContainer),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(message,
+                style: TextStyle(
+                    fontSize: 12, color: scheme.onTertiaryContainer)),
+          ),
+          TextButton(
+            onPressed: onRetry,
+            style: TextButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+                padding: const EdgeInsets.symmetric(horizontal: 8)),
+            child: const Text('Retry'),
           ),
         ],
       ),

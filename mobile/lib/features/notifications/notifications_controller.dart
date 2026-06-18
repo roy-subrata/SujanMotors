@@ -128,10 +128,13 @@ class NotificationsController extends Notifier<NotificationsState> {
     );
   }
 
-  void markRead(int index) {
-    if (index < 0 || index >= state.items.length) return;
+  /// Marks a specific notification read by identity — safe even if new
+  /// notifications have arrived (and shifted indices) since it was rendered.
+  void markRead(AppNotification notification) {
+    final i = state.items.indexOf(notification);
+    if (i < 0 || state.items[i].read) return;
     final updated = [...state.items];
-    updated[index] = updated[index].copyWith(read: true);
+    updated[i] = updated[i].copyWith(read: true);
     state = state.copyWith(items: updated);
   }
 
