@@ -234,7 +234,8 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
 
   // Options
   autoCreatePO = false;
-  printReceipt = true;
+  /** Receipt format the sales manager prints on checkout. */
+  printType: 'NONE' | 'THERMAL' | 'A4' = 'THERMAL';
   sendSmsNotification = false;
   saleNotes = '';
   paymentResponsibility: PaymentResponsibility = 'CUSTOMER';
@@ -641,7 +642,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     this.saving.set(false);
     this.autoCreatePO = false;
     this.saleNotes = '';
-    this.printReceipt = false;
+    this.printType = 'THERMAL';
     this.useCreditBalance = false;
     this.creditAmountToApply = 0;
     this.paymentInputAmount = null;
@@ -1014,7 +1015,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
   }
 
   saveAndPrint(): void {
-    this.printReceipt = true;
+    this.printType = 'THERMAL';
     this.confirmCheckout();
   }
 
@@ -1099,18 +1100,24 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
         this.quickSaleService.saveLastSale(result);
         this.messageService.add({ severity: 'success', summary: 'Sale Completed', detail: result.invoiceNumber });
 
-        // Capture the receipt + print flag BEFORE resetForm() (which clears printReceipt).
+        // Capture the receipt + chosen format BEFORE resetForm() (which restores printType to default).
         this.invoicePreviewData = this.buildReceiptData(result, request);
         const receipt = this.invoicePreviewData;
-        const shouldPrint = this.printReceipt;
+        const printMode = this.printType;
 
         this.saving.set(false);
         this.resetForm();
         this.generateInvoiceNumber();
 
-        // Auto-print the 80mm thermal receipt when the cashier opted in.
-        if (shouldPrint && receipt) {
-          this.thermalReceipt.print(receipt, (n) => this.formatCurrency(n));
+        // Print in the format the sales manager selected.
+        if (receipt) {
+          if (printMode === 'THERMAL') {
+            // Auto-print the compact 80mm thermal receipt.
+            this.thermalReceipt.print(receipt, (n) => this.formatCurrency(n));
+          } else if (printMode === 'A4') {
+            // Open the A4 invoice preview so the manager can review, then print or download.
+            this.showInvoicePreview = true;
+          }
         }
       },
       error: (err) => {

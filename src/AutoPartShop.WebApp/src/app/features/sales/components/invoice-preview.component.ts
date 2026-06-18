@@ -5,6 +5,7 @@ import { ButtonModule } from 'primeng/button';
 import { TooltipModule } from 'primeng/tooltip';
 import { DividerModule } from 'primeng/divider';
 import { InvoicePdfService, InvoicePdfData } from '../services/invoice-pdf.service';
+import { ThermalReceiptService } from '../services/thermal-receipt.service';
 
 @Component({
   selector: 'app-invoice-preview',
@@ -627,6 +628,7 @@ import { InvoicePdfService, InvoicePdfData } from '../services/invoice-pdf.servi
 })
 export class InvoicePreviewComponent implements OnInit {
   private readonly pdfService = inject(InvoicePdfService);
+  private readonly thermalReceipt = inject(ThermalReceiptService);
 
   @Input() visible = false;
   @Input() invoiceData: InvoicePdfData | null = null;
@@ -684,8 +686,9 @@ export class InvoicePreviewComponent implements OnInit {
   }
 
   printThermal(): void {
-    // Thermal print implementation - opens a compact receipt view
-    this.printInvoice(); // For now, same as regular print
+    if (!this.invoiceData) return;
+    this.thermalReceipt.print(this.invoiceData, (n) => this.pdfService.formatCurrency(n));
+    this.onPrint.emit();
   }
 
   async downloadPdf(): Promise<void> {
