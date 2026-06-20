@@ -25,6 +25,9 @@ import {
     SendDefectiveItemRequest,
     ReceiveReplacementItemRequest
 } from '../services/warranty.service';
+import { ClaimPrintService } from '../services/claim-print.service';
+import { LazyAutocompleteComponent, LazyRequest, LazyResponse } from '@/shared/components/lazy-autocomplete';
+import { Observable, map } from 'rxjs';
 import { CurrencyService } from '../../../shared/services/currency.service';
 import { TechnicianService, TechnicianResponse } from '../../sales/services/technician.service';
 import { SupplierService, SupplierResponse } from '../../inventory/services/supplier.service';
@@ -56,7 +59,8 @@ import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.co
         InputNumberModule,
         PageContainerComponent,
         PageHeaderComponent,
-        FilterBarComponent
+        FilterBarComponent,
+        LazyAutocompleteComponent
     ],
     providers: [MessageService],
     templateUrl: './claims-list.component.html',
@@ -64,6 +68,7 @@ import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.co
 })
 export class ClaimsListComponent implements OnInit {
     private readonly warrantyService = inject(WarrantyService);
+    private readonly claimPrintService = inject(ClaimPrintService);
     private readonly messageService = inject(MessageService);
     private readonly currencyService = inject(CurrencyService);
     private readonly technicianService = inject(TechnicianService);
@@ -74,6 +79,11 @@ export class ClaimsListComponent implements OnInit {
 
     get currentUsername(): string {
         return this.authService.currentUser()?.username || 'admin';
+    }
+
+    /** Claim approval/rejection/completion/closure and replacement logistics are manager-only. */
+    get isManager(): boolean {
+        return this.authService.hasAnyRole(['Admin', 'Manager']);
     }
 
     claims: WarrantyClaimResponse[] = [];
@@ -113,6 +123,9 @@ export class ClaimsListComponent implements OnInit {
     refundNotes = '';
     refundReturnItemReceived = true;
     refundRestockAsSellable = false;
+    // REPLACEMENT completion options
+    replacementFromVendor = false;
+    replacementReturnItemReceived = true;
     closureNotes = '';
     serviceCost = 0;
     serviceNotes = '';
@@ -351,6 +364,95 @@ export class ClaimsListComponent implements OnInit {
         });
     }
 
+    // ==================== PRINT ====================
+    printClaim(claim: WarrantyClaimResponse): void {
+        this.claimPrintService.print(claim);
+    }
+
+    // ==================== START SERVICE (repair without technician) ====================
+    canStartService(claim: WarrantyClaimResponse): boolean {
+        return claim.serviceType === 'REPAIR' && claim.status === 'APPROVED';
+    }
+
+    startService(claim: WarrantyClaimResponse): void {
+        this.warrantyService.startService(claim.id).subscribe({
+            next: () => {
+                this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: 'Repair service started' });
+                this.loadClaims();
+            },
+            error: (e: any) => this.showActionError(e)
+        });
+    }
+
+    // ==================== DEFECTIVE DISPOSITION (replacement) ====================
+    scrapDefective(claim: WarrantyClaimResponse): void { this.disposeDefective(claim, 'scrap'); }
+    restockDefective(claim: WarrantyClaimResponse): void { this.disposeDefective(claim, 'restock'); }
+
+    private disposeDefective(claim: WarrantyClaimResponse, disposition: 'scrap' | 'restock'): void {
+        const verb = disposition === 'scrap' ? 'scrap (write off)' : 'return to sellable stock';
+        if (!confirm(`Are you sure you want to ${verb} the defective item for claim ${claim.claimNumber}?`)) return;
+        this.warrantyService.disposeDefectiveItem(claim.id, disposition, { responsibleBy: this.currentUsername }).subscribe({
+            next: () => {
+                this.messageService.add({
+                    severity: 'success', summary: this.i18n.t('common.messages.success'),
+                    detail: disposition === 'scrap' ? 'Defective item scrapped' : 'Defective item returned to sellable stock'
+                });
+                this.loadClaims();
+                if (this.selectedClaim?.id === claim.id) this.loadReplacementLogistics(claim.id);
+            },
+            error: (e: any) => this.showActionError(e)
+        });
+    }
+
+    // ==================== REPAIR LOGISTICS (send/receive to manufacturer) ====================
+    showSendForRepairDialog = false;
+    sendForRepairForm = { partnerType: 'MANUFACTURER', partnerName: '', responsibleBy: '', referenceNumber: '', expectedReturnDate: null as Date | null, notes: '' };
+
+    openSendForRepairDialog(claim: WarrantyClaimResponse): void {
+        this.selectedClaim = claim;
+        this.sendForRepairForm = { partnerType: 'MANUFACTURER', partnerName: '', responsibleBy: this.currentUsername, referenceNumber: '', expectedReturnDate: null, notes: '' };
+        this.showSendForRepairDialog = true;
+    }
+
+    submitSendForRepair(): void {
+        if (!this.selectedClaim) return;
+        if (!this.sendForRepairForm.partnerName.trim() || !this.sendForRepairForm.responsibleBy.trim()) {
+            this.messageService.add({ severity: 'warn', summary: this.i18n.t('common.messages.warning'), detail: 'Partner name and responsible person are required' });
+            return;
+        }
+        this.warrantyService.sendForRepair(this.selectedClaim.id, {
+            partnerType: this.sendForRepairForm.partnerType,
+            partnerName: this.sendForRepairForm.partnerName.trim(),
+            responsibleBy: this.sendForRepairForm.responsibleBy.trim(),
+            referenceNumber: this.sendForRepairForm.referenceNumber?.trim() || undefined,
+            expectedReturnDate: this.sendForRepairForm.expectedReturnDate || undefined,
+            notes: this.sendForRepairForm.notes?.trim() || undefined
+        }).subscribe({
+            next: () => {
+                this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: 'Item sent for repair' });
+                this.showSendForRepairDialog = false;
+                this.loadClaims();
+            },
+            error: (e: any) => this.showActionError(e)
+        });
+    }
+
+    receiveFromRepair(claim: WarrantyClaimResponse): void {
+        if (!confirm(`Confirm the repaired item for claim ${claim.claimNumber} has been received back?`)) return;
+        this.warrantyService.receiveFromRepair(claim.id, { responsibleBy: this.currentUsername }).subscribe({
+            next: () => {
+                this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: 'Repaired item received' });
+                this.loadClaims();
+            },
+            error: (e: any) => this.showActionError(e)
+        });
+    }
+
+    private showActionError(error: any): void {
+        const msg = typeof error?.error === 'string' ? error.error : (error?.error?.message || 'Operation failed');
+        this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: msg });
+    }
+
     // ==================== SUBMIT FOR REVIEW ====================
     submitForReview(claim: WarrantyClaimResponse): void {
         this.warrantyService.submitClaimForReview(claim.id).subscribe({
@@ -424,14 +526,16 @@ export class ClaimsListComponent implements OnInit {
         this.showAssignDialog = true;
     }
 
-    searchTechnicians(event: any): void {
-        const query = (event?.query ?? '').toString().trim().toLowerCase();
-        this.filteredTechnicians = this.technicians.filter(t =>
-            (t.name || '').toLowerCase().includes(query) ||
-            (t.technicianCode || '').toLowerCase().includes(query) ||
-            (t.shopName || '').toLowerCase().includes(query)
-        );
-    }
+    /** Server-side technician search for the lazy autocomplete (matches name, code, or shop). */
+    searchTechniciansLazy = (req: LazyRequest): Observable<LazyResponse<TechnicianResponse>> =>
+        this.technicianService.getTechnicians({
+            search: req.search,
+            pageNumber: req.pageNumber,
+            pageSize: req.pageSize
+        }).pipe(map(res => ({
+            items: (res.data || []).filter(t => t.status === 'ACTIVE'),
+            totalCount: res.pagination?.totalCount ?? 0
+        })));
 
     assignTechnician(): void {
         if (!this.selectedClaim || !this.selectedTechnician) {
@@ -494,6 +598,8 @@ export class ClaimsListComponent implements OnInit {
         this.refundNotes = '';
         this.refundReturnItemReceived = true;
         this.refundRestockAsSellable = false;
+        this.replacementFromVendor = false;
+        this.replacementReturnItemReceived = true;
         this.serviceCost = claim.serviceCost || 0;
         this.serviceNotes = claim.serviceNotes || '';
         this.showCompleteDialog = true;
@@ -523,6 +629,11 @@ export class ClaimsListComponent implements OnInit {
             payload.refundNotes = this.refundNotes?.trim() || undefined;
             payload.returnItemReceived = this.refundReturnItemReceived;
             payload.restockAsSellable = this.refundReturnItemReceived ? this.refundRestockAsSellable : undefined;
+        }
+
+        if (this.selectedClaim.serviceType === 'REPLACEMENT') {
+            payload.replacementFromVendor = this.replacementFromVendor;
+            payload.returnItemReceived = this.replacementReturnItemReceived;
         }
 
         const saveServiceCost$ = (
@@ -681,18 +792,20 @@ export class ClaimsListComponent implements OnInit {
     }
 
     // ==================== PERMISSION CHECKS ====================
+    // Staff (any authenticated user) may file claims and submit them for review.
     canSubmitForReview(claim: WarrantyClaimResponse): boolean { return claim.status === 'PENDING'; }
-    canApprove(claim: WarrantyClaimResponse): boolean { return claim.status === 'UNDER_REVIEW'; }
-    canReject(claim: WarrantyClaimResponse): boolean { return claim.status === 'UNDER_REVIEW' || claim.status === 'PENDING'; }
     canAssignTechnician(claim: WarrantyClaimResponse): boolean { return claim.status === 'APPROVED' && claim.serviceType === 'REPAIR'; }
+    // Approval, rejection, completion, closure and replacement logistics are manager-only (mirrors the API).
+    canApprove(claim: WarrantyClaimResponse): boolean { return this.isManager && claim.status === 'UNDER_REVIEW'; }
+    canReject(claim: WarrantyClaimResponse): boolean { return this.isManager && (claim.status === 'UNDER_REVIEW' || claim.status === 'PENDING'); }
     canComplete(claim: WarrantyClaimResponse): boolean {
-        return claim.status === 'IN_PROGRESS' ||
-            (claim.status === 'APPROVED' && (claim.serviceType === 'REPLACEMENT' || claim.serviceType === 'REFUND'));
+        return this.isManager && (claim.status === 'IN_PROGRESS' ||
+            (claim.status === 'APPROVED' && (claim.serviceType === 'REPLACEMENT' || claim.serviceType === 'REFUND')));
     }
-    canClose(claim: WarrantyClaimResponse): boolean { return claim.status === 'COMPLETED' || claim.status === 'REJECTED'; }
-    canRunQuickFlow(claim: WarrantyClaimResponse): boolean { return claim.status !== 'REJECTED' && claim.status !== 'CLOSED'; }
-    canOpenSendDefective(claim: WarrantyClaimResponse): boolean { return claim.serviceType === 'REPLACEMENT' && claim.canSendDefectiveItem; }
-    canOpenReceiveReplacement(claim: WarrantyClaimResponse): boolean { return claim.serviceType === 'REPLACEMENT' && claim.canReceiveReplacementItem; }
+    canClose(claim: WarrantyClaimResponse): boolean { return this.isManager && (claim.status === 'COMPLETED' || claim.status === 'REJECTED'); }
+    canRunQuickFlow(claim: WarrantyClaimResponse): boolean { return this.isManager && claim.status !== 'REJECTED' && claim.status !== 'CLOSED'; }
+    canOpenSendDefective(claim: WarrantyClaimResponse): boolean { return this.isManager && claim.serviceType === 'REPLACEMENT' && claim.canSendDefectiveItem; }
+    canOpenReceiveReplacement(claim: WarrantyClaimResponse): boolean { return this.isManager && claim.serviceType === 'REPLACEMENT' && claim.canReceiveReplacementItem; }
 
     getLogisticsStateLabel(state: string | undefined): string {
         const map: Record<string, string> = {

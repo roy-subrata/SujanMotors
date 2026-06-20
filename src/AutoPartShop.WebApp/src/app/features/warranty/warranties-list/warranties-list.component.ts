@@ -20,7 +20,9 @@ import { PageHeaderComponent } from '@/shared/components/page-header/page-header
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { WarrantyService, WarrantyRegistrationResponse, CreateWarrantyRegistrationRequest } from '../services/warranty.service';
 import { SalesOrderService, SalesOrderResponse, SalesOrderLineResponse } from '../../sales/services/sales-order.service';
+import { InvoiceService } from '../../sales/services/invoice.service';
 import { CurrencyService } from '../../../shared/services/currency.service';
+import { AuthService } from '../../../shared/services/auth.service';
 import { I18nService } from '@/shared/services/i18n.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
@@ -54,11 +56,18 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 export class WarrantiesListComponent implements OnInit {
     private readonly warrantyService = inject(WarrantyService);
     private readonly salesOrderService = inject(SalesOrderService);
+    private readonly invoiceService = inject(InvoiceService);
     private readonly messageService = inject(MessageService);
     private readonly confirmationService = inject(ConfirmationService);
     readonly currencyService = inject(CurrencyService);
+    private readonly authService = inject(AuthService);
     private readonly i18n = inject(I18nService);
     private readonly destroyRef = inject(DestroyRef);
+
+    /** Voiding and deleting warranties are manager-only (mirrors the API). */
+    get isManager(): boolean {
+        return this.authService.hasAnyRole(['Admin', 'Manager']);
+    }
 
     warranties: WarrantyRegistrationResponse[] = [];
     filteredWarranties: WarrantyRegistrationResponse[] = [];
@@ -230,23 +239,40 @@ export class WarrantiesListComponent implements OnInit {
             return;
         }
 
+        const term = this.soNumberSearch.trim();
         this.isLoadingOrder = true;
         this.selectedOrder = null;
         this.selectedLineId = '';
 
-        this.salesOrderService.getSalesOrderByNumber(this.soNumberSearch.trim()).subscribe({
-            next: (order) => {
-                this.selectedOrder = order;
-                this.isLoadingOrder = false;
-            },
-            error: (error) => {
-                this.messageService.add({
-                    severity: 'error',
-                    summary: this.i18n.t('common.messages.error'),
-                    detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || this.i18n.t('warranties.messages.soNotFound'))
+        // Accept either a sales-order number (SO…) or an invoice number (INV…) — POS receipts show
+        // the invoice number, so resolve that to its sales order before giving up.
+        this.salesOrderService.getSalesOrderByNumber(term).subscribe({
+            next: (order) => this.onOrderFound(order),
+            error: () => {
+                this.invoiceService.getInvoiceByNumber(term).subscribe({
+                    next: (invoice) => {
+                        this.salesOrderService.getSalesOrderById(invoice.salesOrderId).subscribe({
+                            next: (order) => this.onOrderFound(order),
+                            error: () => this.onOrderNotFound()
+                        });
+                    },
+                    error: () => this.onOrderNotFound()
                 });
-                this.isLoadingOrder = false;
             }
+        });
+    }
+
+    private onOrderFound(order: SalesOrderResponse): void {
+        this.selectedOrder = order;
+        this.isLoadingOrder = false;
+    }
+
+    private onOrderNotFound(): void {
+        this.isLoadingOrder = false;
+        this.messageService.add({
+            severity: 'error',
+            summary: this.i18n.t('common.messages.error'),
+            detail: this.i18n.t('warranties.messages.soNotFound')
         });
     }
 

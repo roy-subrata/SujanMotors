@@ -316,6 +316,7 @@ public class WarrantyRegistrationsController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/void")]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> Void(Guid id, [FromBody] VoidWarrantyRequest request, CancellationToken cancellationToken)
     {
         try
@@ -362,6 +363,7 @@ public class WarrantyRegistrationsController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         try

@@ -37,6 +37,12 @@ public class WarrantyClaimResponse
     public string ReplacementLogisticsState { get; set; } = "NOT_APPLICABLE";
     public bool CanSendDefectiveItem { get; set; }
     public bool CanReceiveReplacementItem { get; set; }
+    public bool CanScrapDefectiveItem { get; set; }
+    public bool CanRestockDefectiveItem { get; set; }
+    public string RepairLogisticsState { get; set; } = "NOT_APPLICABLE";
+    public bool CanSendForRepair { get; set; }
+    public bool CanReceiveFromRepair { get; set; }
+    public DateTime? RepairExpectedReturnDate { get; set; }
     public bool IsOpen { get; set; }
     public bool CanBeModified { get; set; }
     public int DaysOpen { get; set; }

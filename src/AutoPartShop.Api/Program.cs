@@ -170,6 +170,7 @@ builder.Services.AddMemoryCache(); // Required for currency conversion caching
 
 // Register warranty services
 builder.Services.AddScoped<IWarrantyService, WarrantyService>();
+builder.Services.AddScoped<IWarrantyClaimNotifier, WarrantyClaimNotifier>();
 
 // Register discount and pricing services
 builder.Services.AddScoped<IDiscountResolutionService, DiscountResolutionService>();

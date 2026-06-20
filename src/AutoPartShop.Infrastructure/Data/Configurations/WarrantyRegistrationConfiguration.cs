@@ -17,6 +17,13 @@ public class WarrantyRegistrationConfiguration : IEntityTypeConfiguration<Warran
         builder.HasIndex(w => w.WarrantyNumber)
             .IsUnique();
 
+        // At most one non-void warranty per sold line. Enforced at the DB level so concurrent
+        // create requests cannot both slip past the application-level duplicate check.
+        // Named overload so it coexists with the FK's conventional SalesOrderLineId index.
+        builder.HasIndex(w => w.SalesOrderLineId, "UX_WarrantyRegistrations_SalesOrderLineId_NotVoid")
+            .IsUnique()
+            .HasFilter("[Status] <> 'VOID'");
+
         builder.Property(w => w.PartId)
             .IsRequired();
 

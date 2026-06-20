@@ -30,6 +30,7 @@ public interface IWarrantyService
         string? refundNotes,
         bool returnItemReceived,
         bool restockAsSellable,
+        bool replacementFromVendor,
         string actor,
         CancellationToken cancellationToken = default);
 
@@ -202,6 +203,7 @@ public class WarrantyService(
         string? refundNotes,
         bool returnItemReceived,
         bool restockAsSellable,
+        bool replacementFromVendor,
         string actor,
         CancellationToken cancellationToken = default)
     {
@@ -216,25 +218,31 @@ public class WarrantyService(
             claim.StartServiceWithoutTechnician();
         }
 
-        await using var tx = await dbContext.Database.BeginTransactionAsync(cancellationToken);
-        try
+        // EnableRetryOnFailure is configured globally, so a manual transaction must run inside an
+        // execution strategy that owns the whole unit (otherwise EF throws on BeginTransaction).
+        var strategy = dbContext.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
         {
-            if (claim.ServiceType.Equals("REPLACEMENT", StringComparison.OrdinalIgnoreCase))
-                await ProcessReplacementAsync(claim, cancellationToken);
+            await using var tx = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+            try
+            {
+                if (claim.ServiceType.Equals("REPLACEMENT", StringComparison.OrdinalIgnoreCase))
+                    await ProcessReplacementAsync(claim, returnItemReceived, replacementFromVendor, cancellationToken);
 
-            if (claim.ServiceType.Equals("REFUND", StringComparison.OrdinalIgnoreCase))
-                await ProcessRefundAsync(claim, refundType, refundAmount, referenceNumber, refundNotes,
-                    returnItemReceived, restockAsSellable, actor, cancellationToken);
+                if (claim.ServiceType.Equals("REFUND", StringComparison.OrdinalIgnoreCase))
+                    await ProcessRefundAsync(claim, refundType, refundAmount, referenceNumber, refundNotes,
+                        returnItemReceived, restockAsSellable, actor, cancellationToken);
 
-            claim.Complete(resolutionDetails);
-            await claimRepository.UpdateAsync(claim, cancellationToken);
-            await tx.CommitAsync(cancellationToken);
-        }
-        catch
-        {
-            await tx.RollbackAsync(cancellationToken);
-            throw;
-        }
+                claim.Complete(resolutionDetails);
+                await claimRepository.UpdateAsync(claim, cancellationToken);
+                await tx.CommitAsync(cancellationToken);
+            }
+            catch
+            {
+                await tx.RollbackAsync(cancellationToken);
+                throw;
+            }
+        });
 
         return claim;
     }
@@ -248,60 +256,17 @@ public class WarrantyService(
         var claim = await claimRepository.GetByIdAsync(claimId, cancellationToken)
             ?? throw new InvalidOperationException("Warranty claim not found");
 
-        await using var tx = await dbContext.Database.BeginTransactionAsync(cancellationToken);
-        try
+        var strategy = dbContext.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
         {
-            claim.Reject(rejectionReason, rejectedBy);
-            await claimRepository.UpdateAsync(claim, cancellationToken);
-
-            // Reactivate the warranty if no other active claim remains,
-            // so the customer can file a new claim on a still-valid warranty.
-            var warranty = await warrantyRepository.GetByIdAsync(claim.WarrantyRegistrationId, cancellationToken);
-            if (warranty != null && warranty.Status == "CLAIMED")
+            await using var tx = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+            try
             {
-                var activeStatuses = new[] { "PENDING", "UNDER_REVIEW", "APPROVED", "IN_PROGRESS" };
-                var allClaims = await claimRepository.GetByWarrantyRegistrationIdAsync(
-                    claim.WarrantyRegistrationId, cancellationToken);
-                var hasOtherActiveClaims = allClaims.Any(c =>
-                    c.Id != claim.Id &&
-                    activeStatuses.Contains(c.Status, StringComparer.OrdinalIgnoreCase));
+                claim.Reject(rejectionReason, rejectedBy);
+                await claimRepository.UpdateAsync(claim, cancellationToken);
 
-                if (!hasOtherActiveClaims)
-                {
-                    warranty.ReactivateAfterClaimRejection();
-                    await warrantyRepository.UpdateAsync(warranty, cancellationToken);
-                }
-            }
-
-            await tx.CommitAsync(cancellationToken);
-        }
-        catch
-        {
-            await tx.RollbackAsync(cancellationToken);
-            throw;
-        }
-
-        return claim;
-    }
-
-    public async Task<WarrantyClaim> CloseClaimAsync(
-        Guid claimId,
-        string? closureNotes,
-        CancellationToken cancellationToken = default)
-    {
-        var claim = await claimRepository.GetByIdAsync(claimId, cancellationToken)
-            ?? throw new InvalidOperationException("Warranty claim not found");
-
-        await using var tx = await dbContext.Database.BeginTransactionAsync(cancellationToken);
-        try
-        {
-            claim.Close(closureNotes);
-            await claimRepository.UpdateAsync(claim, cancellationToken);
-
-            // REPAIR is non-terminal — reactivate warranty so customer can file again.
-            // REPLACEMENT and REFUND consume the warranty; it stays CLAIMED.
-            if (claim.ServiceType.Equals("REPAIR", StringComparison.OrdinalIgnoreCase))
-            {
+                // Reactivate the warranty if no other active claim remains,
+                // so the customer can file a new claim on a still-valid warranty.
                 var warranty = await warrantyRepository.GetByIdAsync(claim.WarrantyRegistrationId, cancellationToken);
                 if (warranty != null && warranty.Status == "CLAIMED")
                 {
@@ -314,71 +279,147 @@ public class WarrantyService(
 
                     if (!hasOtherActiveClaims)
                     {
-                        warranty.ReactivateAfterClaimClosure();
+                        warranty.ReactivateAfterClaimRejection();
                         await warrantyRepository.UpdateAsync(warranty, cancellationToken);
                     }
                 }
-            }
 
-            await tx.CommitAsync(cancellationToken);
-        }
-        catch
+                await tx.CommitAsync(cancellationToken);
+            }
+            catch
+            {
+                await tx.RollbackAsync(cancellationToken);
+                throw;
+            }
+        });
+
+        return claim;
+    }
+
+    public async Task<WarrantyClaim> CloseClaimAsync(
+        Guid claimId,
+        string? closureNotes,
+        CancellationToken cancellationToken = default)
+    {
+        var claim = await claimRepository.GetByIdAsync(claimId, cancellationToken)
+            ?? throw new InvalidOperationException("Warranty claim not found");
+
+        var strategy = dbContext.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
         {
-            await tx.RollbackAsync(cancellationToken);
-            throw;
-        }
+            await using var tx = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+            try
+            {
+                claim.Close(closureNotes);
+                await claimRepository.UpdateAsync(claim, cancellationToken);
+
+                // REPAIR is non-terminal — reactivate warranty so customer can file again.
+                // REPLACEMENT and REFUND consume the warranty; it stays CLAIMED.
+                if (claim.ServiceType.Equals("REPAIR", StringComparison.OrdinalIgnoreCase))
+                {
+                    var warranty = await warrantyRepository.GetByIdAsync(claim.WarrantyRegistrationId, cancellationToken);
+                    if (warranty != null && warranty.Status == "CLAIMED")
+                    {
+                        var activeStatuses = new[] { "PENDING", "UNDER_REVIEW", "APPROVED", "IN_PROGRESS" };
+                        var allClaims = await claimRepository.GetByWarrantyRegistrationIdAsync(
+                            claim.WarrantyRegistrationId, cancellationToken);
+                        var hasOtherActiveClaims = allClaims.Any(c =>
+                            c.Id != claim.Id &&
+                            activeStatuses.Contains(c.Status, StringComparer.OrdinalIgnoreCase));
+
+                        if (!hasOtherActiveClaims)
+                        {
+                            warranty.ReactivateAfterClaimClosure();
+                            await warrantyRepository.UpdateAsync(warranty, cancellationToken);
+                        }
+                    }
+                }
+
+                await tx.CommitAsync(cancellationToken);
+            }
+            catch
+            {
+                await tx.RollbackAsync(cancellationToken);
+                throw;
+            }
+        });
 
         return claim;
     }
 
     // ─── Private helpers ──────────────────────────────────────────────────────
 
-    private async Task ProcessReplacementAsync(WarrantyClaim claim, CancellationToken ct)
+    private async Task ProcessReplacementAsync(
+        WarrantyClaim claim,
+        bool returnItemReceived,
+        bool replacementFromVendor,
+        CancellationToken ct)
     {
         var warranty = await warrantyRepository.GetByIdAsync(claim.WarrantyRegistrationId, ct);
         if (warranty == null)
             throw new InvalidOperationException("Warranty registration not found for replacement processing");
 
-        var stockLevels = (await stockLevelRepository.GetByPartAsync(warranty.PartId, ct))
-            .Where(s => s.IsActive && s.QuantityAvailable > 0)
-            .OrderByDescending(s => s.QuantityAvailable)
+        // Variant-aware: only touch the stock of the exact variant that was sold.
+        var stockLevels = (await stockLevelRepository.GetByPartAndVariantAsync(
+                warranty.PartId, warranty.ProductVariantId, ct))
+            .Where(s => s.IsActive)
             .ToList();
 
-        if (!stockLevels.Any())
-            throw new InvalidOperationException(
-                "No available replacement stock found. Add stock first, then complete the claim.");
+        StockLevel? dispatchedFrom = null;
 
-        var stockLevel = stockLevels.First();
+        if (!replacementFromVendor)
+        {
+            // OUT: replacement part dispatched to customer from on-hand stock now.
+            var sellable = stockLevels
+                .Where(s => s.QuantityAvailable > 0)
+                .OrderByDescending(s => s.QuantityAvailable)
+                .FirstOrDefault();
 
-        // OUT: replacement part dispatched to customer
-        stockLevel.RemoveStock(1);
-        await stockLevelRepository.UpdateAsync(stockLevel, ct);
+            if (sellable == null)
+                throw new InvalidOperationException(
+                    "No available replacement stock found. Add stock first, or mark the replacement as vendor-sourced, then complete the claim.");
 
-        var outMovement = StockMovement.Create(
-            stockLevelId: stockLevel.Id,
-            movementType: "OUT",
-            quantity: 1,
-            reason: WarrantyReplacementOutReason,
-            referenceNumber: claim.ClaimNumber);
-        outMovement.Approve("system");
-        outMovement.AddNotes($"Replacement dispatched for warranty claim {claim.ClaimNumber}");
-        await stockMovementRepository.AddAsync(outMovement, ct);
+            dispatchedFrom = sellable;
+            dispatchedFrom.RemoveStock(1);
+            await stockLevelRepository.UpdateAsync(dispatchedFrom, ct);
 
-        // IN: defective item returned by customer, quarantined so it cannot be resold
-        stockLevel.AddStock(1);
-        stockLevel.ReserveStock(1);
-        await stockLevelRepository.UpdateAsync(stockLevel, ct);
+            var outMovement = StockMovement.Create(
+                stockLevelId: dispatchedFrom.Id,
+                movementType: "OUT",
+                quantity: 1,
+                reason: WarrantyReplacementOutReason,
+                referenceNumber: claim.ClaimNumber);
+            outMovement.Approve("system");
+            outMovement.AddNotes($"Replacement dispatched for warranty claim {claim.ClaimNumber}");
+            await stockMovementRepository.AddAsync(outMovement, ct);
+        }
 
-        var inMovement = StockMovement.Create(
-            stockLevelId: stockLevel.Id,
-            movementType: "IN",
-            quantity: 1,
-            reason: WarrantyDefectiveReturnReason,
-            referenceNumber: claim.ClaimNumber);
-        inMovement.Approve("system");
-        inMovement.AddNotes(
-            $"Defective item returned and quarantined under warranty claim {claim.ClaimNumber}. Reserved from sale.");
-        await stockMovementRepository.AddAsync(inMovement, ct);
+        if (returnItemReceived)
+        {
+            // IN: defective item returned by customer, quarantined so it cannot be resold.
+            // Prefer the location the replacement came from; otherwise any active location for the variant.
+            var quarantineAt = dispatchedFrom
+                ?? stockLevels.OrderByDescending(s => s.QuantityOnHand).FirstOrDefault();
+
+            if (quarantineAt == null)
+                throw new InvalidOperationException(
+                    "No stock location found to receive the defective item. Create stock for this part/variant first, then complete the claim.");
+
+            quarantineAt.AddStock(1);
+            quarantineAt.ReserveStock(1);
+            await stockLevelRepository.UpdateAsync(quarantineAt, ct);
+
+            var inMovement = StockMovement.Create(
+                stockLevelId: quarantineAt.Id,
+                movementType: "IN",
+                quantity: 1,
+                reason: WarrantyDefectiveReturnReason,
+                referenceNumber: claim.ClaimNumber);
+            inMovement.Approve("system");
+            inMovement.AddNotes(
+                $"Defective item returned and quarantined under warranty claim {claim.ClaimNumber}. Reserved from sale.");
+            await stockMovementRepository.AddAsync(inMovement, ct);
+        }
     }
 
     private async Task ProcessRefundAsync(
@@ -397,7 +438,9 @@ public class WarrantyService(
 
         if (returnItemReceived)
         {
-            var stockLevels = (await stockLevelRepository.GetByPartAsync(warranty.PartId, ct))
+            // Variant-aware: return the unit to the exact variant's stock, not just any level for the part.
+            var stockLevels = (await stockLevelRepository.GetByPartAndVariantAsync(
+                    warranty.PartId, warranty.ProductVariantId, ct))
                 .Where(s => s.IsActive)
                 .OrderByDescending(s => s.QuantityOnHand)
                 .ToList();
@@ -438,6 +481,12 @@ public class WarrantyService(
             throw new InvalidOperationException(
                 "Refund amount is required for REFUND claims. Provide RefundAmount or ensure original sale amount exists.");
 
+        // Cap the refund at the value of the returned item, regardless of refund type, so a
+        // warranty refund can never exceed what the line was originally sold for.
+        if (orderLine != null && effectiveRefundAmount > fallbackAmount)
+            throw new InvalidOperationException(
+                $"Refund amount ({effectiveRefundAmount}) cannot exceed the value of the returned item ({fallbackAmount}).");
+
         var normalizedRefundType = string.IsNullOrWhiteSpace(refundType)
             ? "CASH_REFUND"
             : refundType.Trim().ToUpperInvariant();
@@ -449,7 +498,7 @@ public class WarrantyService(
         {
             if (effectiveRefundAmount > salesOrder.PaidAmount)
                 throw new InvalidOperationException(
-                    $"Refund amount ({effectiveRefundAmount}) cannot exceed paid amount ({salesOrder.PaidAmount}).");
+                    $"Cash refund ({effectiveRefundAmount}) cannot exceed the amount the customer actually paid ({salesOrder.PaidAmount}). Use STORE_CREDIT, or refund up to the paid amount.");
 
             var customer = await customerRepository.GetByIdAsync(claim.CustomerId, ct)
                 ?? throw new InvalidOperationException("Customer not found for refund processing");

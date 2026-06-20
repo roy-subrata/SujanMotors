@@ -5032,6 +5032,73 @@ namespace AutoPartsShop.Infrastructure.Migrations
                     b.ToTable("WarrantyClaims");
                 });
 
+            modelBuilder.Entity("AutoPartShop.Domain.Entities.WarrantyClaimEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("EventDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime?>("ExpectedReturnDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("Isdeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("ModifiedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("ModifiedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("PartnerName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("PartnerType")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("ReferenceNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ResponsibleBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid>("WarrantyClaimId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("WarrantyClaimId");
+
+                    b.ToTable("WarrantyClaimEvents");
+                });
+
             modelBuilder.Entity("AutoPartShop.Domain.Entities.WarrantyRegistration", b =>
                 {
                     b.Property<Guid>("Id")
@@ -5126,14 +5193,16 @@ namespace AutoPartsShop.Infrastructure.Migrations
 
                     b.HasIndex("SalesOrderId");
 
-                    b.HasIndex("SalesOrderLineId");
-
                     b.HasIndex("Status");
 
                     b.HasIndex("WarrantyExpiryDate");
 
                     b.HasIndex("WarrantyNumber")
                         .IsUnique();
+
+                    b.HasIndex(new[] { "SalesOrderLineId" }, "UX_WarrantyRegistrations_SalesOrderLineId_NotVoid")
+                        .IsUnique()
+                        .HasFilter("[Status] <> 'VOID'");
 
                     b.ToTable("WarrantyRegistrations");
                 });
@@ -6234,6 +6303,17 @@ namespace AutoPartsShop.Infrastructure.Migrations
                     b.Navigation("Technician");
 
                     b.Navigation("WarrantyRegistration");
+                });
+
+            modelBuilder.Entity("AutoPartShop.Domain.Entities.WarrantyClaimEvent", b =>
+                {
+                    b.HasOne("AutoPartShop.Domain.Entities.WarrantyClaim", "WarrantyClaim")
+                        .WithMany()
+                        .HasForeignKey("WarrantyClaimId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("WarrantyClaim");
                 });
 
             modelBuilder.Entity("AutoPartShop.Domain.Entities.WarrantyRegistration", b =>
