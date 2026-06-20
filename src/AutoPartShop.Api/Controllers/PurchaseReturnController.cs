@@ -15,7 +15,7 @@ namespace AutoPartShop.Api.Controllers;
 [Route("api/v1/[controller]")]
 [ApiController]
 [Produces("application/json")]
-[Authorize]
+[Authorize(Roles = "Admin,Manager")]
 public class PurchaseReturnController : ControllerBase
 {
     private readonly IPurchaseReturnRepository _purchaseReturnRepository;
@@ -393,13 +393,20 @@ public class PurchaseReturnController : ControllerBase
                     return BadRequest(new { message = $"Insufficient {bucket.ToLower()} stock for part {line.Part?.Name ?? line.PartId.ToString()}. {bucket}: {bucketAvailable}, Required: {acceptedQuantity}" });
             }
 
-            purchaseReturn.MarkAsReturned();
-            purchaseReturn.ModifiedBy = _currentUserService.GetCurrentUsername();
-
-            // Process stock movements for each line item inside a transaction
+            // Process stock movements for each line item inside a transaction, run under the EF
+            // execution strategy (global retry policy). The aggregate + stock entities are reloaded
+            // INSIDE the lambda so a retry after rollback applies movements exactly once.
+            var strategy = _dbContext.Database.CreateExecutionStrategy();
+            await strategy.ExecuteAsync(async () =>
+            {
             await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
             try
             {
+            purchaseReturn = await _purchaseReturnRepository.GetByIdAsync(id, cancellationToken)
+                ?? throw new InvalidOperationException("Purchase return not found");
+            purchaseReturn.MarkAsReturned();
+            purchaseReturn.ModifiedBy = _currentUserService.GetCurrentUsername();
+
             foreach (var line in purchaseReturn.LineItems)
             {
                 int acceptedQuantity = line.Quantity - line.RejectedQuantity;
@@ -428,7 +435,7 @@ public class PurchaseReturnController : ControllerBase
                             _logger.LogWarning(
                                 "Insufficient stock in selected lot {LotId}. Required: {Required}, Available: {Available}",
                                 line.StockLotId, acceptedQuantity, selectedLot.QuantityAvailable);
-                            return BadRequest(new { message = $"Insufficient stock in selected lot. Available: {selectedLot.QuantityAvailable}, Required: {acceptedQuantity}" });
+                            throw new InvalidOperationException($"Insufficient stock in selected lot. Available: {selectedLot.QuantityAvailable}, Required: {acceptedQuantity}");
                         }
 
                         // Reduce stock from the bucket matching the lot's status (Available/Damaged/Quarantine).
@@ -573,6 +580,7 @@ public class PurchaseReturnController : ControllerBase
                 await transaction.RollbackAsync(cancellationToken);
                 throw;
             }
+            }); // end execution strategy
 
             return Ok(MapToPurchaseReturnResponse(purchaseReturn));
         }

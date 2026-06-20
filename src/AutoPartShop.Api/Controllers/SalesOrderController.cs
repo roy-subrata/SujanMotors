@@ -1078,24 +1078,37 @@ public class SalesOrderController : ControllerBase
             var customer = await _customerRepository.GetByIdAsync(salesOrder.CustomerId, cancellationToken);
             if (customer is null) return NotFound(new { message = "Customer not found" });
 
-            // Fix #2: invoice status + customer balance update must be atomic
-            await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
-            try
+            // Fix #2: invoice status + customer balance update must be atomic.
+            // Wrapped in the EF execution strategy (global retry policy) — entities are reloaded
+            // INSIDE the lambda so a retry after rollback applies the balance change exactly once.
+            var strategy = _dbContext.Database.CreateExecutionStrategy();
+            await strategy.ExecuteAsync(async () =>
             {
-                invoice.Issue();
-                invoice.ModifiedBy = _currentUserService.GetCurrentUsername();
-                customer.UpdateBalance(invoice.GrandTotal);
-                customer.ModifiedBy = _currentUserService.GetCurrentUsername();
+                await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+                try
+                {
+                    var inv = await _invoiceRepository.GetByIdAsync(id, cancellationToken)
+                        ?? throw new InvalidOperationException("Invoice not found");
+                    var cust = await _customerRepository.GetByIdAsync(salesOrder.CustomerId, cancellationToken)
+                        ?? throw new InvalidOperationException("Customer not found");
 
-                await _invoiceRepository.UpdateAsync(invoice, cancellationToken);
-                await _customerRepository.UpdateAsync(customer, cancellationToken);
-                await tx.CommitAsync(cancellationToken);
-            }
-            catch
-            {
-                await tx.RollbackAsync(cancellationToken);
-                throw;
-            }
+                    inv.Issue();
+                    inv.ModifiedBy = _currentUserService.GetCurrentUsername();
+                    cust.UpdateBalance(inv.GrandTotal);
+                    cust.ModifiedBy = _currentUserService.GetCurrentUsername();
+
+                    await _invoiceRepository.UpdateAsync(inv, cancellationToken);
+                    await _customerRepository.UpdateAsync(cust, cancellationToken);
+                    await tx.CommitAsync(cancellationToken);
+
+                    invoice = inv;
+                }
+                catch
+                {
+                    await tx.RollbackAsync(cancellationToken);
+                    throw;
+                }
+            });
 
             return Ok(MapToInvoiceResponse(invoice));
         }
@@ -1133,74 +1146,83 @@ public class SalesOrderController : ControllerBase
 
             // Fix #8: default payment date to UtcNow when not provided
             var effectivePaymentDate = request.PaymentDate ?? DateTime.UtcNow;
-
-            var payment = CustomerPayment.Create(
-                customerId: invoice.SalesOrder.CustomerId,
-                paymentProviderId: request.PaymentProviderId,
-                amount: request.Amount,
-                paymentMethod: request.PaymentMethod ?? "CASH",
-                transactionNumber: transactionNumber,
-                referenceNumber: request.ReferenceNumber ?? "",
-                paymentDate: effectivePaymentDate
-            );
-
-            payment.LinkToInvoice(invoice.Id);
-            payment.CreatedBy = _currentUserService.GetCurrentUsername();
-            payment.ModifiedBy = _currentUserService.GetCurrentUsername();
-
             var isCash = request.PaymentMethod?.Trim().ToUpper() == "CASH";
 
-            // Fix #1: wrap all saves in a single transaction
-            await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
-            try
+            // Fix #1: wrap all saves in a single transaction, run under the EF execution strategy
+            // (global retry policy). The payment + mutated entities are created/loaded INSIDE the
+            // lambda so a retry after rollback inserts/applies exactly once.
+            CustomerPayment payment = null!;
+            var strategy = _dbContext.Database.CreateExecutionStrategy();
+            await strategy.ExecuteAsync(async () =>
             {
-                if (isCash)
+                await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+                try
                 {
-                    payment.MarkAsCompleted();
-                    customer.UpdateBalance(-request.Amount);
-                    customer.ModifiedBy = _currentUserService.GetCurrentUsername();
+                    payment = CustomerPayment.Create(
+                        customerId: invoice!.SalesOrder!.CustomerId,
+                        paymentProviderId: request.PaymentProviderId,
+                        amount: request.Amount,
+                        paymentMethod: request.PaymentMethod ?? "CASH",
+                        transactionNumber: transactionNumber,
+                        referenceNumber: request.ReferenceNumber ?? "",
+                        paymentDate: effectivePaymentDate
+                    );
+                    payment.LinkToInvoice(invoice.Id);
+                    payment.CreatedBy = _currentUserService.GetCurrentUsername();
+                    payment.ModifiedBy = _currentUserService.GetCurrentUsername();
 
-                    await _customerPaymentRepository.AddAsync(payment, cancellationToken);
-                    await _customerRepository.UpdateAsync(customer, cancellationToken);
-
-                    // Reload inside transaction to get accurate AmountPaid from all payments
-                    var freshInvoice = await _dbContext.Invoices
-                        .Include(i => i.CustomerPayments)
-                        .Include(i => i.SalesOrder)
-                        .FirstOrDefaultAsync(i => i.Id == id, cancellationToken);
-
-                    freshInvoice!.UpdatePaymentStatus();
-                    freshInvoice.ModifiedBy = _currentUserService.GetCurrentUsername();
-                    await _invoiceRepository.UpdateAsync(freshInvoice, cancellationToken);
-
-                    var salesOrder = await _salesOrderRepository.GetByIdAsync(freshInvoice.SalesOrderId, cancellationToken);
-                    if (salesOrder != null)
+                    if (isCash)
                     {
-                        salesOrder.RecordPayment(request.Amount);
-                        salesOrder.ModifiedBy = _currentUserService.GetCurrentUsername();
-                        await _salesOrderRepository.UpdateAsync(salesOrder, cancellationToken);
+                        payment.MarkAsCompleted();
+
+                        var cust = await _customerRepository.GetByIdAsync(invoice.SalesOrder.CustomerId, cancellationToken)
+                            ?? throw new InvalidOperationException("Customer not found");
+                        cust.UpdateBalance(-request.Amount);
+                        cust.ModifiedBy = _currentUserService.GetCurrentUsername();
+                        customer = cust; // surface the updated balance in the response
+
+                        await _customerPaymentRepository.AddAsync(payment, cancellationToken);
+                        await _customerRepository.UpdateAsync(cust, cancellationToken);
+
+                        // Reload inside transaction to get accurate AmountPaid from all payments
+                        var freshInvoice = await _dbContext.Invoices
+                            .Include(i => i.CustomerPayments)
+                            .Include(i => i.SalesOrder)
+                            .FirstOrDefaultAsync(i => i.Id == id, cancellationToken);
+
+                        freshInvoice!.UpdatePaymentStatus();
+                        freshInvoice.ModifiedBy = _currentUserService.GetCurrentUsername();
+                        await _invoiceRepository.UpdateAsync(freshInvoice, cancellationToken);
+
+                        var salesOrder = await _salesOrderRepository.GetByIdAsync(freshInvoice.SalesOrderId, cancellationToken);
+                        if (salesOrder != null)
+                        {
+                            salesOrder.RecordPayment(request.Amount);
+                            salesOrder.ModifiedBy = _currentUserService.GetCurrentUsername();
+                            await _salesOrderRepository.UpdateAsync(salesOrder, cancellationToken);
+                        }
+
+                        invoice = freshInvoice;
+                    }
+                    else
+                    {
+                        // Non-CASH: keep as PENDING; balance updates on manual confirmation
+                        await _customerPaymentRepository.AddAsync(payment, cancellationToken);
+
+                        invoice = await _dbContext.Invoices
+                            .Include(i => i.CustomerPayments)
+                            .Include(i => i.SalesOrder)
+                            .FirstOrDefaultAsync(i => i.Id == id, cancellationToken);
                     }
 
-                    invoice = freshInvoice;
+                    await tx.CommitAsync(cancellationToken);
                 }
-                else
+                catch
                 {
-                    // Non-CASH: keep as PENDING; balance updates on manual confirmation
-                    await _customerPaymentRepository.AddAsync(payment, cancellationToken);
-
-                    invoice = await _dbContext.Invoices
-                        .Include(i => i.CustomerPayments)
-                        .Include(i => i.SalesOrder)
-                        .FirstOrDefaultAsync(i => i.Id == id, cancellationToken);
+                    await tx.RollbackAsync(cancellationToken);
+                    throw;
                 }
-
-                await tx.CommitAsync(cancellationToken);
-            }
-            catch
-            {
-                await tx.RollbackAsync(cancellationToken);
-                throw;
-            }
+            });
 
             return Ok(new
             {

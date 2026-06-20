@@ -15,7 +15,7 @@ namespace AutoPartShop.Api.Controllers;
 [Route("api/v1/[controller]")]
 [ApiController]
 [Produces("application/json")]
-[Authorize]
+[Authorize(Roles = "Admin,Manager")]
 public class PurchaseOrderController : ControllerBase
 {
     private readonly IPurchaseOrderRepository _purchaseOrderRepository;
