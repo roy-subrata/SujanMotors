@@ -494,11 +494,22 @@
               <span>Auto Create PO</span>
             </label>
           </div>
-          <div class="option-row">
-            <label class="checkbox-label">
-              <input type="checkbox" [(ngModel)]="printReceipt" [ngModelOptions]="{standalone: true}" />
-              <span>Print thermal receipt (80mm)</span>
-            </label>
+          <div class="option-row print-type-row">
+            <span class="print-type-title">Receipt print</span>
+            <div class="print-type-options">
+              <label class="radio-label">
+                <input type="radio" name="printType" value="NONE" [(ngModel)]="printType" [ngModelOptions]="{standalone: true}" />
+                <span>None</span>
+              </label>
+              <label class="radio-label">
+                <input type="radio" name="printType" value="THERMAL" [(ngModel)]="printType" [ngModelOptions]="{standalone: true}" />
+                <span>Thermal 80mm</span>
+              </label>
+              <label class="radio-label">
+                <input type="radio" name="printType" value="A4" [(ngModel)]="printType" [ngModelOptions]="{standalone: true}" />
+                <span>A4 Invoice</span>
+              </label>
+            </div>
           </div>
           <textarea pTextarea [(ngModel)]="saleNotes" [ngModelOptions]="{standalone: true}" rows="2" placeholder="Notes..."></textarea>
         </div>
