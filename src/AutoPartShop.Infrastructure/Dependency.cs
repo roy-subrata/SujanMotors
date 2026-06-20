@@ -116,6 +116,7 @@ public static class Dependency
         // Warranty repositories
         services.AddScoped<IWarrantyRegistrationRepository, WarrantyRegistrationRepository>();
         services.AddScoped<IWarrantyClaimRepository, WarrantyClaimRepository>();
+        services.AddScoped<IWarrantyClaimEventRepository, WarrantyClaimEventRepository>();
 
         // Discount repositories
         services.AddScoped<IDiscountRepository, DiscountRepository>();

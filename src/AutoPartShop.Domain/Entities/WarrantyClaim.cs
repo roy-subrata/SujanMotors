@@ -133,9 +133,8 @@ public class WarrantyClaim : AuditableEntity
         if (Status != "APPROVED")
             throw new InvalidOperationException($"Cannot start service. Claim must be approved first. Current status: {Status}");
 
-        if (ServiceType != "REPLACEMENT" && ServiceType != "REFUND")
-            throw new InvalidOperationException($"Service without technician is only allowed for replacement/refund claims. Current service type: {ServiceType}");
-
+        // Allowed for replacement/refund (handled at completion) and for repairs that don't use an
+        // in-house technician — e.g. a unit sent out to the manufacturer for repair.
         Status = "IN_PROGRESS";
         ServiceStartDate = DateTime.UtcNow;
         ModifiedBy = "System";

@@ -100,6 +100,12 @@ export interface WarrantyClaimResponse {
     replacementLogisticsState: string;
     canSendDefectiveItem: boolean;
     canReceiveReplacementItem: boolean;
+    canScrapDefectiveItem: boolean;
+    canRestockDefectiveItem: boolean;
+    repairLogisticsState: string;
+    canSendForRepair: boolean;
+    canReceiveFromRepair: boolean;
+    repairExpectedReturnDate?: Date;
     isOpen: boolean;
     canBeModified: boolean;
     daysOpen: number;
@@ -149,6 +155,8 @@ export interface CompleteClaimRequest {
     refundNotes?: string;
     returnItemReceived?: boolean;
     restockAsSellable?: boolean;
+    // REPLACEMENT only: replacement is vendor-sourced, so no stock is dispatched now.
+    replacementFromVendor?: boolean;
 }
 
 export interface SendDefectiveItemRequest {
@@ -160,6 +168,40 @@ export interface SendDefectiveItemRequest {
 
 export interface ReceiveReplacementItemRequest {
     source: string;
+    responsibleBy: string;
+    referenceNumber?: string;
+    notes?: string;
+}
+
+export interface DisposeDefectiveItemRequest {
+    responsibleBy: string;
+    notes?: string;
+}
+
+export interface RepairPartLine {
+    partId: string;
+    productVariantId?: string;
+    warehouseId?: string;
+    quantity: number;
+    unitCost: number;
+}
+
+export interface RepairPartsUsedRequest {
+    parts: RepairPartLine[];
+    responsibleBy?: string;
+    notes?: string;
+}
+
+export interface SendForRepairRequest {
+    partnerType: string; // MANUFACTURER or SUPPLIER
+    partnerName: string;
+    responsibleBy: string;
+    referenceNumber?: string;
+    expectedReturnDate?: Date;
+    notes?: string;
+}
+
+export interface ReceiveFromRepairRequest {
     responsibleBy: string;
     referenceNumber?: string;
     notes?: string;
@@ -367,6 +409,11 @@ export class WarrantyService {
         return this.http.patch<WarrantyClaimResponse>(`${this.claimsApiUrl}/${id}/assign-technician`, request);
     }
 
+    /** Start a repair without assigning an in-house technician (e.g. unit sent to manufacturer). */
+    startService(id: string): Observable<WarrantyClaimResponse> {
+        return this.http.patch<WarrantyClaimResponse>(`${this.claimsApiUrl}/${id}/start-service`, {});
+    }
+
     updateServiceCost(id: string, request: UpdateServiceCostRequest): Observable<WarrantyClaimResponse> {
         return this.http.patch<WarrantyClaimResponse>(`${this.claimsApiUrl}/${id}/update-service-cost`, request);
     }
@@ -385,6 +432,23 @@ export class WarrantyService {
 
     getReplacementLogistics(id: string): Observable<ReplacementLogisticsResponse> {
         return this.http.get<ReplacementLogisticsResponse>(`${this.claimsApiUrl}/${id}/replacement-logistics`);
+    }
+
+    /** Scrap/write-off or return-to-sellable a quarantined defective unit. disposition = 'scrap' | 'restock'. */
+    disposeDefectiveItem(id: string, disposition: 'scrap' | 'restock', request: DisposeDefectiveItemRequest): Observable<any> {
+        return this.http.patch(`${this.claimsApiUrl}/${id}/defective/${disposition}`, request);
+    }
+
+    recordRepairParts(id: string, request: RepairPartsUsedRequest): Observable<WarrantyClaimResponse> {
+        return this.http.patch<WarrantyClaimResponse>(`${this.claimsApiUrl}/${id}/repair/parts-used`, request);
+    }
+
+    sendForRepair(id: string, request: SendForRepairRequest): Observable<WarrantyClaimResponse> {
+        return this.http.patch<WarrantyClaimResponse>(`${this.claimsApiUrl}/${id}/repair/send`, request);
+    }
+
+    receiveFromRepair(id: string, request: ReceiveFromRepairRequest): Observable<WarrantyClaimResponse> {
+        return this.http.patch<WarrantyClaimResponse>(`${this.claimsApiUrl}/${id}/repair/receive`, request);
     }
 
     closeClaim(id: string, request?: CloseClaimRequest): Observable<WarrantyClaimResponse> {

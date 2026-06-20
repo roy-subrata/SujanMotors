@@ -150,6 +150,10 @@
               <button pButton type="button" icon="pi pi-eye" class="p-button-sm p-button-text p-button-secondary"
                 pTooltip="View Details" tooltipPosition="top" (click)="openDetailDialog(claim)"></button>
 
+              <!-- Print claim slip / service report -->
+              <button pButton type="button" icon="pi pi-print" class="p-button-sm p-button-text p-button-secondary"
+                pTooltip="Print claim" tooltipPosition="top" (click)="printClaim(claim)"></button>
+
               <!-- Submit for Review (PENDING) -->
               <button *ngIf="canSubmitForReview(claim)" pButton type="button" icon="pi pi-send"
                 class="p-button-sm p-button-text p-button-info" pTooltip="Submit for Review" tooltipPosition="top"
@@ -170,6 +174,11 @@
                 class="p-button-sm p-button-text p-button-info" pTooltip="Assign Technician" tooltipPosition="top"
                 (click)="openAssignDialog(claim)"></button>
 
+              <!-- Start Service without a technician (repair sent out / bench repair) -->
+              <button *ngIf="canStartService(claim)" pButton type="button" icon="pi pi-play"
+                class="p-button-sm p-button-text p-button-info" pTooltip="Start Service (no technician)" tooltipPosition="top"
+                (click)="startService(claim)"></button>
+
               <!-- Update Service Cost (REPAIR, IN_PROGRESS or APPROVED) -->
               <button *ngIf="canUpdateServiceCost(claim)" pButton type="button" icon="pi pi-dollar"
                 class="p-button-sm p-button-text p-button-info" pTooltip="Update Repair Cost" tooltipPosition="top"
@@ -189,6 +198,22 @@
               <button *ngIf="canOpenReceiveReplacement(claim)" pButton type="button" icon="pi pi-download"
                 class="p-button-sm p-button-text p-button-help" pTooltip="Receive Replacement from Vendor" tooltipPosition="top"
                 (click)="openReceiveReplacementDialog(claim)"></button>
+
+              <!-- Defective disposition: scrap / restock (replacement, quarantined) -->
+              <button *ngIf="claim.canScrapDefectiveItem" pButton type="button" icon="pi pi-trash"
+                class="p-button-sm p-button-text p-button-danger" pTooltip="Scrap defective (write off)" tooltipPosition="top"
+                (click)="scrapDefective(claim)"></button>
+              <button *ngIf="claim.canRestockDefectiveItem" pButton type="button" icon="pi pi-undo"
+                class="p-button-sm p-button-text p-button-secondary" pTooltip="Return defective to sellable stock" tooltipPosition="top"
+                (click)="restockDefective(claim)"></button>
+
+              <!-- Repair: send to / receive from manufacturer -->
+              <button *ngIf="claim.canSendForRepair" pButton type="button" icon="pi pi-truck"
+                class="p-button-sm p-button-text p-button-warning" pTooltip="Send for Repair" tooltipPosition="top"
+                (click)="openSendForRepairDialog(claim)"></button>
+              <button *ngIf="claim.canReceiveFromRepair" pButton type="button" icon="pi pi-box"
+                class="p-button-sm p-button-text p-button-help" pTooltip="Receive Repaired Item" tooltipPosition="top"
+                (click)="receiveFromRepair(claim)"></button>
 
               <!-- Close (COMPLETED or REJECTED) -->
               <button *ngIf="canClose(claim)" pButton type="button" icon="pi pi-lock"
@@ -394,16 +419,17 @@
 
     <div class="form-group">
       <label class="form-label"><span class="required">*</span> Select Technician</label>
-      <p-autoComplete [(ngModel)]="selectedTechnician" [suggestions]="filteredTechnicians"
-        (completeMethod)="searchTechnicians($event)" field="name"
-        placeholder="Search by name, code, or shop..." [dropdown]="true" [forceSelection]="true" styleClass="w-full" [appendTo]="'body'">
-        <ng-template let-tech pTemplate="item">
+      <app-lazy-autocomplete [fetchFn]="searchTechniciansLazy" [(ngModel)]="selectedTechnician"
+        [ngModelOptions]="{ standalone: true }" optionLabel="name"
+        placeholder="Search by name, code, or shop..."
+        (onItemSelect)="selectedTechnician = $any($event)" (onClearEvent)="selectedTechnician = null">
+        <ng-template let-tech>
           <div class="tech-suggestion">
             <div class="tech-name"><strong>{{ tech.name }}</strong> <span class="tech-code">({{ tech.technicianCode }})</span></div>
             <div class="tech-detail">{{ tech.shopName }} · {{ tech.phone }}</div>
           </div>
         </ng-template>
-      </p-autoComplete>
+      </app-lazy-autocomplete>
     </div>
 
     <div *ngIf="selectedTechnician" class="selected-tech-card">
@@ -495,6 +521,27 @@
         optionLabel="label" optionValue="value" styleClass="w-full" appendTo="body"></p-select>
       <small class="cell-secondary" style="display:block; margin-top:0.5rem;">
         Use quarantine for defective items. Use sellable stock only when the returned item is still resalable.
+      </small>
+    </div>
+
+    <!-- Replacement sourcing & defective return -->
+    <div *ngIf="selectedClaim.serviceType === 'REPLACEMENT'" class="form-group">
+      <label class="form-label">Replacement Source</label>
+      <p-select [(ngModel)]="replacementFromVendor"
+        [options]="[{label:'Dispatch from on-hand stock now', value:false},{label:'Source from vendor (no stock dispatched now)', value:true}]"
+        optionLabel="label" optionValue="value" styleClass="w-full" appendTo="body"></p-select>
+      <small class="cell-secondary" style="display:block; margin-top:0.5rem;">
+        Choose vendor-sourced when the part is out of stock; then use Send Defective → Receive Replacement to complete the swap.
+      </small>
+    </div>
+
+    <div *ngIf="selectedClaim.serviceType === 'REPLACEMENT'" class="form-group">
+      <label class="form-label">Defective Item Received?</label>
+      <p-select [(ngModel)]="replacementReturnItemReceived"
+        [options]="[{label:'Yes, customer returned the defective item', value:true},{label:'Not yet returned', value:false}]"
+        optionLabel="label" optionValue="value" styleClass="w-full" appendTo="body"></p-select>
+      <small class="cell-secondary" style="display:block; margin-top:0.5rem;">
+        When received, the defective unit is quarantined from sale. Leave as "Not yet" if the customer hasn't returned it.
       </small>
     </div>
   </div>
@@ -682,6 +729,56 @@
     <button pButton type="button" label="Receive Replacement" icon="pi pi-download" class="p-button-success"
       [disabled]="((receiveReplacementForm.partnerType === 'SELLER' && !receiveReplacementForm.supplierId) || (receiveReplacementForm.partnerType === 'MANUFACTURER' && !receiveReplacementForm.manufacturerName.trim()) || !receiveReplacementForm.responsibleBy.trim())"
       (click)="submitReceiveReplacement()"></button>
+  </ng-template>
+</p-dialog>
+
+<!-- ==================== SEND FOR REPAIR DIALOG ==================== -->
+<p-dialog [(visible)]="showSendForRepairDialog" header="Send Item for Repair" [modal]="true"
+  [style]="{ width: '560px' }" [draggable]="false" [resizable]="false">
+  <div *ngIf="selectedClaim" class="dialog-body">
+    <div class="dialog-info-banner">
+      <i class="pi pi-truck"></i>
+      <span>Send the customer's item to a manufacturer/supplier for repair under claim <strong>{{ selectedClaim.claimNumber }}</strong></span>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label"><span class="required">*</span> Partner Type</label>
+      <p-select [(ngModel)]="sendForRepairForm.partnerType"
+        [options]="[{label:'Manufacturer', value:'MANUFACTURER'},{label:'Supplier', value:'SUPPLIER'}]"
+        optionLabel="label" optionValue="value" styleClass="w-full" appendTo="body"></p-select>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label"><span class="required">*</span> Partner Name</label>
+      <input pInputText [(ngModel)]="sendForRepairForm.partnerName" class="w-full" placeholder="e.g. ABC Manufacturer Ltd" />
+    </div>
+
+    <div class="form-group">
+      <label class="form-label"><span class="required">*</span> Responsible By</label>
+      <input pInputText [(ngModel)]="sendForRepairForm.responsibleBy" class="w-full" placeholder="Person responsible" />
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Reference Number</label>
+        <input pInputText [(ngModel)]="sendForRepairForm.referenceNumber" class="w-full" placeholder="RMA / Dispatch Ref" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Expected Return</label>
+        <p-datepicker [(ngModel)]="sendForRepairForm.expectedReturnDate" dateFormat="yy-mm-dd" styleClass="w-full" appendTo="body"></p-datepicker>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Notes</label>
+      <input pInputText [(ngModel)]="sendForRepairForm.notes" class="w-full" placeholder="Optional notes" />
+    </div>
+  </div>
+  <ng-template #footer>
+    <button pButton type="button" label="Cancel" class="p-button-text" (click)="showSendForRepairDialog = false"></button>
+    <button pButton type="button" label="Send for Repair" icon="pi pi-truck" class="p-button-warning"
+      [disabled]="!sendForRepairForm.partnerName.trim() || !sendForRepairForm.responsibleBy.trim()"
+      (click)="submitSendForRepair()"></button>
   </ng-template>
 </p-dialog>
 

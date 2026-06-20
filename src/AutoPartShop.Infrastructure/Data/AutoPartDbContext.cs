@@ -56,6 +56,7 @@ public class AutoPartDbContext : IdentityDbContext<ApplicationUser, ApplicationR
     public DbSet<ApplicationSettings> ApplicationSettings { get; set; }
     public DbSet<WarrantyRegistration> WarrantyRegistrations { get; set; }
     public DbSet<WarrantyClaim> WarrantyClaims { get; set; }
+    public DbSet<WarrantyClaimEvent> WarrantyClaimEvents { get; set; }
     public DbSet<Shipment> Shipments { get; set; }
     public DbSet<ShipmentLine> ShipmentLines { get; set; }
     public DbSet<Challan> Challans { get; set; }

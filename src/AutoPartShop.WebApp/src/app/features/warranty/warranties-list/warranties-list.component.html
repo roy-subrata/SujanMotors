@@ -132,12 +132,12 @@
                 class="p-button-sm p-button-info p-button-text"
                 pTooltip="View Details" tooltipPosition="top"
                 (click)="openDetailDialog(warranty)"></button>
-              <button *ngIf="warranty.status === 'ACTIVE'"
+              <button *ngIf="isManager && warranty.status === 'ACTIVE'"
                 pButton type="button" icon="pi pi-ban"
                 class="p-button-sm p-button-danger p-button-text"
                 pTooltip="Void Warranty" tooltipPosition="top"
                 (click)="openVoidDialog(warranty)"></button>
-              <button *ngIf="warranty.status === 'VOID'"
+              <button *ngIf="isManager && warranty.status === 'VOID'"
                 pButton type="button" icon="pi pi-trash"
                 class="p-button-sm p-button-danger p-button-text"
                 pTooltip="Delete" tooltipPosition="top"
@@ -177,7 +177,7 @@
       <h4 class="section-title"><i class="pi pi-search"></i> Find Sales Order</h4>
       <div class="search-order-row">
         <input pInputText type="text" [(ngModel)]="soNumberSearch"
-          placeholder="Enter Sales Order Number (e.g. SO-2026-00001)"
+          placeholder="Enter Sales Order (e.g. SO012) or Invoice No. (e.g. INV001)"
           class="w-full" (keyup.enter)="searchSalesOrder()" />
         <button pButton type="button" icon="pi pi-search" label="Find"
           class="p-button-outlined" [loading]="isLoadingOrder"

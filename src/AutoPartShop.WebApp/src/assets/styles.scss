@@ -23,6 +23,19 @@
   box-sizing: border-box !important;
 }
 
+/* Autocomplete/select overlays must sit above modal dialogs.
+   In PrimeNG v20 the z-index is set as an INLINE style on the `.p-overlay` HOST element
+   (ZIndexUtils.set(mode, overlayEl, ...)), while `.p-autocomplete-overlay` / `.lz-ac-panel`
+   are inner children — styling the child can't win the stacking contest with the dialog.
+   A stylesheet `!important` beats the (non-important) inline z-index, so target the host.
+   `.p-overlay` is NOT used by dialogs (they use `.p-dialog-mask`), so this is safe. */
+.p-overlay,
+.p-autocomplete-overlay,
+.p-select-overlay,
+.lz-ac-panel {
+  z-index: 9999 !important;
+}
+
 /* List container — fixed height, scroll only when items overflow */
 .lz-ac-panel .p-autocomplete-list-container {
   height: 320px !important;
