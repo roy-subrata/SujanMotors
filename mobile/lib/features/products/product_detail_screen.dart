@@ -9,6 +9,7 @@ import '../../shared/models/product.dart';
 import '../../shared/models/stock.dart';
 import '../../shared/models/vehicle_compatibility.dart';
 import '../../shared/widgets/state_views.dart';
+import '../pricing/price_code.dart';
 import 'products_providers.dart';
 
 class ProductDetailScreen extends ConsumerWidget {
@@ -19,11 +20,23 @@ class ProductDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final productAsync = ref.watch(productDetailProvider(productId));
+    final priceCode = ref.watch(priceCodeProvider).value;
+    final showActual = ref.watch(showActualPriceProvider);
 
     return Scaffold(
       appBar: AppBar(
         flexibleSpace: const AppBarGradient(),
         title: const Text('Product'),
+        actions: [
+          if (priceCode != null && priceCode.isConfigured)
+            IconButton(
+              tooltip: showActual ? 'Hide cost prices' : 'Reveal cost prices',
+              icon: Icon(
+                  showActual ? Icons.visibility_off_outlined : Icons.visibility_outlined),
+              onPressed: () =>
+                  ref.read(showActualPriceProvider.notifier).toggle(),
+            ),
+        ],
       ),
       body: RefreshIndicator(
         onRefresh: () async {
@@ -465,15 +478,17 @@ class _WarehouseCard extends StatelessWidget {
   }
 }
 
-class _LotRow extends StatelessWidget {
+class _LotRow extends ConsumerWidget {
   const _LotRow({required this.lot});
 
   final StockLot lot;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final priceCode = ref.watch(priceCodeProvider).value;
+    final showActual = ref.watch(showActualPriceProvider);
     final unit = lot.unitCode ?? lot.unitName ?? '';
     final hasSupplier =
         lot.supplierName != null && lot.supplierName!.isNotEmpty;
@@ -507,7 +522,8 @@ class _LotRow extends StatelessWidget {
               Text('in stock', style: theme.textTheme.bodySmall),
               const Spacer(),
               Text(
-                formatCurrency(lot.costPrice, currency: lot.currency),
+                formatCostMasked(priceCode, showActual, lot.costPrice,
+                    currency: lot.currency),
                 style: theme.textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w700, color: scheme.primary),
               ),
