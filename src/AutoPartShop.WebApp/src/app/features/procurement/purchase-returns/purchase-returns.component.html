@@ -27,7 +27,7 @@
           <button class="btn-icon" pTooltip="More options" tooltipPosition="bottom" (click)="menu.toggle($event)">
             <i class="pi pi-ellipsis-v"></i>
           </button>
-          <button class="btn-primary" (click)="onCreateClick()">
+          <button *appHasRole="['Admin','Manager']" class="btn-primary" (click)="onCreateClick()">
             <i class="pi pi-plus"></i>
             <span>New Return</span>
           </button>

@@ -13,11 +13,12 @@ import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
 import { PurchaseOrdersListComponent } from './purchase-orders-list/purchase-orders-list.component';
 import { PurchaseOrderService, PurchaseOrderResponse } from '../services/purchase-order.service';
 import { PurchaseOrdersFormDialogComponent } from './purchase-orders-form-dialog/purchase-orders-form-dialog.component';
+import { HasRoleDirective } from '../../../shared/directives/has-role.directive';
 
 @Component({
     selector: 'app-purchase-orders',
     standalone: true,
-    imports: [CommonModule, FormsModule, ButtonModule, ToastModule, ConfirmDialogModule, Select, DatePicker, MenuModule, TooltipModule, PurchaseOrdersListComponent, PurchaseOrdersFormDialogComponent],
+    imports: [CommonModule, FormsModule, ButtonModule, ToastModule, ConfirmDialogModule, Select, DatePicker, MenuModule, TooltipModule, PurchaseOrdersListComponent, PurchaseOrdersFormDialogComponent, HasRoleDirective],
     providers: [MessageService, ConfirmationService],
     templateUrl: './purchase-orders.component.html',
     styleUrls: ['./purchase-orders.component.css']

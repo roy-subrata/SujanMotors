@@ -11,6 +11,7 @@ import { ConfirmationService, MessageService, MenuItem } from 'primeng/api';
 import { GoodsReceiptService, GoodsReceiptResponse } from '../services/goods-receipt.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { I18nService } from '@/shared/services/i18n.service';
+import { AuthService } from '../../../shared/services/auth.service';
 
 @Component({
   selector: 'app-goods-receipts-list',
@@ -57,6 +58,12 @@ export class GoodsReceiptsListComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly i18n = inject(I18nService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly auth = inject(AuthService);
+
+  /** Procurement mutations (create/delete) are restricted to back-office roles. */
+  get canManage(): boolean {
+    return this.auth.hasAnyRole(['Admin', 'Manager']);
+  }
 
   ngOnInit(): void {
     this.i18n.translationsLoaded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
@@ -83,7 +90,7 @@ export class GoodsReceiptsListComponent implements OnInit {
         label: this.i18n.t('common.actions.delete'),
         icon: 'pi pi-trash',
         command: () => this.deleteGoodsReceipt(grn),
-        visible: grn.status === 'PENDING',
+        visible: grn.status === 'PENDING' && this.canManage,
         styleClass: 'text-red-600'
       }
     ];

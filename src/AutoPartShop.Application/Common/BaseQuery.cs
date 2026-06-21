@@ -7,6 +7,7 @@ namespace AutoPartShop.Application.Common;
 /// </summary>
 public abstract class BaseQuery
 {
+
     /// <summary>
     /// Largest page a client may request. Protects the API from abusive "give me a million rows"
     /// calls while still accommodating the frontend's reference-data loads (it fills dropdowns with

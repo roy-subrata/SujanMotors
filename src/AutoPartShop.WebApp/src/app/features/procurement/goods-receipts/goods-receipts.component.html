@@ -29,7 +29,7 @@
           <button class="btn-icon" pTooltip="Export JSON" tooltipPosition="bottom" (click)="exportReceipts('json')">
             <i class="pi pi-file-export"></i>
           </button>
-          <button class="btn-primary" (click)="onCreateClick()">
+          <button *appHasRole="['Admin','Manager']" class="btn-primary" (click)="onCreateClick()">
             <i class="pi pi-plus"></i>
             <span>New Receipt</span>
           </button>

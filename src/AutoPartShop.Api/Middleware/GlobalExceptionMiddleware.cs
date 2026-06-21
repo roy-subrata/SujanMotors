@@ -39,7 +39,7 @@ public class GlobalExceptionMiddleware
             context.Response.ContentType = "application/json";
             await context.Response.WriteAsync(
                 JsonSerializer.Serialize(
-                    ApiError.Conflict("This record was changed by another user. Please reload and try again.", context.Request.Path),
+                    ApiError.ConcurrencyConflict("This record was changed by another user. Please reload and try again.", context.Request.Path),
                     _json));
         }
         catch (Exception ex)
