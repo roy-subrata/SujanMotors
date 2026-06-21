@@ -84,13 +84,10 @@ public class DatabaseSeeder
         Microsoft.Extensions.Configuration.IConfiguration configuration,
         Microsoft.Extensions.Hosting.IHostEnvironment environment)
     {
-        // SECURITY: never seed demo logins (manager/user/viewer) or a hardcoded admin password in
-        // production. Demo users are seeded only when explicitly enabled (default ON in Development,
-        // OFF otherwise). The admin account is always ensured, but its password must come from
-        // configuration (Seed:AdminPassword / Seed__AdminPassword) outside Development.
-        var seedDemoUsers = bool.TryParse(configuration["Seed:DemoUsers"], out var demoFlag)
-            ? demoFlag
-            : environment.IsDevelopment();
+        // Only the admin account is ever seeded — no demo logins (manager/user/viewer). Create any
+        // other test users through the app so role assignment and account flows get exercised too.
+        // The admin password comes from configuration (Seed:AdminPassword / Seed__AdminPassword);
+        // in Development it falls back to a known dev password so the box is usable out of the box.
         var configuredAdminPassword = configuration["Seed:AdminPassword"];
         var adminPassword = !string.IsNullOrWhiteSpace(configuredAdminPassword)
             ? configuredAdminPassword
@@ -109,13 +106,6 @@ public class DatabaseSeeder
         {
             ("admin", "admin@autopartshop.com", adminPassword, "System", "Administrator", "Admin")
         };
-
-        if (seedDemoUsers)
-        {
-            users.Add(("manager", "manager@autopartshop.com", "Manager@1990", "Demo", "Manager", "Manager"));
-            users.Add(("user",    "user@autopartshop.com",    "User@1990",    "Demo", "User",    "User"));
-            users.Add(("viewer",  "viewer@autopartshop.com",  "Viewer@1990",  "Demo", "Viewer",  "Viewer"));
-        }
 
         foreach (var u in users)
         {
