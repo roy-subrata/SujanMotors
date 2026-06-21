@@ -7,8 +7,12 @@ namespace AutoPartShop.Application.Common;
 /// </summary>
 public abstract class BaseQuery
 {
-    /// <summary>Largest page a client may request. Protects the API from "give me everything" calls.</summary>
-    public const int MaxPageSize = 200;
+    /// <summary>
+    /// Largest page a client may request. Protects the API from abusive "give me a million rows"
+    /// calls while still accommodating the frontend's reference-data loads (it fills dropdowns with
+    /// up to pageSize:1000 for warehouses/brands/categories and pageSize:500 for parts).
+    /// </summary>
+    public const int MaxPageSize = 1000;
 
     private int _pageNumber = 1;
     private int _pageSize = 10;
