@@ -14,6 +14,9 @@ public enum CustomerPaymentType
 /// </summary>
 public class CustomerPayment : AuditableEntity
 {
+    /// <summary>Optimistic-concurrency token (SQL Server rowversion).</summary>
+    public byte[] RowVersion { get; set; } = Array.Empty<byte>();
+
     public Guid CustomerId { get; private set; }
     public Guid? WarrantyClaimId { get; private set; }  // Optional: link to warranty refund claim
     public Guid? InvoiceId { get; private set; }  // Optional: link to specific invoice

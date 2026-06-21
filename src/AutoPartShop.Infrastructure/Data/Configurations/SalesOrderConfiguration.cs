@@ -9,6 +9,7 @@ public class SalesOrderConfiguration : IEntityTypeConfiguration<SalesOrder>
     public void Configure(EntityTypeBuilder<SalesOrder> builder)
     {
         builder.HasKey(so => so.Id);
+        builder.Property(so => so.RowVersion).IsRowVersion();
 
         builder.Property(so => so.SONumber)
             .IsRequired()

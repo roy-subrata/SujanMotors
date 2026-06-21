@@ -9,6 +9,7 @@ public class CartReservationConfiguration : IEntityTypeConfiguration<CartReserva
     public void Configure(EntityTypeBuilder<CartReservation> builder)
     {
         builder.HasKey(r => r.Id);
+        builder.Property(r => r.RowVersion).IsRowVersion();
 
         builder.Property(r => r.SessionId)
             .IsRequired()

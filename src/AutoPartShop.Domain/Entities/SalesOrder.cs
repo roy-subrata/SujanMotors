@@ -7,6 +7,9 @@ namespace AutoPartShop.Domain.Entities;
 /// </summary>
 public class SalesOrder : AggregateRoot
 {
+    /// <summary>Optimistic-concurrency token (SQL Server rowversion).</summary>
+    public byte[] RowVersion { get; set; } = Array.Empty<byte>();
+
     public string SONumber { get; private set; } = string.Empty;
     public Guid CustomerId { get; private set; }  // For future customer module
     public string CustomerName { get; private set; } = string.Empty;

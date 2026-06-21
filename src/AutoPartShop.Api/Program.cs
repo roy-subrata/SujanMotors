@@ -260,16 +260,16 @@ var app = builder.Build();
 // Seed database with initial data
 await DatabaseSeeder.SeedAsync(app.Services);
 
-//if (app.Environment.IsDevelopment())
-//{
-   
-//}
-app.UseSwagger();
-app.UseSwaggerUI(c =>
+// Swagger exposes the full API surface; keep it out of production to avoid information disclosure.
+if (!app.Environment.IsProduction())
 {
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "AutoPart Shop API V1");
-    c.RoutePrefix = "docs"; // set swagger path to /docs
-});
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "AutoPart Shop API V1");
+        c.RoutePrefix = "docs"; // set swagger path to /docs
+    });
+}
 await app.ApplyMigration();
 // Enable CORS
 app.UseCors(corsPolicy);

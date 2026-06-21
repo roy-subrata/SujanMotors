@@ -9,6 +9,7 @@ public class CustomerPaymentConfiguration : IEntityTypeConfiguration<CustomerPay
     public void Configure(EntityTypeBuilder<CustomerPayment> builder)
     {
         builder.HasKey(cp => cp.Id);
+        builder.Property(cp => cp.RowVersion).IsRowVersion();
 
         builder.Property(cp => cp.TransactionNumber)
             .IsRequired()

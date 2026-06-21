@@ -120,6 +120,7 @@ namespace AutoPartsShop.Infrastructure.Data.Configurations
             builder.ToTable("GoodsReceipts");
 
             builder.HasKey(g => g.Id);
+            builder.Property(g => g.RowVersion).IsRowVersion();
 
             builder.Property(g => g.GRNNumber)
                 .IsRequired()

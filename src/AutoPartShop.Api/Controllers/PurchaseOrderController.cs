@@ -7,6 +7,7 @@ using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Common;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 
 namespace AutoPartShop.Api.Controllers;
@@ -15,7 +16,7 @@ namespace AutoPartShop.Api.Controllers;
 [Route("api/v1/[controller]")]
 [ApiController]
 [Produces("application/json")]
-[Authorize(Roles = "Admin,Manager")]
+[Authorize] // reads open to any authenticated user (cashiers view POs); mutations gated per-action
 public class PurchaseOrderController : ControllerBase
 {
     private readonly IPurchaseOrderRepository _purchaseOrderRepository;
@@ -28,6 +29,7 @@ public class PurchaseOrderController : ControllerBase
     private readonly ILogger<PurchaseOrderController> _logger;
     private readonly ICodeGenerateService _codeGenerateService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly AutoPartDbContext _dbContext;
 
     public PurchaseOrderController(
         IPurchaseOrderRepository purchaseOrderRepository,
@@ -39,6 +41,7 @@ public class PurchaseOrderController : ControllerBase
         IUnitConversionService unitConversionService,
         ICodeGenerateService codeGenerateService,
         ICurrentUserService currentUserService,
+        AutoPartDbContext dbContext,
         ILogger<PurchaseOrderController> logger)
     {
         _purchaseOrderRepository = purchaseOrderRepository;
@@ -50,6 +53,7 @@ public class PurchaseOrderController : ControllerBase
         _codeGenerateService = codeGenerateService;
         _currentUserService = currentUserService;
         _purchaseOrderReadRepository = purchaseOrderReadRepository;
+        _dbContext = dbContext;
         _logger = logger;
     }
 
@@ -169,6 +173,7 @@ public class PurchaseOrderController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> Create(CreatePurchaseOrderRequest request, CancellationToken cancellationToken)
     {
         try
@@ -279,6 +284,7 @@ public class PurchaseOrderController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> Update(Guid id, UpdatePurchaseOrderRequest request, CancellationToken cancellationToken)
     {
         try
@@ -376,6 +382,7 @@ public class PurchaseOrderController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/submit")]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> Submit(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -401,6 +408,7 @@ public class PurchaseOrderController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/confirm")]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> Confirm(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -433,6 +441,7 @@ public class PurchaseOrderController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/cancel")]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> Cancel(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -474,6 +483,7 @@ public class PurchaseOrderController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -493,6 +503,7 @@ public class PurchaseOrderController : ControllerBase
 
     // GRN endpoints
     [HttpPost("grn")]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> CreateGRN(CreateGoodsReceiptRequest request, CancellationToken cancellationToken)
     {
         try
@@ -740,6 +751,7 @@ public class PurchaseOrderController : ControllerBase
     }
 
     [HttpPut("grn/{id:guid}")]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> UpdateGRN(Guid id, CreateGoodsReceiptRequest request, CancellationToken cancellationToken)
     {
         try
@@ -889,6 +901,7 @@ public class PurchaseOrderController : ControllerBase
     }
 
     [HttpPatch("grn/{id:guid}/verify")]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> VerifyGRN(Guid id, [FromQuery] string verifiedBy, CancellationToken cancellationToken)
     {
         try
@@ -914,6 +927,7 @@ public class PurchaseOrderController : ControllerBase
     }
 
     [HttpPatch("grn/{id:guid}/accept")]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> AcceptGRN(Guid id, [FromQuery] bool createReturn, CancellationToken cancellationToken)
     {
         try
@@ -924,18 +938,37 @@ public class PurchaseOrderController : ControllerBase
             if (grn.Status != "VERIFIED")
                 return BadRequest(new { message = "Only verified goods receipts can be accepted" });
 
-            // Prevent duplicate processing - check if already accepted
-            if (grn.Status == "ACCEPTED")
-                return BadRequest(new { message = "This goods receipt has already been accepted" });
+            // Atomic accept: stock processing + status flip in ONE transaction (under the global retry
+            // strategy). If two requests race, the loser's grn.Accept() fails the RowVersion check
+            // (→ 409) and its whole transaction — including the stock changes it just made — rolls back,
+            // so stock is never double-added. Reload grn inside so a retry applies exactly once.
+            var strategy = _dbContext.Database.CreateExecutionStrategy();
+            await strategy.ExecuteAsync(async () =>
+            {
+                await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+                try
+                {
+                    grn = await _goodsReceiptRepository.GetByIdAsync(id, cancellationToken)
+                        ?? throw new InvalidOperationException("Goods receipt not found");
+                    if (grn.Status != "VERIFIED")
+                        throw new InvalidOperationException("This goods receipt has already been accepted");
 
-            // Update stock levels (Good->Available, Damaged->Damaged, Wrong->Quarantine) and PO receipt
-            // status. When createReturn is true, a draft Purchase Return is also raised for damaged/wrong lines.
-            await _stockManagementService.ProcessGoodsReceiptAsync(grn, createReturn, cancellationToken);
+                    // Stock levels (Good->Available, Damaged->Damaged, Wrong->Quarantine) + PO receipt
+                    // status; when createReturn is true, a draft Purchase Return is raised for damaged/wrong lines.
+                    await _stockManagementService.ProcessGoodsReceiptAsync(grn, createReturn, cancellationToken);
 
-            // Update GRN status to accepted
-            grn.Accept();
-            grn.ModifiedBy = _currentUserService.GetCurrentUsername();
-            await _goodsReceiptRepository.UpdateAsync(grn, cancellationToken);
+                    grn.Accept();
+                    grn.ModifiedBy = _currentUserService.GetCurrentUsername();
+                    await _goodsReceiptRepository.UpdateAsync(grn, cancellationToken);
+
+                    await tx.CommitAsync(cancellationToken);
+                }
+                catch
+                {
+                    await tx.RollbackAsync(cancellationToken);
+                    throw;
+                }
+            });
 
             return Ok(MapToGoodsReceiptResponse(grn));
         }
@@ -951,6 +984,7 @@ public class PurchaseOrderController : ControllerBase
     }
 
     [HttpPatch("grn/{id:guid}/update-pricing")]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> UpdateGRNPricing(Guid id, [FromBody] UpdateGRNPricingRequest request, CancellationToken cancellationToken)
     {
         try
@@ -988,6 +1022,7 @@ public class PurchaseOrderController : ControllerBase
     }
 
     [HttpPatch("grn/{id:guid}/reject")]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> RejectGRN(Guid id, [FromQuery] string reason = "", CancellationToken cancellationToken = default)
     {
         try
