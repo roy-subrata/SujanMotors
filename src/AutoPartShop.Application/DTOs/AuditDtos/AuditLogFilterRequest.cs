@@ -5,8 +5,25 @@ namespace AutoPartShop.Application.DTOs.AuditDtos;
 /// </summary>
 public class AuditLogFilterRequest
 {
-    public int PageNumber { get; set; } = 1;
-    public int PageSize { get; set; } = 50;
+    /// <summary>Largest audit page a client may request.</summary>
+    public const int MaxPageSize = 200;
+    /// <summary>Hard ceiling on a single export so one call can't stream the entire table.</summary>
+    public const int MaxExportRows = 50000;
+
+    private int _pageNumber = 1;
+    private int _pageSize = 50;
+    private int _exportMaxRows = 10000;
+
+    public int PageNumber
+    {
+        get => _pageNumber;
+        set => _pageNumber = value < 1 ? 1 : value;
+    }
+    public int PageSize
+    {
+        get => _pageSize;
+        set => _pageSize = value < 1 ? 50 : (value > MaxPageSize ? MaxPageSize : value);
+    }
     public string? EntityName { get; set; }
     public string? EntityId { get; set; }
     public string? Action { get; set; }
@@ -26,7 +43,11 @@ public class AuditLogFilterRequest
     public List<string>? Users { get; set; }  // Filter by multiple users
     
     // Export settings
-    public int ExportMaxRows { get; set; } = 10000;
+    public int ExportMaxRows
+    {
+        get => _exportMaxRows;
+        set => _exportMaxRows = value < 1 ? 10000 : (value > MaxExportRows ? MaxExportRows : value);
+    }
 }
 
 /// <summary>

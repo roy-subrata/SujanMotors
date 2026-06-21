@@ -1,6 +1,7 @@
 using System.Data;
 using System.Data.Common;
 using AutoPartsShop.Domain.Entities;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 
@@ -80,7 +81,32 @@ namespace AutoPartsShop.Infrastructure.Services
 
         // ── Core atomic increment ─────────────────────────────────────────────
 
+        // SQL error numbers that are safe to retry for this single-statement MERGE:
+        // 1205 = deadlock victim, 1222 = lock request timeout. HOLDLOCK makes these
+        // possible under heavy concurrent code generation. We bypass EF here, so the
+        // global EnableRetryOnFailure strategy does NOT cover this call — retry locally.
+        private const int MaxRetries = 4;
+
         private async Task<int> IncrementAsync(string prefix, CancellationToken ct)
+        {
+            for (var attempt = 1; ; attempt++)
+            {
+                try
+                {
+                    return await ExecuteMergeAsync(prefix, ct);
+                }
+                catch (SqlException ex) when (
+                    (ex.Number == 1205 || ex.Number == 1222) &&
+                    attempt < MaxRetries &&
+                    _db.Database.CurrentTransaction == null) // never retry inside a caller's transaction — it's already doomed
+                {
+                    // Exponential-ish backoff with jitter so colliding requests don't re-collide.
+                    await Task.Delay(attempt * 25 + Random.Shared.Next(0, 25), ct);
+                }
+            }
+        }
+
+        private async Task<int> ExecuteMergeAsync(string prefix, CancellationToken ct)
         {
             var conn = _db.Database.GetDbConnection();
 
