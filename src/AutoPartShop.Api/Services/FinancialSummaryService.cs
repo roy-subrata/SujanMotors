@@ -154,10 +154,11 @@ public class FinancialSummaryService : IFinancialSummaryService
         var customerOverdue = customerDuesPositive.Sum();
         var supplierOverdue = supplierBalancesPositive.Sum();
 
-        // Get inventory value
-        var inventoryValue = await _dbContext.StockLevels
-            .Where(sl => !sl.Isdeleted)
-            .SumAsync(sl => sl.QuantityOnHand * (sl.Part != null ? sl.Part.CostPrice : 0), cancellationToken);
+        // Get inventory value at ACTUAL purchase cost: sum each on-hand lot's qty × its lot cost
+        // (not a typed standard cost). Lots carry the real cost paid at goods-receipt time.
+        var inventoryValue = await _dbContext.StockLots
+            .Where(l => !l.Isdeleted && l.QuantityAvailable > 0)
+            .SumAsync(l => l.QuantityAvailable * l.CostPrice, cancellationToken);
 
         // Get low stock items
         var lowStockItems = await _dbContext.StockLevels
@@ -165,8 +166,11 @@ public class FinancialSummaryService : IFinancialSummaryService
             .Where(sl => !sl.Isdeleted && sl.Part != null && !sl.Part.Isdeleted && sl.QuantityOnHand <= sl.Part.MinimumStock)
             .ToListAsync(cancellationToken);
 
-        var lowStockValue = lowStockItems
-            .Sum(sl => sl.QuantityOnHand * (sl.Part?.CostPrice ?? 0));
+        // Value the low-stock parts at actual lot cost too (same basis as total inventory value).
+        var lowStockPartIds = lowStockItems.Select(sl => sl.PartId).Distinct().ToList();
+        var lowStockValue = await _dbContext.StockLots
+            .Where(l => !l.Isdeleted && l.QuantityAvailable > 0 && lowStockPartIds.Contains(l.PartId))
+            .SumAsync(l => l.QuantityAvailable * l.CostPrice, cancellationToken);
 
         // Get customer counts
         var totalCustomers = await _dbContext.Customers.CountAsync(c => !c.Isdeleted, cancellationToken);
@@ -299,26 +303,45 @@ public class FinancialSummaryService : IFinancialSummaryService
         var startDate = request.StartDate.Date;
         var endDate = request.EndDate.Date.AddDays(1).AddSeconds(-1);
 
-        var topProducts = await _dbContext.SalesOrders
+        // Revenue per product from sales order lines.
+        var revenueByProduct = await _dbContext.SalesOrders
             .Where(so => so.SODate >= startDate && so.SODate <= endDate && !so.Isdeleted)
             .SelectMany(so => so.LineItems)
             .Include(sol => sol.Part)
             .GroupBy(sol => new { sol.PartId, sol.Part!.Name, PartNumber = sol.Part.PartNumber.Value, sol.Part.SKU })
-            .Select(g => new TopProductDto
+            .Select(g => new
             {
-                PartId = g.Key.PartId.ToString(),
-                PartName = g.Key.Name,
-                PartNumber = g.Key.PartNumber,
-                Sku = g.Key.SKU,
+                g.Key.PartId,
+                g.Key.Name,
+                g.Key.PartNumber,
+                g.Key.SKU,
                 QuantitySold = g.Sum(sol => sol.Quantity),
-                TotalRevenue = g.Sum(sol => (sol.Quantity * sol.UnitPrice) - (sol.Quantity * sol.Discount)),
-                TotalProfit = g.Sum(sol => ((sol.Quantity * sol.UnitPrice) - (sol.Quantity * sol.Discount)) - (sol.QuantityInBaseUnit * sol.Part!.CostPrice))
+                TotalRevenue = g.Sum(sol => (sol.Quantity * sol.UnitPrice) - (sol.Quantity * sol.Discount))
+            })
+            .ToListAsync(cancellationToken);
+
+        // Actual COGS per product = the real cost recorded on each SALE lot-movement (FIFO purchase
+        // cost captured at sale time), not a typed standard cost.
+        var cogsByPart = await _dbContext.StockLotMovements
+            .Where(m => m.MovementType == "SALE" && m.MovementDate >= startDate && m.MovementDate <= endDate && m.StockLot != null)
+            .GroupBy(m => m.StockLot!.PartId)
+            .Select(g => new { PartId = g.Key, Cogs = g.Sum(m => m.QuantityInBaseUnit * m.CostAtMovementInBaseUnit) })
+            .ToDictionaryAsync(x => x.PartId, x => x.Cogs, cancellationToken);
+
+        return revenueByProduct
+            .Select(p => new TopProductDto
+            {
+                PartId = p.PartId.ToString(),
+                PartName = p.Name,
+                PartNumber = p.PartNumber,
+                Sku = p.SKU,
+                QuantitySold = p.QuantitySold,
+                TotalRevenue = p.TotalRevenue,
+                TotalProfit = p.TotalRevenue - (cogsByPart.TryGetValue(p.PartId, out var c) ? c : 0)
             })
             .OrderByDescending(p => p.TotalRevenue)
             .Take(10)
-            .ToListAsync(cancellationToken);
-
-        return topProducts;
+            .ToList();
     }
 
     private async Task<List<TopCustomerDto>> GetTopCustomersAsync(FinancialSummaryRequest request, CancellationToken cancellationToken = default)

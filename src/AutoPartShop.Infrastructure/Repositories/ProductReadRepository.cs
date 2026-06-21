@@ -161,7 +161,55 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
             })
             .ToListAsync(cancellationToken);
 
+        await ApplyLotCostAsync(items, cancellationToken);
         return (items, totalCount);
+    }
+
+    /// <summary>
+    /// Overwrites each item's <c>CostPrice</c>/<c>EffectiveCostPrice</c> with the weighted-average
+    /// cost of its on-hand purchase lots — the actual inventory cost. Product rows average across all
+    /// of the part's on-hand lots; variant rows average only that variant's lots. Items with no
+    /// on-hand lots get 0 (no purchase yet → no cost). One batched query for the whole page.
+    /// </summary>
+    private async Task ApplyLotCostAsync(List<ProductResponse> items, CancellationToken cancellationToken)
+    {
+        if (items.Count == 0) return;
+
+        var partIds = items.Select(i => i.Id).Distinct().ToList();
+        var lots = await _db.StockLots
+            .Where(l => !l.Isdeleted && l.QuantityAvailable > 0 && partIds.Contains(l.PartId))
+            .Select(l => new { l.PartId, l.VariantId, l.QuantityAvailable, l.CostPrice })
+            .ToListAsync(cancellationToken);
+
+        if (lots.Count == 0)
+        {
+            foreach (var it in items) { it.CostPrice = 0; it.EffectiveCostPrice = 0; }
+            return;
+        }
+
+        static decimal WeightedAvg(IEnumerable<(int Qty, decimal Cost)> rows)
+        {
+            long qty = 0; decimal value = 0;
+            foreach (var r in rows) { qty += r.Qty; value += r.Qty * r.Cost; }
+            return qty > 0 ? value / qty : 0;
+        }
+
+        var byPart = lots
+            .GroupBy(l => l.PartId)
+            .ToDictionary(g => g.Key, g => WeightedAvg(g.Select(x => (x.QuantityAvailable, x.CostPrice))));
+        var byVariant = lots
+            .Where(l => l.VariantId != null)
+            .GroupBy(l => (l.PartId, VariantId: l.VariantId!.Value))
+            .ToDictionary(g => g.Key, g => WeightedAvg(g.Select(x => (x.QuantityAvailable, x.CostPrice))));
+
+        foreach (var it in items)
+        {
+            decimal cost = it.IsVariant && it.VariantId.HasValue
+                ? (byVariant.TryGetValue((it.Id, it.VariantId.Value), out var vc) ? vc : 0)
+                : (byPart.TryGetValue(it.Id, out var pc) ? pc : 0);
+            it.CostPrice = cost;
+            it.EffectiveCostPrice = cost;
+        }
     }
 
     // Flattened view for transactional documents (PO, SO, GRN, POS):
@@ -299,6 +347,7 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
             .Take(query.PageSize)
             .ToList();
 
+        await ApplyLotCostAsync(paged, cancellationToken);
         return (paged, totalCount);
     }
 
