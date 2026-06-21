@@ -5,6 +5,9 @@ namespace AutoPartShop.Domain.Entities;
 /// </summary>
 public class SupplierPayment : AuditableEntity
 {
+    /// <summary>Optimistic-concurrency token (SQL Server rowversion).</summary>
+    public byte[] RowVersion { get; set; } = Array.Empty<byte>();
+
     public Guid SupplierId { get; private set; }
     public Guid? PurchaseOrderId { get; private set; }  // Optional: link to specific PO
     public Guid? GoodsReceiptId { get; private set; }  // Optional: link to specific GR

@@ -11,6 +11,7 @@ public class StockLevelConfiguration : IEntityTypeConfiguration<StockLevel>
         builder.ToTable("StockLevels");
 
         builder.HasKey(sl => sl.Id);
+        builder.Property(sl => sl.RowVersion).IsRowVersion();
 
         // Relationships
         builder.HasOne(sl => sl.Part)

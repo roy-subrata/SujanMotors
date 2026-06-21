@@ -497,7 +497,7 @@
 
         <div class="form-actions">
           <button pButton type="button" label="Back" icon="pi pi-arrow-left" class="p-button-outlined" (click)="previousCreateStep()"></button>
-          <button pButton type="button" label="Create Goods Receipt" icon="pi pi-check" class="p-button-success" (click)="onSubmit()" [loading]="isSubmitting" [disabled]="isSubmitting"></button>
+          <button *ngIf="canManage" pButton type="button" label="Create Goods Receipt" icon="pi pi-check" class="p-button-success" (click)="onSubmit()" [loading]="isSubmitting" [disabled]="isSubmitting"></button>
         </div>
       </section>
     </form>
@@ -859,10 +859,10 @@
 
         <div class="form-actions">
           <button pButton type="button" [label]="mode === 'view' ? 'Back' : 'Cancel'" icon="pi pi-times" class="p-button-outlined" (click)="goBack()"></button>
-          <button *ngIf="mode !== 'view'" pButton type="button" [label]="mode === 'edit' ? 'Update Goods Receipt' : 'Create Goods Receipt'" icon="pi pi-check" class="p-button-success" (click)="onSubmit()" [loading]="isSubmitting" [disabled]="isSubmitting"></button>
+          <button *ngIf="mode !== 'view' && canManage" pButton type="button" [label]="mode === 'edit' ? 'Update Goods Receipt' : 'Create Goods Receipt'" icon="pi pi-check" class="p-button-success" (click)="onSubmit()" [loading]="isSubmitting" [disabled]="isSubmitting"></button>
         </div>
 
-        <div class="workflow-actions" *ngIf="mode === 'view' && currentGRN">
+        <div class="workflow-actions" *ngIf="mode === 'view' && currentGRN && canManage">
           <h4 class="workflow-actions-title">Workflow Actions</h4>
           <div class="workflow-actions-row">
             <button

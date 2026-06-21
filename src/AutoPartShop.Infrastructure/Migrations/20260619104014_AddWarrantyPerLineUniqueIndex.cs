@@ -10,6 +10,26 @@ namespace AutoPartShop.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            // Pre-step: the new filtered UNIQUE index allows only one non-void warranty per sold line.
+            // Existing data may already have duplicates (the app-level check was added later), which
+            // would make CREATE UNIQUE INDEX fail and crash startup. Auto-void the older duplicates,
+            // keeping the most recently created warranty for each SalesOrderLineId.
+            migrationBuilder.Sql(@"
+                ;WITH dups AS (
+                    SELECT Id,
+                           ROW_NUMBER() OVER (PARTITION BY SalesOrderLineId
+                                              ORDER BY CreatedDate DESC, Id DESC) AS rn
+                    FROM WarrantyRegistrations
+                    WHERE Status <> 'VOID'
+                )
+                UPDATE wr
+                   SET Status = 'VOID',
+                       VoidReason = ISNULL(wr.VoidReason, 'Auto-voided: duplicate warranty for the same sold line (unique-index migration)'),
+                       VoidedDate = SYSUTCDATETIME()
+                  FROM WarrantyRegistrations wr
+                  INNER JOIN dups ON dups.Id = wr.Id
+                 WHERE dups.rn > 1;");
+
             migrationBuilder.DropIndex(
                 name: "IX_WarrantyRegistrations_SalesOrderLineId",
                 table: "WarrantyRegistrations");

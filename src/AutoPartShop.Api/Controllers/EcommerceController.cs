@@ -862,6 +862,13 @@ public class EcommerceController(
             if (request.PartId == Guid.Empty || request.Quantity <= 0)
                 return BadRequest(new { message = "Valid PartId and Quantity are required" });
 
+            // Optimistic-concurrency retry: concurrent reservers bump StockLevel.RowVersion, so a
+            // racing write fails with DbUpdateConcurrencyException — reload and retry to avoid oversell.
+            const int maxReserveAttempts = 3;
+            for (int attempt = 1; ; attempt++)
+            {
+            try
+            {
             await CleanupExpiredReservationsAsync(request.PartId, cancellationToken);
 
             // If no variantId was supplied (e.g. item added from landing page),
@@ -937,10 +944,21 @@ public class EcommerceController(
             // Single SaveChangesAsync = implicit atomic transaction
             await _dbContext.SaveChangesAsync(cancellationToken);
             return Ok(new { reserved = true, quantity = request.Quantity });
+            }
+            catch (DbUpdateConcurrencyException) when (attempt < maxReserveAttempts)
+            {
+                _dbContext.ChangeTracker.Clear(); // discard stale tracked state, then retry
+            }
+            } // end optimistic-concurrency retry loop
         }
         catch (InvalidOperationException ex)
         {
             return BadRequest(new { message = ex.Message });
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // Lost the race after all retries — let the caller reload and try again.
+            return Conflict(ApiError.Conflict("Stock was just updated by another request. Please try again.", HttpContext.Request.Path));
         }
         catch (Exception ex)
         {

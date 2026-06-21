@@ -3,6 +3,7 @@ using AutoPartsShop.Domain.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace AutoPartShop.Infrastructure.Data;
@@ -16,6 +17,8 @@ public class DatabaseSeeder
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<ApplicationRole>>();
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<DatabaseSeeder>>();
+        var configuration = scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>();
+        var environment = scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Hosting.IHostEnvironment>();
 
         try
         {
@@ -27,7 +30,7 @@ public class DatabaseSeeder
             // demo/sample data (customers, catalog, stock, vehicles) is seeded.
             await SeedRolesAsync(roleManager, logger);
             await SeedPermissionsAsync(context, logger);
-            await SeedUsersAsync(userManager, logger);
+            await SeedUsersAsync(userManager, logger, configuration, environment);
 
             logger.LogInformation("Database seeding completed successfully");
         }
@@ -75,16 +78,44 @@ public class DatabaseSeeder
         }
     }
 
-    private static async Task SeedUsersAsync(UserManager<ApplicationUser> userManager, ILogger logger)
+    private static async Task SeedUsersAsync(
+        UserManager<ApplicationUser> userManager,
+        ILogger logger,
+        Microsoft.Extensions.Configuration.IConfiguration configuration,
+        Microsoft.Extensions.Hosting.IHostEnvironment environment)
     {
-        // One login per role so each access level can be exercised out of the box.
-        var users = new[]
+        // SECURITY: never seed demo logins (manager/user/viewer) or a hardcoded admin password in
+        // production. Demo users are seeded only when explicitly enabled (default ON in Development,
+        // OFF otherwise). The admin account is always ensured, but its password must come from
+        // configuration (Seed:AdminPassword / Seed__AdminPassword) outside Development.
+        var seedDemoUsers = bool.TryParse(configuration["Seed:DemoUsers"], out var demoFlag)
+            ? demoFlag
+            : environment.IsDevelopment();
+        var configuredAdminPassword = configuration["Seed:AdminPassword"];
+        var adminPassword = !string.IsNullOrWhiteSpace(configuredAdminPassword)
+            ? configuredAdminPassword
+            : (environment.IsDevelopment() ? "Admin@1990" : null);
+
+        if (string.IsNullOrWhiteSpace(adminPassword))
         {
-            new { Username = "admin",   Email = "admin@autopartshop.com",   Password = "Admin@1990",   FirstName = "System",  LastName = "Administrator", Role = "Admin" },
-            new { Username = "manager", Email = "manager@autopartshop.com", Password = "Manager@1990", FirstName = "Demo",    LastName = "Manager",       Role = "Manager" },
-            new { Username = "user",    Email = "user@autopartshop.com",    Password = "User@1990",    FirstName = "Demo",    LastName = "User",          Role = "User" },
-            new { Username = "viewer",  Email = "viewer@autopartshop.com",  Password = "Viewer@1990",  FirstName = "Demo",    LastName = "Viewer",        Role = "Viewer" },
+            // No admin yet and no password provided in a non-dev environment — skip rather than
+            // create a guessable admin. Operator must set Seed:AdminPassword to bootstrap.
+            if (await userManager.FindByNameAsync("admin") is null)
+                logger.LogWarning("Admin user not seeded: set Seed:AdminPassword to bootstrap the first admin in this environment.");
+            return;
+        }
+
+        var users = new List<(string Username, string Email, string Password, string FirstName, string LastName, string Role)>
+        {
+            ("admin", "admin@autopartshop.com", adminPassword, "System", "Administrator", "Admin")
         };
+
+        if (seedDemoUsers)
+        {
+            users.Add(("manager", "manager@autopartshop.com", "Manager@1990", "Demo", "Manager", "Manager"));
+            users.Add(("user",    "user@autopartshop.com",    "User@1990",    "Demo", "User",    "User"));
+            users.Add(("viewer",  "viewer@autopartshop.com",  "Viewer@1990",  "Demo", "Viewer",  "Viewer"));
+        }
 
         foreach (var u in users)
         {

@@ -2,6 +2,9 @@ namespace AutoPartShop.Domain.Entities;
 
 public class CartReservation : BaseEntity
 {
+    /// <summary>Optimistic-concurrency token (SQL Server rowversion).</summary>
+    public byte[] RowVersion { get; set; } = Array.Empty<byte>();
+
     public string SessionId { get; private set; } = string.Empty;
     public Guid PartId { get; private set; }
     public Guid? ProductVariantId { get; private set; }

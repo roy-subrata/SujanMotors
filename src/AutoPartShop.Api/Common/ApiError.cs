@@ -42,6 +42,17 @@ public sealed class ApiError
         Status = 409, Detail = detail, Instance = instance
     };
 
+    /// <summary>
+    /// Optimistic-concurrency conflict (RowVersion mismatch): the record was changed by another
+    /// user between read and write. Distinct <c>Type</c> so the client can offer a reload instead
+    /// of treating it like a duplicate-key or business CONFLICT.
+    /// </summary>
+    public static ApiError ConcurrencyConflict(string detail, string? instance = null) => new()
+    {
+        Type = "CONCURRENCY_CONFLICT", Title = "Record changed by another user",
+        Status = 409, Detail = detail, Instance = instance
+    };
+
     public static ApiError BusinessRule(string detail, string? instance = null) => new()
     {
         Type = "BUSINESS_RULE_VIOLATION", Title = "Business rule violated",

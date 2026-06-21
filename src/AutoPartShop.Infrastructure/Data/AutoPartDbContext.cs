@@ -1,16 +1,44 @@
 
 
+using System.Security.Claims;
 using AutoPartShop.Domain.Entities;
 using AutoPartsShop.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Logging;
 
 public class AutoPartDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, Guid, IdentityUserClaim<Guid>, ApplicationUserRole, IdentityUserLogin<Guid>, IdentityRoleClaim<Guid>, IdentityUserToken<Guid>>
 {
-    public AutoPartDbContext(DbContextOptions<AutoPartDbContext> options)
+    // Optional so the design-time factory (migrations) can still construct the context with options only.
+    private readonly IHttpContextAccessor? _httpContextAccessor;
+    private readonly ILogger<AutoPartDbContext>? _logger;
+
+    public AutoPartDbContext(
+        DbContextOptions<AutoPartDbContext> options,
+        IHttpContextAccessor? httpContextAccessor = null,
+        ILogger<AutoPartDbContext>? logger = null)
         : base(options)
     {
+        _httpContextAccessor = httpContextAccessor;
+        _logger = logger;
+    }
+
+    /// <summary>
+    /// Resolves the authenticated username for audit stamping, falling back to "system" for
+    /// background work or unauthenticated requests (e.g. seeding, migrations).
+    /// </summary>
+    private string ResolveCurrentUser()
+    {
+        var user = _httpContextAccessor?.HttpContext?.User;
+        if (user?.Identity?.IsAuthenticated != true)
+            return "system";
+
+        return user.Identity!.Name
+            ?? user.FindFirst(ClaimTypes.Name)?.Value
+            ?? user.FindFirst("sub")?.Value
+            ?? "system";
     }
 
     public DbSet<CodeSequence> CodeSequences { get; set; }
@@ -164,7 +192,7 @@ public class AutoPartDbContext : IdentityDbContext<ApplicationUser, ApplicationR
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         var auditLogs = new List<AuditLog>();
-        var currentUser = "system"; // TODO: Get from IHttpContextAccessor or similar
+        var currentUser = ResolveCurrentUser();
         var currentTime = DateTime.UtcNow;
 
         // Track changes for audit logging
@@ -278,11 +306,14 @@ public class AutoPartDbContext : IdentityDbContext<ApplicationUser, ApplicationR
             }
         }
 
-        // Save changes first
+        // Persist the business changes first and return their result. Audit logging is a
+        // deliberately DECOUPLED, best-effort second step: a failure to write the audit trail
+        // (e.g. table missing during first-run setup, or a transient error) must never roll back
+        // or fail the business operation. When this runs inside a caller's transaction the audit
+        // rows still enlist in it, so they commit/rollback together with the business data.
         var result = await base.SaveChangesAsync(cancellationToken);
 
-        // Add audit logs if any (skip during initial setup when AuditLogs table doesn't exist yet)
-        if (auditLogs.Any())
+        if (auditLogs.Count > 0)
         {
             try
             {
@@ -291,8 +322,11 @@ public class AutoPartDbContext : IdentityDbContext<ApplicationUser, ApplicationR
             }
             catch (Exception ex)
             {
-                // Log but don't fail the operation if audit logging fails
-                Console.WriteLine($"Audit logging failed: {ex.Message}");
+                // Swallow: audit logging is best-effort and must not break the business operation.
+                if (_logger != null)
+                    _logger.LogWarning(ex, "Audit logging failed for {Count} change(s); business operation already committed.", auditLogs.Count);
+                else
+                    Console.WriteLine($"Audit logging failed: {ex.Message}");
             }
         }
 

@@ -104,18 +104,22 @@ public class ShipmentController(
                 shipment.Lines.Add(line);
             }
 
-            await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
-            try
+            var strategy = _dbContext.Database.CreateExecutionStrategy();
+            await strategy.ExecuteAsync(async () =>
             {
-                await _dbContext.Shipments.AddAsync(shipment, cancellationToken);
-                await _dbContext.SaveChangesAsync(cancellationToken);
-                await tx.CommitAsync(cancellationToken);
-            }
-            catch
-            {
-                await tx.RollbackAsync(cancellationToken);
-                throw;
-            }
+                await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+                try
+                {
+                    await _dbContext.Shipments.AddAsync(shipment, cancellationToken);
+                    await _dbContext.SaveChangesAsync(cancellationToken);
+                    await tx.CommitAsync(cancellationToken);
+                }
+                catch
+                {
+                    await tx.RollbackAsync(cancellationToken);
+                    throw;
+                }
+            });
 
             var created = await LoadShipmentAsync(shipment.Id, cancellationToken);
             return CreatedAtAction(nameof(GetById), new { id = shipment.Id }, MapToResponse(created!));
@@ -141,45 +145,53 @@ public class ShipmentController(
 
             var actor = _currentUserService.GetCurrentUsername();
 
-            await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
-            try
+            var strategy = _dbContext.Database.CreateExecutionStrategy();
+            await strategy.ExecuteAsync(async () =>
             {
-                shipment.Dispatch(request.TrackingNumber, request.CourierName);
-                shipment.ModifiedBy = actor;
-
-                // Update shipped quantities on SalesOrderLines
-                var salesOrder = await _dbContext.SalesOrders
-                    .Include(so => so.LineItems)
-                    .FirstOrDefaultAsync(so => so.Id == shipment.SalesOrderId && !so.Isdeleted, cancellationToken);
-
-                if (salesOrder != null)
+                await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+                try
                 {
-                    foreach (var shipLine in shipment.Lines)
+                    // Reload inside the lambda so a retry after rollback transitions exactly once.
+                    shipment = await LoadShipmentAsync(id, cancellationToken)
+                        ?? throw new InvalidOperationException("Shipment not found");
+
+                    shipment.Dispatch(request.TrackingNumber, request.CourierName);
+                    shipment.ModifiedBy = actor;
+
+                    // Update shipped quantities on SalesOrderLines
+                    var salesOrder = await _dbContext.SalesOrders
+                        .Include(so => so.LineItems)
+                        .FirstOrDefaultAsync(so => so.Id == shipment.SalesOrderId && !so.Isdeleted, cancellationToken);
+
+                    if (salesOrder != null)
                     {
-                        var orderLine = salesOrder.LineItems.FirstOrDefault(l => l.Id == shipLine.SalesOrderLineId);
-                        orderLine?.UpdateShippedQuantity(
-                            orderLine.ShippedQuantity + shipLine.Quantity,
-                            orderLine.ShippedQuantityInBaseUnit + shipLine.QuantityInBaseUnit);
+                        foreach (var shipLine in shipment.Lines)
+                        {
+                            var orderLine = salesOrder.LineItems.FirstOrDefault(l => l.Id == shipLine.SalesOrderLineId);
+                            orderLine?.UpdateShippedQuantity(
+                                orderLine.ShippedQuantity + shipLine.Quantity,
+                                orderLine.ShippedQuantityInBaseUnit + shipLine.QuantityInBaseUnit);
+                        }
+
+                        // Move SalesOrder status: PARTIALLY_SHIPPED if not all lines done, SHIPPED if all done
+                        bool allShipped = salesOrder.LineItems.All(l => l.IsFullyShipped);
+                        if (allShipped)
+                            salesOrder.MarkAsShipped();
+                        else
+                            salesOrder.MarkAsPartiallyShipped();
+
+                        salesOrder.ModifiedBy = actor;
                     }
 
-                    // Move SalesOrder status: PARTIALLY_SHIPPED if not all lines done, SHIPPED if all done
-                    bool allShipped = salesOrder.LineItems.All(l => l.IsFullyShipped);
-                    if (allShipped)
-                        salesOrder.MarkAsShipped();
-                    else
-                        salesOrder.MarkAsPartiallyShipped();
-
-                    salesOrder.ModifiedBy = actor;
+                    await _dbContext.SaveChangesAsync(cancellationToken);
+                    await tx.CommitAsync(cancellationToken);
                 }
-
-                await _dbContext.SaveChangesAsync(cancellationToken);
-                await tx.CommitAsync(cancellationToken);
-            }
-            catch
-            {
-                await tx.RollbackAsync(cancellationToken);
-                throw;
-            }
+                catch
+                {
+                    await tx.RollbackAsync(cancellationToken);
+                    throw;
+                }
+            });
 
             return Ok(MapToResponse(shipment));
         }
@@ -229,38 +241,46 @@ public class ShipmentController(
 
             var actor = _currentUserService.GetCurrentUsername();
 
-            await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
-            try
+            var strategy = _dbContext.Database.CreateExecutionStrategy();
+            await strategy.ExecuteAsync(async () =>
             {
-                shipment.MarkDelivered();
-                shipment.ModifiedBy = actor;
-
-                // If all shipments for this order are delivered, mark order as DELIVERED
-                var allShipments = await _dbContext.Shipments
-                    .Where(s => s.SalesOrderId == shipment.SalesOrderId && !s.Isdeleted)
-                    .ToListAsync(cancellationToken);
-
-                bool allDelivered = allShipments.All(s => s.Status == "DELIVERED");
-                if (allDelivered)
+                await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+                try
                 {
-                    var salesOrder = await _dbContext.SalesOrders
-                        .FirstOrDefaultAsync(so => so.Id == shipment.SalesOrderId && !so.Isdeleted, cancellationToken);
+                    // Reload inside the lambda so a retry after rollback transitions exactly once.
+                    shipment = await LoadShipmentAsync(id, cancellationToken)
+                        ?? throw new InvalidOperationException("Shipment not found");
 
-                    if (salesOrder != null)
+                    shipment.MarkDelivered();
+                    shipment.ModifiedBy = actor;
+
+                    // If all shipments for this order are delivered, mark order as DELIVERED
+                    var allShipments = await _dbContext.Shipments
+                        .Where(s => s.SalesOrderId == shipment.SalesOrderId && !s.Isdeleted)
+                        .ToListAsync(cancellationToken);
+
+                    bool allDelivered = allShipments.All(s => s.Status == "DELIVERED");
+                    if (allDelivered)
                     {
-                        salesOrder.MarkAsDelivered();
-                        salesOrder.ModifiedBy = actor;
-                    }
-                }
+                        var salesOrder = await _dbContext.SalesOrders
+                            .FirstOrDefaultAsync(so => so.Id == shipment.SalesOrderId && !so.Isdeleted, cancellationToken);
 
-                await _dbContext.SaveChangesAsync(cancellationToken);
-                await tx.CommitAsync(cancellationToken);
-            }
-            catch
-            {
-                await tx.RollbackAsync(cancellationToken);
-                throw;
-            }
+                        if (salesOrder != null)
+                        {
+                            salesOrder.MarkAsDelivered();
+                            salesOrder.ModifiedBy = actor;
+                        }
+                    }
+
+                    await _dbContext.SaveChangesAsync(cancellationToken);
+                    await tx.CommitAsync(cancellationToken);
+                }
+                catch
+                {
+                    await tx.RollbackAsync(cancellationToken);
+                    throw;
+                }
+            });
 
             return Ok(MapToResponse(shipment));
         }

@@ -22,6 +22,7 @@ import { WarehouseResponse, WarehouseService } from '../../inventory/services/wa
 import { LazyAutocompleteComponent, LazyRequest, LazyResponse } from '../../../shared/components/lazy-autocomplete';
 import { CurrencyService } from '../../../shared/services/currency.service';
 import { PriceCodeService } from '../../../shared/services/price-code.service';
+import { AuthService } from '../../../shared/services/auth.service';
 import {
   GoodsReceiptLineResponse,
   GoodsReceiptResponse,
@@ -74,6 +75,12 @@ export class GoodsReceiptFormComponent implements OnInit {
   private readonly dialogService = inject(DialogService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly auth = inject(AuthService);
+
+  /** GRN create/verify/accept/reject are restricted to back-office roles; cashiers can only view. */
+  get canManage(): boolean {
+    return this.auth.hasAnyRole(['Admin', 'Manager']);
+  }
 
   form: FormGroup;
   selectedPO: PurchaseOrderResponse | null = null;

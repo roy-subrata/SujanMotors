@@ -246,6 +246,7 @@ public class StockController : ControllerBase
     }
 
     [HttpPost("levels")]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> CreateStockLevel(CreateStockLevelRequest request, CancellationToken cancellationToken)
     {
         try
@@ -279,6 +280,7 @@ public class StockController : ControllerBase
     }
 
     [HttpPut("levels/{id:guid}")]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> UpdateStockLevel(Guid id, UpdateStockLevelRequest request, CancellationToken cancellationToken)
     {
         try
@@ -367,6 +369,7 @@ public class StockController : ControllerBase
     }
 
     [HttpPost("movements")]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> CreateMovement(CreateStockMovementRequest request, CancellationToken cancellationToken)
     {
         try
@@ -402,6 +405,7 @@ public class StockController : ControllerBase
     }
 
     [HttpPost("transfer")]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> TransferStock(StockTransferRequest request, CancellationToken cancellationToken)
     {
         try
@@ -560,6 +564,7 @@ public class StockController : ControllerBase
     }
 
     [HttpPost("adjust")]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> AdjustStock(StockAdjustmentRequest request, CancellationToken cancellationToken)
     {
         try

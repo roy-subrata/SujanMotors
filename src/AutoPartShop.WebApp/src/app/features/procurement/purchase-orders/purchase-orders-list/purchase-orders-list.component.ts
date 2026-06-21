@@ -11,6 +11,7 @@ import { CurrencyService } from '../../../../shared/services/currency.service';
 import { ApplyAdvanceCreditDialogComponent } from '../apply-advance-credit/apply-advance-credit-dialog.component';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { I18nService } from '@/shared/services/i18n.service';
+import { AuthService } from '../../../../shared/services/auth.service';
 
 @Component({
   selector: 'app-purchase-orders-list',
@@ -54,6 +55,12 @@ export class PurchaseOrdersListComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly i18n = inject(I18nService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly auth = inject(AuthService);
+
+  /** Procurement mutations (create/edit/delete/payment) are restricted to back-office roles. */
+  get canManage(): boolean {
+    return this.auth.hasAnyRole(['Admin', 'Manager']);
+  }
 
   private dialogRef: DynamicDialogRef | null | undefined;
 
@@ -84,7 +91,7 @@ export class PurchaseOrdersListComponent implements OnInit {
         command: () => {
           if (po) this.onEditClick(po);
         },
-        visible: po ? po.status === 'DRAFT' : false
+        visible: po ? po.status === 'DRAFT' && this.canManage : false
       },
       { separator: true },
       {
@@ -94,7 +101,7 @@ export class PurchaseOrdersListComponent implements OnInit {
           if (po) this.openApplyCreditDialog(po);
         },
         visible: po
-          ? ['CONFIRMED', 'PARTIAL', 'DELIVERED'].includes(po.status) && po.outstandingAmount > 0
+          ? ['CONFIRMED', 'PARTIAL', 'DELIVERED'].includes(po.status) && po.outstandingAmount > 0 && this.canManage
           : false
       },
       {
@@ -104,7 +111,7 @@ export class PurchaseOrdersListComponent implements OnInit {
           if (po) this.recordPayment(po);
         },
         visible: po
-          ? ['CONFIRMED', 'PARTIAL', 'DELIVERED'].includes(po.status) && po.outstandingAmount > 0
+          ? ['CONFIRMED', 'PARTIAL', 'DELIVERED'].includes(po.status) && po.outstandingAmount > 0 && this.canManage
           : false
       },
       { separator: true },
@@ -114,7 +121,7 @@ export class PurchaseOrdersListComponent implements OnInit {
         command: () => {
           if (po) this.onDeleteClick(po);
         },
-        visible: po ? po.status === 'DRAFT' : false,
+        visible: po ? po.status === 'DRAFT' && this.canManage : false,
         styleClass: 'p-menuitem-danger'
       }
     ];

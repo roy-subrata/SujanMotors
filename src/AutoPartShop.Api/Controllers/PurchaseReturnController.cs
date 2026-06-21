@@ -15,7 +15,7 @@ namespace AutoPartShop.Api.Controllers;
 [Route("api/v1/[controller]")]
 [ApiController]
 [Produces("application/json")]
-[Authorize]
+[Authorize] // reads open to any authenticated user (cashiers view returns); mutations gated per-action
 public class PurchaseReturnController : ControllerBase
 {
     private readonly IPurchaseReturnRepository _purchaseReturnRepository;
@@ -198,6 +198,7 @@ public class PurchaseReturnController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> Create(CreatePurchaseReturnRequest request, CancellationToken cancellationToken)
     {
         try
@@ -266,6 +267,7 @@ public class PurchaseReturnController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> Update(Guid id, UpdatePurchaseReturnRequest request, CancellationToken cancellationToken)
     {
         try
@@ -328,6 +330,7 @@ public class PurchaseReturnController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/approve")]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> Approve(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -357,6 +360,7 @@ public class PurchaseReturnController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/mark-returned")]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> MarkAsReturned(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -393,13 +397,20 @@ public class PurchaseReturnController : ControllerBase
                     return BadRequest(new { message = $"Insufficient {bucket.ToLower()} stock for part {line.Part?.Name ?? line.PartId.ToString()}. {bucket}: {bucketAvailable}, Required: {acceptedQuantity}" });
             }
 
-            purchaseReturn.MarkAsReturned();
-            purchaseReturn.ModifiedBy = _currentUserService.GetCurrentUsername();
-
-            // Process stock movements for each line item inside a transaction
+            // Process stock movements for each line item inside a transaction, run under the EF
+            // execution strategy (global retry policy). The aggregate + stock entities are reloaded
+            // INSIDE the lambda so a retry after rollback applies movements exactly once.
+            var strategy = _dbContext.Database.CreateExecutionStrategy();
+            await strategy.ExecuteAsync(async () =>
+            {
             await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
             try
             {
+            purchaseReturn = await _purchaseReturnRepository.GetByIdAsync(id, cancellationToken)
+                ?? throw new InvalidOperationException("Purchase return not found");
+            purchaseReturn.MarkAsReturned();
+            purchaseReturn.ModifiedBy = _currentUserService.GetCurrentUsername();
+
             foreach (var line in purchaseReturn.LineItems)
             {
                 int acceptedQuantity = line.Quantity - line.RejectedQuantity;
@@ -428,7 +439,7 @@ public class PurchaseReturnController : ControllerBase
                             _logger.LogWarning(
                                 "Insufficient stock in selected lot {LotId}. Required: {Required}, Available: {Available}",
                                 line.StockLotId, acceptedQuantity, selectedLot.QuantityAvailable);
-                            return BadRequest(new { message = $"Insufficient stock in selected lot. Available: {selectedLot.QuantityAvailable}, Required: {acceptedQuantity}" });
+                            throw new InvalidOperationException($"Insufficient stock in selected lot. Available: {selectedLot.QuantityAvailable}, Required: {acceptedQuantity}");
                         }
 
                         // Reduce stock from the bucket matching the lot's status (Available/Damaged/Quarantine).
@@ -486,21 +497,17 @@ public class PurchaseReturnController : ControllerBase
                             .OrderBy(l => l.ReceivingDate)  // FIFO - oldest lots first
                             .ToList();
 
-                        // Check if we have enough stock from this supplier
+                        // Must have enough AVAILABLE stock from THIS supplier. We never draw a return
+                        // from another supplier's lots — that would destroy lot/supplier traceability.
+                        // If the originating supplier's lots are short, the operator must pick specific
+                        // lots on the return lines instead.
                         int totalAvailableFromSupplier = supplierLots.Sum(l => l.QuantityAvailable);
                         if (totalAvailableFromSupplier < acceptedQuantity)
                         {
-                            _logger.LogWarning(
-                                "Insufficient stock from supplier {SupplierId} for part {PartId}. Required: {Required}, Available: {Available}",
-                                purchaseReturn.SupplierId, line.PartId, acceptedQuantity, totalAvailableFromSupplier);
-
-                            // Fall back to any available lots if supplier-specific lots are insufficient
-                            // This handles edge cases where stock was already sold/moved
-                            var otherLots = allLots
-                                .Where(l => l.SupplierId != purchaseReturn.SupplierId && l.QuantityAvailable > 0 && l.Status == "AVAILABLE")
-                                .OrderBy(l => l.ReceivingDate)
-                                .ToList();
-                            supplierLots.AddRange(otherLots);
+                            throw new InvalidOperationException(
+                                $"Insufficient available stock from this supplier for part {line.Part?.Name ?? line.PartId.ToString()} " +
+                                $"(available: {totalAvailableFromSupplier}, required: {acceptedQuantity}). " +
+                                "Select specific stock lots on the return lines to proceed.");
                         }
 
                         // Reduce stock - items are being returned to supplier
@@ -573,6 +580,7 @@ public class PurchaseReturnController : ControllerBase
                 await transaction.RollbackAsync(cancellationToken);
                 throw;
             }
+            }); // end execution strategy
 
             return Ok(MapToPurchaseReturnResponse(purchaseReturn));
         }
@@ -588,6 +596,7 @@ public class PurchaseReturnController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/mark-received")]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> MarkAsReceived(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -617,6 +626,7 @@ public class PurchaseReturnController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/issue-credit-note")]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> IssueCreditNote(Guid id, [FromQuery] decimal creditAmount, CancellationToken cancellationToken)
     {
         try
@@ -697,6 +707,7 @@ public class PurchaseReturnController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/reject")]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> Reject(Guid id, [FromQuery] string reason = "", CancellationToken cancellationToken = default)
     {
         try
@@ -724,6 +735,7 @@ public class PurchaseReturnController : ControllerBase
     /// <param name="request">Settlement details</param>
     /// <param name="cancellationToken">Cancellation token</param>
     [HttpPatch("{id:guid}/settle")]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> SettlePurchaseReturn(
         Guid id,
         [FromBody] SettlePurchaseReturnRequest request,
@@ -943,6 +955,7 @@ public class PurchaseReturnController : ControllerBase
     };
 
     [HttpDelete("{id:guid}")]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         try

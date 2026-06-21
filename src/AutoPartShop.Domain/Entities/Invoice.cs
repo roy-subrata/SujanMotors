@@ -5,6 +5,9 @@ namespace AutoPartShop.Domain.Entities;
 /// </summary>
 public class Invoice : AuditableEntity
 {
+    /// <summary>Optimistic-concurrency token (SQL Server rowversion).</summary>
+    public byte[] RowVersion { get; set; } = Array.Empty<byte>();
+
     public string InvoiceNumber { get; private set; } = string.Empty;
     public Guid SalesOrderId { get; private set; }
     public DateTime InvoiceDate { get; private set; }

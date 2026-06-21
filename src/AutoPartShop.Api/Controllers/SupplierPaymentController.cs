@@ -16,7 +16,7 @@ namespace AutoPartShop.Api.Controllers;
 [Route("api/supplier-payments")]
 [Route("api/v1/supplier-payments")]
 [ApiController]
-[Authorize]
+[Authorize(Roles = "Admin,Manager")]
 public class SupplierPaymentController : ControllerBase
 {
     private readonly ISupplierPaymentRepository _repository;

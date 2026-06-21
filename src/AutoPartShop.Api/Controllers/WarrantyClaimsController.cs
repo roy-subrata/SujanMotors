@@ -746,14 +746,17 @@ public class WarrantyClaimsController : ControllerBase
             if (claim.Status != "IN_PROGRESS")
                 return BadRequest(new { message = $"Parts can only be recorded while the repair is in progress. Current status: {claim.Status}" });
 
-            decimal addedCost = 0;
             var strategy = _dbContext.Database.CreateExecutionStrategy();
             await strategy.ExecuteAsync(async () =>
             {
                 await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
                 try
                 {
-                    addedCost = 0;
+                    // Reload the claim inside the lambda so retries (which re-run this whole block after a
+                    // rollback) compute cost from the committed baseline, not a mutated in-memory value.
+                    var freshClaim = await _claimRepository.GetByIdAsync(id, cancellationToken)
+                        ?? throw new InvalidOperationException("Warranty claim not found");
+                    decimal addedCost = 0;
                     foreach (var line in request.Parts)
                     {
                         var levels = (await _stockLevelRepository.GetByPartAndVariantAsync(line.PartId, line.ProductVariantId, cancellationToken))
@@ -784,10 +787,11 @@ public class WarrantyClaimsController : ControllerBase
                         addedCost += line.Quantity * Math.Max(0, line.UnitCost);
                     }
 
-                    claim.UpdateServiceCost(claim.ServiceCost + addedCost, request.Notes);
-                    await _claimRepository.UpdateAsync(claim, cancellationToken);
+                    freshClaim.UpdateServiceCost(freshClaim.ServiceCost + addedCost, request.Notes);
+                    await _claimRepository.UpdateAsync(freshClaim, cancellationToken);
 
                     await tx.CommitAsync(cancellationToken);
+                    claim = freshClaim;
                 }
                 catch
                 {
@@ -962,30 +966,48 @@ public class WarrantyClaimsController : ControllerBase
             if (quarantineMovement == null)
                 return BadRequest(new { message = "No quarantined defective stock movement found for this claim" });
 
-            var stockLevel = await _stockLevelRepository.GetByIdAsync(quarantineMovement.StockLevelId, cancellationToken);
-            if (stockLevel == null || !stockLevel.IsActive)
-                return BadRequest(new { message = "Quarantined stock location is not available for this claim" });
-            if (stockLevel.QuantityReserved < 1)
-                return BadRequest(new { message = "No reserved defective quantity available for this claim location" });
-
-            // Both dispositions release the quarantine hold; scrap also removes the unit from stock.
-            stockLevel.ReleaseReservedStock(1);
             var reason = mode == "scrap" ? WarrantyDefectiveScrappedReason : WarrantyDefectiveRestockedReason;
-            if (mode == "scrap")
-                stockLevel.RemoveStock(1);
-            await _stockLevelRepository.UpdateAsync(stockLevel, cancellationToken);
 
-            var movement = StockMovement.Create(
-                stockLevelId: stockLevel.Id,
-                movementType: mode == "scrap" ? "OUT" : "IN",
-                quantity: 1,
-                reason: reason,
-                referenceNumber: claim.ClaimNumber);
-            movement.Approve(request.ResponsibleBy);
-            movement.AddNotes(mode == "scrap"
-                ? $"Defective item scrapped/written off for claim {claim.ClaimNumber}. Responsible: {request.ResponsibleBy}. {request.Notes}".Trim()
-                : $"Defective item released back to sellable stock for claim {claim.ClaimNumber}. Responsible: {request.ResponsibleBy}. {request.Notes}".Trim());
-            await _stockMovementRepository.AddAsync(movement, cancellationToken);
+            // Stock level change + audit movement must be atomic, under the EF execution strategy
+            // (global retry policy). Reload the stock level inside so a retry applies the change once.
+            var strategy = _dbContext.Database.CreateExecutionStrategy();
+            await strategy.ExecuteAsync(async () =>
+            {
+                await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+                try
+                {
+                    var stockLevel = await _stockLevelRepository.GetByIdAsync(quarantineMovement.StockLevelId, cancellationToken);
+                    if (stockLevel == null || !stockLevel.IsActive)
+                        throw new InvalidOperationException("Quarantined stock location is not available for this claim");
+                    if (stockLevel.QuantityReserved < 1)
+                        throw new InvalidOperationException("No reserved defective quantity available for this claim location");
+
+                    // Both dispositions release the quarantine hold; scrap also removes the unit from stock.
+                    stockLevel.ReleaseReservedStock(1);
+                    if (mode == "scrap")
+                        stockLevel.RemoveStock(1);
+                    await _stockLevelRepository.UpdateAsync(stockLevel, cancellationToken);
+
+                    var movement = StockMovement.Create(
+                        stockLevelId: stockLevel.Id,
+                        movementType: mode == "scrap" ? "OUT" : "IN",
+                        quantity: 1,
+                        reason: reason,
+                        referenceNumber: claim.ClaimNumber);
+                    movement.Approve(request.ResponsibleBy);
+                    movement.AddNotes(mode == "scrap"
+                        ? $"Defective item scrapped/written off for claim {claim.ClaimNumber}. Responsible: {request.ResponsibleBy}. {request.Notes}".Trim()
+                        : $"Defective item released back to sellable stock for claim {claim.ClaimNumber}. Responsible: {request.ResponsibleBy}. {request.Notes}".Trim());
+                    await _stockMovementRepository.AddAsync(movement, cancellationToken);
+
+                    await tx.CommitAsync(cancellationToken);
+                }
+                catch
+                {
+                    await tx.RollbackAsync(cancellationToken);
+                    throw;
+                }
+            });
 
             return Ok(new
             {

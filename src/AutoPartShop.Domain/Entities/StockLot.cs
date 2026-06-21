@@ -7,6 +7,9 @@ namespace AutoPartShop.Domain.Entities;
 /// </summary>
 public class StockLot : AuditableEntity
 {
+    /// <summary>Optimistic-concurrency token (SQL Server rowversion).</summary>
+    public byte[] RowVersion { get; set; } = Array.Empty<byte>();
+
     public string LotNumber { get; private set; } = string.Empty;  // Unique lot identifier
     public Guid PartId { get; private set; }
     public Guid? VariantId { get; private set; }  // null = part-level lot; set = variant-scoped (SKU-level) lot

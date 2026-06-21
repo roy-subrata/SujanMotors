@@ -12,6 +12,7 @@ namespace AutoPartsShop.Infrastructure.Data.Configurations
 
             // Primary Key
             builder.HasKey(x => x.Id);
+            builder.Property(x => x.RowVersion).IsRowVersion();
 
             // Relationships
             builder.HasOne(x => x.Supplier)

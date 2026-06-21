@@ -13,6 +13,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
 import { PurchaseReturnsListComponent } from './purchase-returns-list/purchase-returns-list.component';
 import { PurchaseReturnService, PurchaseReturnResponse } from '../services/purchase-return.service';
+import { HasRoleDirective } from '../../../shared/directives/has-role.directive';
 
 @Component({
   selector: 'app-purchase-returns',
@@ -28,7 +29,8 @@ import { PurchaseReturnService, PurchaseReturnResponse } from '../services/purch
     DatePicker,
     MenuModule,
     TooltipModule,
-    PurchaseReturnsListComponent
+    PurchaseReturnsListComponent,
+    HasRoleDirective
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: './purchase-returns.component.html',

@@ -5,6 +5,7 @@ import { provideRouter, withEnabledBlockingInitialNavigation, withInMemoryScroll
 import { provideServiceWorker } from '@angular/service-worker';
 import Aura from '@primeuix/themes/aura';
 import { providePrimeNG } from 'primeng/config';
+import { ConfirmationService } from 'primeng/api';
 import { appRoutes } from './app.routes';
 import { authInterceptor } from './app/shared/interceptors/auth.interceptor';
 import { I18nService } from './app/shared/services/i18n.service';
@@ -16,6 +17,9 @@ export const appConfig: ApplicationConfig = {
         provideRouter(appRoutes, withInMemoryScrolling({ anchorScrolling: 'enabled', scrollPositionRestoration: 'enabled' }), withEnabledBlockingInitialNavigation()),
         provideHttpClient(withFetch(), withInterceptors([authInterceptor])),
         provideAnimationsAsync(),
+        // Root-level ConfirmationService so the auth interceptor can prompt a reload on
+        // optimistic-concurrency (409 CONCURRENCY_CONFLICT) responses from any page.
+        ConfirmationService,
         providePrimeNG({
             theme: { preset: Aura, options: { darkModeSelector: '.app-dark' } },
             zIndex: { modal: 1100, overlay: 1200, menu: 1200, tooltip: 1300 }

@@ -18,6 +18,7 @@ import { PurchaseReturnService, PurchaseReturnResponse } from '../../services/pu
 import { CurrencyService } from '../../../../shared/services/currency.service';
 import { I18nService } from '@/shared/services/i18n.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { AuthService } from '../../../../shared/services/auth.service';
 
 @Component({
   selector: 'app-purchase-returns-list',
@@ -69,6 +70,12 @@ export class PurchaseReturnsListComponent implements OnInit {
   private readonly currencyService = inject(CurrencyService);
   private readonly i18n = inject(I18nService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly auth = inject(AuthService);
+
+  /** Procurement mutations (create/edit/delete) are restricted to back-office roles. */
+  get canManage(): boolean {
+    return this.auth.hasAnyRole(['Admin', 'Manager']);
+  }
 
   ngOnInit(): void {
     this.rebuildContextMenu();
@@ -91,14 +98,14 @@ export class PurchaseReturnsListComponent implements OnInit {
         label: this.i18n.t('common.actions.edit'),
         icon: 'pi pi-pencil',
         command: () => { if (pr) this.onEditClick(pr); },
-        visible: status === 'PENDING'
+        visible: status === 'PENDING' && this.canManage
       },
       { separator: true },
       {
         label: this.i18n.t('common.actions.delete'),
         icon: 'pi pi-trash',
         command: () => { if (pr) this.onDeleteClick(pr); },
-        visible: status === 'PENDING',
+        visible: status === 'PENDING' && this.canManage,
         styleClass: 'p-menuitem-danger'
       }
     ];

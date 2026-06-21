@@ -12,6 +12,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { GoodsReceiptsListComponent } from './goods-receipts-list.component';
 import { GoodsReceiptService, GoodsReceiptResponse } from '../services/goods-receipt.service';
+import { HasRoleDirective } from '../../../shared/directives/has-role.directive';
 
 @Component({
   selector: 'app-goods-receipts',
@@ -26,7 +27,8 @@ import { GoodsReceiptService, GoodsReceiptResponse } from '../services/goods-rec
     Select,
     DatePicker,
     TooltipModule,
-    GoodsReceiptsListComponent
+    GoodsReceiptsListComponent,
+    HasRoleDirective
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: './goods-receipts.component.html',

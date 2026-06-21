@@ -9,6 +9,7 @@ public class StockLotConfiguration : IEntityTypeConfiguration<StockLot>
     public void Configure(EntityTypeBuilder<StockLot> builder)
     {
         builder.HasKey(sl => sl.Id);
+        builder.Property(sl => sl.RowVersion).IsRowVersion();
 
         builder.Property(sl => sl.LotNumber)
             .IsRequired()
