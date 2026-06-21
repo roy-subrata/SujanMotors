@@ -217,7 +217,16 @@
         <span>Cost &amp; Stock</span>
       </div>
 
-      <div class="pf-row three">
+      <div class="pf-row">
+        <div class="pf-field">
+          <label>Cost Price <span class="req">*</span></label>
+          <p-inputNumber formControlName="costPrice" placeholder="0.00"
+            [min]="0" [step]="0.01" [minFractionDigits]="2" [maxFractionDigits]="2"
+            mode="decimal" [disabled]="isViewMode" [style]="{ width: '100%' }">
+          </p-inputNumber>
+          <small class="pf-hint">Standard purchase cost — actual cost per lot is captured on goods receipts</small>
+          <small *ngIf="hasError('costPrice')" class="p-error">{{ getErrorMessage('costPrice') }}</small>
+        </div>
         <div class="pf-field">
           <label>Selling Price <span class="req">*</span></label>
           <p-inputNumber formControlName="sellingPrice" placeholder="0.00"
@@ -227,6 +236,9 @@
           <small class="pf-hint">Base list price — inherited by all variants unless overridden</small>
           <small *ngIf="hasError('sellingPrice')" class="p-error">{{ getErrorMessage('sellingPrice') }}</small>
         </div>
+      </div>
+
+      <div class="pf-row">
         <div class="pf-field">
           <label>Minimum Stock <span class="req">*</span></label>
           <p-inputNumber formControlName="minimumStock" placeholder="0"
