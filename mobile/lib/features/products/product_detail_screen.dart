@@ -7,6 +7,7 @@ import '../../features/stock/stock_repository.dart';
 import '../../shared/format.dart';
 import '../../shared/models/product.dart';
 import '../../shared/models/stock.dart';
+import '../../shared/models/vehicle_compatibility.dart';
 import '../../shared/widgets/state_views.dart';
 import 'products_providers.dart';
 
@@ -29,6 +30,7 @@ class ProductDetailScreen extends ConsumerWidget {
           ref.invalidate(productDetailProvider(productId));
           ref.invalidate(stockLevelsProvider(productId));
           ref.invalidate(stockLotsProvider(productId));
+          ref.invalidate(compatibleVehiclesProvider(productId));
         },
         child: productAsync.when(
           loading: () => const LoadingView(),
@@ -73,6 +75,17 @@ class _ProductDetailBody extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         _StockSection(partId: product.id),
+        const SizedBox(height: 24),
+        Row(
+          children: [
+            Icon(Icons.directions_car_outlined,
+                size: 20, color: theme.colorScheme.primary),
+            const SizedBox(width: 8),
+            Text('Compatible vehicles', style: theme.textTheme.titleMedium),
+          ],
+        ),
+        const SizedBox(height: 8),
+        _CompatibilitySection(partId: product.id),
         if (product.variants.length > 1) ...[
           const SizedBox(height: 24),
           Text('Variants', style: theme.textTheme.titleMedium),
@@ -80,6 +93,97 @@ class _ProductDetailBody extends StatelessWidget {
           ...product.variants.map((v) => _VariantTile(variant: v)),
         ],
       ],
+    );
+  }
+}
+
+/// Vehicles this part fits. Loads independently of the product so a slow/failed
+/// compatibility call never blocks the rest of the detail page.
+class _CompatibilitySection extends ConsumerWidget {
+  const _CompatibilitySection({required this.partId});
+
+  final String partId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final async = ref.watch(compatibleVehiclesProvider(partId));
+
+    return async.when(
+      loading: () => const Padding(
+        padding: EdgeInsets.symmetric(vertical: 16),
+        child: LoadingView(),
+      ),
+      error: (e, _) => _StockNotice(
+        message: e is AppException
+            ? e.message
+            : 'Vehicle compatibility couldn’t load.',
+        onRetry: () => ref.invalidate(compatibleVehiclesProvider(partId)),
+      ),
+      data: (items) {
+        if (items.isEmpty) {
+          return const EmptyView(
+            message: 'No vehicle compatibility listed for this part.',
+            icon: Icons.directions_car_outlined,
+          );
+        }
+        return Column(
+          children: items.map((c) => _CompatibilityTile(item: c)).toList(),
+        );
+      },
+    );
+  }
+}
+
+class _CompatibilityTile extends StatelessWidget {
+  const _CompatibilityTile({required this.item});
+
+  final VehicleCompatibility item;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final ok = item.isCompatible;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      elevation: 0,
+      color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  ok ? Icons.check_circle : Icons.cancel,
+                  size: 18,
+                  color: ok ? Colors.green.shade700 : scheme.error,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(item.title,
+                      style: theme.textTheme.titleSmall
+                          ?.copyWith(fontWeight: FontWeight.w700)),
+                ),
+                if (item.engineType != null && item.engineType!.isNotEmpty)
+                  _Chip(label: item.engineType!),
+              ],
+            ),
+            if (!ok) ...[
+              const SizedBox(height: 4),
+              Text('Not compatible',
+                  style: theme.textTheme.bodySmall?.copyWith(color: scheme.error)),
+            ],
+            if (item.notes != null && item.notes!.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text(item.notes!, style: theme.textTheme.bodySmall),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }

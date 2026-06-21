@@ -6,6 +6,7 @@ import '../../core/network/dio_provider.dart';
 import '../../shared/models/paged_response.dart';
 import '../../shared/models/product.dart';
 import '../../shared/models/stock.dart';
+import '../../shared/models/vehicle_compatibility.dart';
 
 class ProductsRepository {
   ProductsRepository(this._dio);
@@ -39,6 +40,22 @@ class ProductsRepository {
       final res = await _dio.get('/products/$id');
       final data = (res.data as Map<String, dynamic>)['data'];
       return Product.fromJson(Map<String, dynamic>.from(data as Map));
+    } on DioException catch (e) {
+      throw AppException.fromDio(e);
+    }
+  }
+
+  /// Vehicles this part fits, from GET /products/{id}/compatible-vehicles.
+  Future<List<VehicleCompatibility>> compatibleVehicles(String id) async {
+    try {
+      final res = await _dio.get('/products/$id/compatible-vehicles');
+      final data = (res.data as Map<String, dynamic>)['data'];
+      if (data is! List) return const [];
+      return data
+          .whereType<Map>()
+          .map((e) =>
+              VehicleCompatibility.fromJson(Map<String, dynamic>.from(e)))
+          .toList();
     } on DioException catch (e) {
       throw AppException.fromDio(e);
     }

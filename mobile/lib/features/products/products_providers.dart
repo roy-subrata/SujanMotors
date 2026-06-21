@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/app_exception.dart';
 import '../../shared/models/product.dart';
+import '../../shared/models/vehicle_compatibility.dart';
 import 'products_repository.dart';
 
 /// Immutable view-state for the paginated product search list.
@@ -96,4 +97,10 @@ final productSearchControllerProvider =
 final productDetailProvider =
     FutureProvider.family<Product, String>((ref, id) {
   return ref.read(productsRepositoryProvider).getById(id);
+});
+
+/// Vehicles a part is compatible with, keyed by productId.
+final compatibleVehiclesProvider =
+    FutureProvider.family<List<VehicleCompatibility>, String>((ref, id) {
+  return ref.read(productsRepositoryProvider).compatibleVehicles(id);
 });
