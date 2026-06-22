@@ -6,7 +6,6 @@
   <app-page-header
     title="Warranty Registrations"
     subtitle="Register, track and manage product warranties"
-    [breadcrumb]="[{ label: 'Warranty' }, { label: 'Registrations' }]"
     [count]="filteredWarranties.length" countLabel="warranties" countIcon="pi pi-shield">
     <ng-container actions>
       <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="loadWarranties()">

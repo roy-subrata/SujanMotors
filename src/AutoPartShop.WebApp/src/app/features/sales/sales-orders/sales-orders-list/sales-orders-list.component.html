@@ -13,7 +13,6 @@
   <app-page-header
     title="Sales Orders"
     subtitle="Manage and track all customer sales orders"
-    [breadcrumb]="[{ label: 'Sales', link: '/sales/sales-orders' }, { label: 'Sales Orders' }]"
     [count]="totalRecords" countLabel="orders" countIcon="pi pi-shopping-cart">
     <ng-container actions>
       <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="refreshData()">

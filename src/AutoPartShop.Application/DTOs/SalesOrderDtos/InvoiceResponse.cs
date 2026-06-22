@@ -17,6 +17,7 @@ public class InvoiceResponse
     public decimal GrandTotal { get; set; }
     public decimal AmountPaid { get; set; }
     public decimal OutstandingAmount { get; set; }
+    public string Currency { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty; // DRAFT, ISSUED, PAID, PARTIALLY_PAID, OVERDUE, CANCELLED
     public bool IsOverdue { get; set; }
     public string Notes { get; set; } = string.Empty;

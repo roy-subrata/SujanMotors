@@ -20,6 +20,19 @@
         </p-select>
       </div>
 
+      <!-- Combo Design (Spotlight / Detailed) -->
+      <div class="field" *ngIf="selectedLayout === 'combo'">
+        <label for="comboDesign">Design</label>
+        <p-select id="comboDesign"
+          [(ngModel)]="selectedComboDesign"
+          [options]="comboDesignOptions"
+          optionLabel="label"
+          optionValue="value"
+          (onChange)="onComboDesignChange()"
+          styleClass="w-full">
+        </p-select>
+      </div>
+
       <!-- Label Size -->
       <div class="field">
         <label for="barcodeSize">Label Size</label>

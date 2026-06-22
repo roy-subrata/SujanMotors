@@ -19,7 +19,6 @@
   <app-page-header
     title="Parts"
     subtitle="Manage and track all inventory parts"
-    [breadcrumb]="[{ label: 'Products', link: '/inventory/categories' }, { label: 'Parts' }]"
     [count]="totalRecords" countLabel="parts" countIcon="pi pi-box">
     <ng-container actions>
       @if (priceCodeService.isConfigured()) {

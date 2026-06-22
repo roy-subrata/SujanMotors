@@ -56,6 +56,81 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
     }
   }
 
+  Future<void> _retryCamera() async {
+    try {
+      await _controller.start();
+    } on MobileScannerException {
+      // The errorBuilder will rebuild with the new error; nothing else to do.
+    }
+  }
+
+  /// Friendly full-screen state shown when the camera cannot start
+  /// (permission denied, unsupported device, or a generic camera error).
+  Widget _buildCameraError(BuildContext context, MobileScannerException error) {
+    final isPermission =
+        error.errorCode == MobileScannerErrorCode.permissionDenied;
+    final isUnsupported =
+        error.errorCode == MobileScannerErrorCode.unsupported;
+
+    final String title;
+    final String message;
+    if (isPermission) {
+      title = 'Camera access needed';
+      message =
+          'Allow camera access to scan barcodes. If you previously denied it, '
+          'enable the Camera permission for this app in your device Settings, '
+          'then tap Try again.';
+    } else if (isUnsupported) {
+      title = 'Scanning not supported';
+      message = 'This device does not support barcode scanning.';
+    } else {
+      title = 'Camera error';
+      message =
+          'The camera could not be started. ${error.errorDetails?.message ?? ''}'
+              .trim();
+    }
+
+    return Container(
+      color: Colors.black,
+      alignment: Alignment.center,
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isPermission ? Icons.no_photography : Icons.error_outline,
+            color: Colors.white70,
+            size: 64,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.white70),
+          ),
+          if (!isUnsupported) ...[
+            const SizedBox(height: 20),
+            FilledButton.icon(
+              onPressed: _retryCamera,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Try again'),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -78,7 +153,11 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
       body: Stack(
         alignment: Alignment.center,
         children: [
-          MobileScanner(controller: _controller, onDetect: _onDetect),
+          MobileScanner(
+            controller: _controller,
+            onDetect: _onDetect,
+            errorBuilder: _buildCameraError,
+          ),
           // Simple viewfinder overlay.
           Container(
             width: 250,

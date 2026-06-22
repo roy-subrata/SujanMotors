@@ -6,7 +6,7 @@ import '../../features/auth/auth_controller.dart';
 import '../../features/auth/login_screen.dart';
 import '../../features/cashbook/cashbook_screen.dart';
 import '../../features/customers/customer_detail_screen.dart';
-import '../../features/customers/customer_orders_screen.dart';
+import '../../features/customers/customer_invoices_screen.dart';
 import '../../features/customers/customer_payment_history_screen.dart';
 import '../../features/customers/customers_screen.dart';
 import '../../features/notifications/notifications_screen.dart';
@@ -63,7 +63,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/customers/:id/orders',
         builder: (_, state) =>
-            CustomerOrdersScreen(customerId: state.pathParameters['id']!),
+            CustomerInvoicesScreen(customerId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/customers/:id/payments',

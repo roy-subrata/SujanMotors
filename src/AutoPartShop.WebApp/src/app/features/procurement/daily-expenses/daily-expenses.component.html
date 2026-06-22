@@ -5,7 +5,6 @@
     <app-page-header
         title="Daily Expenses"
         subtitle="Track and manage day-to-day shop expenses"
-        [breadcrumb]="[{ label: 'Procurement' }, { label: 'Daily Expenses' }]"
         [count]="expenses().length" countLabel="expenses" countIcon="pi pi-wallet">
         <ng-container actions>
             <button class="btn-primary" (click)="openNewExpenseDialog()">

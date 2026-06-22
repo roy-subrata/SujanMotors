@@ -7,7 +7,6 @@
   <app-page-header
     title="Customer Payments"
     subtitle="Track and manage customer payments, refunds, and reconciliations"
-    [breadcrumb]="[{ label: 'Sales' }, { label: 'Customer Payments' }]"
     [count]="totalCount" countLabel="payments" countIcon="pi pi-wallet">
     <ng-container actions>
       <button class="btn-icon" pTooltip="Export CSV" tooltipPosition="bottom" (click)="exportPayments('csv')">

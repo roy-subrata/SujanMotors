@@ -1511,6 +1511,7 @@ public class SalesOrderController : ControllerBase
             GrandTotal = invoice.GrandTotal,
             AmountPaid = invoice.AmountPaid,
             OutstandingAmount = invoice.OutstandingAmount,
+            Currency = invoice.SalesOrder?.Currency ?? string.Empty,
             Status = invoice.Status,
             IsOverdue = invoice.IsOverdue,
             Notes = invoice.Notes,

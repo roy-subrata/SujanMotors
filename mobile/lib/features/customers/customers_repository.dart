@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/network/app_exception.dart';
 import '../../core/network/dio_provider.dart';
 import '../../shared/models/customer.dart';
+import '../../shared/models/invoice.dart';
 import '../../shared/models/json.dart';
 import '../../shared/models/paged_response.dart';
 
@@ -75,9 +76,11 @@ class CustomersRepository {
     }
   }
 
-  /// One page of the customer's invoices (sales orders), filterable by status
-  /// and invoice-number search (`POST /SalesOrder/list`).
-  Future<PagedChunk<CustomerOrder>> ordersPage({
+  /// One page of the customer's invoices, filterable by status and
+  /// invoice-number search (`GET /SalesOrder/invoices`). The list response
+  /// carries invoice headers only — line items are loaded on demand via
+  /// [invoiceLines].
+  Future<PagedChunk<Invoice>> invoicesPage({
     required String customerId,
     String? status,
     String? search,
@@ -85,18 +88,31 @@ class CustomersRepository {
     int pageSize = 20,
   }) async {
     try {
-      final res = await _dio.post('/SalesOrder/list', data: {
+      final res = await _dio.get('/SalesOrder/invoices', queryParameters: {
         'customerId': customerId,
+        'searchTerm': ?search,
         'status': ?status,
-        'search': search ?? '',
         'pageNumber': page,
         'pageSize': pageSize,
-        'sorts': const [],
       });
       return PagedChunk.fromPagedResult(
         res.data as Map<String, dynamic>,
-        CustomerOrder.fromJson,
+        Invoice.fromJson,
       );
+    } on DioException catch (e) {
+      throw AppException.fromDio(e);
+    }
+  }
+
+  /// Line items for one invoice, from the invoice print-data payload
+  /// (`GET /SalesOrder/invoices/{id}/print-data`). Loaded lazily when a row is
+  /// expanded.
+  Future<List<InvoiceLine>> invoiceLines(String invoiceId) async {
+    try {
+      final res =
+          await _dio.get('/SalesOrder/invoices/$invoiceId/print-data');
+      final data = asMapOrNull((res.data as Map<String, dynamic>)['data']);
+      return asList(data?['lines'], InvoiceLine.fromJson);
     } on DioException catch (e) {
       throw AppException.fromDio(e);
     }

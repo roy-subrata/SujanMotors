@@ -65,7 +65,8 @@ class ProductsRepository {
     try {
       final res = await _dio.get('/products/by-code',
           queryParameters: {'code': code});
-      return ProductByCode.fromJson(res.data as Map<String, dynamic>);
+      final data = (res.data as Map<String, dynamic>)['data'];
+      return ProductByCode.fromJson(Map<String, dynamic>.from(data as Map));
     } on DioException catch (e) {
       throw AppException.fromDio(e);
     }

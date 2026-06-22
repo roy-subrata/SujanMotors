@@ -279,6 +279,8 @@
 
   &.no-padding {
     padding: 0;
+    /* Let wide tables scroll horizontally instead of overflowing the card */
+    overflow-x: auto;
   }
 }
 
@@ -345,6 +347,11 @@
   .flow-value {
     color: #ffffff !important;
   }
+
+  /* Negative closing balance: flip the row to red to signal a cash shortfall */
+  &.flow-net-danger {
+    background-color: #b91c1c;
+  }
 }
 
 .flow-details {
@@ -387,6 +394,7 @@
 
 .data-table {
   width: 100%;
+  min-width: 460px;
   border-collapse: collapse;
   font-size: 0.875rem;
 
@@ -774,9 +782,10 @@
     width: 100%;
   }
 
+  /* Keep two columns on tablets instead of collapsing to one (avoids cramping) */
   .kpi-grid.kpi-grid-4,
   .kpi-grid.kpi-grid-3 {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .kpi-card {
@@ -843,6 +852,12 @@
     margin-bottom: 8px;
   }
 
+  /* Single column on phones */
+  .kpi-grid.kpi-grid-4,
+  .kpi-grid.kpi-grid-3 {
+    grid-template-columns: 1fr;
+  }
+
   .kpi-card {
     padding: 12px;
     gap: 10px;
@@ -866,7 +881,7 @@
   }
 
   .kpi-meta {
-    font-size: 0.6875rem;
+    font-size: 0.75rem;
   }
 
   .card-header {

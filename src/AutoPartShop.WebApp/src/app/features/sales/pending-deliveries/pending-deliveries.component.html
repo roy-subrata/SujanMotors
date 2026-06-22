@@ -7,7 +7,6 @@
   <app-page-header
     title="Pending Deliveries"
     subtitle="Orders confirmed and waiting to be delivered"
-    [breadcrumb]="[{ label: 'Sales' }, { label: 'Pending Deliveries' }]"
     [count]="orders().length" countLabel="orders" countIcon="pi pi-box">
     <ng-container actions>
       <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="load()">
