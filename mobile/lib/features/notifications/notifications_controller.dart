@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:signalr_netcore/signalr_client.dart';
 
 import '../../core/config/api_config.dart';
+import '../../core/notifications/local_notifications.dart';
 import '../../core/storage/token_storage.dart';
 import '../auth/auth_controller.dart';
 import 'notification_models.dart';
@@ -108,6 +109,13 @@ class NotificationsController extends Notifier<NotificationsState> {
         SaleNotification.fromJson(Map<String, dynamic>.from(payload));
     state = state.copyWith(
       items: [AppNotification(sale: sale), ...state.items],
+    );
+
+    // Surface it as a system notification with sound (fire-and-forget).
+    final who = sale.customerName.isEmpty ? 'Walk-in' : sale.customerName;
+    LocalNotifications.instance.show(
+      title: 'New sale · ${sale.soNumber}',
+      body: '$who · ${sale.currency} ${sale.grandTotal.toStringAsFixed(2)}',
     );
   }
 
