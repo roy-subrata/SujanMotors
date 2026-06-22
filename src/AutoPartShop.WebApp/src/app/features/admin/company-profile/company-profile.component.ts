@@ -58,8 +58,7 @@ const FIELDS: FieldDef[] = [
     <app-page-container>
       <app-page-header
         title="Company Profile"
-        subtitle="Printed on every invoice, delivery challan, and account statement"
-        [breadcrumb]="[{ label: 'Admin' }, { label: 'Company Profile' }]">
+        subtitle="Printed on every invoice, delivery challan, and account statement">
       </app-page-header>
 
       <div class="w-full px-4 py-6">

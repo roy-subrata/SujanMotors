@@ -345,10 +345,12 @@ export class CurrencyService {
   formatCurrency(amount: number, currencyCode: string): string {
     const code = currencyCode?.trim().toUpperCase();
     const currency = this.activeCurrenciesSubject.value.find(c => c.code === code);
+    const sign = amount < 0 ? '-' : '';
+    const abs = Math.abs(amount);
     if (!currency) {
-      return `${amount.toFixed(2)} ${code || ''}`.trim();
+      return `${sign}${abs.toFixed(2)} ${code || ''}`.trim();
     }
-    return `${currency.symbol} ${amount.toFixed(currency.decimalPlaces)}`;
+    return `${sign}${currency.symbol} ${abs.toFixed(currency.decimalPlaces)}`;
   }
 
   /**

@@ -58,41 +58,6 @@
   background-color: var(--color-bg-secondary);
 }
 
-/* ==================== BREADCRUMB BAR ==================== */
-.breadcrumb-bar {
-  background: #ffffff;
-  border-bottom: 1px solid var(--color-border);
-  padding: 10px var(--page-gutter-x);
-}
-
-.breadcrumb-content {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-}
-
-.breadcrumb-link {
-  color: var(--color-text-secondary);
-  text-decoration: none;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  transition: color 0.2s ease;
-}
-
-.breadcrumb-link:hover,
-.breadcrumb-item a:hover { color: var(--color-primary); }
-
-.breadcrumb-item a {
-  color: var(--color-text-secondary);
-  text-decoration: none;
-}
-
-.breadcrumb-separator { font-size: 10px; color: var(--color-text-muted); }
-
-.breadcrumb-active { color: var(--color-text-primary); font-weight: 500; }
-
 /* ==================== PAGE HEADER ==================== */
 .page-header {
   background: var(--page-header-gradient);
@@ -882,9 +847,6 @@
 .customer-info { display: flex; flex-direction: column; gap: 2px; }
 .text-truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px; }
 .date-text { font-size: 13px; color: var(--color-text-secondary); }
-.breadcrumb-text { display: flex; align-items: center; gap: 8px; }
-.breadcrumb-parent a { color: var(--color-text-secondary); text-decoration: none; }
-.breadcrumb-parent a:hover { color: var(--color-primary); }
 
 /* Clickable identifier cells (SO/GRN/return/code links) */
 .so-cell { display: flex; align-items: center; gap: 8px; }
@@ -936,9 +898,6 @@
   .page-header .btn-secondary span { display: none; }
   .page-header .btn-primary { padding: 8px 12px; }
   .page-header .btn-secondary { padding: 8px 12px; }
-
-  /* Hide the breadcrumb bar on mobile to reclaim vertical space */
-  .breadcrumb-bar { display: none; }
 
   .filter-container { flex-direction: column; gap: 12px; }
   .filter-group { width: 100%; }

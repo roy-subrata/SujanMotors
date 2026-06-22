@@ -246,15 +246,25 @@ export class DashboardComponent implements OnInit {
     };
   }
 
+  // Read theme colors from CSS custom properties so the chart follows light/dark mode
+  private getThemeColor(varName: string, fallback: string): string {
+    const value = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+    return value || fallback;
+  }
+
   private initializeChartOptions(): void {
     // Fix #7 and #8: currency formatting on Y-axis and tooltips
     const fmt = (v: number) => this.formatCurrency(v);
+
+    // Theme-aware colors (fall back to neutral grays if vars are unavailable)
+    const textColor = this.getThemeColor('--text-color-secondary', '#64748b');
+    const gridColor = this.getThemeColor('--surface-border', '#e2e8f0');
 
     this.salesTrendChartOptions = {
       maintainAspectRatio: false,
       plugins: {
         legend: {
-          labels: { color: '#495057', font: { size: 12 } }
+          labels: { color: textColor, font: { size: 12 } }
         },
         tooltip: {
           callbacks: {
@@ -264,16 +274,16 @@ export class DashboardComponent implements OnInit {
       },
       scales: {
         x: {
-          ticks: { color: '#64748b', font: { size: 11 } },
-          grid: { color: '#f1f5f9' }
+          ticks: { color: textColor, font: { size: 11 } },
+          grid: { color: gridColor }
         },
         y: {
           ticks: {
-            color: '#64748b',
+            color: textColor,
             font: { size: 11 },
             callback: (value: any) => fmt(value)
           },
-          grid: { color: '#f1f5f9' }
+          grid: { color: gridColor }
         }
       }
     };

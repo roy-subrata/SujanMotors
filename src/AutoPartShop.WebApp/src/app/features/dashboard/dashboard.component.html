@@ -150,7 +150,7 @@
             <i class="pi pi-shopping-cart"></i>
           </div>
           <div class="kpi-content">
-            <span class="kpi-value">{{ formatCurrency(dashboardData()!.summary.totalSales) }}</span>
+            <span class="kpi-value" [pTooltip]="formatCurrency(dashboardData()!.summary.totalSales)" tooltipPosition="top">{{ formatCurrency(dashboardData()!.summary.totalSales) }}</span>
             <span class="kpi-label">Total Sales</span>
             <span class="kpi-meta">{{ dashboardData()!.summary.totalSalesCount }} orders
               · avg {{ formatCurrency(dashboardData()!.summary.averageSaleValue) }}</span>
@@ -162,7 +162,7 @@
             <i class="pi pi-chart-line"></i>
           </div>
           <div class="kpi-content">
-            <span class="kpi-value">{{ formatCurrency(dashboardData()!.summary.totalRevenue) }}</span>
+            <span class="kpi-value" [pTooltip]="formatCurrency(dashboardData()!.summary.totalRevenue)" tooltipPosition="top">{{ formatCurrency(dashboardData()!.summary.totalRevenue) }}</span>
             <span class="kpi-label">Revenue Collected</span>
             <span class="kpi-meta">
               Cash: {{ formatCurrency(dashboardData()!.summary.cashSales) }}
@@ -176,7 +176,7 @@
             <i class="pi pi-wallet"></i>
           </div>
           <div class="kpi-content">
-            <span class="kpi-value">{{ formatCurrency(dashboardData()!.summary.totalExpenses) }}</span>
+            <span class="kpi-value" [pTooltip]="formatCurrency(dashboardData()!.summary.totalExpenses)" tooltipPosition="top">{{ formatCurrency(dashboardData()!.summary.totalExpenses) }}</span>
             <span class="kpi-label">Total Expenses</span>
             <span class="kpi-meta">Purchases + Daily + Payments</span>
           </div>
@@ -191,7 +191,8 @@
             <i class="pi pi-chart-bar"></i>
           </div>
           <div class="kpi-content">
-            <span class="kpi-value">{{ formatCurrency(dashboardData()!.summary.netProfit) }}</span>
+            <span class="kpi-value" [class.text-danger]="dashboardData()!.summary.netProfit < 0"
+              [pTooltip]="formatCurrency(dashboardData()!.summary.netProfit)" tooltipPosition="top">{{ formatCurrency(dashboardData()!.summary.netProfit) }}</span>
             <span class="kpi-label">Net Profit</span>
             <span class="kpi-meta" [class]="getProfitMarginClass(dashboardData()!.summary.profitMargin)">
               {{ formatPercent(dashboardData()!.summary.profitMargin) }} margin
@@ -214,7 +215,8 @@
             <i class="pi pi-chart-pie"></i>
           </div>
           <div class="kpi-content">
-            <span class="kpi-value">{{ formatCurrency(dashboardData()!.summary.grossProfit) }}</span>
+            <span class="kpi-value" [class.text-danger]="dashboardData()!.summary.grossProfit < 0"
+              [pTooltip]="formatCurrency(dashboardData()!.summary.grossProfit)" tooltipPosition="top">{{ formatCurrency(dashboardData()!.summary.grossProfit) }}</span>
             <span class="kpi-label">Gross Profit</span>
             <span class="kpi-meta">Before daily expenses</span>
           </div>
@@ -225,7 +227,7 @@
             <i class="pi pi-tag"></i>
           </div>
           <div class="kpi-content">
-            <span class="kpi-value">{{ formatCurrency(dashboardData()!.summary.averageSaleValue) }}</span>
+            <span class="kpi-value" [pTooltip]="formatCurrency(dashboardData()!.summary.averageSaleValue)" tooltipPosition="top">{{ formatCurrency(dashboardData()!.summary.averageSaleValue) }}</span>
             <span class="kpi-label">Avg Sale Value</span>
             <span class="kpi-meta">Per order this period</span>
           </div>
@@ -268,7 +270,7 @@
             <i class="pi pi-box"></i>
           </div>
           <div class="kpi-content">
-            <span class="kpi-value">{{ formatCurrency(dashboardData()!.summary.totalPurchases) }}</span>
+            <span class="kpi-value" [pTooltip]="formatCurrency(dashboardData()!.summary.totalPurchases)" tooltipPosition="top">{{ formatCurrency(dashboardData()!.summary.totalPurchases) }}</span>
             <span class="kpi-label">Inventory Purchases</span>
             <span class="kpi-meta">{{ dashboardData()!.summary.totalPurchasesCount }} orders
               · avg {{ formatCurrency(dashboardData()!.summary.averagePurchaseValue) }}</span>
@@ -280,7 +282,7 @@
             <i class="pi pi-credit-card"></i>
           </div>
           <div class="kpi-content">
-            <span class="kpi-value">{{ formatCurrency(dashboardData()!.summary.dailyExpenses) }}</span>
+            <span class="kpi-value" [pTooltip]="formatCurrency(dashboardData()!.summary.dailyExpenses)" tooltipPosition="top">{{ formatCurrency(dashboardData()!.summary.dailyExpenses) }}</span>
             <span class="kpi-label">Daily Expenses</span>
             <span class="kpi-meta">{{ dashboardData()!.summary.dailyExpensesCount }} entries</span>
           </div>
@@ -291,7 +293,7 @@
             <i class="pi pi-send"></i>
           </div>
           <div class="kpi-content">
-            <span class="kpi-value">{{ formatCurrency(dashboardData()!.summary.supplierPaymentsMade) }}</span>
+            <span class="kpi-value" [pTooltip]="formatCurrency(dashboardData()!.summary.supplierPaymentsMade)" tooltipPosition="top">{{ formatCurrency(dashboardData()!.summary.supplierPaymentsMade) }}</span>
             <span class="kpi-label">Supplier Payments</span>
             <span class="kpi-meta">Paid to vendors</span>
           </div>
@@ -312,7 +314,7 @@
             <i class="pi pi-users"></i>
           </div>
           <div class="kpi-content">
-            <span class="kpi-value">{{ formatCurrency(dashboardData()!.summary.customerDueAmount) }}</span>
+            <span class="kpi-value" [pTooltip]="formatCurrency(dashboardData()!.summary.customerDueAmount)" tooltipPosition="top">{{ formatCurrency(dashboardData()!.summary.customerDueAmount) }}</span>
             <span class="kpi-label">Customer Due</span>
             <span class="kpi-meta">{{ dashboardData()!.summary.customerDueCount }} customers</span>
           </div>
@@ -323,7 +325,7 @@
             <i class="pi pi-truck"></i>
           </div>
           <div class="kpi-content">
-            <span class="kpi-value">{{ formatCurrency(dashboardData()!.summary.supplierDueAmount) }}</span>
+            <span class="kpi-value" [pTooltip]="formatCurrency(dashboardData()!.summary.supplierDueAmount)" tooltipPosition="top">{{ formatCurrency(dashboardData()!.summary.supplierDueAmount) }}</span>
             <span class="kpi-label">Supplier Due</span>
             <span class="kpi-meta">{{ dashboardData()!.summary.supplierDueCount }} suppliers</span>
           </div>
@@ -334,7 +336,7 @@
             <i class="pi pi-box"></i>
           </div>
           <div class="kpi-content">
-            <span class="kpi-value">{{ formatCurrency(dashboardData()!.summary.inventoryValue) }}</span>
+            <span class="kpi-value" [pTooltip]="formatCurrency(dashboardData()!.summary.inventoryValue)" tooltipPosition="top">{{ formatCurrency(dashboardData()!.summary.inventoryValue) }}</span>
             <span class="kpi-label">Inventory Value</span>
             <span class="kpi-meta">Current stock at cost</span>
           </div>
@@ -345,7 +347,8 @@
             <i class="pi pi-wallet"></i>
           </div>
           <div class="kpi-content">
-            <span class="kpi-value">{{ formatCurrency(dashboardData()!.summary.closingBalance) }}</span>
+            <span class="kpi-value" [class.text-danger]="dashboardData()!.summary.closingBalance < 0"
+              [pTooltip]="formatCurrency(dashboardData()!.summary.closingBalance)" tooltipPosition="top">{{ formatCurrency(dashboardData()!.summary.closingBalance) }}</span>
             <span class="kpi-label">Closing Balance</span>
             <span class="kpi-meta">Opening: {{ formatCurrency(dashboardData()!.summary.openingBalance) }}</span>
           </div>
@@ -420,7 +423,8 @@
 
               <div class="flow-divider"></div>
 
-              <div class="flow-item flow-net">
+              <div class="flow-item flow-net"
+                [class.flow-net-danger]="dashboardData()!.summary.closingBalance < 0">
                 <div class="flow-icon">
                   <i class="pi pi-wallet"></i>
                 </div>

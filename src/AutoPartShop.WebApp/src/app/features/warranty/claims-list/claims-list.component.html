@@ -5,7 +5,6 @@
   <app-page-header
     title="Warranty Claims"
     subtitle="Manage warranty claims, approvals, and service assignments"
-    [breadcrumb]="[{ label: 'Warranty' }, { label: 'Claims' }]"
     [count]="filteredClaims.length" countLabel="claims" countIcon="pi pi-file-check">
     <ng-container actions>
       <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="loadClaims()">
