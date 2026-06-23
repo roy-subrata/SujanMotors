@@ -27,6 +27,7 @@ public class SalesOrderController : ControllerBase
     private readonly IInvoiceRepository _invoiceRepository;
     private readonly ISalesReturnRepository _salesReturnRepository;
     private readonly ICustomerRepository _customerRepository;
+    private readonly ICustomerVehicleRepository _customerVehicleRepository;
     private readonly IProductRepository _productRepository;
     private readonly IStockLevelRepository _stockLevelRepository;
     private readonly ICustomerPaymentRepository _customerPaymentRepository;
@@ -46,6 +47,7 @@ public class SalesOrderController : ControllerBase
         IInvoiceRepository invoiceRepository,
         ISalesReturnRepository salesReturnRepository,
         ICustomerRepository customerRepository,
+        ICustomerVehicleRepository customerVehicleRepository,
         IProductRepository productRepository,
         IStockLevelRepository stockLevelRepository,
         ICustomerPaymentRepository customerPaymentRepository,
@@ -64,6 +66,7 @@ public class SalesOrderController : ControllerBase
         _invoiceRepository = invoiceRepository;
         _salesReturnRepository = salesReturnRepository;
         _customerRepository = customerRepository;
+        _customerVehicleRepository = customerVehicleRepository;
         _productRepository = productRepository;
         _stockLevelRepository = stockLevelRepository;
         _customerPaymentRepository = customerPaymentRepository;
@@ -230,6 +233,11 @@ public class SalesOrderController : ControllerBase
                 request.Currency,
                 request.Channel
             );
+
+            // Optionally link the customer's vehicle this purchase is for
+            var vehicleError = await ApplyCustomerVehicleAsync(order, request.CustomerId, request.CustomerVehicleId, cancellationToken);
+            if (vehicleError is not null)
+                return BadRequest(new { message = vehicleError });
 
             // Add lines
             int lineNumber = 1;
@@ -1342,6 +1350,26 @@ public class SalesOrderController : ControllerBase
         }));
     }
 
+    /// <summary>
+    /// Validates and links a customer's vehicle to a sales order. Returns an error message if the
+    /// vehicle is invalid or belongs to a different customer; otherwise null on success/no-op.
+    /// </summary>
+    private async Task<string?> ApplyCustomerVehicleAsync(SalesOrder order, Guid customerId, Guid? customerVehicleId, CancellationToken cancellationToken)
+    {
+        if (!customerVehicleId.HasValue || customerVehicleId.Value == Guid.Empty)
+            return null;
+
+        var vehicle = await _customerVehicleRepository.GetByIdAsync(customerVehicleId.Value, cancellationToken);
+        if (vehicle is null)
+            return "The selected vehicle was not found";
+
+        if (vehicle.CustomerId != customerId)
+            return "The selected vehicle does not belong to this customer";
+
+        order.SetVehicle(vehicle.Id, vehicle.GetLabel());
+        return null;
+    }
+
     private SaleOrderResponse MapToSalesOrderResponse(SalesOrder order)
     {
         return new SaleOrderResponse
@@ -1356,6 +1384,8 @@ public class SalesOrderController : ControllerBase
             WarehouseId = order.WarehouseId,
             TechnicianId = order.TechnicianId,
             TechnicianName = order.TechnicianName,
+            CustomerVehicleId = order.CustomerVehicleId,
+            VehicleLabel = order.VehicleLabel,
             OrderDate = order.SODate,
             DeliveryDate = order.DeliveryDate ?? DateTime.MinValue,
             Status = order.Status,
@@ -1503,6 +1533,8 @@ public class SalesOrderController : ControllerBase
             CustomerId = invoice.SalesOrder?.CustomerId ?? Guid.Empty,
             CustomerName = invoice.SalesOrder?.CustomerName ?? string.Empty,
             CustomerPhone = invoice.SalesOrder?.CustomerPhone ?? string.Empty,
+            CustomerVehicleId = invoice.SalesOrder?.CustomerVehicleId,
+            VehicleLabel = invoice.SalesOrder?.VehicleLabel ?? string.Empty,
             InvoiceDate = invoice.InvoiceDate,
             DueDate = invoice.DueDate,
             SubTotal = invoice.SubTotal,
@@ -1624,6 +1656,14 @@ public class SalesOrderController : ControllerBase
                 "", // DeliveryAddress
                 request.Notes
             );
+
+            // Optionally link the customer's vehicle this sale is for (requires a known customer)
+            if (request.CustomerId.HasValue && request.CustomerId.Value != Guid.Empty)
+            {
+                var vehicleError = await ApplyCustomerVehicleAsync(salesOrder, request.CustomerId.Value, request.CustomerVehicleId, cancellationToken);
+                if (vehicleError is not null)
+                    return BadRequest(new { message = vehicleError });
+            }
 
             // Add line items
             int lineNumber = 1;
@@ -1935,6 +1975,8 @@ public class SalesOrderController : ControllerBase
                     CustomerName = request.CustomerName,
                     TechnicianId = request.TechnicianId,
                     TechnicianName = request.TechnicianName,
+                    CustomerVehicleId = salesOrder.CustomerVehicleId,
+                    VehicleLabel = salesOrder.VehicleLabel,
                     PaymentResponsibility = request.PaymentResponsibility,
                     Subtotal = request.Subtotal,
                     DiscountAmount = request.DiscountAmount,
@@ -1958,6 +2000,8 @@ public class SalesOrderController : ControllerBase
                 CustomerName = request.CustomerName,
                 TechnicianId = request.TechnicianId,
                 TechnicianName = request.TechnicianName,
+                CustomerVehicleId = salesOrder.CustomerVehicleId,
+                VehicleLabel = salesOrder.VehicleLabel,
                 PaymentResponsibility = request.PaymentResponsibility,
                 Subtotal = request.Subtotal,
                 DiscountAmount = request.DiscountAmount,

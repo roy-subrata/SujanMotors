@@ -29,6 +29,7 @@ import { PublicPartService, PublicPartResponse } from '../services/public-part.s
 import { UnitService, UnitResponse } from '../../inventory/services/unit.service';
 import { UnitConversionService } from '../../inventory/services/unit-conversion.service';
 import { CustomerService } from '../services/customer.service';
+import { CustomerVehicleService, CustomerVehicleResponse } from '../services/customer-vehicle.service';
 import { TechnicianService, TechnicianResponse } from '../services/technician.service';
 import { InvoicePdfService, InvoicePdfData } from '../services/invoice-pdf.service';
 import { ThermalReceiptService } from '../services/thermal-receipt.service';
@@ -81,6 +82,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
   private readonly unitService = inject(UnitService);
   private readonly unitConversionService = inject(UnitConversionService);
   private readonly customerService = inject(CustomerService);
+  private readonly vehicleService = inject(CustomerVehicleService);
   private readonly technicianService = inject(TechnicianService);
   private readonly currencyService = inject(CurrencyService);
   private readonly messageService = inject(MessageService);
@@ -122,6 +124,11 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
   // Customers
   selectedCustomer = signal<any | null>(null);
   selectedCustomerModel: any | null = null;
+
+  // Optional vehicle this sale is for (loaded once a customer is selected)
+  customerVehicles = signal<CustomerVehicleResponse[]>([]);
+  selectedVehicleId = signal<string | null>(null);
+  loadingVehicles = signal(false);
   fetchCustomersLazy = (req: LazyRequest) =>
     this.customerService.getCustomers({
       search: req.search,
@@ -483,10 +490,32 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
           this.selectedCustomerModel = event;
         }
       });
+      this.loadCustomerVehicles(event.id);
     } else {
       this.selectedCustomer.set(event);
       this.selectedCustomerModel = event;
+      this.clearVehicleSelection();
     }
+  }
+
+  private loadCustomerVehicles(customerId: string): void {
+    this.clearVehicleSelection();
+    this.loadingVehicles.set(true);
+    this.vehicleService.getByCustomer(customerId, true).subscribe({
+      next: (vehicles) => {
+        this.customerVehicles.set(vehicles);
+        this.loadingVehicles.set(false);
+      },
+      error: () => {
+        this.customerVehicles.set([]);
+        this.loadingVehicles.set(false);
+      }
+    });
+  }
+
+  private clearVehicleSelection(): void {
+    this.customerVehicles.set([]);
+    this.selectedVehicleId.set(null);
   }
 
   selectTechnician(event: any): void {
@@ -501,6 +530,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
   onCustomerCreated(customer: any): void {
     this.selectedCustomer.set(customer);
     this.selectedCustomerModel = customer;
+    this.clearVehicleSelection();
     this.messageService.add({ severity: 'success', summary: 'Customer Created', detail: `${customer.fullName} added` });
   }
 
@@ -637,6 +667,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     this.cartItems.set([]);
     this.payments.set([]);
     this.selectedCustomer.set(null);
+    this.clearVehicleSelection();
     this.selectedTechnician.set(null);
     this.selectedPartModel = null;
     this.saving.set(false);
@@ -1078,6 +1109,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
       customerName: customer.fullName,
       customerPhone: customer.phone || '',
       technicianId: this.selectedTechnician()?.id,
+      customerVehicleId: this.selectedVehicleId() || null,
       paymentResponsibility: this.paymentResponsibility,
       autoCreatePO: this.autoCreatePO,
       items: this.cartItems(),

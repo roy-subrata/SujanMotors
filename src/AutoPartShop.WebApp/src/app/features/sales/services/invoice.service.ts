@@ -29,6 +29,8 @@ export interface InvoiceResponse {
   customerId: string;
   customerName: string;
   customerPhone: string;
+  customerVehicleId?: string | null;
+  vehicleLabel?: string;
   invoiceDate: string;
   dueDate: string;
   subTotal: number;

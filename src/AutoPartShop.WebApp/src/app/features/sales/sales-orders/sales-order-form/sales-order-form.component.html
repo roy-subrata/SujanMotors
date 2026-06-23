@@ -232,6 +232,32 @@
             </small>
           </div>
           <div class="form-group">
+            <label>Vehicle (Optional)</label>
+            <p-select formControlName="customerVehicleId" [options]="customerVehicles()" optionLabel="label"
+              optionValue="id" [showClear]="true" [filter]="true" filterBy="label,registrationNo"
+              placeholder="Select a vehicle this purchase is for..."
+              [disabled]="mode() === 'view' || !selectedCustomerId" [loading]="loadingVehicles()"
+              (onChange)="onVehicleChange($any($event).value)" appendTo="body" [style]="{ width: '100%' }">
+              <ng-template let-vehicle pTemplate="item">
+                <div class="customer-item">
+                  <div class="customer-item-name">
+                    {{ vehicle.registrationNo }}<span class="customer-item-code">{{ vehicle.make }} {{ vehicle.model }}</span>
+                  </div>
+                  <div class="customer-item-details" *ngIf="vehicle.year || vehicle.engineType">
+                    <span *ngIf="vehicle.year">{{ vehicle.year }}</span>
+                    <span *ngIf="vehicle.year && vehicle.engineType" class="separator">•</span>
+                    <span *ngIf="vehicle.engineType">{{ vehicle.engineType }}</span>
+                  </div>
+                </div>
+              </ng-template>
+            </p-select>
+            <small class="field-hint">
+              <i class="pi pi-info-circle"></i>
+              <span *ngIf="!selectedCustomerId">Select a customer first to choose a vehicle</span>
+              <span *ngIf="selectedCustomerId">Track which vehicle this purchase was for</span>
+            </small>
+          </div>
+          <div class="form-group">
             <label>Expected Delivery Date *</label>
             <p-datepicker formControlName="deliveryDate" [showIcon]="true" [showButtonBar]="true" dateFormat="yy-mm-dd"
               placeholder="Select date..." [disabled]="mode() === 'view'"

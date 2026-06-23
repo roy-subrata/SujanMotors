@@ -65,6 +65,8 @@ namespace AutoPartShop.Infrastructure.Repositories
                     WarehouseId = order.WarehouseId,
                     TechnicianId = order.TechnicianId,
                     TechnicianName = order.TechnicianName,
+                    CustomerVehicleId = order.CustomerVehicleId,
+                    VehicleLabel = order.VehicleLabel,
                     OrderDate = order.SODate,
                     DeliveryDate = order.DeliveryDate ?? DateTime.MinValue,
                     Status = order.Status,
