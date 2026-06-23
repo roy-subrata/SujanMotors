@@ -29,6 +29,7 @@ public class Customer : AuditableEntity
     // Navigation properties
     public ICollection<SalesOrder> SalesOrders { get; set; } = new List<SalesOrder>();
     public ICollection<CustomerPayment> CustomerPayments { get; set; } = new List<CustomerPayment>();
+    public ICollection<CustomerVehicle> Vehicles { get; set; } = new List<CustomerVehicle>();
 
     // Computed properties for payment tracking (Single Source of Truth)
     // TotalPaid = ONLY new money received (excludes payments created from advance)

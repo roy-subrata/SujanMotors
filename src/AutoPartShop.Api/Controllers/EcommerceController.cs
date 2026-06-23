@@ -17,6 +17,7 @@ namespace AutoPartShop.Api.Controllers;
 public class EcommerceController(
     AutoPartDbContext _dbContext,
     ICustomerRepository _customerRepository,
+    ICustomerVehicleRepository _customerVehicleRepository,
     ISalesOrderRepository _salesOrderRepository,
     IInvoiceRepository _invoiceRepository,
     ICustomerPaymentRepository _customerPaymentRepository,
@@ -658,6 +659,17 @@ public class EcommerceController(
                 channel: "POS"
             );
 
+            // Optionally link the customer's vehicle this purchase is for
+            if (request.CustomerVehicleId.HasValue && request.CustomerVehicleId.Value != Guid.Empty)
+            {
+                var vehicle = await _customerVehicleRepository.GetByIdAsync(request.CustomerVehicleId.Value, cancellationToken);
+                if (vehicle is null)
+                    return BadRequest(new { message = "The selected vehicle was not found" });
+                if (vehicle.CustomerId != customer.Id)
+                    return BadRequest(new { message = "The selected vehicle does not belong to this customer" });
+                salesOrder.SetVehicle(vehicle.Id, vehicle.GetLabel());
+            }
+
             int lineNumber = 1;
             foreach (var (partId, variantId, qty, price) in lineRequests)
             {
@@ -1267,6 +1279,9 @@ public class InstoreCheckoutRequest : EcommerceCheckoutRequest
     /// <summary>Reason for applying the discount (required for audit trail when discount is applied)</summary>
     public string? DiscountReason { get; set; }
     // PromoCode inherited from EcommerceCheckoutRequest
+
+    /// <summary>Optional: the customer's vehicle this purchase is for (per-vehicle history).</summary>
+    public Guid? CustomerVehicleId { get; set; }
 }
 
 public class CodCollectionRequest

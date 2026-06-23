@@ -98,6 +98,7 @@ public static class Dependency
         services.AddScoped<ICreditNoteRepository, CreditNoteRepository>();
         services.AddScoped<ICustomerCreditNoteRepository, CustomerCreditNoteRepository>();
         services.AddScoped<ICustomerRepository, CustomerRepository>();
+        services.AddScoped<ICustomerVehicleRepository, CustomerVehicleRepository>();
         services.AddScoped<IPaymentProviderRepository, PaymentProviderRepository>();
         services.AddScoped<ICustomerPaymentRepository, CustomerPaymentRepository>();
         services.AddScoped<ISupplierPaymentRepository, SupplierPaymentRepository>();

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { CustomerService, CreateCustomerRequest } from '../../services/customer.service';
+import { CustomerVehicleService, CustomerVehicleResponse, CreateCustomerVehicleRequest } from '../../services/customer-vehicle.service';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { InputNumberModule } from 'primeng/inputnumber';
@@ -12,15 +13,17 @@ import { CardModule } from 'primeng/card';
 import { ToastModule } from 'primeng/toast';
 import { TextareaModule } from 'primeng/textarea';
 import { TooltipModule } from 'primeng/tooltip';
-import { MessageService } from 'primeng/api';
+import { DialogModule } from 'primeng/dialog';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { MessageService, ConfirmationService } from 'primeng/api';
 import { CodeGenerationService } from '@/shared/services/CodeGenerationService';
 import { ItemResponse, CountryService, CustomerTypeService } from '@/shared/services/CountryService';
 import { tap } from 'rxjs';
 @Component({
     selector: 'app-customer-form',
     standalone: true,
-    imports: [CommonModule, ReactiveFormsModule, ButtonModule, InputTextModule, InputNumberModule, SelectModule, DatePickerModule, CardModule, ToastModule, TextareaModule, TooltipModule],
-    providers: [MessageService],
+    imports: [CommonModule, ReactiveFormsModule, ButtonModule, InputTextModule, InputNumberModule, SelectModule, DatePickerModule, CardModule, ToastModule, TextareaModule, TooltipModule, DialogModule, ConfirmDialogModule],
+    providers: [MessageService, ConfirmationService],
     templateUrl: './customer-form.component.html',
     styleUrls: ['./customer-form.component.css']
 })
@@ -29,7 +32,9 @@ export class CustomerFormComponent implements OnInit {
     private readonly router = inject(Router);
     private readonly route = inject(ActivatedRoute);
     private readonly customerService = inject(CustomerService);
+    private readonly vehicleService = inject(CustomerVehicleService);
     private readonly messageService = inject(MessageService);
+    private readonly confirmationService = inject(ConfirmationService);
     private readonly codeGenerationService = inject(CodeGenerationService);
     private readonly countryService = inject(CountryService);
     private readonly customerTypeService = inject(CustomerTypeService);
@@ -41,6 +46,25 @@ export class CustomerFormComponent implements OnInit {
     mode = signal<'create' | 'edit' | 'view'>('create');
     customerId = signal<string | null>(null);
     generatingCode = signal(false);
+
+    // Vehicles (only manageable once the customer exists — i.e. edit/view mode)
+    vehicles = signal<CustomerVehicleResponse[]>([]);
+    vehiclesLoading = signal(false);
+    vehicleDialogVisible = signal(false);
+    editingVehicleId = signal<string | null>(null);
+    savingVehicle = signal(false);
+
+    vehicleForm: FormGroup = this.fb.group({
+        registrationNo: ['', [Validators.required]],
+        make: [''],
+        model: [''],
+        year: [null as number | null],
+        engineType: [''],
+        vin: [''],
+        color: [''],
+        mileage: [null as number | null],
+        notes: ['']
+    });
 
     customerTypes: ItemResponse[] = [];
 
@@ -59,6 +83,7 @@ export class CustomerFormComponent implements OnInit {
                 this.customerId.set(id);
                 this.mode.set(mode === 'view' ? 'view' : 'edit');
                 this.loadCustomer(id);
+                this.loadVehicles(id);
             } else {
                 // Create mode - generate customer code automatically
                 this.generateCustomerCode();
@@ -237,6 +262,107 @@ export class CustomerFormComponent implements OnInit {
                     detail: `Failed to ${this.mode() === 'edit' ? 'update' : 'create'} customer`
                 });
                 console.error(`Error ${this.mode() === 'edit' ? 'updating' : 'creating'} customer:`, err);
+            }
+        });
+    }
+
+    // ── Vehicles ─────────────────────────────────────────────────────────────
+    loadVehicles(customerId: string): void {
+        this.vehiclesLoading.set(true);
+        this.vehicleService.getByCustomer(customerId).subscribe({
+            next: (vehicles) => {
+                this.vehicles.set(vehicles);
+                this.vehiclesLoading.set(false);
+            },
+            error: () => {
+                this.vehicles.set([]);
+                this.vehiclesLoading.set(false);
+            }
+        });
+    }
+
+    openAddVehicle(): void {
+        this.editingVehicleId.set(null);
+        this.vehicleForm.reset({ registrationNo: '', make: '', model: '', year: null, engineType: '', vin: '', color: '', mileage: null, notes: '' });
+        this.vehicleDialogVisible.set(true);
+    }
+
+    openEditVehicle(vehicle: CustomerVehicleResponse): void {
+        this.editingVehicleId.set(vehicle.id);
+        this.vehicleForm.reset({
+            registrationNo: vehicle.registrationNo,
+            make: vehicle.make,
+            model: vehicle.model,
+            year: vehicle.year ?? null,
+            engineType: vehicle.engineType,
+            vin: vehicle.vin,
+            color: vehicle.color,
+            mileage: vehicle.mileage ?? null,
+            notes: vehicle.notes
+        });
+        this.vehicleDialogVisible.set(true);
+    }
+
+    saveVehicle(): void {
+        const customerId = this.customerId();
+        if (!customerId) return;
+        if (this.vehicleForm.invalid) {
+            this.vehicleForm.markAllAsTouched();
+            return;
+        }
+
+        const v = this.vehicleForm.value;
+        const request: CreateCustomerVehicleRequest = {
+            registrationNo: v.registrationNo,
+            vin: v.vin ?? '',
+            make: v.make ?? '',
+            model: v.model ?? '',
+            year: v.year ?? null,
+            engineType: v.engineType ?? '',
+            color: v.color ?? '',
+            mileage: v.mileage ?? null,
+            notes: v.notes ?? '',
+            catalogVehicleId: null
+        };
+
+        this.savingVehicle.set(true);
+        const editingId = this.editingVehicleId();
+        const op$ = editingId
+            ? this.vehicleService.update(customerId, editingId, request)
+            : this.vehicleService.create(customerId, request);
+
+        op$.subscribe({
+            next: () => {
+                this.messageService.add({ severity: 'success', summary: 'Saved', detail: editingId ? 'Vehicle updated' : 'Vehicle added' });
+                this.savingVehicle.set(false);
+                this.vehicleDialogVisible.set(false);
+                this.loadVehicles(customerId);
+            },
+            error: (error) => {
+                this.messageService.add({ severity: 'error', summary: 'Error', detail: error?.error?.message || 'Failed to save vehicle' });
+                this.savingVehicle.set(false);
+            }
+        });
+    }
+
+    confirmDeleteVehicle(vehicle: CustomerVehicleResponse): void {
+        const customerId = this.customerId();
+        if (!customerId) return;
+        this.confirmationService.confirm({
+            message: `Delete vehicle "${vehicle.label}"?`,
+            header: 'Confirm Delete',
+            icon: 'pi pi-exclamation-triangle',
+            acceptButtonStyleClass: 'p-button-danger',
+            accept: () => {
+                this.vehicleService.delete(customerId, vehicle.id).subscribe({
+                    next: () => {
+                        this.messageService.add({ severity: 'success', summary: 'Deleted', detail: 'Vehicle removed' });
+                        this.loadVehicles(customerId);
+                    },
+                    error: (error) => {
+                        this.messageService.add({ severity: 'error', summary: 'Error', detail: error?.error?.message || 'Failed to delete vehicle' });
+                    }
+                });
             }
         });
     }

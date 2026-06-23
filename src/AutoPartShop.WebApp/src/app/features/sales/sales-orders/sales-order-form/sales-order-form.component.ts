@@ -19,6 +19,7 @@ import { MessageService, ConfirmationService } from 'primeng/api';
 import { SalesOrderService, CreateSalesOrderRequest, SalesOrderResponse } from '../../services/sales-order.service';
 import { ChallanService, GenerateChallanRequest } from '../../services/challan.service';
 import { CustomerService, CustomerResponse } from '../../services/customer.service';
+import { CustomerVehicleService, CustomerVehicleResponse } from '../../services/customer-vehicle.service';
 import { PublicPartService, PublicPartResponse } from '../../services/public-part.service';
 import { TechnicianService, TechnicianResponse } from '../../services/technician.service';
 import { UnitService, UnitResponse } from '../../../inventory/services/unit.service';
@@ -70,6 +71,7 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
     private readonly salesOrderService = inject(SalesOrderService);
     private readonly challanService     = inject(ChallanService);
     private readonly customerService = inject(CustomerService);
+    private readonly vehicleService = inject(CustomerVehicleService);
     private readonly partService = inject(PublicPartService);
     private readonly technicianService = inject(TechnicianService);
     private readonly unitService = inject(UnitService);
@@ -164,6 +166,7 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
             customerPhone: customer.phone,
             customerCity: customer.city
         });
+        this.loadCustomerVehicles(customer.id);
     }
 
     // Handle customer clear from lazy autocomplete
@@ -171,6 +174,36 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
         this.selectedCustomer = null;
         this.selectedCustomerId = '';
         this.clearCustomerSelection();
+        this.customerVehicles.set([]);
+        this.selectedVehicleId = null;
+        this.salesOrderForm.patchValue({ customerVehicleId: null });
+    }
+
+    // Load the selected customer's vehicles for the optional vehicle picker
+    loadCustomerVehicles(customerId: string): void {
+        this.loadingVehicles.set(true);
+        this.vehicleService.getByCustomer(customerId, true)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+                next: (vehicles) => {
+                    this.customerVehicles.set(vehicles);
+                    this.loadingVehicles.set(false);
+                },
+                error: () => {
+                    this.customerVehicles.set([]);
+                    this.loadingVehicles.set(false);
+                }
+            });
+    }
+
+    onVehicleChange(vehicleId: string | null): void {
+        this.selectedVehicleId = vehicleId;
+        this.salesOrderForm.patchValue({ customerVehicleId: vehicleId });
+    }
+
+    get selectedVehicleLabel(): string {
+        if (!this.selectedVehicleId) return '';
+        return this.customerVehicles().find(v => v.id === this.selectedVehicleId)?.label ?? '';
     }
     // Handle technician selection from lazy autocomplete
     onTechnicianSelected(technician: TechnicianResponse): void {
@@ -205,6 +238,11 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
 
     // Technician selection
     selectedTechnicianId = '';
+
+    // Customer vehicle selection (optional — the car this purchase is for)
+    customerVehicles = signal<CustomerVehicleResponse[]>([]);
+    loadingVehicles = signal(false);
+    selectedVehicleId: string | null = null;
 
     // Units
     units = signal<UnitResponse[]>([]);
@@ -449,6 +487,7 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
             warehouseId: [null, [Validators.required]],
             technicianId: [null],
             technicianName: [null],
+            customerVehicleId: [null],
             deliveryDate: [null, [Validators.required]],
             currency: [defaultCurrency, [Validators.required]],
             orderDiscount: [0, [Validators.min(0), Validators.max(100)]],
@@ -522,6 +561,12 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
                     this.currentSO = order;
                     this.selectedCustomerId = order.customerId;
 
+                    // Load the customer's vehicles and preselect the linked one (if any)
+                    if (order.customerId) {
+                        this.loadCustomerVehicles(order.customerId);
+                    }
+                    this.selectedVehicleId = order.customerVehicleId ?? null;
+
                     // Set selectedCustomer object for lazy autocomplete display
                     this.selectedCustomer = {
                         id: order.customerId,
@@ -558,6 +603,7 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
                         customerPhone: order.customerPhone,
                         customerCity: order.customerCity,
                         warehouseId: order.warehouseId || null,
+                        customerVehicleId: order.customerVehicleId ?? null,
                         deliveryDate: deliveryDate,
                         currency: order.currency || this.currencyService.selectedCurrency(),
                         orderDiscount: order.discount || 0,
@@ -690,6 +736,7 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
             customerCity: formValue.customerCity,
             technicianId: this.selectedTechnicianId || undefined,
             technicianName: formValue.technicianName || undefined,
+            customerVehicleId: this.selectedVehicleId || null,
             deliveryDate: deliveryDate,
             notes: formValue.notes,
             currency: formValue.currency,
@@ -913,6 +960,7 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
         const formValue = this.salesOrderForm.value;
         const customer = this.selectedCustomer;
         const technician = this.selectedTechnecian;
+        const vehicleLabel = this.selectedVehicleLabel;
 
         const printWindow = window.open('', '_blank', 'width=800,height=600');
         if (!printWindow) {
@@ -1075,6 +1123,15 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
             <div style="margin-top: 10px;">
                 <div class="address-label">Technician</div>
                 <div class="address-detail">${this.escapeHtml(technician.name)} | ${this.escapeHtml(technician.phone) || 'N/A'}</div>
+            </div>`
+                    : ''
+            }
+            ${
+                vehicleLabel
+                    ? `
+            <div style="margin-top: 10px;">
+                <div class="address-label">Vehicle</div>
+                <div class="address-detail">${this.escapeHtml(vehicleLabel)}</div>
             </div>`
                     : ''
             }

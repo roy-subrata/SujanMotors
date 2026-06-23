@@ -70,6 +70,7 @@ public class AutoPartDbContext : IdentityDbContext<ApplicationUser, ApplicationR
     public DbSet<SalesReturn> SalesReturns { get; set; }
     public DbSet<PurchaseReturn> PurchaseReturns { get; set; }
     public DbSet<Customer> Customers { get; set; }
+    public DbSet<CustomerVehicle> CustomerVehicles { get; set; }
     public DbSet<PaymentProvider> PaymentProviders { get; set; }
     public DbSet<CustomerPayment> CustomerPayments { get; set; }
     public DbSet<SupplierPayment> SupplierPayments { get; set; }

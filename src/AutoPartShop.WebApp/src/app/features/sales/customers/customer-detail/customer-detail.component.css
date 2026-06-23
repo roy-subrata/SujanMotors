@@ -452,3 +452,157 @@
     font-size: 0.5625rem;
   }
 }
+
+/* ── Vehicles Section ─────────────────────────────────────────── */
+.vehicles-section {
+  margin-top: 1rem;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 1rem 1.25rem 1.25rem;
+}
+
+.vehicles-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.875rem;
+}
+
+.vehicles-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.vehicles-title i {
+  color: #6366f1;
+}
+
+.vehicles-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.375rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #4338ca;
+  background: #e0e7ff;
+  border-radius: 999px;
+}
+
+.vehicles-empty {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  color: #9ca3af;
+  font-size: 0.8125rem;
+  justify-content: center;
+}
+
+.vehicles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 0.75rem;
+}
+
+.vehicle-card {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 0.75rem 0.875rem;
+  background: #f9fafb;
+}
+
+.vehicle-card-main {
+  min-width: 0;
+}
+
+.vehicle-reg {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #111827;
+  letter-spacing: 0.02em;
+}
+
+.vehicle-name {
+  font-size: 0.8125rem;
+  color: #374151;
+  margin-top: 0.125rem;
+}
+
+.vehicle-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  margin-top: 0.375rem;
+  font-size: 0.6875rem;
+  color: #6b7280;
+}
+
+.vehicle-meta i {
+  font-size: 0.6875rem;
+  margin-right: 0.125rem;
+}
+
+.vehicle-vin,
+.vehicle-notes {
+  margin-top: 0.375rem;
+  font-size: 0.6875rem;
+  color: #9ca3af;
+  word-break: break-word;
+}
+
+.vehicle-card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+/* Vehicle dialog form */
+.vehicle-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.vehicle-form .form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.875rem;
+}
+
+.vehicle-form .form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.vehicle-form label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.vehicle-form .required {
+  color: #ef4444;
+}
+
+.vehicle-form input,
+.vehicle-form ::ng-deep .p-inputnumber,
+.vehicle-form ::ng-deep .p-inputnumber-input {
+  width: 100%;
+}
+
+.vehicle-form .field-error {
+  color: #ef4444;
+  font-size: 0.6875rem;
+}

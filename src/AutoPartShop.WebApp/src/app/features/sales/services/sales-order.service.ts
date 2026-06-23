@@ -21,6 +21,7 @@ export interface CreateSalesOrderRequest {
     customerCity: string;
     technicianId?: string;
     technicianName?: string;
+    customerVehicleId?: string | null;
     deliveryDate: string;
     notes: string;
     currency: string;
@@ -58,6 +59,8 @@ export interface SalesOrderResponse {
     warehouseId?: string;
     technicianId?: string;
     technicianName?: string;
+    customerVehicleId?: string | null;
+    vehicleLabel?: string;
     orderDate: string;
     deliveryDate: string;
     status: string;

@@ -41,6 +41,7 @@ export interface QuickSaleRequest {
   technicianId?: string;
   technicianName?: string;
   technicianNotes?: string;
+  customerVehicleId?: string | null;
   paymentResponsibility: PaymentResponsibility;
   purchaseOrderId?: string;
   autoCreatePO: boolean;
@@ -72,6 +73,8 @@ export interface QuickSaleResponse {
   customerName: string;
   technicianId?: string;
   technicianName?: string;
+  customerVehicleId?: string | null;
+  vehicleLabel?: string;
   paymentResponsibility: PaymentResponsibility;
   subtotal: number;
   discountAmount: number;

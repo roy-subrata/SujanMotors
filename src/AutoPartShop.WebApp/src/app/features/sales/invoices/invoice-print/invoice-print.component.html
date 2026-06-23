@@ -65,6 +65,9 @@
       <div class="party-detail" *ngIf="d.customer.phone">{{ d.customer.phone }}</div>
       <div class="party-detail" *ngIf="d.customer.email">{{ d.customer.email }}</div>
       <div class="party-detail" *ngIf="d.customer.address">{{ d.customer.address }}</div>
+      <div class="party-detail" *ngIf="d.invoice.vehicleLabel">
+        <i class="pi pi-car"></i> {{ d.invoice.vehicleLabel }}
+      </div>
     </div>
   </div>
 

@@ -17,6 +17,8 @@ public class SalesOrder : AggregateRoot
     public string CustomerPhone { get; private set; } = string.Empty;
     public Guid? TechnicianId { get; private set; }  // Optional: Technician who recommended the parts
     public string? TechnicianName { get; private set; }  // Technician name for easy reference
+    public Guid? CustomerVehicleId { get; private set; }  // Optional: customer's vehicle this purchase is for
+    public string VehicleLabel { get; private set; } = string.Empty;  // Denormalized vehicle label for display
     public Guid? WarehouseId { get; private set; }  // Dispatch warehouse
     public string Status { get; private set; } = "PENDING";
     // Lifecycle: PENDING → CONFIRMED → DELIVERED  (direct handover, invoice only)
@@ -44,6 +46,7 @@ public class SalesOrder : AggregateRoot
     // Navigation properties
     public Customer? Customer { get; set; }
     public Technician? Technician { get; set; }
+    public CustomerVehicle? CustomerVehicle { get; set; }
     public Warehouse? Warehouse { get; set; }
     public ICollection<SalesOrderLine> LineItems { get; set; } = new List<SalesOrderLine>();
     public Invoice? Invoice { get; set; }
@@ -56,7 +59,7 @@ public class SalesOrder : AggregateRoot
         string customerEmail, string customerPhone, Guid? warehouseId = null,
         Guid? technicianId = null, string? technicianName = null,
         string deliveryAddress = "", string notes = "", string currency = "BDT",
-        string channel = "POS")
+        string channel = "POS", Guid? customerVehicleId = null, string vehicleLabel = "")
     {
         if (string.IsNullOrWhiteSpace(soNumber))
             throw new ArgumentException("SONumber cannot be empty", nameof(soNumber));
@@ -80,6 +83,8 @@ public class SalesOrder : AggregateRoot
             CustomerPhone = customerPhone?.Trim() ?? string.Empty,
             TechnicianId = technicianId,
             TechnicianName = technicianName?.Trim(),
+            CustomerVehicleId = customerVehicleId,
+            VehicleLabel = vehicleLabel?.Trim() ?? string.Empty,
             WarehouseId = warehouseId,
             SODate = DateTime.UtcNow,
             DeliveryAddress = deliveryAddress?.Trim() ?? string.Empty,
@@ -294,6 +299,12 @@ public class SalesOrder : AggregateRoot
     {
         TechnicianId = technicianId;
         TechnicianName = technicianName?.Trim();
+    }
+
+    public void SetVehicle(Guid? customerVehicleId, string vehicleLabel)
+    {
+        CustomerVehicleId = customerVehicleId;
+        VehicleLabel = vehicleLabel?.Trim() ?? string.Empty;
     }
 
     /// <summary>

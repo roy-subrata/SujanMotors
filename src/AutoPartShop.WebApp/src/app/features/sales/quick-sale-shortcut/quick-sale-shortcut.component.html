@@ -323,6 +323,30 @@
               </span>
             </div>
           </div>
+          <!-- Optional: which vehicle this sale is for -->
+          <div class="customer-vehicle-select" *ngIf="selectedCustomer()">
+            <p-select
+              [ngModel]="selectedVehicleId()"
+              (ngModelChange)="selectedVehicleId.set($event)"
+              [ngModelOptions]="{standalone: true}"
+              [options]="customerVehicles()"
+              optionLabel="label"
+              optionValue="id"
+              [showClear]="true"
+              [filter]="true"
+              filterBy="label,registrationNo"
+              [loading]="loadingVehicles()"
+              placeholder="Vehicle (optional)"
+              appendTo="body"
+              [style]="{ width: '100%' }">
+              <ng-template let-vehicle pTemplate="item">
+                <div class="tech-option">
+                  <span class="name">{{ vehicle.registrationNo }}</span>
+                  <span class="code">{{ vehicle.make }} {{ vehicle.model }}</span>
+                </div>
+              </ng-template>
+            </p-select>
+          </div>
         </div>
 
         <!-- Technician -->

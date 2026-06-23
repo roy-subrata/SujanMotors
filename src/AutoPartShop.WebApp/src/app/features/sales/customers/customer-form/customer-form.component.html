@@ -193,6 +193,55 @@
         </div>
       </div>
 
+      <!-- Section 5: Vehicles -->
+      <div class="form-section last">
+        <h3 class="section-title">
+          <i class="pi pi-car section-icon"></i>
+          Vehicles
+          <span class="vehicles-count" *ngIf="customerId()">{{ vehicles().length }}</span>
+        </h3>
+
+        <!-- Create mode: vehicles need a saved customer first -->
+        <div class="vehicles-hint" *ngIf="!customerId()">
+          <i class="pi pi-info-circle"></i>
+          Save the customer first, then re-open to add the vehicles they own.
+        </div>
+
+        <ng-container *ngIf="customerId()">
+          <div class="vehicles-toolbar">
+            <button pButton type="button" label="Add Vehicle" icon="pi pi-plus"
+              class="p-button-sm" (click)="openAddVehicle()" [disabled]="mode() === 'view'"></button>
+          </div>
+
+          <div class="vehicles-empty" *ngIf="!vehiclesLoading() && vehicles().length === 0">
+            <i class="pi pi-car"></i>
+            <span>No vehicles recorded yet.</span>
+          </div>
+
+          <div class="vehicles-grid" *ngIf="vehicles().length > 0">
+            <div class="vehicle-card" *ngFor="let v of vehicles()">
+              <div class="vehicle-card-main">
+                <div class="vehicle-reg">{{ v.registrationNo }}</div>
+                <div class="vehicle-name">{{ v.make }} {{ v.model }}<span *ngIf="v.year"> · {{ v.year }}</span></div>
+                <div class="vehicle-meta">
+                  <span *ngIf="v.engineType"><i class="pi pi-bolt"></i> {{ v.engineType }}</span>
+                  <span *ngIf="v.color"><i class="pi pi-palette"></i> {{ v.color }}</span>
+                  <span *ngIf="v.mileage"><i class="pi pi-gauge"></i> {{ v.mileage | number }} km</span>
+                </div>
+                <div class="vehicle-vin" *ngIf="v.vin">VIN: {{ v.vin }}</div>
+                <div class="vehicle-notes" *ngIf="v.notes">{{ v.notes }}</div>
+              </div>
+              <div class="vehicle-card-actions" *ngIf="mode() !== 'view'">
+                <button pButton type="button" icon="pi pi-pencil" class="p-button-text p-button-sm"
+                  pTooltip="Edit" (click)="openEditVehicle(v)"></button>
+                <button pButton type="button" icon="pi pi-trash" class="p-button-text p-button-sm p-button-danger"
+                  pTooltip="Delete" (click)="confirmDeleteVehicle(v)"></button>
+              </div>
+            </div>
+          </div>
+        </ng-container>
+      </div>
+
       <!-- Form Actions -->
       <div class="form-actions">
         <button pButton type="button" [label]="mode() === 'view' ? 'Back' : 'Cancel'" icon="pi pi-times"
@@ -207,3 +256,65 @@
     </form>
   </p-card>
 </div>
+
+<!-- Add/Edit Vehicle Dialog -->
+<p-dialog [(visible)]="vehicleDialogVisible" [modal]="true" [style]="{ width: '32rem' }"
+  [header]="editingVehicleId() ? 'Edit Vehicle' : 'Add Vehicle'" [draggable]="false" [resizable]="false">
+  <form [formGroup]="vehicleForm" class="vehicle-form" (ngSubmit)="saveVehicle()">
+    <div class="form-field">
+      <label>Registration No. <span class="required">*</span></label>
+      <input type="text" pInputText formControlName="registrationNo" placeholder="e.g. DHA-1234" />
+      <small class="field-error"
+        *ngIf="vehicleForm.get('registrationNo')?.invalid && vehicleForm.get('registrationNo')?.touched">
+        Registration number is required
+      </small>
+    </div>
+    <div class="form-row2">
+      <div class="form-field">
+        <label>Make</label>
+        <input type="text" pInputText formControlName="make" placeholder="Toyota" />
+      </div>
+      <div class="form-field">
+        <label>Model</label>
+        <input type="text" pInputText formControlName="model" placeholder="Corolla" />
+      </div>
+    </div>
+    <div class="form-row2">
+      <div class="form-field">
+        <label>Year</label>
+        <p-inputNumber formControlName="year" [useGrouping]="false" [min]="1900" [max]="2100"
+          placeholder="2020"></p-inputNumber>
+      </div>
+      <div class="form-field">
+        <label>Engine Type</label>
+        <input type="text" pInputText formControlName="engineType" placeholder="Petrol / Diesel / Hybrid" />
+      </div>
+    </div>
+    <div class="form-row2">
+      <div class="form-field">
+        <label>Color</label>
+        <input type="text" pInputText formControlName="color" placeholder="Silver" />
+      </div>
+      <div class="form-field">
+        <label>Mileage (km)</label>
+        <p-inputNumber formControlName="mileage" [min]="0" placeholder="50000"></p-inputNumber>
+      </div>
+    </div>
+    <div class="form-field">
+      <label>VIN / Chassis No.</label>
+      <input type="text" pInputText formControlName="vin" />
+    </div>
+    <div class="form-field">
+      <label>Notes</label>
+      <input type="text" pInputText formControlName="notes" />
+    </div>
+  </form>
+  <ng-template pTemplate="footer">
+    <button pButton type="button" label="Cancel" icon="pi pi-times" class="p-button-text"
+      (click)="vehicleDialogVisible.set(false)"></button>
+    <button pButton type="button" label="Save" icon="pi pi-check" [loading]="savingVehicle()"
+      (click)="saveVehicle()"></button>
+  </ng-template>
+</p-dialog>
+
+<p-confirmDialog></p-confirmDialog>

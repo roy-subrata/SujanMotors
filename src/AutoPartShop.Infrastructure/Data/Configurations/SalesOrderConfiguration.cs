@@ -53,6 +53,9 @@ public class SalesOrderConfiguration : IEntityTypeConfiguration<SalesOrder>
         builder.Property(so => so.TechnicianName)
             .HasMaxLength(200);
 
+        builder.Property(so => so.VehicleLabel)
+            .HasMaxLength(200);
+
         builder.Property(so => so.Currency)
             .IsRequired()
             .HasMaxLength(3)
@@ -80,6 +83,12 @@ public class SalesOrderConfiguration : IEntityTypeConfiguration<SalesOrder>
         builder.HasOne(so => so.Technician)
             .WithMany(t => t.SalesOrders)
             .HasForeignKey(so => so.TechnicianId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
+
+        builder.HasOne(so => so.CustomerVehicle)
+            .WithMany()
+            .HasForeignKey(so => so.CustomerVehicleId)
             .OnDelete(DeleteBehavior.SetNull)
             .IsRequired(false);
 

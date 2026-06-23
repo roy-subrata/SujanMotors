@@ -9,6 +9,7 @@ public class QuickSaleRequest
     public Guid? TechnicianId { get; set; }
     public string? TechnicianName { get; set; }
     public string? TechnicianNotes { get; set; }
+    public Guid? CustomerVehicleId { get; set; }  // Optional: the customer's vehicle this sale is for
     public string PaymentResponsibility { get; set; } = "CUSTOMER"; // CUSTOMER or TECHNICIAN_TEMPORARY
     public Guid? PurchaseOrderId { get; set; }
     public bool AutoCreatePO { get; set; } = false;
@@ -86,6 +87,8 @@ public class QuickSaleResponse
     public string CustomerName { get; set; } = string.Empty;
     public Guid? TechnicianId { get; set; }
     public string? TechnicianName { get; set; }
+    public Guid? CustomerVehicleId { get; set; }
+    public string VehicleLabel { get; set; } = string.Empty;
     public string PaymentResponsibility { get; set; } = string.Empty;
     public decimal Subtotal { get; set; }
     public decimal DiscountAmount { get; set; }
