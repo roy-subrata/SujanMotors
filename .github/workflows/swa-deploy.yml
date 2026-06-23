@@ -1,0 +1,49 @@
+name: Deploy Frontend to Azure Static Web Apps
+
+# Builds the Angular app and deploys the static output to Azure Static Web Apps.
+# We build explicitly (deterministic Node version) and skip the action's Oryx build.
+#
+# Required repo secret:
+#   AZURE_STATIC_WEB_APPS_API_TOKEN - deployment token from the Static Web App resource
+#                                     (portal: Static Web App → Manage deployment token).
+#
+# NOTE: set the API URL in src/AutoPartShop.WebApp/src/environments/environment.prod.ts
+# before the first deploy — the production build bakes it in.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/AutoPartShop.WebApp/**'
+      - '.github/workflows/swa-deploy.yml'
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/AutoPartShop.WebApp
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build (production)
+        run: npm run build   # ng build, defaultConfiguration = production → environment.prod.ts
+
+      # The @angular-devkit application builder emits static files to dist/smauto/browser
+      # (index.html + staticwebapp.config.json land there). Upload that folder as-is.
+      - name: Deploy to Static Web Apps
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          action: upload
+          app_location: src/AutoPartShop.WebApp/dist/smauto/browser
+          output_location: ''
+          skip_app_build: true

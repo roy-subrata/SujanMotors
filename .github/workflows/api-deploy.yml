@@ -1,0 +1,78 @@
+name: Deploy API to Azure App Service
+
+# Builds the .NET 10 API image, pushes it to GitHub Container Registry (ghcr.io),
+# then points the Azure App Service for Containers at the new tag.
+#
+# Required repo secrets (Settings → Secrets and variables → Actions):
+#   AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID
+#       - app registration with an OIDC federated credential for this repo;
+#         role: Contributor (or Website Contributor) on the Web App's resource group.
+#   GHCR_PULL_TOKEN
+#       - a GitHub PAT (classic) with read:packages, used BY App Service to pull the image.
+#         Not needed if you make the ghcr.io package public (then drop the registry creds below).
+#
+# Pushing to ghcr.io uses the built-in GITHUB_TOKEN (no extra secret).
+# Edit WEBAPP_NAME / RESOURCE_GROUP / IMAGE to match what you provision (see deployment/README.md).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/AutoPartShop.Api/**'
+      - 'src/AutoPartShop.Application/**'
+      - 'src/AutoPartShop.Domain/**'
+      - 'src/AutoPartShop.Infrastructure/**'
+      - '.github/workflows/api-deploy.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write   # push image to ghcr.io
+  id-token: write   # azure/login OIDC
+
+env:
+  IMAGE: ghcr.io/roy-subrata/autopartshop-api   # must be lowercase
+  WEBAPP_NAME: sujanmotors-api                   # App Service (Web App for Containers) name
+  RESOURCE_GROUP: sujanmotors-rg                 # resource group holding the Web App
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Build context is the repo root because the Dockerfile COPYs src/AutoPartShop.*/...
+      - name: Build & push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: src/AutoPartShop.Api/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:${{ github.sha }}
+            ${{ env.IMAGE }}:latest
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Point Web App at the new image
+        run: |
+          az webapp config container set \
+            --name "$WEBAPP_NAME" \
+            --resource-group "$RESOURCE_GROUP" \
+            --container-image-name "${{ env.IMAGE }}:${{ github.sha }}" \
+            --container-registry-url "https://ghcr.io" \
+            --container-registry-user "${{ github.actor }}" \
+            --container-registry-password "${{ secrets.GHCR_PULL_TOKEN }}"
+          az webapp restart --name "$WEBAPP_NAME" --resource-group "$RESOURCE_GROUP"
