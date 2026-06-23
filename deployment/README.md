@@ -18,6 +18,7 @@ values to `appsettings.json`:
 | --- | --- |
 | `ConnectionStrings__AutoPartDb` | SQL Server connection string |
 | `JwtSettings__SecretKey` | JWT signing key (rotate if ever exposed) |
+| `Cors__AllowedOrigins__0`, `__1`, … | **Required** — allow-list of frontend origins (scheme+host+port). Defaults to `[]`, which blocks every cross-origin call in prod. |
 | `Twilio__AccountSid`, `Twilio__AuthToken`, `Twilio__*` | SMS / WhatsApp |
 | `sms__apiKey` | SMS provider key |
 | `Seed__AdminPassword` | **Required** to bootstrap the first admin outside Development |
