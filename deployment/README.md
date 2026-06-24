@@ -54,19 +54,19 @@ no manual `dotnet ef database update` step is needed in production.
 
 ---
 
-# Azure deployment (App Service + Static Web Apps + GHCR + MonsterASP MSSQL)
+# Azure deployment (App Service + Static Web Apps + Docker Hub + MonsterASP MSSQL)
 
 Split deployment:
 
 - **API** → Azure **App Service for Containers**, image built from
-  `src/AutoPartShop.Api/Dockerfile` and stored in **GitHub Container Registry (ghcr.io)**.
+  `src/AutoPartShop.Api/Dockerfile` and stored on **Docker Hub** (`docker.io/subrata23/autopartshop-api`).
 - **Frontend** → Azure **Static Web Apps** (Angular build output `dist/smauto/browser`).
 - **Database** → **MonsterASP.NET free MSSQL** (external SQL Server, SQL auth over the internet).
 
 Both App Service (`*.azurewebsites.net`) and Static Web Apps are HTTPS by default, so no
 manual TLS/cert setup is required for the default hostnames.
 
-CI/CD is GitHub Actions: `.github/workflows/api-deploy.yml` (API → ghcr.io → App Service) and
+CI/CD is GitHub Actions: `.github/workflows/api-deploy.yml` (API → Docker Hub → App Service) and
 `.github/workflows/swa-deploy.yml` (frontend). Edit the placeholder values at the top of
 `api-deploy.yml` (`IMAGE`, `WEBAPP_NAME`, `RESOURCE_GROUP`) to match what you provision.
 
@@ -86,13 +86,13 @@ az appservice plan create -n $PLAN -g $RG --is-linux --sku B1
 az webapp create -n $API_APP -g $RG -p $PLAN \
   --deployment-container-image-name mcr.microsoft.com/dotnet/aspnet:10.0
 
-# Point the Web App at the ghcr.io image. If you make the GHCR package PUBLIC, no creds are
-# needed; for a PRIVATE package supply a GitHub PAT (classic, read:packages):
+# Point the Web App at the Docker Hub image. If you make the Docker Hub repo PUBLIC, no creds
+# are needed; for a PRIVATE repo supply a Docker Hub access token:
 az webapp config container set -n $API_APP -g $RG \
-  --container-image-name ghcr.io/roy-subrata/autopartshop-api:latest \
-  --container-registry-url https://ghcr.io \
-  --container-registry-user <github-username> \
-  --container-registry-password <GHCR_PULL_TOKEN>
+  --container-image-name subrata23/autopartshop-api:latest \
+  --container-registry-url https://index.docker.io/v1/ \
+  --container-registry-user subrata23 \
+  --container-registry-password <DOCKERHUB_TOKEN>
 
 # WebSockets (SignalR) + Always On
 az webapp config set -n $API_APP -g $RG --web-sockets-enabled true --always-on true
@@ -140,10 +140,9 @@ Use the exact MonsterASP connection string they give you (the format above is ty
 | Secret | Source |
 | --- | --- |
 | `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` | App registration with an OIDC federated credential for this repo; role: Contributor on `$RG` (used to update the Web App) |
-| `GHCR_PULL_TOKEN` | GitHub PAT (classic) with `read:packages`, used by App Service to pull the image. Omit if the ghcr.io package is public. |
+| `DOCKERHUB_USERNAME` | Docker Hub username/namespace (`subrata23`) |
+| `DOCKERHUB_TOKEN` | Docker Hub access token (Account Settings → Security → New Access Token). Used both to push the image and by App Service to pull it. |
 | `AZURE_STATIC_WEB_APPS_API_TOKEN` | SWA deployment token (command above) |
-
-Pushing the image uses the workflow's built-in `GITHUB_TOKEN` (no secret needed).
 
 ## 5. Frontend API URL
 

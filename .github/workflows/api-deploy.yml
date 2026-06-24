@@ -1,17 +1,18 @@
 name: Deploy API to Azure App Service
 
-# Builds the .NET 10 API image, pushes it to GitHub Container Registry (ghcr.io),
+# Builds the .NET 10 API image, pushes it to Docker Hub (docker.io),
 # then points the Azure App Service for Containers at the new tag.
 #
 # Required repo secrets (Settings → Secrets and variables → Actions):
 #   AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID
 #       - app registration with an OIDC federated credential for this repo;
 #         role: Contributor (or Website Contributor) on the Web App's resource group.
-#   GHCR_PULL_TOKEN
-#       - a GitHub PAT (classic) with read:packages, used BY App Service to pull the image.
-#         Not needed if you make the ghcr.io package public (then drop the registry creds below).
+#   DOCKERHUB_USERNAME
+#       - your Docker Hub username/namespace (e.g. subrata23).
+#   DOCKERHUB_TOKEN
+#       - a Docker Hub access token (Account Settings → Security → New Access Token).
+#         Used both to push the image here AND by App Service to pull it.
 #
-# Pushing to ghcr.io uses the built-in GITHUB_TOKEN (no extra secret).
 # Edit WEBAPP_NAME / RESOURCE_GROUP / IMAGE to match what you provision (see deployment/README.md).
 
 on:
@@ -27,11 +28,10 @@ on:
 
 permissions:
   contents: read
-  packages: write   # push image to ghcr.io
   id-token: write   # azure/login OIDC
 
 env:
-  IMAGE: ghcr.io/roy-subrata/autopartshop-api   # must be lowercase
+  IMAGE: subrata23/autopartshop-api              # must be lowercase
   WEBAPP_NAME: sujanmotors-api                   # App Service (Web App for Containers) name
   RESOURCE_GROUP: sujanmotors-rg                 # resource group holding the Web App
 
@@ -41,12 +41,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Log in to GHCR
+      - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       # Build context is the repo root because the Dockerfile COPYs src/AutoPartShop.*/...
       - name: Build & push image
@@ -72,7 +71,7 @@ jobs:
             --name "$WEBAPP_NAME" \
             --resource-group "$RESOURCE_GROUP" \
             --container-image-name "${{ env.IMAGE }}:${{ github.sha }}" \
-            --container-registry-url "https://ghcr.io" \
-            --container-registry-user "${{ github.actor }}" \
-            --container-registry-password "${{ secrets.GHCR_PULL_TOKEN }}"
+            --container-registry-url "https://index.docker.io/v1/" \
+            --container-registry-user "${{ secrets.DOCKERHUB_USERNAME }}" \
+            --container-registry-password "${{ secrets.DOCKERHUB_TOKEN }}"
           az webapp restart --name "$WEBAPP_NAME" --resource-group "$RESOURCE_GROUP"
