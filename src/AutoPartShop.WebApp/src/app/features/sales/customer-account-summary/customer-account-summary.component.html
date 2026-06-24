@@ -54,6 +54,21 @@
                 styleClass="w-full">
             </p-datepicker>
         </div>
+        <div class="filter-field vehicle-field">
+            <label class="filter-label">Vehicle</label>
+            <p-select
+                [(ngModel)]="selectedVehicleId"
+                [options]="vehicles()"
+                optionLabel="label"
+                optionValue="id"
+                placeholder="All vehicles"
+                [showClear]="true"
+                [disabled]="!selectedCustomer"
+                appendTo="body"
+                styleClass="w-full"
+                (onChange)="onVehicleChange()">
+            </p-select>
+        </div>
         <button pButton type="button" icon="pi pi-search" label="Generate"
             class="generate-btn" (click)="generateReport()" [loading]="loading()"></button>
     </div>
@@ -64,6 +79,7 @@
         <span class="info-item"><i class="pi pi-hashtag"></i> {{ summary()!.customerCode }}</span>
         <span class="info-item"><i class="pi pi-phone"></i> {{ summary()!.customerPhone }}</span>
         <span class="info-item" *ngIf="summary()!.customerType"><i class="pi pi-tag"></i> {{ summary()!.customerType }}</span>
+        <span class="info-item" *ngIf="selectedVehicleLabel"><i class="pi pi-car"></i> {{ selectedVehicleLabel }}</span>
         <span class="info-item"><i class="pi pi-calendar"></i> {{ formatDate(summary()!.reportDate) }}</span>
     </div>
 
@@ -117,6 +133,17 @@
                         <span class="metric-helper" *ngIf="summary()!.currentDue <= 0">All paid up!</span>
                     </div>
                 </div>
+                <div class="metric-card metric-info">
+                    <div class="metric-icon"><i class="pi pi-history"></i></div>
+                    <div class="metric-body">
+                        <span class="metric-label">Last Payment</span>
+                        <span class="metric-value">
+                            {{ summary()!.lastPaymentDate ? formatCurrency(summary()!.lastPaymentAmount) : '—' }}
+                        </span>
+                        <span class="metric-helper" *ngIf="summary()!.lastPaymentDate">on {{ formatDate(summary()!.lastPaymentDate!) }}</span>
+                        <span class="metric-helper" *ngIf="!summary()!.lastPaymentDate">No payments yet</span>
+                    </div>
+                </div>
             </div>
 
             <!-- Purchase Items Table -->
@@ -133,6 +160,7 @@
                         <span class="col-invoice">Invoice #</span>
                         <span class="col-status">Status</span>
                         <span class="col-item">Item Name</span>
+                        <span class="col-vehicle">Vehicle</span>
                         <span class="col-part">Part #</span>
                         <span class="col-qty">Qty</span>
                         <span class="col-price">Unit Price</span>
@@ -149,6 +177,7 @@
                                 </span>
                             </div>
                             <div class="col-item">{{ item.itemName }}</div>
+                            <div class="col-vehicle muted">{{ item.vehicleLabel || '—' }}</div>
                             <div class="col-part mono muted">{{ item.partNumber || item.sku || '-' }}</div>
                             <div class="col-qty">{{ item.quantity }}</div>
                             <div class="col-price">{{ formatCurrency(item.unitPrice) }}</div>
@@ -181,6 +210,10 @@
                             <div class="mobile-field">
                                 <label>Date</label>
                                 <span>{{ formatDate(item.invoiceDate) }}</span>
+                            </div>
+                            <div class="mobile-field" *ngIf="item.vehicleLabel">
+                                <label>Vehicle</label>
+                                <span>{{ item.vehicleLabel }}</span>
                             </div>
                             <div class="mobile-field">
                                 <label>Qty</label>
@@ -250,6 +283,7 @@
                 <div>Code: {{ summary()!.customerCode }}</div>
                 <div>Phone: {{ summary()!.customerPhone }}</div>
                 <div *ngIf="summary()!.customerType">Type: {{ summary()!.customerType }}</div>
+                <div *ngIf="selectedVehicleLabel">Vehicle: {{ selectedVehicleLabel }}</div>
             </div>
             <div style="text-align: right;">
                 <div>Report Date: {{ formatDate(summary()!.reportDate) }}</div>
@@ -270,20 +304,30 @@
                 <div class="print-metric-label">Current Due</div>
                 <div class="print-metric-value">{{ formatCurrency(summary()!.currentDue) }}</div>
             </div>
+            <div class="print-metric">
+                <div class="print-metric-label">Last Payment</div>
+                <div class="print-metric-value">
+                    {{ summary()!.lastPaymentDate ? formatCurrency(summary()!.lastPaymentAmount) : '—' }}
+                </div>
+                <div class="print-metric-label" *ngIf="summary()!.lastPaymentDate" style="margin-top: 2px;">
+                    {{ formatDate(summary()!.lastPaymentDate!) }}
+                </div>
+            </div>
         </div>
         <div class="print-table-title">Purchase Item Details ({{ allItems().length }} items)</div>
         <table>
             <thead>
                 <tr>
-                    <th style="width: 5%;">#</th>
-                    <th style="width: 12%;">Invoice Date</th>
-                    <th style="width: 12%;">Invoice #</th>
+                    <th style="width: 4%;">#</th>
+                    <th style="width: 10%;">Invoice Date</th>
+                    <th style="width: 11%;">Invoice #</th>
                     <th>Item Name</th>
-                    <th style="width: 10%;">Part #</th>
-                    <th class="text-right" style="width: 6%;">Qty</th>
-                    <th class="text-right" style="width: 12%;">Unit Price</th>
-                    <th class="text-right" style="width: 9%;">Discount</th>
-                    <th class="text-right" style="width: 12%;">Line Total</th>
+                    <th style="width: 15%;">Vehicle</th>
+                    <th style="width: 9%;">Part #</th>
+                    <th class="text-right" style="width: 5%;">Qty</th>
+                    <th class="text-right" style="width: 11%;">Unit Price</th>
+                    <th class="text-right" style="width: 8%;">Discount</th>
+                    <th class="text-right" style="width: 11%;">Line Total</th>
                 </tr>
             </thead>
             <tbody>
@@ -293,6 +337,7 @@
                         <td>{{ formatDate(item.invoiceDate) }}</td>
                         <td>{{ item.invoiceNumber }}</td>
                         <td>{{ item.itemName }}</td>
+                        <td>{{ item.vehicleLabel || '—' }}</td>
                         <td>{{ item.partNumber || item.sku || '-' }}</td>
                         <td class="text-right">{{ item.quantity }}</td>
                         <td class="text-right">{{ formatCurrency(item.unitPrice) }}</td>

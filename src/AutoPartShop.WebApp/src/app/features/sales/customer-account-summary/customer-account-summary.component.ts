@@ -6,6 +6,7 @@ import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { ToastModule } from 'primeng/toast';
 import { DatePickerModule } from 'primeng/datepicker';
+import { SelectModule } from 'primeng/select';
 import { TooltipModule } from 'primeng/tooltip';
 import { PaginatorModule, PaginatorState } from 'primeng/paginator';
 import { SkeletonModule } from 'primeng/skeleton';
@@ -13,6 +14,7 @@ import { Observable, Subject, takeUntil } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { LazyAutocompleteComponent, LazyRequest, LazyResponse } from '../../../shared/components/lazy-autocomplete/lazy-autocomplete.component';
 import { CustomerService, CustomerResponse } from '../services/customer.service';
+import { CustomerVehicleService, CustomerVehicleResponse } from '../services/customer-vehicle.service';
 import {
     CustomerAccountSummaryService,
     CustomerAccountSummary,
@@ -32,6 +34,7 @@ import { PageHeaderComponent } from '@/shared/components/page-header/page-header
         ButtonModule,
         ToastModule,
         DatePickerModule,
+        SelectModule,
         TooltipModule,
         PaginatorModule,
         SkeletonModule,
@@ -44,6 +47,7 @@ import { PageHeaderComponent } from '@/shared/components/page-header/page-header
 })
 export class CustomerAccountSummaryComponent implements OnInit, OnDestroy {
     private readonly customerService = inject(CustomerService);
+    private readonly vehicleService = inject(CustomerVehicleService);
     private readonly summaryService = inject(CustomerAccountSummaryService);
     private readonly invoicePdfService = inject(InvoicePdfService);
     private readonly router = inject(Router);
@@ -55,6 +59,10 @@ export class CustomerAccountSummaryComponent implements OnInit, OnDestroy {
     selectedCustomer: CustomerResponse | null = null;
     fromDate: Date | null = null;
     toDate: Date | null = null;
+
+    // Vehicle filter — the customer's vehicles, and the one this statement is scoped to (optional)
+    vehicles = signal<CustomerVehicleResponse[]>([]);
+    selectedVehicleId: string | null = null;
 
     // Report state
     summary = signal<CustomerAccountSummary | null>(null);
@@ -74,6 +82,12 @@ export class CustomerAccountSummaryComponent implements OnInit, OnDestroy {
     // Getter so the template always reads the latest DB-sourced values.
     get companyConfig() { return this.invoicePdfService.getCompanyConfig(); }
 
+    // Label of the vehicle the statement is currently scoped to (empty = all vehicles)
+    get selectedVehicleLabel(): string {
+        if (!this.selectedVehicleId) return '';
+        return this.vehicles().find(v => v.id === this.selectedVehicleId)?.label ?? '';
+    }
+
     customerFetchFn = (req: LazyRequest): Observable<LazyResponse<CustomerResponse>> =>
         this.customerService.getCustomers({
             search: req.search,
@@ -85,13 +99,31 @@ export class CustomerAccountSummaryComponent implements OnInit, OnDestroy {
 
     onCustomerSelected(customer: CustomerResponse): void {
         this.selectedCustomer = customer;
+        // Reset any prior vehicle filter and load this customer's active vehicles
+        this.selectedVehicleId = null;
+        this.vehicles.set([]);
+        this.vehicleService.getByCustomer(customer.id, true)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+                next: (vehicles) => this.vehicles.set(vehicles),
+                error: () => this.vehicles.set([])
+            });
     }
 
     onCustomerCleared(): void {
         this.selectedCustomer = null;
+        this.selectedVehicleId = null;
+        this.vehicles.set([]);
         this.summary.set(null);
         this.allItems.set([]);
         this.allItemsLoaded.set(false);
+    }
+
+    onVehicleChange(): void {
+        // Re-run the report scoped to the selected vehicle (or all vehicles when cleared)
+        if (this.selectedCustomer && this.summary()) {
+            this.generateReport();
+        }
     }
 
     generateReport(): void {
@@ -121,6 +153,7 @@ export class CustomerAccountSummaryComponent implements OnInit, OnDestroy {
             customerId: this.selectedCustomer.id,
             fromDate: this.fromDate ? this.fromDate.toISOString() : undefined,
             toDate: this.toDate ? this.toDate.toISOString() : undefined,
+            customerVehicleId: this.selectedVehicleId ?? undefined,
             pageNumber: this.pageNumber,
             pageSize: this.pageSize
         };
@@ -176,6 +209,7 @@ export class CustomerAccountSummaryComponent implements OnInit, OnDestroy {
             customerId: this.selectedCustomer.id,
             fromDate: this.fromDate ? this.fromDate.toISOString() : undefined,
             toDate: this.toDate ? this.toDate.toISOString() : undefined,
+            customerVehicleId: this.selectedVehicleId ?? undefined,
             pageNumber: 1,
             pageSize: totalItems
         };

@@ -7,6 +7,7 @@ export interface CustomerAccountSummaryQuery {
     customerId?: string;
     fromDate?: string;
     toDate?: string;
+    customerVehicleId?: string;
     pageNumber: number;
     pageSize: number;
 }
@@ -16,6 +17,8 @@ export interface CustomerPurchaseItem {
     invoiceDate: string;
     invoiceNumber: string;
     invoiceStatus: string;
+    customerVehicleId?: string | null;
+    vehicleLabel: string;
     salesOrderLineId: string;
     itemName: string;
     partNumber: string;
@@ -38,6 +41,8 @@ export interface CustomerAccountSummary {
     totalPurchaseAmount: number;
     totalPaidAmount: number;
     currentDue: number;
+    lastPaymentDate?: string | null;
+    lastPaymentAmount: number;
     totalInvoices: number;
     totalLineItems: number;
     purchaseItems: CustomerPurchaseItem[];

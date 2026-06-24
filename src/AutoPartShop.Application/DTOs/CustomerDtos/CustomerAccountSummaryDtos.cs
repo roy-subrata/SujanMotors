@@ -5,6 +5,10 @@ public class CustomerAccountSummaryQuery
     public Guid CustomerId { get; set; }
     public DateTime? FromDate { get; set; }
     public DateTime? ToDate { get; set; }
+
+    /// <summary>Optional: restrict the statement to a single customer-owned vehicle.</summary>
+    public Guid? CustomerVehicleId { get; set; }
+
     public int PageNumber { get; set; } = 1;
     public int PageSize { get; set; } = 20;
 }
@@ -29,6 +33,12 @@ public class CustomerAccountSummaryDto
     /// <summary>TotalPurchaseAmount - TotalPaidAmount (calculated dynamically)</summary>
     public decimal CurrentDue { get; set; }
 
+    /// <summary>Date of the most recent completed payment in scope (null when none)</summary>
+    public DateTime? LastPaymentDate { get; set; }
+
+    /// <summary>Amount of the most recent completed payment in scope (0 when none)</summary>
+    public decimal LastPaymentAmount { get; set; }
+
     public int TotalInvoices { get; set; }
     public int TotalLineItems { get; set; }
 
@@ -48,6 +58,8 @@ public class CustomerPurchaseItemDto
     public DateTime InvoiceDate { get; set; }
     public string InvoiceNumber { get; set; } = string.Empty;
     public string InvoiceStatus { get; set; } = string.Empty;
+    public Guid? CustomerVehicleId { get; set; }
+    public string VehicleLabel { get; set; } = string.Empty;
     public Guid SalesOrderLineId { get; set; }
     public string ItemName { get; set; } = string.Empty;
     public string PartNumber { get; set; } = string.Empty;
