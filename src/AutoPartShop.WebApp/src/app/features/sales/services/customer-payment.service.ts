@@ -264,4 +264,8 @@ export class CustomerPaymentService {
     applyAdvanceCredit(request: ApplyCustomerAdvanceCreditRequest): Observable<ApplyCustomerAdvanceCreditResponse> {
         return this.http.post<ApplyCustomerAdvanceCreditResponse>(`${this.apiUrl}/apply-advance-credit`, request);
     }
+
+    downloadReceipt(paymentId: string): Observable<Blob> {
+        return this.http.get(`${this.apiUrl}/${paymentId}/receipt`, { responseType: 'blob' });
+    }
 }

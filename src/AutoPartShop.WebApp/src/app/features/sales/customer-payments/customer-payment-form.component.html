@@ -1,6 +1,60 @@
 <div class="container">
   <p-toast></p-toast>
 
+  <!-- ── Payment Success Panel ──────────────────────────────────────── -->
+  @if (createdPayment()) {
+    <div class="receipt-success-panel">
+      <div class="receipt-success-icon">
+        <i class="pi pi-check-circle"></i>
+      </div>
+      <h2 class="receipt-success-title">Payment Recorded Successfully</h2>
+      <div class="receipt-success-details">
+        <div class="receipt-detail-row">
+          <span class="receipt-detail-label">Customer</span>
+          <span class="receipt-detail-value">{{ createdPayment()!.customerName }}</span>
+        </div>
+        <div class="receipt-detail-row">
+          <span class="receipt-detail-label">Transaction No</span>
+          <span class="receipt-detail-value receipt-txn">{{ createdPayment()!.transactionNumber }}</span>
+        </div>
+        <div class="receipt-detail-row">
+          <span class="receipt-detail-label">Amount</span>
+          <span class="receipt-detail-value receipt-amount">{{ createdPayment()!.amount | appCurrency }}</span>
+        </div>
+        <div class="receipt-detail-row">
+          <span class="receipt-detail-label">Currency</span>
+          <span class="receipt-detail-value">{{ createdPayment()!.currency }}</span>
+        </div>
+        <div class="receipt-detail-row">
+          <span class="receipt-detail-label">Method</span>
+          <span class="receipt-detail-value">{{ createdPayment()!.paymentMethod.replace('_', ' ') }}</span>
+        </div>
+        <div class="receipt-detail-row">
+          <span class="receipt-detail-label">Status</span>
+          <span class="receipt-detail-value">
+            <p-tag [value]="createdPayment()!.status"
+                   [severity]="createdPayment()!.status === 'COMPLETED' ? 'success' : 'warn'"></p-tag>
+          </span>
+        </div>
+      </div>
+      <div class="receipt-success-actions">
+        <button pButton icon="pi pi-print" label="Print Receipt"
+                class="p-button-primary"
+                [loading]="receiptLoading()"
+                (click)="printReceipt()"></button>
+        <button pButton icon="pi pi-plus" label="Record Another"
+                class="p-button-outlined"
+                (click)="recordAnother()"></button>
+        <button pButton icon="pi pi-list" label="Go to Payments"
+                class="p-button-outlined p-button-secondary"
+                (click)="onCancel()"></button>
+      </div>
+    </div>
+  }
+
+  <!-- ── Form (hidden once payment is created) ─────────────────────── -->
+  @if (!createdPayment()) {
+
   <!-- Header -->
   <div class="form-header">
     <div class="header-content">
@@ -153,4 +207,6 @@
       </div>
     </form>
   </p-card>
+
+  } <!-- end @if (!createdPayment()) -->
 </div>

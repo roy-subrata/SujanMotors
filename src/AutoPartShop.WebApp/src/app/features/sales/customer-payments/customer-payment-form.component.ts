@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -11,7 +11,7 @@ import { DatePickerModule } from 'primeng/datepicker';
 import { SelectModule } from 'primeng/select';
 import { TagModule } from 'primeng/tag';
 import { MessageService } from 'primeng/api';
-import { CustomerPaymentService, CreateCustomerPaymentRequest } from '../services/customer-payment.service';
+import { CustomerPaymentService, CreateCustomerPaymentRequest, CustomerPaymentResponse } from '../services/customer-payment.service';
 import { CustomerService, CustomerResponse } from '../services/customer.service';
 import { InvoiceService, InvoiceResponse } from '../services/invoice.service';
 import { PaymentProviderService, PaymentProviderResponse } from '../../procurement/services/payment-provider.service';
@@ -58,6 +58,10 @@ export class CustomerPaymentFormComponent implements OnInit {
   loading = false;
   isEditing = false;
   paymentId: string | null = null;
+
+  // Set after successful creation — shows the success/receipt panel
+  createdPayment = signal<CustomerPaymentResponse | null>(null);
+  receiptLoading = signal(false);
 
   invoices: InvoiceResponse[] = [];
   paymentProviders: PaymentProviderResponse[] = [];
@@ -298,39 +302,9 @@ export class CustomerPaymentFormComponent implements OnInit {
       };
 
       this.service.createCustomerPayment(createRequest).subscribe({
-        next: (createdPayment) => {
-          const paymentMethod = this.form.get('paymentMethod')?.value?.toUpperCase() || '';
-
-          // Backend now auto-completes CASH payments
-          // Check the response status to determine if payment was auto-completed
-          if (createdPayment.status === 'COMPLETED') {
-            this.messageService.add({
-              severity: 'success',
-              summary: 'Success',
-              detail: 'Payment created and completed successfully'
-            });
-            this.loading = false;
-            this.router.navigate(['/sales/customer-payments']);
-          } else if (createdPayment.status === 'PENDING') {
-            // For CHEQUE, BANK_TRANSFER, etc., keep as PENDING for manual verification
-            this.messageService.add({
-              severity: 'success',
-              summary: 'Success',
-              detail: `Payment created successfully. ${paymentMethod} payments require manual confirmation.`,
-              life: 5000
-            });
-            this.loading = false;
-            this.router.navigate(['/sales/customer-payments']);
-          } else {
-            // Unknown status - show generic success
-            this.messageService.add({
-              severity: 'success',
-              summary: 'Success',
-              detail: 'Payment created successfully'
-            });
-            this.loading = false;
-            this.router.navigate(['/sales/customer-payments']);
-          }
+        next: (payment) => {
+          this.loading = false;
+          this.createdPayment.set(payment);
         },
         error: (error) => {
           this.messageService.add({
@@ -342,6 +316,39 @@ export class CustomerPaymentFormComponent implements OnInit {
         }
       });
     }
+  }
+
+  printReceipt(): void {
+    const payment = this.createdPayment();
+    if (!payment) return;
+
+    this.receiptLoading.set(true);
+    this.service.downloadReceipt(payment.id).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        window.open(url, '_blank');
+        setTimeout(() => window.URL.revokeObjectURL(url), 60000);
+        this.receiptLoading.set(false);
+      },
+      error: () => {
+        this.receiptLoading.set(false);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Failed to generate receipt. Please try again.',
+          life: 5000
+        });
+      }
+    });
+  }
+
+  recordAnother(): void {
+    this.createdPayment.set(null);
+    this.form.reset({
+      paymentDate: new Date(),
+      amount: 0,
+      paymentFee: 0
+    });
   }
 
   onCancel(): void {
