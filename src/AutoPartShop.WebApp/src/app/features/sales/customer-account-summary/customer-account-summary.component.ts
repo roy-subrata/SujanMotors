@@ -140,8 +140,8 @@ export class CustomerAccountSummaryComponent implements OnInit, OnDestroy {
 
         const query: CustomerAccountSummaryQuery = {
             customerId: this.selectedCustomer.id,
-            fromDate: this.fromDate ? this.fromDate.toISOString() : undefined,
-            toDate: this.toDate ? this.toDate.toISOString() : undefined,
+            fromDate: this.fromDate ? this.toLocalDateString(this.fromDate) : undefined,
+            toDate: this.toDate ? this.toLocalDateString(this.toDate) : undefined,
             customerVehicleId: this.selectedVehicleId ?? undefined,
             pageNumber: this.pageNumber,
             pageSize: this.pageSize
@@ -183,8 +183,8 @@ export class CustomerAccountSummaryComponent implements OnInit, OnDestroy {
 
         const query: CustomerAccountSummaryQuery = {
             customerId: this.selectedCustomer.id,
-            fromDate: this.fromDate ? this.fromDate.toISOString() : undefined,
-            toDate: this.toDate ? this.toDate.toISOString() : undefined,
+            fromDate: this.fromDate ? this.toLocalDateString(this.fromDate) : undefined,
+            toDate: this.toDate ? this.toLocalDateString(this.toDate) : undefined,
             customerVehicleId: this.selectedVehicleId ?? undefined,
             pageNumber: 1,
             pageSize: 2147483647
@@ -230,8 +230,8 @@ export class CustomerAccountSummaryComponent implements OnInit, OnDestroy {
 
         const query: CustomerAccountSummaryQuery = {
             customerId: this.selectedCustomer.id,
-            fromDate: this.fromDate ? this.fromDate.toISOString() : undefined,
-            toDate: this.toDate ? this.toDate.toISOString() : undefined,
+            fromDate: this.fromDate ? this.toLocalDateString(this.fromDate) : undefined,
+            toDate: this.toDate ? this.toLocalDateString(this.toDate) : undefined,
             customerVehicleId: this.selectedVehicleId ?? undefined,
             pageNumber: 1,
             pageSize: 2147483647
@@ -310,5 +310,15 @@ export class CustomerAccountSummaryComponent implements OnInit, OnDestroy {
     ngOnDestroy(): void {
         this.destroy$.next();
         this.destroy$.complete();
+    }
+
+    // toISOString() converts to UTC which shifts dates in non-UTC timezones.
+    // This helper returns "YYYY-MM-DD" in local time so the backend receives
+    // the date the user actually selected.
+    private toLocalDateString(date: Date): string {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
     }
 }

@@ -164,12 +164,24 @@ public class CustomerAccountStatementDocument : IDocument
         var from = _data.FromDate?.ToString("dd MMM yyyy") ?? "All time";
         var to   = _data.ToDate?.ToString("dd MMM yyyy")   ?? "All time";
 
+        var vehicleLabels = _data.PurchaseItems
+            .Select(x => x.VehicleLabel)
+            .Where(v => !string.IsNullOrWhiteSpace(v))
+            .Distinct()
+            .ToList();
+
         container.Column(col =>
         {
             col.Item().Text("STATEMENT DETAILS").Bold().FontSize(7).FontColor(Gray500);
             col.Item().PaddingTop(5).LineHorizontal(0.5f).LineColor(Gray200);
             col.Item().PaddingTop(8).Text("Statement Period").FontSize(8).Bold().FontColor(Gray700);
             col.Item().PaddingTop(3).Text($"{from}  –  {to}").FontSize(9).FontColor(Gray900);
+
+            if (vehicleLabels.Count == 1)
+            {
+                col.Item().PaddingTop(8).Text("Vehicle").FontSize(8).Bold().FontColor(Gray700);
+                col.Item().PaddingTop(3).Text(vehicleLabels[0]).FontSize(9).FontColor(Gray900);
+            }
         });
     }
 
