@@ -10,5 +10,5 @@
 //   it, also add the Static Web App origin to the API's Cors__AllowedOrigins app setting.
 export const environment = {
     production: true,
-    apiUrl: 'https://<API_APP_NAME>.azurewebsites.net/api'
+    apiUrl: 'https://sujanmotors-api-gtetffcscjg3cyfe.southeastasia-01.azurewebsites.net/api'
 };
