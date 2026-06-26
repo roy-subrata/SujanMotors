@@ -211,7 +211,7 @@ public class PaymentReceiptDocument : IDocument
                 {
                     left.Item().LineHorizontal(0.5f).LineColor(Gray300);
                     left.Item().PaddingTop(5)
-                        .Text("Authorised Signature").FontSize(7.5f).FontColor(Gray400);
+                                .Text("Authorised Signature").FontSize(8f).FontColor(Gray400);
                 });
 
                 sig.ConstantItem(20);
@@ -220,7 +220,7 @@ public class PaymentReceiptDocument : IDocument
                 {
                     right.Item().LineHorizontal(0.5f).LineColor(Gray300);
                     right.Item().PaddingTop(5)
-                        .Text("Received By").FontSize(7.5f).FontColor(Gray400);
+                        .Text("Received By").FontSize(8f).FontColor(Gray400);
                 });
             });
         });
@@ -242,7 +242,7 @@ public class PaymentReceiptDocument : IDocument
 
             col.Item().PaddingTop(2).AlignCenter()
                 .Text($"Computer-generated receipt. Generated {DateTime.UtcNow:dd MMM yyyy, HH:mm} UTC")
-                .FontSize(6.5f).FontColor(Gray300);
+                .FontSize(7f).FontColor(Gray300);
         });
     }
 

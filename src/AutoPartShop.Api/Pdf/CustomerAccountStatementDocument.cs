@@ -217,7 +217,7 @@ public class CustomerAccountStatementDocument : IDocument
                         var cell = c.Background(NavyPrimary)
                             .PaddingHorizontal(5).PaddingVertical(7);
                         (right ? cell.AlignRight().Text(text) : cell.Text(text))
-                            .Bold().FontSize(7.5f).FontColor(White);
+                            .Bold().FontSize(8f).FontColor(White);
                     }
 
                     H(header.Cell(), "Date");
@@ -254,13 +254,13 @@ public class CustomerAccountStatementDocument : IDocument
                         {
                             c.Item().Text(item.ItemName).FontSize(8).FontColor(Gray900);
                             if (!string.IsNullOrWhiteSpace(sku))
-                                c.Item().PaddingTop(1).Text(sku).FontSize(6.5f).FontColor(Gray400);
+                                c.Item().PaddingTop(1).Text(sku).FontSize(7.5f).FontColor(Gray400);
                         });
 
                     table.Cell().Background(bg).BorderBottom(bs).BorderColor(Gray200)
                         .PaddingHorizontal(hp).PaddingVertical(vp)
                         .Text(string.IsNullOrWhiteSpace(item.VehicleLabel) ? "—" : item.VehicleLabel)
-                        .FontSize(7.5f).FontColor(Gray500);
+                        .FontSize(8f).FontColor(Gray500);
 
                     table.Cell().Background(bg).BorderBottom(bs).BorderColor(Gray200)
                         .PaddingHorizontal(hp).PaddingVertical(vp)
@@ -342,10 +342,10 @@ public class CustomerAccountStatementDocument : IDocument
                     var footerText = string.IsNullOrWhiteSpace(_shop.FooterText)
                         ? "Thank you for your continued business. Please contact us for any queries."
                         : _shop.FooterText;
-                    left.Item().Text(footerText).FontSize(7.5f).Italic().FontColor(Gray400);
+                    left.Item().Text(footerText).FontSize(8f).Italic().FontColor(Gray400);
                     left.Item().PaddingTop(2)
                         .Text($"Generated {DateTime.UtcNow:dd MMM yyyy, HH:mm} UTC")
-                        .FontSize(6.5f).FontColor(Gray300);
+                        .FontSize(7f).FontColor(Gray300);
                 });
 
                 // Page number — 70pt fits "Page 99 / 99" at 8pt
