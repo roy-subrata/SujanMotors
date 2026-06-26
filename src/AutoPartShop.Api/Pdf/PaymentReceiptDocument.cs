@@ -147,6 +147,8 @@ public class PaymentReceiptDocument : IDocument
 
                 details.Item().Element(r => DetailRow(r, "Payment Method", FormatMethod(_payment.PaymentMethod)));
                 details.Item().Element(r => DetailRow(r, "Status", _payment.Status));
+                if (!string.IsNullOrWhiteSpace(_payment.Currency))
+                    details.Item().Element(r => DetailRow(r, "Currency", _payment.Currency));
 
                 if (!string.IsNullOrWhiteSpace(_payment.InvoiceNumber))
                     details.Item().Element(r => DetailRow(r, "Invoice Reference", _payment.InvoiceNumber));
@@ -178,7 +180,7 @@ public class PaymentReceiptDocument : IDocument
                         .Bold().FontSize(9).FontColor(GreenText);
 
                     row.ConstantItem(140).AlignRight().AlignMiddle()
-                        .Text($"{_payment.Amount:N2}")
+                        .Text($"{_shop.CurrencySymbol} {_payment.Amount:N2}")
                         .Bold().FontSize(16).FontColor(GreenText);
                 });
 
@@ -188,7 +190,7 @@ public class PaymentReceiptDocument : IDocument
                 col.Item().PaddingTop(5).AlignRight().Text(txt =>
                 {
                     txt.Span("Net Amount:   ").FontSize(8).FontColor(Gray500);
-                    txt.Span($"{_payment.NetAmount:N2}").FontSize(8).Bold().FontColor(Gray700);
+                    txt.Span($"{_shop.CurrencySymbol} {_payment.NetAmount:N2}").FontSize(8).Bold().FontColor(Gray700);
                 });
             }
 

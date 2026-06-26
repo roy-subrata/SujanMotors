@@ -617,14 +617,20 @@ public class CustomerPaymentController : ControllerBase
                 return string.IsNullOrWhiteSpace(v) ? fallback : v;
             }
 
+            var currencyEntity = await _dbContext.Set<Currency>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Code == mapped.Currency && !c.Isdeleted, cancellationToken);
+            string currencySymbol = currencyEntity?.Symbol ?? mapped.Currency;
+
             var shopProfile = new ShopProfile(
-                Name:       Get("SHOP_NAME"),
-                Address:    Get("SHOP_ADDRESS"),
-                Phone:      Get("SHOP_PHONE"),
-                Email:      Get("SHOP_EMAIL"),
-                TaxNo:      Get("SHOP_TAX_NUMBER"),
-                Tagline:    Get("SHOP_TAGLINE"),
-                FooterText: Get("INVOICE_FOOTER_TEXT", "Thank you for your payment."));
+                Name:           Get("SHOP_NAME"),
+                Address:        Get("SHOP_ADDRESS"),
+                Phone:          Get("SHOP_PHONE"),
+                Email:          Get("SHOP_EMAIL"),
+                TaxNo:          Get("SHOP_TAX_NUMBER"),
+                Tagline:        Get("SHOP_TAGLINE"),
+                FooterText:     Get("INVOICE_FOOTER_TEXT", "Thank you for your payment."),
+                CurrencySymbol: currencySymbol);
 
             var document = new PaymentReceiptDocument(mapped, shopProfile);
             var pdfBytes = document.GeneratePdf();

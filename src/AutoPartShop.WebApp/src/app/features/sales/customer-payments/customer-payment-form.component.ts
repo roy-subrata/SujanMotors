@@ -297,7 +297,7 @@ export class CustomerPaymentFormComponent implements OnInit {
         paymentMethod: this.form.get('paymentMethod')?.value || '',
         transactionNumber: this.form.get('transactionNumber')?.value || '',
         referenceNumber: this.form.get('referenceNumber')?.value || '',
-        paymentDate: paymentDate ? (paymentDate instanceof Date ? paymentDate.toISOString() : paymentDate) : undefined,
+        paymentDate: paymentDate ? (paymentDate instanceof Date ? this.toLocalDateString(paymentDate) : paymentDate) : undefined,
         notes: this.form.get('notes')?.value || ''
       };
 
@@ -360,5 +360,12 @@ export class CustomerPaymentFormComponent implements OnInit {
    */
   getPaymentMethodIcon(method: string): string {
     return getMethodIcon(method);
+  }
+
+  private toLocalDateString(date: Date): string {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
   }
 }

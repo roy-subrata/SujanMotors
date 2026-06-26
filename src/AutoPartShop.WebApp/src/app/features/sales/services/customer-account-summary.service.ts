@@ -38,6 +38,7 @@ export interface CustomerAccountSummary {
     reportDate: string;
     fromDate?: string;
     toDate?: string;
+    currency: string;
     totalPurchaseAmount: number;
     totalPaidAmount: number;
     currentDue: number;

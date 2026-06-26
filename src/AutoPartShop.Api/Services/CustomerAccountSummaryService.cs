@@ -54,6 +54,13 @@ public class CustomerAccountSummaryService : ICustomerAccountSummaryService
         var invoices = await invoiceQuery.ToListAsync(ct);
         decimal totalPurchaseAmount = invoices.Sum(i => i.GrandTotal);
         int totalInvoices = invoices.Count;
+        string currency = invoices.Select(i => i.Currency)
+            .Where(c => !string.IsNullOrWhiteSpace(c))
+            .FirstOrDefault() ?? "BDT";
+        var currencyEntity = await _dbContext.Set<Currency>()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Code == currency && !c.Isdeleted, ct);
+        string currencySymbol = currencyEntity?.Symbol ?? currency;
 
         // 2. Total Paid Amount: SUM(CustomerPayment.Amount) where Status=COMPLETED
         //    Exclude advance-applied payments to avoid double-counting
@@ -142,6 +149,8 @@ public class CustomerAccountSummaryService : ICustomerAccountSummaryService
             ReportDate = DateTime.UtcNow,
             FromDate = query.FromDate,
             ToDate = query.ToDate,
+            Currency = currency,
+            CurrencySymbol = currencySymbol,
             TotalPurchaseAmount = totalPurchaseAmount,
             TotalPaidAmount = totalPaidAmount,
             CurrentDue = totalPurchaseAmount - totalPaidAmount,

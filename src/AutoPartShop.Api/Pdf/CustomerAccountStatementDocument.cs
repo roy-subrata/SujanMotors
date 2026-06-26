@@ -12,7 +12,8 @@ public record ShopProfile(
     string Email,
     string TaxNo,
     string Tagline,
-    string FooterText);
+    string FooterText,
+    string CurrencySymbol = "৳");
 
 public class CustomerAccountStatementDocument : IDocument
 {
@@ -282,12 +283,12 @@ public class CustomerAccountStatementDocument : IDocument
                     table.Cell().Background(bg).BorderBottom(bs).BorderColor(Gray200)
                         .PaddingHorizontal(hp).PaddingVertical(vp)
                         .AlignRight()
-                        .Text($"{item.UnitPrice:N2}").FontSize(8).FontColor(Gray700);
+                        .Text($"{_shop.CurrencySymbol} {item.UnitPrice:N2}").FontSize(8).FontColor(Gray700);
 
                     table.Cell().Background(bg).BorderBottom(bs).BorderColor(Gray200)
                         .PaddingHorizontal(hp).PaddingVertical(vp)
                         .AlignRight()
-                        .Text($"{item.LineTotal:N2}").FontSize(8).Bold().FontColor(Gray900);
+                        .Text($"{_shop.CurrencySymbol} {item.LineTotal:N2}").FontSize(8).Bold().FontColor(Gray900);
                 }
 
                 // Grand Total footer row
@@ -299,7 +300,7 @@ public class CustomerAccountStatementDocument : IDocument
                 table.Cell()
                     .Background(NavyPrimary).PaddingHorizontal(5).PaddingVertical(8)
                     .AlignRight()
-                    .Text($"{grandTotal:N2}").Bold().FontSize(8.5f).FontColor(White);
+                    .Text($"{_shop.CurrencySymbol} {grandTotal:N2}").Bold().FontSize(8.5f).FontColor(White);
             });
 
             // Financial summary — plain text, right-aligned, no box
@@ -316,14 +317,14 @@ public class CustomerAccountStatementDocument : IDocument
                     {
                         r.RelativeItem().Text("Total Billed").FontSize(8.5f).FontColor(Gray500);
                         r.ConstantItem(90).AlignRight()
-                            .Text($"{_data.TotalPurchaseAmount:N2}").FontSize(8.5f).FontColor(Gray700);
+                            .Text($"{_shop.CurrencySymbol} {_data.TotalPurchaseAmount:N2}").FontSize(8.5f).FontColor(Gray700);
                     });
 
                     s.Item().PaddingTop(6).Row(r =>
                     {
                         r.RelativeItem().Text("Total Paid").FontSize(8.5f).FontColor(GreenText);
                         r.ConstantItem(90).AlignRight()
-                            .Text($"({_data.TotalPaidAmount:N2})").FontSize(8.5f).FontColor(GreenText);
+                            .Text($"({_shop.CurrencySymbol} {_data.TotalPaidAmount:N2})").FontSize(8.5f).FontColor(GreenText);
                     });
 
                     s.Item().PaddingTop(8).LineHorizontal(1f).LineColor(Gray300);
@@ -332,7 +333,7 @@ public class CustomerAccountStatementDocument : IDocument
                     {
                         r.RelativeItem().Text("BALANCE DUE").Bold().FontSize(10).FontColor(Gray900);
                         r.ConstantItem(90).AlignRight()
-                            .Text($"{_data.CurrentDue:N2}").Bold().FontSize(10).FontColor(Gray900);
+                            .Text($"{_shop.CurrencySymbol} {_data.CurrentDue:N2}").Bold().FontSize(10).FontColor(Gray900);
                     });
                 });
             });
