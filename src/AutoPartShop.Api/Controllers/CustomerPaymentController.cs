@@ -1,12 +1,15 @@
+using AutoPartShop.Api.Pdf;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.Common;
 using AutoPartShop.Application.CustomerPayment;
 using AutoPartShop.Application.CustomerPayment.Dtos;
 using AutoPartShop.Application.DTOs.PaymentDtos;
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using QuestPDF.Fluent;
 
 namespace AutoPartShop.Api.Controllers;
 
@@ -21,6 +24,7 @@ public class CustomerPaymentController : ControllerBase
     private readonly ICustomerRepository _customerRepository;
     private readonly IInvoiceRepository _invoiceRepository;
     private readonly ISalesOrderRepository _salesOrderRepository;
+    private readonly IApplicationSettingsRepository _settingsRepository;
     private readonly AutoPartDbContext _dbContext;
     private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<CustomerPaymentController> _logger;
@@ -31,6 +35,7 @@ public class CustomerPaymentController : ControllerBase
         ICustomerRepository customerRepository,
         IInvoiceRepository invoiceRepository,
         ISalesOrderRepository salesOrderRepository,
+        IApplicationSettingsRepository settingsRepository,
         AutoPartDbContext dbContext,
         ICurrentUserService currentUserService,
         ILogger<CustomerPaymentController> logger)
@@ -40,6 +45,7 @@ public class CustomerPaymentController : ControllerBase
         _customerPaymentReadRepository = customerPaymentReadRepository;
         _invoiceRepository = invoiceRepository;
         _salesOrderRepository = salesOrderRepository;
+        _settingsRepository = settingsRepository;
         _dbContext = dbContext;
         _currentUserService = currentUserService;
         _logger = logger;
@@ -586,6 +592,59 @@ public class CustomerPaymentController : ControllerBase
     }
 
 
+
+    /// <summary>
+    /// Download a Payment Receipt PDF for a single payment.
+    /// </summary>
+    [HttpGet("{id:guid}/receipt")]
+    [Produces("application/pdf")]
+    [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DownloadPaymentReceipt(Guid id, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var payment = await _repository.GetByIdAsync(id, cancellationToken);
+            if (payment is null) return NotFound();
+
+            var mapped = MapResponse(payment);
+
+            var businessSettings = await _settingsRepository.GetByCategoryAsync("BUSINESS", cancellationToken);
+
+            string Get(string key, string fallback = "")
+            {
+                var v = businessSettings.FirstOrDefault(s => s.Key == key && !s.Isdeleted)?.Value;
+                return string.IsNullOrWhiteSpace(v) ? fallback : v;
+            }
+
+            var currencyEntity = await _dbContext.Set<Currency>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Code == mapped.Currency && !c.Isdeleted, cancellationToken);
+            string currencySymbol = currencyEntity?.Symbol ?? mapped.Currency;
+
+            var shopProfile = new ShopProfile(
+                Name:           Get("SHOP_NAME"),
+                Address:        Get("SHOP_ADDRESS"),
+                Phone:          Get("SHOP_PHONE"),
+                Email:          Get("SHOP_EMAIL"),
+                TaxNo:          Get("SHOP_TAX_NUMBER"),
+                Tagline:        Get("SHOP_TAGLINE"),
+                FooterText:     Get("INVOICE_FOOTER_TEXT", "Thank you for your payment."),
+                CurrencySymbol: currencySymbol);
+
+            var document = new PaymentReceiptDocument(mapped, shopProfile);
+            var pdfBytes = document.GeneratePdf();
+
+            var filename = $"receipt-{mapped.TransactionNumber}-{DateTime.UtcNow:yyyyMMdd}.pdf";
+            return File(pdfBytes, "application/pdf", filename);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating payment receipt for payment: {PaymentId}", id);
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { message = "An error occurred while generating the payment receipt" });
+        }
+    }
 
     private Application.CustomerPayment.Dtos.CustomerPaymentResponse MapResponse(CustomerPayment p)
     {

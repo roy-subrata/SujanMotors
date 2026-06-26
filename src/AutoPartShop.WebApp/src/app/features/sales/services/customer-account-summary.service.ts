@@ -38,6 +38,7 @@ export interface CustomerAccountSummary {
     reportDate: string;
     fromDate?: string;
     toDate?: string;
+    currency: string;
     totalPurchaseAmount: number;
     totalPaidAmount: number;
     currentDue: number;
@@ -59,5 +60,9 @@ export class CustomerAccountSummaryService {
 
     getAccountSummary(customerId: string, query: CustomerAccountSummaryQuery): Observable<CustomerAccountSummary> {
         return this.http.post<CustomerAccountSummary>(`${this.apiUrl}/${customerId}`, query);
+    }
+
+    downloadStatementPdf(customerId: string, query: CustomerAccountSummaryQuery): Observable<Blob> {
+        return this.http.post(`${this.apiUrl}/${customerId}/pdf`, query, { responseType: 'blob' });
     }
 }

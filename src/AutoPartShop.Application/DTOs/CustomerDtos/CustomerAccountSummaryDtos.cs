@@ -23,6 +23,8 @@ public class CustomerAccountSummaryDto
     public DateTime ReportDate { get; set; }
     public DateTime? FromDate { get; set; }
     public DateTime? ToDate { get; set; }
+    public string Currency { get; set; } = "BDT";
+    public string CurrencySymbol { get; set; } = "৳";
 
     /// <summary>SUM(Invoice.GrandTotal) within date range</summary>
     public decimal TotalPurchaseAmount { get; set; }
