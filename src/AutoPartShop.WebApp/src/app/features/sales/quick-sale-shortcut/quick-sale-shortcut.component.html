@@ -261,6 +261,12 @@
               </p-inputNumber>
             </span>
           </div>
+          @if (vatEnabled() && vatAmount() > 0) {
+            <div class="total-row">
+              <span class="label">VAT ({{ vatPercentage() }}%)</span>
+              <span class="value">+ {{ formatCurrency(vatAmount()) }}</span>
+            </div>
+          }
         </div>
 
         <!-- Checkout Button -->
@@ -502,6 +508,15 @@
               <span>Auto Create PO</span>
             </label>
           </div>
+          <div class="option-row">
+            <label class="checkbox-label">
+              <input type="checkbox" [ngModel]="vatEnabled()" (ngModelChange)="vatEnabled.set($event)" [ngModelOptions]="{standalone: true}" />
+              <span>Apply VAT ({{ vatPercentage() }}%)</span>
+            </label>
+            @if (vatEnabled()) {
+              <span class="option-value">+ {{ formatCurrency(vatAmount()) }}</span>
+            }
+          </div>
           <div class="option-row print-type-row">
             <span class="print-type-title">Receipt print</span>
             <div class="print-type-options">
@@ -638,9 +653,35 @@
         <span class="detail-label">Due</span>
         <span class="detail-value">{{ formatCurrency(lastSale.dueAmount) }}</span>
       </div>
-      <button class="action-btn primary" (click)="printLastSaleReceipt()">
-        <i class="pi pi-print"></i> Print Receipt
-      </button>
+      <div class="last-sale-actions">
+        <button class="action-btn primary" (click)="printLastSaleReceipt()">
+          <i class="pi pi-print"></i> Print Receipt
+        </button>
+        @if (lastSale?.salesOrderId) {
+          <button class="action-btn secondary" (click)="resendNotification()" [disabled]="resendingNotification()">
+            <i class="pi pi-send"></i>
+            {{ resendingNotification() ? 'Sending…' : 'Resend Notification' }}
+          </button>
+        }
+      </div>
+    </div>
+  </p-dialog>
+
+  <!-- Reprint Receipt Dialog -->
+  <p-dialog [(visible)]="showReprintDialog" [modal]="true" [style]="{ width: '420px' }" header="Reprint Receipt">
+    <div class="reprint-content">
+      <p class="reprint-hint">Enter the invoice number to download a PDF copy.</p>
+      <div class="reprint-input-row">
+        <input type="text" pInputText [(ngModel)]="reprintInvoiceNumber" [ngModelOptions]="{standalone: true}"
+               placeholder="e.g. INV-2024-00123" (keydown.enter)="reprintReceipt()" />
+        <button class="action-btn primary" (click)="reprintReceipt()" [disabled]="!reprintInvoiceNumber.trim() || reprintLoading()">
+          <i class="pi" [ngClass]="reprintLoading() ? 'pi-spin pi-spinner' : 'pi-download'"></i>
+          {{ reprintLoading() ? 'Looking up…' : 'Download PDF' }}
+        </button>
+      </div>
+      @if (reprintError) {
+        <p class="reprint-error">{{ reprintError }}</p>
+      }
     </div>
   </p-dialog>
 

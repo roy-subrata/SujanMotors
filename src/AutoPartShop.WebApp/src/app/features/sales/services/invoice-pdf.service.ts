@@ -301,6 +301,12 @@ export class InvoicePdfService {
     pdf.save(`${filename}.pdf`);
   }
 
+  getInvoiceByNumber(invoiceNumber: string): Observable<{ id: string; invoiceNumber: string }> {
+    return this.http.get<{ id: string; invoiceNumber: string }>(
+      `${environment.apiUrl}/v1/salesorders/invoices/number/${encodeURIComponent(invoiceNumber)}`
+    );
+  }
+
   /**
    * Download the server-rendered QuestPDF invoice for the given invoice ID.
    * Returns an Observable that completes once the browser download is triggered.
