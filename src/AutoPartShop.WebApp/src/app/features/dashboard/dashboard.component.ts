@@ -183,14 +183,7 @@ export class DashboardComponent implements OnInit {
     return `${fmt(this.resolvedStartDate)} – ${fmt(this.resolvedEndDate)}`;
   }
 
-  // ─── Net Cash Flow (#12) — moved out of template ─────────────────────────
-  get netCashFlow(): number {
-    const s = this.dashboardData()?.summary;
-    if (!s) return 0;
-    return s.cashInflow - s.cashOutflow;
-  }
-
-  // ─── Alert helpers (#13) ─────────────────────────────────────────────────
+  // ─── Alert helpers ───────────────────────────────────────────────────────
   get hasAlerts(): boolean {
     const s = this.dashboardData()?.summary;
     if (!s) return false;
@@ -203,10 +196,10 @@ export class DashboardComponent implements OnInit {
 
   // ─── Chart ────────────────────────────────────────────────────────────────
   private updateChartData(data: DashboardResponse): void {
+    // Backend always groups by day, so use a date label for all periods.
+    // (Previously DAILY used a time format which showed "12:00 AM" for the single daily data point.)
     const labels = data.salesTrend.map(t =>
-      this.selectedPeriod === 'DAILY'
-        ? new Date(t.date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-        : new Date(t.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      new Date(t.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     );
     const salesData = data.salesTrend.map(t => t.sales);
     const purchasesData = data.salesTrend.map(t => t.purchases);
