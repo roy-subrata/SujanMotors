@@ -124,13 +124,13 @@
         <span><strong>{{ dashboardData()!.summary.lowStockItemsCount }}</strong> low stock items</span>
       </div>
       <div class="alert-item alert-danger" *ngIf="dashboardData()!.summary.customerOverdueAmount > 0"
-        pTooltip="Customer invoices past due date" tooltipPosition="bottom">
+        pTooltip="Customers with unpaid invoices older than 30 days" tooltipPosition="bottom">
         <i class="pi pi-users"></i>
         <span>Customer overdue: <strong>{{ formatCurrency(dashboardData()!.summary.customerOverdueAmount) }}</strong>
           ({{ dashboardData()!.summary.customerOverdueCount }} customers)</span>
       </div>
       <div class="alert-item alert-danger" *ngIf="dashboardData()!.summary.supplierOverdueAmount > 0"
-        pTooltip="Supplier invoices past due date" tooltipPosition="bottom">
+        pTooltip="Suppliers with delivered goods past expected payment date" tooltipPosition="bottom">
         <i class="pi pi-truck"></i>
         <span>Supplier overdue: <strong>{{ formatCurrency(dashboardData()!.summary.supplierOverdueAmount) }}</strong>
           ({{ dashboardData()!.summary.supplierOverdueCount }} suppliers)</span>
@@ -165,8 +165,8 @@
             <span class="kpi-value" [pTooltip]="formatCurrency(dashboardData()!.summary.totalRevenue)" tooltipPosition="top">{{ formatCurrency(dashboardData()!.summary.totalRevenue) }}</span>
             <span class="kpi-label">Revenue Collected</span>
             <span class="kpi-meta">
-              Cash: {{ formatCurrency(dashboardData()!.summary.cashSales) }}
-              · Credit: {{ formatCurrency(dashboardData()!.summary.creditSales) }}
+              POS: {{ formatCurrency(dashboardData()!.summary.cashSales) }}
+              · Collections: {{ formatCurrency(dashboardData()!.summary.customerPaymentsReceived) }}
             </span>
           </div>
         </div>
@@ -178,7 +178,7 @@
           <div class="kpi-content">
             <span class="kpi-value" [pTooltip]="formatCurrency(dashboardData()!.summary.totalExpenses)" tooltipPosition="top">{{ formatCurrency(dashboardData()!.summary.totalExpenses) }}</span>
             <span class="kpi-label">Total Expenses</span>
-            <span class="kpi-meta">Purchases + Daily + Payments</span>
+            <span class="kpi-meta">Purchases + Daily Expenses (accrual)</span>
           </div>
         </div>
 
@@ -251,7 +251,7 @@
           <div class="kpi-content">
             <span class="kpi-value">{{ dashboardData()!.summary.lowStockItemsCount }}</span>
             <span class="kpi-label">Low Stock Items</span>
-            <span class="kpi-meta">Value: {{ formatCurrency(dashboardData()!.summary.lowStockValue) }}</span>
+            <span class="kpi-meta">Value: {{ formatCurrency(dashboardData()!.summary.lowStockValue) }} · as of today</span>
           </div>
         </div>
       </div>
@@ -316,7 +316,7 @@
           <div class="kpi-content">
             <span class="kpi-value" [pTooltip]="formatCurrency(dashboardData()!.summary.customerDueAmount)" tooltipPosition="top">{{ formatCurrency(dashboardData()!.summary.customerDueAmount) }}</span>
             <span class="kpi-label">Customer Due</span>
-            <span class="kpi-meta">{{ dashboardData()!.summary.customerDueCount }} customers</span>
+            <span class="kpi-meta">{{ dashboardData()!.summary.customerDueCount }} customers · as of today</span>
           </div>
         </div>
 
@@ -327,7 +327,7 @@
           <div class="kpi-content">
             <span class="kpi-value" [pTooltip]="formatCurrency(dashboardData()!.summary.supplierDueAmount)" tooltipPosition="top">{{ formatCurrency(dashboardData()!.summary.supplierDueAmount) }}</span>
             <span class="kpi-label">Supplier Due</span>
-            <span class="kpi-meta">{{ dashboardData()!.summary.supplierDueCount }} suppliers</span>
+            <span class="kpi-meta">{{ dashboardData()!.summary.supplierDueCount }} suppliers · as of today</span>
           </div>
         </div>
 
@@ -338,7 +338,7 @@
           <div class="kpi-content">
             <span class="kpi-value" [pTooltip]="formatCurrency(dashboardData()!.summary.inventoryValue)" tooltipPosition="top">{{ formatCurrency(dashboardData()!.summary.inventoryValue) }}</span>
             <span class="kpi-label">Inventory Value</span>
-            <span class="kpi-meta">Current stock at cost</span>
+            <span class="kpi-meta">Current stock at cost · as of today</span>
           </div>
         </div>
 

@@ -108,51 +108,112 @@ public class FinancialSummaryService : IFinancialSummaryService
         }
         var dailyExpensesCount = dailyExpenses.Count;
 
-        // Get outstanding balances — derived live from transactions. The stored CurrentBalance
-        // column on Customer/Supplier defaults to 0 and is never updated, so it cannot be trusted.
-        // Customer due mirrors OutstandingAmount = GrandTotal - PaidAmount across open sales orders.
-        var customerDuesPositive = (await _dbContext.SalesOrders
+        // ── Customer outstanding / overdue ───────────────────────────────────────────
+        // All-time snapshot — not filtered to the selected period.
+        // Each order's outstanding is converted to base currency individually so mixed-currency
+        // invoices are summed correctly.
+        // Overdue proxy: SalesOrder has no PaymentDueDate field; net-30 is used as the implicit term.
+        const int CreditTermDays = 30;
+        var today = DateTime.UtcNow.Date;
+
+        var openSalesOrders = await _dbContext.SalesOrders
             .Where(o => o.Status != "CANCELLED" && o.Status != "RETURNED" && !o.Isdeleted)
-            .GroupBy(o => o.CustomerId)
-            .Select(g => g.Sum(o => o.TotalAmount + o.TaxAmount - o.PaidAmount))
-            .ToListAsync(cancellationToken))
-            .Where(d => d > 0)
-            .ToList();
+            .Select(o => new { o.CustomerId, o.TotalAmount, o.TaxAmount, o.PaidAmount, o.Currency, o.SODate })
+            .ToListAsync(cancellationToken);
 
-        // Supplier balance mirrors SupplierLedgerService.CalculateCurrentBalanceAsync:
-        // purchases - payments - refunds (positive => we owe the supplier).
-        var supplierPurchaseTotals = await _dbContext.PurchaseOrders
+        var customerDueByCustomer = new Dictionary<Guid, decimal>();
+        var customerOverdueByCustomer = new Dictionary<Guid, decimal>();
+
+        foreach (var order in openSalesOrders)
+        {
+            var outstanding = order.TotalAmount + order.TaxAmount - order.PaidAmount;
+            if (outstanding <= 0) continue;
+
+            var converted = await _currencyService.ConvertToBaseAsync(outstanding, order.Currency, order.SODate, cancellationToken);
+            customerDueByCustomer.TryAdd(order.CustomerId, 0);
+            customerDueByCustomer[order.CustomerId] += converted;
+
+            // Past the implicit credit term → overdue
+            if (order.SODate.Date <= today.AddDays(-CreditTermDays))
+            {
+                customerOverdueByCustomer.TryAdd(order.CustomerId, 0);
+                customerOverdueByCustomer[order.CustomerId] += converted;
+            }
+        }
+
+        var customerDuesPositive = customerDueByCustomer.Values.Where(v => v > 0).ToList();
+        var customerOverduePositive = customerOverdueByCustomer.Values.Where(v => v > 0).ToList();
+
+        // ── Supplier outstanding / overdue ──────────────────────────────────────────
+        // Balance = delivered purchases − completed payments − settled returns, per supplier.
+        // Each row is converted to base currency so multi-currency supplier accounts are correct.
+        var activePOs = await _dbContext.PurchaseOrders
             .Where(x => x.Status != "DRAFT" && x.Status != "SUBMITTED" && x.Status != "CANCELLED" && !x.Isdeleted)
-            .GroupBy(x => x.SupplierId)
-            .Select(g => new { SupplierId = g.Key, Total = g.Sum(x => x.TotalAmount) })
-            .ToDictionaryAsync(x => x.SupplierId, x => x.Total, cancellationToken);
+            .Select(x => new { x.SupplierId, x.TotalAmount, x.Currency, x.PODate, x.ExpectedDeliveryDate, x.Status })
+            .ToListAsync(cancellationToken);
 
-        var supplierPaymentTotals = await _dbContext.SupplierPayments
+        var allSupplierPaymentsData = await _dbContext.SupplierPayments
             .Where(x => x.Status == "COMPLETED" && x.PaymentMethod != "REFUND" &&
                         (x.PaymentType == AutoPartShop.Domain.Entities.PaymentType.ADVANCE || x.SourceAdvancePaymentId == null) &&
                         !x.Isdeleted)
-            .GroupBy(x => x.SupplierId)
-            .Select(g => new { SupplierId = g.Key, Total = g.Sum(x => x.Amount) })
-            .ToDictionaryAsync(x => x.SupplierId, x => x.Total, cancellationToken);
+            .Select(x => new { x.SupplierId, x.Amount, x.Currency, x.PaymentDate })
+            .ToListAsync(cancellationToken);
 
-        var supplierRefundTotals = await _dbContext.PurchaseReturns
-            .Where(x => x.SettlementStatus == "SETTLED" && !x.Isdeleted)
-            .GroupBy(x => x.SupplierId)
-            .Select(g => new { SupplierId = g.Key, Total = g.Sum(x => x.SettledAmount) })
-            .ToDictionaryAsync(x => x.SupplierId, x => x.Total, cancellationToken);
+        // PurchaseReturn has no Currency field; use the originating PO's currency.
+        var allPurchaseReturns = await _dbContext.PurchaseReturns
+            .Where(x => x.SettlementStatus == "SETTLED" && !x.Isdeleted && x.PurchaseOrder != null)
+            .Select(x => new { x.SupplierId, x.SettledAmount, Currency = x.PurchaseOrder!.Currency, x.SettledDate })
+            .ToListAsync(cancellationToken);
 
-        var supplierBalancesPositive = supplierPurchaseTotals.Keys
-            .Union(supplierPaymentTotals.Keys)
-            .Union(supplierRefundTotals.Keys)
-            .Select(id => supplierPurchaseTotals.GetValueOrDefault(id)
-                          - supplierPaymentTotals.GetValueOrDefault(id)
-                          - supplierRefundTotals.GetValueOrDefault(id))
+        var supplierPOBySupplier = new Dictionary<Guid, decimal>();
+        foreach (var po in activePOs)
+        {
+            var converted = await _currencyService.ConvertToBaseAsync(po.TotalAmount, po.Currency, po.PODate, cancellationToken);
+            supplierPOBySupplier.TryAdd(po.SupplierId, 0);
+            supplierPOBySupplier[po.SupplierId] += converted;
+        }
+
+        var supplierPaymentBySupplier = new Dictionary<Guid, decimal>();
+        foreach (var payment in allSupplierPaymentsData)
+        {
+            var converted = await _currencyService.ConvertToBaseAsync(payment.Amount, payment.Currency, payment.PaymentDate, cancellationToken);
+            supplierPaymentBySupplier.TryAdd(payment.SupplierId, 0);
+            supplierPaymentBySupplier[payment.SupplierId] += converted;
+        }
+
+        var supplierRefundBySupplier = new Dictionary<Guid, decimal>();
+        foreach (var refund in allPurchaseReturns)
+        {
+            var converted = await _currencyService.ConvertToBaseAsync(
+                refund.SettledAmount, refund.Currency, refund.SettledDate ?? DateTime.UtcNow, cancellationToken);
+            supplierRefundBySupplier.TryAdd(refund.SupplierId, 0);
+            supplierRefundBySupplier[refund.SupplierId] += converted;
+        }
+
+        var allSupplierIds = supplierPOBySupplier.Keys
+            .Union(supplierPaymentBySupplier.Keys)
+            .Union(supplierRefundBySupplier.Keys);
+
+        var supplierBalancesPositive = allSupplierIds
+            .Select(id => supplierPOBySupplier.GetValueOrDefault(id)
+                          - supplierPaymentBySupplier.GetValueOrDefault(id)
+                          - supplierRefundBySupplier.GetValueOrDefault(id))
             .Where(b => b > 0)
             .ToList();
 
-        // Calculate overdue (simplified - you may want to add due date logic)
-        var customerOverdue = customerDuesPositive.Sum();
-        var supplierOverdue = supplierBalancesPositive.Sum();
+        // Overdue: positive-balance suppliers that have at least one delivered PO past its expected delivery date.
+        var overdueSupplierIds = activePOs
+            .Where(po => po.ExpectedDeliveryDate.Date < today && (po.Status == "DELIVERED" || po.Status == "PARTIAL"))
+            .Select(po => po.SupplierId)
+            .ToHashSet();
+
+        var supplierOverdueBalancesPositive = allSupplierIds
+            .Where(id => overdueSupplierIds.Contains(id))
+            .Select(id => supplierPOBySupplier.GetValueOrDefault(id)
+                          - supplierPaymentBySupplier.GetValueOrDefault(id)
+                          - supplierRefundBySupplier.GetValueOrDefault(id))
+            .Where(b => b > 0)
+            .ToList();
 
         // Get inventory value at ACTUAL purchase cost: sum each on-hand lot's qty × its lot cost
         // (not a typed standard cost). Lots carry the real cost paid at goods-receipt time.
@@ -179,11 +240,12 @@ public class FinancialSummaryService : IFinancialSummaryService
 
         // Calculate profit
         var grossProfit = totalSales - totalPurchases;
-        var netProfit = grossProfit - totalDailyExpenses; // Subtract daily operational expenses
-        var profitMargin = totalSales > 0 ? (grossProfit / totalSales) * 100 : 0;
+        var netProfit = grossProfit - totalDailyExpenses;
+        // Net margin — matches the Net Profit KPI card so the % is consistent with the value shown
+        var profitMargin = totalSales > 0 ? (netProfit / totalSales) * 100 : 0;
 
         // Cash flow
-        var cashInflow = cashSales + customerPayments;
+        var cashInflow = cashSales + customerPayments;   // POS receipts + credit-order collections
         var cashOutflow = supplierPayments + totalDailyExpenses;
 
         return new FinancialSummaryResponse
@@ -198,7 +260,9 @@ public class FinancialSummaryService : IFinancialSummaryService
             CashSales = cashSales,
             CreditSales = creditSales,
             CustomerPaymentsReceived = customerPayments,
-            TotalRevenue = totalSales + customerPayments,
+            // "Revenue Collected" = cash received: POS sales + credit-order collections (not totalSales
+            // which includes unpaid credit invoices and would otherwise double-count with customerPayments)
+            TotalRevenue = cashSales + customerPayments,
 
             // Expenses
             TotalPurchases = totalPurchases,
@@ -207,7 +271,10 @@ public class FinancialSummaryService : IFinancialSummaryService
             DailyExpenses = totalDailyExpenses,
             DailyExpensesCount = dailyExpensesCount,
             OtherExpenses = 0,
-            TotalExpenses = totalPurchases + supplierPayments + totalDailyExpenses,
+            // Accrual-basis total: purchase cost + operational expenses.
+            // supplierPayments is a cash settlement of PO liabilities — adding it here would double-count
+            // any PO received and paid in the same period.
+            TotalExpenses = totalPurchases + totalDailyExpenses,
 
             // Profitability
             GrossProfit = grossProfit,
@@ -220,11 +287,11 @@ public class FinancialSummaryService : IFinancialSummaryService
             SupplierDueAmount = supplierBalancesPositive.Sum(),
             SupplierDueCount = supplierBalancesPositive.Count,
 
-            // Overdue
-            CustomerOverdueAmount = customerOverdue,
-            CustomerOverdueCount = customerDuesPositive.Count,
-            SupplierOverdueAmount = supplierOverdue,
-            SupplierOverdueCount = supplierBalancesPositive.Count,
+            // Overdue (genuinely past due: customer net-30, supplier past ExpectedDeliveryDate)
+            CustomerOverdueAmount = customerOverduePositive.Sum(),
+            CustomerOverdueCount = customerOverduePositive.Count,
+            SupplierOverdueAmount = supplierOverdueBalancesPositive.Sum(),
+            SupplierOverdueCount = supplierOverdueBalancesPositive.Count,
 
             // Inventory
             InventoryValue = inventoryValue,
@@ -251,9 +318,12 @@ public class FinancialSummaryService : IFinancialSummaryService
     {
         var startDate = request.StartDate.Date;
         var endDate = request.EndDate.Date;
+        // Exclusive upper bound matches the inclusive-end pattern used in GetFinancialSummaryAsync
+        // so the chart and KPI cards always cover the same date range.
+        var filterEnd = endDate.AddDays(1);
 
         var salesData = await _dbContext.SalesOrders
-            .Where(so => so.SODate >= startDate && so.SODate <= endDate && !so.Isdeleted)
+            .Where(so => so.SODate >= startDate && so.SODate < filterEnd && !so.Isdeleted)
             .GroupBy(so => so.SODate.Date)
             .Select(g => new
             {
@@ -264,7 +334,7 @@ public class FinancialSummaryService : IFinancialSummaryService
             .ToListAsync(cancellationToken);
 
         var purchaseData = await _dbContext.PurchaseOrders
-            .Where(po => po.PODate >= startDate && po.PODate <= endDate && !po.Isdeleted)
+            .Where(po => po.PODate >= startDate && po.PODate < filterEnd && !po.Isdeleted)
             .GroupBy(po => po.PODate.Date)
             .Select(g => new
             {
@@ -303,41 +373,51 @@ public class FinancialSummaryService : IFinancialSummaryService
         var startDate = request.StartDate.Date;
         var endDate = request.EndDate.Date.AddDays(1).AddSeconds(-1);
 
-        // Revenue per product from sales order lines.
-        var revenueByProduct = await _dbContext.SalesOrders
+        // Load line items with the parent order's currency so revenue can be converted per-row.
+        var lineItems = await _dbContext.SalesOrders
             .Where(so => so.SODate >= startDate && so.SODate <= endDate && !so.Isdeleted)
-            .SelectMany(so => so.LineItems)
-            .Include(sol => sol.Part)
-            .GroupBy(sol => new { sol.PartId, sol.Part!.Name, PartNumber = sol.Part.PartNumber.Value, sol.Part.SKU })
-            .Select(g => new
-            {
-                g.Key.PartId,
-                g.Key.Name,
-                g.Key.PartNumber,
-                g.Key.SKU,
-                QuantitySold = g.Sum(sol => sol.Quantity),
-                TotalRevenue = g.Sum(sol => (sol.Quantity * sol.UnitPrice) - (sol.Quantity * sol.Discount))
-            })
+            .SelectMany(so => so.LineItems
+                .Where(li => li.Part != null)
+                .Select(li => new
+                {
+                    li.PartId,
+                    PartName = li.Part!.Name,
+                    PartNumber = li.Part.PartNumber.Value,
+                    Sku = li.Part.SKU,
+                    li.Quantity,
+                    Revenue = (li.Quantity * li.UnitPrice) - (li.Quantity * li.Discount),
+                    so.Currency,
+                    so.SODate
+                }))
             .ToListAsync(cancellationToken);
 
-        // Actual COGS per product = the real cost recorded on each SALE lot-movement (FIFO purchase
-        // cost captured at sale time), not a typed standard cost.
+        var productAgg = new Dictionary<Guid, (string Name, string PartNumber, string Sku, int Qty, decimal Revenue)>();
+        foreach (var li in lineItems)
+        {
+            var convertedRevenue = await _currencyService.ConvertToBaseAsync(li.Revenue, li.Currency, li.SODate, cancellationToken);
+            if (productAgg.TryGetValue(li.PartId, out var agg))
+                productAgg[li.PartId] = (agg.Name, agg.PartNumber, agg.Sku, agg.Qty + li.Quantity, agg.Revenue + convertedRevenue);
+            else
+                productAgg[li.PartId] = (li.PartName, li.PartNumber, li.Sku, li.Quantity, convertedRevenue);
+        }
+
+        // COGS per product — SALE lot-movements already recorded in base currency at movement time.
         var cogsByPart = await _dbContext.StockLotMovements
             .Where(m => m.MovementType == "SALE" && m.MovementDate >= startDate && m.MovementDate <= endDate && m.StockLot != null)
             .GroupBy(m => m.StockLot!.PartId)
             .Select(g => new { PartId = g.Key, Cogs = g.Sum(m => m.QuantityInBaseUnit * m.CostAtMovementInBaseUnit) })
             .ToDictionaryAsync(x => x.PartId, x => x.Cogs, cancellationToken);
 
-        return revenueByProduct
-            .Select(p => new TopProductDto
+        return productAgg
+            .Select(kvp => new TopProductDto
             {
-                PartId = p.PartId.ToString(),
-                PartName = p.Name,
-                PartNumber = p.PartNumber,
-                Sku = p.SKU,
-                QuantitySold = p.QuantitySold,
-                TotalRevenue = p.TotalRevenue,
-                TotalProfit = p.TotalRevenue - (cogsByPart.TryGetValue(p.PartId, out var c) ? c : 0)
+                PartId = kvp.Key.ToString(),
+                PartName = kvp.Value.Name,
+                PartNumber = kvp.Value.PartNumber,
+                Sku = kvp.Value.Sku,
+                QuantitySold = kvp.Value.Qty,
+                TotalRevenue = kvp.Value.Revenue,
+                TotalProfit = kvp.Value.Revenue - (cogsByPart.TryGetValue(kvp.Key, out var c) ? c : 0)
             })
             .OrderByDescending(p => p.TotalRevenue)
             .Take(10)
@@ -349,30 +429,57 @@ public class FinancialSummaryService : IFinancialSummaryService
         var startDate = request.StartDate.Date;
         var endDate = request.EndDate.Date.AddDays(1).AddSeconds(-1);
 
-        var topCustomers = await _dbContext.SalesOrders
-            .Include(so => so.Customer)
-            .Where(so => so.SODate >= startDate && so.SODate <= endDate && !so.Isdeleted)
-            .GroupBy(so => new
+        // Load orders in memory so we can apply per-row currency conversion before grouping.
+        var orders = await _dbContext.SalesOrders
+            .Where(so => so.SODate >= startDate && so.SODate <= endDate && !so.Isdeleted && so.Customer != null)
+            .Select(so => new
             {
                 so.CustomerId,
                 CustomerName = so.Customer!.FirstName + " " + so.Customer.LastName,
-                so.Customer.Phone,
-                so.Customer.CurrentBalance
+                Phone = so.Customer.Phone,
+                so.TotalAmount, so.TaxAmount, so.PaidAmount,
+                so.Currency, so.SODate, so.Status
             })
-            .Select(g => new TopCustomerDto
+            .ToListAsync(cancellationToken);
+
+        var customerAgg = new Dictionary<Guid, (string Name, string Phone, int Orders, decimal Revenue, decimal Outstanding, DateTime LastDate)>();
+
+        foreach (var so in orders)
+        {
+            var revenue = await _currencyService.ConvertToBaseAsync(so.TotalAmount, so.Currency, so.SODate, cancellationToken);
+
+            var rawOutstanding = so.Status != "CANCELLED" && so.Status != "RETURNED"
+                ? so.TotalAmount + so.TaxAmount - so.PaidAmount
+                : 0;
+            var outstanding = rawOutstanding > 0
+                ? await _currencyService.ConvertToBaseAsync(rawOutstanding, so.Currency, so.SODate, cancellationToken)
+                : 0;
+
+            if (customerAgg.TryGetValue(so.CustomerId, out var agg))
             {
-                CustomerId = g.Key.CustomerId.ToString(),
-                CustomerName = g.Key.CustomerName,
-                Phone = g.Key.Phone,
-                TotalOrders = g.Count(),
-                TotalRevenue = g.Sum(so => so.TotalAmount),
-                OutstandingAmount = g.Key.CurrentBalance,
-                LastPurchaseDate = g.Max(so => so.SODate)
+                customerAgg[so.CustomerId] = (agg.Name, agg.Phone,
+                    agg.Orders + 1, agg.Revenue + revenue, agg.Outstanding + outstanding,
+                    so.SODate > agg.LastDate ? so.SODate : agg.LastDate);
+            }
+            else
+            {
+                customerAgg[so.CustomerId] = (so.CustomerName, so.Phone, 1, revenue, outstanding, so.SODate);
+            }
+        }
+
+        return customerAgg
+            .Select(kvp => new TopCustomerDto
+            {
+                CustomerId = kvp.Key.ToString(),
+                CustomerName = kvp.Value.Name,
+                Phone = kvp.Value.Phone,
+                TotalOrders = kvp.Value.Orders,
+                TotalRevenue = kvp.Value.Revenue,
+                OutstandingAmount = kvp.Value.Outstanding,
+                LastPurchaseDate = kvp.Value.LastDate
             })
             .OrderByDescending(c => c.TotalRevenue)
             .Take(10)
-            .ToListAsync(cancellationToken);
-
-        return topCustomers;
+            .ToList();
     }
 }
