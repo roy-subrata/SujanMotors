@@ -1,6 +1,7 @@
 <div class="pos-container">
   <p-toast></p-toast>
   <p-confirmDialog></p-confirmDialog>
+  <p-menu #moreMenu [model]="moreActions" [popup]="true" appendTo="body"></p-menu>
   <app-quick-customer-dialog (customerCreated)="onCustomerCreated($event)"></app-quick-customer-dialog>
   <app-invoice-preview [(visible)]="showInvoicePreview" [invoiceData]="invoicePreviewData" [invoiceId]="currentInvoiceId()"></app-invoice-preview>
 
@@ -29,71 +30,6 @@
       </div>
     </div>
 
-    <!-- Shortcut Toolbar -->
-    <div class="header-toolbar">
-      <div class="toolbar-group">
-        <button class="toolbar-btn" (click)="resetShortcut()" pTooltip="New Sale">
-          <i class="pi pi-plus-circle"></i>
-        </button>
-        <button class="toolbar-btn" (click)="viewLastSale()" pTooltip="Last Sale" [disabled]="!hasLastSale()">
-          <i class="pi pi-clock"></i>
-        </button>
-        <button class="toolbar-btn" (click)="openReturns()" pTooltip="Returns">
-          <i class="pi pi-refresh"></i>
-        </button>
-      </div>
-
-      <div class="toolbar-divider"></div>
-
-      <div class="toolbar-group">
-        <button class="toolbar-btn primary" (click)="openQuickCustomerDialog()" pTooltip="New Customer">
-          <i class="pi pi-user-plus"></i>
-        </button>
-        <button class="toolbar-btn" (click)="openCustomerHistory()" pTooltip="Customer History" [disabled]="!selectedCustomer()">
-          <i class="pi pi-history"></i>
-        </button>
-        <button class="toolbar-btn" (click)="viewCustomerCredit()" pTooltip="Customer Credit" [disabled]="!selectedCustomer()">
-          <i class="pi pi-wallet"></i>
-        </button>
-      </div>
-
-      <div class="toolbar-divider"></div>
-
-      <div class="toolbar-group">
-        <button class="toolbar-btn" (click)="openStockSearch()" pTooltip="Stock Check">
-          <i class="pi pi-box"></i>
-        </button>
-        <button class="toolbar-btn" (click)="openPriceCheck()" pTooltip="Price Check">
-          <i class="pi pi-tag"></i>
-        </button>
-      </div>
-
-      <div class="toolbar-divider"></div>
-
-      <div class="toolbar-group">
-        <button class="toolbar-btn success" (click)="quickCashPayment()" pTooltip="Quick Cash Payment">
-          <i class="pi pi-money-bill"></i>
-        </button>
-        <button class="toolbar-btn" (click)="quickCardPayment()" pTooltip="Quick Card Payment">
-          <i class="pi pi-credit-card"></i>
-        </button>
-        <button class="toolbar-btn" (click)="quickMobilePayment()" pTooltip="Quick Mobile Payment">
-          <i class="pi pi-mobile"></i>
-        </button>
-      </div>
-    </div>
-
-    <div class="header-right">
-      <div class="header-stats">
-        <span class="stat-badge">
-          <i class="pi pi-shopping-bag"></i>
-          {{ cartItems().length }} Items
-        </span>
-        <span class="stat-badge total" *ngIf="cartItems().length > 0">
-          {{ formatCurrency(grandTotal()) }}
-        </span>
-      </div>
-    </div>
   </header>
 
   <!-- Main Content -->
@@ -148,20 +84,6 @@
         </div>
       </div>
 
-      <!-- Cart Header -->
-      <div class="section-header">
-        <h2>Current Sale</h2>
-        <div class="cart-actions">
-          <span class="item-count">{{ cartItems().length }} item(s)</span>
-          <button class="icon-btn-sm" (click)="openBulkDiscount()" pTooltip="Bulk Discount" [disabled]="cartItems().length === 0">
-            <i class="pi pi-percentage"></i>
-          </button>
-          <button class="icon-btn-sm danger" (click)="clearCart()" pTooltip="Clear Cart" [disabled]="cartItems().length === 0">
-            <i class="pi pi-trash"></i>
-          </button>
-        </div>
-      </div>
-
       <!-- Empty State -->
       <div *ngIf="cartItems().length === 0" class="empty-cart">
         <div class="empty-icon">
@@ -175,9 +97,6 @@
       <div class="cart-items" *ngIf="cartItems().length > 0">
         <div class="cart-item" *ngFor="let item of cartItems(); let i = index">
           <div class="item-left">
-            <div class="item-avatar">
-              <span>{{ item.partName?.charAt(0) || '?' }}</span>
-            </div>
             <div class="item-info">
               <h4 class="item-name">{{ item.partName }}</h4>
               <div class="item-meta">
@@ -269,11 +188,11 @@
           }
         </div>
 
-        <!-- Checkout Button -->
-        <button class="checkout-btn" (click)="openCheckout()" [disabled]="cartItems().length === 0 || saving()">
-          <span>Checkout</span>
-          <span class="checkout-amount">{{ formatCurrency(grandTotal()) }}</span>
-        </button>
+        <div class="total-row grand-total-row">
+          <span class="grand-label">TOTAL ({{ cartItems().length }} items)</span>
+          <span class="grand-amount">{{ formatCurrency(grandTotal()) }}</span>
+        </div>
+
       </div>
     </section>
 
@@ -501,24 +420,22 @@
         </div>
 
         <!-- Options -->
-        <div class="sidebar-card">
-          <div class="option-row">
+        <div class="sidebar-card options-card">
+          <div class="options-inline-row">
             <label class="checkbox-label">
               <input type="checkbox" [(ngModel)]="autoCreatePO" [ngModelOptions]="{standalone: true}" />
-              <span>Auto Create PO</span>
+              <span>Auto PO</span>
             </label>
-          </div>
-          <div class="option-row">
             <label class="checkbox-label">
               <input type="checkbox" [ngModel]="vatEnabled()" (ngModelChange)="vatEnabled.set($event)" [ngModelOptions]="{standalone: true}" />
-              <span>Apply VAT ({{ vatPercentage() }}%)</span>
+              <span>VAT {{ vatPercentage() }}%</span>
+              @if (vatEnabled()) {
+                <span class="vat-amount">(+{{ formatCurrency(vatAmount()) }})</span>
+              }
             </label>
-            @if (vatEnabled()) {
-              <span class="option-value">+ {{ formatCurrency(vatAmount()) }}</span>
-            }
           </div>
-          <div class="option-row print-type-row">
-            <span class="print-type-title">Receipt print</span>
+          <div class="print-type-row">
+            <span class="print-type-title">Print</span>
             <div class="print-type-options">
               <label class="radio-label">
                 <input type="radio" name="printType" value="NONE" [(ngModel)]="printType" [ngModelOptions]="{standalone: true}" />
@@ -526,35 +443,93 @@
               </label>
               <label class="radio-label">
                 <input type="radio" name="printType" value="THERMAL" [(ngModel)]="printType" [ngModelOptions]="{standalone: true}" />
-                <span>Thermal 80mm</span>
+                <span>Thermal</span>
               </label>
               <label class="radio-label">
                 <input type="radio" name="printType" value="A4" [(ngModel)]="printType" [ngModelOptions]="{standalone: true}" />
-                <span>A4 Invoice</span>
+                <span>A4</span>
               </label>
             </div>
           </div>
-          <textarea pTextarea [(ngModel)]="saleNotes" [ngModelOptions]="{standalone: true}" rows="2" placeholder="Notes..."></textarea>
+          <textarea pTextarea [(ngModel)]="saleNotes" [ngModelOptions]="{standalone: true}" rows="2" placeholder="Sale notes..."></textarea>
         </div>
       </div>
 
-      <!-- Complete Sale Buttons (Fixed at bottom) -->
-      <div class="complete-actions" *ngIf="cartItems().length > 0">
-        <button class="complete-btn primary" (click)="confirmCheckout()" [disabled]="(remainingBalance() > 0.01 && !hasDuePayments()) || !selectedCustomer() || saving()">
-          <i class="pi pi-check-circle"></i>
-          <span>{{ hasDuePayments() ? 'Complete (Due Sale)' : 'Complete Sale' }}</span>
+      <div class="sidebar-pay-area">
+        <button class="pay-btn"
+          (click)="confirmCheckout()"
+          [disabled]="(remainingBalance() > 0.01 && !hasDuePayments()) || !selectedCustomer() || saving() || cartItems().length === 0"
+          [class.due-sale]="hasDuePayments()">
+          <div class="pay-btn-inner">
+            <div class="pay-btn-label">
+              <i class="pi pi-check-circle"></i>
+              <span>{{ saving() ? 'Processing…' : hasDuePayments() ? 'Complete (Due Sale)' : 'Complete Sale' }}</span>
+            </div>
+            @if (cartItems().length > 0) {
+              <div class="pay-btn-amount">{{ formatCurrency(grandTotal()) }}</div>
+            }
+          </div>
         </button>
-        <div class="secondary-actions">
-          <button type="button" class="action-btn" (click)="moreMenu.toggle($event)"
-            [disabled]="cartItems().length === 0" pTooltip="More actions">
-            <i class="pi pi-ellipsis-h"></i>
-            <span>More</span>
-          </button>
-          <p-menu #moreMenu [model]="moreActions" [popup]="true" appendTo="body"></p-menu>
-        </div>
       </div>
     </aside>
   </main>
+
+  <!-- Bottom Navigation Bar — all shortcuts visible, no popup menus -->
+  <nav class="pos-bottom-nav">
+    <div class="nav-group">
+      <button class="nav-btn" (click)="resetShortcut()" pTooltip="New Sale">
+        <i class="pi pi-plus-circle"></i><span>New Sale</span>
+      </button>
+      <button class="nav-btn" (click)="viewLastSale()" [disabled]="!hasLastSale()" pTooltip="Last Sale">
+        <i class="pi pi-clock"></i><span>Last Sale</span>
+      </button>
+      <button class="nav-btn amber" (click)="holdSale()" [disabled]="cartItems().length === 0" pTooltip="Hold Sale">
+        <i class="pi pi-pause"></i><span>Hold</span>
+      </button>
+      <button class="nav-btn" (click)="recallHeldSales()" pTooltip="Recall Held Sale">
+        <i class="pi pi-replay"></i><span>Recall</span>
+      </button>
+      <button class="nav-btn" (click)="openReturns()" pTooltip="Returns">
+        <i class="pi pi-refresh"></i><span>Returns</span>
+      </button>
+    </div>
+    <div class="nav-divider"></div>
+    <div class="nav-group">
+      <button class="nav-btn" (click)="openBulkDiscount()" [disabled]="cartItems().length === 0" pTooltip="Apply Global Discount">
+        <i class="pi pi-percentage"></i><span>Discount</span>
+      </button>
+      <button class="nav-btn" (click)="saveDraft()" [disabled]="cartItems().length === 0" pTooltip="Save Draft">
+        <i class="pi pi-save"></i><span>Save Draft</span>
+      </button>
+      <button class="nav-btn" (click)="saveAsQuotation()" [disabled]="cartItems().length === 0 || saving()" pTooltip="Save as Quotation">
+        <i class="pi pi-file"></i><span>Quotation</span>
+      </button>
+      <button class="nav-btn" (click)="openReprintDialog()" pTooltip="Reprint Receipt">
+        <i class="pi pi-print"></i><span>Reprint</span>
+      </button>
+    </div>
+    <div class="nav-divider"></div>
+    <div class="nav-group">
+      <button class="nav-btn primary" (click)="openQuickCustomerDialog()" pTooltip="New Customer">
+        <i class="pi pi-user-plus"></i><span>New Cust.</span>
+      </button>
+      <button class="nav-btn" (click)="openCustomerHistory()" [disabled]="!selectedCustomer()" pTooltip="Customer History">
+        <i class="pi pi-history"></i><span>History</span>
+      </button>
+      <button class="nav-btn" (click)="viewCustomerCredit()" [disabled]="!selectedCustomer()" pTooltip="Customer Credit">
+        <i class="pi pi-wallet"></i><span>Credit</span>
+      </button>
+    </div>
+    <div class="nav-divider"></div>
+    <div class="nav-group">
+      <button class="nav-btn" (click)="openStockSearch()" pTooltip="Stock Check">
+        <i class="pi pi-box"></i><span>Stock</span>
+      </button>
+      <button class="nav-btn" (click)="openPriceCheck()" pTooltip="Price Check">
+        <i class="pi pi-tag"></i><span>Price</span>
+      </button>
+    </div>
+  </nav>
 
   <!-- ===== ALL DIALOGS ===== -->
 

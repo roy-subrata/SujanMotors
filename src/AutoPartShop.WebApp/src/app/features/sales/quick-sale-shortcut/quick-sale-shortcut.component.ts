@@ -755,6 +755,10 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
       { separator: true },
       { label: 'Save as Quotation', icon: 'pi pi-file', disabled: this.cartItems().length === 0 || this.saving(), command: () => this.saveAsQuotation() },
       { label: 'Reprint Receipt', icon: 'pi pi-print', command: () => this.openReprintDialog() },
+      { separator: true },
+      { label: 'Returns', icon: 'pi pi-refresh', command: () => this.openReturns() },
+      { label: 'Stock Check', icon: 'pi pi-box', command: () => this.openStockSearch() },
+      { label: 'Price Check', icon: 'pi pi-tag', command: () => this.openPriceCheck() },
     ];
   }
 
