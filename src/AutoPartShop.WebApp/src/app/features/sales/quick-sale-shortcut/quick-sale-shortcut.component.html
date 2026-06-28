@@ -2,7 +2,7 @@
   <p-toast></p-toast>
   <p-confirmDialog></p-confirmDialog>
   <app-quick-customer-dialog (customerCreated)="onCustomerCreated($event)"></app-quick-customer-dialog>
-  <app-invoice-preview [(visible)]="showInvoicePreview" [invoiceData]="invoicePreviewData"></app-invoice-preview>
+  <app-invoice-preview [(visible)]="showInvoicePreview" [invoiceData]="invoicePreviewData" [invoiceId]="currentInvoiceId()"></app-invoice-preview>
 
   <!-- Loading Overlay -->
   <div *ngIf="loading()" class="loading-overlay">

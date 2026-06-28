@@ -103,6 +103,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
   // Invoice Preview
   showInvoicePreview = false;
   invoicePreviewData: InvoicePdfData | null = null;
+  currentInvoiceId = signal<string | null>(null);
 
   // Parts
   selectedPartModel: PublicPartResponse | null = null;
@@ -649,6 +650,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     this.selectedTechnicianModel = null;
     this.selectedPartModel = null;
     this.manualDiscountAmount.set(0);
+    this.currentInvoiceId.set(null);
     this.saving.set(false);
     this.autoCreatePO = false;
     this.saleNotes = '';
@@ -1107,6 +1109,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
 
         // Capture the receipt + chosen format BEFORE resetForm() (which restores printType to default).
         this.invoicePreviewData = this.buildReceiptData(result, request);
+        this.currentInvoiceId.set(result.id);
         const receipt = this.invoicePreviewData;
         const printMode = this.printType;
 

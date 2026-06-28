@@ -1,5 +1,7 @@
 using AutoPartShop.Api.Common;
+using AutoPartShop.Api.Pdf;
 using AutoPartShop.Api.Services;
+using QuestPDF.Fluent;
 using AutoPartShop.Application.Common;
 using AutoPartShop.Application.Interfaces;
 using AutoPartShop.Domain.Events;
@@ -1348,6 +1350,115 @@ public class SalesOrderController : ControllerBase
             },
             salesOrderNumber = so?.SONumber ?? string.Empty
         }));
+    }
+
+    /// <summary>
+    /// Download invoice as a server-rendered QuestPDF document, styled like the customer account statement.
+    /// </summary>
+    [HttpGet("invoices/{id:guid}/pdf")]
+    [AllowAnonymous]   // opened from invoice preview; mirrors print-data auth policy
+    [Produces("application/pdf")]
+    [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DownloadInvoicePdf(Guid id, CancellationToken cancellationToken)
+    {
+        var invoice = await _dbContext.Invoices
+            .Include(i => i.CustomerPayments)
+            .Include(i => i.SalesOrder)
+                .ThenInclude(so => so!.LineItems)
+                    .ThenInclude(l => l.Part)
+            .Include(i => i.SalesOrder)
+                .ThenInclude(so => so!.LineItems)
+                    .ThenInclude(l => l.ProductVariant)
+            .Include(i => i.SalesOrder)
+                .ThenInclude(so => so!.LineItems)
+                    .ThenInclude(l => l.Unit)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(i => i.Id == id, cancellationToken);
+
+        if (invoice is null)
+            return NotFound(ApiError.NotFound($"Invoice '{id}' not found", Request.Path));
+
+        async Task<string> Setting(string key) =>
+            (await _dbContext.Set<ApplicationSettings>()
+                .Where(s => s.Key == key && !s.Isdeleted)
+                .Select(s => s.Value)
+                .FirstOrDefaultAsync(cancellationToken)) ?? string.Empty;
+
+        var so = invoice.SalesOrder;
+
+        var shopProfile = new ShopProfile(
+            Name:           await Setting("SHOP_NAME"),
+            Address:        await Setting("SHOP_ADDRESS"),
+            Phone:          await Setting("SHOP_PHONE"),
+            Email:          await Setting("SHOP_EMAIL"),
+            TaxNo:          await Setting("SHOP_TAX_NUMBER"),
+            Tagline:        await Setting("SHOP_TAGLINE"),
+            FooterText:     await Setting("INVOICE_FOOTER_TEXT") is { Length: > 0 } ft ? ft : "Thank you for your business!",
+            CurrencySymbol: "৳");
+
+        var lines = (so?.LineItems ?? [])
+            .OrderBy(l => l.LineNumber)
+            .Select((l, i) => new InvoiceLine(
+                SlNo:           i + 1,
+                DisplayName:    l.ProductVariant is not null
+                                    ? $"{l.Part?.Name} - {l.ProductVariant.Name}"
+                                    : (l.Part?.Name ?? string.Empty),
+                PartNumber:     l.Part?.PartNumber?.Value ?? string.Empty,
+                SKU:            l.ProductVariant?.SKU ?? l.Part?.SKU ?? string.Empty,
+                UnitSymbol:     l.Unit?.Symbol ?? string.Empty,
+                Quantity:       l.Quantity,
+                UnitPrice:      l.UnitPrice,
+                DiscountPerUnit: l.Discount,
+                LineTotal:      l.TotalPrice))
+            .ToList();
+
+        var payments = invoice.CustomerPayments
+            .Where(p => p.Status == "COMPLETED")
+            .OrderBy(p => p.PaymentDate)
+            .Select(p => new InvoicePaymentEntry(
+                PaymentDate: p.PaymentDate,
+                Method:      p.PaymentMethod,
+                Reference:   p.ReferenceNumber,
+                Amount:      p.Amount))
+            .ToList();
+
+        var data = new InvoiceDocumentData(
+            InvoiceNumber:    invoice.InvoiceNumber,
+            SalesOrderNumber: so?.SONumber ?? string.Empty,
+            InvoiceDate:      invoice.InvoiceDate,
+            DueDate:          invoice.DueDate,
+            Status:           invoice.Status,
+            CustomerName:     so?.CustomerName    ?? string.Empty,
+            CustomerPhone:    so?.CustomerPhone   ?? string.Empty,
+            CustomerEmail:    so?.CustomerEmail   ?? string.Empty,
+            CustomerAddress:  so?.DeliveryAddress ?? string.Empty,
+            VehicleLabel:     so?.VehicleLabel    ?? string.Empty,
+            TechnicianName:   so?.TechnicianName  ?? string.Empty,
+            Lines:            lines,
+            SubTotal:         invoice.SubTotal,
+            DiscountAmount:   invoice.DiscountAmount,
+            TaxPercentage:    invoice.SubTotal > 0 ? (invoice.TaxAmount / invoice.SubTotal * 100) : 0,
+            TaxAmount:        invoice.TaxAmount,
+            GrandTotal:       invoice.GrandTotal,
+            PaidAmount:       invoice.AmountPaid,
+            BalanceDue:       invoice.OutstandingAmount,
+            Payments:         payments,
+            Notes:            invoice.Notes);
+
+        try
+        {
+            var document = new InvoiceDocument(data, shopProfile);
+            var pdfBytes = document.GeneratePdf();
+            var filename = $"invoice-{invoice.InvoiceNumber}.pdf";
+            return File(pdfBytes, "application/pdf", filename);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to generate PDF for invoice {InvoiceId}", id);
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { message = "Failed to generate invoice PDF" });
+        }
     }
 
     /// <summary>
