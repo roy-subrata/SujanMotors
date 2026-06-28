@@ -1,8 +1,11 @@
 import { Injectable, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable, map } from 'rxjs';
 import { shareReplay } from 'rxjs/operators';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { CurrencyService } from '../../../shared/services/currency.service';
 import { AppSettingsService, ShopProfile } from '../../../shared/services/app-settings.service';
+import { environment } from '../../../../environments/environment';
 
 const DEFAULT_PROFILE: ShopProfile = {
   appName: 'Auto Part Shop', appLogoUrl: 'assets/logo.png',
@@ -80,6 +83,7 @@ export interface InvoicePdfPayment {
 export class InvoicePdfService {
   private readonly currencyService = inject(CurrencyService);
   private readonly appSettings = inject(AppSettingsService);
+  private readonly http = inject(HttpClient);
 
   /** Loaded once from DB; all print components read this signal. */
   readonly shopProfile = toSignal(
@@ -295,5 +299,23 @@ export class InvoicePdfService {
 
     pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
     pdf.save(`${filename}.pdf`);
+  }
+
+  /**
+   * Download the server-rendered QuestPDF invoice for the given invoice ID.
+   * Returns an Observable that completes once the browser download is triggered.
+   */
+  downloadServerPdf(invoiceId: string, invoiceNumber: string): Observable<void> {
+    const url = `${environment.apiUrl}/salesorders/invoices/${invoiceId}/pdf`;
+    return this.http.get(url, { responseType: 'blob' }).pipe(
+      map(blob => {
+        const objectUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = objectUrl;
+        a.download = `invoice-${invoiceNumber}.pdf`;
+        a.click();
+        URL.revokeObjectURL(objectUrl);
+      })
+    );
   }
 }

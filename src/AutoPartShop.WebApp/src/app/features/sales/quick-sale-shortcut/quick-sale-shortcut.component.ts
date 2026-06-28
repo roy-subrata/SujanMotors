@@ -103,9 +103,9 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
   // Invoice Preview
   showInvoicePreview = false;
   invoicePreviewData: InvoicePdfData | null = null;
+  currentInvoiceId = signal<string | null>(null);
 
   // Parts
-  parts = signal<PublicPartResponse[]>([]);
   selectedPartModel: PublicPartResponse | null = null;
   fetchPartsLazy = (req: LazyRequest) =>
     this.partService.getParts({
@@ -158,7 +158,6 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
 
   // Cart
   cartItems = signal<QuickSaleLineItem[]>([]);
-  globalDiscount = 0;
   pricingErrors = new Map<number, string>();
 
 
@@ -191,16 +190,8 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     } as LazyResponse<PaymentProviderResponse>);
   };
 
-  // VAT
-  vatEnabled = signal(false);
-  vatPercentage = signal(0);
-
   // Manual Discount
   manualDiscountAmount = signal<number>(0);
-
-  onManualDiscountChange(): void {
-    // Trigger re-computation of totals
-  }
 
   // Computed
   subtotal = computed(() => {
@@ -218,16 +209,8 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     }, 0);
   });
 
-  vatAmount = computed(() => {
-    if (!this.vatEnabled()) return 0;
-    return (this.subtotal() * this.vatPercentage()) / 100;
-  });
-
   grandTotal = computed(() => {
-    const subtotal = this.subtotal();
-    const vat = this.vatAmount();
-    const manualDiscount = this.manualDiscountAmount();
-    return subtotal + vat - manualDiscount;
+    return this.subtotal() - this.manualDiscountAmount();
   });
 
   availableAdvance = computed(() => {
@@ -236,6 +219,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
   });
 
   // Invoice & Info
+  companyName = '';
   invoiceNumber = signal<string>('');
   currentDate = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 
@@ -243,7 +227,6 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
   autoCreatePO = false;
   /** Receipt format the sales manager prints on checkout. */
   printType: 'NONE' | 'THERMAL' | 'A4' = 'THERMAL';
-  sendSmsNotification = false;
   saleNotes = '';
   paymentResponsibility: PaymentResponsibility = 'CUSTOMER';
 
@@ -315,10 +298,10 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
 
   // ===== LIFECYCLE =====
   ngOnInit(): void {
+    this.companyName = this.invoicePdfService.getCompanyConfig().companyName;
     this.initializeForm();
     this.generateInvoiceNumber();
     this.loadUnits();
-    this.loadPaymentProviders();
     this.restoreDraft();
   }
 
@@ -353,15 +336,6 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
         this.loadingUnits.set(false);
       },
       error: () => this.loadingUnits.set(false)
-    });
-  }
-
-  // ===== PAYMENT PROVIDERS =====
-  loadPaymentProviders(): void {
-    this.paymentProviderService.getAllPaymentProviders().subscribe({
-      next: (providers) => {
-        this.paymentProviders = Array.isArray(providers) ? providers : [];
-      }
     });
   }
 
@@ -414,6 +388,9 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     };
 
     this.cartItems.update(items => [...items, newItem]);
+    if (part.unitId) {
+      this.cartUnitSelection.set(this.cartItems().length - 1, part.unitId);
+    }
     this.selectedPartModel = null;
 
     this.messageService.add({ severity: 'success', summary: 'Part Added', detail: `${part.displayName || part.name} added to cart` });
@@ -456,15 +433,12 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
   }
 
   onCartUnitChanged(item: QuickSaleLineItem, index: number): void {
-    const part = this.parts().find(p => p.id === item.partId);
-    if (!part?.unitId) return;
-
-    const previousUnitId = this.cartUnitSelection.get(index) || part.unitId;
-    const nextUnitId = item.unitId || part.unitId;
-    if (previousUnitId === nextUnitId) return;
+    const previousUnitId = this.cartUnitSelection.get(index);
+    const nextUnitId = item.unitId;
+    if (!previousUnitId || !nextUnitId || previousUnitId === nextUnitId) return;
 
     const currentPrice = Number(item.unitPrice || 0);
-    this.unitConversionService.getConversion(nextUnitId, part.unitId).subscribe({
+    this.unitConversionService.getConversion(nextUnitId, previousUnitId).subscribe({
       next: (res) => {
         const newPrice = currentPrice * res.conversionFactor;
         this.cartItems.update(items => {
@@ -580,6 +554,9 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
               discount: 0
             };
             this.cartItems.update(items => [...items, newItem]);
+            if (result.unitId) {
+              this.cartUnitSelection.set(this.cartItems().length - 1, result.unitId);
+            }
             this.messageService.add({ severity: 'success', summary: 'Added', detail: `${displayName} added` });
           }
         }
@@ -667,9 +644,13 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     this.cartItems.set([]);
     this.payments.set([]);
     this.selectedCustomer.set(null);
+    this.selectedCustomerModel = null;
     this.clearVehicleSelection();
     this.selectedTechnician.set(null);
+    this.selectedTechnicianModel = null;
     this.selectedPartModel = null;
+    this.manualDiscountAmount.set(0);
+    this.currentInvoiceId.set(null);
     this.saving.set(false);
     this.autoCreatePO = false;
     this.saleNotes = '';
@@ -679,7 +660,6 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     this.paymentInputAmount = null;
     this.paymentReference = '';
     this.paymentNotes = '';
-    this.payments.set([]);
     this.pricingErrors.clear();
     this.cartUnitSelection.clear();
     this.quickSaleService.clearDraft();
@@ -750,11 +730,10 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
 
   /** Secondary checkout actions, shown in the "More" overflow to keep one clear primary action. */
   get moreActions(): MenuItem[] {
-    const noCustomer = !this.selectedCustomer();
     return [
-      { label: 'Save as Quotation', icon: 'pi pi-file-edit', disabled: noCustomer || this.saving(), command: () => this.processQuotation() },
       { label: 'Save Draft', icon: 'pi pi-save', disabled: this.cartItems().length === 0, command: () => this.saveDraft() },
       { label: 'Hold Sale', icon: 'pi pi-pause', disabled: this.cartItems().length === 0, command: () => this.holdSale() },
+      { label: 'Recall Held Sale', icon: 'pi pi-replay', command: () => this.recallHeldSales() },
     ];
   }
 
@@ -1050,10 +1029,6 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     this.confirmCheckout();
   }
 
-  processQuotation(): void {
-    this.messageService.add({ severity: 'info', summary: 'Save as Quotation' });
-  }
-
   // ===== CHECKOUT =====
   openCheckout(): void {
     if (this.cartItems().length === 0) {
@@ -1116,8 +1091,8 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
       payments: this.payments(),
       subtotal: this.subtotal(),
       discountAmount: this.discountAmount(),
-      vatAmount: this.vatAmount(),
-      vatPercentage: this.vatPercentage(),
+      vatAmount: 0,
+      vatPercentage: 0,
       grandTotal: this.grandTotal(),
       paidAmount: this.payments().filter(p => p.method !== 'DUE').reduce((sum, p) => sum + p.amount, 0),
       dueAmount: this.totalDueAmount(),
@@ -1134,6 +1109,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
 
         // Capture the receipt + chosen format BEFORE resetForm() (which restores printType to default).
         this.invoicePreviewData = this.buildReceiptData(result, request);
+        this.currentInvoiceId.set(result.id);
         const receipt = this.invoicePreviewData;
         const printMode = this.printType;
 
@@ -1196,18 +1172,4 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     };
   }
 
-  // ===== INVOICE =====
-  onInvoicePrint(): void {
-    this.messageService.add({ severity: 'info', summary: 'Print Invoice' });
-  }
-
-  onInvoiceDownload(): void {
-    this.messageService.add({ severity: 'info', summary: 'Download Invoice' });
-  }
-
-  // ===== BRAND NAME =====
-  getBrandName(partId: string): string {
-    const part = this.parts().find(p => p.id === partId);
-    return part?.brandName || '-';
-  }
 }

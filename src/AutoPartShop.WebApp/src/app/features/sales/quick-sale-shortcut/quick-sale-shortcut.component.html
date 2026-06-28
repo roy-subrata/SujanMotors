@@ -2,7 +2,7 @@
   <p-toast></p-toast>
   <p-confirmDialog></p-confirmDialog>
   <app-quick-customer-dialog (customerCreated)="onCustomerCreated($event)"></app-quick-customer-dialog>
-  <app-invoice-preview [(visible)]="showInvoicePreview" [invoiceData]="invoicePreviewData" (onPrint)="onInvoicePrint()" (onDownload)="onInvoiceDownload()"></app-invoice-preview>
+  <app-invoice-preview [(visible)]="showInvoicePreview" [invoiceData]="invoicePreviewData" [invoiceId]="currentInvoiceId()"></app-invoice-preview>
 
   <!-- Loading Overlay -->
   <div *ngIf="loading()" class="loading-overlay">
@@ -23,7 +23,7 @@
           <i class="pi pi-shopping-cart"></i>
         </div>
         <div class="brand-info">
-          <h1>Quick Sale</h1>
+          <h1>{{ companyName }}</h1>
           <span class="invoice-number">{{ invoiceNumber() }}</span>
         </div>
       </div>
@@ -32,13 +32,13 @@
     <!-- Shortcut Toolbar -->
     <div class="header-toolbar">
       <div class="toolbar-group">
-        <button class="toolbar-btn" (click)="resetShortcut()" pTooltip="New Sale (F2)">
+        <button class="toolbar-btn" (click)="resetShortcut()" pTooltip="New Sale">
           <i class="pi pi-plus-circle"></i>
         </button>
-        <button class="toolbar-btn" (click)="viewLastSale()" pTooltip="Last Sale (F3)" [disabled]="!hasLastSale()">
+        <button class="toolbar-btn" (click)="viewLastSale()" pTooltip="Last Sale" [disabled]="!hasLastSale()">
           <i class="pi pi-clock"></i>
         </button>
-        <button class="toolbar-btn" (click)="openReturns()" pTooltip="Returns (F4)">
+        <button class="toolbar-btn" (click)="openReturns()" pTooltip="Returns">
           <i class="pi pi-refresh"></i>
         </button>
       </div>
@@ -46,7 +46,7 @@
       <div class="toolbar-divider"></div>
 
       <div class="toolbar-group">
-        <button class="toolbar-btn primary" (click)="openQuickCustomerDialog()" pTooltip="New Customer (Ctrl+N)">
+        <button class="toolbar-btn primary" (click)="openQuickCustomerDialog()" pTooltip="New Customer">
           <i class="pi pi-user-plus"></i>
         </button>
         <button class="toolbar-btn" (click)="openCustomerHistory()" pTooltip="Customer History" [disabled]="!selectedCustomer()">
@@ -60,10 +60,10 @@
       <div class="toolbar-divider"></div>
 
       <div class="toolbar-group">
-        <button class="toolbar-btn" (click)="openStockSearch()" pTooltip="Stock Check (F7)">
+        <button class="toolbar-btn" (click)="openStockSearch()" pTooltip="Stock Check">
           <i class="pi pi-box"></i>
         </button>
-        <button class="toolbar-btn" (click)="openPriceCheck()" pTooltip="Price Check (F8)">
+        <button class="toolbar-btn" (click)="openPriceCheck()" pTooltip="Price Check">
           <i class="pi pi-tag"></i>
         </button>
       </div>
@@ -71,27 +71,13 @@
       <div class="toolbar-divider"></div>
 
       <div class="toolbar-group">
-        <button class="toolbar-btn" (click)="saveDraft()" pTooltip="Save Draft (Ctrl+S)">
-          <i class="pi pi-save"></i>
-        </button>
-        <button class="toolbar-btn" (click)="holdSale()" pTooltip="Hold Sale (F5)">
-          <i class="pi pi-pause"></i>
-        </button>
-        <button class="toolbar-btn" (click)="recallHeldSales()" pTooltip="Recall Held (F6)">
-          <i class="pi pi-replay"></i>
-        </button>
-      </div>
-
-      <div class="toolbar-divider"></div>
-
-      <div class="toolbar-group">
-        <button class="toolbar-btn success" (click)="quickCashPayment()" pTooltip="Cash (F9)">
+        <button class="toolbar-btn success" (click)="quickCashPayment()" pTooltip="Quick Cash Payment">
           <i class="pi pi-money-bill"></i>
         </button>
-        <button class="toolbar-btn" (click)="quickCardPayment()" pTooltip="Card (F10)">
+        <button class="toolbar-btn" (click)="quickCardPayment()" pTooltip="Quick Card Payment">
           <i class="pi pi-credit-card"></i>
         </button>
-        <button class="toolbar-btn" (click)="quickMobilePayment()" pTooltip="Mobile">
+        <button class="toolbar-btn" (click)="quickMobilePayment()" pTooltip="Quick Mobile Payment">
           <i class="pi pi-mobile"></i>
         </button>
       </div>
@@ -196,8 +182,6 @@
               <h4 class="item-name">{{ item.partName }}</h4>
               <div class="item-meta">
                 <span class="sku">{{ item.sku || '-' }}</span>
-                <span class="separator">•</span>
-                <span class="brand">{{ getBrandName(item.partId) }}</span>
               </div>
             </div>
           </div>
@@ -259,21 +243,21 @@
             <span class="value">{{ formatCurrency(subtotal()) }}</span>
           </div>
           <div class="total-row" *ngIf="discountAmount() > 0">
-            <span class="label">Discount</span>
+            <span class="label">Item Discounts</span>
             <span class="value discount">-{{ formatCurrency(discountAmount()) }}</span>
           </div>
           <div class="total-row">
-            <span class="label">Discount</span>
+            <span class="label">Manual Discount</span>
             <span class="value discount">
               <p-inputNumber
-                [(ngModel)]="manualDiscountAmount"
+                [ngModel]="manualDiscountAmount()"
+                (ngModelChange)="manualDiscountAmount.set($event)"
                 [ngModelOptions]="{standalone: true}"
                 [min]="0"
                 [max]="subtotal()"
                 mode="decimal"
                 styleClass="manual-discount-input"
-                placeholder="Manual discount..."
-                (onInput)="onManualDiscountChange()">
+                placeholder="Manual discount...">
               </p-inputNumber>
             </span>
           </div>

@@ -655,6 +655,8 @@ export class InvoicePreviewComponent implements OnInit {
 
   @Input() visible = false;
   @Input() invoiceData: InvoicePdfData | null = null;
+  /** When set, "Download PDF" fetches the server-rendered QuestPDF instead of using html2canvas. */
+  @Input() invoiceId: string | null = null;
   @Output() visibleChange = new EventEmitter<boolean>();
   @Output() onPrint = new EventEmitter<void>();
   @Output() onDownload = new EventEmitter<void>();
@@ -728,13 +730,20 @@ export class InvoicePreviewComponent implements OnInit {
 
   async downloadPdf(): Promise<void> {
     if (!this.invoiceData) return;
-    
+
     this.downloading.set(true);
     try {
-      await this.pdfService.downloadAsPdf(
-        'invoice-print-area',
-        `Invoice-${this.invoiceData.invoiceNumber}`
-      );
+      if (this.invoiceId) {
+        await new Promise<void>((resolve, reject) =>
+          this.pdfService.downloadServerPdf(this.invoiceId!, this.invoiceData!.invoiceNumber)
+            .subscribe({ next: () => resolve(), error: reject })
+        );
+      } else {
+        await this.pdfService.downloadAsPdf(
+          'invoice-print-area',
+          `Invoice-${this.invoiceData.invoiceNumber}`
+        );
+      }
       this.onDownload.emit();
     } finally {
       this.downloading.set(false);
