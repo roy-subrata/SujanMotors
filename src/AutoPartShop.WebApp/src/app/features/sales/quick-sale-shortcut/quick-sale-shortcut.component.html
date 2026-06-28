@@ -175,9 +175,6 @@
       <div class="cart-items" *ngIf="cartItems().length > 0">
         <div class="cart-item" *ngFor="let item of cartItems(); let i = index">
           <div class="item-left">
-            <div class="item-avatar">
-              <span>{{ item.partName?.charAt(0) || '?' }}</span>
-            </div>
             <div class="item-info">
               <h4 class="item-name">{{ item.partName }}</h4>
               <div class="item-meta">
@@ -269,11 +266,24 @@
           }
         </div>
 
-        <!-- Checkout Button -->
-        <button class="checkout-btn" (click)="openCheckout()" [disabled]="cartItems().length === 0 || saving()">
-          <span>Checkout</span>
-          <span class="checkout-amount">{{ formatCurrency(grandTotal()) }}</span>
-        </button>
+        <div class="total-row grand-total-row">
+          <span class="grand-label">TOTAL ({{ cartItems().length }} items)</span>
+          <span class="grand-amount">{{ formatCurrency(grandTotal()) }}</span>
+        </div>
+
+        <div class="cart-footer-actions">
+          <button type="button" class="footer-action-btn" (click)="moreMenu.toggle($event)"
+            [disabled]="cartItems().length === 0" pTooltip="More actions">
+            <i class="pi pi-ellipsis-h"></i>
+            <span>More</span>
+          </button>
+          <p-menu #moreMenu [model]="moreActions" [popup]="true" appendTo="body"></p-menu>
+          <button type="button" class="footer-action-btn amber"
+            (click)="holdSale()" [disabled]="cartItems().length === 0" pTooltip="Hold Sale">
+            <i class="pi pi-pause"></i>
+            <span>Hold</span>
+          </button>
+        </div>
       </div>
     </section>
 
@@ -501,24 +511,22 @@
         </div>
 
         <!-- Options -->
-        <div class="sidebar-card">
-          <div class="option-row">
+        <div class="sidebar-card options-card">
+          <div class="options-inline-row">
             <label class="checkbox-label">
               <input type="checkbox" [(ngModel)]="autoCreatePO" [ngModelOptions]="{standalone: true}" />
-              <span>Auto Create PO</span>
+              <span>Auto PO</span>
             </label>
-          </div>
-          <div class="option-row">
             <label class="checkbox-label">
               <input type="checkbox" [ngModel]="vatEnabled()" (ngModelChange)="vatEnabled.set($event)" [ngModelOptions]="{standalone: true}" />
-              <span>Apply VAT ({{ vatPercentage() }}%)</span>
+              <span>VAT {{ vatPercentage() }}%</span>
+              @if (vatEnabled()) {
+                <span class="vat-amount">(+{{ formatCurrency(vatAmount()) }})</span>
+              }
             </label>
-            @if (vatEnabled()) {
-              <span class="option-value">+ {{ formatCurrency(vatAmount()) }}</span>
-            }
           </div>
-          <div class="option-row print-type-row">
-            <span class="print-type-title">Receipt print</span>
+          <div class="print-type-row">
+            <span class="print-type-title">Print</span>
             <div class="print-type-options">
               <label class="radio-label">
                 <input type="radio" name="printType" value="NONE" [(ngModel)]="printType" [ngModelOptions]="{standalone: true}" />
@@ -526,32 +534,33 @@
               </label>
               <label class="radio-label">
                 <input type="radio" name="printType" value="THERMAL" [(ngModel)]="printType" [ngModelOptions]="{standalone: true}" />
-                <span>Thermal 80mm</span>
+                <span>Thermal</span>
               </label>
               <label class="radio-label">
                 <input type="radio" name="printType" value="A4" [(ngModel)]="printType" [ngModelOptions]="{standalone: true}" />
-                <span>A4 Invoice</span>
+                <span>A4</span>
               </label>
             </div>
           </div>
-          <textarea pTextarea [(ngModel)]="saleNotes" [ngModelOptions]="{standalone: true}" rows="2" placeholder="Notes..."></textarea>
+          <textarea pTextarea [(ngModel)]="saleNotes" [ngModelOptions]="{standalone: true}" rows="2" placeholder="Sale notes..."></textarea>
         </div>
       </div>
 
-      <!-- Complete Sale Buttons (Fixed at bottom) -->
-      <div class="complete-actions" *ngIf="cartItems().length > 0">
-        <button class="complete-btn primary" (click)="confirmCheckout()" [disabled]="(remainingBalance() > 0.01 && !hasDuePayments()) || !selectedCustomer() || saving()">
-          <i class="pi pi-check-circle"></i>
-          <span>{{ hasDuePayments() ? 'Complete (Due Sale)' : 'Complete Sale' }}</span>
+      <div class="sidebar-pay-area">
+        <button class="pay-btn"
+          (click)="confirmCheckout()"
+          [disabled]="(remainingBalance() > 0.01 && !hasDuePayments()) || !selectedCustomer() || saving() || cartItems().length === 0"
+          [class.due-sale]="hasDuePayments()">
+          <div class="pay-btn-inner">
+            <div class="pay-btn-label">
+              <i class="pi pi-check-circle"></i>
+              <span>{{ saving() ? 'Processing…' : hasDuePayments() ? 'Complete (Due Sale)' : 'Complete Sale' }}</span>
+            </div>
+            @if (cartItems().length > 0) {
+              <div class="pay-btn-amount">{{ formatCurrency(grandTotal()) }}</div>
+            }
+          </div>
         </button>
-        <div class="secondary-actions">
-          <button type="button" class="action-btn" (click)="moreMenu.toggle($event)"
-            [disabled]="cartItems().length === 0" pTooltip="More actions">
-            <i class="pi pi-ellipsis-h"></i>
-            <span>More</span>
-          </button>
-          <p-menu #moreMenu [model]="moreActions" [popup]="true" appendTo="body"></p-menu>
-        </div>
       </div>
     </aside>
   </main>
