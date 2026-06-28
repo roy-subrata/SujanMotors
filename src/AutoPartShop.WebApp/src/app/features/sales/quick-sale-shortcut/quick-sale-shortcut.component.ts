@@ -209,8 +209,14 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     }, 0);
   });
 
+  vatEnabled = signal(false);
+  vatPercentage = signal(0);
+  vatAmount = computed(() =>
+    this.vatEnabled() ? Math.round((this.subtotal() - this.manualDiscountAmount()) * this.vatPercentage()) / 100 : 0
+  );
+
   grandTotal = computed(() => {
-    return this.subtotal() - this.manualDiscountAmount();
+    return this.subtotal() - this.manualDiscountAmount() + this.vatAmount();
   });
 
   availableAdvance = computed(() => {
@@ -255,6 +261,15 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
   priceCheckLoading = false;
   priceCheckNotFound = false;
   bulkDiscountPercent = 0;
+
+  // Reprint Receipt dialog
+  showReprintDialog = false;
+  reprintInvoiceNumber = '';
+  reprintLoading = signal(false);
+  reprintError = '';
+
+  // Resend notification (Last Sale dialog)
+  resendingNotification = signal(false);
 
   // Stock Check / product search dialog
   stockSearchTerm = '';
@@ -303,6 +318,9 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     this.generateInvoiceNumber();
     this.loadUnits();
     this.restoreDraft();
+    this.quickSaleService.getVATConfig().subscribe(cfg => {
+      this.vatPercentage.set(cfg.percentage);
+    });
   }
 
   ngOnDestroy(): void {
@@ -734,6 +752,9 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
       { label: 'Save Draft', icon: 'pi pi-save', disabled: this.cartItems().length === 0, command: () => this.saveDraft() },
       { label: 'Hold Sale', icon: 'pi pi-pause', disabled: this.cartItems().length === 0, command: () => this.holdSale() },
       { label: 'Recall Held Sale', icon: 'pi pi-replay', command: () => this.recallHeldSales() },
+      { separator: true },
+      { label: 'Save as Quotation', icon: 'pi pi-file', disabled: this.cartItems().length === 0 || this.saving(), command: () => this.saveAsQuotation() },
+      { label: 'Reprint Receipt', icon: 'pi pi-print', command: () => this.openReprintDialog() },
     ];
   }
 
@@ -744,6 +765,83 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     } else {
       this.messageService.add({ severity: 'warn', summary: 'No Receipt', detail: 'No recent sale available to print.' });
     }
+  }
+
+  resendNotification(): void {
+    const salesOrderId = this.lastSale?.salesOrderId;
+    if (!salesOrderId || this.resendingNotification()) return;
+    this.resendingNotification.set(true);
+    this.quickSaleService.resendInvoiceNotification(salesOrderId).subscribe({
+      next: () => {
+        this.resendingNotification.set(false);
+        this.messageService.add({ severity: 'success', summary: 'Sent', detail: 'Notification resent to customer.' });
+      },
+      error: () => {
+        this.resendingNotification.set(false);
+        this.messageService.add({ severity: 'error', summary: 'Failed', detail: 'Could not resend notification.' });
+      }
+    });
+  }
+
+  saveAsQuotation(): void {
+    if (this.cartItems().length === 0 || this.saving()) return;
+    this.saving.set(true);
+    const customer = this.selectedCustomer();
+    const request = {
+      customerId: customer?.id,
+      customerName: customer?.fullName || 'Walk-in Customer',
+      customerPhone: customer?.phone || '',
+      technicianId: this.selectedTechnician()?.id,
+      customerVehicleId: this.selectedVehicleId() || null,
+      paymentResponsibility: this.paymentResponsibility,
+      autoCreatePO: false,
+      items: this.cartItems(),
+      payments: [],
+      subtotal: this.subtotal(),
+      discountAmount: this.discountAmount(),
+      vatAmount: this.vatAmount(),
+      vatPercentage: this.vatPercentage(),
+      grandTotal: this.grandTotal(),
+      paidAmount: 0,
+      dueAmount: 0,
+      notes: this.saleNotes
+    };
+    this.quickSaleService.generateQuote(request).subscribe({
+      next: (result) => {
+        this.saving.set(false);
+        this.messageService.add({ severity: 'success', summary: 'Quotation Saved', detail: result.quoteNumber });
+      },
+      error: (err) => {
+        this.saving.set(false);
+        this.messageService.add({ severity: 'error', summary: 'Failed', detail: err.error?.message || 'Could not save quotation.' });
+      }
+    });
+  }
+
+  openReprintDialog(): void {
+    this.reprintInvoiceNumber = '';
+    this.reprintError = '';
+    this.showReprintDialog = true;
+  }
+
+  reprintReceipt(): void {
+    const num = this.reprintInvoiceNumber.trim();
+    if (!num || this.reprintLoading()) return;
+    this.reprintError = '';
+    this.reprintLoading.set(true);
+    this.invoicePdfService.getInvoiceByNumber(num).subscribe({
+      next: (invoice) => {
+        this.reprintLoading.set(false);
+        this.showReprintDialog = false;
+        this.invoicePdfService.downloadServerPdf(invoice.id, invoice.invoiceNumber).subscribe({
+          error: () => this.messageService.add({ severity: 'error', summary: 'Download Failed', detail: 'Could not download PDF.' })
+        });
+      },
+      error: () => {
+        this.reprintLoading.set(false);
+        this.reprintError = 'Invoice not found. Check the number and try again.';
+      }
+    });
   }
 
   openReturns(): void {
@@ -1091,8 +1189,8 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
       payments: this.payments(),
       subtotal: this.subtotal(),
       discountAmount: this.discountAmount(),
-      vatAmount: 0,
-      vatPercentage: 0,
+      vatAmount: this.vatAmount(),
+      vatPercentage: this.vatPercentage(),
       grandTotal: this.grandTotal(),
       paidAmount: this.payments().filter(p => p.method !== 'DUE').reduce((sum, p) => sum + p.amount, 0),
       dueAmount: this.totalDueAmount(),

@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, BehaviorSubject } from 'rxjs';
+import { Observable, BehaviorSubject, of } from 'rxjs';
 import { map, tap } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
 
@@ -171,16 +171,12 @@ export class QuickSaleService {
     return this.http.get<any>(`${this.apiUrl}/v1/customers/search-by-phone?phone=${phone}`);
   }
 
-  /**
-   * Get VAT configuration
-   */
   getVATConfig(): Observable<{ enabled: boolean; percentage: number }> {
-    // For now, return default VAT config
-    // In production, this would come from settings API
-    return new Observable(observer => {
-      observer.next({ enabled: false, percentage: 0 });
-      observer.complete();
-    });
+    return of({ enabled: false, percentage: 15 });
+  }
+
+  resendInvoiceNotification(salesOrderId: string): Observable<void> {
+    return this.http.post<void>(`${this.apiUrl}/v1/notifications/send-invoice-email/${salesOrderId}`, {});
   }
 
   // Draft Management Methods
