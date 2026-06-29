@@ -165,8 +165,8 @@
             <span class="kpi-value" [pTooltip]="formatCurrency(dashboardData()!.summary.totalRevenue)" tooltipPosition="top">{{ formatCurrency(dashboardData()!.summary.totalRevenue) }}</span>
             <span class="kpi-label">Revenue Collected</span>
             <span class="kpi-meta">
-              POS: {{ formatCurrency(dashboardData()!.summary.cashSales) }}
-              · Collections: {{ formatCurrency(dashboardData()!.summary.customerPaymentsReceived) }}
+              Paid invoices: {{ formatCurrency(dashboardData()!.summary.cashSales) }}
+              · On credit: {{ formatCurrency(dashboardData()!.summary.creditSales) }}
             </span>
           </div>
         </div>
