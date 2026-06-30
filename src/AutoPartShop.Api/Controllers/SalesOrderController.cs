@@ -218,51 +218,62 @@ public class SalesOrderController : ControllerBase
             if (request.CustomerId == Guid.Empty || request.WarehouseId == Guid.Empty || string.IsNullOrWhiteSpace(request.CustomerName) || request.DeliveryDate == default)
                 return BadRequest(new { message = "CustomerId, WarehouseId, CustomerName and DeliveryDate are required" });
 
-            // Fix #4: use code service to guarantee unique SO numbers
-            var soNumber = await _codeGenerateService.GenerateAsync("SO", cancellationToken);
-
-            var order = SalesOrder.Create(
-                soNumber,
-                request.CustomerId,
-                request.CustomerName,
-                request.CustomerEmail,
-                request.CustomerPhone,
-                request.WarehouseId,
-                request.TechnicianId,
-                request.TechnicianName,
-                request.CustomerCity,
-                request.Notes,
-                request.Currency,
-                request.Channel
-            );
-
-            // Optionally link the customer's vehicle this purchase is for
-            var vehicleError = await ApplyCustomerVehicleAsync(order, request.CustomerId, request.CustomerVehicleId, cancellationToken);
-            if (vehicleError is not null)
-                return BadRequest(new { message = vehicleError });
-
             if (request.Lines == null || request.Lines.Count == 0)
                 return BadRequest(new { message = "At least one line item is required." });
 
-            // Add lines
-            int lineNumber = 1;
-            foreach (var lineRequest in request.Lines)
+            SalesOrder? order = null;
+            var createStrategy = _dbContext.Database.CreateExecutionStrategy();
+            await createStrategy.ExecuteAsync(async () =>
             {
-                var line = await BuildSalesOrderLineAsync(order, lineRequest, lineNumber, cancellationToken);
-                order.LineItems.Add(line);
-                lineNumber++;
-            }
+                var soNumber = await _codeGenerateService.GenerateAsync("SO", cancellationToken);
+                await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+                try
+                {
+                    order = SalesOrder.Create(
+                        soNumber,
+                        request.CustomerId,
+                        request.CustomerName,
+                        request.CustomerEmail,
+                        request.CustomerPhone,
+                        request.WarehouseId,
+                        request.TechnicianId,
+                        request.TechnicianName,
+                        request.CustomerCity,
+                        request.Notes,
+                        request.Currency,
+                        request.Channel
+                    );
 
-            order.UpdateDeliveryDate(request.DeliveryDate);
-            order.SetDiscountPercentage(request.Discount);
-            order.CalculateTotal();
+                    var vehicleError = await ApplyCustomerVehicleAsync(order, request.CustomerId, request.CustomerVehicleId, cancellationToken);
+                    if (vehicleError is not null)
+                        throw new ArgumentException(vehicleError);
 
-            order.CreatedBy = _currentUserService.GetCurrentUsername();
-            order.ModifiedBy = _currentUserService.GetCurrentUsername();
+                    int lineNumber = 1;
+                    foreach (var lineRequest in request.Lines)
+                    {
+                        var line = await BuildSalesOrderLineAsync(order, lineRequest, lineNumber, cancellationToken);
+                        order.LineItems.Add(line);
+                        lineNumber++;
+                    }
 
-            await _salesOrderRepository.AddAsync(order, cancellationToken);
+                    order.UpdateDeliveryDate(request.DeliveryDate);
+                    order.SetDiscountPercentage(request.Discount);
+                    order.CalculateTotal();
 
-            return CreatedAtAction(nameof(GetById), new { id = order.Id }, MapToSalesOrderResponse(order));
+                    order.CreatedBy = _currentUserService.GetCurrentUsername();
+                    order.ModifiedBy = _currentUserService.GetCurrentUsername();
+
+                    await _salesOrderRepository.AddAsync(order, cancellationToken);
+                    await tx.CommitAsync(cancellationToken);
+                }
+                catch
+                {
+                    await tx.RollbackAsync(cancellationToken);
+                    throw;
+                }
+            });
+
+            return CreatedAtAction(nameof(GetById), new { id = order!.Id }, MapToSalesOrderResponse(order!));
         }
         catch (ArgumentException ex)
         {
@@ -378,6 +389,124 @@ public class SalesOrderController : ControllerBase
         {
             _logger.LogError(ex, "Error updating sales order: {SOId}", id);
             return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while updating the sales order");
+        }
+    }
+
+    [HttpPatch("{id:guid}/cancel")]
+    [Authorize]
+    public async Task<IActionResult> Cancel(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var cancelStrategy = _dbContext.Database.CreateExecutionStrategy();
+            SalesOrder? order = null;
+            await cancelStrategy.ExecuteAsync(async () =>
+            {
+                await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+                try
+                {
+                    order = await _salesOrderRepository.GetByIdAsync(id, cancellationToken);
+                    if (order is null)
+                        throw new InvalidOperationException("Sales order not found");
+
+                    // If CONFIRMED, restore any stock that was deducted at confirmation
+                    if (order.Status == "CONFIRMED")
+                    {
+                        var lineIds = order.LineItems.Select(l => (Guid?)l.Id).ToList();
+                        var lotMovements = await _dbContext.StockLotMovements
+                            .Include(m => m.StockLot)
+                            .Where(m => m.MovementType == "SALE"
+                                     && m.ReferenceType == "SalesOrderLine"
+                                     && m.ReferenceId != null
+                                     && lineIds.Contains(m.ReferenceId)
+                                     && !m.Isdeleted)
+                            .ToListAsync(cancellationToken);
+
+                        // Restore each lot's quantity and accumulate per (PartId, VariantId, WarehouseId)
+                        var levelRestores = new Dictionary<(Guid PartId, Guid? VariantId, Guid WarehouseId), int>();
+                        foreach (var lm in lotMovements)
+                        {
+                            if (lm.StockLot is null) continue;
+                            lm.StockLot.AddStock(lm.Quantity, lm.Quantity, $"Cancellation of SO {order.SONumber}");
+                            lm.StockLot.ModifiedBy = _currentUserService.GetCurrentUsername();
+
+                            var key = (lm.StockLot.PartId, lm.StockLot.VariantId, lm.StockLot.WarehouseId);
+                            levelRestores[key] = levelRestores.GetValueOrDefault(key) + lm.Quantity;
+                        }
+
+                        // Restore the aggregate stock level for each affected (part, variant, warehouse)
+                        foreach (var (key, restoreQty) in levelRestores)
+                        {
+                            var stockLevel = await _stockLevelRepository.GetByPartVariantAndWarehouseAsync(
+                                key.PartId, key.VariantId, key.WarehouseId, cancellationToken);
+                            if (stockLevel is null) continue;
+
+                            stockLevel.AddStock(restoreQty, restoreQty, $"Cancellation of SO {order.SONumber}");
+                            stockLevel.ModifiedBy = _currentUserService.GetCurrentUsername();
+                            await _stockLevelRepository.UpdateAsync(stockLevel, cancellationToken);
+
+                            var reversal = StockMovement.Create(
+                                stockLevel.Id, "IN", restoreQty,
+                                $"SO Cancellation {order.SONumber}", order.SONumber,
+                                unitId: stockLevel.UnitId, quantityInBaseUnit: restoreQty);
+                            reversal.Approve(_currentUserService.GetCurrentUsername());
+                            reversal.CreatedBy = _currentUserService.GetCurrentUsername();
+                            reversal.ModifiedBy = _currentUserService.GetCurrentUsername();
+                            await _dbContext.StockMovements.AddAsync(reversal, cancellationToken);
+                        }
+                    }
+
+                    // Cancel the invoice if it hasn't been paid
+                    var invoice = await _dbContext.Invoices
+                        .Include(i => i.CustomerPayments)
+                        .FirstOrDefaultAsync(i => i.SalesOrderId == order.Id && !i.Isdeleted, cancellationToken);
+
+                    if (invoice is not null && invoice.Status is not ("PAID" or "PARTIALLY_PAID" or "CANCELLED"))
+                    {
+                        invoice.Cancel("Sales order cancelled");
+                        invoice.ModifiedBy = _currentUserService.GetCurrentUsername();
+                    }
+
+                    // Credit customer balance back if balance was charged (i.e. invoice was ISSUED)
+                    if (invoice is { Status: "CANCELLED" } && order.CustomerId != Guid.Empty)
+                    {
+                        var grandTotal = invoice.GrandTotal;
+                        if (grandTotal > 0)
+                        {
+                            var customer = await _customerRepository.GetByIdAsync(order.CustomerId, cancellationToken);
+                            if (customer is not null)
+                            {
+                                customer.UpdateBalance(-grandTotal);
+                                customer.ModifiedBy = _currentUserService.GetCurrentUsername();
+                                _dbContext.Customers.Update(customer);
+                            }
+                        }
+                    }
+
+                    order.Cancel();
+                    order.ModifiedBy = _currentUserService.GetCurrentUsername();
+                    await _salesOrderRepository.UpdateAsync(order, cancellationToken);
+
+                    await _dbContext.SaveChangesAsync(cancellationToken);
+                    await tx.CommitAsync(cancellationToken);
+                }
+                catch
+                {
+                    await tx.RollbackAsync(cancellationToken);
+                    throw;
+                }
+            });
+
+            return Ok(MapToSalesOrderResponse(order!));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error cancelling sales order: {SOId}", id);
+            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while cancelling the sales order");
         }
     }
 

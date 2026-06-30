@@ -566,6 +566,10 @@ public class CustomerPaymentController : ControllerBase
             await _repository.UpdateAsync(payment, cancellationToken);
             return Ok(MapResponse(payment));
         }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error marking customer payment as advance");
