@@ -80,6 +80,9 @@ public class Invoice : AuditableEntity
     /// </summary>
     public void UpdatePaymentStatus()
     {
+        if (Status == "CANCELLED")
+            return;
+
         var paid = AmountPaid;
         var total = GrandTotal;
 
@@ -108,6 +111,9 @@ public class Invoice : AuditableEntity
     {
         if (Status == "PAID")
             throw new InvalidOperationException("Cannot cancel a paid invoice");
+
+        if (Status == "PARTIALLY_PAID")
+            throw new InvalidOperationException("Cannot cancel a partially paid invoice. Refund or reverse the payments first.");
 
         Status = "CANCELLED";
         Notes = reason?.Trim() ?? string.Empty;

@@ -492,8 +492,9 @@ public class FinancialSummaryService : IFinancialSummaryService
 
         foreach (var so in orders)
         {
-            var revenue     = await _currencyService.ConvertToBaseAsync(so.TotalAmount, so.Currency, so.SODate, cancellationToken);
-            var rawDue      = so.TotalAmount + so.TaxAmount - so.PaidAmount;
+            var grandTotal  = so.TotalAmount + so.TaxAmount;
+            var revenue     = await _currencyService.ConvertToBaseAsync(grandTotal, so.Currency, so.SODate, cancellationToken);
+            var rawDue      = grandTotal - so.PaidAmount;
             var outstanding = rawDue > 0
                 ? await _currencyService.ConvertToBaseAsync(rawDue, so.Currency, so.SODate, cancellationToken)
                 : 0m;

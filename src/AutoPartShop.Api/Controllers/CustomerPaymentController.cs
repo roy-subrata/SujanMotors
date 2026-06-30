@@ -97,7 +97,7 @@ public class CustomerPaymentController : ControllerBase
     {
         try
         {
-            var (payments, totalCount) = await _repository.GetByCustomerPagedAsync(customerId, 1, 50, cancellationToken);
+            var payments = await _repository.GetByCustomerAsync(customerId, cancellationToken);
             var paymentsList = payments.ToList(); // Materialize the query first
 
             // Get customer info once
@@ -128,7 +128,7 @@ public class CustomerPaymentController : ControllerBase
                 CreatedAt = p.CreatedDate
             }).ToList();
 
-            return Ok(new { data = responses, totalCount });
+            return Ok(new { data = responses, totalCount = paymentsList.Count });
         }
         catch (Exception ex)
         {
@@ -222,7 +222,7 @@ public class CustomerPaymentController : ControllerBase
                 OverdueInvoices = overdueInvoices,
 
                 PaymentHistory = paymentHistory,
-                AvailableAdvance = customer.AccountBalance
+                AvailableAdvance = customer.AdvanceAmount
             });
         }
         catch (Exception ex)
@@ -250,10 +250,6 @@ public class CustomerPaymentController : ControllerBase
             // If payment method is CASH, automatically mark as completed and update customer balance
             if (request.PaymentMethod.Trim().ToUpper() == "CASH")
             {
-                var customer = await _customerRepository.GetByIdAsync(request.CustomerId, cancellationToken);
-                if (customer is null)
-                    return NotFound(new { message = "Customer not found" });
-
                 payment.MarkAsCompleted();
 
                 var strategy = _dbContext.Database.CreateExecutionStrategy();
@@ -262,6 +258,10 @@ public class CustomerPaymentController : ControllerBase
                     await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
                     try
                     {
+                        var customer = await _customerRepository.GetByIdAsync(request.CustomerId, cancellationToken);
+                        if (customer is null)
+                            throw new InvalidOperationException("Customer not found");
+
                         // Decrease customer balance (negative because payment reduces debt)
                         customer.UpdateBalance(-request.Amount);
                         customer.ModifiedBy = _currentUserService.GetCurrentUsername();
@@ -352,10 +352,6 @@ public class CustomerPaymentController : ControllerBase
             var payment = await _repository.GetByIdAsync(id, cancellationToken);
             if (payment is null) return NotFound();
 
-            // Get customer and update balance (payment reduces balance)
-            var customer = await _customerRepository.GetByIdAsync(payment.CustomerId, cancellationToken);
-            if (customer is null) return NotFound(new { message = "Customer not found" });
-
             payment.MarkAsCompleted();
             payment.ModifiedBy = _currentUserService.GetCurrentUsername();
 
@@ -365,6 +361,10 @@ public class CustomerPaymentController : ControllerBase
                 await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
                 try
                 {
+                    var customer = await _customerRepository.GetByIdAsync(payment.CustomerId, cancellationToken);
+                    if (customer is null)
+                        throw new InvalidOperationException("Customer not found");
+
                     // Decrease customer balance (negative because payment reduces debt)
                     customer.UpdateBalance(-payment.Amount);
                     customer.ModifiedBy = _currentUserService.GetCurrentUsername();
@@ -406,6 +406,10 @@ public class CustomerPaymentController : ControllerBase
             });
 
             return Ok(MapResponse(payment));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
         }
         catch (Exception ex)
         {
@@ -454,9 +458,14 @@ public class CustomerPaymentController : ControllerBase
             if (payment.Amount <= 0 || payment.PaymentMethod == "REFUND")
                 return BadRequest(new { message = "This payment is not eligible for refund" });
 
-            // Get customer and update balance (refund increases balance back)
-            var customer = await _customerRepository.GetByIdAsync(payment.CustomerId, cancellationToken);
-            if (customer is null) return NotFound(new { message = "Customer not found" });
+            if (payment.PaymentType == CustomerPaymentType.ADVANCE)
+            {
+                var derivedPayments = await _dbContext.CustomerPayments
+                    .Where(p => p.SourceAdvancePaymentId == payment.Id && p.Status == "COMPLETED" && !p.Isdeleted)
+                    .AnyAsync(cancellationToken);
+                if (derivedPayments)
+                    return BadRequest(new { message = "Cannot refund an advance payment that has already been applied to invoices. Reverse the invoice applications first." });
+            }
 
             payment.MarkAsRefunded(payment.Amount);  // Refund full amount
             payment.ModifiedBy = _currentUserService.GetCurrentUsername();
@@ -467,6 +476,10 @@ public class CustomerPaymentController : ControllerBase
                 await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
                 try
                 {
+                    var customer = await _customerRepository.GetByIdAsync(payment.CustomerId, cancellationToken);
+                    if (customer is null)
+                        throw new InvalidOperationException("Customer not found");
+
                     // Increase customer balance (reverting the payment)
                     customer.UpdateBalance(payment.Amount);
                     customer.ModifiedBy = _currentUserService.GetCurrentUsername();
@@ -572,6 +585,10 @@ public class CustomerPaymentController : ControllerBase
             payment.ModifiedBy = _currentUserService.GetCurrentUsername();
             await _repository.UpdateAsync(payment, cancellationToken);
             return Ok(MapResponse(payment));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
         }
         catch (Exception ex)
         {
@@ -698,7 +715,7 @@ public class CustomerPaymentController : ControllerBase
     {
         try
         {
-            var (payments, _) = await _repository.GetByCustomerPagedAsync(customerId, 1, 100, cancellationToken);
+            var payments = await _repository.GetByCustomerAsync(customerId, cancellationToken);
 
             var availableAdvances = payments
                 .Where(p => p.PaymentType == CustomerPaymentType.ADVANCE &&
@@ -843,6 +860,10 @@ public class CustomerPaymentController : ControllerBase
         {
             _logger.LogWarning(ex, "Invalid operation when applying advance credit");
             return BadRequest(new { message = ex.Message });
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return Conflict(new { message = "The advance payment was modified by another transaction. Please retry." });
         }
         catch (Exception ex)
         {

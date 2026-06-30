@@ -132,6 +132,9 @@ public class CustomerPayment : AuditableEntity
         if (string.IsNullOrWhiteSpace(settledBy))
             throw new ArgumentException("SettledBy cannot be empty", nameof(settledBy));
 
+        if (Status is "REFUNDED" or "CANCELLED")
+            throw new InvalidOperationException($"Cannot settle a {Status} payment.");
+
         Status = "COMPLETED";
         SettledDate = DateTime.UtcNow;
         SettledBy = settledBy.Trim();
@@ -139,6 +142,9 @@ public class CustomerPayment : AuditableEntity
 
     public void MarkAsFailed()
     {
+        if (Status is "COMPLETED" or "REFUNDED")
+            throw new InvalidOperationException($"Cannot mark a {Status} payment as failed. Reverse or refund it first.");
+
         Status = "FAILED";
     }
 
@@ -186,6 +192,12 @@ public class CustomerPayment : AuditableEntity
     /// </summary>
     public void MarkAsAdvance()
     {
+        if (PaymentType == CustomerPaymentType.ADVANCE)
+            return; // idempotent
+
+        if (Status != "PENDING" && Status != "PROCESSING")
+            throw new InvalidOperationException($"Cannot convert a {Status} payment to advance. Only PENDING or PROCESSING payments can be converted.");
+
         PaymentType = CustomerPaymentType.ADVANCE;
         RemainingAmount = Amount;  // Initially, all of the advance is available
     }
