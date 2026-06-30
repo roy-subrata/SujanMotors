@@ -25,6 +25,7 @@ public class SupplierPaymentController : ControllerBase
     private readonly IGoodsReceiptRepository _goodsReceiptRepository;
     private readonly SupplierPaymentSummaryService _summaryService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly AutoPartDbContext _dbContext;
     private readonly ILogger<SupplierPaymentController> _logger;
 
     public SupplierPaymentController(
@@ -34,6 +35,7 @@ public class SupplierPaymentController : ControllerBase
         IGoodsReceiptRepository goodsReceiptRepository,
         SupplierPaymentSummaryService summaryService,
         ICurrentUserService currentUserService,
+        AutoPartDbContext dbContext,
         ILogger<SupplierPaymentController> logger)
     {
         _repository = repository;
@@ -42,6 +44,7 @@ public class SupplierPaymentController : ControllerBase
         _summaryService = summaryService;
         _currentUserService = currentUserService;
         _supplierPaymentReadRespository = supplierPaymentReadRespository;
+        _dbContext = dbContext;
         _logger = logger;
     }
 
@@ -428,18 +431,29 @@ public class SupplierPaymentController : ControllerBase
                 // For REGULAR payments: Update purchase order and supplier balance
                 if (request.PaymentType == PaymentType.REGULAR)
                 {
-                    // Update purchase order paid amount (required for REGULAR)
-                    var purchaseOrder = await _purchaseOrderRepository.GetByIdAsync(request.PurchaseOrderId!.Value, cancellationToken);
-                    if (purchaseOrder != null)
+                    // Wrap PO update + payment insert in a single transaction so a partial failure
+                    // cannot leave one written without the other.
+                    await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+                    try
                     {
-                        purchaseOrder.RecordPayment(payment.Amount);
-                        purchaseOrder.ModifiedBy = currentUser;
-                        await _purchaseOrderRepository.UpdateAsync(purchaseOrder, cancellationToken);
-                        _logger.LogInformation("Updated purchase order {PONumber} paid amount by {Amount}", purchaseOrder.PONumber, payment.Amount);
+                        var purchaseOrder = await _purchaseOrderRepository.GetByIdAsync(request.PurchaseOrderId!.Value, cancellationToken);
+                        if (purchaseOrder != null)
+                        {
+                            purchaseOrder.RecordPayment(payment.Amount);
+                            purchaseOrder.ModifiedBy = currentUser;
+                            await _purchaseOrderRepository.UpdateAsync(purchaseOrder, cancellationToken);
+                            _logger.LogInformation("Updated purchase order {PONumber} paid amount by {Amount}", purchaseOrder.PONumber, payment.Amount);
+                        }
+
+                        await _repository.AddAsync(payment, cancellationToken);
+                        await tx.CommitAsync(cancellationToken);
+                    }
+                    catch
+                    {
+                        await tx.RollbackAsync(cancellationToken);
+                        throw;
                     }
 
-                    // NOTE: Supplier balance is NOT updated here.
-                    // Balance is now calculated from transactions via SupplierLedgerService.
                     _logger.LogInformation("Payment {TxnNumber} completed for supplier. Amount: {Amount}. Balance calculated from transactions.",
                         payment.TransactionNumber, payment.Amount);
                 }
@@ -447,11 +461,11 @@ public class SupplierPaymentController : ControllerBase
                 // Advances contribute to available credit, not direct balance reduction
                 else
                 {
+                    await _repository.AddAsync(payment, cancellationToken);
                     _logger.LogInformation("ADVANCE payment created. Supplier balance NOT updated - will be applied when used for a PO.");
                 }
             }
 
-            await _repository.AddAsync(payment, cancellationToken);
             var created = await _repository.GetByIdAsync(payment.Id, cancellationToken);
             return CreatedAtAction(nameof(GetById), new { id = payment.Id }, MapResponse(created!));
         }
@@ -477,14 +491,13 @@ public class SupplierPaymentController : ControllerBase
             var currentUser = _currentUserService.GetCurrentUsername();
             payment.MarkAsProcessed(currentUser);
             payment.ModifiedBy = currentUser;
-            await _repository.UpdateAsync(payment, cancellationToken);
 
-            // Only update PO and supplier balance for REGULAR payments
-            // ADVANCE payments don't affect balance until they're applied to a PO
-            if (payment.PaymentType == PaymentType.REGULAR)
+            await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+            try
             {
-                // Update purchase order paid amount if linked
-                if (payment.PurchaseOrderId.HasValue)
+                await _repository.UpdateAsync(payment, cancellationToken);
+
+                if (payment.PaymentType == PaymentType.REGULAR && payment.PurchaseOrderId.HasValue)
                 {
                     var purchaseOrder = await _purchaseOrderRepository.GetByIdAsync(payment.PurchaseOrderId.Value, cancellationToken);
                     if (purchaseOrder != null)
@@ -495,19 +508,26 @@ public class SupplierPaymentController : ControllerBase
                         _logger.LogInformation("Updated purchase order {PONumber} paid amount by {Amount}", purchaseOrder.PONumber, payment.Amount);
                     }
                 }
+                else
+                {
+                    _logger.LogInformation("ADVANCE payment {TransactionNumber} processed. Balance calculated from transactions.",
+                        payment.TransactionNumber);
+                }
 
-                // NOTE: Supplier balance is NOT updated here.
-                // Balance is now calculated from transactions via SupplierLedgerService.
-                _logger.LogInformation("Payment {TxnNumber} marked as processed. Amount: {Amount}. Balance calculated from transactions.",
-                    payment.TransactionNumber, payment.Amount);
+                await tx.CommitAsync(cancellationToken);
             }
-            else
+            catch
             {
-                _logger.LogInformation("ADVANCE payment {TransactionNumber} processed. Balance calculated from transactions.",
-                    payment.TransactionNumber);
+                await tx.RollbackAsync(cancellationToken);
+                throw;
             }
 
+            _logger.LogInformation("Payment {TxnNumber} marked as processed. Amount: {Amount}.", payment.TransactionNumber, payment.Amount);
             return Ok(MapResponse(payment));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
         }
         catch (Exception ex)
         {
@@ -529,6 +549,10 @@ public class SupplierPaymentController : ControllerBase
             payment.ModifiedBy = currentUser;
             await _repository.UpdateAsync(payment, cancellationToken);
             return Ok(MapResponse(payment));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
         }
         catch (Exception ex)
         {
@@ -572,13 +596,14 @@ public class SupplierPaymentController : ControllerBase
             payment.MarkAsProcessed(currentUser);
             payment.ConfirmReceipt(currentUser);
             payment.ModifiedBy = currentUser;
-            await _repository.UpdateAsync(payment, cancellationToken);
 
-            // Only update PO for REGULAR payments that have NOT yet had mark-processed called
-            // (mark-processed already records the payment on the PO; calling it again would double-count)
-            if (payment.PaymentType == PaymentType.REGULAR && !alreadyProcessed)
+            await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+            try
             {
-                if (payment.PurchaseOrderId.HasValue)
+                await _repository.UpdateAsync(payment, cancellationToken);
+
+                // Only apply RecordPayment once — skip if mark-processed already did it
+                if (payment.PaymentType == PaymentType.REGULAR && !alreadyProcessed && payment.PurchaseOrderId.HasValue)
                 {
                     var purchaseOrder = await _purchaseOrderRepository.GetByIdAsync(payment.PurchaseOrderId.Value, cancellationToken);
                     if (purchaseOrder != null)
@@ -590,16 +615,20 @@ public class SupplierPaymentController : ControllerBase
                     }
                 }
 
-                _logger.LogInformation("Payment {TxnNumber} confirmed. Amount: {Amount}. Balance calculated from transactions.",
-                    payment.TransactionNumber, payment.Amount);
+                await tx.CommitAsync(cancellationToken);
             }
-            else
+            catch
             {
-                _logger.LogInformation("Payment {TransactionNumber} confirmed (PO already updated). Balance calculated from transactions.",
-                    payment.TransactionNumber);
+                await tx.RollbackAsync(cancellationToken);
+                throw;
             }
 
+            _logger.LogInformation("Payment {TxnNumber} confirmed. Amount: {Amount}.", payment.TransactionNumber, payment.Amount);
             return Ok(MapResponse(payment));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
         }
         catch (Exception ex)
         {
@@ -734,12 +763,11 @@ public class SupplierPaymentController : ControllerBase
 
             var currentUser = _currentUserService.GetCurrentUsername();
 
-            // If payment was ADVANCE and COMPLETED, we need to apply the remaining amount
-            // because converting to REGULAR means the money should be applied to PO/supplier
-            if (payment.Status == "COMPLETED")
+            await using var regularTx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+            try
             {
-                // Apply the remaining advance amount to purchase order if linked
-                if (payment.PurchaseOrderId.HasValue && payment.RemainingAmount > 0)
+                // If payment was ADVANCE and COMPLETED, apply the remaining amount to PO first
+                if (payment.Status == "COMPLETED" && payment.PurchaseOrderId.HasValue && payment.RemainingAmount > 0)
                 {
                     var purchaseOrder = await _purchaseOrderRepository.GetByIdAsync(payment.PurchaseOrderId.Value, cancellationToken);
                     if (purchaseOrder != null)
@@ -752,18 +780,17 @@ public class SupplierPaymentController : ControllerBase
                     }
                 }
 
-                // NOTE: Supplier balance is NOT updated here.
-                // Balance is now calculated from transactions via SupplierLedgerService.
-                if (payment.RemainingAmount > 0)
-                {
-                    _logger.LogInformation("Advance payment {TxnNumber} converted to regular. Remaining amount: {Amount}. Balance calculated from transactions.",
-                        payment.TransactionNumber, payment.RemainingAmount);
-                }
-            }
+                payment.MarkAsRegular();
+                payment.ModifiedBy = currentUser;
+                await _repository.UpdateAsync(payment, cancellationToken);
 
-            payment.MarkAsRegular();
-            payment.ModifiedBy = currentUser;
-            await _repository.UpdateAsync(payment, cancellationToken);
+                await regularTx.CommitAsync(cancellationToken);
+            }
+            catch
+            {
+                await regularTx.RollbackAsync(cancellationToken);
+                throw;
+            }
 
             _logger.LogInformation("Converted payment {TransactionNumber} from ADVANCE to REGULAR. Amount: {Amount}",
                 payment.TransactionNumber, payment.Amount);
@@ -898,15 +925,23 @@ public class SupplierPaymentController : ControllerBase
             purchaseOrder.RecordPayment(request.Amount);
             purchaseOrder.ModifiedBy = currentUser;
 
-            // NOTE: Supplier balance is NOT updated here.
-            // Balance is now calculated from transactions via SupplierLedgerService.
+            // All three writes must succeed or none should: if any one fails the ledger is inconsistent.
+            await using var advanceTx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+            try
+            {
+                await _repository.AddAsync(newPayment, cancellationToken);
+                await _repository.UpdateAsync(advancePayment, cancellationToken);
+                await _purchaseOrderRepository.UpdateAsync(purchaseOrder, cancellationToken);
+                await advanceTx.CommitAsync(cancellationToken);
+            }
+            catch
+            {
+                await advanceTx.RollbackAsync(cancellationToken);
+                throw;
+            }
+
             _logger.LogInformation("Advance credit {Amount} applied to PO {PONumber}. Balance calculated from transactions.",
                 request.Amount, purchaseOrder.PONumber);
-
-            // Save all changes
-            await _repository.AddAsync(newPayment, cancellationToken);
-            await _repository.UpdateAsync(advancePayment, cancellationToken);
-            await _purchaseOrderRepository.UpdateAsync(purchaseOrder, cancellationToken);
 
             _logger.LogInformation(
                 "Applied {Amount} from advance payment {AdvanceId} to purchase order {PONumber}. Remaining advance: {Remaining}",

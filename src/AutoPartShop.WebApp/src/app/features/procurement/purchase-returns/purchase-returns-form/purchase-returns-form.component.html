@@ -32,7 +32,7 @@
           class="p-button-info p-button-sm" (click)="markAsReturned()"></button>
         <button *ngIf="currentReturn.status === 'RETURNED'" pButton type="button" label="Mark Received" icon="pi pi-inbox"
           class="p-button-success p-button-sm" (click)="markAsReceived()"></button>
-        <button *ngIf="currentReturn.status === 'RECEIVED'" pButton type="button" label="Issue Credit Note" icon="pi pi-file"
+        <button *ngIf="currentReturn.status === 'RETURNED' || currentReturn.status === 'RECEIVED'" pButton type="button" label="Issue Credit Note" icon="pi pi-file"
           class="p-button-help p-button-sm" (click)="issueCreditNote()"></button>
         <button *ngIf="currentReturn.status === 'PENDING'" pButton type="button" label="Reject" icon="pi pi-times"
           class="p-button-danger p-button-sm" (click)="rejectReturn()"></button>

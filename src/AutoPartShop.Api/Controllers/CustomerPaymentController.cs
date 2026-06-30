@@ -154,7 +154,10 @@ public class CustomerPaymentController : ControllerBase
             var customerInvoices = await _dbContext.Invoices
                 .Include(i => i.SalesOrder)
                 .Include(i => i.CustomerPayments)
-                .Where(i => !i.Isdeleted && i.SalesOrder != null && i.SalesOrder.CustomerId == customerId)
+                .Where(i => !i.Isdeleted && i.SalesOrder != null && i.SalesOrder.CustomerId == customerId
+                            && i.SalesOrder.Status != "CANCELLED"
+                            && i.SalesOrder.Status != "RETURNED"
+                            && i.SalesOrder.Status != "DRAFT")
                 .ToListAsync(cancellationToken);
 
             // Calculate invoice totals
@@ -423,6 +426,10 @@ public class CustomerPaymentController : ControllerBase
             await _repository.UpdateAsync(payment, cancellationToken);
             return Ok(MapResponse(payment));
         }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error reconciling payment");
@@ -521,6 +528,10 @@ public class CustomerPaymentController : ControllerBase
             payment.ModifiedBy = _currentUserService.GetCurrentUsername();
             await _repository.UpdateAsync(payment, cancellationToken);
             return Ok(MapResponse(payment));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
         }
         catch (Exception ex)
         {
@@ -791,7 +802,9 @@ public class CustomerPaymentController : ControllerBase
                     salesOrder.RecordPayment(request.Amount);
                     salesOrder.ModifiedBy = _currentUserService.GetCurrentUsername();
 
-                    // Update invoice payment tracking - Invoice will recalculate its status based on CustomerPayments
+                    // Reflect the new payment in the in-memory collection before recalculating invoice status —
+                    // newPayment is not yet in the DB so UpdatePaymentStatus would miss it otherwise.
+                    invoice.CustomerPayments.Add(newPayment);
                     invoice.UpdatePaymentStatus();
                     invoice.ModifiedBy = _currentUserService.GetCurrentUsername();
 

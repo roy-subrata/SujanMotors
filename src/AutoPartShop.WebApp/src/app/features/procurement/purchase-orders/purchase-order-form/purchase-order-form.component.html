@@ -63,16 +63,17 @@
             tooltipPosition="bottom">
           </button>
 
-          <!-- Cancel button - only for DRAFT or SUBMITTED status -->
+          <!-- Cancel button - DRAFT/SUBMITTED: enabled; PARTIAL: disabled (stock received, return must be cancelled first) -->
           <button
-            *ngIf="currentPO.status === 'DRAFT' || currentPO.status === 'SUBMITTED'"
+            *ngIf="currentPO.status === 'DRAFT' || currentPO.status === 'SUBMITTED' || currentPO.status === 'PARTIAL'"
             pButton
             type="button"
             label="Cancel"
             icon="pi pi-ban"
             class="p-button-warning"
             (click)="cancelPurchaseOrder()"
-            pTooltip="Cancel this purchase order"
+            [disabled]="currentPO.status === 'PARTIAL'"
+            [pTooltip]="currentPO.status === 'PARTIAL' ? 'Cancel a purchase return first to reverse received stock' : 'Cancel this purchase order'"
             tooltipPosition="bottom">
           </button>
         </div>

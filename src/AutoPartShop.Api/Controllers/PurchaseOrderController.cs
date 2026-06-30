@@ -449,6 +449,13 @@ public class PurchaseOrderController : ControllerBase
             var order = await _purchaseOrderRepository.GetByIdAsync(id, cancellationToken);
             if (order is null) return NotFound(new { message = "Purchase order not found" });
 
+            // Block cancellation once goods have been accepted into stock — those movements must be
+            // reversed via a PurchaseReturn rather than simply cancelling the PO.
+            var hasAcceptedGrns = await _dbContext.GoodsReceipts
+                .AnyAsync(g => g.PurchaseOrderId == id && g.Status == "ACCEPTED" && !g.Isdeleted, cancellationToken);
+            if (hasAcceptedGrns)
+                return BadRequest(new { message = "Cannot cancel a purchase order with accepted goods receipts. Create a purchase return to reverse the received stock first." });
+
             // Track if order was confirmed before cancellation (for balance reversal)
             bool wasConfirmed = order.Status == "CONFIRMED";
             decimal orderTotal = order.TotalAmount;
@@ -488,8 +495,14 @@ public class PurchaseOrderController : ControllerBase
     {
         try
         {
-            if (!await _purchaseOrderRepository.ExistsAsync(id, cancellationToken))
+            var orderToDelete = await _purchaseOrderRepository.GetByIdAsync(id, cancellationToken);
+            if (orderToDelete is null)
                 return NotFound(new { message = "Purchase order not found" });
+
+            // Deleting a committed PO would orphan stock lots, payments, and returns.
+            // Cancel it first — the cancellation guard above ensures no accepted GRNs remain.
+            if (orderToDelete.Status is "CONFIRMED" or "PARTIAL" or "DELIVERED")
+                return BadRequest(new { message = $"Cannot delete a {orderToDelete.Status} purchase order. Cancel it first to prevent orphaned stock and payment records." });
 
             await _purchaseOrderRepository.DeleteAsync(id, cancellationToken);
             return NoContent();
@@ -515,6 +528,11 @@ public class PurchaseOrderController : ControllerBase
             var purchaseOrder = await _purchaseOrderRepository.GetByIdAsync(request.PurchaseOrderId, cancellationToken);
             if (purchaseOrder is null)
                 return NotFound(new { message = "Purchase order not found" });
+
+            // Only CONFIRMED or PARTIAL POs are ready to receive goods. Raising a GRN against
+            // a DRAFT/SUBMITTED PO would commit stock before the order is approved.
+            if (purchaseOrder.Status != "CONFIRMED" && purchaseOrder.Status != "PARTIAL")
+                return BadRequest(new { message = $"Goods receipts can only be created for CONFIRMED or PARTIAL purchase orders. Current status: {purchaseOrder.Status}" });
 
             var grnNumber = await _codeGenerateService.GenerateAsync("GRN", cancellationToken);
             var grn = GoodsReceipt.Create(
@@ -768,6 +786,9 @@ public class PurchaseOrderController : ControllerBase
             if (purchaseOrder is null)
                 return NotFound(new { message = "Purchase order not found" });
 
+            if (purchaseOrder.Status is not ("CONFIRMED" or "PARTIAL"))
+                return BadRequest(new { message = $"Cannot update a goods receipt for a {purchaseOrder.Status} purchase order." });
+
             // Update basic GRN info
             grn.ModifiedBy = _currentUserService.GetCurrentUsername();
 
@@ -909,6 +930,10 @@ public class PurchaseOrderController : ControllerBase
             var grn = await _goodsReceiptRepository.GetByIdAsync(id, cancellationToken);
             if (grn is null) return NotFound(new { message = "Goods receipt not found" });
 
+            var poForVerify = await _purchaseOrderRepository.GetByIdAsync(grn.PurchaseOrderId, cancellationToken);
+            if (poForVerify is null || poForVerify.Status is not ("CONFIRMED" or "PARTIAL"))
+                return BadRequest(new { message = $"Cannot verify a goods receipt for a {poForVerify?.Status ?? "missing"} purchase order." });
+
             grn.Verify(verifiedBy);
             grn.ModifiedBy = _currentUserService.GetCurrentUsername();
             await _goodsReceiptRepository.UpdateAsync(grn, cancellationToken);
@@ -952,6 +977,11 @@ public class PurchaseOrderController : ControllerBase
                         ?? throw new InvalidOperationException("Goods receipt not found");
                     if (grn.Status != "VERIFIED")
                         throw new InvalidOperationException("This goods receipt has already been accepted");
+
+                    var poForAccept = await _purchaseOrderRepository.GetByIdAsync(grn.PurchaseOrderId, cancellationToken)
+                        ?? throw new InvalidOperationException("Purchase order not found");
+                    if (poForAccept.Status is not ("CONFIRMED" or "PARTIAL"))
+                        throw new InvalidOperationException($"Cannot accept a goods receipt for a {poForAccept.Status} purchase order.");
 
                     // Stock levels (Good->Available, Damaged->Damaged, Wrong->Quarantine) + PO receipt
                     // status; when createReturn is true, a draft Purchase Return is raised for damaged/wrong lines.

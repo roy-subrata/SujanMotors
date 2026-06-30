@@ -336,8 +336,8 @@ public class StockManagementService
             purchaseOrder.UpdateReceiptStatus();
             purchaseOrder.ModifiedBy = "System";
 
-            // Don't call UpdateAsync - the purchaseOrder is already tracked by DbContext
-            // EF Core will automatically detect changes and persist them on next SaveChanges
+            // GetByIdAsync uses AsNoTracking, so we must explicitly persist via UpdateAsync.
+            await _purchaseOrderRepository.UpdateAsync(purchaseOrder, cancellationToken);
         }
         catch (Exception ex)
         {

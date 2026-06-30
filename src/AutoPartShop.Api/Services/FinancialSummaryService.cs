@@ -109,6 +109,7 @@ public class FinancialSummaryService : IFinancialSummaryService
                          && !sp.Isdeleted
                          && sp.Status == "COMPLETED"
                          && sp.PaymentMethod != "REFUND"
+                         && sp.PaymentMethod != "CREDIT_NOTE" // credit notes are returns, not cash outflows
                          && (sp.PaymentType == PaymentType.ADVANCE || sp.SourceAdvancePaymentId == null))
             .ToListAsync(cancellationToken);
 
@@ -177,7 +178,8 @@ public class FinancialSummaryService : IFinancialSummaryService
             .Where(x => !x.Isdeleted
                         && x.Status == "COMPLETED"
                         && x.PaymentMethod != "REFUND"
-                        && (x.PaymentType == AutoPartShop.Domain.Entities.PaymentType.ADVANCE || x.SourceAdvancePaymentId == null))
+                        && x.PaymentMethod != "CREDIT_NOTE" // already counted in allPurchaseReturns; including here would double-reduce the balance
+                        && (x.PaymentType == PaymentType.ADVANCE || x.SourceAdvancePaymentId == null))
             .Select(x => new { x.SupplierId, x.Amount, x.Currency, x.PaymentDate })
             .ToListAsync(cancellationToken);
 
@@ -246,8 +248,9 @@ public class FinancialSummaryService : IFinancialSummaryService
 
         // ── Inventory ─────────────────────────────────────────────────────────────────
         // CostPrice on StockLot = actual purchase cost stored in base currency at goods-receipt time.
+        // Only AVAILABLE lots are sellable; DAMAGED and QUARANTINE are held for return and excluded.
         var inventoryValue = await _dbContext.StockLots
-            .Where(l => !l.Isdeleted && l.QuantityAvailable > 0)
+            .Where(l => !l.Isdeleted && l.QuantityAvailable > 0 && l.Status == "AVAILABLE")
             .SumAsync(l => l.QuantityAvailable * l.CostPrice, cancellationToken);
 
         // Low-stock: quantity at or below the configured minimum threshold.
@@ -265,7 +268,7 @@ public class FinancialSummaryService : IFinancialSummaryService
 
         var lowStockValue = lowStockPartIds.Count > 0
             ? await _dbContext.StockLots
-                .Where(l => !l.Isdeleted && l.QuantityAvailable > 0 && lowStockPartIds.Contains(l.PartId))
+                .Where(l => !l.Isdeleted && l.QuantityAvailable > 0 && l.Status == "AVAILABLE" && lowStockPartIds.Contains(l.PartId))
                 .SumAsync(l => l.QuantityAvailable * l.CostPrice, cancellationToken)
             : 0m;
 

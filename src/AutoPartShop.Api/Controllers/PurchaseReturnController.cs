@@ -634,17 +634,14 @@ public class PurchaseReturnController : ControllerBase
             var purchaseReturn = await _purchaseReturnRepository.GetByIdAsync(id, cancellationToken);
             if (purchaseReturn is null) return NotFound(new { message = "Purchase return not found" });
 
-            // Issue credit note on the return
-            purchaseReturn.IssueCreditNote(creditAmount);
-            purchaseReturn.ModifiedBy = _currentUserService.GetCurrentUsername();
-            await _purchaseReturnRepository.UpdateAsync(purchaseReturn, cancellationToken);
-
-            // Create CreditNote entity
-            var creditNoteNumber = $"CN-{DateTime.UtcNow:yyyyMMddHHmmss}";
-            // Derive currency from the linked purchase order if available, otherwise fall back to "NPR"
+            // Pre-fetch read-only data before the transaction
             var linkedPO = await _dbContext.PurchaseOrders
                 .FirstOrDefaultAsync(po => po.Id == purchaseReturn.PurchaseOrderId, cancellationToken);
             var currency = linkedPO?.Currency ?? "NPR";
+            var defaultProvider = await _dbContext.PaymentProviders.FirstOrDefaultAsync(cancellationToken);
+
+            var creditNoteNumber = await _codeGenerateService.GenerateAsync("CN", cancellationToken);
+            var currentUser = _currentUserService.GetCurrentUsername();
 
             var creditNote = CreditNote.Create(
                 creditNoteNumber: creditNoteNumber,
@@ -654,31 +651,46 @@ public class PurchaseReturnController : ControllerBase
                 currency: currency,
                 issueDate: DateTime.UtcNow,
                 notes: $"Credit note for return {purchaseReturn.ReturnNumber}",
-                issuedBy: _currentUserService.GetCurrentUsername()
+                issuedBy: currentUser
             );
-            await _creditNoteRepository.AddAsync(creditNote, cancellationToken);
 
-            // Link the credit note to the purchase return
-            purchaseReturn.SetCreditNote(creditNote.Id);
-            await _purchaseReturnRepository.UpdateAsync(purchaseReturn, cancellationToken);
-
-            // Create SupplierPayment record for audit trail (ADVANCE type)
-            // Find a default payment provider
-            var defaultProvider = await _dbContext.PaymentProviders.FirstOrDefaultAsync(cancellationToken);
-            if (defaultProvider != null)
+            // All writes in one transaction — if the SupplierPayment insert fails, the
+            // credit note and return status update are rolled back together.
+            await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+            try
             {
-                var supplierPayment = SupplierPayment.Create(
-                    supplierId: purchaseReturn.SupplierId,
-                    paymentProviderId: defaultProvider.Id,
-                    amount: creditAmount,
-                    paymentMethod: "CREDIT_NOTE",
-                    transactionNumber: creditNoteNumber,
-                    referenceNumber: purchaseReturn.ReturnNumber,
-                    paymentDate: DateTime.UtcNow
-                );
-                supplierPayment.MarkAsAdvance();  // This is a credit that can be used later
-                supplierPayment.MarkAsProcessed(_currentUserService.GetCurrentUsername());
-                await _supplierPaymentRepository.AddAsync(supplierPayment, cancellationToken);
+                purchaseReturn.IssueCreditNote(creditAmount);
+                purchaseReturn.ModifiedBy = currentUser;
+                await _purchaseReturnRepository.UpdateAsync(purchaseReturn, cancellationToken);
+
+                await _creditNoteRepository.AddAsync(creditNote, cancellationToken);
+
+                purchaseReturn.SetCreditNote(creditNote.Id);
+                await _purchaseReturnRepository.UpdateAsync(purchaseReturn, cancellationToken);
+
+                if (defaultProvider != null)
+                {
+                    var supplierPayment = SupplierPayment.Create(
+                        supplierId: purchaseReturn.SupplierId,
+                        paymentProviderId: defaultProvider.Id,
+                        amount: creditAmount,
+                        paymentMethod: "CREDIT_NOTE",
+                        transactionNumber: creditNoteNumber,
+                        referenceNumber: purchaseReturn.ReturnNumber,
+                        paymentDate: DateTime.UtcNow
+                    );
+                    supplierPayment.MarkAsAdvance();
+                    supplierPayment.MarkAsProcessed(currentUser);
+                    supplierPayment.ConfirmReceipt(currentUser); // advance to COMPLETED so it surfaces in GetAvailableAdvanceCreditAsync
+                    await _supplierPaymentRepository.AddAsync(supplierPayment, cancellationToken);
+                }
+
+                await tx.CommitAsync(cancellationToken);
+            }
+            catch
+            {
+                await tx.RollbackAsync(cancellationToken);
+                throw;
             }
 
             _logger.LogInformation(
@@ -720,6 +732,10 @@ public class PurchaseReturnController : ControllerBase
             await _purchaseReturnRepository.UpdateAsync(purchaseReturn, cancellationToken);
 
             return Ok(MapToPurchaseReturnResponse(purchaseReturn));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
         }
         catch (Exception ex)
         {

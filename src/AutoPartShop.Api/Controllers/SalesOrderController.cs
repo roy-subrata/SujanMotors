@@ -687,6 +687,9 @@ public class SalesOrderController : ControllerBase
                             {
                                 customer.UpdateBalance(invoice.GrandTotal);
                                 customer.ModifiedBy = _currentUserService.GetCurrentUsername();
+                                // GetByIdAsync uses AsNoTracking — must attach explicitly so
+                                // SaveChangesAsync persists the balance change.
+                                _dbContext.Customers.Update(customer);
                             }
                             else
                             {
@@ -694,7 +697,6 @@ public class SalesOrderController : ControllerBase
                             }
                         }
 
-                        // Single save: invoice status + customer balance in same commit
                         _dbContext.Invoices.Update(invoice);
                         await _dbContext.SaveChangesAsync(cancellationToken);
                     }
@@ -1897,6 +1899,7 @@ public class SalesOrderController : ControllerBase
                         catch (Exception ex)
                         {
                             _logger.LogError(ex, "Error applying advance credit in quick sale for customer {CustomerId}", request.CustomerId.Value);
+                            throw; // advance failure must roll back the whole sale
                         }
                     }
 
