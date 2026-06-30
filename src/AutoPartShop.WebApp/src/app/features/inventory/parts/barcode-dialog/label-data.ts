@@ -18,7 +18,9 @@ export interface LabelData {
     partId?: string;
     brand?: string;
     category?: string;
-    /** Compact vehicle-compatibility summary, e.g. "Honda Civic, Toyota Corolla +3". */
+    /** Local-language name (e.g. Bengali) shown alongside the catalog name. */
+    localName?: string | null;
+    /** Compact vehicle-compatibility summary, e.g. "Honda Civic 2020, Toyota Corolla +3". */
     compatibility?: string | null;
     /** Identifier printed/encoded — variant SKU when the row is a variant. */
     sku: string;
@@ -53,6 +55,8 @@ export function labelFromPart(part: PartResponse): LabelData {
         sku: (isVariant ? part.variantSKU : part.sku) || part.sku,
         partNumber: part.partNumber,
         oemNumber: part.oemNumber ?? undefined,
+        localName: part.localName ?? null,
+        compatibility: part.vehicleFit ?? null,
         barcode: (isVariant ? part.variantBarcode : part.barcode) ?? part.barcode ?? null,
         unit: part.unitCode || part.unitName || undefined,
         price: part.sellingPrice ?? null,

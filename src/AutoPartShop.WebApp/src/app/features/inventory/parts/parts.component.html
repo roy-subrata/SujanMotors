@@ -134,7 +134,9 @@
                 </div>
                 <div class="cell-stack">
                   <span class="cell-primary">{{ part.name }}</span>
+                  <span *ngIf="part.localName" class="cell-secondary">{{ part.localName }}</span>
                   <span class="cell-secondary">SKU: {{ part.sku }} | PN: {{ part.partNumber }}</span>
+                  <span *ngIf="part.vehicleFit" class="cell-secondary" style="font-size:0.7rem;color:#888">Fits: {{ part.vehicleFit }}</span>
                 </div>
               </div>
             </td>

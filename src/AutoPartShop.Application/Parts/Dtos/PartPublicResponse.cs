@@ -9,6 +9,8 @@ namespace AutoPartShop.Application.Parts.Dtos
         public string PartNumber { get; set; } = string.Empty;
         public string SKU { get; set; } = string.Empty;
         public string? OemNumber { get; set; }
+        public string? LocalName { get; set; }
+        public string? VehicleFit { get; set; }
         public Guid CategoryId { get; set; }
         public string CategoryName { get; set; } = string.Empty;
         public Guid? BrandId { get; set; }

@@ -41,6 +41,7 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
                 PartNumber = x.Product.PartNumber.Value,
                 SKU = x.Product.SKU,
                 OemNumber = x.Product.OemNumber,
+                LocalName = x.Product.LocalName,
                 CategoryId = x.Product.CategoryId,
                 CategoryName = x.Product.Category != null ? x.Product.Category.Name : string.Empty,
                 BrandId = x.Product.BrandId,
@@ -97,7 +98,8 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
             .Include(p => p.BaseUnit)
             .Where(x => !x.Isdeleted && (query.IsActive == null || x.IsActive == query.IsActive) && (
              (EF.Functions.Like(x.Name, $"%{term}%") ||
-             EF.Functions.Like(x.SKU, $"%{term}%")
+             EF.Functions.Like(x.SKU, $"%{term}%") ||
+             (x.LocalName != null && EF.Functions.Like(x.LocalName, $"%{term}%"))
             )));
 
         if (query.Sorts != null && query.Sorts.Any())
@@ -124,6 +126,7 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
                 PartNumber = part.PartNumber.Value,
                 SKU = part.SKU,
                 OemNumber = part.OemNumber,
+                LocalName = part.LocalName,
                 CategoryId = part.CategoryId,
                 CategoryName = part.Category != null ? part.Category.Name : string.Empty,
                 BrandId = part.BrandId,
@@ -162,6 +165,7 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
             .ToListAsync(cancellationToken);
 
         await ApplyLotCostAsync(items, cancellationToken);
+        await ApplyVehicleFitAsync(items, cancellationToken);
         return (items, totalCount);
     }
 
@@ -237,6 +241,7 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
                 PartNumber = part.PartNumber.Value,
                 SKU = part.SKU,
                 OemNumber = part.OemNumber,
+                LocalName = part.LocalName,
                 CategoryId = part.CategoryId,
                 CategoryName = part.Category != null ? part.Category.Name : string.Empty,
                 BrandId = part.BrandId,
@@ -295,6 +300,7 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
                 PartNumber = v.Part.PartNumber.Value,
                 SKU = v.Part.SKU,
                 OemNumber = v.Part.OemNumber,
+                LocalName = v.Part.LocalName,
                 CategoryId = v.Part.CategoryId,
                 CategoryName = v.Part.Category != null ? v.Part.Category.Name : string.Empty,
                 BrandId = v.Part.BrandId,
@@ -348,6 +354,7 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
             .ToList();
 
         await ApplyLotCostAsync(paged, cancellationToken);
+        await ApplyVehicleFitAsync(paged, cancellationToken);
         return (paged, totalCount);
     }
 
@@ -392,6 +399,7 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
                 PartNumber = part.PartNumber.Value,
                 SKU = part.SKU,
                 OemNumber = part.OemNumber,
+                LocalName = part.LocalName,
                 CategoryId = part.CategoryId,
                 CategoryName = part.Category != null ? part.Category.Name : string.Empty,
                 BrandId = part.BrandId,
@@ -424,6 +432,7 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
             })
             .ToListAsync(cancellationToken);
 
+        await ApplyPublicVehicleFitAsync(items, cancellationToken);
         return (items, totalCount);
     }
 
@@ -448,6 +457,7 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
                 PartNumber = part.PartNumber.Value,
                 SKU = part.SKU,
                 OemNumber = part.OemNumber,
+                LocalName = part.LocalName,
                 CategoryId = part.CategoryId,
                 CategoryName = part.Category != null ? part.Category.Name : string.Empty,
                 BrandId = part.BrandId,
@@ -501,6 +511,7 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
                 PartNumber = v.Part.PartNumber.Value,
                 SKU = v.Part.SKU,
                 OemNumber = v.Part.OemNumber,
+                LocalName = v.Part.LocalName,
                 CategoryId = v.Part.CategoryId,
                 CategoryName = v.Part.Category != null ? v.Part.Category.Name : string.Empty,
                 BrandId = v.Part.BrandId,
@@ -548,6 +559,63 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
             .Take(query.PageSize)
             .ToList();
 
+        await ApplyPublicVehicleFitAsync(paged, cancellationToken);
         return (paged, totalCount);
+    }
+
+    private async Task ApplyVehicleFitAsync(List<ProductResponse> items, CancellationToken cancellationToken)
+    {
+        if (items.Count == 0) return;
+
+        var partIds = items.Select(i => i.Id).Distinct().ToList();
+        var compatibilities = await _db.PartVehicleCompatibilities
+            .Include(vc => vc.Vehicle)
+            .Where(vc => !vc.Isdeleted && vc.IsCompatible && partIds.Contains(vc.PartId) && vc.Vehicle != null)
+            .Select(vc => new { vc.PartId, Make = vc.Vehicle!.Make, Model = vc.Vehicle.Model, Year = vc.Vehicle.Year })
+            .ToListAsync(cancellationToken);
+
+        var byPart = compatibilities
+            .GroupBy(c => c.PartId)
+            .ToDictionary(g => g.Key, g => g.OrderBy(c => c.Make).ToList());
+
+        foreach (var item in items)
+        {
+            if (!byPart.TryGetValue(item.Id, out var vehicles) || vehicles.Count == 0)
+                continue;
+
+            var labels = vehicles.Take(2).Select(v => $"{v.Make} {v.Model} {v.Year}");
+            var summary = string.Join(", ", labels);
+            if (vehicles.Count > 2)
+                summary += $" +{vehicles.Count - 2}";
+            item.VehicleFit = summary;
+        }
+    }
+
+    private async Task ApplyPublicVehicleFitAsync(List<ProductPublicResponse> items, CancellationToken cancellationToken)
+    {
+        if (items.Count == 0) return;
+
+        var partIds = items.Select(i => i.Id).Distinct().ToList();
+        var compatibilities = await _db.PartVehicleCompatibilities
+            .Include(vc => vc.Vehicle)
+            .Where(vc => !vc.Isdeleted && vc.IsCompatible && partIds.Contains(vc.PartId) && vc.Vehicle != null)
+            .Select(vc => new { vc.PartId, Make = vc.Vehicle!.Make, Model = vc.Vehicle.Model, Year = vc.Vehicle.Year })
+            .ToListAsync(cancellationToken);
+
+        var byPart = compatibilities
+            .GroupBy(c => c.PartId)
+            .ToDictionary(g => g.Key, g => g.OrderBy(c => c.Make).ToList());
+
+        foreach (var item in items)
+        {
+            if (!byPart.TryGetValue(item.Id, out var vehicles) || vehicles.Count == 0)
+                continue;
+
+            var labels = vehicles.Take(2).Select(v => $"{v.Make} {v.Model} {v.Year}");
+            var summary = string.Join(", ", labels);
+            if (vehicles.Count > 2)
+                summary += $" +{vehicles.Count - 2}";
+            item.VehicleFit = summary;
+        }
     }
 }

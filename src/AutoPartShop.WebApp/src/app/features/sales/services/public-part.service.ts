@@ -11,6 +11,8 @@ export interface PublicPartResponse {
   description: string;
   partNumber: string;
   oemNumber?: string | null;
+  localName?: string | null;
+  vehicleFit?: string | null;
   sku: string;
   categoryId: string;
   categoryName: string;
