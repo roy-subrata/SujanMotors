@@ -66,9 +66,9 @@ namespace AutoPartShop.Api.Controllers
             if (salesOrder == null)
                 return BadRequest("Sales order not found.");
 
-            var returnableStatuses = new[] { "CONFIRMED", "PARTIALLY_SHIPPED", "SHIPPED", "DELIVERED" };
+            var returnableStatuses = new[] { "PARTIALLY_SHIPPED", "SHIPPED", "DELIVERED" };
             if (!returnableStatuses.Contains(salesOrder.Status))
-                return BadRequest($"Cannot create a return for a sales order with status '{salesOrder.Status}'. Only confirmed, shipped, or delivered orders can be returned.");
+                return BadRequest($"Cannot create a return for a sales order with status '{salesOrder.Status}'. Only shipped or delivered orders can be returned.");
 
             // Block if any returned line has an active warranty claim to prevent double-refunds.
             var lineIds = request.Lines.Select(l => l.SalesOrderLineId).ToList();
@@ -434,6 +434,21 @@ namespace AutoPartShop.Api.Controllers
                     {
                         if (salesReturn.RefundType == "CASH_REFUND")
                         {
+                            // Load the invoice to update its payment status after the refund
+                            Invoice? invoice = null;
+                            if (salesReturn.InvoiceId.HasValue)
+                            {
+                                invoice = await _dbContext.Invoices
+                                    .Include(i => i.CustomerPayments)
+                                    .FirstOrDefaultAsync(i => i.Id == salesReturn.InvoiceId.Value, cancellationToken);
+                            }
+                            else
+                            {
+                                invoice = await _dbContext.Invoices
+                                    .Include(i => i.CustomerPayments)
+                                    .FirstOrDefaultAsync(i => i.SalesOrderId == salesOrder.Id && !i.Isdeleted, cancellationToken);
+                            }
+
                             // Cash can only be refunded up to what the customer actually paid. Any
                             // remainder is value they never paid for (credit / partially-paid sale),
                             // so it just reduces their outstanding balance instead of handing back cash.
@@ -454,7 +469,8 @@ namespace AutoPartShop.Api.Controllers
                                     paymentMethod: "REFUND",
                                     transactionNumber: $"REFUND-{salesReturn.ReturnNumber}",
                                     referenceNumber: salesReturn.ReturnNumber,
-                                    paymentDate: DateTime.UtcNow
+                                    paymentDate: DateTime.UtcNow,
+                                    currency: salesOrder?.Currency ?? "BDT"
                                 );
 
                                 if (salesReturn.InvoiceId.HasValue)
@@ -469,7 +485,18 @@ namespace AutoPartShop.Api.Controllers
 
                                 await _customerPaymentRepository.AddAsync(refundPayment, CancellationToken.None);
 
-                                salesOrder.ProcessRefund(cashPart);
+                                if (invoice != null)
+                                {
+                                    invoice.CustomerPayments.Add(refundPayment);
+                                    invoice.UpdatePaymentStatus();
+                                }
+                            }
+
+                            // Call ProcessRefund for the total refunded value (cash + balance write-off)
+                            var totalRefunded = cashPart + balancePart;
+                            if (totalRefunded > 0)
+                            {
+                                salesOrder.ProcessRefund(totalRefunded);
                                 salesOrder.ModifiedBy = _currentUserService.GetCurrentUsername();
                                 await _salesOrderRepository.UpdateAsync(salesOrder, CancellationToken.None);
                             }
@@ -504,6 +531,10 @@ namespace AutoPartShop.Api.Controllers
                             // Link the credit note to the sales return
                             salesReturn.SetCustomerCreditNote(customerCreditNote.Id);
                         }
+
+                        // Reverse TotalPurchaseAmount — applies regardless of refund type
+                        customer.ReverseRecordPurchase(salesReturn.RefundAmount);
+                        customer.ModifiedBy = _currentUserService.GetCurrentUsername();
                     }
                 }
 
@@ -689,6 +720,20 @@ namespace AutoPartShop.Api.Controllers
                                         salesOrder.RecordPayment(salesReturn.RefundAmount);
                                         salesOrder.ModifiedBy = actor;
 
+                                        Invoice? invoice = null;
+                                        if (salesReturn.InvoiceId.HasValue)
+                                        {
+                                            invoice = await _dbContext.Invoices
+                                                .Include(i => i.CustomerPayments)
+                                                .FirstOrDefaultAsync(i => i.Id == salesReturn.InvoiceId.Value, cancellationToken);
+                                        }
+                                        else
+                                        {
+                                            invoice = await _dbContext.Invoices
+                                                .Include(i => i.CustomerPayments)
+                                                .FirstOrDefaultAsync(i => i.SalesOrderId == salesOrder.Id && !i.Isdeleted, cancellationToken);
+                                        }
+
                                         var reversalPayment = Domain.Entities.CustomerPayment.Create(
                                             customerId: salesOrder.CustomerId,
                                             paymentProviderId: null,
@@ -696,7 +741,8 @@ namespace AutoPartShop.Api.Controllers
                                             paymentMethod: "REFUND_REVERSAL",
                                             transactionNumber: $"RREV-{salesReturn.ReturnNumber}",
                                             referenceNumber: salesReturn.ReturnNumber,
-                                            paymentDate: DateTime.UtcNow);
+                                            paymentDate: DateTime.UtcNow,
+                                            currency: salesOrder?.Currency ?? "BDT");
                                         if (salesReturn.InvoiceId.HasValue)
                                             reversalPayment.LinkToInvoice(salesReturn.InvoiceId.Value);
 
@@ -705,6 +751,12 @@ namespace AutoPartShop.Api.Controllers
                                         reversalPayment.CreatedBy = actor;
                                         reversalPayment.ModifiedBy = actor;
                                         _dbContext.CustomerPayments.Add(reversalPayment);
+
+                                        if (invoice != null)
+                                        {
+                                            invoice.CustomerPayments.Add(reversalPayment);
+                                            invoice.UpdatePaymentStatus();
+                                        }
                                     }
                                 }
                             }

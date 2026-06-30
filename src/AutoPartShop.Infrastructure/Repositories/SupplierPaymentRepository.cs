@@ -36,11 +36,10 @@ public class SupplierPaymentRepository(AutoPartDbContext _db) : ISupplierPayment
 
     public async Task UpdateAsync(SupplierPayment entity, CancellationToken cancellationToken = default)
     {
-        var existing = await _db.SupplierPayments.FirstOrDefaultAsync(x => x.Id == entity.Id);
-        if (existing != null)
-        {
-            existing.UpdateNotes(entity.Notes);
-        }
+        var entry = _db.Entry(entity);
+        if (entry.State == EntityState.Detached)
+            _db.SupplierPayments.Attach(entity);
+        entry.State = EntityState.Modified;
         await _db.SaveChangesAsync(cancellationToken);
     }
 
@@ -147,6 +146,7 @@ public class SupplierPaymentRepository(AutoPartDbContext _db) : ISupplierPayment
             .Where(x => x.SupplierId == supplierId &&
                         x.Status == "COMPLETED" &&
                         x.PaymentMethod != "REFUND" &&
+                        x.PaymentMethod != "CREDIT_NOTE" &&
                         (x.PaymentType == PaymentType.ADVANCE || x.SourceAdvancePaymentId == null) &&
                         !x.Isdeleted)
             .SumAsync(x => x.Amount, cancellationToken);

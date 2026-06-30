@@ -109,6 +109,7 @@ public class FinancialSummaryService : IFinancialSummaryService
                          && !sp.Isdeleted
                          && sp.Status == "COMPLETED"
                          && sp.PaymentMethod != "REFUND"
+                         && sp.PaymentMethod != "CREDIT_NOTE" // credit notes are returns, not cash outflows
                          && (sp.PaymentType == PaymentType.ADVANCE || sp.SourceAdvancePaymentId == null))
             .ToListAsync(cancellationToken);
 
@@ -129,36 +130,46 @@ public class FinancialSummaryService : IFinancialSummaryService
 
         // ── Customer outstanding / overdue (all-time snapshot) ────────────────────────
         // Not filtered to the selected period — always shows current real exposure.
-        // outstanding = GrandTotal − PaidAmount  (GrandTotal = TotalAmount + TaxAmount).
-        // Overdue proxy: net-30 from order date (no PaymentDueDate field on SalesOrder).
-        const int CreditTermDays = 30;
+        // Invoice-based formula: outstanding = GrandTotal − Σ completed payments.
+        // Uses actual invoice DueDate (not a proxy) for overdue detection.
         var today = DateTime.UtcNow.Date;
 
-        var openSalesOrders = await _dbContext.SalesOrders
-            .Where(o => !o.Isdeleted
-                        && o.Status != "CANCELLED"
-                        && o.Status != "RETURNED"
-                        && o.Status != "DRAFT")
-            .Select(o => new { o.CustomerId, o.TotalAmount, o.TaxAmount, o.PaidAmount, o.Currency, o.SODate })
+        var openInvoiceData = await _dbContext.Invoices
+            .Where(i => !i.Isdeleted
+                        && i.Status != "CANCELLED"
+                        && i.SalesOrder != null
+                        && !i.SalesOrder.Isdeleted
+                        && !ExcludedSalesStatuses.Contains(i.SalesOrder.Status))
+            .Select(i => new
+            {
+                CustomerId = i.SalesOrder!.CustomerId,
+                GrandTotal = i.SubTotal + i.TaxAmount - i.DiscountAmount,
+                AmountPaid = i.CustomerPayments
+                    .Where(p => p.Status == "COMPLETED")
+                    .Sum(p => (decimal?)p.Amount) ?? 0m,
+                Currency = i.SalesOrder.Currency,
+                SODate = i.SalesOrder.SODate,
+                DueDate = i.DueDate
+            })
             .ToListAsync(cancellationToken);
 
         var customerDueByCustomer      = new Dictionary<Guid, decimal>();
         var customerOverdueByCustomer  = new Dictionary<Guid, decimal>();
 
-        foreach (var order in openSalesOrders)
+        foreach (var inv in openInvoiceData)
         {
-            var outstanding = order.TotalAmount + order.TaxAmount - order.PaidAmount;
+            var outstanding = inv.GrandTotal - inv.AmountPaid;
             if (outstanding <= 0) continue;
 
-            var converted = await _currencyService.ConvertToBaseAsync(outstanding, order.Currency, order.SODate, cancellationToken);
+            var converted = await _currencyService.ConvertToBaseAsync(outstanding, inv.Currency, inv.SODate, cancellationToken);
 
-            customerDueByCustomer.TryAdd(order.CustomerId, 0);
-            customerDueByCustomer[order.CustomerId] += converted;
+            customerDueByCustomer.TryAdd(inv.CustomerId, 0);
+            customerDueByCustomer[inv.CustomerId] += converted;
 
-            if (order.SODate.Date <= today.AddDays(-CreditTermDays))
+            if (inv.DueDate.Date < today)
             {
-                customerOverdueByCustomer.TryAdd(order.CustomerId, 0);
-                customerOverdueByCustomer[order.CustomerId] += converted;
+                customerOverdueByCustomer.TryAdd(inv.CustomerId, 0);
+                customerOverdueByCustomer[inv.CustomerId] += converted;
             }
         }
 
@@ -177,7 +188,8 @@ public class FinancialSummaryService : IFinancialSummaryService
             .Where(x => !x.Isdeleted
                         && x.Status == "COMPLETED"
                         && x.PaymentMethod != "REFUND"
-                        && (x.PaymentType == AutoPartShop.Domain.Entities.PaymentType.ADVANCE || x.SourceAdvancePaymentId == null))
+                        && x.PaymentMethod != "CREDIT_NOTE" // already counted in allPurchaseReturns; including here would double-reduce the balance
+                        && (x.PaymentType == PaymentType.ADVANCE || x.SourceAdvancePaymentId == null))
             .Select(x => new { x.SupplierId, x.Amount, x.Currency, x.PaymentDate })
             .ToListAsync(cancellationToken);
 
@@ -246,8 +258,9 @@ public class FinancialSummaryService : IFinancialSummaryService
 
         // ── Inventory ─────────────────────────────────────────────────────────────────
         // CostPrice on StockLot = actual purchase cost stored in base currency at goods-receipt time.
+        // Only AVAILABLE lots are sellable; DAMAGED and QUARANTINE are held for return and excluded.
         var inventoryValue = await _dbContext.StockLots
-            .Where(l => !l.Isdeleted && l.QuantityAvailable > 0)
+            .Where(l => !l.Isdeleted && l.QuantityAvailable > 0 && l.Status == "AVAILABLE")
             .SumAsync(l => l.QuantityAvailable * l.CostPrice, cancellationToken);
 
         // Low-stock: quantity at or below the configured minimum threshold.
@@ -265,7 +278,7 @@ public class FinancialSummaryService : IFinancialSummaryService
 
         var lowStockValue = lowStockPartIds.Count > 0
             ? await _dbContext.StockLots
-                .Where(l => !l.Isdeleted && l.QuantityAvailable > 0 && lowStockPartIds.Contains(l.PartId))
+                .Where(l => !l.Isdeleted && l.QuantityAvailable > 0 && l.Status == "AVAILABLE" && lowStockPartIds.Contains(l.PartId))
                 .SumAsync(l => l.QuantityAvailable * l.CostPrice, cancellationToken)
             : 0m;
 
@@ -449,6 +462,15 @@ public class FinancialSummaryService : IFinancialSummaryService
             .Select(g => new { PartId = g.Key, Cogs = g.Sum(m => m.QuantityInBaseUnit * m.CostAtMovementInBaseUnit) })
             .ToDictionaryAsync(x => x.PartId, x => x.Cogs, cancellationToken);
 
+        // Subtract COGS reversed by customer returns and cancellations
+        var returnsByPart = await _dbContext.StockLotMovements
+            .Where(m => m.MovementType == "RETURN"
+                        && m.MovementDate >= startDate && m.MovementDate < endDate
+                        && m.StockLot != null)
+            .GroupBy(m => m.StockLot!.PartId)
+            .Select(g => new { PartId = g.Key, Returns = g.Sum(m => m.QuantityInBaseUnit * m.CostAtMovementInBaseUnit) })
+            .ToDictionaryAsync(x => x.PartId, x => x.Returns, cancellationToken);
+
         return productAgg
             .Select(kvp => new TopProductDto
             {
@@ -458,7 +480,9 @@ public class FinancialSummaryService : IFinancialSummaryService
                 Sku          = kvp.Value.Sku,
                 QuantitySold = kvp.Value.Qty,
                 TotalRevenue = kvp.Value.Revenue,
-                TotalProfit  = kvp.Value.Revenue - (cogsByPart.TryGetValue(kvp.Key, out var c) ? c : 0)
+                TotalProfit  = kvp.Value.Revenue
+                    - (cogsByPart.TryGetValue(kvp.Key, out var c) ? c : 0)
+                    + (returnsByPart.TryGetValue(kvp.Key, out var r) ? r : 0)
             })
             .OrderByDescending(p => p.TotalRevenue)
             .Take(10)
@@ -489,8 +513,9 @@ public class FinancialSummaryService : IFinancialSummaryService
 
         foreach (var so in orders)
         {
-            var revenue     = await _currencyService.ConvertToBaseAsync(so.TotalAmount, so.Currency, so.SODate, cancellationToken);
-            var rawDue      = so.TotalAmount + so.TaxAmount - so.PaidAmount;
+            var grandTotal  = so.TotalAmount + so.TaxAmount;
+            var revenue     = await _currencyService.ConvertToBaseAsync(grandTotal, so.Currency, so.SODate, cancellationToken);
+            var rawDue      = grandTotal - so.PaidAmount;
             var outstanding = rawDue > 0
                 ? await _currencyService.ConvertToBaseAsync(rawDue, so.Currency, so.SODate, cancellationToken)
                 : 0m;
