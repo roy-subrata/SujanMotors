@@ -255,7 +255,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
   returnInvoiceNumber = '';
   returnInvoice: any = null;
   returnRefundType: 'CASH_REFUND' | 'STORE_CREDIT' = 'CASH_REFUND';
-  returnLines: { salesOrderLineId: string; partId: string; partName: string; soldQty: number; unitPrice: number; returnQty: number; selected: boolean }[] = [];
+  returnLines: { salesOrderLineId: string; partId: string; partName: string; partLocalName?: string | null; soldQty: number; unitPrice: number; returnQty: number; selected: boolean }[] = [];
   priceCheckCode = '';
   priceCheckResult: any = null;
   priceCheckLoading = false;
@@ -397,6 +397,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
       partId: part.id,
       productVariantId: part.variantId ?? undefined,
       partName: part.displayName || part.name,
+      partLocalName: part.localName ?? null,
       partNumber: part.partNumber,
       sku: part.variantSKU || part.sku,
       unitId: part.unitId || undefined,
@@ -866,6 +867,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
           salesOrderLineId: l.salesOrderLineId,
           partId: l.partId,
           partName: l.variantName ? `${l.partName} - ${l.variantName}` : l.partName,
+          partLocalName: l.partLocalName ?? null,
           soldQty: l.quantity,
           unitPrice: l.unitPrice,
           returnQty: l.quantity,

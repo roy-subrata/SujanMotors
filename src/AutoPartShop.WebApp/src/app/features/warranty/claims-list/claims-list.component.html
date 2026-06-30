@@ -109,7 +109,7 @@
           </td>
           <td>
             <div class="cell-primary">{{ claim.warrantyNumber }}</div>
-            <div class="cell-secondary">{{ claim.partName }} ({{ claim.partSKU }})</div>
+            <div class="cell-secondary">{{ claim.partName }}<span *ngIf="claim.partLocalName"> — {{ claim.partLocalName }}</span> ({{ claim.partSKU }})</div>
           </td>
           <td>
             <div class="cell-primary">{{ claim.customerName }}</div>
@@ -253,7 +253,10 @@
         <h4>Warranty & Product</h4>
         <div class="detail-row"><span class="detail-label">Warranty #</span><span>{{ selectedClaim.warrantyNumber }}</span></div>
         <div class="detail-row"><span class="detail-label">Coverage Type</span><span><p-tag [value]="getCoverageTypeLabel(selectedClaim.warrantyCoverageType)" [severity]="getCoverageTypeSeverity(selectedClaim.warrantyCoverageType)"></p-tag></span></div>
-        <div class="detail-row"><span class="detail-label">Part</span><span>{{ selectedClaim.partName }} ({{ selectedClaim.partSKU }})</span></div>
+        <div class="detail-row">
+          <span class="detail-label">Part</span>
+          <span>{{ selectedClaim.partName }}<span *ngIf="selectedClaim.partLocalName"> — {{ selectedClaim.partLocalName }}</span> ({{ selectedClaim.partSKU }})</span>
+        </div>
         <div class="detail-row"><span class="detail-label">Resolution Method</span><span><p-tag [value]="getResolutionMethodLabel(selectedClaim.serviceType)" [severity]="getResolutionMethodSeverity(selectedClaim.serviceType)"></p-tag></span></div>
       </div>
 
@@ -376,7 +379,7 @@
     </div>
 
     <div class="dialog-summary">
-      <div class="summary-row"><span>Part:</span><span>{{ selectedClaim.partName }}</span></div>
+      <div class="summary-row"><span>Part:</span><span>{{ selectedClaim.partName }}<span *ngIf="selectedClaim.partLocalName"> — {{ selectedClaim.partLocalName }}</span></span></div>
       <div class="summary-row"><span>Issue:</span><span>{{ selectedClaim.issueDescription }}</span></div>
     </div>
   </div>
@@ -455,7 +458,7 @@
     </div>
 
     <div class="dialog-summary">
-      <div class="summary-row"><span>Part:</span><span>{{ selectedClaim.partName }}</span></div>
+      <div class="summary-row"><span>Part:</span><span>{{ selectedClaim.partName }}<span *ngIf="selectedClaim.partLocalName"> — {{ selectedClaim.partLocalName }}</span></span></div>
       <div class="summary-row"><span>Technician:</span><span>{{ selectedClaim.technicianName || '—' }}</span></div>
     </div>
 
@@ -557,7 +560,7 @@
   <div *ngIf="selectedClaim" class="dialog-body">
     <div class="dialog-info-banner info-banner">
       <i class="pi pi-dollar"></i>
-      <span>Record repair cost for claim <strong>{{ selectedClaim.claimNumber }}</strong> — <strong>{{ selectedClaim.partName }}</strong></span>
+      <span>Record repair cost for claim <strong>{{ selectedClaim.claimNumber }}</strong> — <strong>{{ selectedClaim.partName }}</strong><span *ngIf="selectedClaim.partLocalName"> ({{ selectedClaim.partLocalName }})</span></span>
     </div>
 
     <div class="dialog-summary">

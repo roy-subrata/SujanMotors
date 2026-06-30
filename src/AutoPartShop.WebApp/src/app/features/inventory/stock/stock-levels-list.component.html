@@ -35,6 +35,7 @@
     <tr>
       <td>
         <span class="font-semibold">{{ stock.partName || (getPartInfo ? getPartInfo(stock.partId) : stock.partId) }}</span>
+        <small *ngIf="stock.partLocalName" class="part-row-local d-block">{{ stock.partLocalName }}</small>
         <span class="variant-tag" *ngIf="stock.variantName">{{ stock.variantName }}</span>
         <div class="text-gray-500" style="font-size: 0.75rem" *ngIf="stock.variantSku || stock.partSku">{{ stock.variantSku || stock.partSku }}</div>
       </td>

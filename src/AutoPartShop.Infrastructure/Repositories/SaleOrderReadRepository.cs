@@ -85,6 +85,7 @@ namespace AutoPartShop.Infrastructure.Repositories
                         Id = l.Id,
                         PartId = l.PartId,
                         PartName = l.Part != null ? l.Part.Name : string.Empty,
+                        PartLocalName = l.Part != null ? l.Part.LocalName : null,
                         PartSku = l.Part != null ? l.Part.SKU : string.Empty,
                         ProductVariantId = l.ProductVariantId,
                         VariantName = l.ProductVariant != null ? l.ProductVariant.Name : null,

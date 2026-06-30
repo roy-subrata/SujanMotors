@@ -95,6 +95,7 @@ public class PurchaseOrderReadRepository(AutoPartDbContext _dbContext) : IPurcha
                     Id = l.Id,
                     PartId = l.PartId,
                     PartName = l.Part != null ? l.Part.Name : string.Empty,
+                    PartLocalName = l.Part != null ? l.Part.LocalName : null,
                     VariantId = l.VariantId,
                     VariantName = l.Variant != null ? l.Variant.Name : null,
                     VariantCode = l.Variant != null ? l.Variant.Code : null,

@@ -1354,6 +1354,7 @@ public class WarrantyClaimsController : ControllerBase
             WarrantyCoverageType = claim.WarrantyRegistration?.WarrantyType ?? "",
             GuaranteeMessage = BuildGuaranteeMessage(claim.WarrantyRegistration),
             PartName = claim.WarrantyRegistration?.Part?.Name ?? "",
+            PartLocalName = claim.WarrantyRegistration?.Part?.LocalName,
             PartSKU = claim.WarrantyRegistration?.Part?.SKU ?? "",
             CustomerId = claim.CustomerId,
             CustomerName = claim.Customer != null ? $"{claim.Customer.FirstName} {claim.Customer.LastName}" : "",

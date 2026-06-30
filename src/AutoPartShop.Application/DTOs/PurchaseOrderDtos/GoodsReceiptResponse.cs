@@ -43,6 +43,7 @@ public class GoodsReceiptLineResponse
     public Guid PurchaseOrderLineId { get; set; }  // The PO line this receipt line is for (disambiguates same-part variant lines)
     public Guid PartId { get; set; }
     public string PartName { get; set; } = string.Empty;
+    public string? PartLocalName { get; set; }
     public string PartSKU { get; set; } = string.Empty;
     public string? Barcode { get; set; }
 

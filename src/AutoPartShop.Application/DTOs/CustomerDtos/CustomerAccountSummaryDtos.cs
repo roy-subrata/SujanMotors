@@ -64,6 +64,7 @@ public class CustomerPurchaseItemDto
     public string VehicleLabel { get; set; } = string.Empty;
     public Guid SalesOrderLineId { get; set; }
     public string ItemName { get; set; } = string.Empty;
+    public string? ItemLocalName { get; set; }
     public string PartNumber { get; set; } = string.Empty;
     public string SKU { get; set; } = string.Empty;
     public int Quantity { get; set; }

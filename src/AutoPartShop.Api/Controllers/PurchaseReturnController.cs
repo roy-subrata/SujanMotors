@@ -1101,6 +1101,7 @@ public class PurchaseReturnController : ControllerBase
                     Id = l.Id,
                     PartId = l.PartId,
                     PartName = partName,
+                    PartLocalName = l.Part?.LocalName,
                     PartSku = l.Part?.SKU ?? string.Empty,
                     VariantName = variantName,
                     DisplayName = VariantNaming.Compose(partName, variantName),

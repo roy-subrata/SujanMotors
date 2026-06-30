@@ -5,6 +5,7 @@ public class StockMovementResponse
     public Guid Id { get; set; }
     public Guid PartId { get; set; }
     public string PartName { get; set; } = string.Empty;
+    public string? PartLocalName { get; set; }
     public string PartCode { get; set; } = string.Empty;
     public Guid? VariantId { get; set; }
     public string? VariantName { get; set; }

@@ -322,6 +322,7 @@
                     {{ part.displayName || part.name }}
                     <span class="customer-item-code">{{ part.partNumber }}</span>
                   </div>
+                  <small *ngIf="part.localName" class="part-row-local">{{ part.localName }}</small>
                   <div class="part-item-details">
                     <span *ngIf="part.variantSKU || part.sku">SKU: {{ part.variantSKU || part.sku }}</span>
                     <span *ngIf="part.brandName" class="separator">&bull;</span>
@@ -368,6 +369,7 @@
                         {{ part.displayName || part.name }}
                         <span class="customer-item-code">{{ part.partNumber }}</span>
                       </div>
+                      <small *ngIf="part.localName" class="part-row-local">{{ part.localName }}</small>
                       <div class="part-item-details">
                         <span *ngIf="part.variantSKU || part.sku">SKU: {{ part.variantSKU || part.sku }}</span>
                         <span *ngIf="part.brandName" class="separator">&bull;</span>
@@ -380,6 +382,7 @@
                     </div>
                   </ng-template>
                 </app-lazy-autocomplete>
+                <small *ngIf="line.get('part')?.value?.localName" class="part-row-local d-block">{{ line.get('part')?.value?.localName }}</small>
                 <small class="field-hint" *ngIf="line.get('part')?.value as selectedPart">
                   <span *ngIf="selectedPart.partNumber">Code: {{ selectedPart.partNumber }}</span>
                   <span *ngIf="selectedPart.sku" class="separator">&bull;</span>

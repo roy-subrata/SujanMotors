@@ -84,6 +84,7 @@ public class StockLevelReadRepository : IStockLevelReadRepository
                 Id = level.Id,
                 PartId = level.PartId,
                 PartName = level.Part != null ? level.Part.Name : null,
+                PartLocalName = level.Part != null ? level.Part.LocalName : null,
                 PartSku = level.Part != null ? level.Part.SKU : null,
                 VariantId = level.VariantId,
                 VariantName = level.Variant != null ? level.Variant.Name : null,

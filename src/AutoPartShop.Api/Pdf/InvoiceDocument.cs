@@ -7,6 +7,7 @@ namespace AutoPartShop.Api.Pdf;
 public record InvoiceLine(
     int SlNo,
     string DisplayName,
+    string? LocalName,
     string PartNumber,
     string SKU,
     string UnitSymbol,
@@ -280,6 +281,8 @@ public class InvoiceDocument : IDocument
                         .Column(c =>
                         {
                             c.Item().Text(line.DisplayName).FontSize(8).FontColor(Gray900);
+                            if (!string.IsNullOrWhiteSpace(line.LocalName))
+                                c.Item().PaddingTop(1).Text(line.LocalName).FontSize(7f).FontColor(Gray500);
                             var sub = !string.IsNullOrWhiteSpace(line.PartNumber)
                                 ? line.PartNumber
                                 : line.SKU;

@@ -254,6 +254,7 @@
                   <td class="item-cell" data-label="Item">
                     <div class="item-cell-inner">
                       <span class="part-name-value">{{ line.get('displayName')?.value || line.get('partName')?.value }}</span>
+                      <small *ngIf="line.get('partLocalName')?.value" class="part-row-local d-block">{{ line.get('partLocalName')?.value }}</small>
                       <span class="part-unit-sub" *ngIf="line.get('unitName')?.value">
                         {{ line.get('unitName')?.value }}<span *ngIf="line.get('unitSymbol')?.value"> ({{ line.get('unitSymbol')?.value }})</span>
                       </span>
@@ -464,7 +465,10 @@
             </thead>
             <tbody>
               <tr *ngFor="let line of lineItemsArray.controls">
-                <td>{{ line.get('displayName')?.value || line.get('partName')?.value }}</td>
+                <td>
+                  {{ line.get('displayName')?.value || line.get('partName')?.value }}
+                  <small *ngIf="line.get('partLocalName')?.value" class="part-row-local d-block">{{ line.get('partLocalName')?.value }}</small>
+                </td>
                 <td class="text-right">{{ line.get('receivingQuantity')?.value }}</td>
                 <td class="text-right text-green">{{ getGoodQuantity(line) }}</td>
                 <td class="text-right" [class.text-danger]="line.get('damagedQuantity')?.value > 0">{{ line.get('damagedQuantity')?.value || 0 }}</td>
@@ -667,6 +671,7 @@
                     <td class="item-cell" data-label="Item">
                       <div class="item-cell-inner">
                         <span class="part-name-value">{{ line.get('displayName')?.value || line.get('partName')?.value }}</span>
+                        <small *ngIf="line.get('partLocalName')?.value" class="part-row-local d-block">{{ line.get('partLocalName')?.value }}</small>
                         <span class="part-unit-sub" *ngIf="line.get('unitName')?.value">
                           {{ line.get('unitName')?.value }}<span *ngIf="line.get('unitSymbol')?.value"> ({{ line.get('unitSymbol')?.value }})</span>
                         </span>
@@ -935,6 +940,7 @@
             <div class="grn-label-row" *ngFor="let line of printableLines">
               <div class="grn-label-info">
                 <span class="grn-label-name">{{ line.displayName || line.partName }}</span>
+                <small *ngIf="line.partLocalName" class="part-row-local d-block">{{ line.partLocalName }}</small>
                 <span class="grn-label-sub">{{ line.variantSKU || line.partSKU }} · {{ line.acceptedQuantity }} pcs</span>
               </div>
               <button pButton type="button" label="Print Labels" icon="pi pi-print"

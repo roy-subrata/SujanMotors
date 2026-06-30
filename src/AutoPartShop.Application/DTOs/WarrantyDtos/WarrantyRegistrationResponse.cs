@@ -6,6 +6,7 @@ public class WarrantyRegistrationResponse
     public string WarrantyNumber { get; set; } = string.Empty;
     public Guid PartId { get; set; }
     public string PartName { get; set; } = string.Empty;
+    public string? PartLocalName { get; set; }
     public string PartSKU { get; set; } = string.Empty;
     public Guid? ProductVariantId { get; set; }
     public string? VariantName { get; set; }

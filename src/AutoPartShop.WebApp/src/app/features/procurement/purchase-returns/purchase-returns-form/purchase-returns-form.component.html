@@ -220,6 +220,7 @@
                 <td class="part-name-cell" data-label="Product">
                   <div class="part-name-wrapper">
                     <span class="part-name-value">{{ item.get('displayName')?.value || item.get('part')?.value?.name || 'N/A' }}</span>
+                    <small *ngIf="item.get('partLocalName')?.value" class="part-row-local d-block">{{ item.get('partLocalName')?.value }}</small>
                   </div>
                 </td>
                 <td class="source-cell" data-label="Source">
@@ -433,6 +434,7 @@
           <label [for]="'item-' + i" class="item-label">
             <div class="item-info">
               <span class="item-name">{{ item.displayName || getPartName(item.partId) }}</span>
+              <small *ngIf="item.partLocalName" class="part-row-local d-block">{{ item.partLocalName }}</small>
               <span class="item-details">Qty: {{ item.quantity }} | Price: {{ item.unitPrice | currency:currencyCode:'symbol':'1.2-2' }}</span>
             </div>
             <span class="item-total">{{ (item.quantity * item.unitPrice) | currency:currencyCode:'symbol':'1.2-2' }}</span>

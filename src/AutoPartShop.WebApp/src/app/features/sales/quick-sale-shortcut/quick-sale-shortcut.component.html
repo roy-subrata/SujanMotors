@@ -55,7 +55,10 @@
               <div class="part-row"
                    [pTooltip]="part.partNumber + (part.brandName ? '  ·  ' + part.brandName : '') + '  ·  ' + part.categoryName"
                    tooltipPosition="right" [showDelay]="300">
-                <span class="part-row-name">{{ part.displayName || part.name }}</span>
+                <span class="part-row-name">
+                  {{ part.displayName || part.name }}
+                  <small *ngIf="part.localName" class="part-row-local">{{ part.localName }}</small>
+                </span>
                 <span class="part-row-sep">·</span>
                 <span class="part-row-sku">{{ part.variantSKU || part.sku }}</span>
                 <span class="part-row-price">{{ formatCurrency(part.effectiveSellingPrice ?? part.sellingPrice) }}</span>
@@ -99,6 +102,7 @@
           <div class="item-left">
             <div class="item-info">
               <h4 class="item-name">{{ item.partName }}</h4>
+              <small *ngIf="item.partLocalName" class="part-row-local d-block">{{ item.partLocalName }}</small>
               <div class="item-meta">
                 <span class="sku">{{ item.sku || '-' }}</span>
               </div>
@@ -713,7 +717,10 @@
                 <td class="col-check">
                   <input type="checkbox" [(ngModel)]="l.selected" [ngModelOptions]="{standalone: true}" />
                 </td>
-                <td class="col-item">{{ l.partName }}</td>
+                <td class="col-item">
+                  {{ l.partName }}
+                  <small *ngIf="l.partLocalName" class="part-row-local d-block">{{ l.partLocalName }}</small>
+                </td>
                 <td class="col-num">{{ l.soldQty }}</td>
                 <td class="col-qty">
                   <input type="number" pInputText min="1" [max]="l.soldQty" [(ngModel)]="l.returnQty"
@@ -838,7 +845,10 @@
         </thead>
         <tbody>
           <tr *ngFor="let p of stockSearchResults">
-            <td class="col-item">{{ p.displayName || p.name }}</td>
+            <td class="col-item">
+              {{ p.displayName || p.name }}
+              <small *ngIf="p.localName" class="part-row-local d-block">{{ p.localName }}</small>
+            </td>
             <td>{{ p.partNumber }}</td>
             <td>{{ p.oemNumber || '—' }}</td>
             <td>{{ p.variantSKU || p.sku }}</td>

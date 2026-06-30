@@ -130,6 +130,7 @@ public class CustomerAccountSummaryService : ICustomerAccountSummaryService
                 VehicleLabel = li.SalesOrder.VehicleLabel,
                 SalesOrderLineId = li.Id,
                 ItemName = li.Part != null ? li.Part.Name : "",
+                ItemLocalName = li.Part != null ? li.Part.LocalName : null,
                 PartNumber = li.Part != null ? li.Part.PartNumber.Value : "",
                 SKU = li.Part != null ? li.Part.SKU : "",
                 Quantity = li.Quantity,

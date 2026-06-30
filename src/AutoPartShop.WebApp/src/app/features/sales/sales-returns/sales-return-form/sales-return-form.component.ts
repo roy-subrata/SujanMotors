@@ -184,6 +184,7 @@ export class SalesReturnFormComponent implements OnInit, OnDestroy {
             notes: [line.notes],
             maxQuantity: [line.quantity],
             partName: [line.partName || ''],
+            partLocalName: [line.partLocalName || null],
             variantName: [line.variantName || null],
             displayName: [line.displayName || line.partName || ''],
             partSku: [line.partSku || '']
@@ -355,6 +356,7 @@ export class SalesReturnFormComponent implements OnInit, OnDestroy {
       maxQuantity: [orderLine.quantity],
       baseUnitRatio: [baseUnitRatio],
       partName: [orderLine.partName || ''],
+      partLocalName: [orderLine.partLocalName || null],
       variantName: [orderLine.variantName || null],
       displayName: [orderLine.displayName || orderLine.partName || ''],
       partSku: [orderLine.partSku || orderLine.sku || '']

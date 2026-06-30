@@ -102,6 +102,7 @@
           </td>
           <td>
             <div class="cell-primary">{{ warranty.partName }}</div>
+            <div *ngIf="warranty.partLocalName" class="cell-secondary">{{ warranty.partLocalName }}</div>
             <div class="cell-secondary">{{ warranty.partSKU }}</div>
           </td>
           <td>
@@ -216,6 +217,7 @@
           <ng-template let-line pTemplate="item">
             <div class="line-option">
               <span class="line-part">{{ line.partName }}</span>
+              <small *ngIf="line.partLocalName" class="part-row-local d-block">{{ line.partLocalName }}</small>
               <span class="line-detail">SKU: {{ line.partSku }} | Qty: {{ line.quantity }} | {{ line.unitPrice | number:'1.2-2' }}</span>
             </div>
           </ng-template>
@@ -294,7 +296,7 @@
       </div>
       <div class="info-item">
         <span class="info-label">Part</span>
-        <span class="info-value">{{ selectedWarranty.partName }}</span>
+        <span class="info-value">{{ selectedWarranty.partName }}<span *ngIf="selectedWarranty.partLocalName"> — {{ selectedWarranty.partLocalName }}</span></span>
       </div>
       <div class="info-item">
         <span class="info-label">Customer</span>
@@ -339,7 +341,7 @@
         <h4>Product Information</h4>
         <div class="detail-row">
           <span class="detail-label">Part Name</span>
-          <span class="detail-value">{{ detailWarranty.partName }}</span>
+          <span class="detail-value">{{ detailWarranty.partName }}<span *ngIf="detailWarranty.partLocalName" class="part-row-local"> ({{ detailWarranty.partLocalName }})</span></span>
         </div>
         <div class="detail-row">
           <span class="detail-label">SKU</span>

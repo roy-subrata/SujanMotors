@@ -5,6 +5,7 @@
         public Guid Id { get; set; }
         public Guid PartId { get; set; }
         public string PartName { get; set; } = string.Empty;
+        public string? PartLocalName { get; set; }
         public string PartSku { get; set; } = string.Empty;
         public Guid? ProductVariantId { get; set; }
         public string? VariantName { get; set; }

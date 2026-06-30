@@ -129,6 +129,7 @@
                     <span class="part-name">
                       {{ stock.displayName || stock.partName || getPartName(stock.partId) }}
                     </span>
+                    <small *ngIf="stock.partLocalName" class="part-row-local d-block">{{ stock.partLocalName }}</small>
                     <span class="part-sku">{{ stock.variantSku || stock.partSku || getPartSku(stock.partId) }}</span>
                   </div>
                 </div>
@@ -233,6 +234,7 @@
                     <div class="card-title">
                       {{ stock.displayName || stock.partName || getPartName(stock.partId) }}
                     </div>
+                    <small *ngIf="stock.partLocalName" class="part-row-local d-block">{{ stock.partLocalName }}</small>
                     <div class="card-subtitle">{{ stock.variantSku || stock.partSku || getPartSku(stock.partId) }}</div>
                   </div>
                 </div>
@@ -365,6 +367,7 @@
                     <span class="part-name">
                       {{ stock.displayName || stock.partName || getPartName(stock.partId) }}
                     </span>
+                    <small *ngIf="stock.partLocalName" class="part-row-local d-block">{{ stock.partLocalName }}</small>
                     <span class="part-sku">{{ stock.variantSku || stock.partSku || getPartSku(stock.partId) }}</span>
                   </div>
                 </div>
@@ -443,6 +446,7 @@
                     <div class="card-title">
                       {{ stock.displayName || stock.partName || getPartName(stock.partId) }}
                     </div>
+                    <small *ngIf="stock.partLocalName" class="part-row-local d-block">{{ stock.partLocalName }}</small>
                     <div class="card-subtitle">{{ stock.variantSku || stock.partSku || getPartSku(stock.partId) }}</div>
                   </div>
                 </div>
