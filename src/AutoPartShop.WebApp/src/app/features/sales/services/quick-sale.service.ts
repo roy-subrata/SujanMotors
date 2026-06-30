@@ -12,6 +12,7 @@ export interface QuickSaleLineItem {
   partId: string;
   productVariantId?: string;
   partName?: string;
+  partLocalName?: string | null;
   partNumber?: string;
   sku?: string;
   unitId?: string;
@@ -85,7 +86,7 @@ export interface QuickSaleResponse {
   status: string;
   isQuotation?: boolean;
   createdAt: string;
-  lines?: { salesOrderLineId: string; partId: string; productVariantId?: string | null; variantName?: string | null; partName: string; quantity: number; unitPrice: number }[];
+  lines?: { salesOrderLineId: string; partId: string; productVariantId?: string | null; variantName?: string | null; partName: string; partLocalName?: string | null; quantity: number; unitPrice: number }[];
 }
 
 export interface StockCheckRequest {

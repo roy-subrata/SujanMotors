@@ -98,6 +98,7 @@ public class StockMovementReadRepository : IStockMovementReadRepository
                 Id = movement.Id,
                 PartId = movement.StockLevel != null ? movement.StockLevel.PartId : Guid.Empty,
                 PartName = movement.StockLevel != null && movement.StockLevel.Part != null ? movement.StockLevel.Part.Name : string.Empty,
+                PartLocalName = movement.StockLevel != null && movement.StockLevel.Part != null ? movement.StockLevel.Part.LocalName : null,
                 PartCode = movement.StockLevel != null && movement.StockLevel.Part != null
                     ? (movement.StockLevel.Part.PartNumber != null ? movement.StockLevel.Part.PartNumber.Value : movement.StockLevel.Part.SKU)
                     : string.Empty,

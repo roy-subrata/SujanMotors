@@ -110,6 +110,7 @@ public class QuickSaleResponseLine
     public Guid? ProductVariantId { get; set; }
     public string? VariantName { get; set; }
     public string PartName { get; set; } = string.Empty;
+    public string? PartLocalName { get; set; }
     public int Quantity { get; set; }
     public decimal UnitPrice { get; set; }
 }

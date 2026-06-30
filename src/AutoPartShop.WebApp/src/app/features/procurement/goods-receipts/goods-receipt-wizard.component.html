@@ -80,7 +80,10 @@
             </thead>
             <tbody>
               <tr *ngFor="let item of lineItems">
-                <td>{{ item.displayName || item.partName }}</td>
+                <td>
+                  {{ item.displayName || item.partName }}
+                  <small *ngIf="item.partLocalName" class="part-row-local d-block">{{ item.partLocalName }}</small>
+                </td>
                 <td>{{ item.quantity }}</td>
                 <td>{{ item.receivedQuantity }}</td>
                 <td>{{ item.remainingQuantity }}</td>
@@ -106,7 +109,10 @@
           <!-- Per-item Setup Modal -->
           <div class="modal" *ngIf="showItemSetupDialog">
             <div class="modal-content">
-              <h3>Setup for {{ selectedItem?.displayName || selectedItem?.partName }}</h3>
+              <h3>
+                Setup for {{ selectedItem?.displayName || selectedItem?.partName }}
+                <small *ngIf="selectedItem?.partLocalName" class="part-row-local d-block">{{ selectedItem?.partLocalName }}</small>
+              </h3>
               <label>
                 <input type="checkbox" [(ngModel)]="selectedItem.hasWarranty"> Has Warranty
               </label>
@@ -163,7 +169,10 @@
             </thead>
             <tbody>
               <tr *ngFor="let item of reviewSummary.items">
-                <td>{{ item.displayName || item.partName }}</td>
+                <td>
+                  {{ item.displayName || item.partName }}
+                  <small *ngIf="item.partLocalName" class="part-row-local d-block">{{ item.partLocalName }}</small>
+                </td>
                 <td>{{ item.receivingQuantity }}</td>
                 <td>{{ item.condition }}</td>
                 <td>{{ item.hasDiscrepancy ? 'Yes' : 'No' }}</td>

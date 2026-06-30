@@ -266,6 +266,8 @@ public class CustomerAccountStatementDocument : IDocument
                         .Column(c =>
                         {
                             c.Item().Text(item.ItemName).FontSize(8).FontColor(Gray900);
+                            if (!string.IsNullOrWhiteSpace(item.ItemLocalName))
+                                c.Item().PaddingTop(1).Text(item.ItemLocalName).FontSize(7f).FontColor(Gray500);
                             if (!string.IsNullOrWhiteSpace(sku))
                                 c.Item().PaddingTop(1).Text(sku).FontSize(7.5f).FontColor(Gray400);
                         });

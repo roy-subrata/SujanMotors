@@ -5,6 +5,7 @@ public class StockLevelResponse
     public Guid Id { get; set; }
     public Guid PartId { get; set; }
     public string? PartName { get; set; }
+    public string? PartLocalName { get; set; }
     public string? PartSku { get; set; }
     public Guid? VariantId { get; set; }
     public string? VariantName { get; set; }

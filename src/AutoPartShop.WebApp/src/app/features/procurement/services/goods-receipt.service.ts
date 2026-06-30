@@ -9,6 +9,7 @@ export interface GoodsReceiptLineResponse {
   purchaseOrderLineId: string;
   partId: string;
   partName: string;
+  partLocalName?: string | null;
   partSKU: string;
   barcode?: string | null;
   // Variant identity (populated when the received line is a product variant)

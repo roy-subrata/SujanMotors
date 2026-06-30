@@ -402,6 +402,7 @@ public class WarrantyRegistrationsController : ControllerBase
             WarrantyNumber = warranty.WarrantyNumber,
             PartId = warranty.PartId,
             PartName = warranty.Part?.Name ?? "",
+            PartLocalName = warranty.Part?.LocalName,
             PartSKU = warranty.Part?.SKU ?? "",
             ProductVariantId = warranty.ProductVariantId,
             VariantName = warranty.ProductVariant?.Name,

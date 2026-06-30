@@ -1135,6 +1135,7 @@ public class SalesOrderController : ControllerBase
                     ProductVariantId = l.ProductVariantId,
                     VariantName = l.ProductVariantId.HasValue && variantNames.TryGetValue(l.ProductVariantId.Value, out var vn) ? vn : null,
                     PartName = l.Description,
+                    PartLocalName = l.Part?.LocalName,
                     Quantity = l.Quantity,
                     UnitPrice = l.UnitPrice
                 }).ToList() ?? new List<QuickSaleResponseLine>()
@@ -1614,6 +1615,7 @@ public class SalesOrderController : ControllerBase
                 DisplayName:    l.ProductVariant is not null
                                     ? $"{l.Part?.Name} - {l.ProductVariant.Name}"
                                     : (l.Part?.Name ?? string.Empty),
+                LocalName:      l.Part?.LocalName,
                 PartNumber:     l.Part?.PartNumber?.Value ?? string.Empty,
                 SKU:            l.ProductVariant?.SKU ?? l.Part?.SKU ?? string.Empty,
                 UnitSymbol:     l.Unit?.Symbol ?? string.Empty,
@@ -1728,6 +1730,7 @@ public class SalesOrderController : ControllerBase
                 Id = l.Id,
                 PartId = l.PartId,
                 PartName = l.Part?.Name ?? string.Empty,
+                PartLocalName = l.Part?.LocalName,
                 PartSku = l.Part?.SKU ?? string.Empty,
                 ProductVariantId = l.ProductVariantId,
                 VariantName = l.ProductVariant?.Name,

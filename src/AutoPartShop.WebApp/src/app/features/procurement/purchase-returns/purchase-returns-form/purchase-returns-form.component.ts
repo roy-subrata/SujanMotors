@@ -352,6 +352,7 @@ export class PurchaseReturnsFormComponent implements OnInit {
       part: [partObj, Validators.required],
       partId: [lineData?.partId || '', Validators.required],
       displayName: [lineData?.displayName || partObj?.name || ''],
+      partLocalName: [lineData?.partLocalName || null],
       sourceBucket: [lineData?.sourceBucket || 'AVAILABLE'],  // Filters the lot picker; not persisted
       stockLotId: [lineData?.stockLotId || null],  // Optional: specific lot to return from
       quantity: [lineData?.quantity || 1, [Validators.required, Validators.min(1)]],

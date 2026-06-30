@@ -810,6 +810,7 @@ namespace AutoPartShop.Api.Controllers
                         Id = line.Id,
                         PartId = line.PartId,
                         PartName = partName,
+                        PartLocalName = line.Part?.LocalName,
                         PartSku = line.Part?.SKU ?? string.Empty,
                         VariantName = variantName,
                         DisplayName = VariantNaming.Compose(partName, variantName),

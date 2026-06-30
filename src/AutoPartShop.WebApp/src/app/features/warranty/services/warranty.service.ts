@@ -9,6 +9,7 @@ export interface WarrantyRegistrationResponse {
     warrantyNumber: string;
     partId: string;
     partName: string;
+    partLocalName?: string | null;
     partSKU: string;
     salesOrderId: string;
     salesOrderNumber: string;
@@ -72,6 +73,7 @@ export interface WarrantyClaimResponse {
     warrantyCoverageType: string;
     guaranteeMessage: string;
     partName: string;
+    partLocalName?: string | null;
     partSKU: string;
     customerId: string;
     customerName: string;

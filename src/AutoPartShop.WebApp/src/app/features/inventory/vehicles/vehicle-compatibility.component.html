@@ -41,6 +41,7 @@
             <ng-template let-part>
               <div class="autocomplete-item">
                 <div class="part-name">{{ part.displayName || part.name }}</div>
+                <small *ngIf="part.localName" class="part-row-local">{{ part.localName }}</small>
                 <div class="part-sku">SKU: {{ part.variantSKU || part.sku }}</div>
               </div>
             </ng-template>

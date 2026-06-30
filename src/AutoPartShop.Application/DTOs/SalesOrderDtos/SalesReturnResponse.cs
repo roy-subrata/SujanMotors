@@ -21,6 +21,7 @@ public class SalesReturnLineResponse
     public Guid Id { get; set; }
     public Guid PartId { get; set; }
     public string PartName { get; set; } = string.Empty;
+    public string? PartLocalName { get; set; }
     public string PartSku { get; set; } = string.Empty;
     public string? VariantName { get; set; }
     public string DisplayName { get; set; } = string.Empty;  // PartName, or "PartName - VariantName" when a variant was sold
