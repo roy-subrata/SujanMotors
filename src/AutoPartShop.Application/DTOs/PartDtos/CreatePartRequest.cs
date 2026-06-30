@@ -21,6 +21,7 @@ public class CreatePartRequest
     public string? WarrantyCertificateTemplate { get; set; }
 
     public string? OemNumber { get; set; }                     // Manufacturer OEM part number (optional)
+    public string? LocalName { get; set; }                     // Local-language name for staff display
 
     // Universal product fields
     public string? Barcode { get; set; }                      // UPC / EAN / QR

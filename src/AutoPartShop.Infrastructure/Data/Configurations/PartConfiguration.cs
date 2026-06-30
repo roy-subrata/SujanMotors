@@ -39,6 +39,10 @@ public class PartEntityConfiguration : IEntityTypeConfiguration<Product>
             .HasMaxLength(100)
             .IsRequired(false);
 
+        builder.Property(p => p.LocalName)
+            .HasMaxLength(200)
+            .IsRequired(false);
+
         builder.Property(p => p.CostPrice)
                .HasColumnType("decimal(18,2)")  // SQL column type
                .IsRequired();

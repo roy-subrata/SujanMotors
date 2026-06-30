@@ -2322,6 +2322,10 @@ namespace AutoPartsShop.Infrastructure.Migrations
                     b.Property<bool>("Isdeleted")
                         .HasColumnType("bit");
 
+                    b.Property<string>("LocalName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
                     b.Property<int>("MinimumStock")
                         .HasColumnType("int");
 

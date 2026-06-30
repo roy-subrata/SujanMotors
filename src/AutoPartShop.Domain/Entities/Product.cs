@@ -16,6 +16,7 @@ public class Product : AuditableEntity
     public string SKU { get; private set; } = string.Empty;
     public string? OemNumber { get; private set; }  // Manufacturer OEM part number (optional)
     public string? Barcode { get; private set; }  // UPC / EAN / QR — for POS scanner & ecommerce
+    public string? LocalName { get; private set; }  // Local-language name (e.g. Bengali) for staff display
 
     // ── Classification ───────────────────────────────────────────────────────
     public Guid CategoryId { get; private set; }
@@ -73,7 +74,7 @@ public class Product : AuditableEntity
         string? barcode = null, string? tags = null, string productType = "PHYSICAL",
         bool isPerishable = false, decimal? weightKg = null,
         decimal? widthCm = null, decimal? heightCm = null, decimal? depthCm = null,
-        string? taxCode = null, string? oemNumber = null)
+        string? taxCode = null, string? oemNumber = null, string? localName = null)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Name cannot be empty", nameof(name));
@@ -128,6 +129,7 @@ public class Product : AuditableEntity
             SKU = sku.Trim().ToUpper(),
             OemNumber = oemNumber?.Trim().ToUpperInvariant(),
             Barcode = barcode?.Trim(),
+            LocalName = localName?.Trim(),
             CategoryId = categoryId,
             BrandId = brandId,
             Tags = tags?.Trim(),
@@ -160,7 +162,7 @@ public class Product : AuditableEntity
         string? barcode = null, string? tags = null, string productType = "PHYSICAL",
         bool isPerishable = false, decimal? weightKg = null,
         decimal? widthCm = null, decimal? heightCm = null, decimal? depthCm = null,
-        string? taxCode = null, string? richDescription = null, string? oemNumber = null)
+        string? taxCode = null, string? richDescription = null, string? oemNumber = null, string? localName = null)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Name cannot be empty", nameof(name));
@@ -203,6 +205,7 @@ public class Product : AuditableEntity
         SKU = sku.Trim().ToUpper();
         OemNumber = oemNumber?.Trim().ToUpperInvariant();
         Barcode = barcode?.Trim();
+        LocalName = localName?.Trim();
         CategoryId = categoryId;
         BrandId = brandId;
         Tags = tags?.Trim();

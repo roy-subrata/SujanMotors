@@ -57,6 +57,8 @@ export interface LabelMarkupOptions {
     /** Combo sub-design: name-led `spotlight` (default) or field-grid `detailed`. */
     comboDesign?: 'spotlight' | 'detailed';
     name: string;
+    /** Local-language name shown below the catalog name. */
+    localName?: string;
     sku: string;
     partNumber: string;
     oemNumber: string;
@@ -100,7 +102,7 @@ export function buildLabelMarkup(o: LabelMarkupOptions): string {
            </div>`
         : '';
 
-    const nameRow = o.name ? `<div class="apl-name">${esc(o.name)}</div>` : '';
+    const nameRow = o.name ? `<div class="apl-name">${esc(o.name)}${o.localName ? `<span class="apl-localname"> · ${esc(o.localName)}</span>` : ''}</div>` : '';
 
     const ids = [
         idRow('SKU', o.sku),
@@ -196,6 +198,7 @@ function buildComboSpotlight(o: LabelMarkupOptions): string {
         : '';
 
     const detailRows = [
+        o.localName ? comboRow('Local', o.localName) : '',
         comboRow('SKU', o.sku),
         comboRow('Batch', o.batchNumber ?? ''),
         comboRow('Mfg', o.mfgDate ?? ''),
@@ -223,6 +226,7 @@ function buildComboSpotlight(o: LabelMarkupOptions): string {
  */
 function buildComboDetailed(o: LabelMarkupOptions): string {
     const rows = [
+        o.localName ? comboRow('Local', o.localName) : '',
         comboRow('SKU', o.sku),
         comboRow('Brand', o.brand),
         comboRow('Category', o.category),
@@ -297,6 +301,11 @@ export const LABEL_CSS = `
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
+}
+.apl-localname {
+    font-weight: 500;
+    font-style: italic;
+    font-size: 0.85em;
 }
 .apl-main {
     flex: 1;

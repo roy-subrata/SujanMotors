@@ -282,7 +282,7 @@ public class ProductsController : ControllerBase
             request.WarrantyTerms, request.WarrantyCertificateTemplate,
             request.Barcode, request.Tags, request.ProductType, request.IsPerishable,
             request.WeightKg, request.WidthCm, request.HeightCm, request.DepthCm, request.TaxCode,
-            request.OemNumber);
+            request.OemNumber, request.LocalName);
 
         var currentUser = _currentUserService.GetCurrentUsername();
         part.CreatedBy = currentUser;
@@ -339,7 +339,7 @@ public class ProductsController : ControllerBase
             request.WarrantyTerms, request.WarrantyCertificateTemplate,
             request.Barcode, request.Tags, request.ProductType,
             request.IsPerishable, request.WeightKg, request.WidthCm, request.HeightCm, request.DepthCm,
-            request.TaxCode, request.RichDescription, request.OemNumber);
+            request.TaxCode, request.RichDescription, request.OemNumber, request.LocalName);
         part.ModifiedBy = _currentUserService.GetCurrentUsername();
 
         await _productRepository.UpdateAsync(part, cancellationToken);
@@ -511,6 +511,8 @@ public class ProductsController : ControllerBase
             PartNumber = part.PartNumber.Value,
             SKU = part.SKU,
             OemNumber = part.OemNumber,
+            LocalName = part.LocalName,
+            VehicleFit = BuildVehicleFitSummary(part.VehicleCompatibilities),
             Barcode = part.Barcode,
             Tags = part.Tags,
             ProductType = part.ProductType,
@@ -614,6 +616,22 @@ public class ProductsController : ControllerBase
             ValueBool = av.ValueBool
         }).ToList() ?? []
     };
+
+    private static string? BuildVehicleFitSummary(ICollection<PartVehicleCompatibility> compatibilities)
+    {
+        var vehicles = compatibilities
+            .Where(vc => !vc.Isdeleted && vc.IsCompatible && vc.Vehicle != null)
+            .OrderBy(vc => vc.Vehicle!.Make)
+            .ToList();
+
+        if (vehicles.Count == 0) return null;
+
+        var labels = vehicles.Take(2).Select(vc => $"{vc.Vehicle!.Make} {vc.Vehicle.Model} {vc.Vehicle.Year}");
+        var summary = string.Join(", ", labels);
+        if (vehicles.Count > 2)
+            summary += $" +{vehicles.Count - 2}";
+        return summary;
+    }
 
     // ── Private helpers ───────────────────────────────────────────────────────
 
