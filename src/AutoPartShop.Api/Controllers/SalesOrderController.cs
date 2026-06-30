@@ -298,8 +298,8 @@ public class SalesOrderController : ControllerBase
             var order = await _salesOrderRepository.GetByIdAsync(id, cancellationToken);
             if (order is null) return NotFound(new { message = "Sales order not found" });
 
-            if (order.Status != "DRAFT")
-                return BadRequest(new { message = "Only draft sales orders can be edited" });
+            if (order.Status != "DRAFT" && order.Status != "PENDING")
+                return BadRequest(new { message = "Only draft or pending sales orders can be edited" });
 
             if (request.CustomerId == Guid.Empty || request.WarehouseId == Guid.Empty || string.IsNullOrWhiteSpace(request.CustomerName) || request.DeliveryDate == default)
                 return BadRequest(new { message = "CustomerId, WarehouseId, CustomerName and DeliveryDate are required" });
@@ -430,6 +430,23 @@ public class SalesOrderController : ControllerBase
                             lm.StockLot.AddStock(lm.Quantity, lm.Quantity, $"Cancellation of SO {order.SONumber}");
                             lm.StockLot.ModifiedBy = _currentUserService.GetCurrentUsername();
 
+                            var reversalLotMovement = StockLotMovement.Create(
+                                lm.StockLot.Id,
+                                lm.Quantity,
+                                "RETURN",
+                                lm.ReferenceId,
+                                lm.ReferenceType,
+                                DateTime.UtcNow,
+                                lm.CostAtMovement,
+                                $"Cancellation of SO {order.SONumber}",
+                                "",
+                                lm.StockLot.UnitId,
+                                lm.Quantity,
+                                lm.CostAtMovementInBaseUnit > 0 ? lm.CostAtMovementInBaseUnit : lm.CostAtMovement);
+                            reversalLotMovement.CreatedBy = _currentUserService.GetCurrentUsername();
+                            reversalLotMovement.ModifiedBy = _currentUserService.GetCurrentUsername();
+                            await _dbContext.StockLotMovements.AddAsync(reversalLotMovement, cancellationToken);
+
                             var key = (lm.StockLot.PartId, lm.StockLot.VariantId, lm.StockLot.WarehouseId);
                             levelRestores[key] = levelRestores.GetValueOrDefault(key) + lm.Quantity;
                         }
@@ -484,6 +501,19 @@ public class SalesOrderController : ControllerBase
                     }
 
                     order.Cancel();
+
+                    // Reverse TotalPurchaseAmount on the customer for this cancelled order
+                    if (order.CustomerId != Guid.Empty)
+                    {
+                        var custForReverse = await _customerRepository.GetByIdAsync(order.CustomerId, cancellationToken);
+                        if (custForReverse is not null)
+                        {
+                            custForReverse.ReverseRecordPurchase(order.GrandTotal);
+                            custForReverse.ModifiedBy = _currentUserService.GetCurrentUsername();
+                            _dbContext.Customers.Update(custForReverse);
+                        }
+                    }
+
                     order.ModifiedBy = _currentUserService.GetCurrentUsername();
                     await _salesOrderRepository.UpdateAsync(order, cancellationToken);
 

@@ -452,6 +452,15 @@ public class FinancialSummaryService : IFinancialSummaryService
             .Select(g => new { PartId = g.Key, Cogs = g.Sum(m => m.QuantityInBaseUnit * m.CostAtMovementInBaseUnit) })
             .ToDictionaryAsync(x => x.PartId, x => x.Cogs, cancellationToken);
 
+        // Subtract COGS reversed by customer returns and cancellations
+        var returnsByPart = await _dbContext.StockLotMovements
+            .Where(m => m.MovementType == "RETURN"
+                        && m.MovementDate >= startDate && m.MovementDate < endDate
+                        && m.StockLot != null)
+            .GroupBy(m => m.StockLot!.PartId)
+            .Select(g => new { PartId = g.Key, Returns = g.Sum(m => m.QuantityInBaseUnit * m.CostAtMovementInBaseUnit) })
+            .ToDictionaryAsync(x => x.PartId, x => x.Returns, cancellationToken);
+
         return productAgg
             .Select(kvp => new TopProductDto
             {
@@ -461,7 +470,9 @@ public class FinancialSummaryService : IFinancialSummaryService
                 Sku          = kvp.Value.Sku,
                 QuantitySold = kvp.Value.Qty,
                 TotalRevenue = kvp.Value.Revenue,
-                TotalProfit  = kvp.Value.Revenue - (cogsByPart.TryGetValue(kvp.Key, out var c) ? c : 0)
+                TotalProfit  = kvp.Value.Revenue
+                    - (cogsByPart.TryGetValue(kvp.Key, out var c) ? c : 0)
+                    + (returnsByPart.TryGetValue(kvp.Key, out var r) ? r : 0)
             })
             .OrderByDescending(p => p.TotalRevenue)
             .Take(10)

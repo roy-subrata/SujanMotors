@@ -530,6 +530,10 @@ namespace AutoPartShop.Api.Controllers
                             // Link the credit note to the sales return
                             salesReturn.SetCustomerCreditNote(customerCreditNote.Id);
                         }
+
+                        // Reverse TotalPurchaseAmount — applies regardless of refund type
+                        customer.ReverseRecordPurchase(salesReturn.RefundAmount);
+                        customer.ModifiedBy = _currentUserService.GetCurrentUsername();
                     }
                 }
 

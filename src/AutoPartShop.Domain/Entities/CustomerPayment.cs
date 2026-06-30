@@ -25,7 +25,7 @@ public class CustomerPayment : AuditableEntity
     public decimal Amount { get; private set; }
     public decimal PaymentFee { get; private set; } = 0;  // Fee charged by provider
     public decimal NetAmount { get; private set; }  // Amount - Fee
-    public string Currency { get; private set; } = "USD";
+    public string Currency { get; private set; } = "BDT";
     public DateTime PaymentDate { get; private set; }
     public string PaymentMethod { get; private set; } = string.Empty;  // CREDIT_CARD, BANK_TRANSFER, CHECK, CASH, etc.
     public string Status { get; private set; } = "PENDING";  // PENDING, PROCESSING, COMPLETED, FAILED, REFUNDED, CANCELLED

@@ -158,6 +158,10 @@ export class SalesOrderService {
         return this.http.get<{ data: SalesOrderResponse[] }>(`${this.apiUrl}/pending-deliveries`);
     }
 
+    cancelSalesOrder(id: string): Observable<SalesOrderResponse> {
+        return this.http.patch<SalesOrderResponse>(`${this.apiUrl}/${id}/cancel`, {});
+    }
+
     deleteSalesOrder(id: string): Observable<void> {
         return this.http.delete<void>(`${this.apiUrl}/${id}`);
     }

@@ -88,7 +88,11 @@ public class Invoice : AuditableEntity
 
         if (paid <= 0)
         {
-            Status = IsOverdue ? "OVERDUE" : "ISSUED";
+            if (IsOverdue)
+                Status = "OVERDUE";
+            else if (Status != "DUE")
+                Status = "ISSUED";
+            // else: keep DUE — balance went to zero but due date hasn't been crossed
         }
         else if (paid >= total)
         {
