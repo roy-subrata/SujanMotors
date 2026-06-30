@@ -15,6 +15,7 @@ export interface CreateCustomerPaymentRequest {
     referenceNumber: string;
     paymentDate?: string;
     notes: string;
+    currency?: string;
 }
 
 export interface UpdateCustomerPaymentRequest {

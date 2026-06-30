@@ -1380,7 +1380,8 @@ public class SalesOrderController : ControllerBase
                         paymentMethod: request.PaymentMethod ?? "CASH",
                         transactionNumber: transactionNumber,
                         referenceNumber: request.ReferenceNumber ?? "",
-                        paymentDate: effectivePaymentDate
+                        paymentDate: effectivePaymentDate,
+                        currency: invoice.SalesOrder?.Currency ?? "BDT"
                     );
                     payment.LinkToInvoice(invoice.Id);
                     payment.CreatedBy = _currentUserService.GetCurrentUsername();
@@ -2133,7 +2134,8 @@ public class SalesOrderController : ControllerBase
                                     var transactionNumber = $"TXN-{DateTime.UtcNow:yyyyMMddHHmmss}-{Guid.NewGuid().ToString()[..8].ToUpper()}";
                                     var customerPayment = CustomerPayment.Create(
                                         request.CustomerId.Value, null, payment.Amount,
-                                        payment.Method ?? "CASH", transactionNumber, payment.Reference ?? "", DateTime.UtcNow);
+                                        payment.Method ?? "CASH", transactionNumber, payment.Reference ?? "", DateTime.UtcNow,
+                                        currency: salesOrder.Currency ?? "BDT");
                                     customerPayment.LinkToInvoice(invoice.Id);
                                     customerPayment.CreatedBy = _currentUserService.GetCurrentUsername();
                                     customerPayment.ModifiedBy = _currentUserService.GetCurrentUsername();

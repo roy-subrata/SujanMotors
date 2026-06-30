@@ -51,7 +51,8 @@ public class CustomerPayment : AuditableEntity
     private CustomerPayment() { }
 
     public static CustomerPayment Create(Guid customerId, Guid? paymentProviderId, decimal amount,
-        string paymentMethod, string transactionNumber = "", string referenceNumber = "", DateTime? paymentDate = null)
+        string paymentMethod, string transactionNumber = "", string referenceNumber = "",
+        DateTime? paymentDate = null, string currency = "BDT")
     {
         if (customerId == Guid.Empty)
             throw new ArgumentException("CustomerId cannot be empty", nameof(customerId));
@@ -82,6 +83,7 @@ public class CustomerPayment : AuditableEntity
             TransactionNumber = txnNumber,
             ReferenceNumber = referenceNumber?.Trim() ?? string.Empty,
             PaymentDate = paymentDate ?? DateTime.UtcNow,
+            Currency = string.IsNullOrWhiteSpace(currency) ? "BDT" : currency.Trim().ToUpper(),
             Status = "PENDING"
         };
     }
@@ -248,7 +250,8 @@ public class CustomerPayment : AuditableEntity
         Guid sourceAdvancePaymentId,
         Guid? paymentProviderId,
         decimal amount,
-        string description)
+        string description,
+        string currency = "BDT")
     {
         if (customerId == Guid.Empty)
             throw new ArgumentException("CustomerId cannot be empty", nameof(customerId));
@@ -278,7 +281,8 @@ public class CustomerPayment : AuditableEntity
             Status = "COMPLETED",
             PaymentType = CustomerPaymentType.REGULAR,
             Notes = description.Trim(),
-            RemainingAmount = 0
+            RemainingAmount = 0,
+            Currency = string.IsNullOrWhiteSpace(currency) ? "BDT" : currency.Trim().ToUpper()
         };
     }
 }

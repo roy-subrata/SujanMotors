@@ -469,7 +469,8 @@ namespace AutoPartShop.Api.Controllers
                                     paymentMethod: "REFUND",
                                     transactionNumber: $"REFUND-{salesReturn.ReturnNumber}",
                                     referenceNumber: salesReturn.ReturnNumber,
-                                    paymentDate: DateTime.UtcNow
+                                    paymentDate: DateTime.UtcNow,
+                                    currency: salesOrder?.Currency ?? "BDT"
                                 );
 
                                 if (salesReturn.InvoiceId.HasValue)
@@ -740,7 +741,8 @@ namespace AutoPartShop.Api.Controllers
                                             paymentMethod: "REFUND_REVERSAL",
                                             transactionNumber: $"RREV-{salesReturn.ReturnNumber}",
                                             referenceNumber: salesReturn.ReturnNumber,
-                                            paymentDate: DateTime.UtcNow);
+                                            paymentDate: DateTime.UtcNow,
+                                            currency: salesOrder?.Currency ?? "BDT");
                                         if (salesReturn.InvoiceId.HasValue)
                                             reversalPayment.LinkToInvoice(salesReturn.InvoiceId.Value);
 

@@ -241,7 +241,7 @@ public class CustomerPaymentController : ControllerBase
             if (string.IsNullOrWhiteSpace(request.PaymentMethod))
                 return BadRequest(new { message = "Payment method is required" });
 
-            var payment = CustomerPayment.Create(request.CustomerId, request.PaymentProviderId, request.Amount, request.PaymentMethod, request.TransactionNumber, request.ReferenceNumber, request.PaymentDate);
+            var payment = CustomerPayment.Create(request.CustomerId, request.PaymentProviderId, request.Amount, request.PaymentMethod, request.TransactionNumber, request.ReferenceNumber, request.PaymentDate, request.Currency);
             if (request.InvoiceId.HasValue)
                 payment.LinkToInvoice(request.InvoiceId.Value);
             payment.CreatedBy = _currentUserService.GetCurrentUsername();

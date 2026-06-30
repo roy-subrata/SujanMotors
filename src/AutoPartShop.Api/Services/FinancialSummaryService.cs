@@ -130,36 +130,46 @@ public class FinancialSummaryService : IFinancialSummaryService
 
         // ── Customer outstanding / overdue (all-time snapshot) ────────────────────────
         // Not filtered to the selected period — always shows current real exposure.
-        // outstanding = GrandTotal − PaidAmount  (GrandTotal = TotalAmount + TaxAmount).
-        // Overdue proxy: net-30 from order date (no PaymentDueDate field on SalesOrder).
-        const int CreditTermDays = 30;
+        // Invoice-based formula: outstanding = GrandTotal − Σ completed payments.
+        // Uses actual invoice DueDate (not a proxy) for overdue detection.
         var today = DateTime.UtcNow.Date;
 
-        var openSalesOrders = await _dbContext.SalesOrders
-            .Where(o => !o.Isdeleted
-                        && o.Status != "CANCELLED"
-                        && o.Status != "RETURNED"
-                        && o.Status != "DRAFT")
-            .Select(o => new { o.CustomerId, o.TotalAmount, o.TaxAmount, o.PaidAmount, o.Currency, o.SODate })
+        var openInvoiceData = await _dbContext.Invoices
+            .Where(i => !i.Isdeleted
+                        && i.Status != "CANCELLED"
+                        && i.SalesOrder != null
+                        && !i.SalesOrder.Isdeleted
+                        && !ExcludedSalesStatuses.Contains(i.SalesOrder.Status))
+            .Select(i => new
+            {
+                CustomerId = i.SalesOrder!.CustomerId,
+                GrandTotal = i.SubTotal + i.TaxAmount - i.DiscountAmount,
+                AmountPaid = i.CustomerPayments
+                    .Where(p => p.Status == "COMPLETED")
+                    .Sum(p => (decimal?)p.Amount) ?? 0m,
+                Currency = i.SalesOrder.Currency,
+                SODate = i.SalesOrder.SODate,
+                DueDate = i.DueDate
+            })
             .ToListAsync(cancellationToken);
 
         var customerDueByCustomer      = new Dictionary<Guid, decimal>();
         var customerOverdueByCustomer  = new Dictionary<Guid, decimal>();
 
-        foreach (var order in openSalesOrders)
+        foreach (var inv in openInvoiceData)
         {
-            var outstanding = order.TotalAmount + order.TaxAmount - order.PaidAmount;
+            var outstanding = inv.GrandTotal - inv.AmountPaid;
             if (outstanding <= 0) continue;
 
-            var converted = await _currencyService.ConvertToBaseAsync(outstanding, order.Currency, order.SODate, cancellationToken);
+            var converted = await _currencyService.ConvertToBaseAsync(outstanding, inv.Currency, inv.SODate, cancellationToken);
 
-            customerDueByCustomer.TryAdd(order.CustomerId, 0);
-            customerDueByCustomer[order.CustomerId] += converted;
+            customerDueByCustomer.TryAdd(inv.CustomerId, 0);
+            customerDueByCustomer[inv.CustomerId] += converted;
 
-            if (order.SODate.Date <= today.AddDays(-CreditTermDays))
+            if (inv.DueDate.Date < today)
             {
-                customerOverdueByCustomer.TryAdd(order.CustomerId, 0);
-                customerOverdueByCustomer[order.CustomerId] += converted;
+                customerOverdueByCustomer.TryAdd(inv.CustomerId, 0);
+                customerOverdueByCustomer[inv.CustomerId] += converted;
             }
         }
 
