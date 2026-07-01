@@ -73,7 +73,7 @@ class AppDrawer extends ConsumerWidget {
                         ? Badge(label: Text('$unread'))
                         : null,
                     onTap: () {
-                      Navigator.pop(context); // close the drawer
+                      Scaffold.of(context).closeDrawer();
                       if (current != item.route) context.go(item.route);
                     },
                   ),
@@ -85,7 +85,7 @@ class AppDrawer extends ConsumerWidget {
             leading: Icon(Icons.logout, color: scheme.error),
             title: Text('Sign out', style: TextStyle(color: scheme.error)),
             onTap: () {
-              Navigator.pop(context);
+              Scaffold.of(context).closeDrawer();
               ref.read(authControllerProvider.notifier).logout();
             },
           ),

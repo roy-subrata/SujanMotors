@@ -39,7 +39,7 @@ class AppScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final location = GoRouterState.of(context).matchedLocation;
-    final canPop = Navigator.of(context).canPop();
+    final canPop = context.canPop(); // go_router-aware; Navigator.of() finds wrong navigator
 
     return Scaffold(
       appBar: AppBar(
@@ -50,7 +50,7 @@ class AppScaffold extends StatelessWidget {
         leading: canPop
             ? IconButton(
                 icon: const Icon(Icons.arrow_back),
-                onPressed: () => Navigator.of(context).pop(),
+                onPressed: () => context.pop(),
               )
             : null,
         actions: [
