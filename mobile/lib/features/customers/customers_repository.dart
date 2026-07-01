@@ -167,7 +167,10 @@ class CustomersRepository {
   }
 
   /// Records an incoming payment from a customer
-  /// (`POST /customer-payments`).
+  /// (`POST /customer-payments`). When [invoiceId] is provided the payment is
+  /// linked to that invoice. When [isAdvance] is true a second call to
+  /// `PATCH /customer-payments/{id}/mark-advance` sets the advance type so the
+  /// credit is tracked as available balance.
   Future<void> recordPayment({
     required String customerId,
     required double amount,
@@ -176,9 +179,11 @@ class CustomersRepository {
     DateTime? paymentDate,
     String? notes,
     String currency = 'BDT',
+    String? invoiceId,
+    bool isAdvance = false,
   }) async {
     try {
-      await _dio.post('/customer-payments', data: {
+      final res = await _dio.post('/customer-payments', data: {
         'customerId': customerId,
         'amount': amount,
         'paymentMethod': paymentMethod,
@@ -187,7 +192,18 @@ class CustomersRepository {
         'paymentDate': (paymentDate ?? DateTime.now()).toIso8601String(),
         if (notes != null && notes.isNotEmpty) 'notes': notes,
         'currency': currency,
+        'invoiceId': ?invoiceId,
       });
+      if (isAdvance) {
+        final paymentId =
+            asStringOrNull((res.data as Map<String, dynamic>)['id']);
+        if (paymentId != null) {
+          await _dio.patch(
+            '/customer-payments/$paymentId/mark-advance',
+            data: {'description': ''},
+          );
+        }
+      }
     } on DioException catch (e) {
       throw AppException.fromDio(e);
     }

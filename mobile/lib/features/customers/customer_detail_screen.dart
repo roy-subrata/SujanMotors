@@ -6,6 +6,7 @@ import '../../core/network/app_exception.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/format.dart';
 import '../../shared/models/customer.dart';
+import '../../shared/models/invoice.dart';
 import '../../shared/widgets/state_views.dart';
 import 'customers_repository.dart';
 
@@ -698,6 +699,13 @@ class _RecordPaymentSheetState extends ConsumerState<_RecordPaymentSheet> {
   DateTime _date = DateTime.now();
   bool _submitting = false;
 
+  bool _isAdvance = false;
+  Invoice? _selectedInvoice;
+  bool _invoiceError = false;
+  final List<Invoice> _loadedInvoices = [];
+  bool _loadingInvoices = false;
+  bool _invoicesLoaded = false;
+
   @override
   void initState() {
     super.initState();
@@ -705,6 +713,7 @@ class _RecordPaymentSheetState extends ConsumerState<_RecordPaymentSheet> {
       _amountCtrl.text =
           widget.customer.dueAmount.toStringAsFixed(2);
     }
+    _loadInvoices();
   }
 
   @override
@@ -715,8 +724,53 @@ class _RecordPaymentSheetState extends ConsumerState<_RecordPaymentSheet> {
     super.dispose();
   }
 
+  Future<void> _loadInvoices() async {
+    if (_invoicesLoaded || _loadingInvoices) return;
+    setState(() => _loadingInvoices = true);
+    try {
+      final page = await ref.read(customersRepositoryProvider).invoicesPage(
+            customerId: widget.customer.id,
+            pageSize: 50,
+          );
+      if (!mounted) return;
+      setState(() {
+        _loadedInvoices
+            .addAll(page.items.where((i) => i.outstandingAmount > 0));
+        _invoicesLoaded = true;
+        _loadingInvoices = false;
+      });
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _invoicesLoaded = true;
+          _loadingInvoices = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _pickInvoice() async {
+    if (_loadingInvoices) return;
+    final selected = await showModalBottomSheet<Invoice>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (ctx) => _InvoicePickerSheet(invoices: _loadedInvoices),
+    );
+    if (!mounted || selected == null) return;
+    setState(() {
+      _selectedInvoice = selected;
+      _invoiceError = false;
+      _amountCtrl.text = selected.outstandingAmount.toStringAsFixed(2);
+    });
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    if (!_isAdvance && _selectedInvoice == null) {
+      setState(() => _invoiceError = true);
+      return;
+    }
     // Dismiss keyboard before the async call — prevents FocusScopeNode
     // disposal errors when the sheet is popped while a field has focus.
     FocusScope.of(context).unfocus();
@@ -738,6 +792,8 @@ class _RecordPaymentSheetState extends ConsumerState<_RecordPaymentSheet> {
             notes: _notesCtrl.text.trim().isEmpty
                 ? null
                 : _notesCtrl.text.trim(),
+            invoiceId: _isAdvance ? null : _selectedInvoice?.id,
+            isAdvance: _isAdvance,
           );
       ref.invalidate(customerDetailProvider(widget.customer.id));
       ref.invalidate(customerPaymentSummaryProvider(widget.customer.id));
@@ -796,6 +852,81 @@ class _RecordPaymentSheetState extends ConsumerState<_RecordPaymentSheet> {
                     ?.copyWith(color: scheme.onSurfaceVariant),
               ),
               const SizedBox(height: 20),
+
+              // Payment type toggle
+              Text(
+                'Payment Type',
+                style: theme.textTheme.labelMedium
+                    ?.copyWith(color: scheme.onSurfaceVariant),
+              ),
+              const SizedBox(height: 8),
+              SegmentedButton<bool>(
+                segments: const [
+                  ButtonSegment(
+                      value: false, label: Text('Against Invoice')),
+                  ButtonSegment(
+                      value: true, label: Text('Advance Payment')),
+                ],
+                selected: {_isAdvance},
+                onSelectionChanged: (s) => setState(() {
+                  _isAdvance = s.first;
+                  if (_isAdvance) {
+                    _selectedInvoice = null;
+                    _invoiceError = false;
+                  }
+                }),
+              ),
+              const SizedBox(height: 16),
+
+              // Invoice picker (hidden when advance)
+              if (!_isAdvance) ...[
+                GestureDetector(
+                  onTap: _loadingInvoices ? null : _pickInvoice,
+                  child: InputDecorator(
+                    decoration: InputDecoration(
+                      labelText: 'Invoice',
+                      border: const OutlineInputBorder(),
+                      errorText: _invoiceError
+                          ? 'Select an invoice or switch to Advance Payment'
+                          : null,
+                      suffixIcon: _loadingInvoices
+                          ? const Padding(
+                              padding: EdgeInsets.all(14),
+                              child: SizedBox.square(
+                                dimension: 16,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2),
+                              ))
+                          : const Icon(Icons.chevron_right),
+                    ),
+                    child: _selectedInvoice == null
+                        ? Text(
+                            _invoicesLoaded && _loadedInvoices.isEmpty
+                                ? 'No open invoices'
+                                : 'Select invoice (optional)',
+                            style: TextStyle(color: scheme.onSurfaceVariant),
+                          )
+                        : Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                _selectedInvoice!.invoiceNumber,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w600),
+                              ),
+                              Text(
+                                '${formatCurrency(_selectedInvoice!.outstandingAmount)} outstanding',
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: scheme.onSurfaceVariant),
+                              ),
+                            ],
+                          ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
 
               // Amount
               TextFormField(
@@ -901,6 +1032,89 @@ class _RecordPaymentSheetState extends ConsumerState<_RecordPaymentSheet> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+// ── Invoice picker sheet ──────────────────────────────────────────────────────
+
+class _InvoicePickerSheet extends StatelessWidget {
+  const _InvoicePickerSheet({required this.invoices});
+
+  final List<Invoice> invoices;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    return SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Text('Select Invoice', style: theme.textTheme.titleMedium),
+          ),
+          if (invoices.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Icon(Icons.receipt_long_outlined,
+                      size: 48, color: scheme.onSurfaceVariant),
+                  const SizedBox(height: 12),
+                  Center(
+                    child: Text(
+                      'No open invoices',
+                      style: theme.textTheme.titleSmall,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Center(
+                    child: Text(
+                      'All invoices are paid in full.',
+                      style: TextStyle(color: scheme.onSurfaceVariant),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            Flexible(
+              child: ListView.separated(
+                shrinkWrap: true,
+                itemCount: invoices.length,
+                separatorBuilder: (_, sep) => const Divider(height: 1),
+                itemBuilder: (ctx, i) {
+                  final inv = invoices[i];
+                  return ListTile(
+                    title: Text(inv.invoiceNumber,
+                        style: const TextStyle(fontWeight: FontWeight.w600)),
+                    subtitle: Text(
+                        '${formatDate(inv.invoiceDate)} · ${formatCurrency(inv.outstandingAmount)} due'),
+                    trailing: inv.isOverdue
+                        ? Chip(
+                            label: const Text('Overdue',
+                                style: TextStyle(fontSize: 11)),
+                            backgroundColor: scheme.errorContainer,
+                            side: BorderSide.none,
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 4),
+                          )
+                        : null,
+                    onTap: () => Navigator.of(ctx).pop(inv),
+                  );
+                },
+              ),
+            ),
+          const SizedBox(height: 8),
+        ],
       ),
     );
   }
