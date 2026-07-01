@@ -1,5 +1,47 @@
 import 'json.dart';
 
+class ProductAttributeValue {
+  const ProductAttributeValue({
+    required this.attributeId,
+    required this.attributeName,
+    this.dataType,
+    this.optionId,
+    this.optionValue,
+    this.valueText,
+    this.valueNumber,
+    this.valueBool,
+  });
+
+  final String attributeId;
+  final String attributeName;
+  final String? dataType;
+  final String? optionId;
+  final String? optionValue;
+  final String? valueText;
+  final double? valueNumber;
+  final bool? valueBool;
+
+  String get displayValue {
+    if (optionValue != null && optionValue!.isNotEmpty) return optionValue!;
+    if (valueText != null && valueText!.isNotEmpty) return valueText!;
+    if (valueNumber != null) return valueNumber.toString();
+    if (valueBool != null) return valueBool! ? 'Yes' : 'No';
+    return '';
+  }
+
+  factory ProductAttributeValue.fromJson(Map<String, dynamic> json) =>
+      ProductAttributeValue(
+        attributeId: asString(json['attributeId']),
+        attributeName: asString(json['attributeName']),
+        dataType: asStringOrNull(json['dataType']),
+        optionId: asStringOrNull(json['optionId']),
+        optionValue: asStringOrNull(json['optionValue']),
+        valueText: asStringOrNull(json['valueText']),
+        valueNumber: asDoubleOrNull(json['valueNumber']),
+        valueBool: json['valueBool'] as bool?,
+      );
+}
+
 /// `{ id, name }` reference (e.g. brand, unit).
 class NamedRef {
   const NamedRef({required this.id, required this.name});

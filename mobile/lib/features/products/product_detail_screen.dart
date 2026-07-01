@@ -8,6 +8,7 @@ import '../../features/sales/quick_sale_providers.dart';
 import '../../features/stock/stock_repository.dart';
 import '../../shared/format.dart';
 import '../../shared/models/product.dart';
+import '../../shared/models/product_location.dart';
 import '../../shared/models/stock.dart';
 import '../../shared/models/vehicle_compatibility.dart';
 import '../../shared/widgets/state_views.dart';
@@ -47,6 +48,8 @@ class ProductDetailScreen extends ConsumerWidget {
           ref.invalidate(stockLevelsProvider(productId));
           ref.invalidate(stockLotsProvider(productId));
           ref.invalidate(compatibleVehiclesProvider(productId));
+          ref.invalidate(productLocationsProvider(productId));
+          ref.invalidate(productVariantAttributesProvider(productId));
         },
         child: productAsync.when(
           loading: () => const LoadingView(),
@@ -120,7 +123,10 @@ class _ProductDetailBody extends ConsumerWidget {
           child: _InfoTable(product: product),
         ),
 
-        // ── 4. Stock by warehouse ───────────────────────────────────────
+        // ── 4. Specifications (variant attributes) ─────────────────────
+        _SpecsSection(productId: product.id),
+
+        // ── 5. Stock by warehouse ───────────────────────────────────────
         const SizedBox(height: 16),
         _SectionHeader(icon: Icons.warehouse_outlined, label: 'Stock by Warehouse'),
         const SizedBox(height: 8),
@@ -129,7 +135,16 @@ class _ProductDetailBody extends ConsumerWidget {
           child: _StockSection(partId: product.id),
         ),
 
-        // ── 5. Compatible vehicles ──────────────────────────────────────
+        // ── 5b. Storage Locations ───────────────────────────────────────
+        const SizedBox(height: 16),
+        _SectionHeader(icon: Icons.location_on_outlined, label: 'Storage Locations'),
+        const SizedBox(height: 8),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: _LocationsSection(partId: product.id),
+        ),
+
+        // ── 6. Compatible vehicles ──────────────────────────────────────
         const SizedBox(height: 16),
         _SectionHeader(
             icon: Icons.directions_car_outlined, label: 'Compatible Vehicles'),
@@ -1114,6 +1129,266 @@ class _VariantTile extends StatelessWidget {
                     fontSize: 14,
                     color: scheme.primary),
               ),
+      ),
+    );
+  }
+}
+
+// ── Specifications (attribute values from variants) ───────────────────────────
+
+class _SpecsSection extends ConsumerWidget {
+  const _SpecsSection({required this.productId});
+  final String productId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final async = ref.watch(productVariantAttributesProvider(productId));
+    return async.when(
+      loading: () => const SizedBox.shrink(),
+      error: (e, s) => const SizedBox.shrink(),
+      data: (attrs) {
+        if (attrs.isEmpty) return const SizedBox.shrink();
+        final theme = Theme.of(context);
+        final scheme = theme.colorScheme;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 16),
+            _SectionHeader(
+                icon: Icons.checklist_outlined, label: 'Specifications'),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Card(
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(color: scheme.outlineVariant),
+                ),
+                child: Column(
+                  children: attrs.indexed.map((entry) {
+                    final (idx, attr) = entry;
+                    final isLast = idx == attrs.length - 1;
+                    return Column(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 12),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SizedBox(
+                                width: 130,
+                                child: Text(
+                                  attr.attributeName,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: scheme.onSurfaceVariant,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                child: Text(
+                                  attr.displayValue,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: scheme.onSurface,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (!isLast)
+                          Divider(
+                              height: 1,
+                              indent: 16,
+                              endIndent: 16,
+                              color: scheme.outlineVariant),
+                      ],
+                    );
+                  }).toList(),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+// ── Storage Locations ─────────────────────────────────────────────────────────
+
+class _LocationsSection extends ConsumerWidget {
+  const _LocationsSection({required this.partId});
+  final String partId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final async = ref.watch(productLocationsProvider(partId));
+    return async.when(
+      loading: () => const Padding(
+          padding: EdgeInsets.symmetric(vertical: 16), child: LoadingView()),
+      error: (e, _) => _StockNotice(
+        message: e is AppException
+            ? e.message
+            : 'Storage locations couldn\'t load.',
+        onRetry: () => ref.invalidate(productLocationsProvider(partId)),
+      ),
+      data: (locations) {
+        if (locations.isEmpty) {
+          return const EmptyView(
+              message: 'No storage locations assigned for this part.',
+              icon: Icons.location_off_outlined);
+        }
+        return Column(
+          children:
+              locations.map((l) => _LocationTile(location: l)).toList(),
+        );
+      },
+    );
+  }
+}
+
+class _LocationTile extends StatelessWidget {
+  const _LocationTile({required this.location});
+  final ProductLocation location;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(
+            color: location.isPrimary
+                ? scheme.primary.withAlpha(100)
+                : scheme.outlineVariant),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: location.isPrimary
+                    ? scheme.primaryContainer
+                    : scheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              alignment: Alignment.center,
+              child: Icon(
+                Icons.inbox_outlined,
+                size: 22,
+                color: location.isPrimary
+                    ? scheme.onPrimaryContainer
+                    : scheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          location.warehouseName,
+                          style: theme.textTheme.titleSmall
+                              ?.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                      if (location.isPrimary)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: scheme.primaryContainer,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            'Primary',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: scheme.onPrimaryContainer,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      _LocChip(
+                          label: 'Section',
+                          value: location.section,
+                          icon: Icons.grid_view_outlined),
+                      const SizedBox(width: 8),
+                      _LocChip(
+                          label: 'Shelf',
+                          value: location.shelf,
+                          icon: Icons.inbox_outlined),
+                    ],
+                  ),
+                  if (location.notes != null &&
+                      location.notes!.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      location.notes!,
+                      style: theme.textTheme.bodySmall
+                          ?.copyWith(color: scheme.onSurfaceVariant),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LocChip extends StatelessWidget {
+  const _LocChip(
+      {required this.label, required this.value, required this.icon});
+  final String label;
+  final String value;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: scheme.onSurfaceVariant),
+          const SizedBox(width: 5),
+          Text(
+            '$label: $value',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: scheme.onSurface,
+            ),
+          ),
+        ],
       ),
     );
   }

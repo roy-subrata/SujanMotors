@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/app_exception.dart';
 import '../../shared/models/product.dart';
+import '../../shared/models/product_location.dart';
 import '../../shared/models/vehicle_compatibility.dart';
 import 'products_repository.dart';
 
@@ -103,4 +104,17 @@ final productDetailProvider =
 final compatibleVehiclesProvider =
     FutureProvider.family<List<VehicleCompatibility>, String>((ref, id) {
   return ref.read(productsRepositoryProvider).compatibleVehicles(id);
+});
+
+/// Physical bin/shelf locations for a part, keyed by productId.
+final productLocationsProvider =
+    FutureProvider.family<List<ProductLocation>, String>((ref, id) {
+  return ref.read(productsRepositoryProvider).getLocations(id);
+});
+
+/// Deduplicated attribute values (specs) for a part, keyed by productId.
+/// Sourced from GET /products/{id}/variants → attributeValues.
+final productVariantAttributesProvider =
+    FutureProvider.family<List<ProductAttributeValue>, String>((ref, id) {
+  return ref.read(productsRepositoryProvider).getVariantAttributes(id);
 });
