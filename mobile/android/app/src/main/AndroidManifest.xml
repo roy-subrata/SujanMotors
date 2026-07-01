@@ -39,17 +39,6 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
-        <!-- FileProvider required by open_filex on Android 7+ -->
-        <provider
-            android:name="com.crazecoder.openfile.FileProvider"
-            android:authorities="${applicationId}.open_filex.provider"
-            android:exported="false"
-            android:grantUriPermissions="true">
-            <meta-data
-                android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/open_filex_provider_paths" />
-        </provider>
-
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

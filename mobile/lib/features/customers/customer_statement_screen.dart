@@ -142,20 +142,6 @@ class _CustomerStatementScreenState
     await _loadPage(_currentPage + 1);
   }
 
-  Future<String> _resolveDownloadsDir() async {
-    // External app-specific directory: visible in Files → Android/data/{pkg}/files/Statements
-    // No storage permission required on Android 10+.
-    final extDir = await getExternalStorageDirectory();
-    if (extDir != null) {
-      final dir = Directory('${extDir.path}/Statements');
-      await dir.create(recursive: true);
-      return dir.path;
-    }
-    // Fallback: app documents directory (always available)
-    final appDir = await getApplicationDocumentsDirectory();
-    return appDir.path;
-  }
-
   Future<void> _downloadPdf() async {
     setState(() => _isPdfLoading = true);
     final messenger = ScaffoldMessenger.of(context);
@@ -169,39 +155,43 @@ class _CustomerStatementScreenState
             toDate: _toDate,
           );
 
-      final dir = await _resolveDownloadsDir();
+      // Write to cache — always writable on every Android version,
+      // and open_filex can serve files from here via its own FileProvider.
+      final cacheDir = await getTemporaryDirectory();
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final path = '$dir/statement_$timestamp.pdf';
+      final path = '${cacheDir.path}/statement_$timestamp.pdf';
       await File(path).writeAsBytes(bytes);
 
-      // Open in the device's native PDF viewer for immediate preview
+      // Also copy to external app storage so the user can find it in Files.
+      _saveToExternalAsync(bytes, timestamp);
+
+      if (!mounted) return;
+
+      // Open in native PDF viewer (preview).
       final result = await OpenFilex.open(path, type: 'application/pdf');
 
-      if (mounted) {
-        if (result.type == ResultType.done) {
-          messenger.clearSnackBars();
-          messenger.showSnackBar(
-            const SnackBar(
-              content: Text('PDF saved — opening in viewer'),
-              duration: Duration(seconds: 3),
-              behavior: SnackBarBehavior.floating,
+      if (!mounted) return;
+      messenger.clearSnackBars();
+      if (result.type == ResultType.done) {
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('Opening PDF — also saved to Files → Statements'),
+            duration: Duration(seconds: 4),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      } else {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              result.message.isNotEmpty
+                  ? result.message
+                  : 'PDF saved to Files → Statements (no PDF viewer found)',
             ),
-          );
-        } else {
-          // Viewer failed — still saved, tell user where
-          messenger.clearSnackBars();
-          messenger.showSnackBar(
-            SnackBar(
-              content: const Text('PDF saved to Files → Statements'),
-              duration: const Duration(seconds: 5),
-              behavior: SnackBarBehavior.floating,
-              action: SnackBarAction(
-                label: 'OK',
-                onPressed: () => messenger.hideCurrentSnackBar(),
-              ),
-            ),
-          );
-        }
+            duration: const Duration(seconds: 5),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       }
     } on AppException catch (e) {
       if (mounted) {
@@ -215,6 +205,18 @@ class _CustomerStatementScreenState
     } finally {
       if (mounted) setState(() => _isPdfLoading = false);
     }
+  }
+
+  /// Fire-and-forget: copy bytes to external app storage (Files → Statements).
+  /// Errors are swallowed — preview still works even if this fails.
+  Future<void> _saveToExternalAsync(Uint8List bytes, int timestamp) async {
+    try {
+      final extDir = await getExternalStorageDirectory();
+      if (extDir == null) return;
+      final dir = Directory('${extDir.path}/Statements');
+      await dir.create(recursive: true);
+      await File('${dir.path}/statement_$timestamp.pdf').writeAsBytes(bytes);
+    } catch (_) {}
   }
 
   @override
