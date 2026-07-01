@@ -473,13 +473,19 @@ class _ActionButtons extends ConsumerWidget {
               ref
                   .read(quickSaleControllerProvider.notifier)
                   .addFromSearch(product);
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              final messenger = ScaffoldMessenger.of(context);
+              final router = GoRouter.of(context);
+              messenger.clearSnackBars();
+              messenger.showSnackBar(SnackBar(
                 content: Text('${product.name} added to sale'),
                 duration: const Duration(seconds: 2),
                 behavior: SnackBarBehavior.floating,
                 action: SnackBarAction(
                   label: 'Go to Sale',
-                  onPressed: () => context.push('/quick-sale'),
+                  onPressed: () {
+                    messenger.hideCurrentSnackBar();
+                    router.go('/quick-sale');
+                  },
                 ),
               ));
             },
