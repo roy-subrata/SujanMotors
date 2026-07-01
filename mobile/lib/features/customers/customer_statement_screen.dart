@@ -3,6 +3,8 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:open_filex/open_filex.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../../core/network/app_exception.dart';
 import '../../core/theme/app_theme.dart';
@@ -140,6 +142,20 @@ class _CustomerStatementScreenState
     await _loadPage(_currentPage + 1);
   }
 
+  Future<String> _resolveDownloadsDir() async {
+    // External app-specific directory: visible in Files → Android/data/{pkg}/files/Statements
+    // No storage permission required on Android 10+.
+    final extDir = await getExternalStorageDirectory();
+    if (extDir != null) {
+      final dir = Directory('${extDir.path}/Statements');
+      await dir.create(recursive: true);
+      return dir.path;
+    }
+    // Fallback: app documents directory (always available)
+    final appDir = await getApplicationDocumentsDirectory();
+    return appDir.path;
+  }
+
   Future<void> _downloadPdf() async {
     setState(() => _isPdfLoading = true);
     final messenger = ScaffoldMessenger.of(context);
@@ -152,24 +168,52 @@ class _CustomerStatementScreenState
             fromDate: _fromDate,
             toDate: _toDate,
           );
-      final path =
-          '${Directory.systemTemp.path}/statement_${widget.customerId}.pdf';
+
+      final dir = await _resolveDownloadsDir();
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final path = '$dir/statement_$timestamp.pdf';
       await File(path).writeAsBytes(bytes);
+
+      // Open in the device's native PDF viewer for immediate preview
+      final result = await OpenFilex.open(path, type: 'application/pdf');
+
       if (mounted) {
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text('PDF saved: $path'),
-            duration: const Duration(seconds: 5),
-          ),
-        );
+        if (result.type == ResultType.done) {
+          messenger.clearSnackBars();
+          messenger.showSnackBar(
+            const SnackBar(
+              content: Text('PDF saved — opening in viewer'),
+              duration: Duration(seconds: 3),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        } else {
+          // Viewer failed — still saved, tell user where
+          messenger.clearSnackBars();
+          messenger.showSnackBar(
+            SnackBar(
+              content: const Text('PDF saved to Files → Statements'),
+              duration: const Duration(seconds: 5),
+              behavior: SnackBarBehavior.floating,
+              action: SnackBarAction(
+                label: 'OK',
+                onPressed: () => messenger.hideCurrentSnackBar(),
+              ),
+            ),
+          );
+        }
       }
     } on AppException catch (e) {
-      messenger.showSnackBar(SnackBar(
-        content: Text(e.message),
-        backgroundColor: errorColor,
-      ));
+      if (mounted) {
+        messenger.clearSnackBars();
+        messenger.showSnackBar(SnackBar(
+          content: Text(e.message),
+          backgroundColor: errorColor,
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
     } finally {
-      if (mounted) { setState(() => _isPdfLoading = false); }
+      if (mounted) setState(() => _isPdfLoading = false);
     }
   }
 
@@ -192,7 +236,7 @@ class _CustomerStatementScreenState
                 )
               : IconButton(
                   icon: const Icon(Icons.picture_as_pdf_outlined),
-                  tooltip: 'Download PDF',
+                  tooltip: 'Save & Preview PDF',
                   onPressed: _downloadPdf,
                 ),
           const SizedBox(width: 4),
