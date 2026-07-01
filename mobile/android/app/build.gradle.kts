@@ -16,11 +16,26 @@ android {
         isCoreLibraryDesugaringEnabled = true
     }
 
+    // Release signing is driven by env vars written by the CI workflow.
+    // If the keystore file or any variable is absent the build falls back to
+    // debug signing so local `flutter run --release` still works.
+    signingConfigs {
+        val keystoreFile = file("upload-keystore.jks")
+        val storePass = System.getenv("STORE_PASSWORD")
+        val keyAlias  = System.getenv("KEY_ALIAS")
+        val keyPass   = System.getenv("KEY_PASSWORD")
+        if (keystoreFile.exists() && storePass != null && keyAlias != null && keyPass != null) {
+            create("release") {
+                storeFile     = keystoreFile
+                storePassword = storePass
+                this.keyAlias = keyAlias
+                keyPassword   = keyPass
+            }
+        }
+    }
+
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.autopartshop.autopartshop_mobile"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
@@ -29,9 +44,8 @@ android {
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.findByName("release")
+                ?: signingConfigs.getByName("debug")
         }
     }
 }
