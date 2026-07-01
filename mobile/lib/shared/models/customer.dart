@@ -202,3 +202,91 @@ class CustomerOrderLine {
         partSku: asStringOrNull(json['partSku']),
       );
 }
+
+// ── Account Statement ─────────────────────────────────────────────────────────
+
+class CustomerAccountSummary {
+  const CustomerAccountSummary({
+    required this.customerName,
+    required this.customerCode,
+    this.fromDate,
+    this.toDate,
+    required this.totalPurchaseAmount,
+    required this.totalPaidAmount,
+    required this.currentDue,
+    required this.totalInvoices,
+    required this.purchaseItems,
+    required this.purchaseItemsTotalCount,
+    required this.purchaseItemsTotalPages,
+  });
+
+  final String customerName;
+  final String customerCode;
+  final DateTime? fromDate;
+  final DateTime? toDate;
+  final double totalPurchaseAmount;
+  final double totalPaidAmount;
+  final double currentDue;
+  final int totalInvoices;
+  final List<CustomerPurchaseItem> purchaseItems;
+  final int purchaseItemsTotalCount;
+  final int purchaseItemsTotalPages;
+
+  factory CustomerAccountSummary.fromJson(Map<String, dynamic> json) =>
+      CustomerAccountSummary(
+        customerName: asString(json['customerName']),
+        customerCode: asString(json['customerCode']),
+        fromDate: DateTime.tryParse(asString(json['fromDate']))?.toLocal(),
+        toDate: DateTime.tryParse(asString(json['toDate']))?.toLocal(),
+        totalPurchaseAmount: asDouble(json['totalPurchaseAmount']),
+        totalPaidAmount: asDouble(json['totalPaidAmount']),
+        currentDue: asDouble(json['currentDue']),
+        totalInvoices: asInt(json['totalInvoices']),
+        purchaseItems:
+            asList(json['purchaseItems'], CustomerPurchaseItem.fromJson),
+        purchaseItemsTotalCount: asInt(json['purchaseItemsTotalCount']),
+        purchaseItemsTotalPages: asInt(json['purchaseItemsTotalPages']),
+      );
+}
+
+class CustomerPurchaseItem {
+  const CustomerPurchaseItem({
+    required this.invoiceDate,
+    required this.invoiceNumber,
+    required this.invoiceStatus,
+    this.vehicleLabel,
+    required this.itemName,
+    this.itemLocalName,
+    required this.sku,
+    required this.quantity,
+    required this.unitPrice,
+    required this.lineTotal,
+  });
+
+  final DateTime invoiceDate;
+  final String invoiceNumber;
+  final String invoiceStatus;
+  final String? vehicleLabel;
+  final String itemName;
+  final String? itemLocalName;
+  final String sku;
+  final int quantity;
+  final double unitPrice;
+  final double lineTotal;
+
+  factory CustomerPurchaseItem.fromJson(Map<String, dynamic> json) =>
+      CustomerPurchaseItem(
+        invoiceDate:
+            DateTime.tryParse(asString(json['invoiceDate']))?.toLocal() ??
+                DateTime.now(),
+        invoiceNumber: asString(json['invoiceNumber']),
+        invoiceStatus: asString(json['invoiceStatus']),
+        vehicleLabel: asStringOrNull(json['vehicleLabel']),
+        itemName: asString(json['itemName']),
+        itemLocalName: asStringOrNull(json['itemLocalName']),
+        sku: asString(json['sku']),
+        quantity: asInt(json['quantity']),
+        unitPrice: asDouble(json['unitPrice']),
+        lineTotal: asDouble(json['lineTotal']),
+      );
+}

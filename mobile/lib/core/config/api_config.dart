@@ -11,7 +11,7 @@ class ApiConfig {
   /// Scheme + host + port of the API, without the `/api/v1` prefix.
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://10.0.2.2:5001',
+    defaultValue: 'https://sujanmotors-api-gtetffcscjg3cyfe.southeastasia-01.azurewebsites.net'//'http://10.0.2.2:5001',
   );
 
   /// Full base used by the Dio client. All endpoints live under `/api/v1`.

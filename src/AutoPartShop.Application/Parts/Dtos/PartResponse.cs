@@ -61,5 +61,8 @@
 
         /// <summary>Cosine similarity (0..1, higher = closer) — populated only by semantic search.</summary>
         public double? SimilarityScore { get; set; }
+
+        /// <summary>Total available stock across all warehouses (QuantityOnHand − QuantityReserved). Populated by list endpoints only.</summary>
+        public int TotalStock { get; set; }
     }
 }

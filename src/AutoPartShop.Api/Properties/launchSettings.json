@@ -8,6 +8,14 @@
       "dotnetRunMessages": true,
       "applicationUrl": "http://localhost:5001"
     },
+    "http-device": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "dotnetRunMessages": true,
+      "applicationUrl": "http://0.0.0.0:5001"
+    },
     "https": {
       "commandName": "Project",
       "environmentVariables": {

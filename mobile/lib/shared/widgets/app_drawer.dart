@@ -16,10 +16,8 @@ class _NavItem {
 }
 
 const _destinations = <_NavItem>[
-  _NavItem('Products', Icons.inventory_2_outlined, '/'),
-  _NavItem('Customers', Icons.people_alt_outlined, '/customers'),
-  _NavItem('Cash book', Icons.account_balance_wallet_outlined, '/cashbook'),
-  _NavItem('Scan barcode', Icons.qr_code_scanner, '/scan'),
+  _NavItem('Products', Icons.inventory_2_outlined, '/products'),
+  _NavItem('Cash Book', Icons.account_balance_wallet_outlined, '/cashbook'),
   _NavItem('Notifications', Icons.notifications_outlined, '/notifications'),
 ];
 

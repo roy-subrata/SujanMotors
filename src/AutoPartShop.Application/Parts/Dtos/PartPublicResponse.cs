@@ -52,5 +52,8 @@ namespace AutoPartShop.Application.Parts.Dtos
         public decimal? HeightCm { get; set; }
         public decimal? DepthCm { get; set; }
         public string? TaxCode { get; set; }
+
+        /// <summary>Total available stock across all warehouses. Populated by list endpoints only.</summary>
+        public int TotalStock { get; set; }
     }
 }

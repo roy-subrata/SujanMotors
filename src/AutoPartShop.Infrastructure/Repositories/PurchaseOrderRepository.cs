@@ -33,6 +33,14 @@ public class PurchaseOrderRepository(AutoPartDbContext _db) : IPurchaseOrderRepo
     }
     public async Task UpdateAsync(PurchaseOrder entity, CancellationToken cancellationToken = default)
     {
+        // If the same PO was already loaded as a navigation property on another entity (e.g.
+        // GoodsReceipt.PurchaseOrder) it sits in the change tracker as a different object instance.
+        // Attaching a second instance with the same key throws "already being tracked". Detach the
+        // stale instance first so the updated one can be attached cleanly.
+        var stale = _db.Set<PurchaseOrder>().Local.FirstOrDefault(e => e.Id == entity.Id);
+        if (stale != null && !ReferenceEquals(stale, entity))
+            _db.Entry(stale).State = EntityState.Detached;
+
         // Get existing line item IDs from database
         var existingLineItemIds = await _db.Set<PurchaseOrderLine>()
             .Where(l => l.PurchaseOrderId == entity.Id)

@@ -81,6 +81,8 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
             })
             .ToListAsync(cancellationToken);
 
+        var stockMapSem = await GetStockTotalsAsync(items.Select(i => i.Id), cancellationToken);
+        foreach (var it in items) it.TotalStock = stockMapSem.TryGetValue(it.Id, out var ss) ? ss : 0;
         return (items, totalCount);
     }
 
@@ -166,6 +168,8 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
 
         await ApplyLotCostAsync(items, cancellationToken);
         await ApplyVehicleFitAsync(items, cancellationToken);
+        var stockMapAll = await GetStockTotalsAsync(items.Select(i => i.Id), cancellationToken);
+        foreach (var it in items) it.TotalStock = stockMapAll.TryGetValue(it.Id, out var sa) ? sa : 0;
         return (items, totalCount);
     }
 
@@ -355,6 +359,8 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
 
         await ApplyLotCostAsync(paged, cancellationToken);
         await ApplyVehicleFitAsync(paged, cancellationToken);
+        var stockMapFlat = await GetStockTotalsAsync(paged.Select(i => i.Id), cancellationToken);
+        foreach (var it in paged) it.TotalStock = stockMapFlat.TryGetValue(it.Id, out var sf) ? sf : 0;
         return (paged, totalCount);
     }
 
@@ -433,6 +439,8 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
             .ToListAsync(cancellationToken);
 
         await ApplyPublicVehicleFitAsync(items, cancellationToken);
+        var stockMapPub = await GetStockTotalsAsync(items.Select(i => i.Id), cancellationToken);
+        foreach (var it in items) it.TotalStock = stockMapPub.TryGetValue(it.Id, out var sp) ? sp : 0;
         return (items, totalCount);
     }
 
@@ -560,6 +568,8 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
             .ToList();
 
         await ApplyPublicVehicleFitAsync(paged, cancellationToken);
+        var stockMapPubFlat = await GetStockTotalsAsync(paged.Select(i => i.Id), cancellationToken);
+        foreach (var it in paged) it.TotalStock = stockMapPubFlat.TryGetValue(it.Id, out var spf) ? spf : 0;
         return (paged, totalCount);
     }
 
@@ -617,5 +627,20 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
                 summary += $" +{vehicles.Count - 2}";
             item.VehicleFit = summary;
         }
+    }
+
+    private async Task<Dictionary<Guid, int>> GetStockTotalsAsync(
+        IEnumerable<Guid> partIds, CancellationToken cancellationToken)
+    {
+        var ids = partIds.Distinct().ToList();
+        if (ids.Count == 0) return [];
+
+        var rows = await _db.StockLevels
+            .Where(s => !s.Isdeleted && ids.Contains(s.PartId))
+            .GroupBy(s => s.PartId)
+            .Select(g => new { PartId = g.Key, Total = g.Sum(s => s.QuantityOnHand - s.QuantityReserved) })
+            .ToListAsync(cancellationToken);
+
+        return rows.ToDictionary(r => r.PartId, r => r.Total < 0 ? 0 : r.Total);
     }
 }

@@ -8,10 +8,13 @@ import '../../features/cashbook/cashbook_screen.dart';
 import '../../features/customers/customer_detail_screen.dart';
 import '../../features/customers/customer_invoices_screen.dart';
 import '../../features/customers/customer_payment_history_screen.dart';
+import '../../features/customers/customer_statement_screen.dart';
 import '../../features/customers/customers_screen.dart';
+import '../../features/dashboard/dashboard_screen.dart';
 import '../../features/notifications/notifications_screen.dart';
 import '../../features/products/product_detail_screen.dart';
 import '../../features/products/product_search_screen.dart';
+import '../../features/sales/quick_sale_screen.dart';
 import '../../features/scanner/scanner_screen.dart';
 import '../../shared/widgets/splash_screen.dart';
 
@@ -46,7 +49,8 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(path: '/splash', builder: (_, _) => const SplashScreen()),
       GoRoute(path: '/login', builder: (_, _) => const LoginScreen()),
-      GoRoute(path: '/', builder: (_, _) => const ProductSearchScreen()),
+      GoRoute(path: '/', builder: (_, _) => const DashboardScreen()),
+      GoRoute(path: '/products', builder: (_, _) => const ProductSearchScreen()),
       GoRoute(
         path: '/product/:id',
         builder: (_, state) =>
@@ -55,6 +59,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/scan', builder: (_, _) => const ScannerScreen()),
       GoRoute(path: '/customers', builder: (_, _) => const CustomersScreen()),
       GoRoute(path: '/cashbook', builder: (_, _) => const CashBookScreen()),
+      GoRoute(path: '/quick-sale', builder: (_, _) => const QuickSaleScreen()),
       GoRoute(
         path: '/customers/:id',
         builder: (_, state) =>
@@ -69,6 +74,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/customers/:id/payments',
         builder: (_, state) => CustomerPaymentHistoryScreen(
             customerId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/customers/:id/statement',
+        builder: (_, state) =>
+            CustomerStatementScreen(customerId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/notifications',
