@@ -86,7 +86,8 @@ public class ProductsController : ControllerBase
         CancellationToken cancellationToken = default)
     {
         if (page < 1) page = 1;
-        if (pageSize is < 1 or > 100) pageSize = 20;
+        if (pageSize < 1) pageSize = 20;
+        else if (pageSize > 100) pageSize = 100;
 
         var query = new AppProductQuery
         {
