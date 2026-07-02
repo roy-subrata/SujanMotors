@@ -1,4 +1,5 @@
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Repositories;
 using AutoPartsShop.Domain.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -19,6 +20,7 @@ public class DatabaseSeeder
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<DatabaseSeeder>>();
         var configuration = scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>();
         var environment = scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Hosting.IHostEnvironment>();
+        var customerRepository = scope.ServiceProvider.GetRequiredService<ICustomerRepository>();
 
         try
         {
@@ -31,6 +33,7 @@ public class DatabaseSeeder
             await SeedRolesAsync(roleManager, logger);
             await SeedPermissionsAsync(context, logger);
             await SeedUsersAsync(userManager, logger, configuration, environment);
+            await SeedWalkInCustomerAsync(customerRepository, logger);
 
             logger.LogInformation("Database seeding completed successfully");
         }
@@ -159,6 +162,42 @@ public class DatabaseSeeder
                     u.Role, u.Username, string.Join(", ", roleResult.Errors.Select(e => e.Description)));
             }
         }
+    }
+
+    private static async Task SeedWalkInCustomerAsync(ICustomerRepository customerRepository, ILogger logger)
+    {
+        // Reserved "Walk-in" customer used for anonymous/cash counter sales. Business rule:
+        // this customer must never carry a due/credit balance (enforced in SalesOrderController).
+        const string walkInCode = "WALKIN";
+
+        var existing = await customerRepository.GetByCodeAsync(walkInCode);
+        if (existing != null)
+        {
+            logger.LogInformation("Walk-in customer already exists");
+            return;
+        }
+
+        var walkInCustomer = Customer.Create(
+            customerCode: walkInCode,
+            firstName: "Walk-in",
+            lastName: "Customer",
+            email: "",
+            phone: "0000000000",
+            companyName: "",
+            billingAddress: "",
+            shippingAddress: "",
+            city: "",
+            state: "",
+            postalCode: "",
+            country: "",
+            customerType: "RETAIL");
+
+        walkInCustomer.CreatedBy = "System";
+        walkInCustomer.ModifiedBy = "System";
+
+        await customerRepository.AddAsync(walkInCustomer);
+
+        logger.LogInformation("Walk-in customer seeded successfully");
     }
 
     private static async Task SeedPermissionsAsync(AutoPartDbContext context, ILogger logger)

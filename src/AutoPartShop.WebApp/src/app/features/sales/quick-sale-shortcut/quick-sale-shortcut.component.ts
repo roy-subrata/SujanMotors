@@ -291,12 +291,24 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
   useCreditBalance = false;
   creditAmountToApply: number = 0;
 
-  paymentMethodOptions = [
+  private readonly allPaymentMethodOptions = [
     { label: 'Cash', value: 'CASH' as const, icon: 'pi pi-money-bill' },
     { label: 'Card', value: 'CARD' as const, icon: 'pi pi-credit-card' },
     { label: 'Mobile', value: 'MOBILE_BANKING' as const, icon: 'pi pi-mobile' },
     { label: 'Due', value: 'DUE' as const, icon: 'pi pi-clock' }
   ];
+
+  /** Walk-in customers are a reserved account and must never carry a due/credit balance. */
+  isWalkInCustomer(): boolean {
+    return this.selectedCustomer()?.customerCode === 'WALKIN';
+  }
+
+  /** DUE is hidden from the picker entirely for the reserved Walk-in customer. */
+  paymentMethodOptions = computed(() =>
+    this.isWalkInCustomer()
+      ? this.allPaymentMethodOptions.filter(o => o.value !== 'DUE')
+      : this.allPaymentMethodOptions
+  );
 
   // Payment reference fields
   paymentReference: string = '';
@@ -477,10 +489,12 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
         next: (freshCustomer) => {
           this.selectedCustomer.set(freshCustomer);
           this.selectedCustomerModel = freshCustomer;
+          this.guardWalkInDuePaymentMethod();
         },
         error: () => {
           this.selectedCustomer.set(event);
           this.selectedCustomerModel = event;
+          this.guardWalkInDuePaymentMethod();
         }
       });
       this.loadCustomerVehicles(event.id);
@@ -488,6 +502,15 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
       this.selectedCustomer.set(event);
       this.selectedCustomerModel = event;
       this.clearVehicleSelection();
+      this.guardWalkInDuePaymentMethod();
+    }
+  }
+
+  /** Reserved Walk-in customer must never carry a DUE payment — bump back to Cash if it was pre-selected. */
+  private guardWalkInDuePaymentMethod(): void {
+    if (this.isWalkInCustomer() && this.selectedPaymentMethod === 'DUE') {
+      this.selectedPaymentMethod = 'CASH';
+      this.paymentInputAmount = this.remainingBalance();
     }
   }
 
@@ -524,6 +547,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     this.selectedCustomer.set(customer);
     this.selectedCustomerModel = customer;
     this.clearVehicleSelection();
+    this.guardWalkInDuePaymentMethod();
     this.messageService.add({ severity: 'success', summary: 'Customer Created', detail: `${customer.fullName} added` });
   }
 
@@ -590,12 +614,21 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
 
   // ===== PAYMENT METHODS =====
   selectPaymentMethod(method: 'CASH' | 'CARD' | 'MOBILE_BANKING' | 'DUE'): void {
+    if (method === 'DUE' && this.isWalkInCustomer()) {
+      this.messageService.add({ severity: 'error', summary: 'Due Not Allowed', detail: 'Walk-in customers cannot have a due or credit balance. Select a registered customer for a Due sale.' });
+      return;
+    }
     this.selectedPaymentMethod = method;
   }
 
   addNewPayment(): void {
     const amount = this.paymentInputAmount || 0;
     if (amount <= 0) return;
+
+    if (this.selectedPaymentMethod === 'DUE' && this.isWalkInCustomer()) {
+      this.messageService.add({ severity: 'error', summary: 'Due Not Allowed', detail: 'Walk-in customers cannot have a due or credit balance. Select a registered customer for a Due sale.' });
+      return;
+    }
 
     const payment: PaymentDetail = {
       method: this.selectedPaymentMethod,
@@ -1156,6 +1189,12 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     const totalPaid = this.payments().reduce((sum, p) => sum + p.amount, 0) + creditApplied;
     const remaining = this.grandTotal() - totalPaid;
     const hasDuePayment = this.payments().some(p => p.method === 'DUE');
+
+    // Reserved Walk-in customer must never carry a due/credit balance (backend enforces this too).
+    if (hasDuePayment && this.isWalkInCustomer()) {
+      this.messageService.add({ severity: 'error', summary: 'Due Not Allowed', detail: 'Walk-in customers cannot have a due or credit balance. Select a registered customer for a Due sale.' });
+      return;
+    }
 
     if (remaining > 0.01 && !hasDuePayment) {
       this.messageService.add({ severity: 'warn', summary: 'Incomplete Payment', detail: `Remaining: ${this.formatCurrency(remaining)}. Add a payment or select "Due" for credit sale.` });

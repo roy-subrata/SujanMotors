@@ -83,6 +83,9 @@ public class SalesOrderController : ControllerBase
         _dbContext = dbContext;
     }
 
+    private static bool IsWalkIn(Customer? customer) =>
+        customer != null && customer.CustomerCode.Equals("WALKIN", StringComparison.OrdinalIgnoreCase);
+
     [HttpGet]
     public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
     {
@@ -562,6 +565,10 @@ public class SalesOrderController : ControllerBase
                     if (warehouseId == Guid.Empty)
                         throw new InvalidOperationException("Warehouse is required for stock deduction");
 
+                    var confirmCustomer = await _customerRepository.GetByIdAsync(order.CustomerId, cancellationToken);
+                    if (IsWalkIn(confirmCustomer))
+                        throw new InvalidOperationException("Walk-in customers cannot be used for invoiced/credit orders. Use Quick Sale with full payment instead.");
+
                     // Check stock and deduct in one pass — eliminates TOCTOU window between check and deduction
                     foreach (var line in order.LineItems)
                     {
@@ -1021,6 +1028,10 @@ public class SalesOrderController : ControllerBase
                 .FirstOrDefaultAsync(i => i.SalesOrderId == request.SalesOrderId && !i.Isdeleted, cancellationToken);
             if (existingInvoice != null)
                 return Conflict(new { message = $"Invoice {existingInvoice.InvoiceNumber} already exists for this sales order." });
+
+            var invoiceCustomer = await _customerRepository.GetByIdAsync(existingSO.CustomerId, cancellationToken);
+            if (IsWalkIn(invoiceCustomer))
+                return BadRequest(new { message = "Walk-in customers cannot be used for invoiced/credit orders. Use Quick Sale with full payment instead." });
 
             // Fix #3: use code service to guarantee unique invoice numbers
             var invoiceNumber = await _codeGenerateService.GenerateAsync("INV", cancellationToken);
@@ -1914,6 +1925,9 @@ public class SalesOrderController : ControllerBase
                 customer = await _customerRepository.GetByIdAsync(request.CustomerId.Value, cancellationToken);
                 if (customer is null)
                     return NotFound(new { message = "Customer not found" });
+
+                if (IsWalkIn(customer) && request.DueAmount > 0)
+                    return BadRequest(new { message = "Walk-in customers cannot have a due or credit balance. Select a registered customer for credit sales." });
 
                 // Check credit limit if there's due amount
                 if (request.DueAmount > 0 && !customer.CanPlaceOrder())

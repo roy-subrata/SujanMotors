@@ -308,7 +308,7 @@
             <p-select
               [(ngModel)]="selectedPaymentMethod"
               [ngModelOptions]="{standalone: true}"
-              [options]="paymentMethodOptions"
+              [options]="paymentMethodOptions()"
               optionLabel="label"
               optionValue="value"
               placeholder="Select payment method..."
