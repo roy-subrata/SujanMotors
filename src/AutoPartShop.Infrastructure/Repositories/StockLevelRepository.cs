@@ -93,6 +93,7 @@ public class StockLevelRepository : IStockLevelRepository
     public async Task<IEnumerable<StockLevel>> GetByPartAsync(Guid partId, CancellationToken cancellationToken = default)
     {
         return await _dbContext.Set<StockLevel>()
+            .Include(x => x.Warehouse)
             .Where(x => x.PartId == partId && !x.Isdeleted)
             .ToListAsync(cancellationToken);
     }
@@ -100,6 +101,7 @@ public class StockLevelRepository : IStockLevelRepository
     public async Task<IEnumerable<StockLevel>> GetByWarehouseAsync(Guid warehouseId, CancellationToken cancellationToken = default)
     {
         return await _dbContext.Set<StockLevel>()
+            .Include(x => x.Warehouse)
             .Where(x => x.WarehouseId == warehouseId && !x.Isdeleted)
             .ToListAsync(cancellationToken);
     }
