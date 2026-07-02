@@ -11,10 +11,9 @@ import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
 import { DatePicker } from 'primeng/datepicker';
 import { MessageService } from 'primeng/api';
-import { forkJoin } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { StockService, StockMovementResponse } from '../services/stock.service';
-import { PartService, PartResponse } from '../services/part.service';
+import { PartService } from '../services/part.service';
 import { WarehouseService, WarehouseResponse } from '../services/warehouse.service';
 
 @Component({
@@ -495,8 +494,12 @@ export class StockMovementHistoryComponent implements OnInit {
   private readonly messageService = inject(MessageService);
 
   movements: StockMovementResponse[] = [];
-  parts: PartResponse[] = [];
   warehouses: WarehouseResponse[] = [];
+  // Movement rows already carry their own partName/partCode/displayName from the API, so this is
+  // only a defensive fallback for a missing name — resolved on demand per partId, not a
+  // capped catalog preload (which could never cover a large parts catalog anyway).
+  private partNameCache = new Map<string, string>();
+  private partNameLoading = new Set<string>();
   loading = false;
   totalRecords = 0;
   pageNumber = 1;
@@ -530,26 +533,46 @@ export class StockMovementHistoryComponent implements OnInit {
 
   private loadAllData(): void {
     this.loading = true;
-    forkJoin({
-      parts: this.partService.getParts({ search: '', pageNumber: 1, pageSize: 500, isActive: true })
-        .pipe(map(res => res.data ?? [])),
-      warehouses: this.warehouseService
-        .getWarehouses({ search: '', pageNumber: 1, pageSize: 1000, sorts: [{ field: 'name', direction: 'asc' }] })
-        .pipe(map(res => res.data ?? []))
-    }).subscribe({
-      next: (result) => {
-        this.parts = result.parts;
-        this.warehouses = result.warehouses;
-        this.loadMovements();
+    this.warehouseService
+      .getWarehouses({ search: '', pageNumber: 1, pageSize: 1000, sorts: [{ field: 'name', direction: 'asc' }] })
+      .pipe(map(res => res.data ?? []))
+      .subscribe({
+        next: (warehouses) => {
+          this.warehouses = warehouses;
+          this.loadMovements();
+        },
+        error: (error) => {
+          console.error('Error loading reference data:', error);
+          this.loading = false;
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'Failed to load reference data'
+          });
+        }
+      });
+  }
+
+  /** Resolve a part's display label on demand (cache + single lookup) instead of preloading the catalog. */
+  private resolvePartLabel(partId: string): string {
+    const cached = this.partNameCache.get(partId);
+    if (cached) return cached;
+    this.fetchPartName(partId);
+    return partId;
+  }
+
+  private fetchPartName(partId: string): void {
+    if (!partId || this.partNameLoading.has(partId) || this.partNameCache.has(partId)) return;
+    this.partNameLoading.add(partId);
+    this.partService.getPartById(partId).subscribe({
+      next: (part) => {
+        const code = part.partNumber || part.sku || '';
+        const label = code ? `${part.name} (${code})` : part.name;
+        this.partNameCache.set(partId, label);
+        this.partNameLoading.delete(partId);
       },
-      error: (error) => {
-        console.error('Error loading reference data:', error);
-        this.loading = false;
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load reference data'
-        });
+      error: (_error) => {
+        this.partNameLoading.delete(partId);
       }
     });
   }
@@ -638,13 +661,8 @@ export class StockMovementHistoryComponent implements OnInit {
     if (name) {
       return code ? `${name} (${code})` : name;
     }
-    // Fallback: try to find in local parts array
-    const part = this.parts.find(p => p.id === movement.partId);
-    if (part) {
-      const code = part.partNumber || part.sku || '';
-      return code ? `${part.name} (${code})` : part.name;
-    }
-    return movement.partId || 'Unknown Part';
+    // Fallback: resolve on demand (movement rows normally already carry partName/displayName).
+    return movement.partId ? this.resolvePartLabel(movement.partId) : 'Unknown Part';
   }
 
   getWarehouseDisplay(movement: StockMovementResponse): string {
@@ -662,13 +680,7 @@ export class StockMovementHistoryComponent implements OnInit {
 
   // Keep old methods for backward compatibility
   getPartInfo(partId: string): string {
-    const part = this.parts.find(p => p.id === partId);
-    if (part) {
-      // Show name with part number/SKU
-      const code = part.partNumber || part.sku || '';
-      return code ? `${part.name} (${code})` : part.name;
-    }
-    return partId; // Fallback to ID if part not found
+    return this.resolvePartLabel(partId);
   }
 
   getWarehouseName(warehouseId: string): string {

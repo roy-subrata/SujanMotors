@@ -50,8 +50,12 @@ export class StockComponent implements OnInit {
 
   allStockLevels: StockLevelResponse[] = [];
   lowStockLevels: StockLevelResponse[] = [];
-  parts: PartResponse[] = [];
   warehouses: WarehouseResponse[] = [];
+  // Stock rows already carry their own partName/partSku/displayName from the API, so this is
+  // only a defensive fallback for a missing name — resolved on demand per partId, not a
+  // capped catalog preload (which could never cover a large parts catalog anyway).
+  private partCache = new Map<string, PartResponse>();
+  private partLoading = new Set<string>();
 
   loading = false;
   searchTerm = '';
@@ -95,7 +99,6 @@ export class StockComponent implements OnInit {
   ];
 
   ngOnInit(): void {
-    this.loadParts();
     this.loadWarehouses();
     this.loadAllStock();
     this.loadLowStock();
@@ -250,13 +253,24 @@ export class StockComponent implements OnInit {
     });
   }
 
-  loadParts(): void {
-    this.partService.getParts({ search: '', pageNumber: 1, pageSize: 500, isActive: true }).subscribe({
-      next: (res) => {
-        this.parts = res.data ?? [];
+  /** Resolve a part on demand (cache + single lookup) instead of preloading the catalog. */
+  private resolvePart(partId: string): PartResponse | undefined {
+    const cached = this.partCache.get(partId);
+    if (cached) return cached;
+    this.fetchPart(partId);
+    return undefined;
+  }
+
+  private fetchPart(partId: string): void {
+    if (!partId || this.partLoading.has(partId) || this.partCache.has(partId)) return;
+    this.partLoading.add(partId);
+    this.partService.getPartById(partId).subscribe({
+      next: (part) => {
+        this.partCache.set(partId, part);
+        this.partLoading.delete(partId);
       },
       error: (_error) => {
-        console.error('Error loading parts:', _error);
+        this.partLoading.delete(partId);
       }
     });
   }
@@ -363,7 +377,7 @@ export class StockComponent implements OnInit {
    * Get part name for a given partId
    */
   getPartName(partId: string): string {
-    const part = this.parts.find(p => p.id === partId);
+    const part = this.resolvePart(partId);
     return part?.name || partId;
   }
 
@@ -371,7 +385,7 @@ export class StockComponent implements OnInit {
    * Get part SKU for a given partId
    */
   getPartSku(partId: string): string {
-    const part = this.parts.find(p => p.id === partId);
+    const part = this.resolvePart(partId);
     return part?.sku || '';
   }
 
@@ -379,7 +393,7 @@ export class StockComponent implements OnInit {
    * Get part name and code for a given partId
    */
   getPartInfo(partId: string): string {
-    const part = this.parts.find(p => p.id === partId);
+    const part = this.resolvePart(partId);
     if (part) {
       return `${part.name} (${part.sku})`;
     }

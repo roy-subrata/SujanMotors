@@ -107,9 +107,11 @@ export class BrandService {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }
 
-  /** All active brands as a flat array — convenience for dropdowns. */
+  /** All active brands as a flat array — convenience for dropdowns.
+   *  pageSize is capped at 100 server-side (BrandsController.GetAll); request
+   *  that exact cap rather than an arbitrary larger number. */
   getActiveBrands(): Observable<BrandResponse[]> {
-    return this.getBrands({ isActive: true, pageSize: 500 }).pipe(map(r => r.data));
+    return this.getBrands({ isActive: true, pageSize: 100 }).pipe(map(r => r.data));
   }
 
   /** Unwrap single brand from the { data } envelope. */
