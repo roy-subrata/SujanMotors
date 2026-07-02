@@ -303,7 +303,10 @@ class _StockAdjustmentSheetState extends ConsumerState<StockAdjustmentSheet> {
                     _Label('Variant', scheme),
                     const SizedBox(height: 6),
                     DropdownButtonFormField<String>(
-                      value: _selectedVariantId,
+                      // `_selectedVariantId` is only ever set in initState() (before
+                      // first build) or by this field's own onChanged below, so a
+                      // one-time initialValue is equivalent to the deprecated `value`.
+                      initialValue: _selectedVariantId,
                       hint: const Text('Select variant'),
                       decoration: const InputDecoration(isDense: true),
                       items: product.variants
@@ -347,7 +350,10 @@ class _StockAdjustmentSheetState extends ConsumerState<StockAdjustmentSheet> {
                     )
                   else
                     DropdownButtonFormField<String>(
-                      value: _selectedWarehouseId,
+                      // `_selectedWarehouseId` is only ever set in initState() (before
+                      // first build) or by this field's own onChanged below, so a
+                      // one-time initialValue is equivalent to the deprecated `value`.
+                      initialValue: _selectedWarehouseId,
                       hint: const Text('Select warehouse'),
                       decoration: const InputDecoration(isDense: true),
                       items: warehouses
@@ -425,6 +431,11 @@ class _StockAdjustmentSheetState extends ConsumerState<StockAdjustmentSheet> {
                   _Label('Reason', scheme),
                   const SizedBox(height: 6),
                   DropdownButtonFormField<String>(
+                    // Unlike the fields above, `_reason` is reset externally by
+                    // _onModeChanged() (not just this field's own onChanged), so it
+                    // needs live rebuild syncing — `initialValue` (one-time only)
+                    // would not reflect that reset in the UI.
+                    // ignore: deprecated_member_use
                     value: _reason,
                     decoration: const InputDecoration(isDense: true),
                     items: _reasons

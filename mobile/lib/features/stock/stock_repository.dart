@@ -49,7 +49,7 @@ class StockRepository {
     try {
       await _dio.post('/stock/adjust', data: {
         'partId': partId,
-        if (variantId != null) 'variantId': variantId,
+        'variantId': ?variantId,
         'warehouseId': warehouseId,
         'quantity': quantity,
         'quantityInBaseUnit': quantity,
