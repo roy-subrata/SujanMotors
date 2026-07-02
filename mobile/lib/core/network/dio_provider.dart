@@ -26,8 +26,11 @@ final dioProvider = Provider<Dio>((ref) {
       handler.next(options);
     },
     onError: (error, handler) {
-      if (error.response?.statusCode == 401) {
+      final isLoginRequest = error.requestOptions.path.contains('/auth/login');
+      if (error.response?.statusCode == 401 && !isLoginRequest) {
         // Fire-and-forget: clear session so the router redirects to /login.
+        // Excludes the login endpoint itself — a bad-password 401 there must
+        // surface as a login error, not blow away the in-progress attempt.
         ref.read(authControllerProvider.notifier).forceLogout();
       }
       handler.next(error);

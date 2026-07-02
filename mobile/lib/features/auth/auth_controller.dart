@@ -13,8 +13,11 @@ class AuthController extends AsyncNotifier<Session?> {
     return ref.read(tokenStorageProvider).readSession();
   }
 
+  /// Does NOT set `state = AsyncLoading()` first: the router redirects to
+  /// `/splash` on any loading auth state, which would tear down and rebuild
+  /// LoginScreen (wiping the typed username/password) on every attempt.
+  /// `LoginScreen` tracks its own local submitting flag for the button spinner.
   Future<void> login(String username, String password) async {
-    state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
       try {
         final session =

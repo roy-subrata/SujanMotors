@@ -61,6 +61,23 @@ class _ProductSearchScreenState extends ConsumerState<ProductSearchScreen> {
     return items.where((p) => p.category?.name == _selectedCategory).toList();
   }
 
+  /// Category filtering is client-side over whatever pages have been fetched
+  /// so far. A selected category can easily have few/no matches on the pages
+  /// already loaded even though later (unfetched) pages have more — and a
+  /// short filtered list may not fill the screen, so the scroll-triggered
+  /// [_onScroll] loadMore never fires. Keep paging in the background until
+  /// there's a reasonable number of visible matches or the server runs out.
+  static const _minVisibleBeforeStopping = 12;
+
+  void _maybeAutoLoadMoreForCategory(ProductSearchState state) {
+    if (_selectedCategory == null) return;
+    if (state.isLoading || state.isLoadingMore || !state.hasMore) return;
+    if (_visibleProducts(state.items).length >= _minVisibleBeforeStopping) {
+      return;
+    }
+    ref.read(productSearchControllerProvider.notifier).loadMore();
+  }
+
   @override
   Widget build(BuildContext context, ) {
     final state = ref.watch(productSearchControllerProvider);
@@ -77,6 +94,10 @@ class _ProductSearchScreenState extends ConsumerState<ProductSearchScreen> {
         });
       }
     }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _maybeAutoLoadMoreForCategory(state);
+    });
 
     return AppScaffold(
       title: 'Products',
@@ -134,6 +155,11 @@ class _ProductSearchScreenState extends ConsumerState<ProductSearchScreen> {
     final products = _visibleProducts(state.items);
 
     if (products.isEmpty) {
+      // Still paging in the background looking for matches in this category
+      // — don't flash "No products found" before that finishes.
+      if (_selectedCategory != null && state.hasMore) {
+        return const LoadingView();
+      }
       return const EmptyView(
           message: 'No products found.', icon: Icons.search_off);
     }
@@ -143,8 +169,7 @@ class _ProductSearchScreenState extends ConsumerState<ProductSearchScreen> {
       child: ListView.builder(
         controller: _scrollCtrl,
         padding: const EdgeInsets.fromLTRB(12, 10, 12, 14),
-        itemCount: products.length +
-            (state.hasMore && _selectedCategory == null ? 1 : 0),
+        itemCount: products.length + (state.hasMore ? 1 : 0),
         itemBuilder: (context, index) {
           if (index >= products.length) {
             return const Padding(
@@ -335,8 +360,10 @@ class _ProductListTile extends ConsumerWidget {
       clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
-          // ── Content row ──────────────────────────────────────────────
-          Padding(
+          // ── Content row (tap → product detail) ───────────────────────
+          InkWell(
+            onTap: () => context.push('/product/${product.id}'),
+            child: Padding(
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -440,59 +467,46 @@ class _ProductListTile extends ConsumerWidget {
               ],
             ),
           ),
+          ),
 
-          // ── Action button row ────────────────────────────────────────
+          // ── Add to Sale button ───────────────────────────────────────
           const Divider(height: 1, color: Color(0xFFEEEEEE)),
-          IntrinsicHeight(
-            child: Row(
-              children: [
-                // Add to Sale
-                Expanded(
-                  child: TextButton.icon(
-                    icon: const Icon(Icons.add_shopping_cart_outlined, size: 18),
-                    label: const Text('Add to Sale'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: const Color(0xFFD97706),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: const RoundedRectangleBorder(),
-                    ),
-                    onPressed: () {
-                      ref
-                          .read(quickSaleControllerProvider.notifier)
-                          .addFromSearch(product);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('${product.name} added to sale'),
-                          duration: const Duration(seconds: 2),
-                          behavior: SnackBarBehavior.floating,
-                          action: SnackBarAction(
-                            label: 'Go to Sale',
-                            onPressed: () => context.push('/quick-sale'),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-
-                const VerticalDivider(width: 1, color: Color(0xFFEEEEEE)),
-
-                // View Details
-                Expanded(
-                  child: TextButton.icon(
-                    icon: Icon(Icons.open_in_new_outlined,
-                        size: 18, color: scheme.primary),
-                    label: Text('Details',
-                        style: TextStyle(color: scheme.primary)),
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: const RoundedRectangleBorder(),
-                    ),
-                    onPressed: () => context.push('/product/${product.id}'),
-                  ),
-                ),
-              ],
+          TextButton.icon(
+            icon: const Icon(Icons.add_shopping_cart_outlined, size: 18),
+            label: const Text('Add to Sale'),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFFD97706),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              minimumSize: const Size(double.infinity, 0),
+              shape: const RoundedRectangleBorder(),
             ),
+            onPressed: () {
+              final added = ref
+                  .read(quickSaleControllerProvider.notifier)
+                  .addFromSearch(product);
+              if (!added) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('${product.name} is out of stock'),
+                    backgroundColor: Colors.red.shade700,
+                    duration: const Duration(seconds: 2),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+                return;
+              }
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('${product.name} added to sale'),
+                  duration: const Duration(seconds: 2),
+                  behavior: SnackBarBehavior.floating,
+                  action: SnackBarAction(
+                    label: 'Go to Sale',
+                    onPressed: () => context.push('/quick-sale'),
+                  ),
+                ),
+              );
+            },
           ),
         ],
       ),

@@ -16,6 +16,7 @@ import '../../features/products/product_detail_screen.dart';
 import '../../features/products/product_search_screen.dart';
 import '../../features/sales/quick_sale_screen.dart';
 import '../../features/scanner/scanner_screen.dart';
+import '../../features/stock/stock_in_screen.dart';
 import '../../shared/widgets/splash_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -60,6 +61,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/customers', builder: (_, _) => const CustomersScreen()),
       GoRoute(path: '/cashbook', builder: (_, _) => const CashBookScreen()),
       GoRoute(path: '/quick-sale', builder: (_, _) => const QuickSaleScreen()),
+      GoRoute(path: '/stock-in', builder: (_, _) => const StockInScreen()),
       GoRoute(
         path: '/customers/:id',
         builder: (_, state) =>

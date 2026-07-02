@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/network/app_exception.dart';
 import '../../core/theme/app_theme.dart';
 import '../../features/sales/quick_sale_providers.dart';
+import '../../features/stock/stock_adjustment_sheet.dart';
 import '../../features/stock/stock_repository.dart';
 import '../../shared/format.dart';
 import '../../shared/models/product.dart';
@@ -81,6 +82,7 @@ class _ProductDetailBody extends ConsumerWidget {
 
     final levels = levelsAsync.value ?? <StockLevel>[];
     final lots = lotsAsync.value ?? <StockLot>[];
+    final stockError = levelsAsync.hasError;
 
     // Aggregate totals across all warehouses
     final totalQty =
@@ -101,7 +103,8 @@ class _ProductDetailBody extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(12, 14, 12, 0),
           child: _ProductHeroCard(
             product: product,
-            totalQty: levelsAsync.isLoading ? null : totalQty,
+            totalQty: (levelsAsync.isLoading || stockError) ? null : totalQty,
+            stockError: stockError,
             unit: unit,
             costPrice: costPrice,
             costCurrency: costCurrency,
@@ -180,6 +183,7 @@ class _ProductHeroCard extends ConsumerWidget {
   const _ProductHeroCard({
     required this.product,
     required this.totalQty,
+    required this.stockError,
     required this.unit,
     required this.costPrice,
     required this.costCurrency,
@@ -187,6 +191,11 @@ class _ProductHeroCard extends ConsumerWidget {
 
   final Product product;
   final int? totalQty;
+
+  /// True when the stock-levels request failed (as opposed to still loading
+  /// or having genuinely resolved to zero). Must not be rendered as
+  /// "Out of stock" — that's a specific, different claim.
+  final bool stockError;
   final String unit;
   final double? costPrice;
   final String? costCurrency;
@@ -263,44 +272,54 @@ class _ProductHeroCard extends ConsumerWidget {
                   padding: const EdgeInsets.symmetric(
                       horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: totalQty == null
-                        ? scheme.surfaceContainerHighest
-                        : inStock
-                            ? Colors.green.shade100
-                            : scheme.errorContainer,
+                    color: stockError
+                        ? Colors.amber.shade50
+                        : totalQty == null
+                            ? scheme.surfaceContainerHighest
+                            : inStock
+                                ? Colors.green.shade100
+                                : scheme.errorContainer,
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
-                        totalQty == null
-                            ? Icons.hourglass_empty
-                            : inStock
-                                ? Icons.check_circle
-                                : Icons.remove_circle,
+                        stockError
+                            ? Icons.warning_amber_rounded
+                            : totalQty == null
+                                ? Icons.hourglass_empty
+                                : inStock
+                                    ? Icons.check_circle
+                                    : Icons.remove_circle,
                         size: 12,
-                        color: totalQty == null
-                            ? scheme.onSurfaceVariant
-                            : inStock
-                                ? Colors.green.shade700
-                                : scheme.error,
+                        color: stockError
+                            ? Colors.amber.shade800
+                            : totalQty == null
+                                ? scheme.onSurfaceVariant
+                                : inStock
+                                    ? Colors.green.shade700
+                                    : scheme.error,
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        totalQty == null
-                            ? 'Loading…'
-                            : inStock
-                                ? '$totalQty${unit.isNotEmpty ? ' $unit' : ''}'
-                                : 'Out of stock',
+                        stockError
+                            ? 'Stock unavailable'
+                            : totalQty == null
+                                ? 'Loading…'
+                                : inStock
+                                    ? '$totalQty${unit.isNotEmpty ? ' $unit' : ''}'
+                                    : 'Out of stock',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
-                          color: totalQty == null
-                              ? scheme.onSurfaceVariant
-                              : inStock
-                                  ? Colors.green.shade700
-                                  : scheme.error,
+                          color: stockError
+                              ? Colors.amber.shade800
+                              : totalQty == null
+                                  ? scheme.onSurfaceVariant
+                                  : inStock
+                                      ? Colors.green.shade700
+                                      : scheme.error,
                         ),
                       ),
                     ],
@@ -470,12 +489,21 @@ class _ActionButtons extends ConsumerWidget {
             color: Colors.white,
             bg: const Color(0xFFF59E0B),
             onTap: () {
-              ref
+              final added = ref
                   .read(quickSaleControllerProvider.notifier)
                   .addFromSearch(product);
               final messenger = ScaffoldMessenger.of(context);
               final router = GoRouter.of(context);
               messenger.clearSnackBars();
+              if (!added) {
+                messenger.showSnackBar(SnackBar(
+                  content: Text('${product.name} is out of stock'),
+                  backgroundColor: Colors.red.shade700,
+                  duration: const Duration(seconds: 2),
+                  behavior: SnackBarBehavior.floating,
+                ));
+                return;
+              }
               messenger.showSnackBar(SnackBar(
                 content: Text('${product.name} added to sale'),
                 duration: const Duration(seconds: 2),
@@ -500,11 +528,18 @@ class _ActionButtons extends ConsumerWidget {
             color: Colors.white,
             bg: Colors.green.shade600,
             onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                content: Text('Stock In — coming soon'),
-                behavior: SnackBarBehavior.floating,
-                duration: Duration(seconds: 2),
-              ));
+              final levels =
+                  ref.read(stockLevelsProvider(product.id)).asData?.value ?? [];
+              showModalBottomSheet<void>(
+                context: context,
+                isScrollControlled: true,
+                useSafeArea: true,
+                backgroundColor: Colors.transparent,
+                builder: (_) => StockAdjustmentSheet(
+                  product: product,
+                  stockLevels: levels,
+                ),
+              );
             },
           ),
         ),

@@ -24,7 +24,6 @@ class _ChargeScreenState extends ConsumerState<ChargeScreen> {
   late final TextEditingController _cashReceivedCtrl;
 
   // Customer list
-  final TextEditingController _searchCtrl = TextEditingController();
   List<Customer> _customers = [];
   bool _isLoadingCustomers = false;
 
@@ -36,6 +35,7 @@ class _ChargeScreenState extends ConsumerState<ChargeScreen> {
 
   // Payment
   String _paymentMethod = 'CASH';
+  String? _localError;
 
   double get grandTotal =>
       double.tryParse(_grandTotalCtrl.text) ?? widget.cartTotal;
@@ -60,7 +60,6 @@ class _ChargeScreenState extends ConsumerState<ChargeScreen> {
   void dispose() {
     _grandTotalCtrl.dispose();
     _cashReceivedCtrl.dispose();
-    _searchCtrl.dispose();
     super.dispose();
   }
 
@@ -71,7 +70,7 @@ class _ChargeScreenState extends ConsumerState<ChargeScreen> {
     try {
       final page = await ref
           .read(customersRepositoryProvider)
-          .list(search: query.trim().isEmpty ? null : query.trim(), pageSize: 50);
+          .list(search: query.trim().isEmpty ? null : query.trim(), pageSize: 300);
       if (mounted) {
         setState(() {
           _customers = page.items;
@@ -89,6 +88,7 @@ class _ChargeScreenState extends ConsumerState<ChargeScreen> {
       _vehicle = null;
       _vehicles = [];
       _isLoadingVehicles = c != null;
+      _localError = null;
     });
     if (c == null) return;
 
@@ -110,6 +110,15 @@ class _ChargeScreenState extends ConsumerState<ChargeScreen> {
   void _submit() {
     final gt = grandTotal;
     if (gt <= 0) return;
+    final isWalkIn = _customer == null ||
+        _customer!.customerCode.toUpperCase() == 'WALKIN';
+    if (_paymentMethod == 'DUE' && isWalkIn) {
+      setState(() => _localError = _customer == null
+          ? 'Select a customer before recording a Due sale — Walk-in can\'t carry a balance.'
+          : 'Walk-in customers can\'t carry a due balance — select a registered customer for a Due sale.');
+      return;
+    }
+    setState(() => _localError = null);
     ref.read(quickSaleControllerProvider.notifier).submit(
           grandTotal: gt,
           paymentMethod: _paymentMethod,
@@ -153,17 +162,12 @@ class _ChargeScreenState extends ConsumerState<ChargeScreen> {
           ),
           const SizedBox(height: 14),
           _CustomerCard(
-            searchCtrl: _searchCtrl,
             customers: _customers,
             isLoading: _isLoadingCustomers,
             selectedCustomer: _customer,
             vehicles: _vehicles,
             isLoadingVehicles: _isLoadingVehicles,
             selectedVehicle: _vehicle,
-            onSearch: (q) {
-              setState(() {});
-              _loadCustomers(q);
-            },
             onSelectCustomer: _selectCustomer,
             onSelectVehicle: (v) => setState(() => _vehicle = v),
           ),
@@ -175,14 +179,15 @@ class _ChargeScreenState extends ConsumerState<ChargeScreen> {
             change: change,
             onMethodChanged: (m) => setState(() {
               _paymentMethod = m;
+              _localError = null;
               if (m == 'CASH') {
                 _cashReceivedCtrl.text = grandTotal.toStringAsFixed(2);
               }
             }),
           ),
-          if (submitError != null) ...[
+          if ((_localError ?? submitError) != null) ...[
             const SizedBox(height: 14),
-            _ErrorBanner(message: submitError),
+            _ErrorBanner(message: _localError ?? submitError!),
           ],
           const SizedBox(height: 20),
           SizedBox(
@@ -289,26 +294,22 @@ class _AmountCard extends StatelessWidget {
 
 class _CustomerCard extends StatelessWidget {
   const _CustomerCard({
-    required this.searchCtrl,
     required this.customers,
     required this.isLoading,
     required this.selectedCustomer,
     required this.vehicles,
     required this.isLoadingVehicles,
     required this.selectedVehicle,
-    required this.onSearch,
     required this.onSelectCustomer,
     required this.onSelectVehicle,
   });
 
-  final TextEditingController searchCtrl;
   final List<Customer> customers;
   final bool isLoading;
   final Customer? selectedCustomer;
   final List<CustomerVehicle> vehicles;
   final bool isLoadingVehicles;
   final CustomerVehicle? selectedVehicle;
-  final void Function(String) onSearch;
   final void Function(Customer?) onSelectCustomer;
   final void Function(CustomerVehicle?) onSelectVehicle;
 
@@ -325,66 +326,38 @@ class _CustomerCard extends StatelessWidget {
               style: theme.textTheme.titleSmall
                   ?.copyWith(color: scheme.onSurfaceVariant)),
           const SizedBox(height: 10),
-          // Search field
-          TextField(
-            controller: searchCtrl,
-            onChanged: onSearch,
-            decoration: InputDecoration(
-              hintText: 'Search customers...',
-              prefixIcon: const Icon(Icons.search),
-              border: const OutlineInputBorder(),
-              isDense: true,
-              suffixIcon: searchCtrl.text.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.clear),
-                      onPressed: () {
-                        searchCtrl.clear();
-                        onSearch('');
-                      },
-                    )
-                  : null,
-            ),
-          ),
-          const SizedBox(height: 8),
-          // Customer list in a bounded box
-          Container(
-            height: 260,
-            decoration: BoxDecoration(
-              border: Border.all(
-                  color: scheme.outlineVariant.withValues(alpha: 0.6)),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : ListView(
-                    padding: EdgeInsets.zero,
-                    children: [
-                      _CustomerTile(
-                        name: 'Walk-in',
-                        subtitle: 'Default — no account',
-                        icon: Icons.person_outline,
-                        isSelected: selectedCustomer == null,
-                        onTap: () => onSelectCustomer(null),
-                        scheme: scheme,
-                      ),
-                      if (customers.isNotEmpty)
-                        Divider(
-                            height: 1,
-                            color:
-                                scheme.outlineVariant.withValues(alpha: 0.5)),
-                      ...customers.map(
-                        (c) => _CustomerTile(
-                          name: c.fullName,
-                          subtitle: c.phone ?? c.customerCode,
-                          isSelected: selectedCustomer?.id == c.id,
-                          onTap: () => onSelectCustomer(c),
-                          scheme: scheme,
-                          dueAmount: c.dueAmount,
-                        ),
-                      ),
-                    ],
+          if (isLoading)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else
+            LayoutBuilder(
+              builder: (context, constraints) => DropdownMenu<Customer?>(
+                initialSelection: selectedCustomer,
+                enableFilter: true,
+                requestFocusOnTap: true,
+                width: constraints.maxWidth,
+                hintText: 'Walk-in / Select customer',
+                inputDecorationTheme:
+                    const InputDecorationTheme(isDense: true),
+                dropdownMenuEntries: [
+                  const DropdownMenuEntry(
+                    value: null,
+                    label: 'Walk-in (no account)',
                   ),
-          ),
+                  ...customers.map(
+                    (c) => DropdownMenuEntry(
+                      value: c,
+                      label: c.dueAmount > 0
+                          ? '${c.fullName} (Due: ${formatCurrency(c.dueAmount)})'
+                          : c.fullName,
+                    ),
+                  ),
+                ],
+                onSelected: onSelectCustomer,
+              ),
+            ),
           // Previous due warning — shown when selected customer has a balance
           if (selectedCustomer != null && selectedCustomer!.dueAmount > 0) ...[
             const SizedBox(height: 12),
@@ -476,86 +449,6 @@ class _CustomerCard extends StatelessWidget {
           ],
         ],
       ),
-    );
-  }
-}
-
-class _CustomerTile extends StatelessWidget {
-  const _CustomerTile({
-    required this.name,
-    required this.subtitle,
-    this.icon,
-    required this.isSelected,
-    required this.onTap,
-    required this.scheme,
-    this.dueAmount = 0,
-  });
-
-  final String name;
-  final String subtitle;
-  final IconData? icon;
-  final bool isSelected;
-  final VoidCallback onTap;
-  final ColorScheme scheme;
-  final double dueAmount;
-
-  @override
-  Widget build(BuildContext context) {
-    final hasDue = dueAmount > 0;
-    return ListTile(
-      dense: true,
-      leading: CircleAvatar(
-        radius: 18,
-        backgroundColor: isSelected
-            ? scheme.primary
-            : scheme.surfaceContainerHighest,
-        child: Icon(
-          icon ?? Icons.person,
-          size: 18,
-          color: isSelected ? scheme.onPrimary : scheme.onSurfaceVariant,
-        ),
-      ),
-      title: Text(
-        name,
-        style: TextStyle(
-          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-          color: isSelected ? scheme.primary : null,
-        ),
-      ),
-      subtitle: hasDue
-          ? Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(subtitle,
-                    style: TextStyle(
-                        fontSize: 12, color: scheme.onSurfaceVariant)),
-                const SizedBox(height: 2),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.warning_amber_rounded,
-                        size: 12, color: Colors.amber.shade700),
-                    const SizedBox(width: 3),
-                    Text(
-                      'Due: ${formatCurrency(dueAmount)}',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.amber.shade700,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            )
-          : Text(subtitle,
-              style:
-                  TextStyle(fontSize: 12, color: scheme.onSurfaceVariant)),
-      trailing: isSelected
-          ? Icon(Icons.check_circle, color: scheme.primary)
-          : null,
-      onTap: onTap,
     );
   }
 }

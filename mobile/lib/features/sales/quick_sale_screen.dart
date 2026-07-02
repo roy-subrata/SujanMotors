@@ -1,10 +1,9 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../../shared/format.dart';
-import '../../shared/models/product.dart';
 import '../../shared/models/sale.dart';
 import '../../shared/widgets/app_scaffold.dart';
 import 'charge_screen.dart';
@@ -18,7 +17,7 @@ class QuickSaleScreen extends ConsumerStatefulWidget {
 }
 
 class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
-  // ── Scanner ───────────────────────────────────────────────────────────────────
+  // â”€â”€ Scanner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   final MobileScannerController _scanner = MobileScannerController(
     detectionSpeed: DetectionSpeed.noDuplicates,
   );
@@ -27,13 +26,7 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final s = ref.read(quickSaleControllerProvider);
-      if (s.catalogItems.isEmpty && !s.isCatalogLoading) {
-        ref.read(quickSaleControllerProvider.notifier).loadCatalog();
-      }
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {});
   }
 
   @override
@@ -42,7 +35,7 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
     super.dispose();
   }
 
-  // ── Scanner ───────────────────────────────────────────────────────────────────
+  // â”€â”€ Scanner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Future<void> _onDetect(BarcodeCapture capture) async {
     if (_handling) return;
@@ -72,21 +65,6 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
     ref.read(quickSaleControllerProvider.notifier).stopScan();
   }
 
-  void _openCatalog() {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _CatalogSheet(
-        onScanTapped: () {
-          Navigator.pop(context);
-          _startScan();
-        },
-      ),
-    );
-  }
-
   void _openChargeScreen() {
     final total = ref.read(quickSaleControllerProvider).total;
     Navigator.of(context).push(
@@ -96,7 +74,7 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
     );
   }
 
-  // ── Build ─────────────────────────────────────────────────────────────────────
+  // â”€â”€ Build â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   @override
   Widget build(BuildContext context) {
@@ -128,11 +106,6 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
           tooltip: 'Scan barcode',
           onPressed: _startScan,
         ),
-        IconButton(
-          icon: const Icon(Icons.add_shopping_cart_outlined),
-          tooltip: 'Browse products',
-          onPressed: _openCatalog,
-        ),
       ],
       body: _buildBody(state, controller),
     );
@@ -140,7 +113,7 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
 
   Widget _buildBody(QuickSaleState state, QuickSaleController controller) {
     if (state.isEmpty) {
-      return _EmptyCartView(onScan: _startScan, onBrowse: _openCatalog);
+      return _EmptyCartView(onScan: _startScan);
     }
 
     return Column(
@@ -153,8 +126,18 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
                 (item) => _CartItemTile(
                   key: ValueKey('${item.partId}${item.variantId}'),
                   item: item,
-                  onIncrement: () =>
-                      controller.increment(item.partId, item.variantId),
+                  onIncrement: () {
+                    final ok = controller.increment(item.partId, item.variantId);
+                    if (!ok) {
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        content:
+                            Text('Only ${item.availableStock} ${item.name} in stock'),
+                        backgroundColor: Colors.red.shade700,
+                        duration: const Duration(seconds: 2),
+                        behavior: SnackBarBehavior.floating,
+                      ));
+                    }
+                  },
                   onDecrement: () =>
                       controller.decrement(item.partId, item.variantId),
                   onRemove: () =>
@@ -175,7 +158,7 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
     );
   }
 
-  // ── Scanner overlay ───────────────────────────────────────────────────────────
+  // â”€â”€ Scanner overlay â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Widget _buildScannerOverlay(QuickSaleState state) {
     return Stack(
@@ -296,13 +279,12 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
   }
 }
 
-// ── Empty cart view ───────────────────────────────────────────────────────────
+// â”€â”€ Empty cart view â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _EmptyCartView extends StatelessWidget {
-  const _EmptyCartView({required this.onScan, required this.onBrowse});
+  const _EmptyCartView({required this.onScan});
 
   final VoidCallback onScan;
-  final VoidCallback onBrowse;
 
   @override
   Widget build(BuildContext context) {
@@ -324,7 +306,7 @@ class _EmptyCartView extends StatelessWidget {
                     ?.copyWith(fontWeight: FontWeight.w700)),
             const SizedBox(height: 8),
             Text(
-              'Browse products or scan a barcode to add items',
+              'Scan a barcode to add items',
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium
                   ?.copyWith(color: scheme.onSurfaceVariant),
@@ -333,21 +315,10 @@ class _EmptyCartView extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
-                onPressed: onBrowse,
-                icon: const Icon(Icons.add_shopping_cart_outlined),
-                label: const Text('Browse Products'),
-                style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14)),
-              ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
                 onPressed: onScan,
                 icon: const Icon(Icons.qr_code_scanner),
                 label: const Text('Scan Barcode'),
-                style: OutlinedButton.styleFrom(
+                style: FilledButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14)),
               ),
             ),
@@ -358,7 +329,7 @@ class _EmptyCartView extends StatelessWidget {
   }
 }
 
-// ── Cart item tile ────────────────────────────────────────────────────────────
+// â”€â”€ Cart item tile â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _CartItemTile extends StatefulWidget {
   const _CartItemTile({
@@ -435,7 +406,7 @@ class _CartItemTileState extends State<_CartItemTile> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Product name + delete ───────────────────────────────────
+            // â”€â”€ Product name + delete â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -473,7 +444,7 @@ class _CartItemTileState extends State<_CartItemTile> {
             const Divider(height: 1, color: Color(0xFFF0F0F0)),
             const SizedBox(height: 14),
 
-            // ── Price + Qty ─────────────────────────────────────────────
+            // â”€â”€ Price + Qty â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
@@ -489,7 +460,7 @@ class _CartItemTileState extends State<_CartItemTile> {
                       const SizedBox(height: 6),
                       Row(
                         children: [
-                          Text('৳',
+                          Text('à§³',
                               style: TextStyle(
                                 color: scheme.primary,
                                 fontWeight: FontWeight.w700,
@@ -568,7 +539,7 @@ class _CartItemTileState extends State<_CartItemTile> {
 
             const SizedBox(height: 10),
 
-            // ── Line total ──────────────────────────────────────────────
+            // â”€â”€ Line total â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             Align(
               alignment: Alignment.centerRight,
               child: Container(
@@ -618,7 +589,7 @@ class _QtyButton extends StatelessWidget {
   }
 }
 
-// ── Proceed bar (sticky bottom) ───────────────────────────────────────────────
+// â”€â”€ Proceed bar (sticky bottom) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _ProceedBar extends StatelessWidget {
   const _ProceedBar({
@@ -695,429 +666,7 @@ class _ProceedBar extends StatelessWidget {
   }
 }
 
-// ── Catalog bottom sheet ──────────────────────────────────────────────────────
-
-class _CatalogSheet extends ConsumerStatefulWidget {
-  const _CatalogSheet({required this.onScanTapped});
-
-  final VoidCallback onScanTapped;
-
-  @override
-  ConsumerState<_CatalogSheet> createState() => _CatalogSheetState();
-}
-
-class _CatalogSheetState extends ConsumerState<_CatalogSheet> {
-  final _searchCtrl = TextEditingController();
-  final _scrollCtrl = ScrollController();
-
-  @override
-  void initState() {
-    super.initState();
-    _scrollCtrl.addListener(_onScroll);
-    _searchCtrl.addListener(() => setState(() {}));
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      ref.read(quickSaleControllerProvider.notifier).searchCatalog('');
-      ref.read(quickSaleControllerProvider.notifier).setCategory(null);
-    });
-  }
-
-  @override
-  void dispose() {
-    _searchCtrl.dispose();
-    _scrollCtrl.dispose();
-    super.dispose();
-  }
-
-  void _onScroll() {
-    if (_scrollCtrl.position.pixels >=
-        _scrollCtrl.position.maxScrollExtent - 400) {
-      ref.read(quickSaleControllerProvider.notifier).loadMoreCatalog();
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final state = ref.watch(quickSaleControllerProvider);
-    final controller = ref.read(quickSaleControllerProvider.notifier);
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final products = state.filteredCatalog;
-
-    return DraggableScrollableSheet(
-      expand: false,
-      initialChildSize: 0.88,
-      minChildSize: 0.5,
-      maxChildSize: 0.95,
-      builder: (_, sheetScroll) => Material(
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-        clipBehavior: Clip.antiAlias,
-        child: Column(
-          children: [
-            Center(
-              child: Container(
-                margin: const EdgeInsets.symmetric(vertical: 10),
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: scheme.outlineVariant,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 8, 8),
-              child: Row(
-                children: [
-                  Text('Add Products',
-                      style: theme.textTheme.titleLarge
-                          ?.copyWith(fontWeight: FontWeight.w800)),
-                  const Spacer(),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-            ),
-            _PosSearchBar(
-              controller: _searchCtrl,
-              onChanged: (q) => controller.searchCatalog(q),
-              onClear: () {
-                _searchCtrl.clear();
-                controller.searchCatalog('');
-              },
-              onScan: widget.onScanTapped,
-            ),
-            if (state.allCategories.isNotEmpty)
-              _CategoryChips(
-                categories: state.allCategories,
-                selected: state.selectedCategory,
-                onSelect: controller.setCategory,
-              ),
-            Expanded(
-              child: state.isCatalogLoading && products.isEmpty
-                  ? const Center(child: CircularProgressIndicator())
-                  : products.isEmpty
-                      ? Center(
-                          child: Text('No products found',
-                              style: TextStyle(
-                                  color: scheme.onSurfaceVariant)))
-                      : GridView.builder(
-                          controller: _scrollCtrl,
-                          padding:
-                              const EdgeInsets.fromLTRB(12, 8, 12, 16),
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            crossAxisSpacing: 10,
-                            mainAxisSpacing: 10,
-                            childAspectRatio: 0.75,
-                          ),
-                          itemCount: products.length +
-                              (state.catalogHasMore ? 2 : 0),
-                          itemBuilder: (_, index) {
-                            if (index >= products.length) {
-                              return index == products.length
-                                  ? const Center(
-                                      child: CircularProgressIndicator())
-                                  : const SizedBox.shrink();
-                            }
-                            final p = products[index];
-                            return _PosProductCard(
-                              product: p,
-                              cartQty: state.items
-                                  .where((i) => i.partId == p.id)
-                                  .fold(0, (s, i) => s + i.quantity),
-                              onAdd: () {
-                                controller.addFromSearch(p);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('${p.name} added'),
-                                    duration: const Duration(seconds: 1),
-                                    behavior: SnackBarBehavior.floating,
-                                  ),
-                                );
-                              },
-                            );
-                          },
-                        ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ── POS search bar ────────────────────────────────────────────────────────────
-
-class _PosSearchBar extends StatefulWidget {
-  const _PosSearchBar({
-    required this.controller,
-    required this.onChanged,
-    required this.onClear,
-    required this.onScan,
-  });
-
-  final TextEditingController controller;
-  final void Function(String) onChanged;
-  final VoidCallback onClear;
-  final VoidCallback onScan;
-
-  @override
-  State<_PosSearchBar> createState() => _PosSearchBarState();
-}
-
-class _PosSearchBarState extends State<_PosSearchBar> {
-  @override
-  void initState() {
-    super.initState();
-    widget.controller.addListener(() => setState(() {}));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final hasText = widget.controller.text.isNotEmpty;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
-      child: TextField(
-        controller: widget.controller,
-        textInputAction: TextInputAction.search,
-        onChanged: widget.onChanged,
-        decoration: InputDecoration(
-          hintText: 'Search products...',
-          prefixIcon: const Icon(Icons.search),
-          border: const OutlineInputBorder(),
-          isDense: true,
-          suffixIcon: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (hasText)
-                IconButton(
-                    icon: const Icon(Icons.clear),
-                    onPressed: widget.onClear),
-              IconButton(
-                  icon: const Icon(Icons.qr_code_scanner),
-                  tooltip: 'Scan barcode',
-                  onPressed: widget.onScan),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ── Category chips ────────────────────────────────────────────────────────────
-
-class _CategoryChips extends StatelessWidget {
-  const _CategoryChips({
-    required this.categories,
-    required this.selected,
-    required this.onSelect,
-  });
-
-  final List<String> categories;
-  final String? selected;
-  final void Function(String?) onSelect;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 40,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        children: [
-          _Chip(
-              label: 'All',
-              isSelected: selected == null,
-              onTap: () => onSelect(null)),
-          const SizedBox(width: 6),
-          ...categories.map((cat) => Padding(
-                padding: const EdgeInsets.only(right: 6),
-                child: _Chip(
-                  label: cat,
-                  isSelected: selected == cat,
-                  onTap: () => onSelect(cat),
-                ),
-              )),
-        ],
-      ),
-    );
-  }
-}
-
-class _Chip extends StatelessWidget {
-  const _Chip(
-      {required this.label,
-      required this.isSelected,
-      required this.onTap});
-
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? scheme.primary
-              : scheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: isSelected
-                ? scheme.onPrimary
-                : scheme.onSurfaceVariant,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ── POS product card ──────────────────────────────────────────────────────────
-
-class _PosProductCard extends StatelessWidget {
-  const _PosProductCard({
-    required this.product,
-    required this.cartQty,
-    required this.onAdd,
-  });
-
-  final Product product;
-  final int cartQty;
-  final VoidCallback onAdd;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final price = product.pricing?.sellingPrice;
-    final initial = product.name.trim().isEmpty
-        ? '?'
-        : product.name.trim().characters.first.toUpperCase();
-
-    return Card(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onAdd,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(10, 12, 10, 10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    CircleAvatar(
-                      radius: 24,
-                      backgroundColor: scheme.primaryContainer,
-                      child: Text(
-                        initial,
-                        style: TextStyle(
-                          color: scheme.onPrimaryContainer,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
-                    if (cartQty > 0)
-                      Positioned(
-                        top: -4,
-                        right: -4,
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            color: scheme.primary,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Text(
-                            '$cartQty',
-                            style: TextStyle(
-                              color: scheme.onPrimary,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                product.name,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(fontWeight: FontWeight.w700),
-              ),
-              if (product.localName != null) ...[
-                const SizedBox(height: 2),
-                Text(
-                  product.localName!,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                    fontSize: 10,
-                  ),
-                ),
-              ],
-              const Spacer(),
-              Row(
-                children: [
-                  Expanded(
-                    child: price != null
-                        ? Text(
-                            formatCurrency(price,
-                                currency: product.pricing?.currency),
-                            style: TextStyle(
-                              color: scheme.primary,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 13,
-                            ),
-                          )
-                        : const SizedBox.shrink(),
-                  ),
-                  SizedBox(
-                    width: 32,
-                    height: 32,
-                    child: FilledButton(
-                      onPressed: onAdd,
-                      style: FilledButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        shape: const CircleBorder(),
-                      ),
-                      child: const Icon(Icons.add, size: 18),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ── Scan helper button ────────────────────────────────────────────────────────
+// â”€â”€ Scan helper button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _ScanIconButton extends StatelessWidget {
   const _ScanIconButton(
@@ -1148,7 +697,7 @@ class _ScanIconButton extends StatelessWidget {
   }
 }
 
-// ── Sale success view ─────────────────────────────────────────────────────────
+// â”€â”€ Sale success view â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _SuccessView extends StatelessWidget {
   const _SuccessView({required this.result, required this.onNewSale});

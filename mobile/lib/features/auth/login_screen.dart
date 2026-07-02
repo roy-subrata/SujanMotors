@@ -16,6 +16,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _usernameCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   bool _obscure = true;
+  bool _submitting = false;
 
   @override
   void dispose() {
@@ -27,15 +28,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     FocusScope.of(context).unfocus();
+    setState(() => _submitting = true);
     await ref
         .read(authControllerProvider.notifier)
         .login(_usernameCtrl.text.trim(), _passwordCtrl.text);
+    if (mounted) setState(() => _submitting = false);
   }
 
   @override
   Widget build(BuildContext context) {
     final auth = ref.watch(authControllerProvider);
-    final isLoading = auth.isLoading;
+    final isLoading = _submitting;
     final errorText = auth.hasError
         ? (auth.error is AppException
             ? (auth.error as AppException).message

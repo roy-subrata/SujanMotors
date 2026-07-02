@@ -96,8 +96,17 @@ class NotificationsController extends Notifier<NotificationsState> {
       await connection.start();
       state = state.copyWith(status: HubStatus.connected);
     } catch (_) {
-      // Leave the inbox usable even if realtime is unavailable.
+      // Clear _connection so the guard above doesn't permanently block future
+      // connect attempts — `withAutomaticReconnect()` only covers drops
+      // *after* a successful start, not this initial-connect failure.
+      _connection = null;
       state = state.copyWith(status: HubStatus.disconnected);
+      // One short-delay retry gives a transient blip (e.g. right after
+      // login, before connectivity settles) a chance to recover without the
+      // user having to log out and back in.
+      Future.delayed(const Duration(seconds: 5), () {
+        if (ref.mounted && _connection == null) _connect(token);
+      });
     }
   }
 

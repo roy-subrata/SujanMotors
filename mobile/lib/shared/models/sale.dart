@@ -9,6 +9,7 @@ class QuickSaleItem {
     this.localName,
     required this.unitPrice,
     required this.quantity,
+    this.availableStock,
   });
 
   final String partId;
@@ -17,6 +18,10 @@ class QuickSaleItem {
   final String? localName;
   final double unitPrice;
   final int quantity;
+
+  /// Stock on hand at the time this line was added/looked up. `null` means
+  /// unknown (stock data wasn't available) — quantity is then left uncapped.
+  final int? availableStock;
 
   double get lineTotal => unitPrice * quantity;
 
@@ -27,6 +32,7 @@ class QuickSaleItem {
         localName: localName,
         unitPrice: unitPrice ?? this.unitPrice,
         quantity: quantity ?? this.quantity,
+        availableStock: availableStock,
       );
 }
 

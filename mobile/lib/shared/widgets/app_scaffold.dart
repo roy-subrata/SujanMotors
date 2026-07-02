@@ -31,6 +31,18 @@ class AppScaffold extends StatelessWidget {
 
   static const _navRoutes = ['/', '/products', '/quick-sale', '/customers'];
 
+  // Routes that permanently own the drawer. Checked against matchedLocation so
+  // the drawer widget is never torn down mid-transition (which caused a blink).
+  static const _drawerRoutes = <String>{
+    '/',
+    '/products',
+    '/quick-sale',
+    '/customers',
+    '/cashbook',
+    '/stock-in',
+    '/notifications',
+  };
+
   int _selectedIndex(String location) {
     final idx = _navRoutes.indexOf(location);
     return idx < 0 ? 0 : idx;
@@ -39,15 +51,14 @@ class AppScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final location = GoRouterState.of(context).matchedLocation;
-    final canPop = context.canPop(); // go_router-aware; Navigator.of() finds wrong navigator
+    final isDrawerRoute = _drawerRoutes.contains(location);
+    final canPop = context.canPop();
 
     return Scaffold(
       appBar: AppBar(
         flexibleSpace: const AppBarGradient(),
         title: titleWidget ?? Text(title),
-        // Show back button automatically when there is a route to pop;
-        // only show the drawer hamburger on root screens.
-        leading: canPop
+        leading: (canPop && !isDrawerRoute)
             ? IconButton(
                 icon: const Icon(Icons.arrow_back),
                 onPressed: () => context.pop(),
@@ -59,7 +70,7 @@ class AppScaffold extends StatelessWidget {
           const SizedBox(width: 4),
         ],
       ),
-      drawer: canPop ? null : const AppDrawer(),
+      drawer: isDrawerRoute ? const AppDrawer() : null,
       body: body,
       floatingActionButton: floatingActionButton,
       bottomNavigationBar: showBottomNav

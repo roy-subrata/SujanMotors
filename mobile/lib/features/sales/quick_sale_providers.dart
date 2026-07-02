@@ -172,15 +172,32 @@ class QuickSaleController extends Notifier<QuickSaleState> {
     try {
       final product =
           await ref.read(productsRepositoryProvider).getByCode(code);
+
+      if (product.stockLevel <= 0) {
+        state = state.copyWith(
+          isLookingUp: false,
+          lookupError: '${product.name} is out of stock',
+        );
+        return;
+      }
+
       final existing = state.items.indexWhere(
         (i) =>
             i.partId == product.productId && i.variantId == product.variantId,
       );
       final List<QuickSaleItem> newItems;
       if (existing >= 0) {
+        final current = state.items[existing];
+        if (current.quantity >= product.stockLevel) {
+          state = state.copyWith(
+            isLookingUp: false,
+            lookupError:
+                'Only ${product.stockLevel} ${product.name} in stock — already in cart',
+          );
+          return;
+        }
         newItems = List<QuickSaleItem>.from(state.items);
-        newItems[existing] = newItems[existing]
-            .copyWith(quantity: newItems[existing].quantity + 1);
+        newItems[existing] = current.copyWith(quantity: current.quantity + 1);
       } else {
         newItems = [
           QuickSaleItem(
@@ -189,6 +206,7 @@ class QuickSaleController extends Notifier<QuickSaleState> {
             name: product.name,
             unitPrice: product.sellingPrice,
             quantity: 1,
+            availableStock: product.stockLevel,
           ),
           ...state.items,
         ];
@@ -205,16 +223,24 @@ class QuickSaleController extends Notifier<QuickSaleState> {
 
   // ── Cart operations ──────────────────────────────────────────────────────────
 
-  void addFromSearch(Product product) {
+  /// Returns `false` (and leaves the cart unchanged) when the product is
+  /// known to be out of stock, or adding another unit would exceed the
+  /// known stock on hand. `totalStock == null` means stock data wasn't
+  /// available, in which case the item is added without a cap.
+  bool addFromSearch(Product product) {
+    final stock = product.totalStock;
+    if (stock != null && stock <= 0) return false;
+
     final price = product.pricing?.sellingPrice ?? 0.0;
     final existing = state.items.indexWhere(
       (i) => i.partId == product.id && i.variantId == null,
     );
     final List<QuickSaleItem> newItems;
     if (existing >= 0) {
+      final current = state.items[existing];
+      if (stock != null && current.quantity >= stock) return false;
       newItems = List<QuickSaleItem>.from(state.items);
-      newItems[existing] =
-          newItems[existing].copyWith(quantity: newItems[existing].quantity + 1);
+      newItems[existing] = current.copyWith(quantity: current.quantity + 1);
     } else {
       newItems = [
         QuickSaleItem(
@@ -224,19 +250,27 @@ class QuickSaleController extends Notifier<QuickSaleState> {
           localName: product.localName,
           unitPrice: price,
           quantity: 1,
+          availableStock: stock,
         ),
         ...state.items,
       ];
     }
     state = state.copyWith(items: newItems);
+    return true;
   }
 
-  void increment(String partId, String? variantId) {
+  /// Returns `false` (without changing state) when incrementing would
+  /// exceed the item's known available stock.
+  bool increment(String partId, String? variantId) {
     final idx = _findIndex(partId, variantId);
-    if (idx < 0) return;
+    if (idx < 0) return false;
+    final current = state.items[idx];
+    final cap = current.availableStock;
+    if (cap != null && current.quantity >= cap) return false;
     final updated = List<QuickSaleItem>.from(state.items);
-    updated[idx] = updated[idx].copyWith(quantity: updated[idx].quantity + 1);
+    updated[idx] = current.copyWith(quantity: current.quantity + 1);
     state = state.copyWith(items: updated);
+    return true;
   }
 
   void decrement(String partId, String? variantId) {

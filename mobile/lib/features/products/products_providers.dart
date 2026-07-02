@@ -49,33 +49,44 @@ class ProductSearchState {
 class ProductSearchController extends Notifier<ProductSearchState> {
   int _page = 1;
 
+  // Bumped on every new search; in-flight search/loadMore calls from an older
+  // generation are discarded when they resolve, so a slow "b" response can't
+  // overwrite a faster "ba" response, and a pending loadMore for an old query
+  // can't append its page onto a newer query's results.
+  int _generation = 0;
+
   @override
   ProductSearchState build() => const ProductSearchState();
 
   Future<void> search(String query) async {
+    final gen = ++_generation;
     _page = 1;
     state = ProductSearchState(query: query, isLoading: true);
     try {
       final res =
           await ref.read(productsRepositoryProvider).search(query: query, page: 1);
+      if (gen != _generation) return; // superseded by a newer search
       state = ProductSearchState(
         query: query,
         items: res.data,
         hasMore: res.pagination.hasNextPage,
       );
     } on AppException catch (e) {
+      if (gen != _generation) return;
       state = ProductSearchState(query: query, error: e.message);
     }
   }
 
   Future<void> loadMore() async {
     if (state.isLoadingMore || !state.hasMore || state.isLoading) return;
+    final gen = _generation;
     state = state.copyWith(isLoadingMore: true, clearError: true);
     try {
       final next = _page + 1;
       final res = await ref
           .read(productsRepositoryProvider)
           .search(query: state.query, page: next);
+      if (gen != _generation) return; // superseded by a newer search
       _page = next;
       state = state.copyWith(
         items: [...state.items, ...res.data],
@@ -83,6 +94,7 @@ class ProductSearchController extends Notifier<ProductSearchState> {
         isLoadingMore: false,
       );
     } on AppException catch (e) {
+      if (gen != _generation) return;
       state = state.copyWith(isLoadingMore: false, error: e.message);
     }
   }

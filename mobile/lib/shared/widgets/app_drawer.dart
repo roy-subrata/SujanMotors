@@ -17,6 +17,7 @@ class _NavItem {
 
 const _destinations = <_NavItem>[
   _NavItem('Products', Icons.inventory_2_outlined, '/products'),
+  _NavItem('Stock In', Icons.move_to_inbox_outlined, '/stock-in'),
   _NavItem('Cash Book', Icons.account_balance_wallet_outlined, '/cashbook'),
   _NavItem('Notifications', Icons.notifications_outlined, '/notifications'),
 ];
@@ -73,8 +74,11 @@ class AppDrawer extends ConsumerWidget {
                         ? Badge(label: Text('$unread'))
                         : null,
                     onTap: () {
-                      Scaffold.of(context).closeDrawer();
-                      if (current != item.route) context.go(item.route);
+                      if (current == item.route) {
+                        Scaffold.of(context).closeDrawer();
+                        return;
+                      }
+                      context.go(item.route);
                     },
                   ),
               ],

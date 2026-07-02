@@ -172,7 +172,13 @@ class _PagedListViewState<T> extends State<PagedListView<T>> {
               ),
             );
           }
-          _fetchNext();
+          // Defer past this build/layout pass — calling setState synchronously
+          // from inside itemBuilder (e.g. when the initial page is short
+          // enough that this trailing row is visible immediately) can throw
+          // "setState() or markNeedsBuild() called during build".
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _fetchNext();
+          });
           return const Padding(
             padding: EdgeInsets.symmetric(vertical: 20),
             child: Center(child: CircularProgressIndicator()),
