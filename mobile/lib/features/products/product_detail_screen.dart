@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../core/network/app_exception.dart';
 import '../../core/theme/app_theme.dart';
@@ -12,6 +13,7 @@ import '../../shared/models/product.dart';
 import '../../shared/models/product_location.dart';
 import '../../shared/models/stock.dart';
 import '../../shared/models/vehicle_compatibility.dart';
+import '../../shared/widgets/meta_tag.dart';
 import '../../shared/widgets/state_views.dart';
 import '../pricing/price_code.dart';
 import 'products_providers.dart';
@@ -26,11 +28,19 @@ class ProductDetailScreen extends ConsumerWidget {
     final productAsync = ref.watch(productDetailProvider(productId));
     final priceCode = ref.watch(priceCodeProvider).value;
     final showActual = ref.watch(showActualPriceProvider);
+    final cartCount = ref.watch(
+      quickSaleControllerProvider.select((s) => s.itemCount),
+    );
+    final product = productAsync.value;
 
     return Scaffold(
       appBar: AppBar(
         flexibleSpace: const AppBarGradient(),
-        title: const Text('Product Detail'),
+        title: Text(
+          product?.name ?? 'Product Detail',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
         actions: [
           if (priceCode != null && priceCode.isConfigured)
             IconButton(
@@ -41,42 +51,67 @@ class ProductDetailScreen extends ConsumerWidget {
               onPressed: () =>
                   ref.read(showActualPriceProvider.notifier).toggle(),
             ),
+          if (product != null)
+            IconButton(
+              tooltip: 'Share',
+              icon: const Icon(Icons.share_outlined),
+              onPressed: () {
+                final price = product.pricing?.sellingPrice;
+                final lines = [
+                  product.name,
+                  if (product.brand != null) 'Brand: ${product.brand!.name}',
+                  'SKU: ${product.sku}',
+                  if (price != null)
+                    'Price: ${formatCurrency(price, currency: product.pricing?.currency)}',
+                ];
+                Share.share(lines.join('\n'), subject: product.name);
+              },
+            ),
+          Badge(
+            isLabelVisible: cartCount > 0,
+            label: Text('$cartCount'),
+            child: IconButton(
+              tooltip: 'Quick Sale cart',
+              icon: const Icon(Icons.shopping_cart_outlined),
+              onPressed: () => context.push('/quick-sale'),
+            ),
+          ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          ref.invalidate(productDetailProvider(productId));
-          ref.invalidate(stockLevelsProvider(productId));
-          ref.invalidate(stockLotsProvider(productId));
-          ref.invalidate(compatibleVehiclesProvider(productId));
-          ref.invalidate(productLocationsProvider(productId));
-          ref.invalidate(productVariantAttributesProvider(productId));
-        },
-        child: productAsync.when(
-          loading: () => const LoadingView(),
-          error: (e, _) => ListView(children: [
-            const SizedBox(height: 120),
-            ErrorView(
-              message: e is AppException ? e.message : 'Failed to load product.',
-              onRetry: () => ref.invalidate(productDetailProvider(productId)),
-            ),
-          ]),
-          data: (product) => _ProductDetailBody(product: product),
-        ),
+      body: productAsync.when(
+        loading: () => const LoadingView(),
+        error: (e, _) => ListView(children: [
+          const SizedBox(height: 120),
+          ErrorView(
+            message: e is AppException ? e.message : 'Failed to load product.',
+            onRetry: () => ref.invalidate(productDetailProvider(productId)),
+          ),
+        ]),
+        data: (product) => _ProductDetailBody(product: product),
       ),
     );
   }
 }
 
-// ── Detail body ───────────────────────────────────────────────────────────────
+// ── Detail body: hero + tab switcher + sticky action bar ───────────────────────
 
-class _ProductDetailBody extends ConsumerWidget {
+class _ProductDetailBody extends ConsumerStatefulWidget {
   const _ProductDetailBody({required this.product});
 
   final Product product;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_ProductDetailBody> createState() => _ProductDetailBodyState();
+}
+
+enum _DetailTab { details, stock, compatibility }
+
+class _ProductDetailBodyState extends ConsumerState<_ProductDetailBody> {
+  _DetailTab _tab = _DetailTab.details;
+
+  @override
+  Widget build(BuildContext context) {
+    final product = widget.product;
     final levelsAsync = ref.watch(stockLevelsProvider(product.id));
     final lotsAsync = ref.watch(stockLotsProvider(product.id));
 
@@ -84,9 +119,7 @@ class _ProductDetailBody extends ConsumerWidget {
     final lots = lotsAsync.value ?? <StockLot>[];
     final stockError = levelsAsync.hasError;
 
-    // Aggregate totals across all warehouses
-    final totalQty =
-        levels.fold<int>(0, (s, l) => s + l.availableQuantity);
+    final totalQty = levels.fold<int>(0, (s, l) => s + l.availableQuantity);
     final unit = levels.firstOrNull?.unitSymbol ??
         levels.firstOrNull?.unitName ??
         lots.firstOrNull?.unitCode ??
@@ -94,99 +127,108 @@ class _ProductDetailBody extends ConsumerWidget {
         '';
     final costPrice = lots.isNotEmpty ? lots.first.costPrice : null;
     final costCurrency = lots.firstOrNull?.currency;
+    final resolvedQty = (levelsAsync.isLoading || stockError) ? null : totalQty;
 
-    return ListView(
-      padding: EdgeInsets.zero,
+    return Column(
       children: [
-        // ── 1. Product hero card ────────────────────────────────────────
-        Padding(
-          padding: const EdgeInsets.fromLTRB(12, 14, 12, 0),
-          child: _ProductHeroCard(
-            product: product,
-            totalQty: (levelsAsync.isLoading || stockError) ? null : totalQty,
-            stockError: stockError,
-            unit: unit,
-            costPrice: costPrice,
-            costCurrency: costCurrency,
-          ),
-        ),
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: () async {
+              ref.invalidate(productDetailProvider(product.id));
+              ref.invalidate(stockLevelsProvider(product.id));
+              ref.invalidate(stockLotsProvider(product.id));
+              ref.invalidate(compatibleVehiclesProvider(product.id));
+              ref.invalidate(productLocationsProvider(product.id));
+              ref.invalidate(productVariantAttributesProvider(product.id));
+            },
+            child: ListView(
+              padding: const EdgeInsets.only(bottom: 24),
+              children: [
+                // ── 1. Hero: image, name, price, stock ────────────────────
+                _ProductHero(
+                  product: product,
+                  totalQty: resolvedQty,
+                  stockError: stockError,
+                  unit: unit,
+                ),
 
-        // ── 2. Quick action buttons ─────────────────────────────────────
-        Padding(
-          padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-          child: _ActionButtons(product: product),
-        ),
+                const SizedBox(height: 16),
 
-        // ── 3. Product info table ───────────────────────────────────────
-        const SizedBox(height: 16),
-        _SectionHeader(icon: Icons.info_outline, label: 'Product Information'),
-        const SizedBox(height: 8),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: _InfoTable(product: product),
-        ),
+                // ── 2. Tab switcher ─────────────────────────────────────
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: _DetailTabBar(
+                    selected: _tab,
+                    onSelect: (t) => setState(() => _tab = t),
+                  ),
+                ),
+                const SizedBox(height: 12),
 
-        // ── 4. Specifications (variant attributes) ─────────────────────
-        _SpecsSection(productId: product.id),
-
-        // ── 5. Stock by warehouse ───────────────────────────────────────
-        const SizedBox(height: 16),
-        _SectionHeader(icon: Icons.warehouse_outlined, label: 'Stock by Warehouse'),
-        const SizedBox(height: 8),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: _StockSection(partId: product.id),
-        ),
-
-        // ── 5b. Storage Locations ───────────────────────────────────────
-        const SizedBox(height: 16),
-        _SectionHeader(icon: Icons.location_on_outlined, label: 'Storage Locations'),
-        const SizedBox(height: 8),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: _LocationsSection(partId: product.id),
-        ),
-
-        // ── 6. Compatible vehicles ──────────────────────────────────────
-        const SizedBox(height: 16),
-        _SectionHeader(
-            icon: Icons.directions_car_outlined, label: 'Compatible Vehicles'),
-        const SizedBox(height: 8),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: _CompatibilitySection(partId: product.id),
-        ),
-
-        // ── 6. Variants ─────────────────────────────────────────────────
-        if (product.variants.length > 1) ...[
-          const SizedBox(height: 16),
-          _SectionHeader(icon: Icons.tune_outlined, label: 'Variants'),
-          const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Column(
-              children:
-                  product.variants.map((v) => _VariantTile(variant: v)).toList(),
+                // ── 3. Tab content ───────────────────────────────────────
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: switch (_tab) {
+                    _DetailTab.details => Column(
+                        children: [
+                          _InfoTable(
+                            product: product,
+                            unit: unit,
+                            totalQty: resolvedQty,
+                            costPrice: costPrice,
+                            costCurrency: costCurrency,
+                          ),
+                          _SpecsSection(productId: product.id),
+                        ],
+                      ),
+                    _DetailTab.stock => Column(
+                        children: [
+                          _StockSection(partId: product.id),
+                          const SizedBox(height: 16),
+                          _SectionHeader(
+                              icon: Icons.location_on_outlined,
+                              label: 'Storage Locations'),
+                          const SizedBox(height: 8),
+                          _LocationsSection(partId: product.id),
+                        ],
+                      ),
+                    _DetailTab.compatibility => Column(
+                        children: [
+                          _CompatibilitySection(partId: product.id),
+                          if (product.variants.length > 1) ...[
+                            const SizedBox(height: 16),
+                            _SectionHeader(
+                                icon: Icons.tune_outlined, label: 'Variants'),
+                            const SizedBox(height: 8),
+                            Column(
+                              children: product.variants
+                                  .map((v) => _VariantTile(variant: v))
+                                  .toList(),
+                            ),
+                          ],
+                        ],
+                      ),
+                  },
+                ),
+              ],
             ),
           ),
-        ],
+        ),
 
-        const SizedBox(height: 32),
+        // ── Sticky bottom action bar ─────────────────────────────────────
+        _BottomActionBar(product: product),
       ],
     );
   }
 }
 
-// ── Product hero card: image LEFT, info RIGHT ─────────────────────────────────
+// ── Hero: image + verified/status + brand + name + price + stock ──────────────
 
-class _ProductHeroCard extends ConsumerWidget {
-  const _ProductHeroCard({
+class _ProductHero extends StatelessWidget {
+  const _ProductHero({
     required this.product,
     required this.totalQty,
     required this.stockError,
     required this.unit,
-    required this.costPrice,
-    required this.costCurrency,
   });
 
   final Product product;
@@ -197,8 +239,6 @@ class _ProductHeroCard extends ConsumerWidget {
   /// "Out of stock" — that's a specific, different claim.
   final bool stockError;
   final String unit;
-  final double? costPrice;
-  final String? costCurrency;
 
   static const _palette = [
     Color(0xFFC7D2FE), Color(0xFF99F6E4), Color(0xFFFDE68A),
@@ -223,11 +263,9 @@ class _ProductHeroCard extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final priceCode = ref.watch(priceCodeProvider).value;
-    final showActual = ref.watch(showActualPriceProvider);
 
     final initial = product.name.trim().isEmpty
         ? '?'
@@ -235,232 +273,312 @@ class _ProductHeroCard extends ConsumerWidget {
     final price = product.pricing?.sellingPrice;
     final inStock = (totalQty ?? 0) > 0;
 
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: scheme.outlineVariant),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── Image block ──────────────────────────────────────────────
-            Column(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(14),
-                  child: Container(
-                    width: 100,
-                    height: 100,
-                    color: _bgColor(),
-                    alignment: Alignment.center,
-                    child: Text(
-                      initial,
-                      style: TextStyle(
-                        fontSize: 44,
-                        fontWeight: FontWeight.w900,
-                        color: _textColor(),
-                      ),
-                    ),
-                  ),
+    final (stockLabel, stockColor, stockIcon) = stockError
+        ? ('Stock unavailable', Colors.amber.shade800, Icons.warning_amber_rounded)
+        : totalQty == null
+            ? ('Checking availability…', scheme.onSurfaceVariant, Icons.hourglass_empty)
+            : inStock
+                ? ('$totalQty${unit.isNotEmpty ? ' $unit' : ''} available',
+                    Colors.green.shade700, Icons.check_circle)
+                : ('Out of stock', scheme.error, Icons.remove_circle);
+
+    return Container(
+      color: theme.cardColor,
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Status pill above the image, like a gallery header ─────────
+          Row(
+            children: [
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: product.isActive
+                      ? Colors.green.shade50
+                      : Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(20),
                 ),
-                const SizedBox(height: 8),
-                // Stock availability badge under the image
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: stockError
-                        ? Colors.amber.shade50
-                        : totalQty == null
-                            ? scheme.surfaceContainerHighest
-                            : inStock
-                                ? Colors.green.shade100
-                                : scheme.errorContainer,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        stockError
-                            ? Icons.warning_amber_rounded
-                            : totalQty == null
-                                ? Icons.hourglass_empty
-                                : inStock
-                                    ? Icons.check_circle
-                                    : Icons.remove_circle,
-                        size: 12,
-                        color: stockError
-                            ? Colors.amber.shade800
-                            : totalQty == null
-                                ? scheme.onSurfaceVariant
-                                : inStock
-                                    ? Colors.green.shade700
-                                    : scheme.error,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        stockError
-                            ? 'Stock unavailable'
-                            : totalQty == null
-                                ? 'Loading…'
-                                : inStock
-                                    ? '$totalQty${unit.isNotEmpty ? ' $unit' : ''}'
-                                    : 'Out of stock',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: stockError
-                              ? Colors.amber.shade800
-                              : totalQty == null
-                                  ? scheme.onSurfaceVariant
-                                  : inStock
-                                      ? Colors.green.shade700
-                                      : scheme.error,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(width: 14),
-
-            // ── Product info ─────────────────────────────────────────────
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Name
-                  Text(
-                    product.name,
-                    style: theme.textTheme.titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w800),
-                  ),
-
-                  // Local name
-                  if (product.localName != null) ...[
-                    const SizedBox(height: 3),
-                    Text(
-                      product.localName!,
-                      style: theme.textTheme.bodySmall
-                          ?.copyWith(color: scheme.onSurfaceVariant),
-                    ),
-                  ],
-
-                  // Brand chip
-                  if (product.brand != null) ...[
-                    const SizedBox(height: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: Colors.amber.shade50,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.verified_outlined,
-                              size: 12, color: Colors.amber.shade800),
-                          const SizedBox(width: 4),
-                          Text(
-                            product.brand!.name,
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.amber.shade800,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-
-                  const SizedBox(height: 10),
-                  const Divider(height: 1),
-                  const SizedBox(height: 10),
-
-                  // Info rows
-                  _InfoRow('Part No', product.partNumber),
-                  _InfoRow('SKU', product.sku),
-                  if (unit.isNotEmpty)
-                    _InfoRow('Unit', unit),
-                  // Stock quantity — prominent, coloured
-                  if (totalQty != null)
-                    _InfoRow(
-                      'Stock',
-                      totalQty == 0
-                          ? 'Out of stock'
-                          : '$totalQty${unit.isNotEmpty ? ' $unit' : ''}',
-                      valueColor: (totalQty ?? 0) > 0
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      product.isActive ? Icons.check_circle : Icons.cancel,
+                      size: 13,
+                      color: product.isActive
                           ? Colors.green.shade700
-                          : scheme.error,
-                      valueBold: true,
+                          : Colors.grey.shade500,
                     ),
-                  if (price != null)
-                    _InfoRow(
-                      'Price',
-                      formatCurrency(price,
-                          currency: product.pricing?.currency),
-                      valueColor: scheme.primary,
-                      valueBold: true,
+                    const SizedBox(width: 4),
+                    Text(
+                      product.isActive ? 'Active' : 'Inactive',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: product.isActive
+                            ? Colors.green.shade700
+                            : Colors.grey.shade600,
+                      ),
                     ),
-                  if (costPrice != null)
-                    _InfoRow(
-                      'Cost',
-                      formatCostMasked(priceCode, showActual, costPrice!,
-                          currency: costCurrency),
-                      valueColor: scheme.onSurfaceVariant,
-                    ),
-                ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // ── Large centered image block ──────────────────────────────────
+          Center(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(18),
+              child: Container(
+                width: 160,
+                height: 160,
+                color: _bgColor(),
+                alignment: Alignment.center,
+                child: Text(
+                  initial,
+                  style: TextStyle(
+                    fontSize: 64,
+                    fontWeight: FontWeight.w900,
+                    color: _textColor(),
+                  ),
+                ),
               ),
             ),
+          ),
+          const SizedBox(height: 18),
+
+          // ── Brand as a small subtitle link ──────────────────────────────
+          if (product.brand != null)
+            Text(
+              product.brand!.name,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: scheme.primary,
+              ),
+            ),
+          const SizedBox(height: 4),
+
+          // ── Name ─────────────────────────────────────────────────────────
+          Text(
+            product.name,
+            style: theme.textTheme.titleLarge
+                ?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          if (product.localName != null) ...[
+            const SizedBox(height: 3),
+            Text(
+              product.localName!,
+              style: theme.textTheme.bodyMedium
+                  ?.copyWith(color: scheme.onSurfaceVariant),
+            ),
           ],
-        ),
+
+          if (product.category != null || product.brand != null) ...[
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 12,
+              runSpacing: 4,
+              children: [
+                if (product.category != null)
+                  MetaTag.category(product.category!.name),
+                if (product.brand != null) MetaTag.brand(product.brand!.name),
+              ],
+            ),
+          ],
+
+          const SizedBox(height: 14),
+
+          // ── Price (hero figure) ─────────────────────────────────────────
+          Text(
+            price != null
+                ? formatCurrency(price, currency: product.pricing?.currency)
+                : '—',
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.w800,
+              color: scheme.primary,
+              letterSpacing: -0.4,
+            ),
+          ),
+          const SizedBox(height: 4),
+
+          // ── Stock availability line ─────────────────────────────────────
+          Row(
+            children: [
+              Icon(stockIcon, size: 15, color: stockColor),
+              const SizedBox(width: 5),
+              Text(
+                stockLabel,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: stockColor,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
 }
 
-class _InfoRow extends StatelessWidget {
-  const _InfoRow(this.label, this.value,
-      {this.valueColor, this.valueBold = false});
+// ── Tab switcher: pill for the selected tab, plain text otherwise ──────────────
 
-  final String label;
-  final String value;
-  final Color? valueColor;
-  final bool valueBold;
+class _DetailTabBar extends StatelessWidget {
+  const _DetailTabBar({required this.selected, required this.onSelect});
+
+  final _DetailTab selected;
+  final void Function(_DetailTab) onSelect;
+
+  static const _labels = {
+    _DetailTab.details: 'Details',
+    _DetailTab.stock: 'Stock',
+    _DetailTab.compatibility: 'Compatibility',
+  };
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 5),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 52,
-            child: Text(
-              label,
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: scheme.onSurfaceVariant),
+    final scheme = Theme.of(context).colorScheme;
+    return Row(
+      children: _DetailTab.values.map((t) {
+        final isSelected = t == selected;
+        return Padding(
+          padding: const EdgeInsets.only(right: 10),
+          child: GestureDetector(
+            onTap: () => onSelect(t),
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                border: isSelected
+                    ? Border.all(color: scheme.primary, width: 1.4)
+                    : null,
+              ),
+              child: Text(
+                _labels[t]!,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  color: isSelected ? scheme.primary : scheme.onSurfaceVariant,
+                ),
+              ),
             ),
           ),
-          const SizedBox(width: 6),
+        );
+      }).toList(),
+    );
+  }
+}
+
+// ── Sticky bottom action bar ────────────────────────────────────────────────────
+
+class _BottomActionBar extends ConsumerWidget {
+  const _BottomActionBar({required this.product});
+
+  final Product product;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: EdgeInsets.fromLTRB(
+          14, 10, 14, 10 + MediaQuery.of(context).padding.bottom),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        border: Border(top: BorderSide(color: scheme.outlineVariant)),
+      ),
+      child: Row(
+        children: [
+          // Stock In — secondary, icon only
+          Material(
+            color: Colors.green.shade600,
+            borderRadius: BorderRadius.circular(14),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(14),
+              onTap: () {
+                final levels =
+                    ref.read(stockLevelsProvider(product.id)).asData?.value ??
+                        [];
+                showModalBottomSheet<void>(
+                  context: context,
+                  isScrollControlled: true,
+                  useSafeArea: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (_) => StockAdjustmentSheet(
+                    product: product,
+                    stockLevels: levels,
+                  ),
+                );
+              },
+              child: const Padding(
+                padding: EdgeInsets.all(14),
+                child: Icon(Icons.move_to_inbox_outlined,
+                    color: Colors.white, size: 22),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          // Add to Sale — primary CTA, matches the reference's "Add to cart"
           Expanded(
-            child: Text(
-              value,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: valueColor,
-                fontWeight:
-                    valueBold ? FontWeight.w700 : FontWeight.w600,
+            child: Material(
+              color: const Color(0xFFF59E0B),
+              borderRadius: BorderRadius.circular(14),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: () {
+                  final added = ref
+                      .read(quickSaleControllerProvider.notifier)
+                      .addFromSearch(product);
+                  final messenger = ScaffoldMessenger.of(context);
+                  final router = GoRouter.of(context);
+                  messenger.clearSnackBars();
+                  if (!added) {
+                    messenger.showSnackBar(SnackBar(
+                      content: Text('${product.name} is out of stock'),
+                      backgroundColor: Colors.red.shade700,
+                      duration: const Duration(seconds: 2),
+                      behavior: SnackBarBehavior.floating,
+                    ));
+                    return;
+                  }
+                  messenger.showSnackBar(SnackBar(
+                    content: Text('${product.name} added to sale'),
+                    duration: const Duration(seconds: 2),
+                    behavior: SnackBarBehavior.floating,
+                    action: SnackBarAction(
+                      label: 'Go to Sale',
+                      onPressed: () {
+                        messenger.hideCurrentSnackBar();
+                        router.go('/quick-sale');
+                      },
+                    ),
+                  ));
+                },
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 14),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.add_shopping_cart_outlined,
+                          color: Colors.white, size: 20),
+                      SizedBox(width: 8),
+                      Text(
+                        'Add to Sale',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
@@ -470,159 +588,74 @@ class _InfoRow extends StatelessWidget {
   }
 }
 
-// ── Action buttons ────────────────────────────────────────────────────────────
+// ── Info table: label LEFT, value RIGHT ───────────────────────────────────────
 
-class _ActionButtons extends ConsumerWidget {
-  const _ActionButtons({required this.product});
+class _InfoTable extends ConsumerWidget {
+  const _InfoTable({
+    required this.product,
+    required this.unit,
+    required this.totalQty,
+    required this.costPrice,
+    required this.costCurrency,
+  });
 
   final Product product;
+  final String unit;
+  final int? totalQty;
+  final double? costPrice;
+  final String? costCurrency;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Row(
-      children: [
-        // Add to Sale — amber (matches reference PAY button)
-        Expanded(
-          child: _ActionBtn(
-            icon: Icons.add_shopping_cart_outlined,
-            label: 'Add to Sale',
-            color: Colors.white,
-            bg: const Color(0xFFF59E0B),
-            onTap: () {
-              final added = ref
-                  .read(quickSaleControllerProvider.notifier)
-                  .addFromSearch(product);
-              final messenger = ScaffoldMessenger.of(context);
-              final router = GoRouter.of(context);
-              messenger.clearSnackBars();
-              if (!added) {
-                messenger.showSnackBar(SnackBar(
-                  content: Text('${product.name} is out of stock'),
-                  backgroundColor: Colors.red.shade700,
-                  duration: const Duration(seconds: 2),
-                  behavior: SnackBarBehavior.floating,
-                ));
-                return;
-              }
-              messenger.showSnackBar(SnackBar(
-                content: Text('${product.name} added to sale'),
-                duration: const Duration(seconds: 2),
-                behavior: SnackBarBehavior.floating,
-                action: SnackBarAction(
-                  label: 'Go to Sale',
-                  onPressed: () {
-                    messenger.hideCurrentSnackBar();
-                    router.go('/quick-sale');
-                  },
-                ),
-              ));
-            },
-          ),
-        ),
-        const SizedBox(width: 10),
-        // Stock In — green
-        Expanded(
-          child: _ActionBtn(
-            icon: Icons.move_to_inbox_outlined,
-            label: 'Stock In',
-            color: Colors.white,
-            bg: Colors.green.shade600,
-            onTap: () {
-              final levels =
-                  ref.read(stockLevelsProvider(product.id)).asData?.value ?? [];
-              showModalBottomSheet<void>(
-                context: context,
-                isScrollControlled: true,
-                useSafeArea: true,
-                backgroundColor: Colors.transparent,
-                builder: (_) => StockAdjustmentSheet(
-                  product: product,
-                  stockLevels: levels,
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-}
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final priceCode = ref.watch(priceCodeProvider).value;
+    final showActual = ref.watch(showActualPriceProvider);
+    final price = product.pricing?.sellingPrice;
 
-class _ActionBtn extends StatelessWidget {
-  const _ActionBtn({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.bg,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final Color color;
-  final Color bg;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => Material(
-        color: bg,
-        borderRadius: BorderRadius.circular(14),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(14),
-          onTap: onTap,
-          child: Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(icon, color: color, size: 20),
-                const SizedBox(width: 8),
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: color,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
-                  ),
-                ),
-              ],
+    final rows = <(String, Widget)>[
+      ('Part No', Text(product.partNumber, style: _valueStyle(theme))),
+      ('SKU', Text(product.sku, style: _valueStyle(theme))),
+      if (unit.isNotEmpty) ('Unit', Text(unit, style: _valueStyle(theme))),
+      if (totalQty != null)
+        (
+          'Stock',
+          Text(
+            totalQty == 0
+                ? 'Out of stock'
+                : '$totalQty${unit.isNotEmpty ? ' $unit' : ''}',
+            style: _valueStyle(theme).copyWith(
+              color: totalQty! > 0 ? Colors.green.shade700 : scheme.error,
             ),
           ),
         ),
-      );
-}
-
-// ── Info table: label LEFT, value RIGHT ───────────────────────────────────────
-
-class _InfoTable extends StatelessWidget {
-  const _InfoTable({required this.product});
-
-  final Product product;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-
-    final rows = <(String, String)>[
+      if (price != null)
+        (
+          'Price',
+          Text(
+            formatCurrency(price, currency: product.pricing?.currency),
+            style: _valueStyle(theme).copyWith(color: scheme.primary),
+          ),
+        ),
+      if (costPrice != null)
+        (
+          'Cost',
+          Text(
+            formatCostMasked(priceCode, showActual, costPrice!,
+                currency: costCurrency),
+            style: _valueStyle(theme).copyWith(color: scheme.onSurfaceVariant),
+          ),
+        ),
       if (product.oemNumber != null && product.oemNumber!.isNotEmpty)
-        ('OEM Number', product.oemNumber!),
+        ('OEM Number', Text(product.oemNumber!, style: _valueStyle(theme))),
       if (product.barcode != null && product.barcode!.isNotEmpty)
-        ('Barcode', product.barcode!),
-      if (product.category != null)
-        ('Category', product.category!.name),
-      if (product.brand != null)
-        ('Brand', product.brand!.name),
+        ('Barcode', Text(product.barcode!, style: _valueStyle(theme))),
       if (product.productType != null && product.productType!.isNotEmpty)
-        ('Type', product.productType!),
-      ('Status', product.isActive ? 'Active' : 'Inactive'),
-      if (product.hasVariants) ('Variants', 'Yes'),
+        ('Type', Text(product.productType!, style: _valueStyle(theme))),
+      if (product.hasVariants) ('Variants', Text('Yes', style: _valueStyle(theme))),
       if (product.description != null && product.description!.isNotEmpty)
-        ('Description', product.description!),
+        ('Description', Text(product.description!, style: _valueStyle(theme))),
     ];
-
-    if (rows.isEmpty) return const SizedBox.shrink();
 
     return Card(
       elevation: 0,
@@ -633,10 +666,8 @@ class _InfoTable extends StatelessWidget {
       child: Column(
         children: rows.indexed.map((entry) {
           final (idx, row) = entry;
-          final (label, value) = row;
+          final (label, valueWidget) = row;
           final isLast = idx == rows.length - 1;
-          final isStatus = label == 'Status';
-          final isActive = value == 'Active';
 
           return Column(
             children: [
@@ -646,7 +677,6 @@ class _InfoTable extends StatelessWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Label
                     SizedBox(
                       width: 110,
                       child: Text(
@@ -657,18 +687,7 @@ class _InfoTable extends StatelessWidget {
                         ),
                       ),
                     ),
-                    // Value
-                    Expanded(
-                      child: isStatus
-                          ? _StatusBadge(isActive: isActive)
-                          : Text(
-                              value,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                fontWeight: FontWeight.w600,
-                                color: scheme.onSurface,
-                              ),
-                            ),
-                    ),
+                    Expanded(child: valueWidget),
                   ],
                 ),
               ),
@@ -684,40 +703,9 @@ class _InfoTable extends StatelessWidget {
       ),
     );
   }
-}
 
-class _StatusBadge extends StatelessWidget {
-  const _StatusBadge({required this.isActive});
-  final bool isActive;
-
-  @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-        decoration: BoxDecoration(
-          color: isActive ? Colors.green.shade50 : Colors.grey.shade100,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              isActive ? Icons.check_circle : Icons.cancel,
-              size: 12,
-              color: isActive ? Colors.green.shade700 : Colors.grey.shade500,
-            ),
-            const SizedBox(width: 4),
-            Text(
-              isActive ? 'Active' : 'Inactive',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color:
-                    isActive ? Colors.green.shade700 : Colors.grey.shade600,
-              ),
-            ),
-          ],
-        ),
-      );
+  TextStyle _valueStyle(ThemeData theme) => theme.textTheme.bodySmall!
+      .copyWith(fontWeight: FontWeight.w700, color: theme.colorScheme.onSurface);
 }
 
 // ── Section header ────────────────────────────────────────────────────────────
@@ -730,19 +718,16 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: Row(
-        children: [
-          Icon(icon, size: 18, color: scheme.primary),
-          const SizedBox(width: 8),
-          Text(label,
-              style: Theme.of(context)
-                  .textTheme
-                  .titleSmall
-                  ?.copyWith(fontWeight: FontWeight.w700)),
-        ],
-      ),
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: scheme.primary),
+        const SizedBox(width: 8),
+        Text(label,
+            style: Theme.of(context)
+                .textTheme
+                .titleSmall
+                ?.copyWith(fontWeight: FontWeight.w700)),
+      ],
     );
   }
 }
@@ -1021,7 +1006,6 @@ class _LotRow extends ConsumerWidget {
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodySmall?.copyWith(
                     fontWeight: FontWeight.w600,
-                    fontStyle: hasSupplier ? null : FontStyle.italic,
                     color: hasSupplier ? null : scheme.onSurfaceVariant,
                   ),
                 ),
@@ -1198,58 +1182,55 @@ class _SpecsSection extends ConsumerWidget {
             _SectionHeader(
                 icon: Icons.checklist_outlined, label: 'Specifications'),
             const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Card(
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: BorderSide(color: scheme.outlineVariant),
-                ),
-                child: Column(
-                  children: attrs.indexed.map((entry) {
-                    final (idx, attr) = entry;
-                    final isLast = idx == attrs.length - 1;
-                    return Column(
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 12),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              SizedBox(
-                                width: 130,
-                                child: Text(
-                                  attr.attributeName,
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: scheme.onSurfaceVariant,
-                                    fontWeight: FontWeight.w500,
-                                  ),
+            Card(
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: BorderSide(color: scheme.outlineVariant),
+              ),
+              child: Column(
+                children: attrs.indexed.map((entry) {
+                  final (idx, attr) = entry;
+                  final isLast = idx == attrs.length - 1;
+                  return Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(
+                              width: 130,
+                              child: Text(
+                                attr.attributeName,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: scheme.onSurfaceVariant,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
-                              Expanded(
-                                child: Text(
-                                  attr.displayValue,
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                    color: scheme.onSurface,
-                                  ),
+                            ),
+                            Expanded(
+                              child: Text(
+                                attr.displayValue,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: scheme.onSurface,
                                 ),
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                        if (!isLast)
-                          Divider(
-                              height: 1,
-                              indent: 16,
-                              endIndent: 16,
-                              color: scheme.outlineVariant),
-                      ],
-                    );
-                  }).toList(),
-                ),
+                      ),
+                      if (!isLast)
+                        Divider(
+                            height: 1,
+                            indent: 16,
+                            endIndent: 16,
+                            color: scheme.outlineVariant),
+                    ],
+                  );
+                }).toList(),
               ),
             ),
           ],

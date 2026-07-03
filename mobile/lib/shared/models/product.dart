@@ -193,6 +193,8 @@ class Product {
                 ? Pricing(
                     sellingPrice:
                         asDouble(json['effectiveSellingPrice'] ?? json['sellingPrice']),
+                    costPrice: asDoubleOrNull(
+                        json['effectiveCostPrice'] ?? json['costPrice']),
                   )
                 : null,
         variants: asList(json['variants'], ProductVariant.fromJson),

@@ -19,6 +19,7 @@ class ProductsRepository {
     int page = 1,
     int pageSize = 20,
     bool? isActive,
+    String? categoryId,
   }) async {
     try {
       final res = await _dio.get('/products', queryParameters: {
@@ -26,6 +27,7 @@ class ProductsRepository {
         'page': page,
         'pageSize': pageSize,
         'isActive': ?isActive,
+        'categoryId': ?categoryId,
       });
       return PagedResponse.fromJson(
         res.data as Map<String, dynamic>,

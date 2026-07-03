@@ -11,6 +11,8 @@ class ProductSearchState {
   const ProductSearchState({
     this.items = const [],
     this.query = '',
+    this.categoryId,
+    this.categoryName,
     this.isLoading = false,
     this.isLoadingMore = false,
     this.hasMore = false,
@@ -19,6 +21,10 @@ class ProductSearchState {
 
   final List<Product> items;
   final String query;
+
+  /// Server-side category filter — null means "All categories".
+  final String? categoryId;
+  final String? categoryName;
   final bool isLoading;
   final bool isLoadingMore;
   final bool hasMore;
@@ -38,6 +44,8 @@ class ProductSearchState {
     return ProductSearchState(
       items: items ?? this.items,
       query: query ?? this.query,
+      categoryId: categoryId,
+      categoryName: categoryName,
       isLoading: isLoading ?? this.isLoading,
       isLoadingMore: isLoadingMore ?? this.isLoadingMore,
       hasMore: hasMore ?? this.hasMore,
@@ -58,22 +66,49 @@ class ProductSearchController extends Notifier<ProductSearchState> {
   @override
   ProductSearchState build() => const ProductSearchState();
 
-  Future<void> search(String query) async {
+  Future<void> search(String query) =>
+      _run(query: query, categoryId: state.categoryId, categoryName: state.categoryName);
+
+  /// Filters the current query by category server-side. Pass null to clear
+  /// back to "All categories".
+  Future<void> selectCategory(String? categoryId, {String? categoryName}) =>
+      _run(query: state.query, categoryId: categoryId, categoryName: categoryName);
+
+  Future<void> _run({
+    required String query,
+    required String? categoryId,
+    required String? categoryName,
+  }) async {
     final gen = ++_generation;
     _page = 1;
-    state = ProductSearchState(query: query, isLoading: true);
+    state = ProductSearchState(
+      query: query,
+      categoryId: categoryId,
+      categoryName: categoryName,
+      isLoading: true,
+    );
     try {
-      final res =
-          await ref.read(productsRepositoryProvider).search(query: query, page: 1);
+      final res = await ref.read(productsRepositoryProvider).search(
+            query: query,
+            page: 1,
+            categoryId: categoryId,
+          );
       if (gen != _generation) return; // superseded by a newer search
       state = ProductSearchState(
         query: query,
+        categoryId: categoryId,
+        categoryName: categoryName,
         items: res.data,
         hasMore: res.pagination.hasNextPage,
       );
     } on AppException catch (e) {
       if (gen != _generation) return;
-      state = ProductSearchState(query: query, error: e.message);
+      state = ProductSearchState(
+        query: query,
+        categoryId: categoryId,
+        categoryName: categoryName,
+        error: e.message,
+      );
     }
   }
 
@@ -83,9 +118,11 @@ class ProductSearchController extends Notifier<ProductSearchState> {
     state = state.copyWith(isLoadingMore: true, clearError: true);
     try {
       final next = _page + 1;
-      final res = await ref
-          .read(productsRepositoryProvider)
-          .search(query: state.query, page: next);
+      final res = await ref.read(productsRepositoryProvider).search(
+            query: state.query,
+            page: next,
+            categoryId: state.categoryId,
+          );
       if (gen != _generation) return; // superseded by a newer search
       _page = next;
       state = state.copyWith(

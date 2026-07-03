@@ -3,10 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../shared/format.dart';
+import '../../shared/models/paged_response.dart';
 import '../../shared/models/product.dart';
 import '../../shared/widgets/app_scaffold.dart';
+import '../../shared/widgets/meta_tag.dart';
+import '../../shared/widgets/paged_list_view.dart';
 import '../../shared/widgets/state_views.dart';
+import '../pricing/price_code.dart';
 import '../sales/quick_sale_providers.dart';
+import 'categories_repository.dart';
 import 'products_providers.dart';
 
 class ProductSearchScreen extends ConsumerStatefulWidget {
@@ -20,9 +25,6 @@ class ProductSearchScreen extends ConsumerStatefulWidget {
 class _ProductSearchScreenState extends ConsumerState<ProductSearchScreen> {
   final _searchCtrl = TextEditingController();
   final _scrollCtrl = ScrollController();
-
-  String? _selectedCategory;
-  List<String> _categories = [];
 
   @override
   void initState() {
@@ -47,63 +49,47 @@ class _ProductSearchScreenState extends ConsumerState<ProductSearchScreen> {
     }
   }
 
-  List<String> _extractCategories(List<Product> products) {
-    final seen = <String>{};
-    for (final p in products) {
-      final cat = p.category?.name;
-      if (cat != null && cat.isNotEmpty) seen.add(cat);
-    }
-    return seen.toList()..sort();
-  }
-
-  List<Product> _visibleProducts(List<Product> items) {
-    if (_selectedCategory == null) return items;
-    return items.where((p) => p.category?.name == _selectedCategory).toList();
-  }
-
-  /// Category filtering is client-side over whatever pages have been fetched
-  /// so far. A selected category can easily have few/no matches on the pages
-  /// already loaded even though later (unfetched) pages have more — and a
-  /// short filtered list may not fill the screen, so the scroll-triggered
-  /// [_onScroll] loadMore never fires. Keep paging in the background until
-  /// there's a reasonable number of visible matches or the server runs out.
-  static const _minVisibleBeforeStopping = 12;
-
-  void _maybeAutoLoadMoreForCategory(ProductSearchState state) {
-    if (_selectedCategory == null) return;
-    if (state.isLoading || state.isLoadingMore || !state.hasMore) return;
-    if (_visibleProducts(state.items).length >= _minVisibleBeforeStopping) {
-      return;
-    }
-    ref.read(productSearchControllerProvider.notifier).loadMore();
+  void _openCategoryPicker(ProductSearchController controller) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (_) => FractionallySizedBox(
+        heightFactor: 0.85,
+        child: _CategoryPickerSheet(
+          onSelected: (id, name) => controller.selectCategory(id, categoryName: name),
+        ),
+      ),
+    );
   }
 
   @override
-  Widget build(BuildContext context, ) {
+  Widget build(BuildContext context) {
     final state = ref.watch(productSearchControllerProvider);
     final controller = ref.read(productSearchControllerProvider.notifier);
     final cartCount = ref.watch(
       quickSaleControllerProvider.select((s) => s.itemCount),
     );
-
-    if (state.items.isNotEmpty) {
-      final cats = _extractCategories(state.items);
-      if (cats.length != _categories.length) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) setState(() => _categories = cats);
-        });
-      }
-    }
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _maybeAutoLoadMoreForCategory(state);
-    });
+    final quickCategories = ref.watch(quickCategoriesProvider);
+    final priceCode = ref.watch(priceCodeProvider).value;
+    final showActualPrice = ref.watch(showActualPriceProvider);
 
     return AppScaffold(
       title: 'Products',
       showBottomNav: true,
       showNotificationBell: true,
       actions: [
+        // Cost-price reveal toggle — masked by default, same code as the
+        // product detail screen and shares its state, so revealing here
+        // reveals it there too.
+        if (priceCode != null && priceCode.isConfigured)
+          IconButton(
+            tooltip: showActualPrice ? 'Hide cost prices' : 'Reveal cost prices',
+            icon: Icon(showActualPrice
+                ? Icons.visibility_off_outlined
+                : Icons.visibility_outlined),
+            onPressed: () => ref.read(showActualPriceProvider.notifier).toggle(),
+          ),
         // Cart icon with live badge
         Badge(
           isLabelVisible: cartCount > 0,
@@ -120,20 +106,24 @@ class _ProductSearchScreenState extends ConsumerState<ProductSearchScreen> {
           // ── Persistent search bar ────────────────────────────────────
           _SearchBar(
             controller: _searchCtrl,
-            onChanged: (q) {
-              controller.search(q);
-              setState(() => _selectedCategory = null);
-            },
+            onChanged: controller.search,
             onScan: () => context.push('/scan'),
           ),
 
-          // ── Category tabs ────────────────────────────────────────────
-          if (_categories.isNotEmpty)
-            _CategoryTabRow(
-              categories: _categories,
-              selected: _selectedCategory,
-              onSelect: (cat) => setState(() => _selectedCategory = cat),
-            ),
+          // ── Category tabs (server-driven — full active category list) ──
+          quickCategories.when(
+            data: (cats) => cats.isEmpty
+                ? const SizedBox.shrink()
+                : _CategoryTabRow(
+                    categories: cats,
+                    selectedId: state.categoryId,
+                    onSelect: (id, name) =>
+                        controller.selectCategory(id, categoryName: name),
+                    onMore: () => _openCategoryPicker(controller),
+                  ),
+            loading: () => const SizedBox(height: 44),
+            error: (_, _) => const SizedBox.shrink(),
+          ),
 
           // ── List ─────────────────────────────────────────────────────
           Expanded(child: _buildBody(state, controller)),
@@ -152,14 +142,7 @@ class _ProductSearchScreenState extends ConsumerState<ProductSearchScreen> {
       );
     }
 
-    final products = _visibleProducts(state.items);
-
-    if (products.isEmpty) {
-      // Still paging in the background looking for matches in this category
-      // — don't flash "No products found" before that finishes.
-      if (_selectedCategory != null && state.hasMore) {
-        return const LoadingView();
-      }
+    if (state.items.isEmpty) {
       return const EmptyView(
           message: 'No products found.', icon: Icons.search_off);
     }
@@ -169,15 +152,15 @@ class _ProductSearchScreenState extends ConsumerState<ProductSearchScreen> {
       child: ListView.builder(
         controller: _scrollCtrl,
         padding: const EdgeInsets.fromLTRB(12, 10, 12, 14),
-        itemCount: products.length + (state.hasMore ? 1 : 0),
+        itemCount: state.items.length + (state.hasMore ? 1 : 0),
         itemBuilder: (context, index) {
-          if (index >= products.length) {
+          if (index >= state.items.length) {
             return const Padding(
               padding: EdgeInsets.symmetric(vertical: 16),
               child: Center(child: CircularProgressIndicator()),
             );
           }
-          return _ProductListTile(product: products[index]);
+          return _ProductListTile(product: state.items[index]);
         },
       ),
     );
@@ -244,13 +227,15 @@ class _SearchBar extends StatelessWidget {
 class _CategoryTabRow extends StatelessWidget {
   const _CategoryTabRow({
     required this.categories,
-    required this.selected,
+    required this.selectedId,
     required this.onSelect,
+    required this.onMore,
   });
 
-  final List<String> categories;
-  final String? selected;
-  final void Function(String?) onSelect;
+  final List<Category> categories;
+  final String? selectedId;
+  final void Function(String? id, String? name) onSelect;
+  final VoidCallback onMore;
 
   @override
   Widget build(BuildContext context) {
@@ -263,15 +248,21 @@ class _CategoryTabRow extends StatelessWidget {
         children: [
           _Tab(
             label: 'All',
-            isSelected: selected == null,
-            onTap: () => onSelect(null),
+            isSelected: selectedId == null,
+            onTap: () => onSelect(null, null),
           ),
           ...categories.map(
             (cat) => _Tab(
-              label: cat,
-              isSelected: selected == cat,
-              onTap: () => onSelect(cat),
+              label: cat.name,
+              isSelected: selectedId == cat.id,
+              onTap: () => onSelect(cat.id, cat.name),
             ),
+          ),
+          _Tab(
+            label: 'More',
+            icon: Icons.expand_more_rounded,
+            isSelected: false,
+            onTap: onMore,
           ),
         ],
       ),
@@ -280,19 +271,24 @@ class _CategoryTabRow extends StatelessWidget {
 }
 
 class _Tab extends StatelessWidget {
-  const _Tab(
-      {required this.label, required this.isSelected, required this.onTap});
+  const _Tab({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+    this.icon,
+  });
 
   final String label;
   final bool isSelected;
   final VoidCallback onTap;
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
           border: Border(
             bottom: BorderSide(
@@ -301,15 +297,128 @@ class _Tab extends StatelessWidget {
             ),
           ),
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w400,
-            color: isSelected ? Colors.white : Colors.white70,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w400,
+                color: isSelected ? Colors.white : Colors.white70,
+              ),
+            ),
+            if (icon != null) ...[
+              const SizedBox(width: 2),
+              Icon(icon, size: 16, color: Colors.white70),
+            ],
+          ],
         ),
       ),
+    );
+  }
+}
+
+// ── Category picker (full, searchable list) ─────────────────────────────────
+
+class _CategoryPickerSheet extends ConsumerStatefulWidget {
+  const _CategoryPickerSheet({required this.onSelected});
+
+  final void Function(String id, String name) onSelected;
+
+  @override
+  ConsumerState<_CategoryPickerSheet> createState() =>
+      _CategoryPickerSheetState();
+}
+
+class _CategoryPickerSheetState extends ConsumerState<_CategoryPickerSheet> {
+  final _searchCtrl = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 8, 8),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'All Categories',
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w700),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: TextField(
+            controller: _searchCtrl,
+            autofocus: false,
+            onChanged: (v) => setState(() => _query = v),
+            decoration: InputDecoration(
+              hintText: 'Search categories...',
+              prefixIcon: const Icon(Icons.search, size: 20),
+              isDense: true,
+              filled: true,
+              fillColor: scheme.surfaceContainerHighest.withAlpha(120),
+              contentPadding:
+                  const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide.none,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Expanded(
+          child: PagedListView<Category>(
+            resetKey: _query,
+            padding: const EdgeInsets.fromLTRB(8, 0, 8, 12),
+            fetch: (page) async {
+              final res = await ref.read(categoriesRepositoryProvider).search(
+                    query: _query,
+                    page: page,
+                    pageSize: 30,
+                  );
+              return PagedChunk<Category>(
+                items: res.data,
+                totalCount: res.pagination.totalCount,
+                hasMore: res.pagination.hasNextPage,
+              );
+            },
+            emptyBuilder: (context) => const EmptyView(
+              message: 'No categories found.',
+              icon: Icons.category_outlined,
+            ),
+            itemBuilder: (context, cat) => ListTile(
+              leading: Icon(Icons.category_outlined, color: scheme.primary),
+              title: Text(cat.name),
+              onTap: () {
+                widget.onSelected(cat.id, cat.name);
+                Navigator.of(context).pop();
+              },
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -348,165 +457,207 @@ class _ProductListTile extends ConsumerWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final price = product.pricing?.sellingPrice;
+    final costPrice = product.pricing?.costPrice;
+    final stock = product.totalStock;
+    final priceCode = ref.watch(priceCodeProvider).value;
+    final showActualPrice = ref.watch(showActualPriceProvider);
     final initial = product.name.trim().isEmpty
         ? '?'
         : product.name.trim().characters.first.toUpperCase();
 
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
-      elevation: 2,
-      shadowColor: Colors.black12,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: scheme.outlineVariant),
+      ),
       clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
-          // ── Content row (tap → product detail) ───────────────────────
+          // ── Content (tap → product detail) — same composition as the
+          // dashboard's Total Revenue card: name block, then a hero figure
+          // (price) paired with stock/SKU/Part mini-stats. ────────────────
           InkWell(
             onTap: () => context.push('/product/${product.id}'),
             child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Image block
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    width: 72,
-                    height: 72,
-                    color: _bgColor(),
-                    alignment: Alignment.center,
-                    child: Text(
-                      initial,
-                      style: TextStyle(
-                        fontSize: 30,
-                        fontWeight: FontWeight.w900,
-                        color: _textColor(),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-
-                // Info
-                Expanded(
-                  child: Column(
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ── Image + name + category/brand tags ────────────────
+                  Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        product.name,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodyMedium
-                            ?.copyWith(fontWeight: FontWeight.w700),
-                      ),
-                      if (product.localName != null) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          product.localName!,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                            fontSize: 13,
-                            fontStyle: FontStyle.italic,
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          width: 56,
+                          height: 56,
+                          color: _bgColor(),
+                          alignment: Alignment.center,
+                          child: Text(
+                            initial,
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w900,
+                              color: _textColor(),
+                            ),
                           ),
                         ),
-                      ],
-                      const SizedBox(height: 6),
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 4,
-                        children: [
-                          if (product.brand != null)
-                            _MiniChip(
-                              label: product.brand!.name,
-                              icon: Icons.verified_outlined,
-                              color: const Color(0xFFD97706),
-                              bg: Colors.amber.shade50,
-                            ),
-                          if (product.category != null)
-                            _MiniChip(
-                              label: product.category!.name,
-                              icon: Icons.category_outlined,
-                              color: scheme.primary,
-                              bg: scheme.primaryContainer.withAlpha(80),
-                            ),
-                        ],
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'SKU ${product.sku}  ·  Part ${product.partNumber}',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                          fontSize: 11,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              product.name,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodyMedium
+                                  ?.copyWith(fontWeight: FontWeight.w700),
+                            ),
+                            if (product.localName != null) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                product.localName!,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: scheme.onSurfaceVariant,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                            if (product.category != null ||
+                                product.brand != null) ...[
+                              const SizedBox(height: 6),
+                              Wrap(
+                                spacing: 6,
+                                runSpacing: 4,
+                                children: [
+                                  if (product.category != null)
+                                    MetaTag.category(product.category!.name),
+                                  if (product.brand != null)
+                                    MetaTag.brand(product.brand!.name),
+                                ],
+                              ),
+                            ],
+                          ],
                         ),
                       ),
-                      if (price != null) ...[
-                        const SizedBox(height: 6),
-                        Text(
-                          formatCurrency(price,
-                              currency: product.pricing?.currency),
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w800,
-                            color: scheme.primary,
-                          ),
-                        ),
-                      ],
-                      if (product.totalStock != null) ...[
-                        const SizedBox(height: 5),
-                        _StockBadge(
-                          qty: product.totalStock!,
-                          unit: product.unitName,
-                        ),
-                      ],
                     ],
                   ),
-                ),
-              ],
+                  const SizedBox(height: 10),
+                  Divider(height: 1, color: scheme.outlineVariant),
+                  const SizedBox(height: 10),
+
+                  // ── Price (hero figure) + stock, alongside it ─────────
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Price',
+                          style: TextStyle(
+                              fontSize: 10, color: scheme.onSurfaceVariant)),
+                      const SizedBox(height: 1),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            price != null
+                                ? formatCurrency(price,
+                                    currency: product.pricing?.currency)
+                                : '—',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w800,
+                              color: scheme.primary,
+                              letterSpacing: -0.3,
+                            ),
+                          ),
+                          if (stock != null) ...[
+                            const SizedBox(width: 8),
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 3),
+                              child: _StockPill(
+                                  qty: stock, unit: product.unitName),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+
+                  // ── Cost / SKU / Part mini-stats ──────────────────────
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      if (costPrice != null)
+                        _ListMiniStat(
+                          label: 'Cost',
+                          value: formatCostMasked(
+                              priceCode, showActualPrice, costPrice,
+                              currency: product.pricing?.currency),
+                        ),
+                      const Spacer(),
+                      _ListMiniStat(label: 'SKU', value: product.sku),
+                      const SizedBox(width: 16),
+                      _ListMiniStat(label: 'Part', value: product.partNumber),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
           ),
 
-          // ── Add to Sale button ───────────────────────────────────────
-          const Divider(height: 1, color: Color(0xFFEEEEEE)),
-          TextButton.icon(
-            icon: const Icon(Icons.add_shopping_cart_outlined, size: 18),
-            label: const Text('Add to Sale'),
-            style: TextButton.styleFrom(
-              foregroundColor: const Color(0xFFD97706),
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              minimumSize: const Size(double.infinity, 0),
-              shape: const RoundedRectangleBorder(),
-            ),
-            onPressed: () {
-              final added = ref
-                  .read(quickSaleControllerProvider.notifier)
-                  .addFromSearch(product);
-              if (!added) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('${product.name} is out of stock'),
-                    backgroundColor: Colors.red.shade700,
-                    duration: const Duration(seconds: 2),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
-                return;
-              }
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('${product.name} added to sale'),
-                  duration: const Duration(seconds: 2),
-                  behavior: SnackBarBehavior.floating,
-                  action: SnackBarAction(
-                    label: 'Go to Sale',
-                    onPressed: () => context.push('/quick-sale'),
+          // ── Add to Sale (icon only, right-aligned) ────────────────────
+          Divider(height: 1, color: scheme.outlineVariant),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: Material(
+                color: const Color(0xFFF59E0B),
+                shape: const CircleBorder(),
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: () {
+                    final added = ref
+                        .read(quickSaleControllerProvider.notifier)
+                        .addFromSearch(product);
+                    if (!added) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('${product.name} is out of stock'),
+                          backgroundColor: Colors.red.shade700,
+                          duration: const Duration(seconds: 2),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                      return;
+                    }
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('${product.name} added to sale'),
+                        duration: const Duration(seconds: 2),
+                        behavior: SnackBarBehavior.floating,
+                        action: SnackBarAction(
+                          label: 'Go to Sale',
+                          onPressed: () => context.push('/quick-sale'),
+                        ),
+                      ),
+                    );
+                  },
+                  child: const Padding(
+                    padding: EdgeInsets.all(9),
+                    child: Icon(Icons.add_shopping_cart_outlined,
+                        size: 18, color: Colors.white),
                   ),
                 ),
-              );
-            },
+              ),
+            ),
           ),
         ],
       ),
@@ -514,12 +665,12 @@ class _ProductListTile extends ConsumerWidget {
   }
 }
 
-// ── Mini chip ─────────────────────────────────────────────────────────────────
+// ── Stock status pill ─────────────────────────────────────────────────────────
+// Bordered, translucent-fill pill — same treatment as the up/down trend
+// indicator on the dashboard's Total Revenue card.
 
-// ── Stock badge ───────────────────────────────────────────────────────────────
-
-class _StockBadge extends StatelessWidget {
-  const _StockBadge({required this.qty, this.unit});
+class _StockPill extends StatelessWidget {
+  const _StockPill({required this.qty, this.unit});
 
   final int qty;
   final String? unit;
@@ -527,30 +678,31 @@ class _StockBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final inStock = qty > 0;
-    final label = inStock
-        ? '$qty${unit != null ? ' $unit' : ''}'
-        : 'Out of stock';
+    final label = '$qty${unit != null ? ' $unit' : ''}';
+    final color = inStock ? Colors.green.shade700 : Colors.red.shade600;
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
       decoration: BoxDecoration(
-        color: inStock ? Colors.green.shade50 : Colors.red.shade50,
-        borderRadius: BorderRadius.circular(10),
+        color: color.withAlpha(20),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withAlpha(90)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            inStock ? Icons.inventory_2_outlined : Icons.remove_circle_outline,
+            inStock ? Icons.check_circle_outline : Icons.remove_circle_outline,
             size: 12,
-            color: inStock ? Colors.green.shade700 : Colors.red.shade700,
+            color: color,
           ),
           const SizedBox(width: 4),
           Text(
             label,
             style: TextStyle(
-              fontSize: 12,
+              fontSize: 11,
               fontWeight: FontWeight.w700,
-              color: inStock ? Colors.green.shade700 : Colors.red.shade700,
+              color: color,
             ),
           ),
         ],
@@ -559,38 +711,35 @@ class _StockBadge extends StatelessWidget {
   }
 }
 
-// ── Mini chip ─────────────────────────────────────────────────────────────────
+// ── List mini-stat ────────────────────────────────────────────────────────────
+// Small label-above-value pair — same pattern as the Cash/Credit readout on
+// the dashboard's Total Revenue card, adapted for a light card background.
 
-class _MiniChip extends StatelessWidget {
-  const _MiniChip({
-    required this.label,
-    required this.icon,
-    required this.color,
-    required this.bg,
-  });
+class _ListMiniStat extends StatelessWidget {
+  const _ListMiniStat({required this.label, required this.value});
 
   final String label;
-  final IconData icon;
-  final Color color;
-  final Color bg;
+  final String value;
 
   @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-        decoration:
-            BoxDecoration(color: bg, borderRadius: BorderRadius.circular(8)),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 11, color: color),
-            const SizedBox(width: 4),
-            Text(label,
-                style: TextStyle(
-                    fontSize: 11,
-                    color: color,
-                    fontWeight: FontWeight.w600)),
-          ],
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Text(label,
+            style: TextStyle(fontSize: 10, color: scheme.onSurfaceVariant)),
+        const SizedBox(height: 1),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: scheme.onSurface,
+          ),
         ),
-      );
+      ],
+    );
+  }
 }
 

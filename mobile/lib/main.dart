@@ -22,6 +22,15 @@ class AutoPartShopApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       routerConfig: router,
+      // Many list/detail screens lean on compact 9-12px labels for density —
+      // a flat floor nudges everything (including those literal sizes)
+      // slightly larger app-wide, while still respecting/allowing a bigger
+      // system accessibility font setting up to the cap.
+      builder: (context, child) => MediaQuery.withClampedTextScaling(
+        minScaleFactor: 1.1,
+        maxScaleFactor: 1.3,
+        child: child!,
+      ),
     );
   }
 }

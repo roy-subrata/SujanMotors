@@ -98,7 +98,8 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
             .Include(p => p.Brand)
             .Include(p => p.Unit)
             .Include(p => p.BaseUnit)
-            .Where(x => !x.Isdeleted && (query.IsActive == null || x.IsActive == query.IsActive) && (
+            .Where(x => !x.Isdeleted && (query.IsActive == null || x.IsActive == query.IsActive)
+                && (query.CategoryId == null || x.CategoryId == query.CategoryId) && (
              (EF.Functions.Like(x.Name, $"%{term}%") ||
              EF.Functions.Like(x.SKU, $"%{term}%") ||
              (x.LocalName != null && EF.Functions.Like(x.LocalName, $"%{term}%"))
@@ -233,6 +234,7 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
             .Include(p => p.Unit)
             .Include(p => p.BaseUnit)
             .Where(x => !x.Isdeleted && (query.IsActive == null || x.IsActive == query.IsActive)
+                && (query.CategoryId == null || x.CategoryId == query.CategoryId)
                 && !x.Variants.Any(v => v.IsActive && !v.Isdeleted)
                 && (EF.Functions.Like(x.Name, $"%{term}%") || EF.Functions.Like(x.SKU, $"%{term}%")))
             .Select(part => new ProductResponse
@@ -290,6 +292,7 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
             .Include(v => v.Part).ThenInclude(p => p!.BaseUnit)
             .Where(v => v.IsActive && !v.Isdeleted
                 && v.Part != null && !v.Part.Isdeleted && (query.IsActive == null || v.Part.IsActive == query.IsActive)
+                && (query.CategoryId == null || v.Part.CategoryId == query.CategoryId)
                 && (EF.Functions.Like(v.Name, $"%{term}%")
                     || (v.SKU != null && EF.Functions.Like(v.SKU, $"%{term}%"))
                     || EF.Functions.Like(v.Part.Name, $"%{term}%")
@@ -376,7 +379,8 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
             .Include(p => p.Brand)
             .Include(p => p.Unit)
             .Include(p => p.BaseUnit)
-            .Where(x => !x.Isdeleted && (query.IsActive == null || x.IsActive == query.IsActive) && (
+            .Where(x => !x.Isdeleted && (query.IsActive == null || x.IsActive == query.IsActive)
+                && (query.CategoryId == null || x.CategoryId == query.CategoryId) && (
              (EF.Functions.Like(x.Name, $"%{term}%") ||
              EF.Functions.Like(x.SKU, $"%{term}%")
             )));
@@ -453,6 +457,7 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
             .Include(p => p.Unit)
             .Include(p => p.BaseUnit)
             .Where(x => !x.Isdeleted && (query.IsActive == null || x.IsActive == query.IsActive)
+                && (query.CategoryId == null || x.CategoryId == query.CategoryId)
                 && !x.Variants.Any(v => v.IsActive && !v.Isdeleted)
                 && (EF.Functions.Like(x.Name, $"%{term}%") || EF.Functions.Like(x.SKU, $"%{term}%")))
             .Select(part => new ProductPublicResponse
@@ -505,6 +510,7 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
             .Include(v => v.Part).ThenInclude(p => p!.BaseUnit)
             .Where(v => v.IsActive && !v.Isdeleted
                 && v.Part != null && !v.Part.Isdeleted && (query.IsActive == null || v.Part.IsActive == query.IsActive)
+                && (query.CategoryId == null || v.Part.CategoryId == query.CategoryId)
                 && (EF.Functions.Like(v.Name, $"%{term}%")
                     || (v.SKU != null && EF.Functions.Like(v.SKU, $"%{term}%"))
                     || EF.Functions.Like(v.Part.Name, $"%{term}%")

@@ -21,9 +21,24 @@ class DashboardScreen extends ConsumerWidget {
       showBottomNav: true,
       body: Column(
         children: [
-          _PeriodTabRow(
-            selected: state.period,
-            onSelect: ctrl.load,
+          _DateRangeBar(
+            start: state.rangeStart,
+            end: state.rangeEnd,
+            onPick: () async {
+              final now = DateTime.now();
+              final picked = await showDateRangePicker(
+                context: context,
+                firstDate: DateTime(now.year - 5),
+                lastDate: DateTime(now.year + 1),
+                initialDateRange: DateTimeRange(
+                  start: state.rangeStart,
+                  end: state.rangeEnd,
+                ),
+              );
+              if (picked != null) {
+                ctrl.load(start: picked.start, end: picked.end);
+              }
+            },
           ),
           Expanded(
             child: state.isLoading
@@ -35,7 +50,6 @@ class DashboardScreen extends ConsumerWidget {
                       )
                     : _DashboardBody(
                         data: state.data!,
-                        period: state.period,
                         onRefresh: () async => ctrl.load(),
                       ),
           ),
@@ -45,52 +59,54 @@ class DashboardScreen extends ConsumerWidget {
   }
 }
 
-// ── Period tab row ────────────────────────────────────────────────────────────
-// Same indigo strip style as the category tabs — visually extends the AppBar.
+// ── Date range bar ────────────────────────────────────────────────────────────
+// Same indigo strip style the old period tabs used — visually extends the AppBar.
 
-class _PeriodTabRow extends StatelessWidget {
-  const _PeriodTabRow({required this.selected, required this.onSelect});
+class _DateRangeBar extends StatelessWidget {
+  const _DateRangeBar({
+    required this.start,
+    required this.end,
+    required this.onPick,
+  });
 
-  final DashboardPeriod selected;
-  final void Function(DashboardPeriod) onSelect;
+  final DateTime start;
+  final DateTime end;
+  final VoidCallback onPick;
 
   @override
   Widget build(BuildContext context) {
+    final sameDay = start.year == end.year &&
+        start.month == end.month &&
+        start.day == end.day;
+    final label = sameDay
+        ? formatDate(start)
+        : '${formatDate(start)}  –  ${formatDate(end)}';
+
     return Container(
       height: 44,
       color: const Color(0xFF4F46E5),
-      child: Row(
-        children: DashboardPeriod.values.map((p) {
-          final label = switch (p) {
-            DashboardPeriod.today => 'Today',
-            DashboardPeriod.month => 'This Month',
-            DashboardPeriod.year => 'This Year',
-          };
-          final isSelected = p == selected;
-          return GestureDetector(
-            onTap: () => onSelect(p),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(
-                    color: isSelected ? Colors.white : Colors.transparent,
-                    width: 2.5,
-                  ),
-                ),
-              ),
-              child: Text(
+      child: InkWell(
+        onTap: onPick,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              const Icon(Icons.date_range_outlined,
+                  size: 17, color: Colors.white),
+              const SizedBox(width: 8),
+              Text(
                 label,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 13,
-                  fontWeight:
-                      isSelected ? FontWeight.w700 : FontWeight.w400,
-                  color: isSelected ? Colors.white : Colors.white70,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
                 ),
               ),
-            ),
-          );
-        }).toList(),
+              const Spacer(),
+              const Icon(Icons.arrow_drop_down, color: Colors.white70),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -101,12 +117,10 @@ class _PeriodTabRow extends StatelessWidget {
 class _DashboardBody extends StatelessWidget {
   const _DashboardBody({
     required this.data,
-    required this.period,
     required this.onRefresh,
   });
 
   final DashboardData data;
-  final DashboardPeriod period;
   final Future<void> Function() onRefresh;
 
   @override

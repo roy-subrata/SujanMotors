@@ -9,6 +9,7 @@ public class PagedResult<T>
     public IReadOnlyList<T> Data { get; set; } = [];
     public PaginationMeta Pagination { get; set; } = new();
 
+
     public static PagedResult<T> Create(IEnumerable<T> data, int totalCount, int pageNumber, int pageSize)
     {
         return new PagedResult<T>

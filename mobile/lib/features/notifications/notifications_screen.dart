@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../shared/format.dart';
@@ -19,6 +20,13 @@ class NotificationsScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         flexibleSpace: const AppBarGradient(),
+        // Reached both by pushing (bell icon) and by go()-ing (drawer link,
+        // which replaces the stack and leaves nothing to pop) — always fall
+        // back to Home so a back affordance is guaranteed either way.
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.canPop() ? context.pop() : context.go('/'),
+        ),
         title: const Text('Notifications'),
         actions: [
           if (state.items.any((n) => !n.read))

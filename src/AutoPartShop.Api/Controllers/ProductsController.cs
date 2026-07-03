@@ -80,6 +80,7 @@ public class ProductsController : ControllerBase
     public async Task<IActionResult> GetAll(
         [FromQuery] string? search,
         [FromQuery] bool? isActive,
+        [FromQuery] Guid? categoryId,
         [FromQuery] bool flattenVariants = false,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
@@ -95,7 +96,8 @@ public class ProductsController : ControllerBase
             PageNumber = page,
             PageSize = pageSize,
             IsActive = isActive,
-            FlattenVariants = flattenVariants
+            FlattenVariants = flattenVariants,
+            CategoryId = categoryId
         };
 
         var isAdmin = User.Identity?.IsAuthenticated == true;

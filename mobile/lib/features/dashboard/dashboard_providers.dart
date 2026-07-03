@@ -4,71 +4,70 @@ import '../../core/network/app_exception.dart';
 import '../../shared/models/dashboard.dart';
 import 'dashboard_repository.dart';
 
-enum DashboardPeriod { today, month, year }
-
 class DashboardState {
   const DashboardState({
     this.data,
     this.isLoading = false,
     this.error,
-    this.period = DashboardPeriod.today,
+    required this.rangeStart,
+    required this.rangeEnd,
   });
 
   final DashboardData? data;
   final bool isLoading;
   final String? error;
-  final DashboardPeriod period;
+
+  /// Inclusive date range the dashboard is reporting on. Defaults to today.
+  final DateTime rangeStart;
+  final DateTime rangeEnd;
 
   DashboardState copyWith({
     DashboardData? data,
     bool? isLoading,
     String? error,
-    DashboardPeriod? period,
+    DateTime? rangeStart,
+    DateTime? rangeEnd,
     bool clearError = false,
   }) =>
       DashboardState(
         data: data ?? this.data,
         isLoading: isLoading ?? this.isLoading,
         error: clearError ? null : error ?? this.error,
-        period: period ?? this.period,
+        rangeStart: rangeStart ?? this.rangeStart,
+        rangeEnd: rangeEnd ?? this.rangeEnd,
       );
 }
 
 class DashboardController extends Notifier<DashboardState> {
   @override
   DashboardState build() {
+    final today = DateTime.now();
+    final start = DateTime(today.year, today.month, today.day);
     Future.microtask(() => load());
-    return const DashboardState(isLoading: true);
+    return DashboardState(isLoading: true, rangeStart: start, rangeEnd: start);
   }
 
-  Future<void> load([DashboardPeriod? p]) async {
-    final period = p ?? state.period;
-    state = state.copyWith(isLoading: true, period: period, clearError: true);
+  /// Reloads the dashboard, optionally over a new [start]..[end] range.
+  /// Omit both to refresh the currently selected range.
+  Future<void> load({DateTime? start, DateTime? end}) async {
+    final rangeStart = start ?? state.rangeStart;
+    final rangeEnd = end ?? state.rangeEnd;
+    state = state.copyWith(
+      isLoading: true,
+      rangeStart: rangeStart,
+      rangeEnd: rangeEnd,
+      clearError: true,
+    );
 
     try {
-      final now = DateTime.now();
-      final (start, end, periodStr) = switch (period) {
-        DashboardPeriod.today => (
-            DateTime(now.year, now.month, now.day),
-            DateTime(now.year, now.month, now.day),
-            'DAILY',
-          ),
-        DashboardPeriod.month => (
-            DateTime(now.year, now.month, 1),
-            DateTime(now.year, now.month + 1, 0),
-            'MONTHLY',
-          ),
-        DashboardPeriod.year => (
-            DateTime(now.year, 1, 1),
-            DateTime(now.year, 12, 31),
-            'YEARLY',
-          ),
-      };
+      final isSingleDay = rangeStart.year == rangeEnd.year &&
+          rangeStart.month == rangeEnd.month &&
+          rangeStart.day == rangeEnd.day;
 
       final data = await ref.read(dashboardRepositoryProvider).getFullDashboard(
-            startDate: start,
-            endDate: end,
-            period: periodStr,
+            startDate: rangeStart,
+            endDate: rangeEnd,
+            period: isSingleDay ? 'DAILY' : 'CUSTOM',
           );
       state = state.copyWith(data: data, isLoading: false);
     } on AppException catch (e) {
