@@ -1,11 +1,5 @@
-/* ===== PAGE LAYOUT ===== */
-.as-page {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  background: #f8fafc;
-  overflow: hidden;
-}
+/* ===== PAGE LAYOUT =====
+   Outer wrapper now comes from the shared <app-page-container> component. */
 
 /* Gradient page-header (shared design system) as a fixed-height flex child */
 app-page-header {
@@ -117,8 +111,6 @@ app-page-header {
 
 /* ===== CONTENT AREA ===== */
 .as-content {
-  flex: 1;
-  overflow-y: auto;
   padding: 16px 20px;
 }
 
@@ -502,9 +494,15 @@ app-page-header {
   padding: 0;
 }
 
-/* ===== STICKY FOOTER ===== */
+/* ===== STICKY FOOTER =====
+   Was pinned via a 100vh flex-column page shell (.as-page, removed when
+   this page moved to the shared <app-page-container>). Sticky positioning
+   against .layout-main-container's own scroll gives the same pinned
+   behavior without needing a page-specific fixed-height layout. */
 .as-footer {
-  flex-shrink: 0;
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
   background: #ffffff;
   border-top: 1px solid #e2e8f0;
   padding: 14px 20px;

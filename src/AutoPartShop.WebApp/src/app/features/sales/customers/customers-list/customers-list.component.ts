@@ -22,6 +22,8 @@ import { CurrencyService } from '../../../../shared/services/currency.service';
 import { tap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { I18nService } from '@/shared/services/i18n.service';
+import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
+import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 
 @Component({
     selector: 'app-customers-list',
@@ -38,7 +40,9 @@ import { I18nService } from '@/shared/services/i18n.service';
         TooltipModule,
         ToastModule,
         ConfirmDialogModule,
-        PaginatorModule
+        PaginatorModule,
+        PageContainerComponent,
+        PageHeaderComponent
     ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './customers-list.component.html',

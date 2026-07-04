@@ -1,42 +1,28 @@
 <p-toast position="top-right"></p-toast>
 <p-confirmDialog></p-confirmDialog>
 
-<div class="page-wrapper">
+<app-page-container>
   <!-- ==================== PAGE HEADER ==================== -->
-  <header class="page-header">
-    <div class="header-content">
-      <div class="header-left">
-        <h1 class="page-title">Goods Receipts</h1>
-        <p class="page-subtitle">Record and track incoming inventory from suppliers</p>
-      </div>
-
-      <div class="header-actions">
-        <div class="stats-badge">
-          <i class="pi pi-inbox"></i>
-          <div class="stats-info">
-            <span class="stats-value">{{ totalRecords }}</span>
-            <span class="stats-label">receipts</span>
-          </div>
-        </div>
-
-        <div class="action-buttons">
-          <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="refreshData()">
-            <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
-          </button>
-          <button class="btn-icon" pTooltip="Export CSV" tooltipPosition="bottom" (click)="exportReceipts('csv')">
-            <i class="pi pi-file"></i>
-          </button>
-          <button class="btn-icon" pTooltip="Export JSON" tooltipPosition="bottom" (click)="exportReceipts('json')">
-            <i class="pi pi-file-export"></i>
-          </button>
-          <button *appHasRole="['Admin','Manager']" class="btn-primary" (click)="onCreateClick()">
-            <i class="pi pi-plus"></i>
-            <span>New Receipt</span>
-          </button>
-        </div>
-      </div>
-    </div>
-  </header>
+  <app-page-header
+    title="Goods Receipts"
+    subtitle="Record and track incoming inventory from suppliers"
+    [count]="totalRecords" countLabel="receipts">
+    <ng-container actions>
+      <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="refreshData()">
+        <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
+      </button>
+      <button class="btn-icon" pTooltip="Export CSV" tooltipPosition="bottom" (click)="exportReceipts('csv')">
+        <i class="pi pi-file"></i>
+      </button>
+      <button class="btn-icon" pTooltip="Export JSON" tooltipPosition="bottom" (click)="exportReceipts('json')">
+        <i class="pi pi-file-export"></i>
+      </button>
+      <button *appHasRole="['Admin','Manager']" class="btn-primary" (click)="onCreateClick()">
+        <i class="pi pi-plus"></i>
+        <span>New Receipt</span>
+      </button>
+    </ng-container>
+  </app-page-header>
 
   <!-- ==================== FILTER SECTION ==================== -->
   <section class="filter-section">
@@ -57,7 +43,6 @@
       </div>
 
       <div class="filter-group">
-        <label class="filter-label">Status</label>
         <p-select
           [options]="statusOptions"
           [(ngModel)]="filterStatus"
@@ -70,7 +55,6 @@
       </div>
 
       <div class="filter-group">
-        <label class="filter-label">Received Date</label>
         <p-datepicker
           [(ngModel)]="dateRange"
           selectionMode="range"
@@ -124,4 +108,4 @@
     (pageChange)="onPageChange($event)"
     (grnDeleted)="onGoodsReceiptDeleted()">
   </app-goods-receipts-list>
-</div>
+</app-page-container>

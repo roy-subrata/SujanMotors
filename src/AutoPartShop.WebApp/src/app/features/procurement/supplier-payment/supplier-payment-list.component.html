@@ -2,38 +2,26 @@
 <p-confirmDialog></p-confirmDialog>
 <p-contextMenu #contextMenu [model]="contextMenuItems" [appendTo]="'body'"></p-contextMenu>
 
-<div class="page-wrapper">
+<app-page-container>
 
   <!-- Header -->
-  <header class="page-header">
-    <div class="header-content">
-      <div class="header-left">
-        <h1 class="page-title">Supplier Payments</h1>
-        <p class="page-subtitle">Track and manage all payments to suppliers</p>
-      </div>
-      <div class="header-actions">
-        <div class="stats-badge">
-          <i class="pi pi-money-bill"></i>
-          <div class="stats-info">
-            <span class="stats-value">{{ totalCount }}</span>
-            <span class="stats-label">payments</span>
-          </div>
-        </div>
-        <div class="action-buttons">
-          <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="loadSupplierPayments()">
-            <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
-          </button>
-          <button class="btn-icon btn-icon-outline" pTooltip="Export CSV" tooltipPosition="bottom" (click)="exportPayments('csv')">
-            <i class="pi pi-download"></i>
-          </button>
-          <button class="btn-primary" (click)="createNew()">
-            <i class="pi pi-plus"></i>
-            <span>New Payment</span>
-          </button>
-        </div>
-      </div>
-    </div>
-  </header>
+  <app-page-header
+    title="Supplier Payments"
+    subtitle="Track and manage all payments to suppliers"
+    [count]="totalCount" countLabel="payments">
+    <ng-container actions>
+      <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="loadSupplierPayments()">
+        <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
+      </button>
+      <button class="btn-icon btn-icon-outline" pTooltip="Export CSV" tooltipPosition="bottom" (click)="exportPayments('csv')">
+        <i class="pi pi-download"></i>
+      </button>
+      <button class="btn-primary" (click)="createNew()">
+        <i class="pi pi-plus"></i>
+        <span>New Payment</span>
+      </button>
+    </ng-container>
+  </app-page-header>
 
   <!-- Active Supplier Filter Banner -->
   <div *ngIf="supplierFilter" class="supplier-banner">
@@ -271,4 +259,4 @@
     </div>
   </section>
 
-</div>
+</app-page-container>

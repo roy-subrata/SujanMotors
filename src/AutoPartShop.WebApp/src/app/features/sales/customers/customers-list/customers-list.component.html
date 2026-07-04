@@ -4,41 +4,23 @@
 <p-menu #actionMenu [model]="actionMenuItems" [popup]="true" appendTo="body"></p-menu>
 
 <!-- Main Page Container -->
-<div class="page-wrapper">
+<app-page-container>
 
   <!-- ==================== PAGE HEADER ==================== -->
-  <header class="page-header">
-    <div class="header-content">
-      <!-- Left: Title & Subtitle -->
-      <div class="header-left">
-        <h1 class="page-title">Manage Customers</h1>
-        <p class="page-subtitle">Manage and track all customer accounts</p>
-      </div>
-
-      <!-- Right: Actions -->
-      <div class="header-actions">
-        <!-- Stats Badge -->
-        <div class="stats-badge">
-          <i class="pi pi-users"></i>
-          <div class="stats-info">
-            <span class="stats-value">{{ totalRecords }}</span>
-            <span class="stats-label">customers</span>
-          </div>
-        </div>
-
-        <!-- Action Buttons -->
-        <div class="action-buttons">
-          <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="refreshData()">
-            <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
-          </button>
-          <button class="btn-primary" (click)="createCustomer()">
-            <i class="pi pi-plus"></i>
-            <span>New Customer</span>
-          </button>
-        </div>
-      </div>
-    </div>
-  </header>
+  <app-page-header
+    title="Manage Customers"
+    subtitle="Manage and track all customer accounts"
+    [count]="totalRecords" countLabel="customers">
+    <ng-container actions>
+      <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="refreshData()">
+        <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
+      </button>
+      <button class="btn-primary" (click)="createCustomer()">
+        <i class="pi pi-plus"></i>
+        <span>New Customer</span>
+      </button>
+    </ng-container>
+  </app-page-header>
 
   <!-- ==================== FILTER SECTION ==================== -->
   <section class="filter-section">
@@ -61,7 +43,6 @@
 
       <!-- Type Filter -->
       <div class="filter-group">
-        <label class="filter-label">Type</label>
         <p-select
           [options]="customerTypes"
           [(ngModel)]="filterType"
@@ -385,4 +366,4 @@
     </div>
   </section>
 
-</div>
+</app-page-container>
