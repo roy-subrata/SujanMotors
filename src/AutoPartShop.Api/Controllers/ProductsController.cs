@@ -1,5 +1,6 @@
 using AutoPartShop.Api.Common;
 using AutoPartShop.Api.Services;
+using AutoPartShop.Application.Common;
 using AutoPartShop.Application.DTOs.PartDtos;
 using AutoPartShop.Application.Interfaces;
 using AutoPartShop.Application.Parts;
@@ -81,6 +82,8 @@ public class ProductsController : ControllerBase
         [FromQuery] string? search,
         [FromQuery] bool? isActive,
         [FromQuery] Guid? categoryId,
+        [FromQuery] string? sortBy,
+        [FromQuery] string? sortDirection,
         [FromQuery] bool flattenVariants = false,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
@@ -99,6 +102,11 @@ public class ProductsController : ControllerBase
             FlattenVariants = flattenVariants,
             CategoryId = categoryId
         };
+
+        if (!string.IsNullOrWhiteSpace(sortBy))
+        {
+            query.Sorts = [new SortOption { Field = sortBy, Direction = sortDirection ?? "asc" }];
+        }
 
         var isAdmin = User.Identity?.IsAuthenticated == true;
 

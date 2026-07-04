@@ -58,11 +58,41 @@
     </div>
 
     <div filters class="filter-group">
+      <label class="filter-label">Category</label>
+      <p-select
+        [options]="categoryOptions"
+        [(ngModel)]="filterCategoryId"
+        optionLabel="label"
+        optionValue="value"
+        placeholder="All Categories"
+        [showClear]="true"
+        (onChange)="onFilterChange()"
+        appendTo="body"
+        styleClass="filter-dropdown">
+      </p-select>
+    </div>
+
+    <div filters class="filter-group">
       <label class="filter-label">Status</label>
       <p-select
         [options]="statusOptions"
         [(ngModel)]="filterStatus"
         placeholder="All Statuses"
+        [showClear]="true"
+        (onChange)="onFilterChange()"
+        appendTo="body"
+        styleClass="filter-dropdown">
+      </p-select>
+    </div>
+
+    <div filters class="filter-group">
+      <label class="filter-label">Sort</label>
+      <p-select
+        [options]="sortOptions"
+        [(ngModel)]="sortValue"
+        optionLabel="label"
+        optionValue="value"
+        placeholder="Sort"
         [showClear]="true"
         (onChange)="onFilterChange()"
         appendTo="body"
@@ -87,9 +117,17 @@
         Search: "{{ searchTerm }}"
         <i class="pi pi-times" (click)="searchTerm = ''; onSearch()"></i>
       </span>
+      <span *ngIf="filterCategoryId" class="filter-chip">
+        Category: {{ filterCategoryLabel }}
+        <i class="pi pi-times" (click)="filterCategoryId = ''; onFilterChange()"></i>
+      </span>
       <span *ngIf="filterStatus" class="filter-chip">
         Status: {{ filterStatus }}
         <i class="pi pi-times" (click)="filterStatus = ''; onFilterChange()"></i>
+      </span>
+      <span *ngIf="sortValue" class="filter-chip">
+        {{ sortValue.startsWith('Name') ? 'Name' : 'Price' }} sort
+        <i class="pi pi-times" (click)="sortValue = ''; onFilterChange()"></i>
       </span>
     </div>
   </app-filter-bar>
