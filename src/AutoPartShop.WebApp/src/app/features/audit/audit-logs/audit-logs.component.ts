@@ -21,6 +21,8 @@ import {
 } from '../../../shared/services/audit-trail.service';
 import { EntityTimelineDialogComponent } from '../entity-timeline-dialog/entity-timeline-dialog.component';
 import { PaginatorState } from 'primeng/paginator';
+import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
+import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 
 @Component({
   selector: 'app-audit-logs',
@@ -39,7 +41,9 @@ import { PaginatorState } from 'primeng/paginator';
     PaginatorModule,
     ToastModule,
     DynamicDialogModule,
-    MultiSelectModule
+    MultiSelectModule,
+    PageContainerComponent,
+    PageHeaderComponent
   ],
   providers: [MessageService, DialogService],
   templateUrl: './audit-logs.component.html',
