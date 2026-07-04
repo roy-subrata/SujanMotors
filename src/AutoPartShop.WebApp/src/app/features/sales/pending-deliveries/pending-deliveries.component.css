@@ -6,26 +6,9 @@
   --transition-fast: 150ms ease;
 }
 
-.page-wrapper { min-height: 100vh; background: var(--color-bg-secondary); }
-
-/* ── Header ──────────────────────────────────────────────── */
-.page-header {
-  background: transparent;
-  padding: 0 0 16px;
-}
-.header-content { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-.header-left    { flex: 1; }
-.page-title { font-size: 18px; font-weight: 700; color: var(--color-text-primary); margin: 0; display: flex; align-items: center; gap: 8px; }
-.page-title i { font-size: 16px; }
-.page-subtitle { font-size: 12px; color: var(--color-text-secondary); margin: 0; }
-.header-actions { display: flex; align-items: center; gap: 8px; }
-
-.stats-badge { display: flex; align-items: center; gap: 8px; background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 5px 12px; }
-.stats-badge i { color: var(--color-text-secondary); }
-.stats-info { display: flex; flex-direction: column; }
-.stats-value { font-size: 16px; font-weight: 700; color: var(--color-text-primary); line-height: 1; }
-.stats-label { font-size: 11px; color: var(--color-text-muted); }
-
+/* Header (.page-wrapper/.page-header/title/subtitle/count) now comes from
+   the shared <app-page-container>/<app-page-header> components — only the
+   projected action buttons still need local styling. */
 .btn-icon { width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; background: var(--color-bg-primary); border: 1px solid var(--color-border); border-radius: var(--radius-md); color: var(--color-text-primary); cursor: pointer; text-decoration: none; transition: background var(--transition-fast); }
 .btn-icon:hover { background: var(--color-bg-secondary); }
 

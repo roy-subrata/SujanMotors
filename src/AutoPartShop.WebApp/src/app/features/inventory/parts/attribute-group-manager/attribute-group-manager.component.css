@@ -854,24 +854,12 @@
 
 /* ==================== RESPONSIVE DESIGN ==================== */
 @media (max-width: 1024px) {
-  .page-header {
-    padding: 10px 16px;
-  }
-
   .filter-section {
     padding: 14px 16px;
   }
 
-  .stats-badge {
-    display: none;
-  }
-
   .filter-group.search-group {
     min-width: 200px;
-  }
-
-  .page-subtitle {
-    display: none;
   }
 
   .content-section {
@@ -880,31 +868,6 @@
 }
 
 @media (max-width: 768px) {
-  .page-header {
-    padding: 10px 12px;
-  }
-
-  .header-content {
-    flex-direction: row;
-    gap: 12px;
-  }
-
-  .header-left {
-    gap: 8px;
-  }
-
-  .header-actions {
-    gap: 8px;
-  }
-
-  .page-title {
-    font-size: 16px;
-  }
-
-  .page-subtitle {
-    display: none;
-  }
-
   .filter-section {
     padding: 12px;
   }
@@ -1008,14 +971,6 @@
 }
 
 @media (max-width: 480px) {
-  .page-header {
-    padding: 8px 10px;
-  }
-
-  .page-title {
-    font-size: 15px;
-  }
-
   .btn-icon {
     width: 28px;
     height: 28px;
