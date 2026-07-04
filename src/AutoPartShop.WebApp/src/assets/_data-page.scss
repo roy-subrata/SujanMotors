@@ -61,11 +61,14 @@
 /* ==================== PAGE WRAPPER ====================
    Top padding intentionally omitted — the shared `.layout-main` wrapper
    (assets/layout/_main.scss) already adds top padding around every routed
-   page, so adding our own here was doubling the space above the header
-   (same fix already applied to the dashboard's own .dash container). */
+   page, so adding our own here was doubling the space above the header.
+   The extra -16px pulls the header up flush with the dashboard's own gap
+   (same trick as the dashboard's `.dash` container) so both pages sit at
+   the same vertical position under the topbar. */
 .page-wrapper {
   min-height: 100%;
   background-color: var(--color-bg-tertiary);
+  margin-top: -16px;
   padding: 0 var(--page-gutter-x) var(--page-gutter-y);
   font-family: var(--font-sans);
 }
@@ -82,9 +85,10 @@
 
 .page-header .header-content {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
   gap: 16px;
+  flex-wrap: wrap;
 }
 
 .page-header .header-left {
