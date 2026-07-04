@@ -2,35 +2,23 @@
 <p-confirmDialog></p-confirmDialog>
 <p-menu #actionMenu [model]="contextMenuItems" [popup]="true" appendTo="body"></p-menu>
 
-<div class="page-wrapper">
+<app-page-container>
 
   <!-- Header -->
-  <header class="page-header">
-    <div class="header-content">
-      <div class="header-left">
-        <h1 class="page-title">Payment Accounts</h1>
-        <p class="page-subtitle">Bank accounts & payment methods for {{ supplierName }}</p>
-      </div>
-      <div class="header-actions">
-        <div class="stats-badge">
-          <i class="pi pi-credit-card"></i>
-          <div class="stats-info">
-            <span class="stats-value">{{ accounts.length }}</span>
-            <span class="stats-label">accounts</span>
-          </div>
-        </div>
-        <div class="action-buttons">
-          <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="loadAccounts()">
-            <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
-          </button>
-          <button class="btn-primary" (click)="createNew()">
-            <i class="pi pi-plus"></i>
-            <span>Add Account</span>
-          </button>
-        </div>
-      </div>
-    </div>
-  </header>
+  <app-page-header
+    title="Payment Accounts"
+    [subtitle]="'Bank accounts & payment methods for ' + supplierName"
+    [count]="accounts.length" countLabel="accounts">
+    <ng-container actions>
+      <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="loadAccounts()">
+        <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
+      </button>
+      <button class="btn-primary" (click)="createNew()">
+        <i class="pi pi-plus"></i>
+        <span>Add Account</span>
+      </button>
+    </ng-container>
+  </app-page-header>
 
   <!-- Desktop Table -->
   <section class="table-section desktop-only">
@@ -164,4 +152,4 @@
     </div>
   </section>
 
-</div>
+</app-page-container>

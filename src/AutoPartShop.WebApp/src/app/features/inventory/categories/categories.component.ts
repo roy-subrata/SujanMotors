@@ -10,13 +10,16 @@ import { CategoryResponse, CategoryService } from '../services/category.service'
 import { CategoriesListComponent } from './categories-list/categories-list.component';
 import { CategoriesFormDialogComponent } from './categories-form-dialog/categories-form-dialog.component';
 import { tap } from 'rxjs';
+import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
+import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 
 @Component({
     selector: 'app-categories',
     standalone: true,
     imports: [
         CommonModule, FormsModule, ToastModule, ConfirmDialogModule,
-        ButtonModule, Select, CategoriesListComponent, CategoriesFormDialogComponent
+        ButtonModule, Select, CategoriesListComponent, CategoriesFormDialogComponent,
+        PageContainerComponent, PageHeaderComponent
     ],
     providers: [CategoryService, MessageService, ConfirmationService],
     templateUrl: './categories.component.html',

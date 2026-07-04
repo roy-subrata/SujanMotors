@@ -5,36 +5,22 @@
 <p-toast position="top-right"></p-toast>
 <p-confirmDialog></p-confirmDialog>
 
-<div class="page-wrapper">
+<app-page-container>
   <!-- ==================== PAGE HEADER ==================== -->
-  <header class="page-header">
-    <div class="header-content">
-      <div class="header-left">
-        <h1 class="page-title">Warehouses</h1>
-        <p class="page-subtitle">Organize and manage your warehouse locations</p>
-      </div>
-
-      <div class="header-actions">
-        <div class="stats-badge">
-          <i class="pi pi-building"></i>
-          <div class="stats-info">
-            <span class="stats-value">{{ totalRecords }}</span>
-            <span class="stats-label">warehouses</span>
-          </div>
-        </div>
-
-        <div class="action-buttons">
-          <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="refreshData()">
-            <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
-          </button>
-          <button class="btn-primary" (click)="createWarehouse()">
-            <i class="pi pi-plus"></i>
-            <span>New Warehouse</span>
-          </button>
-        </div>
-      </div>
-    </div>
-  </header>
+  <app-page-header
+    title="Warehouses"
+    subtitle="Organize and manage your warehouse locations"
+    [count]="totalRecords" countLabel="warehouses">
+    <ng-container actions>
+      <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="refreshData()">
+        <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
+      </button>
+      <button class="btn-primary" (click)="createWarehouse()">
+        <i class="pi pi-plus"></i>
+        <span>New Warehouse</span>
+      </button>
+    </ng-container>
+  </app-page-header>
 
   <!-- ==================== FILTER SECTION ==================== -->
   <section class="filter-section">
@@ -87,4 +73,4 @@
     (pageChange)="onPageChange($event)"
     (warehouseDeleted)="onWarehouseDeleted()">
   </app-warehouses-list>
-</div>
+</app-page-container>
