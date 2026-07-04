@@ -1,12 +1,7 @@
+/* No local --color-* overrides — inherits the shared, theme-aware tokens
+   from assets/_data-page.scss (which flip under .app-dark) instead of a
+   separate hardcoded palette. */
 :host {
-  --color-primary: #4F46E5;
-  --color-text-primary: #1E293B;
-  --color-text-secondary: #64748B;
-  --color-text-muted: #94A3B8;
-  --color-bg-primary: #FFFFFF;
-  --color-bg-secondary: #F8FAFC;
-  --color-bg-tertiary: #F1F5F9;
-  --color-border: #E2E8F0;
   --radius-md: 8px; --radius-lg: 12px;
   --transition-fast: 150ms ease;
 }
@@ -15,25 +10,24 @@
 
 /* ── Header ──────────────────────────────────────────────── */
 .page-header {
-  background: linear-gradient(135deg, #1e3a5f 0%, #2d6a4f 100%);
-  padding: 12px 20px; position: sticky; top: 0; z-index: 100;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+  background: transparent;
+  padding: 0 0 16px;
 }
 .header-content { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .header-left    { flex: 1; }
-.page-title { font-size: 18px; font-weight: 700; color: #fff; margin: 0; display: flex; align-items: center; gap: 8px; }
+.page-title { font-size: 18px; font-weight: 700; color: var(--color-text-primary); margin: 0; display: flex; align-items: center; gap: 8px; }
 .page-title i { font-size: 16px; }
-.page-subtitle { font-size: 12px; color: rgba(255,255,255,0.7); margin: 0; }
+.page-subtitle { font-size: 12px; color: var(--color-text-secondary); margin: 0; }
 .header-actions { display: flex; align-items: center; gap: 8px; }
 
-.stats-badge { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.2); border-radius: var(--radius-md); padding: 5px 12px; }
-.stats-badge i { color: rgba(255,255,255,0.8); }
+.stats-badge { display: flex; align-items: center; gap: 8px; background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 5px 12px; }
+.stats-badge i { color: var(--color-text-secondary); }
 .stats-info { display: flex; flex-direction: column; }
-.stats-value { font-size: 16px; font-weight: 700; color: #fff; line-height: 1; }
-.stats-label { font-size: 11px; color: rgba(255,255,255,0.65); }
+.stats-value { font-size: 16px; font-weight: 700; color: var(--color-text-primary); line-height: 1; }
+.stats-label { font-size: 11px; color: var(--color-text-muted); }
 
-.btn-icon { width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.2); border-radius: var(--radius-md); color: #fff; cursor: pointer; text-decoration: none; transition: background var(--transition-fast); }
-.btn-icon:hover { background: rgba(255,255,255,0.25); }
+.btn-icon { width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; background: var(--color-bg-primary); border: 1px solid var(--color-border); border-radius: var(--radius-md); color: var(--color-text-primary); cursor: pointer; text-decoration: none; transition: background var(--transition-fast); }
+.btn-icon:hover { background: var(--color-bg-secondary); }
 
 /* ── Loading / empty ─────────────────────────────────────── */
 .pd-loading { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 4rem; font-size: 15px; color: var(--color-text-secondary); }

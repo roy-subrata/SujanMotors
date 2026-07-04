@@ -6,19 +6,14 @@
    ============================================ */
 .page-wrapper {
   min-height: 100vh;
-  background-color: #f8fafc;
+  background-color: var(--color-bg-secondary);
   padding: 0;
 }
 
 .page-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #6B8DD6 100%);
+  background: transparent;
   border-bottom: none;
-  padding: 12px 20px;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  box-shadow: 0 2px 12px rgba(102, 126, 234, 0.25);
-  margin-bottom: 1rem;
+  padding: 0 0 16px;
 }
 
 .header-content {
@@ -38,17 +33,17 @@
   margin: 0;
   font-size: 18px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--color-text-primary);
   letter-spacing: -0.01em;
 }
 
 .page-subtitle {
   margin: 0;
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.75);
+  color: var(--color-text-secondary);
   margin-left: 12px;
   padding-left: 12px;
-  border-left: 1px solid rgba(255, 255, 255, 0.3);
+  border-left: 1px solid var(--color-border);
 }
 
 .header-actions {
@@ -62,15 +57,14 @@
   align-items: center;
   gap: 8px;
   padding: 6px 12px;
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
   border-radius: 6px;
 }
 
 .stats-badge > i {
   font-size: 14px;
-  color: #ffffff;
+  color: var(--color-text-secondary);
 }
 
 .stats-info {
@@ -82,13 +76,13 @@
 .stats-value {
   font-size: 14px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-text-primary);
   line-height: 1;
 }
 
 .stats-label {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.75);
+  color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
@@ -106,39 +100,22 @@
   width: 32px;
   height: 32px;
   padding: 0;
-  background-color: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
   border-radius: 6px;
-  color: #ffffff;
+  color: var(--color-text-primary);
   cursor: pointer;
   transition: all 150ms ease;
 }
 
 .btn-icon:hover {
-  background-color: rgba(255, 255, 255, 0.25);
-  border-color: rgba(255, 255, 255, 0.3);
+  background-color: var(--color-bg-secondary);
+  border-color: var(--color-text-muted);
 }
 
-.btn-primary {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 14px;
-  background: #ffffff;
-  border: none;
-  border-radius: 6px;
-  color: #667eea;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 150ms ease;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
-}
-
-.btn-primary:hover {
-  background: #f8f9ff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-}
+/* .btn-primary now uses the shared global style from assets/_data-page.scss
+   (dark bg, light text) — this page no longer has a gradient header to
+   contrast against. */
 
 /* ============================================
    STATS GRID

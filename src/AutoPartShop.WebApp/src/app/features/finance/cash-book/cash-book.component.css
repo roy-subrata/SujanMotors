@@ -2,26 +2,17 @@
    DAILY CASH BOOK — matches app design system
    ============================================================ */
 
+/* Domain-specific in/out/balance accents kept locally (no global
+   equivalent); everything else inherits the shared, theme-aware tokens
+   from assets/_data-page.scss instead of redefining its own hardcoded,
+   non-dark-aware palette. */
 :host {
-  --color-primary:       #4F46E5;
-  --color-primary-hover: #4338CA;
   --color-in:            #16a34a;
   --color-in-light:      #dcfce7;
   --color-out:           #dc2626;
   --color-out-light:     #fee2e2;
   --color-balance-pos:   #1d4ed8;
   --color-balance-neg:   #ea580c;
-  --color-text-primary:  #1E293B;
-  --color-text-secondary:#64748B;
-  --color-text-muted:    #94A3B8;
-  --color-bg-primary:    #FFFFFF;
-  --color-bg-secondary:  #F8FAFC;
-  --color-bg-tertiary:   #F1F5F9;
-  --color-border:        #E2E8F0;
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --transition-fast: 150ms ease;
 }
 
 /* ── Wrapper ─────────────────────────────────────────────── */
@@ -32,12 +23,8 @@
 
 /* ── Page header ─────────────────────────────────────────── */
 .page-header {
-  background: linear-gradient(135deg, #1e3a5f 0%, #2d6a4f 100%);
-  padding: 12px 20px;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+  background: transparent;
+  padding: 0 0 16px;
 }
 
 .header-content {
@@ -52,13 +39,13 @@
 
 .page-title {
   display: flex; align-items: center; gap: 8px;
-  font-size: 18px; font-weight: 700; color: #fff; margin: 0;
+  font-size: 18px; font-weight: 700; color: var(--color-text-primary); margin: 0;
 }
 .page-title i { font-size: 16px; opacity: 0.85; }
 
 .page-subtitle {
-  font-size: 13px; color: rgba(255,255,255,0.7);
-  padding-left: 12px; border-left: 1px solid rgba(255,255,255,0.25);
+  font-size: 13px; color: var(--color-text-secondary);
+  padding-left: 12px; border-left: 1px solid var(--color-border);
 }
 
 .header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
@@ -66,34 +53,34 @@
 .header-stat {
   display: flex; flex-direction: column; align-items: flex-end;
   padding: 4px 12px;
-  background: rgba(255,255,255,0.12);
+  background: var(--color-bg-secondary);
   border-radius: var(--radius-sm);
-  border: 1px solid rgba(255,255,255,0.15);
+  border: 1px solid var(--color-border);
   min-width: 90px;
 }
-.stat-label { font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(255,255,255,0.6); }
-.stat-value { font-size: 15px; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; }
-.header-stat.positive .stat-value { color: #86efac; }
-.header-stat.negative .stat-value { color: #fca5a5; }
+.stat-label { font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-text-muted); }
+.stat-value { font-size: 15px; font-weight: 700; color: var(--color-text-primary); font-variant-numeric: tabular-nums; }
+.header-stat.positive .stat-value { color: var(--color-success); }
+.header-stat.negative .stat-value { color: var(--color-danger); }
 
 .header-actions { display: flex; align-items: center; gap: 8px; }
 
 .btn-icon {
   width: 34px; height: 34px;
   display: flex; align-items: center; justify-content: center;
-  background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.2);
-  border-radius: var(--radius-sm); color: #fff; cursor: pointer;
+  background: var(--color-bg-primary); border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm); color: var(--color-text-primary); cursor: pointer;
   transition: background var(--transition-fast);
 }
-.btn-icon:hover { background: rgba(255,255,255,0.25); }
+.btn-icon:hover { background: var(--color-bg-secondary); }
 
-.view-toggle { display: flex; border: 1px solid rgba(255,255,255,0.2); border-radius: var(--radius-sm); overflow: hidden; }
+.view-toggle { display: flex; border: 1px solid var(--color-border); border-radius: var(--radius-sm); overflow: hidden; }
 .toggle-btn {
-  padding: 6px 10px; background: transparent; border: none; color: rgba(255,255,255,0.6);
+  padding: 6px 10px; background: transparent; border: none; color: var(--color-text-secondary);
   cursor: pointer; transition: all var(--transition-fast); font-size: 13px;
 }
-.toggle-btn.active { background: rgba(255,255,255,0.25); color: #fff; }
-.toggle-btn:hover:not(.active) { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.85); }
+.toggle-btn.active { background: var(--color-primary); color: var(--accent-fg); }
+.toggle-btn:hover:not(.active) { background: var(--color-bg-secondary); color: var(--color-text-primary); }
 
 /* ── Controls bar ────────────────────────────────────────── */
 .controls-bar {
@@ -111,7 +98,7 @@
   cursor: pointer; transition: all var(--transition-fast);
 }
 .preset-chip:hover  { border-color: var(--color-primary); color: var(--color-primary); }
-.preset-chip.active { background: var(--color-primary); border-color: var(--color-primary); color: #fff; }
+.preset-chip.active { background: var(--color-primary); border-color: var(--color-primary); color: var(--accent-fg); }
 
 .date-range-group { display: flex; align-items: center; gap: 6px; }
 .date-sep { font-size: 12px; color: var(--color-text-muted); padding: 0 2px; }
@@ -179,7 +166,7 @@
 .btn-empty-action {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 8px 18px; font-size: 13px; font-weight: 500;
-  background: var(--color-primary); color: #fff;
+  background: var(--color-primary); color: var(--accent-fg);
   border-radius: var(--radius-md); text-decoration: none;
   border: none; cursor: pointer;
   transition: background var(--transition-fast);

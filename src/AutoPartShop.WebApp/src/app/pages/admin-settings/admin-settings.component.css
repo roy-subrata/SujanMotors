@@ -2,29 +2,10 @@
    ADMIN SETTINGS - ALIGNED WITH SYSTEM DESIGN
    ============================================================ */
 
-/* ==================== CSS VARIABLES ==================== */
+/* ==================== CSS VARIABLES ====================
+   No local overrides — inherits the shared, theme-aware --color-* tokens
+   from assets/_data-page.scss (which flip under .app-dark). */
 :host {
-  --color-primary: #4F46E5;
-  --color-primary-hover: #4338CA;
-  --color-primary-light: #EEF2FF;
-  --color-success: #10B981;
-  --color-success-light: #D1FAE5;
-  --color-warning: #F59E0B;
-  --color-warning-light: #FEF3C7;
-  --color-danger: #EF4444;
-  --color-danger-light: #FEE2E2;
-  --color-text-primary: #1E293B;
-  --color-text-secondary: #64748B;
-  --color-text-muted: #94A3B8;
-  --color-bg-primary: #FFFFFF;
-  --color-bg-secondary: #F8FAFC;
-  --color-border: #E2E8F0;
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-
   display: block;
   width: 100%;
 }
@@ -40,12 +21,8 @@
 
 /* ==================== PAGE HEADER ==================== */
 .page-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #6B8DD6 100%);
-  padding: 12px 20px;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  box-shadow: 0 2px 12px rgba(102, 126, 234, 0.25);
+  background: transparent;
+  padding: 0 0 16px;
 }
 
 .header-content {
@@ -64,7 +41,7 @@
 .page-title {
   font-size: 18px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--color-text-primary);
   margin: 0;
   display: flex;
   align-items: center;
@@ -77,10 +54,10 @@
 
 .page-subtitle {
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.75);
+  color: var(--color-text-secondary);
   margin: 0;
   padding-left: 12px;
-  border-left: 1px solid rgba(255, 255, 255, 0.3);
+  border-left: 1px solid var(--color-border);
 }
 
 .header-actions {
@@ -94,26 +71,25 @@
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
 }
 
 .stats-badge > i {
   font-size: 13px;
-  color: #ffffff;
+  color: var(--color-text-secondary);
 }
 
 .stats-value {
   font-size: 14px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-text-primary);
 }
 
 .stats-label {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
@@ -218,7 +194,7 @@
   background: var(--color-primary);
   border: none;
   border-radius: var(--radius-sm);
-  color: #ffffff;
+  color: var(--accent-fg);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
