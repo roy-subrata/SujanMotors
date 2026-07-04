@@ -1,0 +1,66 @@
+/* ============================================================
+   APP SHELL / DASHBOARD DESIGN TOKENS
+   ------------------------------------------------------------
+   Source: design_handoff_pos_dashboard/README.md
+   Scoped as plain CSS custom properties on :root (light) with
+   `.app-dark` overrides — reuses the app's real dark-mode class
+   (see LayoutService.toggleDarkMode()), NOT a new data-theme attr.
+   Consumed by the sidebar/topbar/menu chrome and the dashboard page.
+   ============================================================ */
+
+:root {
+    --bg: #f4f5f7;
+    --surface: #ffffff;
+    --surface2: #fafafb;
+
+    --border: #e6e8ec;
+    --border2: #eef0f3;
+
+    --text: #0f172a;
+    --text2: #5b6472;
+    --text3: #8a93a2;
+
+    --accent: #0f172a;
+    --accent-fg: #ffffff;
+
+    --green: #0d8a53;
+    --green-bg: #e9f7f0;
+    --red: #d63841;
+    --red-bg: #fdeeef;
+    --amber: #b26a00;
+    --amber-bg: #fdf3e2;
+
+    --shell-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+
+    --chart-sales: #3b82f6;
+    --chart-purch: #f59e0b;
+    --chart-profit: #10b981;
+
+    --font-sans: 'Instrument Sans', system-ui, -apple-system, sans-serif;
+}
+
+.app-dark {
+    --bg: #0d1017;
+    --surface: #151922;
+    --surface2: #1a1f2a;
+
+    --border: #252b38;
+    --border2: #1f2530;
+
+    --text: #eef1f6;
+    --text2: #9aa4b5;
+    --text3: #68738a;
+
+    --accent: #e2e8f0;
+    --accent-fg: #0f172a;
+
+    --green: #34d399;
+    --green-bg: #0e2b20;
+    --red: #f8717a;
+    --red-bg: #331418;
+    --amber: #fbbf24;
+    --amber-bg: #2e2410;
+
+    --shell-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+    /* chart colors stay the same in both themes */
+}
