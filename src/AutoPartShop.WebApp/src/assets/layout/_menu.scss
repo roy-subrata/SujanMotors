@@ -3,75 +3,88 @@
 /* Sidebar container is defined in _sidebar.scss */
 /* Only menu-specific styles below */
 
-/* Enterprise-style menu tweaks */
-.layout-menu {
-    padding-top: 0.75rem;
-}
-
 .layout-menu {
     margin: 0;
-    padding: 0;
+    padding: 6px 10px 16px;
     list-style-type: none;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-family: var(--font-sans);
 
     .layout-root-menuitem {
         > .layout-menuitem-root-text {
-            font-size: 0.8rem;
-            text-transform: uppercase;
+            font-size: 10.5px;
             font-weight: 600;
-            color: var(--text-color-secondary);
+            letter-spacing: 0.09em;
+            text-transform: uppercase;
+            color: var(--text3);
             margin: 0;
-            padding: 0.5rem 1.25rem;
-            letter-spacing: 0.02em;
+            padding: 12px 10px 5px;
         }
     }
 
-            a {
-            user-select: none;
+    a {
+        user-select: none;
 
-            display: flex;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 7px 10px;
+        border-radius: 7px;
+        color: var(--text2);
+        font-size: 13px;
+        font-weight: 450;
+        transition: background-color .12s ease, color .12s ease;
+
+        .layout-menuitem-icon {
+            display: inline-flex;
             align-items: center;
-            gap: 0.75rem;
-            padding: 0.625rem 1.25rem;
-            color: var(--text-color);
-            transition: background-color .12s ease, color .12s ease, padding-left .12s ease;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+            border-radius: 0;
+            background: transparent;
+            color: inherit;
+            font-size: 13px;
+            opacity: .85;
+            transition: color .12s ease;
+        }
+
+        .layout-menuitem-text {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        &:hover {
+            background: var(--surface2);
+            color: var(--text);
 
             .layout-menuitem-icon {
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                width: 36px;
-                height: 36px;
-                border-radius: 6px;
-                background: transparent;
-                color: var(--text-color-secondary);
-                transition: background .12s ease, color .12s ease;
-            }
-
-            &:hover {
-                background: var(--surface-hover);
-                color: var(--text-color);
-                .layout-menuitem-icon {
-                    background: rgba(102,126,234,0.12); /* subtle primary tint */
-                    color: var(--primary-color);
-                }
-            }
-
-            &.active-route, &.active-menuitem {
-                background: linear-gradient(90deg, rgba(102,126,234,0.06), rgba(118,75,162,0.03));
-                color: var(--primary-color);
-                font-weight: 600;
-                .layout-menuitem-icon {
-                    background: var(--primary-color-variant, rgba(102,126,234,0.14));
-                    color: var(--primary-color);
-                }
-            }
-
-            &.active-menuitem {
-                > .layout-submenu-toggler {
-                    transform: rotate(-180deg);
-                }
+                opacity: 1;
             }
         }
+
+        &.active-route, &.active-menuitem {
+            background: var(--accent);
+            color: var(--accent-fg);
+            font-weight: 600;
+
+            .layout-menuitem-icon {
+                color: var(--accent-fg);
+                opacity: 1;
+            }
+        }
+
+        &.active-menuitem {
+            > .layout-submenu-toggler {
+                transform: rotate(-180deg);
+            }
+        }
+    }
 
     li.active-menuitem {
         > a {
@@ -85,23 +98,13 @@
         margin: 0;
         padding: 0;
         list-style-type: none;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
 
         a {
-            display: flex;
-            align-items: center;
-            position: relative;
-            outline: 0 none;
-            color: var(--text-color);
-            cursor: pointer;
-            padding: 0.75rem 1.5rem;
-            border-radius: 0;
-            transition:
-                background-color var(--element-transition-duration),
-                box-shadow var(--element-transition-duration);
-
-            .layout-menuitem-icon {
-                margin-right: 0.5rem;
-            }
+            padding: 7px 10px;
+            border-radius: 7px;
 
             .layout-submenu-toggler {
                 font-size: 75%;
@@ -109,141 +112,25 @@
                 transition: transform var(--element-transition-duration);
             }
 
-            &.active-route {
-                font-weight: 700;
-                color: var(--primary-color);
-            }
-
-            &:hover {
-                background-color: var(--surface-hover);
-            }
-
             &:focus {
                 @include focused-inset();
-            }
-        }
-
-        ul {
-            overflow: hidden;
-            border-radius: var(--content-border-radius);
-
-            li {
-                a {
-                    margin-left: 1rem;
-                    padding-left: 1rem;
-                }
-
-                li {
-                    a {
-                        margin-left: 2rem;
-                        padding-left: 1rem;
-                    }
-
-                    li {
-                        a {
-                            margin-left: 2.5rem;
-                            padding-left: 1rem;
-                        }
-
-                            li {
-                                a {
-                                    margin-left: 3rem;
-                                    padding-left: 1rem;
-                                }
-
-                                li {
-                                    a {
-                                        margin-left: 3.5rem;
-                                        padding-left: 1rem;
-                                    }
-
-                                        li {
-                                            a {
-                                                margin-left: 4rem;
-                                                padding-left: 1rem;
-                                            }
-                                }
-                            }
-                        }
-                    }
-                }
             }
         }
     }
 }
 
-.layout-submenu-enter-from,
-.layout-submenu-leave-to {
-    max-height: 0;
-}
-
-.layout-submenu-enter-to,
-.layout-submenu-leave-from {
-    max-height: 1000px;
-}
-
-.layout-submenu-leave-active {
-    overflow: hidden;
-    transition: max-height 0.45s cubic-bezier(0, 1, 0, 1);
-}
-
-.layout-submenu-enter-active {
-    overflow: hidden;
-    transition: max-height 1s ease-in-out;
-}
-
-/* Compact sidebar override: tighten paddings, smaller icons, reduced nesting indent */
-.layout-sidebar .layout-menu {
-    padding-top: 0.35rem;
-}
-
-.layout-sidebar .layout-root-menuitem > .layout-menuitem-root-text {
-    font-size: 0.72rem;
-    padding: 0.35rem 0.75rem;
-    letter-spacing: 0.01em;
-    margin-bottom: 0.15rem;
-}
-
-.layout-sidebar .layout-menu > li > a,
-.layout-sidebar .layout-menu a {
-    padding: 0.45rem 0.9rem;
-    gap: 0.5rem;
-    font-size: 0.92rem;
-}
-
-.layout-sidebar .layout-menu .layout-menuitem-icon {
-    width: 28px;
-    height: 28px;
-    border-radius: 4px;
-    font-size: 0.92rem;
-}
-
-.layout-sidebar .layout-menu ul a {
-    padding: 0.4rem 1rem;
-    font-size: 0.9rem;
-}
-
-/* Reduce deep nesting indents to keep items compact */
-.layout-sidebar .layout-menu ul li a { margin-left: 0.5rem; padding-left: 0.75rem; }
-.layout-sidebar .layout-menu ul li li a { margin-left: 1rem; padding-left: 0.75rem; }
-.layout-sidebar .layout-menu ul li li li a { margin-left: 1.25rem; padding-left: 0.75rem; }
-
-/* Slightly bolder active states but compact */
-.layout-sidebar .layout-menu a.active-route,
-.layout-sidebar .layout-menu a.active-menuitem {
+/* Optional badge pill (e.g. a future "Warranty Claims" count) — matches the
+   design's 10.5px / red-bg pill radius-99 spec. Not currently populated by
+   any menu item (no counts are fabricated), kept for forward compatibility. */
+.layout-menu .menu-item-badge {
+    font-size: 10.5px;
     font-weight: 600;
-    color: var(--primary-color);
-}
-
-/* Keep hover affordance but subtle */
-.layout-sidebar .layout-menu a:hover {
-    background: var(--surface-hover);
-}
-
-/* Keep transitions smooth but snappy */
-.layout-sidebar .layout-menu a,
-.layout-sidebar .layout-menu .layout-menuitem-icon {
-    transition: background-color .1s ease, color .1s ease, transform .12s ease;
+    background: var(--red-bg);
+    color: var(--red);
+    border-radius: 99px;
+    padding: 1px 7px;
+    line-height: 1.4;
+    flex-shrink: 0;
 }
 
 /* ========================================
@@ -260,12 +147,8 @@
         /* Menu items: center icons, hide text */
         a {
             justify-content: center;
-            padding: 0.625rem !important;
+            padding: 7px !important;
             position: relative;
-
-            .layout-menuitem-icon {
-                margin-right: 0 !important;
-            }
 
             /* Hide text labels */
             .layout-menuitem-text {
@@ -277,15 +160,6 @@
             /* Hide submenu toggle arrow */
             .layout-submenu-toggler {
                 display: none;
-            }
-        }
-
-        /* Nested menu items */
-        ul {
-            li a {
-                margin-left: 0 !important;
-                padding-left: 0 !important;
-                justify-content: center;
             }
         }
     }
@@ -302,11 +176,7 @@
             /* Restore normal menu item layout */
             a {
                 justify-content: flex-start;
-                padding: 0.625rem 1.25rem !important;
-
-                .layout-menuitem-icon {
-                    margin-right: 0.75rem !important;
-                }
+                padding: 7px 10px !important;
 
                 /* Show text labels */
                 .layout-menuitem-text {
@@ -319,22 +189,6 @@
                     display: block;
                 }
             }
-
-            /* Restore nested menu indents */
-            ul {
-                li a {
-                    margin-left: 0.5rem !important;
-                    padding-left: 0.75rem !important;
-                    justify-content: flex-start;
-                }
-                li li a {
-                    margin-left: 1rem !important;
-                }
-                li li li a {
-                    margin-left: 1.25rem !important;
-                }
-            }
         }
     }
 }
-

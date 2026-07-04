@@ -1,572 +1,316 @@
 <p-toast></p-toast>
 
-<div class="dashboard">
-  <!-- Header Section -->
-  <div class="dashboard-header">
-    <div class="header-left">
-      <h1 class="page-title">Dashboard</h1>
-      <p class="page-subtitle">Business performance overview</p>
+<div class="dash">
+
+  <!-- ══════════════════ Page header ══════════════════ -->
+  <div class="dash-header">
+    <div class="dash-header-left">
+      <h1 class="dash-title">Dashboard</h1>
+      <span class="dash-subtitle">
+        Business performance
+        @if (resolvedStartDate && resolvedEndDate) {
+          <span>&middot; {{ getPeriodLabel() }}</span>
+        }
+      </span>
     </div>
-    <div class="header-right">
-      <div class="period-selector">
+    <div class="dash-header-right">
+      <div class="period-pill">
+        <i class="pi pi-calendar"></i>
         <p-select
           [(ngModel)]="selectedPeriod"
           [options]="periodOptions"
           optionLabel="label"
           optionValue="value"
           (onChange)="onPeriodChange()"
-          placeholder="Select Period"
           styleClass="period-select">
         </p-select>
-        @if (showCustomDateRange) {
-          <p-datepicker
-            [(ngModel)]="startDate"
-            placeholder="Start Date"
-            dateFormat="M dd, yy"
-            [showIcon]="true"
-            appendTo="body"
-            styleClass="date-input">
-          </p-datepicker>
-          <p-datepicker
-            [(ngModel)]="endDate"
-            placeholder="End Date"
-            dateFormat="M dd, yy"
-            [showIcon]="true"
-            appendTo="body"
-            styleClass="date-input">
-          </p-datepicker>
-          <button class="btn-apply" (click)="loadDashboard()">
-            <i class="pi pi-check"></i>
-            Apply
-          </button>
-        }
+        <i class="pi pi-angle-down period-chevron"></i>
       </div>
-      <button class="btn-refresh" (click)="loadDashboard()" [disabled]="loading()"
+      @if (showCustomDateRange) {
+        <p-datepicker
+          [(ngModel)]="startDate"
+          placeholder="Start Date"
+          dateFormat="M dd, yy"
+          [showIcon]="true"
+          appendTo="body"
+          styleClass="date-input">
+        </p-datepicker>
+        <p-datepicker
+          [(ngModel)]="endDate"
+          placeholder="End Date"
+          dateFormat="M dd, yy"
+          [showIcon]="true"
+          appendTo="body"
+          styleClass="date-input">
+        </p-datepicker>
+        <button class="shell-btn shell-btn-icon" (click)="loadDashboard()" pTooltip="Apply range" tooltipPosition="bottom">
+          <i class="pi pi-check"></i>
+        </button>
+      }
+      <button class="shell-btn shell-btn-icon" (click)="loadDashboard()" [disabled]="loading()"
         pTooltip="Refresh" tooltipPosition="bottom">
         <i class="pi pi-refresh" [class.pi-spin]="loading()"></i>
+      </button>
+      <button class="shell-btn">
+        <i class="pi pi-download"></i> Export
       </button>
     </div>
   </div>
 
-  <!-- Period info bar (#3) -->
-  @if (resolvedStartDate && !loading()) {
-    <div class="period-info-bar">
-      <i class="pi pi-calendar"></i>
-      <span>Showing data for: <strong>{{ getPeriodLabel() }}</strong></span>
+  <!-- ══════════════════ Loading skeleton ══════════════════ -->
+  @if (loading()) {
+    <div class="kpi-row">
+      @for (i of [1,2,3,4]; track i) {
+        <p-skeleton height="112px" styleClass="skeleton-card"></p-skeleton>
+      }
+    </div>
+    <p-skeleton height="80px" styleClass="skeleton-card"></p-skeleton>
+    <div class="chart-row">
+      <p-skeleton height="340px" styleClass="skeleton-card"></p-skeleton>
+      <p-skeleton height="340px" styleClass="skeleton-card"></p-skeleton>
+    </div>
+    <div class="tables-row">
+      <p-skeleton height="320px" styleClass="skeleton-card"></p-skeleton>
+      <p-skeleton height="320px" styleClass="skeleton-card"></p-skeleton>
     </div>
   }
 
-  <!-- Improved skeleton (#10): matches actual layout -->
-  <ng-container *ngIf="loading()">
-    <div class="skeleton-section">
-      <div class="loading-grid-4">
-        <div class="skeleton-card" *ngFor="let i of [1,2,3,4]">
-          <p-skeleton height="90px" styleClass="skeleton-item"></p-skeleton>
-        </div>
-      </div>
-    </div>
-    <div class="skeleton-section">
-      <div class="loading-grid-3">
-        <div class="skeleton-card" *ngFor="let i of [1,2,3]">
-          <p-skeleton height="80px" styleClass="skeleton-item"></p-skeleton>
-        </div>
-      </div>
-    </div>
-    <div class="skeleton-section">
-      <div class="loading-grid-4">
-        <div class="skeleton-card" *ngFor="let i of [1,2,3,4]">
-          <p-skeleton height="80px" styleClass="skeleton-item"></p-skeleton>
-        </div>
-      </div>
-    </div>
-    <div class="skeleton-section">
-      <div class="loading-grid-chart">
-        <div class="skeleton-card">
-          <p-skeleton height="320px" styleClass="skeleton-item"></p-skeleton>
-        </div>
-        <div class="skeleton-card">
-          <p-skeleton height="320px" styleClass="skeleton-item"></p-skeleton>
-        </div>
-      </div>
-    </div>
-    <div class="skeleton-section">
-      <div class="loading-grid-chart">
-        <div class="skeleton-card">
-          <p-skeleton height="240px" styleClass="skeleton-item"></p-skeleton>
-        </div>
-        <div class="skeleton-card">
-          <p-skeleton height="240px" styleClass="skeleton-item"></p-skeleton>
-        </div>
-      </div>
-    </div>
-  </ng-container>
-
-  <!-- Error state (#9) -->
-  <ng-container *ngIf="!loading() && hasError()">
+  <!-- ══════════════════ Error state ══════════════════ -->
+  @if (!loading() && hasError()) {
     <div class="empty-full-state">
       <i class="pi pi-exclamation-circle"></i>
       <h3>Failed to load dashboard</h3>
       <p>Could not retrieve data from the server. Check your connection and try again.</p>
-      <button class="btn-apply" (click)="loadDashboard()">
+      <button class="shell-btn shell-btn-accent" (click)="loadDashboard()">
         <i class="pi pi-refresh"></i> Retry
       </button>
     </div>
-  </ng-container>
+  }
 
-  <!-- Dashboard Content -->
-  <ng-container *ngIf="!loading() && !hasError() && dashboardData()">
+  <!-- ══════════════════ Dashboard content ══════════════════ -->
+  @if (!loading() && !hasError() && dashboardData(); as data) {
 
-    <!-- Alert Strip (#13) -->
-    <div class="alert-strip" *ngIf="hasAlerts">
-      <div class="alert-item alert-warning" *ngIf="dashboardData()!.summary.lowStockItemsCount > 0"
-        pTooltip="Parts below minimum stock level" tooltipPosition="bottom">
-        <i class="pi pi-exclamation-triangle"></i>
-        <span><strong>{{ dashboardData()!.summary.lowStockItemsCount }}</strong> low stock items</span>
-      </div>
-      <div class="alert-item alert-danger" *ngIf="dashboardData()!.summary.customerOverdueAmount > 0"
-        pTooltip="Customers with unpaid invoices older than 30 days" tooltipPosition="bottom">
-        <i class="pi pi-users"></i>
-        <span>Customer overdue: <strong>{{ formatCurrency(dashboardData()!.summary.customerOverdueAmount) }}</strong>
-          ({{ dashboardData()!.summary.customerOverdueCount }} customers)</span>
-      </div>
-      <div class="alert-item alert-danger" *ngIf="dashboardData()!.summary.supplierOverdueAmount > 0"
-        pTooltip="Suppliers with delivered goods past expected payment date" tooltipPosition="bottom">
-        <i class="pi pi-truck"></i>
-        <span>Supplier overdue: <strong>{{ formatCurrency(dashboardData()!.summary.supplierOverdueAmount) }}</strong>
-          ({{ dashboardData()!.summary.supplierOverdueCount }} suppliers)</span>
-      </div>
-    </div>
-
-    <!-- ══════════════════════════════════════════════════════════
-         SECTION 1 — Key Metrics
-         ═══════════════════════════════════════════════════════ -->
-    <div class="section">
-      <div class="section-header">
-        <h2 class="section-title">Key Metrics</h2>
-      </div>
-      <div class="kpi-grid kpi-grid-4">
-        <div class="kpi-card">
-          <div class="kpi-icon kpi-icon-blue">
-            <i class="pi pi-shopping-cart"></i>
+    <!-- Alert strip (existing feature — kept, restyled) -->
+    @if (hasAlerts) {
+      <div class="alert-strip">
+        @if (data.summary.lowStockItemsCount > 0) {
+          <div class="alert-item alert-amber" pTooltip="Parts below minimum stock level" tooltipPosition="bottom">
+            <i class="pi pi-exclamation-triangle"></i>
+            <span><strong>{{ data.summary.lowStockItemsCount }}</strong> low stock items</span>
           </div>
-          <div class="kpi-content">
-            <span class="kpi-value" [pTooltip]="formatCurrency(dashboardData()!.summary.totalSales)" tooltipPosition="top">{{ formatCurrency(dashboardData()!.summary.totalSales) }}</span>
-            <span class="kpi-label">Total Sales</span>
-            <span class="kpi-meta">{{ dashboardData()!.summary.totalSalesCount }} orders
-              · avg {{ formatCurrency(dashboardData()!.summary.averageSaleValue) }}</span>
-          </div>
-        </div>
-
-        <div class="kpi-card">
-          <div class="kpi-icon kpi-icon-green">
-            <i class="pi pi-chart-line"></i>
-          </div>
-          <div class="kpi-content">
-            <span class="kpi-value" [pTooltip]="formatCurrency(dashboardData()!.summary.totalRevenue)" tooltipPosition="top">{{ formatCurrency(dashboardData()!.summary.totalRevenue) }}</span>
-            <span class="kpi-label">Revenue Collected</span>
-            <span class="kpi-meta">
-              Paid invoices: {{ formatCurrency(dashboardData()!.summary.cashSales) }}
-              · On credit: {{ formatCurrency(dashboardData()!.summary.creditSales) }}
-            </span>
-          </div>
-        </div>
-
-        <div class="kpi-card">
-          <div class="kpi-icon kpi-icon-orange">
-            <i class="pi pi-wallet"></i>
-          </div>
-          <div class="kpi-content">
-            <span class="kpi-value" [pTooltip]="formatCurrency(dashboardData()!.summary.totalExpenses)" tooltipPosition="top">{{ formatCurrency(dashboardData()!.summary.totalExpenses) }}</span>
-            <span class="kpi-label">Total Expenses</span>
-            <span class="kpi-meta">Purchases + Daily Expenses (accrual)</span>
-          </div>
-        </div>
-
-        <div class="kpi-card"
-          [class.kpi-card-success]="dashboardData()!.summary.netProfit >= 0"
-          [class.kpi-card-danger]="dashboardData()!.summary.netProfit < 0">
-          <div class="kpi-icon"
-            [class.kpi-icon-green]="dashboardData()!.summary.netProfit >= 0"
-            [class.kpi-icon-red]="dashboardData()!.summary.netProfit < 0">
-            <i class="pi pi-chart-bar"></i>
-          </div>
-          <div class="kpi-content">
-            <span class="kpi-value" [class.text-danger]="dashboardData()!.summary.netProfit < 0"
-              [pTooltip]="formatCurrency(dashboardData()!.summary.netProfit)" tooltipPosition="top">{{ formatCurrency(dashboardData()!.summary.netProfit) }}</span>
-            <span class="kpi-label">Net Profit</span>
-            <span class="kpi-meta" [class]="getProfitMarginClass(dashboardData()!.summary.profitMargin)">
-              {{ formatPercent(dashboardData()!.summary.profitMargin) }} margin
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ══════════════════════════════════════════════════════════
-         SECTION 2 — Business Insights (#4 — previously hidden metrics)
-         ═══════════════════════════════════════════════════════ -->
-    <div class="section">
-      <div class="section-header">
-        <h2 class="section-title">Business Insights</h2>
-      </div>
-      <div class="kpi-grid kpi-grid-4">
-        <div class="kpi-card kpi-card-compact">
-          <div class="kpi-icon kpi-icon-indigo">
-            <i class="pi pi-chart-pie"></i>
-          </div>
-          <div class="kpi-content">
-            <span class="kpi-value" [class.text-danger]="dashboardData()!.summary.grossProfit < 0"
-              [pTooltip]="formatCurrency(dashboardData()!.summary.grossProfit)" tooltipPosition="top">{{ formatCurrency(dashboardData()!.summary.grossProfit) }}</span>
-            <span class="kpi-label">Gross Profit</span>
-            <span class="kpi-meta">Before daily expenses</span>
-          </div>
-        </div>
-
-        <div class="kpi-card kpi-card-compact">
-          <div class="kpi-icon kpi-icon-blue">
-            <i class="pi pi-tag"></i>
-          </div>
-          <div class="kpi-content">
-            <span class="kpi-value" [pTooltip]="formatCurrency(dashboardData()!.summary.averageSaleValue)" tooltipPosition="top">{{ formatCurrency(dashboardData()!.summary.averageSaleValue) }}</span>
-            <span class="kpi-label">Avg Sale Value</span>
-            <span class="kpi-meta">Per order this period</span>
-          </div>
-        </div>
-
-        <div class="kpi-card kpi-card-compact">
-          <div class="kpi-icon kpi-icon-teal">
-            <i class="pi pi-user-plus"></i>
-          </div>
-          <div class="kpi-content">
-            <span class="kpi-value">{{ dashboardData()!.summary.newCustomers }}</span>
-            <span class="kpi-label">New Customers</span>
-            <span class="kpi-meta">of {{ dashboardData()!.summary.totalCustomers }} total</span>
-          </div>
-        </div>
-
-        <div class="kpi-card kpi-card-compact">
-          <div class="kpi-icon kpi-icon-purple">
-            <i class="pi pi-box"></i>
-          </div>
-          <div class="kpi-content">
-            <span class="kpi-value">{{ dashboardData()!.summary.lowStockItemsCount }}</span>
-            <span class="kpi-label">Low Stock Items</span>
-            <span class="kpi-meta">Value: {{ formatCurrency(dashboardData()!.summary.lowStockValue) }} · as of today</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ══════════════════════════════════════════════════════════
-         SECTION 3 — Expense Breakdown
-         ═══════════════════════════════════════════════════════ -->
-    <div class="section">
-      <div class="section-header">
-        <h2 class="section-title">Expense Breakdown</h2>
-      </div>
-      <div class="kpi-grid kpi-grid-3">
-        <div class="kpi-card kpi-card-compact">
-          <div class="kpi-icon kpi-icon-purple">
-            <i class="pi pi-box"></i>
-          </div>
-          <div class="kpi-content">
-            <span class="kpi-value" [pTooltip]="formatCurrency(dashboardData()!.summary.totalPurchases)" tooltipPosition="top">{{ formatCurrency(dashboardData()!.summary.totalPurchases) }}</span>
-            <span class="kpi-label">Inventory Purchases</span>
-            <span class="kpi-meta">{{ dashboardData()!.summary.totalPurchasesCount }} orders
-              · avg {{ formatCurrency(dashboardData()!.summary.averagePurchaseValue) }}</span>
-          </div>
-        </div>
-
-        <div class="kpi-card kpi-card-compact">
-          <div class="kpi-icon kpi-icon-red">
-            <i class="pi pi-credit-card"></i>
-          </div>
-          <div class="kpi-content">
-            <span class="kpi-value" [pTooltip]="formatCurrency(dashboardData()!.summary.dailyExpenses)" tooltipPosition="top">{{ formatCurrency(dashboardData()!.summary.dailyExpenses) }}</span>
-            <span class="kpi-label">Daily Expenses</span>
-            <span class="kpi-meta">{{ dashboardData()!.summary.dailyExpensesCount }} entries</span>
-          </div>
-        </div>
-
-        <div class="kpi-card kpi-card-compact">
-          <div class="kpi-icon kpi-icon-teal">
-            <i class="pi pi-send"></i>
-          </div>
-          <div class="kpi-content">
-            <span class="kpi-value" [pTooltip]="formatCurrency(dashboardData()!.summary.supplierPaymentsMade)" tooltipPosition="top">{{ formatCurrency(dashboardData()!.summary.supplierPaymentsMade) }}</span>
-            <span class="kpi-label">Supplier Payments</span>
-            <span class="kpi-meta">Paid to vendors</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ══════════════════════════════════════════════════════════
-         SECTION 4 — Outstanding & Cash Position (#4, #5)
-         ═══════════════════════════════════════════════════════ -->
-    <div class="section">
-      <div class="section-header">
-        <h2 class="section-title">Outstanding & Cash Position</h2>
-      </div>
-      <div class="kpi-grid kpi-grid-4">
-        <div class="kpi-card kpi-card-compact">
-          <div class="kpi-icon kpi-icon-orange">
+        }
+        @if (data.summary.customerOverdueAmount > 0) {
+          <div class="alert-item alert-red" pTooltip="Customers with unpaid invoices older than 30 days" tooltipPosition="bottom">
             <i class="pi pi-users"></i>
+            <span>Customer overdue: <strong>{{ formatCurrency(data.summary.customerOverdueAmount) }}</strong>
+              ({{ data.summary.customerOverdueCount }})</span>
           </div>
-          <div class="kpi-content">
-            <span class="kpi-value" [pTooltip]="formatCurrency(dashboardData()!.summary.customerDueAmount)" tooltipPosition="top">{{ formatCurrency(dashboardData()!.summary.customerDueAmount) }}</span>
-            <span class="kpi-label">Customer Due</span>
-            <span class="kpi-meta">{{ dashboardData()!.summary.customerDueCount }} customers · as of today</span>
-          </div>
-        </div>
-
-        <div class="kpi-card kpi-card-compact">
-          <div class="kpi-icon kpi-icon-orange">
+        }
+        @if (data.summary.supplierOverdueAmount > 0) {
+          <div class="alert-item alert-red" pTooltip="Suppliers with delivered goods past expected payment date" tooltipPosition="bottom">
             <i class="pi pi-truck"></i>
+            <span>Supplier overdue: <strong>{{ formatCurrency(data.summary.supplierOverdueAmount) }}</strong>
+              ({{ data.summary.supplierOverdueCount }})</span>
           </div>
-          <div class="kpi-content">
-            <span class="kpi-value" [pTooltip]="formatCurrency(dashboardData()!.summary.supplierDueAmount)" tooltipPosition="top">{{ formatCurrency(dashboardData()!.summary.supplierDueAmount) }}</span>
-            <span class="kpi-label">Supplier Due</span>
-            <span class="kpi-meta">{{ dashboardData()!.summary.supplierDueCount }} suppliers · as of today</span>
+        }
+      </div>
+    }
+
+    <!-- ══════════════════ KPI row ══════════════════ -->
+    <div class="kpi-row">
+      <div class="kpi-card">
+        <div class="kpi-top">
+          <span class="kpi-label">Total Sales</span>
+        </div>
+        <div class="kpi-value">{{ formatCurrency(data.summary.totalSales) }}</div>
+        <div class="kpi-sub">{{ data.summary.totalSalesCount }} orders &middot; avg {{ formatCurrency(data.summary.averageSaleValue) }}</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-top">
+          <span class="kpi-label">Revenue Collected</span>
+        </div>
+        <div class="kpi-value">{{ formatCurrency(data.summary.totalRevenue) }}</div>
+        <div class="kpi-sub">Cash {{ formatCurrency(data.summary.cashSales) }} &middot; credit {{ formatCurrency(data.summary.creditSales) }}</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-top">
+          <span class="kpi-label">Total Expenses</span>
+        </div>
+        <div class="kpi-value">{{ formatCurrency(data.summary.totalExpenses) }}</div>
+        <div class="kpi-sub">Purchases + daily expenses</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-top">
+          <span class="kpi-label">Net Profit</span>
+        </div>
+        <div class="kpi-value" [class.kpi-value-red]="data.summary.netProfit < 0">{{ formatCurrency(data.summary.netProfit) }}</div>
+        <div class="kpi-sub">{{ formatPercent(data.summary.profitMargin) }} margin</div>
+      </div>
+    </div>
+
+    <!-- ══════════════════ Insight strip ══════════════════ -->
+    <div class="insight-strip">
+      <div class="insight-cell">
+        <span class="insight-label">Gross Profit</span>
+        <span class="insight-value" [class.insight-value-red]="data.summary.grossProfit < 0">{{ formatCurrency(data.summary.grossProfit) }}</span>
+        <span class="insight-sub">Before daily expenses</span>
+      </div>
+      <div class="insight-cell">
+        <span class="insight-label">Avg Sale Value</span>
+        <span class="insight-value">{{ formatCurrency(data.summary.averageSaleValue) }}</span>
+        <span class="insight-sub">Per order</span>
+      </div>
+      <div class="insight-cell">
+        <span class="insight-label">New Customers</span>
+        <span class="insight-value">{{ data.summary.newCustomers }}</span>
+        <span class="insight-sub">of {{ data.summary.totalCustomers }} total</span>
+      </div>
+      <div class="insight-cell">
+        <span class="insight-label">Low Stock Items</span>
+        <span class="insight-value">{{ data.summary.lowStockItemsCount }}</span>
+        <span class="insight-sub">As of today</span>
+      </div>
+      <div class="insight-cell">
+        <span class="insight-label">Customer Due</span>
+        <span class="insight-value" [class.insight-value-amber]="data.summary.customerDueAmount > 0">{{ formatCurrency(data.summary.customerDueAmount) }}</span>
+        <span class="insight-sub">{{ data.summary.customerDueCount }} customer{{ data.summary.customerDueCount === 1 ? '' : 's' }}</span>
+      </div>
+      <div class="insight-cell insight-cell-last">
+        <span class="insight-label">Supplier Due</span>
+        <span class="insight-value">{{ formatCurrency(data.summary.supplierDueAmount) }}</span>
+        <span class="insight-sub">{{ data.summary.supplierDueCount }} supplier{{ data.summary.supplierDueCount === 1 ? '' : 's' }}</span>
+      </div>
+    </div>
+
+    <!-- ══════════════════ Chart + Cash Flow ══════════════════ -->
+    <div class="chart-row">
+      <div class="dash-card chart-card">
+        <div class="chart-card-header">
+          <div class="chart-card-title-block">
+            <span class="dash-card-title">Sales &amp; Profit Trend</span>
+            <span class="dash-card-sub">Daily totals, this period</span>
+          </div>
+          <div class="chart-legend">
+            <span class="legend-item"><span class="legend-swatch legend-sales"></span>Sales</span>
+            <span class="legend-item"><span class="legend-swatch legend-purch"></span>Purchases</span>
+            <span class="legend-item"><span class="legend-swatch legend-profit"></span>Profit</span>
           </div>
         </div>
+        @if (!hasChartData) {
+          <div class="chart-empty-state">
+            <i class="pi pi-chart-line"></i>
+            <p>No trend data for this period</p>
+          </div>
+        } @else {
+          <div class="chart-container">
+            <p-chart type="line" [data]="salesTrendChartData" [options]="salesTrendChartOptions" height="280px"></p-chart>
+          </div>
+        }
+      </div>
 
-        <div class="kpi-card kpi-card-compact">
-          <div class="kpi-icon kpi-icon-blue">
-            <i class="pi pi-box"></i>
-          </div>
-          <div class="kpi-content">
-            <span class="kpi-value" [pTooltip]="formatCurrency(dashboardData()!.summary.inventoryValue)" tooltipPosition="top">{{ formatCurrency(dashboardData()!.summary.inventoryValue) }}</span>
-            <span class="kpi-label">Inventory Value</span>
-            <span class="kpi-meta">Current stock at cost · as of today</span>
-          </div>
+      <div class="dash-card cashflow-card">
+        <span class="dash-card-title">Cash Flow</span>
+        <div class="cashflow-row">
+          <span class="cashflow-label">Opening Balance</span>
+          <span class="cashflow-value">{{ formatCurrency(data.summary.openingBalance) }}</span>
         </div>
-
-        <div class="kpi-card kpi-card-compact kpi-card-highlight">
-          <div class="kpi-icon kpi-icon-green">
-            <i class="pi pi-wallet"></i>
-          </div>
-          <div class="kpi-content">
-            <span class="kpi-value" [class.text-danger]="dashboardData()!.summary.closingBalance < 0"
-              [pTooltip]="formatCurrency(dashboardData()!.summary.closingBalance)" tooltipPosition="top">{{ formatCurrency(dashboardData()!.summary.closingBalance) }}</span>
-            <span class="kpi-label">Closing Balance</span>
-            <span class="kpi-meta">Opening: {{ formatCurrency(dashboardData()!.summary.openingBalance) }}</span>
-          </div>
+        <div class="cashflow-row">
+          <span class="cashflow-label">Cash Inflow</span>
+          <span class="cashflow-value cashflow-value-green">+{{ formatCurrency(data.summary.cashInflow) }}</span>
+        </div>
+        <div class="cashflow-row">
+          <span class="cashflow-label">Cash Outflow</span>
+          <span class="cashflow-value">&minus;{{ formatCurrency(data.summary.cashOutflow) }}</span>
+        </div>
+        <div class="cashflow-footer">
+          <span>Closing Balance</span>
+          <span class="cashflow-footer-value">{{ formatCurrency(data.summary.closingBalance) }}</span>
         </div>
       </div>
     </div>
 
-    <!-- ══════════════════════════════════════════════════════════
-         SECTION 5 — Charts & Cash Flow
-         ═══════════════════════════════════════════════════════ -->
-    <div class="section">
-      <div class="charts-row">
-        <!-- Sales Trend Chart -->
-        <div class="chart-card chart-card-wide">
-          <div class="card-header">
-            <h3 class="card-title">
-              <i class="pi pi-chart-line"></i>
-              Sales &amp; Profit Trend
-            </h3>
-          </div>
-          <div class="card-body">
-            <!-- Chart empty state (#9) -->
-            <div *ngIf="!hasChartData" class="chart-empty-state">
-              <i class="pi pi-chart-line"></i>
-              <p>No trend data for this period</p>
-            </div>
-            <div class="chart-container" *ngIf="hasChartData">
-              <p-chart type="line" [data]="salesTrendChartData" [options]="salesTrendChartOptions" height="280px"></p-chart>
-            </div>
-          </div>
+    <!-- ══════════════════ Tables ══════════════════ -->
+    <div class="tables-row">
+      <div class="dash-card table-card">
+        <div class="table-card-header">
+          <span class="dash-card-title">Top Products</span>
         </div>
-
-        <!-- Cash Flow Summary (#5 — opening balance added) -->
-        <div class="chart-card">
-          <div class="card-header">
-            <h3 class="card-title">
-              <i class="pi pi-wallet"></i>
-              Cash Flow
-            </h3>
+        <div class="dash-table-head dash-table-head-products">
+          <span>Product</span>
+          <span class="col-right">Qty</span>
+          <span class="col-right">Revenue</span>
+          <span class="col-right">Profit</span>
+          <span class="col-right">Margin</span>
+        </div>
+        @for (product of data.topProducts; track product.partId) {
+          <div class="dash-table-row dash-table-head-products">
+            <div class="cell-primary">
+              <span class="cell-title">{{ product.partName }}</span>
+              <span class="cell-sub">{{ product.sku }}</span>
+            </div>
+            <span class="col-right cell-muted">{{ formatNumber(product.quantitySold) }}</span>
+            <span class="col-right cell-strong">{{ formatCurrency(product.totalRevenue) }}</span>
+            <span class="col-right" [class.cell-green]="product.totalProfit > 0" [class.cell-red]="product.totalProfit < 0">{{ formatCurrency(product.totalProfit) }}</span>
+            <span class="col-right">
+              <span class="margin-pill" [class.margin-pill-positive]="getMarginPercent(product.totalRevenue, product.totalProfit) > 0">
+                {{ formatPercent(getMarginPercent(product.totalRevenue, product.totalProfit)) }}
+              </span>
+            </span>
           </div>
-          <div class="card-body">
-            <div class="cash-flow-list">
-              <div class="flow-item flow-opening">
-                <div class="flow-icon">
-                  <i class="pi pi-history"></i>
-                </div>
-                <div class="flow-details">
-                  <span class="flow-label">Opening Balance</span>
-                  <span class="flow-value">{{ formatCurrency(dashboardData()!.summary.openingBalance) }}</span>
-                </div>
-              </div>
+        } @empty {
+          <div class="dash-table-empty">
+            <i class="pi pi-inbox"></i>
+            <span>No product sales in this period</span>
+          </div>
+        }
+      </div>
 
-              <div class="flow-item flow-in">
-                <div class="flow-icon">
-                  <i class="pi pi-arrow-down-left"></i>
-                </div>
-                <div class="flow-details">
-                  <span class="flow-label">Cash Inflow</span>
-                  <span class="flow-value text-success">{{ formatCurrency(dashboardData()!.summary.cashInflow) }}</span>
-                </div>
-              </div>
-
-              <div class="flow-item flow-out">
-                <div class="flow-icon">
-                  <i class="pi pi-arrow-up-right"></i>
-                </div>
-                <div class="flow-details">
-                  <span class="flow-label">Cash Outflow</span>
-                  <span class="flow-value text-danger">{{ formatCurrency(dashboardData()!.summary.cashOutflow) }}</span>
-                </div>
-              </div>
-
-              <div class="flow-divider"></div>
-
-              <div class="flow-item flow-net"
-                [class.flow-net-danger]="dashboardData()!.summary.closingBalance < 0">
-                <div class="flow-icon">
-                  <i class="pi pi-wallet"></i>
-                </div>
-                <div class="flow-details">
-                  <span class="flow-label">Closing Balance</span>
-                  <!-- Fix #12: use component property instead of template expression -->
-                  <span class="flow-value">{{ formatCurrency(dashboardData()!.summary.closingBalance) }}</span>
-                </div>
+      <div class="dash-card table-card">
+        <div class="table-card-header">
+          <span class="dash-card-title">Top Customers</span>
+        </div>
+        <div class="dash-table-head dash-table-head-customers">
+          <span>Customer</span>
+          <span class="col-right">Orders</span>
+          <span class="col-right">Revenue</span>
+          <span class="col-right">Last</span>
+        </div>
+        @for (customer of data.topCustomers; track customer.customerId) {
+          <div class="dash-table-row dash-table-head-customers">
+            <div class="cell-with-avatar">
+              <div class="avatar-circle">{{ getInitials(customer.customerName) }}</div>
+              <div class="cell-primary">
+                <span class="cell-title">{{ customer.customerName }}</span>
+                <span class="cell-sub">{{ customer.phone }}</span>
               </div>
             </div>
+            <span class="col-right cell-muted">{{ customer.totalOrders }}</span>
+            <span class="col-right cell-strong">{{ formatCurrency(customer.totalRevenue) }}</span>
+            <span class="col-right cell-muted small">{{ formatShortDate(customer.lastPurchaseDate) }}</span>
           </div>
-        </div>
+        } @empty {
+          <div class="dash-table-empty">
+            <i class="pi pi-inbox"></i>
+            <span>No customer activity in this period</span>
+          </div>
+        }
       </div>
     </div>
+  }
 
-    <!-- ══════════════════════════════════════════════════════════
-         SECTION 6 — Tables Row (#6 — added lastPurchaseDate)
-         ═══════════════════════════════════════════════════════ -->
-    <div class="section">
-      <div class="tables-row">
-        <!-- Top Products -->
-        <div class="table-card">
-          <div class="card-header">
-            <h3 class="card-title">
-              <i class="pi pi-star"></i>
-              Top Products
-            </h3>
-          </div>
-          <div class="card-body no-padding">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th class="col-rank">#</th>
-                  <th>Product</th>
-                  <th class="col-number">Qty</th>
-                  <th class="col-amount">Revenue</th>
-                  <th class="col-amount">Profit</th>
-                  <th class="col-amount">Margin</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let product of dashboardData()!.topProducts; let i = index">
-                  <td>
-                    <span class="rank-badge" [class.rank-top]="i < 3">{{ i + 1 }}</span>
-                  </td>
-                  <td>
-                    <div class="product-info">
-                      <span class="product-name">{{ product.partName }}</span>
-                      <span class="product-sku">{{ product.sku }}</span>
-                    </div>
-                  </td>
-                  <td class="col-number">{{ formatNumber(product.quantitySold) }}</td>
-                  <td class="col-amount">{{ formatCurrency(product.totalRevenue) }}</td>
-                  <td class="col-amount"
-                    [class.text-success]="product.totalProfit > 0"
-                    [class.text-danger]="product.totalProfit < 0">
-                    {{ formatCurrency(product.totalProfit) }}
-                  </td>
-                  <td class="col-amount">
-                    <span [class]="getProfitMarginClass(product.totalRevenue > 0 ? (product.totalProfit / product.totalRevenue) * 100 : 0)">
-                      {{ formatPercent(product.totalRevenue > 0 ? (product.totalProfit / product.totalRevenue) * 100 : 0) }}
-                    </span>
-                  </td>
-                </tr>
-                <tr *ngIf="dashboardData()!.topProducts.length === 0">
-                  <td colspan="6" class="empty-state">
-                    <i class="pi pi-inbox"></i>
-                    <span>No product sales in this period</span>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Top Customers (#6 — lastPurchaseDate added) -->
-        <div class="table-card">
-          <div class="card-header">
-            <h3 class="card-title">
-              <i class="pi pi-users"></i>
-              Top Customers
-            </h3>
-          </div>
-          <div class="card-body no-padding">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th class="col-rank">#</th>
-                  <th>Customer</th>
-                  <th class="col-number">Orders</th>
-                  <th class="col-amount">Revenue</th>
-                  <th class="col-amount">Due</th>
-                  <th class="col-date">Last Purchase</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let customer of dashboardData()!.topCustomers; let i = index">
-                  <td>
-                    <span class="rank-badge" [class.rank-top]="i < 3">{{ i + 1 }}</span>
-                  </td>
-                  <td>
-                    <div class="customer-info">
-                      <span class="customer-name">{{ customer.customerName }}</span>
-                      <span class="customer-phone">{{ customer.phone }}</span>
-                    </div>
-                  </td>
-                  <td class="col-number">{{ customer.totalOrders }}</td>
-                  <td class="col-amount">{{ formatCurrency(customer.totalRevenue) }}</td>
-                  <td class="col-amount" [class.text-danger]="customer.outstandingAmount > 0">
-                    {{ customer.outstandingAmount > 0 ? formatCurrency(customer.outstandingAmount) : '—' }}
-                  </td>
-                  <td class="col-date">
-                    <span class="date-text" [class.text-muted]="!customer.lastPurchaseDate">
-                      {{ formatDate(customer.lastPurchaseDate) }}
-                    </span>
-                  </td>
-                </tr>
-                <tr *ngIf="dashboardData()!.topCustomers.length === 0">
-                  <td colspan="6" class="empty-state">
-                    <i class="pi pi-inbox"></i>
-                    <span>No customer activity in this period</span>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-
-  </ng-container>
-
-  <!-- Empty state when no data and no error (#9) -->
-  <ng-container *ngIf="!loading() && !hasError() && !dashboardData()">
+  <!-- ══════════════════ Empty state (no data, no error) ══════════════════ -->
+  @if (!loading() && !hasError() && !dashboardData()) {
     <div class="empty-full-state">
       <i class="pi pi-chart-bar"></i>
       <h3>No data available</h3>
       <p>Select a period and click refresh to load your business overview.</p>
-      <button class="btn-apply" (click)="loadDashboard()">
+      <button class="shell-btn shell-btn-accent" (click)="loadDashboard()">
         <i class="pi pi-refresh"></i> Load Dashboard
       </button>
     </div>
-  </ng-container>
+  }
 
 </div>

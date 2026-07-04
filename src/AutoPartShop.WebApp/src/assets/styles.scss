@@ -526,7 +526,7 @@ body.storefront-scroll .layout-main-container {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-y: contain;
     /* Desktop: calculate height based on viewport minus topbar */
-    height: calc(100vh - 70px);
+    height: calc(100vh - 56px);
 }
 
 .layout-main {
@@ -562,9 +562,9 @@ body.storefront-scroll .layout-main-container {
     }
 
     .layout-main-container {
-        height: calc(100vh - 70px);
+        height: calc(100vh - 56px);
         position: fixed;
-        top: 70px;
+        top: 56px;
         left: 0;
         right: 0;
         bottom: 0;
@@ -593,17 +593,17 @@ body.storefront-scroll .layout-main-container {
 /* Extra small devices - phones in portrait */
 @media (max-width: 575px) {
     .layout-main-container {
-        height: calc(100vh - 60px);
-        top: 60px;
+        height: calc(100vh - 56px);
+        top: 56px;
     }
 
     .layout-topbar {
-        height: 60px !important;
+        height: 56px !important;
     }
 
     .layout-sidebar {
-        top: 60px !important;
-        height: calc(100vh - 60px) !important;
+        top: 56px !important;
+        height: calc(100vh - 56px) !important;
     }
 
     .form-actions {
@@ -620,14 +620,14 @@ body.storefront-scroll .layout-main-container {
 .layout-topbar {
     display: flex !important;
     align-items: center !important;
-    justify-content: space-between !important;
-    height: 70px !important;
+    justify-content: flex-start !important;
+    height: 56px !important;
 }
 
 .layout-topbar .topbar-title {
     display: flex !important;
     align-items: center !important;
-    height: 70px !important;
+    height: 56px !important;
 }
 
 .layout-topbar .topbar-title h1 {
@@ -638,18 +638,13 @@ body.storefront-scroll .layout-main-container {
 .layout-topbar .topbar-search {
     display: flex !important;
     align-items: center !important;
-    height: 70px !important;
-}
-
-.layout-topbar .topbar-search .p-input-icon-left {
-    display: flex !important;
-    align-items: center !important;
+    height: 34px !important;
 }
 
 .layout-topbar .topbar-actions {
     display: flex !important;
     align-items: center !important;
-    height: 70px !important;
+    height: 56px !important;
 }
 
 .layout-topbar .topbar-action-btn {
@@ -662,7 +657,7 @@ body.storefront-scroll .layout-main-container {
 .layout-topbar .user-menu-container {
     display: flex !important;
     align-items: center !important;
-    height: 70px !important;
+    height: 56px !important;
 }
 
 .layout-topbar .user-menu-btn {
@@ -694,7 +689,7 @@ body.storefront-scroll .layout-main-container {
     .layout-topbar {
         left: 0 !important;
         padding: 0 1rem !important;
-        height: 70px !important;
+        height: 56px !important;
     }
 
     .layout-main-container {
@@ -705,9 +700,9 @@ body.storefront-scroll .layout-main-container {
     .layout-sidebar {
         transform: translateX(-100%);
         left: 0 !important;
-        top: 70px !important;
-        height: calc(100vh - 70px) !important;
-        width: 280px !important;
+        top: 56px !important;
+        height: calc(100vh - 56px) !important;
+        width: 248px !important;
     }
 
     .layout-wrapper.layout-mobile-active .layout-sidebar {
@@ -718,13 +713,13 @@ body.storefront-scroll .layout-main-container {
 /* Extra small devices (phones portrait) */
 @media (max-width: 575px) {
     .layout-topbar {
-        height: 60px !important;
+        height: 56px !important;
         padding: 0 0.75rem !important;
     }
 
     .layout-sidebar {
-        top: 60px !important;
-        height: calc(100vh - 60px) !important;
+        top: 56px !important;
+        height: calc(100vh - 56px) !important;
     }
 }
 

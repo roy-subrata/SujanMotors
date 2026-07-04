@@ -51,16 +51,25 @@ interface StaffNotification {
             <h1>{{ pageTitle() }}</h1>
         </div>
 
+        <!-- Presentational global search (no search backend wired up yet — visual only,
+             matches the design reference which is likewise a static, non-functional box) -->
+        <div class="topbar-search" pTooltip="Search coming soon" tooltipPosition="bottom">
+            <i class="pi pi-search"></i>
+            <span class="topbar-search-placeholder">Search parts, invoices, customers…</span>
+            <span class="topbar-search-kbd">⌘K</span>
+        </div>
+
         <!-- Actions -->
         <div class="topbar-actions">
             <!-- Quick Sale -->
             <button
                 type="button"
-                class="topbar-action-btn quick-sale-shortcut-btn"
+                class="quick-sale-btn"
                 (click)="navigateToQuickSaleShortcut()"
                 pTooltip="Quick Sale (POS)"
                 tooltipPosition="bottom">
                 <i class="pi pi-bolt"></i>
+                <span>New Sale</span>
             </button>
 
             <!-- Language Switcher -->
