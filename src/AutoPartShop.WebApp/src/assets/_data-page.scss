@@ -12,30 +12,39 @@
 /* ==================== DESIGN TOKENS ====================
    "Modern SaaS" palette — slate accent, white bordered cards, no
    gradients. Same variable names as before so every rule below (and
-   every page using them) picks up the new look automatically. */
+   every page using them) picks up the new look automatically.
+
+   Values alias the theme-aware tokens from assets/layout/_tokens.scss
+   (the dashboard's own palette) instead of hardcoded hex, so every data
+   page automatically flips under `.app-dark` exactly like the dashboard
+   does — these two token sets used identical light-mode hex values but
+   only _tokens.scss had a dark-mode override, so data pages (Parts and
+   every other list page) were staying light-themed even with dark mode
+   toggled on. The few tokens with no dashboard equivalent get their own
+   `.app-dark` override further down. */
 :root {
-  --color-primary: #0F172A;
+  --color-primary: var(--accent);
   --color-primary-hover: #1E293B;
   --color-primary-light: #F1F5F9;
-  --color-success: #0D8A53;
-  --color-success-light: #E9F7F0;
-  --color-warning: #B26A00;
-  --color-warning-light: #FDF3E2;
-  --color-danger: #D63841;
-  --color-danger-light: #FDEEEF;
+  --color-success: var(--green);
+  --color-success-light: var(--green-bg);
+  --color-warning: var(--amber);
+  --color-warning-light: var(--amber-bg);
+  --color-danger: var(--red);
+  --color-danger-light: var(--red-bg);
   --color-info: #3B82F6;
   --color-info-light: #DBEAFE;
 
-  --color-text-primary: #0F172A;
-  --color-text-secondary: #5B6472;
-  --color-text-muted: #8A93A2;
+  --color-text-primary: var(--text);
+  --color-text-secondary: var(--text2);
+  --color-text-muted: var(--text3);
 
-  --color-bg-primary: #FFFFFF;
-  --color-bg-secondary: #FAFAFB;
-  --color-bg-tertiary: #F4F5F7;
+  --color-bg-primary: var(--surface);
+  --color-bg-secondary: var(--surface2);
+  --color-bg-tertiary: var(--bg);
 
-  --color-border: #E6E8EC;
-  --color-border-light: #EEF0F3;
+  --color-border: var(--border);
+  --color-border-light: var(--border2);
 
   --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.08);
@@ -58,18 +67,25 @@
   --font-sans: 'Instrument Sans', system-ui, -apple-system, sans-serif;
 }
 
+/* Dark-mode overrides for the handful of tokens with no direct equivalent
+   in assets/layout/_tokens.scss (everything else aliases that file's own
+   `.app-dark` block above, so it flips automatically). */
+.app-dark {
+  --color-primary-hover: #CBD5E1;
+  --color-primary-light: var(--surface2);
+  --color-info: #60A5FA;
+  --color-info-light: #1E3A5F;
+}
+
 /* ==================== PAGE WRAPPER ====================
-   Top padding intentionally omitted — the shared `.layout-main` wrapper
-   (assets/layout/_main.scss) already adds top padding around every routed
-   page, so adding our own here was doubling the space above the header.
-   The extra -16px pulls the header up flush with the dashboard's own gap
-   (same trick as the dashboard's `.dash` container) so both pages sit at
-   the same vertical position under the topbar. */
+   Width cap/centering and the top-gap tightening now live on the shared
+   `.layout-main` wrapper (assets/layout/_main.scss) so every routed page
+   gets the same margin as the dashboard — this container only adds its
+   own bottom padding. */
 .page-wrapper {
   min-height: 100%;
   background-color: var(--color-bg-tertiary);
-  margin-top: -16px;
-  padding: 0 var(--page-gutter-x) var(--page-gutter-y);
+  padding: 0 0 var(--page-gutter-y);
   font-family: var(--font-sans);
 }
 
@@ -79,7 +95,17 @@
    count (see PageHeaderComponent.subtitleLine) instead of a separate
    stats badge. */
 .page-header {
+  /* Resets the legacy card look from assets/layout/_main.scss's own
+     .page-header rule (border/box-shadow/margin-bottom) — that rule only
+     has its background/padding overridden here since both selectors share
+     the same specificity, so the leftover properties were still leaking
+     through as a faint card behind the plain header, plus an extra 24px
+     of margin-bottom the dashboard's header never has. */
   background: transparent;
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+  margin-bottom: 0;
   padding: 0 0 16px;
 }
 
@@ -135,7 +161,7 @@
   gap: 6px;
   padding: 8px 14px;
   background: var(--color-primary);
-  color: #ffffff;
+  color: var(--accent-fg);
   border: none;
   border-radius: var(--radius-md);
   font-size: 13px;

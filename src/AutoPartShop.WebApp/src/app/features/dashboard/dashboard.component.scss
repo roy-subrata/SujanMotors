@@ -10,15 +10,10 @@
 }
 
 .dash {
-  max-width: 1440px;
-  width: 100%;
-  // Top/left/right padding intentionally omitted — the shared `.layout-main`
-  // wrapper (assets/layout/_main.scss) already adds padding around every
-  // routed page, so our own padding was stacking on top of it. `margin: auto`
-  // (not a fixed value) keeps this centered on ultra-wide screens, which is
-  // why the extra top tightening uses a negative margin but the left/right
-  // side doesn't — negative margins conflict with `auto` centering.
-  margin: -16px auto 0;
+  // Width cap/centering and the top-gap tightening now live on the shared
+  // `.layout-main` wrapper (assets/layout/_main.scss) so every routed page
+  // gets the same margin — this container only adds its own bottom padding
+  // and vertical rhythm between sections.
   padding: 0 0 40px;
   display: flex;
   flex-direction: column;
