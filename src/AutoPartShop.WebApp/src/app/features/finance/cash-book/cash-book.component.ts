@@ -10,6 +10,8 @@ import { SelectModule } from 'primeng/select';
 import { MessageService } from 'primeng/api';
 import { CashBookService, DailyCashBook, LedgerRow, CashBookEntry } from '../services/cash-book.service';
 import { CurrencyService } from '@/shared/services/currency.service';
+import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
+import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 
 type Preset = 'today' | 'yesterday' | 'this_week' | 'this_month' | 'custom';
 type ViewMode = 'ledger' | 'split';
@@ -20,7 +22,7 @@ const CREDIT_METHODS = new Set(['DUE', 'PART_PAY']);
 @Component({
   selector: 'app-cash-book',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, ToastModule, TableModule, DatePickerModule, TooltipModule, SelectModule],
+  imports: [CommonModule, FormsModule, RouterModule, ToastModule, TableModule, DatePickerModule, TooltipModule, SelectModule, PageContainerComponent, PageHeaderComponent],
   providers: [MessageService],
   templateUrl: './cash-book.component.html',
   styleUrls: ['./cash-book.component.css']
