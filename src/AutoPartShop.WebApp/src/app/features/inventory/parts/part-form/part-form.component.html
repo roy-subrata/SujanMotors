@@ -6,7 +6,7 @@
     <div class="header-content">
       <div class="header-left">
         <div class="pf-breadcrumb">
-          <a (click)="onCancel()" class="pf-back"><i class="pi pi-arrow-left"></i> Parts</a>
+          <a (click)="onCancel()" class="pf-back">Parts</a>
           <i class="pi pi-chevron-right pf-sep"></i>
           <span>{{ isEditMode ? 'Edit' : isViewMode ? 'View' : 'New Part' }}</span>
         </div>
@@ -18,7 +18,6 @@
       <div class="header-actions">
         <div class="action-buttons">
           <button class="btn-secondary" type="button" (click)="onCancel()" [disabled]="isSubmitting">
-            <i class="pi pi-arrow-left"></i>
             <span>{{ isViewMode ? 'Back' : 'Cancel' }}</span>
           </button>
           <button *ngIf="!isViewMode" class="btn-primary" type="button" (click)="onSubmit()" [disabled]="isSubmitting">

@@ -151,9 +151,6 @@
             <th class="col-category">Category</th>
             <th class="col-brand">Brand</th>
             <th class="col-price">Cost</th>
-            <th class="col-price">Selling</th>
-            <th class="col-stock">Min Stock</th>
-            <th class="col-warranty">Warranty</th>
             <th class="col-status">Status</th>
             <th class="col-actions">Actions</th>
           </tr>
@@ -163,16 +160,9 @@
           <tr class="data-row" [class.row-inactive]="!part.isActive" (dblclick)="viewPart(part)">
             <!-- Part -->
             <td class="col-part">
-              <div class="cell-media">
-                <div class="cell-avatar" [class.inactive]="!part.isActive">
-                  {{ (part.name || 'P')[0].toUpperCase() }}
-                </div>
-                <div class="cell-stack">
-                  <span class="cell-primary">{{ part.name }}</span>
-                  <span *ngIf="part.localName" class="cell-secondary">{{ part.localName }}</span>
-                  <span class="cell-secondary">SKU: {{ part.sku }} | PN: {{ part.partNumber }}</span>
-                  <span *ngIf="part.vehicleFit" class="cell-secondary" style="font-size:0.7rem;color:#888">Fits: {{ part.vehicleFit }}</span>
-                </div>
+              <div class="cell-stack">
+                <span class="cell-primary">{{ part.name }}</span>
+                <span *ngIf="part.localName" class="cell-secondary">{{ part.localName }}</span>
               </div>
             </td>
 
@@ -181,18 +171,6 @@
 
             <td class="col-price">
               <span class="amount-value" [class.coded-price]="priceCodeService.getDisplayPrice(part.costPrice) !== null">{{ formatCostPrice(part.costPrice) }}</span>
-            </td>
-
-            <td class="col-price"><span class="amount-value">{{ formatCurrency(part.sellingPrice) }}</span></td>
-
-            <td class="col-stock"><span class="amount-value">{{ part.minimumStock }}</span></td>
-
-            <td class="col-warranty">
-              <span *ngIf="part.hasWarranty" class="warranty-pill">
-                Yes
-                <span class="warranty-meta">{{ part.warrantyPeriodMonths }}mo</span>
-              </span>
-              <span *ngIf="!part.hasWarranty" class="text-muted">-</span>
             </td>
 
             <td class="col-status">
@@ -213,7 +191,7 @@
 
         <ng-template #emptymessage>
           <tr>
-            <td colspan="9">
+            <td colspan="6">
               <div class="empty-state">
                 <div class="empty-icon"><i class="pi pi-box"></i></div>
                 <h3>No Parts Found</h3>
@@ -243,9 +221,6 @@
             <td><div class="skeleton skeleton-text-sm"></div></td>
             <td><div class="skeleton skeleton-text-sm"></div></td>
             <td><div class="skeleton skeleton-text-sm"></div></td>
-            <td><div class="skeleton skeleton-text-sm"></div></td>
-            <td><div class="skeleton skeleton-text-sm"></div></td>
-            <td><div class="skeleton skeleton-badge"></div></td>
             <td><div class="skeleton skeleton-badge"></div></td>
             <td><div class="skeleton skeleton-actions"></div></td>
           </tr>
@@ -298,7 +273,6 @@
 
         <div class="card-body">
           <div class="card-customer">
-            <div class="customer-avatar small">{{ (part.name || 'P')[0].toUpperCase() }}</div>
             <span class="customer-name">{{ part.name }}</span>
           </div>
           <div class="card-dates">
@@ -310,10 +284,6 @@
           <div class="card-amount">
             <span class="amount-label">Cost</span>
             <span class="amount-value" [class.coded-price]="priceCodeService.getDisplayPrice(part.costPrice) !== null">{{ formatCostPrice(part.costPrice) }}</span>
-          </div>
-          <div class="card-amount">
-            <span class="amount-label">Selling</span>
-            <span class="amount-value">{{ formatCurrency(part.sellingPrice) }}</span>
           </div>
           <button class="btn-card-action" (click)="showActionMenu($event, part); $event.stopPropagation()">
             <i class="pi pi-ellipsis-h"></i>
