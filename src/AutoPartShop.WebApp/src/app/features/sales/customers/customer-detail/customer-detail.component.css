@@ -9,11 +9,12 @@
 /* Integrated Customer Header */
 /* ========================= */
 .customer-header-section {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 0.875rem 1.25rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  color: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  color: var(--color-text-primary);
 }
 
 /* Top Bar: Back, Title, Actions */
@@ -31,22 +32,22 @@
 }
 
 .back-button {
-  background-color: rgba(255, 255, 255, 0.15) !important;
-  border: 1px solid rgba(255, 255, 255, 0.25) !important;
-  color: white !important;
+  background-color: var(--color-bg-secondary) !important;
+  border: 1px solid var(--color-border) !important;
+  color: var(--color-text-primary) !important;
   width: 32px;
   height: 32px;
   padding: 0 !important;
 }
 
 .back-button:hover {
-  background-color: rgba(255, 255, 255, 0.25) !important;
+  background-color: var(--color-bg-tertiary) !important;
 }
 
 .header-title {
   font-size: 1rem;
   font-weight: 600;
-  color: white;
+  color: var(--color-text-primary);
 }
 
 .header-actions {
@@ -61,24 +62,24 @@
 }
 
 .action-btn-primary {
-  background-color: rgba(255, 255, 255, 0.95) !important;
-  color: #667eea !important;
+  background-color: var(--color-primary) !important;
+  color: var(--accent-fg) !important;
   border: none !important;
   font-weight: 600 !important;
 }
 
 .action-btn-primary:hover {
-  background-color: white !important;
+  background-color: var(--color-primary-hover) !important;
 }
 
 .action-btn-secondary {
-  background-color: rgba(255, 255, 255, 0.15) !important;
-  color: white !important;
-  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  background-color: var(--color-bg-primary) !important;
+  color: var(--color-primary) !important;
+  border: 1px solid var(--color-border) !important;
 }
 
 .action-btn-secondary:hover {
-  background-color: rgba(255, 255, 255, 0.25) !important;
+  background-color: var(--color-bg-secondary) !important;
 }
 
 /* Profile Section */
@@ -112,7 +113,7 @@
 .customer-name {
   font-size: 1.125rem;
   font-weight: 700;
-  color: white;
+  color: var(--color-text-primary);
   margin: 0;
   line-height: 1.2;
 }
@@ -122,10 +123,10 @@
   align-items: center;
   gap: 0.25rem;
   padding: 0.125rem 0.5rem;
-  background-color: rgba(255, 255, 255, 0.15);
+  background-color: var(--color-bg-tertiary);
   border-radius: 0.75rem;
   font-size: 0.7rem;
-  color: rgba(255, 255, 255, 0.95);
+  color: var(--color-text-secondary);
   font-weight: 500;
 }
 
@@ -139,18 +140,18 @@
 .customer-code {
   font-family: 'Courier New', monospace;
   font-size: 0.8125rem;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--color-text-secondary);
   font-weight: 600;
 }
 
 .separator {
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--color-text-muted);
   font-size: 0.75rem;
 }
 
 .company-name {
   font-size: 0.8125rem;
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--color-text-secondary);
   font-style: italic;
 }
 
@@ -166,7 +167,7 @@
   gap: 0.5rem;
   padding: 0.5rem 0.75rem;
   border-radius: 6px;
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: var(--color-bg-secondary);
   backdrop-filter: blur(4px);
   min-width: 115px;
 }
@@ -189,7 +190,7 @@
 
 .stat-label {
   font-size: 0.625rem;
-  color: rgba(255, 255, 255, 0.75);
+  color: var(--color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   font-weight: 500;
@@ -198,30 +199,30 @@
 .stat-value {
   font-size: 0.9375rem;
   font-weight: 700;
-  color: white;
+  color: var(--color-text-primary);
   font-family: 'Courier New', monospace;
   line-height: 1.2;
 }
 
 /* Stat Color Variants */
 .stat-blue .stat-icon {
-  background-color: rgba(59, 130, 246, 0.3);
-  color: #93c5fd;
+  background-color: var(--color-info-light);
+  color: var(--color-info);
 }
 
 .stat-orange .stat-icon {
-  background-color: rgba(245, 158, 11, 0.3);
-  color: #fcd34d;
+  background-color: var(--color-warning-light);
+  color: var(--color-warning);
 }
 
 .stat-purple .stat-icon {
-  background-color: rgba(168, 85, 247, 0.3);
-  color: #d8b4fe;
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
 }
 
 .stat-green .stat-icon {
-  background-color: rgba(16, 185, 129, 0.3);
-  color: #6ee7b7;
+  background-color: var(--color-success-light);
+  color: var(--color-success);
 }
 
 /* Contact Row */
@@ -231,7 +232,7 @@
   gap: 0.5rem;
   flex-wrap: wrap;
   padding-top: 0.625rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  border-top: 1px solid var(--color-border);
 }
 
 .contact-item {
@@ -239,16 +240,16 @@
   align-items: center;
   gap: 0.375rem;
   font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--color-text-secondary);
 }
 
 .contact-item i {
-  color: rgba(255, 255, 255, 0.65);
+  color: var(--color-text-muted);
   font-size: 0.75rem;
 }
 
 .contact-divider {
-  color: rgba(255, 255, 255, 0.25);
+  color: var(--color-text-muted);
   font-size: 0.625rem;
 }
 
@@ -266,8 +267,8 @@
   align-items: center;
   gap: 1rem;
   padding: 1rem 1.25rem;
-  background: white;
-  border: 1px solid #e5e7eb;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -275,8 +276,8 @@
 }
 
 .quick-link-card:hover {
-  border-color: #667eea;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+  border-color: var(--color-primary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   transform: translateY(-2px);
 }
 
@@ -292,18 +293,18 @@
 }
 
 .quick-link-icon.ql-blue {
-  background: linear-gradient(135deg, #eff6ff, #dbeafe);
-  color: #3b82f6;
+  background: linear-gradient(135deg, var(--color-primary-light), var(--color-primary-light));
+  color: var(--color-primary);
 }
 
 .quick-link-icon.ql-purple {
-  background: linear-gradient(135deg, #f5f3ff, #ede9fe);
-  color: #8b5cf6;
+  background: linear-gradient(135deg, var(--color-primary-light), var(--color-primary-light));
+  color: var(--color-primary);
 }
 
 .quick-link-icon.ql-green {
-  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
-  color: #22c55e;
+  background: linear-gradient(135deg, var(--color-success-light), var(--color-success-light));
+  color: var(--color-success);
 }
 
 .quick-link-content {
@@ -316,22 +317,22 @@
 .quick-link-title {
   font-size: 0.9375rem;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--color-text-primary);
 }
 
 .quick-link-desc {
   font-size: 0.75rem;
-  color: #9ca3af;
+  color: var(--color-text-muted);
 }
 
 .quick-link-arrow {
-  color: #d1d5db;
+  color: var(--color-border);
   font-size: 0.875rem;
   transition: color 0.2s ease;
 }
 
 .quick-link-card:hover .quick-link-arrow {
-  color: #667eea;
+  color: var(--color-primary);
 }
 
 /* Responsive */
@@ -456,8 +457,8 @@
 /* ── Vehicles Section ─────────────────────────────────────────── */
 .vehicles-section {
   margin-top: 1rem;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
   border-radius: 0.5rem;
   padding: 1rem 1.25rem 1.25rem;
 }
@@ -475,11 +476,11 @@
   gap: 0.5rem;
   font-size: 0.9375rem;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--color-text-primary);
 }
 
 .vehicles-title i {
-  color: #6366f1;
+  color: var(--color-primary);
 }
 
 .vehicles-count {
@@ -491,8 +492,8 @@
   padding: 0 0.375rem;
   font-size: 0.6875rem;
   font-weight: 600;
-  color: #4338ca;
-  background: #e0e7ff;
+  color: var(--color-primary);
+  background: var(--color-primary-light);
   border-radius: 999px;
 }
 
@@ -501,7 +502,7 @@
   align-items: center;
   gap: 0.5rem;
   padding: 1rem;
-  color: #9ca3af;
+  color: var(--color-text-muted);
   font-size: 0.8125rem;
   justify-content: center;
 }
@@ -516,10 +517,10 @@
   display: flex;
   justify-content: space-between;
   gap: 0.5rem;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-border);
   border-radius: 0.5rem;
   padding: 0.75rem 0.875rem;
-  background: #f9fafb;
+  background: var(--color-bg-secondary);
 }
 
 .vehicle-card-main {
@@ -529,13 +530,13 @@
 .vehicle-reg {
   font-size: 0.9375rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--color-text-primary);
   letter-spacing: 0.02em;
 }
 
 .vehicle-name {
   font-size: 0.8125rem;
-  color: #374151;
+  color: var(--color-text-primary);
   margin-top: 0.125rem;
 }
 
@@ -545,7 +546,7 @@
   gap: 0.5rem 0.75rem;
   margin-top: 0.375rem;
   font-size: 0.6875rem;
-  color: #6b7280;
+  color: var(--color-text-secondary);
 }
 
 .vehicle-meta i {
@@ -557,7 +558,7 @@
 .vehicle-notes {
   margin-top: 0.375rem;
   font-size: 0.6875rem;
-  color: #9ca3af;
+  color: var(--color-text-muted);
   word-break: break-word;
 }
 
@@ -589,11 +590,11 @@
 .vehicle-form label {
   font-size: 0.75rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--color-text-primary);
 }
 
 .vehicle-form .required {
-  color: #ef4444;
+  color: var(--color-danger);
 }
 
 .vehicle-form input,
@@ -603,6 +604,6 @@
 }
 
 .vehicle-form .field-error {
-  color: #ef4444;
+  color: var(--color-danger);
   font-size: 0.6875rem;
 }
