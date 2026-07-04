@@ -9,36 +9,39 @@
    and mobile cards so every list page lines up exactly.
    ============================================================ */
 
-/* ==================== DESIGN TOKENS ==================== */
+/* ==================== DESIGN TOKENS ====================
+   "Modern SaaS" palette — slate accent, white bordered cards, no
+   gradients. Same variable names as before so every rule below (and
+   every page using them) picks up the new look automatically. */
 :root {
-  --color-primary: #4F46E5;
-  --color-primary-hover: #4338CA;
-  --color-primary-light: #EEF2FF;
-  --color-success: #10B981;
-  --color-success-light: #D1FAE5;
-  --color-warning: #F59E0B;
-  --color-warning-light: #FEF3C7;
-  --color-danger: #EF4444;
-  --color-danger-light: #FEE2E2;
+  --color-primary: #0F172A;
+  --color-primary-hover: #1E293B;
+  --color-primary-light: #F1F5F9;
+  --color-success: #0D8A53;
+  --color-success-light: #E9F7F0;
+  --color-warning: #B26A00;
+  --color-warning-light: #FDF3E2;
+  --color-danger: #D63841;
+  --color-danger-light: #FDEEEF;
   --color-info: #3B82F6;
   --color-info-light: #DBEAFE;
 
-  --color-text-primary: #1E293B;
-  --color-text-secondary: #64748B;
-  --color-text-muted: #94A3B8;
+  --color-text-primary: #0F172A;
+  --color-text-secondary: #5B6472;
+  --color-text-muted: #8A93A2;
 
   --color-bg-primary: #FFFFFF;
-  --color-bg-secondary: #F8FAFC;
-  --color-bg-tertiary: #F1F5F9;
+  --color-bg-secondary: #FAFAFB;
+  --color-bg-tertiary: #F4F5F7;
 
-  --color-border: #E2E8F0;
-  --color-border-light: #F1F5F9;
+  --color-border: #E6E8EC;
+  --color-border-light: #EEF0F3;
 
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.08);
 
-  --radius-sm: 6px;
+  --radius-sm: 8px;
   --radius-md: 8px;
   --radius-lg: 12px;
   --radius-full: 9999px;
@@ -49,23 +52,26 @@
   /* Page rhythm — the single knob that keeps every page's gutters equal */
   --page-gutter-x: 20px;
   --page-gutter-y: 16px;
-  --page-header-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #6B8DD6 100%);
+
+  --font-sans: 'Instrument Sans', system-ui, -apple-system, sans-serif;
 }
 
 /* ==================== PAGE WRAPPER ==================== */
 .page-wrapper {
   min-height: 100%;
-  background-color: var(--color-bg-secondary);
+  background-color: var(--color-bg-tertiary);
+  padding: var(--page-gutter-y) var(--page-gutter-x);
+  font-family: var(--font-sans);
 }
 
-/* ==================== PAGE HEADER ==================== */
+/* ==================== PAGE HEADER ====================
+   Plain background — no gradient banner. Title/subtitle on the left,
+   actions on the right. The subtitle line also carries the record
+   count (see PageHeaderComponent.subtitleLine) instead of a separate
+   stats badge. */
 .page-header {
-  background: var(--page-header-gradient);
-  padding: 12px var(--page-gutter-x);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  box-shadow: 0 2px 12px rgba(102, 126, 234, 0.25);
+  background: transparent;
+  padding: 0 0 16px;
 }
 
 .page-header .header-content {
@@ -78,27 +84,25 @@
 .page-header .header-left {
   flex: 1;
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  gap: 2px;
   min-width: 0;
 }
 
 .page-header .page-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #ffffff;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--color-text-primary);
   margin: 0;
-  line-height: 1.2;
+  line-height: 1.25;
   letter-spacing: -0.01em;
   white-space: nowrap;
 }
 
 .page-header .page-subtitle {
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.75);
+  color: var(--color-text-secondary);
   margin: 0;
-  padding-left: 12px;
-  border-left: 1px solid rgba(255, 255, 255, 0.3);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -111,154 +115,93 @@
   flex-shrink: 0;
 }
 
-.page-header .stats-badge {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  background: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: var(--radius-sm);
-}
+.page-header .action-buttons { display: flex; align-items: center; gap: 8px; }
 
-.page-header .stats-badge > i { font-size: 14px; color: #ffffff; }
-.page-header .stats-info { display: flex; align-items: center; gap: 6px; }
-.page-header .stats-value { font-size: 14px; font-weight: 700; color: #ffffff; line-height: 1; }
-.page-header .stats-label {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.75);
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-
-.page-header .action-buttons { display: flex; align-items: center; gap: 6px; }
-
-/* Header buttons — global so projected page content matches everywhere */
-.page-header .btn-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  background-color: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: var(--radius-sm);
-  color: #ffffff;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.page-header .btn-icon:hover {
-  background-color: rgba(255, 255, 255, 0.25);
-  border-color: rgba(255, 255, 255, 0.3);
-}
-
-.page-header .btn-icon i { font-size: 14px; }
-
-.page-header .btn-primary {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 14px;
-  background: #ffffff;
-  border: none;
-  border-radius: var(--radius-sm);
-  color: #667eea;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
-}
-
-.page-header .btn-primary:hover { background: #f8f9ff; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); }
-.page-header .btn-primary i { font-size: 12px; }
-
-/* Secondary header action — translucent, matches btn-icon language but with a label */
-.page-header .btn-secondary {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 14px;
-  background-color: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: var(--radius-sm);
-  color: #ffffff;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.page-header .btn-secondary:hover {
-  background-color: rgba(255, 255, 255, 0.25);
-  border-color: rgba(255, 255, 255, 0.3);
-}
-
-.page-header .btn-secondary i { font-size: 12px; }
-
-/* ==================== GENERAL BUTTONS (empty states, etc.) ==================== */
+/* ==================== BUTTONS ====================
+   Shared everywhere — header actions, filter bar, empty states. */
 .btn-primary {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 10px 18px;
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
+  padding: 8px 14px;
+  background: var(--color-primary);
   color: #ffffff;
   border: none;
   border-radius: var(--radius-md);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: all var(--transition-fast);
-  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
+  transition: opacity var(--transition-fast);
 }
 
-.btn-primary:hover {
-  background: linear-gradient(135deg, var(--color-primary-hover) 0%, #3730A3 100%);
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
-}
+.btn-primary:hover { opacity: .9; }
+.btn-primary i { font-size: 12px; }
 
-.btn-secondary {
+.btn-secondary,
+.btn-icon {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 18px;
+  gap: 6px;
+  padding: 8px 14px;
   background-color: var(--color-bg-primary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  color: var(--color-text-primary);
-  font-size: 14px;
-  font-weight: 500;
+  color: var(--color-primary);
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: background-color var(--transition-fast);
 }
 
-.btn-secondary:hover { background-color: var(--color-bg-tertiary); border-color: var(--color-text-muted); }
+.btn-secondary:hover,
+.btn-icon:hover { background-color: var(--color-bg-secondary); }
+.btn-secondary i { font-size: 12px; }
 
-/* ==================== FILTER SECTION ==================== */
+.btn-icon {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  justify-content: center;
+  gap: 0;
+}
+
+.btn-icon i { font-size: 14px; }
+
+/* ==================== FILTER SECTION ====================
+   Styled as the top row of the table card — shares the card's left/
+   right/top border and top radius, with a bottom divider instead of
+   its own full border, so it reads as attached to the table below. */
 .filter-section {
   background-color: var(--color-bg-primary);
-  padding: var(--page-gutter-y) var(--page-gutter-x);
+  border: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  padding: 12px 14px;
 }
 
 .filter-container {
   display: flex;
-  align-items: flex-end;
-  gap: 16px;
+  align-items: center;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
-.filter-group { display: flex; flex-direction: column; gap: 6px; }
+.filter-group { display: flex; flex-direction: column; gap: 4px; }
 .filter-group.search-group { flex: 1; min-width: 280px; }
 
-/* Filter dropdowns (PrimeNG p-select) */
-.filter-dropdown { min-width: 180px; }
+/* Filter dropdowns — compact pills (PrimeNG p-select) */
+.filter-dropdown { min-width: 160px; }
 .filter-dropdown .p-select {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  background-color: var(--color-bg-secondary);
+  background-color: var(--color-bg-primary);
+  min-height: 34px;
+}
+.filter-dropdown .p-select .p-select-label {
+  padding: 6px 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-primary);
 }
 .filter-dropdown .p-select:hover { border-color: var(--color-text-muted); }
 .filter-dropdown .p-select.p-focus {
@@ -267,9 +210,9 @@
 }
 
 .filter-label {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
-  color: var(--color-text-secondary);
+  color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -286,8 +229,8 @@
 
 .search-input {
   width: 100%;
-  padding: 10px 40px 10px 42px;
-  font-size: 14px;
+  padding: 8px 36px 8px 38px;
+  font-size: 13px;
   color: var(--color-text-primary);
   background-color: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
@@ -325,39 +268,29 @@
 
 .filter-actions { flex-direction: row; align-items: center; gap: 8px; }
 
-.btn-search {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 16px;
-  background-color: var(--color-primary);
-  border: none;
-  border-radius: var(--radius-md);
-  color: white;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
+/* Search already fires on enter/typing (see search-input), so the explicit
+   "Search" button is redundant in the new design — hidden rather than
+   removed from every page's template (this is a shared-stylesheet-only
+   change; no page markup is touched). */
+.btn-search { display: none; }
 
-.btn-search:hover { background-color: var(--color-primary-hover); }
-
+/* Subtle text button — no border/fill, just tinted text */
 .btn-clear {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 10px 16px;
+  padding: 8px 10px;
   background-color: transparent;
-  border: 1px solid var(--color-danger);
+  border: none;
   border-radius: var(--radius-md);
-  color: var(--color-danger);
-  font-size: 14px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
   font-weight: 500;
   cursor: pointer;
   transition: all var(--transition-fast);
 }
 
-.btn-clear:hover { background-color: var(--color-danger-light); }
+.btn-clear:hover { background-color: var(--color-bg-secondary); color: var(--color-danger); }
 
 .active-filters {
   margin-top: 12px;
@@ -383,15 +316,18 @@
 .filter-chip i { font-size: 10px; cursor: pointer; opacity: 0.7; transition: opacity var(--transition-fast); }
 .filter-chip i:hover { opacity: 1; }
 
-/* ==================== PAGINATION ==================== */
+/* ==================== PAGINATION ====================
+   Closing piece of the filter+table+pagination card. */
 .pagination-section,
 .pagination-section.desktop-only {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px var(--page-gutter-x);
+  padding: 12px 14px;
   background-color: var(--color-bg-primary);
-  border-top: 1px solid var(--color-border);
+  border: 1px solid var(--color-border);
+  border-top: 1px solid var(--color-border-light);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
   flex-wrap: nowrap;
   gap: 12px;
 }
@@ -456,23 +392,28 @@
 /* ==================== DATA TABLE ==================== */
 .table-section { padding: 0; }
 
+/* Middle piece of the filter+table+pagination card: shares the left/
+   right border, no radius/top-border of its own (the filter bar above
+   already provides the seam). */
 .table-container {
   background-color: var(--color-bg-primary);
-  border-top: 1px solid var(--color-border);
+  border-left: 1px solid var(--color-border);
+  border-right: 1px solid var(--color-border);
   overflow: hidden;
 }
 
 :is(.app-table, .custom-table) { font-size: 14px; }
 
 :is(.app-table, .custom-table) .p-datatable-thead > tr > th {
-  background-color: var(--color-bg-tertiary);
-  border-bottom: 1px solid var(--color-border);
+  background-color: var(--color-bg-secondary);
+  border-top: 1px solid var(--color-border-light);
+  border-bottom: 1px solid var(--color-border-light);
   padding: 12px 16px;
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 600;
-  color: var(--color-text-secondary);
+  color: var(--color-text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.07em;
 }
 
 :is(.app-table, .custom-table) .p-datatable-thead > tr > th:first-child { padding-left: var(--page-gutter-x); }
@@ -570,9 +511,9 @@
 .status-pill {
   display: inline-flex;
   align-items: center;
-  padding: 6px 12px;
+  padding: 2px 9px;
   border-radius: var(--radius-full);
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 600;
   text-transform: capitalize;
 }
@@ -588,7 +529,7 @@
 .status-pill[data-status="credited"],
 .status-pill[data-status="delivered"],
 .status-pill[data-status="completed"],
-.status-pill[data-status="paid"]      { background-color: var(--color-success-light); color: #047857; }
+.status-pill[data-status="paid"]      { background-color: var(--color-success-light); color: var(--color-success); }
 
 /* Amber — in-progress / attention states */
 .status-pill[data-status="pending"],
@@ -596,7 +537,7 @@
 .status-pill[data-status="partial"],
 .status-pill[data-status="partially_shipped"],
 .status-pill[data-status="ready_for_delivery"],
-.status-pill[data-status="packed"]    { background-color: var(--color-warning-light); color: #B45309; }
+.status-pill[data-status="packed"]    { background-color: var(--color-warning-light); color: var(--color-warning); }
 
 /* Blue — informational states */
 .status-pill[data-status="info"],
@@ -615,7 +556,7 @@
 .status-pill[data-status="blacklisted"],
 .status-pill[data-status="suspended"],
 .status-pill[data-status="unpaid"],
-.status-pill[data-status="overdue"]   { background-color: var(--color-danger-light); color: #B91C1C; }
+.status-pill[data-status="overdue"]   { background-color: var(--color-danger-light); color: var(--color-danger); }
 
 /* Row action button */
 .action-cell {
@@ -879,7 +820,6 @@
 
 /* ==================== RESPONSIVE ==================== */
 @media (max-width: 1024px) {
-  .page-header .stats-badge { display: none; }
   .page-header .page-subtitle { display: none; }
   .filter-group.search-group { min-width: 200px; }
 }
@@ -887,17 +827,17 @@
 @media (max-width: 768px) {
   :root { --page-gutter-x: 12px; --page-gutter-y: 12px; }
 
-  /* Mobile header — matches the Manage Suppliers page: title hard-left, actions hard-right */
-  .page-header { padding: 10px var(--page-gutter-x); }
+  /* Mobile header — title hard-left, actions hard-right */
+  .page-header { padding: 0 0 12px; }
   .page-header .header-content { flex-direction: row; gap: 12px; align-items: center; justify-content: space-between; }
-  .page-header .header-left { flex: 1 1 auto; justify-content: flex-start; gap: 0; min-width: 0; }
+  .page-header .header-left { flex: 1 1 auto; justify-content: flex-start; min-width: 0; }
   .page-header .header-actions { margin-left: auto; gap: 8px; }
   .page-header .page-title { font-size: 16px; }
-  .page-header .btn-icon { width: 32px; height: 32px; }
-  .page-header .btn-primary span,
-  .page-header .btn-secondary span { display: none; }
-  .page-header .btn-primary { padding: 8px 12px; }
-  .page-header .btn-secondary { padding: 8px 12px; }
+  .btn-icon { width: 32px; height: 32px; }
+  .btn-primary span,
+  .btn-secondary span { display: none; }
+  .btn-primary { padding: 8px 12px; }
+  .btn-secondary { padding: 8px 12px; }
 
   .filter-container { flex-direction: column; gap: 12px; }
   .filter-group { width: 100%; }
@@ -929,12 +869,12 @@
 @media (max-width: 480px) {
   :root { --page-gutter-x: 10px; --page-gutter-y: 10px; }
 
-  .page-header { padding: 8px var(--page-gutter-x); }
+  .page-header { padding: 0 0 8px; }
   .page-header .page-title { font-size: 15px; }
-  .page-header .btn-icon { width: 28px; height: 28px; }
-  .page-header .btn-icon i { font-size: 12px; }
-  .page-header .btn-primary { padding: 6px 10px; font-size: 12px; }
-  .page-header .btn-primary i { font-size: 11px; }
-  .page-header .btn-secondary { padding: 6px 10px; font-size: 12px; }
-  .page-header .btn-secondary i { font-size: 11px; }
+  .btn-icon { width: 28px; height: 28px; }
+  .btn-icon i { font-size: 12px; }
+  .btn-primary { padding: 6px 10px; font-size: 12px; }
+  .btn-primary i { font-size: 11px; }
+  .btn-secondary { padding: 6px 10px; font-size: 12px; }
+  .btn-secondary i { font-size: 11px; }
 }
