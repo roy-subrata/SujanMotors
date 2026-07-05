@@ -49,7 +49,7 @@
 
 .status-label {
   color: var(--color-text-secondary);
-  font-size: 0.875rem;
+  font-size: 12px;
   font-weight: 500;
 }
 
@@ -72,7 +72,7 @@
   display: flex;
   align-items: center;
   gap: 0.375rem;
-  font-size: 0.875rem;
+  font-size: 13px;
   text-decoration: none;
   transition: color 0.2s ease;
 }
@@ -87,12 +87,12 @@
 
 .breadcrumb-current {
   color: var(--color-text-secondary);
-  font-size: 0.875rem;
+  font-size: 13px;
 }
 
 .form-title {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 20px;
   font-weight: 700;
   color: var(--color-text-primary);
   line-height: 1.2;
@@ -101,7 +101,7 @@
 .form-subtitle {
   margin: 0;
   color: var(--color-text-secondary);
-  font-size: 0.875rem;
+  font-size: 13px;
   font-weight: 400;
   line-height: 1.4;
 }
@@ -131,7 +131,7 @@
   background: var(--color-danger-light);
   border: 1px solid var(--color-danger-light);
   color: var(--color-danger);
-  font-size: 0.875rem;
+  font-size: 14px;
 }
 
 .error-box i {
@@ -173,7 +173,7 @@
 
 .section-title {
   margin: 0 0 1rem 0;
-  font-size: 1rem;
+  font-size: 15px;
   font-weight: 600;
   color: var(--color-text-primary);
   display: flex;
@@ -187,11 +187,11 @@
 
 .section-icon {
   color: var(--color-primary);
-  font-size: 1rem;
+  font-size: 15px;
 }
 
 .items-count {
-  font-size: 0.875rem;
+  font-size: 12px;
   font-weight: 500;
   color: var(--color-text-secondary);
   margin-left: 0.5rem;
@@ -220,7 +220,7 @@
 }
 
 .form-group label {
-  font-size: 0.875rem;
+  font-size: 13px;
   font-weight: 500;
   color: var(--color-text-primary);
 }
@@ -236,11 +236,11 @@
   align-items: center;
   gap: 0.375rem;
   color: var(--color-text-secondary);
-  font-size: 0.75rem;
+  font-size: 12px;
 }
 
 .field-hint i {
-  font-size: 0.75rem;
+  font-size: 12px;
 }
 
 /* Autocomplete item styling */
@@ -256,7 +256,7 @@
 }
 
 .item-code {
-  font-size: 0.75rem;
+  font-size: 12px;
   color: var(--color-text-secondary);
 }
 
@@ -275,20 +275,20 @@
 .part-price {
   font-weight: 600;
   color: var(--color-success);
-  font-size: 0.9rem;
+  font-size: 14px;
 }
 
 .part-sub-info {
   display: flex;
   gap: 0.5rem;
-  font-size: 0.75rem;
+  font-size: 12px;
   color: var(--color-text-secondary);
 }
 
 /* Error messages */
 .p-error {
   color: var(--color-danger);
-  font-size: 0.75rem;
+  font-size: 12px;
 }
 
 /* Table wrapper */
@@ -316,7 +316,7 @@
   text-align: left;
   font-weight: 600;
   color: var(--color-text-primary);
-  font-size: 0.875rem;
+  font-size: 13px;
   white-space: nowrap;
 }
 
@@ -358,7 +358,7 @@
 .line-items-table tbody tr td {
   padding: 0.75rem 1rem;
   color: var(--color-text-primary);
-  font-size: 0.9rem;
+  font-size: 14px;
   vertical-align: middle;
 }
 
@@ -415,7 +415,7 @@
 
 .unit-symbol {
   color: var(--color-text-secondary);
-  font-size: 0.75rem;
+  font-size: 12px;
 }
 
 .unit-display,
@@ -428,7 +428,7 @@
 .line-total {
   font-weight: 600;
   color: var(--color-primary);
-  font-size: 1rem;
+  font-size: 14px;
 }
 
 /* Empty lines state */
@@ -446,7 +446,7 @@
 }
 
 .empty-lines i {
-  font-size: 2rem;
+  font-size: 28px;
   margin-bottom: 0.5rem;
 }
 
@@ -472,7 +472,7 @@
   display: block;
   margin-bottom: 0.5rem;
   color: var(--color-text-secondary);
-  font-size: 0.875rem;
+  font-size: 13px;
   font-weight: 500;
 }
 
@@ -486,7 +486,7 @@
   display: block;
   margin-bottom: 0.5rem;
   color: var(--color-text-secondary);
-  font-size: 0.9rem;
+  font-size: 13px;
   font-weight: 400;
 }
 
@@ -494,7 +494,7 @@
   display: block;
   margin-top: 0.375rem;
   color: var(--color-text-muted);
-  font-size: 0.75rem;
+  font-size: 12px;
   font-style: italic;
 }
 
@@ -514,7 +514,7 @@
   align-items: center;
   gap: 0.375rem;
   cursor: pointer;
-  font-size: 0.85rem;
+  font-size: 13px;
   color: var(--color-text-secondary);
   font-weight: 500;
 }
@@ -556,14 +556,14 @@
 
 .summary-item-label {
   color: var(--color-text-secondary);
-  font-size: 0.9rem;
+  font-size: 12px;
   font-weight: 400;
 }
 
 .summary-item-value {
   font-weight: 500;
   color: var(--color-text-primary);
-  font-size: 0.95rem;
+  font-size: 14px;
 }
 
 .summary-item-value.discount {
@@ -586,13 +586,13 @@
 }
 
 .grand-total-label {
-  font-size: 1.1rem;
+  font-size: 15px;
   font-weight: 700;
   color: var(--color-text-primary);
 }
 
 .grand-total-value {
-  font-size: 1.4rem;
+  font-size: 20px;
   font-weight: 700;
   color: var(--color-primary);
 }
@@ -614,13 +614,13 @@
 }
 
 .credit-label {
-  font-size: 0.95rem;
+  font-size: 13px;
   font-weight: 600;
   color: var(--color-success);
 }
 
 .credit-value {
-  font-size: 1.1rem;
+  font-size: 15px;
   font-weight: 700;
   color: var(--color-success);
 }
@@ -660,7 +660,7 @@
   border-radius: 0.5rem;
   background: var(--color-primary);
   color: var(--accent-fg);
-  font-size: 1rem;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   display: flex;
@@ -687,7 +687,7 @@
 }
 
 .submit-button i {
-  font-size: 1.1rem;
+  font-size: 15px;
 }
 
 /* Cancel Button */
@@ -698,7 +698,7 @@
   border-radius: 0.5rem;
   background: var(--color-bg-primary);
   color: var(--color-text-secondary);
-  font-size: 0.95rem;
+  font-size: 13px;
   font-weight: 500;
   cursor: pointer;
   display: flex;
@@ -773,7 +773,7 @@
   }
 
   .form-title {
-    font-size: 1.125rem;
+    font-size: 15px;
   }
 
   .form-subtitle {
@@ -825,15 +825,15 @@
   }
 
   .form-title {
-    font-size: 1rem;
+    font-size: 14px;
   }
 
   .breadcrumb-link {
-    font-size: 0.75rem;
+    font-size: 11px;
   }
 
   .breadcrumb-current {
-    font-size: 0.75rem;
+    font-size: 11px;
   }
 
   .form-content {
@@ -864,16 +864,16 @@
   }
 
   .grand-total-label {
-    font-size: 1rem;
+    font-size: 14px;
   }
 
   .grand-total-value {
-    font-size: 1.2rem;
+    font-size: 18px;
   }
 
   .submit-button {
     min-height: 44px;
-    font-size: 0.95rem;
+    font-size: 13px;
   }
 
   .discount-type-toggle {
@@ -921,7 +921,7 @@
     content: attr(data-label);
     font-weight: 600;
     color: var(--color-text-secondary);
-    font-size: 0.75rem;
+    font-size: 10.5px;
     text-transform: uppercase;
     letter-spacing: 0.3px;
   }

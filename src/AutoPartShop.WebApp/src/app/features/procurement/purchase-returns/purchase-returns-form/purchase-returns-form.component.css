@@ -53,7 +53,7 @@
   display: flex;
   align-items: center;
   gap: 0.375rem;
-  font-size: 0.875rem;
+  font-size: 13px;
   text-decoration: none;
   transition: color 0.2s ease;
 }
@@ -68,12 +68,12 @@
 
 .breadcrumb-current {
   color: var(--color-text-secondary);
-  font-size: 0.875rem;
+  font-size: 13px;
 }
 
 .form-title {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 20px;
   font-weight: 700;
   color: var(--color-text-primary);
   line-height: 1.2;
@@ -87,7 +87,7 @@
 .form-subtitle {
   margin: 0;
   color: var(--color-text-secondary);
-  font-size: 0.875rem;
+  font-size: 13px;
   font-weight: 400;
   line-height: 1.4;
 }
@@ -141,7 +141,7 @@
 
 .section-title {
   margin: 0 0 1rem 0;
-  font-size: 1rem;
+  font-size: 15px;
   font-weight: 600;
   color: var(--color-text-primary);
   display: flex;
@@ -155,11 +155,11 @@
 
 .section-icon {
   color: var(--color-primary);
-  font-size: 1rem;
+  font-size: 15px;
 }
 
 .items-count {
-  font-size: 0.875rem;
+  font-size: 12px;
   font-weight: 500;
   color: var(--color-text-secondary);
   margin-left: 0.5rem;
@@ -188,7 +188,7 @@
 }
 
 .form-group label {
-  font-size: 0.875rem;
+  font-size: 13px;
   font-weight: 500;
   color: var(--color-text-primary);
 }
@@ -211,12 +211,12 @@
   align-items: center;
   gap: 0.375rem;
   color: var(--color-text-secondary);
-  font-size: 0.75rem;
+  font-size: 12px;
   margin-top: 0.5rem;
 }
 
 .field-hint i {
-  font-size: 0.75rem;
+  font-size: 12px;
 }
 
 /* Info box */
@@ -230,7 +230,7 @@
 
 .info-box-title {
   margin: 0 0 0.75rem 0;
-  font-size: 0.9375rem;
+  font-size: 14px;
   font-weight: 600;
   color: var(--color-text-primary);
 }
@@ -248,18 +248,18 @@
 }
 
 .info-label {
-  font-size: 0.8125rem;
+  font-size: 12px;
   color: var(--color-text-secondary);
 }
 
 .info-value {
-  font-size: 0.9375rem;
+  font-size: 14px;
   font-weight: 600;
   color: var(--color-text-primary);
 }
 
 .info-sub {
-  font-size: 0.8125rem;
+  font-size: 12px;
   color: var(--color-text-secondary);
 }
 
@@ -276,7 +276,7 @@
 }
 
 .item-code {
-  font-size: 0.75rem;
+  font-size: 12px;
   color: var(--color-text-secondary);
 }
 
@@ -291,7 +291,7 @@
 /* Error messages */
 .p-error {
   color: var(--color-danger);
-  font-size: 0.75rem;
+  font-size: 12px;
 }
 
 /* Table wrapper */
@@ -319,7 +319,7 @@
   text-align: left;
   font-weight: 600;
   color: var(--color-text-primary);
-  font-size: 0.8125rem;
+  font-size: 13px;
   white-space: nowrap;
 }
 
@@ -373,7 +373,7 @@
 .line-items-table tbody tr td {
   padding: 0.625rem 0.75rem;
   color: var(--color-text-primary);
-  font-size: 0.875rem;
+  font-size: 14px;
   vertical-align: middle;
 }
 
@@ -402,7 +402,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.125rem;
-  font-size: 0.8125rem;
+  font-size: 12px;
 }
 
 .lot-main {
@@ -417,7 +417,7 @@
 }
 
 .lot-supplier {
-  font-size: 0.75rem;
+  font-size: 12px;
   color: var(--color-text-secondary);
 }
 
@@ -426,7 +426,7 @@
 }
 
 .lot-qty {
-  font-size: 0.75rem;
+  font-size: 12px;
   color: var(--color-text-secondary);
 }
 
@@ -442,7 +442,7 @@
 .line-total {
   font-weight: 600;
   color: var(--color-primary);
-  font-size: 0.9375rem;
+  font-size: 14px;
 }
 
 /* Empty lines state */
@@ -460,7 +460,7 @@
 }
 
 .empty-lines i {
-  font-size: 2rem;
+  font-size: 28px;
   margin-bottom: 0.5rem;
 }
 
@@ -497,13 +497,13 @@
 
 .summary-label {
   color: var(--color-text-secondary);
-  font-size: 0.875rem;
+  font-size: 12px;
 }
 
 .grand-total .summary-label {
   font-weight: 600;
   color: var(--color-text-primary);
-  font-size: 1rem;
+  font-size: 15px;
 }
 
 .summary-value {
@@ -514,7 +514,7 @@
 .grand-total .summary-value {
   font-weight: 700;
   color: var(--color-primary);
-  font-size: 1.25rem;
+  font-size: 18px;
 }
 
 /* Form actions */
@@ -535,7 +535,7 @@
 .dialog-description {
   margin: 0 0 1rem 0;
   color: var(--color-text-secondary);
-  font-size: 0.875rem;
+  font-size: 13px;
 }
 
 .empty-dialog {
@@ -548,7 +548,7 @@
 }
 
 .empty-dialog i {
-  font-size: 2rem;
+  font-size: 28px;
   margin-bottom: 0.5rem;
 }
 
@@ -598,18 +598,18 @@
 .item-info .item-name {
   font-weight: 500;
   color: var(--color-text-primary);
-  font-size: 0.9375rem;
+  font-size: 14px;
 }
 
 .item-details {
-  font-size: 0.8125rem;
+  font-size: 12px;
   color: var(--color-text-secondary);
 }
 
 .item-total {
   font-weight: 600;
   color: var(--color-primary);
-  font-size: 0.9375rem;
+  font-size: 14px;
   white-space: nowrap;
 }
 
@@ -700,7 +700,7 @@
   }
 
   .form-title {
-    font-size: 1.125rem;
+    font-size: 15px;
   }
 
   .form-subtitle {
@@ -777,15 +777,15 @@
   }
 
   .form-title {
-    font-size: 1rem;
+    font-size: 14px;
   }
 
   .breadcrumb-link {
-    font-size: 0.75rem;
+    font-size: 11px;
   }
 
   .breadcrumb-current {
-    font-size: 0.75rem;
+    font-size: 11px;
   }
 
   .form-content {
@@ -847,7 +847,7 @@
     content: attr(data-label);
     font-weight: 600;
     color: var(--color-text-secondary);
-    font-size: 0.75rem;
+    font-size: 10.5px;
     text-transform: uppercase;
     letter-spacing: 0.3px;
   }

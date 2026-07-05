@@ -43,7 +43,7 @@
   display: flex;
   align-items: center;
   gap: 0.375rem;
-  font-size: 0.875rem;
+  font-size: 13px;
   text-decoration: none;
   transition: color 0.2s ease;
 }
@@ -58,12 +58,12 @@
 
 .breadcrumb-current {
   color: var(--color-text-secondary);
-  font-size: 0.875rem;
+  font-size: 13px;
 }
 
 .form-title {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 20px;
   font-weight: 700;
   color: var(--color-text-primary);
   line-height: 1.2;
@@ -72,7 +72,7 @@
 .form-subtitle {
   margin: 0;
   color: var(--color-text-secondary);
-  font-size: 0.875rem;
+  font-size: 13px;
   font-weight: 400;
   line-height: 1.4;
 }
@@ -119,7 +119,7 @@
 
 .section-title {
   margin: 0 0 1rem 0;
-  font-size: 1rem;
+  font-size: 15px;
   font-weight: 600;
   color: var(--color-text-primary);
   display: flex;
@@ -129,7 +129,7 @@
 
 .section-icon {
   color: var(--color-info);
-  font-size: 1rem;
+  font-size: 15px;
 }
 
 /* Locked badge for PO context */
@@ -142,12 +142,12 @@
   background: linear-gradient(135deg, var(--color-warning-light) 0%, var(--color-warning-light) 100%);
   color: var(--color-warning);
   border-radius: 9999px;
-  font-size: 0.75rem;
+  font-size: 11px;
   font-weight: 500;
 }
 
 .locked-badge i {
-  font-size: 0.6875rem;
+  font-size: 11px;
 }
 
 .locked-hint {
@@ -164,13 +164,13 @@
   background: var(--color-warning-light);
   color: var(--color-warning);
   border-radius: 9999px;
-  font-size: 0.6875rem;
+  font-size: 11px;
   font-weight: 500;
   vertical-align: middle;
 }
 
 .locked-badge-inline i {
-  font-size: 0.625rem;
+  font-size: 11px;
 }
 
 /* Form rows and groups */
@@ -196,7 +196,7 @@
 }
 
 .form-group label {
-  font-size: 0.875rem;
+  font-size: 13px;
   font-weight: 500;
   color: var(--color-text-primary);
 }
@@ -212,11 +212,11 @@
   align-items: center;
   gap: 0.375rem;
   color: var(--color-text-secondary);
-  font-size: 0.75rem;
+  font-size: 12px;
 }
 
 .field-hint i {
-  font-size: 0.75rem;
+  font-size: 12px;
 }
 
 /* Autocomplete item styling */
@@ -232,7 +232,7 @@
 }
 
 .item-code {
-  font-size: 0.75rem;
+  font-size: 12px;
   color: var(--color-text-secondary);
 }
 
@@ -251,7 +251,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.125rem;
+  font-size: 16px;
   flex-shrink: 0;
 }
 
@@ -301,7 +301,7 @@
 }
 
 .provider-type-badge {
-  font-size: 0.6875rem;
+  font-size: 11px;
   font-weight: 500;
   padding: 0.125rem 0.5rem;
   border-radius: 9999px;
@@ -313,7 +313,7 @@
 }
 
 .provider-sub {
-  font-size: 0.8125rem;
+  font-size: 12px;
   color: var(--color-text-secondary);
   white-space: nowrap;
   overflow: hidden;
@@ -346,7 +346,7 @@
 }
 
 .flow-title {
-  font-size: 0.8125rem;
+  font-size: 11px;
   font-weight: 600;
   color: var(--color-text-secondary);
   text-transform: uppercase;
@@ -377,7 +377,7 @@
 }
 
 .flow-label {
-  font-size: 0.6875rem;
+  font-size: 11px;
   font-weight: 600;
   color: var(--color-text-muted);
   text-transform: uppercase;
@@ -392,7 +392,7 @@
 }
 
 .flow-content i {
-  font-size: 1.25rem;
+  font-size: 18px;
   color: var(--color-text-secondary);
 }
 
@@ -412,7 +412,7 @@
 }
 
 .flow-type {
-  font-size: 0.75rem;
+  font-size: 11px;
   font-weight: 600;
   color: var(--color-text-secondary);
   text-transform: uppercase;
@@ -421,7 +421,7 @@
 .flow-info {
   font-weight: 500;
   color: var(--color-text-primary);
-  font-size: 0.875rem;
+  font-size: 14px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -440,7 +440,7 @@
 }
 
 .flow-arrow i {
-  font-size: 0.875rem;
+  font-size: 12px;
 }
 
 /* Payment type selector */
@@ -484,7 +484,7 @@
 }
 
 .option-desc {
-  font-size: 0.8125rem;
+  font-size: 12px;
   color: var(--color-text-secondary);
 }
 
@@ -498,7 +498,7 @@
   padding: 0.875rem 1rem;
   border-radius: 0.5rem;
   margin-top: 1rem;
-  font-size: 0.875rem;
+  font-size: 14px;
 }
 
 .info-box {
@@ -550,7 +550,7 @@
 /* Error messages */
 .p-error {
   color: var(--color-danger);
-  font-size: 0.75rem;
+  font-size: 12px;
 }
 
 /* Form actions */
@@ -569,7 +569,7 @@ textarea {
   border: 1px solid var(--color-border);
   border-radius: 0.375rem;
   font-family: inherit;
-  font-size: 0.9375rem;
+  font-size: 13px;
   color: var(--color-text-primary);
   transition: all 0.2s ease;
   resize: vertical;
@@ -616,7 +616,7 @@ textarea:focus {
   padding: 0.625rem 0.875rem;
   border: 1px solid var(--color-border);
   border-radius: 0.375rem;
-  font-size: 0.9375rem;
+  font-size: 13px;
   color: var(--color-text-primary);
   transition: all 0.2s ease;
 }
@@ -638,7 +638,7 @@ textarea:focus {
   }
 
   .form-title {
-    font-size: 1.25rem;
+    font-size: 18px;
   }
 
   .form-row {
@@ -685,11 +685,11 @@ textarea:focus {
   }
 
   .form-title {
-    font-size: 1.125rem;
+    font-size: 15px;
   }
 
   .form-subtitle {
-    font-size: 0.8125rem;
+    font-size: 12px;
   }
 
   .form-content {
