@@ -19,13 +19,15 @@ import { CurrencyService } from '../../../shared/services/currency.service';
 import { SupplierService } from '../../inventory/services/supplier.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { I18nService } from '@/shared/services/i18n.service';
+import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
+import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 
 @Component({
     selector: 'app-supplier-payment-list',
     standalone: true,
     imports: [CommonModule, FormsModule, RouterModule, ButtonModule, TableModule, InputTextModule,
               ToastModule, ConfirmDialogModule, TagModule, ContextMenuModule, Select, DatePicker,
-              TooltipModule, StatusBadgeComponent],
+              TooltipModule, StatusBadgeComponent, PageContainerComponent, PageHeaderComponent],
     providers: [MessageService, ConfirmationService],
     templateUrl: './supplier-payment-list.component.html',
     styleUrls: ['./supplier-payment-list.component.css']

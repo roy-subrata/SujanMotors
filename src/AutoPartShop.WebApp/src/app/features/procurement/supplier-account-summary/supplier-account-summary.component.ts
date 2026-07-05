@@ -24,6 +24,7 @@ import {
 import { CurrencyService } from '../../../shared/services/currency.service';
 import { InvoicePdfService } from '../../sales/services/invoice-pdf.service';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
+import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 
 @Component({
     selector: 'app-supplier-account-summary',
@@ -38,7 +39,8 @@ import { PageHeaderComponent } from '@/shared/components/page-header/page-header
         PaginatorModule,
         SkeletonModule,
         LazyAutocompleteComponent,
-        PageHeaderComponent
+        PageHeaderComponent,
+        PageContainerComponent
     ],
     providers: [MessageService],
     templateUrl: './supplier-account-summary.component.html',

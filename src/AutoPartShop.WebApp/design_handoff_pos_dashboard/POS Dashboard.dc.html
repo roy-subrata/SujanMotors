@@ -30,6 +30,9 @@ html,body{margin:0;padding:0;background:var(--bg);}
 --shadow:0 1px 2px rgba(0,0,0,.4);
 }
 *{box-sizing:border-box}
+input,textarea,select{outline:none}
+input:focus,textarea:focus,select:focus{border-color:var(--text3) !important}
+::placeholder{color:var(--text3)}
 ::-webkit-scrollbar{width:10px;height:10px}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:6px;border:2px solid var(--bg)}
 ::-webkit-scrollbar-track{background:transparent}
@@ -55,7 +58,7 @@ html,body{margin:0;padding:0;background:var(--bg);}
           </button>
         </sc-if>
         <sc-if value="{{ nv.isItem }}" hint-placeholder-val="{{ true }}">
-          <a href="#" style="display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:7px;text-decoration:none;font-size:13px;font-weight:{{ nv.weight }};color:{{ nv.color }};background:{{ nv.bg }}" style-hover="background:var(--surface2);color:var(--text)">
+          <a href="#" onClick="{{ nv.go }}" style="display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:7px;text-decoration:none;font-size:13px;font-weight:{{ nv.weight }};color:{{ nv.color }};background:{{ nv.bg }}" style-hover="background:var(--surface2);color:var(--text)">
             <span style="width:16px;height:16px;display:grid;place-items:center;font-size:13px;opacity:.85">{{ nv.icon }}</span>
             <span style="flex:1">{{ nv.label }}</span>
             <sc-if value="{{ nv.badge }}" hint-placeholder-val="{{ false }}">
@@ -92,9 +95,10 @@ html,body{margin:0;padding:0;background:var(--bg);}
       </button>
     </header>
 
-    <main style="padding:24px 24px 40px;display:flex;flex-direction:column;gap:24px;max-width:1440px;width:100%">
+    <!-- ================= DASHBOARD ================= -->
+    <sc-if value="{{ isDashboard }}" hint-placeholder-val="{{ true }}">
+    <main data-screen-label="Dashboard" style="padding:24px 24px 40px;display:flex;flex-direction:column;gap:24px;max-width:1440px;width:100%">
 
-      <!-- Page header -->
       <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap">
         <div style="display:flex;flex-direction:column;gap:4px">
           <h1 style="margin:0;font-size:22px;font-weight:700;letter-spacing:-.01em">Dashboard</h1>
@@ -107,7 +111,6 @@ html,body{margin:0;padding:0;background:var(--bg);}
         </div>
       </div>
 
-      <!-- KPI row -->
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px">
         <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="4">
           <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 18px 16px;display:flex;flex-direction:column;gap:10px;box-shadow:var(--shadow)" style-hover="border-color:var(--text3)">
@@ -121,7 +124,6 @@ html,body{margin:0;padding:0;background:var(--bg);}
         </sc-for>
       </div>
 
-      <!-- Insight strip -->
       <div style="display:grid;grid-template-columns:repeat(6,1fr);background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden">
         <sc-for list="{{ insights }}" as="ins" hint-placeholder-count="6">
           <div style="padding:14px 18px;display:flex;flex-direction:column;gap:4px;border-right:1px solid var(--border2)">
@@ -132,7 +134,6 @@ html,body{margin:0;padding:0;background:var(--bg);}
         </sc-for>
       </div>
 
-      <!-- Chart + cash flow -->
       <div style="display:grid;grid-template-columns:1fr 320px;gap:14px;align-items:stretch">
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px;display:flex;flex-direction:column;gap:14px;min-width:0">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
@@ -164,7 +165,6 @@ html,body{margin:0;padding:0;background:var(--bg);}
         </div>
       </div>
 
-      <!-- Tables -->
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(480px,1fr));gap:14px;align-items:start">
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden">
           <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px 12px">
@@ -214,17 +214,447 @@ html,body{margin:0;padding:0;background:var(--bg);}
       </div>
 
     </main>
+    </sc-if>
+
+    <!-- ================= PARTS LIST ================= -->
+    <sc-if value="{{ isParts }}" hint-placeholder-val="{{ false }}">
+    <main data-screen-label="Parts List" style="padding:24px 24px 40px;display:flex;flex-direction:column;gap:16px;max-width:1440px;width:100%">
+
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap">
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <h1 style="margin:0;font-size:22px;font-weight:700;letter-spacing:-.01em">Parts</h1>
+          <span style="font-size:13px;color:var(--text2)">49 parts in catalog · 0 low stock</span>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button style="display:flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:inherit;font-size:13px;font-weight:500;color:var(--text);cursor:pointer" style-hover="background:var(--surface2)">⇧ Import</button>
+          <button style="display:flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:inherit;font-size:13px;font-weight:500;color:var(--text);cursor:pointer" style-hover="background:var(--surface2)">↧ Export</button>
+          <button onClick="{{ goPartCreate }}" style="display:flex;align-items:center;gap:7px;background:var(--accent);color:var(--accent-fg);border:none;border-radius:8px;padding:8px 14px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer" style-hover="opacity:.9">＋ New Part</button>
+        </div>
+      </div>
+
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden">
+        <!-- filter bar -->
+        <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border2);flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:0 12px;flex:1;min-width:240px">
+            <span style="font-size:12px;color:var(--text3)">⌕</span>
+            <input placeholder="Search by name, SKU, or part number…" style="border:none;background:none;font-family:inherit;font-size:13px;color:var(--text);padding:8px 0;width:100%">
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-size:13px;font-weight:500;cursor:pointer;color:var(--text)" style-hover="background:var(--surface2)">Category: All <span style="font-size:10px;color:var(--text3)">▾</span></div>
+          <div style="display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-size:13px;font-weight:500;cursor:pointer;color:var(--text)" style-hover="background:var(--surface2)">Status: Active <span style="font-size:10px;color:var(--text3)">▾</span></div>
+          <div style="display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-size:13px;font-weight:500;cursor:pointer;color:var(--text)" style-hover="background:var(--surface2)">⇅ Sort <span style="font-size:10px;color:var(--text3)">▾</span></div>
+        </div>
+        <!-- header -->
+        <div style="overflow-x:auto">
+        <div style="min-width:1000px">
+        <div style="display:grid;grid-template-columns:minmax(220px,1.6fr) 1fr .8fr 100px 100px 80px 90px 40px;gap:8px;padding:8px 16px;border-bottom:1px solid var(--border2);background:var(--surface2);font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text3)">
+          <span>Part</span><span>Category</span><span>Brand</span><span style="text-align:right">Cost</span><span style="text-align:right">Selling</span><span style="text-align:right">Min Stock</span><span>Status</span><span></span>
+        </div>
+        <sc-for list="{{ parts }}" as="pt" hint-placeholder-count="8">
+          <div onClick="{{ pt.open }}" style="display:grid;grid-template-columns:minmax(220px,1.6fr) 1fr .8fr 100px 100px 80px 90px 40px;gap:8px;align-items:center;padding:11px 16px;border-bottom:1px solid var(--border2);font-size:13px;cursor:pointer" style-hover="background:var(--surface2)">
+            <div style="display:flex;align-items:center;gap:11px;min-width:0">
+              <div style="width:32px;height:32px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);display:grid;place-items:center;font-size:12px;font-weight:600;color:var(--text2);flex-shrink:0">{{ pt.initial }}</div>
+              <div style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                <span style="font-weight:550;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ pt.name }}</span>
+                <span style="font-size:11px;color:var(--text3)">{{ pt.sku }} · {{ pt.pn }}</span>
+              </div>
+            </div>
+            <span style="color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ pt.category }}</span>
+            <span style="color:var(--text2)">{{ pt.brand }}</span>
+            <span style="text-align:right;font-variant-numeric:tabular-nums;color:var(--text2)">{{ pt.cost }}</span>
+            <span style="text-align:right;font-variant-numeric:tabular-nums;font-weight:550">{{ pt.selling }}</span>
+            <span style="text-align:right;font-variant-numeric:tabular-nums;color:var(--text2)">{{ pt.minStock }}</span>
+            <span><span style="font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:99px;background:var(--green-bg);color:var(--green)">Active</span></span>
+            <button style="width:28px;height:28px;display:grid;place-items:center;background:none;border:none;border-radius:6px;cursor:pointer;font-size:15px;color:var(--text3)" style-hover="background:var(--border2);color:var(--text)">⋮</button>
+          </div>
+        </sc-for>
+        </div>
+        </div>
+        <!-- pagination -->
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;flex-wrap:wrap">
+          <span style="font-size:12.5px;color:var(--text3)">Showing <b style="color:var(--text2)">1–10</b> of <b style="color:var(--text2)">49</b> parts</span>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:12.5px;color:var(--text3);margin-right:6px">Rows: 10 ▾</span>
+            <button style="width:30px;height:30px;display:grid;place-items:center;background:var(--surface);border:1px solid var(--border);border-radius:7px;cursor:pointer;font-size:12px;color:var(--text3)">‹</button>
+            <span style="min-width:30px;height:30px;display:grid;place-items:center;background:var(--accent);color:var(--accent-fg);border-radius:7px;font-size:12.5px;font-weight:600">1</span>
+            <button style="min-width:30px;height:30px;display:grid;place-items:center;background:var(--surface);border:1px solid var(--border);border-radius:7px;cursor:pointer;font-size:12.5px;color:var(--text2)" style-hover="background:var(--surface2)">2</button>
+            <button style="min-width:30px;height:30px;display:grid;place-items:center;background:var(--surface);border:1px solid var(--border);border-radius:7px;cursor:pointer;font-size:12.5px;color:var(--text2)" style-hover="background:var(--surface2)">3</button>
+            <span style="color:var(--text3);font-size:12px">…</span>
+            <button style="min-width:30px;height:30px;display:grid;place-items:center;background:var(--surface);border:1px solid var(--border);border-radius:7px;cursor:pointer;font-size:12.5px;color:var(--text2)" style-hover="background:var(--surface2)">5</button>
+            <button style="width:30px;height:30px;display:grid;place-items:center;background:var(--surface);border:1px solid var(--border);border-radius:7px;cursor:pointer;font-size:12px;color:var(--text2)" style-hover="background:var(--surface2)">›</button>
+          </div>
+        </div>
+      </div>
+    </main>
+    </sc-if>
+
+    <!-- ================= CREATE PART ================= -->
+    <sc-if value="{{ isPartCreate }}" hint-placeholder-val="{{ false }}">
+    <main data-screen-label="Create Part" style="padding:24px 24px 80px;display:flex;flex-direction:column;gap:16px;max-width:1080px;width:100%">
+
+      <div style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text3)">
+        <a href="#" onClick="{{ goParts }}" style="color:var(--text3);text-decoration:none" style-hover="color:var(--text)">Parts</a>
+        <span>/</span><span style="color:var(--text2);font-weight:500">New Part</span>
+      </div>
+
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap">
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <h1 style="margin:0;font-size:22px;font-weight:700;letter-spacing:-.01em">Create New Part</h1>
+          <span style="font-size:13px;color:var(--text2)">Add a new part to inventory</span>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button onClick="{{ goParts }}" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-family:inherit;font-size:13px;font-weight:500;color:var(--text);cursor:pointer" style-hover="background:var(--surface2)">Cancel</button>
+          <button onClick="{{ goParts }}" style="background:var(--accent);color:var(--accent-fg);border:none;border-radius:8px;padding:8px 16px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer" style-hover="opacity:.9">✓ Create Part</button>
+        </div>
+      </div>
+
+      <!-- Basic info -->
+      <section style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px;display:flex;flex-direction:column;gap:16px">
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <span style="font-size:15px;font-weight:600">Basic Information</span>
+          <span style="font-size:12px;color:var(--text3)">Name, identifiers and classification</span>
+        </div>
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:14px">
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <label style="font-size:12.5px;font-weight:550">Part Name <span style="color:var(--red)">*</span></label>
+            <input placeholder="e.g. Front Glass - Leyland 1616" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;color:var(--text)">
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <label style="font-size:12.5px;font-weight:550">SKU <span style="color:var(--red)">*</span></label>
+            <input placeholder="Auto: SKU050" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;color:var(--text)">
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <label style="font-size:12.5px;font-weight:550">Part Number</label>
+            <input placeholder="Manufacturer PN" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;color:var(--text)">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <label style="font-size:12.5px;font-weight:550">Category <span style="color:var(--red)">*</span></label>
+            <select style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;color:var(--text);appearance:auto"><option>Glass/Windsheild</option><option>Transmission</option><option>Battery</option><option>Engine</option></select>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <label style="font-size:12.5px;font-weight:550">Brand</label>
+            <select style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;color:var(--text);appearance:auto"><option>XYG</option><option>Mak Tata</option><option>Navana</option></select>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <label style="font-size:12.5px;font-weight:550">Unit</label>
+            <select style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;color:var(--text);appearance:auto"><option>Piece</option><option>Set</option><option>Litre</option></select>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <label style="font-size:12.5px;font-weight:550">Product Type</label>
+            <select style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;color:var(--text);appearance:auto"><option>Physical</option><option>Service</option></select>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <label style="font-size:12.5px;font-weight:550">Tax Code</label>
+            <select style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;color:var(--text);appearance:auto"><option>None</option><option>VAT 15%</option></select>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <label style="font-size:12.5px;font-weight:550">Search Tags</label>
+            <input placeholder="brake, front, ceramic" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;color:var(--text)">
+          </div>
+        </div>
+        <label style="display:flex;align-items:center;gap:9px;font-size:13px;color:var(--text2);cursor:pointer">
+          <input type="checkbox" style="width:15px;height:15px;accent-color:var(--accent)"> Perishable / expiry tracking <span style="font-size:11.5px;color:var(--text3)">— enables per-lot expiry on goods receipt</span>
+        </label>
+      </section>
+
+      <!-- Pricing & stock -->
+      <section style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px;display:flex;flex-direction:column;gap:16px">
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <span style="font-size:15px;font-weight:600">Pricing &amp; Stock</span>
+          <span style="font-size:12px;color:var(--text3)">Price changes are tracked automatically — full history on the part's Pricing tab</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:14px">
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <label style="font-size:12.5px;font-weight:550">Selling Price <span style="color:var(--red)">*</span></label>
+            <div style="display:flex;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden">
+              <span style="padding:9px 10px;background:var(--surface2);border-right:1px solid var(--border);font-size:13px;color:var(--text3)">৳</span>
+              <input placeholder="0.00" style="border:none;background:none;padding:9px 12px;font-family:inherit;font-size:13px;color:var(--text);width:100%;font-variant-numeric:tabular-nums">
+            </div>
+            <span style="font-size:11px;color:var(--text3)">Base price — inherited by variants</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <label style="font-size:12.5px;font-weight:550">Cost Price</label>
+            <div style="display:flex;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden">
+              <span style="padding:9px 10px;background:var(--surface2);border-right:1px solid var(--border);font-size:13px;color:var(--text3)">৳</span>
+              <input placeholder="0.00" style="border:none;background:none;padding:9px 12px;font-family:inherit;font-size:13px;color:var(--text);width:100%;font-variant-numeric:tabular-nums">
+            </div>
+            <span style="font-size:11px;color:var(--text3)">Updated by goods receipts</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <label style="font-size:12.5px;font-weight:550">Minimum Stock <span style="color:var(--red)">*</span></label>
+            <input placeholder="0" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;color:var(--text)">
+            <span style="font-size:11px;color:var(--text3)">Reorder alert threshold</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <label style="font-size:12.5px;font-weight:550">Weight (kg) <span style="font-weight:400;color:var(--text3)">optional</span></label>
+            <input placeholder="e.g. 0.350" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;color:var(--text)">
+            <span style="font-size:11px;color:var(--text3)">Default shipping weight</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Description -->
+      <section style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px;display:flex;flex-direction:column;gap:16px">
+        <span style="font-size:15px;font-weight:600">Description</span>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <label style="font-size:12.5px;font-weight:550">Short Description <span style="font-weight:400;color:var(--text3)">max 255 chars — shown on listing cards</span></label>
+          <input placeholder="Brief summary for listing cards" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;color:var(--text)">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <label style="font-size:12.5px;font-weight:550">Full Description <span style="font-weight:400;color:var(--text3)">shown on product detail page</span></label>
+          <textarea rows="4" placeholder="Detailed description, specifications, features…" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;color:var(--text);resize:vertical"></textarea>
+        </div>
+      </section>
+
+      <!-- Online listing -->
+      <section style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px;display:flex;flex-direction:column;gap:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <span style="font-size:15px;font-weight:600">Online Listing</span>
+            <span style="font-size:12px;color:var(--text3)">How this part appears in the online storefront</span>
+          </div>
+          <span style="font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);background:var(--surface2);border:1px solid var(--border2);border-radius:99px;padding:3px 10px">E-commerce</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:14px;align-items:start">
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <label style="font-size:12.5px;font-weight:550">URL Slug</label>
+            <div style="display:flex;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden">
+              <span style="padding:9px 10px;background:var(--surface2);border-right:1px solid var(--border);font-size:12.5px;color:var(--text3)">/products/</span>
+              <input placeholder="front-glass-leyland-1616" style="border:none;background:none;padding:9px 12px;font-family:inherit;font-size:13px;color:var(--text);width:100%">
+            </div>
+            <span style="font-size:11px;color:var(--text3)">Lowercase letters, numbers and hyphens only</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px;padding-top:24px">
+            <label onClick="{{ togglePublished }}" style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer">
+              <span style="width:34px;height:20px;border-radius:99px;background:{{ pubBg }};position:relative;transition:background .15s;flex-shrink:0"><span style="position:absolute;top:2px;left:{{ pubLeft }};width:16px;height:16px;border-radius:99px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:left .15s"></span></span>
+              Published <span style="font-size:11.5px;color:var(--text3)">visible in storefront</span>
+            </label>
+            <label onClick="{{ toggleFeatured }}" style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer">
+              <span style="width:34px;height:20px;border-radius:99px;background:{{ featBg }};position:relative;transition:background .15s;flex-shrink:0"><span style="position:absolute;top:2px;left:{{ featLeft }};width:16px;height:16px;border-radius:99px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:left .15s"></span></span>
+              Featured <span style="font-size:11.5px;color:var(--text3)">homepage highlights</span>
+            </label>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <label style="font-size:12.5px;font-weight:550">Meta Title <span style="font-weight:400;color:var(--text3)">SEO · under 60 chars</span></label>
+            <input placeholder="Page title for search engines" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;color:var(--text)">
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <label style="font-size:12.5px;font-weight:550">Meta Description <span style="font-weight:400;color:var(--text3)">SEO · under 150 chars</span></label>
+            <input placeholder="Short summary shown in search results" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;color:var(--text)">
+          </div>
+        </div>
+      </section>
+
+      <!-- Warranty + compatibility -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start">
+        <section style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px;display:flex;flex-direction:column;gap:14px">
+          <span style="font-size:15px;font-weight:600">Warranty</span>
+          <label style="display:flex;align-items:center;gap:9px;font-size:13px;color:var(--text2);cursor:pointer">
+            <input type="checkbox" style="width:15px;height:15px;accent-color:var(--accent)"> This part comes with a warranty
+          </label>
+        </section>
+        <section style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px;display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <span style="font-size:15px;font-weight:600">Vehicle Compatibility</span>
+            <span style="font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);background:var(--surface2);border:1px solid var(--border2);border-radius:99px;padding:3px 10px">Auto parts</span>
+          </div>
+          <button style="display:flex;align-items:center;justify-content:center;gap:7px;background:none;border:1px dashed var(--border);border-radius:8px;padding:10px;font-family:inherit;font-size:13px;font-weight:500;color:var(--text2);cursor:pointer" style-hover="background:var(--surface2);color:var(--text)">＋ Add make / model</button>
+        </section>
+      </div>
+
+      <!-- Variants -->
+      <section style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <span style="font-size:15px;font-weight:600">Variants</span>
+            <span style="font-size:12px;color:var(--text3)">For parts with options — e.g. Color, Size. Define attribute groups first.</span>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:12px 14px;border:1px solid var(--border2);border-radius:9px;background:var(--surface2);font-size:12.5px;color:var(--text3)">
+          ⓘ Save the part first to add variants
+        </div>
+      </section>
+
+      <!-- sticky action bar -->
+      <div style="position:sticky;bottom:0;display:flex;justify-content:flex-end;gap:8px;padding:14px 0;background:linear-gradient(transparent,var(--bg) 30%)">
+        <button onClick="{{ goParts }}" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 16px;font-family:inherit;font-size:13px;font-weight:500;color:var(--text);cursor:pointer;box-shadow:var(--shadow)" style-hover="background:var(--surface2)">Cancel</button>
+        <button onClick="{{ goParts }}" style="background:var(--accent);color:var(--accent-fg);border:none;border-radius:8px;padding:9px 18px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;box-shadow:var(--shadow)" style-hover="opacity:.9">✓ Create Part</button>
+      </div>
+    </main>
+    </sc-if>
+
+    <!-- ================= PART DETAIL ================= -->
+    <sc-if value="{{ isPartView }}" hint-placeholder-val="{{ false }}">
+    <main data-screen-label="Part Detail" style="padding:24px 24px 40px;display:flex;flex-direction:column;gap:16px;max-width:1240px;width:100%">
+
+      <div style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text3)">
+        <a href="#" onClick="{{ goParts }}" style="color:var(--text3);text-decoration:none" style-hover="color:var(--text)">Parts</a>
+        <span>/</span><span style="color:var(--text2);font-weight:500">{{ part.name }}</span>
+      </div>
+
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:14px">
+          <div style="width:52px;height:52px;border-radius:12px;background:var(--surface);border:1px solid var(--border);display:grid;place-items:center;font-size:19px;font-weight:650;color:var(--text2)">{{ part.initial }}</div>
+          <div style="display:flex;flex-direction:column;gap:5px">
+            <div style="display:flex;align-items:center;gap:10px">
+              <h1 style="margin:0;font-size:22px;font-weight:700;letter-spacing:-.01em">{{ part.name }}</h1>
+              <span style="font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:99px;background:var(--green-bg);color:var(--green)">Active</span>
+            </div>
+            <span style="font-size:13px;color:var(--text2)">{{ part.sku }} · {{ part.pn }} · {{ part.category }} · {{ part.brand }}</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button style="display:flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:inherit;font-size:13px;font-weight:500;color:var(--text);cursor:pointer" style-hover="background:var(--surface2)">⎘ Duplicate</button>
+          <button style="display:flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:inherit;font-size:13px;font-weight:500;color:var(--text);cursor:pointer" style-hover="background:var(--surface2)">✎ Edit</button>
+          <button style="width:34px;height:34px;display:grid;place-items:center;background:var(--surface);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:15px;color:var(--text2)" style-hover="background:var(--surface2)">⋮</button>
+        </div>
+      </div>
+
+      <!-- stat strip -->
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden">
+        <sc-for list="{{ partStats }}" as="ps" hint-placeholder-count="5">
+          <div style="padding:14px 18px;display:flex;flex-direction:column;gap:4px;border-right:1px solid var(--border2)">
+            <span style="font-size:11.5px;color:var(--text3)">{{ ps.label }}</span>
+            <span style="font-size:17px;font-weight:650;font-variant-numeric:tabular-nums;color:{{ ps.color }}">{{ ps.value }}</span>
+            <span style="font-size:11px;color:var(--text3)">{{ ps.sub }}</span>
+          </div>
+        </sc-for>
+      </div>
+
+      <!-- tabs -->
+      <div style="display:flex;gap:2px;border-bottom:1px solid var(--border)">
+        <sc-for list="{{ partTabs }}" as="tb" hint-placeholder-count="4">
+          <button onClick="{{ tb.go }}" style="background:none;border:none;border-bottom:2px solid {{ tb.line }};padding:9px 14px;font-family:inherit;font-size:13px;font-weight:{{ tb.weight }};color:{{ tb.color }};cursor:pointer;margin-bottom:-1px" style-hover="color:var(--text)">{{ tb.label }}</button>
+        </sc-for>
+      </div>
+
+      <!-- OVERVIEW tab -->
+      <sc-if value="{{ tabOverview }}" hint-placeholder-val="{{ true }}">
+      <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:16px;align-items:start">
+        <div style="display:flex;flex-direction:column;gap:16px;min-width:0">
+          <section style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px;display:flex;flex-direction:column;gap:14px">
+            <span style="font-size:15px;font-weight:600">Details</span>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px 24px">
+              <sc-for list="{{ partDetails }}" as="pd" hint-placeholder-count="8">
+                <div style="display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--border2);font-size:13px">
+                  <span style="color:var(--text3)">{{ pd.label }}</span>
+                  <span style="font-weight:500;text-align:right">{{ pd.value }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </section>
+          <section style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px;display:flex;flex-direction:column;gap:10px">
+            <span style="font-size:15px;font-weight:600">Description</span>
+            <p style="margin:0;font-size:13.5px;line-height:1.6;color:var(--text2)">Front windshield glass for Leyland 1616 bus chassis. OEM-equivalent XYG glass, laminated safety glass with standard tinting. Fits 2014-onward models.</p>
+          </section>
+          <section style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px;display:flex;flex-direction:column;gap:12px">
+            <span style="font-size:15px;font-weight:600">Vehicle Compatibility</span>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <span style="font-size:12.5px;font-weight:500;padding:5px 12px;border-radius:99px;background:var(--surface2);border:1px solid var(--border);color:var(--text2)">Leyland 1616 · 2014+</span>
+              <span style="font-size:12.5px;font-weight:500;padding:5px 12px;border-radius:99px;background:var(--surface2);border:1px solid var(--border);color:var(--text2)">Leyland Viking · 2016+</span>
+            </div>
+          </section>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <section style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px;display:flex;flex-direction:column;gap:12px">
+            <span style="font-size:15px;font-weight:600">Stock by Warehouse</span>
+            <sc-for list="{{ partStock }}" as="st" hint-placeholder-count="2">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border:1px solid var(--border2);border-radius:9px;background:var(--surface2)">
+                <span style="font-size:12.5px;color:var(--text2)">{{ st.label }}</span>
+                <span style="font-size:14px;font-weight:600;font-variant-numeric:tabular-nums">{{ st.value }}</span>
+              </div>
+            </sc-for>
+            <button style="display:flex;align-items:center;justify-content:center;gap:7px;background:none;border:1px dashed var(--border);border-radius:8px;padding:9px;font-family:inherit;font-size:12.5px;font-weight:500;color:var(--text2);cursor:pointer" style-hover="background:var(--surface2);color:var(--text)">⇄ Stock adjustment</button>
+          </section>
+          <section style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px;display:flex;flex-direction:column;gap:12px">
+            <span style="font-size:15px;font-weight:600">Online Listing</span>
+            <div style="display:flex;align-items:center;justify-content:space-between;font-size:13px">
+              <span style="color:var(--text3)">Status</span>
+              <span style="font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:99px;background:var(--green-bg);color:var(--green)">Published</span>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;font-size:13px">
+              <span style="color:var(--text3)">Slug</span>
+              <span style="font-weight:500;font-size:12.5px">/products/front-glass-leyland-1616</span>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;font-size:13px">
+              <span style="color:var(--text3)">Featured</span>
+              <span style="color:var(--text2)">No</span>
+            </div>
+          </section>
+          <section style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px;display:flex;flex-direction:column;gap:12px">
+            <span style="font-size:15px;font-weight:600">Recent Activity</span>
+            <sc-for list="{{ partActivity }}" as="ac" hint-placeholder-count="3">
+              <div style="display:flex;gap:10px;font-size:12.5px">
+                <span style="width:7px;height:7px;border-radius:99px;background:var(--border);margin-top:5px;flex-shrink:0"></span>
+                <div style="display:flex;flex-direction:column;gap:1px">
+                  <span style="color:var(--text2)">{{ ac.text }}</span>
+                  <span style="font-size:11px;color:var(--text3)">{{ ac.when }}</span>
+                </div>
+              </div>
+            </sc-for>
+          </section>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- PRICING tab -->
+      <sc-if value="{{ tabPricing }}" hint-placeholder-val="{{ false }}">
+      <section style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden">
+        <div style="padding:16px 18px 12px"><span style="font-size:15px;font-weight:600">Price History</span></div>
+        <div style="display:grid;grid-template-columns:1fr 120px 120px 120px;padding:8px 18px;border-top:1px solid var(--border2);border-bottom:1px solid var(--border2);background:var(--surface2);font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text3)">
+          <span>Changed</span><span style="text-align:right">Old</span><span style="text-align:right">New</span><span style="text-align:right">Change</span>
+        </div>
+        <sc-for list="{{ priceHistory }}" as="ph" hint-placeholder-count="2">
+          <div style="display:grid;grid-template-columns:1fr 120px 120px 120px;padding:12px 18px;border-bottom:1px solid var(--border2);font-size:13px">
+            <span style="color:var(--text2)">{{ ph.when }}</span>
+            <span style="text-align:right;font-variant-numeric:tabular-nums;color:var(--text3)">{{ ph.old }}</span>
+            <span style="text-align:right;font-variant-numeric:tabular-nums;font-weight:550">{{ ph.now }}</span>
+            <span style="text-align:right;font-variant-numeric:tabular-nums;color:{{ ph.color }}">{{ ph.change }}</span>
+          </div>
+        </sc-for>
+      </section>
+      </sc-if>
+
+      <!-- MOVEMENTS tab -->
+      <sc-if value="{{ tabMovements }}" hint-placeholder-val="{{ false }}">
+      <section style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden">
+        <div style="padding:16px 18px 12px"><span style="font-size:15px;font-weight:600">Stock Movements</span></div>
+        <div style="display:grid;grid-template-columns:1fr 140px 90px 110px;padding:8px 18px;border-top:1px solid var(--border2);border-bottom:1px solid var(--border2);background:var(--surface2);font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text3)">
+          <span>Reference</span><span>Type</span><span style="text-align:right">Qty</span><span style="text-align:right">Date</span>
+        </div>
+        <sc-for list="{{ movements }}" as="mv" hint-placeholder-count="3">
+          <div style="display:grid;grid-template-columns:1fr 140px 90px 110px;padding:12px 18px;border-bottom:1px solid var(--border2);font-size:13px;align-items:center">
+            <span style="font-weight:500">{{ mv.ref }}</span>
+            <span><span style="font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:99px;background:{{ mv.typeBg }};color:{{ mv.typeColor }}">{{ mv.type }}</span></span>
+            <span style="text-align:right;font-variant-numeric:tabular-nums;font-weight:550;color:{{ mv.qtyColor }}">{{ mv.qty }}</span>
+            <span style="text-align:right;font-size:12px;color:var(--text3)">{{ mv.date }}</span>
+          </div>
+        </sc-for>
+      </section>
+      </sc-if>
+
+    </main>
+    </sc-if>
+
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;darkMode&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Theme&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: 1440, &quot;height&quot;: 900}, &quot;darkMode&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Theme&quot;}, &quot;startScreen&quot;: {&quot;editor&quot;: &quot;enum&quot;, &quot;default&quot;: &quot;dashboard&quot;, &quot;options&quot;: [&quot;dashboard&quot;, &quot;parts&quot;, &quot;partCreate&quot;, &quot;partView&quot;], &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Navigation&quot;}}">
 class Component extends DCLogic {
-  state = { dark: false, openGroups: {} };
+  state = { dark: false, openGroups: {}, screen: 'dashboard', partTab: 'overview', published: true, featured: false };
 
   componentDidMount() {
     const dark = this.props.darkMode ?? false;
     this.setState({ dark });
     document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+    const start = this.props.startScreen ?? 'dashboard';
+    if (start !== 'dashboard') this.setState({ screen: start });
   }
 
   componentDidUpdate(prevProps) {
@@ -233,10 +663,12 @@ class Component extends DCLogic {
       this.setState({ dark });
       document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
     }
+    if (prevProps.startScreen !== this.props.startScreen && this.props.startScreen) {
+      this.setState({ screen: this.props.startScreen });
+    }
   }
 
   buildChart() {
-    // daily data (31 days)
     const sales =  [0,15200,3800,120,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
     const purch =  [0,18500,2750,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
     const profit = [0,-3300,1050,120,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
@@ -266,31 +698,62 @@ class Component extends DCLogic {
     return e('svg', { viewBox: `0 0 ${W} ${H}`, width: '100%', style: { display: 'block' } }, kids);
   }
 
+  go(screen) { this.setState({ screen }); window.scrollTo(0, 0); }
+
   renderVals() {
     const dark = this.state.dark;
-    const compact = this.props.compactNav ?? false;
+    const screen = this.state.screen;
+    const tab = this.state.partTab;
 
     const groups = [
-      { label: 'Catalog', items: [['◇','Parts'],['≡','Categories'],['⬦','Brands'],['⚖','Units'],['⋮⋮','Attribute Groups'],['％','Discounts']] },
+      { label: 'Catalog', items: [['◇','Parts','parts'],['≡','Categories'],['⬦','Brands'],['⚖','Units'],['⋮⋮','Attribute Groups'],['％','Discounts']] },
       { label: 'Inventory', items: [['▤','Stock Management'],['⌂','Warehouses']] },
       { label: 'Purchasing', items: [['⇣','Purchase Orders'],['☰','Goods Receipts'],['⇠','Purchase Returns'],['◈','Suppliers'],['⇢','Supplier Payments'],['▤','Supplier Statements'],['⊟','Daily Expenses'],['▣','Payment Providers']] },
-      { label: 'Sales', items: [['⇡','Sales Orders'],['▢','Invoices'],['◷','Pending Deliveries',null],['⟲','Sales Returns'],['◉','Customers'],['⊞','Customer Payments'],['▤','Customer Statements']] },
-      { label: 'Service & Warranty', items: [['✦','Technicians'],['◨','Vehicles'],['✓','Warranty Registrations'],['△','Warranty Claims','2']] },
+      { label: 'Sales', items: [['⇡','Sales Orders'],['▢','Invoices'],['◷','Pending Deliveries'],['⟲','Sales Returns'],['◉','Customers'],['⊞','Customer Payments'],['▤','Customer Statements']] },
+      { label: 'Service & Warranty', items: [['✦','Technicians'],['◨','Vehicles'],['✓','Warranty Registrations'],['△','Warranty Claims',null,'2']] },
       { label: 'Finance', items: [['▥','Daily Cash Book'],['⇄','Exchange Rates']] },
       { label: 'Administration', items: [['◍','Online Store'],['⚙','Settings']] },
     ];
 
-    const nav = [{ isItem: true, icon: '⌂', label: 'Dashboard', weight: 600, color: 'var(--accent-fg)', bg: 'var(--accent)', badge: null }];
+    const partsActive = screen === 'parts' || screen === 'partCreate' || screen === 'partView';
+    const mkItem = (icon, label, target, badge) => {
+      const active = (target === 'parts' && partsActive) || (target === 'dashboard' && screen === 'dashboard');
+      return { isItem: true, icon, label, badge: badge || null,
+        weight: active ? 600 : 450,
+        color: active ? 'var(--accent-fg)' : 'var(--text2)',
+        bg: active ? 'var(--accent)' : 'transparent',
+        go: target ? (ev) => { ev.preventDefault(); this.go(target); } : (ev) => ev.preventDefault() };
+    };
+
+    const nav = [mkItem('⌂', 'Dashboard', 'dashboard')];
     groups.forEach(g => {
       const open = this.state.openGroups[g.label] !== false;
       nav.push({ isGroup: true, label: g.label, chev: open ? '▾' : '▸',
         toggle: () => this.setState(s => ({ openGroups: { ...s.openGroups, [g.label]: s.openGroups[g.label] === false } })) });
-      if (open) g.items.forEach(([icon, label, badge]) => {
-        nav.push({ isItem: true, icon, label, badge: badge || null, weight: 450, color: 'var(--text2)', bg: 'transparent' });
-      });
+      if (open) g.items.forEach(([icon, label, target, badge]) => nav.push(mkItem(icon, label, target, badge)));
+    });
+
+    const partRow = (name, sku, pn, category, brand) => ({
+      initial: name[0], name, sku, pn, category, brand,
+      cost: '৳ 0.00', selling: '৳ 0.00', minStock: '0',
+      open: () => this.setState({ screen: 'partView', partTab: 'overview', selPart: { initial: name[0], name, sku, pn, category, brand } }, () => window.scrollTo(0, 0)),
+    });
+
+    const mkTab = (id, label) => ({
+      label,
+      go: () => this.setState({ partTab: id }),
+      line: tab === id ? 'var(--accent)' : 'transparent',
+      weight: tab === id ? 600 : 450,
+      color: tab === id ? 'var(--text)' : 'var(--text2)',
     });
 
     return {
+      isDashboard: screen === 'dashboard',
+      isParts: screen === 'parts',
+      isPartCreate: screen === 'partCreate',
+      isPartView: screen === 'partView',
+      goParts: (ev) => { if (ev && ev.preventDefault) ev.preventDefault(); this.go('parts'); },
+      goPartCreate: () => this.go('partCreate'),
       themeIcon: dark ? '☀' : '☾',
       toggleTheme: () => {
         const next = !this.state.dark;
@@ -299,7 +762,8 @@ class Component extends DCLogic {
       },
       newSale: () => {},
       navItems: nav,
-      chart: this.buildChart(),
+      chart: screen === 'dashboard' ? this.buildChart() : null,
+
       kpis: [
         { label: 'Total Sales', value: '৳ 19,120.00', sub: '4 orders · avg ৳ 4,780.00', delta: '+12.4%', deltaBg: 'var(--green-bg)', deltaColor: 'var(--green)', valueColor: 'var(--text)' },
         { label: 'Revenue Collected', value: '৳ 19,140.00', sub: 'Paid ৳ 19,120 · on credit ৳ 0', delta: '+8.1%', deltaBg: 'var(--green-bg)', deltaColor: 'var(--green)', valueColor: 'var(--text)' },
@@ -326,6 +790,69 @@ class Component extends DCLogic {
       customers: [
         { initials: 'BS', name: 'Bhadhan Shaha', phone: '+880 1716 625369', orders: '3', revenue: '৳ 18,900.00', last: 'Jul 2' },
         { initials: 'W', name: 'Walk In', phone: '000000', orders: '1', revenue: '৳ 220.00', last: 'Jul 2' },
+      ],
+
+      parts: [
+        partRow('Cluster Plate', 'SKU049', 'PN: SKU049', 'Transmission', 'Mak Tata'),
+        partRow('Door Glass LH - Leyland 1616', 'SKU048', 'PN: SKU048', 'Glass/Windsheild', 'XYG'),
+        partRow('Door Glass RH - Leyland 1616', 'SKU047', 'PN: SKU047', 'Glass/Windsheild', 'XYG'),
+        partRow('Front Colored Glass - Leyland 1616', 'SKU046', 'PN: SKU046', 'Glass/Windsheild', 'XYG'),
+        partRow('Front Glass - Leyland / Dost', 'SKU045', 'PN: SKU045', 'Glass/Windsheild', 'XYG'),
+        partRow('Front Glass - T King', 'SKU044', 'PN: SKU044', 'Glass/Windsheild', 'XYG'),
+        partRow('Door Glass RH - JMC OLD MODEL', 'SKU043', 'PN: SKU043', 'Glass/Windsheild', 'XYG'),
+        partRow('Door Glass RH - JMC NEW MODEL', 'SKU042', 'PN: SKU042', 'Glass/Windsheild', 'XYG'),
+        partRow('Door Glass LH - JMC OLD MODEL', 'SKU041', 'PN: SKU041', 'Glass/Windsheild', 'XYG'),
+        partRow('Door Glass LH - JMC NEW MODEL', 'SKU040', 'PN: SKU040', 'Glass/Windsheild', 'XYG'),
+      ],
+
+      togglePublished: () => this.setState(s => ({ published: !s.published })),
+      toggleFeatured: () => this.setState(s => ({ featured: !s.featured })),
+      pubBg: this.state.published ? 'var(--green)' : 'var(--border)',
+      pubLeft: this.state.published ? '16px' : '2px',
+      featBg: this.state.featured ? 'var(--green)' : 'var(--border)',
+      featLeft: this.state.featured ? '16px' : '2px',
+
+      part: this.state.selPart ?? { initial: 'F', name: 'Front Glass - Leyland 1616', sku: 'SKU046', pn: 'PN: SKU046', category: 'Glass/Windsheild', brand: 'XYG' },
+      partStats: [
+        { label: 'Selling Price', value: '৳ 4,200.00', sub: 'Updated Jul 1', color: 'var(--text)' },
+        { label: 'Cost Price', value: '৳ 3,400.00', sub: 'Last receipt', color: 'var(--text)' },
+        { label: 'Margin', value: '19.0%', sub: '৳ 800 per unit', color: 'var(--green)' },
+        { label: 'In Stock', value: '6', sub: 'Across 1 warehouse', color: 'var(--text)' },
+        { label: 'Min Stock', value: '2', sub: 'Reorder threshold', color: 'var(--text)' },
+      ],
+      partTabs: [mkTab('overview', 'Overview'), mkTab('pricing', 'Pricing'), mkTab('movements', 'Stock Movements')],
+      tabOverview: tab === 'overview',
+      tabPricing: tab === 'pricing',
+      tabMovements: tab === 'movements',
+      partDetails: [
+        { label: 'SKU', value: 'SKU045' },
+        { label: 'Part Number', value: 'SKU045' },
+        { label: 'Category', value: 'Glass/Windsheild' },
+        { label: 'Brand', value: 'XYG' },
+        { label: 'Unit', value: 'Piece' },
+        { label: 'Product Type', value: 'Physical' },
+        { label: 'Warranty', value: 'None' },
+        { label: 'Weight', value: '12.5 kg' },
+        { label: 'Tax Code', value: 'None' },
+        { label: 'Created', value: 'Jun 12, 2026' },
+      ],
+      partStock: [
+        { label: 'Main Warehouse', value: '6' },
+        { label: 'Reserved', value: '0' },
+      ],
+      partActivity: [
+        { text: 'Price updated ৳ 4,000 → ৳ 4,200', when: 'Jul 1, 2026' },
+        { text: 'Goods receipt GRN-0038 · +4 units', when: 'Jun 28, 2026' },
+        { text: 'Sold 1 unit · Invoice INV-0102', when: 'Jun 25, 2026' },
+      ],
+      priceHistory: [
+        { when: 'Jul 1, 2026 · by System Admin', old: '৳ 4,000.00', now: '৳ 4,200.00', change: '+5.0%', color: 'var(--green)' },
+        { when: 'Jun 12, 2026 · part created', old: '—', now: '৳ 4,000.00', change: '—', color: 'var(--text3)' },
+      ],
+      movements: [
+        { ref: 'INV-0102 · Sale', type: 'Out', typeBg: 'var(--red-bg)', typeColor: 'var(--red)', qty: '−1', qtyColor: 'var(--red)', date: 'Jun 25' },
+        { ref: 'GRN-0038 · Goods receipt', type: 'In', typeBg: 'var(--green-bg)', typeColor: 'var(--green)', qty: '+4', qtyColor: 'var(--green)', date: 'Jun 28' },
+        { ref: 'ADJ-0007 · Opening stock', type: 'Adjust', typeBg: 'var(--amber-bg)', typeColor: 'var(--amber)', qty: '+3', qtyColor: 'var(--text2)', date: 'Jun 12' },
       ],
     };
   }

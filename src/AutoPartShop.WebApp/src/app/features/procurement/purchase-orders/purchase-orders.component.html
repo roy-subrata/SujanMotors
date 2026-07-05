@@ -6,39 +6,25 @@
 <p-confirmDialog></p-confirmDialog>
 <p-menu #menu [model]="menuItems" [popup]="true" appendTo="body"></p-menu>
 
-<div class="page-wrapper">
+<app-page-container>
   <!-- ==================== PAGE HEADER ==================== -->
-  <header class="page-header">
-    <div class="header-content">
-      <div class="header-left">
-        <h1 class="page-title">Purchase Orders</h1>
-        <p class="page-subtitle">Manage and track your purchase orders</p>
-      </div>
-
-      <div class="header-actions">
-        <div class="stats-badge">
-          <i class="pi pi-shopping-bag"></i>
-          <div class="stats-info">
-            <span class="stats-value">{{ totalRecords }}</span>
-            <span class="stats-label">orders</span>
-          </div>
-        </div>
-
-        <div class="action-buttons">
-          <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="loadPurchaseOrders(currentPage, rows, searchTerm)">
-            <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
-          </button>
-          <button class="btn-icon" pTooltip="More options" tooltipPosition="bottom" (click)="menu.toggle($event)">
-            <i class="pi pi-ellipsis-v"></i>
-          </button>
-          <button *appHasRole="['Admin','Manager']" class="btn-primary" (click)="onCreateClick()">
-            <i class="pi pi-plus"></i>
-            <span>New Order</span>
-          </button>
-        </div>
-      </div>
-    </div>
-  </header>
+  <app-page-header
+    title="Purchase Orders"
+    subtitle="Manage and track your purchase orders"
+    [count]="totalRecords" countLabel="orders">
+    <ng-container actions>
+      <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="loadPurchaseOrders(currentPage, rows, searchTerm)">
+        <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
+      </button>
+      <button class="btn-icon" pTooltip="More options" tooltipPosition="bottom" (click)="menu.toggle($event)">
+        <i class="pi pi-ellipsis-v"></i>
+      </button>
+      <button *appHasRole="['Admin','Manager']" class="btn-primary" (click)="onCreateClick()">
+        <i class="pi pi-plus"></i>
+        <span>New Order</span>
+      </button>
+    </ng-container>
+  </app-page-header>
 
   <!-- ==================== FILTER SECTION ==================== -->
   <section class="filter-section">
@@ -59,7 +45,6 @@
       </div>
 
       <div class="filter-group">
-        <label class="filter-label">Status</label>
         <p-select
           [options]="statusOptions"
           [(ngModel)]="filterStatus"
@@ -72,7 +57,6 @@
       </div>
 
       <div class="filter-group">
-        <label class="filter-label">Order Date</label>
         <p-datepicker
           [(ngModel)]="dateRange"
           selectionMode="range"
@@ -129,7 +113,7 @@
       (poDeleted)="onPurchaseOrderDeleted()">
     </app-purchase-orders-list>
   </section>
-</div>
+</app-page-container>
 
 <!-- Create/Edit Dialogs -->
 <app-purchase-orders-form-dialog

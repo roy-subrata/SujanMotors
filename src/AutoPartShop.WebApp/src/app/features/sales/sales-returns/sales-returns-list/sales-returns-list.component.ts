@@ -22,6 +22,8 @@ import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
 import { CurrencyService } from '../../../../shared/services/currency.service';
 import { I18nService } from '@/shared/services/i18n.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
+import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 
 @Component({
   selector: 'app-sales-returns-list',
@@ -43,7 +45,9 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
     MenuModule,
     TagModule,
     InputGroupModule,
-    InputGroupAddonModule
+    InputGroupAddonModule,
+    PageContainerComponent,
+    PageHeaderComponent
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: './sales-returns-list.component.html',

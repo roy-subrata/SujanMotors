@@ -1,6 +1,13 @@
 <p-toast></p-toast>
 
-<div class="audit-logs-container">
+<app-page-container>
+  <app-page-header
+    title="Audit Logs"
+    subtitle="Track every change made across the system"
+    [count]="totalRecords" countLabel="records">
+  </app-page-header>
+
+  <div class="audit-logs-container">
   <!-- Filters Card -->
   <p-card styleClass="filters-card mb-4">
     <div class="filters-container">
@@ -159,4 +166,5 @@
       (onPageChange)="onPageChange($event)">
     </p-paginator>
   </p-card>
-</div>
+  </div>
+</app-page-container>

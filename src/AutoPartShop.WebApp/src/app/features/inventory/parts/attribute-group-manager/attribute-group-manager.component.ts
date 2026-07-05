@@ -21,6 +21,8 @@ import {
   AttributeOption
 } from '../../services/product-attribute.service';
 import { Router } from '@angular/router';
+import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
+import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 
 @Component({
   selector: 'app-attribute-group-manager',
@@ -39,7 +41,9 @@ import { Router } from '@angular/router';
     TooltipModule,
     PanelModule,
     Select,
-    ConfirmDialogModule
+    ConfirmDialogModule,
+    PageContainerComponent,
+    PageHeaderComponent
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: './attribute-group-manager.component.html',

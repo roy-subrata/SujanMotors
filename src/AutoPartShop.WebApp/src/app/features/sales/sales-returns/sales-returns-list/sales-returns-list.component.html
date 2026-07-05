@@ -6,36 +6,22 @@
 <p-confirmDialog></p-confirmDialog>
 <p-menu #actionMenu [model]="actionMenuItems" [popup]="true" appendTo="body"></p-menu>
 
-<div class="page-wrapper">
+<app-page-container>
   <!-- ==================== PAGE HEADER ==================== -->
-  <header class="page-header">
-    <div class="header-content">
-      <div class="header-left">
-        <h1 class="page-title">Sales Returns</h1>
-        <p class="page-subtitle">Manage customer product returns and refunds</p>
-      </div>
-
-      <div class="header-actions">
-        <div class="stats-badge">
-          <i class="pi pi-replay"></i>
-          <div class="stats-info">
-            <span class="stats-value">{{ totalRecords }}</span>
-            <span class="stats-label">returns</span>
-          </div>
-        </div>
-
-        <div class="action-buttons">
-          <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="refreshData()">
-            <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
-          </button>
-          <button class="btn-primary" (click)="createReturn()">
-            <i class="pi pi-plus"></i>
-            <span>Create Return</span>
-          </button>
-        </div>
-      </div>
-    </div>
-  </header>
+  <app-page-header
+    title="Sales Returns"
+    subtitle="Manage customer product returns and refunds"
+    [count]="totalRecords" countLabel="returns">
+    <ng-container actions>
+      <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="refreshData()">
+        <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
+      </button>
+      <button class="btn-primary" (click)="createReturn()">
+        <i class="pi pi-plus"></i>
+        <span>Create Return</span>
+      </button>
+    </ng-container>
+  </app-page-header>
 
   <!-- ==================== FILTER SECTION ==================== -->
   <section class="filter-section">
@@ -56,7 +42,6 @@
       </div>
 
       <div class="filter-group">
-        <label class="filter-label">Status</label>
         <p-select
           [options]="statusOptions"
           [(ngModel)]="filterStatus"
@@ -69,7 +54,6 @@
       </div>
 
       <div class="filter-group">
-        <label class="filter-label">Return Date</label>
         <p-datepicker
           [(ngModel)]="dateRange"
           selectionMode="range"
@@ -324,4 +308,4 @@
       </div>
     </div>
   </section>
-</div>
+</app-page-container>

@@ -14,16 +14,13 @@ import { AppBrandingService } from './app/shared/services/app-branding.service';
 import { firstValueFrom } from 'rxjs';
 
 /**
- * Maps the app-shell/dashboard redesign's design tokens (see
- * design_handoff_pos_dashboard/README.md) onto PrimeNG's own semantic
- * design tokens, so stock PrimeNG components (buttons, tags, selects,
- * inputs, cards…) pick up the new near-black/slate palette automatically
- * across the whole app — not just the hand-styled shell/dashboard markup.
- *   --p-primary-color        -> --accent
- *   --p-content-background   -> --surface
- *   --p-content-border-color -> --border
- *   --p-text-color           -> --text
- *   --p-text-muted-color     -> --text2
+ * Maps the "modern SaaS" data-page design tokens (see
+ * design_handoff_pos_dashboard/README.md, assets/_data-page.scss) onto
+ * PrimeNG's own semantic design tokens, so stock PrimeNG components
+ * (buttons, tags, selects, inputs, cards…) pick up the same near-black/
+ * slate palette everywhere — not just the hand-styled shell/dashboard
+ * markup, but also pages like the Parts create/edit form and detail
+ * view that lean on PrimeNG's own --p-* vars directly.
  * Dark mode is driven by the existing `.app-dark` class (darkModeSelector
  * below) — the same mechanism LayoutService already toggles.
  */

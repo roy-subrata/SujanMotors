@@ -5,25 +5,25 @@
   padding-bottom: 2rem;
 }
 
-/* ── Header ─────────────────────────────────────────────────────────────── */
+/* ── Header ──────────────────────────────────────────────────────────────
+   Plain background — no gradient banner, matching the shared page-header
+   restyle (design_handoff_pos_dashboard). */
 .pd-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   gap: 1rem;
-  padding: 1.25rem 1.5rem;
-  background: linear-gradient(135deg, #7C3AED 0%, #4F46E5 100%);
-  border-radius: 10px;
-  margin-bottom: 1.25rem;
-  color: #fff;
+  padding: 0 0 20px;
+  margin-bottom: 0;
+  color: var(--text-color);
 }
 
 .pd-breadcrumb {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.8rem;
-  color: rgba(255,255,255,0.75);
+  font-size: 12.5px;
+  color: var(--text-color-secondary);
   margin-bottom: 6px;
 }
 
@@ -32,13 +32,13 @@
   align-items: center;
   gap: 5px;
   cursor: pointer;
-  color: rgba(255,255,255,0.85);
+  color: var(--text-color-secondary);
   text-decoration: none;
   transition: color 0.15s;
 }
-.pd-back-link:hover { color: #fff; }
+.pd-back-link:hover { color: var(--text-color); }
 
-.pd-breadcrumb-sep { color: rgba(255,255,255,0.4); }
+.pd-breadcrumb-sep { color: var(--surface-border); }
 
 .pd-title-row {
   display: flex;
@@ -48,15 +48,16 @@
 }
 
 .pd-title {
-  font-size: 1.5rem;
+  font-size: 22px;
   font-weight: 700;
-  color: #fff;
+  letter-spacing: -0.01em;
+  color: var(--text-color);
   margin: 0;
 }
 
 .pd-subtitle {
-  font-size: 0.8rem;
-  color: rgba(255,255,255,0.7);
+  font-size: 13px;
+  color: var(--text-color-secondary);
   margin: 4px 0 0;
 }
 
@@ -78,9 +79,9 @@
 
 /* ── Tabs body ───────────────────────────────────────────────────────────── */
 .pd-body {
-  background: #fff;
-  border-radius: 10px;
-  border: 1px solid #E5E7EB;
+  background: var(--surface-card);
+  border-radius: 12px;
+  border: 1px solid var(--surface-border);
   overflow: hidden;
 }
 
@@ -172,7 +173,7 @@
 .value-price {
   font-size: 1rem !important;
   font-weight: 700 !important;
-  color: #7C3AED !important;
+  color: var(--primary-color) !important;
 }
 
 .coded-price {
@@ -231,8 +232,8 @@
 }
 
 .variant-badge {
-  background: #F5F3FF;
-  color: #7C3AED;
+  background: var(--surface-100);
+  color: var(--primary-color);
 }
 
 .price-card-validity {
@@ -353,8 +354,8 @@
 
 .spf-input:focus {
   outline: none;
-  border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px var(--surface-100);
 }
 
 .spf-note {

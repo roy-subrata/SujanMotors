@@ -37,9 +37,6 @@
         <tr class="data-row">
           <td class="col-name">
             <div class="customer-cell">
-              <div class="customer-avatar">
-                {{ (vehicle.make || 'V')[0].toUpperCase() }}
-              </div>
               <div class="customer-info">
                 <span class="customer-name">{{ vehicle.make }} {{ vehicle.model }}</span>
                 <span *ngIf="vehicle.trim" class="customer-phone">{{ vehicle.trim }}</span>
@@ -171,9 +168,6 @@
 
       <div class="card-body">
         <div class="card-customer">
-          <div class="customer-avatar small">
-            {{ (vehicle.make || 'V')[0].toUpperCase() }}
-          </div>
           <span class="customer-name">{{ vehicle.year }}</span>
         </div>
         <div class="card-dates">

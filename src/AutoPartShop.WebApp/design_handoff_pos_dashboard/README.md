@@ -1,7 +1,7 @@
-# Handoff: POS Dashboard Modernization (Sunjan Motors)
+# Handoff: POS Modernization (Sunjan Motors)
 
 ## Overview
-A modernized redesign of the POS/ERP dashboard for an auto-parts shop. Replaces the colorful icon-chip card style with a clean "modern SaaS" look: slate/near-black accent, bordered white cards with trend deltas, a consolidated 6-stat insight strip, restyled collapsible sidebar, refined line chart, cash-flow panel, and full light/dark theming.
+A modernized redesign of the POS/ERP UI for an auto-parts shop. Covers FOUR screens: **Dashboard**, **Parts list**, **Create Part form**, and **Part detail view** — all in one design reference file, navigable via the sidebar "Parts" item, the "＋ New Part" button, and clicking a parts-table row. Replaces the colorful icon-chip card style with a clean "modern SaaS" look: slate/near-black accent, bordered white cards with trend deltas, a consolidated 6-stat insight strip, restyled collapsible sidebar, refined line chart, cash-flow panel, and full light/dark theming.
 
 ## About the Design Files
 The file in this bundle (`POS Dashboard.dc.html`) is a **design reference created in HTML** — a prototype showing intended look and behavior, NOT production code to copy directly. Your task is to **recreate this design in your existing Angular + PrimeNG codebase**, using your established module structure, PrimeNG components, and theming system.
@@ -51,6 +51,35 @@ The file in this bundle (`POS Dashboard.dc.html`) is a **design reference create
    - Top Customers columns: Customer(1fr) Orders(60) Revenue(110) Last(90). Row: 28px initials avatar + name + phone. Rows: Bhadhan Shaha +880 1716 625369 / 3 / ৳18,900.00 / Jul 2; Walk In 000000 / 1 / ৳220.00 / Jul 2.
    - Row: padding 12px 18px, bottom border `--border2`, hover `--surface2`.
 
+### Parts List page (`/parts`)
+- Page header: "Parts" 22px/700 + subtitle "49 parts in catalog · 0 low stock". Right: Import + Export outlined buttons, "＋ New Part" primary button (routes to create form).
+- One card contains everything: filter bar, table, pagination.
+- **Filter bar** (padding 12px 14px, bottom border): search input (flex 1, `--surface2` bg, placeholder "Search by name, SKU, or part number…"), then dropdown pills: "Category: All ▾", "Status: Active ▾", "⇅ Sort ▾" — 13px/500, radius 8, 1px border.
+- **Table** (use `p-table`): columns Part (avatar 32px rounded-8 with first letter + name 13px/550 + "SKU · PN" 11px `--text3`), Category, Brand, Cost (right, tabular), Selling (right, 550), Min Stock (right), Status (green "Active" pill), row-actions ⋮ button. Header row: `--surface2`, uppercase 10.5px/600. Row: padding 11px 16px, hover `--surface2`, **entire row clickable → part detail route**.
+- **Pagination footer**: "Showing 1–10 of 49 parts" left; right: "Rows: 10 ▾", ‹ › buttons and numbered page buttons 30px, active page = `--accent` bg (use `p-paginator`, restyled).
+
+### Create Part page (`/parts/new`)
+- Breadcrumb "Parts / New Part" 12.5px. Header "Create New Part" + Cancel (outlined) and "✓ Create Part" (primary) buttons; the same pair repeats in a sticky bottom action bar (gradient fade over `--bg`).
+- Max content width 1080px. Form is a vertical stack of section cards (radius 12, padding 20, 16px gap). Each card: title 15px/600 + optional 12px `--text3` subtitle.
+- **Basic Information**: rows — [Part Name* (2fr) | SKU* | Part Number], [Category* | Brand | Unit] (selects), [Product Type | Tax Code | Search Tags], perishable checkbox with hint text.
+- **Pricing & Stock**: 4 columns — Selling Price* and Cost Price with ৳ prefix addon (prefix cell: `--surface2` bg, right border), Minimum Stock*, Weight (kg). Helper text 11px `--text3` under each.
+- **Description**: Short Description input (max 255) + Full Description textarea (4 rows).
+- **Online Listing** (badge "E-COMMERCE" uppercase pill top-right): URL Slug with `/products/` prefix addon; Published + Featured toggle switches (34×20 track, green when on — `p-toggleswitch`); Meta Title + Meta Description inputs with SEO hints.
+- **Warranty** card (checkbox) + **Vehicle Compatibility** card (dashed "＋ Add make / model" button) side by side.
+- **Variants** card: info box "ⓘ Save the part first to add variants" (`--surface2`, radius 9).
+- Inputs: 1px `--border`, radius 8, padding 9px 12px, 13px; focus border → `--text3`. Labels 12.5px/550; required mark red asterisk.
+
+### Part Detail page (`/parts/:id`)
+- Breadcrumb "Parts / {name}". Header: 52px rounded-12 initial avatar + name 22px/700 + green Active pill + meta line "SKU · PN · Category · Brand"; actions right: Duplicate, ✎ Edit (outlined), ⋮ icon button.
+- **Stat strip** (same pattern as dashboard insight strip): Selling Price ৳4,200.00 · Cost Price ৳3,400.00 · Margin 19.0% (green) · In Stock 6 · Min Stock 2 — each with 11px sub-caption.
+- **Tabs** (underline style, `p-tabs`): Overview / Pricing / Stock Movements. Active: 2px `--accent` underline, 600 weight.
+- **Overview tab** — 1.5fr/1fr grid: LEFT: Details card (2-col label/value rows with `--border2` dividers: SKU, Part Number, Category, Brand, Unit, Product Type, Warranty, Weight, Tax Code, Created), Description card, Vehicle Compatibility card (pill chips "Leyland 1616 · 2014+"). RIGHT: Stock by Warehouse card (rows in `--surface2` boxes + dashed "⇄ Stock adjustment" button), Online Listing card (Status pill / Slug / Featured rows), Recent Activity card (dot + text 12.5px + date 11px timeline).
+- **Pricing tab**: Price History table — Changed / Old / New / Change(% colored).
+- **Movements tab**: Stock Movements table — Reference / Type pill (In green, Out red, Adjust amber) / Qty (signed, colored) / Date.
+
+## Angular routing suggestion
+`/dashboard` · `/parts` (list) · `/parts/new` (create) · `/parts/:id` (detail). Shared app-shell layout component holds sidebar + top bar; sidebar item active state matches route prefix (`/parts*` keeps "Parts" active).
+
 ## Interactions & Behavior
 - Sidebar group headers toggle collapse (chevron flips).
 - Nav items + table rows: hover `--surface2` background.
@@ -90,4 +119,4 @@ Scale: radii 7/8/9/12px (nav/buttons/inner boxes/cards); pills radius 99. Spacin
 No image assets. Icons in the prototype are Unicode placeholders — use **PrimeIcons** (`pi pi-*`) in production: e.g. pi-home, pi-box, pi-tags, pi-truck, pi-users, pi-wallet, pi-chart-line, pi-cog, pi-search, pi-bell, pi-moon/pi-sun, pi-plus, pi-refresh, pi-download.
 
 ## Files
-- `POS Dashboard.dc.html` — the full interactive design reference (open in a browser; template markup + logic are inside the file).
+- `POS Dashboard.dc.html` — the full interactive design reference with all four screens (open in a browser; sidebar "Parts", "＋ New Part", and table rows navigate between them).

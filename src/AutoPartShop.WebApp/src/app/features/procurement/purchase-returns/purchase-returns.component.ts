@@ -14,6 +14,8 @@ import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
 import { PurchaseReturnsListComponent } from './purchase-returns-list/purchase-returns-list.component';
 import { PurchaseReturnService, PurchaseReturnResponse } from '../services/purchase-return.service';
 import { HasRoleDirective } from '../../../shared/directives/has-role.directive';
+import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
+import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 
 @Component({
   selector: 'app-purchase-returns',
@@ -30,7 +32,9 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
     MenuModule,
     TooltipModule,
     PurchaseReturnsListComponent,
-    HasRoleDirective
+    HasRoleDirective,
+    PageContainerComponent,
+    PageHeaderComponent
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: './purchase-returns.component.html',

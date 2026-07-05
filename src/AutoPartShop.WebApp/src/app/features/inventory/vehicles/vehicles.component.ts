@@ -8,6 +8,8 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { VehiclesListComponent } from './vehicles-list.component';
 import { VehicleService, VehicleResponse } from '../services/vehicle.service';
+import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
+import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 
 @Component({
   selector: 'app-vehicles',
@@ -18,7 +20,9 @@ import { VehicleService, VehicleResponse } from '../services/vehicle.service';
     ButtonModule,
     ToastModule,
     ConfirmDialogModule,
-    VehiclesListComponent
+    VehiclesListComponent,
+    PageContainerComponent,
+    PageHeaderComponent
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: './vehicles.component.html',

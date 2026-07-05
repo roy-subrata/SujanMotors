@@ -18,6 +18,9 @@ import { StockAdjustmentDialogComponent } from './stock-adjustment-dialog.compon
 import { StockMovementHistoryComponent } from './stock-movement-history.component';
 import { StockLotsByWarehouseComponent } from './stock-lots-by-warehouse.component';
 import { StockPriceHistoryComponent } from './stock-price-history.component';
+import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
+import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
+import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 
 @Component({
   selector: 'app-stock',
@@ -35,7 +38,10 @@ import { StockPriceHistoryComponent } from './stock-price-history.component';
     DialogModule,
     StockMovementHistoryComponent,
     StockLotsByWarehouseComponent,
-    StockPriceHistoryComponent
+    StockPriceHistoryComponent,
+    PageContainerComponent,
+    PageHeaderComponent,
+    FilterBarComponent
   ],
   providers: [MessageService, DialogService],
   templateUrl: './stock.component.html',

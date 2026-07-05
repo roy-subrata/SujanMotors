@@ -22,6 +22,7 @@ import {
 } from '../services/customer-account-summary.service';
 import { CurrencyService } from '../../../shared/services/currency.service';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
+import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 
 @Component({
     selector: 'app-customer-account-summary',
@@ -37,7 +38,8 @@ import { PageHeaderComponent } from '@/shared/components/page-header/page-header
         PaginatorModule,
         SkeletonModule,
         LazyAutocompleteComponent,
-        PageHeaderComponent
+        PageHeaderComponent,
+        PageContainerComponent
     ],
     providers: [MessageService],
     templateUrl: './customer-account-summary.component.html',

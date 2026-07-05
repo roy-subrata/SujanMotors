@@ -5,26 +5,13 @@
 <p-toast position="top-right"></p-toast>
 <p-confirmDialog></p-confirmDialog>
 
-<div class="page-wrapper">
+<app-page-container>
   <!-- ==================== PAGE HEADER ==================== -->
-  <header class="page-header">
-    <div class="header-content">
-      <div class="header-left">
-        <h1 class="page-title">Units</h1>
-        <p class="page-subtitle">Manage measurement units and conversions</p>
-      </div>
-
-      <div class="header-actions">
-        <div class="stats-badge">
-          <i class="pi pi-th-large"></i>
-          <div class="stats-info">
-            <span class="stats-value">{{ unitsTotalRecords }}</span>
-            <span class="stats-label">units</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </header>
+  <app-page-header
+    title="Units"
+    subtitle="Manage measurement units and conversions"
+    [count]="unitsTotalRecords" countLabel="units">
+  </app-page-header>
 
   <p-tabs value="0">
     <p-tablist>
@@ -157,4 +144,4 @@
       </p-tabpanel>
     </p-tabpanels>
   </p-tabs>
-</div>
+</app-page-container>

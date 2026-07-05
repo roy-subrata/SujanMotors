@@ -5,40 +5,22 @@
 <p-toast position="top-right"></p-toast>
 <p-confirmDialog></p-confirmDialog>
 
-<div class="page-wrapper">
+<app-page-container>
   <!-- ==================== PAGE HEADER ==================== -->
-  <header class="page-header">
-    <div class="header-content">
-      <!-- Left: Title & Subtitle -->
-      <div class="header-left">
-        <h1 class="page-title">Discounts</h1>
-        <p class="page-subtitle">Manage discount rules and promotions</p>
-      </div>
-
-      <!-- Right: Actions -->
-      <div class="header-actions">
-        <!-- Stats Badge -->
-        <div class="stats-badge">
-          <i class="pi pi-percentage"></i>
-          <div class="stats-info">
-            <span class="stats-value">{{ totalRecords }}</span>
-            <span class="stats-label">discounts</span>
-          </div>
-        </div>
-
-        <!-- Action Buttons -->
-        <div class="action-buttons">
-          <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="refreshData()">
-            <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
-          </button>
-          <button class="btn-primary" (click)="createDiscount()">
-            <i class="pi pi-plus"></i>
-            <span>New Discount</span>
-          </button>
-        </div>
-      </div>
-    </div>
-  </header>
+  <app-page-header
+    title="Discounts"
+    subtitle="Manage discount rules and promotions"
+    [count]="totalRecords" countLabel="discounts">
+    <ng-container actions>
+      <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="refreshData()">
+        <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
+      </button>
+      <button class="btn-primary" (click)="createDiscount()">
+        <i class="pi pi-plus"></i>
+        <span>New Discount</span>
+      </button>
+    </ng-container>
+  </app-page-header>
 
   <!-- ==================== FILTER SECTION ==================== -->
   <section class="filter-section">
@@ -61,7 +43,6 @@
 
       <!-- Scope Filter -->
       <div class="filter-group">
-        <label class="filter-label">Scope</label>
         <p-select
           [options]="scopeOptions"
           [(ngModel)]="filterScope"
@@ -75,7 +56,6 @@
 
       <!-- Status Filter -->
       <div class="filter-group">
-        <label class="filter-label">Status</label>
         <p-select
           [options]="statusOptions"
           [(ngModel)]="filterStatus"
@@ -130,7 +110,7 @@
     (toggleActive)="selectAndToggleActive($event)"
     (pageChange)="onPageChange($event)">
   </app-discounts-list>
-</div>
+</app-page-container>
 
 <!-- ==================== FORM DIALOG ==================== -->
 <app-discount-form-dialog

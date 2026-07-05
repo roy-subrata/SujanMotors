@@ -33,9 +33,6 @@
         <tr class="data-row">
           <td class="col-from">
             <div class="customer-cell">
-              <div class="customer-avatar">
-                {{ (conversion.fromUnitCode || 'F')[0].toUpperCase() }}
-              </div>
               <div class="customer-info">
                 <span class="customer-name">{{ conversion.fromUnitName }}</span>
                 <span class="customer-phone">{{ conversion.fromUnitCode }}</span>
@@ -44,9 +41,6 @@
           </td>
           <td class="col-to">
             <div class="customer-cell">
-              <div class="customer-avatar">
-                {{ (conversion.toUnitCode || 'T')[0].toUpperCase() }}
-              </div>
               <div class="customer-info">
                 <span class="customer-name">{{ conversion.toUnitName }}</span>
                 <span class="customer-phone">{{ conversion.toUnitCode }}</span>
@@ -182,9 +176,6 @@
 
       <div class="card-body">
         <div class="card-customer">
-          <div class="customer-avatar small">
-            {{ (conversion.fromUnitName || 'C')[0].toUpperCase() }}
-          </div>
           <span class="customer-name">{{ conversion.fromUnitName }} → {{ conversion.toUnitName }}</span>
         </div>
         <div class="card-dates">

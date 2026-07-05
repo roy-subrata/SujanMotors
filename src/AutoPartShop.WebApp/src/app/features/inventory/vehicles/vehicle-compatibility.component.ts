@@ -15,6 +15,8 @@ import { VehicleService, VehicleResponse, PartCompatibilityResponse, CreatePartC
 import { PartService, PartResponse } from '../services/part.service';
 import { LazyAutocompleteComponent, LazyRequest, LazyResponse } from '../../../shared/components/lazy-autocomplete';
 import { map } from 'rxjs';
+import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
+import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 
 @Component({
   selector: 'app-vehicle-compatibility',
@@ -31,7 +33,9 @@ import { map } from 'rxjs';
     ConfirmDialogModule,
     ToastModule,
     TagModule,
-    LazyAutocompleteComponent
+    LazyAutocompleteComponent,
+    PageContainerComponent,
+    PageHeaderComponent
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: './vehicle-compatibility.component.html',
@@ -230,6 +234,11 @@ export class VehicleCompatibilityComponent implements OnInit {
 
   goBack(): void {
     this.router.navigate(['/inventory/vehicles']);
+  }
+
+  get vehicleSubtitle(): string {
+    if (!this.vehicle) return '';
+    return `${this.vehicle.make} ${this.vehicle.model} ${this.vehicle.year} · ${this.vehicle.engineType}`;
   }
 
   hasError(fieldName: string): boolean {

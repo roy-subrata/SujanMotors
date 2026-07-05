@@ -35,9 +35,6 @@
           </td>
           <td class="col-supplier">
             <div class="customer-cell">
-              <div class="customer-avatar">
-                {{ (pr.supplierName || 'S')[0].toUpperCase() }}
-              </div>
               <div class="customer-info">
                 <span class="customer-name">{{ pr.supplierName || '-' }}</span>
                 <span *ngIf="pr.supplierCode" class="customer-phone">{{ pr.supplierCode }}</span>
@@ -144,9 +141,6 @@
       </div>
       <div class="card-body">
         <div class="card-customer">
-          <div class="customer-avatar small">
-            {{ (pr.supplierName || 'S')[0].toUpperCase() }}
-          </div>
           <div class="customer-info">
             <span class="customer-name">{{ pr.supplierName || '-' }}</span>
             <span *ngIf="pr.supplierCode" class="customer-phone">{{ pr.supplierCode }}</span>
