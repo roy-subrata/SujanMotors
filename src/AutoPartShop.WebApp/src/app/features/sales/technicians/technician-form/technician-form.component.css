@@ -58,7 +58,7 @@
   display: flex;
   align-items: center;
   gap: 0.375rem;
-  font-size: 0.875rem;
+  font-size: 12px;
   text-decoration: none;
   transition: color 0.2s ease;
 }
@@ -73,12 +73,12 @@
 
 .breadcrumb-current {
   color: var(--color-text-secondary);
-  font-size: 0.875rem;
+  font-size: 12px;
 }
 
 .form-title {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 20px;
   font-weight: 700;
   color: var(--color-text-primary);
   line-height: 1.2;
@@ -87,7 +87,7 @@
 .form-subtitle {
   margin: 0;
   color: var(--color-text-secondary);
-  font-size: 0.875rem;
+  font-size: 13px;
   font-weight: 400;
   line-height: 1.4;
 }
@@ -134,7 +134,7 @@
 
 .section-title {
   margin: 0 0 1rem 0;
-  font-size: 1rem;
+  font-size: 15px;
   font-weight: 600;
   color: var(--color-text-primary);
   display: flex;
@@ -144,7 +144,7 @@
 
 .section-icon {
   color: var(--color-primary);
-  font-size: 1rem;
+  font-size: 15px;
 }
 
 /* Form rows and groups */
@@ -170,7 +170,7 @@
 }
 
 .form-group label {
-  font-size: 0.875rem;
+  font-size: 13px;
   font-weight: 500;
   color: var(--color-text-primary);
 }
@@ -190,11 +190,11 @@
   align-items: center;
   gap: 0.375rem;
   color: var(--color-text-secondary);
-  font-size: 0.75rem;
+  font-size: 12px;
 }
 
 .field-hint i {
-  font-size: 0.75rem;
+  font-size: 12px;
 }
 
 /* Code input wrapper */
@@ -211,13 +211,13 @@
   top: 50%;
   transform: translateY(-50%);
   color: var(--color-primary);
-  font-size: 1rem;
+  font-size: 13px;
 }
 
 /* Error messages */
 .p-error {
   color: var(--color-danger);
-  font-size: 0.75rem;
+  font-size: 12px;
 }
 
 /* Form actions */
@@ -287,7 +287,7 @@
   }
 
   .form-title {
-    font-size: 1.25rem;
+    font-size: 18px;
   }
 
   .form-row {
@@ -317,11 +317,11 @@
   }
 
   .form-title {
-    font-size: 1.125rem;
+    font-size: 15px;
   }
 
   .form-subtitle {
-    font-size: 0.8125rem;
+    font-size: 12px;
   }
 
   .form-content {

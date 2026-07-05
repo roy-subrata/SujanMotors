@@ -31,7 +31,7 @@
 }
 
 .header-title {
-  font-size: 1.5rem;
+  font-size: 20px;
   font-weight: 700;
   color: var(--color-text-primary);
   margin: 0;
@@ -39,7 +39,7 @@
 
 .header-subtitle {
   color: var(--color-text-secondary);
-  font-size: 0.875rem;
+  font-size: 13px;
   margin: 0.25rem 0 0 0;
 }
 
@@ -108,7 +108,7 @@
 }
 
 .metric-label {
-  font-size: 0.875rem;
+  font-size: 11px;
   color: var(--color-text-secondary);
   margin-bottom: 0.5rem;
   font-weight: 500;
@@ -117,24 +117,24 @@
 }
 
 .metric-value {
-  font-size: 1.5rem;
+  font-size: 20px;
   font-weight: 700;
   color: var(--color-text-primary);
   margin-bottom: 0.25rem;
 }
 
 .metric-helper {
-  font-size: 0.75rem;
+  font-size: 12px;
   color: var(--color-text-muted);
   margin-top: 0.25rem;
 }
 
 .metric-small {
-  font-size: 1rem;
+  font-size: 14px;
 }
 
 .table-title {
-  font-size: 1.25rem;
+  font-size: 18px;
   font-weight: 600;
   color: var(--color-text-primary);
   margin: 0;
@@ -149,7 +149,7 @@
 
 .empty-hint {
   color: var(--color-text-secondary);
-  font-size: 0.875rem;
+  font-size: 12px;
   margin: 0;
 }
 
@@ -165,7 +165,7 @@
   align-items: center;
   padding: 0.25rem 0.75rem;
   border-radius: 9999px;
-  font-size: 0.75rem;
+  font-size: 11px;
   font-weight: 500;
   background: var(--color-bg-secondary);
   color: var(--color-text-secondary);
@@ -189,7 +189,7 @@
 }
 
 ::ng-deep .p-datatable {
-  font-size: 0.875rem;
+  font-size: 14px;
 }
 
 ::ng-deep .p-datatable .p-datatable-thead > tr > th {
@@ -234,6 +234,6 @@
   }
 
   .header-title {
-    font-size: 1.25rem;
+    font-size: 18px;
   }
 }

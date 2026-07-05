@@ -107,7 +107,7 @@
 
 .brand-info h1 {
   margin: 0;
-  font-size: 1rem;
+  font-size: 15px;
   font-weight: 700;
   color: var(--color-text-primary);
   white-space: nowrap;
@@ -121,7 +121,7 @@
   background: var(--color-primary-light);
   color: var(--color-primary);
   border-radius: 4px;
-  font-size: 0.75rem;
+  font-size: 11px;
   font-weight: 600;
   margin-top: 2px;
 }
@@ -160,7 +160,7 @@
   align-items: center;
   justify-content: center;
   transition: var(--pos-transition);
-  font-size: 0.9rem;
+  font-size: 13px;
 }
 
 .toolbar-btn:hover:not(:disabled) {
@@ -204,7 +204,7 @@
   padding: 6px 12px;
   background: var(--color-bg-secondary);
   border-radius: var(--pos-radius);
-  font-size: 0.875rem;
+  font-size: 12px;
   color: var(--color-text-secondary);
 }
 
@@ -363,7 +363,7 @@
 }
 
 .part-row-name {
-  font-size: 0.875rem;
+  font-size: 13px;
   font-weight: 500;
   color: var(--color-text-primary);
   flex: 1;
@@ -374,20 +374,20 @@
 }
 
 .part-row-sep {
-  font-size: 0.75rem;
+  font-size: 12px;
   color: var(--color-border);
   flex-shrink: 0;
 }
 
 .part-row-sku {
-  font-size: 0.75rem;
+  font-size: 12px;
   color: var(--color-text-muted);
   font-family: ui-monospace, monospace;
   flex-shrink: 0;
 }
 
 .part-row-price {
-  font-size: 0.875rem;
+  font-size: 13px;
   font-weight: 600;
   color: var(--color-primary);
   white-space: nowrap;
@@ -447,7 +447,7 @@
   flex: 1;
   border: none;
   outline: none;
-  font-size: 0.9rem;
+  font-size: 13px;
   background: transparent;
 }
 
@@ -473,7 +473,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.75rem;
+  font-size: 12px;
   color: var(--color-primary);
   padding: 4px 8px;
   background: var(--color-primary-light);
@@ -483,7 +483,7 @@
 
 .section-header h2 {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: 15px;
   font-weight: 600;
   color: var(--color-text-primary);
 }
@@ -499,7 +499,7 @@
   background: var(--color-primary-light);
   color: var(--color-primary);
   border-radius: 12px;
-  font-size: 0.75rem;
+  font-size: 11px;
   font-weight: 600;
 }
 
@@ -515,7 +515,7 @@
   align-items: center;
   justify-content: center;
   transition: var(--pos-transition);
-  font-size: 0.8rem;
+  font-size: 12px;
 }
 
 .icon-btn-sm:hover:not(:disabled) {
@@ -558,20 +558,20 @@
 }
 
 .empty-cart .empty-icon i {
-  font-size: 2rem;
+  font-size: 28px;
   color: var(--color-text-muted);
 }
 
 .empty-cart h3 {
   margin: 0 0 8px;
-  font-size: 1.1rem;
+  font-size: 15px;
   color: var(--color-text-primary);
 }
 
 .empty-cart p {
   margin: 0;
   color: var(--color-text-secondary);
-  font-size: 0.875rem;
+  font-size: 12px;
 }
 
 /* Cart Items */
@@ -617,7 +617,7 @@
 
 .item-name {
   margin: 0 0 4px;
-  font-size: 0.9rem;
+  font-size: 14px;
   font-weight: 600;
   color: var(--color-text-primary);
   white-space: nowrap;
@@ -629,7 +629,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.75rem;
+  font-size: 12px;
   color: var(--color-text-muted);
 }
 
@@ -684,7 +684,7 @@
   height: 32px;
   border: none;
   text-align: center;
-  font-size: 0.9rem;
+  font-size: 13px;
   font-weight: 600;
   color: var(--color-text-primary);
   background: var(--color-bg-primary);
@@ -714,7 +714,7 @@
   border-radius: var(--pos-radius);
   padding: 4px 6px;
   text-align: right;
-  font-size: 0.875rem;
+  font-size: 13px;
   color: var(--color-text-primary);
 }
 
@@ -724,13 +724,13 @@
 }
 
 .price-suffix {
-  font-size: 0.7rem;
+  font-size: 11px;
   color: var(--color-text-muted);
   margin-top: 2px;
 }
 
 .item-total {
-  font-size: 0.95rem;
+  font-size: 14px;
   font-weight: 700;
   color: var(--color-text-primary);
   flex: 1;
@@ -773,7 +773,7 @@
   background: var(--color-warning-light);
   color: var(--color-warning);
   border-radius: 4px;
-  font-size: 0.7rem;
+  font-size: 11px;
   font-weight: 600;
 }
 
@@ -796,7 +796,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 3px 0;
-  font-size: 0.78rem;
+  font-size: 12px;
   color: var(--color-text-secondary);
 }
 
@@ -818,7 +818,7 @@
   border-radius: var(--pos-radius);
   background: var(--color-bg-primary);
   color: var(--color-text-primary);
-  font-size: 0.78rem;
+  font-size: 12px;
   text-align: right;
   transition: var(--pos-transition);
 }
@@ -833,7 +833,7 @@
   padding-top: 12px;
   margin-top: 8px;
   border-top: 1px solid var(--color-border);
-  font-size: 1.1rem;
+  font-size: 15px;
   font-weight: 700;
   color: var(--color-text-primary);
 }
@@ -841,7 +841,7 @@
 .total-row .value {
   font-weight: 600;
   color: var(--color-text-primary);
-  font-size: 0.78rem;
+  font-size: 12px;
 }
 
 .checkout-btn {
@@ -852,7 +852,7 @@
   border-radius: var(--pos-radius);
   background: var(--color-primary);
   color: var(--accent-fg);
-  font-size: 1rem;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   display: flex;
@@ -881,7 +881,7 @@
   padding: 6px 14px;
   background: rgba(0, 0, 0, 0.15);
   border-radius: 6px;
-  font-size: 1.05rem;
+  font-size: 14px;
   font-weight: 700;
   white-space: nowrap;
 }
@@ -1041,7 +1041,7 @@
 }
 
 .customer-option .name {
-  font-size: 0.85rem;
+  font-size: 13px;
   font-weight: 600;
   color: var(--color-text-primary);
 }
@@ -1049,11 +1049,11 @@
 .customer-option .name .code {
   font-weight: 400;
   color: var(--color-text-secondary);
-  font-size: 0.8rem;
+  font-size: 12px;
 }
 
 .customer-option .phone {
-  font-size: 0.75rem;
+  font-size: 12px;
   color: var(--color-text-muted);
 }
 
@@ -1097,7 +1097,7 @@
   padding: 6px 8px;
   background: var(--color-bg-secondary);
   border-radius: 6px;
-  font-size: 0.7rem;
+  font-size: 11px;
   color: var(--color-text-secondary);
   font-weight: 500;
 }
@@ -1113,7 +1113,7 @@
 }
 
 .badge-stat i {
-  font-size: 0.75rem;
+  font-size: 11px;
 }
 
 /* Technician */
@@ -1127,7 +1127,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.8rem;
+  font-size: 13px;
   color: var(--color-text-secondary);
   cursor: pointer;
 }
@@ -1145,7 +1145,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.8rem;
+  font-size: 13px;
   font-weight: 600;
   color: var(--color-text-secondary);
   margin-bottom: 10px;
@@ -1170,7 +1170,7 @@
   display: block;
   margin-bottom: 6px;
   color: var(--color-text-secondary);
-  font-size: 0.8rem;
+  font-size: 13px;
   font-weight: 500;
 }
 
@@ -1193,7 +1193,7 @@
 
 .payment-method-option i {
   color: var(--color-text-secondary);
-  font-size: 1.1rem;
+  font-size: 15px;
 }
 
 .payment-method-option:hover {
@@ -1245,7 +1245,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.8rem;
+  font-size: 13px;
   color: var(--color-text-primary);
   cursor: pointer;
 }
@@ -1265,7 +1265,7 @@
 }
 
 .credit-label {
-  font-size: 0.75rem;
+  font-size: 12px;
   color: var(--color-text-secondary);
   white-space: nowrap;
 }
@@ -1298,7 +1298,7 @@
   align-items: center;
   gap: 8px;
   flex: 1;
-  font-size: 0.8rem;
+  font-size: 12px;
   color: var(--color-text-secondary);
 }
 
@@ -1307,7 +1307,7 @@
 }
 
 .pay-item-amount {
-  font-size: 0.9rem;
+  font-size: 14px;
   font-weight: 700;
   color: var(--color-text-primary);
 }
@@ -1343,7 +1343,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 4px 0;
-  font-size: 0.8rem;
+  font-size: 12px;
   color: var(--color-text-secondary);
 }
 
@@ -1382,7 +1382,7 @@
 
 .reference-input {
   width: 100%;
-  font-size: 0.82rem;
+  font-size: 13px;
 }
 
 /* Due Info Banner */
@@ -1395,7 +1395,7 @@
   border: 1px solid var(--color-warning-light);
   border-radius: 6px;
   margin-bottom: 8px;
-  font-size: 0.75rem;
+  font-size: 12px;
   color: var(--color-warning);
 }
 
@@ -1412,7 +1412,7 @@
 }
 
 .pay-item-ref {
-  font-size: 0.7rem;
+  font-size: 11px;
   color: var(--color-text-muted);
   font-style: italic;
 }
@@ -1430,7 +1430,7 @@
 }
 
 .print-type-title {
-  font-size: 0.75rem;
+  font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.4px;
@@ -1447,7 +1447,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.8rem;
+  font-size: 13px;
   color: var(--color-text-primary);
   cursor: pointer;
 }
@@ -1463,7 +1463,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--pos-radius);
   padding: 8px 12px;
-  font-size: 0.85rem;
+  font-size: 13px;
   resize: vertical;
   margin-top: 8px;
 }
@@ -1483,7 +1483,7 @@
 }
 
 .grand-label {
-  font-size: 0.72rem;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -1491,7 +1491,7 @@
 }
 
 .grand-amount {
-  font-size: 1.25rem;
+  font-size: 18px;
   font-weight: 800;
   color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;
@@ -1517,7 +1517,7 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  font-size: 0.8rem;
+  font-size: 13px;
   font-weight: 500;
   transition: var(--pos-transition);
 }
@@ -1597,17 +1597,17 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 1rem;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.01em;
 }
 
 .pay-btn-label i {
-  font-size: 1.1rem;
+  font-size: 15px;
 }
 
 .pay-btn-amount {
-  font-size: 0.85rem;
+  font-size: 12px;
   font-weight: 600;
   opacity: 0.9;
   font-variant-numeric: tabular-nums;
@@ -1626,7 +1626,7 @@
 }
 
 .vat-amount {
-  font-size: 0.72rem;
+  font-size: 11px;
   color: var(--color-success);
   margin-left: 2px;
 }
@@ -1642,7 +1642,7 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  font-size: 0.8rem;
+  font-size: 13px;
   font-weight: 500;
   transition: var(--pos-transition);
 }
@@ -1707,7 +1707,7 @@
 }
 
 .reprint-hint {
-  font-size: 0.85rem;
+  font-size: 12px;
   color: var(--color-text-secondary);
   margin: 0;
 }
@@ -1722,7 +1722,7 @@
 }
 
 .reprint-error {
-  font-size: 0.82rem;
+  font-size: 12px;
   color: var(--color-danger);
   margin: 0;
   padding: 8px 10px;
@@ -1763,7 +1763,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.25rem;
+  font-size: 18px;
   font-weight: 700;
 }
 
@@ -1774,12 +1774,12 @@
 }
 
 .customer-details strong {
-  font-size: 1rem;
+  font-size: 14px;
   color: var(--color-text-primary);
 }
 
 .customer-details span {
-  font-size: 0.85rem;
+  font-size: 12px;
   color: var(--color-text-secondary);
 }
 
@@ -1815,7 +1815,7 @@
 
 .history-info .date,
 .held-info span {
-  font-size: 0.75rem;
+  font-size: 12px;
   color: var(--color-text-muted);
 }
 
@@ -1836,7 +1836,7 @@
   background: var(--color-bg-primary);
   color: var(--color-text-secondary);
   cursor: pointer;
-  font-size: 0.75rem;
+  font-size: 12px;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -1863,7 +1863,7 @@
 
 .empty-history i,
 .empty-held i {
-  font-size: 2.5rem;
+  font-size: 32px;
   margin-bottom: 12px;
   display: block;
 }
@@ -1879,12 +1879,12 @@
 }
 
 .stat-label {
-  font-size: 0.85rem;
+  font-size: 12px;
   color: var(--color-text-secondary);
 }
 
 .stat-value {
-  font-size: 1rem;
+  font-size: 14px;
   font-weight: 700;
   color: var(--color-text-primary);
 }
@@ -1916,7 +1916,7 @@
 }
 
 .detail-label {
-  font-size: 0.85rem;
+  font-size: 12px;
   color: var(--color-text-secondary);
 }
 
@@ -1965,12 +1965,12 @@
 }
 
 .return-empty i {
-  font-size: 2rem;
+  font-size: 28px;
 }
 
 .return-empty p {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: 12px;
 }
 
 /* Invoice summary row */
@@ -1993,14 +1993,14 @@
 }
 
 .summary-label {
-  font-size: 0.75rem;
+  font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--color-text-muted);
 }
 
 .summary-value {
-  font-size: 0.95rem;
+  font-size: 14px;
   font-weight: 600;
   color: var(--color-text-primary);
 }
@@ -2013,7 +2013,7 @@
 }
 
 .section-title {
-  font-size: 0.8rem;
+  font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -2031,7 +2031,7 @@
 
 .return-table thead th {
   text-align: left;
-  font-size: 0.75rem;
+  font-size: 10.5px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.03em;
@@ -2043,7 +2043,7 @@
 
 .return-table tbody td {
   padding: 10px 12px;
-  font-size: 0.9rem;
+  font-size: 14px;
   color: var(--color-text-primary);
   border-bottom: 1px solid var(--color-border);
   vertical-align: middle;
@@ -2092,7 +2092,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--pos-radius);
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: 13px;
   color: var(--color-text-primary);
   transition: var(--pos-transition);
 }
@@ -2109,7 +2109,7 @@
 }
 
 .refund-option i {
-  font-size: 1rem;
+  font-size: 14px;
 }
 
 /* Footer */
@@ -2122,12 +2122,12 @@
 }
 
 .footer-total {
-  font-size: 0.9rem;
+  font-size: 12px;
   color: var(--color-text-secondary);
 }
 
 .footer-total strong {
-  font-size: 1.05rem;
+  font-size: 15px;
   color: var(--color-text-primary);
   margin-left: 6px;
 }
@@ -2159,7 +2159,7 @@
   align-items: center;
   gap: 8px;
   white-space: nowrap;
-  font-size: 0.9rem;
+  font-size: 13px;
   color: var(--color-text-primary);
   cursor: pointer;
 }
@@ -2180,7 +2180,7 @@
 }
 
 .stock-empty i {
-  font-size: 2rem;
+  font-size: 28px;
 }
 
 .stock-empty p {
@@ -2197,7 +2197,7 @@
 
 .stock-table thead th {
   text-align: left;
-  font-size: 0.75rem;
+  font-size: 10.5px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.03em;
@@ -2209,7 +2209,7 @@
 
 .stock-table tbody td {
   padding: 10px 12px;
-  font-size: 0.9rem;
+  font-size: 14px;
   color: var(--color-text-primary);
   border-bottom: 1px solid var(--color-border);
   vertical-align: middle;
@@ -2256,7 +2256,7 @@
 }
 
 .stock-count {
-  font-size: 0.85rem;
+  font-size: 12px;
   color: var(--color-text-secondary);
 }
 
@@ -2264,7 +2264,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.85rem;
+  font-size: 12px;
   color: var(--color-text-secondary);
 }
 
@@ -2284,7 +2284,7 @@
   gap: 8px;
   padding: 20px 4px;
   color: var(--color-text-secondary);
-  font-size: 0.9rem;
+  font-size: 13px;
 }
 
 .price-empty {
@@ -2299,12 +2299,12 @@
 }
 
 .price-empty i {
-  font-size: 1.8rem;
+  font-size: 24px;
 }
 
 .price-empty p {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: 12px;
 }
 
 .price-card {
@@ -2335,7 +2335,7 @@
 
 .price-tag {
   flex-shrink: 0;
-  font-size: 0.72rem;
+  font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.03em;
@@ -2351,7 +2351,7 @@
 }
 
 .price-amount {
-  font-size: 1.7rem;
+  font-size: 22px;
   font-weight: 700;
   color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;
@@ -2367,7 +2367,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 0.88rem;
+  font-size: 13px;
 }
 
 .price-row span {
@@ -2398,7 +2398,7 @@
   width: 100%;
   border-radius: var(--pos-radius);
   padding: 8px 12px;
-  font-size: 0.9rem;
+  font-size: 13px;
 }
 
 :host ::ng-deep .p-select {
@@ -2407,7 +2407,7 @@
 
 :host ::ng-deep .p-select-label {
   padding: 6px 12px;
-  font-size: 0.85rem;
+  font-size: 13px;
 }
 
 /* ============================================
@@ -2429,11 +2429,11 @@
   .toolbar-btn {
     width: 32px;
     height: 32px;
-    font-size: 0.8rem;
+    font-size: 12px;
   }
 
   .brand-info h1 {
-    font-size: 0.95rem;
+    font-size: 13px;
   }
 
   .sidebar-scroll-area {
@@ -2486,7 +2486,7 @@
   }
 
   .brand-info h1 {
-    font-size: 0.9rem;
+    font-size: 12px;
   }
 
 
@@ -2555,7 +2555,7 @@
   }
 
   .grand-amount {
-    font-size: 1.35rem;
+    font-size: 20px;
   }
 
   /* Sidebar: natural height, scroll with page */
@@ -2636,7 +2636,7 @@
   }
 
   .pay-btn-label {
-    font-size: 0.9rem;
+    font-size: 12px;
   }
 }
 
@@ -2697,11 +2697,11 @@
 }
 
 .pos-bottom-nav .nav-btn i {
-  font-size: 1.05rem;
+  font-size: 14px;
 }
 
 .pos-bottom-nav .nav-btn span {
-  font-size: 0.58rem;
+  font-size: 10.5px;
   font-weight: 500;
 }
 

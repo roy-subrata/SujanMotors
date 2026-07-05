@@ -47,7 +47,7 @@
   display: flex;
   align-items: center;
   gap: 0.375rem;
-  font-size: 0.875rem;
+  font-size: 12px;
   text-decoration: none;
   transition: color 0.2s ease;
 }
@@ -62,12 +62,12 @@
 
 .breadcrumb-current {
   color: var(--color-text-secondary);
-  font-size: 0.875rem;
+  font-size: 12px;
 }
 
 .form-title {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 20px;
   font-weight: 700;
   color: var(--color-text-primary);
   line-height: 1.2;
@@ -76,7 +76,7 @@
 .form-subtitle {
   margin: 0;
   color: var(--color-text-secondary);
-  font-size: 0.875rem;
+  font-size: 13px;
   font-weight: 400;
   line-height: 1.4;
 }
@@ -106,7 +106,7 @@
   background: var(--color-danger-light);
   border: 1px solid var(--color-danger-light);
   color: var(--color-danger);
-  font-size: 0.875rem;
+  font-size: 13px;
 }
 
 .error-box i {
@@ -141,7 +141,7 @@
 
 .section-title {
   margin: 0 0 1rem 0;
-  font-size: 1rem;
+  font-size: 15px;
   font-weight: 600;
   color: var(--color-text-primary);
   display: flex;
@@ -151,7 +151,7 @@
 
 .section-icon {
   color: var(--color-primary);
-  font-size: 1rem;
+  font-size: 15px;
 }
 
 /* Form rows and groups */
@@ -177,7 +177,7 @@
 }
 
 .form-group label {
-  font-size: 0.875rem;
+  font-size: 13px;
   font-weight: 500;
   color: var(--color-text-primary);
 }
@@ -190,7 +190,7 @@ textarea {
   padding: 0.625rem 0.875rem;
   border: 1px solid var(--color-border);
   border-radius: 0.375rem;
-  font-size: 0.9375rem;
+  font-size: 13px;
   color: var(--color-text-primary);
   transition: all 0.2s ease;
   background-color: var(--color-bg-primary);
@@ -210,7 +210,7 @@ textarea:focus {
 
 .p-error {
   color: var(--color-danger);
-  font-size: 0.75rem;
+  font-size: 12px;
 }
 
 .field-hint {
@@ -218,11 +218,11 @@ textarea:focus {
   align-items: center;
   gap: 0.375rem;
   color: var(--color-text-secondary);
-  font-size: 0.75rem;
+  font-size: 12px;
 }
 
 .field-hint i {
-  font-size: 0.75rem;
+  font-size: 12px;
 }
 
 .field-hint .success-text {
@@ -281,7 +281,7 @@ textarea:focus {
 .return-items-table th {
   padding: 0.875rem 1rem;
   text-align: left;
-  font-size: 0.75rem;
+  font-size: 10.5px;
   font-weight: 600;
   color: var(--color-text-secondary);
   text-transform: uppercase;
@@ -291,7 +291,7 @@ textarea:focus {
 
 .return-items-table td {
   padding: 1rem;
-  font-size: 0.875rem;
+  font-size: 14px;
   color: var(--color-text-primary);
   border-bottom: 1px solid var(--color-bg-secondary);
   vertical-align: middle;
@@ -309,7 +309,7 @@ textarea:focus {
 }
 
 .item-sub {
-  font-size: 0.75rem;
+  font-size: 12px;
   color: var(--color-text-secondary);
 }
 
@@ -324,7 +324,7 @@ textarea:focus {
 .total-value {
   font-weight: 700;
   color: var(--color-primary);
-  font-size: 1rem;
+  font-size: 14px;
 }
 
 /* Order summary */
@@ -349,13 +349,13 @@ textarea:focus {
 
 .summary-label {
   color: var(--color-text-secondary);
-  font-size: 0.875rem;
+  font-size: 13px;
 }
 
 .summary-value {
   font-weight: 700;
   color: var(--color-primary);
-  font-size: 1.25rem;
+  font-size: 18px;
 }
 
 /* Form actions */
@@ -396,7 +396,7 @@ textarea:focus {
   }
 
   .form-title {
-    font-size: 1.125rem;
+    font-size: 15px;
   }
 
   .form-subtitle {
@@ -447,12 +447,12 @@ textarea:focus {
   }
 
   .form-title {
-    font-size: 1rem;
+    font-size: 14px;
   }
 
   .breadcrumb-link,
   .breadcrumb-current {
-    font-size: 0.75rem;
+    font-size: 11px;
   }
 
   .form-content {
