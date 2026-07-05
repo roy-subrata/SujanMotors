@@ -138,7 +138,6 @@
 
             <td class="col-customer">
               <div class="cell-media">
-                <div class="customer-avatar">{{ (order.customerName || 'W')[0].toUpperCase() }}</div>
                 <div class="customer-info">
                   <span class="customer-name">{{ order.customerName || 'Walk-in Customer' }}</span>
                   <span *ngIf="order.customerPhone" class="customer-phone">{{ order.customerPhone }}</span>

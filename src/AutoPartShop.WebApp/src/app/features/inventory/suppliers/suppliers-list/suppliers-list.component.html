@@ -105,9 +105,6 @@
             <!-- Supplier Name -->
             <td class="col-customer">
               <div class="customer-cell">
-                <div class="customer-avatar">
-                  {{ (supplier.name || 'S')[0].toUpperCase() }}
-                </div>
                 <div class="customer-info">
                   <span class="customer-name">{{ supplier.name }}</span>
                   <span *ngIf="supplier.contactPerson" class="customer-phone">{{ supplier.contactPerson }}</span>

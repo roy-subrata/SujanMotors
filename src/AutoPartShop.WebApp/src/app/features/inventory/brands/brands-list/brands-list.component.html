@@ -38,9 +38,6 @@
             <div class="brand-logo-cell">
               <img *ngIf="brand.logoUrl" [src]="brand.logoUrl" [alt]="brand.name" class="brand-logo-img"
                    (error)="brand.logoUrl = null" />
-              <div *ngIf="!brand.logoUrl" class="customer-avatar">
-                {{ (brand.name || 'B')[0].toUpperCase() }}
-              </div>
             </div>
           </td>
 

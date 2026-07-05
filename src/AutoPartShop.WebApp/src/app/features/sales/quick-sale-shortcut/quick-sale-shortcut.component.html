@@ -541,7 +541,6 @@
   <p-dialog [(visible)]="showCustomerHistoryDialog" [modal]="true" [style]="{ width: '600px' }" header="Customer Purchase History">
     <div class="history-content" *ngIf="selectedCustomer()">
       <div class="customer-header">
-        <div class="customer-avatar">{{ selectedCustomer().fullName?.charAt(0) }}</div>
         <div class="customer-details">
           <strong>{{ selectedCustomer().fullName }}</strong>
           <span>{{ selectedCustomer().phone }}</span>

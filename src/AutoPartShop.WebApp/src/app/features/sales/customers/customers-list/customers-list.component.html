@@ -123,9 +123,6 @@
             <!-- Customer Name -->
             <td class="col-customer">
               <div class="customer-cell">
-                <div class="customer-avatar">
-                  {{ (customer.fullName || customer.firstName || 'C')[0].toUpperCase() }}
-                </div>
                 <div class="customer-info">
                   <span class="customer-name">{{ customer.fullName || (customer.firstName + ' ' + customer.lastName) }}</span>
                   <span *ngIf="customer.companyName" class="customer-company">{{ customer.companyName }}</span>
