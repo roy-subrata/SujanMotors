@@ -167,9 +167,6 @@
       </div>
       <div class="card-body">
         <div class="card-customer">
-          <div class="customer-avatar small">
-            {{ (po.supplierName || 'S')[0].toUpperCase() }}
-          </div>
           <div class="customer-info">
             <span class="customer-name">{{ po.supplierName || '-' }}</span>
             <span *ngIf="po.supplierCode" class="customer-phone">{{ po.supplierCode }}</span>

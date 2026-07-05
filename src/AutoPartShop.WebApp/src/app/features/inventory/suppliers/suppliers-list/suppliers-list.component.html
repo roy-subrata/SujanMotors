@@ -294,9 +294,6 @@
         <!-- Card Body -->
         <div class="card-body">
           <div class="card-customer">
-            <div class="customer-avatar small">
-              {{ (supplier.name || 'S')[0].toUpperCase() }}
-            </div>
             <div class="card-customer-info">
               <span class="customer-name">{{ supplier.name }}</span>
               <span *ngIf="supplier.contactPerson" class="customer-phone">{{ supplier.contactPerson }}</span>
