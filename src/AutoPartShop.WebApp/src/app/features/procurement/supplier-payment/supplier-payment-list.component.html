@@ -81,13 +81,11 @@
         (onContextMenuSelect)="selectedPayment = $event.data"
         [contextMenu]="contextMenu"
         responsiveLayout="scroll"
-        styleClass="custom-table">
+        styleClass="app-table">
 
         <ng-template #header>
           <tr>
-            <th pSortableColumn="paymentDate" class="col-date">
-              Date <p-sortIcon field="paymentDate"></p-sortIcon>
-            </th>
+            <th class="col-date">Date</th>
             <th class="col-supplier">Supplier</th>
             <th class="col-amount text-right">Amount</th>
             <th class="col-method">Method</th>

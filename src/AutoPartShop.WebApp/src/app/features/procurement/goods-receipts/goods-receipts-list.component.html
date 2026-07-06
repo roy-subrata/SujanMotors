@@ -12,7 +12,7 @@
       [rowHover]="true"
       [scrollable]="true"
       scrollHeight="flex"
-      styleClass="custom-table">
+      styleClass="app-table">
 
       <ng-template #header>
         <tr>
@@ -21,7 +21,6 @@
           <th class="col-warehouse">Warehouse</th>
           <th class="col-date">Received Date</th>
           <th class="col-status">Status</th>
-          <th class="col-items">Items</th>
           <th class="col-verified">Verified By</th>
           <th class="col-actions">Actions</th>
         </tr>
@@ -49,12 +48,6 @@
               {{ formatStatus(grn.status) }}
             </span>
           </td>
-          <td class="col-items">
-            <div class="items-cell">
-              <span class="items-value">{{ grn.totalItemsReceived || 0 }}</span>
-              <span *ngIf="grn.discrepancyCount > 0" class="items-badge">{{ grn.discrepancyCount }}</span>
-            </div>
-          </td>
           <td class="col-verified">
             <span class="verified-text">{{ grn.verifiedBy || 'Pending' }}</span>
           </td>
@@ -70,7 +63,7 @@
 
       <ng-template #emptymessage>
         <tr>
-          <td colspan="8">
+          <td colspan="7">
             <div class="empty-state">
               <div class="empty-icon">
                 <i class="pi pi-inbox"></i>
@@ -90,7 +83,6 @@
           <td><div class="skeleton skeleton-text"></div></td>
           <td><div class="skeleton skeleton-text-sm"></div></td>
           <td><div class="skeleton skeleton-badge"></div></td>
-          <td><div class="skeleton skeleton-text-sm"></div></td>
           <td><div class="skeleton skeleton-text-sm"></div></td>
           <td><div class="skeleton skeleton-actions"></div></td>
         </tr>
@@ -180,10 +172,6 @@
       </div>
 
       <div class="card-footer">
-        <div class="card-amount">
-          <span class="amount-label">Items</span>
-          <span class="amount-value">{{ grn.totalItemsReceived || 0 }}</span>
-        </div>
         <div class="card-amount">
           <span class="amount-label">Verified By</span>
           <span class="amount-value">{{ grn.verifiedBy || 'Pending' }}</span>

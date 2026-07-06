@@ -8,7 +8,6 @@
 .col-code       { min-width: 120px; }
 .col-breadcrumb { min-width: 220px; }
 .col-level      { min-width: 120px; }
-.col-children   { min-width: 100px; text-align: center; }
 .col-order      { min-width: 100px; text-align: right; }
 .col-status     { min-width: 120px; }
 .col-actions    { width: 100px; text-align: center; }
@@ -30,10 +29,6 @@
   font-size: 12px;
   font-weight: 600;
 }
-
-/* Children count */
-.children-count { font-size: 13px; color: var(--color-text-muted); }
-.children-count.has-children { font-weight: 600; color: var(--color-primary); }
 
 /* Display order badge */
 .order-badge {
