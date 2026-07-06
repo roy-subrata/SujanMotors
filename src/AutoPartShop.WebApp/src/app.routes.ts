@@ -16,6 +16,7 @@ export const appRoutes: Routes = [
 
     // Quick Sale (POS) - standalone layout (no sidebar/header) — auth required
     { path: 'quick-sale-shortcut', component: QuickSaleShortcutComponent, canActivate: [authGuard] },
+    { path: 'pos', component: QuickSaleShortcutComponent, canActivate: [authGuard] },
 
     // E-commerce storefront - public module
     { path: 'shop', loadChildren: () => import('./app/features/ecommerce/ecommerce.routes').then(m => m.ecommerceRoutes) },

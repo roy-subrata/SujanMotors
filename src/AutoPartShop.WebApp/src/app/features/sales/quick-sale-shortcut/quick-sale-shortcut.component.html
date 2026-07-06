@@ -15,21 +15,28 @@
 
   <!-- POS Header -->
   <header class="pos-header">
-    <div class="header-left">
-      <button class="back-btn" routerLink="/" pTooltip="Back">
+    <div class="pos-header-left">
+      <button class="exit-pos-btn" routerLink="/" pTooltip="Back to Dashboard">
         <i class="pi pi-arrow-left"></i>
+        <span>Exit POS</span>
       </button>
-      <div class="brand">
-        <div class="brand-icon">
-          <i class="pi pi-shopping-cart"></i>
-        </div>
-        <div class="brand-info">
-          <h1>{{ companyName }}</h1>
-          <span class="invoice-number">{{ invoiceNumber() }}</span>
-        </div>
+      <div class="pos-brand">
+        <div class="pos-brand-monogram">SM</div>
+        <span class="pos-brand-name">Point of Sale</span>
+        <span class="pos-register-pill">
+          <span class="pos-register-dot"></span>
+          Register open
+        </span>
       </div>
     </div>
-
+    <div class="pos-header-right">
+      <button class="topbar-icon-btn" (click)="layoutService.toggleDarkMode()" [pTooltip]="isDarkMode() ? 'Switch to light' : 'Switch to dark'">
+        <i [class]="isDarkMode() ? 'pi pi-sun' : 'pi pi-moon'"></i>
+      </button>
+      <button class="topbar-icon-btn" pTooltip="Notifications">
+        <i class="pi pi-bell"></i>
+      </button>
+    </div>
   </header>
 
   <!-- Main Content -->
@@ -94,6 +101,16 @@
         </div>
         <h3>Cart is Empty</h3>
         <p>Search and add products to start a sale</p>
+      </div>
+
+      <!-- Cart Table Header -->
+      <div class="cart-table-header" *ngIf="cartItems().length > 0">
+        <span class="col-item">ITEM</span>
+        <span class="col-unit">UNIT</span>
+        <span class="col-qty">QTY</span>
+        <span class="col-price">PRICE</span>
+        <span class="col-total">TOTAL</span>
+        <span class="col-remove"></span>
       </div>
 
       <!-- Cart Items -->
@@ -302,33 +319,29 @@
             <span class="payment-total">{{ formatCurrency(grandTotal()) }}</span>
           </div>
 
-          <!-- Payment Method Dropdown -->
-          <div class="payment-method-dropdown">
-            <label class="payment-method-label">Payment Method</label>
-            <p-select
-              [(ngModel)]="selectedPaymentMethod"
-              [ngModelOptions]="{standalone: true}"
-              [options]="paymentMethodOptions()"
-              optionLabel="label"
-              optionValue="value"
-              placeholder="Select payment method..."
-              appendTo="body"
-              [style]="{ width: '100%' }"
-              styleClass="payment-method-select"
-              (onChange)="onPaymentMethodChange()">
-              <ng-template let-method pTemplate="selectedItem">
-                <div class="payment-method-selected">
-                  <i [class]="method.icon"></i>
-                  <span>{{ method.label }}</span>
-                </div>
-              </ng-template>
-              <ng-template let-method pTemplate="item">
-                <div class="payment-method-option">
-                  <i [class]="method.icon"></i>
-                  <span>{{ method.label }}</span>
-                </div>
-              </ng-template>
-            </p-select>
+          <!-- Payment Method Tiles -->
+          <div class="payment-method-tiles">
+            <button class="pay-tile" [class.active]="selectedPaymentMethod === 'CASH'"
+              (click)="selectPaymentMethod('CASH')" type="button">
+              <i class="pi pi-money-bill"></i>
+              <span>Cash</span>
+            </button>
+            <button class="pay-tile" [class.active]="selectedPaymentMethod === 'CARD'"
+              (click)="selectPaymentMethod('CARD')" type="button">
+              <i class="pi pi-credit-card"></i>
+              <span>Card</span>
+            </button>
+            <button class="pay-tile" [class.active]="selectedPaymentMethod === 'MOBILE_BANKING'"
+              (click)="selectPaymentMethod('MOBILE_BANKING')" type="button">
+              <i class="pi pi-mobile"></i>
+              <span>bKash</span>
+            </button>
+            <button class="pay-tile" [class.active]="selectedPaymentMethod === 'DUE'"
+              (click)="selectPaymentMethod('DUE')" type="button"
+              [disabled]="!selectedCustomer()">
+              <i class="pi pi-clock"></i>
+              <span>Due</span>
+            </button>
           </div>
 
           <!-- Transaction Reference (for Card/Mobile) -->
@@ -439,20 +452,11 @@
             </label>
           </div>
           <div class="print-type-row">
-            <span class="print-type-title">Print</span>
-            <div class="print-type-options">
-              <label class="radio-label">
-                <input type="radio" name="printType" value="NONE" [(ngModel)]="printType" [ngModelOptions]="{standalone: true}" />
-                <span>None</span>
-              </label>
-              <label class="radio-label">
-                <input type="radio" name="printType" value="THERMAL" [(ngModel)]="printType" [ngModelOptions]="{standalone: true}" />
-                <span>Thermal</span>
-              </label>
-              <label class="radio-label">
-                <input type="radio" name="printType" value="A4" [(ngModel)]="printType" [ngModelOptions]="{standalone: true}" />
-                <span>A4</span>
-              </label>
+            <span class="print-type-title">PRINT</span>
+            <div class="print-segmented">
+              <button class="seg-btn" [class.active]="printType === 'NONE'" (click)="printType = 'NONE'" type="button">None</button>
+              <button class="seg-btn" [class.active]="printType === 'THERMAL'" (click)="printType = 'THERMAL'" type="button">Thermal</button>
+              <button class="seg-btn" [class.active]="printType === 'A4'" (click)="printType = 'A4'" type="button">A4</button>
             </div>
           </div>
           <textarea pTextarea [(ngModel)]="saleNotes" [ngModelOptions]="{standalone: true}" rows="2" placeholder="Sale notes..."></textarea>
@@ -478,61 +482,44 @@
     </aside>
   </main>
 
-  <!-- Bottom Navigation Bar — all shortcuts visible, no popup menus -->
-  <nav class="pos-bottom-nav">
-    <div class="nav-group">
-      <button class="nav-btn" (click)="resetShortcut()" pTooltip="New Sale">
-        <i class="pi pi-plus-circle"></i><span>New Sale</span>
-      </button>
-      <button class="nav-btn" (click)="viewLastSale()" [disabled]="!hasLastSale()" pTooltip="Last Sale">
-        <i class="pi pi-clock"></i><span>Last Sale</span>
-      </button>
-      <button class="nav-btn amber" (click)="holdSale()" [disabled]="cartItems().length === 0" pTooltip="Hold Sale">
-        <i class="pi pi-pause"></i><span>Hold</span>
-      </button>
-      <button class="nav-btn" (click)="recallHeldSales()" pTooltip="Recall Held Sale">
-        <i class="pi pi-replay"></i><span>Recall</span>
-      </button>
-      <button class="nav-btn" (click)="openReturns()" pTooltip="Returns">
-        <i class="pi pi-refresh"></i><span>Returns</span>
-      </button>
-    </div>
-    <div class="nav-divider"></div>
-    <div class="nav-group">
-      <button class="nav-btn" (click)="openBulkDiscount()" [disabled]="cartItems().length === 0" pTooltip="Apply Global Discount">
-        <i class="pi pi-percentage"></i><span>Discount</span>
-      </button>
-      <button class="nav-btn" (click)="saveDraft()" [disabled]="cartItems().length === 0" pTooltip="Save Draft">
-        <i class="pi pi-save"></i><span>Save Draft</span>
-      </button>
-      <button class="nav-btn" (click)="saveAsQuotation()" [disabled]="cartItems().length === 0 || saving()" pTooltip="Save as Quotation">
-        <i class="pi pi-file"></i><span>Quotation</span>
-      </button>
-      <button class="nav-btn" (click)="openReprintDialog()" pTooltip="Reprint Receipt">
-        <i class="pi pi-print"></i><span>Reprint</span>
-      </button>
-    </div>
-    <div class="nav-divider"></div>
-    <div class="nav-group">
-      <button class="nav-btn primary" (click)="openQuickCustomerDialog()" pTooltip="New Customer">
-        <i class="pi pi-user-plus"></i><span>New Cust.</span>
-      </button>
-      <button class="nav-btn" (click)="openCustomerHistory()" [disabled]="!selectedCustomer()" pTooltip="Customer History">
-        <i class="pi pi-history"></i><span>History</span>
-      </button>
-      <button class="nav-btn" (click)="viewCustomerCredit()" [disabled]="!selectedCustomer()" pTooltip="Customer Credit">
-        <i class="pi pi-wallet"></i><span>Credit</span>
-      </button>
-    </div>
-    <div class="nav-divider"></div>
-    <div class="nav-group">
-      <button class="nav-btn" (click)="openStockSearch()" pTooltip="Stock Check">
-        <i class="pi pi-box"></i><span>Stock</span>
-      </button>
-      <button class="nav-btn" (click)="openPriceCheck()" pTooltip="Price Check">
-        <i class="pi pi-tag"></i><span>Price</span>
-      </button>
-    </div>
+  <!-- Bottom Action Strip -->
+  <nav class="pos-action-strip">
+    <button class="strip-btn" (click)="resetShortcut()" pTooltip="New Sale">
+      <i class="pi pi-plus-circle"></i><span>New Sale</span>
+    </button>
+    <button class="strip-btn" (click)="viewLastSale()" [disabled]="!hasLastSale()" pTooltip="Last Sale">
+      <i class="pi pi-clock"></i><span>Last Sale</span>
+    </button>
+    <button class="strip-btn amber" (click)="holdSale()" [disabled]="cartItems().length === 0" pTooltip="Hold Sale">
+      <i class="pi pi-pause"></i><span>Hold</span>
+    </button>
+    <button class="strip-btn" (click)="recallHeldSales()" pTooltip="Recall Held Sale">
+      <i class="pi pi-replay"></i><span>Recall</span>
+    </button>
+    <button class="strip-btn" (click)="openReturns()" pTooltip="Returns">
+      <i class="pi pi-refresh"></i><span>Returns</span>
+    </button>
+    <button class="strip-btn" (click)="openBulkDiscount()" [disabled]="cartItems().length === 0" pTooltip="Apply Discount">
+      <i class="pi pi-percentage"></i><span>Discount</span>
+    </button>
+    <button class="strip-btn" (click)="saveDraft()" [disabled]="cartItems().length === 0" pTooltip="Save Draft">
+      <i class="pi pi-save"></i><span>Draft</span>
+    </button>
+    <button class="strip-btn" (click)="saveAsQuotation()" [disabled]="cartItems().length === 0 || saving()" pTooltip="Save as Quotation">
+      <i class="pi pi-file"></i><span>Quotation</span>
+    </button>
+    <button class="strip-btn" (click)="openReprintDialog()" pTooltip="Reprint Receipt">
+      <i class="pi pi-print"></i><span>Reprint</span>
+    </button>
+    <button class="strip-btn" (click)="openCustomerHistory()" [disabled]="!selectedCustomer()" pTooltip="Customer History">
+      <i class="pi pi-history"></i><span>History</span>
+    </button>
+    <button class="strip-btn" (click)="viewCustomerCredit()" [disabled]="!selectedCustomer()" pTooltip="Customer Credit">
+      <i class="pi pi-wallet"></i><span>Credit</span>
+    </button>
+    <button class="strip-btn" (click)="openStockSearch()" pTooltip="Stock Check">
+      <i class="pi pi-box"></i><span>Stock</span>
+    </button>
   </nav>
 
   <!-- ===== ALL DIALOGS ===== -->
