@@ -52,8 +52,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       final loggedIn = auth.asData?.value != null;
       final atAuthScreen = loc == '/login' || loc == '/splash';
 
-      if (!loggedIn)
+      if (!loggedIn) {
         return atAuthScreen ? (loc == '/splash' ? '/login' : null) : '/login';
+      }
       if (atAuthScreen) return '/';
       return null;
     },

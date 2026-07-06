@@ -30,7 +30,7 @@ class _ReceivePaymentScreenState
   static const _methods = ['Cash', 'Card', 'bKash', 'Bank'];
   static const _methodCodes = ['CASH', 'CARD', 'BKASH', 'BANK_TRANSFER'];
   int _methodIndex = 0;
-  bool _isAdvance = false;
+  final bool _isAdvance = false;
   bool _submitting = false;
 
   Invoice? _selectedInvoice;
@@ -212,12 +212,14 @@ class _ReceivePaymentScreenState
                       prefixText: 'à§³ ',
                     ),
                     validator: (v) {
-                      if (v == null || v.isEmpty)
+                      if (v == null || v.isEmpty) {
                         return 'Enter an amount';
+                      }
                       final n = double.tryParse(
                           v.trim().replaceAll(',', ''));
-                      if (n == null || n <= 0)
+                      if (n == null || n <= 0) {
                         return 'Enter a valid amount';
+                      }
                       return null;
                     },
                   ),
