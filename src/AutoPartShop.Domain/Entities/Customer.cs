@@ -73,9 +73,6 @@ public class Customer : AuditableEntity
         if (string.IsNullOrWhiteSpace(lastName))
             throw new ArgumentException("LastName cannot be empty", nameof(lastName));
 
-        //if (string.IsNullOrWhiteSpace(email))
-        //    throw new ArgumentException("Email cannot be empty", nameof(email));
-
         if (string.IsNullOrWhiteSpace(phone))
             throw new ArgumentException("Phone cannot be empty", nameof(phone));
 

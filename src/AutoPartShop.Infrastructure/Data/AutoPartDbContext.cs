@@ -66,7 +66,9 @@ public class AutoPartDbContext : IdentityDbContext<ApplicationUser, ApplicationR
     public DbSet<GoodsReceipt> GoodsReceipts { get; set; }
     public DbSet<SalesOrder> SalesOrders { get; set; }
     public DbSet<Invoice> Invoices { get; set; }
+#pragma warning disable CS0618 // InvoicePayment is obsolete; DbSet retained for existing DB table
     public DbSet<InvoicePayment> InvoicePayments { get; set; }
+#pragma warning restore CS0618
     public DbSet<SalesReturn> SalesReturns { get; set; }
     public DbSet<PurchaseReturn> PurchaseReturns { get; set; }
     public DbSet<Customer> Customers { get; set; }

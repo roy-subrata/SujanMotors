@@ -14,8 +14,7 @@ namespace AutoPartShop.Api.Controllers;
 [Authorize]
 public class PartCatalogEntryController(
     AutoPartDbContext _db,
-    ICurrentUserService _currentUserService,
-    ILogger<PartCatalogEntryController> _logger) : ControllerBase
+    ICurrentUserService _currentUserService) : ControllerBase
 {
     // GET /api/v1/products/{productId}/catalog-entry
     [HttpGet]

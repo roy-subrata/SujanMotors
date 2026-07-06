@@ -54,7 +54,7 @@ public class SalesReturn : AuditableEntity
             ReturnDate = returnDate ?? DateTime.UtcNow,
             Reason = reason.Trim(),
             Status = "PENDING",
-            Notes = notes?.Trim() ?? string.Empty
+            Notes = notes.Trim()
         };
     }
 
@@ -82,7 +82,7 @@ public class SalesReturn : AuditableEntity
     public void Reject(string reason = "")
     {
         Status = "REJECTED";
-        var trimmedReason = reason?.Trim() ?? string.Empty;
+        var trimmedReason = reason.Trim();
         if (!string.IsNullOrEmpty(trimmedReason))
         {
             Notes = string.IsNullOrEmpty(Notes)
@@ -106,13 +106,13 @@ public class SalesReturn : AuditableEntity
 
     public void UpdateNotes(string notes)
     {
-        Notes = notes?.Trim() ?? string.Empty;
+        Notes = notes.Trim();
     }
 
     public void SetRefundType(string refundType)
     {
         var validTypes = new[] { "CASH_REFUND", "STORE_CREDIT" };
-        if (!validTypes.Contains(refundType?.ToUpper()))
+        if (!validTypes.Contains(refundType.ToUpper()))
             throw new ArgumentException($"RefundType must be one of: {string.Join(", ", validTypes)}", nameof(refundType));
 
         RefundType = refundType.ToUpper();

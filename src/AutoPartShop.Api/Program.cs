@@ -278,12 +278,6 @@ app.UseCors(corsPolicy);
 app.UseMiddleware<GlobalExceptionMiddleware>();
 app.UseSerilogRequestLogging();
 
-// Only redirect HTTPS in production
-//if (!app.Environment.IsDevelopment())
-//{
-
-//}
-//app.UseHttpsRedirection();
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
@@ -299,5 +293,5 @@ app.Run();
 internal class OpenApiReference
 {
     public ReferenceType Type { get; set; }
-    public string Id { get; set; }
+    public string Id { get; set; } = string.Empty;
 }

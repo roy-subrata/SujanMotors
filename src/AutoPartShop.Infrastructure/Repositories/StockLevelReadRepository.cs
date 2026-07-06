@@ -20,7 +20,7 @@ public class StockLevelReadRepository : IStockLevelReadRepository
     {
         var levels = _dbContext.StockLevels
             .Include(x => x.Part)
-                .ThenInclude(p => p.BaseUnit)
+                .ThenInclude(p => p!.BaseUnit)
             .Include(x => x.Variant)
             .Include(x => x.Warehouse)
             .Include(x => x.Unit)

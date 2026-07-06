@@ -17,7 +17,6 @@ namespace AutoPartShop.Api.Controllers;
 public class ChallanController(
     IChallanRepository _challanRepo,
     ISalesOrderRepository _soRepo,
-    IInvoiceRepository _invoiceRepo,
     ICustomerRepository _customerRepo,
     ICodeGenerateService _codeGen,
     ICurrentUserService _currentUser,

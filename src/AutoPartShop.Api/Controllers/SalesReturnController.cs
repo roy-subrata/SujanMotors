@@ -496,7 +496,7 @@ namespace AutoPartShop.Api.Controllers
                                     var totalRefunded = cashPart + balancePart;
                                     if (totalRefunded > 0)
                                     {
-                                        salesOrder.ProcessRefund(totalRefunded);
+                                        salesOrder!.ProcessRefund(totalRefunded);
                                         salesOrder.ModifiedBy = _currentUserService.GetCurrentUsername();
                                         await _salesOrderRepository.UpdateAsync(salesOrder, CancellationToken.None);
                                     }

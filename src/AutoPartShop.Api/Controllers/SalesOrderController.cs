@@ -1366,7 +1366,7 @@ public class SalesOrderController : ControllerBase
             if (invoice is null) return NotFound(new { message = "Invoice not found" });
             if (invoice.SalesOrder is null) return BadRequest(new { message = "Sales order not found for invoice" });
 
-            var customer = await _customerRepository.GetByIdAsync(invoice.SalesOrder.CustomerId, cancellationToken);
+            var customer = await _customerRepository.GetByIdAsync(invoice.SalesOrder!.CustomerId, cancellationToken);
             if (customer is null) return NotFound(new { message = "Customer not found" });
 
             // Fix #8: default payment date to UtcNow when not provided
@@ -1403,7 +1403,7 @@ public class SalesOrderController : ControllerBase
                     {
                         payment.MarkAsCompleted();
 
-                        var cust = await _customerRepository.GetByIdAsync(invoice.SalesOrder.CustomerId, cancellationToken)
+                        var cust = await _customerRepository.GetByIdAsync(invoice.SalesOrder!.CustomerId, cancellationToken)
                             ?? throw new InvalidOperationException("Customer not found");
                         cust.UpdateBalance(-request.Amount);
                         cust.ModifiedBy = _currentUserService.GetCurrentUsername();

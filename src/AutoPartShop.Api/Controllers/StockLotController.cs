@@ -18,7 +18,6 @@ namespace AutoPartShop.Api.Controllers;
 public class StockLotController(
     ILogger<StockLotController> _logger,
     IStockLotRepository _repository,
-    IStockLotMovementRepository _movementRepository,
     IStockLotReadRepository _stockLotReadRepository,
     IProductRepository _productRepository,
     IWarehouseRepository _warehouseRepository,
@@ -137,20 +136,11 @@ public class StockLotController(
                          .Skip((pageNumber - 1) * pageSize)
                          .Take(pageSize))
             {
-                string supplierName;
-
-                // If supplier already fetched, use cached value
-                if (supplierCache.TryGetValue(l.SupplierId, out supplierName))
+                // Try cache first, then load from DB
+                if (!supplierCache.TryGetValue(l.SupplierId, out var supplierName))
                 {
-                    // OK: supplierName loaded from cache
-                }
-                else
-                {
-                    // First time: load from DB (sync, safe)
                     var supplier = await _supplierRepository.GetByIdAsync(l.SupplierId, cancellationToken);
-                    supplierName = supplier?.Name ?? "";
-
-                    // Store in cache to avoid future DB calls
+                    supplierName = supplier?.Name ?? string.Empty;
                     supplierCache[l.SupplierId] = supplierName;
                 }
 
@@ -200,53 +190,6 @@ public class StockLotController(
         }
     }
 
-
-
-    //[HttpGet("price-history/{partId:guid}")]
-    //public async Task<IActionResult> GetPriceHistory(Guid partId, CancellationToken cancellationToken)
-    //{
-    //    try
-    //    {
-    //        var part = await _productRepository.GetByIdAsync(partId, cancellationToken);
-    //        if (part is null) return NotFound("Part not found");
-
-    //        var lots = await _repository.GetByPartAsync(partId, cancellationToken);
-    //        var sortedLots = lots.OrderByDescending(l => l.ReceivingDate).ToList();
-
-    //        var lotItems = await Task.WhenAll(sortedLots.Select(async l => new StockLotHistoryItem
-    //        {
-    //            LotId = l.Id,
-    //            LotNumber = l.LotNumber,
-    //            SupplierId = l.SupplierId,
-    //            SupplierName = (await _supplierRepository.GetByIdAsync(l.SupplierId, cancellationToken))?.Name ?? "",
-    //            QuantityReceived = l.QuantityReceived,
-    //            QuantityAvailable = l.QuantityAvailable,
-    //            CostPrice = l.CostPrice,
-    //            ReceivingDate = l.ReceivingDate,
-    //            ExpiryDate = l.ExpiryDate,
-    //            IsExpired = l.IsExpired
-    //        }));
-
-    //        var prices = sortedLots.Select(l => l.CostPrice).ToList();
-
-    //        return Ok(new StockLotPriceHistoryResponse
-    //        {
-    //            PartId = partId,
-    //            PartName = part.Name,
-    //            PartSKU = part.SKU,
-    //            Lots = lotItems.ToList(),
-    //            MinPrice = prices.Any() ? prices.Min() : 0,
-    //            MaxPrice = prices.Any() ? prices.Max() : 0,
-    //            AveragePrice = prices.Any() ? prices.Average() : 0,
-    //            LatestPrice = sortedLots.FirstOrDefault()?.CostPrice ?? 0
-    //        });
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        _logger.LogError(ex, "Error getting price history");
-    //        return StatusCode(500, "An error occurred");
-    //    }
-    //}
 
     [HttpGet("warehouse/{partId:guid}/{warehouseId:guid}")]
     public async Task<IActionResult> GetByPartAndWarehouse(Guid partId, Guid warehouseId, CancellationToken cancellationToken)
