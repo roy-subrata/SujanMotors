@@ -311,3 +311,4 @@ final customerStatementProvider =
       .read(customersRepositoryProvider)
       .accountSummary(customerId: id);
 });
+

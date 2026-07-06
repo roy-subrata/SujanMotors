@@ -198,7 +198,7 @@ class _StockAdjustmentSheetState extends ConsumerState<StockAdjustmentSheet> {
     final scheme = theme.colorScheme;
     final product = widget.product;
     final warehouses = _uniqueWarehouses();
-    final hasVariants = product.hasVariants || product.variants.isNotEmpty;
+    final hasVariants = product.hasVariants;
     final showDirectionToggle = _mode == StockMode.adjustment;
 
     return Material(

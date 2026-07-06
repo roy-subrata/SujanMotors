@@ -1,11 +1,13 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
+import '../../core/theme/app_theme.dart';
 import '../../shared/format.dart';
 import '../../shared/models/sale.dart';
-import '../../shared/widgets/app_scaffold.dart';
 import 'charge_screen.dart';
 import 'quick_sale_providers.dart';
 
@@ -17,25 +19,16 @@ class QuickSaleScreen extends ConsumerStatefulWidget {
 }
 
 class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
-  // â”€â”€ Scanner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   final MobileScannerController _scanner = MobileScannerController(
     detectionSpeed: DetectionSpeed.noDuplicates,
   );
   bool _handling = false;
 
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {});
-  }
-
-  @override
   void dispose() {
     _scanner.dispose();
     super.dispose();
   }
-
-  // â”€â”€ Scanner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Future<void> _onDetect(BarcodeCapture capture) async {
     if (_handling) return;
@@ -74,32 +67,59 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
     );
   }
 
-  // â”€â”€ Build â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(quickSaleControllerProvider);
     final controller = ref.read(quickSaleControllerProvider.notifier);
 
     if (state.result != null) {
-      return AppScaffold(
-        title: 'Quick Sale',
-        showNotificationBell: false,
-        body: _SuccessView(result: state.result!, onNewSale: controller.reset),
+      return Scaffold(
+        appBar: _buildAppBar(context, itemCount: 0),
+        body: _SuccessView(
+            result: state.result!, onNewSale: controller.reset),
       );
     }
 
     if (state.isScanning) {
-      return AppScaffold(
-        title: 'Quick Sale',
-        showNotificationBell: false,
+      return Scaffold(
+        backgroundColor: Colors.black,
         body: _buildScannerOverlay(state),
       );
     }
 
-    return AppScaffold(
-      title: 'Quick Sale',
-      showBottomNav: true,
+    return Scaffold(
+      appBar: _buildAppBar(context, itemCount: state.itemCount),
+      body: state.isEmpty
+          ? _EmptyCartView(onScan: _startScan)
+          : _buildCartBody(state, controller),
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar(BuildContext context, {required int itemCount}) {
+    return AppBar(
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back),
+        onPressed: () => context.canPop() ? context.pop() : context.go('/'),
+      ),
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Cart',
+            style: GoogleFonts.instrumentSans(
+              fontSize: 17,
+              fontWeight: FontWeight.w700
+            ),
+          ),
+          if (itemCount > 0)
+            Text(
+              'INV-draft Â· $itemCount item${itemCount == 1 ? '' : 's'}',
+              style: GoogleFonts.instrumentSans(
+                fontSize: 12
+              ),
+            ),
+        ],
+      ),
       actions: [
         IconButton(
           icon: const Icon(Icons.qr_code_scanner),
@@ -107,58 +127,168 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
           onPressed: _startScan,
         ),
       ],
-      body: _buildBody(state, controller),
     );
   }
 
-  Widget _buildBody(QuickSaleState state, QuickSaleController controller) {
-    if (state.isEmpty) {
-      return _EmptyCartView(onScan: _startScan);
-    }
-
-    return Column(
+  Widget _buildCartBody(
+      QuickSaleState state, QuickSaleController controller) {
+    return Stack(
       children: [
-        Expanded(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(12, 14, 12, 14),
-            children: [
-              ...state.items.map(
-                (item) => _CartItemTile(
-                  key: ValueKey('${item.partId}${item.variantId}'),
-                  item: item,
-                  onIncrement: () {
-                    final ok = controller.increment(item.partId, item.variantId);
-                    if (!ok) {
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                        content:
-                            Text('Only ${item.availableStock} ${item.name} in stock'),
-                        backgroundColor: Colors.red.shade700,
-                        duration: const Duration(seconds: 2),
-                        behavior: SnackBarBehavior.floating,
-                      ));
-                    }
-                  },
-                  onDecrement: () =>
-                      controller.decrement(item.partId, item.variantId),
-                  onRemove: () =>
-                      controller.remove(item.partId, item.variantId),
-                  onPriceChanged: (p) =>
-                      controller.updatePrice(item.partId, item.variantId, p),
-                ),
+        ListView(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 160),
+          children: [
+            // â”€â”€ Line items card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(13),
+                border: Border.all(color: Theme.of(context).colorScheme.outline),
               ),
-            ],
-          ),
+              clipBehavior: Clip.antiAlias,
+              child: Column(
+                children: [
+                  ...state.items.asMap().entries.map((e) {
+                    final i = e.key;
+                    final item = e.value;
+                    return Column(
+                      children: [
+                        if (i > 0)
+                          Divider(height: 1, color: Theme.of(context).colorScheme.outline.withAlpha(60)),
+                        _CartItemRow(
+                          key: ValueKey(
+                              '${item.partId}${item.variantId}'),
+                          item: item,
+                          onIncrement: () {
+                            final ok = controller.increment(
+                                item.partId, item.variantId);
+                            if (!ok) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                      'Only ${item.availableStock} ${item.name} in stock'),
+                                  backgroundColor: AppColors.red,
+                                  duration: const Duration(seconds: 2),
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
+                            }
+                          },
+                          onDecrement: () => controller.decrement(
+                              item.partId, item.variantId),
+                          onRemove: () =>
+                              controller.remove(item.partId, item.variantId),
+                          onPriceChanged: (p) => controller.updatePrice(
+                              item.partId, item.variantId, p),
+                        ),
+                      ],
+                    );
+                  }),
+
+                  // Add more row
+                  InkWell(
+                    onTap: _startScan,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 12),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 28,
+                            height: 28,
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.outline.withAlpha(60),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            alignment: Alignment.center,
+                            child: const Icon(Icons.add,
+                                size: 18, color: AppColors.secondary),
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            'Add more items',
+                            style: GoogleFonts.instrumentSans(
+                              fontSize: 13.5
+                            ),
+                          ),
+                          const Spacer(),
+                          const Icon(Icons.qr_code_scanner,
+                              size: 18, color: AppColors.muted),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // â”€â”€ Totals card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(13),
+                border: Border.all(color: Theme.of(context).colorScheme.outline),
+              ),
+              padding: const EdgeInsets.fromLTRB(13, 14, 13, 14),
+              child: Column(
+                children: [
+                  _TotalRow(
+                    label: 'Subtotal Â· ${state.itemCount} items',
+                    value: formatCurrency(state.total),
+                    labelStyle: GoogleFonts.instrumentSans(
+                        fontSize: 13.5, color: AppColors.secondary),
+                    valueStyle: GoogleFonts.instrumentSans(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.ink),
+                  ),
+                  const SizedBox(height: 8),
+                  _TotalRow(
+                    label: 'Discount',
+                    value: 'â€”',
+                    labelStyle: GoogleFonts.instrumentSans(
+                        fontSize: 13.5, color: AppColors.secondary),
+                    valueStyle: GoogleFonts.instrumentSans(
+                        fontSize: 13.5,
+                        color: AppColors.muted),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.symmetric(vertical: 10),
+                    child: Divider(
+                        height: 1,
+                        color: Theme.of(context).colorScheme.outline.withAlpha(60)),
+                  ),
+                  _TotalRow(
+                    label: 'Total',
+                    value: formatCurrency(state.total),
+                    labelStyle: GoogleFonts.instrumentSans(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.ink),
+                    valueStyle: GoogleFonts.instrumentSans(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.ink),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
-        _ProceedBar(
-          total: state.total,
-          itemCount: state.itemCount,
-          onProceed: _openChargeScreen,
+
+        // Sticky bottom CTA
+        Positioned(
+          bottom: 0,
+          left: 0,
+          right: 0,
+          child: _StickyBottom(
+            total: state.total,
+            onProceed: _openChargeScreen,
+          ),
         ),
       ],
     );
   }
-
-  // â”€â”€ Scanner overlay â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Widget _buildScannerOverlay(QuickSaleState state) {
     return Stack(
@@ -178,13 +308,13 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
           ),
         ),
         Positioned(
-          top: 12,
+          top: 48,
           left: 12,
           child: _ScanIconButton(
               icon: Icons.close, tooltip: 'Cancel', onTap: _stopScan),
         ),
         Positioned(
-          top: 12,
+          top: 48,
           right: 12,
           child: _ScanIconButton(
             icon: Icons.flash_on,
@@ -210,10 +340,10 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
             left: 24,
             right: 24,
             child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: Colors.red.shade700,
+                color: AppColors.red,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
@@ -288,9 +418,6 @@ class _EmptyCartView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -298,18 +425,21 @@ class _EmptyCartView extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.shopping_cart_outlined,
-                size: 80,
-                color: scheme.primary.withValues(alpha: 0.15)),
+                size: 72, color: AppColors.disabled),
             const SizedBox(height: 16),
-            Text('Cart is empty',
-                style: theme.textTheme.headlineSmall
-                    ?.copyWith(fontWeight: FontWeight.w700)),
+            Text(
+              'Cart is empty',
+              style: GoogleFonts.instrumentSans(
+                fontSize: 18,
+                fontWeight: FontWeight.w700
+              ),
+            ),
             const SizedBox(height: 8),
             Text(
-              'Scan a barcode to add items',
+              'Scan a barcode or add items from Products',
               textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium
-                  ?.copyWith(color: scheme.onSurfaceVariant),
+              style: GoogleFonts.instrumentSans(
+                  fontSize: 13.5, color: AppColors.muted),
             ),
             const SizedBox(height: 32),
             SizedBox(
@@ -319,7 +449,14 @@ class _EmptyCartView extends StatelessWidget {
                 icon: const Icon(Icons.qr_code_scanner),
                 label: const Text('Scan Barcode'),
                 style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14)),
+                  backgroundColor: AppColors.ink,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  textStyle: GoogleFonts.instrumentSans(
+                      fontSize: 15, fontWeight: FontWeight.w600),
+                ),
               ),
             ),
           ],
@@ -329,10 +466,10 @@ class _EmptyCartView extends StatelessWidget {
   }
 }
 
-// â”€â”€ Cart item tile â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â”€â”€ Cart item row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-class _CartItemTile extends StatefulWidget {
-  const _CartItemTile({
+class _CartItemRow extends StatefulWidget {
+  const _CartItemRow({
     super.key,
     required this.item,
     required this.onIncrement,
@@ -348,10 +485,10 @@ class _CartItemTile extends StatefulWidget {
   final void Function(double) onPriceChanged;
 
   @override
-  State<_CartItemTile> createState() => _CartItemTileState();
+  State<_CartItemRow> createState() => _CartItemRowState();
 }
 
-class _CartItemTileState extends State<_CartItemTile> {
+class _CartItemRowState extends State<_CartItemRow> {
   late final TextEditingController _priceCtrl;
   final FocusNode _priceFocus = FocusNode();
 
@@ -366,7 +503,7 @@ class _CartItemTileState extends State<_CartItemTile> {
   }
 
   @override
-  void didUpdateWidget(_CartItemTile old) {
+  void didUpdateWidget(_CartItemRow old) {
     super.didUpdateWidget(old);
     if (!_priceFocus.hasFocus &&
         old.item.unitPrice != widget.item.unitPrice) {
@@ -392,172 +529,265 @@ class _CartItemTileState extends State<_CartItemTile> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
     final item = widget.item;
-
-    return Card(
-      elevation: 2,
-      shadowColor: Colors.black12,
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 14, 8, 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // â”€â”€ Product name + delete â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-            Row(
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Name + price
+          Expanded(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item.name,
-                        style: theme.textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w700),
-                      ),
-                      if (item.localName != null) ...[
-                        const SizedBox(height: 3),
-                        Text(
-                          item.localName!,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                              color: scheme.onSurfaceVariant),
-                        ),
-                      ],
-                    ],
+                Text(
+                  item.name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.instrumentSans(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w500
                   ),
                 ),
-                IconButton(
-                  icon: Icon(Icons.delete_outline,
-                      size: 22,
-                      color: scheme.error.withValues(alpha: 0.7)),
-                  onPressed: widget.onRemove,
-                  tooltip: 'Remove',
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 12),
-            const Divider(height: 1, color: Color(0xFFF0F0F0)),
-            const SizedBox(height: 14),
-
-            // â”€â”€ Price + Qty â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                // Price input
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Unit Price',
-                          style: theme.textTheme.labelSmall?.copyWith(
-                              color: scheme.onSurfaceVariant,
-                              letterSpacing: 0.5)),
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          Text('à§³',
-                              style: TextStyle(
-                                color: scheme.primary,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 18,
-                              )),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: TextField(
-                              controller: _priceCtrl,
-                              focusNode: _priceFocus,
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                      decimal: true),
-                              inputFormatters: [
-                                FilteringTextInputFormatter.allow(
-                                    RegExp(r'[0-9.]')),
-                              ],
-                              onSubmitted: (_) => _commit(),
-                              style: TextStyle(
-                                color: scheme.primary,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 22,
-                              ),
-                              decoration: InputDecoration(
-                                isDense: true,
-                                contentPadding:
-                                    const EdgeInsets.symmetric(vertical: 2),
-                                border: const UnderlineInputBorder(),
-                                focusedBorder: UnderlineInputBorder(
-                                  borderSide: BorderSide(
-                                      color: scheme.primary, width: 2),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(width: 20),
-
-                // Qty stepper
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
+                const SizedBox(height: 3),
+                Row(
                   children: [
-                    Text('Quantity',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                            letterSpacing: 0.5)),
-                    const SizedBox(height: 6),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _QtyButton(
-                            icon: Icons.remove,
-                            onTap: widget.onDecrement),
-                        Padding(
-                          padding:
-                              const EdgeInsets.symmetric(horizontal: 14),
-                          child: Text(
-                            '${item.quantity}',
-                            style: theme.textTheme.headlineSmall
-                                ?.copyWith(fontWeight: FontWeight.w900),
-                          ),
+                    Text(
+                      'à§³ ',
+                      style: GoogleFonts.instrumentSans(
+                        fontSize: 12
+                      ),
+                    ),
+                    SizedBox(
+                      width: 72,
+                      child: TextField(
+                        controller: _priceCtrl,
+                        focusNode: _priceFocus,
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(
+                              RegExp(r'[0-9.]')),
+                        ],
+                        onSubmitted: (_) => _commit(),
+                        style: GoogleFonts.instrumentSans(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600
                         ),
-                        _QtyButton(
-                            icon: Icons.add, onTap: widget.onIncrement),
-                      ],
+                        decoration: InputDecoration(
+                          isDense: true,
+                          contentPadding: EdgeInsets.zero,
+                          border: UnderlineInputBorder(
+                              borderSide:
+                                  BorderSide(color: Theme.of(context).colorScheme.outline)),
+                          focusedBorder: UnderlineInputBorder(
+                              borderSide: BorderSide(
+                                  width: 1.5)),
+                        ),
+                      ),
                     ),
                   ],
                 ),
               ],
             ),
+          ),
 
-            const SizedBox(height: 10),
-
-            // â”€â”€ Line total â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-            Align(
-              alignment: Alignment.centerRight,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 5),
-                decoration: BoxDecoration(
-                  color: scheme.primaryContainer.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(8),
-                ),
+          // Qty stepper
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _StepBtn(icon: Icons.remove, onTap: widget.onDecrement),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Text(
-                  formatCurrency(item.lineTotal),
-                  style: TextStyle(
-                    color: scheme.primary,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 16,
+                  '${item.quantity}',
+                  style: GoogleFonts.instrumentSans(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700
                   ),
                 ),
               ),
+              _StepBtn(icon: Icons.add, onTap: widget.onIncrement),
+            ],
+          ),
+
+          const SizedBox(width: 12),
+
+          // Line total + delete
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                formatCurrency(item.lineTotal),
+                style: GoogleFonts.instrumentSans(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w600
+                ),
+              ),
+              GestureDetector(
+                onTap: widget.onRemove,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: const Icon(Icons.delete_outline,
+                      size: 16, color: AppColors.muted),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StepBtn extends StatelessWidget {
+  const _StepBtn({required this.icon, required this.onTap});
+
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 30,
+        height: 30,
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Theme.of(context).colorScheme.outline),
+        ),
+        alignment: Alignment.center,
+        child: Icon(icon, size: 16, color: AppColors.secondary),
+      ),
+    );
+  }
+}
+
+// â”€â”€ Total row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+class _TotalRow extends StatelessWidget {
+  const _TotalRow({
+    required this.label,
+    required this.value,
+    required this.labelStyle,
+    required this.valueStyle,
+  });
+
+  final String label;
+  final String value;
+  final TextStyle labelStyle;
+  final TextStyle valueStyle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: labelStyle),
+        Text(value, style: valueStyle),
+      ],
+    );
+  }
+}
+
+// â”€â”€ Sticky bottom CTA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+class _StickyBottom extends StatelessWidget {
+  const _StickyBottom({required this.total, required this.onProceed});
+
+  final double total;
+  final VoidCallback onProceed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0),
+            Theme.of(context).scaffoldBackgroundColor,
+          ],
+        ),
+      ),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Complete sale button (green)
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x400D8A53),
+                      blurRadius: 24,
+                      offset: Offset(0, 8),
+                    ),
+                  ],
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: FilledButton(
+                  onPressed: onProceed,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.green,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
+                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    textStyle: GoogleFonts.instrumentSans(
+                        fontSize: 15, fontWeight: FontWeight.w700),
+                  ),
+                  child: Text(
+                      'âœ“  Complete Sale Â· ${formatCurrency(total)}'),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+
+            // Secondary row
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () {},
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.ink,
+                      side: BorderSide(color: Theme.of(context).colorScheme.outline),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(11)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      textStyle: GoogleFonts.instrumentSans(
+                          fontSize: 13, fontWeight: FontWeight.w600),
+                    ),
+                    child: const Text('Hold sale'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () {},
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.ink,
+                      side: BorderSide(color: Theme.of(context).colorScheme.outline),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(11)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      textStyle: GoogleFonts.instrumentSans(
+                          fontSize: 13, fontWeight: FontWeight.w600),
+                    ),
+                    child: const Text('Print Â· 80mm'),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -566,111 +796,13 @@ class _CartItemTileState extends State<_CartItemTile> {
   }
 }
 
-class _QtyButton extends StatelessWidget {
-  const _QtyButton({required this.icon, required this.onTap});
-
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 42,
-      height: 42,
-      child: FilledButton.tonal(
-        onPressed: onTap,
-        style: FilledButton.styleFrom(
-          padding: EdgeInsets.zero,
-          shape: const CircleBorder(),
-        ),
-        child: Icon(icon, size: 20),
-      ),
-    );
-  }
-}
-
-// â”€â”€ Proceed bar (sticky bottom) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-class _ProceedBar extends StatelessWidget {
-  const _ProceedBar({
-    required this.total,
-    required this.itemCount,
-    required this.onProceed,
-  });
-
-  final double total;
-  final int itemCount;
-  final VoidCallback onProceed;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surface,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 12,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    '$itemCount item${itemCount == 1 ? '' : 's'}',
-                    style: theme.textTheme.bodyMedium
-                        ?.copyWith(color: scheme.onSurfaceVariant),
-                  ),
-                  Text(
-                    formatCurrency(total),
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w900,
-                      color: scheme.primary,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              SizedBox(
-                width: double.infinity,
-                height: 54,
-                child: FilledButton.icon(
-                  onPressed: onProceed,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFFD97706),
-                    foregroundColor: Colors.white,
-                    textStyle: const TextStyle(
-                        fontSize: 17, fontWeight: FontWeight.w800),
-                  ),
-                  icon: const Icon(Icons.arrow_forward_rounded),
-                  label: const Text('Proceed to Checkout'),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// â”€â”€ Scan helper button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â”€â”€ Scan icon button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _ScanIconButton extends StatelessWidget {
   const _ScanIconButton(
-      {required this.icon, required this.tooltip, required this.onTap});
+      {required this.icon,
+      required this.tooltip,
+      required this.onTap});
 
   final IconData icon;
   final String tooltip;
@@ -697,7 +829,7 @@ class _ScanIconButton extends StatelessWidget {
   }
 }
 
-// â”€â”€ Sale success view â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â”€â”€ Success view â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _SuccessView extends StatelessWidget {
   const _SuccessView({required this.result, required this.onNewSale});
@@ -707,8 +839,6 @@ class _SuccessView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -716,32 +846,37 @@ class _SuccessView extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 88,
-              height: 88,
+              width: 80,
+              height: 80,
               decoration: BoxDecoration(
-                  color: Colors.green.shade50, shape: BoxShape.circle),
-              child: Icon(Icons.check_circle_rounded,
-                  size: 58, color: Colors.green.shade600),
+                  color: AppColors.greenBg, shape: BoxShape.circle),
+              child: const Icon(Icons.check_circle_rounded,
+                  size: 52, color: AppColors.green),
             ),
             const SizedBox(height: 20),
-            Text('Sale Complete!',
-                style: theme.textTheme.headlineMedium
-                    ?.copyWith(fontWeight: FontWeight.w800)),
+            Text(
+              'Sale Complete!',
+              style: GoogleFonts.instrumentSans(
+                fontSize: 22,
+                fontWeight: FontWeight.w800
+              ),
+            ),
             const SizedBox(height: 20),
-            _SaleInfoRow(label: 'Invoice', value: result.invoiceNumber),
+            _InfoRow(label: 'Invoice', value: result.invoiceNumber),
             const SizedBox(height: 6),
-            _SaleInfoRow(
+            _InfoRow(
                 label: 'Total',
                 value: formatCurrency(result.grandTotal)),
             if (result.hasDue) ...[
               const SizedBox(height: 6),
-              _SaleInfoRow(
-                  label: 'Paid', value: formatCurrency(result.paidAmount)),
+              _InfoRow(
+                  label: 'Paid',
+                  value: formatCurrency(result.paidAmount)),
               const SizedBox(height: 4),
-              _SaleInfoRow(
+              _InfoRow(
                 label: 'Due',
                 value: formatCurrency(result.dueAmount),
-                valueColor: Colors.red.shade700,
+                valueColor: AppColors.red,
               ),
             ],
             const SizedBox(height: 40),
@@ -750,10 +885,16 @@ class _SuccessView extends StatelessWidget {
               child: FilledButton.icon(
                 onPressed: onNewSale,
                 icon: const Icon(Icons.add_shopping_cart),
-                label: const Text('New Sale',
-                    style: TextStyle(fontSize: 17)),
+                label: const Text('New Sale'),
                 style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16)),
+                  backgroundColor: AppColors.ink,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                  textStyle: GoogleFonts.instrumentSans(
+                      fontSize: 15, fontWeight: FontWeight.w700),
+                ),
               ),
             ),
           ],
@@ -763,8 +904,8 @@ class _SuccessView extends StatelessWidget {
   }
 }
 
-class _SaleInfoRow extends StatelessWidget {
-  const _SaleInfoRow(
+class _InfoRow extends StatelessWidget {
+  const _InfoRow(
       {required this.label, required this.value, this.valueColor});
 
   final String label;
@@ -773,17 +914,22 @@ class _SaleInfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text('$label: ',
-            style: theme.textTheme.bodyLarge
-                ?.copyWith(color: scheme.onSurfaceVariant)),
-        Text(value,
-            style: theme.textTheme.bodyLarge?.copyWith(
-                fontWeight: FontWeight.w700, color: valueColor)),
+        Text(
+          '$label: ',
+          style: GoogleFonts.instrumentSans(
+              fontSize: 15, color: AppColors.muted),
+        ),
+        Text(
+          value,
+          style: GoogleFonts.instrumentSans(
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+            color: valueColor ?? AppColors.ink,
+          ),
+        ),
       ],
     );
   }

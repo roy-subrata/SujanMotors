@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/notifications/local_notifications.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
+import 'core/theme/theme_mode_controller.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,15 +18,14 @@ class AutoPartShopApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
+    final themeMode = ref.watch(themeModeProvider);
     return MaterialApp.router(
       title: 'Auto Parts Shop',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
+      darkTheme: AppTheme.dark(),
+      themeMode: themeMode,
       routerConfig: router,
-      // Many list/detail screens lean on compact 9-12px labels for density —
-      // a flat floor nudges everything (including those literal sizes)
-      // slightly larger app-wide, while still respecting/allowing a bigger
-      // system accessibility font setting up to the cap.
       builder: (context, child) => MediaQuery.withClampedTextScaling(
         minScaleFactor: 1.1,
         maxScaleFactor: 1.3,

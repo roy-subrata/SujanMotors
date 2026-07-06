@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;padding:0;background:#edeef1;}
+*{box-sizing:border-box}
+::-webkit-scrollbar{width:0;height:0}
+</style>
+</helmet>
+
+<div style="font-family:'Instrument Sans',system-ui,sans-serif;color:#0f172a;padding:40px 48px 80px;display:flex;flex-direction:column;gap:36px">
+
+  <!-- ============ HEADER / DESIGN NOTES ============ -->
+  <div style="display:flex;flex-direction:column;gap:12px;max-width:860px">
+    <span style="font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#8a93a2">Sunjan Motors · Auto Parts POS</span>
+    <h1 style="margin:0;font-size:30px;font-weight:700;letter-spacing:-.02em">Mobile &amp; Tablet App Design</h1>
+    <p style="margin:0;font-size:14px;line-height:1.6;color:#5b6472">Adapted from your existing web POS: same palette (light neutral, ink-navy accent), Instrument Sans, ৳ currency, and the same modules — sale, parts, inventory, customers, receipts. Phone screens use a bottom tab bar with a central New Sale action; the tablet keeps the web-style two-pane register (product grid + cart).</p>
+  </div>
+
+  <!-- ============ PHONE SCREENS ============ -->
+  <div style="display:flex;gap:36px;flex-wrap:wrap;align-items:flex-start">
+
+    <!-- ======== 01 LOGIN ======== -->
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <span style="font-size:12px;font-weight:600;color:#5b6472">01 · Login</span>
+      <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" hint-size="428px,908px">
+        <div data-screen-label="Login" style="height:100%;display:flex;flex-direction:column;background:#f4f5f7;font-family:'Instrument Sans',system-ui,sans-serif;color:#0f172a">
+          <div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 28px;gap:28px">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:12px">
+              <div style="width:56px;height:56px;border-radius:14px;background:#0f172a;color:#fff;display:grid;place-items:center;font-weight:700;font-size:22px;letter-spacing:.5px">SM</div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+                <span style="font-size:20px;font-weight:700;letter-spacing:-.01em">Sunjan Motors</span>
+                <span style="font-size:13px;color:#8a93a2">Auto Parts POS &amp; Inventory</span>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <span style="font-size:12.5px;font-weight:600;color:#5b6472">Email or phone</span>
+                <div style="display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #e6e8ec;border-radius:12px;padding:14px 16px;font-size:14px;color:#0f172a">admin@sunjanmotors.com</div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <span style="font-size:12.5px;font-weight:600;color:#5b6472">Password</span>
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:#fff;border:1px solid #e6e8ec;border-radius:12px;padding:14px 16px;font-size:14px;color:#0f172a">••••••••<span style="font-size:12px;color:#8a93a2">Show</span></div>
+              </div>
+              <button style="margin-top:6px;background:#0f172a;color:#fff;border:none;border-radius:12px;padding:15px;font-family:inherit;font-size:15px;font-weight:600;cursor:pointer" style-hover="opacity:.9">Sign in</button>
+              <button style="background:none;border:1px solid #e6e8ec;border-radius:12px;padding:13px;font-family:inherit;font-size:14px;font-weight:600;color:#0f172a;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px" style-hover="background:#fff">▦ Use PIN instead</button>
+            </div>
+          </div>
+          <div style="padding:20px 28px;display:flex;justify-content:center">
+            <span style="font-size:12px;color:#8a93a2">Store: Main Branch · v2.4</span>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- ======== 02 DASHBOARD ======== -->
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <span style="font-size:12px;font-weight:600;color:#5b6472">02 · Dashboard</span>
+      <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" hint-size="428px,908px">
+        <div data-screen-label="Dashboard" style="height:100%;display:flex;flex-direction:column;background:#f4f5f7;font-family:'Instrument Sans',system-ui,sans-serif;color:#0f172a">
+          <div style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:16px;padding:16px 16px 90px">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div style="display:flex;flex-direction:column;gap:2px">
+                <span style="font-size:19px;font-weight:700;letter-spacing:-.01em">Good morning, Admin</span>
+                <span style="font-size:12.5px;color:#8a93a2">Sunday, Jul 5 · Register open</span>
+              </div>
+              <div style="width:38px;height:38px;border-radius:99px;background:#fff;border:1px solid #e6e8ec;display:grid;place-items:center;font-size:12px;font-weight:600;color:#5b6472">SA</div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+              <div style="grid-column:1/-1;background:#0f172a;color:#fff;border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:6px">
+                <span style="font-size:12px;opacity:.7">Today's sales</span>
+                <span style="font-size:28px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums">৳ 48,250</span>
+                <span style="font-size:12px;opacity:.7">23 invoices · <span style="color:#6ee7b7">↑ 12% vs yesterday</span></span>
+              </div>
+              <div style="background:#fff;border:1px solid #e6e8ec;border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:4px">
+                <span style="font-size:12px;color:#8a93a2">Profit today</span>
+                <span style="font-size:18px;font-weight:700;font-variant-numeric:tabular-nums;color:#0d8a53">৳ 9,410</span>
+              </div>
+              <div style="background:#fff;border:1px solid #e6e8ec;border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:4px">
+                <span style="font-size:12px;color:#8a93a2">Due collected</span>
+                <span style="font-size:18px;font-weight:700;font-variant-numeric:tabular-nums">৳ 5,200</span>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;background:#fdf3e2;border:1px solid #f3e2bd;border-radius:12px;padding:12px 14px">
+              <span style="font-size:16px">⚠</span>
+              <span style="flex:1;font-size:13px;color:#b26a00;font-weight:500">6 parts are low on stock</span>
+              <span style="font-size:12.5px;font-weight:600;color:#b26a00">View →</span>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+              <div style="display:flex;flex-direction:column;align-items:center;gap:6px;background:#fff;border:1px solid #e6e8ec;border-radius:12px;padding:12px 4px;cursor:pointer" style-hover="border-color:#8a93a2"><span style="font-size:18px">＋</span><span style="font-size:11px;font-weight:600;color:#5b6472">New Sale</span></div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:6px;background:#fff;border:1px solid #e6e8ec;border-radius:12px;padding:12px 4px;cursor:pointer" style-hover="border-color:#8a93a2"><span style="font-size:18px">▦</span><span style="font-size:11px;font-weight:600;color:#5b6472">Add Part</span></div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:6px;background:#fff;border:1px solid #e6e8ec;border-radius:12px;padding:12px 4px;cursor:pointer" style-hover="border-color:#8a93a2"><span style="font-size:18px">⇧</span><span style="font-size:11px;font-weight:600;color:#5b6472">Stock In</span></div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:6px;background:#fff;border:1px solid #e6e8ec;border-radius:12px;padding:12px 4px;cursor:pointer" style-hover="border-color:#8a93a2"><span style="font-size:18px">◫</span><span style="font-size:11px;font-weight:600;color:#5b6472">Reports</span></div>
+            </div>
+            <div style="background:#fff;border:1px solid #e6e8ec;border-radius:14px;overflow:hidden">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px">
+                <span style="font-size:14px;font-weight:600">Recent sales</span>
+                <span style="font-size:12px;font-weight:500;color:#8a93a2">View all →</span>
+              </div>
+              <sc-for list="{{ recentSales }}" as="rs" hint-placeholder-count="4">
+                <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid #eef0f3">
+                  <div style="width:34px;height:34px;border-radius:10px;background:#f4f5f7;border:1px solid #e6e8ec;display:grid;place-items:center;font-size:13px">🧾</div>
+                  <div style="flex:1;display:flex;flex-direction:column;gap:1px;min-width:0">
+                    <span style="font-size:13.5px;font-weight:550;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ rs.inv }}</span>
+                    <span style="font-size:11.5px;color:#8a93a2">{{ rs.who }} · {{ rs.time }}</span>
+                  </div>
+                  <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">
+                    <span style="font-size:13.5px;font-weight:600;font-variant-numeric:tabular-nums">{{ rs.amount }}</span>
+                    <span style="font-size:10.5px;font-weight:600;padding:1px 8px;border-radius:99px;background:{{ rs.badgeBg }};color:{{ rs.badgeColor }}">{{ rs.status }}</span>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <dc-import name="BottomNav" active="Home" hint-size="100%,64px"></dc-import>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- ======== 03 POS / NEW SALE ======== -->
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <span style="font-size:12px;font-weight:600;color:#5b6472">03 · New Sale (add items)</span>
+      <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" hint-size="428px,908px">
+        <div data-screen-label="New Sale" style="position:relative;height:100%;display:flex;flex-direction:column;background:#f4f5f7;font-family:'Instrument Sans',system-ui,sans-serif;color:#0f172a">
+          <div style="display:flex;align-items:center;gap:10px;padding:12px 16px 10px">
+            <span style="font-size:17px;font-weight:700;flex:1">New Sale</span>
+            <span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:99px;background:#e9f7f0;color:#0d8a53">Register open</span>
+          </div>
+          <div style="display:flex;gap:8px;padding:0 16px 10px">
+            <div style="flex:1;display:flex;align-items:center;gap:9px;background:#fff;border:1px solid #e6e8ec;border-radius:11px;padding:11px 13px;font-size:13.5px;color:#8a93a2">⌕ Search name, SKU…</div>
+            <button style="width:44px;display:grid;place-items:center;background:#0f172a;color:#fff;border:none;border-radius:11px;cursor:pointer;font-size:17px" title="Scan barcode">▦</button>
+          </div>
+          <div style="display:flex;gap:6px;padding:0 16px 12px;overflow-x:auto">
+            <span style="flex-shrink:0;font-size:12px;font-weight:600;padding:6px 13px;border-radius:99px;background:#0f172a;color:#fff">All</span>
+            <span style="flex-shrink:0;font-size:12px;font-weight:500;padding:6px 13px;border-radius:99px;background:#fff;border:1px solid #e6e8ec;color:#5b6472">Filters</span>
+            <span style="flex-shrink:0;font-size:12px;font-weight:500;padding:6px 13px;border-radius:99px;background:#fff;border:1px solid #e6e8ec;color:#5b6472">Brakes</span>
+            <span style="flex-shrink:0;font-size:12px;font-weight:500;padding:6px 13px;border-radius:99px;background:#fff;border:1px solid #e6e8ec;color:#5b6472">Engine oil</span>
+            <span style="flex-shrink:0;font-size:12px;font-weight:500;padding:6px 13px;border-radius:99px;background:#fff;border:1px solid #e6e8ec;color:#5b6472">Batteries</span>
+          </div>
+          <div style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:0 16px 120px">
+            <sc-for list="{{ saleParts }}" as="sp" hint-placeholder-count="6">
+              <div style="display:flex;align-items:center;gap:12px;background:#fff;border:1px solid #e6e8ec;border-radius:13px;padding:12px 14px">
+                <div style="width:40px;height:40px;border-radius:10px;background:repeating-linear-gradient(45deg,#f4f5f7,#f4f5f7 4px,#eef0f3 4px,#eef0f3 8px);border:1px solid #e6e8ec;flex-shrink:0"></div>
+                <div style="flex:1;display:flex;flex-direction:column;gap:2px;min-width:0">
+                  <span style="font-size:13.5px;font-weight:550;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ sp.name }}</span>
+                  <span style="font-size:11.5px;color:#8a93a2">{{ sp.sku }} · <span style="color:{{ sp.stockColor }}">{{ sp.stock }}</span></span>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
+                  <span style="font-size:13.5px;font-weight:600;font-variant-numeric:tabular-nums">{{ sp.price }}</span>
+                  <sc-if value="{{ sp.inCart }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex;align-items:center;border:1px solid #e6e8ec;border-radius:8px;overflow:hidden;background:#f4f5f7">
+                      <button style="width:30px;height:28px;background:none;border:none;cursor:pointer;font-size:13px;color:#5b6472">−</button>
+                      <span style="min-width:26px;text-align:center;font-size:12.5px;font-weight:600">{{ sp.qty }}</span>
+                      <button style="width:30px;height:28px;background:none;border:none;cursor:pointer;font-size:13px;color:#5b6472">＋</button>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ sp.notInCart }}" hint-placeholder-val="{{ true }}">
+                    <button style="height:28px;padding:0 14px;background:#fff;border:1px solid #0f172a;border-radius:8px;font-family:inherit;font-size:12px;font-weight:600;color:#0f172a;cursor:pointer" style-hover="background:#0f172a;color:#fff">＋ Add</button>
+                  </sc-if>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="position:absolute;left:0;right:0;bottom:0;padding:12px 16px 16px;background:linear-gradient(transparent,#f4f5f7 30%)">
+            <button style="width:100%;display:flex;align-items:center;justify-content:space-between;background:#0f172a;color:#fff;border:none;border-radius:14px;padding:16px 18px;font-family:inherit;font-size:15px;font-weight:600;cursor:pointer;box-shadow:0 8px 24px rgba(15,23,42,.25)" style-hover="opacity:.95">
+              <span style="display:flex;align-items:center;gap:10px"><span style="background:rgba(255,255,255,.18);border-radius:99px;padding:2px 10px;font-size:12.5px">3</span> View cart</span>
+              <span style="font-variant-numeric:tabular-nums">৳ 4,250 →</span>
+            </button>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- ======== 04 CHECKOUT ======== -->
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <span style="font-size:12px;font-weight:600;color:#5b6472">04 · Cart &amp; Checkout</span>
+      <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" hint-size="428px,908px">
+        <div data-screen-label="Checkout" style="position:relative;height:100%;display:flex;flex-direction:column;background:#f4f5f7;font-family:'Instrument Sans',system-ui,sans-serif;color:#0f172a">
+          <div style="display:flex;align-items:center;gap:10px;padding:12px 16px 10px">
+            <span style="font-size:15px;color:#5b6472;cursor:pointer">←</span>
+            <span style="font-size:17px;font-weight:700;flex:1">Checkout</span>
+            <span style="font-size:12px;color:#8a93a2">INV-1024</span>
+          </div>
+          <div style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding:4px 16px 140px">
+            <div style="background:#fff;border:1px solid #e6e8ec;border-radius:13px;overflow:hidden">
+              <sc-for list="{{ cartLines }}" as="ln" hint-placeholder-count="3">
+                <div style="display:flex;align-items:center;gap:11px;padding:12px 14px;border-bottom:1px solid #eef0f3">
+                  <div style="flex:1;display:flex;flex-direction:column;gap:2px;min-width:0">
+                    <span style="font-size:13.5px;font-weight:550;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ ln.name }}</span>
+                    <span style="font-size:11.5px;color:#8a93a2">{{ ln.unit }} · {{ ln.price }}</span>
+                  </div>
+                  <div style="display:flex;align-items:center;border:1px solid #e6e8ec;border-radius:8px;overflow:hidden;background:#f4f5f7">
+                    <button style="width:30px;height:28px;background:none;border:none;cursor:pointer;font-size:13px;color:#5b6472">−</button>
+                    <span style="min-width:26px;text-align:center;font-size:12.5px;font-weight:600">{{ ln.qty }}</span>
+                    <button style="width:30px;height:28px;background:none;border:none;cursor:pointer;font-size:13px;color:#5b6472">＋</button>
+                  </div>
+                  <span style="width:72px;text-align:right;font-size:13.5px;font-weight:600;font-variant-numeric:tabular-nums">{{ ln.total }}</span>
+                </div>
+              </sc-for>
+              <div style="display:flex;flex-direction:column;gap:7px;padding:13px 14px;background:#fafafb">
+                <div style="display:flex;justify-content:space-between;font-size:12.5px;color:#5b6472"><span>Subtotal · 3 items</span><span style="font-variant-numeric:tabular-nums">৳ 4,250</span></div>
+                <div style="display:flex;justify-content:space-between;font-size:12.5px;color:#5b6472"><span>Discount</span><span style="font-variant-numeric:tabular-nums">− ৳ 100</span></div>
+                <div style="display:flex;justify-content:space-between;align-items:baseline;padding-top:7px;border-top:1px dashed #e6e8ec"><span style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#5b6472">Total</span><span style="font-size:20px;font-weight:700;font-variant-numeric:tabular-nums">৳ 4,150</span></div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #e6e8ec;border-radius:13px;padding:12px 14px">
+              <div style="width:34px;height:34px;border-radius:99px;background:#f4f5f7;border:1px solid #e6e8ec;display:grid;place-items:center;font-size:11px;font-weight:600;color:#5b6472">RK</div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:1px">
+                <span style="font-size:13.5px;font-weight:550">Rahim Khan</span>
+                <span style="font-size:11.5px;color:#8a93a2">Due ৳ 1,200 · 12 orders</span>
+              </div>
+              <span style="font-size:12.5px;font-weight:600;color:#5b6472">Change</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <span style="font-size:13px;font-weight:600">Payment method</span>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+                <div style="display:flex;flex-direction:column;align-items:center;gap:4px;background:#0f172a;color:#fff;border:1px solid #0f172a;border-radius:11px;padding:12px 4px;font-size:12px;font-weight:600;cursor:pointer"><span style="font-size:16px">💵</span>Cash</div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:4px;background:#fff;border:1px solid #e6e8ec;border-radius:11px;padding:12px 4px;font-size:12px;font-weight:600;color:#5b6472;cursor:pointer" style-hover="border-color:#8a93a2"><span style="font-size:16px">💳</span>Card</div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:4px;background:#fff;border:1px solid #e6e8ec;border-radius:11px;padding:12px 4px;font-size:12px;font-weight:600;color:#5b6472;cursor:pointer" style-hover="border-color:#8a93a2"><span style="font-size:16px">📱</span>bKash</div>
+              </div>
+              <div style="display:flex;align-items:center;background:#fff;border:1px solid #e6e8ec;border-radius:11px;overflow:hidden">
+                <span style="padding:12px 14px;background:#fafafb;border-right:1px solid #e6e8ec;font-size:13.5px;color:#8a93a2">৳</span>
+                <span style="padding:12px 14px;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;flex:1">5,000</span>
+                <span style="padding:0 14px;font-size:12px;color:#0d8a53;font-weight:600">Change ৳ 850</span>
+              </div>
+            </div>
+          </div>
+          <div style="position:absolute;left:0;right:0;bottom:0;padding:12px 16px 16px;background:linear-gradient(transparent,#f4f5f7 30%);display:flex;flex-direction:column;gap:8px">
+            <button style="width:100%;background:#0d8a53;color:#fff;border:none;border-radius:14px;padding:16px;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 8px 24px rgba(13,138,83,.3)" style-hover="opacity:.95">✓ Complete Sale · ৳ 4,150</button>
+            <div style="display:flex;gap:8px">
+              <button style="flex:1;background:none;border:1px solid #e6e8ec;border-radius:11px;padding:10px;font-family:inherit;font-size:12.5px;font-weight:600;color:#5b6472;cursor:pointer" style-hover="background:#fff">Hold sale</button>
+              <button style="flex:1;background:none;border:1px solid #e6e8ec;border-radius:11px;padding:10px;font-family:inherit;font-size:12.5px;font-weight:600;color:#5b6472;cursor:pointer" style-hover="background:#fff">Print · 80mm ▾</button>
+            </div>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- ======== 05 PARTS CATALOG ======== -->
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <span style="font-size:12px;font-weight:600;color:#5b6472">05 · Parts Catalog</span>
+      <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" hint-size="428px,908px">
+        <div data-screen-label="Parts Catalog" style="height:100%;display:flex;flex-direction:column;background:#f4f5f7;font-family:'Instrument Sans',system-ui,sans-serif;color:#0f172a;position:relative">
+          <div style="display:flex;align-items:center;gap:10px;padding:12px 16px 10px">
+            <span style="font-size:17px;font-weight:700;flex:1">Parts</span>
+            <span style="font-size:12px;color:#8a93a2">49 parts · 6 low</span>
+          </div>
+          <div style="display:flex;gap:8px;padding:0 16px 10px">
+            <div style="flex:1;display:flex;align-items:center;gap:9px;background:#fff;border:1px solid #e6e8ec;border-radius:11px;padding:11px 13px;font-size:13.5px;color:#8a93a2">⌕ Search parts…</div>
+            <button style="width:44px;display:grid;place-items:center;background:#fff;border:1px solid #e6e8ec;border-radius:11px;cursor:pointer;font-size:15px;color:#5b6472" title="Filter">≋</button>
+          </div>
+          <div style="display:flex;gap:6px;padding:0 16px 12px;overflow-x:auto">
+            <span style="flex-shrink:0;font-size:12px;font-weight:600;padding:6px 13px;border-radius:99px;background:#0f172a;color:#fff">All</span>
+            <span style="flex-shrink:0;font-size:12px;font-weight:500;padding:6px 13px;border-radius:99px;background:#fdeeef;border:1px solid #f6d5d7;color:#d63841">Low stock · 6</span>
+            <span style="flex-shrink:0;font-size:12px;font-weight:500;padding:6px 13px;border-radius:99px;background:#fff;border:1px solid #e6e8ec;color:#5b6472">Brakes</span>
+            <span style="flex-shrink:0;font-size:12px;font-weight:500;padding:6px 13px;border-radius:99px;background:#fff;border:1px solid #e6e8ec;color:#5b6472">Suspension</span>
+          </div>
+          <div style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:0 16px 90px">
+            <sc-for list="{{ catalogParts }}" as="cp" hint-placeholder-count="6">
+              <div style="display:flex;align-items:center;gap:12px;background:#fff;border:1px solid #e6e8ec;border-radius:13px;padding:12px 14px;cursor:pointer" style-hover="border-color:#8a93a2">
+                <div style="width:44px;height:44px;border-radius:10px;background:repeating-linear-gradient(45deg,#f4f5f7,#f4f5f7 4px,#eef0f3 4px,#eef0f3 8px);border:1px solid #e6e8ec;flex-shrink:0"></div>
+                <div style="flex:1;display:flex;flex-direction:column;gap:3px;min-width:0">
+                  <span style="font-size:13.5px;font-weight:550;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ cp.name }}</span>
+                  <span style="font-size:11.5px;color:#8a93a2">{{ cp.sku }} · {{ cp.brand }}</span>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+                  <span style="font-size:13.5px;font-weight:600;font-variant-numeric:tabular-nums">{{ cp.price }}</span>
+                  <span style="font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:99px;background:{{ cp.stockBg }};color:{{ cp.stockColor }}">{{ cp.stockLabel }}</span>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+          <button style="position:absolute;right:16px;bottom:80px;width:54px;height:54px;border-radius:16px;background:#0f172a;color:#fff;border:none;font-size:22px;cursor:pointer;box-shadow:0 8px 24px rgba(15,23,42,.3)" title="Add part">＋</button>
+          <dc-import name="BottomNav" active="Parts" hint-size="100%,64px"></dc-import>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- ======== 06 INVENTORY ======== -->
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <span style="font-size:12px;font-weight:600;color:#5b6472">06 · Inventory / Stock</span>
+      <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" hint-size="428px,908px">
+        <div data-screen-label="Inventory" style="height:100%;display:flex;flex-direction:column;background:#f4f5f7;font-family:'Instrument Sans',system-ui,sans-serif;color:#0f172a">
+          <div style="display:flex;align-items:center;gap:10px;padding:12px 16px 10px">
+            <span style="font-size:17px;font-weight:700;flex:1">Inventory</span>
+            <button style="display:flex;align-items:center;gap:6px;background:#fff;border:1px solid #e6e8ec;border-radius:9px;padding:7px 12px;font-family:inherit;font-size:12px;font-weight:600;color:#0f172a;cursor:pointer" style-hover="background:#fafafb">⇧ Stock In</button>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:4px 16px 12px">
+            <div style="background:#fff;border:1px solid #e6e8ec;border-radius:13px;padding:13px 14px;display:flex;flex-direction:column;gap:3px">
+              <span style="font-size:11.5px;color:#8a93a2">Stock value</span>
+              <span style="font-size:17px;font-weight:700;font-variant-numeric:tabular-nums">৳ 8.4L</span>
+            </div>
+            <div style="background:#fff;border:1px solid #e6e8ec;border-radius:13px;padding:13px 14px;display:flex;flex-direction:column;gap:3px">
+              <span style="font-size:11.5px;color:#8a93a2">Low / out of stock</span>
+              <span style="font-size:17px;font-weight:700;font-variant-numeric:tabular-nums;color:#d63841">6 <span style="font-size:12px;font-weight:500;color:#8a93a2">/ 2</span></span>
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;padding:0 16px 12px">
+            <span style="font-size:12px;font-weight:600;padding:6px 13px;border-radius:99px;background:#0f172a;color:#fff">Needs attention</span>
+            <span style="font-size:12px;font-weight:500;padding:6px 13px;border-radius:99px;background:#fff;border:1px solid #e6e8ec;color:#5b6472">All stock</span>
+            <span style="font-size:12px;font-weight:500;padding:6px 13px;border-radius:99px;background:#fff;border:1px solid #e6e8ec;color:#5b6472">Adjustments</span>
+          </div>
+          <div style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:0 16px 90px">
+            <sc-for list="{{ stockItems }}" as="st" hint-placeholder-count="5">
+              <div style="display:flex;flex-direction:column;gap:9px;background:#fff;border:1px solid #e6e8ec;border-radius:13px;padding:13px 14px">
+                <div style="display:flex;align-items:center;gap:10px">
+                  <div style="flex:1;display:flex;flex-direction:column;gap:2px;min-width:0">
+                    <span style="font-size:13.5px;font-weight:550;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ st.name }}</span>
+                    <span style="font-size:11.5px;color:#8a93a2">{{ st.sku }} · Reorder at {{ st.reorder }}</span>
+                  </div>
+                  <span style="font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:99px;background:{{ st.bg }};color:{{ st.color }}">{{ st.label }}</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px">
+                  <div style="flex:1;height:6px;border-radius:99px;background:#eef0f3;overflow:hidden"><div style="height:100%;border-radius:99px;background:{{ st.color }};width:{{ st.pct }}"></div></div>
+                  <span style="font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;color:#5b6472">{{ st.qty }} pcs</span>
+                  <button style="height:28px;padding:0 12px;background:none;border:1px solid #e6e8ec;border-radius:8px;font-family:inherit;font-size:11.5px;font-weight:600;color:#0f172a;cursor:pointer" style-hover="background:#fafafb">Restock</button>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+          <dc-import name="BottomNav" active="Parts" hint-size="100%,64px"></dc-import>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- ======== 07 CUSTOMERS ======== -->
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <span style="font-size:12px;font-weight:600;color:#5b6472">07 · Customers</span>
+      <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" hint-size="428px,908px">
+        <div data-screen-label="Customers" style="height:100%;display:flex;flex-direction:column;background:#f4f5f7;font-family:'Instrument Sans',system-ui,sans-serif;color:#0f172a;position:relative">
+          <div style="display:flex;align-items:center;gap:10px;padding:12px 16px 10px">
+            <span style="font-size:17px;font-weight:700;flex:1">Customers</span>
+            <span style="font-size:12px;color:#8a93a2">128 total</span>
+          </div>
+          <div style="padding:0 16px 10px">
+            <div style="display:flex;align-items:center;gap:9px;background:#fff;border:1px solid #e6e8ec;border-radius:11px;padding:11px 13px;font-size:13.5px;color:#8a93a2">⌕ Search name or phone…</div>
+          </div>
+          <div style="display:flex;gap:6px;padding:0 16px 12px">
+            <span style="font-size:12px;font-weight:600;padding:6px 13px;border-radius:99px;background:#0f172a;color:#fff">All</span>
+            <span style="font-size:12px;font-weight:500;padding:6px 13px;border-radius:99px;background:#fdeeef;border:1px solid #f6d5d7;color:#d63841">With due · 14</span>
+            <span style="font-size:12px;font-weight:500;padding:6px 13px;border-radius:99px;background:#fff;border:1px solid #e6e8ec;color:#5b6472">Workshops</span>
+          </div>
+          <div style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:0 16px 90px">
+            <sc-for list="{{ customerList }}" as="cu" hint-placeholder-count="6">
+              <div style="display:flex;align-items:center;gap:12px;background:#fff;border:1px solid #e6e8ec;border-radius:13px;padding:12px 14px;cursor:pointer" style-hover="border-color:#8a93a2">
+                <div style="width:40px;height:40px;border-radius:99px;background:#f4f5f7;border:1px solid #e6e8ec;display:grid;place-items:center;font-size:12px;font-weight:600;color:#5b6472;flex-shrink:0">{{ cu.initials }}</div>
+                <div style="flex:1;display:flex;flex-direction:column;gap:2px;min-width:0">
+                  <span style="font-size:13.5px;font-weight:550;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ cu.name }}</span>
+                  <span style="font-size:11.5px;color:#8a93a2">{{ cu.phone }} · {{ cu.orders }} orders</span>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">
+                  <span style="font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;color:{{ cu.dueColor }}">{{ cu.due }}</span>
+                  <span style="font-size:10.5px;color:#8a93a2">{{ cu.dueLabel }}</span>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+          <button style="position:absolute;right:16px;bottom:80px;width:54px;height:54px;border-radius:16px;background:#0f172a;color:#fff;border:none;font-size:22px;cursor:pointer;box-shadow:0 8px 24px rgba(15,23,42,.3)" title="Add customer">＋</button>
+          <dc-import name="BottomNav" active="Customers" hint-size="100%,64px"></dc-import>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- ======== 08 RECEIPTS ======== -->
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <span style="font-size:12px;font-weight:600;color:#5b6472">08 · Receipts / History</span>
+      <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" hint-size="428px,908px">
+        <div data-screen-label="Receipts" style="height:100%;display:flex;flex-direction:column;background:#f4f5f7;font-family:'Instrument Sans',system-ui,sans-serif;color:#0f172a">
+          <div style="display:flex;align-items:center;gap:10px;padding:12px 16px 10px">
+            <span style="font-size:17px;font-weight:700;flex:1">Receipts</span>
+            <button style="display:flex;align-items:center;gap:6px;background:#fff;border:1px solid #e6e8ec;border-radius:9px;padding:7px 12px;font-family:inherit;font-size:12px;font-weight:600;color:#0f172a;cursor:pointer" style-hover="background:#fafafb">◫ Jul 2026 ▾</button>
+          </div>
+          <div style="display:flex;gap:6px;padding:4px 16px 12px">
+            <span style="font-size:12px;font-weight:600;padding:6px 13px;border-radius:99px;background:#0f172a;color:#fff">All · 214</span>
+            <span style="font-size:12px;font-weight:500;padding:6px 13px;border-radius:99px;background:#fff;border:1px solid #e6e8ec;color:#5b6472">Paid</span>
+            <span style="font-size:12px;font-weight:500;padding:6px 13px;border-radius:99px;background:#fdeeef;border:1px solid #f6d5d7;color:#d63841">Due · 9</span>
+            <span style="font-size:12px;font-weight:500;padding:6px 13px;border-radius:99px;background:#fff;border:1px solid #e6e8ec;color:#5b6472">Returns</span>
+          </div>
+          <div style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:0 16px 90px">
+            <span style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#8a93a2;padding:6px 2px 0">Today</span>
+            <sc-for list="{{ receiptsToday }}" as="rc" hint-placeholder-count="3">
+              <div style="display:flex;align-items:center;gap:12px;background:#fff;border:1px solid #e6e8ec;border-radius:13px;padding:12px 14px;cursor:pointer" style-hover="border-color:#8a93a2">
+                <div style="flex:1;display:flex;flex-direction:column;gap:2px;min-width:0">
+                  <span style="font-size:13.5px;font-weight:550">{{ rc.inv }}</span>
+                  <span style="font-size:11.5px;color:#8a93a2">{{ rc.who }} · {{ rc.items }} items · {{ rc.time }}</span>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">
+                  <span style="font-size:13.5px;font-weight:600;font-variant-numeric:tabular-nums">{{ rc.amount }}</span>
+                  <span style="font-size:10.5px;font-weight:600;padding:1px 8px;border-radius:99px;background:{{ rc.bg }};color:{{ rc.color }}">{{ rc.status }}</span>
+                </div>
+              </div>
+            </sc-for>
+            <span style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#8a93a2;padding:8px 2px 0">Yesterday</span>
+            <sc-for list="{{ receiptsYest }}" as="rc" hint-placeholder-count="3">
+              <div style="display:flex;align-items:center;gap:12px;background:#fff;border:1px solid #e6e8ec;border-radius:13px;padding:12px 14px;cursor:pointer" style-hover="border-color:#8a93a2">
+                <div style="flex:1;display:flex;flex-direction:column;gap:2px;min-width:0">
+                  <span style="font-size:13.5px;font-weight:550">{{ rc.inv }}</span>
+                  <span style="font-size:11.5px;color:#8a93a2">{{ rc.who }} · {{ rc.items }} items · {{ rc.time }}</span>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">
+                  <span style="font-size:13.5px;font-weight:600;font-variant-numeric:tabular-nums">{{ rc.amount }}</span>
+                  <span style="font-size:10.5px;font-weight:600;padding:1px 8px;border-radius:99px;background:{{ rc.bg }};color:{{ rc.color }}">{{ rc.status }}</span>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+          <dc-import name="BottomNav" active="Receipts" hint-size="100%,64px"></dc-import>
+        </div>
+      </x-import>
+    </div>
+
+  </div>
+
+  <!-- ============ TABLET POS ============ -->
+  <div style="display:flex;flex-direction:column;gap:12px">
+    <span style="font-size:12px;font-weight:600;color:#5b6472">09 · Tablet POS Register (landscape)</span>
+    <div data-screen-label="Tablet POS" style="width:1280px;height:860px;border-radius:22px;border:10px solid rgba(116,119,117,.5);box-shadow:0 30px 80px rgba(0,0,0,.25);overflow:hidden;background:#f4f5f7;display:flex;flex-direction:column;font-family:'Instrument Sans',system-ui,sans-serif;color:#0f172a">
+      <div style="display:flex;align-items:center;gap:14px;padding:0 20px;height:54px;background:#fff;border-bottom:1px solid #e6e8ec">
+        <div style="width:30px;height:30px;border-radius:8px;background:#0f172a;color:#fff;display:grid;place-items:center;font-weight:700;font-size:13px">SM</div>
+        <span style="font-size:14px;font-weight:600">Point of Sale</span>
+        <span style="font-size:11px;font-weight:600;padding:2px 9px;border-radius:99px;background:#e9f7f0;color:#0d8a53">Register open</span>
+        <div style="flex:1"></div>
+        <span style="font-size:12.5px;color:#8a93a2">Main Branch · System Admin</span>
+        <div style="width:32px;height:32px;border-radius:99px;background:#f4f5f7;border:1px solid #e6e8ec;display:grid;place-items:center;font-size:11px;font-weight:600;color:#5b6472">SA</div>
+      </div>
+      <div style="flex:1;display:grid;grid-template-columns:1fr 400px;min-height:0">
+        <!-- product side -->
+        <div style="display:flex;flex-direction:column;min-width:0;padding:16px 16px 16px 20px;gap:12px">
+          <div style="display:flex;gap:8px">
+            <div style="flex:1;display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #e6e8ec;border-radius:11px;padding:12px 14px;font-size:13.5px;color:#8a93a2">⌕ Scan barcode or search parts by name, SKU… <span style="margin-left:auto;font-size:10.5px;border:1px solid #e6e8ec;border-radius:4px;padding:1px 6px;background:#fafafb">F2</span></div>
+            <button style="width:46px;display:grid;place-items:center;background:#0f172a;color:#fff;border:none;border-radius:11px;cursor:pointer;font-size:17px">▦</button>
+          </div>
+          <div style="display:flex;gap:6px;overflow-x:auto">
+            <span style="flex-shrink:0;font-size:12.5px;font-weight:600;padding:7px 15px;border-radius:99px;background:#0f172a;color:#fff">All</span>
+            <span style="flex-shrink:0;font-size:12.5px;font-weight:500;padding:7px 15px;border-radius:99px;background:#fff;border:1px solid #e6e8ec;color:#5b6472">Engine oil</span>
+            <span style="flex-shrink:0;font-size:12.5px;font-weight:500;padding:7px 15px;border-radius:99px;background:#fff;border:1px solid #e6e8ec;color:#5b6472">Filters</span>
+            <span style="flex-shrink:0;font-size:12.5px;font-weight:500;padding:7px 15px;border-radius:99px;background:#fff;border:1px solid #e6e8ec;color:#5b6472">Brakes</span>
+            <span style="flex-shrink:0;font-size:12.5px;font-weight:500;padding:7px 15px;border-radius:99px;background:#fff;border:1px solid #e6e8ec;color:#5b6472">Batteries</span>
+            <span style="flex-shrink:0;font-size:12.5px;font-weight:500;padding:7px 15px;border-radius:99px;background:#fff;border:1px solid #e6e8ec;color:#5b6472">Suspension</span>
+            <span style="flex-shrink:0;font-size:12.5px;font-weight:500;padding:7px 15px;border-radius:99px;background:#fff;border:1px solid #e6e8ec;color:#5b6472">Electrical</span>
+          </div>
+          <div style="flex:1;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;align-content:start;padding-bottom:8px">
+            <sc-for list="{{ gridParts }}" as="gp" hint-placeholder-count="12">
+              <div style="display:flex;flex-direction:column;gap:8px;background:#fff;border:1px solid #e6e8ec;border-radius:13px;padding:12px;cursor:pointer" style-hover="border-color:#0f172a">
+                <div style="height:72px;border-radius:9px;background:repeating-linear-gradient(45deg,#f4f5f7,#f4f5f7 5px,#eef0f3 5px,#eef0f3 10px);border:1px solid #eef0f3"></div>
+                <div style="display:flex;flex-direction:column;gap:2px">
+                  <span style="font-size:13px;font-weight:550;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">{{ gp.name }}</span>
+                  <span style="font-size:11px;color:#8a93a2">{{ gp.sku }}</span>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-top:auto">
+                  <span style="font-size:13.5px;font-weight:700;font-variant-numeric:tabular-nums">{{ gp.price }}</span>
+                  <span style="font-size:10.5px;font-weight:600;padding:2px 7px;border-radius:99px;background:{{ gp.bg }};color:{{ gp.color }}">{{ gp.stock }}</span>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <!-- cart side -->
+        <div style="display:flex;flex-direction:column;background:#fff;border-left:1px solid #e6e8ec;min-height:0">
+          <div style="display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid #eef0f3">
+            <div style="flex:1;display:flex;align-items:center;justify-content:space-between;gap:8px;border:1px solid #e6e8ec;border-radius:9px;padding:9px 12px;font-size:13px;cursor:pointer" style-hover="background:#fafafb">
+              <span style="display:flex;align-items:center;gap:8px"><span style="width:24px;height:24px;border-radius:99px;background:#f4f5f7;border:1px solid #e6e8ec;display:grid;place-items:center;font-size:10px;font-weight:600;color:#5b6472">RK</span>Rahim Khan · Due ৳ 1,200</span>
+              <span style="font-size:10px;color:#8a93a2">▾</span>
+            </div>
+            <button style="width:38px;height:38px;display:grid;place-items:center;background:none;border:1px solid #e6e8ec;border-radius:9px;font-size:15px;color:#5b6472;cursor:pointer" style-hover="background:#fafafb">＋</button>
+          </div>
+          <div style="flex:1;overflow-y:auto;display:flex;flex-direction:column">
+            <sc-for list="{{ tabletCart }}" as="tc" hint-placeholder-count="4">
+              <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #eef0f3">
+                <div style="flex:1;display:flex;flex-direction:column;gap:2px;min-width:0">
+                  <span style="font-size:13px;font-weight:550;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ tc.name }}</span>
+                  <span style="font-size:11px;color:#8a93a2">{{ tc.price }} × {{ tc.qty }}</span>
+                </div>
+                <div style="display:flex;align-items:center;border:1px solid #e6e8ec;border-radius:8px;overflow:hidden;background:#f4f5f7">
+                  <button style="width:28px;height:26px;background:none;border:none;cursor:pointer;font-size:12px;color:#5b6472">−</button>
+                  <span style="min-width:24px;text-align:center;font-size:12px;font-weight:600">{{ tc.qty }}</span>
+                  <button style="width:28px;height:26px;background:none;border:none;cursor:pointer;font-size:12px;color:#5b6472">＋</button>
+                </div>
+                <span style="width:70px;text-align:right;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums">{{ tc.total }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="border-top:1px solid #e6e8ec;padding:14px 16px;display:flex;flex-direction:column;gap:9px;background:#fafafb">
+            <div style="display:flex;justify-content:space-between;font-size:12.5px;color:#5b6472"><span>Subtotal · 4 items</span><span style="font-variant-numeric:tabular-nums">৳ 7,830</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:12.5px;color:#5b6472"><span>Discount</span><span style="font-variant-numeric:tabular-nums">− ৳ 130</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;padding-top:8px;border-top:1px dashed #e6e8ec"><span style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#5b6472">Total</span><span style="font-size:24px;font-weight:700;font-variant-numeric:tabular-nums">৳ 7,700</span></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+              <div style="display:flex;flex-direction:column;align-items:center;gap:3px;background:#0f172a;color:#fff;border:1px solid #0f172a;border-radius:9px;padding:9px 4px;font-size:11.5px;font-weight:600;cursor:pointer"><span style="font-size:14px">💵</span>Cash</div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:3px;background:#fff;border:1px solid #e6e8ec;border-radius:9px;padding:9px 4px;font-size:11.5px;font-weight:600;color:#5b6472;cursor:pointer" style-hover="border-color:#8a93a2"><span style="font-size:14px">💳</span>Card</div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:3px;background:#fff;border:1px solid #e6e8ec;border-radius:9px;padding:9px 4px;font-size:11.5px;font-weight:600;color:#5b6472;cursor:pointer" style-hover="border-color:#8a93a2"><span style="font-size:14px">📱</span>bKash</div>
+            </div>
+            <button style="display:flex;align-items:center;justify-content:center;gap:10px;background:#0d8a53;color:#fff;border:none;border-radius:12px;padding:14px;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer" style-hover="opacity:.92">✓ Complete Sale · ৳ 7,700</button>
+            <div style="display:flex;gap:6px">
+              <button style="flex:1;background:none;border:1px solid #e6e8ec;border-radius:9px;padding:9px;font-family:inherit;font-size:12px;font-weight:600;color:#5b6472;cursor:pointer" style-hover="background:#fff">Hold</button>
+              <button style="flex:1;background:none;border:1px solid #e6e8ec;border-radius:9px;padding:9px;font-family:inherit;font-size:12px;font-weight:600;color:#5b6472;cursor:pointer" style-hover="background:#fff">Discount</button>
+              <button style="flex:1;background:none;border:1px solid #e6e8ec;border-radius:9px;padding:9px;font-family:inherit;font-size:12px;font-weight:600;color:#5b6472;cursor:pointer" style-hover="background:#fff">Print ▾</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p style="margin:0;font-size:13px;color:#8a93a2;max-width:860px">Next steps: part detail &amp; add-part form, receipt detail with print preview, dark mode, or turn any flow into a tappable interactive prototype — just ask.</p>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const lowBg = '#fdeeef', low = '#d63841', okBg = '#e9f7f0', ok = '#0d8a53', warnBg = '#fdf3e2', warn = '#b26a00';
+    return {
+      recentSales: [
+        { inv: 'INV-1024', who: 'Rahim Khan', time: '10:42 AM', amount: '৳ 4,150', status: 'Paid', badgeBg: okBg, badgeColor: ok },
+        { inv: 'INV-1023', who: 'Walk-in', time: '10:18 AM', amount: '৳ 950', status: 'Paid', badgeBg: okBg, badgeColor: ok },
+        { inv: 'INV-1022', who: 'Karim Auto Works', time: '9:51 AM', amount: '৳ 12,300', status: 'Due', badgeBg: lowBg, badgeColor: low },
+        { inv: 'INV-1021', who: 'Sohel Rana', time: '9:12 AM', amount: '৳ 2,480', status: 'Partial', badgeBg: warnBg, badgeColor: warn },
+      ],
+      saleParts: [
+        { name: 'Brake Pad Set — Toyota Axio', sku: 'BP-AX-104', stock: 'In stock 24', stockColor: ok, price: '৳ 1,850', inCart: true, notInCart: false, qty: 2 },
+        { name: 'Engine Oil 4L — Mobil 5W-30', sku: 'EO-MB-530', stock: 'In stock 41', stockColor: ok, price: '৳ 2,400', inCart: false, notInCart: true, qty: 0 },
+        { name: 'Air Filter — Honda Vezel', sku: 'AF-HV-221', stock: 'Low · 4 left', stockColor: warn, price: '৳ 650', inCart: true, notInCart: false, qty: 1 },
+        { name: 'Spark Plug NGK (each)', sku: 'SP-NGK-07', stock: 'In stock 120', stockColor: ok, price: '৳ 320', inCart: false, notInCart: true, qty: 0 },
+        { name: 'Wiper Blade Pair 24"/18"', sku: 'WB-2418', stock: 'In stock 18', stockColor: ok, price: '৳ 780', inCart: false, notInCart: true, qty: 0 },
+        { name: 'Battery 65Ah — Hamko', sku: 'BT-HM-65', stock: 'Low · 2 left', stockColor: warn, price: '৳ 8,900', inCart: false, notInCart: true, qty: 0 },
+      ],
+      cartLines: [
+        { name: 'Brake Pad Set — Toyota Axio', unit: 'Set', price: '৳ 1,850', qty: 2, total: '৳ 3,700' },
+        { name: 'Air Filter — Honda Vezel', unit: 'Pc', price: '৳ 650', qty: 1, total: '৳ 650' },
+        { name: 'Fuse Mini 10A', unit: 'Pc', price: '৳ 50', qty: 2, total: '৳ 100' },
+      ],
+      catalogParts: [
+        { name: 'Brake Pad Set — Toyota Axio', sku: 'BP-AX-104', brand: 'Akebono', price: '৳ 1,850', stockLabel: '24 in stock', stockBg: okBg, stockColor: ok },
+        { name: 'Battery 65Ah — Hamko', sku: 'BT-HM-65', brand: 'Hamko', price: '৳ 8,900', stockLabel: '2 left', stockBg: lowBg, stockColor: low },
+        { name: 'Engine Oil 4L — Mobil 5W-30', sku: 'EO-MB-530', brand: 'Mobil', price: '৳ 2,400', stockLabel: '41 in stock', stockBg: okBg, stockColor: ok },
+        { name: 'Air Filter — Honda Vezel', sku: 'AF-HV-221', brand: 'Denso', price: '৳ 650', stockLabel: '4 left', stockBg: warnBg, stockColor: warn },
+        { name: 'Clutch Plate — Suzuki Alto', sku: 'CP-SA-330', brand: 'Exedy', price: '৳ 3,250', stockLabel: 'Out of stock', stockBg: lowBg, stockColor: low },
+        { name: 'Timing Belt — Toyota 2NZ', sku: 'TB-2NZ-09', brand: 'Gates', price: '৳ 1,480', stockLabel: '11 in stock', stockBg: okBg, stockColor: ok },
+      ],
+      stockItems: [
+        { name: 'Battery 65Ah — Hamko', sku: 'BT-HM-65', reorder: 5, qty: 2, pct: '18%', label: 'Low', bg: lowBg, color: low },
+        { name: 'Clutch Plate — Suzuki Alto', sku: 'CP-SA-330', reorder: 4, qty: 0, pct: '2%', label: 'Out', bg: lowBg, color: low },
+        { name: 'Air Filter — Honda Vezel', sku: 'AF-HV-221', reorder: 6, qty: 4, pct: '30%', label: 'Low', bg: warnBg, color: warn },
+        { name: 'Gear Oil 1L — Total', sku: 'GO-TT-80W', reorder: 8, qty: 6, pct: '38%', label: 'Low', bg: warnBg, color: warn },
+        { name: 'Headlight Bulb H4', sku: 'HB-H4-100', reorder: 10, qty: 7, pct: '42%', label: 'Low', bg: warnBg, color: warn },
+      ],
+      customerList: [
+        { initials: 'RK', name: 'Rahim Khan', phone: '01711-234567', orders: 12, due: '৳ 1,200', dueLabel: 'due', dueColor: low },
+        { initials: 'KA', name: 'Karim Auto Works', phone: '01819-887766', orders: 48, due: '৳ 12,300', dueLabel: 'due', dueColor: low },
+        { initials: 'SR', name: 'Sohel Rana', phone: '01912-445566', orders: 7, due: '৳ 0', dueLabel: 'clear', dueColor: ok },
+        { initials: 'MT', name: 'Motiur Transport', phone: '01677-990011', orders: 31, due: '৳ 0', dueLabel: 'clear', dueColor: ok },
+        { initials: 'NB', name: 'Nabil Bhuiyan', phone: '01533-778899', orders: 3, due: '৳ 450', dueLabel: 'due', dueColor: warn },
+        { initials: 'AG', name: 'Apex Garage', phone: '01722-334455', orders: 22, due: '৳ 0', dueLabel: 'clear', dueColor: ok },
+      ],
+      receiptsToday: [
+        { inv: 'INV-1024', who: 'Rahim Khan', items: 3, time: '10:42 AM', amount: '৳ 4,150', status: 'Paid', bg: okBg, color: ok },
+        { inv: 'INV-1023', who: 'Walk-in', items: 1, time: '10:18 AM', amount: '৳ 950', status: 'Paid', bg: okBg, color: ok },
+        { inv: 'INV-1022', who: 'Karim Auto Works', items: 8, time: '9:51 AM', amount: '৳ 12,300', status: 'Due', bg: lowBg, color: low },
+      ],
+      receiptsYest: [
+        { inv: 'INV-1021', who: 'Sohel Rana', items: 2, time: '6:40 PM', amount: '৳ 2,480', status: 'Partial', bg: warnBg, color: warn },
+        { inv: 'INV-1020', who: 'Apex Garage', items: 5, time: '4:15 PM', amount: '৳ 6,720', status: 'Paid', bg: okBg, color: ok },
+        { inv: 'INV-1019', who: 'Walk-in', items: 1, time: '1:02 PM', amount: '৳ 320', status: 'Paid', bg: okBg, color: ok },
+      ],
+      gridParts: [
+        { name: 'Brake Pad Set — Toyota Axio', sku: 'BP-AX-104', price: '৳ 1,850', stock: '24', bg: okBg, color: ok },
+        { name: 'Engine Oil 4L — Mobil 5W-30', sku: 'EO-MB-530', price: '৳ 2,400', stock: '41', bg: okBg, color: ok },
+        { name: 'Air Filter — Honda Vezel', sku: 'AF-HV-221', price: '৳ 650', stock: '4', bg: warnBg, color: warn },
+        { name: 'Spark Plug NGK (each)', sku: 'SP-NGK-07', price: '৳ 320', stock: '120', bg: okBg, color: ok },
+        { name: 'Battery 65Ah — Hamko', sku: 'BT-HM-65', price: '৳ 8,900', stock: '2', bg: lowBg, color: low },
+        { name: 'Wiper Blade Pair 24"/18"', sku: 'WB-2418', price: '৳ 780', stock: '18', bg: okBg, color: ok },
+        { name: 'Timing Belt — Toyota 2NZ', sku: 'TB-2NZ-09', price: '৳ 1,480', stock: '11', bg: okBg, color: ok },
+        { name: 'Clutch Plate — Suzuki Alto', sku: 'CP-SA-330', price: '৳ 3,250', stock: '0', bg: lowBg, color: low },
+        { name: 'Gear Oil 1L — Total', sku: 'GO-TT-80W', price: '৳ 520', stock: '6', bg: warnBg, color: warn },
+        { name: 'Headlight Bulb H4', sku: 'HB-H4-100', price: '৳ 240', stock: '7', bg: warnBg, color: warn },
+        { name: 'Radiator Coolant 2L', sku: 'RC-CL-2L', price: '৳ 680', stock: '15', bg: okBg, color: ok },
+        { name: 'Fuse Mini 10A', sku: 'FU-M10', price: '৳ 50', stock: '200', bg: okBg, color: ok },
+      ],
+      tabletCart: [
+        { name: 'Brake Pad Set — Toyota Axio', price: '৳ 1,850', qty: 2, total: '৳ 3,700' },
+        { name: 'Engine Oil 4L — Mobil 5W-30', price: '৳ 2,400', qty: 1, total: '৳ 2,400' },
+        { name: 'Air Filter — Honda Vezel', price: '৳ 650', qty: 1, total: '৳ 650' },
+        { name: 'Spark Plug NGK (each)', price: '৳ 320', qty: 4, total: '৳ 1,280' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

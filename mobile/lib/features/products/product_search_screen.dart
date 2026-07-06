@@ -1,12 +1,14 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 
+import '../../core/theme/app_theme.dart';
 import '../../shared/format.dart';
 import '../../shared/models/paged_response.dart';
 import '../../shared/models/product.dart';
 import '../../shared/widgets/app_scaffold.dart';
-import '../../shared/widgets/meta_tag.dart';
+import '../../shared/widgets/design_system.dart';
 import '../../shared/widgets/paged_list_view.dart';
 import '../../shared/widgets/state_views.dart';
 import '../pricing/price_code.dart';
@@ -57,7 +59,8 @@ class _ProductSearchScreenState extends ConsumerState<ProductSearchScreen> {
       builder: (_) => FractionallySizedBox(
         heightFactor: 0.85,
         child: _CategoryPickerSheet(
-          onSelected: (id, name) => controller.selectCategory(id, categoryName: name),
+          onSelected: (id, name) =>
+              controller.selectCategory(id, categoryName: name),
         ),
       ),
     );
@@ -78,39 +81,35 @@ class _ProductSearchScreenState extends ConsumerState<ProductSearchScreen> {
       title: 'Products',
       showBottomNav: true,
       showNotificationBell: true,
+      showCartBadge: true,
+      cartCount: cartCount,
+      onCartTap: () => context.push('/quick-sale'),
       actions: [
-        // Cost-price reveal toggle — masked by default, same code as the
-        // product detail screen and shares its state, so revealing here
-        // reveals it there too.
         if (priceCode != null && priceCode.isConfigured)
           IconButton(
             tooltip: showActualPrice ? 'Hide cost prices' : 'Reveal cost prices',
             icon: Icon(showActualPrice
                 ? Icons.visibility_off_outlined
                 : Icons.visibility_outlined),
-            onPressed: () => ref.read(showActualPriceProvider.notifier).toggle(),
+            onPressed: () =>
+                ref.read(showActualPriceProvider.notifier).toggle(),
           ),
-        // Cart icon with live badge
-        Badge(
-          isLabelVisible: cartCount > 0,
-          label: Text('$cartCount'),
-          child: IconButton(
-            icon: const Icon(Icons.shopping_cart_outlined),
-            tooltip: 'Quick Sale cart',
-            onPressed: () => context.push('/quick-sale'),
-          ),
-        ),
       ],
       body: Column(
         children: [
-          // ── Persistent search bar ────────────────────────────────────
-          _SearchBar(
-            controller: _searchCtrl,
-            onChanged: controller.search,
-            onScan: () => context.push('/scan'),
+          // Search bar
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: SearchInput(
+              controller: _searchCtrl,
+              hintText: 'Search name, SKU, brand...',
+              onChanged: controller.search,
+              onScan: () => context.push('/scan'),
+            ),
           ),
+          const SizedBox(height: 10),
 
-          // ── Category tabs (server-driven — full active category list) ──
+          // Category chips
           quickCategories.when(
             data: (cats) => cats.isEmpty
                 ? const SizedBox.shrink()
@@ -125,15 +124,27 @@ class _ProductSearchScreenState extends ConsumerState<ProductSearchScreen> {
             error: (_, _) => const SizedBox.shrink(),
           ),
 
-          // ── List ─────────────────────────────────────────────────────
-          Expanded(child: _buildBody(state, controller)),
+          const SizedBox(height: 8),
+          Expanded(child: _buildBody(state, controller, priceCode, showActualPrice)),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => context.go('/quick-sale'),
+        backgroundColor: AppColors.ink,
+        foregroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16)),
+        child: const Icon(Icons.add),
       ),
     );
   }
 
   Widget _buildBody(
-      ProductSearchState state, ProductSearchController controller) {
+    ProductSearchState state,
+    ProductSearchController controller,
+    PriceCode? priceCode,
+    bool showActualPrice,
+  ) {
     if (state.isLoading) return const LoadingView();
     if (state.error != null) {
       return ErrorView(
@@ -141,7 +152,6 @@ class _ProductSearchScreenState extends ConsumerState<ProductSearchScreen> {
         onRetry: () => controller.search(state.query),
       );
     }
-
     if (state.items.isEmpty) {
       return const EmptyView(
           message: 'No products found.', icon: Icons.search_off);
@@ -151,7 +161,7 @@ class _ProductSearchScreenState extends ConsumerState<ProductSearchScreen> {
       onRefresh: controller.refresh,
       child: ListView.builder(
         controller: _scrollCtrl,
-        padding: const EdgeInsets.fromLTRB(12, 10, 12, 14),
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 90),
         itemCount: state.items.length + (state.hasMore ? 1 : 0),
         itemBuilder: (context, index) {
           if (index >= state.items.length) {
@@ -160,69 +170,18 @@ class _ProductSearchScreenState extends ConsumerState<ProductSearchScreen> {
               child: Center(child: CircularProgressIndicator()),
             );
           }
-          return _ProductListTile(product: state.items[index]);
+          return _ProductCard(
+            product: state.items[index],
+            priceCode: priceCode,
+            showActualPrice: showActualPrice,
+          );
         },
       ),
     );
   }
 }
 
-// ── Persistent search bar ─────────────────────────────────────────────────────
-
-class _SearchBar extends StatelessWidget {
-  const _SearchBar({
-    required this.controller,
-    required this.onChanged,
-    required this.onScan,
-  });
-
-  final TextEditingController controller;
-  final ValueChanged<String> onChanged;
-  final VoidCallback onScan;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-
-    return Container(
-      color: const Color(0xFF4F46E5),
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
-      child: TextField(
-        controller: controller,
-        onChanged: onChanged,
-        textInputAction: TextInputAction.search,
-        style: const TextStyle(fontSize: 15),
-        decoration: InputDecoration(
-          hintText: 'Search products...',
-          prefixIcon: const Icon(Icons.search, size: 20),
-          suffixIcon: IconButton(
-            icon: const Icon(Icons.qr_code_scanner, size: 22),
-            tooltip: 'Scan barcode',
-            onPressed: onScan,
-          ),
-          filled: true,
-          fillColor: scheme.surface,
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: scheme.primary, width: 2),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ── Category tab row ──────────────────────────────────────────────────────────
+// â”€â”€ Category tab row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _CategoryTabRow extends StatelessWidget {
   const _CategoryTabRow({
@@ -239,12 +198,11 @@ class _CategoryTabRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 44,
-      color: const Color(0xFF4F46E5),
+    return SizedBox(
+      height: 36,
       child: ListView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         children: [
           _Tab(
             label: 'All',
@@ -288,13 +246,13 @@ class _Tab extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        margin: const EdgeInsets.only(right: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          border: Border(
-            bottom: BorderSide(
-              color: isSelected ? Colors.white : Colors.transparent,
-              width: 2.5,
-            ),
+          color: isSelected ? AppColors.ink : Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(99),
+          border: Border.all(
+            color: isSelected ? AppColors.ink : Theme.of(context).colorScheme.outline,
           ),
         ),
         child: Row(
@@ -302,15 +260,17 @@ class _Tab extends StatelessWidget {
           children: [
             Text(
               label,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w400,
-                color: isSelected ? Colors.white : Colors.white70,
+              style: GoogleFonts.instrumentSans(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: isSelected ? Colors.white : AppColors.secondary,
               ),
             ),
             if (icon != null) ...[
               const SizedBox(width: 2),
-              Icon(icon, size: 16, color: Colors.white70),
+              Icon(icon,
+                  size: 14,
+                  color: isSelected ? Colors.white : AppColors.secondary),
             ],
           ],
         ),
@@ -319,7 +279,7 @@ class _Tab extends StatelessWidget {
   }
 }
 
-// ── Category picker (full, searchable list) ─────────────────────────────────
+// â”€â”€ Category picker sheet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _CategoryPickerSheet extends ConsumerStatefulWidget {
   const _CategoryPickerSheet({required this.onSelected});
@@ -343,7 +303,6 @@ class _CategoryPickerSheetState extends ConsumerState<_CategoryPickerSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return Column(
       children: [
         Padding(
@@ -353,10 +312,10 @@ class _CategoryPickerSheetState extends ConsumerState<_CategoryPickerSheet> {
               Expanded(
                 child: Text(
                   'All Categories',
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(fontWeight: FontWeight.w700),
+                  style: GoogleFonts.instrumentSans(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700
+                  ),
                 ),
               ),
               IconButton(
@@ -368,23 +327,10 @@ class _CategoryPickerSheetState extends ConsumerState<_CategoryPickerSheet> {
         ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: TextField(
+          child: SearchInput(
             controller: _searchCtrl,
-            autofocus: false,
+            hintText: 'Search categories...',
             onChanged: (v) => setState(() => _query = v),
-            decoration: InputDecoration(
-              hintText: 'Search categories...',
-              prefixIcon: const Icon(Icons.search, size: 20),
-              isDense: true,
-              filled: true,
-              fillColor: scheme.surfaceContainerHighest.withAlpha(120),
-              contentPadding:
-                  const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide.none,
-              ),
-            ),
           ),
         ),
         const SizedBox(height: 8),
@@ -393,11 +339,12 @@ class _CategoryPickerSheetState extends ConsumerState<_CategoryPickerSheet> {
             resetKey: _query,
             padding: const EdgeInsets.fromLTRB(8, 0, 8, 12),
             fetch: (page) async {
-              final res = await ref.read(categoriesRepositoryProvider).search(
-                    query: _query,
-                    page: page,
-                    pageSize: 30,
-                  );
+              final res =
+                  await ref.read(categoriesRepositoryProvider).search(
+                        query: _query,
+                        page: page,
+                        pageSize: 30,
+                      );
               return PagedChunk<Category>(
                 items: res.data,
                 totalCount: res.pagination.totalCount,
@@ -409,7 +356,8 @@ class _CategoryPickerSheetState extends ConsumerState<_CategoryPickerSheet> {
               icon: Icons.category_outlined,
             ),
             itemBuilder: (context, cat) => ListTile(
-              leading: Icon(Icons.category_outlined, color: scheme.primary),
+              leading: const Icon(Icons.category_outlined,
+                  color: AppColors.secondary),
               title: Text(cat.name),
               onTap: () {
                 widget.onSelected(cat.id, cat.name);
@@ -423,323 +371,124 @@ class _CategoryPickerSheetState extends ConsumerState<_CategoryPickerSheet> {
   }
 }
 
-// ── Product list tile ─────────────────────────────────────────────────────────
+// â”€â”€ Product card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-class _ProductListTile extends ConsumerWidget {
-  const _ProductListTile({required this.product});
+class _ProductCard extends ConsumerWidget {
+  const _ProductCard({
+    required this.product,
+    required this.priceCode,
+    required this.showActualPrice,
+  });
 
   final Product product;
-
-  static const _palette = [
-    Color(0xFFC7D2FE), Color(0xFF99F6E4), Color(0xFFFDE68A),
-    Color(0xFFFECDD3), Color(0xFFBBF7D0), Color(0xFFE9D5FF),
-    Color(0xFFFED7AA), Color(0xFFA5F3FC),
-  ];
-
-  static const _paletteText = [
-    Color(0xFF3730A3), Color(0xFF0F766E), Color(0xFF92400E),
-    Color(0xFF9F1239), Color(0xFF166534), Color(0xFF6B21A8),
-    Color(0xFF9A3412), Color(0xFF155E75),
-  ];
-
-  Color _bgColor() {
-    final key = product.category?.name ?? product.brand?.name ?? product.name;
-    return _palette[key.hashCode.abs() % _palette.length];
-  }
-
-  Color _textColor() {
-    final key = product.category?.name ?? product.brand?.name ?? product.name;
-    return _paletteText[key.hashCode.abs() % _paletteText.length];
-  }
+  final PriceCode? priceCode;
+  final bool showActualPrice;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
     final price = product.pricing?.sellingPrice;
-    final costPrice = product.pricing?.costPrice;
     final stock = product.totalStock;
-    final priceCode = ref.watch(priceCodeProvider).value;
-    final showActualPrice = ref.watch(showActualPriceProvider);
-    final initial = product.name.trim().isEmpty
-        ? '?'
-        : product.name.trim().characters.first.toUpperCase();
+    final sku = product.sku;
+    final brand = product.brand?.name;
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: scheme.outlineVariant),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        children: [
-          // ── Content (tap → product detail) — same composition as the
-          // dashboard's Total Revenue card: name block, then a hero figure
-          // (price) paired with stock/SKU/Part mini-stats. ────────────────
-          InkWell(
-            onTap: () => context.push('/product/${product.id}'),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // ── Image + name + category/brand tags ────────────────
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          width: 56,
-                          height: 56,
-                          color: _bgColor(),
-                          alignment: Alignment.center,
-                          child: Text(
-                            initial,
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.w900,
-                              color: _textColor(),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              product.name,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.bodyMedium
-                                  ?.copyWith(fontWeight: FontWeight.w700),
-                            ),
-                            if (product.localName != null) ...[
-                              const SizedBox(height: 2),
-                              Text(
-                                product.localName!,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: scheme.onSurfaceVariant,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ],
-                            if (product.category != null ||
-                                product.brand != null) ...[
-                              const SizedBox(height: 6),
-                              Wrap(
-                                spacing: 6,
-                                runSpacing: 4,
-                                children: [
-                                  if (product.category != null)
-                                    MetaTag.category(product.category!.name),
-                                  if (product.brand != null)
-                                    MetaTag.brand(product.brand!.name),
-                                ],
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Divider(height: 1, color: scheme.outlineVariant),
-                  const SizedBox(height: 10),
+    final subtitle = [
+      if ((sku).isNotEmpty) sku,
+      if (brand != null && brand.isNotEmpty) brand,
+    ].join(' Â· ');
 
-                  // ── Price (hero figure) + stock, alongside it ─────────
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Price',
-                          style: TextStyle(
-                              fontSize: 10, color: scheme.onSurfaceVariant)),
-                      const SizedBox(height: 1),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            price != null
-                                ? formatCurrency(price,
-                                    currency: product.pricing?.currency)
-                                : '—',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w800,
-                              color: scheme.primary,
-                              letterSpacing: -0.3,
-                            ),
-                          ),
-                          if (stock != null) ...[
-                            const SizedBox(width: 8),
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 3),
-                              child: _StockPill(
-                                  qty: stock, unit: product.unitName),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
+    final inStock = stock != null && stock > 0;
+    final stockLabel = stock != null
+        ? (inStock ? '$stock in stock' : 'Out of stock')
+        : null;
 
-                  // ── Cost / SKU / Part mini-stats ──────────────────────
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      if (costPrice != null)
-                        _ListMiniStat(
-                          label: 'Cost',
-                          value: formatCostMasked(
-                              priceCode, showActualPrice, costPrice,
-                              currency: product.pricing?.currency),
-                        ),
-                      const Spacer(),
-                      _ListMiniStat(label: 'SKU', value: product.sku),
-                      const SizedBox(width: 16),
-                      _ListMiniStat(label: 'Part', value: product.partNumber),
-                    ],
-                  ),
-                ],
-              ),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(13),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(13),
+          onTap: () => context.push('/product/${product.id}'),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(13),
+              border: Border.all(color: Theme.of(context).colorScheme.outline),
             ),
-          ),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              children: [
+                // Image placeholder
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Theme.of(context).colorScheme.outline.withAlpha(60)),
+                  ),
+                  child: const Icon(Icons.inventory_2_outlined,
+                      size: 20, color: AppColors.disabled),
+                ),
+                const SizedBox(width: 12),
 
-          // ── Add to Sale (icon only, right-aligned) ────────────────────
-          Divider(height: 1, color: scheme.outlineVariant),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: Material(
-                color: const Color(0xFFF59E0B),
-                shape: const CircleBorder(),
-                child: InkWell(
-                  customBorder: const CircleBorder(),
-                  onTap: () {
-                    final added = ref
-                        .read(quickSaleControllerProvider.notifier)
-                        .addFromSearch(product);
-                    if (!added) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('${product.name} is out of stock'),
-                          backgroundColor: Colors.red.shade700,
-                          duration: const Duration(seconds: 2),
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-                      return;
-                    }
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('${product.name} added to sale'),
-                        duration: const Duration(seconds: 2),
-                        behavior: SnackBarBehavior.floating,
-                        action: SnackBarAction(
-                          label: 'Go to Sale',
-                          onPressed: () => context.push('/quick-sale'),
+                // Name + subtitle
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        product.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.instrumentSans(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w500
                         ),
                       ),
-                    );
-                  },
-                  child: const Padding(
-                    padding: EdgeInsets.all(9),
-                    child: Icon(Icons.add_shopping_cart_outlined,
-                        size: 18, color: Colors.white),
+                      if (subtitle.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.instrumentSans(
+                            fontSize: 11.5
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
-              ),
+                const SizedBox(width: 12),
+
+                // Price + stock pill
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      price != null
+                          ? formatCurrency(price,
+                              currency: product.pricing?.currency)
+                          : 'â€”',
+                      style: GoogleFonts.instrumentSans(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600
+                      ),
+                    ),
+                    if (stockLabel != null) ...[
+                      const SizedBox(height: 4),
+                      StatusPill(
+                        label: inStock ? 'In stock' : 'Out of stock',
+                      ),
+                    ],
+                  ],
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Stock status pill ─────────────────────────────────────────────────────────
-// Bordered, translucent-fill pill — same treatment as the up/down trend
-// indicator on the dashboard's Total Revenue card.
-
-class _StockPill extends StatelessWidget {
-  const _StockPill({required this.qty, this.unit});
-
-  final int qty;
-  final String? unit;
-
-  @override
-  Widget build(BuildContext context) {
-    final inStock = qty > 0;
-    final label = '$qty${unit != null ? ' $unit' : ''}';
-    final color = inStock ? Colors.green.shade700 : Colors.red.shade600;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withAlpha(20),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withAlpha(90)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            inStock ? Icons.check_circle_outline : Icons.remove_circle_outline,
-            size: 12,
-            color: color,
-          ),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: color,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── List mini-stat ────────────────────────────────────────────────────────────
-// Small label-above-value pair — same pattern as the Cash/Credit readout on
-// the dashboard's Total Revenue card, adapted for a light card background.
-
-class _ListMiniStat extends StatelessWidget {
-  const _ListMiniStat({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Text(label,
-            style: TextStyle(fontSize: 10, color: scheme.onSurfaceVariant)),
-        const SizedBox(height: 1),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-            color: scheme.onSurface,
           ),
         ),
-      ],
+      ),
     );
   }
 }
-

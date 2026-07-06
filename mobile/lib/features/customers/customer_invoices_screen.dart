@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_theme.dart';
@@ -96,7 +96,7 @@ class _CustomerInvoicesScreenState
                     style: Theme.of(context).textTheme.bodySmall),
               ),
             ),
-          const Divider(height: 1),
+          Divider(height: 1),
           Expanded(
             child: PagedListView<Invoice>(
               resetKey: '${_status ?? 'all'}|$_search',
@@ -221,7 +221,7 @@ class _InvoiceTileState extends ConsumerState<_InvoiceTile> {
           children: [
             Flexible(
               child: Text(
-                invoice.invoiceNumber.isEmpty ? '—' : invoice.invoiceNumber,
+                invoice.invoiceNumber.isEmpty ? 'â€”' : invoice.invoiceNumber,
                 style: const TextStyle(fontWeight: FontWeight.w600),
                 overflow: TextOverflow.ellipsis,
               ),
@@ -244,7 +244,7 @@ class _InvoiceTileState extends ConsumerState<_InvoiceTile> {
             ],
           ],
         ),
-        subtitle: Text(subtitleParts.join('  •  ')),
+        subtitle: Text(subtitleParts.join('  â€¢  ')),
         trailing: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.end,
@@ -263,7 +263,7 @@ class _InvoiceTileState extends ConsumerState<_InvoiceTile> {
         children: [
           _LineItems(future: _linesFuture, currency: invoice.currency),
           if (invoice.status != null) ...[
-            const Divider(height: 16),
+            Divider(height: 16),
             Row(
               children: [
                 Text('Status: ', style: theme.textTheme.bodySmall),
@@ -353,12 +353,12 @@ class _LineItems extends StatelessWidget {
                               [
                                 if (line.partSku != null) line.partSku!,
                                 if (line.variantName != null) line.variantName!,
-                              ].join('  •  '),
+                              ].join('  â€¢  '),
                               style: theme.textTheme.bodySmall?.copyWith(
                                   color: theme.colorScheme.onSurfaceVariant),
                             ),
                           Text(
-                            '${line.quantity} ${line.unitSymbol ?? ''} × '
+                            '${line.quantity} ${line.unitSymbol ?? ''} Ã— '
                             '${formatCurrency(line.unitPrice, currency: currency)}',
                             style: theme.textTheme.bodySmall,
                           ),
