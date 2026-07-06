@@ -1,10 +1,11 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:share_plus/share_plus.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/network/app_exception.dart';
 import '../../core/theme/app_theme.dart';
+import '../../features/pricing/price_code.dart';
 import '../../features/sales/quick_sale_providers.dart';
 import '../../features/stock/stock_adjustment_sheet.dart';
 import '../../features/stock/stock_repository.dart';
@@ -13,9 +14,7 @@ import '../../shared/models/product.dart';
 import '../../shared/models/product_location.dart';
 import '../../shared/models/stock.dart';
 import '../../shared/models/vehicle_compatibility.dart';
-import '../../shared/widgets/meta_tag.dart';
 import '../../shared/widgets/state_views.dart';
-import '../pricing/price_code.dart';
 import 'products_providers.dart';
 
 class ProductDetailScreen extends ConsumerWidget {
@@ -26,55 +25,38 @@ class ProductDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final productAsync = ref.watch(productDetailProvider(productId));
+    final product = productAsync.value;
     final priceCode = ref.watch(priceCodeProvider).value;
     final showActual = ref.watch(showActualPriceProvider);
-    final cartCount = ref.watch(
-      quickSaleControllerProvider.select((s) => s.itemCount),
-    );
-    final product = productAsync.value;
+    final codeConfigured = priceCode != null && priceCode.isConfigured;
 
     return Scaffold(
       appBar: AppBar(
-        flexibleSpace: const AppBarGradient(),
         title: Text(
           product?.name ?? 'Product Detail',
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
+          style: GoogleFonts.instrumentSans(
+            fontSize: 16,
+            fontWeight: FontWeight.w700
+          ),
         ),
         actions: [
-          if (priceCode != null && priceCode.isConfigured)
+          if (codeConfigured)
             IconButton(
               tooltip: showActual ? 'Hide cost prices' : 'Reveal cost prices',
-              icon: Icon(showActual
-                  ? Icons.visibility_off_outlined
-                  : Icons.visibility_outlined),
+              icon: Icon(
+                showActual
+                    ? Icons.visibility_off_outlined
+                    : Icons.visibility_outlined,
+                size: 20,
+              ),
               onPressed: () =>
                   ref.read(showActualPriceProvider.notifier).toggle(),
             ),
-          if (product != null)
-            IconButton(
-              tooltip: 'Share',
-              icon: const Icon(Icons.share_outlined),
-              onPressed: () {
-                final price = product.pricing?.sellingPrice;
-                final lines = [
-                  product.name,
-                  if (product.brand != null) 'Brand: ${product.brand!.name}',
-                  'SKU: ${product.sku}',
-                  if (price != null)
-                    'Price: ${formatCurrency(price, currency: product.pricing?.currency)}',
-                ];
-                Share.share(lines.join('\n'), subject: product.name);
-              },
-            ),
-          Badge(
-            isLabelVisible: cartCount > 0,
-            label: Text('$cartCount'),
-            child: IconButton(
-              tooltip: 'Quick Sale cart',
-              icon: const Icon(Icons.shopping_cart_outlined),
-              onPressed: () => context.push('/quick-sale'),
-            ),
+          IconButton(
+            icon: const Icon(Icons.edit_outlined, size: 20),
+            onPressed: () {},
           ),
         ],
       ),
@@ -83,688 +65,45 @@ class ProductDetailScreen extends ConsumerWidget {
         error: (e, _) => ListView(children: [
           const SizedBox(height: 120),
           ErrorView(
-            message: e is AppException ? e.message : 'Failed to load product.',
-            onRetry: () => ref.invalidate(productDetailProvider(productId)),
+            message:
+                e is AppException ? e.message : 'Failed to load product.',
+            onRetry: () =>
+                ref.invalidate(productDetailProvider(productId)),
           ),
         ]),
-        data: (product) => _ProductDetailBody(product: product),
+        data: (product) => _Body(product: product),
       ),
     );
   }
 }
 
-// ── Detail body: hero + tab switcher + sticky action bar ───────────────────────
+// â”€â”€ Body â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-class _ProductDetailBody extends ConsumerStatefulWidget {
-  const _ProductDetailBody({required this.product});
+class _Body extends ConsumerWidget {
+  const _Body({required this.product});
 
   final Product product;
 
   @override
-  ConsumerState<_ProductDetailBody> createState() => _ProductDetailBodyState();
-}
-
-enum _DetailTab { details, stock, compatibility }
-
-class _ProductDetailBodyState extends ConsumerState<_ProductDetailBody> {
-  _DetailTab _tab = _DetailTab.details;
-
-  @override
-  Widget build(BuildContext context) {
-    final product = widget.product;
+  Widget build(BuildContext context, WidgetRef ref) {
     final levelsAsync = ref.watch(stockLevelsProvider(product.id));
     final lotsAsync = ref.watch(stockLotsProvider(product.id));
 
     final levels = levelsAsync.value ?? <StockLevel>[];
     final lots = lotsAsync.value ?? <StockLot>[];
-    final stockError = levelsAsync.hasError;
 
-    final totalQty = levels.fold<int>(0, (s, l) => s + l.availableQuantity);
-    final unit = levels.firstOrNull?.unitSymbol ??
-        levels.firstOrNull?.unitName ??
-        lots.firstOrNull?.unitCode ??
-        lots.firstOrNull?.unitName ??
-        '';
+    final totalQty =
+        levels.fold<int>(0, (s, l) => s + l.availableQuantity);
+    final totalReserved =
+        levels.fold<int>(0, (s, l) => s + l.reservedQuantity);
+    final reorderAt = levels.isNotEmpty
+        ? levels
+            .map((l) => l.reorderLevel)
+            .reduce((a, b) => a > b ? a : b)
+        : 0;
+
     final costPrice = lots.isNotEmpty ? lots.first.costPrice : null;
     final costCurrency = lots.firstOrNull?.currency;
-    final resolvedQty = (levelsAsync.isLoading || stockError) ? null : totalQty;
-
-    return Column(
-      children: [
-        Expanded(
-          child: RefreshIndicator(
-            onRefresh: () async {
-              ref.invalidate(productDetailProvider(product.id));
-              ref.invalidate(stockLevelsProvider(product.id));
-              ref.invalidate(stockLotsProvider(product.id));
-              ref.invalidate(compatibleVehiclesProvider(product.id));
-              ref.invalidate(productLocationsProvider(product.id));
-              ref.invalidate(productVariantAttributesProvider(product.id));
-            },
-            child: ListView(
-              padding: const EdgeInsets.only(bottom: 24),
-              children: [
-                // ── 1. Hero: image, name, price, stock ────────────────────
-                _ProductHero(
-                  product: product,
-                  totalQty: resolvedQty,
-                  stockError: stockError,
-                  unit: unit,
-                ),
-
-                const SizedBox(height: 16),
-
-                // ── 2. Tab switcher ─────────────────────────────────────
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: _DetailTabBar(
-                    selected: _tab,
-                    onSelect: (t) => setState(() => _tab = t),
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                // ── 3. Tab content ───────────────────────────────────────
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: switch (_tab) {
-                    _DetailTab.details => Column(
-                        children: [
-                          _InfoTable(
-                            product: product,
-                            unit: unit,
-                            totalQty: resolvedQty,
-                            costPrice: costPrice,
-                            costCurrency: costCurrency,
-                          ),
-                          _SpecsSection(productId: product.id),
-                        ],
-                      ),
-                    _DetailTab.stock => Column(
-                        children: [
-                          _StockSection(partId: product.id),
-                          const SizedBox(height: 16),
-                          _SectionHeader(
-                              icon: Icons.location_on_outlined,
-                              label: 'Storage Locations'),
-                          const SizedBox(height: 8),
-                          _LocationsSection(partId: product.id),
-                        ],
-                      ),
-                    _DetailTab.compatibility => Column(
-                        children: [
-                          _CompatibilitySection(partId: product.id),
-                          if (product.variants.length > 1) ...[
-                            const SizedBox(height: 16),
-                            _SectionHeader(
-                                icon: Icons.tune_outlined, label: 'Variants'),
-                            const SizedBox(height: 8),
-                            Column(
-                              children: product.variants
-                                  .map((v) => _VariantTile(variant: v))
-                                  .toList(),
-                            ),
-                          ],
-                        ],
-                      ),
-                  },
-                ),
-              ],
-            ),
-          ),
-        ),
-
-        // ── Sticky bottom action bar ─────────────────────────────────────
-        _BottomActionBar(product: product),
-      ],
-    );
-  }
-}
-
-// ── Hero: image + verified/status + brand + name + price + stock ──────────────
-
-class _ProductHero extends StatelessWidget {
-  const _ProductHero({
-    required this.product,
-    required this.totalQty,
-    required this.stockError,
-    required this.unit,
-  });
-
-  final Product product;
-  final int? totalQty;
-
-  /// True when the stock-levels request failed (as opposed to still loading
-  /// or having genuinely resolved to zero). Must not be rendered as
-  /// "Out of stock" — that's a specific, different claim.
-  final bool stockError;
-  final String unit;
-
-  static const _palette = [
-    Color(0xFFC7D2FE), Color(0xFF99F6E4), Color(0xFFFDE68A),
-    Color(0xFFFECDD3), Color(0xFFBBF7D0), Color(0xFFE9D5FF),
-    Color(0xFFFED7AA), Color(0xFFA5F3FC),
-  ];
-
-  static const _paletteText = [
-    Color(0xFF3730A3), Color(0xFF0F766E), Color(0xFF92400E),
-    Color(0xFF9F1239), Color(0xFF166534), Color(0xFF6B21A8),
-    Color(0xFF9A3412), Color(0xFF155E75),
-  ];
-
-  Color _bgColor() {
-    final key = product.category?.name ?? product.brand?.name ?? product.name;
-    return _palette[key.hashCode.abs() % _palette.length];
-  }
-
-  Color _textColor() {
-    final key = product.category?.name ?? product.brand?.name ?? product.name;
-    return _paletteText[key.hashCode.abs() % _paletteText.length];
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-
-    final initial = product.name.trim().isEmpty
-        ? '?'
-        : product.name.trim().characters.first.toUpperCase();
-    final price = product.pricing?.sellingPrice;
-    final inStock = (totalQty ?? 0) > 0;
-
-    final (stockLabel, stockColor, stockIcon) = stockError
-        ? ('Stock unavailable', Colors.amber.shade800, Icons.warning_amber_rounded)
-        : totalQty == null
-            ? ('Checking availability…', scheme.onSurfaceVariant, Icons.hourglass_empty)
-            : inStock
-                ? ('$totalQty${unit.isNotEmpty ? ' $unit' : ''} available',
-                    Colors.green.shade700, Icons.check_circle)
-                : ('Out of stock', scheme.error, Icons.remove_circle);
-
-    return Container(
-      color: theme.cardColor,
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ── Status pill above the image, like a gallery header ─────────
-          Row(
-            children: [
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: product.isActive
-                      ? Colors.green.shade50
-                      : Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      product.isActive ? Icons.check_circle : Icons.cancel,
-                      size: 13,
-                      color: product.isActive
-                          ? Colors.green.shade700
-                          : Colors.grey.shade500,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      product.isActive ? 'Active' : 'Inactive',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: product.isActive
-                            ? Colors.green.shade700
-                            : Colors.grey.shade600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          // ── Large centered image block ──────────────────────────────────
-          Center(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(18),
-              child: Container(
-                width: 160,
-                height: 160,
-                color: _bgColor(),
-                alignment: Alignment.center,
-                child: Text(
-                  initial,
-                  style: TextStyle(
-                    fontSize: 64,
-                    fontWeight: FontWeight.w900,
-                    color: _textColor(),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 18),
-
-          // ── Brand as a small subtitle link ──────────────────────────────
-          if (product.brand != null)
-            Text(
-              product.brand!.name,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: scheme.primary,
-              ),
-            ),
-          const SizedBox(height: 4),
-
-          // ── Name ─────────────────────────────────────────────────────────
-          Text(
-            product.name,
-            style: theme.textTheme.titleLarge
-                ?.copyWith(fontWeight: FontWeight.w800),
-          ),
-          if (product.localName != null) ...[
-            const SizedBox(height: 3),
-            Text(
-              product.localName!,
-              style: theme.textTheme.bodyMedium
-                  ?.copyWith(color: scheme.onSurfaceVariant),
-            ),
-          ],
-
-          if (product.category != null || product.brand != null) ...[
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 12,
-              runSpacing: 4,
-              children: [
-                if (product.category != null)
-                  MetaTag.category(product.category!.name),
-                if (product.brand != null) MetaTag.brand(product.brand!.name),
-              ],
-            ),
-          ],
-
-          const SizedBox(height: 14),
-
-          // ── Price (hero figure) ─────────────────────────────────────────
-          Text(
-            price != null
-                ? formatCurrency(price, currency: product.pricing?.currency)
-                : '—',
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.w800,
-              color: scheme.primary,
-              letterSpacing: -0.4,
-            ),
-          ),
-          const SizedBox(height: 4),
-
-          // ── Stock availability line ─────────────────────────────────────
-          Row(
-            children: [
-              Icon(stockIcon, size: 15, color: stockColor),
-              const SizedBox(width: 5),
-              Text(
-                stockLabel,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: stockColor,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Tab switcher: pill for the selected tab, plain text otherwise ──────────────
-
-class _DetailTabBar extends StatelessWidget {
-  const _DetailTabBar({required this.selected, required this.onSelect});
-
-  final _DetailTab selected;
-  final void Function(_DetailTab) onSelect;
-
-  static const _labels = {
-    _DetailTab.details: 'Details',
-    _DetailTab.stock: 'Stock',
-    _DetailTab.compatibility: 'Compatibility',
-  };
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Row(
-      children: _DetailTab.values.map((t) {
-        final isSelected = t == selected;
-        return Padding(
-          padding: const EdgeInsets.only(right: 10),
-          child: GestureDetector(
-            onTap: () => onSelect(t),
-            child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                border: isSelected
-                    ? Border.all(color: scheme.primary, width: 1.4)
-                    : null,
-              ),
-              child: Text(
-                _labels[t]!,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  color: isSelected ? scheme.primary : scheme.onSurfaceVariant,
-                ),
-              ),
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-}
-
-// ── Sticky bottom action bar ────────────────────────────────────────────────────
-
-class _BottomActionBar extends ConsumerWidget {
-  const _BottomActionBar({required this.product});
-
-  final Product product;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: EdgeInsets.fromLTRB(
-          14, 10, 14, 10 + MediaQuery.of(context).padding.bottom),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        border: Border(top: BorderSide(color: scheme.outlineVariant)),
-      ),
-      child: Row(
-        children: [
-          // Stock In — secondary, icon only
-          Material(
-            color: Colors.green.shade600,
-            borderRadius: BorderRadius.circular(14),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(14),
-              onTap: () {
-                final levels =
-                    ref.read(stockLevelsProvider(product.id)).asData?.value ??
-                        [];
-                showModalBottomSheet<void>(
-                  context: context,
-                  isScrollControlled: true,
-                  useSafeArea: true,
-                  backgroundColor: Colors.transparent,
-                  builder: (_) => StockAdjustmentSheet(
-                    product: product,
-                    stockLevels: levels,
-                  ),
-                );
-              },
-              child: const Padding(
-                padding: EdgeInsets.all(14),
-                child: Icon(Icons.move_to_inbox_outlined,
-                    color: Colors.white, size: 22),
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          // Add to Sale — primary CTA, matches the reference's "Add to cart"
-          Expanded(
-            child: Material(
-              color: const Color(0xFFF59E0B),
-              borderRadius: BorderRadius.circular(14),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(14),
-                onTap: () {
-                  final added = ref
-                      .read(quickSaleControllerProvider.notifier)
-                      .addFromSearch(product);
-                  final messenger = ScaffoldMessenger.of(context);
-                  final router = GoRouter.of(context);
-                  messenger.clearSnackBars();
-                  if (!added) {
-                    messenger.showSnackBar(SnackBar(
-                      content: Text('${product.name} is out of stock'),
-                      backgroundColor: Colors.red.shade700,
-                      duration: const Duration(seconds: 2),
-                      behavior: SnackBarBehavior.floating,
-                    ));
-                    return;
-                  }
-                  messenger.showSnackBar(SnackBar(
-                    content: Text('${product.name} added to sale'),
-                    duration: const Duration(seconds: 2),
-                    behavior: SnackBarBehavior.floating,
-                    action: SnackBarAction(
-                      label: 'Go to Sale',
-                      onPressed: () {
-                        messenger.hideCurrentSnackBar();
-                        router.go('/quick-sale');
-                      },
-                    ),
-                  ));
-                },
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 14),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.add_shopping_cart_outlined,
-                          color: Colors.white, size: 20),
-                      SizedBox(width: 8),
-                      Text(
-                        'Add to Sale',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 15,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Info table: label LEFT, value RIGHT ───────────────────────────────────────
-
-class _InfoTable extends ConsumerWidget {
-  const _InfoTable({
-    required this.product,
-    required this.unit,
-    required this.totalQty,
-    required this.costPrice,
-    required this.costCurrency,
-  });
-
-  final Product product;
-  final String unit;
-  final int? totalQty;
-  final double? costPrice;
-  final String? costCurrency;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final priceCode = ref.watch(priceCodeProvider).value;
-    final showActual = ref.watch(showActualPriceProvider);
-    final price = product.pricing?.sellingPrice;
-
-    final rows = <(String, Widget)>[
-      ('Part No', Text(product.partNumber, style: _valueStyle(theme))),
-      ('SKU', Text(product.sku, style: _valueStyle(theme))),
-      if (unit.isNotEmpty) ('Unit', Text(unit, style: _valueStyle(theme))),
-      if (totalQty != null)
-        (
-          'Stock',
-          Text(
-            totalQty == 0
-                ? 'Out of stock'
-                : '$totalQty${unit.isNotEmpty ? ' $unit' : ''}',
-            style: _valueStyle(theme).copyWith(
-              color: totalQty! > 0 ? Colors.green.shade700 : scheme.error,
-            ),
-          ),
-        ),
-      if (price != null)
-        (
-          'Price',
-          Text(
-            formatCurrency(price, currency: product.pricing?.currency),
-            style: _valueStyle(theme).copyWith(color: scheme.primary),
-          ),
-        ),
-      if (costPrice != null)
-        (
-          'Cost',
-          Text(
-            formatCostMasked(priceCode, showActual, costPrice!,
-                currency: costCurrency),
-            style: _valueStyle(theme).copyWith(color: scheme.onSurfaceVariant),
-          ),
-        ),
-      if (product.oemNumber != null && product.oemNumber!.isNotEmpty)
-        ('OEM Number', Text(product.oemNumber!, style: _valueStyle(theme))),
-      if (product.barcode != null && product.barcode!.isNotEmpty)
-        ('Barcode', Text(product.barcode!, style: _valueStyle(theme))),
-      if (product.productType != null && product.productType!.isNotEmpty)
-        ('Type', Text(product.productType!, style: _valueStyle(theme))),
-      if (product.hasVariants) ('Variants', Text('Yes', style: _valueStyle(theme))),
-      if (product.description != null && product.description!.isNotEmpty)
-        ('Description', Text(product.description!, style: _valueStyle(theme))),
-    ];
-
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: scheme.outlineVariant),
-      ),
-      child: Column(
-        children: rows.indexed.map((entry) {
-          final (idx, row) = entry;
-          final (label, valueWidget) = row;
-          final isLast = idx == rows.length - 1;
-
-          return Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 12),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(
-                      width: 110,
-                      child: Text(
-                        label,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                    Expanded(child: valueWidget),
-                  ],
-                ),
-              ),
-              if (!isLast)
-                Divider(
-                    height: 1,
-                    indent: 16,
-                    endIndent: 16,
-                    color: scheme.outlineVariant),
-            ],
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-  TextStyle _valueStyle(ThemeData theme) => theme.textTheme.bodySmall!
-      .copyWith(fontWeight: FontWeight.w700, color: theme.colorScheme.onSurface);
-}
-
-// ── Section header ────────────────────────────────────────────────────────────
-
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.icon, required this.label});
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Row(
-      children: [
-        Icon(icon, size: 18, color: scheme.primary),
-        const SizedBox(width: 8),
-        Text(label,
-            style: Theme.of(context)
-                .textTheme
-                .titleSmall
-                ?.copyWith(fontWeight: FontWeight.w700)),
-      ],
-    );
-  }
-}
-
-// ── Stock section ─────────────────────────────────────────────────────────────
-
-class _StockSection extends ConsumerWidget {
-  const _StockSection({required this.partId});
-  final String partId;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final levelsAsync = ref.watch(stockLevelsProvider(partId));
-    final lotsAsync = ref.watch(stockLotsProvider(partId));
-
-    if (levelsAsync.isLoading || lotsAsync.isLoading) {
-      return const Padding(
-          padding: EdgeInsets.symmetric(vertical: 24), child: LoadingView());
-    }
-
-    final levelsErr = levelsAsync.hasError;
-    final lotsErr = lotsAsync.hasError;
-
-    if (levelsErr && lotsErr) {
-      final error = levelsAsync.error;
-      return ErrorView(
-        message:
-            error is AppException ? error.message : 'Failed to load stock.',
-        onRetry: () {
-          ref.invalidate(stockLevelsProvider(partId));
-          ref.invalidate(stockLotsProvider(partId));
-        },
-      );
-    }
-
-    final levels = levelsAsync.value ?? <StockLevel>[];
-    final lots = lotsAsync.value ?? <StockLot>[];
 
     final lotsByWarehouse = <String, List<StockLot>>{};
     for (final lot in lots) {
@@ -774,335 +113,252 @@ class _StockSection extends ConsumerWidget {
     final warehouseIds = <String>{
       ...levelByWarehouse.keys,
       ...lotsByWarehouse.keys,
-    };
+    }.toList();
 
-    if (warehouseIds.isEmpty) {
-      return const EmptyView(
-          message: 'No stock records for this part yet.',
-          icon: Icons.warehouse_outlined);
+    final stockLoading = levelsAsync.isLoading || lotsAsync.isLoading;
+
+    return RefreshIndicator(
+      onRefresh: () async {
+        ref.invalidate(productDetailProvider(product.id));
+        ref.invalidate(stockLevelsProvider(product.id));
+        ref.invalidate(stockLotsProvider(product.id));
+        ref.invalidate(compatibleVehiclesProvider(product.id));
+        ref.invalidate(productLocationsProvider(product.id));
+        ref.invalidate(productVariantAttributesProvider(product.id));
+      },
+      child: Stack(
+        children: [
+          ListView(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 110),
+            children: [
+              // â”€â”€ Hero card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+              _HeroCard(
+                product: product,
+                costPrice: costPrice,
+                costCurrency: costCurrency,
+              ),
+              const SizedBox(height: 12),
+
+              // â”€â”€ 3-stat grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+              _StatsGrid(
+                totalQty: stockLoading ? null : totalQty,
+                reserved: stockLoading ? null : totalReserved,
+                reorderAt: stockLoading ? null : reorderAt,
+              ),
+              const SizedBox(height: 12),
+
+              // â”€â”€ Stock by warehouse Â· lots â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+              if (stockLoading)
+                const _LoadingCard(height: 140)
+              else if (warehouseIds.isNotEmpty)
+                _WarehouseLotCard(
+                  warehouseIds: warehouseIds,
+                  levelByWarehouse: levelByWarehouse,
+                  lotsByWarehouse: lotsByWarehouse,
+                ),
+              const SizedBox(height: 12),
+
+              // â”€â”€ Product info â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+              _ProductInfoCard(product: product),
+              const SizedBox(height: 12),
+
+              // â”€â”€ Specifications (variant attributes) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+              _SpecsCard(productId: product.id),
+
+              // â”€â”€ Storage locations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+              _LocationsCard(partId: product.id),
+
+              // â”€â”€ Vehicle compatibility â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+              _CompatibilityCard(partId: product.id),
+            ],
+          ),
+
+          // â”€â”€ Bottom gradient action bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: _BottomBar(product: product, levels: levels),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// â”€â”€ Hero card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+class _HeroCard extends ConsumerWidget {
+  const _HeroCard({
+    required this.product,
+    required this.costPrice,
+    required this.costCurrency,
+  });
+
+  final Product product;
+  final double? costPrice;
+  final String? costCurrency;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final priceCode = ref.watch(priceCodeProvider).value;
+    final showActual = ref.watch(showActualPriceProvider);
+    final price = product.pricing?.sellingPrice;
+
+    String? marginText;
+    if (price != null && price > 0 && costPrice != null && costPrice! > 0) {
+      final costFormatted = formatCostMasked(
+          priceCode, showActual, costPrice!, currency: costCurrency);
+      if (showActual || priceCode == null || !priceCode.isConfigured) {
+        final margin = ((price - costPrice!) / price * 100).round();
+        marginText = 'cost $costFormatted Â· margin $margin%';
+      } else {
+        marginText = 'cost $costFormatted';
+      }
+    } else if (costPrice != null) {
+      marginText = 'cost ${formatCostMasked(
+          priceCode, showActual, costPrice!, currency: costCurrency)}';
     }
 
-    return Column(
+    final skuMeta = [
+      'SKU ${product.sku}',
+      if (product.brand != null) product.brand!.name,
+      if (product.category != null) product.category!.name,
+    ].join(' Â· ');
+
+    return _SurfaceCard(
+      padding: const EdgeInsets.all(14),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(11),
+            child: Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                border: Border.all(color: Theme.of(context).colorScheme.outline),
+                borderRadius: BorderRadius.circular(11),
+              ),
+              child: const _CheckerPlaceholder(),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  product.name,
+                  style: GoogleFonts.instrumentSans(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    height: 1.3
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  skuMeta,
+                  style: GoogleFonts.instrumentSans(
+                      fontSize: 12, color: AppColors.muted),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Text(
+                      price != null
+                          ? formatCurrency(price,
+                              currency: product.pricing?.currency)
+                          : 'â€”',
+                      style: GoogleFonts.instrumentSans(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700
+                      ),
+                    ),
+                    if (marginText != null) ...[
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          marginText,
+                          style: GoogleFonts.instrumentSans(
+                              fontSize: 11.5, color: AppColors.muted),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// â”€â”€ 3-stat grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+class _StatsGrid extends StatelessWidget {
+  const _StatsGrid({
+    required this.totalQty,
+    required this.reserved,
+    required this.reorderAt,
+  });
+
+  final int? totalQty;
+  final int? reserved;
+  final int? reorderAt;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
       children: [
-        if (lotsErr)
-          _StockNotice(
-            message: 'Purchase costs & buying dates couldn\'t load.',
-            onRetry: () => ref.invalidate(stockLotsProvider(partId)),
-          ),
-        if (levelsErr)
-          _StockNotice(
-            message: 'Live availability couldn\'t load.',
-            onRetry: () => ref.invalidate(stockLevelsProvider(partId)),
-          ),
-        for (final id in warehouseIds)
-          _WarehouseCard(
-            level: levelByWarehouse[id],
-            lots: (lotsByWarehouse[id] ?? [])
-              ..sort((a, b) => b.receivingDate.compareTo(a.receivingDate)),
-          ),
+        _StatCell(
+            label: 'Total stock',
+            value: totalQty != null ? '$totalQty pcs' : 'â€”'),
+        const SizedBox(width: 8),
+        _StatCell(
+            label: 'Reserved',
+            value: reserved != null ? '$reserved' : 'â€”'),
+        const SizedBox(width: 8),
+        _StatCell(
+            label: 'Reorder at',
+            value: reorderAt != null ? '$reorderAt' : 'â€”'),
       ],
     );
   }
 }
 
-class _WarehouseCard extends StatelessWidget {
-  const _WarehouseCard({required this.level, required this.lots});
-  final StockLevel? level;
-  final List<StockLot> lots;
+class _StatCell extends StatelessWidget {
+  const _StatCell({required this.label, required this.value});
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-
-    final name = level?.warehouseName ??
-        lots.firstOrNull?.warehouseName ??
-        'Warehouse';
-    final unit =
-        level?.unitSymbol ?? level?.unitName ?? lots.firstOrNull?.unitCode ?? '';
-    final available = level?.availableQuantity ??
-        lots.fold<int>(0, (s, l) => s + l.quantityAvailable);
-    final inStock = available > 0;
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: scheme.outlineVariant),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            color: inStock
-                ? Colors.green.shade50
-                : scheme.errorContainer.withAlpha(80),
-            child: Row(
-              children: [
-                Icon(Icons.warehouse_outlined,
-                    size: 18,
-                    color: inStock ? Colors.green.shade700 : scheme.error),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(name,
-                      style: theme.textTheme.titleSmall
-                          ?.copyWith(fontWeight: FontWeight.w700)),
-                ),
-                if (level?.needsReorder == true) ...[
-                  _Pill(
-                      text: 'Reorder',
-                      bg: scheme.errorContainer,
-                      fg: scheme.onErrorContainer),
-                  const SizedBox(width: 6),
-                ],
-                _Pill(
-                  text: '$available $unit'.trim(),
-                  bg: inStock ? Colors.green.shade100 : scheme.errorContainer,
-                  fg: inStock
-                      ? Colors.green.shade800
-                      : scheme.onErrorContainer,
-                  icon: inStock ? Icons.check_circle : Icons.remove_circle,
-                ),
-              ],
-            ),
-          ),
-          if (level != null)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-              child: Row(
-                children: [
-                  _StockMetric(
-                      label: 'Available',
-                      value: '$available $unit'.trim(),
-                      color: inStock ? Colors.green.shade700 : scheme.error,
-                      primary: true),
-                  const SizedBox(width: 20),
-                  _StockMetric(
-                      label: 'On hand',
-                      value: '${level!.quantity} $unit'.trim()),
-                  const SizedBox(width: 20),
-                  _StockMetric(
-                      label: 'Reserved',
-                      value: '${level!.reservedQuantity} $unit'.trim()),
-                ],
-              ),
-            ),
-          if (lots.isNotEmpty) ...[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-              child: Text('PURCHASE LOTS',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                      letterSpacing: 0.8,
-                      fontWeight: FontWeight.w700)),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-              child: Column(
-                  children: lots.map((l) => _LotRow(lot: l)).toList()),
-            ),
-          ] else
-            const SizedBox(height: 12),
-        ],
-      ),
-    );
-  }
-}
-
-class _StockMetric extends StatelessWidget {
-  const _StockMetric(
-      {required this.label, required this.value, this.color, this.primary = false});
   final String label;
   final String value;
-  final Color? color;
-  final bool primary;
-
-  @override
-  Widget build(BuildContext context) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
-          const SizedBox(height: 2),
-          Text(value,
-              style: TextStyle(
-                  fontSize: primary ? 16 : 14,
-                  fontWeight: FontWeight.w700,
-                  color: color ?? Theme.of(context).colorScheme.onSurface)),
-        ],
-      );
-}
-
-class _LotRow extends ConsumerWidget {
-  const _LotRow({required this.lot});
-  final StockLot lot;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final priceCode = ref.watch(priceCodeProvider).value;
-    final showActual = ref.watch(showActualPriceProvider);
-    final unit = lot.unitCode ?? lot.unitName ?? '';
-    final hasSupplier =
-        lot.supplierName != null && lot.supplierName!.isNotEmpty;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withAlpha(100),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                    color: scheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(8)),
-                child: Text('${lot.quantityAvailable} $unit'.trim(),
-                    style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 12,
-                        color: scheme.onPrimaryContainer)),
-              ),
-              const SizedBox(width: 8),
-              Text('in stock', style: theme.textTheme.bodySmall),
-              const Spacer(),
-              Text(
-                formatCostMasked(priceCode, showActual, lot.costPrice,
-                    currency: lot.currency),
-                style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
-                    color: scheme.primary),
-              ),
-              if (unit.isNotEmpty)
-                Text(' / $unit', style: theme.textTheme.bodySmall),
-              if (lot.isExpired) ...[
-                const SizedBox(width: 8),
-                _Pill(
-                    text: 'Expired',
-                    bg: scheme.errorContainer,
-                    fg: scheme.onErrorContainer),
-              ],
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Icon(Icons.local_shipping_outlined,
-                  size: 14, color: scheme.onSurfaceVariant),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  hasSupplier ? lot.supplierName! : 'Unknown supplier',
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: hasSupplier ? null : scheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
-              Icon(Icons.event_outlined, size: 13, color: scheme.onSurfaceVariant),
-              const SizedBox(width: 4),
-              Text(formatDate(lot.receivingDate), style: theme.textTheme.bodySmall),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Compatible vehicles ───────────────────────────────────────────────────────
-
-class _CompatibilitySection extends ConsumerWidget {
-  const _CompatibilitySection({required this.partId});
-  final String partId;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final async = ref.watch(compatibleVehiclesProvider(partId));
-    return async.when(
-      loading: () => const Padding(
-          padding: EdgeInsets.symmetric(vertical: 16), child: LoadingView()),
-      error: (e, _) => _StockNotice(
-        message: e is AppException
-            ? e.message
-            : 'Vehicle compatibility couldn\'t load.',
-        onRetry: () => ref.invalidate(compatibleVehiclesProvider(partId)),
-      ),
-      data: (items) {
-        if (items.isEmpty) {
-          return const EmptyView(
-              message: 'No vehicle compatibility listed for this part.',
-              icon: Icons.directions_car_outlined);
-        }
-        return Column(
-            children: items.map((c) => _CompatibilityTile(item: c)).toList());
-      },
-    );
-  }
-}
-
-class _CompatibilityTile extends StatelessWidget {
-  const _CompatibilityTile({required this.item});
-  final VehicleCompatibility item;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final ok = item.isCompatible;
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      elevation: 0,
-      color: ok ? Colors.green.shade50 : scheme.errorContainer.withAlpha(60),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-            color: ok ? Colors.green.shade200 : scheme.error.withAlpha(60)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
+    return Expanded(
+      child: Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Theme.of(context).colorScheme.outline),
+        ),
+        padding: const EdgeInsets.fromLTRB(12, 11, 12, 11),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Icon(ok ? Icons.check_circle : Icons.cancel,
-                    size: 18,
-                    color: ok ? Colors.green.shade700 : scheme.error),
-                const SizedBox(width: 8),
-                Expanded(
-                    child: Text(item.title,
-                        style: theme.textTheme.titleSmall
-                            ?.copyWith(fontWeight: FontWeight.w700))),
-                if (item.engineType != null && item.engineType!.isNotEmpty)
-                  _Pill(
-                      text: item.engineType!,
-                      bg: scheme.surfaceContainerHighest,
-                      fg: scheme.onSurfaceVariant),
-              ],
-            ),
-            if (!ok) ...[
-              const SizedBox(height: 4),
-              Text('Not compatible',
-                  style: theme.textTheme.bodySmall
-                      ?.copyWith(color: scheme.error)),
-            ],
-            if (item.notes != null && item.notes!.isNotEmpty) ...[
-              const SizedBox(height: 6),
-              Text(item.notes!, style: theme.textTheme.bodySmall),
-            ],
+            Text(label,
+                style: GoogleFonts.instrumentSans(
+                    fontSize: 11, color: AppColors.muted)),
+            const SizedBox(height: 2),
+            Text(value,
+                style: GoogleFonts.instrumentSans(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700
+                )),
           ],
         ),
       ),
@@ -1110,124 +366,294 @@ class _CompatibilityTile extends StatelessWidget {
   }
 }
 
-// ── Variant tile ──────────────────────────────────────────────────────────────
+// â”€â”€ Warehouse + lots card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-class _VariantTile extends StatelessWidget {
-  const _VariantTile({required this.variant});
-  final ProductVariant variant;
+class _WarehouseLotCard extends StatelessWidget {
+  const _WarehouseLotCard({
+    required this.warehouseIds,
+    required this.levelByWarehouse,
+    required this.lotsByWarehouse,
+  });
+
+  final List<String> warehouseIds;
+  final Map<String, StockLevel> levelByWarehouse;
+  final Map<String, List<StockLot>> lotsByWarehouse;
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final price = variant.pricing?.sellingPrice;
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: scheme.outlineVariant),
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Theme.of(context).colorScheme.outline),
       ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-        leading: Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-              color: scheme.primaryContainer,
-              borderRadius: BorderRadius.circular(10)),
-          alignment: Alignment.center,
-          child: Icon(Icons.tune, size: 18, color: scheme.onPrimaryContainer),
-        ),
-        title: Text(variant.name,
-            style: const TextStyle(fontWeight: FontWeight.w700)),
-        subtitle: Text(
-          ['Code ${variant.code}', if (variant.sku != null) 'SKU ${variant.sku}']
-              .join('  ·  '),
-          style: const TextStyle(fontSize: 11),
-        ),
-        trailing: price == null
-            ? null
-            : Text(
-                formatCurrency(price, currency: variant.pricing?.currency),
-                style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
-                    color: scheme.primary),
-              ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(15, 13, 15, 9),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text('Stock by warehouse Â· lots',
+                      style: GoogleFonts.instrumentSans(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.ink)),
+                ),
+                Text('FIFO',
+                    style: GoogleFonts.instrumentSans(
+                        fontSize: 11.5, color: AppColors.muted)),
+              ],
+            ),
+          ),
+          for (final wid in warehouseIds)
+            _WarehouseSection(
+              level: levelByWarehouse[wid],
+              lots: (lotsByWarehouse[wid] ?? [])
+                ..sort((a, b) =>
+                    a.receivingDate.compareTo(b.receivingDate)),
+            ),
+        ],
       ),
     );
   }
 }
 
-// ── Specifications (attribute values from variants) ───────────────────────────
+class _WarehouseSection extends StatelessWidget {
+  const _WarehouseSection({required this.level, required this.lots});
 
-class _SpecsSection extends ConsumerWidget {
-  const _SpecsSection({required this.productId});
+  final StockLevel? level;
+  final List<StockLot> lots;
+
+  @override
+  Widget build(BuildContext context) {
+    final name = level?.warehouseName ??
+        lots.firstOrNull?.warehouseName ??
+        'Warehouse';
+    final unit =
+        level?.unitSymbol ?? level?.unitName ?? '';
+    final qty = level?.availableQuantity ??
+        lots.fold<int>(0, (s, l) => s + l.quantityAvailable);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            border:
+                Border(top: BorderSide(color: Theme.of(context).colorScheme.outline.withAlpha(60))),
+          ),
+          padding:
+              const EdgeInsets.fromLTRB(15, 11, 15, 11),
+          child: Row(
+            children: [
+              const Text('ðŸ¬',
+                  style: TextStyle(fontSize: 13)),
+              const SizedBox(width: 9),
+              Expanded(
+                child: Text(name,
+                    style: GoogleFonts.instrumentSans(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.ink)),
+              ),
+              Text(
+                '$qty${unit.isNotEmpty ? ' $unit' : ' pcs'}',
+                style: GoogleFonts.instrumentSans(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.ink),
+              ),
+            ],
+          ),
+        ),
+        for (final lot in lots) _LotRow(lot: lot),
+      ],
+    );
+  }
+}
+
+class _LotRow extends ConsumerWidget {
+  const _LotRow({required this.lot});
+
+  final StockLot lot;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final priceCode = ref.watch(priceCodeProvider).value;
+    final showActual = ref.watch(showActualPriceProvider);
+    final unit = lot.unitCode ?? lot.unitName ?? '';
+    final costLabel = formatCostMasked(
+        priceCode, showActual, lot.costPrice,
+        currency: lot.currency);
+    return Container(
+      decoration: BoxDecoration(
+        border:
+            Border(top: BorderSide(color: Theme.of(context).colorScheme.outline.withAlpha(60))),
+      ),
+      padding:
+          const EdgeInsets.fromLTRB(37, 10, 15, 10),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(lot.lotNumber,
+                    style: GoogleFonts.instrumentSans(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.ink)),
+                const SizedBox(height: 1),
+                Text(
+                  'Recv ${formatDate(lot.receivingDate)}'
+                  ' Â· cost $costLabel',
+                  style: GoogleFonts.instrumentSans(
+                      fontSize: 11, color: AppColors.muted),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            '${lot.quantityAvailable}'
+            '${unit.isNotEmpty ? ' $unit' : ' pcs'}',
+            style: GoogleFonts.instrumentSans(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                color: AppColors.ink),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// â”€â”€ Product info card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+class _ProductInfoCard extends StatelessWidget {
+  const _ProductInfoCard({required this.product});
+
+  final Product product;
+
+  @override
+  Widget build(BuildContext context) {
+    final rows = <(String, String)>[
+      ('Part no.', product.partNumber),
+      if ((product.oemNumber ?? '').isNotEmpty)
+        ('OEM no.', product.oemNumber!),
+      if ((product.barcode ?? '').isNotEmpty)
+        ('Barcode', product.barcode!),
+      if ((product.productType ?? '').isNotEmpty)
+        ('Type', product.productType!),
+      if (product.hasVariants) ('Variants', 'Yes'),
+      if ((product.description ?? '').isNotEmpty)
+        ('Notes', product.description!),
+    ];
+
+    if (rows.isEmpty) return const SizedBox.shrink();
+
+    return _SectionCard(
+      title: 'Product info',
+      child: Column(
+        children: rows.indexed.map((entry) {
+          final (idx, row) = entry;
+          final (label, value) = row;
+          return Column(
+            children: [
+              if (idx > 0)
+                Divider(
+                    height: 1, color: Theme.of(context).colorScheme.outline.withAlpha(60)),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 15, vertical: 10),
+                child: Row(
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 90,
+                      child: Text(label,
+                          style: GoogleFonts.instrumentSans(
+                              fontSize: 12,
+                              color: AppColors.muted)),
+                    ),
+                    Expanded(
+                      child: Text(value,
+                          style: GoogleFonts.instrumentSans(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w500
+                          )),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        }).toList(),
+      ),
+    );
+  }
+}
+
+// â”€â”€ Specs / variant attributes card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+class _SpecsCard extends ConsumerWidget {
+  const _SpecsCard({required this.productId});
+
   final String productId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final async = ref.watch(productVariantAttributesProvider(productId));
+    final async =
+        ref.watch(productVariantAttributesProvider(productId));
     return async.when(
       loading: () => const SizedBox.shrink(),
-      error: (e, s) => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
       data: (attrs) {
         if (attrs.isEmpty) return const SizedBox.shrink();
-        final theme = Theme.of(context);
-        final scheme = theme.colorScheme;
         return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 16),
-            _SectionHeader(
-                icon: Icons.checklist_outlined, label: 'Specifications'),
-            const SizedBox(height: 8),
-            Card(
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: BorderSide(color: scheme.outlineVariant),
-              ),
+            const SizedBox(height: 12),
+            _SectionCard(
+              title: 'Specifications',
               child: Column(
                 children: attrs.indexed.map((entry) {
                   final (idx, attr) = entry;
-                  final isLast = idx == attrs.length - 1;
                   return Column(
                     children: [
+                      if (idx > 0)
+                        Divider(
+                            height: 1,
+                            color: Theme.of(context).colorScheme.outline.withAlpha(60)),
                       Padding(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 12),
+                            horizontal: 15, vertical: 10),
                         child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                          crossAxisAlignment:
+                              CrossAxisAlignment.start,
                           children: [
                             SizedBox(
-                              width: 130,
-                              child: Text(
-                                attr.attributeName,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: scheme.onSurfaceVariant,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
+                              width: 120,
+                              child: Text(attr.attributeName,
+                                  style:
+                                      GoogleFonts.instrumentSans(
+                                    fontSize: 12
+                                  )),
                             ),
                             Expanded(
-                              child: Text(
-                                attr.displayValue,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: scheme.onSurface,
-                                ),
-                              ),
+                              child: Text(attr.displayValue,
+                                  style:
+                                      GoogleFonts.instrumentSans(
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w500
+                                  )),
                             ),
                           ],
                         ),
                       ),
-                      if (!isLast)
-                        Divider(
-                            height: 1,
-                            indent: 16,
-                            endIndent: 16,
-                            color: scheme.outlineVariant),
                     ],
                   );
                 }).toList(),
@@ -1240,174 +666,231 @@ class _SpecsSection extends ConsumerWidget {
   }
 }
 
-// ── Storage Locations ─────────────────────────────────────────────────────────
+// â”€â”€ Storage locations card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-class _LocationsSection extends ConsumerWidget {
-  const _LocationsSection({required this.partId});
+class _LocationsCard extends ConsumerWidget {
+  const _LocationsCard({required this.partId});
+
   final String partId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(productLocationsProvider(partId));
     return async.when(
-      loading: () => const Padding(
-          padding: EdgeInsets.symmetric(vertical: 16), child: LoadingView()),
-      error: (e, _) => _StockNotice(
-        message: e is AppException
-            ? e.message
-            : 'Storage locations couldn\'t load.',
-        onRetry: () => ref.invalidate(productLocationsProvider(partId)),
-      ),
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
       data: (locations) {
-        if (locations.isEmpty) {
-          return const EmptyView(
-              message: 'No storage locations assigned for this part.',
-              icon: Icons.location_off_outlined);
-        }
+        if (locations.isEmpty) return const SizedBox.shrink();
         return Column(
-          children:
-              locations.map((l) => _LocationTile(location: l)).toList(),
+          children: [
+            const SizedBox(height: 12),
+            _SectionCard(
+              title: 'Storage locations',
+              child: Column(
+                children: locations.indexed.map((entry) {
+                  final (idx, loc) = entry;
+                  return Column(
+                    children: [
+                      if (idx > 0)
+                        Divider(
+                            height: 1,
+                            color: Theme.of(context).colorScheme.outline.withAlpha(60)),
+                      _LocationRow(location: loc),
+                    ],
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
         );
       },
     );
   }
 }
 
-class _LocationTile extends StatelessWidget {
-  const _LocationTile({required this.location});
+class _LocationRow extends StatelessWidget {
+  const _LocationRow({required this.location});
+
   final ProductLocation location;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: BorderSide(
-            color: location.isPrimary
-                ? scheme.primary.withAlpha(100)
-                : scheme.outlineVariant),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: location.isPrimary
-                    ? scheme.primaryContainer
-                    : scheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              alignment: Alignment.center,
-              child: Icon(
-                Icons.inbox_outlined,
-                size: 22,
-                color: location.isPrimary
-                    ? scheme.onPrimaryContainer
-                    : scheme.onSurfaceVariant,
-              ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(15, 11, 15, 11),
+      child: Row(
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: location.isPrimary
+                  ? const Color(0xFFEEF2FF)
+                  : Theme.of(context).scaffoldBackgroundColor,
+              borderRadius: BorderRadius.circular(10),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          location.warehouseName,
-                          style: theme.textTheme.titleSmall
-                              ?.copyWith(fontWeight: FontWeight.w700),
+            alignment: Alignment.center,
+            child: Icon(
+              Icons.inbox_outlined,
+              size: 17,
+              color: location.isPrimary
+                  ? AppColors.ink
+                  : AppColors.secondary,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        location.warehouseName,
+                        style: GoogleFonts.instrumentSans(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600
                         ),
                       ),
-                      if (location.isPrimary)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: scheme.primaryContainer,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            'Primary',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: scheme.onPrimaryContainer,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      _LocChip(
-                          label: 'Section',
-                          value: location.section,
-                          icon: Icons.grid_view_outlined),
-                      const SizedBox(width: 8),
-                      _LocChip(
-                          label: 'Shelf',
-                          value: location.shelf,
-                          icon: Icons.inbox_outlined),
-                    ],
-                  ),
-                  if (location.notes != null &&
-                      location.notes!.isNotEmpty) ...[
-                    const SizedBox(height: 6),
-                    Text(
-                      location.notes!,
-                      style: theme.textTheme.bodySmall
-                          ?.copyWith(color: scheme.onSurfaceVariant),
                     ),
+                    if (location.isPrimary)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEEF2FF),
+                          borderRadius:
+                              BorderRadius.circular(99),
+                        ),
+                        child: Text('Primary',
+                            style: GoogleFonts.instrumentSans(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w600
+                            )),
+                      ),
                   ],
-                ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Section ${location.section} Â· Shelf ${location.shelf}',
+                  style: GoogleFonts.instrumentSans(
+                      fontSize: 11.5, color: AppColors.muted),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// â”€â”€ Vehicle compatibility card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+class _CompatibilityCard extends ConsumerWidget {
+  const _CompatibilityCard({required this.partId});
+
+  final String partId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final async =
+        ref.watch(compatibleVehiclesProvider(partId));
+    return async.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
+      data: (items) {
+        if (items.isEmpty) return const SizedBox.shrink();
+        return Column(
+          children: [
+            const SizedBox(height: 12),
+            _SectionCard(
+              title: 'Vehicle compatibility',
+              child: Column(
+                children: items.indexed.map((entry) {
+                  final (idx, item) = entry;
+                  return Column(
+                    children: [
+                      if (idx > 0)
+                        Divider(
+                            height: 1,
+                            color: Theme.of(context).colorScheme.outline.withAlpha(60)),
+                      _CompatRow(item: item),
+                    ],
+                  );
+                }).toList(),
               ),
             ),
           ],
-        ),
-      ),
+        );
+      },
     );
   }
 }
 
-class _LocChip extends StatelessWidget {
-  const _LocChip(
-      {required this.label, required this.value, required this.icon});
-  final String label;
-  final String value;
-  final IconData icon;
+class _CompatRow extends StatelessWidget {
+  const _CompatRow({required this.item});
+
+  final VehicleCompatibility item;
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(10),
-      ),
+    final ok = item.isCompatible;
+    return Padding(
+      padding:
+          const EdgeInsets.fromLTRB(15, 11, 15, 11),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 13, color: scheme.onSurfaceVariant),
-          const SizedBox(width: 5),
-          Text(
-            '$label: $value',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: scheme.onSurface,
+          Container(
+            width: 22,
+            height: 22,
+            margin: const EdgeInsets.only(top: 1),
+            decoration: BoxDecoration(
+              color: ok ? AppColors.greenBg : AppColors.redBg,
+              borderRadius: BorderRadius.circular(7),
+            ),
+            alignment: Alignment.center,
+            child: Icon(
+              ok ? Icons.check_rounded : Icons.close_rounded,
+              size: 14,
+              color: ok ? AppColors.green : AppColors.red,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.title,
+                  style: GoogleFonts.instrumentSans(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600
+                  ),
+                ),
+                if ((item.engineType ?? '').isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(item.engineType!,
+                      style: GoogleFonts.instrumentSans(
+                          fontSize: 11.5,
+                          color: AppColors.muted)),
+                ],
+                if ((item.notes ?? '').isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(item.notes!,
+                      style: GoogleFonts.instrumentSans(
+                          fontSize: 11.5,
+                          color: AppColors.secondary)),
+                ],
+                if (!ok) ...[
+                  const SizedBox(height: 2),
+                  Text('Not compatible',
+                      style: GoogleFonts.instrumentSans(
+                          fontSize: 11.5,
+                          color: AppColors.red)),
+                ],
+              ],
             ),
           ),
         ],
@@ -1416,67 +899,250 @@ class _LocChip extends StatelessWidget {
   }
 }
 
-// ── Shared widgets ────────────────────────────────────────────────────────────
+// â”€â”€ Bottom gradient action bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-class _Pill extends StatelessWidget {
-  const _Pill(
-      {required this.text, required this.bg, required this.fg, this.icon});
-  final String text;
-  final Color bg;
-  final Color fg;
-  final IconData? icon;
+class _BottomBar extends ConsumerWidget {
+  const _BottomBar({required this.product, required this.levels});
+
+  final Product product;
+  final List<StockLevel> levels;
 
   @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-        decoration:
-            BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (icon != null) ...[
-              Icon(icon, size: 12, color: fg),
-              const SizedBox(width: 3),
-            ],
-            Text(text,
-                style: TextStyle(
-                    fontSize: 11, color: fg, fontWeight: FontWeight.w600)),
-          ],
+  Widget build(BuildContext context, WidgetRef ref) {
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          stops: [0.0, 0.3],
+          colors: [Colors.transparent, Theme.of(context).scaffoldBackgroundColor],
         ),
-      );
+      ),
+      padding:
+          EdgeInsets.fromLTRB(16, 12, 16, 16 + bottomInset),
+      child: Row(
+        children: [
+          Expanded(
+            child: GestureDetector(
+              onTap: () {
+                showModalBottomSheet<void>(
+                  context: context,
+                  isScrollControlled: true,
+                  useSafeArea: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (_) => StockAdjustmentSheet(
+                    product: product,
+                    stockLevels: levels,
+                  ),
+                );
+              },
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(vertical: 13),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Theme.of(context).colorScheme.outline),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  'Stock In',
+                  style: GoogleFonts.instrumentSans(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: GestureDetector(
+              onTap: () {
+                final added = ref
+                    .read(quickSaleControllerProvider.notifier)
+                    .addFromSearch(product);
+                final messenger = ScaffoldMessenger.of(context);
+                final router = GoRouter.of(context);
+                messenger.clearSnackBars();
+                if (!added) {
+                  messenger.showSnackBar(SnackBar(
+                    content:
+                        Text('${product.name} is out of stock'),
+                    backgroundColor: AppColors.red,
+                    duration: const Duration(seconds: 2),
+                    behavior: SnackBarBehavior.floating,
+                  ));
+                  return;
+                }
+                messenger.showSnackBar(SnackBar(
+                  content:
+                      Text('${product.name} added to sale'),
+                  duration: const Duration(seconds: 2),
+                  behavior: SnackBarBehavior.floating,
+                  action: SnackBarAction(
+                    label: 'Go to Sale',
+                    onPressed: () {
+                      messenger.hideCurrentSnackBar();
+                      router.push('/quick-sale');
+                    },
+                  ),
+                ));
+              },
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(vertical: 13),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  'Add to sale',
+                  style: GoogleFonts.instrumentSans(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-class _StockNotice extends StatelessWidget {
-  const _StockNotice({required this.message, required this.onRetry});
-  final String message;
-  final VoidCallback onRetry;
+// â”€â”€ Shared layout helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+/// White bordered card â€” no internal padding (caller controls it per section).
+class _SectionCard extends StatelessWidget {
+  const _SectionCard({required this.title, required this.child});
+
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Theme.of(context).colorScheme.outline),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding:
+                const EdgeInsets.fromLTRB(15, 13, 15, 9),
+            child: Text(
+              title,
+              style: GoogleFonts.instrumentSans(
+                fontSize: 14,
+                fontWeight: FontWeight.w600
+              ),
+            ),
+          ),
+          Divider(height: 1, color: Theme.of(context).colorScheme.outline.withAlpha(60)),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+/// Card with uniform padding â€” for the hero.
+class _SurfaceCard extends StatelessWidget {
+  const _SurfaceCard(
+      {required this.padding, required this.child});
+
+  final EdgeInsets padding;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Theme.of(context).colorScheme.outline),
+      ),
+      padding: padding,
+      child: child,
+    );
+  }
+}
+
+/// Checkerboard image placeholder.
+class _CheckerPlaceholder extends StatelessWidget {
+  const _CheckerPlaceholder();
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    return CustomPaint(
+      size: const Size(72, 72),
+      painter: _CheckerPainter(
+        lightColor: Theme.of(context).scaffoldBackgroundColor,
+        darkColor: scheme.outline.withAlpha(60),
+      ),
+    );
+  }
+}
+
+class _CheckerPainter extends CustomPainter {
+  const _CheckerPainter({required this.lightColor, required this.darkColor});
+  final Color lightColor;
+  final Color darkColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const tileSize = 10.0;
+    final light = Paint()..color = lightColor;
+    final dark = Paint()..color = darkColor;
+    final cols = (size.width / tileSize).ceil();
+    final rows = (size.height / tileSize).ceil();
+    for (var r = 0; r < rows; r++) {
+      for (var c = 0; c < cols; c++) {
+        canvas.drawRect(
+          Rect.fromLTWH(
+              c * tileSize, r * tileSize, tileSize, tileSize),
+          (r + c).isEven ? light : dark,
+        );
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+/// Simple centred spinner card while stock data loads.
+class _LoadingCard extends StatelessWidget {
+  const _LoadingCard({required this.height});
+
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
+      height: height,
       decoration: BoxDecoration(
-          color: scheme.tertiaryContainer.withAlpha(120),
-          borderRadius: BorderRadius.circular(10)),
-      child: Row(
-        children: [
-          Icon(Icons.warning_amber_rounded,
-              size: 18, color: scheme.onTertiaryContainer),
-          const SizedBox(width: 8),
-          Expanded(
-              child: Text(message,
-                  style: TextStyle(
-                      fontSize: 12, color: scheme.onTertiaryContainer))),
-          TextButton(
-            onPressed: onRetry,
-            style: TextButton.styleFrom(
-                visualDensity: VisualDensity.compact,
-                padding: const EdgeInsets.symmetric(horizontal: 8)),
-            child: const Text('Retry'),
-          ),
-        ],
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Theme.of(context).colorScheme.outline),
+      ),
+      child: const Center(
+        child: SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
       ),
     );
   }

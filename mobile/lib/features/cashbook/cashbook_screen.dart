@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -118,7 +118,7 @@ class _DateBar extends StatelessWidget {
                       const Icon(Icons.calendar_today_outlined, size: 16),
                       const SizedBox(width: 8),
                       Text(
-                        isToday ? 'Today · ${formatDate(date)}'
+                        isToday ? 'Today Â· ${formatDate(date)}'
                                 : formatDayLong(date),
                         style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
@@ -194,7 +194,7 @@ class _SummaryCard extends StatelessWidget {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(18),
-            decoration: const BoxDecoration(gradient: AppGradients.brand),
+            decoration: BoxDecoration(gradient: AppGradients.brand),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -400,7 +400,7 @@ class _LedgerTile extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 2),
-                  Text(subtitleParts.join('  •  '),
+                  Text(subtitleParts.join('  â€¢  '),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodySmall),
@@ -412,7 +412,7 @@ class _LedgerTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  '${isIn ? '+' : '−'}${formatCurrency(row.amount, currency: row.currency)}',
+                  '${isIn ? '+' : 'âˆ’'}${formatCurrency(row.amount, currency: row.currency)}',
                   style: TextStyle(fontWeight: FontWeight.w700, color: color),
                 ),
                 const SizedBox(height: 2),

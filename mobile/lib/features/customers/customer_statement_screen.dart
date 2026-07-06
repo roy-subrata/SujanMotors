@@ -1,8 +1,9 @@
-import 'dart:io';
+﻿import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -10,6 +11,7 @@ import '../../core/network/app_exception.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/format.dart';
 import '../../shared/models/customer.dart';
+import '../../shared/widgets/design_system.dart';
 import '../../shared/widgets/state_views.dart';
 import 'customers_repository.dart';
 
@@ -33,9 +35,7 @@ class _CustomerStatementScreenState
   DateTime? _fromDate;
   DateTime? _toDate;
 
-  // Accumulated items across pages
   List<CustomerPurchaseItem> _items = [];
-  int _totalCount = 0;
   int _totalPages = 0;
   int _currentPage = 1;
   CustomerAccountSummary? _summary;
@@ -84,7 +84,6 @@ class _CustomerStatementScreenState
       _items = [];
       _currentPage = 1;
       _totalPages = 0;
-      _totalCount = 0;
       _summary = null;
       _error = null;
     });
@@ -100,7 +99,6 @@ class _CustomerStatementScreenState
     } else {
       setState(() => _isLoadingMore = true);
     }
-
     try {
       final result = await ref
           .read(customersRepositoryProvider)
@@ -111,7 +109,6 @@ class _CustomerStatementScreenState
             pageNumber: page,
             pageSize: 30,
           );
-
       if (!mounted) return;
       setState(() {
         if (page == 1) {
@@ -121,12 +118,11 @@ class _CustomerStatementScreenState
           _items = [..._items, ...result.purchaseItems];
           _summary = result;
         }
-        _totalCount = result.purchaseItemsTotalCount;
         _totalPages = result.purchaseItemsTotalPages;
         _currentPage = page;
       });
     } on AppException catch (e) {
-      if (mounted) { setState(() => _error = e.message); }
+      if (mounted) setState(() => _error = e.message);
     } finally {
       if (mounted) {
         setState(() {
@@ -145,7 +141,6 @@ class _CustomerStatementScreenState
   Future<void> _downloadPdf() async {
     setState(() => _isPdfLoading = true);
     final messenger = ScaffoldMessenger.of(context);
-    final errorColor = Theme.of(context).colorScheme.error;
     try {
       final Uint8List bytes = await ref
           .read(customersRepositoryProvider)
@@ -154,17 +149,11 @@ class _CustomerStatementScreenState
             fromDate: _fromDate,
             toDate: _toDate,
           );
-
-      // Write to cache — no permissions needed, always works.
       final cacheDir = await getTemporaryDirectory();
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final path = '${cacheDir.path}/statement_$timestamp.pdf';
       await File(path).writeAsBytes(bytes);
-
       if (!mounted) return;
-
-      // Show the system share sheet: user can open in any PDF viewer (preview),
-      // save to Downloads, share via WhatsApp/email, etc.
       await Share.shareXFiles(
         [XFile(path, mimeType: 'application/pdf', name: 'statement_$timestamp.pdf')],
         subject: 'Account Statement',
@@ -174,7 +163,7 @@ class _CustomerStatementScreenState
         messenger.clearSnackBars();
         messenger.showSnackBar(SnackBar(
           content: Text(e.message),
-          backgroundColor: errorColor,
+          backgroundColor: AppColors.red,
           behavior: SnackBarBehavior.floating,
         ));
       }
@@ -183,67 +172,61 @@ class _CustomerStatementScreenState
     }
   }
 
+  String _filterLabel(_DateFilter f) => switch (f) {
+        _DateFilter.thisMonth => 'This Month',
+        _DateFilter.last3Months => 'Last 3 Months',
+        _DateFilter.thisYear => 'This Year',
+        _DateFilter.all => 'All Time',
+      };
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        flexibleSpace: const AppBarGradient(),
-        title: const Text('Account Statement'),
+        title: Text(
+          'Statement',
+          style: GoogleFonts.instrumentSans(
+            fontSize: 16,
+            fontWeight: FontWeight.w700
+          ),
+        ),
         actions: [
-          _isPdfLoading
-              ? const Padding(
-                  padding: EdgeInsets.all(14),
-                  child: SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.white),
-                  ),
-                )
-              : IconButton(
-                  icon: const Icon(Icons.picture_as_pdf_outlined),
-                  tooltip: 'Save & Preview PDF',
-                  onPressed: _downloadPdf,
-                ),
-          const SizedBox(width: 4),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Date filter strip
-          Container(
-            color: const Color(0xFF4F46E5),
-            padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
+          // Period picker
+          GestureDetector(
+            onTap: _showPeriodPicker,
+            child: Container(
+              margin: const EdgeInsets.only(right: 8),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(9),
+                border: Border.all(color: Theme.of(context).colorScheme.outline),
+              ),
               child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  for (final f in _DateFilter.values)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: ChoiceChip(
-                        label: Text(_filterLabel(f)),
-                        selected: _filter == f,
-                        onSelected: (_) => _applyFilter(f),
-                        selectedColor: Colors.white,
-                        labelStyle: TextStyle(
-                          color: _filter == f
-                              ? const Color(0xFF4F46E5)
-                              : Colors.white,
-                          fontWeight: _filter == f
-                              ? FontWeight.w700
-                              : FontWeight.w400,
-                        ),
-                        backgroundColor: Colors.white.withValues(alpha: 0.15),
-                        side: BorderSide.none,
-                      ),
+                  Text(
+                    _filterLabel(_filter),
+                    style: GoogleFonts.instrumentSans(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600
                     ),
+                  ),
+                  const SizedBox(width: 4),
+                  const Icon(Icons.expand_more_rounded,
+                      size: 14, color: AppColors.secondary),
                 ],
               ),
             ),
           ),
+        ],
+      ),
+      body: Column(
+        children: [
+          // Summary sub-header
+          if (_summary != null) _SummaryBar(summary: _summary!),
 
-          // Body
           Expanded(
             child: _isLoading
                 ? const LoadingView()
@@ -265,50 +248,58 @@ class _CustomerStatementScreenState
                                 message: 'No transactions in this period.',
                                 icon: Icons.receipt_long_outlined,
                               )
-                            : ListView.builder(
-                                controller: _scrollCtrl,
-                                padding: EdgeInsets.zero,
-                                itemCount: _buildItems().length +
-                                    (_isLoadingMore ? 1 : 0),
-                                itemBuilder: (context, index) {
-                                  final widgets = _buildItems();
-                                  if (index >= widgets.length) {
-                                    return const Padding(
-                                      padding: EdgeInsets.all(16),
-                                      child: Center(
-                                          child:
-                                              CircularProgressIndicator()),
-                                    );
-                                  }
-                                  if (index == 0 && _summary != null) {
-                                    return Column(
-                                      children: [
-                                        _SummaryCard(
-                                          summary: _summary!,
-                                          totalCount: _totalCount,
-                                        ),
-                                        widgets[index],
-                                      ],
-                                    );
-                                  }
-                                  return widgets[index];
-                                },
-                              ),
+                            : _buildList(),
                       ),
           ),
         ],
       ),
+      bottomNavigationBar: _buildBottomBar(),
     );
   }
 
-  String _filterLabel(_DateFilter f) => switch (f) {
-        _DateFilter.thisMonth => 'This Month',
-        _DateFilter.last3Months => 'Last 3 Months',
-        _DateFilter.thisYear => 'This Year',
-        _DateFilter.all => 'All Time',
-      };
+  void _showPeriodPicker() {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: _DateFilter.values
+              .map(
+                (f) => ListTile(
+                  title: Text(_filterLabel(f)),
+                  trailing: _filter == f
+                      ? const Icon(Icons.check, color: AppColors.ink)
+                      : null,
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _applyFilter(f);
+                  },
+                ),
+              )
+              .toList(),
+        ),
+      ),
+    );
+  }
 
-  /// Builds a flat widget list inserting a divider whenever the invoice changes.
+  Widget _buildList() {
+    final widgets = _buildItems();
+    return ListView.builder(
+      controller: _scrollCtrl,
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+      itemCount: widgets.length + (_isLoadingMore ? 1 : 0),
+      itemBuilder: (context, index) {
+        if (index >= widgets.length) {
+          return const Padding(
+            padding: EdgeInsets.all(16),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+        return widgets[index];
+      },
+    );
+  }
+
   List<Widget> _buildItems() {
     final widgets = <Widget>[];
     String? lastInvoice;
@@ -325,107 +316,108 @@ class _CustomerStatementScreenState
     }
     return widgets;
   }
+
+  Widget _buildBottomBar() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        border: Border(top: BorderSide(color: Theme.of(context).colorScheme.outline)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+          child: Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () {},
+                  icon: const Icon(Icons.print_outlined, size: 16),
+                  label: const Text('Print'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.ink,
+                    side: BorderSide(color: Theme.of(context).colorScheme.outline),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(11)),
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    textStyle: GoogleFonts.instrumentSans(
+                        fontSize: 13.5, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                flex: 2,
+                child: FilledButton.icon(
+                  onPressed: _isPdfLoading ? null : _downloadPdf,
+                  icon: _isPdfLoading
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white))
+                      : const Icon(Icons.upload_outlined, size: 16),
+                  label: const Text('Generate PDF & share'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.ink,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(11)),
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    textStyle: GoogleFonts.instrumentSans(
+                        fontSize: 13.5, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
-// ── Summary card ──────────────────────────────────────────────────────────────
+// â”€â”€ Summary bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-class _SummaryCard extends StatelessWidget {
-  const _SummaryCard({required this.summary, required this.totalCount});
+class _SummaryBar extends StatelessWidget {
+  const _SummaryBar({required this.summary});
 
   final CustomerAccountSummary summary;
-  final int totalCount;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
     final hasDue = summary.currentDue > 0;
-
     return Container(
-      margin: const EdgeInsets.all(12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: scheme.primaryContainer.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-            color: scheme.primaryContainer.withValues(alpha: 0.6)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
+      color: Theme.of(context).colorScheme.surface,
+      child: Row(
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: _SummaryMetric(
-                  label: 'Purchased',
-                  value: formatCurrency(summary.totalPurchaseAmount),
-                  color: scheme.onSurface,
-                ),
+          Expanded(
+            child: Text(
+              '${summary.customerName} Â· Purchased ${formatCurrency(summary.totalPurchaseAmount)} Â· Paid ${formatCurrency(summary.totalPaidAmount)}',
+              style: GoogleFonts.instrumentSans(
+                fontSize: 12,
+                color: hasDue ? AppColors.red : AppColors.muted,
               ),
-              Expanded(
-                child: _SummaryMetric(
-                  label: 'Paid',
-                  value: formatCurrency(summary.totalPaidAmount),
-                  color: Colors.green.shade700,
-                ),
-              ),
-              Expanded(
-                child: _SummaryMetric(
-                  label: 'Due',
-                  value: formatCurrency(summary.currentDue),
-                  color: hasDue ? scheme.error : Colors.green.shade700,
-                ),
-              ),
-            ],
+            ),
           ),
-          const SizedBox(height: 10),
-          Divider(height: 1, color: scheme.outlineVariant),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Icon(Icons.receipt_long_outlined,
-                  size: 14, color: scheme.onSurfaceVariant),
-              const SizedBox(width: 4),
-              Text(
-                '${summary.totalInvoices} invoice(s)  ·  $totalCount item(s)',
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(color: scheme.onSurfaceVariant),
+          if (hasDue) ...[
+            Text(
+              'Due ${formatCurrency(summary.currentDue)}',
+              style: GoogleFonts.instrumentSans(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppColors.red,
               ),
-            ],
-          ),
+            ),
+          ],
         ],
       ),
     );
   }
 }
 
-class _SummaryMetric extends StatelessWidget {
-  const _SummaryMetric(
-      {required this.label, required this.value, required this.color});
-
-  final String label;
-  final String value;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label,
-            style: theme.textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant)),
-        const SizedBox(height: 3),
-        Text(value,
-            style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w800, color: color, fontSize: 13)),
-      ],
-    );
-  }
-}
-
-// ── Invoice divider ───────────────────────────────────────────────────────────
+// â”€â”€ Invoice divider â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _InvoiceDivider extends StatelessWidget {
   const _InvoiceDivider({
@@ -440,58 +432,40 @@ class _InvoiceDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final isActive = invoiceStatus.toUpperCase() == 'PAID';
-
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
-      color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 8),
+      margin: const EdgeInsets.only(bottom: 0),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        border: Border(
+          bottom: BorderSide(color: Theme.of(context).colorScheme.outline.withAlpha(60)),
+        ),
+      ),
       child: Row(
         children: [
-          Icon(Icons.receipt_outlined,
-              size: 14, color: scheme.onSurfaceVariant),
-          const SizedBox(width: 6),
           Text(
             invoiceNumber,
-            style: TextStyle(
+            style: GoogleFonts.instrumentSans(
               fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: scheme.primary,
+              fontWeight: FontWeight.w700
             ),
           ),
           const SizedBox(width: 8),
           Text(
             formatDate(invoiceDate),
-            style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant),
+            style: GoogleFonts.instrumentSans(
+              fontSize: 11
+            ),
           ),
           const Spacer(),
-          Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            decoration: BoxDecoration(
-              color: isActive
-                  ? Colors.green.shade50
-                  : scheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text(
-              invoiceStatus,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
-                color: isActive
-                    ? Colors.green.shade700
-                    : scheme.onSurfaceVariant,
-              ),
-            ),
-          ),
+          StatusPill(label: invoiceStatus),
         ],
       ),
     );
   }
 }
 
-// ── Purchase item tile ────────────────────────────────────────────────────────
+// â”€â”€ Purchase item tile â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _PurchaseItemTile extends StatelessWidget {
   const _PurchaseItemTile({required this.item});
@@ -500,15 +474,15 @@ class _PurchaseItemTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-
-    return Padding(
+    return Container(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        border: Border(bottom: BorderSide(color: Theme.of(context).colorScheme.outline.withAlpha(60))),
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Item info
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -517,8 +491,10 @@ class _PurchaseItemTile extends StatelessWidget {
                   item.itemName,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodyMedium
-                      ?.copyWith(fontWeight: FontWeight.w600),
+                  style: GoogleFonts.instrumentSans(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500
+                  ),
                 ),
                 if (item.itemLocalName != null) ...[
                   const SizedBox(height: 2),
@@ -526,30 +502,8 @@ class _PurchaseItemTile extends StatelessWidget {
                     item.itemLocalName!,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall
-                        ?.copyWith(color: scheme.onSurfaceVariant),
-                  ),
-                ],
-                const SizedBox(height: 4),
-                Text(
-                  'SKU ${item.sku}',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                      color: scheme.onSurfaceVariant, fontSize: 11),
-                ),
-                if ((item.vehicleLabel ?? '').isNotEmpty) ...[
-                  const SizedBox(height: 4),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: scheme.secondaryContainer.withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      item.vehicleLabel!,
-                      style: TextStyle(
-                          fontSize: 11,
-                          color: scheme.onSecondaryContainer),
+                    style: GoogleFonts.instrumentSans(
+                      fontSize: 11
                     ),
                   ),
                 ],
@@ -557,22 +511,21 @@ class _PurchaseItemTile extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          // Price info
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                '${item.quantity} × ${formatCurrency(item.unitPrice)}',
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(color: scheme.onSurfaceVariant),
+                '${item.quantity} Ã— ${formatCurrency(item.unitPrice)}',
+                style: GoogleFonts.instrumentSans(
+                  fontSize: 11
+                ),
               ),
               const SizedBox(height: 3),
               Text(
                 formatCurrency(item.lineTotal),
-                style: TextStyle(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 14,
-                  color: scheme.primary,
+                style: GoogleFonts.instrumentSans(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13.5
                 ),
               ),
             ],

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -21,7 +21,7 @@ class NotificationsScreen extends ConsumerWidget {
       appBar: AppBar(
         flexibleSpace: const AppBarGradient(),
         // Reached both by pushing (bell icon) and by go()-ing (drawer link,
-        // which replaces the stack and leaves nothing to pop) — always fall
+        // which replaces the stack and leaves nothing to pop) â€” always fall
         // back to Home so a back affordance is guaranteed either way.
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -50,7 +50,7 @@ class NotificationsScreen extends ConsumerWidget {
             )
           : ListView.separated(
               itemCount: state.items.length,
-              separatorBuilder: (_, _) => const Divider(height: 1),
+              separatorBuilder: (_, _) => Divider(height: 1),
               itemBuilder: (context, index) => _NotificationTile(
                 notification: state.items[index],
                 onTap: () => controller.markRead(state.items[index]),
@@ -72,7 +72,7 @@ class _StatusBar extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     final (color, label, icon) = switch (status) {
       HubStatus.connected => (Colors.green, 'Live', Icons.bolt),
-      HubStatus.connecting => (Colors.orange, 'Connecting…', Icons.sync),
+      HubStatus.connecting => (Colors.orange, 'Connectingâ€¦', Icons.sync),
       HubStatus.disconnected => (Colors.grey, 'Offline', Icons.cloud_off),
     };
     return SizedBox(
@@ -112,8 +112,8 @@ class _NotificationTile extends StatelessWidget {
         ),
       ),
       subtitle: Text(
-        '${sale.customerName.isEmpty ? 'Walk-in' : sale.customerName} • '
-        '${formatCurrency(sale.grandTotal, currency: sale.currency)} • '
+        '${sale.customerName.isEmpty ? 'Walk-in' : sale.customerName} â€¢ '
+        '${formatCurrency(sale.grandTotal, currency: sale.currency)} â€¢ '
         '${sale.saleChannel}',
       ),
       trailing: Text(

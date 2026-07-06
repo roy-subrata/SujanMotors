@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 
+import '../../core/theme/app_theme.dart';
 import '../../shared/format.dart';
 import '../../shared/models/dashboard.dart';
 import '../../shared/widgets/app_scaffold.dart';
 import '../../shared/widgets/state_views.dart';
 import 'dashboard_providers.dart';
+
+// Brand accent used throughout the dashboard (works on both light + dark).
+const _kAccent = Color(0xFF4F46E5);
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -17,7 +22,7 @@ class DashboardScreen extends ConsumerWidget {
     final ctrl = ref.read(dashboardControllerProvider.notifier);
 
     return AppScaffold(
-      title: 'SujanMotors',
+      titleWidget: const _BrandTitle(),
       showBottomNav: true,
       body: Column(
         children: [
@@ -59,8 +64,58 @@ class DashboardScreen extends ConsumerWidget {
   }
 }
 
+// ── Brand title ───────────────────────────────────────────────────────────────
+
+class _BrandTitle extends StatelessWidget {
+  const _BrandTitle();
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 28,
+          height: 28,
+          decoration: BoxDecoration(
+            gradient: AppGradients.brand,
+            borderRadius: BorderRadius.circular(7),
+          ),
+          child: const Icon(Icons.directions_car_outlined,
+              color: Colors.white, size: 15),
+        ),
+        const SizedBox(width: 9),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'SujanMotors',
+              style: GoogleFonts.instrumentSans(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: scheme.onSurface,
+                height: 1.1,
+              ),
+            ),
+            Text(
+              'Auto Parts',
+              style: GoogleFonts.instrumentSans(
+                fontSize: 9.5,
+                fontWeight: FontWeight.w500,
+                color: scheme.onSurface.withAlpha(120),
+                letterSpacing: 0.2,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
 // ── Date range bar ────────────────────────────────────────────────────────────
-// Same indigo strip style the old period tabs used — visually extends the AppBar.
 
 class _DateRangeBar extends StatelessWidget {
   const _DateRangeBar({
@@ -75,6 +130,7 @@ class _DateRangeBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final sameDay = start.year == end.year &&
         start.month == end.month &&
         start.day == end.day;
@@ -84,26 +140,27 @@ class _DateRangeBar extends StatelessWidget {
 
     return Container(
       height: 44,
-      color: const Color(0xFF4F46E5),
+      color: scheme.surface,
       child: InkWell(
         onTap: onPick,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
             children: [
-              const Icon(Icons.date_range_outlined,
-                  size: 17, color: Colors.white),
+              Icon(Icons.date_range_outlined,
+                  size: 17, color: scheme.onSurface.withAlpha(160)),
               const SizedBox(width: 8),
               Text(
                 label,
-                style: const TextStyle(
+                style: GoogleFonts.instrumentSans(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
-                  color: Colors.white,
+                  color: scheme.onSurface,
                 ),
               ),
               const Spacer(),
-              const Icon(Icons.arrow_drop_down, color: Colors.white70),
+              Icon(Icons.arrow_drop_down,
+                  color: scheme.onSurface.withAlpha(120)),
             ],
           ),
         ),
@@ -126,48 +183,37 @@ class _DashboardBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = data.summary;
+    final scheme = Theme.of(context).colorScheme;
 
     return RefreshIndicator(
       onRefresh: onRefresh,
       child: ListView(
         padding: const EdgeInsets.fromLTRB(12, 14, 12, 24),
         children: [
-          // ── Revenue headline ────────────────────────────────────────────
           _RevenueCard(summary: s),
           const SizedBox(height: 12),
-
-          // ── 2×2 stat grid ───────────────────────────────────────────────
           _StatGrid(summary: s),
           const SizedBox(height: 12),
-
-          // ── Cash flow card ──────────────────────────────────────────────
           _CashFlowCard(summary: s),
           const SizedBox(height: 16),
-
-          // ── Quick actions ───────────────────────────────────────────────
-          _SectionLabel('Quick Actions'),
+          _SectionLabel('Quick Actions', scheme: scheme),
           const SizedBox(height: 8),
           _QuickActions(),
           const SizedBox(height: 16),
-
-          // ── Top products ────────────────────────────────────────────────
           if (data.topProducts.isNotEmpty) ...[
-            _SectionLabel('Top Products'),
+            _SectionLabel('Top Products', scheme: scheme),
             const SizedBox(height: 8),
             _TopProductsList(products: data.topProducts),
             const SizedBox(height: 16),
           ],
-
-          // ── Top customers ───────────────────────────────────────────────
           if (data.topCustomers.isNotEmpty) ...[
-            _SectionLabel('Top Customers'),
+            _SectionLabel('Top Customers', scheme: scheme),
             const SizedBox(height: 8),
             _TopCustomersList(customers: data.topCustomers),
             const SizedBox(height: 16),
           ],
-
-          // ── Low stock alert ─────────────────────────────────────────────
-          if (s.lowStockItemsCount > 0) _LowStockAlert(count: s.lowStockItemsCount),
+          if (s.lowStockItemsCount > 0)
+            _LowStockAlert(count: s.lowStockItemsCount),
         ],
       ),
     );
@@ -175,7 +221,6 @@ class _DashboardBody extends StatelessWidget {
 }
 
 // ── Revenue headline card ─────────────────────────────────────────────────────
-// The "Total" in the POS reference — big number, primary metric.
 
 class _RevenueCard extends StatelessWidget {
   const _RevenueCard({required this.summary});
@@ -189,7 +234,7 @@ class _RevenueCard extends StatelessWidget {
 
     return Card(
       elevation: 0,
-      color: const Color(0xFF4F46E5),
+      color: _kAccent,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
@@ -201,9 +246,9 @@ class _RevenueCard extends StatelessWidget {
                 const Icon(Icons.point_of_sale,
                     color: Colors.white70, size: 16),
                 const SizedBox(width: 6),
-                Text(
+                const Text(
                   'Total Revenue',
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.white70,
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
@@ -219,7 +264,8 @@ class _RevenueCard extends StatelessWidget {
                   ),
                   child: Text(
                     '${summary.totalSalesCount} orders',
-                    style: const TextStyle(color: Colors.white70, fontSize: 11),
+                    style: const TextStyle(
+                        color: Colors.white70, fontSize: 11),
                   ),
                 ),
               ],
@@ -248,8 +294,8 @@ class _RevenueCard extends StatelessWidget {
                     color: Colors.white70),
                 const Spacer(),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: isPositive
                         ? Colors.green.shade400.withAlpha(50)
@@ -259,7 +305,6 @@ class _RevenueCard extends StatelessWidget {
                       color: isPositive
                           ? Colors.green.shade300
                           : Colors.red.shade300,
-                      width: 1,
                     ),
                   ),
                   child: Row(
@@ -310,8 +355,7 @@ class _MiniStat extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label,
-              style: TextStyle(
-                  color: Colors.white54, fontSize: 10)),
+              style: const TextStyle(color: Colors.white54, fontSize: 10)),
           Text(value,
               style: TextStyle(
                   color: color, fontSize: 12, fontWeight: FontWeight.w600)),
@@ -342,15 +386,15 @@ class _StatGrid extends StatelessWidget {
           label: 'Gross Profit',
           value: formatCurrency(summary.grossProfit),
           icon: Icons.trending_up,
-          color: Colors.green.shade600,
-          bg: Colors.green.shade50,
+          accent: const Color(0xFF059669),
         ),
         _StatCard(
           label: 'Net Profit',
           value: formatCurrency(profit),
           icon: profit >= 0 ? Icons.show_chart : Icons.trending_down,
-          color: profit >= 0 ? Colors.teal.shade600 : Colors.red.shade600,
-          bg: profit >= 0 ? Colors.teal.shade50 : Colors.red.shade50,
+          accent: profit >= 0
+              ? const Color(0xFF0D9488)
+              : const Color(0xFFDC2626),
         ),
         _StatCard(
           label: 'Customer Due',
@@ -359,8 +403,7 @@ class _StatGrid extends StatelessWidget {
               ? '${summary.customerDueCount}'
               : null,
           icon: Icons.account_balance_wallet_outlined,
-          color: Colors.amber.shade700,
-          bg: Colors.amber.shade50,
+          accent: const Color(0xFFD97706),
         ),
         _StatCard(
           label: 'Overdue',
@@ -369,8 +412,7 @@ class _StatGrid extends StatelessWidget {
               ? '${summary.customerOverdueCount}'
               : null,
           icon: Icons.warning_amber_outlined,
-          color: Colors.red.shade600,
-          bg: Colors.red.shade50,
+          accent: const Color(0xFFDC2626),
         ),
       ],
     );
@@ -382,78 +424,82 @@ class _StatCard extends StatelessWidget {
     required this.label,
     required this.value,
     required this.icon,
-    required this.color,
-    required this.bg,
+    required this.accent,
     this.badge,
   });
 
   final String label;
   final String value;
   final IconData icon;
-  final Color color;
-  final Color bg;
+  final Color accent;
   final String? badge;
 
   @override
-  Widget build(BuildContext context) => Card(
-        elevation: 0,
-        color: bg,
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? accent.withAlpha(25) : accent.withAlpha(18);
+    final cardBorder = accent.withAlpha(isDark ? 40 : 30);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: cardBorder),
+      ),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
             children: [
-              Row(
-                children: [
-                  Icon(icon, color: color, size: 18),
-                  const Spacer(),
-                  if (badge != null)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: color.withAlpha(30),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        badge!,
-                        style: TextStyle(
-                            fontSize: 10,
-                            color: color,
-                            fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                ],
+              Icon(icon, color: accent, size: 18),
+              const Spacer(),
+              if (badge != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: accent.withAlpha(30),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    badge!,
+                    style: TextStyle(
+                        fontSize: 10,
+                        color: accent,
+                        fontWeight: FontWeight.w700),
+                  ),
+                ),
+            ],
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: GoogleFonts.instrumentSans(
+                    fontSize: 11,
+                    color: scheme.onSurface.withAlpha(160),
+                    fontWeight: FontWeight.w500),
               ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: TextStyle(
-                        fontSize: 11,
-                        color: color.withAlpha(180),
-                        fontWeight: FontWeight.w500),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    value,
-                    style: TextStyle(
-                        fontSize: 14,
-                        color: color,
-                        fontWeight: FontWeight.w800),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: GoogleFonts.instrumentSans(
+                    fontSize: 14,
+                    color: accent,
+                    fontWeight: FontWeight.w800),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
-        ),
-      );
+        ],
+      ),
+    );
+  }
 }
 
 // ── Cash flow card ─────────────────────────────────────────────────────────────
@@ -466,65 +512,73 @@ class _CashFlowCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
 
-    return Card(
-      elevation: 0,
-      color: theme.colorScheme.surfaceContainerLowest,
-      shape: RoundedRectangleBorder(
+    return Container(
+      decoration: BoxDecoration(
+        color: scheme.surface,
         borderRadius: BorderRadius.circular(14),
-        side: BorderSide(color: theme.colorScheme.outlineVariant),
+        border: Border.all(color: scheme.outline.withAlpha(80)),
       ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.account_balance_outlined, size: 15),
-                const SizedBox(width: 6),
-                Text('Cash Flow',
-                    style: theme.textTheme.labelMedium
-                        ?.copyWith(fontWeight: FontWeight.w700)),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _FlowItem(
-                    label: 'Opening',
-                    value: summary.openingBalance,
-                    color: theme.colorScheme.onSurfaceVariant),
-                _Arrow(),
-                _FlowItem(
-                    label: 'In',
-                    value: summary.cashInflow,
-                    color: Colors.green.shade600),
-                _Arrow(),
-                _FlowItem(
-                    label: 'Out',
-                    value: summary.cashOutflow,
-                    color: Colors.red.shade500),
-                _Arrow(),
-                _FlowItem(
-                    label: 'Closing',
-                    value: summary.closingBalance,
-                    color: const Color(0xFF4F46E5),
-                    bold: true),
-              ],
-            ),
-          ],
-        ),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.account_balance_outlined,
+                  size: 15, color: scheme.onSurface.withAlpha(160)),
+              const SizedBox(width: 6),
+              Text(
+                'Cash Flow',
+                style: GoogleFonts.instrumentSans(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: scheme.onSurface,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _FlowItem(
+                  label: 'Opening',
+                  value: summary.openingBalance,
+                  color: scheme.onSurface.withAlpha(180)),
+              _Arrow(scheme: scheme),
+              _FlowItem(
+                  label: 'In',
+                  value: summary.cashInflow,
+                  color: const Color(0xFF059669)),
+              _Arrow(scheme: scheme),
+              _FlowItem(
+                  label: 'Out',
+                  value: summary.cashOutflow,
+                  color: const Color(0xFFDC2626)),
+              _Arrow(scheme: scheme),
+              _FlowItem(
+                  label: 'Closing',
+                  value: summary.closingBalance,
+                  color: _kAccent,
+                  bold: true),
+            ],
+          ),
+        ],
       ),
     );
   }
 }
 
 class _Arrow extends StatelessWidget {
+  const _Arrow({required this.scheme});
+  final ColorScheme scheme;
+
   @override
   Widget build(BuildContext context) =>
-      const Icon(Icons.arrow_forward_ios, size: 10, color: Colors.grey);
+      Icon(Icons.arrow_forward_ios,
+          size: 10, color: scheme.onSurface.withAlpha(80));
 }
 
 class _FlowItem extends StatelessWidget {
@@ -540,111 +594,133 @@ class _FlowItem extends StatelessWidget {
   final bool bold;
 
   @override
-  Widget build(BuildContext context) => Column(
-        children: [
-          Text(label,
-              style: const TextStyle(fontSize: 10, color: Colors.grey)),
-          const SizedBox(height: 2),
-          Text(
-            formatCurrency(value),
-            style: TextStyle(
-              fontSize: 12,
-              color: color,
-              fontWeight: bold ? FontWeight.w800 : FontWeight.w600,
-            ),
-          ),
-        ],
-      );
-}
-
-// ── Quick actions ─────────────────────────────────────────────────────────────
-// The PAY button equivalent — amber/orange as the primary action.
-
-class _QuickActions extends StatelessWidget {
-  @override
   Widget build(BuildContext context) {
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 10,
-      crossAxisSpacing: 10,
-      childAspectRatio: 2.5,
+    final scheme = Theme.of(context).colorScheme;
+    return Column(
       children: [
-        _ActionButton(
-          label: 'New Sale',
-          icon: Icons.point_of_sale,
-          color: Colors.white,
-          bg: const Color(0xFFF59E0B), // amber — matches PAY button in reference
-          onTap: () => context.push('/quick-sale'),
-        ),
-        _ActionButton(
-          label: 'Customers',
-          icon: Icons.people_alt_outlined,
-          color: Colors.white,
-          bg: const Color(0xFF4F46E5),
-          onTap: () => context.push('/customers'),
-        ),
-        _ActionButton(
-          label: 'Cash Book',
-          icon: Icons.account_balance_wallet_outlined,
-          color: Colors.white,
-          bg: Colors.teal.shade600,
-          onTap: () => context.push('/cashbook'),
-        ),
-        _ActionButton(
-          label: 'Products',
-          icon: Icons.inventory_2_outlined,
-          color: Colors.white,
-          bg: Colors.blueGrey.shade600,
-          onTap: () => context.push('/products'),
+        Text(label,
+            style: GoogleFonts.instrumentSans(
+                fontSize: 10, color: scheme.onSurface.withAlpha(120))),
+        const SizedBox(height: 2),
+        Text(
+          formatCurrency(value),
+          style: GoogleFonts.instrumentSans(
+            fontSize: 12,
+            color: color,
+            fontWeight: bold ? FontWeight.w800 : FontWeight.w600,
+          ),
         ),
       ],
     );
   }
 }
 
-class _ActionButton extends StatelessWidget {
-  const _ActionButton({
+// ── Quick actions ─────────────────────────────────────────────────────────────
+
+class _QuickActions extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return GridView.count(
+      crossAxisCount: 3,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      mainAxisSpacing: 10,
+      crossAxisSpacing: 10,
+      childAspectRatio: 1.5,
+      children: [
+        _ActionTile(
+          label: 'New Sale',
+          icon: Icons.point_of_sale,
+          accent: const Color(0xFFF59E0B),
+          onTap: () => context.push('/quick-sale'),
+        ),
+        _ActionTile(
+          label: 'Customers',
+          icon: Icons.people_alt_outlined,
+          accent: _kAccent,
+          onTap: () => context.push('/customers'),
+        ),
+        _ActionTile(
+          label: 'Products',
+          icon: Icons.inventory_2_outlined,
+          accent: const Color(0xFF0891B2),
+          onTap: () => context.push('/products'),
+        ),
+        _ActionTile(
+          label: 'Suppliers',
+          icon: Icons.store_outlined,
+          accent: const Color(0xFF7C3AED),
+          onTap: () => context.push('/suppliers'),
+        ),
+        _ActionTile(
+          label: 'Cash Book',
+          icon: Icons.account_balance_wallet_outlined,
+          accent: const Color(0xFF0D9488),
+          onTap: () => context.push('/cashbook'),
+        ),
+        _ActionTile(
+          label: 'Stock In',
+          icon: Icons.move_to_inbox_outlined,
+          accent: const Color(0xFF059669),
+          onTap: () => context.push('/stock-in'),
+        ),
+      ],
+    );
+  }
+}
+
+class _ActionTile extends StatelessWidget {
+  const _ActionTile({
     required this.label,
     required this.icon,
-    required this.color,
-    required this.bg,
+    required this.accent,
     required this.onTap,
   });
 
   final String label;
   final IconData icon;
-  final Color color;
-  final Color bg;
+  final Color accent;
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => Material(
-        color: bg,
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Material(
+      color: isDark ? accent.withAlpha(30) : accent.withAlpha(18),
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
         borderRadius: BorderRadius.circular(14),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(14),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Row(
-              children: [
-                Icon(icon, color: color, size: 22),
-                const SizedBox(width: 10),
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                  ),
+        onTap: onTap,
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: accent.withAlpha(isDark ? 50 : 35)),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: accent, size: 22),
+              const SizedBox(height: 6),
+              Text(
+                label,
+                style: GoogleFonts.instrumentSans(
+                  color: isDark ? scheme.onSurface : accent.withAlpha(220),
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w700,
                 ),
-              ],
-            ),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
         ),
-      );
+      ),
+    );
+  }
 }
 
 // ── Top products list ─────────────────────────────────────────────────────────
@@ -656,15 +732,13 @@ class _TopProductsList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
+    final scheme = Theme.of(context).colorScheme;
 
-    return Card(
-      elevation: 0,
-      color: scheme.surfaceContainerLowest,
-      shape: RoundedRectangleBorder(
+    return Container(
+      decoration: BoxDecoration(
+        color: scheme.surface,
         borderRadius: BorderRadius.circular(14),
-        side: BorderSide(color: scheme.outlineVariant),
+        border: Border.all(color: scheme.outline.withAlpha(80)),
       ),
       child: Column(
         children: products.take(5).indexed.map((entry) {
@@ -673,8 +747,8 @@ class _TopProductsList extends StatelessWidget {
           return Column(
             children: [
               Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16, vertical: 11),
                 child: Row(
                   children: [
                     Container(
@@ -703,14 +777,19 @@ class _TopProductsList extends StatelessWidget {
                             p.partName,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodyMedium
-                                ?.copyWith(fontWeight: FontWeight.w600),
+                            style: GoogleFonts.instrumentSans(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: scheme.onSurface,
+                            ),
                           ),
                           if (p.partNumber.isNotEmpty)
                             Text(
                               p.partNumber,
-                              style: theme.textTheme.bodySmall
-                                  ?.copyWith(color: scheme.onSurfaceVariant),
+                              style: GoogleFonts.instrumentSans(
+                                fontSize: 11,
+                                color: scheme.onSurface.withAlpha(130),
+                              ),
                             ),
                         ],
                       ),
@@ -720,15 +799,17 @@ class _TopProductsList extends StatelessWidget {
                       children: [
                         Text(
                           '×${p.quantitySold}',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                              color: scheme.onSurfaceVariant),
+                          style: GoogleFonts.instrumentSans(
+                            fontSize: 11,
+                            color: scheme.onSurface.withAlpha(130),
+                          ),
                         ),
                         Text(
                           formatCurrency(p.totalRevenue),
-                          style: TextStyle(
+                          style: GoogleFonts.instrumentSans(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
-                            color: scheme.primary,
+                            color: _kAccent,
                           ),
                         ),
                       ],
@@ -741,7 +822,7 @@ class _TopProductsList extends StatelessWidget {
                     height: 1,
                     indent: 54,
                     endIndent: 16,
-                    color: scheme.outlineVariant),
+                    color: scheme.outline.withAlpha(60)),
             ],
           );
         }).toList(),
@@ -751,9 +832,9 @@ class _TopProductsList extends StatelessWidget {
 
   Color _rankColor(int idx) => switch (idx) {
         0 => const Color(0xFFF59E0B),
-        1 => Colors.blueGrey.shade400,
-        2 => Colors.brown.shade400,
-        _ => Colors.grey.shade400,
+        1 => const Color(0xFF94A3B8),
+        2 => const Color(0xFF92400E),
+        _ => const Color(0xFF9CA3AF),
       };
 }
 
@@ -766,15 +847,13 @@ class _TopCustomersList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
+    final scheme = Theme.of(context).colorScheme;
 
-    return Card(
-      elevation: 0,
-      color: scheme.surfaceContainerLowest,
-      shape: RoundedRectangleBorder(
+    return Container(
+      decoration: BoxDecoration(
+        color: scheme.surface,
         borderRadius: BorderRadius.circular(14),
-        side: BorderSide(color: scheme.outlineVariant),
+        border: Border.all(color: scheme.outline.withAlpha(80)),
       ),
       child: Column(
         children: customers.take(3).indexed.map((entry) {
@@ -794,12 +873,11 @@ class _TopCustomersList extends StatelessWidget {
                   children: [
                     CircleAvatar(
                       radius: 18,
-                      backgroundColor:
-                          scheme.primaryContainer,
+                      backgroundColor: _kAccent.withAlpha(25),
                       child: Text(
                         initial,
-                        style: TextStyle(
-                          color: scheme.onPrimaryContainer,
+                        style: const TextStyle(
+                          color: _kAccent,
                           fontWeight: FontWeight.w700,
                           fontSize: 13,
                         ),
@@ -814,13 +892,18 @@ class _TopCustomersList extends StatelessWidget {
                             c.customerName,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodyMedium
-                                ?.copyWith(fontWeight: FontWeight.w600),
+                            style: GoogleFonts.instrumentSans(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: scheme.onSurface,
+                            ),
                           ),
                           Text(
                             '${c.totalOrders} orders',
-                            style: theme.textTheme.bodySmall
-                                ?.copyWith(color: scheme.onSurfaceVariant),
+                            style: GoogleFonts.instrumentSans(
+                              fontSize: 11,
+                              color: scheme.onSurface.withAlpha(130),
+                            ),
                           ),
                         ],
                       ),
@@ -830,18 +913,18 @@ class _TopCustomersList extends StatelessWidget {
                       children: [
                         Text(
                           formatCurrency(c.totalRevenue),
-                          style: TextStyle(
+                          style: GoogleFonts.instrumentSans(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
-                            color: scheme.primary,
+                            color: _kAccent,
                           ),
                         ),
                         if (c.outstandingAmount > 0)
                           Text(
                             'Due: ${formatCurrency(c.outstandingAmount)}',
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 11,
-                              color: Colors.amber.shade700,
+                              color: Color(0xFFD97706),
                             ),
                           ),
                       ],
@@ -854,7 +937,7 @@ class _TopCustomersList extends StatelessWidget {
                     height: 1,
                     indent: 54,
                     endIndent: 16,
-                    color: scheme.outlineVariant),
+                    color: scheme.outline.withAlpha(60)),
             ],
           );
         }).toList(),
@@ -871,59 +954,66 @@ class _LowStockAlert extends StatelessWidget {
   final int count;
 
   @override
-  Widget build(BuildContext context) => Card(
-        elevation: 0,
-        color: Colors.orange.shade50,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-          side: BorderSide(color: Colors.orange.shade200),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Row(
-            children: [
-              Icon(Icons.inventory_2_outlined,
-                  color: Colors.orange.shade700, size: 22),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Low Stock Alert',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        color: Colors.orange.shade800,
-                      ),
-                    ),
-                    Text(
-                      '$count item${count == 1 ? '' : 's'} below reorder level',
-                      style: TextStyle(
-                          fontSize: 12, color: Colors.orange.shade700),
-                    ),
-                  ],
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    const accent = Color(0xFFD97706);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? accent.withAlpha(25) : const Color(0xFFFFF7ED),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+            color: isDark ? accent.withAlpha(50) : const Color(0xFFFED7AA)),
+      ),
+      padding: const EdgeInsets.all(14),
+      child: Row(
+        children: [
+          Icon(Icons.inventory_2_outlined, color: accent, size: 22),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Low Stock Alert',
+                  style: GoogleFonts.instrumentSans(
+                    fontWeight: FontWeight.w700,
+                    color: accent,
+                    fontSize: 13,
+                  ),
                 ),
-              ),
-              Icon(Icons.chevron_right, color: Colors.orange.shade400),
-            ],
+                Text(
+                  '$count item${count == 1 ? '' : 's'} below reorder level',
+                  style: GoogleFonts.instrumentSans(
+                      fontSize: 12,
+                      color: scheme.onSurface.withAlpha(160)),
+                ),
+              ],
+            ),
           ),
-        ),
-      );
+          Icon(Icons.chevron_right, color: accent.withAlpha(180)),
+        ],
+      ),
+    );
+  }
 }
 
 // ── Section label ─────────────────────────────────────────────────────────────
 
 class _SectionLabel extends StatelessWidget {
-  const _SectionLabel(this.text);
+  const _SectionLabel(this.text, {required this.scheme});
 
   final String text;
+  final ColorScheme scheme;
 
   @override
   Widget build(BuildContext context) => Text(
         text,
-        style: Theme.of(context)
-            .textTheme
-            .titleSmall
-            ?.copyWith(fontWeight: FontWeight.w700),
+        style: GoogleFonts.instrumentSans(
+          fontSize: 13,
+          fontWeight: FontWeight.w700,
+          color: scheme.onSurface,
+        ),
       );
 }

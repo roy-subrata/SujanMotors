@@ -60,6 +60,7 @@ class InvoiceLine {
     required this.quantity,
     required this.unitPrice,
     required this.lineTotal,
+    this.partId,
     this.partSku,
     this.variantName,
     this.unitSymbol,
@@ -69,6 +70,7 @@ class InvoiceLine {
   final int quantity;
   final double unitPrice;
   final double lineTotal;
+  final String? partId;
   final String? partSku;
   final String? variantName;
   final String? unitSymbol;
@@ -80,6 +82,7 @@ class InvoiceLine {
         quantity: asInt(json['quantity']),
         unitPrice: asDouble(json['unitPrice']),
         lineTotal: asDouble(json['lineTotal']),
+        partId: asStringOrNull(json['partId']),
         partSku: asStringOrNull(json['partSku']),
         variantName: asStringOrNull(json['variantName']),
         unitSymbol: asStringOrNull(json['unitSymbol']),

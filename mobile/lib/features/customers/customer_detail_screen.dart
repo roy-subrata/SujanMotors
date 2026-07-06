@@ -1,13 +1,17 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/network/app_exception.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/format.dart';
 import '../../shared/models/customer.dart';
 import '../../shared/models/invoice.dart';
+import '../../shared/models/sale_return.dart';
+import '../../shared/widgets/design_system.dart';
 import '../../shared/widgets/state_views.dart';
+import '../sales/sales_returns_repository.dart';
 import 'customers_repository.dart';
 
 class CustomerDetailScreen extends ConsumerWidget {
@@ -21,248 +25,822 @@ class CustomerDetailScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        flexibleSpace: const AppBarGradient(),
-        title: const Text('Customer'),
-      ),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          ref.invalidate(customerDetailProvider(customerId));
-          ref.invalidate(customerPaymentSummaryProvider(customerId));
-          ref.invalidate(customerOrdersProvider(customerId));
-        },
-        child: customerAsync.when(
-          loading: () => const LoadingView(),
-          error: (e, _) => ListView(children: [
-            const SizedBox(height: 120),
-            ErrorView(
-              message:
-                  e is AppException ? e.message : 'Failed to load customer.',
-              onRetry: () => ref.invalidate(customerDetailProvider(customerId)),
-            ),
-          ]),
-          data: (customer) => _Body(customer: customer),
+        title: Text(
+          'Customer',
+          style: GoogleFonts.instrumentSans(
+            fontSize: 16,
+            fontWeight: FontWeight.w700
+          ),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.edit_outlined),
+            onPressed: () {},
+          ),
+        ],
+      ),
+      body: customerAsync.when(
+        loading: () => const LoadingView(),
+        error: (e, _) => ListView(children: [
+          const SizedBox(height: 120),
+          ErrorView(
+            message:
+                e is AppException ? e.message : 'Failed to load customer.',
+            onRetry: () =>
+                ref.invalidate(customerDetailProvider(customerId)),
+          ),
+        ]),
+        data: (customer) => _Body(customer: customer),
       ),
     );
   }
 }
 
-// ── Body ─────────────────────────────────────────────────────────────────────
+// â”€â”€ Body â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-class _Body extends ConsumerWidget {
+class _Body extends ConsumerStatefulWidget {
   const _Body({required this.customer});
 
   final Customer customer;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final summaryAsync =
-        ref.watch(customerPaymentSummaryProvider(customer.id));
-    final ordersAsync = ref.watch(customerOrdersProvider(customer.id));
+  ConsumerState<_Body> createState() => _BodyState();
+}
 
-    return ListView(
-      padding: EdgeInsets.zero,
-      children: [
-        // Hero gradient header — flows seamlessly from the AppBar gradient
-        _HeroSection(customer: customer),
+class _BodyState extends ConsumerState<_Body> {
+  int _tabIndex = 0;
+  final _scrollCtrl = ScrollController();
 
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _ContactCard(customer: customer),
-              const SizedBox(height: 20),
+  // Invoice pagination
+  final _invoices = <Invoice>[];
+  int _invoicePage = 0;
+  bool _invoiceLoading = false;
+  bool _invoiceHasMore = true;
+  String? _invoiceError;
+  bool _invoiceInitialized = false;
 
-              _SectionHeader(
-                icon: Icons.account_balance_wallet_outlined,
-                title: 'Payment & due',
-              ),
-              const SizedBox(height: 8),
+  // Payment pagination
+  final _payments = <PaymentHistoryItem>[];
+  int _paymentPage = 0;
+  bool _paymentLoading = false;
+  bool _paymentHasMore = true;
+  String? _paymentError;
+  bool _paymentInitialized = false;
 
-              summaryAsync.when(
-                loading: () => const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 24),
-                  child: LoadingView(),
-                ),
-                error: (e, _) => ErrorView(
-                  message: e is AppException
-                      ? e.message
-                      : 'Failed to load payments.',
-                  onRetry: () => ref
-                      .invalidate(customerPaymentSummaryProvider(customer.id)),
-                ),
-                data: (summary) => _PaymentSummaryCard(
-                  customer: customer,
-                  summary: summary,
-                ),
-              ),
+  // Returns pagination
+  final _returns = <SalesReturn>[];
+  int _returnPage = 0;
+  bool _returnLoading = false;
+  bool _returnHasMore = true;
+  String? _returnError;
+  bool _returnInitialized = false;
 
-              const SizedBox(height: 20),
+  @override
+  void initState() {
+    super.initState();
+    _scrollCtrl.addListener(_onScroll);
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => _loadMoreInvoices());
+  }
 
-              // 2-column action cards
-              Row(
-                children: [
-                  Expanded(
-                    child: _ActionCard(
-                      icon: Icons.shopping_bag_outlined,
-                      label: 'Invoices',
-                      subtitle: ordersAsync.maybeWhen(
-                        data: (orders) => '${orders.length} order(s)',
-                        orElse: () => 'Parts buying history',
+  @override
+  void dispose() {
+    _scrollCtrl.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollCtrl.position.pixels <
+        _scrollCtrl.position.maxScrollExtent - 300) {
+      return;
+    }
+    if (_tabIndex == 0) {
+      _loadMoreInvoices();
+    } else if (_tabIndex == 1) {
+      _loadMorePayments();
+    } else if (_tabIndex == 2) {
+      _loadMoreReturns();
+    }
+  }
+
+  void _onTabSelect(int i) {
+    setState(() => _tabIndex = i);
+    if (i == 1 && !_paymentInitialized) _loadMorePayments();
+    if (i == 2 && !_returnInitialized) _loadMoreReturns();
+  }
+
+  Future<void> _loadMoreInvoices() async {
+    if (_invoiceLoading || !_invoiceHasMore) return;
+    setState(() => _invoiceLoading = true);
+    try {
+      final chunk =
+          await ref.read(customersRepositoryProvider).invoicesPage(
+                customerId: widget.customer.id,
+                page: _invoicePage + 1,
+              );
+      if (!mounted) return;
+      setState(() {
+        _invoices.addAll(chunk.items);
+        _invoicePage++;
+        _invoiceHasMore = chunk.hasMore;
+        _invoiceLoading = false;
+        _invoiceInitialized = true;
+        _invoiceError = null;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _invoiceLoading = false;
+        _invoiceError = e.toString();
+        _invoiceInitialized = true;
+      });
+    }
+  }
+
+  Future<void> _loadMorePayments() async {
+    if (_paymentLoading || !_paymentHasMore) return;
+    setState(() => _paymentLoading = true);
+    try {
+      final chunk =
+          await ref.read(customersRepositoryProvider).paymentsPage(
+                customerId: widget.customer.id,
+                page: _paymentPage + 1,
+              );
+      if (!mounted) return;
+      setState(() {
+        _payments.addAll(chunk.items);
+        _paymentPage++;
+        _paymentHasMore = chunk.hasMore;
+        _paymentLoading = false;
+        _paymentInitialized = true;
+        _paymentError = null;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _paymentLoading = false;
+        _paymentError = e.toString();
+        _paymentInitialized = true;
+      });
+    }
+  }
+
+  Future<void> _loadMoreReturns() async {
+    if (_returnLoading || !_returnHasMore) return;
+    setState(() => _returnLoading = true);
+    try {
+      final chunk = await ref
+          .read(salesReturnsRepositoryProvider)
+          .list(
+            searchTerm: widget.customer.fullName,
+            page: _returnPage + 1,
+          );
+      if (!mounted) return;
+      setState(() {
+        _returns.addAll(chunk.items);
+        _returnPage++;
+        _returnHasMore = chunk.hasMore;
+        _returnLoading = false;
+        _returnInitialized = true;
+        _returnError = null;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _returnLoading = false;
+        _returnError = e.toString();
+        _returnInitialized = true;
+      });
+    }
+  }
+
+  Future<void> _refresh() async {
+    final id = widget.customer.id;
+    ref.invalidate(customerDetailProvider(id));
+    ref.invalidate(customerPaymentSummaryProvider(id));
+    setState(() {
+      _invoices.clear();
+      _invoicePage = 0;
+      _invoiceHasMore = true;
+      _invoiceLoading = false;
+      _invoiceError = null;
+      _invoiceInitialized = false;
+      _payments.clear();
+      _paymentPage = 0;
+      _paymentHasMore = true;
+      _paymentLoading = false;
+      _paymentError = null;
+      _paymentInitialized = false;
+      _returns.clear();
+      _returnPage = 0;
+      _returnHasMore = true;
+      _returnLoading = false;
+      _returnError = null;
+      _returnInitialized = false;
+    });
+    await _loadMoreInvoices();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final id = widget.customer.id;
+    final summaryAsync = ref.watch(customerPaymentSummaryProvider(id));
+
+    return RefreshIndicator(
+      onRefresh: _refresh,
+      child: ListView(
+        controller: _scrollCtrl,
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+        children: [
+          // â”€â”€ Header card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+          CardSection(
+            padding: const EdgeInsets.all(15),
+            child: Column(
+              children: [
+                // Avatar + name + meta
+                Row(
+                  children: [
+                    InitialsAvatar(
+                        name: widget.customer.fullName, radius: 24),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.customer.fullName,
+                            style: GoogleFonts.instrumentSans(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            [
+                              if ((widget.customer.phone ?? '').isNotEmpty)
+                                widget.customer.phone!,
+                              if ((widget.customer.customerType ?? '')
+                                  .isNotEmpty)
+                                widget.customer.customerType!,
+                              if (widget.customer.lastPurchaseDate != null)
+                                'since ${formatDate(widget.customer.lastPurchaseDate!)}',
+                            ].join(' Â· '),
+                            style: GoogleFonts.instrumentSans(
+                              fontSize: 12
+                            ),
+                          ),
+                        ],
                       ),
-                      color: const Color(0xFF4F46E5),
-                      bg: const Color(0xFFEEF2FF),
-                      onTap: () =>
-                          context.push('/customers/${customer.id}/orders'),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _ActionCard(
-                      icon: Icons.history,
-                      label: 'Payments',
-                      subtitle: summaryAsync.maybeWhen(
-                        data: (s) => '${s.history.length} payment(s)',
-                        orElse: () => 'Completed & pending',
+                  ],
+                ),
+                const SizedBox(height: 14),
+
+                // 3-stat row
+                summaryAsync.when(
+                  data: (s) => Row(
+                    children: [
+                      _StatBox(
+                        label: 'Due',
+                        value: formatCurrency(s.amountDue),
+                        valueColor: AppColors.red,
+                        bg: AppColors.redBg,
                       ),
-                      color: const Color(0xFF0F766E),
-                      bg: const Color(0xFFECFDF5),
-                      onTap: () =>
-                          context.push('/customers/${customer.id}/payments'),
-                    ),
+                      const SizedBox(width: 8),
+                      _StatBox(
+                        label: 'Lifetime',
+                        value: formatCurrency(
+                            widget.customer.totalPurchaseAmount),
+                      ),
+                      const SizedBox(width: 8),
+                      _StatBox(
+                        label: 'Invoices',
+                        value: '${s.totalInvoices}',
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              // Full-width statement card
-              _ActionCard(
-                icon: Icons.description_outlined,
-                label: 'Account Statement',
-                subtitle: 'Full transaction history & PDF',
-                color: const Color(0xFF7C3AED),
-                bg: const Color(0xFFF5F3FF),
-                onTap: () =>
-                    context.push('/customers/${customer.id}/statement'),
-              ),
+                  loading: () => const SizedBox(
+                      height: 56,
+                      child: Center(child: CircularProgressIndicator())),
+                  error: (_, _) { return const SizedBox.shrink(); },
+                ),
+
+                const SizedBox(height: 14),
+
+                // 2Ã—2 action grid
+                GridView.count(
+                  crossAxisCount: 2,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  mainAxisSpacing: 8,
+                  crossAxisSpacing: 8,
+                  childAspectRatio: 3.2,
+                  children: [
+                    _ActionButton(
+                      label: 'Receive payment',
+                      icon: Icons.payments_outlined,
+                      filled: true,
+                      onTap: () => context
+                          .push('/customers/${widget.customer.id}/pay'),
+                    ),
+                    _ActionButton(
+                      label: 'Send reminder',
+                      icon: Icons.notifications_active_outlined,
+                      filled: false,
+                      onTap: () => _showReminderSheet(context),
+                    ),
+                    _ActionButton(
+                      label: 'Statement',
+                      icon: Icons.description_outlined,
+                      filled: false,
+                      onTap: () => context.push(
+                          '/customers/${widget.customer.id}/statement'),
+                    ),
+                    _ActionButton(
+                      label: 'New sale',
+                      icon: Icons.add_shopping_cart_outlined,
+                      filled: false,
+                      onTap: () => context.push('/quick-sale'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // â”€â”€ Tab chips â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+          FilterChipRow(
+            selected: _tabIndex,
+            onSelect: _onTabSelect,
+            chips: const [
+              FilterChipData(label: 'Invoices'),
+              FilterChipData(label: 'Payments'),
+              FilterChipData(label: 'Returns'),
             ],
           ),
+          const SizedBox(height: 12),
+
+          // â”€â”€ Invoices tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+          if (_tabIndex == 0) ...[
+            if (!_invoiceInitialized ||
+                (_invoices.isEmpty && _invoiceLoading))
+              const LoadingView()
+            else if (_invoices.isEmpty && _invoiceError != null)
+              ErrorView(
+                message: 'Failed to load invoices.',
+                onRetry: () {
+                  setState(() {
+                    _invoiceError = null;
+                    _invoiceInitialized = false;
+                  });
+                  _loadMoreInvoices();
+                },
+              )
+            else if (_invoices.isEmpty)
+              const EmptyView(
+                  message: 'No invoices yet.',
+                  icon: Icons.receipt_long_outlined)
+            else
+              _InvoiceList(
+                invoices: _invoices,
+                isLoading: _invoiceLoading,
+                hasMore: _invoiceHasMore,
+              ),
+          ],
+
+          // â”€â”€ Payments tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+          if (_tabIndex == 1) ...[
+            if (!_paymentInitialized ||
+                (_payments.isEmpty && _paymentLoading))
+              const LoadingView()
+            else if (_payments.isEmpty && _paymentError != null)
+              ErrorView(
+                message: 'Failed to load payments.',
+                onRetry: () {
+                  setState(() {
+                    _paymentError = null;
+                    _paymentInitialized = false;
+                  });
+                  _loadMorePayments();
+                },
+              )
+            else if (_payments.isEmpty)
+              const EmptyView(
+                  message: 'No payments yet.',
+                  icon: Icons.payments_outlined)
+            else
+              _PaymentList(
+                payments: _payments,
+                isLoading: _paymentLoading,
+                hasMore: _paymentHasMore,
+              ),
+          ],
+
+          // â”€â”€ Returns tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+          if (_tabIndex == 2) ...[
+            if (!_returnInitialized ||
+                (_returns.isEmpty && _returnLoading))
+              const LoadingView()
+            else if (_returns.isEmpty && _returnError != null)
+              ErrorView(
+                message: 'Failed to load returns.',
+                onRetry: () {
+                  setState(() {
+                    _returnError = null;
+                    _returnInitialized = false;
+                  });
+                  _loadMoreReturns();
+                },
+              )
+            else if (_returns.isEmpty)
+              Column(children: [
+                const EmptyView(
+                  message: 'No returns recorded.',
+                  icon: Icons.assignment_return_outlined,
+                ),
+                const SizedBox(height: 12),
+                _InitiateReturnButton(customerId: id),
+              ])
+            else
+              _ReturnsList(
+                returns: _returns,
+                isLoading: _returnLoading,
+                hasMore: _returnHasMore,
+                customerId: id,
+              ),
+          ],
+
+          const SizedBox(height: 24),
+        ],
+      ),
+    );
+  }
+
+  void _showReminderSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _ReminderSheet(customer: widget.customer),
+    );
+  }
+}
+
+// â”€â”€ Invoice list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+class _InvoiceList extends StatelessWidget {
+  const _InvoiceList({
+    required this.invoices,
+    required this.isLoading,
+    required this.hasMore,
+  });
+
+  final List<Invoice> invoices;
+  final bool isLoading;
+  final bool hasMore;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Theme.of(context).colorScheme.outline),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            children: invoices.asMap().entries.map((e) {
+              final i = e.key;
+              final inv = e.value;
+              return Column(
+                children: [
+                  if (i > 0)
+                    Divider(height: 1, color: Theme.of(context).colorScheme.outline.withAlpha(60)),
+                  _InvoiceRow(invoice: inv),
+                ],
+              );
+            }).toList(),
+          ),
         ),
+        _PaginationFooter(isLoading: isLoading, hasMore: hasMore),
       ],
     );
   }
 }
 
-// ── Hero gradient header ──────────────────────────────────────────────────────
+class _InvoiceRow extends StatelessWidget {
+  const _InvoiceRow({required this.invoice});
 
-class _HeroSection extends StatelessWidget {
-  const _HeroSection({required this.customer});
-
-  final Customer customer;
-
-  static const _palette = [
-    Color(0xFFC7D2FE), Color(0xFF99F6E4), Color(0xFFFDE68A),
-    Color(0xFFFECDD3), Color(0xFFBBF7D0), Color(0xFFE9D5FF),
-    Color(0xFFFED7AA), Color(0xFFA5F3FC),
-  ];
-
-  static const _paletteText = [
-    Color(0xFF3730A3), Color(0xFF0F766E), Color(0xFF92400E),
-    Color(0xFF9F1239), Color(0xFF166534), Color(0xFF6B21A8),
-    Color(0xFF9A3412), Color(0xFF155E75),
-  ];
-
-  Color get _bgColor =>
-      _palette[customer.fullName.hashCode.abs() % _palette.length];
-
-  Color get _fgColor =>
-      _paletteText[customer.fullName.hashCode.abs() % _paletteText.length];
-
-  String _initials() {
-    final parts = customer.fullName
-        .trim()
-        .split(RegExp(r'\s+'))
-        .where((p) => p.isNotEmpty)
-        .toList();
-    if (parts.isEmpty) return '?';
-    if (parts.length == 1) return parts.first[0].toUpperCase();
-    return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
-  }
+  final Invoice invoice;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Container(
-      width: double.infinity,
-      decoration: const BoxDecoration(gradient: AppGradients.brand),
-      padding: const EdgeInsets.fromLTRB(16, 28, 16, 28),
-      child: Column(
-        children: [
-          // Avatar with white ring for separation from gradient bg
-          Container(
-            padding: const EdgeInsets.all(3),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-            ),
-            child: CircleAvatar(
-              radius: 44,
-              backgroundColor: _bgColor,
-              child: Text(
-                _initials(),
-                style: TextStyle(
-                  fontSize: 34,
-                  fontWeight: FontWeight.w900,
-                  color: _fgColor,
-                ),
+    final hasBalance = invoice.outstandingAmount > 0;
+    return InkWell(
+      onTap: () => context.push(
+        '/invoice/${invoice.id}',
+        extra: invoice,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    invoice.invoiceNumber,
+                    style: GoogleFonts.instrumentSans(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w500
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${formatDate(invoice.invoiceDate)} Â· ${invoice.salesOrderNumber}',
+                    style: GoogleFonts.instrumentSans(
+                      fontSize: 11.5
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
-          const SizedBox(height: 16),
-
-          // Name
-          Text(
-            customer.fullName,
-            textAlign: TextAlign.center,
-            style: theme.textTheme.headlineSmall?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w800,
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  formatCurrency(invoice.grandTotal),
+                  style: GoogleFonts.instrumentSans(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600
+                  ),
+                ),
+                const SizedBox(height: 4),
+                if (hasBalance)
+                  Text(
+                    'Due ${formatCurrency(invoice.outstandingAmount)}',
+                    style: GoogleFonts.instrumentSans(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.red,
+                    ),
+                  )
+                else
+                  StatusPill(label: invoice.status ?? 'PENDING'),
+              ],
             ),
-          ),
-
-          // Company
-          if ((customer.companyName ?? '').isNotEmpty) ...[
-            const SizedBox(height: 4),
-            Text(
-              customer.companyName!,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.white70, fontSize: 14),
-            ),
+            const SizedBox(width: 8),
+            const Icon(Icons.chevron_right,
+                color: AppColors.disabled, size: 18),
           ],
+        ),
+      ),
+    );
+  }
+}
 
-          const SizedBox(height: 16),
+// â”€â”€ Payment list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-          // Identity chips: code · type · status
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            alignment: WrapAlignment.center,
-            children: [
-              _HeroChip(label: customer.customerCode),
-              if ((customer.customerType ?? '').isNotEmpty)
-                _HeroChip(label: customer.customerType!),
-              if (customer.status != null) ...[
-                _HeroChip(
-                  label: customer.status!,
-                  bg: customer.status!.toUpperCase() == 'ACTIVE'
-                      ? Colors.green.shade100
-                      : Colors.white24,
-                  color: customer.status!.toUpperCase() == 'ACTIVE'
-                      ? Colors.green.shade800
-                      : Colors.white,
+class _PaymentList extends StatelessWidget {
+  const _PaymentList({
+    required this.payments,
+    required this.isLoading,
+    required this.hasMore,
+  });
+
+  final List<PaymentHistoryItem> payments;
+  final bool isLoading;
+  final bool hasMore;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Theme.of(context).colorScheme.outline),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            children: payments.asMap().entries.map((e) {
+              final i = e.key;
+              final p = e.value;
+              return Column(
+                children: [
+                  if (i > 0)
+                    Divider(height: 1, color: Theme.of(context).colorScheme.outline.withAlpha(60)),
+                  _PaymentRow(payment: p),
+                ],
+              );
+            }).toList(),
+          ),
+        ),
+        _PaginationFooter(isLoading: isLoading, hasMore: hasMore),
+      ],
+    );
+  }
+}
+
+class _PaymentRow extends StatelessWidget {
+  const _PaymentRow({required this.payment});
+
+  final PaymentHistoryItem payment;
+
+  @override
+  Widget build(BuildContext context) {
+    final method = payment.paymentMethod ?? 'Cash';
+    final isCompleted =
+        (payment.status ?? '').toUpperCase() == 'COMPLETED';
+    return Padding(
+      padding:
+          const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(
+        children: [
+          // Method icon badge
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: isCompleted ? AppColors.greenBg : Theme.of(context).scaffoldBackgroundColor,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              _methodEmoji(method),
+              style: const TextStyle(fontSize: 16),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  method,
+                  style: GoogleFonts.instrumentSans(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w500
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  [
+                    formatDate(payment.paymentDate),
+                    if ((payment.invoiceNumber ?? '').isNotEmpty)
+                      payment.invoiceNumber!,
+                  ].join(' Â· '),
+                  style: GoogleFonts.instrumentSans(
+                    fontSize: 11.5
+                  ),
                 ),
               ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                formatCurrency(payment.amount),
+                style: GoogleFonts.instrumentSans(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w600,
+                  color:
+                      isCompleted ? AppColors.green : AppColors.ink,
+                ),
+              ),
+              const SizedBox(height: 4),
+              StatusPill(label: payment.status ?? 'PENDING'),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _methodEmoji(String method) {
+    return switch (method.toLowerCase()) {
+      'cash' => 'ðŸ’µ',
+      'bank' || 'bank transfer' => 'ðŸ¦',
+      'bkash' || 'mobile banking' => 'ðŸ“±',
+      'cheque' => 'ðŸ“„',
+      _ => 'ðŸ’³',
+    };
+  }
+}
+
+// â”€â”€ Returns list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+class _ReturnsList extends StatelessWidget {
+  const _ReturnsList({
+    required this.returns,
+    required this.isLoading,
+    required this.hasMore,
+    required this.customerId,
+  });
+
+  final List<SalesReturn> returns;
+  final bool isLoading;
+  final bool hasMore;
+  final String customerId;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Theme.of(context).colorScheme.outline),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            children: returns.asMap().entries.map((e) {
+              return Column(
+                children: [
+                  if (e.key > 0)
+                    Divider(height: 1, color: Theme.of(context).colorScheme.outline.withAlpha(60)),
+                  _ReturnRow(ret: e.value),
+                ],
+              );
+            }).toList(),
+          ),
+        ),
+        _PaginationFooter(isLoading: isLoading, hasMore: hasMore),
+        const SizedBox(height: 12),
+        _InitiateReturnButton(customerId: customerId),
+      ],
+    );
+  }
+}
+
+class _ReturnRow extends StatelessWidget {
+  const _ReturnRow({required this.ret});
+
+  final SalesReturn ret;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: AppColors.redBg,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            alignment: Alignment.center,
+            child: const Icon(Icons.assignment_return_outlined,
+                size: 18, color: AppColors.red),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  ret.returnNumber,
+                  style: GoogleFonts.instrumentSans(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w500
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  [
+                    formatDate(ret.createdAt),
+                    if ((ret.salesOrderNumber ?? '').isNotEmpty)
+                      ret.salesOrderNumber!,
+                  ].join(' Â· '),
+                  style: GoogleFonts.instrumentSans(
+                    fontSize: 11.5
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                formatCurrency(ret.totalRefundAmount),
+                style: GoogleFonts.instrumentSans(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.red,
+                ),
+              ),
+              const SizedBox(height: 4),
+              StatusPill(label: ret.status),
             ],
           ),
         ],
@@ -271,356 +849,194 @@ class _HeroSection extends StatelessWidget {
   }
 }
 
-class _HeroChip extends StatelessWidget {
-  const _HeroChip({required this.label, this.bg, this.color});
+class _InitiateReturnButton extends StatelessWidget {
+  const _InitiateReturnButton({required this.customerId});
+
+  final String customerId;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: () => context.push('/sales/return'),
+        icon: const Icon(Icons.assignment_return_outlined, size: 16),
+        label: const Text('Initiate return'),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.ink,
+          side: BorderSide(color: Theme.of(context).colorScheme.outline),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          padding: const EdgeInsets.symmetric(vertical: 13),
+          textStyle: GoogleFonts.instrumentSans(
+              fontSize: 13.5, fontWeight: FontWeight.w600),
+        ),
+      ),
+    );
+  }
+}
+
+// â”€â”€ Pagination footer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+class _PaginationFooter extends StatelessWidget {
+  const _PaginationFooter(
+      {required this.isLoading, required this.hasMore});
+
+  final bool isLoading;
+  final bool hasMore;
+
+  @override
+  Widget build(BuildContext context) {
+    if (isLoading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 16),
+        child: Center(
+          child: SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+      );
+    }
+    if (!hasMore) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Center(
+          child: Text(
+            'All records loaded',
+            style: GoogleFonts.instrumentSans(
+                fontSize: 12, color: AppColors.muted),
+          ),
+        ),
+      );
+    }
+    return const SizedBox.shrink();
+  }
+}
+
+// â”€â”€ Stat box â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+class _StatBox extends StatelessWidget {
+  const _StatBox({
+    required this.label,
+    required this.value,
+    this.valueColor,
+    this.bg,
+  });
 
   final String label;
+  final String value;
+  final Color? valueColor;
   final Color? bg;
-  final Color? color;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-      decoration: BoxDecoration(
-        color: bg ?? Colors.white.withValues(alpha: 0.2),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 12,
-          color: color ?? Colors.white,
-          fontWeight: FontWeight.w600,
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(10, 10, 10, 11),
+        decoration: BoxDecoration(
+          color: bg ?? Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: BorderRadius.circular(10),
         ),
-      ),
-    );
-  }
-}
-
-// ── Contact card ──────────────────────────────────────────────────────────────
-
-class _ContactCard extends StatelessWidget {
-  const _ContactCard({required this.customer});
-
-  final Customer customer;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-
-    final rows = <(IconData, String, String)>[
-      if ((customer.phone ?? '').isNotEmpty)
-        (Icons.phone_outlined, 'Phone', customer.phone!),
-      if ((customer.email ?? '').isNotEmpty)
-        (Icons.email_outlined, 'Email', customer.email!),
-      if ((customer.city ?? '').isNotEmpty)
-        (Icons.location_on_outlined, 'City', customer.city!),
-    ];
-
-    if (rows.isEmpty) return const SizedBox.shrink();
-
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.5)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Column(
-          children: rows.map((row) {
-            final (icon, label, value) = row;
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Row(
-                children: [
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: scheme.primaryContainer.withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Icon(icon, size: 18, color: scheme.primary),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          label,
-                          style: theme.textTheme.labelSmall
-                              ?.copyWith(color: scheme.onSurfaceVariant),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          value,
-                          style: theme.textTheme.bodyMedium
-                              ?.copyWith(fontWeight: FontWeight.w500),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }).toList(),
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label,
+                style: GoogleFonts.instrumentSans(
+                    fontSize: 10.5, color: AppColors.muted)),
+            const SizedBox(height: 3),
+            Text(value,
+                style: GoogleFonts.instrumentSans(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: valueColor ?? AppColors.ink,
+                )),
+          ],
         ),
       ),
     );
   }
 }
 
-// ── Action card (Invoices / Payments) ─────────────────────────────────────────
+// â”€â”€ Action button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-class _ActionCard extends StatelessWidget {
-  const _ActionCard({
-    required this.icon,
+class _ActionButton extends StatelessWidget {
+  const _ActionButton({
     required this.label,
-    required this.subtitle,
-    required this.color,
-    required this.bg,
+    required this.icon,
+    required this.filled,
     required this.onTap,
   });
 
-  final IconData icon;
   final String label;
-  final String subtitle;
-  final Color color;
-  final Color bg;
+  final IconData icon;
+  final bool filled;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 0,
-      margin: EdgeInsets.zero,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: BorderSide(
-          color: color.withValues(alpha: 0.25),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+        decoration: BoxDecoration(
+          color: filled ? AppColors.ink : Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(11),
+          border: Border.all(
+              color: filled ? AppColors.ink : Theme.of(context).colorScheme.outline),
         ),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: bg,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(icon, color: color, size: 22),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                label,
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 15,
-                  color: color,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                subtitle,
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-              ),
-            ],
-          ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon,
+                size: 15,
+                color: filled ? Colors.white : AppColors.secondary),
+            const SizedBox(width: 6),
+            Text(label,
+                style: GoogleFonts.instrumentSans(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  color: filled ? Colors.white : AppColors.ink,
+                )),
+          ],
         ),
       ),
     );
   }
 }
 
-// ── Payment summary card ──────────────────────────────────────────────────────
+// â”€â”€ Reminder sheet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-class _PaymentSummaryCard extends ConsumerStatefulWidget {
-  const _PaymentSummaryCard({required this.customer, required this.summary});
+class _ReminderSheet extends ConsumerStatefulWidget {
+  const _ReminderSheet({required this.customer});
 
   final Customer customer;
-  final CustomerPaymentSummary summary;
 
   @override
-  ConsumerState<_PaymentSummaryCard> createState() =>
-      _PaymentSummaryCardState();
+  ConsumerState<_ReminderSheet> createState() => _ReminderSheetState();
 }
 
-class _PaymentSummaryCardState extends ConsumerState<_PaymentSummaryCard> {
+class _ReminderSheetState extends ConsumerState<_ReminderSheet> {
+  int _channelIndex = 0;
   bool _sending = false;
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final s = widget.summary;
-    final due = s.amountDue;
-    final hasDue = due > 0;
-    final dueColor = hasDue ? scheme.error : Colors.green.shade700;
+  static const _channels = ['SMS', 'WhatsApp', 'Email'];
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Headline due amount
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: (hasDue ? scheme.errorContainer : Colors.green.shade50)
-                    .withValues(alpha: 0.6),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Outstanding due', style: theme.textTheme.bodySmall),
-                  const SizedBox(height: 4),
-                  Text(
-                    formatCurrency(due),
-                    style: theme.textTheme.headlineMedium?.copyWith(
-                        color: dueColor, fontWeight: FontWeight.bold),
-                  ),
-                  if (s.overdueInvoices > 0)
-                    Text(
-                      '${s.overdueInvoices} overdue invoice(s)',
-                      style: TextStyle(color: scheme.error, fontSize: 12),
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Metric grid
-            Wrap(
-              spacing: 24,
-              runSpacing: 16,
-              children: [
-                _Metric(label: 'Total paid', value: formatCurrency(s.totalPaid)),
-                _Metric(
-                    label: 'Total invoiced',
-                    value: formatCurrency(s.totalInvoiceAmount)),
-                _Metric(
-                    label: 'Advance credit',
-                    value: formatCurrency(s.availableAdvance)),
-                _Metric(
-                    label: 'Unpaid invoices', value: '${s.unpaidInvoices}'),
-                if (s.lastPaymentDate != null)
-                  _Metric(
-                      label: 'Last payment',
-                      value:
-                          '${formatCurrency(s.lastPaymentAmount)}\n${formatDate(s.lastPaymentDate!)}'),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: () => _openRecordPaymentSheet(context),
-                icon: const Icon(Icons.payments_outlined),
-                label: const Text('Record Payment'),
-              ),
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: _sending ? null : _openReminderSheet,
-                icon: _sending
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Icon(Icons.notifications_active_outlined),
-                label: Text(hasDue
-                    ? 'Send payment reminder'
-                    : 'Send a reminder'),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _openRecordPaymentSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (sheetCtx) => _RecordPaymentSheet(customer: widget.customer),
-    );
-  }
-
-  Future<void> _openReminderSheet() async {
-    final customer = widget.customer;
-    final channel = await showModalBottomSheet<String>(
-      context: context,
-      showDragHandle: true,
-      builder: (sheetCtx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: Text('Send reminder via',
-                  style: Theme.of(sheetCtx).textTheme.titleMedium),
-            ),
-            ListTile(
-              leading: const Icon(Icons.sms_outlined),
-              title: const Text('SMS'),
-              subtitle: Text(customer.phone ?? 'No phone number'),
-              enabled: (customer.phone ?? '').isNotEmpty,
-              onTap: () => Navigator.pop(sheetCtx, 'SMS'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.chat_outlined),
-              title: const Text('WhatsApp'),
-              subtitle: Text(customer.phone ?? 'No phone number'),
-              enabled: (customer.phone ?? '').isNotEmpty,
-              onTap: () => Navigator.pop(sheetCtx, 'WHATSAPP'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.email_outlined),
-              title: const Text('Email'),
-              subtitle: Text(customer.email ?? 'No email address'),
-              enabled: (customer.email ?? '').isNotEmpty,
-              onTap: () => Navigator.pop(sheetCtx, 'EMAIL'),
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
-    );
-
-    if (channel == null || !mounted) return;
-    await _sendReminder(channel);
-  }
-
-  Future<void> _sendReminder(String channel) async {
+  Future<void> _send() async {
     setState(() => _sending = true);
     final messenger = ScaffoldMessenger.of(context);
-    final errorColor = Theme.of(context).colorScheme.error;
+    final nav = Navigator.of(context);
+    final errorColor = AppColors.red;
     try {
       final msg = await ref
           .read(customersRepositoryProvider)
           .sendPaymentReminder(
             customerId: widget.customer.id,
-            channel: channel,
+            channel: _channels[_channelIndex].toUpperCase(),
           );
+      nav.pop();
       messenger.showSnackBar(SnackBar(content: Text(msg)));
     } on AppException catch (e) {
       messenger.showSnackBar(SnackBar(
@@ -631,490 +1047,85 @@ class _PaymentSummaryCardState extends ConsumerState<_PaymentSummaryCard> {
       if (mounted) setState(() => _sending = false);
     }
   }
-}
-
-// ── Shared helpers ────────────────────────────────────────────────────────────
-
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.icon, required this.title});
-
-  final IconData icon;
-  final String title;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Row(
-      children: [
-        Icon(icon, size: 20, color: theme.colorScheme.primary),
-        const SizedBox(width: 8),
-        Text(title, style: theme.textTheme.titleMedium),
-      ],
-    );
-  }
-}
-
-class _Metric extends StatelessWidget {
-  const _Metric({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(label, style: theme.textTheme.bodySmall),
-        const SizedBox(height: 2),
-        Text(value,
-            style: theme.textTheme.titleSmall
-                ?.copyWith(fontWeight: FontWeight.bold)),
-      ],
-    );
-  }
-}
-
-// ── Record Payment bottom sheet ───────────────────────────────────────────────
-
-class _RecordPaymentSheet extends ConsumerStatefulWidget {
-  const _RecordPaymentSheet({required this.customer});
-
-  final Customer customer;
-
-  @override
-  ConsumerState<_RecordPaymentSheet> createState() =>
-      _RecordPaymentSheetState();
-}
-
-class _RecordPaymentSheetState extends ConsumerState<_RecordPaymentSheet> {
-  final _formKey = GlobalKey<FormState>();
-  final _amountCtrl = TextEditingController();
-  final _transactionCtrl = TextEditingController();
-  final _notesCtrl = TextEditingController();
-
-  String _method = 'CASH';
-  DateTime _date = DateTime.now();
-  bool _submitting = false;
-
-  bool _isAdvance = false;
-  Invoice? _selectedInvoice;
-  bool _invoiceError = false;
-  final List<Invoice> _loadedInvoices = [];
-  bool _loadingInvoices = false;
-  bool _invoicesLoaded = false;
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.customer.dueAmount > 0) {
-      _amountCtrl.text =
-          widget.customer.dueAmount.toStringAsFixed(2);
-    }
-    _loadInvoices();
-  }
-
-  @override
-  void dispose() {
-    _amountCtrl.dispose();
-    _transactionCtrl.dispose();
-    _notesCtrl.dispose();
-    super.dispose();
-  }
-
-  Future<void> _loadInvoices() async {
-    if (_invoicesLoaded || _loadingInvoices) return;
-    setState(() => _loadingInvoices = true);
-    try {
-      final page = await ref.read(customersRepositoryProvider).invoicesPage(
-            customerId: widget.customer.id,
-            pageSize: 50,
-          );
-      if (!mounted) return;
-      setState(() {
-        _loadedInvoices
-            .addAll(page.items.where((i) => i.outstandingAmount > 0));
-        _invoicesLoaded = true;
-        _loadingInvoices = false;
-      });
-    } catch (_) {
-      if (mounted) {
-        setState(() {
-          _invoicesLoaded = true;
-          _loadingInvoices = false;
-        });
-      }
-    }
-  }
-
-  Future<void> _pickInvoice() async {
-    if (_loadingInvoices) return;
-    final selected = await showModalBottomSheet<Invoice>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      builder: (ctx) => _InvoicePickerSheet(invoices: _loadedInvoices),
-    );
-    if (!mounted || selected == null) return;
-    setState(() {
-      _selectedInvoice = selected;
-      _invoiceError = false;
-      _amountCtrl.text = selected.outstandingAmount.toStringAsFixed(2);
-    });
-  }
-
-  Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
-    if (!_isAdvance && _selectedInvoice == null) {
-      setState(() => _invoiceError = true);
-      return;
-    }
-    // Dismiss keyboard before the async call — prevents FocusScopeNode
-    // disposal errors when the sheet is popped while a field has focus.
-    FocusScope.of(context).unfocus();
-    setState(() => _submitting = true);
-    // Capture context-derived values before any await.
-    final messenger = ScaffoldMessenger.of(context);
-    final nav = Navigator.of(context);
-    final errorColor = Theme.of(context).colorScheme.error;
-    try {
-      await ref.read(customersRepositoryProvider).recordPayment(
-            customerId: widget.customer.id,
-            amount: double.parse(
-                _amountCtrl.text.trim().replaceAll(',', '')),
-            paymentMethod: _method,
-            transactionNumber: _transactionCtrl.text.trim().isEmpty
-                ? null
-                : _transactionCtrl.text.trim(),
-            paymentDate: _date,
-            notes: _notesCtrl.text.trim().isEmpty
-                ? null
-                : _notesCtrl.text.trim(),
-            invoiceId: _isAdvance ? null : _selectedInvoice?.id,
-            isAdvance: _isAdvance,
-          );
-      ref.invalidate(customerDetailProvider(widget.customer.id));
-      ref.invalidate(customerPaymentSummaryProvider(widget.customer.id));
-      if (!mounted) return;
-      nav.pop();
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Payment recorded successfully')),
-      );
-    } on AppException catch (e) {
-      if (!mounted) return;
-      messenger.showSnackBar(SnackBar(
-        content: Text(e.message),
-        backgroundColor: errorColor,
-      ));
-    } finally {
-      if (mounted) setState(() => _submitting = false);
-    }
-  }
-
-  Future<void> _pickDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _date,
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
-    );
-    if (!mounted || picked == null) return;
-    setState(() => _date = picked);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-
-    return Padding(
-      padding:
-          EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
-        child: Form(
-          key: _formKey,
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 12,
+            bottom: MediaQuery.viewInsetsOf(context).bottom + 16,
+          ),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Record Payment',
-                style: theme.textTheme.titleLarge
-                    ?.copyWith(fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                widget.customer.fullName,
-                style: theme.textTheme.bodyMedium
-                    ?.copyWith(color: scheme.onSurfaceVariant),
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.outline,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
               ),
               const SizedBox(height: 20),
-
-              // Payment type toggle
               Text(
-                'Payment Type',
-                style: theme.textTheme.labelMedium
-                    ?.copyWith(color: scheme.onSurfaceVariant),
-              ),
-              const SizedBox(height: 8),
-              SegmentedButton<bool>(
-                segments: const [
-                  ButtonSegment(
-                      value: false, label: Text('Against Invoice')),
-                  ButtonSegment(
-                      value: true, label: Text('Advance Payment')),
-                ],
-                selected: {_isAdvance},
-                onSelectionChanged: (s) => setState(() {
-                  _isAdvance = s.first;
-                  if (_isAdvance) {
-                    _selectedInvoice = null;
-                    _invoiceError = false;
-                  }
-                }),
-              ),
-              const SizedBox(height: 16),
-
-              // Invoice picker (hidden when advance)
-              if (!_isAdvance) ...[
-                GestureDetector(
-                  onTap: _loadingInvoices ? null : _pickInvoice,
-                  child: InputDecorator(
-                    decoration: InputDecoration(
-                      labelText: 'Invoice',
-                      border: const OutlineInputBorder(),
-                      errorText: _invoiceError
-                          ? 'Select an invoice or switch to Advance Payment'
-                          : null,
-                      suffixIcon: _loadingInvoices
-                          ? const Padding(
-                              padding: EdgeInsets.all(14),
-                              child: SizedBox.square(
-                                dimension: 16,
-                                child: CircularProgressIndicator(
-                                    strokeWidth: 2),
-                              ))
-                          : const Icon(Icons.chevron_right),
-                    ),
-                    child: _selectedInvoice == null
-                        ? Text(
-                            _invoicesLoaded && _loadedInvoices.isEmpty
-                                ? 'No open invoices'
-                                : 'Select invoice (optional)',
-                            style: TextStyle(color: scheme.onSurfaceVariant),
-                          )
-                        : Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                _selectedInvoice!.invoiceNumber,
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.w600),
-                              ),
-                              Text(
-                                '${formatCurrency(_selectedInvoice!.outstandingAmount)} outstanding',
-                                style: TextStyle(
-                                    fontSize: 12,
-                                    color: scheme.onSurfaceVariant),
-                              ),
-                            ],
-                          ),
-                  ),
+                'Send payment reminder',
+                style: GoogleFonts.instrumentSans(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700
                 ),
-                const SizedBox(height: 16),
-              ],
-
-              // Amount
-              TextFormField(
-                controller: _amountCtrl,
-                keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true),
-                style: const TextStyle(
-                    fontSize: 22, fontWeight: FontWeight.w700),
-                decoration: const InputDecoration(
-                  labelText: 'Amount',
-                  prefixText: '৳ ',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (v) {
-                  if (v == null || v.isEmpty) return 'Enter an amount';
-                  final n =
-                      double.tryParse(v.trim().replaceAll(',', ''));
-                  if (n == null || n <= 0) {
-                    return 'Enter a valid amount';
-                  }
-                  return null;
-                },
               ),
-              const SizedBox(height: 16),
-
-              // Payment method
+              const SizedBox(height: 4),
               Text(
-                'Payment Method',
-                style: theme.textTheme.labelMedium
-                    ?.copyWith(color: scheme.onSurfaceVariant),
+                '${widget.customer.fullName} Â· due ${formatCurrency(widget.customer.dueAmount)}',
+                style: GoogleFonts.instrumentSans(
+                    fontSize: 12.5, color: AppColors.muted),
               ),
-              const SizedBox(height: 8),
-              SegmentedButton<String>(
-                segments: const [
-                  ButtonSegment(value: 'CASH', label: Text('Cash')),
-                  ButtonSegment(value: 'BKASH', label: Text('bKash')),
-                  ButtonSegment(
-                      value: 'BANK_TRANSFER', label: Text('Bank')),
-                  ButtonSegment(
-                      value: 'CHEQUE', label: Text('Cheque')),
-                ],
-                selected: {_method},
-                onSelectionChanged: (s) =>
-                    setState(() => _method = s.first),
+              const SizedBox(height: 20),
+              MethodGrid(
+                methods: _channels,
+                selected: _channelIndex,
+                onSelect: (i) =>
+                    setState(() => _channelIndex = i),
               ),
-              const SizedBox(height: 16),
-
-              // Transaction number — hidden for cash
-              if (_method != 'CASH') ...[
-                TextFormField(
-                  controller: _transactionCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Transaction / Reference Number',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 16),
-              ],
-
-              // Payment date
-              GestureDetector(
-                onTap: _pickDate,
-                child: InputDecorator(
-                  decoration: const InputDecoration(
-                    labelText: 'Payment Date',
-                    border: OutlineInputBorder(),
-                    suffixIcon:
-                        Icon(Icons.calendar_today_outlined, size: 18),
-                  ),
-                  child: Text(formatDate(_date)),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Notes
-              TextFormField(
-                controller: _notesCtrl,
-                maxLines: 2,
-                decoration: const InputDecoration(
-                  labelText: 'Notes (optional)',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Submit
+              const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: _submitting ? null : _submit,
-                  icon: _submitting
+                height: 50,
+                child: FilledButton(
+                  onPressed: _sending ? null : _send,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.ink,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    textStyle: GoogleFonts.instrumentSans(
+                        fontSize: 15, fontWeight: FontWeight.w700),
+                  ),
+                  child: _sending
                       ? const SizedBox(
-                          width: 16,
-                          height: 16,
+                          width: 20,
+                          height: 20,
                           child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white))
-                      : const Icon(Icons.check_circle_outlined),
-                  label: Text(
-                      _submitting ? 'Recording...' : 'Confirm Payment'),
+                              strokeWidth: 2.5, color: Colors.white),
+                        )
+                      : const Text('Send reminder'),
                 ),
               ),
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-// ── Invoice picker sheet ──────────────────────────────────────────────────────
-
-class _InvoicePickerSheet extends StatelessWidget {
-  const _InvoicePickerSheet({required this.invoices});
-
-  final List<Invoice> invoices;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-
-    return SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: Text('Select Invoice', style: theme.textTheme.titleMedium),
-          ),
-          if (invoices.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Icon(Icons.receipt_long_outlined,
-                      size: 48, color: scheme.onSurfaceVariant),
-                  const SizedBox(height: 12),
-                  Center(
-                    child: Text(
-                      'No open invoices',
-                      style: theme.textTheme.titleSmall,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Center(
-                    child: Text(
-                      'All invoices are paid in full.',
-                      style: TextStyle(color: scheme.onSurfaceVariant),
-                    ),
-                  ),
-                ],
-              ),
-            )
-          else
-            Flexible(
-              child: ListView.separated(
-                shrinkWrap: true,
-                itemCount: invoices.length,
-                separatorBuilder: (_, sep) => const Divider(height: 1),
-                itemBuilder: (ctx, i) {
-                  final inv = invoices[i];
-                  return ListTile(
-                    title: Text(inv.invoiceNumber,
-                        style: const TextStyle(fontWeight: FontWeight.w600)),
-                    subtitle: Text(
-                        '${formatDate(inv.invoiceDate)} · ${formatCurrency(inv.outstandingAmount)} due'),
-                    trailing: inv.isOverdue
-                        ? Chip(
-                            label: const Text('Overdue',
-                                style: TextStyle(fontSize: 11)),
-                            backgroundColor: scheme.errorContainer,
-                            side: BorderSide.none,
-                            materialTapTargetSize:
-                                MaterialTapTargetSize.shrinkWrap,
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 4),
-                          )
-                        : null,
-                    onTap: () => Navigator.of(ctx).pop(inv),
-                  );
-                },
-              ),
-            ),
-          const SizedBox(height: 8),
-        ],
       ),
     );
   }
