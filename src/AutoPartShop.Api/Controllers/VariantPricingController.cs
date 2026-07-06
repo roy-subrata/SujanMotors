@@ -84,12 +84,12 @@ public class VariantPricingController : ControllerBase
         Guid productId, [FromQuery] Guid? variantId, [FromBody] SetVariantPriceRequest request, CancellationToken cancellationToken)
     {
         var currency = request.Currency?.Trim().ToUpperInvariant() ?? "BDT";
-        var user     = _currentUserService.GetCurrentUsername();
-        var today    = DateTime.UtcNow.Date;
+        var user = _currentUserService.GetCurrentUsername();
+        var today = DateTime.UtcNow.Date;
 
         var newPrice = ProductVariantPriceHistory.Create(
             productId, request.SellingPrice, request.StartDate, variantId, currency, request.Reason);
-        newPrice.CreatedBy  = user;
+        newPrice.CreatedBy = user;
         newPrice.ModifiedBy = user;
 
         var strategy = _db.Database.CreateExecutionStrategy();

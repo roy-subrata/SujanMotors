@@ -37,7 +37,7 @@ namespace AutoPartShop.Infrastructure.Repositories
             var items = await suppliers
                 .Skip((query.PageNumber - 1) * query.PageSize)
                 .Take(query.PageSize)
-                .Select(supplier=>new SupplierResponse
+                .Select(supplier => new SupplierResponse
                 {
                     Id = supplier.Id,
                     Name = supplier.Name,

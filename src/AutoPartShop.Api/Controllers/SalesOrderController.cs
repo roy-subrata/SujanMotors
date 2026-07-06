@@ -703,7 +703,7 @@ public class SalesOrderController : ControllerBase
                         if (order.DiscountAmount > 0)
                             invoice.SetDiscount(order.DiscountAmount);
 
-                        invoice.CreatedBy  = _currentUserService.GetCurrentUsername();
+                        invoice.CreatedBy = _currentUserService.GetCurrentUsername();
                         invoice.ModifiedBy = _currentUserService.GetCurrentUsername();
                         await _dbContext.Invoices.AddAsync(invoice, cancellationToken);
                     }
@@ -1520,54 +1520,54 @@ public class SalesOrderController : ControllerBase
                 .Select(s => s.Value)
                 .FirstOrDefaultAsync(cancellationToken)) ?? string.Empty;
 
-        var shopName    = await Setting("SHOP_NAME");
+        var shopName = await Setting("SHOP_NAME");
         var shopAddress = await Setting("SHOP_ADDRESS");
-        var shopPhone   = await Setting("SHOP_PHONE");
-        var shopEmail   = await Setting("SHOP_EMAIL");
-        var shopTaxNo   = await Setting("SHOP_TAX_NUMBER");
+        var shopPhone = await Setting("SHOP_PHONE");
+        var shopEmail = await Setting("SHOP_EMAIL");
+        var shopTaxNo = await Setting("SHOP_TAX_NUMBER");
         var shopLogoUrl = await Setting("SHOP_LOGO_URL");
         var shopTagline = await Setting("SHOP_TAGLINE");
-        var footerRaw   = await Setting("INVOICE_FOOTER_TEXT");
-        var footerText  = string.IsNullOrWhiteSpace(footerRaw) ? "Thank you for your business!" : footerRaw;
+        var footerRaw = await Setting("INVOICE_FOOTER_TEXT");
+        var footerText = string.IsNullOrWhiteSpace(footerRaw) ? "Thank you for your business!" : footerRaw;
 
         var so = invoice.SalesOrder;
         var lines = so?.LineItems.OrderBy(l => l.LineNumber).Select(l => new
         {
-            partId          = l.PartId,
-            partName        = l.Part?.Name ?? string.Empty,
-            partSku         = l.Part?.SKU ?? string.Empty,
-            displayName     = l.ProductVariant != null
+            partId = l.PartId,
+            partName = l.Part?.Name ?? string.Empty,
+            partSku = l.Part?.SKU ?? string.Empty,
+            displayName = l.ProductVariant != null
                 ? (l.Part != null ? $"{l.Part.Name} - {l.ProductVariant.Name}" : l.ProductVariant.Name)
                 : (l.Part?.Name ?? string.Empty),
-            variantName     = l.ProductVariant?.Name,
-            unitName        = l.Unit?.Name ?? string.Empty,
-            unitSymbol      = l.Unit?.Symbol ?? string.Empty,
-            quantity        = l.Quantity,
-            unitPrice       = l.UnitPrice,
-            discount        = l.Discount,
-            lineTotal       = l.TotalPrice
+            variantName = l.ProductVariant?.Name,
+            unitName = l.Unit?.Name ?? string.Empty,
+            unitSymbol = l.Unit?.Symbol ?? string.Empty,
+            quantity = l.Quantity,
+            unitPrice = l.UnitPrice,
+            discount = l.Discount,
+            lineTotal = l.TotalPrice
         }).ToList();
 
         return Ok(ApiResponse<object>.Ok(new
         {
             shop = new
             {
-                name       = string.IsNullOrWhiteSpace(shopName)    ? "SujanMotors Auto Parts" : shopName,
-                address    = shopAddress,
-                phone      = shopPhone,
-                email      = shopEmail,
-                taxNo      = shopTaxNo,
-                logoUrl    = shopLogoUrl,
-                tagline    = shopTagline,
+                name = string.IsNullOrWhiteSpace(shopName) ? "SujanMotors Auto Parts" : shopName,
+                address = shopAddress,
+                phone = shopPhone,
+                email = shopEmail,
+                taxNo = shopTaxNo,
+                logoUrl = shopLogoUrl,
+                tagline = shopTagline,
                 footerText = footerText
             },
             invoice = MapToInvoiceResponse(invoice),
             lines,
             customer = new
             {
-                name    = so?.CustomerName    ?? string.Empty,
-                phone   = so?.CustomerPhone   ?? string.Empty,
-                email   = so?.CustomerEmail   ?? string.Empty,
+                name = so?.CustomerName ?? string.Empty,
+                phone = so?.CustomerPhone ?? string.Empty,
+                email = so?.CustomerEmail ?? string.Empty,
                 address = so?.DeliveryAddress ?? string.Empty
             },
             salesOrderNumber = so?.SONumber ?? string.Empty
@@ -1610,30 +1610,30 @@ public class SalesOrderController : ControllerBase
         var so = invoice.SalesOrder;
 
         var shopProfile = new ShopProfile(
-            Name:           await Setting("SHOP_NAME"),
-            Address:        await Setting("SHOP_ADDRESS"),
-            Phone:          await Setting("SHOP_PHONE"),
-            Email:          await Setting("SHOP_EMAIL"),
-            TaxNo:          await Setting("SHOP_TAX_NUMBER"),
-            Tagline:        await Setting("SHOP_TAGLINE"),
-            FooterText:     await Setting("INVOICE_FOOTER_TEXT") is { Length: > 0 } ft ? ft : "Thank you for your business!",
+            Name: await Setting("SHOP_NAME"),
+            Address: await Setting("SHOP_ADDRESS"),
+            Phone: await Setting("SHOP_PHONE"),
+            Email: await Setting("SHOP_EMAIL"),
+            TaxNo: await Setting("SHOP_TAX_NUMBER"),
+            Tagline: await Setting("SHOP_TAGLINE"),
+            FooterText: await Setting("INVOICE_FOOTER_TEXT") is { Length: > 0 } ft ? ft : "Thank you for your business!",
             CurrencySymbol: "৳");
 
         var lines = (so?.LineItems ?? [])
             .OrderBy(l => l.LineNumber)
             .Select((l, i) => new InvoiceLine(
-                SlNo:           i + 1,
-                DisplayName:    l.ProductVariant is not null
+                SlNo: i + 1,
+                DisplayName: l.ProductVariant is not null
                                     ? $"{l.Part?.Name} - {l.ProductVariant.Name}"
                                     : (l.Part?.Name ?? string.Empty),
-                LocalName:      l.Part?.LocalName,
-                PartNumber:     l.Part?.PartNumber?.Value ?? string.Empty,
-                SKU:            l.ProductVariant?.SKU ?? l.Part?.SKU ?? string.Empty,
-                UnitSymbol:     l.Unit?.Symbol ?? string.Empty,
-                Quantity:       l.Quantity,
-                UnitPrice:      l.UnitPrice,
+                LocalName: l.Part?.LocalName,
+                PartNumber: l.Part?.PartNumber?.Value ?? string.Empty,
+                SKU: l.ProductVariant?.SKU ?? l.Part?.SKU ?? string.Empty,
+                UnitSymbol: l.Unit?.Symbol ?? string.Empty,
+                Quantity: l.Quantity,
+                UnitPrice: l.UnitPrice,
                 DiscountPerUnit: l.Discount,
-                LineTotal:      l.TotalPrice))
+                LineTotal: l.TotalPrice))
             .ToList();
 
         var payments = invoice.CustomerPayments
@@ -1641,33 +1641,33 @@ public class SalesOrderController : ControllerBase
             .OrderBy(p => p.PaymentDate)
             .Select(p => new InvoicePaymentEntry(
                 PaymentDate: p.PaymentDate,
-                Method:      p.PaymentMethod,
-                Reference:   p.ReferenceNumber,
-                Amount:      p.Amount))
+                Method: p.PaymentMethod,
+                Reference: p.ReferenceNumber,
+                Amount: p.Amount))
             .ToList();
 
         var data = new InvoiceDocumentData(
-            InvoiceNumber:    invoice.InvoiceNumber,
+            InvoiceNumber: invoice.InvoiceNumber,
             SalesOrderNumber: so?.SONumber ?? string.Empty,
-            InvoiceDate:      invoice.InvoiceDate,
-            DueDate:          invoice.DueDate,
-            Status:           invoice.Status,
-            CustomerName:     so?.CustomerName    ?? string.Empty,
-            CustomerPhone:    so?.CustomerPhone   ?? string.Empty,
-            CustomerEmail:    so?.CustomerEmail   ?? string.Empty,
-            CustomerAddress:  so?.DeliveryAddress ?? string.Empty,
-            VehicleLabel:     so?.VehicleLabel    ?? string.Empty,
-            TechnicianName:   so?.TechnicianName  ?? string.Empty,
-            Lines:            lines,
-            SubTotal:         invoice.SubTotal,
-            DiscountAmount:   invoice.DiscountAmount,
-            TaxPercentage:    invoice.SubTotal > 0 ? (invoice.TaxAmount / invoice.SubTotal * 100) : 0,
-            TaxAmount:        invoice.TaxAmount,
-            GrandTotal:       invoice.GrandTotal,
-            PaidAmount:       invoice.AmountPaid,
-            BalanceDue:       invoice.OutstandingAmount,
-            Payments:         payments,
-            Notes:            invoice.Notes);
+            InvoiceDate: invoice.InvoiceDate,
+            DueDate: invoice.DueDate,
+            Status: invoice.Status,
+            CustomerName: so?.CustomerName ?? string.Empty,
+            CustomerPhone: so?.CustomerPhone ?? string.Empty,
+            CustomerEmail: so?.CustomerEmail ?? string.Empty,
+            CustomerAddress: so?.DeliveryAddress ?? string.Empty,
+            VehicleLabel: so?.VehicleLabel ?? string.Empty,
+            TechnicianName: so?.TechnicianName ?? string.Empty,
+            Lines: lines,
+            SubTotal: invoice.SubTotal,
+            DiscountAmount: invoice.DiscountAmount,
+            TaxPercentage: invoice.SubTotal > 0 ? (invoice.TaxAmount / invoice.SubTotal * 100) : 0,
+            TaxAmount: invoice.TaxAmount,
+            GrandTotal: invoice.GrandTotal,
+            PaidAmount: invoice.AmountPaid,
+            BalanceDue: invoice.OutstandingAmount,
+            Payments: payments,
+            Notes: invoice.Notes);
 
         try
         {
@@ -1955,7 +1955,7 @@ public class SalesOrderController : ControllerBase
                 var stockLevels = await _stockLevelRepository.GetByPartAndVariantAsync(item.PartId, item.ProductVariantId, cancellationToken);
                 // Use base unit quantities for accurate comparison across different units
                 var totalAvailable = stockLevels.Sum(sl =>
-                    (sl.QuantityOnHandInBaseUnit > 0 ? sl.QuantityOnHandInBaseUnit : sl.QuantityOnHand) - 
+                    (sl.QuantityOnHandInBaseUnit > 0 ? sl.QuantityOnHandInBaseUnit : sl.QuantityOnHand) -
                     (sl.QuantityReservedInBaseUnit > 0 ? sl.QuantityReservedInBaseUnit : sl.QuantityReserved));
 
                 var part = parts.First(p => p.Id == item.PartId);

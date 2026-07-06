@@ -271,278 +271,278 @@ namespace AutoPartShop.Api.Controllers
 
                     try
                     {
-                // Atomically claim the return so two concurrent Process calls can't both run
-                // (which would double-refund and double-restock). The conditional UPDATE takes a
-                // row lock that serializes callers; the loser matches 0 rows and aborts. If the
-                // transaction later rolls back, this status change rolls back with it.
-                var claimed = await _dbContext.Set<Domain.Entities.SalesReturn>()
-                    .Where(sr => sr.Id == salesReturn.Id && sr.Status == "RECEIVED" && !sr.Isdeleted)
-                    .ExecuteUpdateAsync(s => s.SetProperty(x => x.Status, "PROCESSED"), cancellationToken);
-                if (claimed == 0)
-                    throw new InvalidOperationException("This return has already been processed.");
+                        // Atomically claim the return so two concurrent Process calls can't both run
+                        // (which would double-refund and double-restock). The conditional UPDATE takes a
+                        // row lock that serializes callers; the loser matches 0 rows and aborts. If the
+                        // transaction later rolls back, this status change rolls back with it.
+                        var claimed = await _dbContext.Set<Domain.Entities.SalesReturn>()
+                            .Where(sr => sr.Id == salesReturn.Id && sr.Status == "RECEIVED" && !sr.Isdeleted)
+                            .ExecuteUpdateAsync(s => s.SetProperty(x => x.Status, "PROCESSED"), cancellationToken);
+                        if (claimed == 0)
+                            throw new InvalidOperationException("This return has already been processed.");
 
-                // --- Stock Adjustment Logic ---
+                        // --- Stock Adjustment Logic ---
 
-                var salesOrder = await _salesOrderRepository.GetByIdAsync(salesReturn.SalesOrderId);
+                        var salesOrder = await _salesOrderRepository.GetByIdAsync(salesReturn.SalesOrderId);
 
-                foreach (var line in salesReturn.LineItems)
-                {
-                    // Use InBaseUnit quantities if available, otherwise fall back to regular quantities
-                    var returnQuantity = line.QuantityInBaseUnit > 0 ? line.QuantityInBaseUnit : line.Quantity;
-
-                    // Resolve the variant from the original sold line so stock returns to the right SKU
-                    var variantId = salesOrder?.LineItems
-                        .FirstOrDefault(ol => ol.Id == line.SalesOrderLineId)?.ProductVariantId;
-
-                    var stockLevel = await _dbContext.StockLevels.FirstOrDefaultAsync(sl => sl.PartId == line.PartId && sl.VariantId == variantId && sl.WarehouseId == warehouseId);
-                    if (stockLevel == null)
-                    {
-                        stockLevel = Domain.Entities.StockLevel.Create(line.PartId, warehouseId, unitId: line.UnitId, variantId: variantId);
-                        stockLevel.CreatedBy = _currentUserService.GetCurrentUsername();
-                        _dbContext.StockLevels.Add(stockLevel);
-                    }
-
-                    // Add stock with both unit quantities
-                    stockLevel.AddStock(
-                        quantity: line.Quantity,
-                        quantityInBaseUnit: returnQuantity,
-                        reason: $"Sales Return {salesReturn.ReturnNumber}");
-                    stockLevel.ModifiedBy = _currentUserService.GetCurrentUsername();
-
-                    // Create stock movement record - RETURN type for customer returns
-                    var stockMovement = Domain.Entities.StockMovement.Create(
-                        stockLevel.Id,
-                        "RETURN",  // RETURN type to distinguish from regular incoming stock
-                        quantity: line.Quantity,
-                        reason: $"Customer Return - {salesReturn.Reason}",
-                        referenceNumber: salesReturn.ReturnNumber,
-                        unitId: line.UnitId,
-                        quantityInBaseUnit: returnQuantity
-                    );
-                    stockMovement.Approve(_currentUserService.GetCurrentUsername());
-                    stockMovement.CreatedBy = _currentUserService.GetCurrentUsername();
-                    stockMovement.ModifiedBy = _currentUserService.GetCurrentUsername();
-                    _dbContext.StockMovements.Add(stockMovement);
-
-                    // Restore returned stock to the exact lot(s) it was sold from by reversing the
-                    // original SALE lot movements — keeps FIFO cost accurate and never creates a
-                    // supplier-less lot. Lot tracking is best-effort: a failure here must not abort
-                    // the return (StockLevel above is the source of truth for on-hand counts).
-                    try
-                    {
-                        var orderLineId = line.SalesOrderLineId;
-                        var remainingBase = returnQuantity;
-
-                        // Units consumed per lot when this line was sold.
-                        var saleMovements = await _dbContext.StockLotMovements
-                            .Where(m => m.MovementType == "SALE" &&
-                                        m.ReferenceType == "SalesOrderLine" &&
-                                        m.ReferenceId == orderLineId &&
-                                        !m.Isdeleted)
-                            .OrderByDescending(m => m.MovementDate)
-                            .ToListAsync(cancellationToken);
-
-                        // Units already returned per lot for this line (cap repeated partial returns).
-                        var priorReturned = (await _dbContext.StockLotMovements
-                            .Where(m => m.MovementType == "RETURN" &&
-                                        m.ReferenceType == "SalesOrderLine" &&
-                                        m.ReferenceId == orderLineId &&
-                                        !m.Isdeleted)
-                            .ToListAsync(cancellationToken))
-                            .GroupBy(m => m.StockLotId)
-                            .ToDictionary(g => g.Key, g => g.Sum(m => m.QuantityInBaseUnit));
-
-                        void RestoreToLot(Domain.Entities.StockLot lot, int qtyBase, string reason)
+                        foreach (var line in salesReturn.LineItems)
                         {
-                            lot.IncreaseCapacity(qtyBase, qtyBase);
-                            lot.AddStock(qtyBase, qtyBase, reason);
-                            lot.ModifiedBy = _currentUserService.GetCurrentUsername();
+                            // Use InBaseUnit quantities if available, otherwise fall back to regular quantities
+                            var returnQuantity = line.QuantityInBaseUnit > 0 ? line.QuantityInBaseUnit : line.Quantity;
 
-                            var move = Domain.Entities.StockLotMovement.Create(
-                                lot.Id,
-                                quantity: qtyBase,
-                                movementType: "RETURN",
-                                referenceId: orderLineId,
-                                referenceType: "SalesOrderLine",
-                                movementDate: null,
-                                costAtMovement: lot.CostPrice,
-                                reason: reason,
-                                notes: "",
-                                unitId: lot.UnitId,
-                                quantityInBaseUnit: qtyBase,
-                                costAtMovementInBaseUnit: lot.CostPriceInBaseUnit > 0 ? lot.CostPriceInBaseUnit : lot.CostPrice);
-                            move.CreatedBy = _currentUserService.GetCurrentUsername();
-                            move.ModifiedBy = _currentUserService.GetCurrentUsername();
-                            _dbContext.StockLotMovements.Add(move);
-                        }
+                            // Resolve the variant from the original sold line so stock returns to the right SKU
+                            var variantId = salesOrder?.LineItems
+                                .FirstOrDefault(ol => ol.Id == line.SalesOrderLineId)?.ProductVariantId;
 
-                        foreach (var sale in saleMovements)
-                        {
-                            if (remainingBase <= 0) break;
-                            priorReturned.TryGetValue(sale.StockLotId, out var already);
-                            var returnable = sale.QuantityInBaseUnit - already;
-                            if (returnable <= 0) continue;
-
-                            var alloc = Math.Min(remainingBase, returnable);
-                            var lot = await _dbContext.StockLots
-                                .FirstOrDefaultAsync(sl => sl.Id == sale.StockLotId && !sl.Isdeleted, cancellationToken);
-                            if (lot == null) continue;
-
-                            RestoreToLot(lot, alloc, $"Sales Return {salesReturn.ReturnNumber}");
-                            priorReturned[sale.StockLotId] = already + alloc;
-                            remainingBase -= alloc;
-                        }
-
-                        // Fallback: original lots couldn't absorb everything (legacy data / deleted lot).
-                        // Top up the newest existing lot for this part; never create a supplier-less lot.
-                        if (remainingBase > 0)
-                        {
-                            var existingLot = await _dbContext.StockLots
-                                .Where(sl => sl.PartId == line.PartId &&
-                                             sl.VariantId == variantId &&
-                                             sl.WarehouseId == warehouseId &&
-                                             !sl.Isdeleted)
-                                .OrderByDescending(sl => sl.CreatedDate)
-                                .FirstOrDefaultAsync(cancellationToken);
-
-                            if (existingLot != null)
+                            var stockLevel = await _dbContext.StockLevels.FirstOrDefaultAsync(sl => sl.PartId == line.PartId && sl.VariantId == variantId && sl.WarehouseId == warehouseId);
+                            if (stockLevel == null)
                             {
-                                RestoreToLot(existingLot, remainingBase, $"Sales Return {salesReturn.ReturnNumber} (no original lot)");
-                                remainingBase = 0;
-                            }
-                            else
-                            {
-                                _logger.LogWarning(
-                                    "Sales return {ReturnNumber}: could not restore {Qty} base unit(s) of part {PartId} to any lot; StockLevel updated only.",
-                                    salesReturn.ReturnNumber, remainingBase, line.PartId);
-                            }
-                        }
-                    }
-                    catch (Exception lotEx)
-                    {
-                        // Lot tracking is best-effort — never block the return on it.
-                        _logger.LogWarning(lotEx, "Failed to restore lot tracking for part {PartId} in return {ReturnNumber}", line.PartId, salesReturn.ReturnNumber);
-                    }
-                }
-                await _dbContext.SaveChangesAsync(cancellationToken);
-
-                // --- Customer Balance Update & Refund Processing ---
-                if (salesOrder != null && salesOrder.CustomerId != Guid.Empty)
-                {
-                    var customer = await _dbContext.Customers.FindAsync(salesOrder.CustomerId);
-                    if (customer != null && salesReturn.RefundAmount > 0)
-                    {
-                        if (salesReturn.RefundType == "CASH_REFUND")
-                        {
-                            // Load the invoice to update its payment status after the refund
-                            Invoice? invoice = null;
-                            if (salesReturn.InvoiceId.HasValue)
-                            {
-                                invoice = await _dbContext.Invoices
-                                    .Include(i => i.CustomerPayments)
-                                    .FirstOrDefaultAsync(i => i.Id == salesReturn.InvoiceId.Value, cancellationToken);
-                            }
-                            else
-                            {
-                                invoice = await _dbContext.Invoices
-                                    .Include(i => i.CustomerPayments)
-                                    .FirstOrDefaultAsync(i => i.SalesOrderId == salesOrder.Id && !i.Isdeleted, cancellationToken);
+                                stockLevel = Domain.Entities.StockLevel.Create(line.PartId, warehouseId, unitId: line.UnitId, variantId: variantId);
+                                stockLevel.CreatedBy = _currentUserService.GetCurrentUsername();
+                                _dbContext.StockLevels.Add(stockLevel);
                             }
 
-                            // Cash can only be refunded up to what the customer actually paid. Any
-                            // remainder is value they never paid for (credit / partially-paid sale),
-                            // so it just reduces their outstanding balance instead of handing back cash.
-                            var cashPart = Math.Min(salesReturn.RefundAmount, salesOrder.PaidAmount);
-                            // The remainder can only reduce what the customer still owes on this order;
-                            // clamp it so an over-stated refund can't push the balance negative.
-                            var outstanding = Math.Max(0, salesOrder.GrandTotal - salesOrder.PaidAmount);
-                            var balancePart = Math.Min(salesReturn.RefundAmount - cashPart, outstanding);
+                            // Add stock with both unit quantities
+                            stockLevel.AddStock(
+                                quantity: line.Quantity,
+                                quantityInBaseUnit: returnQuantity,
+                                reason: $"Sales Return {salesReturn.ReturnNumber}");
+                            stockLevel.ModifiedBy = _currentUserService.GetCurrentUsername();
 
-                            if (cashPart > 0)
+                            // Create stock movement record - RETURN type for customer returns
+                            var stockMovement = Domain.Entities.StockMovement.Create(
+                                stockLevel.Id,
+                                "RETURN",  // RETURN type to distinguish from regular incoming stock
+                                quantity: line.Quantity,
+                                reason: $"Customer Return - {salesReturn.Reason}",
+                                referenceNumber: salesReturn.ReturnNumber,
+                                unitId: line.UnitId,
+                                quantityInBaseUnit: returnQuantity
+                            );
+                            stockMovement.Approve(_currentUserService.GetCurrentUsername());
+                            stockMovement.CreatedBy = _currentUserService.GetCurrentUsername();
+                            stockMovement.ModifiedBy = _currentUserService.GetCurrentUsername();
+                            _dbContext.StockMovements.Add(stockMovement);
+
+                            // Restore returned stock to the exact lot(s) it was sold from by reversing the
+                            // original SALE lot movements — keeps FIFO cost accurate and never creates a
+                            // supplier-less lot. Lot tracking is best-effort: a failure here must not abort
+                            // the return (StockLevel above is the source of truth for on-hand counts).
+                            try
                             {
-                                // Record the cash going out as a NEGATIVE, COMPLETED payment and
-                                // reduce the order's paid amount by the same.
-                                var refundPayment = CustomerPayment.Create(
-                                    customerId: salesOrder.CustomerId,
-                                    paymentProviderId: null,
-                                    amount: -cashPart,  // NEGATIVE amount - money going OUT
-                                    paymentMethod: "REFUND",
-                                    transactionNumber: $"REFUND-{salesReturn.ReturnNumber}",
-                                    referenceNumber: salesReturn.ReturnNumber,
-                                    paymentDate: DateTime.UtcNow,
-                                    currency: salesOrder?.Currency ?? "BDT"
-                                );
+                                var orderLineId = line.SalesOrderLineId;
+                                var remainingBase = returnQuantity;
 
-                                if (salesReturn.InvoiceId.HasValue)
+                                // Units consumed per lot when this line was sold.
+                                var saleMovements = await _dbContext.StockLotMovements
+                                    .Where(m => m.MovementType == "SALE" &&
+                                                m.ReferenceType == "SalesOrderLine" &&
+                                                m.ReferenceId == orderLineId &&
+                                                !m.Isdeleted)
+                                    .OrderByDescending(m => m.MovementDate)
+                                    .ToListAsync(cancellationToken);
+
+                                // Units already returned per lot for this line (cap repeated partial returns).
+                                var priorReturned = (await _dbContext.StockLotMovements
+                                    .Where(m => m.MovementType == "RETURN" &&
+                                                m.ReferenceType == "SalesOrderLine" &&
+                                                m.ReferenceId == orderLineId &&
+                                                !m.Isdeleted)
+                                    .ToListAsync(cancellationToken))
+                                    .GroupBy(m => m.StockLotId)
+                                    .ToDictionary(g => g.Key, g => g.Sum(m => m.QuantityInBaseUnit));
+
+                                void RestoreToLot(Domain.Entities.StockLot lot, int qtyBase, string reason)
                                 {
-                                    refundPayment.LinkToInvoice(salesReturn.InvoiceId.Value);
+                                    lot.IncreaseCapacity(qtyBase, qtyBase);
+                                    lot.AddStock(qtyBase, qtyBase, reason);
+                                    lot.ModifiedBy = _currentUserService.GetCurrentUsername();
+
+                                    var move = Domain.Entities.StockLotMovement.Create(
+                                        lot.Id,
+                                        quantity: qtyBase,
+                                        movementType: "RETURN",
+                                        referenceId: orderLineId,
+                                        referenceType: "SalesOrderLine",
+                                        movementDate: null,
+                                        costAtMovement: lot.CostPrice,
+                                        reason: reason,
+                                        notes: "",
+                                        unitId: lot.UnitId,
+                                        quantityInBaseUnit: qtyBase,
+                                        costAtMovementInBaseUnit: lot.CostPriceInBaseUnit > 0 ? lot.CostPriceInBaseUnit : lot.CostPrice);
+                                    move.CreatedBy = _currentUserService.GetCurrentUsername();
+                                    move.ModifiedBy = _currentUserService.GetCurrentUsername();
+                                    _dbContext.StockLotMovements.Add(move);
                                 }
 
-                                refundPayment.MarkAsCompleted();
-                                refundPayment.CreatedBy = _currentUserService.GetCurrentUsername();
-                                refundPayment.ModifiedBy = _currentUserService.GetCurrentUsername();
-                                refundPayment.UpdateNotes($"Cash refund for sales return {salesReturn.ReturnNumber}. Reason: {salesReturn.Reason}");
-
-                                await _customerPaymentRepository.AddAsync(refundPayment, CancellationToken.None);
-
-                                if (invoice != null)
+                                foreach (var sale in saleMovements)
                                 {
-                                    invoice.CustomerPayments.Add(refundPayment);
-                                    invoice.UpdatePaymentStatus();
+                                    if (remainingBase <= 0) break;
+                                    priorReturned.TryGetValue(sale.StockLotId, out var already);
+                                    var returnable = sale.QuantityInBaseUnit - already;
+                                    if (returnable <= 0) continue;
+
+                                    var alloc = Math.Min(remainingBase, returnable);
+                                    var lot = await _dbContext.StockLots
+                                        .FirstOrDefaultAsync(sl => sl.Id == sale.StockLotId && !sl.Isdeleted, cancellationToken);
+                                    if (lot == null) continue;
+
+                                    RestoreToLot(lot, alloc, $"Sales Return {salesReturn.ReturnNumber}");
+                                    priorReturned[sale.StockLotId] = already + alloc;
+                                    remainingBase -= alloc;
+                                }
+
+                                // Fallback: original lots couldn't absorb everything (legacy data / deleted lot).
+                                // Top up the newest existing lot for this part; never create a supplier-less lot.
+                                if (remainingBase > 0)
+                                {
+                                    var existingLot = await _dbContext.StockLots
+                                        .Where(sl => sl.PartId == line.PartId &&
+                                                     sl.VariantId == variantId &&
+                                                     sl.WarehouseId == warehouseId &&
+                                                     !sl.Isdeleted)
+                                        .OrderByDescending(sl => sl.CreatedDate)
+                                        .FirstOrDefaultAsync(cancellationToken);
+
+                                    if (existingLot != null)
+                                    {
+                                        RestoreToLot(existingLot, remainingBase, $"Sales Return {salesReturn.ReturnNumber} (no original lot)");
+                                        remainingBase = 0;
+                                    }
+                                    else
+                                    {
+                                        _logger.LogWarning(
+                                            "Sales return {ReturnNumber}: could not restore {Qty} base unit(s) of part {PartId} to any lot; StockLevel updated only.",
+                                            salesReturn.ReturnNumber, remainingBase, line.PartId);
+                                    }
                                 }
                             }
-
-                            // Call ProcessRefund for the total refunded value (cash + balance write-off)
-                            var totalRefunded = cashPart + balancePart;
-                            if (totalRefunded > 0)
+                            catch (Exception lotEx)
                             {
-                                salesOrder.ProcessRefund(totalRefunded);
-                                salesOrder.ModifiedBy = _currentUserService.GetCurrentUsername();
-                                await _salesOrderRepository.UpdateAsync(salesOrder, CancellationToken.None);
+                                // Lot tracking is best-effort — never block the return on it.
+                                _logger.LogWarning(lotEx, "Failed to restore lot tracking for part {PartId} in return {ReturnNumber}", line.PartId, salesReturn.ReturnNumber);
                             }
+                        }
+                        await _dbContext.SaveChangesAsync(cancellationToken);
 
-                            if (balancePart > 0)
+                        // --- Customer Balance Update & Refund Processing ---
+                        if (salesOrder != null && salesOrder.CustomerId != Guid.Empty)
+                        {
+                            var customer = await _dbContext.Customers.FindAsync(salesOrder.CustomerId);
+                            if (customer != null && salesReturn.RefundAmount > 0)
                             {
-                                // Goods returned that were never paid for → the customer owes that much less.
-                                customer.UpdateBalance(-balancePart);
+                                if (salesReturn.RefundType == "CASH_REFUND")
+                                {
+                                    // Load the invoice to update its payment status after the refund
+                                    Invoice? invoice = null;
+                                    if (salesReturn.InvoiceId.HasValue)
+                                    {
+                                        invoice = await _dbContext.Invoices
+                                            .Include(i => i.CustomerPayments)
+                                            .FirstOrDefaultAsync(i => i.Id == salesReturn.InvoiceId.Value, cancellationToken);
+                                    }
+                                    else
+                                    {
+                                        invoice = await _dbContext.Invoices
+                                            .Include(i => i.CustomerPayments)
+                                            .FirstOrDefaultAsync(i => i.SalesOrderId == salesOrder.Id && !i.Isdeleted, cancellationToken);
+                                    }
+
+                                    // Cash can only be refunded up to what the customer actually paid. Any
+                                    // remainder is value they never paid for (credit / partially-paid sale),
+                                    // so it just reduces their outstanding balance instead of handing back cash.
+                                    var cashPart = Math.Min(salesReturn.RefundAmount, salesOrder.PaidAmount);
+                                    // The remainder can only reduce what the customer still owes on this order;
+                                    // clamp it so an over-stated refund can't push the balance negative.
+                                    var outstanding = Math.Max(0, salesOrder.GrandTotal - salesOrder.PaidAmount);
+                                    var balancePart = Math.Min(salesReturn.RefundAmount - cashPart, outstanding);
+
+                                    if (cashPart > 0)
+                                    {
+                                        // Record the cash going out as a NEGATIVE, COMPLETED payment and
+                                        // reduce the order's paid amount by the same.
+                                        var refundPayment = CustomerPayment.Create(
+                                            customerId: salesOrder.CustomerId,
+                                            paymentProviderId: null,
+                                            amount: -cashPart,  // NEGATIVE amount - money going OUT
+                                            paymentMethod: "REFUND",
+                                            transactionNumber: $"REFUND-{salesReturn.ReturnNumber}",
+                                            referenceNumber: salesReturn.ReturnNumber,
+                                            paymentDate: DateTime.UtcNow,
+                                            currency: salesOrder?.Currency ?? "BDT"
+                                        );
+
+                                        if (salesReturn.InvoiceId.HasValue)
+                                        {
+                                            refundPayment.LinkToInvoice(salesReturn.InvoiceId.Value);
+                                        }
+
+                                        refundPayment.MarkAsCompleted();
+                                        refundPayment.CreatedBy = _currentUserService.GetCurrentUsername();
+                                        refundPayment.ModifiedBy = _currentUserService.GetCurrentUsername();
+                                        refundPayment.UpdateNotes($"Cash refund for sales return {salesReturn.ReturnNumber}. Reason: {salesReturn.Reason}");
+
+                                        await _customerPaymentRepository.AddAsync(refundPayment, CancellationToken.None);
+
+                                        if (invoice != null)
+                                        {
+                                            invoice.CustomerPayments.Add(refundPayment);
+                                            invoice.UpdatePaymentStatus();
+                                        }
+                                    }
+
+                                    // Call ProcessRefund for the total refunded value (cash + balance write-off)
+                                    var totalRefunded = cashPart + balancePart;
+                                    if (totalRefunded > 0)
+                                    {
+                                        salesOrder.ProcessRefund(totalRefunded);
+                                        salesOrder.ModifiedBy = _currentUserService.GetCurrentUsername();
+                                        await _salesOrderRepository.UpdateAsync(salesOrder, CancellationToken.None);
+                                    }
+
+                                    if (balancePart > 0)
+                                    {
+                                        // Goods returned that were never paid for → the customer owes that much less.
+                                        customer.UpdateBalance(-balancePart);
+                                        customer.ModifiedBy = _currentUserService.GetCurrentUsername();
+                                    }
+                                }
+                                else if (salesReturn.RefundType == "STORE_CREDIT")
+                                {
+                                    // STORE CREDIT: Create CustomerCreditNote for future purchases
+                                    // This creates a proper credit note that can be tracked and applied
+
+                                    var creditNoteNumber = $"CN-CUST-{DateTime.UtcNow:yyyyMMddHHmmss}";
+                                    var customerCreditNote = CustomerCreditNote.Create(
+                                        creditNoteNumber: creditNoteNumber,
+                                        customerId: salesOrder.CustomerId,
+                                        salesReturnId: salesReturn.Id,
+                                        amount: salesReturn.RefundAmount,
+                                        currency: salesOrder?.Currency ?? "BDT",
+                                        issueDate: DateTime.UtcNow,
+                                        expiryDate: DateTime.UtcNow.AddMonths(6),
+                                        notes: $"Store credit for sales return {salesReturn.ReturnNumber}. Reason: {salesReturn.Reason}",
+                                        issuedBy: _currentUserService.GetCurrentUsername()
+                                    );
+
+                                    await _customerCreditNoteRepository.AddAsync(customerCreditNote, CancellationToken.None);
+
+                                    // Link the credit note to the sales return
+                                    salesReturn.SetCustomerCreditNote(customerCreditNote.Id);
+                                }
+
+                                // Reverse TotalPurchaseAmount — applies regardless of refund type
+                                customer.ReverseRecordPurchase(salesReturn.RefundAmount);
                                 customer.ModifiedBy = _currentUserService.GetCurrentUsername();
                             }
                         }
-                        else if (salesReturn.RefundType == "STORE_CREDIT")
-                        {
-                            // STORE CREDIT: Create CustomerCreditNote for future purchases
-                            // This creates a proper credit note that can be tracked and applied
 
-                            var creditNoteNumber = $"CN-CUST-{DateTime.UtcNow:yyyyMMddHHmmss}";
-                            var customerCreditNote = CustomerCreditNote.Create(
-                                creditNoteNumber: creditNoteNumber,
-                                customerId: salesOrder.CustomerId,
-                                salesReturnId: salesReturn.Id,
-                                amount: salesReturn.RefundAmount,
-                                currency: salesOrder?.Currency ?? "BDT",
-                                issueDate: DateTime.UtcNow,
-                                expiryDate: DateTime.UtcNow.AddMonths(6),
-                                notes: $"Store credit for sales return {salesReturn.ReturnNumber}. Reason: {salesReturn.Reason}",
-                                issuedBy: _currentUserService.GetCurrentUsername()
-                            );
+                        salesReturn.Process();
+                        await _salesReturnRepository.UpdateAsync(salesReturn);
 
-                            await _customerCreditNoteRepository.AddAsync(customerCreditNote, CancellationToken.None);
-
-                            // Link the credit note to the sales return
-                            salesReturn.SetCustomerCreditNote(customerCreditNote.Id);
-                        }
-
-                        // Reverse TotalPurchaseAmount — applies regardless of refund type
-                        customer.ReverseRecordPurchase(salesReturn.RefundAmount);
-                        customer.ModifiedBy = _currentUserService.GetCurrentUsername();
-                    }
-                }
-
-                salesReturn.Process();
-                await _salesReturnRepository.UpdateAsync(salesReturn);
-
-                // Commit the transaction
-                await transaction.CommitAsync();
+                        // Commit the transaction
+                        await transaction.CommitAsync();
                     }
                     catch
                     {

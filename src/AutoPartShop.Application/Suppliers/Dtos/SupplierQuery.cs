@@ -2,7 +2,7 @@
 
 namespace AutoPartShop.Application.Suppliers.Dtos
 {
-    public class SupplierQuery:BaseQuery
+    public class SupplierQuery : BaseQuery
     {
     }
 }

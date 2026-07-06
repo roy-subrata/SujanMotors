@@ -171,7 +171,7 @@ public class PurchaseOrder : AuditableEntity
             throw new InvalidOperationException("Credit amount exceeds outstanding amount");
 
         CreditAppliedAmount += amount;
-        
+
         // Update payment status based on total payments + credits
         var totalApplied = PaidAmount + CreditAppliedAmount;
         PaymentStatus = totalApplied >= TotalAmount ? "PAID" : "PARTIAL";

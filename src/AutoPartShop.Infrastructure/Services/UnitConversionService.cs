@@ -61,18 +61,18 @@ public class UnitConversionService : IUnitConversionService
 
         // Try to find direct conversion from UnitConversion table
         var conversions = await _unitConversionRepository.GetAllAsync();
-        var conversion = conversions.FirstOrDefault(uc => 
-            uc.FromUnitId == fromUnitId && 
-            uc.ToUnitId == toUnitId && 
+        var conversion = conversions.FirstOrDefault(uc =>
+            uc.FromUnitId == fromUnitId &&
+            uc.ToUnitId == toUnitId &&
             uc.IsActive);
 
         if (conversion != null)
             return conversion.ConversionFactor;
 
         // Try reverse conversion
-        var reverseConversion = conversions.FirstOrDefault(uc => 
-            uc.FromUnitId == toUnitId && 
-            uc.ToUnitId == fromUnitId && 
+        var reverseConversion = conversions.FirstOrDefault(uc =>
+            uc.FromUnitId == toUnitId &&
+            uc.ToUnitId == fromUnitId &&
             uc.IsActive);
 
         if (reverseConversion != null)
@@ -81,7 +81,7 @@ public class UnitConversionService : IUnitConversionService
         // If no conversion found, throw exception
         var fromUnit = await _unitRepository.GetByIdAsync(fromUnitId);
         var toUnit = await _unitRepository.GetByIdAsync(toUnitId);
-        
+
         throw new InvalidOperationException(
             $"No active conversion found between units: '{fromUnit?.Name}' and '{toUnit?.Name}'");
     }
@@ -92,7 +92,7 @@ public class UnitConversionService : IUnitConversionService
             return true;
 
         var conversions = await _unitConversionRepository.GetAllAsync();
-        return conversions.Any(uc => 
+        return conversions.Any(uc =>
             ((uc.FromUnitId == fromUnitId && uc.ToUnitId == toUnitId) ||
             (uc.FromUnitId == toUnitId && uc.ToUnitId == fromUnitId)) &&
             uc.IsActive);

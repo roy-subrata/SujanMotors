@@ -241,16 +241,16 @@ public class CategoriesController(
 
         return new CategoryResponse
         {
-            Id              = category.Id,
-            Name            = category.Name,
-            Description     = string.IsNullOrWhiteSpace(category.Description) ? null : category.Description,
+            Id = category.Id,
+            Name = category.Name,
+            Description = string.IsNullOrWhiteSpace(category.Description) ? null : category.Description,
             ParentCategoryId = category.ParentCategoryId,
-            IsActive        = category.IsActive,
-            DisplayOrder    = category.DisplayOrder,
-            BreadcrumbPath  = category.BreadcrumbPath,
-            DepthLevel      = category.DepthLevel,
-            ChildCount      = category.ChildCount,
-            SubCategories   = subcategories
+            IsActive = category.IsActive,
+            DisplayOrder = category.DisplayOrder,
+            BreadcrumbPath = category.BreadcrumbPath,
+            DepthLevel = category.DepthLevel,
+            ChildCount = category.ChildCount,
+            SubCategories = subcategories
         };
     }
 }

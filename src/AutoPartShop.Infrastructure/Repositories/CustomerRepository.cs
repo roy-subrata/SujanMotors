@@ -2,6 +2,7 @@ using AutoPartShop.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace AutoPartShop.Infrastructure.Repositories;
+
 public class CustomerRepository : ICustomerRepository
 {
     private readonly AutoPartDbContext _dbContext;

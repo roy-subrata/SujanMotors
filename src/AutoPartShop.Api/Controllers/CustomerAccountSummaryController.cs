@@ -74,7 +74,7 @@ public class CustomerAccountSummaryController : ControllerBase
         {
             query.CustomerId = customerId;
             query.PageNumber = 1;
-            query.PageSize   = int.MaxValue;
+            query.PageSize = int.MaxValue;
 
             var summary = await _summaryService.GetAccountSummaryAsync(query, cancellationToken);
 
@@ -87,13 +87,13 @@ public class CustomerAccountSummaryController : ControllerBase
             }
 
             var shopProfile = new ShopProfile(
-                Name:           Get("SHOP_NAME"),
-                Address:        Get("SHOP_ADDRESS"),
-                Phone:          Get("SHOP_PHONE"),
-                Email:          Get("SHOP_EMAIL"),
-                TaxNo:          Get("SHOP_TAX_NUMBER"),
-                Tagline:        Get("SHOP_TAGLINE"),
-                FooterText:     Get("INVOICE_FOOTER_TEXT", "Thank you for your business!"),
+                Name: Get("SHOP_NAME"),
+                Address: Get("SHOP_ADDRESS"),
+                Phone: Get("SHOP_PHONE"),
+                Email: Get("SHOP_EMAIL"),
+                TaxNo: Get("SHOP_TAX_NUMBER"),
+                Tagline: Get("SHOP_TAGLINE"),
+                FooterText: Get("INVOICE_FOOTER_TEXT", "Thank you for your business!"),
                 CurrencySymbol: summary.CurrencySymbol);
 
             var document = new CustomerAccountStatementDocument(summary, shopProfile);

@@ -16,7 +16,7 @@ public class TwilioWhatsAppProvider : IWhatsAppProvider
     public TwilioWhatsAppProvider(IConfiguration config, ILogger<TwilioWhatsAppProvider> logger)
     {
         _logger = logger;
-        var sid   = config["Twilio:AccountSid"];
+        var sid = config["Twilio:AccountSid"];
         var token = config["Twilio:AuthToken"];
         _msgServiceSid = config["Twilio:WhatsAppMsgServiceSid"];
 
@@ -40,9 +40,9 @@ public class TwilioWhatsAppProvider : IWhatsAppProvider
             : $"whatsapp:{toPhone}";
 
         var msg = await MessageResource.CreateAsync(
-            to:                  new PhoneNumber(to),
+            to: new PhoneNumber(to),
             messagingServiceSid: _msgServiceSid,
-            body:                message);
+            body: message);
 
         return msg.Status != MessageResource.StatusEnum.Failed
             && msg.Status != MessageResource.StatusEnum.Undelivered;

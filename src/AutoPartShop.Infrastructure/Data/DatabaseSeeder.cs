@@ -116,8 +116,8 @@ public class DatabaseSeeder
         if (seedDemoUsers)
         {
             users.Add(("manager", "manager@autopartshop.com", "Manager@1990", "Demo", "Manager", "Manager"));
-            users.Add(("user",    "user@autopartshop.com",    "User@1990",    "Demo", "User",    "User"));
-            users.Add(("viewer",  "viewer@autopartshop.com",  "Viewer@1990",  "Demo", "Viewer",  "Viewer"));
+            users.Add(("user", "user@autopartshop.com", "User@1990", "Demo", "User", "User"));
+            users.Add(("viewer", "viewer@autopartshop.com", "Viewer@1990", "Demo", "Viewer", "Viewer"));
         }
 
         foreach (var u in users)

@@ -741,7 +741,7 @@ public class StockController : ControllerBase
     {
         var part = movement.StockLevel?.Part;
         var warehouse = movement.StockLevel?.Warehouse;
-        
+
         return new StockMovementResponse
         {
             Id = movement.Id,

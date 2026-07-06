@@ -252,13 +252,22 @@ public class ProductAttributeGroupController : ControllerBase
 
     private static object MapGroup(ProductAttributeGroup g) => new
     {
-        g.Id, g.Name, g.SortOrder, g.IsActive,
+        g.Id,
+        g.Name,
+        g.SortOrder,
+        g.IsActive,
         attributes = g.Attributes.Select(MapAttribute)
     };
 
     private static object MapAttribute(ProductAttribute a) => new
     {
-        a.Id, a.AttributeGroupId, a.Name, a.Code, a.DataType, a.Unit, a.IsActive,
+        a.Id,
+        a.AttributeGroupId,
+        a.Name,
+        a.Code,
+        a.DataType,
+        a.Unit,
+        a.IsActive,
         options = a.Options.OrderBy(o => o.SortOrder).Select(o => new { o.Id, o.AttributeId, o.Value, o.SortOrder })
     };
 }

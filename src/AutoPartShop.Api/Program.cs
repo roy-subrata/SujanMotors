@@ -28,7 +28,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // --- Observability bootstrap ---
 var otelEndpoint = builder.Configuration["Otel:Endpoint"] ?? "http://otel-collector:4317";
-var serviceName  = builder.Configuration["Otel:ServiceName"] ?? "autopartshop-api";
+var serviceName = builder.Configuration["Otel:ServiceName"] ?? "autopartshop-api";
 
 builder.Host.UseSerilog((ctx, lc) => lc
     .ReadFrom.Configuration(ctx.Configuration)
@@ -265,12 +265,12 @@ await DatabaseSeeder.SeedAsync(app.Services);
 
 // Swagger exposes the full API surface; keep it out of production to avoid information disclosure.
 
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "AutoPart Shop API V1");
-        c.RoutePrefix = "docs"; // set swagger path to /docs
-    });
+app.UseSwagger();
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "AutoPart Shop API V1");
+    c.RoutePrefix = "docs"; // set swagger path to /docs
+});
 
 await app.ApplyMigration();
 // Enable CORS
@@ -281,7 +281,7 @@ app.UseSerilogRequestLogging();
 // Only redirect HTTPS in production
 //if (!app.Environment.IsDevelopment())
 //{
-   
+
 //}
 //app.UseHttpsRedirection();
 app.UseRouting();

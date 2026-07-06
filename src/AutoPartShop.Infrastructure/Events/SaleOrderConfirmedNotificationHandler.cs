@@ -75,19 +75,19 @@ public class SaleOrderConfirmedNotificationHandler : IDomainEventHandler<SaleOrd
             _broadcaster.BroadcastAsync(new SaleNotificationEvent
             {
                 SalesOrderId = evt.SalesOrderId,
-                SONumber     = evt.SONumber,
+                SONumber = evt.SONumber,
                 CustomerName = evt.CustomerName,
-                GrandTotal   = evt.GrandTotal,
-                Currency     = evt.Currency,
-                SaleChannel  = evt.Channel,
-                OccurredAt   = evt.OccurredAt,
-                CreatedBy    = evt.CreatedBy
+                GrandTotal = evt.GrandTotal,
+                Currency = evt.Currency,
+                SaleChannel = evt.Channel,
+                OccurredAt = evt.OccurredAt,
+                CreatedBy = evt.CreatedBy
             }, cancellationToken));
     }
 
     private async Task TrySendAsync(Func<Task> action)
     {
-        try   { await action(); }
+        try { await action(); }
         catch (Exception ex) { _logger.LogWarning(ex, "Notification step failed in {Handler}", nameof(SaleOrderConfirmedNotificationHandler)); }
     }
 }

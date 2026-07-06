@@ -19,16 +19,16 @@ public class CustomerAccountStatementDocument : IDocument
 {
     // ── Palette ────────────────────────────────────────────────────────────────
     private const string NavyPrimary = "#1e3a8a";
-    private const string GreenText   = "#15803d";
-    private const string Gray50      = "#f9fafb";
-    private const string Gray100     = "#f3f4f6";
-    private const string Gray200     = "#e5e7eb";
-    private const string Gray300     = "#d1d5db";
-    private const string Gray400     = "#9ca3af";
-    private const string Gray500     = "#6b7280";
-    private const string Gray700     = "#374151";
-    private const string Gray900     = "#111827";
-    private const string White       = "#FFFFFF";
+    private const string GreenText = "#15803d";
+    private const string Gray50 = "#f9fafb";
+    private const string Gray100 = "#f3f4f6";
+    private const string Gray200 = "#e5e7eb";
+    private const string Gray300 = "#d1d5db";
+    private const string Gray400 = "#9ca3af";
+    private const string Gray500 = "#6b7280";
+    private const string Gray700 = "#374151";
+    private const string Gray900 = "#111827";
+    private const string White = "#FFFFFF";
 
     private readonly CustomerAccountSummaryDto _data;
     private readonly ShopProfile _shop;
@@ -41,8 +41,8 @@ public class CustomerAccountStatementDocument : IDocument
 
     public DocumentMetadata GetMetadata() => new()
     {
-        Title        = $"Statement of Account – {_data.CustomerName}",
-        Author       = _shop.Name,
+        Title = $"Statement of Account – {_data.CustomerName}",
+        Author = _shop.Name,
         CreationDate = DateTime.UtcNow
     };
 
@@ -163,7 +163,7 @@ public class CustomerAccountStatementDocument : IDocument
     private void ComposeStatementDetailsBlock(IContainer container)
     {
         var from = _data.FromDate?.ToString("dd MMM yyyy") ?? "All time";
-        var to   = _data.ToDate?.ToString("dd MMM yyyy")   ?? "All time";
+        var to = _data.ToDate?.ToString("dd MMM yyyy") ?? "All time";
 
         var vehicleLabels = _data.PurchaseItems
             .Select(x => x.VehicleLabel)
@@ -237,9 +237,9 @@ public class CustomerAccountStatementDocument : IDocument
                     H(header.Cell(), "Invoice #");
                     H(header.Cell(), "Item Description");
                     H(header.Cell(), "Vehicle");
-                    H(header.Cell(), "Qty",         right: true);
-                    H(header.Cell(), "Unit Price",   right: true);
-                    H(header.Cell(), "Amount",       right: true);
+                    H(header.Cell(), "Qty", right: true);
+                    H(header.Cell(), "Unit Price", right: true);
+                    H(header.Cell(), "Amount", right: true);
                 });
 
                 // Data rows — alternating white / gray50

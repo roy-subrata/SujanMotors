@@ -62,16 +62,16 @@ public class ChallanController(
 
                 var challanNumber = await _codeGen.GenerateAsync("CHN", ct);
                 var deliveryAddress = req?.DeliveryAddress ?? so.DeliveryAddress;
-                var receiverName    = req?.ReceiverName   ?? string.Empty;
-                var receiverPhone   = req?.ReceiverPhone  ?? string.Empty;
-                var notes           = req?.Notes          ?? string.Empty;
+                var receiverName = req?.ReceiverName ?? string.Empty;
+                var receiverPhone = req?.ReceiverPhone ?? string.Empty;
+                var notes = req?.Notes ?? string.Empty;
 
                 challan = Challan.Create(challanNumber, so.Id, deliveryAddress, receiverName, receiverPhone, notes,
                 req?.TransportCompany ?? string.Empty,
-                req?.VehicleNumber    ?? string.Empty,
-                req?.DriverName       ?? string.Empty,
-                req?.DriverPhone      ?? string.Empty);
-                challan.CreatedBy  = _currentUser.GetCurrentUsername();
+                req?.VehicleNumber ?? string.Empty,
+                req?.DriverName ?? string.Empty,
+                req?.DriverPhone ?? string.Empty);
+                challan.CreatedBy = _currentUser.GetCurrentUsername();
                 challan.ModifiedBy = _currentUser.GetCurrentUsername();
 
                 // Copy SO line items to challan lines
@@ -82,15 +82,15 @@ public class ChallanController(
                         challan.Id,
                         line.PartId,
                         line.Quantity,
-                        line.Part?.Name         ?? string.Empty,
-                        line.Part?.SKU          ?? string.Empty,
+                        line.Part?.Name ?? string.Empty,
+                        line.Part?.SKU ?? string.Empty,
                         line.ProductVariant != null
                             ? $"{line.Part?.Name} - {line.ProductVariant.Name}"
                             : (line.Part?.Name ?? string.Empty),
                         line.Unit?.Name ?? string.Empty,
                         lineNo++,
                         line.ProductVariantId);
-                    cl.CreatedBy  = _currentUser.GetCurrentUsername();
+                    cl.CreatedBy = _currentUser.GetCurrentUsername();
                     cl.ModifiedBy = _currentUser.GetCurrentUsername();
                     challan.Lines.Add(cl);
                 }
@@ -150,9 +150,9 @@ public class ChallanController(
     [HttpGet("pending")]
     public async Task<IActionResult> GetPending(CancellationToken ct)
     {
-        var draft  = await _challanRepo.GetByStatusAsync("DRAFT",  ct);
+        var draft = await _challanRepo.GetByStatusAsync("DRAFT", ct);
         var issued = await _challanRepo.GetByStatusAsync("ISSUED", ct);
-        var all    = draft.Concat(issued).OrderBy(c => c.CreatedDate);
+        var all = draft.Concat(issued).OrderBy(c => c.CreatedDate);
         return Ok(ApiResponse<object>.Ok(all.Select(MapToResponse)));
     }
 
@@ -247,35 +247,35 @@ public class ChallanController(
 
     private static object MapToResponse(Challan c) => new
     {
-        id             = c.Id,
-        challanNumber  = c.ChallanNumber,
-        salesOrderId   = c.SalesOrderId,
+        id = c.Id,
+        challanNumber = c.ChallanNumber,
+        salesOrderId = c.SalesOrderId,
         salesOrderNumber = c.SalesOrder?.SONumber,
-        invoiceId      = c.InvoiceId,
-        status         = c.Status,
-        issuedAt       = c.IssuedAt,
-        deliveredAt    = c.DeliveredAt,
+        invoiceId = c.InvoiceId,
+        status = c.Status,
+        issuedAt = c.IssuedAt,
+        deliveredAt = c.DeliveredAt,
         deliveryAddress = c.DeliveryAddress,
-        receiverName   = c.ReceiverName,
-        receiverPhone  = c.ReceiverPhone,
-        notes            = c.Notes,
+        receiverName = c.ReceiverName,
+        receiverPhone = c.ReceiverPhone,
+        notes = c.Notes,
         transportCompany = c.TransportCompany,
-        vehicleNumber    = c.VehicleNumber,
-        driverName       = c.DriverName,
-        driverPhone      = c.DriverPhone,
-        createdAt        = c.CreatedDate,
-        createdBy        = c.CreatedBy,
-        lines          = c.Lines.OrderBy(l => l.LineNumber).Select(l => new
+        vehicleNumber = c.VehicleNumber,
+        driverName = c.DriverName,
+        driverPhone = c.DriverPhone,
+        createdAt = c.CreatedDate,
+        createdBy = c.CreatedBy,
+        lines = c.Lines.OrderBy(l => l.LineNumber).Select(l => new
         {
-            id               = l.Id,
-            partId           = l.PartId,
+            id = l.Id,
+            partId = l.PartId,
             productVariantId = l.ProductVariantId,
-            partName         = l.PartName,
-            partSku          = l.PartSku,
-            displayName      = l.DisplayName,
-            unitName         = l.UnitName,
-            quantity         = l.Quantity,
-            lineNumber       = l.LineNumber
+            partName = l.PartName,
+            partSku = l.PartSku,
+            displayName = l.DisplayName,
+            unitName = l.UnitName,
+            quantity = l.Quantity,
+            lineNumber = l.LineNumber
         })
     };
 }

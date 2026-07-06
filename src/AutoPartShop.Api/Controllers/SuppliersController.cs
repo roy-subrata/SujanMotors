@@ -77,7 +77,7 @@ public class SuppliersController : ControllerBase
                 return BadRequest($"Page size can not be {query.PageSize}");
             }
 
-            var (response,total) = await _supplierReadRepository.FindAllAsynce(query, cancellationToken);
+            var (response, total) = await _supplierReadRepository.FindAllAsynce(query, cancellationToken);
 
             return Ok(PagedResult<SupplierResponse>.Create(
                 response.ToList(),

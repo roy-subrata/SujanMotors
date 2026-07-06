@@ -403,183 +403,183 @@ public class PurchaseReturnController : ControllerBase
             var strategy = _dbContext.Database.CreateExecutionStrategy();
             await strategy.ExecuteAsync(async () =>
             {
-            await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
-            try
-            {
-            purchaseReturn = await _purchaseReturnRepository.GetByIdAsync(id, cancellationToken)
-                ?? throw new InvalidOperationException("Purchase return not found");
-            purchaseReturn.MarkAsReturned();
-            purchaseReturn.ModifiedBy = _currentUserService.GetCurrentUsername();
-
-            foreach (var line in purchaseReturn.LineItems)
-            {
-                int acceptedQuantity = line.Quantity - line.RejectedQuantity;
-                if (acceptedQuantity <= 0) continue;
-
-                var variantId = purchaseReturn.PurchaseOrder?.LineItems
-                    .FirstOrDefault(pol => pol.Id == line.PurchaseOrderLineId)?.VariantId;
-                var stockLevels = await _stockLevelRepository.GetByPartAndVariantAsync(line.PartId, variantId, cancellationToken);
-                var stockLevel = stockLevels.FirstOrDefault();
-
-                if (stockLevel != null)
+                await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+                try
                 {
-                    // Check if a specific lot was selected for this line
-                    if (line.StockLotId.HasValue)
+                    purchaseReturn = await _purchaseReturnRepository.GetByIdAsync(id, cancellationToken)
+                        ?? throw new InvalidOperationException("Purchase return not found");
+                    purchaseReturn.MarkAsReturned();
+                    purchaseReturn.ModifiedBy = _currentUserService.GetCurrentUsername();
+
+                    foreach (var line in purchaseReturn.LineItems)
                     {
-                        // Use the specific lot selected by user
-                        var selectedLot = await _stockLotRepository.GetByIdAsync(line.StockLotId.Value, cancellationToken);
-                        if (selectedLot == null)
+                        int acceptedQuantity = line.Quantity - line.RejectedQuantity;
+                        if (acceptedQuantity <= 0) continue;
+
+                        var variantId = purchaseReturn.PurchaseOrder?.LineItems
+                            .FirstOrDefault(pol => pol.Id == line.PurchaseOrderLineId)?.VariantId;
+                        var stockLevels = await _stockLevelRepository.GetByPartAndVariantAsync(line.PartId, variantId, cancellationToken);
+                        var stockLevel = stockLevels.FirstOrDefault();
+
+                        if (stockLevel != null)
                         {
-                            _logger.LogWarning("Selected lot {LotId} not found for line {LineId}", line.StockLotId, line.Id);
-                            continue;
+                            // Check if a specific lot was selected for this line
+                            if (line.StockLotId.HasValue)
+                            {
+                                // Use the specific lot selected by user
+                                var selectedLot = await _stockLotRepository.GetByIdAsync(line.StockLotId.Value, cancellationToken);
+                                if (selectedLot == null)
+                                {
+                                    _logger.LogWarning("Selected lot {LotId} not found for line {LineId}", line.StockLotId, line.Id);
+                                    continue;
+                                }
+
+                                if (selectedLot.QuantityAvailable < acceptedQuantity)
+                                {
+                                    _logger.LogWarning(
+                                        "Insufficient stock in selected lot {LotId}. Required: {Required}, Available: {Available}",
+                                        line.StockLotId, acceptedQuantity, selectedLot.QuantityAvailable);
+                                    throw new InvalidOperationException($"Insufficient stock in selected lot. Available: {selectedLot.QuantityAvailable}, Required: {acceptedQuantity}");
+                                }
+
+                                // Reduce stock from the bucket matching the lot's status (Available/Damaged/Quarantine).
+                                // Items are being returned to supplier.
+                                var bucket = NormalizeBucket(selectedLot.Status);
+                                RemoveFromBucket(stockLevel, bucket, acceptedQuantity);
+                                await _stockLevelRepository.UpdateAsync(stockLevel, cancellationToken);
+
+                                // Create stock movement record
+                                var stockMovement = StockMovement.Create(
+                                    stockLevel.Id,
+                                    "OUT",
+                                    acceptedQuantity,
+                                    $"Purchase Return {purchaseReturn.ReturnNumber}",
+                                    purchaseReturn.ReturnNumber
+                                );
+                                stockMovement.Approve("System");
+                                stockMovement.CreatedBy = _currentUserService.GetCurrentUsername();
+                                stockMovement.ModifiedBy = _currentUserService.GetCurrentUsername();
+                                await _stockMovementRepository.AddAsync(stockMovement, cancellationToken);
+
+                                // Reduce the selected lot quantity
+                                selectedLot.RemoveStock(acceptedQuantity, acceptedQuantity, "Purchase Return");
+                                await _stockLotRepository.UpdateAsync(selectedLot, cancellationToken);
+
+                                // Create lot movement for the specific lot
+                                var lotMovement = StockLotMovement.Create(
+                                    selectedLot.Id,
+                                    acceptedQuantity,
+                                    "RETURN",
+                                    purchaseReturn.Id,
+                                    "PurchaseReturn",
+                                    DateTime.UtcNow,
+                                    selectedLot.CostPrice,
+                                    $"Purchase Return {purchaseReturn.ReturnNumber}",
+                                    $"Returned to supplier (Selected Lot: {selectedLot.LotNumber})"
+                                );
+                                lotMovement.CreatedBy = _currentUserService.GetCurrentUsername();
+                                lotMovement.ModifiedBy = _currentUserService.GetCurrentUsername();
+                                await _stockLotMovementRepository.AddAsync(lotMovement, cancellationToken);
+                            }
+                            else
+                            {
+                                // No specific lot selected - use FIFO from supplier lots
+                                var allLots = await _stockLotRepository.GetByPartAndWarehouseAsync(
+                                    line.PartId,
+                                    stockLevel.WarehouseId,
+                                    cancellationToken);
+
+                                // IMPORTANT: Filter to get lots from THIS SUPPLIER only (using FIFO within supplier lots)
+                                // This ensures we return items from the same supplier we purchased from
+                                // No lot selected => sellable Available bucket only (Damaged/Quarantine returns must pick a lot).
+                                var supplierLots = allLots
+                                    .Where(l => l.SupplierId == purchaseReturn.SupplierId && l.VariantId == variantId && l.QuantityAvailable > 0 && l.Status == "AVAILABLE")
+                                    .OrderBy(l => l.ReceivingDate)  // FIFO - oldest lots first
+                                    .ToList();
+
+                                // Must have enough AVAILABLE stock from THIS supplier. We never draw a return
+                                // from another supplier's lots — that would destroy lot/supplier traceability.
+                                // If the originating supplier's lots are short, the operator must pick specific
+                                // lots on the return lines instead.
+                                int totalAvailableFromSupplier = supplierLots.Sum(l => l.QuantityAvailable);
+                                if (totalAvailableFromSupplier < acceptedQuantity)
+                                {
+                                    throw new InvalidOperationException(
+                                        $"Insufficient available stock from this supplier for part {line.Part?.Name ?? line.PartId.ToString()} " +
+                                        $"(available: {totalAvailableFromSupplier}, required: {acceptedQuantity}). " +
+                                        "Select specific stock lots on the return lines to proceed.");
+                                }
+
+                                // Reduce stock - items are being returned to supplier
+                                stockLevel.RemoveStock(acceptedQuantity, acceptedQuantity, "Purchase Return");
+                                await _stockLevelRepository.UpdateAsync(stockLevel, cancellationToken);
+
+                                // Create stock movement record
+                                var stockMovement = StockMovement.Create(
+                                    stockLevel.Id,
+                                    "OUT",
+                                    acceptedQuantity,
+                                    $"Purchase Return {purchaseReturn.ReturnNumber}",
+                                    purchaseReturn.ReturnNumber
+                                );
+                                stockMovement.Approve("System");
+                                stockMovement.CreatedBy = _currentUserService.GetCurrentUsername();
+                                stockMovement.ModifiedBy = _currentUserService.GetCurrentUsername();
+                                await _stockMovementRepository.AddAsync(stockMovement, cancellationToken);
+
+                                // Process lot movements - prioritizing supplier-specific lots
+                                int remainingQty = acceptedQuantity;
+                                foreach (var lot in supplierLots)
+                                {
+                                    if (remainingQty <= 0) break;
+
+                                    int qtyToReturn = Math.Min(remainingQty, lot.QuantityAvailable);
+
+                                    // Reduce lot quantity
+                                    lot.RemoveStock(qtyToReturn, qtyToReturn, "Purchase Return");
+                                    await _stockLotRepository.UpdateAsync(lot, cancellationToken);
+
+                                    // Create lot movement with supplier reference
+                                    var lotMovement = StockLotMovement.Create(
+                                        lot.Id,
+                                        qtyToReturn,
+                                        "RETURN",
+                                        purchaseReturn.Id,
+                                        "PurchaseReturn",
+                                        DateTime.UtcNow,
+                                        lot.CostPrice,
+                                        $"Purchase Return {purchaseReturn.ReturnNumber}",
+                                        $"Returned to supplier (Lot from Supplier: {lot.SupplierId})"
+                                    );
+                                    lotMovement.CreatedBy = _currentUserService.GetCurrentUsername();
+                                    lotMovement.ModifiedBy = _currentUserService.GetCurrentUsername();
+                                    await _stockLotMovementRepository.AddAsync(lotMovement, cancellationToken);
+
+                                    remainingQty -= qtyToReturn;
+                                }
+
+                                if (remainingQty > 0)
+                                {
+                                    _logger.LogWarning(
+                                        "Could not return full quantity for part {PartId}. Remaining: {Remaining}",
+                                        line.PartId, remainingQty);
+                                }
+                            }
                         }
-
-                        if (selectedLot.QuantityAvailable < acceptedQuantity)
-                        {
-                            _logger.LogWarning(
-                                "Insufficient stock in selected lot {LotId}. Required: {Required}, Available: {Available}",
-                                line.StockLotId, acceptedQuantity, selectedLot.QuantityAvailable);
-                            throw new InvalidOperationException($"Insufficient stock in selected lot. Available: {selectedLot.QuantityAvailable}, Required: {acceptedQuantity}");
-                        }
-
-                        // Reduce stock from the bucket matching the lot's status (Available/Damaged/Quarantine).
-                        // Items are being returned to supplier.
-                        var bucket = NormalizeBucket(selectedLot.Status);
-                        RemoveFromBucket(stockLevel, bucket, acceptedQuantity);
-                        await _stockLevelRepository.UpdateAsync(stockLevel, cancellationToken);
-
-                        // Create stock movement record
-                        var stockMovement = StockMovement.Create(
-                            stockLevel.Id,
-                            "OUT",
-                            acceptedQuantity,
-                            $"Purchase Return {purchaseReturn.ReturnNumber}",
-                            purchaseReturn.ReturnNumber
-                        );
-                        stockMovement.Approve("System");
-                        stockMovement.CreatedBy = _currentUserService.GetCurrentUsername();
-                        stockMovement.ModifiedBy = _currentUserService.GetCurrentUsername();
-                        await _stockMovementRepository.AddAsync(stockMovement, cancellationToken);
-
-                        // Reduce the selected lot quantity
-                        selectedLot.RemoveStock(acceptedQuantity, acceptedQuantity, "Purchase Return");
-                        await _stockLotRepository.UpdateAsync(selectedLot, cancellationToken);
-
-                        // Create lot movement for the specific lot
-                        var lotMovement = StockLotMovement.Create(
-                            selectedLot.Id,
-                            acceptedQuantity,
-                            "RETURN",
-                            purchaseReturn.Id,
-                            "PurchaseReturn",
-                            DateTime.UtcNow,
-                            selectedLot.CostPrice,
-                            $"Purchase Return {purchaseReturn.ReturnNumber}",
-                            $"Returned to supplier (Selected Lot: {selectedLot.LotNumber})"
-                        );
-                        lotMovement.CreatedBy = _currentUserService.GetCurrentUsername();
-                        lotMovement.ModifiedBy = _currentUserService.GetCurrentUsername();
-                        await _stockLotMovementRepository.AddAsync(lotMovement, cancellationToken);
                     }
-                    else
-                    {
-                        // No specific lot selected - use FIFO from supplier lots
-                        var allLots = await _stockLotRepository.GetByPartAndWarehouseAsync(
-                            line.PartId,
-                            stockLevel.WarehouseId,
-                            cancellationToken);
 
-                        // IMPORTANT: Filter to get lots from THIS SUPPLIER only (using FIFO within supplier lots)
-                        // This ensures we return items from the same supplier we purchased from
-                        // No lot selected => sellable Available bucket only (Damaged/Quarantine returns must pick a lot).
-                        var supplierLots = allLots
-                            .Where(l => l.SupplierId == purchaseReturn.SupplierId && l.VariantId == variantId && l.QuantityAvailable > 0 && l.Status == "AVAILABLE")
-                            .OrderBy(l => l.ReceivingDate)  // FIFO - oldest lots first
-                            .ToList();
+                    // NOTE: Supplier balance is NOT updated here.
+                    // Balance is now calculated from transactions via SupplierLedgerService.
+                    // Use the /settle endpoint to record the financial settlement of this return.
 
-                        // Must have enough AVAILABLE stock from THIS supplier. We never draw a return
-                        // from another supplier's lots — that would destroy lot/supplier traceability.
-                        // If the originating supplier's lots are short, the operator must pick specific
-                        // lots on the return lines instead.
-                        int totalAvailableFromSupplier = supplierLots.Sum(l => l.QuantityAvailable);
-                        if (totalAvailableFromSupplier < acceptedQuantity)
-                        {
-                            throw new InvalidOperationException(
-                                $"Insufficient available stock from this supplier for part {line.Part?.Name ?? line.PartId.ToString()} " +
-                                $"(available: {totalAvailableFromSupplier}, required: {acceptedQuantity}). " +
-                                "Select specific stock lots on the return lines to proceed.");
-                        }
-
-                        // Reduce stock - items are being returned to supplier
-                        stockLevel.RemoveStock(acceptedQuantity, acceptedQuantity, "Purchase Return");
-                        await _stockLevelRepository.UpdateAsync(stockLevel, cancellationToken);
-
-                        // Create stock movement record
-                        var stockMovement = StockMovement.Create(
-                            stockLevel.Id,
-                            "OUT",
-                            acceptedQuantity,
-                            $"Purchase Return {purchaseReturn.ReturnNumber}",
-                            purchaseReturn.ReturnNumber
-                        );
-                        stockMovement.Approve("System");
-                        stockMovement.CreatedBy = _currentUserService.GetCurrentUsername();
-                        stockMovement.ModifiedBy = _currentUserService.GetCurrentUsername();
-                        await _stockMovementRepository.AddAsync(stockMovement, cancellationToken);
-
-                        // Process lot movements - prioritizing supplier-specific lots
-                        int remainingQty = acceptedQuantity;
-                        foreach (var lot in supplierLots)
-                        {
-                            if (remainingQty <= 0) break;
-
-                            int qtyToReturn = Math.Min(remainingQty, lot.QuantityAvailable);
-
-                            // Reduce lot quantity
-                            lot.RemoveStock(qtyToReturn, qtyToReturn, "Purchase Return");
-                            await _stockLotRepository.UpdateAsync(lot, cancellationToken);
-
-                            // Create lot movement with supplier reference
-                            var lotMovement = StockLotMovement.Create(
-                                lot.Id,
-                                qtyToReturn,
-                                "RETURN",
-                                purchaseReturn.Id,
-                                "PurchaseReturn",
-                                DateTime.UtcNow,
-                                lot.CostPrice,
-                                $"Purchase Return {purchaseReturn.ReturnNumber}",
-                                $"Returned to supplier (Lot from Supplier: {lot.SupplierId})"
-                            );
-                            lotMovement.CreatedBy = _currentUserService.GetCurrentUsername();
-                            lotMovement.ModifiedBy = _currentUserService.GetCurrentUsername();
-                            await _stockLotMovementRepository.AddAsync(lotMovement, cancellationToken);
-
-                            remainingQty -= qtyToReturn;
-                        }
-
-                        if (remainingQty > 0)
-                        {
-                            _logger.LogWarning(
-                                "Could not return full quantity for part {PartId}. Remaining: {Remaining}",
-                                line.PartId, remainingQty);
-                        }
-                    }
+                    await _purchaseReturnRepository.UpdateAsync(purchaseReturn, cancellationToken);
+                    await transaction.CommitAsync(cancellationToken);
+                } // end try
+                catch
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                    throw;
                 }
-            }
-
-            // NOTE: Supplier balance is NOT updated here.
-            // Balance is now calculated from transactions via SupplierLedgerService.
-            // Use the /settle endpoint to record the financial settlement of this return.
-
-            await _purchaseReturnRepository.UpdateAsync(purchaseReturn, cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
-            } // end try
-            catch
-            {
-                await transaction.RollbackAsync(cancellationToken);
-                throw;
-            }
             }); // end execution strategy
 
             return Ok(MapToPurchaseReturnResponse(purchaseReturn));

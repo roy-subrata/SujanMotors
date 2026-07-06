@@ -19,7 +19,7 @@ public class FinancialSummaryService : IFinancialSummaryService
 
     // Statuses that represent no real economic activity and must be excluded from every metric.
     private static readonly string[] ExcludedSalesStatuses = ["CANCELLED", "RETURNED", "DRAFT"];
-    private static readonly string[] ExcludedPOStatuses    = ["DRAFT", "SUBMITTED", "CANCELLED"];
+    private static readonly string[] ExcludedPOStatuses = ["DRAFT", "SUBMITTED", "CANCELLED"];
 
     public FinancialSummaryService(AutoPartDbContext dbContext, ICurrencyConversionService currencyService)
     {
@@ -29,24 +29,24 @@ public class FinancialSummaryService : IFinancialSummaryService
 
     public async Task<DashboardResponse> GetDashboardDataAsync(FinancialSummaryRequest request, CancellationToken cancellationToken = default)
     {
-        var summary     = await GetFinancialSummaryAsync(request, cancellationToken);
+        var summary = await GetFinancialSummaryAsync(request, cancellationToken);
         var topProducts = await GetTopProductsAsync(request, cancellationToken);
         var topCustomers = await GetTopCustomersAsync(request, cancellationToken);
-        var salesTrend  = await GetSalesTrendAsync(request, cancellationToken);
+        var salesTrend = await GetSalesTrendAsync(request, cancellationToken);
 
         return new DashboardResponse
         {
-            Summary      = summary,
-            TopProducts  = topProducts,
+            Summary = summary,
+            TopProducts = topProducts,
             TopCustomers = topCustomers,
-            SalesTrend   = salesTrend
+            SalesTrend = salesTrend
         };
     }
 
     public async Task<FinancialSummaryResponse> GetFinancialSummaryAsync(FinancialSummaryRequest request, CancellationToken cancellationToken = default)
     {
         var startDate = request.StartDate.Date;
-        var endDate   = request.EndDate.Date.AddDays(1); // exclusive upper bound — all queries use < endDate
+        var endDate = request.EndDate.Date.AddDays(1); // exclusive upper bound — all queries use < endDate
 
         // ── Sales ─────────────────────────────────────────────────────────────────────
         // Exclude CANCELLED, RETURNED (reversed sales) and DRAFT (uncommitted legacy orders).
@@ -58,7 +58,7 @@ public class FinancialSummaryService : IFinancialSummaryService
             .ToListAsync(cancellationToken);
 
         var totalSales = 0m;
-        var cashSales  = 0m;   // accrual: invoiced amount where payment is already PAID
+        var cashSales = 0m;   // accrual: invoiced amount where payment is already PAID
         var creditSales = 0m;  // accrual: invoiced amount still outstanding (PENDING / PARTIAL)
 
         foreach (var so in salesOrders)
@@ -153,8 +153,8 @@ public class FinancialSummaryService : IFinancialSummaryService
             })
             .ToListAsync(cancellationToken);
 
-        var customerDueByCustomer      = new Dictionary<Guid, decimal>();
-        var customerOverdueByCustomer  = new Dictionary<Guid, decimal>();
+        var customerDueByCustomer = new Dictionary<Guid, decimal>();
+        var customerOverdueByCustomer = new Dictionary<Guid, decimal>();
 
         foreach (var inv in openInvoiceData)
         {
@@ -173,8 +173,8 @@ public class FinancialSummaryService : IFinancialSummaryService
             }
         }
 
-        var customerDuesPositive     = customerDueByCustomer.Values.Where(v => v > 0).ToList();
-        var customerOverduePositive  = customerOverdueByCustomer.Values.Where(v => v > 0).ToList();
+        var customerDuesPositive = customerDueByCustomer.Values.Where(v => v > 0).ToList();
+        var customerOverduePositive = customerOverdueByCustomer.Values.Where(v => v > 0).ToList();
 
         // ── Supplier outstanding / overdue (all-time snapshot) ────────────────────────
         // Balance per supplier = Σ active PO amounts − Σ completed payments − Σ settled returns.
@@ -199,9 +199,9 @@ public class FinancialSummaryService : IFinancialSummaryService
             .Select(x => new { x.SupplierId, x.SettledAmount, Currency = x.PurchaseOrder!.Currency, x.SettledDate, PODate = x.PurchaseOrder.PODate })
             .ToListAsync(cancellationToken);
 
-        var supplierPOBySupplier      = new Dictionary<Guid, decimal>();
+        var supplierPOBySupplier = new Dictionary<Guid, decimal>();
         var supplierPaymentBySupplier = new Dictionary<Guid, decimal>();
-        var supplierRefundBySupplier  = new Dictionary<Guid, decimal>();
+        var supplierRefundBySupplier = new Dictionary<Guid, decimal>();
 
         foreach (var po in activePOs)
         {
@@ -284,12 +284,12 @@ public class FinancialSummaryService : IFinancialSummaryService
 
         // ── Customers ────────────────────────────────────────────────────────────────
         var totalCustomers = await _dbContext.Customers.CountAsync(c => !c.Isdeleted, cancellationToken);
-        var newCustomers   = await _dbContext.Customers
+        var newCustomers = await _dbContext.Customers
             .CountAsync(c => !c.Isdeleted && c.CreatedDate >= startDate && c.CreatedDate < endDate, cancellationToken);
 
         // ── Profitability (accrual basis) ─────────────────────────────────────────────
-        var grossProfit  = totalSales - totalPurchases;
-        var netProfit    = grossProfit - totalDailyExpenses;
+        var grossProfit = totalSales - totalPurchases;
+        var netProfit = grossProfit - totalDailyExpenses;
         var profitMargin = totalSales > 0 ? (netProfit / totalSales) * 100 : 0m;
 
         // ── Cash flow (cash basis) ────────────────────────────────────────────────────
@@ -298,74 +298,74 @@ public class FinancialSummaryService : IFinancialSummaryService
         // truth. Do NOT add cashSales here: CASH POS payments are already COMPLETED
         // CustomerPayments, so cashSales + customerPayments would double-count them.
         // cashSales / creditSales are accrual-basis breakdowns of TotalSales, not cash.
-        var cashInflow  = customerPayments;
+        var cashInflow = customerPayments;
         var cashOutflow = supplierPayments + totalDailyExpenses;
 
         return new FinancialSummaryResponse
         {
             StartDate = startDate,
-            EndDate   = request.EndDate.Date, // inclusive end — NOT the exclusive upper-bound variable
-            Period    = request.Period,
+            EndDate = request.EndDate.Date, // inclusive end — NOT the exclusive upper-bound variable
+            Period = request.Period,
 
             // Revenue (accrual)
-            TotalSales              = totalSales,
-            TotalSalesCount         = salesOrders.Count,
-            CashSales               = cashSales,
-            CreditSales             = creditSales,
+            TotalSales = totalSales,
+            TotalSalesCount = salesOrders.Count,
+            CashSales = cashSales,
+            CreditSales = creditSales,
             CustomerPaymentsReceived = customerPayments,
-            TotalRevenue            = customerPayments, // cash-basis: all COMPLETED CustomerPayments
+            TotalRevenue = customerPayments, // cash-basis: all COMPLETED CustomerPayments
 
             // Expenses (accrual)
-            TotalPurchases      = totalPurchases,
+            TotalPurchases = totalPurchases,
             TotalPurchasesCount = purchaseOrders.Count,
             SupplierPaymentsMade = supplierPayments,
-            DailyExpenses       = totalDailyExpenses,
-            DailyExpensesCount  = dailyExpensesCount,
-            OtherExpenses       = 0,
-            TotalExpenses       = totalPurchases + totalDailyExpenses, // accrual; supplierPayments excluded to avoid double-count
+            DailyExpenses = totalDailyExpenses,
+            DailyExpensesCount = dailyExpensesCount,
+            OtherExpenses = 0,
+            TotalExpenses = totalPurchases + totalDailyExpenses, // accrual; supplierPayments excluded to avoid double-count
 
             // Profitability
-            GrossProfit  = grossProfit,
-            NetProfit    = netProfit,
+            GrossProfit = grossProfit,
+            NetProfit = netProfit,
             ProfitMargin = profitMargin,
 
             // Outstanding (all-time)
-            CustomerDueAmount  = customerDuesPositive.Sum(),
-            CustomerDueCount   = customerDuesPositive.Count,
-            SupplierDueAmount  = supplierBalancesPositive.Sum(),
-            SupplierDueCount   = supplierBalancesPositive.Count,
+            CustomerDueAmount = customerDuesPositive.Sum(),
+            CustomerDueCount = customerDuesPositive.Count,
+            SupplierDueAmount = supplierBalancesPositive.Sum(),
+            SupplierDueCount = supplierBalancesPositive.Count,
 
             // Overdue (all-time)
-            CustomerOverdueAmount  = customerOverduePositive.Sum(),
-            CustomerOverdueCount   = customerOverduePositive.Count,
-            SupplierOverdueAmount  = supplierOverdueBalancesPositive.Sum(),
-            SupplierOverdueCount   = supplierOverdueBalancesPositive.Count,
+            CustomerOverdueAmount = customerOverduePositive.Sum(),
+            CustomerOverdueCount = customerOverduePositive.Count,
+            SupplierOverdueAmount = supplierOverdueBalancesPositive.Sum(),
+            SupplierOverdueCount = supplierOverdueBalancesPositive.Count,
 
             // Inventory (current snapshot)
-            InventoryValue    = inventoryValue,
-            LowStockValue     = lowStockValue,
+            InventoryValue = inventoryValue,
+            LowStockValue = lowStockValue,
             LowStockItemsCount = lowStockPartIds.Count, // distinct parts, not warehouse rows
 
             // Cash flow
-            OpeningBalance  = 0, // requires a separate balance-ledger; tracked in CashBookController
-            CashInflow      = cashInflow,
-            CashOutflow     = cashOutflow,
-            ClosingBalance  = cashInflow - cashOutflow,
+            OpeningBalance = 0, // requires a separate balance-ledger; tracked in CashBookController
+            CashInflow = cashInflow,
+            CashOutflow = cashOutflow,
+            ClosingBalance = cashInflow - cashOutflow,
 
             // Averages / counts
-            AverageSaleValue     = salesOrders.Count > 0 ? totalSales / salesOrders.Count : 0m,
+            AverageSaleValue = salesOrders.Count > 0 ? totalSales / salesOrders.Count : 0m,
             AveragePurchaseValue = purchaseOrders.Count > 0 ? totalPurchases / purchaseOrders.Count : 0m,
-            TotalCustomers       = totalCustomers,
-            NewCustomers         = newCustomers,
-            TotalSuppliers       = await _dbContext.Suppliers.CountAsync(s => !s.Isdeleted, cancellationToken),
-            ActiveSuppliers      = await _dbContext.Suppliers.CountAsync(s => !s.Isdeleted && s.IsActive, cancellationToken)
+            TotalCustomers = totalCustomers,
+            NewCustomers = newCustomers,
+            TotalSuppliers = await _dbContext.Suppliers.CountAsync(s => !s.Isdeleted, cancellationToken),
+            ActiveSuppliers = await _dbContext.Suppliers.CountAsync(s => !s.Isdeleted && s.IsActive, cancellationToken)
         };
     }
 
     public async Task<List<SalesTrendDto>> GetSalesTrendAsync(FinancialSummaryRequest request, CancellationToken cancellationToken = default)
     {
         var startDate = request.StartDate.Date;
-        var endDate   = request.EndDate.Date;
+        var endDate = request.EndDate.Date;
         var filterEnd = endDate.AddDays(1); // exclusive upper bound
 
         // Groups by calendar date in SQL so the result is already aggregated.
@@ -378,8 +378,8 @@ public class FinancialSummaryService : IFinancialSummaryService
             .GroupBy(so => so.SODate.Date)
             .Select(g => new
             {
-                Date       = g.Key,
-                Sales      = g.Sum(so => so.TotalAmount),
+                Date = g.Key,
+                Sales = g.Sum(so => so.TotalAmount),
                 OrderCount = g.Count()
             })
             .ToListAsync(cancellationToken);
@@ -391,7 +391,7 @@ public class FinancialSummaryService : IFinancialSummaryService
             .GroupBy(po => po.PODate.Date)
             .Select(g => new
             {
-                Date      = g.Key,
+                Date = g.Key,
                 Purchases = g.Sum(po => po.TotalAmount)
             })
             .ToListAsync(cancellationToken);
@@ -400,18 +400,18 @@ public class FinancialSummaryService : IFinancialSummaryService
         return Enumerable.Range(0, (endDate - startDate).Days + 1)
             .Select(offset =>
             {
-                var date      = startDate.AddDays(offset);
-                var sale      = salesData.FirstOrDefault(s => s.Date == date);
-                var purchase  = purchaseData.FirstOrDefault(p => p.Date == date);
-                var salesAmt  = sale?.Sales ?? 0m;
-                var purchAmt  = purchase?.Purchases ?? 0m;
+                var date = startDate.AddDays(offset);
+                var sale = salesData.FirstOrDefault(s => s.Date == date);
+                var purchase = purchaseData.FirstOrDefault(p => p.Date == date);
+                var salesAmt = sale?.Sales ?? 0m;
+                var purchAmt = purchase?.Purchases ?? 0m;
 
                 return new SalesTrendDto
                 {
-                    Date       = date,
-                    Sales      = salesAmt,
-                    Purchases  = purchAmt,
-                    Profit     = salesAmt - purchAmt,
+                    Date = date,
+                    Sales = salesAmt,
+                    Purchases = purchAmt,
+                    Profit = salesAmt - purchAmt,
                     OrderCount = sale?.OrderCount ?? 0
                 };
             })
@@ -421,7 +421,7 @@ public class FinancialSummaryService : IFinancialSummaryService
     private async Task<List<TopProductDto>> GetTopProductsAsync(FinancialSummaryRequest request, CancellationToken cancellationToken = default)
     {
         var startDate = request.StartDate.Date;
-        var endDate   = request.EndDate.Date.AddDays(1); // exclusive upper bound
+        var endDate = request.EndDate.Date.AddDays(1); // exclusive upper bound
 
         // Revenue = (Quantity × UnitPrice) − (Quantity × Discount), where Discount is per-unit flat amount.
         var lineItems = await _dbContext.SalesOrders
@@ -433,11 +433,11 @@ public class FinancialSummaryService : IFinancialSummaryService
                 .Select(li => new
                 {
                     li.PartId,
-                    PartName   = li.Part!.Name,
+                    PartName = li.Part!.Name,
                     PartNumber = li.Part.PartNumber.Value,
-                    Sku        = li.Part.SKU,
+                    Sku = li.Part.SKU,
                     li.Quantity,
-                    Revenue    = (li.Quantity * li.UnitPrice) - (li.Quantity * li.Discount),
+                    Revenue = (li.Quantity * li.UnitPrice) - (li.Quantity * li.Discount),
                     so.Currency,
                     so.SODate
                 }))
@@ -474,13 +474,13 @@ public class FinancialSummaryService : IFinancialSummaryService
         return productAgg
             .Select(kvp => new TopProductDto
             {
-                PartId       = kvp.Key.ToString(),
-                PartName     = kvp.Value.Name,
-                PartNumber   = kvp.Value.PartNumber,
-                Sku          = kvp.Value.Sku,
+                PartId = kvp.Key.ToString(),
+                PartName = kvp.Value.Name,
+                PartNumber = kvp.Value.PartNumber,
+                Sku = kvp.Value.Sku,
                 QuantitySold = kvp.Value.Qty,
                 TotalRevenue = kvp.Value.Revenue,
-                TotalProfit  = kvp.Value.Revenue
+                TotalProfit = kvp.Value.Revenue
                     - (cogsByPart.TryGetValue(kvp.Key, out var c) ? c : 0)
                     + (returnsByPart.TryGetValue(kvp.Key, out var r) ? r : 0)
             })
@@ -492,7 +492,7 @@ public class FinancialSummaryService : IFinancialSummaryService
     private async Task<List<TopCustomerDto>> GetTopCustomersAsync(FinancialSummaryRequest request, CancellationToken cancellationToken = default)
     {
         var startDate = request.StartDate.Date;
-        var endDate   = request.EndDate.Date.AddDays(1); // exclusive upper bound
+        var endDate = request.EndDate.Date.AddDays(1); // exclusive upper bound
 
         var orders = await _dbContext.SalesOrders
             .Where(so => so.SODate >= startDate && so.SODate < endDate
@@ -503,9 +503,12 @@ public class FinancialSummaryService : IFinancialSummaryService
             {
                 so.CustomerId,
                 CustomerName = so.Customer!.FirstName + " " + so.Customer.LastName,
-                Phone        = so.Customer.Phone,
-                so.TotalAmount, so.TaxAmount, so.PaidAmount,
-                so.Currency, so.SODate
+                Phone = so.Customer.Phone,
+                so.TotalAmount,
+                so.TaxAmount,
+                so.PaidAmount,
+                so.Currency,
+                so.SODate
             })
             .ToListAsync(cancellationToken);
 
@@ -513,9 +516,9 @@ public class FinancialSummaryService : IFinancialSummaryService
 
         foreach (var so in orders)
         {
-            var grandTotal  = so.TotalAmount + so.TaxAmount;
-            var revenue     = await _currencyService.ConvertToBaseAsync(grandTotal, so.Currency, so.SODate, cancellationToken);
-            var rawDue      = grandTotal - so.PaidAmount;
+            var grandTotal = so.TotalAmount + so.TaxAmount;
+            var revenue = await _currencyService.ConvertToBaseAsync(grandTotal, so.Currency, so.SODate, cancellationToken);
+            var rawDue = grandTotal - so.PaidAmount;
             var outstanding = rawDue > 0
                 ? await _currencyService.ConvertToBaseAsync(rawDue, so.Currency, so.SODate, cancellationToken)
                 : 0m;
@@ -537,11 +540,11 @@ public class FinancialSummaryService : IFinancialSummaryService
         return customerAgg
             .Select(kvp => new TopCustomerDto
             {
-                CustomerId       = kvp.Key.ToString(),
-                CustomerName     = kvp.Value.Name,
-                Phone            = kvp.Value.Phone,
-                TotalOrders      = kvp.Value.Orders,
-                TotalRevenue     = kvp.Value.Revenue,
+                CustomerId = kvp.Key.ToString(),
+                CustomerName = kvp.Value.Name,
+                Phone = kvp.Value.Phone,
+                TotalOrders = kvp.Value.Orders,
+                TotalRevenue = kvp.Value.Revenue,
                 OutstandingAmount = kvp.Value.Outstanding,
                 LastPurchaseDate = kvp.Value.LastDate
             })

@@ -175,16 +175,16 @@ public class BrandsController : ControllerBase
         Name = brand.Name,
         // Normalise empty strings stored by the domain to null so the response
         // matches the declared nullable types and frontend null-checks work correctly
-        Description  = NullIfEmpty(brand.Description),
-        LogoUrl      = NullIfEmpty(brand.LogoUrl),
-        Website      = NullIfEmpty(brand.Website),
-        Country      = NullIfEmpty(brand.Country),
+        Description = NullIfEmpty(brand.Description),
+        LogoUrl = NullIfEmpty(brand.LogoUrl),
+        Website = NullIfEmpty(brand.Website),
+        Country = NullIfEmpty(brand.Country),
         ContactEmail = NullIfEmpty(brand.ContactEmail),
         ContactPhone = NullIfEmpty(brand.ContactPhone),
         DisplayOrder = brand.DisplayOrder,
-        IsActive     = brand.IsActive,
-        CreatedAt    = brand.CreatedDate,
-        ModifiedAt   = brand.ModifiedDate == default ? null : brand.ModifiedDate
+        IsActive = brand.IsActive,
+        CreatedAt = brand.CreatedDate,
+        ModifiedAt = brand.ModifiedDate == default ? null : brand.ModifiedDate
     };
 
     private static string? NullIfEmpty(string? value) =>

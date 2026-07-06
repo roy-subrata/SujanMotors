@@ -15,10 +15,10 @@ namespace AutoPartShop.Api.Controllers;
 [Produces("application/json")]
 public class NotificationsController : ControllerBase
 {
-    private const string SmsKey          = "NOTIFICATION:SMS_ENABLED";
-    private const string WhatsAppKey     = "NOTIFICATION:WHATSAPP_ENABLED";
+    private const string SmsKey = "NOTIFICATION:SMS_ENABLED";
+    private const string WhatsAppKey = "NOTIFICATION:WHATSAPP_ENABLED";
     private const string SignalRRolesKey = "NOTIFICATION:SIGNALR_ROLES";
-    private const string NotifCategory   = "NOTIFICATION";
+    private const string NotifCategory = "NOTIFICATION";
 
     private readonly INotificationService _notificationService;
     private readonly IApplicationSettingsRepository _settings;
@@ -47,14 +47,14 @@ public class NotificationsController : ControllerBase
         await _broadcaster.BroadcastAsync(new SaleNotificationEvent
         {
             SalesOrderId = Guid.NewGuid(),
-            SONumber     = "SO-TEST-001",
+            SONumber = "SO-TEST-001",
             CustomerName = "SignalR Test",
-            GrandTotal   = 1234.56m,
-            Currency     = "BDT",
-            SaleChannel  = "POS",
-            SaleType     = "SALE",
-            OccurredAt   = DateTime.UtcNow,
-            CreatedBy    = User.Identity?.Name ?? "test"
+            GrandTotal = 1234.56m,
+            Currency = "BDT",
+            SaleChannel = "POS",
+            SaleType = "SALE",
+            OccurredAt = DateTime.UtcNow,
+            CreatedBy = User.Identity?.Name ?? "test"
         }, cancellationToken);
 
         return Ok(new { message = "Test notification sent to staff group" });
@@ -79,7 +79,7 @@ public class NotificationsController : ControllerBase
 
         try
         {
-            var subject  = $"Invoice for Order {order.SONumber}";
+            var subject = $"Invoice for Order {order.SONumber}";
             var htmlBody = BuildInvoiceHtml(order);
 
             // The controller owns the business decision to send this email;
@@ -161,17 +161,17 @@ public class NotificationsController : ControllerBase
     [HttpGet("settings")]
     public async Task<IActionResult> GetSettings(CancellationToken cancellationToken)
     {
-        var smsVal        = await _settings.GetValueAsync(SmsKey,          cancellationToken);
-        var waVal         = await _settings.GetValueAsync(WhatsAppKey,     cancellationToken);
+        var smsVal = await _settings.GetValueAsync(SmsKey, cancellationToken);
+        var waVal = await _settings.GetValueAsync(WhatsAppKey, cancellationToken);
         var signalRRolesVal = await _settings.GetValueAsync(SignalRRolesKey, cancellationToken);
 
         return Ok(new NotificationSettingsDto
         {
-            SmsEnabled      = smsVal?.Equals("true", StringComparison.OrdinalIgnoreCase) == true,
+            SmsEnabled = smsVal?.Equals("true", StringComparison.OrdinalIgnoreCase) == true,
             WhatsAppEnabled = waVal?.Equals("true", StringComparison.OrdinalIgnoreCase) == true,
-            SignalRRoles    = string.IsNullOrWhiteSpace(signalRRolesVal)
+            SignalRRoles = string.IsNullOrWhiteSpace(signalRRolesVal)
                 ? []
-                : [..signalRRolesVal.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)]
+                : [.. signalRRolesVal.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)]
         });
     }
 
@@ -181,15 +181,15 @@ public class NotificationsController : ControllerBase
         [FromBody] UpdateNotificationSettingsRequest request,
         CancellationToken cancellationToken)
     {
-        await _settings.SetValueAsync(SmsKey,          request.SmsEnabled.ToString().ToLower(),      "BOOL",   NotifCategory, "Enable SMS notifications",                           true, cancellationToken);
-        await _settings.SetValueAsync(WhatsAppKey,     request.WhatsAppEnabled.ToString().ToLower(), "BOOL",   NotifCategory, "Enable WhatsApp notifications",                      true, cancellationToken);
-        await _settings.SetValueAsync(SignalRRolesKey, string.Join(",", request.SignalRRoles ?? []),  "STRING", NotifCategory, "Roles that receive real-time SignalR notifications", true, cancellationToken);
+        await _settings.SetValueAsync(SmsKey, request.SmsEnabled.ToString().ToLower(), "BOOL", NotifCategory, "Enable SMS notifications", true, cancellationToken);
+        await _settings.SetValueAsync(WhatsAppKey, request.WhatsAppEnabled.ToString().ToLower(), "BOOL", NotifCategory, "Enable WhatsApp notifications", true, cancellationToken);
+        await _settings.SetValueAsync(SignalRRolesKey, string.Join(",", request.SignalRRoles ?? []), "STRING", NotifCategory, "Roles that receive real-time SignalR notifications", true, cancellationToken);
 
         return Ok(new NotificationSettingsDto
         {
-            SmsEnabled      = request.SmsEnabled,
+            SmsEnabled = request.SmsEnabled,
             WhatsAppEnabled = request.WhatsAppEnabled,
-            SignalRRoles    = request.SignalRRoles ?? []
+            SignalRRoles = request.SignalRRoles ?? []
         });
     }
 
@@ -198,17 +198,17 @@ public class NotificationsController : ControllerBase
     public async Task<IActionResult> GetLogs(
         [FromQuery] string? channel,
         [FromQuery] string? status,
-        [FromQuery] int page     = 1,
+        [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
         try
         {
             var db = HttpContext.RequestServices.GetRequiredService<AutoPartDbContext>();
-            var q  = db.NotificationLogs.Where(n => !n.Isdeleted).AsQueryable();
+            var q = db.NotificationLogs.Where(n => !n.Isdeleted).AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(channel)) q = q.Where(n => n.Channel == channel.ToUpper());
-            if (!string.IsNullOrWhiteSpace(status))  q = q.Where(n => n.Status  == status.ToUpper());
+            if (!string.IsNullOrWhiteSpace(status)) q = q.Where(n => n.Status == status.ToUpper());
 
             var total = await q.CountAsync(cancellationToken);
             var items = await q
@@ -221,8 +221,13 @@ public class NotificationsController : ControllerBase
             {
                 data = items.Select(n => new
                 {
-                    n.Id, n.Channel, n.Recipient,
-                    n.Status, n.SentAt, n.ErrorMessage, n.CreatedDate
+                    n.Id,
+                    n.Channel,
+                    n.Recipient,
+                    n.Status,
+                    n.SentAt,
+                    n.ErrorMessage,
+                    n.CreatedDate
                 }),
                 pagination = new { page, pageSize, total, totalPages = (int)Math.Ceiling(total / (double)pageSize) }
             });

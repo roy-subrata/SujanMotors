@@ -49,18 +49,18 @@ public class InvoiceDocument : IDocument
 {
     // ── Palette (matches CustomerAccountStatementDocument) ──────────────────────
     private const string NavyPrimary = "#1e3a8a";
-    private const string GreenText   = "#15803d";
-    private const string AmberText   = "#92400e";
-    private const string RedText     = "#dc2626";
-    private const string Gray50      = "#f9fafb";
-    private const string Gray100     = "#f3f4f6";
-    private const string Gray200     = "#e5e7eb";
-    private const string Gray300     = "#d1d5db";
-    private const string Gray400     = "#9ca3af";
-    private const string Gray500     = "#6b7280";
-    private const string Gray700     = "#374151";
-    private const string Gray900     = "#111827";
-    private const string White       = "#FFFFFF";
+    private const string GreenText = "#15803d";
+    private const string AmberText = "#92400e";
+    private const string RedText = "#dc2626";
+    private const string Gray50 = "#f9fafb";
+    private const string Gray100 = "#f3f4f6";
+    private const string Gray200 = "#e5e7eb";
+    private const string Gray300 = "#d1d5db";
+    private const string Gray400 = "#9ca3af";
+    private const string Gray500 = "#6b7280";
+    private const string Gray700 = "#374151";
+    private const string Gray900 = "#111827";
+    private const string White = "#FFFFFF";
 
     private readonly InvoiceDocumentData _data;
     private readonly ShopProfile _shop;
@@ -73,9 +73,9 @@ public class InvoiceDocument : IDocument
 
     public DocumentMetadata GetMetadata() => new()
     {
-        Title        = $"Invoice {_data.InvoiceNumber}",
-        Author       = _shop.Name,
-        Subject      = $"Invoice for {_data.CustomerName}",
+        Title = $"Invoice {_data.InvoiceNumber}",
+        Author = _shop.Name,
+        Subject = $"Invoice for {_data.CustomerName}",
         CreationDate = DateTime.UtcNow
     };
 
@@ -119,7 +119,7 @@ public class InvoiceDocument : IDocument
                     var contacts = new List<string>();
                     if (!string.IsNullOrWhiteSpace(_shop.Phone)) contacts.Add($"Tel: {_shop.Phone}");
                     if (!string.IsNullOrWhiteSpace(_shop.Email)) contacts.Add($"Email: {_shop.Email}");
-                    if (!string.IsNullOrWhiteSpace(_shop.TaxNo))  contacts.Add($"Tax: {_shop.TaxNo}");
+                    if (!string.IsNullOrWhiteSpace(_shop.TaxNo)) contacts.Add($"Tax: {_shop.TaxNo}");
                     if (contacts.Count > 0)
                         left.Item().PaddingTop(2).Text(string.Join("   ·   ", contacts))
                             .FontSize(8).FontColor(Gray500);
@@ -215,7 +215,7 @@ public class InvoiceDocument : IDocument
             col.Item().Text("INVOICE DETAILS").Bold().FontSize(7).FontColor(Gray500);
             col.Item().PaddingTop(5).LineHorizontal(0.5f).LineColor(Gray200);
 
-            col.Item().PaddingTop(8).Element(c => InfoRow(c, "Invoice No",  _data.InvoiceNumber));
+            col.Item().PaddingTop(8).Element(c => InfoRow(c, "Invoice No", _data.InvoiceNumber));
             if (!string.IsNullOrWhiteSpace(_data.SalesOrderNumber))
                 col.Item().PaddingTop(4).Element(c => InfoRow(c, "Sales Order", _data.SalesOrderNumber));
             col.Item().PaddingTop(4).Element(c => InfoRow(c, "Date", _data.InvoiceDate.ToString("dd MMM yyyy")));
@@ -257,10 +257,10 @@ public class InvoiceDocument : IDocument
 
                     H(header.Cell(), "#");
                     H(header.Cell(), "Description");
-                    H(header.Cell(), "Qty",        right: true);
-                    H(header.Cell(), "Unit Price",  right: true);
-                    H(header.Cell(), "Discount",     right: true);
-                    H(header.Cell(), "Amount",      right: true);
+                    H(header.Cell(), "Qty", right: true);
+                    H(header.Cell(), "Unit Price", right: true);
+                    H(header.Cell(), "Discount", right: true);
+                    H(header.Cell(), "Amount", right: true);
                 });
 
                 bool alt = false;
@@ -496,23 +496,23 @@ public class InvoiceDocument : IDocument
     // ── Helpers ────────────────────────────────────────────────────────────────
     private string GetStatusColor() => _data.Status switch
     {
-        "PAID"           => GreenText,
-        "ISSUED"         => NavyPrimary,
-        "DUE"            => AmberText,
+        "PAID" => GreenText,
+        "ISSUED" => NavyPrimary,
+        "DUE" => AmberText,
         "PARTIALLY_PAID" => AmberText,
-        "OVERDUE"        => RedText,
-        "CANCELLED"      => Gray400,
-        _                => Gray700
+        "OVERDUE" => RedText,
+        "CANCELLED" => Gray400,
+        _ => Gray700
     };
 
     private static string FormatPaymentMethod(string method) => method switch
     {
-        "CASH"            => "Cash",
-        "CARD"            => "Card",
-        "MOBILE_BANKING"  => "Mobile",
-        "BANK_TRANSFER"   => "Bank Transfer",
-        "ADVANCE_CREDIT"  => "Credit Applied",
-        _                 => method
+        "CASH" => "Cash",
+        "CARD" => "Card",
+        "MOBILE_BANKING" => "Mobile",
+        "BANK_TRANSFER" => "Bank Transfer",
+        "ADVANCE_CREDIT" => "Credit Applied",
+        _ => method
     };
 
     private static void InfoRow(IContainer c, string label, string value)

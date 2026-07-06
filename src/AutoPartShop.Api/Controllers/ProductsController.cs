@@ -165,22 +165,22 @@ public class ProductsController : ControllerBase
 
         if (part is not null)
         {
-            var totalStock  = await GetTotalAvailableStockAsync(part.Id, null, cancellationToken);
+            var totalStock = await GetTotalAvailableStockAsync(part.Id, null, cancellationToken);
             return Ok(ApiResponse<object>.Ok(new
             {
-                productId            = part.Id,
-                name                 = part.Name,
-                sku                  = part.SKU,
-                partNumber           = part.PartNumber?.Value ?? string.Empty,
-                sellingPrice         = part.SellingPrice,
+                productId = part.Id,
+                name = part.Name,
+                sku = part.SKU,
+                partNumber = part.PartNumber?.Value ?? string.Empty,
+                sellingPrice = part.SellingPrice,
                 fallbackSellingPrice = part.SellingPrice,
-                hasLotPrice          = false,
-                stockLevel           = totalStock,
-                unitId               = part.UnitId,
-                unitName             = part.Unit?.Name,
-                variantId            = (Guid?)null,
-                variantName          = (string?)null,
-                variantCode          = (string?)null
+                hasLotPrice = false,
+                stockLevel = totalStock,
+                unitId = part.UnitId,
+                unitName = part.Unit?.Name,
+                variantId = (Guid?)null,
+                variantName = (string?)null,
+                variantCode = (string?)null
             }));
         }
 
@@ -191,23 +191,23 @@ public class ProductsController : ControllerBase
 
         var (variantPart, variant) = variantMatch.Value;
         var variantTotalStock = await GetTotalAvailableStockAsync(variantPart.Id, variant.Id, cancellationToken);
-        var variantPrice      = CatalogPrice.Resolve(variantPart.SellingPrice, variant.SellingPrice);
+        var variantPrice = CatalogPrice.Resolve(variantPart.SellingPrice, variant.SellingPrice);
 
         return Ok(ApiResponse<object>.Ok(new
         {
-            productId            = variantPart.Id,
-            name                 = variantPart.Name,
-            sku                  = variantPart.SKU,
-            partNumber           = variantPart.PartNumber?.Value ?? string.Empty,
-            sellingPrice         = variantPrice,
+            productId = variantPart.Id,
+            name = variantPart.Name,
+            sku = variantPart.SKU,
+            partNumber = variantPart.PartNumber?.Value ?? string.Empty,
+            sellingPrice = variantPrice,
             fallbackSellingPrice = variantPrice,
-            hasLotPrice          = false,
-            stockLevel           = variantTotalStock,
-            unitId               = variantPart.UnitId,
-            unitName             = variantPart.Unit?.Name,
-            variantId            = variant.Id,
-            variantName          = variant.Name,
-            variantCode          = variant.Code
+            hasLotPrice = false,
+            stockLevel = variantTotalStock,
+            unitId = variantPart.UnitId,
+            unitName = variantPart.Unit?.Name,
+            variantId = variant.Id,
+            variantName = variant.Name,
+            variantCode = variant.Code
         }));
     }
 
@@ -660,7 +660,7 @@ public class ProductsController : ControllerBase
 
         return levels.Sum(sl =>
         {
-            var onHand   = sl.QuantityOnHandInBaseUnit   > 0 ? sl.QuantityOnHandInBaseUnit   : sl.QuantityOnHand;
+            var onHand = sl.QuantityOnHandInBaseUnit > 0 ? sl.QuantityOnHandInBaseUnit : sl.QuantityOnHand;
             var reserved = sl.QuantityReservedInBaseUnit > 0 ? sl.QuantityReservedInBaseUnit : sl.QuantityReserved;
             var available = onHand - reserved;
             return available > 0 ? available : 0;

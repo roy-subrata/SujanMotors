@@ -68,5 +68,5 @@ namespace AutoPartsShop.Infrastructure.Data.Configurations
             builder.Property(x => x.Rating);
         }
     }
-    
+
 }

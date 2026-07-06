@@ -2,6 +2,7 @@ using AutoPartShop.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace AutoPartShop.Infrastructure.Repositories;
+
 public class ProductRepository(AutoPartDbContext _db) : IProductRepository
 {
     public async Task<IEnumerable<Product>> GetAllAsync(CancellationToken cancellationToken = default)

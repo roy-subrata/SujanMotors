@@ -63,8 +63,8 @@ public class CustomerController : ControllerBase
             }
 
 
-            var (response,total) = await _customerReadRepository.FindAllyAsync(query, cancellationToken);
-            return Ok(PagedResult<CustomerResponse>.Create(response,total,query));
+            var (response, total) = await _customerReadRepository.FindAllyAsync(query, cancellationToken);
+            return Ok(PagedResult<CustomerResponse>.Create(response, total, query));
         }
         catch (Exception ex)
         {

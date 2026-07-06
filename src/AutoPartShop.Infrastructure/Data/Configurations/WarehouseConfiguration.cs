@@ -4,6 +4,7 @@ using AutoPartShop.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 namespace AutoPartShop.Infrastructure.Data.Configurations;
+
 public class WarehouseConfiguration : IEntityTypeConfiguration<Warehouse>
 {
     public void Configure(EntityTypeBuilder<Warehouse> builder)
@@ -52,7 +53,7 @@ public class WarehouseConfiguration : IEntityTypeConfiguration<Warehouse>
             .HasMaxLength(100);
 
         builder.Property(u => u.StorageCapacity)
-             
+
             .HasColumnType("decimal(18,2)")
             .IsRequired(true);
 

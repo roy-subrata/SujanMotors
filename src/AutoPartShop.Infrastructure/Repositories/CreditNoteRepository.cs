@@ -29,9 +29,9 @@ public class CreditNoteRepository(AutoPartDbContext dbContext) : ICreditNoteRepo
     {
         return await dbContext.CreditNotes
             .Include(cn => cn.Supplier)
-            .Where(cn => cn.SupplierId == supplierId 
-                      && cn.Status != "CANCELLED" 
-                      && cn.Status != "EXPIRED" 
+            .Where(cn => cn.SupplierId == supplierId
+                      && cn.Status != "CANCELLED"
+                      && cn.Status != "EXPIRED"
                       && cn.Status != "FULLY_USED"
                       && (!cn.ExpiryDate.HasValue || cn.ExpiryDate.Value >= DateTime.UtcNow))
             .OrderBy(cn => cn.ExpiryDate)

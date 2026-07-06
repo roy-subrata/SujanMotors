@@ -16,7 +16,7 @@ public class TwilioSmsProvider : ISmsProvider
     public TwilioSmsProvider(IConfiguration config, ILogger<TwilioSmsProvider> logger)
     {
         _logger = logger;
-        var sid   = config["Twilio:AccountSid"];
+        var sid = config["Twilio:AccountSid"];
         var token = config["Twilio:AuthToken"];
         _msgServiceSid = config["Twilio:SmsMsgServiceSid"];
 
@@ -36,9 +36,9 @@ public class TwilioSmsProvider : ISmsProvider
         }
 
         var msg = await MessageResource.CreateAsync(
-            to:                  new PhoneNumber(toPhone),
+            to: new PhoneNumber(toPhone),
             messagingServiceSid: _msgServiceSid,
-            body:                message);
+            body: message);
 
         return msg.Status != MessageResource.StatusEnum.Failed
             && msg.Status != MessageResource.StatusEnum.Undelivered;

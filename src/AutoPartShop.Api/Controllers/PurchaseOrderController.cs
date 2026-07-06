@@ -584,7 +584,8 @@ public class PurchaseOrderController : ControllerBase
 
                     if (lineRequest.ReceivedQuantity > remainingQty)
                     {
-                        return BadRequest(new {
+                        return BadRequest(new
+                        {
                             message = $"Received quantity ({lineRequest.ReceivedQuantity}) exceeds remaining ordered quantity ({remainingQty}) for part {lineRequest.PartId}. Ordered: {poLine.Quantity}"
                         });
                     }
@@ -815,7 +816,8 @@ public class PurchaseOrderController : ControllerBase
 
                     if (lineRequest.ReceivedQuantity > remainingQty)
                     {
-                        return BadRequest(new {
+                        return BadRequest(new
+                        {
                             message = $"Received quantity ({lineRequest.ReceivedQuantity}) exceeds remaining ordered quantity ({remainingQty}) for part {lineRequest.PartId}. Ordered: {poLine.Quantity}"
                         });
                     }

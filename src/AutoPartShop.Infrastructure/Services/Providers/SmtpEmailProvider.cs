@@ -21,13 +21,13 @@ public class SmtpEmailProvider : IEmailProvider
 
     public SmtpEmailProvider(IConfiguration config, ILogger<SmtpEmailProvider> logger)
     {
-        _logger    = logger;
-        _host      = config["Smtp:Host"] ?? "";
-        _port      = int.TryParse(config["Smtp:Port"], out var p) ? p : 587;
-        _username  = config["Smtp:Username"] ?? "";
-        _password  = config["Smtp:Password"] ?? "";
+        _logger = logger;
+        _host = config["Smtp:Host"] ?? "";
+        _port = int.TryParse(config["Smtp:Port"], out var p) ? p : 587;
+        _username = config["Smtp:Username"] ?? "";
+        _password = config["Smtp:Password"] ?? "";
         _fromEmail = config["Smtp:FromEmail"] ?? "";
-        _fromName  = config["Smtp:FromName"] ?? "SujanMotors";
+        _fromName = config["Smtp:FromName"] ?? "SujanMotors";
 
         _socketOptions = config["Smtp:UseSsl"]?.Equals("true", StringComparison.OrdinalIgnoreCase) == true
             ? SecureSocketOptions.SslOnConnect
@@ -48,7 +48,7 @@ public class SmtpEmailProvider : IEmailProvider
         msg.From.Add(new MailboxAddress(_fromName, _fromEmail));
         msg.To.Add(MailboxAddress.Parse(toEmail));
         msg.Subject = subject;
-        msg.Body    = new TextPart("html") { Text = htmlBody };
+        msg.Body = new TextPart("html") { Text = htmlBody };
 
         using var client = new SmtpClient();
         await client.ConnectAsync(_host, _port, _socketOptions, cancellationToken);

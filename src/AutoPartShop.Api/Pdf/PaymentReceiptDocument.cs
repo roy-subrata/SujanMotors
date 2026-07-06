@@ -9,16 +9,16 @@ public class PaymentReceiptDocument : IDocument
 {
     // ── Palette (matches CustomerAccountStatementDocument) ─────────────────────
     private const string NavyPrimary = "#1e3a8a";
-    private const string GreenBg     = "#f0fdf4";
+    private const string GreenBg = "#f0fdf4";
     private const string GreenBorder = "#86efac";
-    private const string GreenText   = "#15803d";
-    private const string Gray200     = "#e5e7eb";
-    private const string Gray300     = "#d1d5db";
-    private const string Gray400     = "#9ca3af";
-    private const string Gray500     = "#6b7280";
-    private const string Gray700     = "#374151";
-    private const string Gray900     = "#111827";
-    private const string White       = "#FFFFFF";
+    private const string GreenText = "#15803d";
+    private const string Gray200 = "#e5e7eb";
+    private const string Gray300 = "#d1d5db";
+    private const string Gray400 = "#9ca3af";
+    private const string Gray500 = "#6b7280";
+    private const string Gray700 = "#374151";
+    private const string Gray900 = "#111827";
+    private const string White = "#FFFFFF";
 
     private readonly CustomerPaymentResponse _payment;
     private readonly ShopProfile _shop;
@@ -26,13 +26,13 @@ public class PaymentReceiptDocument : IDocument
     public PaymentReceiptDocument(CustomerPaymentResponse payment, ShopProfile shop)
     {
         _payment = payment;
-        _shop    = shop;
+        _shop = shop;
     }
 
     public DocumentMetadata GetMetadata() => new()
     {
-        Title        = $"Payment Receipt – {_payment.TransactionNumber}",
-        Author       = _shop.Name,
+        Title = $"Payment Receipt – {_payment.TransactionNumber}",
+        Author = _shop.Name,
         CreationDate = DateTime.UtcNow
     };
 

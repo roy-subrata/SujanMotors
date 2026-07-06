@@ -42,7 +42,7 @@ public class CustomerReadRepository(AutoPartDbContext _dbContext) : ICustomerRea
         var items = await customers
             .Skip((query.PageNumber - 1) * query.PageSize)
             .Take(query.PageSize)
-             .Select(customer=>new CustomerResponse
+             .Select(customer => new CustomerResponse
              {
                  Id = customer.Id,
                  CustomerCode = customer.CustomerCode,

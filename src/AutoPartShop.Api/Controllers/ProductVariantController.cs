@@ -295,9 +295,9 @@ public class ProductVariantController : ControllerBase
             av.AttributeId,
             attributeName = av.Attribute?.Name,
             attributeCode = av.Attribute?.Code,
-            dataType      = av.Attribute?.DataType,
+            dataType = av.Attribute?.DataType,
             av.OptionId,
-            optionValue   = av.Option?.Value,
+            optionValue = av.Option?.Value,
             av.ValueText,
             av.ValueNumber,
             av.ValueBool

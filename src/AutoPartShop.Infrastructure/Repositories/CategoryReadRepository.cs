@@ -14,7 +14,7 @@ public class CategoryReadRepository(AutoPartDbContext dbContext) : ICategoryRead
     public async Task<(List<CategoryResponse> categoryResponse, int total)> FindAllyAsync(CategoryQuery query, CancellationToken cancellationToken = default)
     {
         var categories = dbContext.Categories.Where(c => !c.Isdeleted);
-        
+
         // Apply search filter
         if (!string.IsNullOrEmpty(query.Search))
         {
@@ -23,19 +23,19 @@ public class CategoryReadRepository(AutoPartDbContext dbContext) : ICategoryRead
              EF.Functions.Like(x.Name, $"%{lowerTerm}%") || EF.Functions.Like(x.Description, $"%{lowerTerm}%")
           );
         }
-        
+
         // Apply status filter
         if (query.IsActive.HasValue)
         {
             categories = categories.Where(x => x.IsActive == query.IsActive.Value);
         }
-        
+
         // Apply sorting
         if (query.Sorts != null && query.Sorts.Count > 0)
         {
             var firstSort = query.Sorts[0];
             IOrderedQueryable<Category> orderedCategories;
-            
+
             // Apply first sort
             orderedCategories = firstSort.Field.ToLower() switch
             {
@@ -45,7 +45,7 @@ public class CategoryReadRepository(AutoPartDbContext dbContext) : ICategoryRead
                 "createddate" => firstSort.IsAscending ? categories.OrderBy(c => c.CreatedDate) : categories.OrderByDescending(c => c.CreatedDate),
                 _ => categories.OrderBy(c => c.DisplayOrder).ThenBy(c => c.Name)
             };
-            
+
             // Apply additional sorts
             for (int i = 1; i < query.Sorts.Count; i++)
             {
@@ -59,7 +59,7 @@ public class CategoryReadRepository(AutoPartDbContext dbContext) : ICategoryRead
                     _ => orderedCategories
                 };
             }
-            
+
             categories = orderedCategories;
         }
         else
@@ -67,7 +67,7 @@ public class CategoryReadRepository(AutoPartDbContext dbContext) : ICategoryRead
             // Default sorting
             categories = categories.OrderBy(c => c.DisplayOrder).ThenBy(c => c.Name);
         }
-        
+
         var totalCount = await categories.CountAsync(cancellationToken);
 
         var items = await categories

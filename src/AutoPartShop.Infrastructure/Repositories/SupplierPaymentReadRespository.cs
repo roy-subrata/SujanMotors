@@ -9,7 +9,7 @@ namespace AutoPartShop.Infrastructure.Repositories
 {
     public class SupplierPaymentReadRespository(AutoPartDbContext _db) : ISupplierPaymentReadRespository
     {
-        public async Task<(IEnumerable<SupplierPaymentResponse> paymentResponse,int total)> FindAllAsynce(SupplierPaymentQuery query, CancellationToken cancellationToken = default)
+        public async Task<(IEnumerable<SupplierPaymentResponse> paymentResponse, int total)> FindAllAsynce(SupplierPaymentQuery query, CancellationToken cancellationToken = default)
         {
             var paymentsQuery = BuildSearchQuery(query);
 
