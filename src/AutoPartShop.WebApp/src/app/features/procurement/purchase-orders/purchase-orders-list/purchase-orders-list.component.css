@@ -347,9 +347,9 @@
 .page-size-select {
   padding: 6px 12px;
   font-size: 0.875rem;
-  color: #475569;
-  background-color: #ffffff;
-  border: 1px solid #e2e8f0;
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   cursor: pointer;
 }

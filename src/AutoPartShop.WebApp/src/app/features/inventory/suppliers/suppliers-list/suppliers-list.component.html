@@ -78,7 +78,7 @@
         [rowHover]="true"
         [scrollable]="true"
         scrollHeight="flex"
-        styleClass="custom-table">
+        styleClass="app-table">
 
         <!-- Table Header -->
         <ng-template #header>
@@ -86,8 +86,6 @@
             <th class="col-code">Code</th>
             <th class="col-customer">Supplier Name</th>
             <th class="col-contact">Contact</th>
-            <th class="col-city">City</th>
-            <th class="col-rating">Rating</th>
             <th class="col-balance">Balance</th>
             <th class="col-status">Status</th>
             <th class="col-actions">Actions</th>
@@ -126,19 +124,6 @@
               </div>
             </td>
 
-            <!-- City -->
-            <td class="col-city">
-              <span class="date-text">{{ supplier.city || '-' }}</span>
-            </td>
-
-            <!-- Rating -->
-            <td class="col-rating">
-              <span class="rating-badge" [ngClass]="getRatingClass(supplier.rating)">
-                <i class="pi pi-star-fill"></i>
-                {{ supplier.rating }}/5
-              </span>
-            </td>
-
             <!-- Balance -->
             <td class="col-balance">
               <div class="balance-cell">
@@ -169,7 +154,7 @@
         <!-- Empty State -->
         <ng-template #emptymessage>
           <tr>
-            <td colspan="8">
+            <td colspan="6">
               <div class="empty-state">
                 <div class="empty-icon">
                   <i class="pi pi-truck"></i>
@@ -201,8 +186,6 @@
               </div>
             </td>
             <td><div class="skeleton skeleton-text-sm"></div></td>
-            <td><div class="skeleton skeleton-text-sm"></div></td>
-            <td><div class="skeleton skeleton-badge"></div></td>
             <td><div class="skeleton skeleton-text-sm"></div></td>
             <td><div class="skeleton skeleton-badge"></div></td>
             <td><div class="skeleton skeleton-actions"></div></td>
@@ -310,10 +293,6 @@
 
         <!-- Card Footer -->
         <div class="card-footer">
-          <div class="card-amount">
-            <span class="amount-label">Rating</span>
-            <span class="amount-value">{{ supplier.rating }}/5</span>
-          </div>
           <div class="card-amount">
             <span class="amount-label">Balance</span>
             <span class="amount-value" [class.text-danger]="supplier.currentBalance > 0">{{ formatCurrency(supplier.currentBalance || 0) }}</span>

@@ -104,8 +104,8 @@
   position: relative;
   display: flex;
   align-items: center;
-  background-color: #f9fafb;
-  border: 1px solid #e5e7eb;
+  background-color: var(--surface-ground);
+  border: 1px solid var(--surface-border);
   border-radius: 0.5rem;
   padding: 0 0.875rem;
   transition: all 0.2s ease;
@@ -113,13 +113,13 @@
 }
 
 .search-container:focus-within {
-  background-color: #ffffff;
+  background-color: var(--surface-card);
   border-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 .search-icon {
-  color: #9ca3af;
+  color: var(--text-color-secondary);
   font-size: 0.9375rem;
   margin-right: 0.625rem;
   flex-shrink: 0;
@@ -133,16 +133,16 @@
   font-size: 0.9375rem;
   background: transparent;
   font-family: inherit;
-  color: #1f2937;
+  color: var(--text-color);
   min-width: 0;
 }
 
 .search-input::placeholder {
-  color: #9ca3af;
+  color: var(--text-color-secondary);
 }
 
 .clear-icon {
-  color: #d1d5db;
+  color: var(--text-color-secondary);
   font-size: 0.8125rem;
   margin-left: 0.5rem;
   cursor: pointer;
@@ -152,7 +152,7 @@
 }
 
 .clear-icon:hover {
-  color: #6b7280;
+  color: var(--text-color);
 }
 
 /* ===============================================
@@ -307,13 +307,13 @@
 }
 
 :host ::ng-deep .p-datatable .p-datatable-thead > tr > th {
-  background-color: #f9fafb;
-  color: #374151;
+  background-color: var(--surface-ground);
+  color: var(--text-color);
   font-weight: 600;
   padding: 0.75rem 1rem;
   white-space: nowrap;
   font-size: 0.875rem;
-  border-bottom: 2px solid #e5e7eb;
+  border-bottom: 2px solid var(--surface-border);
 }
 
 :host ::ng-deep .p-datatable .p-datatable-tbody > tr {
@@ -321,12 +321,12 @@
 }
 
 :host ::ng-deep .p-datatable .p-datatable-tbody > tr:hover {
-  background-color: #f8fafc;
+  background-color: var(--surface-ground);
 }
 
 :host ::ng-deep .p-datatable .p-datatable-tbody > tr > td {
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--surface-border);
   vertical-align: middle;
   font-size: 0.9375rem;
 }

@@ -12,7 +12,7 @@
 .form-group label {
   margin-bottom: 0.625rem;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--text-color);
   font-size: 0.9375rem;
   letter-spacing: 0.2px;
 }
@@ -21,26 +21,26 @@
 .form-group input[type="number"],
 .form-group textarea {
   padding: 0.75rem 0.9375rem;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--surface-border);
   border-radius: 0.5rem;
   font-size: 0.9375rem;
-  background: white;
+  background: var(--surface-card);
   transition: all 0.2s ease;
   font-family: inherit;
-  color: #1f2937;
+  color: var(--text-color);
 }
 
 .form-group input[type="text"]::placeholder,
 .form-group input[type="number"]::placeholder,
 .form-group textarea::placeholder {
-  color: #9ca3af;
+  color: var(--text-color-secondary);
 }
 
 .form-group input[type="text"]:hover,
 .form-group input[type="number"]:hover,
 .form-group textarea:hover {
-  border-color: #d1d5db;
-  background: #f9fafb;
+  border-color: var(--surface-border);
+  background: var(--surface-ground);
 }
 
 .form-group input[type="text"]:focus,
@@ -49,7 +49,7 @@
   border-color: #3b82f6;
   outline: none;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-  background: white;
+  background: var(--surface-card);
 }
 
 .form-group textarea {
@@ -83,11 +83,11 @@
   transition: all 0.2s ease;
   font-weight: 500;
   font-size: 0.9375rem;
-  color: #1f2937;
+  color: var(--text-color);
 }
 
 .category-autocomplete-item:hover {
-  background-color: #f3f4f6;
+  background-color: var(--surface-ground);
 }
 
 /* Code input wrapper for auto-generated codes */
@@ -99,9 +99,9 @@
 }
 
 .code-input-wrapper input[disabled] {
-  background-color: #f3f4f6;
-  border-color: #e5e7eb;
-  color: #6b7280;
+  background-color: var(--surface-ground);
+  border-color: var(--surface-border);
+  color: var(--text-color-secondary);
   cursor: not-allowed;
   font-family: monospace;
   font-weight: 500;
@@ -109,8 +109,8 @@
 }
 
 .code-input-wrapper input[disabled]:hover {
-  border-color: #d1d5db;
-  background-color: #f9fafb;
+  border-color: var(--surface-border);
+  background-color: var(--surface-ground);
 }
 
 .code-spinner {
@@ -124,7 +124,7 @@
 
 .hint-text {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--text-color-secondary);
   font-style: italic;
   margin-top: 0.25rem;
   display: flex;
@@ -155,7 +155,7 @@
 .form-label {
   font-size: 13px;
   font-weight: 600;
-  color: #374151;
+  color: var(--text-color);
   margin-bottom: 4px;
 }
 
@@ -164,11 +164,11 @@
 .form-input {
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--surface-border);
   border-radius: 6px;
   font-size: 13px;
-  background: #fff;
-  color: #1f2937;
+  background: var(--surface-card);
+  color: var(--text-color);
   transition: border-color .2s, box-shadow .2s;
 }
 
@@ -180,7 +180,7 @@
 
 .hint-message {
   font-size: 11px;
-  color: #9ca3af;
+  color: var(--text-color-secondary);
   margin-top: 2px;
   font-style: italic;
 }
@@ -213,12 +213,12 @@
 /* Autocomplete item layout */
 .autocomplete-item {
   font-size: 13px;
-  color: #1f2937;
+  color: var(--text-color);
   font-weight: 500;
 }
 .autocomplete-code {
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--text-color-secondary);
   font-family: monospace;
 }
 
@@ -237,8 +237,8 @@
 
 :host ::ng-deep .p-dialog .p-dialog-footer {
   flex-shrink: 0 !important;
-  border-top: 1px solid #e5e7eb;
-  background: #fff;
+  border-top: 1px solid var(--surface-border);
+  background: var(--surface-card);
 }
 
 @media (max-width: 640px) {

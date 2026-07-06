@@ -15,14 +15,13 @@
       [rowHover]="true"
       [scrollable]="true"
       scrollHeight="flex"
-      styleClass="custom-table">
+      styleClass="app-table">
 
       <ng-template #header>
         <tr>
           <th class="col-name">Name</th>
           <th class="col-breadcrumb">Breadcrumb</th>
           <th class="col-level">Level</th>
-          <th class="col-children">Children</th>
           <th class="col-order">Order</th>
           <th class="col-status">Status</th>
           <th class="col-actions">Actions</th>
@@ -55,13 +54,6 @@
             <span class="level-badge">{{ getLevelDisplay(category.depthLevel) }}</span>
           </td>
 
-          <!-- Children count -->
-          <td class="col-children">
-            <span class="children-count" [class.has-children]="category.childCount > 0">
-              {{ category.childCount }}
-            </span>
-          </td>
-
           <!-- Display Order -->
           <td class="col-order">
             <span class="order-badge">{{ category.displayOrder }}</span>
@@ -89,7 +81,7 @@
 
       <ng-template #emptymessage>
         <tr>
-          <td colspan="8">
+          <td colspan="7">
             <div class="empty-state">
               <div class="empty-icon"><i class="pi pi-sitemap"></i></div>
               <h3>No Categories Found</h3>
@@ -107,7 +99,6 @@
           </div></td>
           <td><div class="skeleton skeleton-text-sm"></div></td>
           <td><div class="skeleton skeleton-text-sm"></div></td>
-          <td><div class="skeleton skeleton-badge"></div></td>
           <td><div class="skeleton skeleton-text-sm"></div></td>
           <td><div class="skeleton skeleton-text-sm"></div></td>
           <td><div class="skeleton skeleton-badge"></div></td>
@@ -196,9 +187,6 @@
           </span>
           <span class="card-meta-item">
             <i class="pi pi-layer-group"></i>&nbsp;{{ getLevelDisplay(category.depthLevel) }}
-          </span>
-          <span *ngIf="category.childCount > 0" class="card-meta-item">
-            <i class="pi pi-list"></i>&nbsp;{{ category.childCount }} children
           </span>
           <span class="card-meta-item">
             <i class="pi pi-sort-numeric-down"></i>&nbsp;Order {{ category.displayOrder }}

@@ -112,8 +112,8 @@
   font-weight: 600;
   font-size: 1.25rem;
   padding: 1rem 1.5rem;
-  background-color: #f8f9fa;
-  border-bottom: 1px solid #e9ecef;
+  background-color: var(--surface-ground);
+  border-bottom: 1px solid var(--surface-border);
 }
 
 @media (max-width: 768px) {

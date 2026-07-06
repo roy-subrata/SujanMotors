@@ -71,7 +71,7 @@
   justify-content: center;
   gap: 12px;
   padding: 3rem;
-  color: #6B7280;
+  color: var(--text-color-secondary);
   font-size: 0.9rem;
 }
 
@@ -94,7 +94,7 @@
 
 /* ── Section ─────────────────────────────────────────────────────────────── */
 .pd-section {
-  border: 1px solid #F3F4F6;
+  border: 1px solid var(--surface-border);
   border-radius: 10px;
   overflow: hidden;
 }
@@ -104,32 +104,32 @@
   align-items: center;
   justify-content: space-between;
   padding: 14px 16px;
-  background: #F9FAFB;
-  border-bottom: 1px solid #F3F4F6;
+  background: var(--surface-ground);
+  border-bottom: 1px solid var(--surface-border);
   gap: 12px;
 }
 
 .pd-section-title {
   font-size: 0.9375rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--text-color);
   margin: 0;
 }
 
 .pd-section-sub {
   font-size: 0.775rem;
-  color: #6B7280;
+  color: var(--text-color-secondary);
   margin: 2px 0 0;
 }
 
 .pd-section > .pd-section-title {
   padding: 14px 16px;
   margin: 0;
-  background: #F9FAFB;
-  border-bottom: 1px solid #F3F4F6;
+  background: var(--surface-ground);
+  border-bottom: 1px solid var(--surface-border);
   font-size: 0.9375rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--text-color);
 }
 
 /* ── Info Grid ───────────────────────────────────────────────────────────── */
@@ -145,8 +145,8 @@
   flex-direction: column;
   gap: 3px;
   padding: 12px 16px;
-  border-right: 1px solid #F3F4F6;
-  border-bottom: 1px solid #F3F4F6;
+  border-right: 1px solid var(--surface-border);
+  border-bottom: 1px solid var(--surface-border);
 }
 
 .info-item:nth-child(3n) { border-right: none; }
@@ -154,14 +154,14 @@
 .info-item label {
   font-size: 0.72rem;
   font-weight: 600;
-  color: #9CA3AF;
+  color: var(--text-color-secondary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
 .info-item span {
   font-size: 0.875rem;
-  color: #111827;
+  color: var(--text-color);
   font-weight: 500;
 }
 
@@ -187,13 +187,13 @@
   padding: 18px 20px;
 }
 
-.price-card-empty { background: #FFFBEB; }
+.price-card-empty { background: rgba(217, 119, 6, 0.08); }
 
 .price-card-loading {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #6B7280;
+  color: var(--text-color-secondary);
   font-size: 0.875rem;
 }
 
@@ -207,14 +207,14 @@
 .price-big {
   font-size: 2rem;
   font-weight: 800;
-  color: #111827;
+  color: var(--text-color);
   line-height: 1;
 }
 
 .price-currency {
   font-size: 0.9rem;
   font-weight: 600;
-  color: #6B7280;
+  color: var(--text-color-secondary);
 }
 
 .price-badge {
@@ -227,8 +227,8 @@
 }
 
 .price-badge[data-source="PRODUCT"] {
-  background: #EFF6FF;
-  color: #2563EB;
+  background: rgba(59, 130, 246, 0.12);
+  color: #3b82f6;
 }
 
 .variant-badge {
@@ -239,7 +239,7 @@
 .price-card-validity {
   margin-top: 5px;
   font-size: 0.775rem;
-  color: #6B7280;
+  color: var(--text-color-secondary);
 }
 
 .text-green { color: #059669; }
@@ -261,7 +261,7 @@
   gap: 6px;
   font-weight: 600;
   font-size: 0.875rem;
-  color: #111827;
+  color: var(--text-color);
 }
 
 .no-price-tag {
@@ -285,15 +285,15 @@
 
 .compat-select { flex: 1; min-width: 260px; }
 
-.compat-hint { color: #6B7280; font-size: 0.8125rem; }
+.compat-hint { color: var(--text-color-secondary); font-size: 0.8125rem; }
 .compat-hint a { color: var(--p-primary-color); text-decoration: none; }
 
 .pd-section-count {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #E5E7EB;
-  color: #374151;
+  background: var(--surface-border);
+  color: var(--text-color);
   border-radius: 999px;
   font-size: 0.75rem;
   font-weight: 600;
@@ -310,13 +310,13 @@
   align-items: center;
   gap: 10px;
   padding: 16px;
-  background: #F9FAFB;
+  background: var(--surface-ground);
   border-radius: 8px;
   font-size: 0.875rem;
-  color: #6B7280;
+  color: var(--text-color-secondary);
 }
 
-.pd-empty-note i { color: #9CA3AF; font-size: 1rem; }
+.pd-empty-note i { color: var(--text-color-secondary); font-size: 1rem; }
 
 /* ── Toggle price button ─────────────────────────────────────────────────── */
 .btn-toggle-price {
@@ -325,30 +325,32 @@
   gap: 4px;
   padding: 4px 8px;
   background: transparent;
-  border: 1px solid #E5E7EB;
+  border: 1px solid var(--surface-border);
   border-radius: 6px;
   cursor: pointer;
   font-size: 0.75rem;
-  color: #6B7280;
+  color: var(--text-color-secondary);
   transition: all 0.15s;
 }
-.btn-toggle-price:hover { background: #F3F4F6; }
+.btn-toggle-price:hover { background: var(--surface-ground); }
 
 /* ── Set Price Dialog styles ─────────────────────────────────────────────── */
 .spf-form  { display: flex; flex-direction: column; gap: 1rem; padding: 4px 0; }
 .spf-group { display: flex; flex-direction: column; gap: 4px; }
 .spf-row   { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-.spf-label { font-size: 0.8125rem; font-weight: 600; color: #374151; }
-.spf-hint  { font-size: 0.75rem; font-weight: 400; color: #9CA3AF; }
+.spf-label { font-size: 0.8125rem; font-weight: 600; color: var(--text-color); }
+.spf-hint  { font-size: 0.75rem; font-weight: 400; color: var(--text-color-secondary); }
 .req       { color: #ef4444; margin-right: 2px; }
 .spf-error { color: #ef4444; font-size: 0.75rem; }
 
 .spf-input {
   width: 100%;
   padding: 0.6rem 0.75rem;
-  border: 1px solid #D1D5DB;
+  border: 1px solid var(--surface-border);
   border-radius: 6px;
   font-size: 0.875rem;
+  background: var(--surface-card);
+  color: var(--text-color);
   transition: border 0.2s;
 }
 
@@ -363,23 +365,23 @@
   align-items: flex-start;
   gap: 8px;
   padding: 10px 14px;
-  background: #FFFBEB;
-  border: 1px solid #FDE68A;
+  background: rgba(217, 119, 6, 0.1);
+  border: 1px solid rgba(217, 119, 6, 0.3);
   border-radius: 8px;
   font-size: 0.8rem;
-  color: #92400E;
+  color: #d97706;
 }
 
-.spf-note i { color: #D97706; flex-shrink: 0; margin-top: 1px; }
+.spf-note i { color: #d97706; flex-shrink: 0; margin-top: 1px; }
 
 /* ── PrimeNG overrides ───────────────────────────────────────────────────── */
 :host ::ng-deep .p-inputnumber-input { width: 100%; }
 :host ::ng-deep .p-datepicker-input  { width: 100%; }
 :host ::ng-deep .variant-price-table .p-datatable-thead > tr > th {
-  background: #F9FAFB;
+  background: var(--surface-ground);
   font-size: 0.8rem;
   font-weight: 600;
-  color: #6B7280;
+  color: var(--text-color-secondary);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   padding: 10px 14px;
@@ -419,7 +421,7 @@
   letter-spacing: 0.03em;
 }
 .pd-tab-badge-green { background: #DCFCE7; color: #15803D; }
-.pd-tab-badge-gray  { background: #F3F4F6; color: #6B7280; }
+.pd-tab-badge-gray  { background: var(--surface-ground); color: var(--text-color-secondary); }
 
 .online-status-row {
   display: flex;
@@ -440,13 +442,13 @@
 }
 
 .status-live     { background: #DCFCE7; color: #15803D; }
-.status-draft    { background: #F3F4F6; color: #6B7280; }
+.status-draft    { background: var(--surface-ground); color: var(--text-color-secondary); }
 .status-featured { background: #FEF9C3; color: #854D0E; }
 
 .online-status-date {
   margin-left: auto;
   font-size: 0.775rem;
-  color: #9CA3AF;
+  color: var(--text-color-secondary);
 }
 
 /* Edit form layout */
