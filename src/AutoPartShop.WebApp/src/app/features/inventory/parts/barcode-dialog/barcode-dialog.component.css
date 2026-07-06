@@ -32,8 +32,8 @@
   flex-direction: column;
   gap: 0.75rem;
   padding: 1rem 1.25rem;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
+  background: var(--surface-card);
+  border: 1px solid var(--surface-border);
   border-radius: 8px;
   overflow-y: auto;
 }
@@ -43,8 +43,8 @@
   display: flex;
   flex-direction: column;
   padding: 1.25rem;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
+  background: var(--surface-card);
+  border: 1px solid var(--surface-border);
   border-radius: 8px;
 }
 
@@ -53,7 +53,7 @@
   margin: 0 0 0.25rem 0;
   font-size: 0.85rem;
   font-weight: 600;
-  color: #475569;
+  color: var(--text-color-secondary);
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -61,7 +61,7 @@
 
 .panel-title i {
   font-size: 0.8rem;
-  color: #94a3b8;
+  color: var(--text-color-secondary);
 }
 
 /* ── Form Fields ── */
@@ -74,7 +74,7 @@
 .field label {
   font-weight: 500;
   font-size: 0.78rem;
-  color: #475569;
+  color: var(--text-color-secondary);
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
@@ -91,7 +91,7 @@
 
 .field-hint {
   font-size: 0.72rem;
-  color: #94a3b8;
+  color: var(--text-color-secondary);
   margin-top: 0.1rem;
 }
 
@@ -125,7 +125,7 @@
 .toggle-label {
   font-size: 0.78rem;
   font-weight: 500;
-  color: #334155;
+  color: var(--text-color);
   cursor: pointer;
   white-space: nowrap;
 }
@@ -177,7 +177,7 @@
 .preview-dims {
   font-size: 0.72rem;
   font-weight: 600;
-  color: #64748b;
+  color: var(--text-color-secondary);
   letter-spacing: 0.04em;
 }
 
@@ -185,7 +185,7 @@
 .value-display {
   margin-top: 0.75rem;
   padding: 0.4rem 0.75rem;
-  background: #f1f5f9;
+  background: var(--surface-ground);
   border-radius: 6px;
   display: flex;
   align-items: center;
@@ -196,7 +196,7 @@
 .value-display code {
   font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
   font-size: 0.78rem;
-  color: #334155;
+  color: var(--text-color);
   word-break: break-all;
   flex: 1;
 }
@@ -216,7 +216,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: #64748b;
+  color: var(--text-color-secondary);
   font-size: 0.85rem;
 }
 
@@ -226,7 +226,7 @@
   align-items: center;
   justify-content: space-between;
   padding-top: 1rem;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid var(--surface-border);
 }
 
 .action-bar-left,

@@ -1050,3 +1050,166 @@ body.storefront-scroll .layout-main-container {
     flex: 1;
     overflow-y: auto;
 }
+
+/* ============================================================
+   DARK MODE — global form & input theme corrections
+   ------------------------------------------------------------
+   Many component CSS files use ::ng-deep with hardcoded light-
+   theme colors (#ffffff, #f9fafb, #d1d5db, #374151…) that
+   override PrimeNG's own dark-mode tokens.  Angular injects
+   component styles AFTER this global bundle, so !important is
+   needed to win the cascade.
+   Does NOT touch .print-* or @media print blocks — those are
+   intentionally light for paper output.
+   ============================================================ */
+.app-dark {
+
+    /* ── Native HTML inputs inside component templates ────────── */
+    /* (goods-receipt wizard, warehouse form, etc.)                */
+    .modal-content input[type="text"],
+    .modal-content input[type="number"],
+    .modal-content input[type="email"],
+    .modal-content input[type="password"],
+    .modal-content input[type="search"],
+    .modal-content select,
+    .modal-content textarea,
+    input[type="text"]:not([class*="p-"]):not(.p-inputtext),
+    input[type="number"]:not([class*="p-"]),
+    input[type="email"]:not([class*="p-"]),
+    input[type="search"]:not([class*="p-"]),
+    input[type="date"]:not([class*="p-"]),
+    select:not([class*="p-"]),
+    textarea:not([class*="p-"]):not(.p-inputtextarea) {
+        background-color: var(--surface-card) !important;
+        border-color: var(--surface-border) !important;
+        color: var(--text-color) !important;
+    }
+
+    /* ── PrimeNG input internals overridden by ::ng-deep ─────── */
+    .p-autocomplete .p-autocomplete-input,
+    .p-inputnumber .p-inputnumber-input {
+        background-color: var(--surface-card) !important;
+        border-color: var(--surface-border) !important;
+        color: var(--text-color) !important;
+    }
+
+    .p-inputnumber-button-group .p-button {
+        background-color: var(--surface-ground) !important;
+        border-color: var(--surface-border) !important;
+        color: var(--text-color-secondary) !important;
+    }
+
+    .p-dropdown .p-dropdown-trigger,
+    .p-select .p-select-dropdown {
+        background-color: var(--surface-card) !important;
+    }
+
+    /* ── Dialog chrome ────────────────────────────────────────── */
+    .p-dialog .p-dialog-header,
+    .p-dialog .p-dialog-content,
+    .p-dialog .p-dialog-footer {
+        background-color: var(--surface-card) !important;
+        border-color: var(--surface-border) !important;
+        color: var(--text-color) !important;
+    }
+
+    /* ── Modal-style containers (non-PrimeNG custom modals) ───── */
+    .modal-content {
+        background-color: var(--surface-card) !important;
+        border-color: var(--surface-border) !important;
+        color: var(--text-color) !important;
+    }
+
+    /* ── Table/list header rows ────────────────────────────────── */
+    .modal-content .items-table th,
+    .form-table th,
+    .line-items-table th,
+    .items-table thead th {
+        background-color: var(--surface-ground) !important;
+        border-color: var(--surface-border) !important;
+        color: var(--text-color) !important;
+    }
+
+    .modal-content .items-table td,
+    .form-table td,
+    .line-items-table td,
+    .items-table tbody td {
+        border-color: var(--surface-border) !important;
+        color: var(--text-color) !important;
+    }
+
+    /* ── Summary / info cards ─────────────────────────────────── */
+    .summary-card {
+        background-color: var(--surface-ground) !important;
+        border-color: var(--surface-border) !important;
+        color: var(--text-color) !important;
+    }
+
+    /* ── Form labels & hint text ──────────────────────────────── */
+    .form-label {
+        color: var(--text-color) !important;
+    }
+
+    .hint-message,
+    .helper-text,
+    .field-hint {
+        color: var(--text-color-secondary) !important;
+    }
+
+    /* ── Autocomplete item text ───────────────────────────────── */
+    .category-autocomplete-item .font-semibold,
+    .unit-autocomplete-item .font-semibold {
+        color: var(--text-color) !important;
+    }
+
+    /* ── Semantic callout/info boxes ─────────────────────────── */
+    /* Blue info callout (#eff6ff / #bfdbfe)                      */
+    .variant-price-note,
+    .pf-callout-blue,
+    .info-callout-blue,
+    .callout-info {
+        background: rgba(59, 130, 246, 0.12) !important;
+        border-color: rgba(99, 155, 246, 0.4) !important;
+        color: #93c5fd !important;
+    }
+
+    /* Green success callout (#f0fdf4 / #bbf7d0)                  */
+    .pf-callout-green,
+    .info-callout-green,
+    .callout-success {
+        background: rgba(34, 197, 94, 0.12) !important;
+        border-color: rgba(34, 197, 94, 0.4) !important;
+        color: #86efac !important;
+    }
+
+    /* ── Supplier / Customer account summary page ─────────────── */
+    /* print-* blocks inside these components are intentionally    */
+    /* left as-is (white for paper output).                        */
+    .account-header,
+    .account-info-grid,
+    .account-statement-table,
+    .statement-filters,
+    .filters-row {
+        background-color: var(--surface-card) !important;
+        border-color: var(--surface-border) !important;
+        color: var(--text-color) !important;
+    }
+
+    /* ── Wizard / stepper chrome ──────────────────────────────── */
+    .wizard-content,
+    .wizard-container {
+        background-color: var(--surface-card) !important;
+        border-color: var(--surface-border) !important;
+    }
+
+    /* ── Generic light-bg containers that don't use tokens ─────── */
+    /* Targets any component that puts a hardcoded #f9fafb / #f3f4f6
+       on a card-like div. We narrow by pairing with border color.  */
+    [style*="background: #f9fafb"],
+    [style*="background-color: #f9fafb"],
+    [style*="background:#f9fafb"],
+    [style*="background: #f3f4f6"],
+    [style*="background:#f3f4f6"] {
+        background-color: var(--surface-ground) !important;
+    }
+}

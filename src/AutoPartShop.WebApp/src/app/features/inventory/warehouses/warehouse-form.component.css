@@ -6,11 +6,11 @@
 }
 
 .form-header {
-  background-color: #ffffff;
+  background-color: var(--surface-card);
   border-radius: 0.5rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   padding: 1.25rem;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--surface-border);
   margin-bottom: 2rem;
   display: flex;
   justify-content: space-between;
@@ -20,7 +20,7 @@
 .form-header h1 {
   font-size: 1.5rem;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--text-color);
   margin: 0;
 }
 
@@ -28,10 +28,10 @@
   width: 100%;
   max-width: none;
   margin: 0;
-  background: #ffffff;
+  background: var(--surface-card);
   border-radius: 0.5rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--surface-border);
 }
 
 .form {
@@ -48,7 +48,7 @@
 
 .form-group label {
   font-weight: 500;
-  color: #374151;
+  color: var(--text-color);
   font-size: 0.95rem;
 }
 
@@ -76,7 +76,7 @@
 }
 
 .text-muted {
-  color: #6b7280;
+  color: var(--text-color-secondary);
   font-size: 0.875rem;
 }
 
@@ -89,11 +89,11 @@
 .code-spinner {
   position: absolute;
   right: 0.75rem;
-  color: #6b7280;
+  color: var(--text-color-secondary);
 }
 
 .field-hint {
-  color: #6b7280;
+  color: var(--text-color-secondary);
   font-size: 0.875rem;
   display: flex;
   align-items: center;
@@ -118,7 +118,7 @@
 
 .info-label {
   font-size: 0.875rem;
-  color: #6b7280;
+  color: var(--text-color-secondary);
   font-weight: 500;
 }
 
@@ -134,7 +134,7 @@
   gap: 1rem;
   margin-top: 2rem;
   padding-top: 1.5rem;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--surface-border);
 }
 
 @media (max-width: 768px) {

@@ -85,6 +85,7 @@ textarea {
   font-family: inherit;
   font-size: 13px;
   color: var(--color-text-primary);
+  background: var(--color-bg-primary);
   transition: all 0.2s ease;
 }
 textarea:focus {

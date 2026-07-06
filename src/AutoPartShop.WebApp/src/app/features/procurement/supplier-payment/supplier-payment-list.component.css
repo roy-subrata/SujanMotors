@@ -16,8 +16,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
   border-radius: 0.75rem;
   padding: 0.75rem 1.25rem;
 }
@@ -25,7 +25,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: #1e40af;
+  color: var(--color-text-primary);
   font-size: 0.875rem;
 }
 
@@ -46,12 +46,12 @@
 }
 .supplier-avatar.small { width: 26px; height: 26px; font-size: 0.75rem; }
 .supplier-info { display: flex; flex-direction: column; }
-.supplier-name { font-weight: 600; color: #111827; }
-.supplier-sub { font-size: 0.75rem; color: #9ca3af; }
+.supplier-name { font-weight: 600; color: var(--color-text-primary); }
+.supplier-sub { font-size: 0.75rem; color: var(--color-text-secondary); }
 
 /* Amount cell */
 .amount-cell { display: flex; flex-direction: column; align-items: flex-end; gap: 0.125rem; }
-.amount-fee { font-size: 0.75rem; color: #9ca3af; }
+.amount-fee { font-size: 0.75rem; color: var(--color-text-secondary); }
 .amount-highlight { font-weight: 700; color: #059669; }
 
 /* Method / type badges */
@@ -64,17 +64,17 @@
   font-weight: 600;
   text-transform: uppercase;
 }
-.method-badge { background: #f1f5f9; color: #475569; }
+.method-badge { background: var(--color-bg-secondary); color: var(--color-text-secondary); }
 .type-badge.type-advance { background: #fef9c3; color: #854d0e; }
 .type-badge.type-regular { background: #f0fdf4; color: #166534; }
 
-.invoice-ref { font-size: 0.8125rem; color: #6b7280; font-family: monospace; }
+.invoice-ref { font-size: 0.8125rem; color: var(--color-text-secondary); font-family: monospace; }
 
 /* Mobile card */
 .payment-card {
-  background: #fff;
+  background: var(--color-bg-primary);
   border-radius: 0.75rem;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-border);
   padding: 1rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
   cursor: pointer;
@@ -93,8 +93,8 @@
 }
 .card-supplier { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem; }
 .card-row { display: flex; justify-content: space-between; font-size: 0.875rem; }
-.card-row .label { color: #9ca3af; }
-.card-row .value { color: #374151; font-weight: 500; }
+.card-row .label { color: var(--color-text-secondary); }
+.card-row .value { color: var(--color-text-primary); font-weight: 500; }
 .payment-card .card-footer { display: flex; align-items: center; gap: 0.5rem; }
 
 @media (max-width: 480px) {
