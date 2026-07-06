@@ -39,9 +39,10 @@ input:focus,textarea:focus,select:focus{border-color:var(--text3) !important}
 </style>
 </helmet>
 
-<div style="display:grid;grid-template-columns:248px 1fr;min-height:100vh;font-family:'Instrument Sans',system-ui,sans-serif;color:var(--text);background:var(--bg)">
+<div style="display:grid;grid-template-columns:{{ shellCols }};min-height:100vh;font-family:'Instrument Sans',system-ui,sans-serif;color:var(--text);background:var(--bg)">
 
   <!-- ============ SIDEBAR ============ -->
+  <sc-if value="{{ showSidebar }}" hint-placeholder-val="{{ true }}">
   <aside style="background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;height:100vh;position:sticky;top:0">
     <div style="display:flex;align-items:center;gap:10px;padding:16px 16px 14px;border-bottom:1px solid var(--border2)">
       <div style="width:32px;height:32px;border-radius:8px;background:var(--accent);color:var(--accent-fg);display:grid;place-items:center;font-weight:700;font-size:14px;letter-spacing:.5px">SM</div>
@@ -76,19 +77,32 @@ input:focus,textarea:focus,select:focus{border-color:var(--text3) !important}
       </div>
     </div>
   </aside>
+  </sc-if>
 
   <!-- ============ MAIN ============ -->
   <div style="display:flex;flex-direction:column;min-width:0">
 
     <!-- Top bar -->
     <header style="display:flex;align-items:center;gap:14px;padding:0 24px;height:56px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:5">
+      <sc-if value="{{ isPos }}" hint-placeholder-val="{{ false }}">
+        <button onClick="{{ goDashboard }}" title="Exit POS" style="display:flex;align-items:center;gap:8px;background:none;border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-family:inherit;font-size:13px;font-weight:500;color:var(--text2);cursor:pointer" style-hover="background:var(--surface2);color:var(--text)">← Exit POS</button>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:30px;height:30px;border-radius:7px;background:var(--accent);color:var(--accent-fg);display:grid;place-items:center;font-weight:700;font-size:13px">SM</div>
+          <span style="font-size:14px;font-weight:600">Point of Sale</span>
+          <span style="font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:99px;background:var(--green-bg);color:var(--green)">Register open</span>
+        </div>
+      </sc-if>
       <div style="display:flex;align-items:center;gap:8px;flex:1">
+        <sc-if value="{{ notPos }}" hint-placeholder-val="{{ true }}">
         <div style="display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 12px;width:300px;color:var(--text3);font-size:13px;cursor:text">
           <span style="font-size:12px">⌕</span> Search parts, invoices, customers…
           <span style="margin-left:auto;font-size:10.5px;border:1px solid var(--border);border-radius:4px;padding:1px 5px;background:var(--surface)">⌘K</span>
         </div>
+        </sc-if>
       </div>
+      <sc-if value="{{ notPos }}" hint-placeholder-val="{{ true }}">
       <button onClick="{{ newSale }}" style="display:flex;align-items:center;gap:7px;background:var(--accent);color:var(--accent-fg);border:none;border-radius:8px;padding:8px 14px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer" style-hover="opacity:.9">＋ New Sale</button>
+      </sc-if>
       <button onClick="{{ toggleTheme }}" title="Toggle theme" style="width:34px;height:34px;display:grid;place-items:center;background:none;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:15px;color:var(--text2)" style-hover="background:var(--surface2)">{{ themeIcon }}</button>
       <button style="width:34px;height:34px;display:grid;place-items:center;background:none;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:15px;color:var(--text2);position:relative" style-hover="background:var(--surface2)">
         ◷<span style="position:absolute;top:6px;right:7px;width:7px;height:7px;border-radius:99px;background:var(--red);border:2px solid var(--surface)"></span>
@@ -213,6 +227,163 @@ input:focus,textarea:focus,select:focus{border-color:var(--text3) !important}
         </div>
       </div>
 
+    </main>
+    </sc-if>
+
+    <!-- ================= POS SALE ================= -->
+    <sc-if value="{{ isPos }}" hint-placeholder-val="{{ false }}">
+    <main data-screen-label="POS Sale" style="display:flex;flex-direction:column;height:calc(100vh - 56px);min-height:0">
+      <div style="display:flex;flex-wrap:wrap;gap:16px;padding:16px 20px 12px;flex:1;min-height:0;align-items:flex-start;overflow-y:auto">
+
+      <!-- LEFT: cart -->
+      <div style="display:flex;flex-direction:column;gap:12px;flex:1 1 560px;min-width:0;height:100%;min-height:0">
+        <!-- search -->
+        <div style="display:flex;gap:8px">
+          <div style="display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:0 14px;flex:1;box-shadow:var(--shadow)">
+            <span style="font-size:14px;color:var(--text3)">⌕</span>
+            <input placeholder="Scan barcode or search parts by name, SKU…" style="border:none;background:none;font-family:inherit;font-size:14px;color:var(--text);padding:12px 0;width:100%">
+            <span style="font-size:10.5px;border:1px solid var(--border);border-radius:4px;padding:1px 6px;color:var(--text3);background:var(--surface2)">F2</span>
+          </div>
+          <button title="Scan QR" style="width:44px;display:grid;place-items:center;background:var(--surface);border:1px solid var(--border);border-radius:10px;cursor:pointer;font-size:17px;color:var(--text2);box-shadow:var(--shadow)" style-hover="background:var(--surface2)">▦</button>
+        </div>
+
+        <!-- cart card -->
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);display:flex;flex-direction:column;flex:1;min-height:280px;overflow:hidden">
+          <div style="flex:1;overflow:auto;min-height:0">
+          <div style="min-width:680px">
+          <div style="display:grid;grid-template-columns:minmax(160px,1fr) 110px 120px 110px 110px 36px;gap:10px;padding:9px 16px;border-bottom:1px solid var(--border2);background:var(--surface2);font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);position:sticky;top:0">
+            <span>Item</span><span>Unit</span><span style="text-align:center">Qty</span><span style="text-align:right">Price</span><span style="text-align:right">Total</span><span></span>
+          </div>
+            <sc-for list="{{ cartLines }}" as="ln" hint-placeholder-count="2">
+              <div style="display:grid;grid-template-columns:minmax(160px,1fr) 110px 120px 110px 110px 36px;gap:10px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border2);font-size:13px" style-hover="background:var(--surface2)">
+                <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                  <span style="font-weight:550;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ ln.name }}</span>
+                  <span style="font-size:11px;color:var(--text3)">{{ ln.sku }} · in stock {{ ln.stock }}</span>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;border:1px solid var(--border);border-radius:7px;padding:6px 9px;font-size:12.5px;color:var(--text2);cursor:pointer" style-hover="background:var(--surface2)">{{ ln.unit }} <span style="font-size:9px;color:var(--text3)">▾</span></div>
+                <div style="display:flex;align-items:center;justify-content:center;gap:0;border:1px solid var(--border);border-radius:7px;overflow:hidden;width:fit-content;justify-self:center">
+                  <button onClick="{{ ln.dec }}" style="width:30px;height:30px;background:none;border:none;cursor:pointer;font-size:14px;color:var(--text2)" style-hover="background:var(--surface2)">−</button>
+                  <span style="min-width:34px;text-align:center;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;border-left:1px solid var(--border2);border-right:1px solid var(--border2);line-height:30px">{{ ln.qty }}</span>
+                  <button onClick="{{ ln.inc }}" style="width:30px;height:30px;background:none;border:none;cursor:pointer;font-size:14px;color:var(--text2)" style-hover="background:var(--surface2)">＋</button>
+                </div>
+                <span style="text-align:right;font-variant-numeric:tabular-nums;color:var(--text2)">{{ ln.price }}</span>
+                <span style="text-align:right;font-variant-numeric:tabular-nums;font-weight:600">{{ ln.total }}</span>
+                <button onClick="{{ ln.remove }}" title="Remove" style="width:28px;height:28px;display:grid;place-items:center;background:none;border:none;border-radius:6px;cursor:pointer;font-size:14px;color:var(--text3)" style-hover="background:var(--red-bg);color:var(--red)">✕</button>
+              </div>
+            </sc-for>
+            <sc-if value="{{ cartEmpty }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:56px 20px;color:var(--text3)">
+                <span style="font-size:26px">⌕</span>
+                <span style="font-size:13.5px">Scan a barcode or search to add items</span>
+              </div>
+            </sc-if>
+          </div>
+          </div>
+          <!-- totals footer -->
+          <div style="border-top:1px solid var(--border);padding:14px 16px;display:flex;flex-direction:column;gap:8px;background:var(--surface2)">
+            <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text2)"><span>Subtotal · {{ itemCount }} items</span><span style="font-variant-numeric:tabular-nums">{{ subtotal }}</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--text2)">
+              <span>Manual discount</span>
+              <input value="0" style="width:90px;text-align:right;background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:5px 9px;font-family:inherit;font-size:13px;color:var(--text);font-variant-numeric:tabular-nums">
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;padding-top:8px;border-top:1px dashed var(--border)">
+              <span style="font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text2)">Total</span>
+              <span style="font-size:24px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums">{{ grandTotal }}</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT: checkout panel -->
+      <div style="display:flex;flex-direction:column;gap:8px;flex:1 1 340px;max-width:420px;min-width:300px;max-height:100%">
+        <!-- customer -->
+        <section style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:12px 14px;display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;border:1px solid var(--border);border-radius:8px;padding:8px 11px;font-size:13px;cursor:pointer;flex:1" style-hover="background:var(--surface2)">
+              <span style="display:flex;align-items:center;gap:8px"><span style="width:24px;height:24px;border-radius:99px;background:var(--surface2);border:1px solid var(--border);display:grid;place-items:center;font-size:10px;font-weight:600;color:var(--text2)">W</span>Walk-in Customer</span>
+              <span style="font-size:10px;color:var(--text3)">▾</span>
+            </div>
+            <button title="New customer" style="width:36px;height:36px;display:grid;place-items:center;background:none;border:1px solid var(--border);border-radius:8px;font-size:15px;color:var(--text2);cursor:pointer;flex-shrink:0" style-hover="background:var(--surface2)">＋</button>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;font-size:11.5px;color:var(--text3);padding:0 2px">
+            <span>Due <b style="color:var(--text2);font-variant-numeric:tabular-nums">৳ 0.00</b></span>
+            <span>Advance <b style="color:var(--text2);font-variant-numeric:tabular-nums">৳ 0.00</b></span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;border:1px solid var(--border);border-radius:8px;padding:8px 11px;font-size:12.5px;color:var(--text3);cursor:pointer" style-hover="background:var(--surface2)">
+              Vehicle <span style="font-size:10px">▾</span>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;border:1px solid var(--border);border-radius:8px;padding:8px 11px;font-size:12.5px;color:var(--text3);cursor:pointer" style-hover="background:var(--surface2)">
+              Technician <span style="font-size:10px">▾</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- payment -->
+        <section style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:12px 14px;display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <span style="font-size:13px;font-weight:600">Payment</span>
+            <span style="font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--text2)">{{ grandTotal }}</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+            <sc-for list="{{ payMethods }}" as="pm" hint-placeholder-count="3">
+              <button onClick="{{ pm.pick }}" style="display:flex;flex-direction:column;align-items:center;gap:3px;background:{{ pm.bg }};border:1px solid {{ pm.border }};border-radius:8px;padding:9px 4px;font-family:inherit;font-size:11.5px;font-weight:600;color:{{ pm.color }};cursor:pointer" style-hover="border-color:var(--text3)">
+                <span style="font-size:15px">{{ pm.icon }}</span>{{ pm.label }}
+              </button>
+            </sc-for>
+          </div>
+          <div style="display:flex;gap:8px">
+            <div style="display:flex;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;flex:1">
+              <span style="padding:9px 11px;background:var(--surface2);border-right:1px solid var(--border);font-size:13px;color:var(--text3)">৳</span>
+              <input placeholder="Amount received" style="border:none;background:none;padding:9px 12px;font-family:inherit;font-size:13px;color:var(--text);width:100%;font-variant-numeric:tabular-nums">
+            </div>
+            <button style="width:38px;display:grid;place-items:center;background:var(--accent);color:var(--accent-fg);border:none;border-radius:8px;cursor:pointer;font-size:16px" style-hover="opacity:.9">＋</button>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div style="display:flex;flex-direction:column;gap:2px;padding:8px 11px;border:1px solid var(--border2);border-radius:8px;background:var(--surface2)">
+              <span style="font-size:10.5px;color:var(--text3)">Paid</span><span style="font-size:13px;font-weight:600;font-variant-numeric:tabular-nums">৳ 0.00</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:2px;padding:8px 11px;border:1px solid var(--border2);border-radius:8px;background:var(--surface2)">
+              <span style="font-size:10.5px;color:var(--text3)">Change / Due</span><span style="font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--amber)">{{ grandTotal }}</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- options -->
+        <section style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:12px 14px;display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+            <div style="display:flex;gap:14px;font-size:12.5px;color:var(--text2)">
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" style="width:14px;height:14px;accent-color:var(--accent)">Auto PO</label>
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" style="width:14px;height:14px;accent-color:var(--accent)">VAT 15%</label>
+            </div>
+            <div style="display:flex;align-items:center;gap:7px">
+              <span style="font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text3)">Print</span>
+              <div style="display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden">
+                <sc-for list="{{ printModes }}" as="pr" hint-placeholder-count="3">
+                  <button onClick="{{ pr.pick }}" style="background:{{ pr.bg }};border:none;padding:5px 11px;font-family:inherit;font-size:11.5px;font-weight:{{ pr.weight }};color:{{ pr.color }};cursor:pointer">{{ pr.label }}</button>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+          <input placeholder="Sale notes…" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 11px;font-family:inherit;font-size:12.5px;color:var(--text)">
+        </section>
+
+        <!-- complete -->
+        <button style="display:flex;align-items:center;justify-content:center;gap:10px;background:var(--green);color:#fff;border:none;border-radius:12px;padding:14px;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;box-shadow:var(--shadow)" style-hover="opacity:.92">
+          ✓ Complete Sale · {{ grandTotal }}
+        </button>
+      </div>
+      </div>
+
+      <!-- action strip: static bottom bar -->
+      <div style="display:flex;gap:6px;overflow-x:auto;padding:10px 20px;background:var(--surface);border-top:1px solid var(--border);flex-shrink:0">
+        <sc-for list="{{ posActions }}" as="pa" hint-placeholder-count="8">
+          <button style="display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:8px 0;font-family:inherit;font-size:11.5px;font-weight:500;color:{{ pa.color }};cursor:pointer;flex:1;min-width:72px" style-hover="background:var(--surface2)">
+            <span style="font-size:15px">{{ pa.icon }}</span>{{ pa.label }}
+          </button>
+        </sc-for>
+      </div>
     </main>
     </sc-if>
 
@@ -645,9 +816,16 @@ input:focus,textarea:focus,select:focus{border-color:var(--text3) !important}
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: 1440, &quot;height&quot;: 900}, &quot;darkMode&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Theme&quot;}, &quot;startScreen&quot;: {&quot;editor&quot;: &quot;enum&quot;, &quot;default&quot;: &quot;dashboard&quot;, &quot;options&quot;: [&quot;dashboard&quot;, &quot;parts&quot;, &quot;partCreate&quot;, &quot;partView&quot;], &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Navigation&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: 1440, &quot;height&quot;: 900}, &quot;darkMode&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Theme&quot;}, &quot;startScreen&quot;: {&quot;editor&quot;: &quot;enum&quot;, &quot;default&quot;: &quot;dashboard&quot;, &quot;options&quot;: [&quot;dashboard&quot;, &quot;parts&quot;, &quot;partCreate&quot;, &quot;partView&quot;, &quot;pos&quot;], &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Navigation&quot;}}">
 class Component extends DCLogic {
-  state = { dark: false, openGroups: {}, screen: 'dashboard', partTab: 'overview', published: true, featured: false };
+  state = { dark: false, openGroups: {}, screen: 'dashboard', partTab: 'overview', published: true, featured: false,
+    payMethod: 'cash', printMode: 'thermal',
+    cart: [
+      { name: 'Banshundara Cement PCC 50kg', sku: 'SKU006', stock: 12, unit: 'Piece', qty: 1, price: 550 },
+      { name: 'Navana Battery - 17 Plate', sku: 'SKU003', stock: 4, unit: 'Piece', qty: 1, price: 14200 },
+    ] };
+
+  fmt(n) { return '৳ ' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
   componentDidMount() {
     const dark = this.props.darkMode ?? false;
@@ -747,7 +925,64 @@ class Component extends DCLogic {
       color: tab === id ? 'var(--text)' : 'var(--text2)',
     });
 
+    const cart = this.state.cart;
+    const subtotalN = cart.reduce((a, c) => a + c.qty * c.price, 0);
+    const setQty = (i, d) => this.setState(s => {
+      const next = s.cart.map((c, j) => j === i ? { ...c, qty: Math.max(1, c.qty + d) } : c);
+      return { cart: next };
+    });
+    const cartLines = cart.map((c, i) => ({
+      name: c.name, sku: c.sku, stock: c.stock, unit: c.unit, qty: c.qty,
+      price: this.fmt(c.price), total: this.fmt(c.qty * c.price),
+      inc: () => setQty(i, 1), dec: () => setQty(i, -1),
+      remove: () => this.setState(s => ({ cart: s.cart.filter((_, j) => j !== i) })),
+    }));
+    const pm = this.state.payMethod;
+    const payMethods = [
+      ['cash', '▤', 'Cash'], ['card', '▢', 'Card'], ['mobile', '◱', 'bKash'],
+    ].map(([id, icon, label]) => ({
+      icon, label,
+      pick: () => this.setState({ payMethod: id }),
+      bg: pm === id ? 'var(--accent)' : 'var(--surface)',
+      border: pm === id ? 'var(--accent)' : 'var(--border)',
+      color: pm === id ? 'var(--accent-fg)' : 'var(--text2)',
+    }));
+    const pr = this.state.printMode;
+    const printModes = [['none', 'None'], ['thermal', 'Thermal'], ['a4', 'A4']].map(([id, label]) => ({
+      label,
+      pick: () => this.setState({ printMode: id }),
+      bg: pr === id ? 'var(--accent)' : 'var(--surface)',
+      weight: pr === id ? 600 : 450,
+      color: pr === id ? 'var(--accent-fg)' : 'var(--text2)',
+    }));
+
     return {
+      isPos: screen === 'pos',
+      notPos: screen !== 'pos',
+      showSidebar: screen !== 'pos',
+      shellCols: screen === 'pos' ? '1fr' : '248px 1fr',
+      goDashboard: () => this.go('dashboard'),
+      cartLines,
+      cartEmpty: cart.length === 0,
+      itemCount: String(cart.reduce((a, c) => a + c.qty, 0)),
+      subtotal: this.fmt(subtotalN),
+      grandTotal: this.fmt(subtotalN),
+      payMethods,
+      printModes,
+      posActions: [
+        { icon: '⊕', label: 'New Sale', color: 'var(--text2)' },
+        { icon: '◷', label: 'Last Sale', color: 'var(--text2)' },
+        { icon: '⏸', label: 'Hold', color: 'var(--amber)' },
+        { icon: '⟲', label: 'Recall', color: 'var(--text2)' },
+        { icon: '⇠', label: 'Returns', color: 'var(--text2)' },
+        { icon: '％', label: 'Discount', color: 'var(--text2)' },
+        { icon: '▤', label: 'Draft', color: 'var(--text2)' },
+        { icon: '▢', label: 'Quotation', color: 'var(--text2)' },
+        { icon: '⎙', label: 'Reprint', color: 'var(--text2)' },
+        { icon: '◔', label: 'History', color: 'var(--text2)' },
+        { icon: '⊞', label: 'Credit', color: 'var(--text2)' },
+        { icon: '◇', label: 'Stock', color: 'var(--text2)' },
+      ],
       isDashboard: screen === 'dashboard',
       isParts: screen === 'parts',
       isPartCreate: screen === 'partCreate',
@@ -760,7 +995,7 @@ class Component extends DCLogic {
         this.setState({ dark: next });
         document.documentElement.setAttribute('data-theme', next ? 'dark' : 'light');
       },
-      newSale: () => {},
+      newSale: () => this.go('pos'),
       navItems: nav,
       chart: screen === 'dashboard' ? this.buildChart() : null,
 

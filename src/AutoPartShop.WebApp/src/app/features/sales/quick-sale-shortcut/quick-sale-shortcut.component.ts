@@ -37,6 +37,7 @@ import { CurrencyService } from '../../../shared/services/currency.service';
 import { PricingValidationService } from '../../../shared/services/pricing-validation.service';
 import { extractApiError } from '../../../shared/utils/api-error.util';
 import { composeVariantDisplayName } from '../../../shared/utils/variant-name.util';
+import { LayoutService } from '../../../layout/service/layout.service';
 
 // Components
 import { QuickCustomerDialogComponent } from '../components/quick-customer-dialog.component';
@@ -91,6 +92,8 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
   private readonly thermalReceipt = inject(ThermalReceiptService);
   private readonly pricingValidationService = inject(PricingValidationService);
   private readonly paymentProviderService = inject(PaymentProviderService);
+  readonly layoutService = inject(LayoutService);
+  readonly isDarkMode = computed(() => this.layoutService.isDarkTheme());
 
   @ViewChild(QuickCustomerDialogComponent) quickCustomerDialog!: QuickCustomerDialogComponent;
 

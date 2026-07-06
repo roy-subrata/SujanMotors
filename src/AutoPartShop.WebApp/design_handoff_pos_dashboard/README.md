@@ -1,7 +1,7 @@
 # Handoff: POS Modernization (Sunjan Motors)
 
 ## Overview
-A modernized redesign of the POS/ERP UI for an auto-parts shop. Covers FOUR screens: **Dashboard**, **Parts list**, **Create Part form**, and **Part detail view** — all in one design reference file, navigable via the sidebar "Parts" item, the "＋ New Part" button, and clicking a parts-table row. Replaces the colorful icon-chip card style with a clean "modern SaaS" look: slate/near-black accent, bordered white cards with trend deltas, a consolidated 6-stat insight strip, restyled collapsible sidebar, refined line chart, cash-flow panel, and full light/dark theming.
+A modernized redesign of the POS/ERP UI for an auto-parts shop. Covers FIVE screens: **Dashboard**, **Parts list**, **Create Part form**, **Part detail view**, and **POS New Sale** — all in one design reference file, navigable via the sidebar "Parts" item, the "＋ New Part" button, clicking a parts-table row, and the top-bar "＋ New Sale" button (POS screen). Replaces the colorful icon-chip card style with a clean "modern SaaS" look: slate/near-black accent, bordered white cards with trend deltas, a consolidated 6-stat insight strip, restyled collapsible sidebar, refined line chart, cash-flow panel, and full light/dark theming.
 
 ## About the Design Files
 The file in this bundle (`POS Dashboard.dc.html`) is a **design reference created in HTML** — a prototype showing intended look and behavior, NOT production code to copy directly. Your task is to **recreate this design in your existing Angular + PrimeNG codebase**, using your established module structure, PrimeNG components, and theming system.
@@ -77,8 +77,43 @@ The file in this bundle (`POS Dashboard.dc.html`) is a **design reference create
 - **Pricing tab**: Price History table — Changed / Old / New / Change(% colored).
 - **Movements tab**: Stock Movements table — Reference / Type pill (In green, Out red, Adjust amber) / Qty (signed, colored) / Date.
 
+### POS New Sale page (`/pos`) — full-screen, NO sidebar
+Reached via the top-bar "＋ New Sale" button. The app shell changes: sidebar is hidden, grid collapses to `1fr`, and the top bar swaps to POS chrome.
+
+**POS top bar** (same 56px bar):
+- Left: "← Exit POS" outlined button (routes back to `/dashboard`).
+- Then: 30px rounded-7 accent "SM" square + "Point of Sale" 14px/600 + green pill "Register open" (11.5px/600, `--green-bg`/`--green`, radius 99).
+- Right: theme toggle + notification icon buttons (unchanged).
+- No search field, no New Sale button.
+
+**Layout**: `<main>` is a column filling `calc(100vh − 56px)`. Content row: flex-wrap, gap 16px, padding 16px 20px 12px, scrollable. Left cart column `flex: 1 1 560px`; right checkout column `flex: 1 1 340px`, min 300 / max 420px. Below both: a full-width **action strip** pinned at the bottom.
+
+**LEFT — cart column** (12px gap):
+1. **Search row**: barcode/search field (flex 1, `--surface` bg, 1px border, radius 10, shadow; ⌕ icon; placeholder "Scan barcode or search parts by name, SKU…" 14px; `F2` kbd hint pill right) + 44px square "Scan QR" icon button. This input should be autofocused; barcode-scanner input adds the matching part to the cart.
+2. **Cart card** (`--surface`, 1px border, radius 12, shadow, fills remaining height, min-height 280px; inner table min-width 680px, horizontally scrollable):
+   - Grid columns: Item `minmax(160px,1fr)` / Unit 110 / Qty 120 / Price 110 / Total 110 / remove 36; gap 10, padding 12px 16px per row.
+   - Header row: `--surface2`, uppercase 10.5px/600 letter-spacing .07em `--text3`, sticky top.
+   - Line item: name 13px/550 ellipsized + "SKU · in stock N" 11px `--text3`; **Unit** dropdown pill (1px border, radius 7, e.g. "Piece ▾"); **Qty stepper**: bordered radius-7 group of − / value / ＋ (30×30 buttons, value 34px wide, 600, tabular-nums; min qty 1); Price (right, `--text2`, tabular); Total (right, 600, tabular); ✕ remove button 28px (hover: `--red-bg`/`--red`).
+   - Empty state: centered ⌕ 26px + "Scan a barcode or search to add items" 13.5px `--text3`, padding 56px.
+   - **Totals footer** (top border, `--surface2` bg, padding 14px 16px): "Subtotal · N items" / amount row 13px `--text2`; "Manual discount" row with 90px right-aligned numeric input; dashed divider; TOTAL row — uppercase 13px/600 label left, grand total 24px/700 tracking −.02em tabular right.
+   - Demo cart data: Banshundara Cement PCC 50kg SKU006 ×1 ৳550.00 · Navana Battery - 17 Plate SKU003 ×1 ৳14,200.00 → total ৳14,750.00.
+
+**RIGHT — checkout column** (8px gap; three cards radius 12, 1px border, shadow, padding 12px 14px):
+1. **Customer card**: customer select pill (24px "W" avatar + "Walk-in Customer" + ▾, flex 1) + 36px "＋ New customer" icon button; meta line "Due ৳ 0.00 · Advance ৳ 0.00" 11.5px `--text3`; 2-col row of Vehicle ▾ and Technician ▾ select pills (12.5px `--text3`).
+2. **Payment card**: header "Payment" 13px/600 + amount right; **method segmented grid** 3 cols, gap 6 — Cash / Card / bKash tiles (icon 15px over 11.5px/600 label, radius 8; selected: `--accent` bg + `--accent-fg` text; unselected: `--surface` + 1px border). Then amount row: input with ৳ prefix addon (prefix `--surface2` bg, right border) placeholder "Amount received" + 38px accent ＋ "add payment" button. Then 2-col summary boxes (`--surface2`, 1px `--border2`, radius 8): "Paid ৳ 0.00" and "Change / Due" (value in `--amber` while unpaid). Multiple payment lines can be added (split payments).
+3. **Options card**: checkboxes "Auto PO" and "VAT 15%" (14px, accent-color) left; right: "PRINT" micro-label + segmented control None / Thermal / A4 (radius 8 group; selected segment `--accent` bg). Below: "Sale notes…" input full width.
+4. **✓ Complete Sale · {total}** button: full-width, `--green` bg, white, radius 12, padding 14px, 15px/700. Primary action — should submit the sale, print per print mode, then reset for the next sale.
+
+**Bottom action strip** (full width, `--surface` bg, top border, padding 10px 20px, horizontal scroll, gap 6): 12 equal buttons (flex 1, min-width 72px, radius 9, 1px border, icon 15px over 11.5px/500 label): New Sale · Last Sale · Hold (label in `--amber`) · Recall · Returns · Discount · Draft · Quotation · Reprint · History · Credit · Stock. Wire to existing POS functions; hover `--surface2`.
+
+**POS behavior notes**:
+- Qty stepper clamps at 1; ✕ removes the line. Subtotal/total recompute live; the Payment header amount, Change/Due box, and Complete Sale label all reflect the grand total.
+- Payment method and print mode are single-select segmented states (`payMethod: 'cash'|'card'|'mobile'`, `printMode: 'none'|'thermal'|'a4'`).
+- Keyboard-first: F2 focuses search; consider Enter=add item, keypad shortcuts per your existing POS conventions.
+- PrimeNG mapping: `p-select` (customer/vehicle/technician/unit), `p-inputnumber` (qty/discount/amount), `p-selectbutton` (payment method, print mode), `p-checkbox`, `p-button severity="success"` for Complete Sale.
+
 ## Angular routing suggestion
-`/dashboard` · `/parts` (list) · `/parts/new` (create) · `/parts/:id` (detail). Shared app-shell layout component holds sidebar + top bar; sidebar item active state matches route prefix (`/parts*` keeps "Parts" active).
+`/dashboard` · `/parts` (list) · `/parts/new` (create) · `/parts/:id` (detail) · `/pos` (new sale — full-screen layout WITHOUT the shared sidebar shell; keep only the POS top bar). Shared app-shell layout component holds sidebar + top bar; sidebar item active state matches route prefix (`/parts*` keeps "Parts" active).
 
 ## Interactions & Behavior
 - Sidebar group headers toggle collapse (chevron flips).
@@ -93,6 +128,7 @@ The file in this bundle (`POS Dashboard.dc.html`) is a **design reference create
 - `theme: 'light' | 'dark'`
 - `openGroups: Record<string, boolean>` for sidebar collapse
 - `dateRange` filter → dashboard query
+- POS: `cart: {partId, name, sku, unit, qty, price}[]`, `customer`, `vehicle`, `technician`, `payMethod`, `printMode`, `payments[]`, `manualDiscount`, `notes`
 - Dashboard data: kpis, insights, dailySeries (sales/purchases/profit), cashflow, topProducts, topCustomers — from your existing endpoints.
 
 ## Design Tokens
@@ -119,4 +155,4 @@ Scale: radii 7/8/9/12px (nav/buttons/inner boxes/cards); pills radius 99. Spacin
 No image assets. Icons in the prototype are Unicode placeholders — use **PrimeIcons** (`pi pi-*`) in production: e.g. pi-home, pi-box, pi-tags, pi-truck, pi-users, pi-wallet, pi-chart-line, pi-cog, pi-search, pi-bell, pi-moon/pi-sun, pi-plus, pi-refresh, pi-download.
 
 ## Files
-- `POS Dashboard.dc.html` — the full interactive design reference with all four screens (open in a browser; sidebar "Parts", "＋ New Part", and table rows navigate between them).
+- `POS Dashboard.dc.html` — the full interactive design reference with all five screens (open in a browser; sidebar "Parts", "＋ New Part", table rows, and top-bar "＋ New Sale" navigate between them; "← Exit POS" returns to the dashboard).
