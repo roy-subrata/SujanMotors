@@ -2134,6 +2134,17 @@ public class SalesOrderController : ControllerBase
                         }
                     }
 
+                    // Guard: the payment lines (including any DUE line for an unpaid balance) plus
+                    // advance credit applied must fully account for the invoice total. The POS UI
+                    // already enforces this client-side, but the API must not trust that — otherwise
+                    // a caller bypassing the UI could persist a sale whose payments don't add up.
+                    var paymentsTendered = request.Payments?.Where(p => p.Amount > 0).Sum(p => p.Amount) ?? 0;
+                    var totalAccountedFor = paymentsTendered + advancePaymentAmount;
+                    if (Math.Abs(totalAccountedFor - invoice.GrandTotal) > 0.01m)
+                        throw new ArgumentException(
+                            $"Payment total ({totalAccountedFor:F2}) does not match the invoice total ({invoice.GrandTotal:F2}). " +
+                            "Add payment line(s) — including a DUE line for any unpaid balance — that account for the full amount.");
+
                     decimal manualPaymentAmount = 0;
                     if (request.CustomerId.HasValue && request.CustomerId.Value != Guid.Empty)
                     {
