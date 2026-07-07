@@ -249,6 +249,11 @@ builder.Services.Configure<Microsoft.AspNetCore.Authentication.JwtBearer.JwtBear
 // Broadcaster that adapts ISaleEventBroadcaster → IHubContext<SaleNotificationHub>
 builder.Services.AddScoped<ISaleEventBroadcaster, SignalRSaleEventBroadcaster>();
 
+// Reorder alerts: daily low-stock scan broadcast to staff over the same hub
+builder.Services.AddScoped<IReorderAlertBroadcaster, SignalRReorderAlertBroadcaster>();
+builder.Services.AddScoped<ReorderAlertScanner>();
+builder.Services.AddHostedService<ReorderAlertService>();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {

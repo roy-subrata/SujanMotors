@@ -17,16 +17,39 @@ export interface SaleNotificationEvent {
   createdBy: string;
 }
 
+export interface ReorderAlertItem {
+  stockLevelId: string;
+  partId: string;
+  variantId: string | null;
+  partName: string;
+  sku: string | null;
+  warehouseName: string;
+  quantityAvailable: number;
+  reorderLevel: number;
+  reorderQuantity: number;
+}
+
+export interface ReorderAlertEvent {
+  /** Total items needing reorder; items[] is capped server-side. */
+  itemCount: number;
+  items: ReorderAlertItem[];
+  occurredAt: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class NotificationHubService implements OnDestroy {
   private readonly auth = inject(AuthService);
 
   private connection: signalR.HubConnection | null = null;
   private readonly _saleNotification$ = new Subject<SaleNotificationEvent>();
+  private readonly _reorderAlert$ = new Subject<ReorderAlertEvent>();
   private authSub?: Subscription;
 
   /** Emits every time a sale notification arrives from the hub. */
   readonly saleNotification$ = this._saleNotification$.asObservable();
+
+  /** Emits when the daily (or manually triggered) low-stock reorder alert arrives. */
+  readonly reorderAlert$ = this._reorderAlert$.asObservable();
 
   constructor() {
     this.authSub = this.auth.isAuthenticated$
@@ -53,6 +76,10 @@ export class NotificationHubService implements OnDestroy {
 
     this.connection.on('ReceiveSaleNotification', (evt: SaleNotificationEvent) => {
       this._saleNotification$.next(evt);
+    });
+
+    this.connection.on('ReceiveReorderAlert', (evt: ReorderAlertEvent) => {
+      this._reorderAlert$.next(evt);
     });
 
     this.connection

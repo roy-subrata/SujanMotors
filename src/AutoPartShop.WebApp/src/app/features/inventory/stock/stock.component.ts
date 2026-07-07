@@ -1,4 +1,5 @@
 import { Component, OnInit, inject } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
@@ -55,6 +56,7 @@ export class StockComponent implements OnInit {
   private readonly partService = inject(PartService);
   private readonly warehouseService = inject(WarehouseService);
   private readonly dialogService = inject(DialogService);
+  private readonly route = inject(ActivatedRoute);
 
   allStockLevels: StockLevelResponse[] = [];
   lowStockLevels: StockLevelResponse[] = [];
@@ -107,6 +109,12 @@ export class StockComponent implements OnInit {
   ];
 
   ngOnInit(): void {
+    // Deep-link support (e.g. the topbar reorder alert links to /inventory/stock?tab=low).
+    // Subscribed (not snapshot) so the link also works when the page is already open.
+    this.route.queryParamMap.subscribe(params => {
+      if (params.get('tab') === 'low') this.activeTab = 1;
+    });
+
     this.loadWarehouses();
     this.loadAllStock();
     this.loadLowStock();

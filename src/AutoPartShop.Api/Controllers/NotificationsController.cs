@@ -62,6 +62,27 @@ public class NotificationsController : ControllerBase
         return Ok(new { message = "Test notification sent to staff group" });
     }
 
+    /// <summary>
+    /// Manually run the reorder-level scan and broadcast the low-stock alert to staff.
+    /// Same scan the daily background job runs — useful for testing and ad-hoc checks.
+    /// </summary>
+    [HttpPost("reorder-alert/run")]
+    [Authorize(Roles = "Admin,Manager")]
+    public async Task<IActionResult> RunReorderAlert(
+        [FromServices] Services.ReorderAlertScanner scanner,
+        CancellationToken cancellationToken)
+    {
+        var evt = await scanner.ScanAndBroadcastAsync(cancellationToken);
+        return Ok(new
+        {
+            itemCount = evt?.ItemCount ?? 0,
+            broadcast = evt != null,
+            message = evt != null
+                ? $"Reorder alert sent: {evt.ItemCount} item(s) at/below reorder level"
+                : "No items at/below reorder level — nothing broadcast"
+        });
+    }
+
     /// <summary>Staff-triggered: send invoice HTML email to the customer for a sales order.</summary>
     [HttpPost("send-invoice-email/{salesOrderId:guid}")]
     [HasPermission(Permissions.SalesCreate)]
