@@ -1,6 +1,7 @@
-using AutoPartShop.Api.Services;
+﻿using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.CustomerVehicleDtos;
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,7 +10,7 @@ namespace AutoPartShop.Api.Controllers;
 [Route("api/customers/{customerId:guid}/vehicles")]
 [Route("api/v1/customers/{customerId:guid}/vehicles")]
 [ApiController]
-[Authorize]
+[HasPermission(Permissions.SalesView)]
 [Produces("application/json")]
 public class CustomerVehiclesController : ControllerBase
 {
@@ -64,6 +65,7 @@ public class CustomerVehiclesController : ControllerBase
     }
 
     [HttpPost]
+    [HasPermission(Permissions.SalesCreate)]
     public async Task<IActionResult> Create(Guid customerId, CreateCustomerVehicleRequest request, CancellationToken cancellationToken)
     {
         try
@@ -105,6 +107,7 @@ public class CustomerVehiclesController : ControllerBase
     }
 
     [HttpPut("{vehicleId:guid}")]
+    [HasPermission(Permissions.SalesEdit)]
     public async Task<IActionResult> Update(Guid customerId, Guid vehicleId, UpdateCustomerVehicleRequest request, CancellationToken cancellationToken)
     {
         try
@@ -143,6 +146,7 @@ public class CustomerVehiclesController : ControllerBase
     }
 
     [HttpDelete("{vehicleId:guid}")]
+    [HasPermission(Permissions.SalesDelete)]
     public async Task<IActionResult> Delete(Guid customerId, Guid vehicleId, CancellationToken cancellationToken)
     {
         try

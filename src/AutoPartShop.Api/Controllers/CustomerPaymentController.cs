@@ -1,4 +1,4 @@
-using AutoPartShop.Api.Pdf;
+﻿using AutoPartShop.Api.Pdf;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.Common;
 using AutoPartShop.Application.CustomerPayment;
@@ -6,6 +6,7 @@ using AutoPartShop.Application.CustomerPayment.Dtos;
 using AutoPartShop.Application.DTOs.PaymentDtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
+using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -16,7 +17,7 @@ namespace AutoPartShop.Api.Controllers;
 [Route("api/customer-payments")]
 [Route("api/v1/customer-payments")]
 [ApiController]
-[Authorize]
+[HasPermission(Permissions.SalesView)]
 public class CustomerPaymentController : ControllerBase
 {
     private readonly ICustomerPaymentRepository _repository;
@@ -233,6 +234,7 @@ public class CustomerPaymentController : ControllerBase
     }
 
     [HttpPost]
+    [HasPermission(Permissions.SalesProcessPayment)]
     public async Task<IActionResult> Create(CreateCustomerPaymentRequest request, CancellationToken cancellationToken)
     {
         try
@@ -322,6 +324,7 @@ public class CustomerPaymentController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
+    [HasPermission(Permissions.SalesProcessPayment)]
     public async Task<IActionResult> Update(Guid id, UpdateCustomerPaymentRequest request, CancellationToken cancellationToken)
     {
         try
@@ -345,6 +348,7 @@ public class CustomerPaymentController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/mark-completed")]
+    [HasPermission(Permissions.SalesProcessPayment)]
     public async Task<IActionResult> MarkCompleted(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -419,6 +423,7 @@ public class CustomerPaymentController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/reconcile")]
+    [HasPermission(Permissions.SalesProcessPayment)]
     public async Task<IActionResult> Reconcile(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -442,6 +447,7 @@ public class CustomerPaymentController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/refund")]
+    [HasPermission(Permissions.SalesProcessPayment)]
     public async Task<IActionResult> Refund(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -530,6 +536,7 @@ public class CustomerPaymentController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/cancel")]
+    [HasPermission(Permissions.SalesProcessPayment)]
     public async Task<IActionResult> Cancel(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -554,6 +561,7 @@ public class CustomerPaymentController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/mark-advance")]
+    [HasPermission(Permissions.SalesProcessPayment)]
     public async Task<IActionResult> MarkAsAdvance(Guid id, [FromBody] MarkAsCustomerPaymentAdvanceRequest request, CancellationToken cancellationToken = default)
     {
         try
@@ -578,6 +586,7 @@ public class CustomerPaymentController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/mark-regular")]
+    [HasPermission(Permissions.SalesProcessPayment)]
     public async Task<IActionResult> MarkAsRegular(Guid id, [FromBody] MarkAsCustomerPaymentRegularRequest request, CancellationToken cancellationToken = default)
     {
         try
@@ -602,6 +611,7 @@ public class CustomerPaymentController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
+    [HasPermission(Permissions.SalesDelete)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -750,6 +760,7 @@ public class CustomerPaymentController : ControllerBase
     /// Apply advance credit to an invoice
     /// </summary>
     [HttpPost("apply-advance-credit")]
+    [HasPermission(Permissions.SalesProcessPayment)]
     public async Task<IActionResult> ApplyAdvanceCredit([FromBody] ApplyCustomerAdvanceCreditRequest request, CancellationToken cancellationToken = default)
     {
         try
@@ -823,7 +834,7 @@ public class CustomerPaymentController : ControllerBase
                     salesOrder.RecordPayment(request.Amount);
                     salesOrder.ModifiedBy = _currentUserService.GetCurrentUsername();
 
-                    // Reflect the new payment in the in-memory collection before recalculating invoice status —
+                    // Reflect the new payment in the in-memory collection before recalculating invoice status â€”
                     // newPayment is not yet in the DB so UpdatePaymentStatus would miss it otherwise.
                     invoice.CustomerPayments.Add(newPayment);
                     invoice.UpdatePaymentStatus();

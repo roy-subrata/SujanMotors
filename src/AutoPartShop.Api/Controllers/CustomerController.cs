@@ -1,9 +1,10 @@
-using AutoPartShop.Api.Services;
+﻿using AutoPartShop.Api.Services;
 using AutoPartShop.Application.Common;
 using AutoPartShop.Application.Customers;
 using AutoPartShop.Application.Customers.Dtos;
 using AutoPartShop.Application.DTOs.CustomerDtos;
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -12,7 +13,7 @@ namespace AutoPartShop.Api.Controllers;
 [Route("api/customers")]
 [Route("api/v1/customers")]
 [ApiController]
-[Authorize]
+[HasPermission(Permissions.SalesView)]
 [Produces("application/json")]
 public class CustomerController : ControllerBase
 {
@@ -304,6 +305,7 @@ public class CustomerController : ControllerBase
     }
 
     [HttpPost]
+    [HasPermission(Permissions.SalesCreate)]
     public async Task<IActionResult> Create(CreateCustomerRequest request, CancellationToken cancellationToken)
     {
         try
@@ -353,6 +355,7 @@ public class CustomerController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
+    [HasPermission(Permissions.SalesEdit)]
     public async Task<IActionResult> Update(Guid id, UpdateCustomerRequest request, CancellationToken cancellationToken)
     {
         try
@@ -385,6 +388,7 @@ public class CustomerController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/activate")]
+    [HasPermission(Permissions.SalesEdit)]
     public async Task<IActionResult> Activate(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -410,6 +414,7 @@ public class CustomerController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/deactivate")]
+    [HasPermission(Permissions.SalesEdit)]
     public async Task<IActionResult> Deactivate(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -431,6 +436,7 @@ public class CustomerController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/suspend")]
+    [HasPermission(Permissions.SalesEdit)]
     public async Task<IActionResult> Suspend(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -452,6 +458,7 @@ public class CustomerController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/blacklist")]
+    [HasPermission(Permissions.SalesEdit)]
     public async Task<IActionResult> Blacklist(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -473,6 +480,7 @@ public class CustomerController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
+    [HasPermission(Permissions.SalesDelete)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         try

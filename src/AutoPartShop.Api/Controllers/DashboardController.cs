@@ -1,6 +1,7 @@
-using AutoPartShop.Api.Common;
+﻿using AutoPartShop.Api.Common;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.DashboardDtos;
+using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,7 +10,7 @@ namespace AutoPartShop.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Route("api/v1/[controller]")]
-[Authorize]
+[HasPermission(Permissions.ReportsView)]
 public class DashboardController(IFinancialSummaryService financialSummaryService, ILogger<DashboardController> logger) : ControllerBase
 {
     /// <summary>

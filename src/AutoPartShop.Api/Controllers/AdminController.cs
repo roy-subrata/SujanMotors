@@ -1,3 +1,4 @@
+﻿using AutoPartShop.Api.Authorization;
 using AutoPartShop.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -9,7 +10,9 @@ namespace AutoPartShop.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Route("api/v1/[controller]")]
-[Authorize(Roles = "Admin")]
+// Access is now permission-gated per action (users.* / roles.*) so user management can be
+// delegated via role-permission assignment; Admin still bypasses everything.
+[Authorize]
 public class AdminController : ControllerBase
 {
     private readonly UserManager<ApplicationUser> _userManager;
@@ -35,6 +38,7 @@ public class AdminController : ControllerBase
     /// Get all users with their roles
     /// </summary>
     [HttpGet("users")]
+    [HasPermission(Permissions.UsersView)]
     public async Task<IActionResult> GetAllUsers()
     {
         try
@@ -86,6 +90,7 @@ public class AdminController : ControllerBase
     /// Get user by ID
     /// </summary>
     [HttpGet("users/{id}")]
+    [HasPermission(Permissions.UsersView)]
     public async Task<IActionResult> GetUserById(Guid id)
     {
         try
@@ -124,6 +129,7 @@ public class AdminController : ControllerBase
     /// Create a new user (Admin function)
     /// </summary>
     [HttpPost("users")]
+    [HasPermission(Permissions.UsersCreate)]
     public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest request)
     {
         try
@@ -197,6 +203,7 @@ public class AdminController : ControllerBase
     /// Update user information
     /// </summary>
     [HttpPut("users/{id}")]
+    [HasPermission(Permissions.UsersEdit)]
     public async Task<IActionResult> UpdateUser(Guid id, [FromBody] UpdateUserRequest request)
     {
         try
@@ -238,6 +245,7 @@ public class AdminController : ControllerBase
     /// Deactivate/Activate a user
     /// </summary>
     [HttpPatch("users/{id}/toggle-status")]
+    [HasPermission(Permissions.UsersEdit)]
     public async Task<IActionResult> ToggleUserStatus(Guid id)
     {
         try
@@ -271,6 +279,7 @@ public class AdminController : ControllerBase
     /// Reset user password
     /// </summary>
     [HttpPost("users/{id}/reset-password")]
+    [HasPermission(Permissions.UsersEdit)]
     public async Task<IActionResult> ResetPassword(Guid id, [FromBody] ResetPasswordRequest request)
     {
         try
@@ -310,6 +319,7 @@ public class AdminController : ControllerBase
     /// Get all roles
     /// </summary>
     [HttpGet("roles")]
+    [HasPermission(Permissions.RolesView)]
     public async Task<IActionResult> GetAllRoles()
     {
         try
@@ -338,6 +348,7 @@ public class AdminController : ControllerBase
     /// Create a new role
     /// </summary>
     [HttpPost("roles")]
+    [HasPermission(Permissions.RolesCreate)]
     public async Task<IActionResult> CreateRole([FromBody] CreateRoleRequest request)
     {
         try
@@ -385,6 +396,7 @@ public class AdminController : ControllerBase
     /// Update role
     /// </summary>
     [HttpPut("roles/{id}")]
+    [HasPermission(Permissions.RolesEdit)]
     public async Task<IActionResult> UpdateRole(Guid id, [FromBody] UpdateRoleRequest request)
     {
         try
@@ -425,6 +437,7 @@ public class AdminController : ControllerBase
     /// Delete role
     /// </summary>
     [HttpDelete("roles/{id}")]
+    [HasPermission(Permissions.RolesDelete)]
     public async Task<IActionResult> DeleteRole(Guid id)
     {
         try
@@ -470,6 +483,7 @@ public class AdminController : ControllerBase
     /// Assign roles to a user
     /// </summary>
     [HttpPost("users/{userId}/roles")]
+    [HasPermission(Permissions.UsersAssignRoles)]
     public async Task<IActionResult> AssignRolesToUser(Guid userId, [FromBody] AssignRolesRequest request)
     {
         try
@@ -519,6 +533,7 @@ public class AdminController : ControllerBase
     /// Get roles for a specific user
     /// </summary>
     [HttpGet("users/{userId}/roles")]
+    [HasPermission(Permissions.UsersView)]
     public async Task<IActionResult> GetUserRoles(Guid userId)
     {
         try
@@ -548,6 +563,7 @@ public class AdminController : ControllerBase
     /// Get all permissions
     /// </summary>
     [HttpGet("permissions")]
+    [HasPermission(Permissions.RolesView)]
     public async Task<IActionResult> GetAllPermissions()
     {
         try
@@ -578,6 +594,7 @@ public class AdminController : ControllerBase
     /// Create a new permission
     /// </summary>
     [HttpPost("permissions")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> CreatePermission([FromBody] CreatePermissionRequest request)
     {
         try
@@ -614,6 +631,7 @@ public class AdminController : ControllerBase
     /// Assign permissions to a role
     /// </summary>
     [HttpPost("roles/{roleId}/permissions")]
+    [HasPermission(Permissions.RolesAssignPermissions)]
     public async Task<IActionResult> AssignPermissionsToRole(Guid roleId, [FromBody] AssignPermissionsRequest request)
     {
         try
@@ -657,6 +675,7 @@ public class AdminController : ControllerBase
     /// Get permissions for a specific role
     /// </summary>
     [HttpGet("roles/{roleId}/permissions")]
+    [HasPermission(Permissions.RolesView)]
     public async Task<IActionResult> GetRolePermissions(Guid roleId)
     {
         try

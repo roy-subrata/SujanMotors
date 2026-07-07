@@ -1,6 +1,7 @@
-using AutoPartShop.Api.Services;
+﻿using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.SalesOrderDtos;
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,13 +9,13 @@ namespace AutoPartShop.Api.Controllers;
 
 /// <summary>
 /// Standalone quotation endpoint for the POS / Quick Sale screen. A quote is a DRAFT sales order
-/// with no invoice, payment, or stock side effects — it can later be turned into a sale.
+/// with no invoice, payment, or stock side effects â€” it can later be turned into a sale.
 /// </summary>
 [Route("api/quotes")]
 [Route("api/v1/quotes")]
 [ApiController]
 [Produces("application/json")]
-[Authorize]
+[HasPermission(Permissions.SalesCreate)]
 public class QuotesController : ControllerBase
 {
     private readonly ISalesOrderRepository _salesOrderRepository;
@@ -47,7 +48,7 @@ public class QuotesController : ControllerBase
         {
             var quoteNumber = await _codeGenerateService.GenerateAsync("SO", cancellationToken);
 
-            // A quote is a DRAFT sales order — never confirmed, so it holds no stock and raises no invoice.
+            // A quote is a DRAFT sales order â€” never confirmed, so it holds no stock and raises no invoice.
             var quote = SalesOrder.Create(
                 quoteNumber,
                 request.CustomerId ?? Guid.Empty,
@@ -70,7 +71,7 @@ public class QuotesController : ControllerBase
                 var unitPrice = item.UnitPrice > 0 ? item.UnitPrice : part.SellingPrice;
                 var discountPerUnit = (unitPrice * item.Discount) / 100;
 
-                // Quotes don't move stock, so base-unit quantity is informational — mirror the entered quantity.
+                // Quotes don't move stock, so base-unit quantity is informational â€” mirror the entered quantity.
                 var line = SalesOrderLine.Create(
                     quote.Id,
                     item.PartId,

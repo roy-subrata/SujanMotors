@@ -32,6 +32,7 @@ public class DatabaseSeeder
             // demo/sample data (customers, catalog, stock, vehicles) is seeded.
             await SeedRolesAsync(roleManager, logger);
             await SeedPermissionsAsync(context, logger);
+            await SeedRolePermissionsAsync(context, logger);
             await SeedUsersAsync(userManager, logger, configuration, environment);
             await SeedWalkInCustomerAsync(customerRepository, logger);
 
@@ -258,5 +259,63 @@ public class DatabaseSeeder
         {
             logger.LogInformation("Permissions already exist, skipping seed");
         }
+    }
+
+    /// <summary>
+    /// Default role → permission grants, applied only when the RolePermissions table is
+    /// empty so an operator's own assignments are never overwritten. Admin gets no rows —
+    /// the authorization handler treats Admin as a superuser bypass.
+    /// </summary>
+    private static async Task SeedRolePermissionsAsync(AutoPartDbContext context, ILogger logger)
+    {
+        if (await context.RolePermissions.AnyAsync())
+        {
+            logger.LogInformation("Role permissions already assigned, skipping seed");
+            return;
+        }
+
+        var permissions = await context.Permissions.ToDictionaryAsync(p => p.Name);
+        var roles = await context.Roles.ToDictionaryAsync(r => r.Name!, r => r.Id);
+
+        // Manager: full operational access, no user/role administration
+        var managerGrants = permissions.Keys
+            .Where(name => !name.StartsWith("users.") && !name.StartsWith("roles."))
+            .ToArray();
+
+        // User (salesperson/cashier): run the counter — sell, take payments, look things up
+        var userGrants = new[]
+        {
+            "inventory.view",
+            "sales.view", "sales.create", "sales.edit", "sales.process-payment",
+            "procurement.view",
+            "reports.view"
+        };
+
+        // Viewer: read-only
+        var viewerGrants = new[] { "inventory.view", "sales.view", "procurement.view", "reports.view" };
+
+        var grants = new List<(string Role, string[] Permissions)>
+        {
+            ("Manager", managerGrants),
+            ("User", userGrants),
+            ("Viewer", viewerGrants)
+        };
+
+        var count = 0;
+        foreach (var (roleName, permissionNames) in grants)
+        {
+            if (!roles.TryGetValue(roleName, out var roleId)) continue;
+
+            foreach (var permissionName in permissionNames)
+            {
+                if (!permissions.TryGetValue(permissionName, out var permission)) continue;
+
+                context.RolePermissions.Add(RolePermission.Create(roleId, permission.Id, "System"));
+                count++;
+            }
+        }
+
+        await context.SaveChangesAsync();
+        logger.LogInformation("Seeded {Count} default role-permission grants", count);
     }
 }

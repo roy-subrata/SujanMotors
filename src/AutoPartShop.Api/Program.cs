@@ -181,8 +181,11 @@ builder.Services.AddAuthentication(options =>
 });
 builder.Services.AddMemoryCache();
 
-// Add Authorization
+// Add Authorization — permission policies ("permission:xxx") are built on demand and
+// resolved against the RolePermissions table (Admin bypasses; see Api/Authorization).
 builder.Services.AddAuthorization();
+builder.Services.AddSingleton<Microsoft.AspNetCore.Authorization.IAuthorizationPolicyProvider, AutoPartShop.Api.Authorization.PermissionPolicyProvider>();
+builder.Services.AddScoped<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, AutoPartShop.Api.Authorization.PermissionAuthorizationHandler>();
 
 // Register HttpContextAccessor (required for CurrentUserService)
 builder.Services.AddHttpContextAccessor();

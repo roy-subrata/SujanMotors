@@ -1,3 +1,4 @@
+using AutoPartShop.Api.Authorization;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.Common;
 using AutoPartShop.Application.DTOs.TechnicianDtos;
@@ -12,6 +13,7 @@ namespace AutoPartShop.Api.Controllers;
 [Route("api/[controller]")]
 [Route("api/v1/[controller]")]
 [ApiController]
+[HasPermission(Permissions.SalesView)]  // was previously unauthenticated — closed as part of the permission audit
 public class TechnicianController : ControllerBase
 {
     private readonly ITechnicianRepository _technicianRepository;
@@ -130,6 +132,7 @@ public class TechnicianController : ControllerBase
     }
 
     [HttpPost]
+    [HasPermission(Permissions.SalesCreate)]
     public async Task<IActionResult> Create(CreateTechnicianRequest request, CancellationToken cancellationToken)
     {
         try
@@ -170,6 +173,7 @@ public class TechnicianController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
+    [HasPermission(Permissions.SalesEdit)]
     public async Task<IActionResult> Update(Guid id, UpdateTechnicianRequest request, CancellationToken cancellationToken)
     {
         try
@@ -205,6 +209,7 @@ public class TechnicianController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/activate")]
+    [HasPermission(Permissions.SalesEdit)]
     public async Task<IActionResult> Activate(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -227,6 +232,7 @@ public class TechnicianController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/deactivate")]
+    [HasPermission(Permissions.SalesEdit)]
     public async Task<IActionResult> Deactivate(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -249,6 +255,7 @@ public class TechnicianController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
+    [HasPermission(Permissions.SalesDelete)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         try

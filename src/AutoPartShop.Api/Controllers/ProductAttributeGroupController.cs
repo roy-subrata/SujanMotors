@@ -1,4 +1,5 @@
-using AutoPartShop.Domain.Entities;
+﻿using AutoPartShop.Domain.Entities;
+using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -9,7 +10,7 @@ namespace AutoPartShop.Api.Controllers;
 [Route("api/v1/attribute-groups")]
 [ApiController]
 [Produces("application/json")]
-[Authorize]
+[HasPermission(Permissions.InventoryView)]
 public class ProductAttributeGroupController : ControllerBase
 {
     private readonly AutoPartDbContext _db;
@@ -21,7 +22,7 @@ public class ProductAttributeGroupController : ControllerBase
         _logger = logger;
     }
 
-    // ── Groups ────────────────────────────────────────────────────────────────
+    // â”€â”€ Groups â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     [HttpGet]
     public async Task<IActionResult> GetAll(CancellationToken ct)
@@ -85,6 +86,7 @@ public class ProductAttributeGroupController : ControllerBase
     }
 
     [HttpPost]
+    [HasPermission(Permissions.InventoryCreate)]
     public async Task<IActionResult> CreateGroup([FromBody] CreateAttributeGroupRequest req, CancellationToken ct)
     {
         try
@@ -103,6 +105,7 @@ public class ProductAttributeGroupController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
+    [HasPermission(Permissions.InventoryEdit)]
     public async Task<IActionResult> UpdateGroup(Guid id, [FromBody] CreateAttributeGroupRequest req, CancellationToken ct)
     {
         try
@@ -125,6 +128,7 @@ public class ProductAttributeGroupController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
+    [HasPermission(Permissions.InventoryDelete)]
     public async Task<IActionResult> DeleteGroup(Guid id, CancellationToken ct)
     {
         var group = await _db.ProductAttributeGroups.FindAsync(new object[] { id }, ct);
@@ -134,9 +138,10 @@ public class ProductAttributeGroupController : ControllerBase
         return NoContent();
     }
 
-    // ── Attributes ────────────────────────────────────────────────────────────
+    // â”€â”€ Attributes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     [HttpPost("{groupId:guid}/attributes")]
+    [HasPermission(Permissions.InventoryEdit)]
     public async Task<IActionResult> AddAttribute(Guid groupId, [FromBody] CreateAttributeRequest req, CancellationToken ct)
     {
         try
@@ -161,6 +166,7 @@ public class ProductAttributeGroupController : ControllerBase
     }
 
     [HttpPut("{groupId:guid}/attributes/{attrId:guid}")]
+    [HasPermission(Permissions.InventoryEdit)]
     public async Task<IActionResult> UpdateAttribute(Guid groupId, Guid attrId, [FromBody] CreateAttributeRequest req, CancellationToken ct)
     {
         try
@@ -183,6 +189,7 @@ public class ProductAttributeGroupController : ControllerBase
     }
 
     [HttpDelete("{groupId:guid}/attributes/{attrId:guid}")]
+    [HasPermission(Permissions.InventoryEdit)]
     public async Task<IActionResult> DeleteAttribute(Guid groupId, Guid attrId, CancellationToken ct)
     {
         var attr = await _db.ProductAttributes
@@ -193,9 +200,10 @@ public class ProductAttributeGroupController : ControllerBase
         return NoContent();
     }
 
-    // ── Options ───────────────────────────────────────────────────────────────
+    // â”€â”€ Options â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     [HttpPost("{groupId:guid}/attributes/{attrId:guid}/options")]
+    [HasPermission(Permissions.InventoryEdit)]
     public async Task<IActionResult> AddOption(Guid groupId, Guid attrId, [FromBody] CreateOptionRequest req, CancellationToken ct)
     {
         try
@@ -217,6 +225,7 @@ public class ProductAttributeGroupController : ControllerBase
     }
 
     [HttpPut("{groupId:guid}/attributes/{attrId:guid}/options/{optId:guid}")]
+    [HasPermission(Permissions.InventoryEdit)]
     public async Task<IActionResult> UpdateOption(Guid groupId, Guid attrId, Guid optId, [FromBody] CreateOptionRequest req, CancellationToken ct)
     {
         try
@@ -238,6 +247,7 @@ public class ProductAttributeGroupController : ControllerBase
     }
 
     [HttpDelete("{groupId:guid}/attributes/{attrId:guid}/options/{optId:guid}")]
+    [HasPermission(Permissions.InventoryEdit)]
     public async Task<IActionResult> DeleteOption(Guid groupId, Guid attrId, Guid optId, CancellationToken ct)
     {
         var opt = await _db.ProductAttributeOptions
@@ -248,7 +258,7 @@ public class ProductAttributeGroupController : ControllerBase
         return NoContent();
     }
 
-    // ── Mappers ───────────────────────────────────────────────────────────────
+    // â”€â”€ Mappers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private static object MapGroup(ProductAttributeGroup g) => new
     {

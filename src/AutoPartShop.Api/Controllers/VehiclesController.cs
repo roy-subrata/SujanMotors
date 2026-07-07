@@ -1,6 +1,7 @@
-using AutoPartShop.Api.Services;
+﻿using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.VehicleDtos;
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,7 +11,7 @@ namespace AutoPartShop.Api.Controllers;
 [Route("api/v1/[controller]")]
 [ApiController]
 [Produces("application/json")]
-[Authorize]
+[HasPermission(Permissions.InventoryView)]
 public class VehiclesController : ControllerBase
 {
     private readonly IVehicleRepository _vehicleRepository;
@@ -103,6 +104,7 @@ public class VehiclesController : ControllerBase
     }
 
     [HttpPost]
+    [HasPermission(Permissions.InventoryCreate)]
     public async Task<IActionResult> Create(CreateVehicleRequest request, CancellationToken cancellationToken)
     {
         try
@@ -132,6 +134,7 @@ public class VehiclesController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
+    [HasPermission(Permissions.InventoryEdit)]
     public async Task<IActionResult> Update(Guid id, UpdateVehicleRequest request, CancellationToken cancellationToken)
     {
         try
@@ -158,6 +161,7 @@ public class VehiclesController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/activate")]
+    [HasPermission(Permissions.InventoryEdit)]
     public async Task<IActionResult> Activate(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -179,6 +183,7 @@ public class VehiclesController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/deactivate")]
+    [HasPermission(Permissions.InventoryEdit)]
     public async Task<IActionResult> Deactivate(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -200,6 +205,7 @@ public class VehiclesController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
+    [HasPermission(Permissions.InventoryDelete)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -219,6 +225,7 @@ public class VehiclesController : ControllerBase
 
     // Part Compatibility Endpoints
     [HttpPost("{vehicleId:guid}/parts/{partId:guid}/compatibility")]
+    [HasPermission(Permissions.InventoryEdit)]
     public async Task<IActionResult> AddPartCompatibility(Guid vehicleId, Guid partId, CreatePartCompatibilityRequest request, CancellationToken cancellationToken)
     {
         try
@@ -267,6 +274,7 @@ public class VehiclesController : ControllerBase
     }
 
     [HttpDelete("compatibilities/{compatibilityId:guid}")]
+    [HasPermission(Permissions.InventoryEdit)]
     public async Task<IActionResult> RemoveCompatibility(Guid compatibilityId, CancellationToken cancellationToken)
     {
         try

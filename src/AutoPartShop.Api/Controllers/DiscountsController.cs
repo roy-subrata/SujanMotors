@@ -1,7 +1,8 @@
-using AutoPartShop.Api.Services;
+﻿using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.DiscountDtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
+using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,7 +11,7 @@ namespace AutoPartShop.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Route("api/v1/[controller]")]
-[Authorize]
+[HasPermission(Permissions.InventoryView)]
 [Produces("application/json")]
 public class DiscountsController : ControllerBase
 {
@@ -98,6 +99,7 @@ public class DiscountsController : ControllerBase
     }
 
     [HttpPost]
+    [HasPermission(Permissions.InventoryCreate)]
     public async Task<ActionResult<DiscountResponse>> Create(CreateDiscountRequest request, CancellationToken cancellationToken)
     {
         try
@@ -133,6 +135,7 @@ public class DiscountsController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
+    [HasPermission(Permissions.InventoryEdit)]
     public async Task<ActionResult<DiscountResponse>> Update(Guid id, UpdateDiscountRequest request, CancellationToken cancellationToken)
     {
         try
@@ -171,6 +174,7 @@ public class DiscountsController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
+    [HasPermission(Permissions.InventoryDelete)]
     public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -189,7 +193,7 @@ public class DiscountsController : ControllerBase
         }
     }
 
-    // ── Resolve endpoints ────────────────────────────────────────────────────
+    // â”€â”€ Resolve endpoints â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     [HttpGet("resolve/item")]
     public async Task<ActionResult<DiscountResolutionResult>> ResolveItemDiscount(

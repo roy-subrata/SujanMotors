@@ -1,8 +1,9 @@
-using AutoPartShop.Api.Services;
+﻿using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.WarrantyDtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
+using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -12,7 +13,7 @@ namespace AutoPartShop.Api.Controllers;
 [Route("api/v1/[controller]")]
 [ApiController]
 [Produces("application/json")]
-[Authorize]
+[HasPermission(Permissions.SalesView)]
 public class WarrantyRegistrationsController : ControllerBase
 {
     private readonly IWarrantyRegistrationRepository _warrantyRepository;
@@ -223,6 +224,7 @@ public class WarrantyRegistrationsController : ControllerBase
     }
 
     [HttpPost]
+    [HasPermission(Permissions.SalesCreate)]
     public async Task<IActionResult> Create(CreateWarrantyRegistrationRequest request, CancellationToken cancellationToken)
     {
         try
@@ -342,6 +344,7 @@ public class WarrantyRegistrationsController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/check-expiry")]
+    [HasPermission(Permissions.SalesEdit)]
     public async Task<IActionResult> CheckExpiry(Guid id, CancellationToken cancellationToken)
     {
         try

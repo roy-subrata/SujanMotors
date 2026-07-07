@@ -1,7 +1,8 @@
-using AutoPartShop.Api.Common;
+﻿using AutoPartShop.Api.Common;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Infrastructure.Data;
+using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -11,7 +12,7 @@ namespace AutoPartShop.Api.Controllers;
 [Route("api/v1/products/{productId:guid}/catalog-entry")]
 [ApiController]
 [Produces("application/json")]
-[Authorize]
+[HasPermission(Permissions.InventoryView)]
 public class PartCatalogEntryController(
     AutoPartDbContext _db,
     ICurrentUserService _currentUserService) : ControllerBase
@@ -33,6 +34,7 @@ public class PartCatalogEntryController(
 
     // PUT /api/v1/products/{productId}/catalog-entry
     [HttpPut]
+    [HasPermission(Permissions.InventoryEdit)]
     public async Task<IActionResult> Upsert(Guid productId, [FromBody] UpsertCatalogEntryRequest req, CancellationToken ct)
     {
         if (!await _db.Parts.AnyAsync(p => p.Id == productId, ct))
