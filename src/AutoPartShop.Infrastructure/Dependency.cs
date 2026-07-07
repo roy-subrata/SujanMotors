@@ -111,6 +111,7 @@ public static class Dependency
         services.AddScoped<IAttendanceRepository, AttendanceRepository>();
         services.AddScoped<ILeaveRequestRepository, LeaveRequestRepository>();
         services.AddScoped<IHolidayRepository, HolidayRepository>();
+        services.AddScoped<IPayrollRepository, PayrollRepository>();
         services.AddScoped<IProductLocationRepository, ProductLocationRepository>();
         services.AddScoped<IDailyExpenseRepository, DailyExpenseRepository>();
 

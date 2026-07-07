@@ -57,7 +57,8 @@
     "employees": "কর্মচারী",
     "attendance": "উপস্থিতি",
     "leaveRequests": "ছুটির আবেদন",
-    "holidays": "ছুটির দিন"
+    "holidays": "ছুটির দিন",
+    "payroll": "বেতন"
   },
   "topbar": {
     "profile": "আমার প্রোফাইল",

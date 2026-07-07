@@ -261,6 +261,11 @@ export class AppMenuComponent implements OnInit {
                         label: this.i18n.t('menu.holidays'),
                         icon: 'pi pi-calendar',
                         routerLink: ['/hr/holidays']
+                    },
+                    {
+                        label: this.i18n.t('menu.payroll'),
+                        icon: 'pi pi-wallet',
+                        routerLink: ['/hr/payroll']
                     }
                 ]
             },

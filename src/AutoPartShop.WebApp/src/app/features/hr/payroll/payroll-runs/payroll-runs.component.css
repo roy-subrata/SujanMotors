@@ -1,0 +1,49 @@
+/* PAYROLL RUNS — page-specific styles only (shared chrome in assets/_data-page.scss) */
+.col-code    { min-width: 120px; }
+.col-month   { min-width: 150px; }
+.col-count   { min-width: 100px; text-align: center; }
+.col-amount  { min-width: 120px; text-align: right; }
+.col-status  { min-width: 110px; }
+.col-paid    { min-width: 170px; }
+.col-actions { width: 110px; text-align: center; }
+
+.status-pill[data-status="draft"]    { background: color-mix(in srgb, #f59e0b 15%, transparent); color: #b45309; }
+.status-pill[data-status="approved"] { background: color-mix(in srgb, #3b82f6 15%, transparent); color: #1d4ed8; }
+.status-pill[data-status="paid"]     { background: color-mix(in srgb, #22c55e 15%, transparent); color: #15803d; }
+
+.dialog-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.dialog-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.dialog-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.dialog-field label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.dialog-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.375rem;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+::ng-deep .dialog-form .p-select {
+  width: 100%;
+}

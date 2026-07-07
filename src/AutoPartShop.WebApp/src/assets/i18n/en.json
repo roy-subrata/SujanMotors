@@ -57,7 +57,8 @@
     "employees": "Employees",
     "attendance": "Attendance",
     "leaveRequests": "Leave Requests",
-    "holidays": "Holidays"
+    "holidays": "Holidays",
+    "payroll": "Payroll"
   },
   "topbar": {
     "profile": "My Profile",
