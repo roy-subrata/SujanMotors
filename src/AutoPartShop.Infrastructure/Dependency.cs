@@ -16,6 +16,7 @@ using AutoPartShop.Application.Services;
 using AutoPartShop.Application.Stock;
 using AutoPartShop.Application.Supplier;
 using AutoPartShop.Application.Suppliers;
+using AutoPartShop.Application.Hr;
 using AutoPartShop.Application.Technecians;
 using AutoPartShop.Application.Warehouse;
 using AutoPartShop.Domain.Repositories;
@@ -106,6 +107,10 @@ public static class Dependency
         services.AddScoped<IStockLotRepository, StockLotRepository>();
         services.AddScoped<IStockLotMovementRepository, StockLotMovementRepository>();
         services.AddScoped<ITechnicianRepository, TechnicianRepository>();
+        services.AddScoped<IEmployeeRepository, EmployeeRepository>();
+        services.AddScoped<IAttendanceRepository, AttendanceRepository>();
+        services.AddScoped<ILeaveRequestRepository, LeaveRequestRepository>();
+        services.AddScoped<IHolidayRepository, HolidayRepository>();
         services.AddScoped<IProductLocationRepository, ProductLocationRepository>();
         services.AddScoped<IDailyExpenseRepository, DailyExpenseRepository>();
 
@@ -183,6 +188,9 @@ public static class Dependency
         services.AddScoped<IStockLotReadRepository, StockLotReadRepository>();
 
         services.AddScoped<ITechnecianReadRepository, TechnecianReadRepository>();
+        services.AddScoped<IEmployeeReadRepository, EmployeeReadRepository>();
+        services.AddScoped<IAttendanceReadRepository, AttendanceReadRepository>();
+        services.AddScoped<ILeaveRequestReadRepository, LeaveRequestReadRepository>();
         services.AddScoped<IWarehouseReadRepository, WarehouseReadRepository>();
 
         return services;

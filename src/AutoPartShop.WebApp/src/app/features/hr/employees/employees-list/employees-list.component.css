@@ -1,0 +1,10 @@
+/* EMPLOYEES LIST — page-specific styles only (shared chrome in assets/_data-page.scss) */
+.col-code        { min-width: 120px; }
+.col-name        { min-width: 190px; }
+.col-designation { min-width: 150px; }
+.col-department  { min-width: 130px; }
+.col-phone       { min-width: 140px; }
+.col-join-date   { min-width: 120px; }
+.col-user        { min-width: 140px; }
+.col-status      { min-width: 110px; }
+.col-actions     { width: 130px; text-align: center; }

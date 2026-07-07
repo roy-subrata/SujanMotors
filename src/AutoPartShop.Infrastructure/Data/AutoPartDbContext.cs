@@ -79,6 +79,10 @@ public class AutoPartDbContext : IdentityDbContext<ApplicationUser, ApplicationR
     public DbSet<StockLot> StockLots { get; set; }
     public DbSet<StockLotMovement> StockLotMovements { get; set; }
     public DbSet<Technician> Technicians { get; set; }
+    public DbSet<Employee> Employees { get; set; }
+    public DbSet<AttendanceRecord> AttendanceRecords { get; set; }
+    public DbSet<LeaveRequest> LeaveRequests { get; set; }
+    public DbSet<Holiday> Holidays { get; set; }
     public DbSet<AuditLog> AuditLogs { get; set; }
     public DbSet<ProductLocation> ProductLocations { get; set; }
     public DbSet<DailyExpense> DailyExpenses { get; set; }

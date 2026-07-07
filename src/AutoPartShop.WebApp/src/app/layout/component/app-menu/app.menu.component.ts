@@ -32,6 +32,7 @@ export class AppMenuComponent implements OnInit {
 
     private buildMenu(): void {
         const adminOnly = this.hasAdminRole();
+        const hrVisible = adminOnly || this.authService.hasRole('Manager');
 
         this.model = [
             // ==================== DASHBOARD ====================
@@ -231,6 +232,35 @@ export class AppMenuComponent implements OnInit {
                         icon: 'pi pi-percentage',
                         routerLink: ['/admin/exchange-rates'],
                         visible: adminOnly
+                    }
+                ]
+            },
+
+            // ==================== HR (admin/manager only) ====================
+            {
+                label: this.i18n.t('menu.hr'),
+                icon: 'pi pi-id-card',
+                visible: hrVisible,
+                items: [
+                    {
+                        label: this.i18n.t('menu.employees'),
+                        icon: 'pi pi-users',
+                        routerLink: ['/hr/employees']
+                    },
+                    {
+                        label: this.i18n.t('menu.attendance'),
+                        icon: 'pi pi-check-square',
+                        routerLink: ['/hr/attendance']
+                    },
+                    {
+                        label: this.i18n.t('menu.leaveRequests'),
+                        icon: 'pi pi-calendar-minus',
+                        routerLink: ['/hr/leave-requests']
+                    },
+                    {
+                        label: this.i18n.t('menu.holidays'),
+                        icon: 'pi pi-calendar',
+                        routerLink: ['/hr/holidays']
                     }
                 ]
             },

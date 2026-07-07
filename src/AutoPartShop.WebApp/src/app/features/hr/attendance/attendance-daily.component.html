@@ -1,0 +1,87 @@
+<p-toast></p-toast>
+
+<app-page-container>
+
+  <!-- ==================== HEADER ==================== -->
+  <app-page-header
+    title="Daily Attendance"
+    subtitle="Mark attendance for shop staff"
+    [count]="markedCount" countLabel="marked" countIcon="pi pi-check-circle">
+    <ng-container actions>
+      <button class="btn-icon" pTooltip="Mark all present" tooltipPosition="bottom" (click)="markAll('PRESENT')">
+        <i class="pi pi-check-square"></i>
+      </button>
+      <button class="btn-primary" (click)="saveAll()" [disabled]="saving || loading">
+        <i class="pi" [ngClass]="saving ? 'pi-spin pi-spinner' : 'pi-save'"></i>
+        <span>{{ saving ? 'Saving...' : 'Save All' }}</span>
+      </button>
+    </ng-container>
+  </app-page-header>
+
+  <!-- ==================== DATE PICKER ==================== -->
+  <app-filter-bar>
+    <div filters class="filter-group">
+      <label class="filter-label">Date</label>
+      <p-datepicker [(ngModel)]="selectedDate" dateFormat="dd/mm/yy" [showIcon]="true"
+        [maxDate]="maxDate" (onSelect)="onDateChange()" appendTo="body"></p-datepicker>
+    </div>
+  </app-filter-bar>
+
+  <!-- ==================== ATTENDANCE SHEET ==================== -->
+  <section class="table-section">
+    <div class="table-container">
+      <p-table [value]="rows" [loading]="loading" [scrollable]="true" scrollHeight="flex"
+        styleClass="app-table" dataKey="employeeId">
+
+        <ng-template #header>
+          <tr>
+            <th class="col-code">Code</th>
+            <th class="col-name">Name</th>
+            <th class="col-designation">Designation</th>
+            <th class="col-status">Status</th>
+            <th class="col-time">Check In</th>
+            <th class="col-time">Check Out</th>
+            <th class="col-notes">Notes</th>
+          </tr>
+        </ng-template>
+
+        <ng-template #body let-row>
+          <tr class="data-row" [class.row-dirty]="row.dirty">
+            <td class="col-code"><span class="code-link">{{ row.employeeCode }}</span></td>
+            <td class="col-name">
+              <span class="cell-primary">{{ row.name }}</span>
+              <i *ngIf="row.isMarked" class="pi pi-check-circle marked-icon" pTooltip="Already marked"></i>
+            </td>
+            <td class="col-designation"><span class="text-muted">{{ row.designation || '-' }}</span></td>
+            <td class="col-status">
+              <p-select [options]="statusOptions" [(ngModel)]="row.status" placeholder="Not marked"
+                [showClear]="true" appendTo="body" styleClass="status-select" (onChange)="markRow(row)"></p-select>
+            </td>
+            <td class="col-time">
+              <input type="time" class="time-input" [(ngModel)]="row.checkIn" (change)="markRow(row)" />
+            </td>
+            <td class="col-time">
+              <input type="time" class="time-input" [(ngModel)]="row.checkOut" (change)="markRow(row)" />
+            </td>
+            <td class="col-notes">
+              <input pInputText type="text" [(ngModel)]="row.notes" placeholder="Notes" (input)="markRow(row)" />
+            </td>
+          </tr>
+        </ng-template>
+
+        <ng-template #emptymessage>
+          <tr>
+            <td colspan="7">
+              <div class="empty-state">
+                <div class="empty-icon"><i class="pi pi-calendar"></i></div>
+                <h3>No Active Employees</h3>
+                <p>Add employees in HR &gt; Employees first</p>
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </div>
+  </section>
+
+</app-page-container>

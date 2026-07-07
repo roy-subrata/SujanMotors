@@ -52,7 +52,12 @@
     "administration": "প্রশাসন",
     "companyProfile": "কোম্পানি প্রোফাইল",
     "shopPolicies": "দোকানের নীতিমালা",
-    "auditDashboard": "অডিট ড্যাশবোর্ড"
+    "auditDashboard": "অডিট ড্যাশবোর্ড",
+    "hr": "এইচআর",
+    "employees": "কর্মচারী",
+    "attendance": "উপস্থিতি",
+    "leaveRequests": "ছুটির আবেদন",
+    "holidays": "ছুটির দিন"
   },
   "topbar": {
     "profile": "আমার প্রোফাইল",

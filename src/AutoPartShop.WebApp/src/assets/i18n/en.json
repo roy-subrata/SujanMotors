@@ -52,7 +52,12 @@
     "administration": "Administration",
     "companyProfile": "Company Profile",
     "shopPolicies": "Shop Policies",
-    "auditDashboard": "Audit Dashboard"
+    "auditDashboard": "Audit Dashboard",
+    "hr": "HR",
+    "employees": "Employees",
+    "attendance": "Attendance",
+    "leaveRequests": "Leave Requests",
+    "holidays": "Holidays"
   },
   "topbar": {
     "profile": "My Profile",

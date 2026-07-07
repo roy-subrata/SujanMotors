@@ -65,4 +65,10 @@ public class CodeGenerateController(ICodeGenerateService _codeGenerator) : Contr
     [HttpGet("technician")]
     public async Task<IActionResult> PreviewTechnicianCode(CancellationToken ct) =>
         Ok(new { code = await _codeGenerator.PeekAsync("TECH", ct) });
+
+    // ── HR ────────────────────────────────────────────────────────────────────
+
+    [HttpGet("employee")]
+    public async Task<IActionResult> PreviewEmployeeCode(CancellationToken ct) =>
+        Ok(new { code = await _codeGenerator.PeekAsync("EMP", ct) });
 }

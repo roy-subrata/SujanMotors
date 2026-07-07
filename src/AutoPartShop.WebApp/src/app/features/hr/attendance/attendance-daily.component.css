@@ -1,0 +1,35 @@
+/* DAILY ATTENDANCE — page-specific styles only (shared chrome in assets/_data-page.scss) */
+.col-code        { min-width: 110px; }
+.col-name        { min-width: 190px; }
+.col-designation { min-width: 140px; }
+.col-status      { min-width: 170px; }
+.col-time        { min-width: 130px; }
+.col-notes       { min-width: 200px; }
+
+.marked-icon {
+  color: var(--color-success, #22c55e);
+  margin-left: 0.5rem;
+  font-size: 13px;
+}
+
+.row-dirty {
+  background: color-mix(in srgb, var(--color-primary) 6%, transparent);
+}
+
+.time-input {
+  width: 110px;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.375rem;
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  font-size: 13px;
+}
+
+.col-notes input {
+  width: 100%;
+}
+
+::ng-deep .status-select {
+  width: 150px;
+}

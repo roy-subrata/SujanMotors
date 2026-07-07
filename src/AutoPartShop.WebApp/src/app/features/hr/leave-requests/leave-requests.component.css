@@ -1,0 +1,55 @@
+/* LEAVE REQUESTS — page-specific styles only (shared chrome in assets/_data-page.scss) */
+.col-employee { min-width: 190px; }
+.col-type     { min-width: 100px; }
+.col-dates    { min-width: 120px; }
+.col-days     { min-width: 70px; text-align: center; }
+.col-reason   { min-width: 180px; }
+.col-status   { min-width: 110px; }
+.col-decision { min-width: 130px; }
+.col-actions  { width: 130px; text-align: center; }
+
+.code-sub {
+  display: block;
+  font-size: 12px;
+}
+
+/* Status pill colors for leave-specific statuses */
+.status-pill[data-status="pending"]   { background: color-mix(in srgb, #f59e0b 15%, transparent); color: #b45309; }
+.status-pill[data-status="approved"]  { background: color-mix(in srgb, #22c55e 15%, transparent); color: #15803d; }
+.status-pill[data-status="rejected"]  { background: color-mix(in srgb, #ef4444 15%, transparent); color: #b91c1c; }
+.status-pill[data-status="cancelled"] { background: color-mix(in srgb, #6b7280 15%, transparent); color: #4b5563; }
+
+/* Dialog form */
+.dialog-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.dialog-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.dialog-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.dialog-field label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.dialog-field .required {
+  color: var(--color-danger);
+}
+
+.dialog-field textarea,
+::ng-deep .dialog-form .p-select,
+::ng-deep .dialog-form .p-datepicker {
+  width: 100%;
+}
