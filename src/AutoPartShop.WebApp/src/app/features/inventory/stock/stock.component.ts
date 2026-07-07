@@ -21,6 +21,7 @@ import { StockPriceHistoryComponent } from './stock-price-history.component';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
+import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 
 @Component({
   selector: 'app-stock',
@@ -41,7 +42,8 @@ import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.co
     StockPriceHistoryComponent,
     PageContainerComponent,
     PageHeaderComponent,
-    FilterBarComponent
+    FilterBarComponent,
+    DataPaginationComponent
   ],
   providers: [MessageService, DialogService],
   templateUrl: './stock.component.html',
@@ -314,24 +316,20 @@ export class StockComponent implements OnInit {
     this.loadLowStock();
   }
 
-  goAllPrevPage(): void {
-    if (this.allFirst === 0) return;
-    this.onAllLazyLoad({ first: this.allFirst - this.allPageSize, rows: this.allPageSize } as TableLazyLoadEvent);
+  goToAllPage(page: number): void {
+    this.onAllLazyLoad({ first: (page - 1) * this.allPageSize, rows: this.allPageSize } as TableLazyLoadEvent);
   }
 
-  goAllNextPage(): void {
-    if (this.allFirst + this.allPageSize >= this.allTotalRecords) return;
-    this.onAllLazyLoad({ first: this.allFirst + this.allPageSize, rows: this.allPageSize } as TableLazyLoadEvent);
+  onAllPageSizeChange(size: number): void {
+    this.onAllLazyLoad({ first: 0, rows: size } as TableLazyLoadEvent);
   }
 
-  goLowPrevPage(): void {
-    if (this.lowFirst === 0) return;
-    this.onLowLazyLoad({ first: this.lowFirst - this.lowPageSize, rows: this.lowPageSize } as TableLazyLoadEvent);
+  goToLowPage(page: number): void {
+    this.onLowLazyLoad({ first: (page - 1) * this.lowPageSize, rows: this.lowPageSize } as TableLazyLoadEvent);
   }
 
-  goLowNextPage(): void {
-    if (this.lowFirst + this.lowPageSize >= this.lowTotalRecords) return;
-    this.onLowLazyLoad({ first: this.lowFirst + this.lowPageSize, rows: this.lowPageSize } as TableLazyLoadEvent);
+  onLowPageSizeChange(size: number): void {
+    this.onLowLazyLoad({ first: 0, rows: size } as TableLazyLoadEvent);
   }
 
   private resetAllPagination(): void {

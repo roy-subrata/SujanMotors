@@ -76,10 +76,10 @@
         <!-- All Stock Table -->
         <section class="table-section desktop-only">
         <div class="table-container">
-        <p-table [value]="allStockLevels" [rows]="allPageSize" [paginator]="true" [lazy]="true"
-          [rowsPerPageOptions]="pageSizeOptions" [loading]="loading" [showCurrentPageReport]="true"
+        <p-table [value]="allStockLevels" [rows]="allPageSize" [paginator]="false" [lazy]="true"
+          [loading]="loading"
           [totalRecords]="allTotalRecords" [first]="allFirst" (onLazyLoad)="onAllLazyLoad($event)"
-          currentPageReportTemplate="Showing {first} to {last} of {totalRecords}" styleClass="app-table"
+          styleClass="app-table"
           responsiveLayout="scroll">
 
           <ng-template pTemplate="header">
@@ -197,6 +197,16 @@
         </div>
         </section>
 
+        <app-data-pagination
+          [first]="allFirst"
+          [pageSize]="allPageSize"
+          [pageSizeOptions]="pageSizeOptions"
+          [totalRecords]="allTotalRecords"
+          itemLabel="items"
+          (pageChange)="goToAllPage($event)"
+          (pageSizeChange)="onAllPageSizeChange($event)">
+        </app-data-pagination>
+
         <!-- Mobile Cards -->
         <section class="cards-section mobile-only">
           <div *ngIf="!loading && allStockLevels.length === 0" class="empty-state-mobile">
@@ -263,20 +273,6 @@
               </div>
             </div>
           </div>
-
-          <div *ngIf="!loading && allStockLevels.length > 0" class="mobile-pagination">
-            <div class="pagination-info-mobile">
-              {{ allFirst + 1 }}-{{ allFirst + allStockLevels.length }} of {{ allTotalRecords }}
-            </div>
-            <div class="pagination-nav-mobile">
-              <button class="page-btn" [disabled]="allFirst === 0" (click)="goAllPrevPage()">
-                <i class="pi pi-chevron-left"></i>
-              </button>
-              <button class="page-btn" [disabled]="allFirst + allPageSize >= allTotalRecords" (click)="goAllNextPage()">
-                <i class="pi pi-chevron-right"></i>
-              </button>
-            </div>
-          </div>
         </section>
       </div>
 
@@ -316,8 +312,8 @@
         <!-- Low Stock Table -->
         <section class="table-section desktop-only">
         <div class="table-container">
-        <p-table [value]="lowStockLevels" [rows]="lowPageSize" [paginator]="true" [lazy]="true"
-          [rowsPerPageOptions]="pageSizeOptions" [loading]="loading" [totalRecords]="lowTotalRecords"
+        <p-table [value]="lowStockLevels" [rows]="lowPageSize" [paginator]="false" [lazy]="true"
+          [loading]="loading" [totalRecords]="lowTotalRecords"
           [first]="lowFirst" (onLazyLoad)="onLowLazyLoad($event)" styleClass="app-table"
           responsiveLayout="scroll">
 
@@ -398,6 +394,16 @@
         </div>
         </section>
 
+        <app-data-pagination
+          [first]="lowFirst"
+          [pageSize]="lowPageSize"
+          [pageSizeOptions]="pageSizeOptions"
+          [totalRecords]="lowTotalRecords"
+          itemLabel="items"
+          (pageChange)="goToLowPage($event)"
+          (pageSizeChange)="onLowPageSizeChange($event)">
+        </app-data-pagination>
+
         <!-- Mobile Cards -->
         <section class="cards-section mobile-only">
           <div *ngIf="!loading && lowStockLevels.length === 0" class="empty-state-mobile">
@@ -454,20 +460,6 @@
                   Create PO
                 </button>
               </div>
-            </div>
-          </div>
-
-          <div *ngIf="!loading && lowStockLevels.length > 0" class="mobile-pagination">
-            <div class="pagination-info-mobile">
-              {{ lowFirst + 1 }}-{{ lowFirst + lowStockLevels.length }} of {{ lowTotalRecords }}
-            </div>
-            <div class="pagination-nav-mobile">
-              <button class="page-btn" [disabled]="lowFirst === 0" (click)="goLowPrevPage()">
-                <i class="pi pi-chevron-left"></i>
-              </button>
-              <button class="page-btn" [disabled]="lowFirst + lowPageSize >= lowTotalRecords" (click)="goLowNextPage()">
-                <i class="pi pi-chevron-right"></i>
-              </button>
             </div>
           </div>
         </section>

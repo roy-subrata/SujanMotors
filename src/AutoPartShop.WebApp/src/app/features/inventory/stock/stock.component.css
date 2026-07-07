@@ -189,24 +189,7 @@
    DATA TABLE STYLES
    ============================================
    Header/row/cell chrome comes from the shared .app-table rules in
-   assets/_data-page.scss — only the native PrimeNG paginator (this page
-   uses p-table's own [paginator] instead of <app-data-pagination>) needs
-   a local override. */
-:host ::ng-deep .app-table .p-paginator {
-  padding: 1rem;
-  border-top: 1px solid var(--color-border);
-  background: var(--color-bg-secondary);
-}
-
-/* The shared .table-container only has left/right borders (it normally
-   sits between a .filter-section above and a .pagination-section below);
-   here the paginator lives inside the table itself, so this page needs
-   its own bottom border/radius to close the card. */
-.table-container {
-  border-bottom: 1px solid var(--color-border);
-  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
-}
-
+   assets/_data-page.scss. */
 .th-content {
   display: flex;
   align-items: center;
