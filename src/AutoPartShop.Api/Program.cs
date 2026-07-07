@@ -17,6 +17,8 @@ using AutoPartShop.Infrastructure.Data;
 using AutoPartShop.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Microsoft.OpenApi.Models;
@@ -148,7 +150,36 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
         ClockSkew = TimeSpan.Zero
     };
+
+    // Reject tokens whose account was disabled after issue (e.g. HR offboarding).
+    // IsActive is cached for 60s per user, so revocation is near-instant while the
+    // added cost is at most one indexed lookup per user per minute.
+    options.Events = new JwtBearerEvents
+    {
+        OnTokenValidated = async context =>
+        {
+            var userIdValue = context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                ?? context.Principal?.FindFirst("sub")?.Value;
+            if (!Guid.TryParse(userIdValue, out var userId))
+                return;
+
+            var cache = context.HttpContext.RequestServices.GetRequiredService<Microsoft.Extensions.Caching.Memory.IMemoryCache>();
+            var isActive = await cache.GetOrCreateAsync($"user-active:{userId}", async entry =>
+            {
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(60);
+                var db = context.HttpContext.RequestServices.GetRequiredService<AutoPartDbContext>();
+                return await db.Users
+                    .Where(u => u.Id == userId)
+                    .Select(u => (bool?)u.IsActive)
+                    .FirstOrDefaultAsync() ?? false;
+            });
+
+            if (!isActive)
+                context.Fail("Account is disabled");
+        }
+    };
 });
+builder.Services.AddMemoryCache();
 
 // Add Authorization
 builder.Services.AddAuthorization();

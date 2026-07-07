@@ -7,6 +7,7 @@ using AutoPartShop.Domain.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace AutoPartShop.Api.Controllers;
 
@@ -25,6 +26,7 @@ public class EmployeesController : ControllerBase
     private readonly ICodeGenerateService _codeGenerateService;
     private readonly ICurrentUserService _currentUserService;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IMemoryCache _memoryCache;
     private readonly ILogger<EmployeesController> _logger;
 
     public EmployeesController(
@@ -33,6 +35,7 @@ public class EmployeesController : ControllerBase
         ICodeGenerateService codeGenerateService,
         ICurrentUserService currentUserService,
         UserManager<ApplicationUser> userManager,
+        IMemoryCache memoryCache,
         ILogger<EmployeesController> logger)
     {
         _employeeRepository = employeeRepository;
@@ -40,6 +43,7 @@ public class EmployeesController : ControllerBase
         _codeGenerateService = codeGenerateService;
         _currentUserService = currentUserService;
         _userManager = userManager;
+        _memoryCache = memoryCache;
         _logger = logger;
     }
 
@@ -305,6 +309,9 @@ public class EmployeesController : ControllerBase
 
         if (!result.Succeeded)
             _logger.LogWarning("Failed to set IsActive={Active} on login {UserId} for employee {EmployeeCode}", active, userId, employee.EmployeeCode);
+        else
+            // Evict the auth-time IsActive cache so revocation takes effect on the very next request
+            _memoryCache.Remove($"user-active:{userId}");
 
         return result.Succeeded;
     }
