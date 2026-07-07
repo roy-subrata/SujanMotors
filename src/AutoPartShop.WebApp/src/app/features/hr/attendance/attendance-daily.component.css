@@ -2,6 +2,7 @@
 .col-code        { min-width: 110px; }
 .col-name        { min-width: 190px; }
 .col-designation { min-width: 140px; }
+.col-shift       { min-width: 120px; }
 .col-status      { min-width: 170px; }
 .col-time        { min-width: 130px; }
 .col-notes       { min-width: 200px; }

@@ -19,6 +19,10 @@ namespace AutoPartShop.Application.Hr.Dtos
         public string EmploymentType { get; set; } = string.Empty;
         public decimal MonthlySalary { get; set; }
         public string Currency { get; set; } = string.Empty;
+        public Guid? ShiftId { get; set; }
+        public string? ShiftName { get; set; }
+        public decimal MonthlyTaxDeduction { get; set; }
+        public decimal CommissionRate { get; set; }
         public string EmergencyContactName { get; set; } = string.Empty;
         public string EmergencyContactPhone { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;

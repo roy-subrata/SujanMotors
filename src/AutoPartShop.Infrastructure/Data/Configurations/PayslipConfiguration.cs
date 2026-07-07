@@ -28,6 +28,9 @@ public class PayslipConfiguration : IEntityTypeConfiguration<Payslip>
         builder.Property(s => s.AdvanceDeduction).HasPrecision(18, 2);
         builder.Property(s => s.OtherDeduction).HasPrecision(18, 2);
         builder.Property(s => s.AbsenceDeduction).HasPrecision(18, 2);
+        builder.Property(s => s.CommissionAmount).HasPrecision(18, 2);
+        builder.Property(s => s.TaxDeduction).HasPrecision(18, 2);
+        builder.Property(s => s.MonthlySalesTotal).HasPrecision(18, 2);
         builder.Property(s => s.GrossPay).HasPrecision(18, 2);
         builder.Property(s => s.TotalDeduction).HasPrecision(18, 2);
         builder.Property(s => s.NetPay).HasPrecision(18, 2);

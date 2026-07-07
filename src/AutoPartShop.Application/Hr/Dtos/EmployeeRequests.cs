@@ -1,4 +1,4 @@
-namespace AutoPartShop.Application.Hr.Dtos
+﻿namespace AutoPartShop.Application.Hr.Dtos
 {
     public class CreateEmployeeRequest
     {
@@ -15,6 +15,9 @@ namespace AutoPartShop.Application.Hr.Dtos
         public DateTime JoinDate { get; set; }
         public string EmploymentType { get; set; } = "FULL_TIME";
         public decimal MonthlySalary { get; set; }
+        public Guid? ShiftId { get; set; }
+        public decimal MonthlyTaxDeduction { get; set; }
+        public decimal CommissionRate { get; set; }
         public string EmergencyContactName { get; set; } = string.Empty;
         public string EmergencyContactPhone { get; set; } = string.Empty;
         public string Notes { get; set; } = string.Empty;
@@ -36,9 +39,13 @@ namespace AutoPartShop.Application.Hr.Dtos
         public DateTime JoinDate { get; set; }
         public string EmploymentType { get; set; } = "FULL_TIME";
         public decimal MonthlySalary { get; set; }
+        public Guid? ShiftId { get; set; }
+        public decimal MonthlyTaxDeduction { get; set; }
+        public decimal CommissionRate { get; set; }
         public string EmergencyContactName { get; set; } = string.Empty;
         public string EmergencyContactPhone { get; set; } = string.Empty;
         public string Notes { get; set; } = string.Empty;
         public Guid? UserId { get; set; }
     }
 }
+

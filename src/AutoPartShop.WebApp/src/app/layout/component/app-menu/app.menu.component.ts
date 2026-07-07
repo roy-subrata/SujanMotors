@@ -253,6 +253,11 @@ export class AppMenuComponent implements OnInit {
                         routerLink: ['/hr/attendance']
                     },
                     {
+                        label: this.i18n.t('menu.shifts'),
+                        icon: 'pi pi-clock',
+                        routerLink: ['/hr/shifts']
+                    },
+                    {
                         label: this.i18n.t('menu.leaveRequests'),
                         icon: 'pi pi-calendar-minus',
                         routerLink: ['/hr/leave-requests']
@@ -261,6 +266,11 @@ export class AppMenuComponent implements OnInit {
                         label: this.i18n.t('menu.holidays'),
                         icon: 'pi pi-calendar',
                         routerLink: ['/hr/holidays']
+                    },
+                    {
+                        label: this.i18n.t('menu.salaryAdvances'),
+                        icon: 'pi pi-money-bill',
+                        routerLink: ['/hr/advances']
                     },
                     {
                         label: this.i18n.t('menu.payroll'),

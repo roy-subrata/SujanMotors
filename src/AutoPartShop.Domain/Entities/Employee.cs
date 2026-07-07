@@ -26,6 +26,10 @@ public class Employee : AuditableEntity
     public decimal MonthlySalary { get; private set; }
     public string Currency { get; private set; } = "BDT";  // ISO 4217 currency code
 
+    public Guid? ShiftId { get; private set; }  // Assigned work shift (drives LATE detection on punch)
+    public decimal MonthlyTaxDeduction { get; private set; }  // Fixed monthly income-tax deduction (v1: no tax engine)
+    public decimal CommissionRate { get; private set; }  // % of own monthly sales added to payslip (0 = none)
+
     public string EmergencyContactName { get; private set; } = string.Empty;
     public string EmergencyContactPhone { get; private set; } = string.Empty;
 
@@ -117,6 +121,19 @@ public class Employee : AuditableEntity
         EmergencyContactName = emergencyContactName?.Trim() ?? string.Empty;
         EmergencyContactPhone = emergencyContactPhone?.Trim() ?? string.Empty;
         Notes = notes?.Trim() ?? string.Empty;
+    }
+
+    public void UpdateCompensation(Guid? shiftId, decimal monthlyTaxDeduction, decimal commissionRate)
+    {
+        if (monthlyTaxDeduction < 0)
+            throw new ArgumentException("Tax deduction cannot be negative", nameof(monthlyTaxDeduction));
+
+        if (commissionRate < 0 || commissionRate > 100)
+            throw new ArgumentException("Commission rate must be between 0 and 100", nameof(commissionRate));
+
+        ShiftId = shiftId;
+        MonthlyTaxDeduction = monthlyTaxDeduction;
+        CommissionRate = commissionRate;
     }
 
     public void Activate()

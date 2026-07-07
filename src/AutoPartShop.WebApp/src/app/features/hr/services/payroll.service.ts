@@ -21,7 +21,10 @@ export interface PayslipResponse {
     overtimeAmount: number;
     bonusAmount: number;
     otherAllowance: number;
+    commissionAmount: number;
+    monthlySalesTotal: number;
     advanceDeduction: number;
+    taxDeduction: number;
     otherDeduction: number;
     adjustmentNotes: string;
     absenceDeduction: number;
@@ -56,9 +59,17 @@ export interface UpdatePayslipRequest {
     overtimeAmount: number;
     bonusAmount: number;
     otherAllowance: number;
+    commissionAmount: number;
     advanceDeduction: number;
+    taxDeduction: number;
     otherDeduction: number;
     adjustmentNotes: string;
+}
+
+export interface SendPayslipsResponse {
+    emailsSent: number;
+    smsSent: number;
+    skipped: number;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -88,6 +99,10 @@ export class PayrollService {
 
     pay(id: string, paymentMethod: string): Observable<PayrollRunResponse> {
         return this.http.patch<PayrollRunResponse>(`${this.apiUrl}/${id}/pay`, { paymentMethod });
+    }
+
+    sendPayslips(id: string): Observable<SendPayslipsResponse> {
+        return this.http.post<SendPayslipsResponse>(`${this.apiUrl}/${id}/send-payslips`, {});
     }
 
     deleteRun(id: string): Observable<void> {

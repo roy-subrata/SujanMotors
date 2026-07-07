@@ -19,17 +19,26 @@ public class AttendanceController : ControllerBase
 {
     private readonly IAttendanceRepository _attendanceRepository;
     private readonly IAttendanceReadRepository _attendanceReadRepository;
+    private readonly IEmployeeRepository _employeeRepository;
+    private readonly IShiftRepository _shiftRepository;
+    private readonly IConfiguration _configuration;
     private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<AttendanceController> _logger;
 
     public AttendanceController(
         IAttendanceRepository attendanceRepository,
         IAttendanceReadRepository attendanceReadRepository,
+        IEmployeeRepository employeeRepository,
+        IShiftRepository shiftRepository,
+        IConfiguration configuration,
         ICurrentUserService currentUserService,
         ILogger<AttendanceController> logger)
     {
         _attendanceRepository = attendanceRepository;
         _attendanceReadRepository = attendanceReadRepository;
+        _employeeRepository = employeeRepository;
+        _shiftRepository = shiftRepository;
+        _configuration = configuration;
         _currentUserService = currentUserService;
         _logger = logger;
     }
@@ -85,6 +94,74 @@ public class AttendanceController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error marking daily attendance");
+            return StatusCode(500, "An error occurred");
+        }
+    }
+
+    /// <summary>
+    /// Device-facing check-in/out endpoint (fingerprint reader, QR kiosk, etc.).
+    /// Authenticated by the X-Device-Key header (config Hr:DeviceApiKey), not JWT.
+    /// First punch of the day = check-in (LATE when after shift start + grace),
+    /// later punches update check-out.
+    /// </summary>
+    [HttpPost("punch")]
+    [AllowAnonymous]
+    public async Task<IActionResult> Punch(PunchRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var configuredKey = _configuration["Hr:DeviceApiKey"];
+            if (string.IsNullOrWhiteSpace(configuredKey))
+                return StatusCode(503, new { message = "Device check-in is not configured (Hr:DeviceApiKey)" });
+
+            if (!Request.Headers.TryGetValue("X-Device-Key", out var providedKey) || providedKey != configuredKey)
+                return Unauthorized(new { message = "Invalid device key" });
+
+            if (string.IsNullOrWhiteSpace(request.EmployeeCode))
+                return BadRequest(new { message = "EmployeeCode is required" });
+
+            var employee = await _employeeRepository.GetByCodeAsync(request.EmployeeCode.Trim().ToUpper(), cancellationToken);
+            if (employee is null || employee.Status != "ACTIVE")
+                return NotFound(new { message = "Unknown or inactive employee code" });
+
+            var timestamp = request.Timestamp ?? DateTime.Now;
+            var day = timestamp.Date;
+            var time = new TimeSpan(timestamp.Hour, timestamp.Minute, 0);
+
+            var existing = await _attendanceRepository.GetAsync(employee.Id, day, cancellationToken);
+            if (existing is null)
+            {
+                // Check-in: shift decides PRESENT vs LATE
+                var status = "PRESENT";
+                if (employee.ShiftId is Guid shiftId)
+                {
+                    var shift = await _shiftRepository.GetByIdAsync(shiftId, cancellationToken);
+                    if (shift is not null && time > shift.StartTime.Add(TimeSpan.FromMinutes(shift.GraceMinutes)))
+                        status = "LATE";
+                }
+
+                var record = AttendanceRecord.Create(employee.Id, day, status, checkInTime: time, notes: "Device punch");
+                await _attendanceRepository.UpsertRangeAsync([record], "device", cancellationToken);
+
+                return Ok(new { employee.EmployeeCode, employee.Name, action = "CHECK_IN", status, time = time.ToString(@"hh\:mm") });
+            }
+
+            // Subsequent punch: extend check-out (keep original status and check-in)
+            if (existing.CheckInTime is null || time > existing.CheckInTime)
+            {
+                existing.Mark(existing.Status, existing.CheckInTime ?? time, time, existing.Notes);
+                await _attendanceRepository.UpsertRangeAsync([existing], "device", cancellationToken);
+            }
+
+            return Ok(new { employee.EmployeeCode, employee.Name, action = "CHECK_OUT", status = existing.Status, time = time.ToString(@"hh\:mm") });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing attendance punch");
             return StatusCode(500, "An error occurred");
         }
     }

@@ -58,7 +58,9 @@
     "attendance": "উপস্থিতি",
     "leaveRequests": "ছুটির আবেদন",
     "holidays": "ছুটির দিন",
-    "payroll": "বেতন"
+    "payroll": "বেতন",
+    "shifts": "শিফট",
+    "salaryAdvances": "বেতন অগ্রিম"
   },
   "topbar": {
     "profile": "আমার প্রোফাইল",

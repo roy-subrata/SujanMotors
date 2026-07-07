@@ -8,6 +8,7 @@ namespace AutoPartShop.Application.Hr.Dtos
         public string Name { get; set; } = string.Empty;
         public string Designation { get; set; } = string.Empty;
         public string Department { get; set; } = string.Empty;
+        public string? ShiftName { get; set; }
         public bool IsMarked { get; set; }
         public string Status { get; set; } = string.Empty;
         public TimeSpan? CheckInTime { get; set; }
@@ -43,6 +44,12 @@ namespace AutoPartShop.Application.Hr.Dtos
         public int LeaveDays { get; set; }
         public int HolidayDays { get; set; }
         public int MarkedDays { get; set; }
+    }
+
+    public class PunchRequest
+    {
+        public string EmployeeCode { get; set; } = string.Empty;
+        public DateTime? Timestamp { get; set; }  // Device time; defaults to server local time
     }
 
     public class AttendanceRecordResponse

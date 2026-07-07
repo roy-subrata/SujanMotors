@@ -74,7 +74,8 @@ public class PayrollRepository : IPayrollRepository
         }
     }
 
-    public async Task PayAsync(PayrollRun run, DailyExpense expense, string paidBy, string paymentMethod, CancellationToken cancellationToken = default)
+    public async Task PayAsync(PayrollRun run, DailyExpense expense, string paidBy, string paymentMethod,
+        IEnumerable<Guid> employeeIdsToSettleAdvances, CancellationToken cancellationToken = default)
     {
         if (run == null) throw new ArgumentNullException(nameof(run));
         if (expense == null) throw new ArgumentNullException(nameof(expense));
@@ -86,8 +87,22 @@ public class PayrollRepository : IPayrollRepository
 
         run.MarkPaid(paidBy, paymentMethod, expense.Id);
         _dbContext.PayrollRuns.Update(run);
-        await _dbContext.SaveChangesAsync(cancellationToken);
 
+        var settleIds = employeeIdsToSettleAdvances.ToList();
+        if (settleIds.Count > 0)
+        {
+            var outstanding = await _dbContext.SalaryAdvances
+                .Where(a => settleIds.Contains(a.EmployeeId) && a.Status == "OUTSTANDING" && !a.Isdeleted)
+                .ToListAsync(cancellationToken);
+
+            foreach (var advance in outstanding)
+            {
+                advance.Settle(run.Id);
+                advance.ModifiedBy = paidBy;
+            }
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
     }
 }

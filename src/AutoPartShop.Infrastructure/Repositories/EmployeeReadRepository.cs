@@ -68,6 +68,13 @@ namespace AutoPartShop.Infrastructure.Repositories
                     EmploymentType = e.EmploymentType,
                     MonthlySalary = e.MonthlySalary,
                     Currency = e.Currency,
+                    ShiftId = e.ShiftId,
+                    ShiftName = _dbContext.Shifts
+                        .Where(s => s.Id == e.ShiftId)
+                        .Select(s => s.Name)
+                        .FirstOrDefault(),
+                    MonthlyTaxDeduction = e.MonthlyTaxDeduction,
+                    CommissionRate = e.CommissionRate,
                     EmergencyContactName = e.EmergencyContactName,
                     EmergencyContactPhone = e.EmergencyContactPhone,
                     Status = e.Status,

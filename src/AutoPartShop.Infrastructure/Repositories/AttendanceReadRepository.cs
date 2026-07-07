@@ -18,6 +18,10 @@ namespace AutoPartShop.Infrastructure.Repositories
                     Employee = e,
                     Record = _dbContext.AttendanceRecords
                         .Where(a => a.EmployeeId == e.Id && a.Date == day && !a.Isdeleted)
+                        .FirstOrDefault(),
+                    ShiftName = _dbContext.Shifts
+                        .Where(s => s.Id == e.ShiftId && !s.Isdeleted)
+                        .Select(s => s.Name)
                         .FirstOrDefault()
                 })
                 .ToListAsync(cancellationToken);
@@ -29,6 +33,7 @@ namespace AutoPartShop.Infrastructure.Repositories
                 Name = x.Employee.Name,
                 Designation = x.Employee.Designation,
                 Department = x.Employee.Department,
+                ShiftName = x.ShiftName,
                 IsMarked = x.Record != null,
                 Status = x.Record != null ? x.Record.Status : string.Empty,
                 CheckInTime = x.Record != null ? x.Record.CheckInTime : null,

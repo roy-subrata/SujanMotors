@@ -1,5 +1,7 @@
+using System.Text;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.Hr;
+using AutoPartShop.Application.Interfaces;
 using AutoPartShop.Application.Hr.Dtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
@@ -21,6 +23,9 @@ public class PayrollController : ControllerBase
     private readonly IPayrollRepository _payrollRepository;
     private readonly IEmployeeRepository _employeeRepository;
     private readonly IAttendanceReadRepository _attendanceReadRepository;
+    private readonly ISalaryAdvanceRepository _salaryAdvanceRepository;
+    private readonly IHrSalesReadRepository _hrSalesReadRepository;
+    private readonly INotificationService _notificationService;
     private readonly ICodeGenerateService _codeGenerateService;
     private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<PayrollController> _logger;
@@ -29,6 +34,9 @@ public class PayrollController : ControllerBase
         IPayrollRepository payrollRepository,
         IEmployeeRepository employeeRepository,
         IAttendanceReadRepository attendanceReadRepository,
+        ISalaryAdvanceRepository salaryAdvanceRepository,
+        IHrSalesReadRepository hrSalesReadRepository,
+        INotificationService notificationService,
         ICodeGenerateService codeGenerateService,
         ICurrentUserService currentUserService,
         ILogger<PayrollController> logger)
@@ -36,6 +44,9 @@ public class PayrollController : ControllerBase
         _payrollRepository = payrollRepository;
         _employeeRepository = employeeRepository;
         _attendanceReadRepository = attendanceReadRepository;
+        _salaryAdvanceRepository = salaryAdvanceRepository;
+        _hrSalesReadRepository = hrSalesReadRepository;
+        _notificationService = notificationService;
         _codeGenerateService = codeGenerateService;
         _currentUserService = currentUserService;
         _logger = logger;
@@ -117,6 +128,8 @@ public class PayrollController : ControllerBase
                 return BadRequest(new { message = "No active employees to run payroll for" });
 
             var summary = await _attendanceReadRepository.GetMonthlySummary(request.Year, request.Month, cancellationToken);
+            var outstandingAdvances = await _salaryAdvanceRepository.GetOutstandingTotalsAsync(cancellationToken);
+            var salesTotals = await _hrSalesReadRepository.GetMonthlySalesTotalsByEmployee(request.Year, request.Month, cancellationToken);
             var daysInMonth = DateTime.DaysInMonth(request.Year, request.Month);
 
             foreach (var employee in employees)
@@ -130,6 +143,13 @@ public class PayrollController : ControllerBase
                     att?.AbsentDays ?? 0,
                     att?.LeaveDays ?? 0,
                     att?.HolidayDays ?? 0);
+
+                payslip.ApplyGeneratedFigures(
+                    advanceDeduction: outstandingAdvances.GetValueOrDefault(employee.Id),
+                    taxDeduction: employee.MonthlyTaxDeduction,
+                    monthlySalesTotal: salesTotals.GetValueOrDefault(employee.Id),
+                    commissionRate: employee.CommissionRate);
+
                 payslip.CreatedBy = currentUser;
                 payslip.ModifiedBy = currentUser;
                 run.Payslips.Add(payslip);
@@ -171,7 +191,9 @@ public class PayrollController : ControllerBase
                 request.OvertimeAmount,
                 request.BonusAmount,
                 request.OtherAllowance,
+                request.CommissionAmount,
                 request.AdvanceDeduction,
+                request.TaxDeduction,
                 request.OtherDeduction,
                 request.AdjustmentNotes);
             payslip.ModifiedBy = _currentUserService.GetCurrentUsername();
@@ -252,8 +274,13 @@ public class PayrollController : ControllerBase
             expense.CreatedBy = currentUser;
             expense.ModifiedBy = currentUser;
 
+            // Advances baked into this run's deductions are settled by this payment
+            var employeesWithAdvance = run.Payslips
+                .Where(p => !p.Isdeleted && p.AdvanceDeduction > 0)
+                .Select(p => p.EmployeeId);
+
             run.ModifiedBy = currentUser;
-            await _payrollRepository.PayAsync(run, expense, currentUser, request.PaymentMethod, cancellationToken);
+            await _payrollRepository.PayAsync(run, expense, currentUser, request.PaymentMethod, employeesWithAdvance, cancellationToken);
 
             return Ok(MapRun(run, includePayslips: true));
         }
@@ -270,6 +297,105 @@ public class PayrollController : ControllerBase
             _logger.LogError(ex, "Error paying payroll run");
             return StatusCode(500, "An error occurred");
         }
+    }
+
+    /// <summary>
+    /// Emails an HTML payslip and/or texts a short summary to every employee in the run
+    /// who has contact details on file. Only for APPROVED or PAID runs.
+    /// </summary>
+    [HttpPost("{id:guid}/send-payslips")]
+    public async Task<IActionResult> SendPayslips(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var run = await _payrollRepository.GetByIdAsync(id, includePayslips: true, cancellationToken);
+            if (run is null) return NotFound();
+
+            if (run.Status != "APPROVED" && run.Status != "PAID")
+                return BadRequest(new { message = "Payslips can only be sent for approved or paid runs" });
+
+            var employees = (await _employeeRepository.GetAllAsync(cancellationToken)).ToDictionary(e => e.Id);
+            var monthName = new DateTime(run.Year, run.Month, 1).ToString("MMMM yyyy");
+            var result = new SendPayslipsResponse();
+
+            foreach (var payslip in run.Payslips.Where(p => !p.Isdeleted))
+            {
+                employees.TryGetValue(payslip.EmployeeId, out var employee);
+                var email = employee?.Email;
+                var phone = employee?.Phone;
+                var sent = false;
+
+                if (!string.IsNullOrWhiteSpace(email))
+                {
+                    try
+                    {
+                        await _notificationService.SendEmailAsync(email,
+                            $"Payslip — {monthName} ({payslip.EmployeeCode})",
+                            BuildPayslipHtml(payslip, run, monthName), cancellationToken);
+                        result.EmailsSent++;
+                        sent = true;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to email payslip to {Email}", email);
+                    }
+                }
+
+                if (!string.IsNullOrWhiteSpace(phone))
+                {
+                    try
+                    {
+                        await _notificationService.SendSmsAsync(phone,
+                            $"{monthName} salary: net {payslip.NetPay:N2} {run.Currency} " +
+                            $"(gross {payslip.GrossPay:N2}, deductions {payslip.TotalDeduction:N2}). Ref {run.RunCode}.",
+                            cancellationToken);
+                        result.SmsSent++;
+                        sent = true;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to SMS payslip to {Phone}", phone);
+                    }
+                }
+
+                if (!sent) result.Skipped++;
+            }
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error sending payslips");
+            return StatusCode(500, "An error occurred");
+        }
+    }
+
+    private static string BuildPayslipHtml(Payslip p, PayrollRun run, string monthName)
+    {
+        static string Row(string label, decimal value, string currency) =>
+            $"<tr><td style='padding:4px 12px 4px 0;color:#555'>{label}</td><td style='padding:4px 0;text-align:right'>{value:N2} {currency}</td></tr>";
+
+        var sb = new StringBuilder();
+        sb.Append($"<div style='font-family:Arial,sans-serif;max-width:480px'>");
+        sb.Append($"<h2 style='margin-bottom:0'>Payslip — {monthName}</h2>");
+        sb.Append($"<p style='color:#777;margin-top:4px'>{p.EmployeeName} ({p.EmployeeCode}) · {p.Designation} · Ref {run.RunCode}</p>");
+        sb.Append("<table style='width:100%;border-collapse:collapse;font-size:14px'>");
+        sb.Append(Row("Basic salary", p.MonthlySalary, run.Currency));
+        if (p.OvertimeAmount > 0) sb.Append(Row("Overtime", p.OvertimeAmount, run.Currency));
+        if (p.BonusAmount > 0) sb.Append(Row("Bonus", p.BonusAmount, run.Currency));
+        if (p.OtherAllowance > 0) sb.Append(Row("Allowance", p.OtherAllowance, run.Currency));
+        if (p.CommissionAmount > 0) sb.Append(Row("Sales commission", p.CommissionAmount, run.Currency));
+        sb.Append(Row("Gross pay", p.GrossPay, run.Currency));
+        if (p.AbsenceDeduction > 0) sb.Append(Row($"Absence deduction ({p.AbsentDays} absent, {p.HalfDays} half-days)", -p.AbsenceDeduction, run.Currency));
+        if (p.AdvanceDeduction > 0) sb.Append(Row("Salary advance", -p.AdvanceDeduction, run.Currency));
+        if (p.TaxDeduction > 0) sb.Append(Row("Tax", -p.TaxDeduction, run.Currency));
+        if (p.OtherDeduction > 0) sb.Append(Row("Other deduction", -p.OtherDeduction, run.Currency));
+        sb.Append($"<tr><td style='padding:8px 12px 4px 0;font-weight:bold;border-top:1px solid #ccc'>Net pay</td>" +
+                  $"<td style='padding:8px 0 4px;text-align:right;font-weight:bold;border-top:1px solid #ccc'>{p.NetPay:N2} {run.Currency}</td></tr>");
+        sb.Append("</table>");
+        sb.Append($"<p style='color:#999;font-size:12px'>Attendance: {p.PresentDays} present, {p.LateDays} late, {p.HalfDays} half, {p.AbsentDays} absent, {p.LeaveDays} leave.</p>");
+        sb.Append("</div>");
+        return sb.ToString();
     }
 
     [HttpDelete("{id:guid}")]
@@ -339,7 +465,10 @@ public class PayrollController : ControllerBase
         OvertimeAmount = p.OvertimeAmount,
         BonusAmount = p.BonusAmount,
         OtherAllowance = p.OtherAllowance,
+        CommissionAmount = p.CommissionAmount,
+        MonthlySalesTotal = p.MonthlySalesTotal,
         AdvanceDeduction = p.AdvanceDeduction,
+        TaxDeduction = p.TaxDeduction,
         OtherDeduction = p.OtherDeduction,
         AdjustmentNotes = p.AdjustmentNotes,
         AbsenceDeduction = p.AbsenceDeduction,

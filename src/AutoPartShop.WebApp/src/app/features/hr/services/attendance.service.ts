@@ -9,6 +9,7 @@ export interface DailyAttendanceRow {
     name: string;
     designation: string;
     department: string;
+    shiftName: string | null;
     isMarked: boolean;
     status: string;
     checkInTime: string | null;   // "HH:mm:ss"

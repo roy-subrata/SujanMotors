@@ -12,8 +12,10 @@ public interface IPayrollRepository
     Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Marks the run PAID and records the salary expense in one transaction so the
-    /// cash book and payroll can never disagree.
+    /// Marks the run PAID, records the salary expense, and settles the outstanding
+    /// salary advances of the given employees — all in one transaction so the cash
+    /// book, advances and payroll can never disagree.
     /// </summary>
-    Task PayAsync(PayrollRun run, DailyExpense expense, string paidBy, string paymentMethod, CancellationToken cancellationToken = default);
+    Task PayAsync(PayrollRun run, DailyExpense expense, string paidBy, string paymentMethod,
+        IEnumerable<Guid> employeeIdsToSettleAdvances, CancellationToken cancellationToken = default);
 }

@@ -7,6 +7,8 @@ import { LeaveRequestsComponent } from './leave-requests/leave-requests.componen
 import { HolidaysComponent } from './holidays/holidays.component';
 import { PayrollRunsComponent } from './payroll/payroll-runs/payroll-runs.component';
 import { PayrollRunDetailComponent } from './payroll/payroll-run-detail/payroll-run-detail.component';
+import { ShiftsComponent } from './shifts/shifts.component';
+import { SalaryAdvancesComponent } from './advances/salary-advances.component';
 
 export const hrRoutes: Routes = [
     { path: '', redirectTo: 'employees', pathMatch: 'full' },
@@ -34,5 +36,11 @@ export const hrRoutes: Routes = [
 
     // Payroll
     { path: 'payroll', component: PayrollRunsComponent },
-    { path: 'payroll/view', component: PayrollRunDetailComponent }
+    { path: 'payroll/view', component: PayrollRunDetailComponent },
+
+    // Shifts
+    { path: 'shifts', component: ShiftsComponent },
+
+    // Salary Advances
+    { path: 'advances', component: SalaryAdvancesComponent }
 ];

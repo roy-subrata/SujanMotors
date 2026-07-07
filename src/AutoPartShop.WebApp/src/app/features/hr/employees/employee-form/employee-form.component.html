@@ -166,6 +166,39 @@
             </small>
           </div>
           <div class="form-group">
+            <label>Shift</label>
+            <p-select [options]="shifts" formControlName="shiftId" optionValue="id" optionLabel="name"
+              [showClear]="true" placeholder="No shift" appendTo="body"></p-select>
+            <small class="field-hint">
+              <i class="pi pi-info-circle"></i>
+              Used by device check-in to flag late arrivals
+            </small>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Monthly Tax Deduction (BDT)</label>
+            <p-inputNumber formControlName="monthlyTaxDeduction" mode="decimal" [minFractionDigits]="0"
+              [maxFractionDigits]="2" [min]="0" placeholder="0"></p-inputNumber>
+            <small class="field-hint">
+              <i class="pi pi-info-circle"></i>
+              Fixed amount deducted on every payslip
+            </small>
+          </div>
+          <div class="form-group">
+            <label>Sales Commission (%)</label>
+            <p-inputNumber formControlName="commissionRate" mode="decimal" [minFractionDigits]="0"
+              [maxFractionDigits]="2" [min]="0" [max]="100" placeholder="0" suffix=" %"></p-inputNumber>
+            <small class="field-hint">
+              <i class="pi pi-info-circle"></i>
+              % of own monthly sales (needs a linked login account)
+            </small>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
             <label>Login Account</label>
             <p-select [options]="linkableUsers" formControlName="userId" optionValue="id"
               [showClear]="true" placeholder="No login account" appendTo="body" [filter]="true" filterBy="userName,fullName">

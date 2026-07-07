@@ -15,6 +15,10 @@
       <button class="btn-icon" pTooltip="Print" tooltipPosition="bottom" (click)="print()">
         <i class="pi pi-print"></i>
       </button>
+      <button *ngIf="run?.status === 'APPROVED' || run?.status === 'PAID'" class="btn-icon" pTooltip="Email/SMS payslips"
+        tooltipPosition="bottom" (click)="sendPayslips()" [disabled]="sending">
+        <i class="pi" [ngClass]="sending ? 'pi-spin pi-spinner' : 'pi-send'"></i>
+      </button>
       <button *ngIf="run?.status === 'DRAFT'" class="btn-primary" (click)="approve()" [disabled]="approving">
         <i class="pi" [ngClass]="approving ? 'pi-spin pi-spinner' : 'pi-check'"></i>
         <span>Approve</span>
@@ -64,8 +68,10 @@
             <th class="col-input">Overtime</th>
             <th class="col-input">Bonus</th>
             <th class="col-input">Allowance</th>
+            <th class="col-input">Commission</th>
             <th class="col-amount">Absence Ded.</th>
             <th class="col-input">Advance Ded.</th>
+            <th class="col-input">Tax Ded.</th>
             <th class="col-input">Other Ded.</th>
             <th class="col-amount">Net Pay</th>
             <th class="col-save" *ngIf="isDraft"></th>
@@ -97,11 +103,21 @@
                 [maxFractionDigits]="2" styleClass="cell-number"></p-inputNumber>
               <span *ngIf="!isDraft">{{ payslip.otherAllowance | number: '1.2-2' }}</span>
             </td>
+            <td class="col-input" [pTooltip]="payslip.monthlySalesTotal > 0 ? ('From sales of ' + (payslip.monthlySalesTotal | number: '1.2-2')) : ''">
+              <p-inputNumber *ngIf="isDraft" [(ngModel)]="payslip.commissionAmount" mode="decimal" [min]="0"
+                [maxFractionDigits]="2" styleClass="cell-number"></p-inputNumber>
+              <span *ngIf="!isDraft">{{ payslip.commissionAmount | number: '1.2-2' }}</span>
+            </td>
             <td class="col-amount">{{ payslip.absenceDeduction | number: '1.2-2' }}</td>
             <td class="col-input">
               <p-inputNumber *ngIf="isDraft" [(ngModel)]="payslip.advanceDeduction" mode="decimal" [min]="0"
                 [maxFractionDigits]="2" styleClass="cell-number"></p-inputNumber>
               <span *ngIf="!isDraft">{{ payslip.advanceDeduction | number: '1.2-2' }}</span>
+            </td>
+            <td class="col-input">
+              <p-inputNumber *ngIf="isDraft" [(ngModel)]="payslip.taxDeduction" mode="decimal" [min]="0"
+                [maxFractionDigits]="2" styleClass="cell-number"></p-inputNumber>
+              <span *ngIf="!isDraft">{{ payslip.taxDeduction | number: '1.2-2' }}</span>
             </td>
             <td class="col-input">
               <p-inputNumber *ngIf="isDraft" [(ngModel)]="payslip.otherDeduction" mode="decimal" [min]="0"
@@ -120,7 +136,7 @@
 
         <ng-template #emptymessage>
           <tr>
-            <td colspan="11">
+            <td colspan="13">
               <div class="empty-state">
                 <div class="empty-icon"><i class="pi pi-wallet"></i></div>
                 <h3>No Payslips</h3>

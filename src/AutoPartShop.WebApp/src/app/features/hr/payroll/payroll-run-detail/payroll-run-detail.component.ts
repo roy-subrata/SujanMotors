@@ -38,6 +38,7 @@ export class PayrollRunDetailComponent implements OnInit {
     savingPayslipId: string | null = null;
     approving = false;
     paying = false;
+    sending = false;
 
     payDialogVisible = false;
     paymentMethod = 'CASH';
@@ -96,7 +97,9 @@ export class PayrollRunDetailComponent implements OnInit {
             overtimeAmount: payslip.overtimeAmount || 0,
             bonusAmount: payslip.bonusAmount || 0,
             otherAllowance: payslip.otherAllowance || 0,
+            commissionAmount: payslip.commissionAmount || 0,
             advanceDeduction: payslip.advanceDeduction || 0,
+            taxDeduction: payslip.taxDeduction || 0,
             otherDeduction: payslip.otherDeduction || 0,
             adjustmentNotes: payslip.adjustmentNotes || ''
         }).subscribe({
@@ -177,6 +180,37 @@ export class PayrollRunDetailComponent implements OnInit {
                     detail: err?.error?.message || 'Failed to record payment'
                 });
                 console.error('Error paying payroll:', err);
+            }
+        });
+    }
+
+    sendPayslips(): void {
+        if (!this.run) return;
+
+        this.confirmationService.confirm({
+            message: `Send payslips to all employees with an email or phone on file (${this.run.employeeCount} payslips)?`,
+            header: 'Send Payslips',
+            icon: 'pi pi-send',
+            accept: () => {
+                this.sending = true;
+                this.payrollService.sendPayslips(this.run!.id).subscribe({
+                    next: (result) => {
+                        this.sending = false;
+                        this.messageService.add({
+                            severity: 'success',
+                            summary: 'Payslips Sent',
+                            detail: `${result.emailsSent} email(s), ${result.smsSent} SMS sent; ${result.skipped} skipped (no contact info)`
+                        });
+                    },
+                    error: (err) => {
+                        this.sending = false;
+                        this.messageService.add({
+                            severity: 'error',
+                            summary: 'Error',
+                            detail: err?.error?.message || 'Failed to send payslips'
+                        });
+                    }
+                });
             }
         });
     }

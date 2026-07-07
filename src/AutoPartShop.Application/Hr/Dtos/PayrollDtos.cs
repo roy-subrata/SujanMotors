@@ -12,9 +12,18 @@ namespace AutoPartShop.Application.Hr.Dtos
         public decimal OvertimeAmount { get; set; }
         public decimal BonusAmount { get; set; }
         public decimal OtherAllowance { get; set; }
+        public decimal CommissionAmount { get; set; }
         public decimal AdvanceDeduction { get; set; }
+        public decimal TaxDeduction { get; set; }
         public decimal OtherDeduction { get; set; }
         public string AdjustmentNotes { get; set; } = string.Empty;
+    }
+
+    public class SendPayslipsResponse
+    {
+        public int EmailsSent { get; set; }
+        public int SmsSent { get; set; }
+        public int Skipped { get; set; }
     }
 
     public class PayPayrollRequest
@@ -64,7 +73,10 @@ namespace AutoPartShop.Application.Hr.Dtos
         public decimal OvertimeAmount { get; set; }
         public decimal BonusAmount { get; set; }
         public decimal OtherAllowance { get; set; }
+        public decimal CommissionAmount { get; set; }
+        public decimal MonthlySalesTotal { get; set; }
         public decimal AdvanceDeduction { get; set; }
+        public decimal TaxDeduction { get; set; }
         public decimal OtherDeduction { get; set; }
         public string AdjustmentNotes { get; set; } = string.Empty;
         public decimal AbsenceDeduction { get; set; }

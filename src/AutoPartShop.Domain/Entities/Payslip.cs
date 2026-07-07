@@ -35,6 +35,12 @@ public class Payslip : AuditableEntity
     public decimal OtherDeduction { get; private set; }
     public string AdjustmentNotes { get; private set; } = string.Empty;
 
+    // Auto-filled at generation (advance balance, employee tax setting, sales × rate);
+    // commission/tax remain editable while DRAFT
+    public decimal CommissionAmount { get; private set; }
+    public decimal TaxDeduction { get; private set; }
+    public decimal MonthlySalesTotal { get; private set; }  // Sales base the commission was computed from
+
     // Computed
     public decimal AbsenceDeduction { get; private set; }
     public decimal GrossPay { get; private set; }
@@ -73,16 +79,31 @@ public class Payslip : AuditableEntity
         return payslip;
     }
 
-    public void UpdateAdjustments(decimal overtimeAmount, decimal bonusAmount, decimal otherAllowance,
-        decimal advanceDeduction, decimal otherDeduction, string adjustmentNotes)
+    /// <summary>Auto-computed figures applied at generation time.</summary>
+    public void ApplyGeneratedFigures(decimal advanceDeduction, decimal taxDeduction,
+        decimal monthlySalesTotal, decimal commissionRate)
     {
-        if (overtimeAmount < 0 || bonusAmount < 0 || otherAllowance < 0 || advanceDeduction < 0 || otherDeduction < 0)
+        AdvanceDeduction = advanceDeduction;
+        TaxDeduction = taxDeduction;
+        MonthlySalesTotal = monthlySalesTotal;
+        CommissionAmount = Math.Round(monthlySalesTotal * commissionRate / 100m, 2);
+        Recalculate();
+    }
+
+    public void UpdateAdjustments(decimal overtimeAmount, decimal bonusAmount, decimal otherAllowance,
+        decimal commissionAmount, decimal advanceDeduction, decimal taxDeduction,
+        decimal otherDeduction, string adjustmentNotes)
+    {
+        if (overtimeAmount < 0 || bonusAmount < 0 || otherAllowance < 0 || commissionAmount < 0
+            || advanceDeduction < 0 || taxDeduction < 0 || otherDeduction < 0)
             throw new ArgumentException("Adjustment amounts cannot be negative");
 
         OvertimeAmount = overtimeAmount;
         BonusAmount = bonusAmount;
         OtherAllowance = otherAllowance;
+        CommissionAmount = commissionAmount;
         AdvanceDeduction = advanceDeduction;
+        TaxDeduction = taxDeduction;
         OtherDeduction = otherDeduction;
         AdjustmentNotes = adjustmentNotes?.Trim() ?? string.Empty;
         Recalculate();
@@ -93,8 +114,8 @@ public class Payslip : AuditableEntity
         var dailyRate = DaysInMonth > 0 ? MonthlySalary / DaysInMonth : 0m;
         AbsenceDeduction = Math.Round(dailyRate * (AbsentDays + 0.5m * HalfDays), 2);
 
-        GrossPay = Math.Round(MonthlySalary + OvertimeAmount + BonusAmount + OtherAllowance, 2);
-        TotalDeduction = Math.Round(AbsenceDeduction + AdvanceDeduction + OtherDeduction, 2);
+        GrossPay = Math.Round(MonthlySalary + OvertimeAmount + BonusAmount + OtherAllowance + CommissionAmount, 2);
+        TotalDeduction = Math.Round(AbsenceDeduction + AdvanceDeduction + TaxDeduction + OtherDeduction, 2);
         NetPay = GrossPay - TotalDeduction;
     }
 }

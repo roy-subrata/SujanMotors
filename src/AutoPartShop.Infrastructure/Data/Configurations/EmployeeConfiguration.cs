@@ -50,6 +50,17 @@ public class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
         builder.Property(e => e.MonthlySalary)
             .HasPrecision(18, 2);
 
+        builder.Property(e => e.MonthlyTaxDeduction)
+            .HasPrecision(18, 2);
+
+        builder.Property(e => e.CommissionRate)
+            .HasPrecision(5, 2);
+
+        builder.HasOne<Shift>()
+            .WithMany()
+            .HasForeignKey(e => e.ShiftId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         builder.Property(e => e.Currency)
             .IsRequired()
             .HasMaxLength(3);

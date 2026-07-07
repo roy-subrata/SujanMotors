@@ -38,6 +38,7 @@
             <th class="col-code">Code</th>
             <th class="col-name">Name</th>
             <th class="col-designation">Designation</th>
+            <th class="col-shift">Shift</th>
             <th class="col-status">Status</th>
             <th class="col-time">Check In</th>
             <th class="col-time">Check Out</th>
@@ -53,6 +54,7 @@
               <i *ngIf="row.isMarked" class="pi pi-check-circle marked-icon" pTooltip="Already marked"></i>
             </td>
             <td class="col-designation"><span class="text-muted">{{ row.designation || '-' }}</span></td>
+            <td class="col-shift"><span class="text-muted">{{ row.shiftName || '-' }}</span></td>
             <td class="col-status">
               <p-select [options]="statusOptions" [(ngModel)]="row.status" placeholder="Not marked"
                 [showClear]="true" appendTo="body" styleClass="status-select" (onChange)="markRow(row)"></p-select>
@@ -71,7 +73,7 @@
 
         <ng-template #emptymessage>
           <tr>
-            <td colspan="7">
+            <td colspan="8">
               <div class="empty-state">
                 <div class="empty-icon"><i class="pi pi-calendar"></i></div>
                 <h3>No Active Employees</h3>

@@ -145,6 +145,8 @@ public class EmployeesController : ControllerBase
                 request.Notes
             );
 
+            employee.UpdateCompensation(request.ShiftId, request.MonthlyTaxDeduction, request.CommissionRate);
+
             if (request.UserId is Guid userId)
             {
                 var alreadyLinked = await _employeeRepository.GetByUserIdAsync(userId, cancellationToken);
@@ -199,6 +201,8 @@ public class EmployeesController : ControllerBase
                 request.EmergencyContactPhone,
                 request.Notes
             );
+
+            employee.UpdateCompensation(request.ShiftId, request.MonthlyTaxDeduction, request.CommissionRate);
 
             if (request.UserId is Guid userId)
             {
@@ -313,6 +317,9 @@ public class EmployeesController : ControllerBase
         EmploymentType = e.EmploymentType,
         MonthlySalary = e.MonthlySalary,
         Currency = e.Currency,
+        ShiftId = e.ShiftId,
+        MonthlyTaxDeduction = e.MonthlyTaxDeduction,
+        CommissionRate = e.CommissionRate,
         EmergencyContactName = e.EmergencyContactName,
         EmergencyContactPhone = e.EmergencyContactPhone,
         Status = e.Status,

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { EmployeeService, EmployeeRequest, LinkableUser } from '../../services/employee.service';
+import { ShiftService, ShiftResponse } from '../../services/shift.service';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { InputNumberModule } from 'primeng/inputnumber';
@@ -40,6 +41,7 @@ export class EmployeeFormComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly employeeService = inject(EmployeeService);
+  private readonly shiftService = inject(ShiftService);
   private readonly messageService = inject(MessageService);
   private readonly codeGenerationService = inject(CodeGenerationService);
 
@@ -52,6 +54,7 @@ export class EmployeeFormComponent implements OnInit {
   generatingCode = signal(false);
 
   linkableUsers: LinkableUser[] = [];
+  shifts: ShiftResponse[] = [];
   maxDob = new Date();
 
   genderOptions = [
@@ -88,6 +91,7 @@ export class EmployeeFormComponent implements OnInit {
         this.generateEmployeeCode();
       }
       this.loadLinkableUsers();
+      this.loadShifts();
     });
 
     if (this.mode() === 'view') {
@@ -114,6 +118,14 @@ export class EmployeeFormComponent implements OnInit {
     });
   }
 
+  loadShifts(): void {
+    if (this.shifts.length > 0) return;
+    this.shiftService.getShifts().subscribe({
+      next: (shifts) => (this.shifts = shifts),
+      error: (err) => console.error('Failed to load shifts:', err)
+    });
+  }
+
   loadLinkableUsers(): void {
     this.employeeService.getLinkableUsers(this.employeeId() ?? undefined).subscribe({
       next: (users) => (this.linkableUsers = users),
@@ -137,6 +149,9 @@ export class EmployeeFormComponent implements OnInit {
       joinDate: [new Date(), [Validators.required]],
       employmentType: ['FULL_TIME', [Validators.required]],
       monthlySalary: [0, [Validators.required, Validators.min(0)]],
+      shiftId: [null],
+      monthlyTaxDeduction: [0, [Validators.min(0)]],
+      commissionRate: [0, [Validators.min(0), Validators.max(100)]],
       emergencyContactName: [''],
       emergencyContactPhone: [''],
       notes: [''],
@@ -165,6 +180,9 @@ export class EmployeeFormComponent implements OnInit {
           joinDate: employee.joinDate ? new Date(employee.joinDate) : null,
           employmentType: employee.employmentType,
           monthlySalary: employee.monthlySalary,
+          shiftId: employee.shiftId,
+          monthlyTaxDeduction: employee.monthlyTaxDeduction,
+          commissionRate: employee.commissionRate,
           emergencyContactName: employee.emergencyContactName,
           emergencyContactPhone: employee.emergencyContactPhone,
           notes: employee.notes,
@@ -232,6 +250,9 @@ export class EmployeeFormComponent implements OnInit {
       joinDate: this.toDateOnly(formValue.joinDate)!,
       employmentType: formValue.employmentType || 'FULL_TIME',
       monthlySalary: formValue.monthlySalary ?? 0,
+      shiftId: formValue.shiftId || null,
+      monthlyTaxDeduction: formValue.monthlyTaxDeduction ?? 0,
+      commissionRate: formValue.commissionRate ?? 0,
       emergencyContactName: formValue.emergencyContactName || '',
       emergencyContactPhone: formValue.emergencyContactPhone || '',
       notes: formValue.notes || '',

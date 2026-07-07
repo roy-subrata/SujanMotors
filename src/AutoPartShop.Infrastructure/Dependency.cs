@@ -112,6 +112,8 @@ public static class Dependency
         services.AddScoped<ILeaveRequestRepository, LeaveRequestRepository>();
         services.AddScoped<IHolidayRepository, HolidayRepository>();
         services.AddScoped<IPayrollRepository, PayrollRepository>();
+        services.AddScoped<IShiftRepository, ShiftRepository>();
+        services.AddScoped<ISalaryAdvanceRepository, SalaryAdvanceRepository>();
         services.AddScoped<IProductLocationRepository, ProductLocationRepository>();
         services.AddScoped<IDailyExpenseRepository, DailyExpenseRepository>();
 
@@ -192,6 +194,8 @@ public static class Dependency
         services.AddScoped<IEmployeeReadRepository, EmployeeReadRepository>();
         services.AddScoped<IAttendanceReadRepository, AttendanceReadRepository>();
         services.AddScoped<ILeaveRequestReadRepository, LeaveRequestReadRepository>();
+        services.AddScoped<ISalaryAdvanceReadRepository, SalaryAdvanceReadRepository>();
+        services.AddScoped<IHrSalesReadRepository, HrSalesReadRepository>();
         services.AddScoped<IWarehouseReadRepository, WarehouseReadRepository>();
 
         return services;

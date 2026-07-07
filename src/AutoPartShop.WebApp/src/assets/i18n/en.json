@@ -58,7 +58,9 @@
     "attendance": "Attendance",
     "leaveRequests": "Leave Requests",
     "holidays": "Holidays",
-    "payroll": "Payroll"
+    "payroll": "Payroll",
+    "shifts": "Shifts",
+    "salaryAdvances": "Salary Advances"
   },
   "topbar": {
     "profile": "My Profile",

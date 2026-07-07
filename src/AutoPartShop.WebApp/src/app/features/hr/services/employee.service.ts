@@ -21,6 +21,10 @@ export interface EmployeeResponse {
     employmentType: string;
     monthlySalary: number;
     currency: string;
+    shiftId: string | null;
+    shiftName: string | null;
+    monthlyTaxDeduction: number;
+    commissionRate: number;
     emergencyContactName: string;
     emergencyContactPhone: string;
     status: string;
@@ -44,6 +48,9 @@ export interface EmployeeRequest {
     joinDate: string;
     employmentType: string;
     monthlySalary: number;
+    shiftId: string | null;
+    monthlyTaxDeduction: number;
+    commissionRate: number;
     emergencyContactName: string;
     emergencyContactPhone: string;
     notes: string;
