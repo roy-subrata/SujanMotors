@@ -9,6 +9,7 @@ import { UnifiedLoginComponent } from './app/pages/login/unified-login.component
 import { AdminSettingsComponent } from './app/pages/admin-settings/admin-settings.component';
 import { authGuard } from './app/shared/guards/auth.guard';
 import { roleGuard } from './app/shared/guards/role.guard';
+import { permissionGuard } from './app/shared/guards/permission.guard';
 
 export const appRoutes: Routes = [
     // Login - standalone (no layout) — shared unified login, staff mode default
@@ -28,18 +29,48 @@ export const appRoutes: Routes = [
         children: [
             { path: '', component: DashboardComponent },
             { path: 'financial-dashboard', component: Dashboard },
-            { path: 'inventory', loadChildren: () => import('./app/features/inventory/inventory.routes').then(m => m.inventoryRoutes) },
-            { path: 'procurement', loadChildren: () => import('./app/features/procurement/procurement.routes').then(m => m.procurementRoutes) },
-            { path: 'sales', loadChildren: () => import('./app/features/sales/sales.routes').then(m => m.salesRoutes) },
-            { path: 'warranty', loadChildren: () => import('./app/features/warranty/warranty.routes').then(m => m.warrantyRoutes) },
-            { path: 'finance', loadChildren: () => import('./app/features/finance/finance.routes').then(m => m.financeRoutes) },
+            {
+                path: 'inventory',
+                loadChildren: () => import('./app/features/inventory/inventory.routes').then(m => m.inventoryRoutes),
+                canActivate: [permissionGuard],
+                data: { permissions: ['inventory.view'] }
+            },
+            {
+                path: 'procurement',
+                loadChildren: () => import('./app/features/procurement/procurement.routes').then(m => m.procurementRoutes),
+                canActivate: [permissionGuard],
+                data: { permissions: ['procurement.view'] }
+            },
+            {
+                path: 'sales',
+                loadChildren: () => import('./app/features/sales/sales.routes').then(m => m.salesRoutes),
+                canActivate: [permissionGuard],
+                data: { permissions: ['sales.view'] }
+            },
+            {
+                path: 'warranty',
+                loadChildren: () => import('./app/features/warranty/warranty.routes').then(m => m.warrantyRoutes),
+                canActivate: [permissionGuard],
+                data: { permissions: ['sales.view'] }
+            },
+            {
+                path: 'finance',
+                loadChildren: () => import('./app/features/finance/finance.routes').then(m => m.financeRoutes),
+                canActivate: [permissionGuard],
+                data: { permissions: ['reports.view'] }
+            },
             {
                 path: 'hr',
                 loadChildren: () => import('./app/features/hr/hr.routes').then(m => m.hrRoutes),
                 canActivate: [roleGuard],
                 data: { roles: ['Admin', 'Manager'] }
             },
-            { path: 'audit', loadChildren: () => import('./app/features/audit/audit.routes').then(m => m.auditRoutes) },
+            {
+                path: 'audit',
+                loadChildren: () => import('./app/features/audit/audit.routes').then(m => m.auditRoutes),
+                canActivate: [permissionGuard],
+                data: { permissions: ['audit.view'] }
+            },
             { path: 'admin', loadChildren: () => import('./app/features/admin/admin.routes').then(m => m.adminRoutes) },
             {
                 path: 'admin-settings',
