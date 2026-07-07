@@ -54,7 +54,24 @@ public class PayrollRepository : IPayrollRepository
         if (entity == null)
             throw new ArgumentNullException(nameof(entity));
 
-        _dbContext.PayrollRuns.Update(entity);
+        // Update() would force-mark the whole graph Modified, turning freshly added
+        // payslips (client-generated IDs) into UPDATEs that hit 0 rows. Tracked
+        // entities just need change detection via SaveChanges.
+        if (_dbContext.Entry(entity).State == EntityState.Detached)
+            _dbContext.PayrollRuns.Update(entity);
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task SaveGeneratedAsync(PayrollRun run, IReadOnlyCollection<Payslip> newPayslips, CancellationToken cancellationToken = default)
+    {
+        if (run == null) throw new ArgumentNullException(nameof(run));
+
+        _dbContext.Payslips.AddRange(newPayslips);
+
+        if (_dbContext.Entry(run).State == EntityState.Detached)
+            _dbContext.PayrollRuns.Update(run);
+
         await _dbContext.SaveChangesAsync(cancellationToken);
     }
 
@@ -80,29 +97,33 @@ public class PayrollRepository : IPayrollRepository
         if (run == null) throw new ArgumentNullException(nameof(run));
         if (expense == null) throw new ArgumentNullException(nameof(expense));
 
-        await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
-
-        await _dbContext.DailyExpenses.AddAsync(expense, cancellationToken);
-        await _dbContext.SaveChangesAsync(cancellationToken);
-
-        run.MarkPaid(paidBy, paymentMethod, expense.Id);
-        _dbContext.PayrollRuns.Update(run);
-
         var settleIds = employeeIdsToSettleAdvances.ToList();
-        if (settleIds.Count > 0)
+
+        var strategy = _dbContext.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
         {
-            var outstanding = await _dbContext.SalaryAdvances
-                .Where(a => settleIds.Contains(a.EmployeeId) && a.Status == "OUTSTANDING" && !a.Isdeleted)
-                .ToListAsync(cancellationToken);
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
 
-            foreach (var advance in outstanding)
+            await _dbContext.DailyExpenses.AddAsync(expense, cancellationToken);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            run.MarkPaid(paidBy, paymentMethod, expense.Id);
+
+            if (settleIds.Count > 0)
             {
-                advance.Settle(run.Id);
-                advance.ModifiedBy = paidBy;
-            }
-        }
+                var outstanding = await _dbContext.SalaryAdvances
+                    .Where(a => settleIds.Contains(a.EmployeeId) && a.Status == "OUTSTANDING" && !a.Isdeleted)
+                    .ToListAsync(cancellationToken);
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
+                foreach (var advance in outstanding)
+                {
+                    advance.Settle(run.Id);
+                    advance.ModifiedBy = paidBy;
+                }
+            }
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        });
     }
 }

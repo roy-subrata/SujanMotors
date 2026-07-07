@@ -41,36 +41,44 @@ public class SalaryAdvanceRepository : ISalaryAdvanceRepository
         if (advance == null) throw new ArgumentNullException(nameof(advance));
         if (expense == null) throw new ArgumentNullException(nameof(expense));
 
-        await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+        var strategy = _dbContext.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
+        {
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
 
-        await _dbContext.DailyExpenses.AddAsync(expense, cancellationToken);
-        await _dbContext.SaveChangesAsync(cancellationToken);
+            await _dbContext.DailyExpenses.AddAsync(expense, cancellationToken);
+            await _dbContext.SaveChangesAsync(cancellationToken);
 
-        advance.LinkExpense(expense.Id);
-        await _dbContext.SalaryAdvances.AddAsync(advance, cancellationToken);
-        await _dbContext.SaveChangesAsync(cancellationToken);
+            advance.LinkExpense(expense.Id);
+            await _dbContext.SalaryAdvances.AddAsync(advance, cancellationToken);
+            await _dbContext.SaveChangesAsync(cancellationToken);
 
-        await transaction.CommitAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        });
     }
 
     public async Task CancelAsync(SalaryAdvance advance, CancellationToken cancellationToken = default)
     {
         if (advance == null) throw new ArgumentNullException(nameof(advance));
 
-        await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
-
-        advance.Isdeleted = true;
-
-        if (advance.ExpenseId is Guid expenseId)
+        var strategy = _dbContext.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
         {
-            var expense = await _dbContext.DailyExpenses
-                .FirstOrDefaultAsync(x => x.Id == expenseId, cancellationToken);
-            if (expense != null)
-                expense.Isdeleted = true;
-        }
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
+            advance.Isdeleted = true;
+
+            if (advance.ExpenseId is Guid expenseId)
+            {
+                var expense = await _dbContext.DailyExpenses
+                    .FirstOrDefaultAsync(x => x.Id == expenseId, cancellationToken);
+                if (expense != null)
+                    expense.Isdeleted = true;
+            }
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        });
     }
 
     public async Task SettleForRunAsync(Guid payrollRunId, IEnumerable<Guid> employeeIds, string settledBy, CancellationToken cancellationToken = default)

@@ -132,6 +132,7 @@ public class PayrollController : ControllerBase
             var salesTotals = await _hrSalesReadRepository.GetMonthlySalesTotalsByEmployee(request.Year, request.Month, cancellationToken);
             var daysInMonth = DateTime.DaysInMonth(request.Year, request.Month);
 
+            var newPayslips = new List<Payslip>();
             foreach (var employee in employees)
             {
                 var att = summary.FirstOrDefault(s => s.EmployeeId == employee.Id);
@@ -153,11 +154,12 @@ public class PayrollController : ControllerBase
                 payslip.CreatedBy = currentUser;
                 payslip.ModifiedBy = currentUser;
                 run.Payslips.Add(payslip);
+                newPayslips.Add(payslip);
             }
 
             run.RecalculateTotals();
             run.ModifiedBy = currentUser;
-            await _payrollRepository.UpdateAsync(run, cancellationToken);
+            await _payrollRepository.SaveGeneratedAsync(run, newPayslips, cancellationToken);
 
             var fresh = await _payrollRepository.GetByIdAsync(run.Id, includePayslips: true, cancellationToken);
             return Ok(MapRun(fresh!, includePayslips: true));

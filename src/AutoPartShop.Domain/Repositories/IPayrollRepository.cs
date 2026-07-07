@@ -9,6 +9,13 @@ public interface IPayrollRepository
     Task<PayrollRun?> GetByYearMonthAsync(int year, int month, bool includePayslips = false, CancellationToken cancellationToken = default);
     Task AddAsync(PayrollRun entity, CancellationToken cancellationToken = default);
     Task UpdateAsync(PayrollRun entity, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Persists a (re)generated run: explicitly inserts the new payslips (their IDs are
+    /// client-generated, so relying on graph discovery would mark them Modified) and
+    /// saves the run's totals in the same SaveChanges.
+    /// </summary>
+    Task SaveGeneratedAsync(PayrollRun run, IReadOnlyCollection<Payslip> newPayslips, CancellationToken cancellationToken = default);
     Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);
 
     /// <summary>
