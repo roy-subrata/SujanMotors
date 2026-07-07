@@ -234,16 +234,15 @@
                     </div>
                 </div>
 
-                <!-- Paginator -->
-                <div class="as-paginator" *ngIf="summary()!.purchaseItemsTotalCount > pageSize">
-                    <p-paginator
-                        [rows]="pageSize"
-                        [totalRecords]="summary()!.purchaseItemsTotalCount"
-                        [first]="first"
-                        [rowsPerPageOptions]="[10, 20, 50]"
-                        (onPageChange)="onPageChange($event)">
-                    </p-paginator>
-                </div>
+                <!-- Pagination -->
+                <app-data-pagination
+                    [first]="first"
+                    [pageSize]="pageSize"
+                    [totalRecords]="summary()!.purchaseItemsTotalCount"
+                    itemLabel="items"
+                    (pageChange)="goToPage($event)"
+                    (pageSizeChange)="onPageSizeChange($event)">
+                </app-data-pagination>
             </div>
         }
     </div>

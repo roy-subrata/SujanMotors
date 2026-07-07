@@ -9,7 +9,6 @@ import { TagModule } from 'primeng/tag';
 import { MenuModule, Menu } from 'primeng/menu';
 import { RippleModule } from 'primeng/ripple';
 import { ToastModule } from 'primeng/toast';
-import { Select } from 'primeng/select';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { MenuItem } from 'primeng/api';
 import { SupplierService, SupplierResponse } from '../../services/supplier.service';
@@ -19,11 +18,13 @@ import { I18nService } from '@/shared/services/i18n.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
+import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
+import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 
 @Component({
   selector: 'app-suppliers-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, TableModule, ButtonModule, ConfirmDialogModule, TooltipModule, TagModule, MenuModule, RippleModule, ToastModule, Select, PageContainerComponent, PageHeaderComponent],
+  imports: [CommonModule, FormsModule, TableModule, ButtonModule, ConfirmDialogModule, TooltipModule, TagModule, MenuModule, RippleModule, ToastModule, PageContainerComponent, PageHeaderComponent, FilterBarComponent, DataPaginationComponent],
   providers: [ConfirmationService, MessageService],
   templateUrl: './suppliers-list.component.html',
   styleUrls: ['./suppliers-list.component.css']
@@ -124,6 +125,15 @@ export class SuppliersListComponent implements OnInit {
     this.pageSize = event.rows;
     this.pageNumber = Math.floor(this.first / this.pageSize) + 1;
     this.loadData();
+  }
+
+  goToPage(page: number): void {
+    this.onPageChange({ first: (page - 1) * this.pageSize, rows: this.pageSize });
+  }
+
+  onPageSizeChange(size: number): void {
+    this.pageSize = size;
+    this.onPageChange({ first: 0, rows: size });
   }
 
   // Action menu

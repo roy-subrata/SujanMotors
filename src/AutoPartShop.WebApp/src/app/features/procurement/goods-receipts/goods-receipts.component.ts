@@ -15,6 +15,7 @@ import { GoodsReceiptService, GoodsReceiptResponse } from '../services/goods-rec
 import { HasRoleDirective } from '../../../shared/directives/has-role.directive';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
+import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 
 @Component({
   selector: 'app-goods-receipts',
@@ -32,7 +33,8 @@ import { PageHeaderComponent } from '@/shared/components/page-header/page-header
     GoodsReceiptsListComponent,
     HasRoleDirective,
     PageContainerComponent,
-    PageHeaderComponent
+    PageHeaderComponent,
+    FilterBarComponent
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: './goods-receipts.component.html',

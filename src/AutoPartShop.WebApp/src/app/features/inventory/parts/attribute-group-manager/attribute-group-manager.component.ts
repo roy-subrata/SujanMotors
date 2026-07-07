@@ -23,6 +23,8 @@ import {
 import { Router } from '@angular/router';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
+import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
+import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 
 @Component({
   selector: 'app-attribute-group-manager',
@@ -43,7 +45,9 @@ import { PageHeaderComponent } from '@/shared/components/page-header/page-header
     Select,
     ConfirmDialogModule,
     PageContainerComponent,
-    PageHeaderComponent
+    PageHeaderComponent,
+    FilterBarComponent,
+    DataPaginationComponent
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: './attribute-group-manager.component.html',

@@ -23,43 +23,41 @@
   </app-page-header>
 
   <!-- ==================== FILTER SECTION ==================== -->
-  <section class="filter-section">
-    <div class="filter-container">
-      <div class="filter-group search-group">
-        <div class="search-input-wrapper">
-          <i class="pi pi-search"></i>
-          <input
-            type="text"
-            [(ngModel)]="searchTerm"
-            placeholder="Search by make, model, year, engine..."
-            (keyup.enter)="onSearch()"
-            class="search-input" />
-          <button *ngIf="searchTerm" class="search-clear" (click)="onSearchClear()">
-            <i class="pi pi-times"></i>
-          </button>
-        </div>
-      </div>
-
-      <div class="filter-group filter-actions">
-        <button class="btn-search" (click)="onSearch()">
-          <i class="pi pi-search"></i>
-          Search
-        </button>
-        <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
-          <i class="pi pi-filter-slash"></i>
-          Clear
+  <app-filter-bar>
+    <div search class="filter-group search-group">
+      <div class="search-input-wrapper">
+        <i class="pi pi-search"></i>
+        <input
+          type="text"
+          [(ngModel)]="searchTerm"
+          placeholder="Search by make, model, year, engine..."
+          (keyup.enter)="onSearch()"
+          class="search-input" />
+        <button *ngIf="searchTerm" class="search-clear" (click)="onSearchClear()">
+          <i class="pi pi-times"></i>
         </button>
       </div>
     </div>
 
-    <div *ngIf="hasActiveFilters()" class="active-filters">
+    <div filterActions class="filter-group filter-actions">
+      <button class="btn-search" (click)="onSearch()">
+        <i class="pi pi-search"></i>
+        Search
+      </button>
+      <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
+        <i class="pi pi-filter-slash"></i>
+        Clear
+      </button>
+    </div>
+
+    <div activeFilters *ngIf="hasActiveFilters()" class="active-filters">
       <span class="active-filters-label">Active filters:</span>
       <span *ngIf="searchTerm" class="filter-chip">
         Search: "{{ searchTerm }}"
         <i class="pi pi-times" (click)="onSearchClear()"></i>
       </span>
     </div>
-  </section>
+  </app-filter-bar>
 
   <!-- ==================== LIST SECTION ==================== -->
   <app-vehicles-list

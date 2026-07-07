@@ -96,34 +96,17 @@
       </table>
     </div>
   </div>
-
-  <div class="pagination-section" *ngIf="totalRecords > 0">
-    <div class="pagination-info">
-      Showing <strong>{{ ((currentPage - 1) * rows) + 1 }}</strong> to <strong>{{ Math.min(currentPage * rows, totalRecords) }}</strong> of <strong>{{ totalRecords }}</strong> orders
-    </div>
-    <div class="pagination-controls">
-      <span class="page-size-label">Rows per page:</span>
-      <select class="page-size-select" [value]="rows" (change)="onPageSizeChange($event)">
-        <option *ngFor="let size of pageSizeOptions" [value]="size">{{ size }}</option>
-      </select>
-      <div class="page-nav">
-        <button class="page-btn" [disabled]="currentPage === 1" (click)="goToPage(1)">
-          <i class="pi pi-angle-double-left"></i>
-        </button>
-        <button class="page-btn" [disabled]="currentPage === 1" (click)="goToPage(currentPage - 1)">
-          <i class="pi pi-angle-left"></i>
-        </button>
-        <span class="page-indicator">{{ currentPage }} / {{ totalPages }}</span>
-        <button class="page-btn" [disabled]="currentPage === totalPages" (click)="goToPage(currentPage + 1)">
-          <i class="pi pi-angle-right"></i>
-        </button>
-        <button class="page-btn" [disabled]="currentPage === totalPages" (click)="goToPage(totalPages)">
-          <i class="pi pi-angle-double-right"></i>
-        </button>
-      </div>
-    </div>
-  </div>
 </section>
+
+<!-- ==================== PAGINATION (desktop + mobile) ==================== -->
+<app-data-pagination
+  [first]="(currentPage - 1) * rows"
+  [pageSize]="rows"
+  [totalRecords]="totalRecords"
+  itemLabel="orders"
+  (pageChange)="goToPage($event)"
+  (pageSizeChange)="onPageSizeChange($event)">
+</app-data-pagination>
 
 <!-- ==================== MOBILE CARDS ==================== -->
 <section class="cards-section mobile-only">
@@ -176,18 +159,6 @@
           <i class="pi pi-ellipsis-v"></i>
         </button>
       </div>
-    </div>
-  </div>
-
-  <div class="mobile-pagination" *ngIf="totalRecords > 0">
-    <span class="pagination-info-mobile">{{ currentPage }} / {{ totalPages }}</span>
-    <div class="pagination-nav-mobile">
-      <button class="page-btn" [disabled]="currentPage === 1" (click)="goToPage(currentPage - 1)">
-        <i class="pi pi-angle-left"></i>
-      </button>
-      <button class="page-btn" [disabled]="currentPage === totalPages" (click)="goToPage(currentPage + 1)">
-        <i class="pi pi-angle-right"></i>
-      </button>
     </div>
   </div>
 </section>

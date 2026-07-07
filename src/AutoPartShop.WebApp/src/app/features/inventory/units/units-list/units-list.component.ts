@@ -8,13 +8,13 @@ import { TooltipModule } from 'primeng/tooltip';
 import { BadgeModule } from 'primeng/badge';
 import { MessageService } from 'primeng/api';
 import { UnitService, UnitResponse } from '../../services/unit.service';
-import { Select } from 'primeng/select';
 import { I18nService } from '@/shared/services/i18n.service';
+import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 
 @Component({
   selector: 'app-units-list',
   standalone: true,
-  imports: [CommonModule, TableModule, ButtonModule, InputTextModule, TooltipModule, BadgeModule, FormsModule, Select],
+  imports: [CommonModule, TableModule, ButtonModule, InputTextModule, TooltipModule, BadgeModule, FormsModule, DataPaginationComponent],
   templateUrl: './units-list.component.html',
   styleUrls: ['./units-list.component.css']
 })
@@ -74,6 +74,15 @@ export class UnitsListComponent implements OnInit {
     const pageNum = Math.floor(event.first / event.rows) + 1;
     this.pageSize = event.rows;
     this.loadUnits(pageNum);
+  }
+
+  goToPage(page: number): void {
+    this.onPageChange({ first: (page - 1) * this.pageSize, rows: this.pageSize });
+  }
+
+  onPageSizeChange(size: number): void {
+    this.pageSize = size;
+    this.onPageChange({ first: 0, rows: size });
   }
 
   /**

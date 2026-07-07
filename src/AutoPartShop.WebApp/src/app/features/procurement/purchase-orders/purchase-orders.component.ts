@@ -16,11 +16,12 @@ import { PurchaseOrdersFormDialogComponent } from './purchase-orders-form-dialog
 import { HasRoleDirective } from '../../../shared/directives/has-role.directive';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
+import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 
 @Component({
     selector: 'app-purchase-orders',
     standalone: true,
-    imports: [CommonModule, FormsModule, ButtonModule, ToastModule, ConfirmDialogModule, Select, DatePicker, MenuModule, TooltipModule, PurchaseOrdersListComponent, PurchaseOrdersFormDialogComponent, HasRoleDirective, PageContainerComponent, PageHeaderComponent],
+    imports: [CommonModule, FormsModule, ButtonModule, ToastModule, ConfirmDialogModule, Select, DatePicker, MenuModule, TooltipModule, PurchaseOrdersListComponent, PurchaseOrdersFormDialogComponent, HasRoleDirective, PageContainerComponent, PageHeaderComponent, FilterBarComponent],
     providers: [MessageService, ConfirmationService],
     templateUrl: './purchase-orders.component.html',
     styleUrls: ['./purchase-orders.component.css']

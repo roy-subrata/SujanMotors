@@ -137,38 +137,17 @@
 
     </p-table>
   </div>
-
-  <!-- Pagination -->
-  <div class="pagination-section" *ngIf="totalRecords > 0">
-    <div class="pagination-info">
-      Showing <strong>{{ first + 1 }}</strong> to <strong>{{ Math.min(first + rows, totalRecords) }}</strong> of <strong>{{ totalRecords }}</strong> discounts
-    </div>
-    <div class="pagination-controls">
-      <span class="page-size-label">Rows per page:</span>
-      <p-select
-        [options]="[{label: '10', value: 10}, {label: '20', value: 20}, {label: '50', value: 50}]"
-        [ngModel]="rows"
-        (onChange)="onPageSizeChange($event.value)"
-        styleClass="page-size-dropdown">
-      </p-select>
-      <div class="page-nav">
-        <button class="page-btn" [disabled]="currentPage <= 1" (click)="goToPage(1)" pTooltip="First Page" tooltipPosition="top">
-          <i class="pi pi-angle-double-left"></i>
-        </button>
-        <button class="page-btn" [disabled]="currentPage <= 1" (click)="goToPage(currentPage - 1)" pTooltip="Previous Page" tooltipPosition="top">
-          <i class="pi pi-angle-left"></i>
-        </button>
-        <span class="page-indicator">{{ currentPage }} / {{ totalPages }}</span>
-        <button class="page-btn" [disabled]="currentPage >= totalPages" (click)="goToPage(currentPage + 1)" pTooltip="Next Page" tooltipPosition="top">
-          <i class="pi pi-angle-right"></i>
-        </button>
-        <button class="page-btn" [disabled]="currentPage >= totalPages" (click)="goToPage(totalPages)" pTooltip="Last Page" tooltipPosition="top">
-          <i class="pi pi-angle-double-right"></i>
-        </button>
-      </div>
-    </div>
-  </div>
 </section>
+
+<!-- ==================== PAGINATION (desktop + mobile) ==================== -->
+<app-data-pagination
+  [first]="first"
+  [pageSize]="rows"
+  [totalRecords]="totalRecords"
+  itemLabel="discounts"
+  (pageChange)="goToPage($event)"
+  (pageSizeChange)="onPageSizeChange($event)">
+</app-data-pagination>
 
 <!-- ==================== MOBILE CARDS ==================== -->
 <section class="cards-section mobile-only">
@@ -248,21 +227,6 @@
           <i class="pi pi-ellipsis-h"></i>
         </button>
       </div>
-    </div>
-  </div>
-
-  <!-- Mobile Pagination -->
-  <div *ngIf="!loading && discounts.length > 0" class="mobile-pagination">
-    <div class="pagination-info-mobile">
-      {{ first + 1 }}-{{ Math.min(first + rows, totalRecords) }} of {{ totalRecords }}
-    </div>
-    <div class="pagination-nav-mobile">
-      <button class="page-btn" [disabled]="currentPage <= 1" (click)="goToPage(currentPage - 1)">
-        <i class="pi pi-chevron-left"></i>
-      </button>
-      <button class="page-btn" [disabled]="currentPage >= totalPages" (click)="goToPage(currentPage + 1)">
-        <i class="pi pi-chevron-right"></i>
-      </button>
     </div>
   </div>
 </section>

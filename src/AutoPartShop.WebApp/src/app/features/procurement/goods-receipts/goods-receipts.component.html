@@ -25,62 +25,60 @@
   </app-page-header>
 
   <!-- ==================== FILTER SECTION ==================== -->
-  <section class="filter-section">
-    <div class="filter-container">
-      <div class="filter-group search-group">
-        <div class="search-input-wrapper">
-          <i class="pi pi-search"></i>
-          <input
-            type="text"
-            [(ngModel)]="searchTerm"
-            placeholder="Search by GRN number, PO number, warehouse..."
-            (keyup.enter)="onSearch()"
-            class="search-input" />
-          <button *ngIf="searchTerm" class="search-clear" (click)="searchTerm = ''; onSearch()">
-            <i class="pi pi-times"></i>
-          </button>
-        </div>
-      </div>
-
-      <div class="filter-group">
-        <p-select
-          [options]="statusOptions"
-          [(ngModel)]="filterStatus"
-          placeholder="All Statuses"
-          [showClear]="true"
-          (onChange)="onFilterChange()"
-          appendTo="body"
-          styleClass="filter-dropdown">
-        </p-select>
-      </div>
-
-      <div class="filter-group">
-        <p-datepicker
-          [(ngModel)]="dateRange"
-          selectionMode="range"
-          placeholder="Select date range"
-          dateFormat="dd M yy"
-          [showIcon]="true"
-          [showButtonBar]="true"
-          (onSelect)="onFilterChange()"
-          appendTo="body"
-          styleClass="filter-datepicker">
-        </p-datepicker>
-      </div>
-
-      <div class="filter-group filter-actions">
-        <button class="btn-search" (click)="onSearch()">
-          <i class="pi pi-search"></i>
-          Search
-        </button>
-        <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
-          <i class="pi pi-filter-slash"></i>
-          Clear
+  <app-filter-bar>
+    <div search class="filter-group search-group">
+      <div class="search-input-wrapper">
+        <i class="pi pi-search"></i>
+        <input
+          type="text"
+          [(ngModel)]="searchTerm"
+          placeholder="Search by GRN number, PO number, warehouse..."
+          (keyup.enter)="onSearch()"
+          class="search-input" />
+        <button *ngIf="searchTerm" class="search-clear" (click)="searchTerm = ''; onSearch()">
+          <i class="pi pi-times"></i>
         </button>
       </div>
     </div>
 
-    <div *ngIf="hasActiveFilters()" class="active-filters">
+    <div filters class="filter-group">
+      <p-select
+        [options]="statusOptions"
+        [(ngModel)]="filterStatus"
+        placeholder="All Statuses"
+        [showClear]="true"
+        (onChange)="onFilterChange()"
+        appendTo="body"
+        styleClass="filter-dropdown">
+      </p-select>
+    </div>
+
+    <div filters class="filter-group">
+      <p-datepicker
+        [(ngModel)]="dateRange"
+        selectionMode="range"
+        placeholder="Select date range"
+        dateFormat="dd M yy"
+        [showIcon]="true"
+        [showButtonBar]="true"
+        (onSelect)="onFilterChange()"
+        appendTo="body"
+        styleClass="filter-datepicker">
+      </p-datepicker>
+    </div>
+
+    <div filterActions class="filter-group filter-actions">
+      <button class="btn-search" (click)="onSearch()">
+        <i class="pi pi-search"></i>
+        Search
+      </button>
+      <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
+        <i class="pi pi-filter-slash"></i>
+        Clear
+      </button>
+    </div>
+
+    <div activeFilters *ngIf="hasActiveFilters()" class="active-filters">
       <span class="active-filters-label">Active filters:</span>
       <span *ngIf="searchTerm" class="filter-chip">
         Search: "{{ searchTerm }}"
@@ -95,7 +93,7 @@
         <i class="pi pi-times" (click)="dateRange = []; onFilterChange()"></i>
       </span>
     </div>
-  </section>
+  </app-filter-bar>
 
   <app-goods-receipts-list
     [goodsReceipts]="goodsReceipts"

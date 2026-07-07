@@ -10,6 +10,7 @@ import { VehiclesListComponent } from './vehicles-list.component';
 import { VehicleService, VehicleResponse } from '../services/vehicle.service';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
+import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 
 @Component({
   selector: 'app-vehicles',
@@ -22,7 +23,8 @@ import { PageHeaderComponent } from '@/shared/components/page-header/page-header
     ConfirmDialogModule,
     VehiclesListComponent,
     PageContainerComponent,
-    PageHeaderComponent
+    PageHeaderComponent,
+    FilterBarComponent
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: './vehicles.component.html',

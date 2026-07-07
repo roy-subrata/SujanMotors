@@ -19,6 +19,7 @@ import { CurrencyService } from '../../../../shared/services/currency.service';
 import { I18nService } from '@/shared/services/i18n.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AuthService } from '../../../../shared/services/auth.service';
+import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 
 @Component({
   selector: 'app-purchase-returns-list',
@@ -36,7 +37,8 @@ import { AuthService } from '../../../../shared/services/auth.service';
     PaginatorModule,
     InputGroupModule,
     InputGroupAddonModule,
-    InputTextModule
+    InputTextModule,
+    DataPaginationComponent
   ],
   templateUrl: './purchase-returns-list.component.html',
   styleUrls: ['./purchase-returns-list.component.css']
@@ -181,6 +183,15 @@ export class PurchaseReturnsListComponent implements OnInit {
       page: pageNumber,
       rows: event.rows
     });
+  }
+
+  goToPage(page: number): void {
+    this.onPageChange({ first: (page - 1) * this.rows, rows: this.rows });
+  }
+
+  onPageSizeChange(size: number): void {
+    this.rows = size;
+    this.onPageChange({ first: 0, rows: size });
   }
 
   onSearchInput(event: Event): void {

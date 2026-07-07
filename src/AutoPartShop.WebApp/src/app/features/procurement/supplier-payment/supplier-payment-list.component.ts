@@ -21,13 +21,16 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { I18nService } from '@/shared/services/i18n.service';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
+import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
+import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 
 @Component({
     selector: 'app-supplier-payment-list',
     standalone: true,
     imports: [CommonModule, FormsModule, RouterModule, ButtonModule, TableModule, InputTextModule,
               ToastModule, ConfirmDialogModule, TagModule, ContextMenuModule, Select, DatePicker,
-              TooltipModule, StatusBadgeComponent, PageContainerComponent, PageHeaderComponent],
+              TooltipModule, StatusBadgeComponent, PageContainerComponent, PageHeaderComponent,
+              FilterBarComponent, DataPaginationComponent],
     providers: [MessageService, ConfirmationService],
     templateUrl: './supplier-payment-list.component.html',
     styleUrls: ['./supplier-payment-list.component.css']
@@ -384,6 +387,15 @@ export class SupplierPaymentListComponent implements OnInit {
         this.pageNumber = event.first / event.rows + 1;
         this.pageSize = event.rows;
         this.loadSupplierPayments();
+    }
+
+    goToPage(page: number): void {
+        this.onPageChange({ first: (page - 1) * this.pageSize, rows: this.pageSize });
+    }
+
+    onPageSizeChange(size: number): void {
+        this.pageSize = size;
+        this.onPageChange({ first: 0, rows: size });
     }
 
     onLazyLoad(event: TableLazyLoadEvent): void {

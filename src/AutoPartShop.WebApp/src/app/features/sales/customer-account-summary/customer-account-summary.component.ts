@@ -23,6 +23,7 @@ import {
 import { CurrencyService } from '../../../shared/services/currency.service';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
+import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 
 @Component({
     selector: 'app-customer-account-summary',
@@ -39,7 +40,8 @@ import { PageContainerComponent } from '@/shared/components/page-container/page-
         SkeletonModule,
         LazyAutocompleteComponent,
         PageHeaderComponent,
-        PageContainerComponent
+        PageContainerComponent,
+        DataPaginationComponent
     ],
     providers: [MessageService],
     templateUrl: './customer-account-summary.component.html',
@@ -176,6 +178,15 @@ export class CustomerAccountSummaryComponent implements OnInit, OnDestroy {
         this.pageSize = event.rows ?? 20;
         this.first = event.first ?? 0;
         this.loadReport();
+    }
+
+    goToPage(page: number): void {
+        this.onPageChange({ page: page - 1, rows: this.pageSize, first: (page - 1) * this.pageSize } as PaginatorState);
+    }
+
+    onPageSizeChange(size: number): void {
+        this.pageSize = size;
+        this.onPageChange({ page: 0, rows: size, first: 0 } as PaginatorState);
     }
 
     onDownloadPdf(): void {

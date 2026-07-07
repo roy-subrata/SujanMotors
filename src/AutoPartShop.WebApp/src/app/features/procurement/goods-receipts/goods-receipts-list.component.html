@@ -89,37 +89,17 @@
       </ng-template>
     </p-table>
   </div>
-
-  <div class="pagination-section" *ngIf="totalRecords > 0">
-    <div class="pagination-info">
-      Showing <strong>{{ firstIndex + 1 }}</strong> to <strong>{{ firstIndex + goodsReceipts.length }}</strong> of <strong>{{ totalRecords }}</strong> receipts
-    </div>
-    <div class="pagination-controls">
-      <span class="page-size-label">Rows per page:</span>
-      <p-select
-        [options]="pageSizeOptions"
-        [(ngModel)]="rows"
-        (onChange)="onPageSizeChange()"
-        styleClass="page-size-dropdown">
-      </p-select>
-      <div class="page-nav">
-        <button class="page-btn" [disabled]="currentPage === 1" (click)="goToFirstPage()">
-          <i class="pi pi-angle-double-left"></i>
-        </button>
-        <button class="page-btn" [disabled]="currentPage === 1" (click)="goToPrevPage()">
-          <i class="pi pi-angle-left"></i>
-        </button>
-        <span class="page-indicator">{{ currentPage }} / {{ totalPages }}</span>
-        <button class="page-btn" [disabled]="currentPage >= totalPages" (click)="goToNextPage()">
-          <i class="pi pi-angle-right"></i>
-        </button>
-        <button class="page-btn" [disabled]="currentPage >= totalPages" (click)="goToLastPage()">
-          <i class="pi pi-angle-double-right"></i>
-        </button>
-      </div>
-    </div>
-  </div>
 </section>
+
+<!-- ==================== PAGINATION (desktop + mobile) ==================== -->
+<app-data-pagination
+  [first]="firstIndex"
+  [pageSize]="rows"
+  [totalRecords]="totalRecords"
+  itemLabel="receipts"
+  (pageChange)="goToPage($event)"
+  (pageSizeChange)="onPageSizeChange($event)">
+</app-data-pagination>
 
 <section class="cards-section mobile-only">
   <div *ngIf="loading" class="cards-grid">
@@ -180,20 +160,6 @@
           <i class="pi pi-ellipsis-h"></i>
         </button>
       </div>
-    </div>
-  </div>
-
-  <div *ngIf="!loading && goodsReceipts.length > 0" class="mobile-pagination">
-    <div class="pagination-info-mobile">
-      {{ firstIndex + 1 }}-{{ firstIndex + goodsReceipts.length }} of {{ totalRecords }}
-    </div>
-    <div class="pagination-nav-mobile">
-      <button class="page-btn" [disabled]="currentPage === 1" (click)="goToPrevPage()">
-        <i class="pi pi-chevron-left"></i>
-      </button>
-      <button class="page-btn" [disabled]="currentPage >= totalPages" (click)="goToNextPage()">
-        <i class="pi pi-chevron-right"></i>
-      </button>
     </div>
   </div>
 </section>

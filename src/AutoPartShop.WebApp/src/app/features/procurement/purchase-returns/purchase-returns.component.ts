@@ -16,6 +16,7 @@ import { PurchaseReturnService, PurchaseReturnResponse } from '../services/purch
 import { HasRoleDirective } from '../../../shared/directives/has-role.directive';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
+import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 
 @Component({
   selector: 'app-purchase-returns',
@@ -34,7 +35,8 @@ import { PageHeaderComponent } from '@/shared/components/page-header/page-header
     PurchaseReturnsListComponent,
     HasRoleDirective,
     PageContainerComponent,
-    PageHeaderComponent
+    PageHeaderComponent,
+    FilterBarComponent
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: './purchase-returns.component.html',

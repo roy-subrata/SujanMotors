@@ -11,9 +11,9 @@ import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmationService, MessageService, MenuItem } from 'primeng/api';
 import { WarehouseService, WarehouseResponse } from '../services/warehouse.service';
-import { Select } from 'primeng/select';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { I18nService } from '@/shared/services/i18n.service';
+import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 
 @Component({
   selector: 'app-warehouses-list',
@@ -28,7 +28,7 @@ import { I18nService } from '@/shared/services/i18n.service';
     RippleModule,
     TagModule,
     TooltipModule,
-    Select
+    DataPaginationComponent
   ],
   providers: [ConfirmationService, MessageService],
   templateUrl: './warehouses-list.component.html',
@@ -151,6 +151,15 @@ export class WarehousesListComponent implements OnInit {
     }
     const pageNumber = Math.floor(event.first / event.rows) + 1;
     this.pageChange.emit({ page: pageNumber, rows: event.rows });
+  }
+
+  goToPage(page: number): void {
+    this.onPageChange({ first: (page - 1) * this.rows, rows: this.rows });
+  }
+
+  onPageSizeChange(size: number): void {
+    this.rows = size;
+    this.onPageChange({ first: 0, rows: size });
   }
 
   getUtilizationPercentage(warehouse: WarehouseResponse): number {

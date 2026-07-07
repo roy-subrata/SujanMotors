@@ -6,12 +6,12 @@ import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { MenuModule, Menu } from 'primeng/menu';
 import { TooltipModule } from 'primeng/tooltip';
-import { Select } from 'primeng/select';
 import { ConfirmationService, MessageService, MenuItem } from 'primeng/api';
 import { GoodsReceiptService, GoodsReceiptResponse } from '../services/goods-receipt.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { I18nService } from '@/shared/services/i18n.service';
 import { AuthService } from '../../../shared/services/auth.service';
+import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 
 @Component({
   selector: 'app-goods-receipts-list',
@@ -23,7 +23,7 @@ import { AuthService } from '../../../shared/services/auth.service';
     ButtonModule,
     MenuModule,
     TooltipModule,
-    Select
+    DataPaginationComponent
   ],
   providers: [ConfirmationService, MessageService],
   templateUrl: './goods-receipts-list.component.html',
@@ -139,7 +139,12 @@ export class GoodsReceiptsListComponent implements OnInit {
     });
   }
 
-  onPageSizeChange(): void {
+  goToPage(page: number): void {
+    this.pageChange.emit({ page, rows: this.rows });
+  }
+
+  onPageSizeChange(size?: number): void {
+    if (size !== undefined) this.rows = size;
     this.pageChange.emit({ page: 1, rows: this.rows });
   }
 

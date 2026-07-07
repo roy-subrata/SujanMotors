@@ -1225,6 +1225,15 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     this.saving.set(true);
     const customer = this.selectedCustomer()!;
 
+    // "Use credit balance" only adjusts remainingBalance/notes locally — it is never sent as
+    // useAdvanceBalance/advanceAmountToApply. Fold it into an explicit DUE line so the API
+    // (which now requires payments to fully account for the invoice total) sees it as the
+    // unpaid balance it actually is, rather than silently dropping it.
+    const creditApplied = this.useCreditBalance ? (this.creditAmountToApply || 0) : 0;
+    const paymentsForRequest = creditApplied > 0
+      ? [...this.payments(), { method: 'DUE', amount: creditApplied, reference: 'Credit balance applied' } as PaymentDetail]
+      : this.payments();
+
     const request = {
       customerId: customer.id,
       customerName: customer.fullName,
@@ -1234,14 +1243,14 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
       paymentResponsibility: this.paymentResponsibility,
       autoCreatePO: this.autoCreatePO,
       items: this.cartItems(),
-      payments: this.payments(),
+      payments: paymentsForRequest,
       subtotal: this.subtotal(),
       discountAmount: this.discountAmount(),
       vatAmount: this.vatAmount(),
       vatPercentage: this.vatPercentage(),
       grandTotal: this.grandTotal(),
-      paidAmount: this.payments().filter(p => p.method !== 'DUE').reduce((sum, p) => sum + p.amount, 0),
-      dueAmount: this.totalDueAmount(),
+      paidAmount: paymentsForRequest.filter(p => p.method !== 'DUE').reduce((sum, p) => sum + p.amount, 0),
+      dueAmount: paymentsForRequest.filter(p => p.method === 'DUE').reduce((sum, p) => sum + p.amount, 0),
       notes: this.saleNotes,
       useAdvanceBalance: false,
       advanceAmountToApply: 0,

@@ -12,6 +12,7 @@ import { CategoriesFormDialogComponent } from './categories-form-dialog/categori
 import { tap } from 'rxjs';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
+import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 
 @Component({
     selector: 'app-categories',
@@ -19,7 +20,7 @@ import { PageHeaderComponent } from '@/shared/components/page-header/page-header
     imports: [
         CommonModule, FormsModule, ToastModule, ConfirmDialogModule,
         ButtonModule, Select, CategoriesListComponent, CategoriesFormDialogComponent,
-        PageContainerComponent, PageHeaderComponent
+        PageContainerComponent, PageHeaderComponent, FilterBarComponent
     ],
     providers: [CategoryService, MessageService, ConfirmationService],
     templateUrl: './categories.component.html',

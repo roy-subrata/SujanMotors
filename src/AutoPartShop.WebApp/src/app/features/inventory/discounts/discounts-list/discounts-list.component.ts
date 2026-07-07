@@ -7,11 +7,11 @@ import { TooltipModule } from 'primeng/tooltip';
 import { TagModule } from 'primeng/tag';
 import { ContextMenuModule, ContextMenu } from 'primeng/contextmenu';
 import { RippleModule } from 'primeng/ripple';
-import { Select } from 'primeng/select';
 import { MenuItem } from 'primeng/api';
 import { DiscountResponse } from '../../services/discount.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { I18nService } from '@/shared/services/i18n.service';
+import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 
 @Component({
   selector: 'app-discounts-list',
@@ -25,7 +25,7 @@ import { I18nService } from '@/shared/services/i18n.service';
     TagModule,
     ContextMenuModule,
     RippleModule,
-    Select
+    DataPaginationComponent
   ],
   templateUrl: './discounts-list.component.html',
   styleUrls: ['./discounts-list.component.css']

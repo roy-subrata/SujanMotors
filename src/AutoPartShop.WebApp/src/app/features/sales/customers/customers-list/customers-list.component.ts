@@ -24,6 +24,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { I18nService } from '@/shared/services/i18n.service';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
+import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
+import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 
 @Component({
     selector: 'app-customers-list',
@@ -42,7 +44,9 @@ import { PageHeaderComponent } from '@/shared/components/page-header/page-header
         ConfirmDialogModule,
         PaginatorModule,
         PageContainerComponent,
-        PageHeaderComponent
+        PageHeaderComponent,
+        FilterBarComponent,
+        DataPaginationComponent
     ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './customers-list.component.html',
@@ -165,6 +169,15 @@ export class CustomersListComponent implements OnInit {
         this.pageSize = event.rows ?? 10;
         this.pageNumber = Math.floor(this.first / this.pageSize) + 1;
         this.loadData();
+    }
+
+    goToPage(page: number): void {
+        this.onPageChange({ first: (page - 1) * this.pageSize, rows: this.pageSize } as PaginatorState);
+    }
+
+    onPageSizeChange(size: number): void {
+        this.pageSize = size;
+        this.onPageChange({ first: 0, rows: size } as PaginatorState);
     }
 
     private buildActionMenuItems(customer: CustomerResponse): void {

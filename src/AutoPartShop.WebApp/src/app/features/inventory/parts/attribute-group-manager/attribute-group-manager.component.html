@@ -26,48 +26,46 @@
   </app-page-header>
 
   <!-- ==================== FILTER SECTION ==================== -->
-  <section class="filter-section">
-    <div class="filter-container">
-      <!-- Search Input -->
-      <div class="filter-group search-group">
-        <div class="search-input-wrapper">
-          <i class="pi pi-search"></i>
-          <input
-            type="text"
-            [(ngModel)]="searchTerm"
-            placeholder="Search attribute groups..."
-            (input)="onSearchInput()"
-            class="search-input" />
-          <button *ngIf="searchTerm" class="search-clear" (click)="searchTerm = ''; onFilterChange()">
-            <i class="pi pi-times"></i>
-          </button>
-        </div>
-      </div>
-
-      <!-- Status Filter -->
-      <div class="filter-group">
-        <p-select
-          [options]="statusOptions"
-          [(ngModel)]="filterStatus"
-          placeholder="All Statuses"
-          [showClear]="true"
-          appendTo="body"
-          styleClass="filter-dropdown"
-          (onChange)="onFilterChange()">
-        </p-select>
-      </div>
-
-      <!-- Filter Actions -->
-      <div class="filter-group filter-actions">
-        <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
-          <i class="pi pi-filter-slash"></i>
-          Clear
+  <app-filter-bar>
+    <!-- Search Input -->
+    <div search class="filter-group search-group">
+      <div class="search-input-wrapper">
+        <i class="pi pi-search"></i>
+        <input
+          type="text"
+          [(ngModel)]="searchTerm"
+          placeholder="Search attribute groups..."
+          (input)="onSearchInput()"
+          class="search-input" />
+        <button *ngIf="searchTerm" class="search-clear" (click)="searchTerm = ''; onFilterChange()">
+          <i class="pi pi-times"></i>
         </button>
       </div>
     </div>
 
+    <!-- Status Filter -->
+    <div filters class="filter-group">
+      <p-select
+        [options]="statusOptions"
+        [(ngModel)]="filterStatus"
+        placeholder="All Statuses"
+        [showClear]="true"
+        appendTo="body"
+        styleClass="filter-dropdown"
+        (onChange)="onFilterChange()">
+      </p-select>
+    </div>
+
+    <!-- Filter Actions -->
+    <div filterActions class="filter-group filter-actions">
+      <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
+        <i class="pi pi-filter-slash"></i>
+        Clear
+      </button>
+    </div>
+
     <!-- Active Filters Display -->
-    <div *ngIf="hasActiveFilters()" class="active-filters">
+    <div activeFilters *ngIf="hasActiveFilters()" class="active-filters">
       <span class="active-filters-label">Active filters:</span>
       <span *ngIf="searchTerm" class="filter-chip">
         Search: "{{ searchTerm }}"
@@ -78,7 +76,7 @@
         <i class="pi pi-times" (click)="filterStatus = null; onFilterChange()"></i>
       </span>
     </div>
-  </section>
+  </app-filter-bar>
 
   <!-- ==================== CONTENT SECTION ==================== -->
   <section class="content-section">
@@ -340,36 +338,16 @@
       </div>
     </div>
 
-    <!-- ==================== PAGINATION ==================== -->
-    <div class="pagination-section" *ngIf="totalRecords > 0">
-      <div class="pagination-info">
-        Showing <strong>{{ first + 1 }}</strong> to <strong>{{ Math.min(first + rows, totalRecords) }}</strong> of <strong>{{ totalRecords }}</strong> groups
-      </div>
-      <div class="pagination-controls">
-        <span class="page-size-label">Rows per page:</span>
-        <p-select
-          [options]="[{label: '10', value: 10}, {label: '20', value: 20}, {label: '50', value: 50}]"
-          [ngModel]="rows"
-          (onChange)="onPageSizeChange($event.value)"
-          styleClass="page-size-dropdown">
-        </p-select>
-        <div class="page-nav">
-          <button class="page-btn" [disabled]="currentPage <= 1" (click)="goToPage(1)" pTooltip="First Page" tooltipPosition="top">
-            <i class="pi pi-angle-double-left"></i>
-          </button>
-          <button class="page-btn" [disabled]="currentPage <= 1" (click)="goToPage(currentPage - 1)" pTooltip="Previous Page" tooltipPosition="top">
-            <i class="pi pi-angle-left"></i>
-          </button>
-          <span class="page-indicator">{{ currentPage }} / {{ totalPages }}</span>
-          <button class="page-btn" [disabled]="currentPage >= totalPages" (click)="goToPage(currentPage + 1)" pTooltip="Next Page" tooltipPosition="top">
-            <i class="pi pi-angle-right"></i>
-          </button>
-          <button class="page-btn" [disabled]="currentPage >= totalPages" (click)="goToPage(totalPages)" pTooltip="Last Page" tooltipPosition="top">
-            <i class="pi pi-angle-double-right"></i>
-          </button>
-        </div>
-      </div>
-    </div>
-
   </section>
+
+  <!-- ==================== PAGINATION ==================== -->
+  <app-data-pagination
+    [first]="first"
+    [pageSize]="rows"
+    [totalRecords]="totalRecords"
+    itemLabel="groups"
+    (pageChange)="goToPage($event)"
+    (pageSizeChange)="onPageSizeChange($event)">
+  </app-data-pagination>
+
 </app-page-container>
