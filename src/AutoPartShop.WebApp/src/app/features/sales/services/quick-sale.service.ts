@@ -113,6 +113,11 @@ export interface QuickSaleDraft {
   items: QuickSaleLineItem[];
   payments: PaymentDetail[];
   technicianId?: string;
+  technicianName?: string;
+  customerVehicleId?: string | null;
+  manualDiscountAmount?: number;
+  /** Grand total at the moment the sale was held/drafted — display only. */
+  total?: number;
   notes?: string;
   timestamp: Date;
 }
@@ -194,6 +199,10 @@ export class QuickSaleService {
       items: draft.items || [],
       payments: draft.payments || [],
       technicianId: draft.technicianId,
+      technicianName: draft.technicianName,
+      customerVehicleId: draft.customerVehicleId ?? null,
+      manualDiscountAmount: draft.manualDiscountAmount || 0,
+      total: draft.total,
       notes: draft.notes,
       timestamp: new Date()
     };
@@ -268,6 +277,10 @@ export class QuickSaleService {
       items: sale.items || [],
       payments: sale.payments || [],
       technicianId: sale.technicianId,
+      technicianName: sale.technicianName,
+      customerVehicleId: sale.customerVehicleId ?? null,
+      manualDiscountAmount: sale.manualDiscountAmount || 0,
+      total: sale.total,
       notes: sale.notes,
       timestamp: new Date()
     };

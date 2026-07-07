@@ -23,7 +23,7 @@ import { TextareaModule } from 'primeng/textarea';
 import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
 
 // Services
-import { QuickSaleService, QuickSaleLineItem, PaymentDetail, PaymentMethod, PaymentResponsibility } from '../services/quick-sale.service';
+import { QuickSaleService, QuickSaleLineItem, QuickSaleDraft, PaymentDetail, PaymentMethod, PaymentResponsibility } from '../services/quick-sale.service';
 import { PaymentProviderService, PaymentProviderResponse } from '../../procurement/services/payment-provider.service';
 import { PublicPartService, PublicPartResponse } from '../services/public-part.service';
 import { UnitService, UnitResponse } from '../../inventory/services/unit.service';
@@ -381,9 +381,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
         header: 'Draft Found',
         icon: 'pi pi-info-circle',
         accept: () => {
-          this.cartItems.set(draft.items);
-          this.payments.set(draft.payments || []);
-          this.saleNotes = draft.notes || '';
+          this.restoreSaleState(draft);
           this.quickSaleService.clearDraft();
         }
       });
@@ -517,12 +515,15 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     }
   }
 
-  private loadCustomerVehicles(customerId: string): void {
+  private loadCustomerVehicles(customerId: string, preselectVehicleId: string | null = null): void {
     this.clearVehicleSelection();
     this.loadingVehicles.set(true);
     this.vehicleService.getByCustomer(customerId, true).subscribe({
       next: (vehicles) => {
         this.customerVehicles.set(vehicles);
+        if (preselectVehicleId && vehicles.some(v => v.id === preselectVehicleId)) {
+          this.selectedVehicleId.set(preselectVehicleId);
+        }
         this.loadingVehicles.set(false);
       },
       error: () => {
@@ -720,15 +721,25 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     this.quickSaleService.clearDraft();
   }
 
-  saveDraft(): void {
-    this.quickSaleService.saveDraft({
+  /** Snapshot of everything a parked/drafted sale needs to resume exactly where it left off. */
+  private captureSaleState(): Partial<QuickSaleDraft> {
+    return {
       customerId: this.selectedCustomer()?.id,
       customerName: this.selectedCustomer()?.fullName,
+      customerPhone: this.selectedCustomer()?.phone,
       items: this.cartItems(),
       payments: this.payments(),
       technicianId: this.selectedTechnician()?.id,
+      technicianName: this.selectedTechnician()?.name,
+      customerVehicleId: this.selectedVehicleId(),
+      manualDiscountAmount: this.manualDiscountAmount(),
+      total: this.grandTotal(),
       notes: this.saleNotes
-    });
+    };
+  }
+
+  saveDraft(): void {
+    this.quickSaleService.saveDraft(this.captureSaleState());
     this.messageService.add({ severity: 'success', summary: 'Draft Saved' });
   }
 
@@ -737,14 +748,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
       this.messageService.add({ severity: 'warn', summary: 'No Items', detail: 'Add items before holding' });
       return;
     }
-    const holdId = this.quickSaleService.holdSale({
-      customerId: this.selectedCustomer()?.id,
-      customerName: this.selectedCustomer()?.fullName,
-      items: this.cartItems(),
-      payments: this.payments(),
-      technicianId: this.selectedTechnician()?.id,
-      notes: this.saleNotes
-    });
+    const holdId = this.quickSaleService.holdSale(this.captureSaleState());
     this.messageService.add({ severity: 'success', summary: 'Sale Held', detail: `ID: ${holdId}` });
     this.resetForm();
   }
@@ -757,12 +761,55 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
   recallHeldSale(holdId: string): void {
     const sale = this.quickSaleService.recallHeldSale(holdId);
     if (sale) {
-      this.resetForm();
-      this.cartItems.set(sale.items);
-      this.payments.set(sale.payments);
-      this.saleNotes = sale.notes || '';
+      this.restoreSaleState(sale);
       this.showHeldSalesDialog = false;
       this.messageService.add({ severity: 'success', summary: 'Sale Recalled' });
+    }
+  }
+
+  /** Rebuild the full POS state from a held/drafted sale — cart, payments, customer, technician, vehicle, discount. */
+  private restoreSaleState(sale: QuickSaleDraft): void {
+    this.resetForm();
+    this.cartItems.set(sale.items || []);
+    this.payments.set(sale.payments || []);
+    this.saleNotes = sale.notes || '';
+    this.manualDiscountAmount.set(sale.manualDiscountAmount || 0);
+
+    // Rebuild per-line unit state so the unit dropdowns work after recall
+    (sale.items || []).forEach((item, index) => {
+      if (!item.unitId) return;
+      this.cartUnitSelection.set(index, item.unitId);
+      if (!this.compatibleUnitsMap.has(item.partId)) {
+        this.unitService.getCompatibleUnits(item.unitId).subscribe({
+          next: (compatibleUnits) => this.compatibleUnitsMap.set(item.partId, compatibleUnits),
+          error: () => this.compatibleUnitsMap.set(item.partId, this.units())
+        });
+      }
+    });
+
+    if (sale.technicianId) {
+      const tech = { id: sale.technicianId, name: sale.technicianName || 'Technician' } as TechnicianResponse;
+      this.selectedTechnician.set(tech);
+      this.selectedTechnicianModel = tech;
+    }
+
+    if (sale.customerId) {
+      const customerId = sale.customerId;
+      this.customerService.getCustomerById(customerId).subscribe({
+        next: (freshCustomer) => {
+          this.selectedCustomer.set(freshCustomer);
+          this.selectedCustomerModel = freshCustomer;
+          this.guardWalkInDuePaymentMethod();
+          this.loadCustomerVehicles(customerId, sale.customerVehicleId ?? null);
+        },
+        error: () => {
+          // Customer fetch failed — fall back to the snapshot so the sale is still usable
+          const snapshot = { id: customerId, fullName: sale.customerName, phone: sale.customerPhone };
+          this.selectedCustomer.set(snapshot);
+          this.selectedCustomerModel = snapshot;
+          this.guardWalkInDuePaymentMethod();
+        }
+      });
     }
   }
 

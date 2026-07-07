@@ -577,7 +577,7 @@
       <div class="held-item" *ngFor="let sale of heldSales()">
         <div class="held-info">
           <strong>{{ sale.customerName || 'Walk-in Customer' }}</strong>
-          <span>{{ sale.items.length }} items • {{ sale.timestamp | date:'short' }}</span>
+          <span>{{ sale.items.length }} items<ng-container *ngIf="sale.total"> • {{ formatCurrency(sale.total) }}</ng-container> • {{ sale.timestamp | date:'short' }}</span>
         </div>
         <div class="held-actions">
           <button class="action-btn-sm" (click)="recallHeldSale(sale.draftId)">
