@@ -620,6 +620,7 @@ export class AppTopbar implements OnInit, OnDestroy {
             '/inventory/attribute-groups': 'menu.attributeGroups',
             '/inventory/discounts': 'menu.discounts',
             '/inventory/stock': 'menu.stockManagement',
+            '/inventory/stock-takes': 'menu.stockTake',
             '/inventory/warehouses': 'menu.warehouses',
             '/inventory/suppliers': 'menu.suppliers',
             '/inventory/vehicles': 'menu.vehicles',

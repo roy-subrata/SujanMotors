@@ -90,6 +90,11 @@ export class AppMenuComponent implements OnInit {
                         routerLink: ['/inventory/stock']
                     },
                     {
+                        label: this.i18n.t('menu.stockTake'),
+                        icon: 'pi pi-list-check',
+                        routerLink: ['/inventory/stock-takes']
+                    },
+                    {
                         label: this.i18n.t('menu.warehouses'),
                         icon: 'pi pi-building',
                         routerLink: ['/inventory/warehouses']

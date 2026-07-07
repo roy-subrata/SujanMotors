@@ -26,6 +26,7 @@ public class StockController : ControllerBase
     private readonly AutoPartDbContext _dbContext;
     private readonly ICurrentUserService _currentUserService;
     private readonly IUnitConversionService _unitConversionService;
+    private readonly StockAdjustmentApplier _adjustmentApplier;
     private readonly ILogger<StockController> _logger;
 
     public StockController(
@@ -36,6 +37,7 @@ public class StockController : ControllerBase
         AutoPartDbContext dbContext,
         ICurrentUserService currentUserService,
         IUnitConversionService unitConversionService,
+        StockAdjustmentApplier adjustmentApplier,
         ILogger<StockController> logger)
     {
         _stockLevelRepository = stockLevelRepository;
@@ -45,6 +47,7 @@ public class StockController : ControllerBase
         _dbContext = dbContext;
         _currentUserService = currentUserService;
         _unitConversionService = unitConversionService;
+        _adjustmentApplier = adjustmentApplier;
         _logger = logger;
     }
 
@@ -629,43 +632,67 @@ public class StockController : ControllerBase
                 quantityInBaseUnit = request.Quantity;
             }
 
-            // Check if negative adjustment would result in negative stock
-            if (request.Quantity < 0 && stockLevel.QuantityOnHandInBaseUnit + quantityInBaseUnit < 0)
-                return BadRequest(new { message = $"Cannot reduce stock below zero. Current: {stockLevel.QuantityOnHandInBaseUnit}, Adjustment: {quantityInBaseUnit}" });
-
-            // Create stock adjustment movement
             var adjustmentReference = string.IsNullOrEmpty(request.Reference)
                 ? $"ADJUST-{DateTime.UtcNow:yyyyMMddHHmmss}"
                 : request.Reference;
 
-            var movement = StockMovement.Create(
-                stockLevel.Id,
-                "ADJUST",
-                request.Quantity,
-                adjustmentReference,
-                $"{request.Reason}: {request.Notes}",
-                unitId: request.UnitId,
-                quantityInBaseUnit: quantityInBaseUnit
-            );
-            movement.CreatedBy = _currentUserService.GetCurrentUsername();
-            movement.ModifiedBy = _currentUserService.GetCurrentUsername();
-            movement.Approve("System");
-            await _stockMovementRepository.AddAsync(movement, cancellationToken);
+            var username = _currentUserService.GetCurrentUsername();
+            var stockLevelId = stockLevel.Id;
 
-            // Update stock level with correct display and base quantities
-            if (request.Quantity > 0)
+            // Apply level + movement + lot sync atomically. Lots must move with the level or lot
+            // quantities drift from level quantities and lot-driven costing goes stale.
+            // The execution strategy may retry the whole lambda on transient failures, so each
+            // attempt clears the change tracker and reloads fresh state — otherwise a retry
+            // would re-apply the delta to already-mutated tracked entities.
+            StockAdjustmentApplier.AdjustmentOutcome outcome = null!;
+            IActionResult? failure = null;
+            var strategy = _dbContext.Database.CreateExecutionStrategy();
+            await strategy.ExecuteAsync(async () =>
             {
-                stockLevel.AddStock(request.Quantity, quantityInBaseUnit, request.Reason);
-            }
-            else
-            {
-                stockLevel.RemoveStock(-request.Quantity, -quantityInBaseUnit, request.Reason);
-            }
-            stockLevel.ModifiedBy = _currentUserService.GetCurrentUsername();
-            await _stockLevelRepository.UpdateAsync(stockLevel, cancellationToken);
+                _dbContext.ChangeTracker.Clear();
+                await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+
+                var level = await _dbContext.StockLevels
+                    .FirstAsync(sl => sl.Id == stockLevelId, cancellationToken);
+
+                previousQuantity = level.QuantityOnHand;
+                previousQuantityBase = level.QuantityOnHandInBaseUnit;
+
+                // Negative-stock guard on CURRENT values (inside the transaction, not the earlier read)
+                if (request.Quantity < 0 && level.QuantityOnHandInBaseUnit + quantityInBaseUnit < 0)
+                {
+                    await tx.RollbackAsync(cancellationToken);
+                    failure = BadRequest(new { message = $"Cannot reduce stock below zero. Current: {level.QuantityOnHandInBaseUnit}, Adjustment: {quantityInBaseUnit}" });
+                    return;
+                }
+
+                outcome = await _adjustmentApplier.ApplyAsync(
+                    level,
+                    request.Quantity,
+                    quantityInBaseUnit,
+                    request.Reason,
+                    adjustmentReference,
+                    request.Notes,
+                    username,
+                    unitId: request.UnitId,
+                    cancellationToken: cancellationToken);
+                await _dbContext.SaveChangesAsync(cancellationToken);
+                await tx.CommitAsync(cancellationToken);
+
+                stockLevel = level;
+            });
+
+            if (failure != null)
+                return failure;
+
+            if (outcome.LotSyncSkipped)
+                _logger.LogWarning(
+                    "Stock adjustment {Reference} applied to level but lots only partially synced (part {PartId}, warehouse {WarehouseId}) — pre-existing lot/level drift or no lot to receive found stock",
+                    adjustmentReference, request.PartId, request.WarehouseId);
 
             var newQuantity = stockLevel.QuantityOnHand;
             var newQuantityBase = stockLevel.QuantityOnHandInBaseUnit;
+            var movement = outcome.Movement;
 
             // Return adjustment response
             var response = new StockAdjustmentResponse
@@ -695,6 +722,11 @@ public class StockController : ControllerBase
         }
         catch (ArgumentException ex)
         {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            // Domain guard (e.g. reserved stock blocks the decrease) — the transaction rolled back.
             return BadRequest(new { message = ex.Message });
         }
         catch (Exception ex)
