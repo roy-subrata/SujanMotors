@@ -115,12 +115,12 @@ export class EmployeeService {
         return this.http.put<EmployeeResponse>(`${this.apiUrl}/${id}`, request);
     }
 
-    activateEmployee(id: string): Observable<EmployeeResponse> {
-        return this.http.patch<EmployeeResponse>(`${this.apiUrl}/${id}/activate`, {});
+    activateEmployee(id: string, enableLogin = false): Observable<{ employee: EmployeeResponse; loginEnabled: boolean }> {
+        return this.http.patch<{ employee: EmployeeResponse; loginEnabled: boolean }>(`${this.apiUrl}/${id}/activate`, { enableLogin });
     }
 
-    deactivateEmployee(id: string): Observable<EmployeeResponse> {
-        return this.http.patch<EmployeeResponse>(`${this.apiUrl}/${id}/deactivate`, {});
+    deactivateEmployee(id: string, disableLogin = false): Observable<{ employee: EmployeeResponse; loginDisabled: boolean }> {
+        return this.http.patch<{ employee: EmployeeResponse; loginDisabled: boolean }>(`${this.apiUrl}/${id}/deactivate`, { disableLogin });
     }
 
     deleteEmployee(id: string): Observable<void> {

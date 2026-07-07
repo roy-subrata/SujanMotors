@@ -159,3 +159,34 @@
   </app-data-pagination>
 
 </app-page-container>
+
+<!-- ==================== ACTIVATE / DEACTIVATE DIALOG ==================== -->
+<p-dialog [(visible)]="statusDialogVisible" [modal]="true" [style]="{ width: '430px' }"
+  [header]="statusDeactivating ? 'Deactivate Employee' : 'Activate Employee'" [draggable]="false" [resizable]="false">
+  <div class="status-dialog" *ngIf="statusTarget">
+    <p>
+      {{ statusDeactivating ? 'Deactivate' : 'Activate' }}
+      <strong>{{ statusTarget.name }}</strong> ({{ statusTarget.employeeCode }})?
+    </p>
+    <label *ngIf="statusTarget.userName" class="login-toggle">
+      <input type="checkbox" [(ngModel)]="alsoToggleLogin" />
+      <span>
+        Also {{ statusDeactivating ? 'disable' : 'enable' }} login account
+        <strong>{{ statusTarget.userName }}</strong>
+      </span>
+    </label>
+    <small *ngIf="statusTarget.userName && statusDeactivating && alsoToggleLogin" class="login-hint">
+      <i class="pi pi-info-circle"></i>
+      They will no longer be able to sign in. An already-open session stays valid until its token expires (~1 hour).
+    </small>
+    <small *ngIf="!statusTarget.userName" class="login-hint">
+      <i class="pi pi-info-circle"></i>
+      No login account is linked to this employee.
+    </small>
+  </div>
+  <ng-template pTemplate="footer">
+    <button pButton label="Cancel" icon="pi pi-times" class="p-button-outlined" (click)="statusDialogVisible = false"></button>
+    <button pButton [label]="statusSaving ? 'Working...' : (statusDeactivating ? 'Deactivate' : 'Activate')"
+      [icon]="statusDeactivating ? 'pi pi-ban' : 'pi pi-check'" [loading]="statusSaving" (click)="confirmStatusChange()"></button>
+  </ng-template>
+</p-dialog>

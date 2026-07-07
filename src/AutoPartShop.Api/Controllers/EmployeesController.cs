@@ -5,6 +5,7 @@ using AutoPartShop.Application.Hr.Dtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AutoPartShop.Api.Controllers;
@@ -23,6 +24,7 @@ public class EmployeesController : ControllerBase
     private readonly IEmployeeReadRepository _employeeReadRepository;
     private readonly ICodeGenerateService _codeGenerateService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly UserManager<ApplicationUser> _userManager;
     private readonly ILogger<EmployeesController> _logger;
 
     public EmployeesController(
@@ -30,12 +32,14 @@ public class EmployeesController : ControllerBase
         IEmployeeReadRepository employeeReadRepository,
         ICodeGenerateService codeGenerateService,
         ICurrentUserService currentUserService,
+        UserManager<ApplicationUser> userManager,
         ILogger<EmployeesController> logger)
     {
         _employeeRepository = employeeRepository;
         _employeeReadRepository = employeeReadRepository;
         _codeGenerateService = codeGenerateService;
         _currentUserService = currentUserService;
+        _userManager = userManager;
         _logger = logger;
     }
 
@@ -235,19 +239,23 @@ public class EmployeesController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/activate")]
-    public async Task<IActionResult> Activate(Guid id, CancellationToken cancellationToken)
+    public async Task<IActionResult> Activate(Guid id, ActivateEmployeeRequest? request, CancellationToken cancellationToken)
     {
         try
         {
             var employee = await _employeeRepository.GetByIdAsync(id, cancellationToken);
             if (employee is null) return NotFound();
 
+            var currentUser = _currentUserService.GetCurrentUsername();
             employee.Activate();
-            employee.ModifiedBy = _currentUserService.GetCurrentUsername();
+            employee.ModifiedBy = currentUser;
 
             await _employeeRepository.UpdateAsync(employee, cancellationToken);
 
-            return Ok(MapToResponse(employee));
+            var loginToggled = request?.EnableLogin == true
+                && await SetLinkedLoginActiveAsync(employee, active: true, currentUser);
+
+            return Ok(new { employee = MapToResponse(employee), loginEnabled = loginToggled });
         }
         catch (Exception ex)
         {
@@ -257,25 +265,48 @@ public class EmployeesController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/deactivate")]
-    public async Task<IActionResult> Deactivate(Guid id, CancellationToken cancellationToken)
+    public async Task<IActionResult> Deactivate(Guid id, DeactivateEmployeeRequest? request, CancellationToken cancellationToken)
     {
         try
         {
             var employee = await _employeeRepository.GetByIdAsync(id, cancellationToken);
             if (employee is null) return NotFound();
 
+            var currentUser = _currentUserService.GetCurrentUsername();
             employee.Deactivate();
-            employee.ModifiedBy = _currentUserService.GetCurrentUsername();
+            employee.ModifiedBy = currentUser;
 
             await _employeeRepository.UpdateAsync(employee, cancellationToken);
 
-            return Ok(MapToResponse(employee));
+            var loginToggled = request?.DisableLogin == true
+                && await SetLinkedLoginActiveAsync(employee, active: false, currentUser);
+
+            return Ok(new { employee = MapToResponse(employee), loginDisabled = loginToggled });
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deactivating employee");
             return StatusCode(500, "An error occurred");
         }
+    }
+
+    /// <summary>Flips the linked login account's IsActive flag; returns false when there is no link.</summary>
+    private async Task<bool> SetLinkedLoginActiveAsync(Employee employee, bool active, string modifiedBy)
+    {
+        if (employee.UserId is not Guid userId) return false;
+
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user is null) return false;
+
+        user.IsActive = active;
+        user.ModifiedAt = DateTime.UtcNow;
+        user.ModifiedBy = modifiedBy;
+        var result = await _userManager.UpdateAsync(user);
+
+        if (!result.Succeeded)
+            _logger.LogWarning("Failed to set IsActive={Active} on login {UserId} for employee {EmployeeCode}", active, userId, employee.EmployeeCode);
+
+        return result.Succeeded;
     }
 
     [HttpDelete("{id:guid}")]

@@ -2,6 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { Observable } from 'rxjs';
 import { EmployeeService, EmployeeResponse } from '../../services/employee.service';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
@@ -10,6 +11,7 @@ import { Select } from 'primeng/select';
 import { TooltipModule } from 'primeng/tooltip';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { DialogModule } from 'primeng/dialog';
 import { PaginatorState } from 'primeng/paginator';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
@@ -21,7 +23,7 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
     selector: 'app-employees-list',
     standalone: true,
     imports: [CommonModule, FormsModule, TableModule, ButtonModule, InputTextModule, Select, TooltipModule, ToastModule, ConfirmDialogModule,
-        PageContainerComponent, PageHeaderComponent, FilterBarComponent, DataPaginationComponent],
+        DialogModule, PageContainerComponent, PageHeaderComponent, FilterBarComponent, DataPaginationComponent],
     providers: [MessageService, ConfirmationService],
     templateUrl: './employees-list.component.html',
     styleUrls: ['./employees-list.component.css']
@@ -174,37 +176,52 @@ export class EmployeesListComponent implements OnInit {
         this.router.navigate(['/hr/employees/edit'], { queryParams: { id: employee.id } });
     }
 
+    // Status-change dialog (offers to also toggle the linked login account)
+    statusDialogVisible = false;
+    statusTarget: EmployeeResponse | null = null;
+    statusDeactivating = false;
+    alsoToggleLogin = true;
+    statusSaving = false;
+
     toggleStatus(employee: EmployeeResponse): void {
-        const isDeactivating = employee.status === 'ACTIVE';
-        const message = isDeactivating
-            ? `Are you sure you want to deactivate ${employee.name}?`
-            : `Are you sure you want to activate ${employee.name}?`;
+        this.statusTarget = employee;
+        this.statusDeactivating = employee.status === 'ACTIVE';
+        this.alsoToggleLogin = !!employee.userName;
+        this.statusDialogVisible = true;
+    }
 
-        this.confirmationService.confirm({
-            message,
-            header: 'Confirm',
-            icon: 'pi pi-exclamation-triangle',
-            accept: () => {
-                const serviceAction = isDeactivating
-                    ? this.employeeService.deactivateEmployee(employee.id)
-                    : this.employeeService.activateEmployee(employee.id);
+    confirmStatusChange(): void {
+        const employee = this.statusTarget;
+        if (!employee) return;
 
-                serviceAction.subscribe({
-                    next: () => {
-                        this.messageService.add({
-                            severity: 'success',
-                            summary: 'Success',
-                            detail: isDeactivating ? 'Employee deactivated' : 'Employee activated'
-                        });
-                        this.loadEmployees();
-                    },
-                    error: (err) => {
-                        this.messageService.add({
-                            severity: 'error',
-                            summary: 'Error',
-                            detail: err?.error?.message || (isDeactivating ? 'Failed to deactivate employee' : 'Failed to activate employee')
-                        });
-                    }
+        const isDeactivating = this.statusDeactivating;
+        const toggleLogin = !!employee.userName && this.alsoToggleLogin;
+
+        this.statusSaving = true;
+        const serviceAction: Observable<{ employee: EmployeeResponse; loginDisabled?: boolean; loginEnabled?: boolean }> = isDeactivating
+            ? this.employeeService.deactivateEmployee(employee.id, toggleLogin)
+            : this.employeeService.activateEmployee(employee.id, toggleLogin);
+
+        serviceAction.subscribe({
+            next: (result: any) => {
+                this.statusSaving = false;
+                this.statusDialogVisible = false;
+                const loginNote = (result?.loginDisabled || result?.loginEnabled)
+                    ? ` — login "${employee.userName}" ${isDeactivating ? 'disabled' : 'enabled'}`
+                    : '';
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'Success',
+                    detail: (isDeactivating ? 'Employee deactivated' : 'Employee activated') + loginNote
+                });
+                this.loadEmployees();
+            },
+            error: (err) => {
+                this.statusSaving = false;
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: err?.error?.message || (isDeactivating ? 'Failed to deactivate employee' : 'Failed to activate employee')
                 });
             }
         });

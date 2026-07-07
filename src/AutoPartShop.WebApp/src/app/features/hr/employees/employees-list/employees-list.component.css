@@ -8,3 +8,35 @@
 .col-user        { min-width: 140px; }
 .col-status      { min-width: 110px; }
 .col-actions     { width: 130px; text-align: center; }
+
+/* Activate/deactivate dialog */
+.status-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  font-size: 14px;
+  color: var(--color-text-primary);
+}
+
+.login-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.login-toggle input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-primary);
+}
+
+.login-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.375rem;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.4;
+}

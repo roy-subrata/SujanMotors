@@ -24,6 +24,18 @@
         public Guid? UserId { get; set; }
     }
 
+    public class DeactivateEmployeeRequest
+    {
+        /// <summary>Also disable the linked login account so the person can no longer sign in.</summary>
+        public bool DisableLogin { get; set; }
+    }
+
+    public class ActivateEmployeeRequest
+    {
+        /// <summary>Also re-enable the linked login account.</summary>
+        public bool EnableLogin { get; set; }
+    }
+
     public class UpdateEmployeeRequest
     {
         public string Name { get; set; } = string.Empty;
