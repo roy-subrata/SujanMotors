@@ -163,4 +163,68 @@ public static class ReportColumnMaps
         new("Last Sale", r => r.LastSaleDate, ReportColumnFormat.Date),
         new("Days Since Sale", r => r.DaysSinceLastSale, ReportColumnFormat.Integer)
     ];
+
+    public static readonly IReadOnlyList<ReportColumn<PurchaseSummaryRowDto>> PurchaseSummary =
+    [
+        new("Period", r => r.PeriodStart, ReportColumnFormat.Date),
+        new("POs", r => r.PoCount, ReportColumnFormat.Integer),
+        new("Total Amount", r => r.TotalAmount, ReportColumnFormat.Money),
+        new("Paid", r => r.PaidAmount, ReportColumnFormat.Money),
+        new("Outstanding", r => r.Outstanding, ReportColumnFormat.Money)
+    ];
+
+    public static readonly IReadOnlyList<ReportColumn<PurchasesBySupplierRowDto>> PurchasesBySupplier =
+    [
+        new("Supplier Code", r => r.SupplierCode),
+        new("Supplier", r => r.SupplierName),
+        new("POs", r => r.PoCount, ReportColumnFormat.Integer),
+        new("Total Amount", r => r.TotalAmount, ReportColumnFormat.Money),
+        new("Received Value", r => r.ReceivedValue, ReportColumnFormat.Money),
+        new("Paid", r => r.PaidAmount, ReportColumnFormat.Money),
+        new("Returned Value", r => r.ReturnedValue, ReportColumnFormat.Money),
+        new("Balance", r => r.Balance, ReportColumnFormat.Money)
+    ];
+
+    public static readonly IReadOnlyList<ReportColumn<PurchaseReturnRowDto>> PurchaseReturns =
+    [
+        new("Return Date", r => r.ReturnDate, ReportColumnFormat.Date),
+        new("Return No.", r => r.ReturnNumber),
+        new("PO Number", r => r.PoNumber),
+        new("Supplier", r => r.SupplierName),
+        new("Status", r => r.Status),
+        new("Settlement", r => r.SettlementStatus),
+        new("Refund Amount", r => r.RefundAmount, ReportColumnFormat.Money),
+        new("Currency", r => r.Currency)
+    ];
+
+    public static readonly IReadOnlyList<ReportColumn<ReceivablesAgingRowDto>> ReceivablesAging =
+    [
+        new("Customer Code", r => r.CustomerCode),
+        new("Customer", r => r.CustomerName),
+        new("Current", r => r.CurrentAmount, ReportColumnFormat.Money),
+        new("1-30 Days", r => r.Days1To30, ReportColumnFormat.Money),
+        new("31-60 Days", r => r.Days31To60, ReportColumnFormat.Money),
+        new("61-90 Days", r => r.Days61To90, ReportColumnFormat.Money),
+        new("90+ Days", r => r.Days90Plus, ReportColumnFormat.Money),
+        new("Total", r => r.Total, ReportColumnFormat.Money)
+    ];
+
+    public static readonly IReadOnlyList<ReportColumn<PayablesAgingRowDto>> PayablesAging =
+    [
+        new("Supplier Code", r => r.SupplierCode),
+        new("Supplier", r => r.SupplierName),
+        new("Current", r => r.CurrentAmount, ReportColumnFormat.Money),
+        new("1-30 Days", r => r.Days1To30, ReportColumnFormat.Money),
+        new("31-60 Days", r => r.Days31To60, ReportColumnFormat.Money),
+        new("61-90 Days", r => r.Days61To90, ReportColumnFormat.Money),
+        new("90+ Days", r => r.Days90Plus, ReportColumnFormat.Money),
+        new("Total", r => r.Total, ReportColumnFormat.Money)
+    ];
+
+    public static readonly IReadOnlyList<ReportColumn<ExpenseReportRowDto>> Expenses =
+    [
+        new("Group", r => r.GroupKey),
+        new("Count", r => r.ExpenseCount, ReportColumnFormat.Integer),
+        new("Total Amount", r => r.TotalAmount, ReportColumnFormat.Money)
+    ];
 }

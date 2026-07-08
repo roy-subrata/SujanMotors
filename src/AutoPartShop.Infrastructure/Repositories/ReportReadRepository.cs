@@ -85,8 +85,7 @@ public class ReportReadRepository : IReportReadRepository
     {
         var (pageNumber, pageSize) = ResolvePaging(query, maxRowsOverride);
 
-        var connection = await GetOpenConnectionAsync(cancellationToken);
-        await using var multi = await connection.QueryMultipleAsync(new CommandDefinition(
+        var result = await QueryPagedWithTotalsAsync<StockSummaryRowDto, StockSummaryTotalsDto>(
             "dbo.usp_Report_StockSummary",
             new
             {
@@ -98,23 +97,13 @@ public class ReportReadRepository : IReportReadRepository
                 PageNumber = pageNumber,
                 PageSize = pageSize
             },
-            commandType: CommandType.StoredProcedure,
-            cancellationToken: cancellationToken));
-
-        var rows = (await multi.ReadAsync<StockSummaryRowDto>()).ToList();
-        var totals = await multi.ReadSingleAsync<StockSummaryTotalsDto>();
+            cancellationToken);
 
         return new ReportPage<StockSummaryRowDto, StockSummaryTotalsDto>
         {
-            Data = rows,
-            Pagination = new PaginationMeta
-            {
-                PageNumber = pageNumber,
-                PageSize = pageSize,
-                TotalCount = totals.RowCount,
-                TotalPages = (int)Math.Ceiling(totals.RowCount / (double)pageSize)
-            },
-            Totals = totals
+            Data = result.Rows,
+            Pagination = BuildPagination(pageNumber, pageSize, result.Totals.RowCount),
+            Totals = result.Totals
         };
     }
 
@@ -322,6 +311,141 @@ public class ReportReadRepository : IReportReadRepository
         return PagedResult<SlowMovingStockRowDto>.Create(rows.Rows, rows.TotalCount, pageNumber, pageSize);
     }
 
+    public async Task<IReadOnlyList<PurchaseSummaryRowDto>> GetPurchaseSummaryAsync(
+        ReportQuery query, CancellationToken cancellationToken = default)
+    {
+        var (fromDate, toDate) = RequireDateRange(query, MaxSummaryRangeDays);
+
+        var groupBy = (query.GroupBy ?? "day").ToLowerInvariant();
+        if (groupBy is not ("day" or "week" or "month"))
+            throw new ArgumentException("groupBy must be one of: day, week, month.");
+
+        var connection = await GetOpenConnectionAsync(cancellationToken);
+        var rows = await connection.QueryAsync<PurchaseSummaryRowDto>(new CommandDefinition(
+            "dbo.usp_Report_PurchaseSummary",
+            new { FromDate = fromDate, ToDate = toDate, GroupBy = groupBy, query.SupplierId },
+            commandType: CommandType.StoredProcedure,
+            cancellationToken: cancellationToken));
+
+        return rows.ToList();
+    }
+
+    public async Task<PagedResult<PurchasesBySupplierRowDto>> GetPurchasesBySupplierAsync(
+        ReportQuery query, int? maxRowsOverride = null, CancellationToken cancellationToken = default)
+    {
+        var (fromDate, toDate) = RequireDateRange(query);
+        var (pageNumber, pageSize) = ResolvePaging(query, maxRowsOverride);
+
+        var rows = await QueryPagedAsync<PurchasesBySupplierRowDto, PurchasesBySupplierRow>(
+            "dbo.usp_Report_PurchasesBySupplier",
+            new
+            {
+                FromDate = fromDate,
+                ToDate = toDate,
+                Search = NormalizeText(query.Search),
+                PageNumber = pageNumber,
+                PageSize = pageSize
+            },
+            cancellationToken);
+
+        return PagedResult<PurchasesBySupplierRowDto>.Create(rows.Rows, rows.TotalCount, pageNumber, pageSize);
+    }
+
+    public async Task<PagedResult<PurchaseReturnRowDto>> GetPurchaseReturnsAsync(
+        ReportQuery query, int? maxRowsOverride = null, CancellationToken cancellationToken = default)
+    {
+        var (fromDate, toDate) = RequireDateRange(query);
+        var (pageNumber, pageSize) = ResolvePaging(query, maxRowsOverride);
+
+        var rows = await QueryPagedAsync<PurchaseReturnRowDto, PurchaseReturnRow>(
+            "dbo.usp_Report_PurchaseReturns",
+            new
+            {
+                FromDate = fromDate,
+                ToDate = toDate,
+                query.SupplierId,
+                PageNumber = pageNumber,
+                PageSize = pageSize
+            },
+            cancellationToken);
+
+        return PagedResult<PurchaseReturnRowDto>.Create(rows.Rows, rows.TotalCount, pageNumber, pageSize);
+    }
+
+    public async Task<ReportPage<ReceivablesAgingRowDto, AgingTotalsDto>> GetReceivablesAgingAsync(
+        ReportQuery query, int? maxRowsOverride = null, CancellationToken cancellationToken = default)
+    {
+        var (pageNumber, pageSize) = ResolvePaging(query, maxRowsOverride);
+
+        var totals = await QueryPagedWithTotalsAsync<ReceivablesAgingRowDto, AgingTotalsDto>(
+            "dbo.usp_Report_ReceivablesAging",
+            new
+            {
+                AsOfDate = (query.AsOfDate ?? DateTime.UtcNow).Date,
+                Search = NormalizeText(query.Search),
+                PageNumber = pageNumber,
+                PageSize = pageSize
+            },
+            cancellationToken);
+
+        return new ReportPage<ReceivablesAgingRowDto, AgingTotalsDto>
+        {
+            Data = totals.Rows,
+            Pagination = BuildPagination(pageNumber, pageSize, totals.Totals.RowCount),
+            Totals = totals.Totals
+        };
+    }
+
+    public async Task<ReportPage<PayablesAgingRowDto, AgingTotalsDto>> GetPayablesAgingAsync(
+        ReportQuery query, int? maxRowsOverride = null, CancellationToken cancellationToken = default)
+    {
+        var (pageNumber, pageSize) = ResolvePaging(query, maxRowsOverride);
+
+        var totals = await QueryPagedWithTotalsAsync<PayablesAgingRowDto, AgingTotalsDto>(
+            "dbo.usp_Report_PayablesAging",
+            new
+            {
+                AsOfDate = (query.AsOfDate ?? DateTime.UtcNow).Date,
+                Search = NormalizeText(query.Search),
+                PageNumber = pageNumber,
+                PageSize = pageSize
+            },
+            cancellationToken);
+
+        return new ReportPage<PayablesAgingRowDto, AgingTotalsDto>
+        {
+            Data = totals.Rows,
+            Pagination = BuildPagination(pageNumber, pageSize, totals.Totals.RowCount),
+            Totals = totals.Totals
+        };
+    }
+
+    public async Task<IReadOnlyList<ExpenseReportRowDto>> GetExpensesAsync(
+        ReportQuery query, CancellationToken cancellationToken = default)
+    {
+        var (fromDate, toDate) = RequireDateRange(query, MaxSummaryRangeDays);
+
+        var groupBy = (query.GroupBy ?? "day").ToLowerInvariant();
+        if (groupBy is not ("day" or "category"))
+            throw new ArgumentException("groupBy must be one of: day, category.");
+
+        var connection = await GetOpenConnectionAsync(cancellationToken);
+        var rows = await connection.QueryAsync<ExpenseReportRowDto>(new CommandDefinition(
+            "dbo.usp_Report_Expenses",
+            new
+            {
+                FromDate = fromDate,
+                ToDate = toDate,
+                GroupBy = groupBy,
+                Category = NormalizeText(query.ExpenseCategory),
+                PaymentMethod = NormalizeText(query.PaymentMethod)
+            },
+            commandType: CommandType.StoredProcedure,
+            cancellationToken: cancellationToken));
+
+        return rows.ToList();
+    }
+
     /// <summary>
     /// Runs a paged stored procedure whose result set carries COUNT(*) OVER() AS TotalCount on
     /// every row, and strips that column back out into a separate total (0 when the page is empty).
@@ -339,6 +463,33 @@ public class ReportReadRepository : IReportReadRepository
 
         return (rows.Cast<TDto>().ToList(), rows.FirstOrDefault()?.TotalCount ?? 0);
     }
+
+    /// <summary>
+    /// Runs a paged stored procedure that returns two result sets: the requested page, then a
+    /// single totals row (see usp_Report_StockSummary/ReceivablesAging/PayablesAging).
+    /// </summary>
+    private async Task<(IReadOnlyList<TDto> Rows, TTotals Totals)> QueryPagedWithTotalsAsync<TDto, TTotals>(
+        string procedureName, object parameters, CancellationToken cancellationToken)
+    {
+        var connection = await GetOpenConnectionAsync(cancellationToken);
+        await using var multi = await connection.QueryMultipleAsync(new CommandDefinition(
+            procedureName,
+            parameters,
+            commandType: CommandType.StoredProcedure,
+            cancellationToken: cancellationToken));
+
+        var rows = (await multi.ReadAsync<TDto>()).ToList();
+        var totals = await multi.ReadSingleAsync<TTotals>();
+        return (rows, totals);
+    }
+
+    private static PaginationMeta BuildPagination(int pageNumber, int pageSize, int totalCount) => new()
+    {
+        PageNumber = pageNumber,
+        PageSize = pageSize,
+        TotalCount = totalCount,
+        TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+    };
 
     /// <summary>
     /// Paged stored procedures window the total with COUNT(*) OVER() on every row; these
@@ -385,6 +536,16 @@ public class ReportReadRepository : IReportReadRepository
     }
 
     private sealed class SlowMovingStockRow : SlowMovingStockRowDto, IHasTotalCount
+    {
+        public int TotalCount { get; set; }
+    }
+
+    private sealed class PurchasesBySupplierRow : PurchasesBySupplierRowDto, IHasTotalCount
+    {
+        public int TotalCount { get; set; }
+    }
+
+    private sealed class PurchaseReturnRow : PurchaseReturnRowDto, IHasTotalCount
     {
         public int TotalCount { get; set; }
     }

@@ -49,4 +49,22 @@ public interface IReportReadRepository
 
     Task<PagedResult<SlowMovingStockRowDto>> GetSlowMovingStockAsync(
         ReportQuery query, int? maxRowsOverride = null, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<PurchaseSummaryRowDto>> GetPurchaseSummaryAsync(
+        ReportQuery query, CancellationToken cancellationToken = default);
+
+    Task<PagedResult<PurchasesBySupplierRowDto>> GetPurchasesBySupplierAsync(
+        ReportQuery query, int? maxRowsOverride = null, CancellationToken cancellationToken = default);
+
+    Task<PagedResult<PurchaseReturnRowDto>> GetPurchaseReturnsAsync(
+        ReportQuery query, int? maxRowsOverride = null, CancellationToken cancellationToken = default);
+
+    Task<ReportPage<ReceivablesAgingRowDto, AgingTotalsDto>> GetReceivablesAgingAsync(
+        ReportQuery query, int? maxRowsOverride = null, CancellationToken cancellationToken = default);
+
+    Task<ReportPage<PayablesAgingRowDto, AgingTotalsDto>> GetPayablesAgingAsync(
+        ReportQuery query, int? maxRowsOverride = null, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<ExpenseReportRowDto>> GetExpensesAsync(
+        ReportQuery query, CancellationToken cancellationToken = default);
 }

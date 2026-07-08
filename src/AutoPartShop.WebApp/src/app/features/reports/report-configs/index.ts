@@ -1,13 +1,17 @@
 import { ReportGroup, ReportPageConfig } from './report-config.model';
 import { SALES_REPORT_CONFIGS } from './sales-reports.config';
 import { INVENTORY_REPORT_CONFIGS } from './inventory-reports.config';
+import { PURCHASE_REPORT_CONFIGS } from './purchase-reports.config';
+import { FINANCIAL_REPORT_CONFIGS } from './financial-reports.config';
 
 export * from './report-config.model';
 
-/** All configured reports, in hub display order. Purchase/financial groups arrive in later phases. */
+/** All configured reports, in hub display order. */
 export const ALL_REPORT_CONFIGS: ReportPageConfig[] = [
     ...SALES_REPORT_CONFIGS,
-    ...INVENTORY_REPORT_CONFIGS
+    ...INVENTORY_REPORT_CONFIGS,
+    ...PURCHASE_REPORT_CONFIGS,
+    ...FINANCIAL_REPORT_CONFIGS
 ];
 
 /** Lookup by route key used by the generic report page. */
