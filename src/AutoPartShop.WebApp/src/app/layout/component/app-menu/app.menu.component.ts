@@ -234,6 +234,12 @@ export class AppMenuComponent implements OnInit {
                 visible: can('reports.view') || adminOnly,
                 items: [
                     {
+                        label: this.i18n.t('menu.reports'),
+                        icon: 'pi pi-chart-bar',
+                        routerLink: ['/reports'],
+                        visible: can('reports.view')
+                    },
+                    {
                         label: this.i18n.t('menu.dailyCashBook'),
                         icon: 'pi pi-book',
                         routerLink: ['/finance/cash-book'],

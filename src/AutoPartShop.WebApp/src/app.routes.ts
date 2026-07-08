@@ -60,6 +60,12 @@ export const appRoutes: Routes = [
                 data: { permissions: ['reports.view'] }
             },
             {
+                path: 'reports',
+                loadChildren: () => import('./app/features/reports/reports.routes').then(m => m.reportsRoutes),
+                canActivate: [permissionGuard],
+                data: { permissions: ['reports.view'] }
+            },
+            {
                 path: 'hr',
                 loadChildren: () => import('./app/features/hr/hr.routes').then(m => m.hrRoutes),
                 canActivate: [roleGuard],

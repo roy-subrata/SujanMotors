@@ -11,6 +11,7 @@ using AutoPartShop.Application.CustomerPayment;
 using AutoPartShop.Application.Customers;
 using AutoPartShop.Application.Parts;
 using AutoPartShop.Application.PurchaseOrders;
+using AutoPartShop.Application.Reports;
 using AutoPartShop.Application.SaleOrders;
 using AutoPartShop.Application.Services;
 using AutoPartShop.Application.Stock;
@@ -197,6 +198,8 @@ public static class Dependency
         services.AddScoped<ISalaryAdvanceReadRepository, SalaryAdvanceReadRepository>();
         services.AddScoped<IHrSalesReadRepository, HrSalesReadRepository>();
         services.AddScoped<IWarehouseReadRepository, WarehouseReadRepository>();
+
+        services.AddScoped<IReportReadRepository, ReportReadRepository>();
 
         return services;
     }

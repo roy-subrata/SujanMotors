@@ -1,0 +1,50 @@
+<app-page-container>
+
+  <app-page-header
+    title="Reports"
+    subtitle="Sales, inventory, purchase and financial reports"
+    [count]="totalReports" countLabel="reports">
+  </app-page-header>
+
+  <div class="reports-hub">
+    @for (group of groups; track group.group) {
+      <section class="report-group">
+        <div class="group-heading">
+          <i [class]="group.icon"></i>
+          <h2>{{ group.title }}</h2>
+        </div>
+        <div class="report-cards">
+          @for (report of group.reports; track report.key) {
+            <a class="report-card" [routerLink]="['/reports', report.key]">
+              <div class="report-card-icon"><i [class]="report.icon"></i></div>
+              <div class="report-card-body">
+                <span class="report-card-title">{{ report.title }}</span>
+                <span class="report-card-subtitle">{{ report.subtitle }}</span>
+              </div>
+              <i class="pi pi-angle-right report-card-arrow"></i>
+            </a>
+          }
+        </div>
+      </section>
+    }
+
+    <section class="report-group">
+      <div class="group-heading">
+        <i class="pi pi-external-link"></i>
+        <h2>Related Reports</h2>
+      </div>
+      <div class="report-cards">
+        @for (item of relatedReports; track item.link) {
+          <a class="report-card" [routerLink]="item.link">
+            <div class="report-card-icon"><i [class]="item.icon"></i></div>
+            <div class="report-card-body">
+              <span class="report-card-title">{{ item.title }}</span>
+            </div>
+            <i class="pi pi-angle-right report-card-arrow"></i>
+          </a>
+        }
+      </div>
+    </section>
+  </div>
+
+</app-page-container>
