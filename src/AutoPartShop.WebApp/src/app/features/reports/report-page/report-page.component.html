@@ -6,7 +6,8 @@
   <app-page-header
     [title]="config.title"
     [subtitle]="config.subtitle"
-    [count]="totalRecords" [countLabel]="config.itemLabel || 'rows'">
+    [count]="totalRecords" [countLabel]="config.itemLabel || 'rows'"
+    [backLink]="['/reports']">
     <ng-container actions>
       <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="loadData()">
         <i class="pi pi-refresh" [class.pi-spin]="loading"></i>

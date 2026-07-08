@@ -4,7 +4,8 @@
 
   <app-page-header
     title="Profit & Loss"
-    subtitle="Revenue, expenses and profitability for the period">
+    subtitle="Revenue, expenses and profitability for the period"
+    [backLink]="['/reports']">
     <ng-container actions>
       <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="load()">
         <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
