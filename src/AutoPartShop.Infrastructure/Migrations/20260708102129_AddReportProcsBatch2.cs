@@ -255,7 +255,7 @@ BEGIN
                      WHEN slm.MovementType = 'RETURN' THEN -slm.QuantityInBaseUnit * slm.CostAtMovementInBaseUnit
                      ELSE 0 END) AS Cogs
         FROM dbo.StockLotMovements slm
-        JOIN dbo.StockLots sl ON sl.Id = slm.StockLotId
+        JOIN dbo.StockLots sl ON sl.Id = slm.StockLotId AND sl.Isdeleted = 0
         WHERE slm.Isdeleted = 0
           AND slm.MovementDate >= @FromDt AND slm.MovementDate < @ToExclusive
           AND slm.MovementType IN ('SALE', 'RETURN')
@@ -404,7 +404,7 @@ BEGIN
     WITH lastSale AS (
         SELECT lot.PartId, lot.WarehouseId, MAX(slm.MovementDate) AS LastSaleDate
         FROM dbo.StockLotMovements slm
-        JOIN dbo.StockLots lot ON lot.Id = slm.StockLotId
+        JOIN dbo.StockLots lot ON lot.Id = slm.StockLotId AND lot.Isdeleted = 0
         WHERE slm.Isdeleted = 0 AND slm.MovementType = 'SALE'
         GROUP BY lot.PartId, lot.WarehouseId
     ),

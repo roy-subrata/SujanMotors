@@ -251,7 +251,9 @@ public class ReportReadRepository : IReportReadRepository
     public async Task<PagedResult<StockMovementRowDto>> GetStockMovementsAsync(
         ReportQuery query, int? maxRowsOverride = null, CancellationToken cancellationToken = default)
     {
-        var (fromDate, toDate) = RequireDateRange(query, MaxSummaryRangeDays);
+        // No MaxSummaryRangeDays cap here: unlike period-bucketed summaries, this is a paged
+        // ledger already bounded by OFFSET/FETCH, so a wide date range can't explode the result set.
+        var (fromDate, toDate) = RequireDateRange(query);
         var (pageNumber, pageSize) = ResolvePaging(query, maxRowsOverride);
 
         var rows = await QueryPagedAsync<StockMovementRowDto, StockMovementRow>(

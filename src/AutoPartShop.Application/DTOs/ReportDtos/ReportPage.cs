@@ -12,15 +12,4 @@ public class ReportPage<TRow, TTotals> where TTotals : class
     public IReadOnlyList<TRow> Data { get; set; } = [];
     public PaginationMeta Pagination { get; set; } = new();
     public TTotals? Totals { get; set; }
-
-    public static ReportPage<TRow, TTotals> Create(IEnumerable<TRow> data, int totalCount, BaseQuery query, TTotals? totals)
-    {
-        var paged = PagedResult<TRow>.Create(data, totalCount, query);
-        return new ReportPage<TRow, TTotals>
-        {
-            Data = paged.Data,
-            Pagination = paged.Pagination,
-            Totals = totals
-        };
-    }
 }

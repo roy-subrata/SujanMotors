@@ -72,58 +72,63 @@ BEGIN
 
     -- Period-scoped supplier summary (PO date within range) — not the all-time balance the
     -- dashboard/supplier-ledger show; this report answers 'what did we buy from whom this period'.
+    -- ReceivedValue/PaidAmount/ReturnedValue are matched to these SAME purchase orders (by
+    -- PurchaseOrderId membership in the po CTE below), not independently date-filtered — a
+    -- supplier who merely pays off an old, out-of-range PO during the period must not distort
+    -- this period's Balance. Mirrors usp_Report_PayablesAging's per-PO netting.
     WITH po AS (
-        SELECT s.Id AS SupplierId, s.Code, s.Name,
-               COUNT(*) AS PoCount,
-               SUM(po.TotalAmount) AS TotalAmount
+        SELECT po.Id, s.Id AS SupplierId, s.Code, s.Name, po.TotalAmount
         FROM dbo.PurchaseOrders po
         JOIN dbo.Suppliers s ON s.Id = po.SupplierId AND s.Isdeleted = 0
         WHERE po.Isdeleted = 0
           AND po.PODate >= @FromDt AND po.PODate < @ToExclusive
           AND po.Status NOT IN ('DRAFT', 'SUBMITTED', 'CANCELLED')
           AND (@Search IS NULL OR s.Name LIKE N'%' + @Search + N'%' OR s.Code LIKE N'%' + @Search + N'%')
-        GROUP BY s.Id, s.Code, s.Name
+    ),
+    poAgg AS (
+        SELECT SupplierId, MIN(Code) AS Code, MIN(Name) AS Name, COUNT(*) AS PoCount, SUM(TotalAmount) AS TotalAmount
+        FROM po
+        GROUP BY SupplierId
     ),
     received AS (
-        SELECT po2.SupplierId,
+        SELECT po.SupplierId,
                SUM((grl.ReceivedQuantity - grl.DamagedQuantity - grl.WrongQuantity) * grl.UnitCost) AS ReceivedValue
         FROM dbo.GoodsReceiptLines grl
-        JOIN dbo.GoodsReceipts gr  ON gr.Id = grl.GoodsReceiptId AND gr.Isdeleted = 0
-        JOIN dbo.PurchaseOrders po2 ON po2.Id = gr.PurchaseOrderId
+        JOIN dbo.GoodsReceipts gr ON gr.Id = grl.GoodsReceiptId AND gr.Isdeleted = 0
+        JOIN po ON po.Id = gr.PurchaseOrderId
         WHERE grl.Isdeleted = 0
           AND gr.Status IN ('ACCEPTED', 'VERIFIED')
-          AND gr.ReceiptDate >= @FromDt AND gr.ReceiptDate < @ToExclusive
-        GROUP BY po2.SupplierId
+        GROUP BY po.SupplierId
     ),
     paid AS (
-        SELECT sp.SupplierId, SUM(sp.Amount) AS PaidAmount
+        SELECT po.SupplierId, SUM(sp.Amount) AS PaidAmount
         FROM dbo.SupplierPayments sp
+        JOIN po ON po.Id = sp.PurchaseOrderId
         WHERE sp.Isdeleted = 0
           AND sp.Status = 'COMPLETED'
           AND sp.PaymentMethod NOT IN ('REFUND', 'CREDIT_NOTE')
           AND (sp.PaymentType = 'ADVANCE' OR sp.SourceAdvancePaymentId IS NULL)
-          AND sp.PaymentDate >= @FromDt AND sp.PaymentDate < @ToExclusive
-        GROUP BY sp.SupplierId
+        GROUP BY po.SupplierId
     ),
     returned AS (
-        SELECT pr.SupplierId, SUM(pr.SettledAmount) AS ReturnedValue
+        SELECT po.SupplierId, SUM(pr.SettledAmount) AS ReturnedValue
         FROM dbo.PurchaseReturns pr
+        JOIN po ON po.Id = pr.PurchaseOrderId
         WHERE pr.Isdeleted = 0
           AND pr.SettlementStatus = 'SETTLED'
-          AND pr.ReturnDate >= @FromDt AND pr.ReturnDate < @ToExclusive
-        GROUP BY pr.SupplierId
+        GROUP BY po.SupplierId
     ),
     agg AS (
         SELECT
-            po.SupplierId, po.Code AS SupplierCode, po.Name AS SupplierName, po.PoCount, po.TotalAmount,
+            poAgg.SupplierId, poAgg.Code AS SupplierCode, poAgg.Name AS SupplierName, poAgg.PoCount, poAgg.TotalAmount,
             ISNULL(received.ReceivedValue, 0) AS ReceivedValue,
             ISNULL(paid.PaidAmount, 0)        AS PaidAmount,
             ISNULL(returned.ReturnedValue, 0) AS ReturnedValue,
-            po.TotalAmount - ISNULL(paid.PaidAmount, 0) - ISNULL(returned.ReturnedValue, 0) AS Balance
-        FROM po
-        LEFT JOIN received ON received.SupplierId = po.SupplierId
-        LEFT JOIN paid     ON paid.SupplierId = po.SupplierId
-        LEFT JOIN returned ON returned.SupplierId = po.SupplierId
+            poAgg.TotalAmount - ISNULL(paid.PaidAmount, 0) - ISNULL(returned.ReturnedValue, 0) AS Balance
+        FROM poAgg
+        LEFT JOIN received ON received.SupplierId = poAgg.SupplierId
+        LEFT JOIN paid     ON paid.SupplierId = poAgg.SupplierId
+        LEFT JOIN returned ON returned.SupplierId = poAgg.SupplierId
     )
     SELECT agg.*, COUNT(*) OVER() AS TotalCount
     FROM agg
@@ -175,11 +180,15 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    DECLARE @AsOfDt date = ISNULL(@AsOfDate, CAST(GETUTCDATE() AS date));
+    DECLARE @AsOfDt      date      = ISNULL(@AsOfDate, CAST(GETUTCDATE() AS date));
+    DECLARE @AsOfExclusive datetime2 = DATEADD(day, 1, CAST(@AsOfDt AS datetime2));
 
-    -- Outstanding per invoice = (SubTotal+TaxAmount-DiscountAmount) - Σ COMPLETED payments,
-    -- positive only. Bucketed by DueDate age vs @AsOfDate. Mirrors FinancialSummaryService's
-    -- customer-due computation (Invoice.Status<>'CANCELLED', SO not excluded-status).
+    -- Outstanding per invoice = (SubTotal+TaxAmount-DiscountAmount) - Σ COMPLETED payments made
+    -- on or before @AsOfDate, positive only. Both the invoice's existence (InvoiceDate) and the
+    -- payments netted against it are bounded by @AsOfDate so this is a true point-in-time
+    -- snapshot — a payment made after @AsOfDate must not reduce the balance as of that date.
+    -- Bucketed by DueDate age vs @AsOfDate. Mirrors FinancialSummaryService's customer-due
+    -- computation (Invoice.Status<>'CANCELLED', SO not excluded-status).
     WITH inv AS (
         SELECT
             i.Id, i.DueDate, so.CustomerId,
@@ -190,9 +199,11 @@ BEGIN
             SELECT SUM(cp.Amount) AS Paid
             FROM dbo.CustomerPayments cp
             WHERE cp.InvoiceId = i.Id AND cp.Isdeleted = 0 AND cp.Status = 'COMPLETED'
+              AND cp.PaymentDate < @AsOfExclusive
         ) pay
         WHERE i.Isdeleted = 0
           AND i.Status <> 'CANCELLED'
+          AND i.InvoiceDate < @AsOfExclusive
           AND so.Status NOT IN ('DRAFT', 'CANCELLED', 'RETURNED')
     ),
     positiveInv AS (
@@ -251,16 +262,20 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    DECLARE @AsOfDt date = ISNULL(@AsOfDate, CAST(GETUTCDATE() AS date));
+    DECLARE @AsOfDt        date      = ISNULL(@AsOfDate, CAST(GETUTCDATE() AS date));
+    DECLARE @AsOfExclusive datetime2 = DATEADD(day, 1, CAST(@AsOfDt AS datetime2));
 
     -- Balance per PO = TotalAmount - Σ COMPLETED payments applied to that PO - Σ SETTLED
-    -- returns for that PO; bucketed by PO-date age vs @AsOfDate (payables have no due-date
-    -- column, unlike receivables). Mirrors FinancialSummaryService's supplier-balance rules.
+    -- returns for that PO, all bounded by @AsOfDate so this is a true point-in-time snapshot —
+    -- a PO raised, or a payment/return made, after @AsOfDate must not affect the balance as of
+    -- that date. Bucketed by PO-date age vs @AsOfDate (payables have no due-date column, unlike
+    -- receivables). Mirrors FinancialSummaryService's supplier-balance rules.
     WITH pos AS (
         SELECT po.Id, po.SupplierId, po.PODate, po.TotalAmount
         FROM dbo.PurchaseOrders po
         WHERE po.Isdeleted = 0
           AND po.Status NOT IN ('DRAFT', 'SUBMITTED', 'CANCELLED')
+          AND po.PODate < @AsOfExclusive
     ),
     paidByPO AS (
         SELECT sp.PurchaseOrderId, SUM(sp.Amount) AS Paid
@@ -270,12 +285,14 @@ BEGIN
           AND sp.PaymentMethod NOT IN ('REFUND', 'CREDIT_NOTE')
           AND (sp.PaymentType = 'ADVANCE' OR sp.SourceAdvancePaymentId IS NULL)
           AND sp.PurchaseOrderId IS NOT NULL
+          AND sp.PaymentDate < @AsOfExclusive
         GROUP BY sp.PurchaseOrderId
     ),
     returnedByPO AS (
         SELECT pr.PurchaseOrderId, SUM(pr.SettledAmount) AS Returned
         FROM dbo.PurchaseReturns pr
         WHERE pr.Isdeleted = 0 AND pr.SettlementStatus = 'SETTLED'
+          AND pr.ReturnDate < @AsOfExclusive
         GROUP BY pr.PurchaseOrderId
     ),
     balances AS (
