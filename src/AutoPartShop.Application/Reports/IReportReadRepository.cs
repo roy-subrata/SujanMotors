@@ -19,4 +19,34 @@ public interface IReportReadRepository
 
     Task<ReportPage<StockSummaryRowDto, StockSummaryTotalsDto>> GetStockSummaryAsync(
         ReportQuery query, int? maxRowsOverride = null, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<SalesByCategoryRowDto>> GetSalesByCategoryAsync(
+        ReportQuery query, CancellationToken cancellationToken = default);
+
+    Task<PagedResult<SalesByCustomerRowDto>> GetSalesByCustomerAsync(
+        ReportQuery query, int? maxRowsOverride = null, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<SalesBySalespersonRowDto>> GetSalesBySalespersonAsync(
+        ReportQuery query, CancellationToken cancellationToken = default);
+
+    Task<PagedResult<SalesReturnRowDto>> GetSalesReturnsAsync(
+        ReportQuery query, int? maxRowsOverride = null, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<PaymentCollectionRowDto>> GetPaymentCollectionsAsync(
+        ReportQuery query, CancellationToken cancellationToken = default);
+
+    Task<PagedResult<ProfitByProductRowDto>> GetProfitByProductAsync(
+        ReportQuery query, int? maxRowsOverride = null, CancellationToken cancellationToken = default);
+
+    Task<PagedResult<LowStockRowDto>> GetLowStockAsync(
+        ReportQuery query, int? maxRowsOverride = null, CancellationToken cancellationToken = default);
+
+    Task<PagedResult<StockMovementRowDto>> GetStockMovementsAsync(
+        ReportQuery query, int? maxRowsOverride = null, CancellationToken cancellationToken = default);
+
+    Task<PagedResult<ExpiringLotRowDto>> GetExpiringLotsAsync(
+        ReportQuery query, int? maxRowsOverride = null, CancellationToken cancellationToken = default);
+
+    Task<PagedResult<SlowMovingStockRowDto>> GetSlowMovingStockAsync(
+        ReportQuery query, int? maxRowsOverride = null, CancellationToken cancellationToken = default);
 }

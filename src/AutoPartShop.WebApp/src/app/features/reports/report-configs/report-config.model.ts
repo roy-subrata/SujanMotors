@@ -20,7 +20,8 @@ export interface ReportColumnDef {
 
 export interface ReportSelectOption {
     label: string;
-    value: string;
+    /** Number for numeric ReportQuery fields (e.g. daysAhead) so it serializes as a JSON number, not a string. */
+    value: string | number;
 }
 
 export interface ReportFilterDef {
