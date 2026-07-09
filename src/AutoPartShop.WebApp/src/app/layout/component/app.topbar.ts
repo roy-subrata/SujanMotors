@@ -722,7 +722,7 @@ export class AppTopbar implements OnInit, OnDestroy {
 
     onSearch() {
         if (this.searchQuery.trim()) {
-            console.log('Searching for:', this.searchQuery);
+            // TODO: implement global search
         }
     }
 

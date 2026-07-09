@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
+import { Component, OnDestroy, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -47,7 +47,7 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
     templateUrl: './customer-account-summary.component.html',
     styleUrls: ['./customer-account-summary.component.css']
 })
-export class CustomerAccountSummaryComponent implements OnInit, OnDestroy {
+export class CustomerAccountSummaryComponent implements OnDestroy {
     private readonly customerService = inject(CustomerService);
     private readonly vehicleService = inject(CustomerVehicleService);
     private readonly summaryService = inject(CustomerAccountSummaryService);
@@ -90,8 +90,6 @@ export class CustomerAccountSummaryComponent implements OnInit, OnDestroy {
             pageNumber: req.pageNumber,
             pageSize: req.pageSize
         }).pipe(map(res => ({ items: res.data, totalCount: res.pagination.totalCount })));
-
-    ngOnInit(): void {}
 
     onCustomerSelected(customer: CustomerResponse): void {
         this.selectedCustomer = customer;

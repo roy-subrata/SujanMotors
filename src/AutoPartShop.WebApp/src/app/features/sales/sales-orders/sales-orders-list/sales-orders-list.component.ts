@@ -101,8 +101,6 @@ export class SalesOrdersListComponent implements OnInit {
             if (this.selectedOrder) this.buildActionMenuItems(this.selectedOrder);
         });
 
-        window.addEventListener('resize', () => this.checkScreenSize());
-
         this.route.queryParams.subscribe((params) => {
             if (params['status']) {
                 this.filterStatus = params['status'];
@@ -160,8 +158,6 @@ export class SalesOrdersListComponent implements OnInit {
             }
         ];
     }
-
-    private checkScreenSize(): void {}
 
     loadData(): void {
         this.loading = true;

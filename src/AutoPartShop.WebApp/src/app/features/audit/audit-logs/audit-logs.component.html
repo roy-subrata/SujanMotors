@@ -15,7 +15,7 @@
       <div class="search-container">
         <i class="pi pi-search search-icon"></i>
         <input type="text" [(ngModel)]="searchTerm" placeholder="Search across all fields..."
-          class="search-input" (keyup.enter)="onSearch()">
+          class="audit-search-input" (keyup.enter)="onSearch()">
         <i *ngIf="searchTerm" class="pi pi-times clear-icon" (click)="clearSearch()"></i>
       </div>
     </div>

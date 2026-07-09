@@ -1,9 +1,6 @@
 import { Routes } from '@angular/router';
 import { AppLayout } from './app/layout/component/app.layout';
-import { Dashboard } from './app/pages/dashboard/dashboard';
 import { DashboardComponent } from './app/features/dashboard/dashboard.component';
-import { Landing } from './app/pages/landing/landing';
-import { Notfound } from './app/pages/notfound/notfound';
 import { QuickSaleShortcutComponent } from './app/features/sales/quick-sale-shortcut/quick-sale-shortcut.component';
 import { UnifiedLoginComponent } from './app/pages/login/unified-login.component';
 import { AdminSettingsComponent } from './app/pages/admin-settings/admin-settings.component';
@@ -28,7 +25,7 @@ export const appRoutes: Routes = [
         canActivate: [authGuard],
         children: [
             { path: '', component: DashboardComponent },
-            { path: 'financial-dashboard', component: Dashboard },
+            { path: 'financial-dashboard', component: DashboardComponent },
             {
                 path: 'inventory',
                 loadChildren: () => import('./app/features/inventory/inventory.routes').then(m => m.inventoryRoutes),
@@ -86,9 +83,5 @@ export const appRoutes: Routes = [
             }
         ]
     },
-    { path: 'landing', component: Landing },
-    { path: 'notfound', component: Notfound },
-    { path: 'unauthorized', component: Notfound }, // You can create a dedicated unauthorized page later
-    { path: 'auth', loadChildren: () => import('./app/pages/auth/auth.routes') },
-    { path: '**', redirectTo: '/notfound' }
+    { path: '**', redirectTo: '' }
 ];

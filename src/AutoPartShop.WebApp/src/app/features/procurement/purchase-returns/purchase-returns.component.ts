@@ -107,15 +107,6 @@ export class PurchaseReturnsComponent implements OnInit {
     this.loading = true;
     this.prService.getPurchaseReturns(pageNumber, pageSize, searchTerm).subscribe({
       next: (response) => {
-        console.log('Purchase Returns API Response:', response);
-        console.log('Purchase Returns Items:', response.items);
-        if (response.items && response.items.length > 0) {
-          console.log('First Item Sample:', response.items[0]);
-          console.log('First Item Supplier Name:', response.items[0].supplierName);
-          console.log('First Item Supplier Code:', response.items[0].supplierCode);
-          console.log('First Item Refund Amount:', response.items[0].refundAmount);
-        }
-
         this.purchaseReturns = response.items;
         this.totalRecords = response.totalCount;
         this.rows = response.pageSize;

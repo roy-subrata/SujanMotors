@@ -1,11 +1,12 @@
 /* ============================================================
-   DAILY CASH BOOK — matches app design system
+   DAILY CASH BOOK — component-specific overrides only.
+   Shared design-system classes (page-header, page-title,
+   page-subtitle, header-content, header-actions, btn-icon,
+   pagination, empty-state, skeleton, etc.) are defined globally
+   in assets/_data-page.scss and assets/styles.scss.
    ============================================================ */
 
-/* Domain-specific in/out/balance accents kept locally (no global
-   equivalent); everything else inherits the shared, theme-aware tokens
-   from assets/_data-page.scss instead of redefining its own hardcoded,
-   non-dark-aware palette. */
+/* ── Domain-specific tokens (no global equivalent) ──────── */
 :host {
   --color-in:            #16a34a;
   --color-in-light:      #dcfce7;
@@ -15,37 +16,18 @@
   --color-balance-neg:   #ea580c;
 }
 
-/* ── Wrapper ─────────────────────────────────────────────── */
-.page-wrapper {
-  min-height: 100vh;
-  background: var(--color-bg-secondary);
-}
-
-/* ── Page header ─────────────────────────────────────────── */
-.page-header {
-  background: transparent;
-  padding: 0 0 16px;
-}
-
-.header-content {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
+/* ── Header additions (stat badges, toggle, title icon) ──── */
+/* The base .page-header / .page-title / .page-subtitle /
+   .header-content / .header-actions / .btn-icon rules come
+   from the global design system.  These add cash-book–specific
+   extras only. */
 .header-title-group { display: flex; align-items: center; gap: 12px; }
 
-.page-title {
-  display: flex; align-items: center; gap: 8px;
-  font-size: 18px; font-weight: 700; color: var(--color-text-primary); margin: 0;
-}
 .page-title i { font-size: 16px; opacity: 0.85; }
 
 .page-subtitle {
-  font-size: 13px; color: var(--color-text-secondary);
-  padding-left: 12px; border-left: 1px solid var(--color-border);
+  padding-left: 12px;
+  border-left: 1px solid var(--color-border);
 }
 
 .header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
@@ -62,17 +44,6 @@
 .stat-value { font-size: 15px; font-weight: 700; color: var(--color-text-primary); font-variant-numeric: tabular-nums; }
 .header-stat.positive .stat-value { color: var(--color-success); }
 .header-stat.negative .stat-value { color: var(--color-danger); }
-
-.header-actions { display: flex; align-items: center; gap: 8px; }
-
-.btn-icon {
-  width: 34px; height: 34px;
-  display: flex; align-items: center; justify-content: center;
-  background: var(--color-bg-primary); border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm); color: var(--color-text-primary); cursor: pointer;
-  transition: background var(--transition-fast);
-}
-.btn-icon:hover { background: var(--color-bg-secondary); }
 
 .view-toggle { display: flex; border: 1px solid var(--color-border); border-radius: var(--radius-sm); overflow: hidden; }
 .toggle-btn {
@@ -140,7 +111,7 @@
 /* ── Loading skeletons ───────────────────────────────────── */
 .loading-panel { padding: 16px 20px; display: flex; flex-direction: column; gap: 10px; }
 .skeleton-row { display: flex; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--color-border); }
-.sk { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+.sk { background: linear-gradient(90deg, var(--color-bg-tertiary) 25%, var(--color-border-light) 50%, var(--color-bg-tertiary) 75%);
       background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 4px; }
 .sk-time    { width: 48px;  height: 16px; }
 .sk-badge   { width: 90px;  height: 22px; border-radius: 20px; }
@@ -182,7 +153,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  box-shadow: var(--shadow-sm);
 }
 
 .table-card-header {
@@ -271,7 +242,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  box-shadow: var(--shadow-sm);
 }
 
 .split-header {
@@ -300,7 +271,6 @@
 
 /* ── Responsive ──────────────────────────────────────────── */
 @media (max-width: 768px) {
-  .page-header       { padding: 10px 14px; }
   .controls-bar      { padding: 10px 14px; gap: 8px; }
   .content-area      { padding: 12px 14px; }
   .method-breakdown  { padding: 10px 14px; }

@@ -94,11 +94,8 @@ export class PaymentActionsComponent {
   }
 
   downloadReport(): void {
-    console.log('Starting report download for supplier:', this.supplierId);
-
     this.supplierPaymentService.downloadPaymentSummaryReport(this.supplierId).subscribe({
       next: (blob: Blob) => {
-        console.log('Report blob received, size:', blob.size);
 
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
