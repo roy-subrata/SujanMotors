@@ -385,6 +385,21 @@ html {
     }
 }
 
+/* Required-field marker + helper/hint text — already copy-pasted identically
+   (color: var(--color-danger) / var(--color-text-secondary)) into ~30
+   component stylesheets; canonical here so new forms don't need their own copy. */
+.required {
+    color: var(--color-danger);
+}
+
+.field-hint {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    color: var(--color-text-secondary);
+    font-size: 12px;
+}
+
 /* Desktop baseline (>=992px) — the standard sizing & spacing */
 @media (min-width: 992px) {
     /* Controls: equal height, padding and font (inside form fields only) */
@@ -580,10 +595,10 @@ body.storefront-scroll .layout-main-container {
         position: static !important;
         display: flex !important;
         flex-direction: column-reverse !important;
-        background: #ffffff !important;
+        background: var(--color-bg-primary) !important; /* was hardcoded #ffffff — broke dark mode */
         padding: 1rem !important;
         margin-top: 1rem !important;
-        border-top: 1px solid #e5e7eb !important;
+        border-top: 1px solid var(--color-border) !important; /* was hardcoded #e5e7eb */
         box-shadow: none !important;
         gap: 0.75rem !important;
     }
@@ -822,8 +837,8 @@ body.storefront-scroll .layout-main-container {
         gap: 0.5rem !important;
         margin-top: 1rem !important;
         padding: 1rem !important;
-        border-top: 1px solid #e5e7eb !important;
-        background: #f9fafb !important;
+        border-top: 1px solid var(--color-border) !important; /* was hardcoded #e5e7eb */
+        background: var(--color-bg-secondary) !important; /* was hardcoded #f9fafb */
         border-radius: 0.5rem !important;
     }
 

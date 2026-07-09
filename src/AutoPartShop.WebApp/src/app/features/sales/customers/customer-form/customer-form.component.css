@@ -147,52 +147,9 @@
   font-size: 15px;
 }
 
-/* Form rows and groups */
-.form-row {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
-  margin-bottom: 1rem;
-}
-
-.form-row:last-child {
-  margin-bottom: 0;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.form-group.full {
-  grid-column: span 2;
-}
-
-.form-group label {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--color-text-primary);
-}
-
-.form-group input,
-.form-group textarea {
-  width: 100%;
-}
-
-.required {
-  color: var(--color-danger);
-}
-
-/* Field hints */
-.field-hint {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  color: var(--color-text-secondary);
-  font-size: 12px;
-}
-
+/* .form-row / .form-group / .required / .field-hint layout+spacing now come from
+   the shared FORM SYSTEM in assets/styles.scss — only the bits genuinely specific
+   to this page (icon sizing inside hints) stay local. */
 .field-hint i {
   font-size: 12px;
 }
@@ -288,22 +245,6 @@
 
   .form-title {
     font-size: 18px;
-  }
-
-  .form-row {
-    grid-template-columns: 1fr;
-  }
-
-  .form-group.full {
-    grid-column: span 1;
-  }
-
-  .form-actions {
-    flex-direction: column-reverse;
-  }
-
-  .form-actions button {
-    width: 100%;
   }
 
   ::ng-deep .form-card .p-card-body {
