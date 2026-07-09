@@ -4006,6 +4006,13 @@ namespace AutoPartsShop.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("CashierId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CashierName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
                     b.Property<string>("Channel")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -4142,6 +4149,8 @@ namespace AutoPartsShop.Infrastructure.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CashierId");
 
                     b.HasIndex("Channel");
 
@@ -6811,6 +6820,11 @@ namespace AutoPartsShop.Infrastructure.Migrations
 
             modelBuilder.Entity("AutoPartShop.Domain.Entities.SalesOrder", b =>
                 {
+                    b.HasOne("AutoPartShop.Domain.Entities.ApplicationUser", "Cashier")
+                        .WithMany()
+                        .HasForeignKey("CashierId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("AutoPartShop.Domain.Entities.Customer", "Customer")
                         .WithMany("SalesOrders")
                         .HasForeignKey("CustomerId")
@@ -6831,6 +6845,8 @@ namespace AutoPartsShop.Infrastructure.Migrations
                         .WithMany()
                         .HasForeignKey("WarehouseId")
                         .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Cashier");
 
                     b.Navigation("Customer");
 

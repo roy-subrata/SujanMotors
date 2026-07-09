@@ -79,6 +79,15 @@ public static class ReportColumnMaps
         new("Avg Order", r => r.AverageOrderValue, ReportColumnFormat.Money)
     ];
 
+    public static readonly IReadOnlyList<ReportColumn<SalesByCashierRowDto>> SalesByCashier =
+    [
+        new("Cashier", r => r.CashierName),
+        new("Orders", r => r.OrderCount, ReportColumnFormat.Integer),
+        new("Qty Sold", r => r.QuantitySold, ReportColumnFormat.Integer),
+        new("Revenue", r => r.Revenue, ReportColumnFormat.Money),
+        new("Avg Order", r => r.AverageOrderValue, ReportColumnFormat.Money)
+    ];
+
     public static readonly IReadOnlyList<ReportColumn<SalesReturnRowDto>> SalesReturns =
     [
         new("Return Date", r => r.ReturnDate, ReportColumnFormat.Date),

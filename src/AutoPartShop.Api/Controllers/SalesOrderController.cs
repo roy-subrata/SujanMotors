@@ -265,8 +265,10 @@ public class SalesOrderController : ControllerBase
                     order.SetDiscountPercentage(request.Discount);
                     order.CalculateTotal();
 
-                    order.CreatedBy = _currentUserService.GetCurrentUsername();
-                    order.ModifiedBy = _currentUserService.GetCurrentUsername();
+                    var cashierUsername = _currentUserService.GetCurrentUsername();
+                    order.SetCashier(_currentUserService.GetCurrentUserGuid(), cashierUsername);
+                    order.CreatedBy = cashierUsername;
+                    order.ModifiedBy = cashierUsername;
 
                     await _salesOrderRepository.AddAsync(order, cancellationToken);
                     await tx.CommitAsync(cancellationToken);
@@ -2076,8 +2078,10 @@ public class SalesOrderController : ControllerBase
                     {
                         salesOrder.Confirm();
                     }
-                    salesOrder.CreatedBy = _currentUserService.GetCurrentUsername();
-                    salesOrder.ModifiedBy = _currentUserService.GetCurrentUsername();
+                    var quickSaleCashier = _currentUserService.GetCurrentUsername();
+                    salesOrder.SetCashier(_currentUserService.GetCurrentUserGuid(), quickSaleCashier);
+                    salesOrder.CreatedBy = quickSaleCashier;
+                    salesOrder.ModifiedBy = quickSaleCashier;
 
                     await _salesOrderRepository.AddAsync(salesOrder, cancellationToken);
 

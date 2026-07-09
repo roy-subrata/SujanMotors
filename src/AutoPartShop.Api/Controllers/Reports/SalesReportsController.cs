@@ -236,6 +236,49 @@ public class SalesReportsController(
         }
     }
 
+    /// <summary>Sales aggregated per cashier — the staff user who actually processed the sale (distinct from the assigned Technician).</summary>
+    [HttpPost("by-cashier")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(List<SalesByCashierRowDto>))]
+    public async Task<IActionResult> GetSalesByCashier([FromBody] ReportQuery query, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var rows = await reportRepository.GetSalesByCashierAsync(query, cancellationToken);
+            return Ok(rows);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiError.Validation(ex.Message));
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error running sales by cashier report");
+            return StatusCode(StatusCodes.Status500InternalServerError, ApiError.Internal(HttpContext.TraceIdentifier));
+        }
+    }
+
+    [HttpPost("by-cashier/export")]
+    [HasPermission(Permissions.ReportsExport)]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(FileResult))]
+    public async Task<IActionResult> ExportSalesByCashier(
+        [FromBody] ReportQuery query, [FromQuery] string format = "xlsx", CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var rows = await reportRepository.GetSalesByCashierAsync(query, cancellationToken);
+            return ExportFile(format, "Sales by Cashier", BuildFilterSummary(query), rows, ReportColumnMaps.SalesByCashier, "sales-by-cashier");
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiError.Validation(ex.Message));
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error exporting sales by cashier report");
+            return StatusCode(StatusCodes.Status500InternalServerError, ApiError.Internal(HttpContext.TraceIdentifier));
+        }
+    }
+
     /// <summary>Sales return documents in the period.</summary>
     [HttpPost("returns")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(PagedResult<SalesReturnRowDto>))]

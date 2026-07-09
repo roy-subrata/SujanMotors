@@ -170,6 +170,29 @@ export const SALES_REPORT_CONFIGS: ReportPageConfig[] = [
         ]
     },
     {
+        key: 'sales-by-cashier',
+        group: 'sales',
+        title: 'Sales by Cashier',
+        subtitle: 'Orders and revenue per staff user who processed the sale',
+        icon: 'pi pi-id-card',
+        endpoint: 'v1/reports/sales/by-cashier',
+        paged: false,
+        defaultRange: 'thisMonth',
+        requiresDateRange: true,
+        itemLabel: 'cashiers',
+        filters: [
+            { kind: 'dateRange', key: 'dateRange', label: 'Period' },
+            { kind: 'lookup', key: 'warehouseId', label: 'Warehouse', lookup: 'warehouse' }
+        ],
+        columns: [
+            { field: 'cashierName', header: 'Cashier', mobilePrimary: true },
+            { field: 'orderCount', header: 'Orders', type: 'number' },
+            { field: 'quantitySold', header: 'Qty Sold', type: 'number' },
+            { field: 'revenue', header: 'Revenue', type: 'money' },
+            { field: 'averageOrderValue', header: 'Avg Order', type: 'money' }
+        ]
+    },
+    {
         key: 'sales-returns',
         group: 'sales',
         title: 'Sales Returns',

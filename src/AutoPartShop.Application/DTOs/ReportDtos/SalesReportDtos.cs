@@ -73,6 +73,20 @@ public class SalesBySalespersonRowDto
     public decimal AverageOrderValue { get; set; }
 }
 
+/// <summary>
+/// One cashier row — the staff user who actually processed the sale (SalesOrder.CashierId),
+/// distinct from SalesBySalespersonRowDto's Technician (the optional mechanic who recommended
+/// the parts). Orders with no recorded cashier report as "Unassigned".
+/// </summary>
+public class SalesByCashierRowDto
+{
+    public string CashierName { get; set; } = "";
+    public int OrderCount { get; set; }
+    public int QuantitySold { get; set; }
+    public decimal Revenue { get; set; }
+    public decimal AverageOrderValue { get; set; }
+}
+
 /// <summary>One sales return document row; Currency comes from the originating sales order.</summary>
 public class SalesReturnRowDto
 {

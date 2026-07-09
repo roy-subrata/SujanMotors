@@ -53,6 +53,9 @@ public class SalesOrderConfiguration : IEntityTypeConfiguration<SalesOrder>
         builder.Property(so => so.TechnicianName)
             .HasMaxLength(200);
 
+        builder.Property(so => so.CashierName)
+            .HasMaxLength(200);
+
         builder.Property(so => so.VehicleLabel)
             .HasMaxLength(200);
 
@@ -92,6 +95,12 @@ public class SalesOrderConfiguration : IEntityTypeConfiguration<SalesOrder>
             .OnDelete(DeleteBehavior.SetNull)
             .IsRequired(false);
 
+        builder.HasOne(so => so.Cashier)
+            .WithMany()
+            .HasForeignKey(so => so.CashierId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
+
         builder.HasMany(so => so.LineItems)
             .WithOne(li => li.SalesOrder)
             .HasForeignKey(li => li.SalesOrderId)
@@ -107,6 +116,7 @@ public class SalesOrderConfiguration : IEntityTypeConfiguration<SalesOrder>
         builder.HasIndex(so => so.SONumber).IsUnique();
         builder.HasIndex(so => so.CustomerId);
         builder.HasIndex(so => so.TechnicianId);
+        builder.HasIndex(so => so.CashierId);
         builder.HasIndex(so => so.Status);
         builder.HasIndex(so => so.SODate);
     }

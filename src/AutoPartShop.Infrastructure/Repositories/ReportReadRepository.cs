@@ -159,6 +159,21 @@ public class ReportReadRepository : IReportReadRepository
         return rows.ToList();
     }
 
+    public async Task<IReadOnlyList<SalesByCashierRowDto>> GetSalesByCashierAsync(
+        ReportQuery query, CancellationToken cancellationToken = default)
+    {
+        var (fromDate, toDate) = RequireDateRange(query);
+
+        var connection = await GetOpenConnectionAsync(cancellationToken);
+        var rows = await connection.QueryAsync<SalesByCashierRowDto>(new CommandDefinition(
+            "dbo.usp_Report_SalesByCashier",
+            new { FromDate = fromDate, ToDate = toDate, query.WarehouseId },
+            commandType: CommandType.StoredProcedure,
+            cancellationToken: cancellationToken));
+
+        return rows.ToList();
+    }
+
     public async Task<PagedResult<SalesReturnRowDto>> GetSalesReturnsAsync(
         ReportQuery query, int? maxRowsOverride = null, CancellationToken cancellationToken = default)
     {

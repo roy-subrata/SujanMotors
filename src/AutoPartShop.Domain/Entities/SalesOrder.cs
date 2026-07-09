@@ -17,6 +17,8 @@ public class SalesOrder : AggregateRoot
     public string CustomerPhone { get; private set; } = string.Empty;
     public Guid? TechnicianId { get; private set; }  // Optional: Technician who recommended the parts
     public string? TechnicianName { get; private set; }  // Technician name for easy reference
+    public Guid? CashierId { get; private set; }  // Staff user who processed/rang up this sale
+    public string? CashierName { get; private set; }  // Cashier username, snapshotted for easy reference
     public Guid? CustomerVehicleId { get; private set; }  // Optional: customer's vehicle this purchase is for
     public string VehicleLabel { get; private set; } = string.Empty;  // Denormalized vehicle label for display
     public Guid? WarehouseId { get; private set; }  // Dispatch warehouse
@@ -46,6 +48,7 @@ public class SalesOrder : AggregateRoot
     // Navigation properties
     public Customer? Customer { get; set; }
     public Technician? Technician { get; set; }
+    public ApplicationUser? Cashier { get; set; }
     public CustomerVehicle? CustomerVehicle { get; set; }
     public Warehouse? Warehouse { get; set; }
     public ICollection<SalesOrderLine> LineItems { get; set; } = new List<SalesOrderLine>();
@@ -299,6 +302,13 @@ public class SalesOrder : AggregateRoot
     {
         TechnicianId = technicianId;
         TechnicianName = technicianName?.Trim();
+    }
+
+    /// <summary>Attributes this sale to the staff user who processed it (distinct from the optional Technician).</summary>
+    public void SetCashier(Guid? cashierId, string? cashierName)
+    {
+        CashierId = cashierId;
+        CashierName = cashierName?.Trim();
     }
 
     public void SetVehicle(Guid? customerVehicleId, string vehicleLabel)

@@ -29,6 +29,9 @@ public interface IReportReadRepository
     Task<IReadOnlyList<SalesBySalespersonRowDto>> GetSalesBySalespersonAsync(
         ReportQuery query, CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<SalesByCashierRowDto>> GetSalesByCashierAsync(
+        ReportQuery query, CancellationToken cancellationToken = default);
+
     Task<PagedResult<SalesReturnRowDto>> GetSalesReturnsAsync(
         ReportQuery query, int? maxRowsOverride = null, CancellationToken cancellationToken = default);
 
