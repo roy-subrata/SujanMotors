@@ -101,7 +101,10 @@
     --space-6: 1.5rem;
 
     /* Corner radii */
-    --radius-sm: 6px;
+    /* --radius-sm is intentionally NOT redeclared here — the canonical value
+       (8px) lives in assets/_data-page.scss; a duplicate 6px value here used
+       to win the cascade (this file loads after it) and silently desynced
+       every list page's border-radius from the design system's own token. */
     --radius-md: 8px;
     --radius-lg: 12px;
 
@@ -113,7 +116,7 @@
     /* Label standard */
     --label-size: 0.8125rem;
     --label-weight: 600;
-    --label-color: #374151;
+    --label-color: var(--color-text-primary); /* was a hardcoded hex with no dark-mode coverage */
     --label-gap: 0.35rem;
 }
 
