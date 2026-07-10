@@ -3,7 +3,8 @@ name: Build Android APK
 # Builds a release APK from the Flutter mobile app.
 #
 # Triggers:
-#   • push to main that touches mobile/ — produces a dev APK artifact
+#   • push to main that touches mobile/ — produces a production APK
+#   • push to develop that touches mobile/ — produces a test/staging APK
 #   • tag  mobile-v*                   — additionally creates a GitHub Release
 #   • workflow_dispatch                — manual one-off build
 #
@@ -12,16 +13,19 @@ name: Build Android APK
 #   Without them the build falls back to debug keys and still succeeds.
 #
 #   KEYSTORE_FILE_BASE64  base64-encoded .jks file
-#                         generate:  keytool -genkey -v -keystore upload-keystore.jks \
-#                                      -alias upload -keyalg RSA -keysize 2048 -validity 10000
-#                         encode:    base64 -w 0 upload-keystore.jks
 #   STORE_PASSWORD        keystore store password
 #   KEY_ALIAS             key alias (e.g. "upload")
 #   KEY_PASSWORD          key password
+#
+# API URL:
+#   Automatically selected based on branch:
+#     main     → config/prod.json  (production Azure App Service)
+#     develop  → config/test.json  (staging Azure App Service)
+#     other    → config/dev.json   (local development)
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
     paths:
       - 'mobile/**'
       - '.github/workflows/mobile-apk.yml'
@@ -55,6 +59,20 @@ jobs:
       - name: Analyze
         run: dart analyze --fatal-infos
 
+      - name: Select environment config
+        id: env
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/main" ] || [ "${{ github.ref_type }}" = "tag" ]; then
+            echo "config_file=prod.json" >> "$GITHUB_OUTPUT"
+            echo "env_name=production" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.ref }}" = "refs/heads/develop" ]; then
+            echo "config_file=test.json" >> "$GITHUB_OUTPUT"
+            echo "env_name=staging" >> "$GITHUB_OUTPUT"
+          else
+            echo "config_file=dev.json" >> "$GITHUB_OUTPUT"
+            echo "env_name=development" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Decode keystore
         env:
           KEYSTORE_FILE_BASE64: ${{ secrets.KEYSTORE_FILE_BASE64 }}
@@ -70,12 +88,13 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           flutter build apk --release \
+            --dart-define-from-file=config/${{ steps.env.outputs.config_file }} \
             --build-number=${{ github.run_number }}
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: sujanmotors-${{ github.run_number }}.apk
+          name: sujanmotors-${{ steps.env.outputs.env_name }}-${{ github.run_number }}.apk
           path: mobile/build/app/outputs/flutter-apk/app-release.apk
           retention-days: 30
 
@@ -88,5 +107,7 @@ jobs:
           generate_release_notes: false
           body: |
             APK build #${{ github.run_number }} from tag `${{ github.ref_name }}`.
+
+            **Environment**: ${{ steps.env.outputs.env_name }}
 
             **Install**: download `app-release.apk`, enable "Install from unknown sources" on the device, then open the file.
