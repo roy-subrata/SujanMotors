@@ -13,6 +13,7 @@ class ApiConfig {
     'API_BASE_URL',
    // defaultValue: 'https://sujanmotors-api-gtetffcscjg3cyfe.southeastasia-01.azurewebsites.net'
     defaultValue: 'http://10.106.230.55:5001'
+    
   );
 
   /// Full base used by the Dio client. All endpoints live under `/api/v1`.
