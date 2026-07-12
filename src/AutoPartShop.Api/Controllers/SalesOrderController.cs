@@ -2071,6 +2071,12 @@ public class SalesOrderController : ControllerBase
 
                     // Calculate totals
                     salesOrder.CalculateTotal();
+
+                    // Cart-level discount must live on the order itself, not just the invoice —
+                    // the sales list, order detail, and reports all read SalesOrder totals.
+                    if (request.DiscountAmount > 0)
+                        salesOrder.ApplyAdditionalDiscount(request.DiscountAmount);
+
                     salesOrder.SetTax(request.VatAmount);
 
                     // If SaveAsQuotation = true, keep as DRAFT. Otherwise, confirm the order
