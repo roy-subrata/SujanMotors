@@ -77,13 +77,13 @@ jobs:
             echo "=== Stopping old test containers ==="
             # --env-file: explicitly tell Docker Compose where to find secrets (.env)
             # --remove-orphans: also stops containers that are no longer in the compose file
-            docker compose --env-file deployment/.env -f deployment/docker-compose.test.yml down --remove-orphans
+            docker compose -p sujanmotors-test --env-file deployment/.env -f deployment/docker-compose.test.yml down --remove-orphans
 
             echo "=== Building and starting test stack ==="
             # --build: rebuild images (picks up code changes)
             # -d: run in detached mode (background)
             # --force-recreate: ensure containers are recreated with new images
-            docker compose --env-file deployment/.env -f deployment/docker-compose.test.yml up --build -d --force-recreate
+            docker compose -p sujanmotors-test --env-file deployment/.env -f deployment/docker-compose.test.yml up --build -d --force-recreate
 
             echo "=== Cleaning up unused Docker images ==="
             # Remove dangling images left over from rebuilds to free disk space

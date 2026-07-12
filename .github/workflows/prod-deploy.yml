@@ -82,13 +82,13 @@ jobs:
             # Stop both compose files (base + prod override)
             # --env-file: explicitly tell Docker Compose where to find secrets (.env)
             # --remove-orphans: also stops containers that are no longer in the compose file
-            docker compose --env-file deployment/.env -f deployment/docker-compose.yml -f deployment/docker-compose.prod.yml down --remove-orphans
+            docker compose -p sujanmotors-prod --env-file deployment/.env -f deployment/docker-compose.yml -f deployment/docker-compose.prod.yml down --remove-orphans
 
             echo "=== Building and starting production stack ==="
             # --build: rebuild images (picks up code changes)
             # -d: run in detached mode (background)
             # --force-recreate: ensure containers are recreated with new images
-            docker compose --env-file deployment/.env -f deployment/docker-compose.yml -f deployment/docker-compose.prod.yml up --build -d --force-recreate
+            docker compose -p sujanmotors-prod --env-file deployment/.env -f deployment/docker-compose.yml -f deployment/docker-compose.prod.yml up --build -d --force-recreate
 
             echo "=== Cleaning up unused Docker images ==="
             # Remove dangling images left over from rebuilds to free disk space
