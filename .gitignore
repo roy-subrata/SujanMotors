@@ -17,19 +17,17 @@ packages/
 .DS_Store
 # Logs
 *.log
-# local settings
-appsettings.*.json
 # Temporary
 *.tmp
 # Windows reserved filename created accidentally
 nul
 # node
 node_modules/
-# Environment / secrets — never commit these
+# Environment / secrets — never commit real credentials.
+# Use `dotnet user-secrets` for local secrets, or environment variables in Docker/CI.
+# The appsettings.*.json files below are tracked with EMPTY placeholder values.
 .env
 .env.*
 !.env.example
-appsettings.Development.json
-appsettings.Production.json
 # Claude Code worktrees (temporary agent sandboxes)
 .claude/worktrees/

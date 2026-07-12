@@ -1,5 +1,8 @@
 # DEVELOPMENT — local machine only.
 # docker compose -f docker-compose.dev.yml up --build
+#
+# Secrets are read from .env (see .env.example).
+# Copy deployment/.env.example to deployment/.env and fill in real values.
 
 services:
   autopartshop.db:
@@ -7,7 +10,7 @@ services:
     container_name: autopartshop.db
     environment:
       - ACCEPT_EULA=Y
-      - SA_PASSWORD=YourStrong!Passw0rd
+      - SA_PASSWORD=${DB_PASSWORD:-YourStrong!Passw0rd}
       - MSSQL_PID=Developer
     ports:
       - "1433:1433"           # open for SSMS / DBeaver
@@ -15,7 +18,7 @@ services:
       - autopart_mssql_dev_data:/var/opt/mssql
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'YourStrong!Passw0rd' -Q 'SELECT 1' -No || exit 1"]
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P '${DB_PASSWORD:-YourStrong!Passw0rd}' -Q 'SELECT 1' -No || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -30,12 +33,23 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_HTTP_PORTS=8080
-      - ConnectionStrings__AutoPartDb=Server=autopartshop.db,1433;Database=AutoPartShopDb;User=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=True;
-      - JwtSettings__SecretKey=YourSuperSecretKeyForJWTTokenGenerationMustBe32CharsLong!@#
+      - ConnectionStrings__AutoPartDb=Server=autopartshop.db,1433;Database=${DB_NAME:-AutoPartShopDb};User=sa;Password=${DB_PASSWORD:-YourStrong!Passw0rd};TrustServerCertificate=True;
+      - JwtSettings__SecretKey=${JWT_SECRET:-YourSuperSecretKeyForJWTTokenGenerationMustBe32CharsLong!@#}
       - JwtSettings__Issuer=AutoPartShopAPI
       - JwtSettings__Audience=AutoPartShopClient
-      - JwtSettings__ExpiryInMinutes=60
-      - JwtSettings__RefreshTokenExpiryInDays=7
+      - JwtSettings__ExpiryInMinutes=${JWT_EXPIRY_MINUTES:-60}
+      - JwtSettings__RefreshTokenExpiryInDays=${JWT_REFRESH_DAYS:-7}
+      - Twilio__AccountSid=${TWILIO_ACCOUNT_SID:-}
+      - Twilio__AuthToken=${TWILIO_AUTH_TOKEN:-}
+      - Twilio__SmsMsgServiceSid=${TWILIO_SMS_SID:-}
+      - Twilio__WhatsAppMsgServiceSid=${TWILIO_WHATSAPP_SID:-}
+      - Smtp__Host=${SMTP_HOST:-}
+      - Smtp__Port=${SMTP_PORT:-587}
+      - Smtp__Username=${SMTP_USERNAME:-}
+      - Smtp__Password=${SMTP_PASSWORD:-}
+      - Smtp__FromEmail=${SMTP_FROM_EMAIL:-}
+      - Smtp__FromName=${SMTP_FROM_NAME:-SujanMotors}
+      - Sms__ApiKey=${SMS_API_KEY:-}
     ports:
       - "5292:8080"           # open for Swagger / Postman
     depends_on:
