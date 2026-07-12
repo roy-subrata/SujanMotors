@@ -22,9 +22,19 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Microsoft.OpenApi.Models;
+using QuestPDF.Drawing;
 using QuestPDF.Infrastructure;
 
 QuestPDF.Settings.License = LicenseType.Community;
+
+// Register a Bengali-compatible font for PDF generation so the ৳ currency
+// symbol and any Bangla text render correctly.
+var fontPath = Path.Combine(AppContext.BaseDirectory, "Fonts", "NotoSansBengali.ttf");
+if (File.Exists(fontPath))
+{
+    using var fontStream = File.OpenRead(fontPath);
+    FontManager.RegisterFontWithCustomName("Bengali", fontStream);
+}
 
 var builder = WebApplication.CreateBuilder(args);
 

@@ -5,7 +5,6 @@ import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_scaffold.dart';
 import '../../shared/widgets/design_system.dart';
 
-/// Supplier list screen â€” placeholder pending backend supplier API.
 class SuppliersScreen extends StatefulWidget {
   const SuppliersScreen({super.key});
 
@@ -25,20 +24,19 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
         onPressed: () {},
         backgroundColor: AppColors.ink,
         foregroundColor: Colors.white,
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: const Icon(Icons.add),
       ),
       body: Column(
         children: [
-          // Search
+          // ── Search ─────────────────────────────────────────────────────────
           const Padding(
             padding: EdgeInsets.fromLTRB(16, 12, 16, 0),
             child: SearchInput(hintText: 'Search suppliers...'),
           ),
           const SizedBox(height: 10),
 
-          // Filter chips
+          // ── Filter chips ───────────────────────────────────────────────────
           FilterChipRow(
             selected: _filterIndex,
             onSelect: (i) => setState(() => _filterIndex = i),
@@ -54,6 +52,7 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
           ),
           const SizedBox(height: 12),
 
+          // ── Empty state ────────────────────────────────────────────────────
           Expanded(
             child: Center(
               child: Column(
@@ -66,14 +65,16 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                     'No suppliers yet',
                     style: GoogleFonts.instrumentSans(
                       fontSize: 15,
-                      fontWeight: FontWeight.w600
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     'Suppliers will appear here',
                     style: GoogleFonts.instrumentSans(
-                        fontSize: 13, color: AppColors.muted),
+                      fontSize: 13,
+                      color: AppColors.muted,
+                    ),
                   ),
                 ],
               ),

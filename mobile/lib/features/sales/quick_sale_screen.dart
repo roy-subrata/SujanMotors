@@ -1,15 +1,20 @@
-﻿import 'package:flutter/material.dart';
+import 'dart:io';
+
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../shared/format.dart';
 import '../../shared/models/sale.dart';
 import 'charge_screen.dart';
 import 'quick_sale_providers.dart';
+import 'sales_repository.dart';
 
 class QuickSaleScreen extends ConsumerStatefulWidget {
   const QuickSaleScreen({super.key});
@@ -59,11 +64,106 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
   }
 
   void _openChargeScreen() {
-    final total = ref.read(quickSaleControllerProvider).total;
+    final state = ref.read(quickSaleControllerProvider);
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => ChargeScreen(cartTotal: total),
+        builder: (_) => ChargeScreen(cartTotal: state.grandTotal),
       ),
+    );
+  }
+
+  void _showDiscountDialog(
+      QuickSaleState state, QuickSaleController controller) {
+    final ctrl =
+        TextEditingController(text: state.discount > 0 ? state.discount.toStringAsFixed(2) : '');
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.fromLTRB(
+              20, 20, 20, MediaQuery.of(ctx).viewInsets.bottom + 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Discount',
+                style: GoogleFonts.instrumentSans(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Subtotal: ${formatCurrency(state.total)}',
+                style: GoogleFonts.instrumentSans(
+                    fontSize: 13.5, color: AppColors.muted),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: ctrl,
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                ],
+                autofocus: true,
+                decoration: InputDecoration(
+                  labelText: 'Discount amount',
+                  prefixText: '৳ ',
+                  prefixStyle: GoogleFonts.instrumentSans(
+                      fontSize: 15, fontWeight: FontWeight.w600),
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () {
+                        controller.setDiscount(0);
+                        Navigator.pop(ctx);
+                      },
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.ink,
+                        side: BorderSide(
+                            color: Theme.of(context).colorScheme.outline),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: const Text('Clear'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: () {
+                        final val = double.tryParse(ctrl.text) ?? 0;
+                        controller.setDiscount(val);
+                        Navigator.pop(ctx);
+                      },
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.ink,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: const Text('Apply'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -243,24 +343,40 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
                         color: AppColors.ink),
                   ),
                   const SizedBox(height: 8),
-                  _TotalRow(
-                    label: 'Discount',
-                    value: 'â€”',
-                    labelStyle: GoogleFonts.instrumentSans(
-                        fontSize: 13.5, color: AppColors.secondary),
-                    valueStyle: GoogleFonts.instrumentSans(
-                        fontSize: 13.5,
-                        color: AppColors.muted),
+                  InkWell(
+                    onTap: () => _showDiscountDialog(state, controller),
+                    borderRadius: BorderRadius.circular(6),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 4, vertical: 2),
+                      child: _TotalRow(
+                        label: 'Discount',
+                        value: state.discount > 0
+                            ? '- ${formatCurrency(state.discount)}'
+                            : 'Tap to add',
+                        labelStyle: GoogleFonts.instrumentSans(
+                            fontSize: 13.5, color: AppColors.secondary),
+                        valueStyle: GoogleFonts.instrumentSans(
+                          fontSize: 13.5,
+                          color: state.discount > 0
+                              ? AppColors.red
+                              : AppColors.muted,
+                          fontWeight: state.discount > 0
+                              ? FontWeight.w600
+                              : FontWeight.normal,
+                        ),
+                      ),
+                    ),
                   ),
                   Padding(
-                    padding: EdgeInsets.symmetric(vertical: 10),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
                     child: Divider(
                         height: 1,
                         color: Theme.of(context).colorScheme.outline.withAlpha(60)),
                   ),
                   _TotalRow(
                     label: 'Total',
-                    value: formatCurrency(state.total),
+                    value: formatCurrency(state.grandTotal),
                     labelStyle: GoogleFonts.instrumentSans(
                         fontSize: 13.5,
                         fontWeight: FontWeight.w700,
@@ -282,7 +398,7 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
           left: 0,
           right: 0,
           child: _StickyBottom(
-            total: state.total,
+            total: state.grandTotal,
             onProceed: _openChargeScreen,
           ),
         ),
@@ -532,106 +648,107 @@ class _CartItemRowState extends State<_CartItemRow> {
     final item = widget.item;
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+      child: Column(
         children: [
-          // Name + price
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
+          // Line 1: Name (left) + line total (right)
+          Row(
+            children: [
+              Expanded(
+                child: Text(
                   item.name,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.instrumentSans(
                     fontSize: 13.5,
-                    fontWeight: FontWeight.w500
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Row(
-                  children: [
-                    Text(
-                      'à§³ ',
-                      style: GoogleFonts.instrumentSans(
-                        fontSize: 12
-                      ),
-                    ),
-                    SizedBox(
-                      width: 72,
-                      child: TextField(
-                        controller: _priceCtrl,
-                        focusNode: _priceFocus,
-                        keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true),
-                        inputFormatters: [
-                          FilteringTextInputFormatter.allow(
-                              RegExp(r'[0-9.]')),
-                        ],
-                        onSubmitted: (_) => _commit(),
-                        style: GoogleFonts.instrumentSans(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600
-                        ),
-                        decoration: InputDecoration(
-                          isDense: true,
-                          contentPadding: EdgeInsets.zero,
-                          border: UnderlineInputBorder(
-                              borderSide:
-                                  BorderSide(color: Theme.of(context).colorScheme.outline)),
-                          focusedBorder: UnderlineInputBorder(
-                              borderSide: BorderSide(
-                                  width: 1.5)),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-          // Qty stepper
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _StepBtn(icon: Icons.remove, onTap: widget.onDecrement),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Text(
-                  '${item.quantity}',
-                  style: GoogleFonts.instrumentSans(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ),
-              _StepBtn(icon: Icons.add, onTap: widget.onIncrement),
-            ],
-          ),
-
-          const SizedBox(width: 12),
-
-          // Line total + delete
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            mainAxisSize: MainAxisSize.min,
-            children: [
+              const SizedBox(width: 8),
               Text(
                 formatCurrency(item.lineTotal),
                 style: GoogleFonts.instrumentSans(
                   fontSize: 13.5,
-                  fontWeight: FontWeight.w600
+                  fontWeight: FontWeight.w600,
                 ),
               ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          // Line 2: Price input (left) + qty stepper (center) + delete (right)
+          Row(
+            children: [
+              // Price input
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '৳',
+                    style: GoogleFonts.instrumentSans(
+                      fontSize: 12,
+                      color: AppColors.muted,
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  SizedBox(
+                    width: 72,
+                    child: TextField(
+                      controller: _priceCtrl,
+                      focusNode: _priceFocus,
+                      keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(
+                            RegExp(r'[0-9.]')),
+                      ],
+                      onSubmitted: (_) => _commit(),
+                      style: GoogleFonts.instrumentSans(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      decoration: InputDecoration(
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 0, vertical: 4),
+                        border: UnderlineInputBorder(
+                            borderSide: BorderSide(
+                                color: Theme.of(context).colorScheme.outline)),
+                        focusedBorder: const UnderlineInputBorder(
+                            borderSide: BorderSide(width: 1.5)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              const Spacer(),
+
+              // Qty stepper
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _StepBtn(icon: Icons.remove, onTap: widget.onDecrement),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    child: Text(
+                      '${item.quantity}',
+                      style: GoogleFonts.instrumentSans(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  _StepBtn(icon: Icons.add, onTap: widget.onIncrement),
+                ],
+              ),
+
+              const Spacer(),
+
+              // Delete
               GestureDetector(
                 onTap: widget.onRemove,
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: const Icon(Icons.delete_outline,
-                      size: 16, color: AppColors.muted),
-                ),
+                child: const Icon(Icons.delete_outline,
+                    size: 18, color: AppColors.muted),
               ),
             ],
           ),
@@ -747,48 +864,11 @@ class _StickyBottom extends StatelessWidget {
                         fontSize: 15, fontWeight: FontWeight.w700),
                   ),
                   child: Text(
-                      'âœ“  Complete Sale Â· ${formatCurrency(total)}'),
+                      'Complete Sale . '),
                 ),
               ),
             ),
-            const SizedBox(height: 8),
 
-            // Secondary row
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () {},
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.ink,
-                      side: BorderSide(color: Theme.of(context).colorScheme.outline),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(11)),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      textStyle: GoogleFonts.instrumentSans(
-                          fontSize: 13, fontWeight: FontWeight.w600),
-                    ),
-                    child: const Text('Hold sale'),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () {},
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.ink,
-                      side: BorderSide(color: Theme.of(context).colorScheme.outline),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(11)),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      textStyle: GoogleFonts.instrumentSans(
-                          fontSize: 13, fontWeight: FontWeight.w600),
-                    ),
-                    child: const Text('Print Â· 80mm'),
-                  ),
-                ),
-              ],
-            ),
           ],
         ),
       ),
@@ -880,6 +960,11 @@ class _SuccessView extends StatelessWidget {
               ),
             ],
             const SizedBox(height: 40),
+            if (result.customerPhone != null &&
+                result.customerPhone!.isNotEmpty) ...[
+              _SendReceiptButtons(result: result),
+              const SizedBox(height: 12),
+            ],
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
@@ -928,6 +1013,154 @@ class _InfoRow extends StatelessWidget {
             fontSize: 15,
             fontWeight: FontWeight.w700,
             color: valueColor ?? AppColors.ink,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SendReceiptButtons extends ConsumerWidget {
+  const _SendReceiptButtons({required this.result});
+
+  final QuickSaleResult result;
+
+  String get _receiptMessage {
+    final buf = StringBuffer()
+      ..writeln('Sujan Motors - Invoice')
+      ..writeln('Invoice: ${result.invoiceNumber}')
+      ..writeln(
+          'Date: ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}')
+      ..writeln()
+      ..writeln('Total: ${formatCurrency(result.grandTotal)}')
+      ..writeln('Paid: ${formatCurrency(result.paidAmount)}');
+    if (result.hasDue) {
+      buf.writeln('Due: ${formatCurrency(result.dueAmount)}');
+    }
+    if (result.technicianName != null &&
+        result.technicianName!.isNotEmpty) {
+      buf.writeln('Technician: ${result.technicianName}');
+    }
+    buf
+      ..writeln()
+      ..writeln('Thank you for your purchase!');
+    return buf.toString();
+  }
+
+  Future<File> _downloadPdf(WidgetRef ref) async {
+    final repo = ref.read(salesRepositoryProvider);
+    final bytes = await repo.downloadInvoicePdf(result.invoiceId);
+    final dir = await getTemporaryDirectory();
+    final file = File('${dir.path}/invoice-${result.invoiceNumber}.pdf');
+    await file.writeAsBytes(bytes);
+    return file;
+  }
+
+  Future<void> _sharePdf(BuildContext context, WidgetRef ref) async {
+    try {
+      final file = await _downloadPdf(ref);
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        text: 'Invoice ${result.invoiceNumber}',
+      );
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to share invoice: $e'),
+            backgroundColor: AppColors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _sharePdfVia(BuildContext context, WidgetRef ref,
+      {String? phoneNumber}) async {
+    try {
+      final file = await _downloadPdf(ref);
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        text: phoneNumber != null
+            ? 'Invoice ${result.invoiceNumber}\n$_receiptMessage'
+            : 'Invoice ${result.invoiceNumber}',
+      );
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to share invoice: $e'),
+            backgroundColor: AppColors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () => _sharePdfVia(context, ref),
+                icon: const Icon(Icons.sms_outlined, size: 18),
+                label: Text(
+                  'SMS',
+                  style: GoogleFonts.instrumentSans(
+                      fontSize: 13, fontWeight: FontWeight.w600),
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.green,
+                  side: const BorderSide(color: AppColors.green),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(11)),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () => _sharePdfVia(context, ref),
+                icon: const Icon(Icons.chat_bubble_outline, size: 18),
+                label: Text(
+                  'WhatsApp',
+                  style: GoogleFonts.instrumentSans(
+                      fontSize: 13, fontWeight: FontWeight.w600),
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.green,
+                  side: const BorderSide(color: AppColors.green),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(11)),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: () => _sharePdf(context, ref),
+            icon: const Icon(Icons.picture_as_pdf_outlined, size: 18),
+            label: Text(
+              'Share Invoice PDF',
+              style: GoogleFonts.instrumentSans(
+                  fontSize: 13, fontWeight: FontWeight.w600),
+            ),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.ink,
+              side:
+                  BorderSide(color: Theme.of(context).colorScheme.outline),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(11)),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+            ),
           ),
         ),
       ],

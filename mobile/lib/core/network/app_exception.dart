@@ -13,6 +13,9 @@ class AppException implements Exception {
   /// Field-level validation errors keyed by field name (from `ApiError.errors`).
   final Map<String, List<String>>? fieldErrors;
 
+  /// Whether this error represents a 403 Forbidden response.
+  bool get isForbidden => statusCode == 403;
+
   factory AppException.fromDio(DioException e) {
     final response = e.response;
     final status = response?.statusCode;
@@ -20,6 +23,14 @@ class AppException implements Exception {
     // Network/timeout style failures have no response body.
     if (response == null) {
       return AppException(_connectionMessage(e), statusCode: status);
+    }
+
+    // 403 Forbidden — user is authenticated but lacks the required permission.
+    if (status == 403) {
+      return AppException(
+        'You don\'t have permission for this action.',
+        statusCode: 403,
+      );
     }
 
     final data = response.data;

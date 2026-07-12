@@ -23,6 +23,21 @@ class Session {
 
   bool hasRole(String role) => roles.contains(role);
 
+  /// Check if the session has a specific permission.
+  /// Permission strings match the backend's `Permissions.*` constants
+  /// (e.g. `sales.create`, `inventory.view`, `inventory.adjust-stock`).
+  bool hasPermission(String permission) => permissions.contains(permission);
+
+  /// Convenience getters for mobile-app-relevant permissions.
+  bool get canCreateSale => hasPermission('sales.create');
+  bool get canViewSales => hasPermission('sales.view');
+  bool get canEditSales => hasPermission('sales.edit');
+  bool get canProcessPayment => hasPermission('sales.process-payment');
+  bool get canViewInventory => hasPermission('inventory.view');
+  bool get canCreateInventory => hasPermission('inventory.create');
+  bool get canEditInventory => hasPermission('inventory.edit');
+  bool get canAdjustStock => hasPermission('inventory.adjust-stock');
+
   factory Session.fromJson(Map<String, dynamic> json) {
     return Session(
       token: asString(json['token']),

@@ -1,5 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/network/app_exception.dart';
@@ -217,11 +218,11 @@ class _SummaryCard extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                Expanded(
+                  Expanded(
                   child: _FlowMetric(
                     label: 'Cash in',
                     value: day.totalActualCashIn,
-                    color: Colors.green.shade700,
+                    color: AppColors.green,
                     icon: Icons.south_west,
                     note: day.totalCreditIn > 0
                         ? '+${formatCurrency(day.totalCreditIn)} on credit'
@@ -245,7 +246,7 @@ class _SummaryCard extends StatelessWidget {
                     label: 'Net',
                     value: day.netCash,
                     color: day.netCash >= 0
-                        ? Colors.green.shade700
+                        ? AppColors.green
                         : scheme.error,
                     icon: Icons.swap_vert,
                   ),
@@ -330,7 +331,7 @@ class _BreakdownCard extends StatelessWidget {
                     ),
                     if (r.cashIn > 0)
                       Text('+${formatCurrency(r.cashIn)}',
-                          style: TextStyle(color: Colors.green.shade700)),
+                          style: GoogleFonts.instrumentSans(color: AppColors.green)),
                     if (r.cashIn > 0 && r.cashOut > 0)
                       const SizedBox(width: 10),
                     if (r.cashOut > 0)
@@ -364,7 +365,7 @@ class _LedgerTile extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final isIn = row.isIn;
-    final color = isIn ? Colors.green.shade700 : scheme.error;
+    final color = isIn ? AppColors.green : scheme.error;
     final icon = _iconFor(row.type, isIn);
 
     final subtitleParts = <String>[

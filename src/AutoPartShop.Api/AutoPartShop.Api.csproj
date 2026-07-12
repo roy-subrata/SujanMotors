@@ -46,4 +46,10 @@
     <ProjectReference Include="../AutoPartShop.Infrastructure/AutoPartShop.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="Fonts\NotoSansBengali.ttf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

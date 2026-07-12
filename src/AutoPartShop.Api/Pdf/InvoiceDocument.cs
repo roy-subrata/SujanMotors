@@ -87,7 +87,7 @@ public class InvoiceDocument : IDocument
             page.Size(PageSizes.A4);
             page.MarginHorizontal(40);
             page.MarginVertical(32);
-            page.DefaultTextStyle(x => x.FontSize(9).FontColor(Gray900));
+            page.DefaultTextStyle(x => x.FontFamily("Bengali").FontSize(9).FontColor(Gray900));
 
             page.Header().Element(ComposeHeader);
             page.Content().Element(ComposeContent);

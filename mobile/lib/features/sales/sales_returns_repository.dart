@@ -3,13 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/app_exception.dart';
 import '../../core/network/dio_provider.dart';
+import '../../core/network/permission_guard.dart';
 import '../../shared/models/paged_response.dart';
 import '../../shared/models/sale_return.dart';
 
 class SalesReturnsRepository {
-  SalesReturnsRepository(this._dio);
+  SalesReturnsRepository(this._dio, this._ref);
 
   final Dio _dio;
+  final Ref _ref;
 
   /// Paged list of returns. Pass [searchTerm] to filter by customer name,
   /// return number, or SO number (server-side text contains).
@@ -18,6 +20,7 @@ class SalesReturnsRepository {
     int page = 1,
     int pageSize = 20,
   }) async {
+    await requirePermission(_ref, 'sales.view');
     try {
       final res = await _dio.get('/SalesReturn/list', queryParameters: {
         'pageNumber': page,
@@ -40,6 +43,7 @@ class SalesReturnsRepository {
     required List<QuickReturnItem> items,
     String refundType = 'CASH_REFUND',
   }) async {
+    await requirePermission(_ref, 'sales.create');
     try {
       final res = await _dio.post('/SalesOrder/return', data: {
         'originalInvoiceNumber': originalInvoiceNumber,
@@ -54,5 +58,5 @@ class SalesReturnsRepository {
 }
 
 final salesReturnsRepositoryProvider = Provider<SalesReturnsRepository>(
-  (ref) => SalesReturnsRepository(ref.read(dioProvider)),
+  (ref) => SalesReturnsRepository(ref.read(dioProvider), ref),
 );

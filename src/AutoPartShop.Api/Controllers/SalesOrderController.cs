@@ -1,4 +1,4 @@
-﻿using AutoPartShop.Api.Common;
+using AutoPartShop.Api.Common;
 using AutoPartShop.Api.Pdf;
 using AutoPartShop.Api.Services;
 using QuestPDF.Fluent;
@@ -1628,7 +1628,7 @@ public class SalesOrderController : ControllerBase
             TaxNo: await Setting("SHOP_TAX_NUMBER"),
             Tagline: await Setting("SHOP_TAGLINE"),
             FooterText: await Setting("INVOICE_FOOTER_TEXT") is { Length: > 0 } ft ? ft : "Thank you for your business!",
-            CurrencySymbol: "à§³");
+            CurrencySymbol: "\u09F3");
 
         var lines = (so?.LineItems ?? [])
             .OrderBy(l => l.LineNumber)

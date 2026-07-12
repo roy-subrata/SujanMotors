@@ -4,9 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/app_exception.dart';
 import '../../features/customers/customers_repository.dart';
+import '../../features/technicians/technicians_repository.dart';
 import '../../shared/format.dart';
 import '../../shared/models/customer.dart';
 import '../../shared/models/customer_vehicle.dart';
+import '../../shared/models/technician.dart';
 import 'quick_sale_providers.dart';
 
 class ChargeScreen extends ConsumerStatefulWidget {
@@ -33,6 +35,11 @@ class _ChargeScreenState extends ConsumerState<ChargeScreen> {
   bool _isLoadingVehicles = false;
   CustomerVehicle? _vehicle;
 
+  // Technician
+  List<Technician> _technicians = [];
+  bool _isLoadingTechnicians = false;
+  Technician? _technician;
+
   // Payment
   String _paymentMethod = 'CASH';
   String? _localError;
@@ -52,8 +59,8 @@ class _ChargeScreenState extends ConsumerState<ChargeScreen> {
         text: widget.cartTotal.toStringAsFixed(2));
     _grandTotalCtrl.addListener(() => setState(() {}));
     _cashReceivedCtrl.addListener(() => setState(() {}));
-    // Load all customers immediately so the list is ready.
     _loadCustomers('');
+    _loadTechnicians();
   }
 
   @override
@@ -63,7 +70,7 @@ class _ChargeScreenState extends ConsumerState<ChargeScreen> {
     super.dispose();
   }
 
-  // ── Customer loading ─────────────────────────────────────────────────────────
+  // ── Data loading ──────────────────────────────────────────────────────────
 
   Future<void> _loadCustomers(String query) async {
     setState(() => _isLoadingCustomers = true);
@@ -79,6 +86,21 @@ class _ChargeScreenState extends ConsumerState<ChargeScreen> {
       }
     } on AppException {
       if (mounted) setState(() => _isLoadingCustomers = false);
+    }
+  }
+
+  Future<void> _loadTechnicians() async {
+    setState(() => _isLoadingTechnicians = true);
+    try {
+      final list = await ref.read(techniciansRepositoryProvider).list();
+      if (mounted) {
+        setState(() {
+          _technicians = list;
+          _isLoadingTechnicians = false;
+        });
+      }
+    } on AppException {
+      if (mounted) setState(() => _isLoadingTechnicians = false);
     }
   }
 
@@ -105,7 +127,67 @@ class _ChargeScreenState extends ConsumerState<ChargeScreen> {
     }
   }
 
-  // ── Submit ───────────────────────────────────────────────────────────────────
+  // ── Quick-add customer ────────────────────────────────────────────────────
+
+  Future<void> _showAddCustomerSheet() async {
+    final result = await showModalBottomSheet<Customer>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => const _AddCustomerSheet(),
+    );
+    if (result != null && mounted) {
+      // Add to list and auto-select
+      setState(() => _customers = [..._customers, result]);
+      await _selectCustomer(result);
+    }
+  }
+
+  // ── Quick-add vehicle ─────────────────────────────────────────────────────
+
+  Future<void> _showAddVehicleSheet() async {
+    if (_customer == null) return;
+    final result = await showModalBottomSheet<CustomerVehicle>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => _AddVehicleSheet(customerId: _customer!.id),
+    );
+    if (result != null && mounted) {
+      setState(() {
+        _vehicles = [..._vehicles, result];
+        _vehicle = result;
+      });
+    }
+  }
+
+  // ── Quick-add technician ──────────────────────────────────────────────────
+
+  Future<void> _showAddTechnicianSheet() async {
+    final result = await showModalBottomSheet<Technician>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => const _AddTechnicianSheet(),
+    );
+    if (result != null && mounted) {
+      setState(() {
+        _technicians = [..._technicians, result];
+        _technician = result;
+      });
+    }
+  }
+
+  // ── Submit ─────────────────────────────────────────────────────────────────
 
   void _submit() {
     final gt = grandTotal;
@@ -126,6 +208,7 @@ class _ChargeScreenState extends ConsumerState<ChargeScreen> {
           customerId: _customer?.id,
           customerPhone: _customer?.phone,
           vehicleId: _vehicle?.id,
+          technicianId: _technician?.id,
         );
   }
 
@@ -170,6 +253,19 @@ class _ChargeScreenState extends ConsumerState<ChargeScreen> {
             selectedVehicle: _vehicle,
             onSelectCustomer: _selectCustomer,
             onSelectVehicle: (v) => setState(() => _vehicle = v),
+            onAddCustomer: _showAddCustomerSheet,
+            onAddVehicle: _showAddVehicleSheet,
+          ),
+          const SizedBox(height: 14),
+          _TechnicianCard(
+            technicians: _technicians,
+            isLoading: _isLoadingTechnicians,
+            selectedTechnician: _technician,
+            onSelectTechnician: (t) => setState(() {
+              _technician = t;
+              _localError = null;
+            }),
+            onAddTechnician: _showAddTechnicianSheet,
           ),
           const SizedBox(height: 14),
           _PaymentCard(
@@ -302,6 +398,8 @@ class _CustomerCard extends StatelessWidget {
     required this.selectedVehicle,
     required this.onSelectCustomer,
     required this.onSelectVehicle,
+    required this.onAddCustomer,
+    required this.onAddVehicle,
   });
 
   final List<Customer> customers;
@@ -312,6 +410,8 @@ class _CustomerCard extends StatelessWidget {
   final CustomerVehicle? selectedVehicle;
   final void Function(Customer?) onSelectCustomer;
   final void Function(CustomerVehicle?) onSelectVehicle;
+  final VoidCallback onAddCustomer;
+  final VoidCallback onAddVehicle;
 
   @override
   Widget build(BuildContext context) {
@@ -322,9 +422,20 @@ class _CustomerCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Customer',
-              style: theme.textTheme.titleSmall
-                  ?.copyWith(color: scheme.onSurfaceVariant)),
+          Row(
+            children: [
+              Expanded(
+                child: Text('Customer',
+                    style: theme.textTheme.titleSmall
+                        ?.copyWith(color: scheme.onSurfaceVariant)),
+              ),
+              _QuickAddButton(
+                label: 'New',
+                icon: Icons.person_add_outlined,
+                onTap: onAddCustomer,
+              ),
+            ],
+          ),
           const SizedBox(height: 10),
           if (isLoading)
             const Padding(
@@ -358,7 +469,7 @@ class _CustomerCard extends StatelessWidget {
                 onSelected: onSelectCustomer,
               ),
             ),
-          // Previous due warning — shown when selected customer has a balance
+          // Previous due warning
           if (selectedCustomer != null && selectedCustomer!.dueAmount > 0) ...[
             const SizedBox(height: 12),
             Container(
@@ -405,16 +516,27 @@ class _CustomerCard extends StatelessWidget {
           // Vehicle section — only shown when a real customer is selected
           if (selectedCustomer != null) ...[
             const SizedBox(height: 14),
-            Text('Vehicle',
-                style: theme.textTheme.titleSmall
-                    ?.copyWith(color: scheme.onSurfaceVariant)),
+            Row(
+              children: [
+                Expanded(
+                  child: Text('Vehicle',
+                      style: theme.textTheme.titleSmall
+                          ?.copyWith(color: scheme.onSurfaceVariant)),
+                ),
+                _QuickAddButton(
+                  label: 'New',
+                  icon: Icons.directions_car_outlined,
+                  onTap: onAddVehicle,
+                ),
+              ],
+            ),
             const SizedBox(height: 8),
             if (isLoadingVehicles)
               const Center(child: CircularProgressIndicator())
             else if (vehicles.isEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Text('No vehicles on file for this customer.',
+                child: Text('No vehicles on file — tap + to add one.',
                     style: TextStyle(color: scheme.onSurfaceVariant)),
               )
             else
@@ -452,6 +574,116 @@ class _CustomerCard extends StatelessWidget {
     );
   }
 }
+
+// ── Technician card ───────────────────────────────────────────────────────────
+
+class _TechnicianCard extends StatelessWidget {
+  const _TechnicianCard({
+    required this.technicians,
+    required this.isLoading,
+    required this.selectedTechnician,
+    required this.onSelectTechnician,
+    required this.onAddTechnician,
+  });
+
+  final List<Technician> technicians;
+  final bool isLoading;
+  final Technician? selectedTechnician;
+  final void Function(Technician?) onSelectTechnician;
+  final VoidCallback onAddTechnician;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    return _SectionCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text('Technician / Mechanic',
+                    style: theme.textTheme.titleSmall
+                        ?.copyWith(color: scheme.onSurfaceVariant)),
+              ),
+              _QuickAddButton(
+                label: 'New',
+                icon: Icons.build_outlined,
+                onTap: onAddTechnician,
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          if (isLoading)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else
+            LayoutBuilder(
+              builder: (context, constraints) => DropdownMenu<Technician?>(
+                initialSelection: selectedTechnician,
+                enableFilter: true,
+                requestFocusOnTap: true,
+                width: constraints.maxWidth,
+                hintText: 'None / Select technician',
+                inputDecorationTheme:
+                    const InputDecorationTheme(isDense: true),
+                dropdownMenuEntries: [
+                  const DropdownMenuEntry(
+                    value: null,
+                    label: 'None (no technician)',
+                  ),
+                  ...technicians.map(
+                    (t) => DropdownMenuEntry(
+                      value: t,
+                      label: t.shopName != null && t.shopName!.isNotEmpty
+                          ? '${t.name} — ${t.shopName}'
+                          : t.name,
+                    ),
+                  ),
+                ],
+                onSelected: onSelectTechnician,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Quick-add button (inline + icon) ─────────────────────────────────────────
+
+class _QuickAddButton extends StatelessWidget {
+  const _QuickAddButton({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return TextButton.icon(
+      onPressed: onTap,
+      icon: Icon(icon, size: 16),
+      label: Text(label, style: const TextStyle(fontSize: 12)),
+      style: TextButton.styleFrom(
+        visualDensity: VisualDensity.compact,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        foregroundColor: scheme.primary,
+      ),
+    );
+  }
+}
+
+// ── Vehicle tile ──────────────────────────────────────────────────────────────
 
 class _VehicleTile extends StatelessWidget {
   const _VehicleTile({
@@ -669,6 +901,407 @@ class _ErrorBanner extends StatelessWidget {
               child: Text(message,
                   style: TextStyle(color: scheme.onErrorContainer))),
         ],
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  Quick-add bottom sheets
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ── Add Customer ──────────────────────────────────────────────────────────────
+
+class _AddCustomerSheet extends ConsumerStatefulWidget {
+  const _AddCustomerSheet();
+
+  @override
+  ConsumerState<_AddCustomerSheet> createState() => _AddCustomerSheetState();
+}
+
+class _AddCustomerSheetState extends ConsumerState<_AddCustomerSheet> {
+  final _formKey = GlobalKey<FormState>();
+  final _firstNameCtrl = TextEditingController();
+  final _lastNameCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
+  final _emailCtrl = TextEditingController();
+  bool _saving = false;
+
+  @override
+  void dispose() {
+    _firstNameCtrl.dispose();
+    _lastNameCtrl.dispose();
+    _phoneCtrl.dispose();
+    _emailCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _saving = true);
+    try {
+      final customer = await ref.read(customersRepositoryProvider).createCustomer(
+            firstName: _firstNameCtrl.text.trim(),
+            lastName: _lastNameCtrl.text.trim(),
+            phone: _phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim(),
+            email: _emailCtrl.text.trim().isEmpty ? null : _emailCtrl.text.trim(),
+          );
+      if (mounted) Navigator.of(context).pop(customer);
+    } on AppException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message)));
+        setState(() => _saving = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomPad = MediaQuery.of(context).viewInsets.bottom;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20, 20, 20, 16 + bottomPad),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('New Customer',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    )),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _firstNameCtrl,
+                    textCapitalization: TextCapitalization.words,
+                    decoration: const InputDecoration(
+                      labelText: 'First Name *',
+                      isDense: true,
+                    ),
+                    validator: (v) =>
+                        (v == null || v.trim().isEmpty) ? 'Required' : null,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextFormField(
+                    controller: _lastNameCtrl,
+                    textCapitalization: TextCapitalization.words,
+                    decoration: const InputDecoration(
+                      labelText: 'Last Name *',
+                      isDense: true,
+                    ),
+                    validator: (v) =>
+                        (v == null || v.trim().isEmpty) ? 'Required' : null,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _phoneCtrl,
+              keyboardType: TextInputType.phone,
+              decoration: const InputDecoration(
+                labelText: 'Phone',
+                isDense: true,
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _emailCtrl,
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(
+                labelText: 'Email (optional)',
+                isDense: true,
+              ),
+            ),
+            const SizedBox(height: 20),
+            FilledButton(
+              onPressed: _saving ? null : _save,
+              child: _saving
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Text('Create & Select'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Add Vehicle ───────────────────────────────────────────────────────────────
+
+class _AddVehicleSheet extends ConsumerStatefulWidget {
+  const _AddVehicleSheet({required this.customerId});
+
+  final String customerId;
+
+  @override
+  ConsumerState<_AddVehicleSheet> createState() => _AddVehicleSheetState();
+}
+
+class _AddVehicleSheetState extends ConsumerState<_AddVehicleSheet> {
+  final _formKey = GlobalKey<FormState>();
+  final _makeCtrl = TextEditingController();
+  final _modelCtrl = TextEditingController();
+  final _regCtrl = TextEditingController();
+  final _yearCtrl = TextEditingController();
+  final _colorCtrl = TextEditingController();
+  bool _saving = false;
+
+  @override
+  void dispose() {
+    _makeCtrl.dispose();
+    _modelCtrl.dispose();
+    _regCtrl.dispose();
+    _yearCtrl.dispose();
+    _colorCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _saving = true);
+    try {
+      final vehicle = await ref.read(customersRepositoryProvider).createVehicle(
+            customerId: widget.customerId,
+            make: _makeCtrl.text.trim(),
+            model: _modelCtrl.text.trim(),
+            registrationNo:
+                _regCtrl.text.trim().isEmpty ? null : _regCtrl.text.trim(),
+            year: int.tryParse(_yearCtrl.text.trim()),
+            color: _colorCtrl.text.trim().isEmpty ? null : _colorCtrl.text.trim(),
+          );
+      if (mounted) Navigator.of(context).pop(vehicle);
+    } on AppException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message)));
+        setState(() => _saving = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomPad = MediaQuery.of(context).viewInsets.bottom;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20, 20, 20, 16 + bottomPad),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('New Vehicle',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    )),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _makeCtrl,
+                    textCapitalization: TextCapitalization.words,
+                    decoration: const InputDecoration(
+                      labelText: 'Make *',
+                      hintText: 'e.g. Toyota',
+                      isDense: true,
+                    ),
+                    validator: (v) =>
+                        (v == null || v.trim().isEmpty) ? 'Required' : null,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextFormField(
+                    controller: _modelCtrl,
+                    textCapitalization: TextCapitalization.words,
+                    decoration: const InputDecoration(
+                      labelText: 'Model *',
+                      hintText: 'e.g. Hilux',
+                      isDense: true,
+                    ),
+                    validator: (v) =>
+                        (v == null || v.trim().isEmpty) ? 'Required' : null,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _regCtrl,
+              textCapitalization: TextCapitalization.characters,
+              decoration: const InputDecoration(
+                labelText: 'Registration No.',
+                isDense: true,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _yearCtrl,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(4),
+                    ],
+                    decoration: const InputDecoration(
+                      labelText: 'Year',
+                      isDense: true,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextFormField(
+                    controller: _colorCtrl,
+                    textCapitalization: TextCapitalization.words,
+                    decoration: const InputDecoration(
+                      labelText: 'Color',
+                      isDense: true,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            FilledButton(
+              onPressed: _saving ? null : _save,
+              child: _saving
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Text('Add Vehicle'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Add Technician ────────────────────────────────────────────────────────────
+
+class _AddTechnicianSheet extends ConsumerStatefulWidget {
+  const _AddTechnicianSheet();
+
+  @override
+  ConsumerState<_AddTechnicianSheet> createState() =>
+      _AddTechnicianSheetState();
+}
+
+class _AddTechnicianSheetState extends ConsumerState<_AddTechnicianSheet> {
+  final _formKey = GlobalKey<FormState>();
+  final _nameCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
+  final _shopCtrl = TextEditingController();
+  bool _saving = false;
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _phoneCtrl.dispose();
+    _shopCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _saving = true);
+    try {
+      final tech =
+          await ref.read(techniciansRepositoryProvider).create(
+                name: _nameCtrl.text.trim(),
+                phone: _phoneCtrl.text.trim(),
+                shopName:
+                    _shopCtrl.text.trim().isEmpty ? null : _shopCtrl.text.trim(),
+              );
+      if (mounted) Navigator.of(context).pop(tech);
+    } on AppException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message)));
+        setState(() => _saving = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomPad = MediaQuery.of(context).viewInsets.bottom;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20, 20, 20, 16 + bottomPad),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('New Technician',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    )),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _nameCtrl,
+              textCapitalization: TextCapitalization.words,
+              decoration: const InputDecoration(
+                labelText: 'Name *',
+                isDense: true,
+              ),
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? 'Required' : null,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _phoneCtrl,
+              keyboardType: TextInputType.phone,
+              decoration: const InputDecoration(
+                labelText: 'Phone *',
+                isDense: true,
+              ),
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? 'Required' : null,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _shopCtrl,
+              textCapitalization: TextCapitalization.words,
+              decoration: const InputDecoration(
+                labelText: 'Shop Name (optional)',
+                isDense: true,
+              ),
+            ),
+            const SizedBox(height: 20),
+            FilledButton(
+              onPressed: _saving ? null : _save,
+              child: _saving
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Text('Create & Select'),
+            ),
+          ],
+        ),
       ),
     );
   }

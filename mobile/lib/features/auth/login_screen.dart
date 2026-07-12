@@ -65,24 +65,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         width: 56,
                         height: 56,
                         decoration: BoxDecoration(
-                         
+                          gradient: AppGradients.brand,
                           borderRadius: BorderRadius.circular(14),
                         ),
                         alignment: Alignment.center,
-                        child: Text(
-                          'SM',
-                          style: GoogleFonts.instrumentSans(
-                            color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.w700,
-                          ),
+                        child: const Icon(
+                          Icons.directions_car_outlined,
+                          color: Colors.white,
+                          size: 26,
                         ),
                       ),
                       const SizedBox(height: 16),
                       Text(
                         'Sujan Motors',
                         style: GoogleFonts.instrumentSans(
-                         
                           fontSize: 20,
                           fontWeight: FontWeight.w700,
                         ),
@@ -91,8 +87,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       Text(
                         'Auto Parts POS & Inventory',
                         style: GoogleFonts.instrumentSans(
-                         
                           fontSize: 13,
+                          color: AppColors.muted,
                         ),
                       ),
                     ],
