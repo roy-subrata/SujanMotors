@@ -1,14 +1,13 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../shared/format.dart';
-import '../../shared/widgets/state_views.dart';
 import 'notification_models.dart';
 import 'notifications_controller.dart';
 
-/// Realtime notification inbox. New sales pushed over SignalR appear here live.
 class NotificationsScreen extends ConsumerWidget {
   const NotificationsScreen({super.key});
 
@@ -16,23 +15,34 @@ class NotificationsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(notificationsControllerProvider);
     final controller = ref.read(notificationsControllerProvider.notifier);
+    final scheme = Theme.of(context).colorScheme;
+    final unreadCount = state.items.where((n) => !n.read).length;
 
     return Scaffold(
       appBar: AppBar(
-        flexibleSpace: const AppBarGradient(),
-        // Reached both by pushing (bell icon) and by go()-ing (drawer link,
-        // which replaces the stack and leaves nothing to pop) â€” always fall
-        // back to Home so a back affordance is guaranteed either way.
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.canPop() ? context.pop() : context.go('/'),
         ),
-        title: const Text('Notifications'),
+        title: Text(
+          'Notifications',
+          style: GoogleFonts.instrumentSans(
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
         actions: [
-          if (state.items.any((n) => !n.read))
+          if (unreadCount > 0)
             TextButton(
               onPressed: controller.markAllRead,
-              child: const Text('Mark all read'),
+              child: Text(
+                'Mark all read',
+                style: GoogleFonts.instrumentSans(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF4F46E5),
+                ),
+              ),
             ),
           if (state.items.isNotEmpty)
             IconButton(
@@ -41,16 +51,55 @@ class NotificationsScreen extends ConsumerWidget {
               onPressed: controller.clearAll,
             ),
         ],
-        bottom: _StatusBar(status: state.status),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(32),
+          child: _StatusBar(status: state.status),
+        ),
       ),
       body: state.items.isEmpty
-          ? const EmptyView(
-              message: 'No notifications yet.\nNew sales will appear here live.',
-              icon: Icons.notifications_off_outlined,
+          ? Column(
+              children: [
+                const SizedBox(height: 60),
+                Container(
+                  width: 72,
+                  height: 72,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF4F46E5).withAlpha(18),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFF4F46E5).withAlpha(30)),
+                  ),
+                  child: const Icon(
+                    Icons.notifications_off_outlined,
+                    size: 34,
+                    color: Color(0xFF4F46E5),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'No notifications yet',
+                  style: GoogleFonts.instrumentSans(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'New sales will appear here live.',
+                  style: GoogleFonts.instrumentSans(
+                    fontSize: 13,
+                    color: AppColors.muted,
+                  ),
+                ),
+              ],
             )
           : ListView.separated(
+              padding: const EdgeInsets.symmetric(vertical: 8),
               itemCount: state.items.length,
-              separatorBuilder: (_, _) => Divider(height: 1),
+              separatorBuilder: (_, _) => Divider(
+                height: 1,
+                indent: 72,
+                color: scheme.outline.withAlpha(60),
+              ),
               itemBuilder: (context, index) => _NotificationTile(
                 notification: state.items[index],
                 onTap: () => controller.markRead(state.items[index]),
@@ -60,29 +109,34 @@ class NotificationsScreen extends ConsumerWidget {
   }
 }
 
-class _StatusBar extends StatelessWidget implements PreferredSizeWidget {
+class _StatusBar extends StatelessWidget {
   const _StatusBar({required this.status});
 
   final HubStatus status;
 
   @override
-  Size get preferredSize => const Size.fromHeight(24);
-
-  @override
   Widget build(BuildContext context) {
     final (color, label, icon) = switch (status) {
-      HubStatus.connected => (Colors.green, 'Live', Icons.bolt),
-      HubStatus.connecting => (Colors.orange, 'Connectingâ€¦', Icons.sync),
-      HubStatus.disconnected => (Colors.grey, 'Offline', Icons.cloud_off),
+      HubStatus.connected => (AppColors.green, 'Live', Icons.bolt),
+      HubStatus.connecting => (AppColors.amber, 'Connecting...', Icons.sync),
+      HubStatus.disconnected => (AppColors.disabled, 'Offline', Icons.cloud_off),
     };
-    return SizedBox(
-      height: 24,
+    return Container(
+      height: 32,
+      color: Theme.of(context).colorScheme.surface,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(icon, size: 14, color: color),
           const SizedBox(width: 6),
-          Text(label, style: TextStyle(fontSize: 12, color: color)),
+          Text(
+            label,
+            style: GoogleFonts.instrumentSans(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
         ],
       ),
     );
@@ -98,29 +152,40 @@ class _NotificationTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final sale = notification.sale;
-    final scheme = Theme.of(context).colorScheme;
-    return ListTile(
-      tileColor: notification.read ? null : scheme.primaryContainer.withValues(alpha: 0.18),
-      leading: CircleAvatar(
-        backgroundColor: scheme.primaryContainer,
-        child: Icon(Icons.receipt_long, color: scheme.onPrimaryContainer),
-      ),
-      title: Text(
-        'New sale ${sale.soNumber}',
-        style: TextStyle(
-          fontWeight: notification.read ? FontWeight.w400 : FontWeight.w700,
+
+    return Material(
+      color: notification.read ? null : const Color(0xFF4F46E5).withAlpha(12),
+      child: ListTile(
+        leading: CircleAvatar(
+          radius: 20,
+          backgroundColor: const Color(0xFF4F46E5).withAlpha(25),
+          child: Icon(Icons.receipt_long, color: const Color(0xFF4F46E5), size: 20),
         ),
+        title: Text(
+          'New sale ${sale.soNumber}',
+          style: GoogleFonts.instrumentSans(
+            fontSize: 13.5,
+            fontWeight: notification.read ? FontWeight.w500 : FontWeight.w700,
+          ),
+        ),
+        subtitle: Text(
+          '${sale.customerName.isEmpty ? 'Walk-in' : sale.customerName} \u2022 '
+          '${formatCurrency(sale.grandTotal, currency: sale.currency)} \u2022 '
+          '${sale.saleChannel}',
+          style: GoogleFonts.instrumentSans(
+            fontSize: 11.5,
+            color: AppColors.muted,
+          ),
+        ),
+        trailing: Text(
+          formatRelative(sale.occurredAt),
+          style: GoogleFonts.instrumentSans(
+            fontSize: 11,
+            color: AppColors.disabled,
+          ),
+        ),
+        onTap: onTap,
       ),
-      subtitle: Text(
-        '${sale.customerName.isEmpty ? 'Walk-in' : sale.customerName} â€¢ '
-        '${formatCurrency(sale.grandTotal, currency: sale.currency)} â€¢ '
-        '${sale.saleChannel}',
-      ),
-      trailing: Text(
-        formatRelative(sale.occurredAt),
-        style: Theme.of(context).textTheme.bodySmall,
-      ),
-      onTap: onTap,
     );
   }
 }

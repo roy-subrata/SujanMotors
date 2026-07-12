@@ -40,29 +40,37 @@ class QuickSaleItem {
 /// screen.
 class QuickSaleResult {
   const QuickSaleResult({
+    required this.invoiceId,
     required this.invoiceNumber,
     required this.salesOrderNumber,
     required this.grandTotal,
     this.paidAmount = 0,
     this.dueAmount = 0,
     this.vehicleLabel,
+    this.technicianName,
+    this.customerPhone,
   });
 
+  final String invoiceId;
   final String invoiceNumber;
   final String salesOrderNumber;
   final double grandTotal;
   final double paidAmount;
   final double dueAmount;
   final String? vehicleLabel;
+  final String? technicianName;
+  final String? customerPhone;
 
   bool get hasDue => dueAmount > 0;
 
   factory QuickSaleResult.fromJson(Map<String, dynamic> json) => QuickSaleResult(
+        invoiceId: asString(json['id']),
         invoiceNumber: asString(json['invoiceNumber']),
         salesOrderNumber: asString(json['salesOrderNumber']),
         grandTotal: asDouble(json['grandTotal']),
         paidAmount: asDouble(json['paidAmount']),
         dueAmount: asDouble(json['dueAmount']),
         vehicleLabel: asStringOrNull(json['vehicleLabel']),
+        technicianName: asStringOrNull(json['technicianName']),
       );
 }

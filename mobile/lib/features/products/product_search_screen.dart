@@ -97,7 +97,7 @@ class _ProductSearchScreenState extends ConsumerState<ProductSearchScreen> {
       ],
       body: Column(
         children: [
-          // Search bar
+          // ── Search bar ─────────────────────────────────────────────────────
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
             child: SearchInput(
@@ -109,7 +109,7 @@ class _ProductSearchScreenState extends ConsumerState<ProductSearchScreen> {
           ),
           const SizedBox(height: 10),
 
-          // Category chips
+          // ── Category chips ─────────────────────────────────────────────────
           quickCategories.when(
             data: (cats) => cats.isEmpty
                 ? const SizedBox.shrink()
@@ -125,15 +125,16 @@ class _ProductSearchScreenState extends ConsumerState<ProductSearchScreen> {
           ),
 
           const SizedBox(height: 8),
-          Expanded(child: _buildBody(state, controller, priceCode, showActualPrice)),
+          Expanded(
+            child: _buildBody(state, controller, priceCode, showActualPrice),
+          ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => context.go('/quick-sale'),
         backgroundColor: AppColors.ink,
         foregroundColor: Colors.white,
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: const Icon(Icons.add),
       ),
     );
@@ -181,7 +182,7 @@ class _ProductSearchScreenState extends ConsumerState<ProductSearchScreen> {
   }
 }
 
-// â”€â”€ Category tab row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Category tab row ─────────────────────────────────────────────────────────
 
 class _CategoryTabRow extends StatelessWidget {
   const _CategoryTabRow({
@@ -279,7 +280,7 @@ class _Tab extends StatelessWidget {
   }
 }
 
-// â”€â”€ Category picker sheet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Category picker sheet ────────────────────────────────────────────────────
 
 class _CategoryPickerSheet extends ConsumerStatefulWidget {
   const _CategoryPickerSheet({required this.onSelected});
@@ -314,7 +315,7 @@ class _CategoryPickerSheetState extends ConsumerState<_CategoryPickerSheet> {
                   'All Categories',
                   style: GoogleFonts.instrumentSans(
                     fontSize: 16,
-                    fontWeight: FontWeight.w700
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
@@ -371,7 +372,7 @@ class _CategoryPickerSheetState extends ConsumerState<_CategoryPickerSheet> {
   }
 }
 
-// â”€â”€ Product card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Product card ─────────────────────────────────────────────────────────────
 
 class _ProductCard extends ConsumerWidget {
   const _ProductCard({
@@ -394,7 +395,7 @@ class _ProductCard extends ConsumerWidget {
     final subtitle = [
       if ((sku).isNotEmpty) sku,
       if (brand != null && brand.isNotEmpty) brand,
-    ].join(' Â· ');
+    ].join(' \u00b7 ');
 
     final inStock = stock != null && stock > 0;
     final stockLabel = stock != null
@@ -424,7 +425,8 @@ class _ProductCard extends ConsumerWidget {
                   decoration: BoxDecoration(
                     color: Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Theme.of(context).colorScheme.outline.withAlpha(60)),
+                    border: Border.all(
+                        color: Theme.of(context).colorScheme.outline.withAlpha(60)),
                   ),
                   child: const Icon(Icons.inventory_2_outlined,
                       size: 20, color: AppColors.disabled),
@@ -442,7 +444,7 @@ class _ProductCard extends ConsumerWidget {
                         overflow: TextOverflow.ellipsis,
                         style: GoogleFonts.instrumentSans(
                           fontSize: 13.5,
-                          fontWeight: FontWeight.w500
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                       if (subtitle.isNotEmpty) ...[
@@ -452,7 +454,7 @@ class _ProductCard extends ConsumerWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: GoogleFonts.instrumentSans(
-                            fontSize: 11.5
+                            fontSize: 11.5,
                           ),
                         ),
                       ],
@@ -470,10 +472,10 @@ class _ProductCard extends ConsumerWidget {
                       price != null
                           ? formatCurrency(price,
                               currency: product.pricing?.currency)
-                          : 'â€”',
+                          : '\u2014',
                       style: GoogleFonts.instrumentSans(
                         fontSize: 13.5,
-                        fontWeight: FontWeight.w600
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                     if (stockLabel != null) ...[

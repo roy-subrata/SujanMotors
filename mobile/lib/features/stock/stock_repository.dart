@@ -3,12 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/app_exception.dart';
 import '../../core/network/dio_provider.dart';
+import '../../core/network/permission_guard.dart';
 import '../../shared/models/stock.dart';
 
 class StockRepository {
-  StockRepository(this._dio);
+  StockRepository(this._dio, this._ref);
 
   final Dio _dio;
+  final Ref _ref;
 
   /// All warehouse stock levels for a part (variant rows included).
   Future<List<StockLevel>> levelsForPart(String partId) async {
@@ -46,6 +48,7 @@ class StockRepository {
     String reference = '',
     String notes = '',
   }) async {
+    await requirePermission(_ref, 'inventory.adjust-stock');
     try {
       await _dio.post('/stock/adjust', data: {
         'partId': partId,
@@ -64,7 +67,7 @@ class StockRepository {
 }
 
 final stockRepositoryProvider = Provider<StockRepository>(
-  (ref) => StockRepository(ref.read(dioProvider)),
+  (ref) => StockRepository(ref.read(dioProvider), ref),
 );
 
 /// Stock levels for a part, keyed by partId.

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/app_exception.dart';
 import '../../core/network/dio_provider.dart';
+import '../../core/network/permission_guard.dart';
 import '../../shared/models/customer.dart';
 import '../../shared/models/customer_vehicle.dart';
 import '../../shared/models/invoice.dart';
@@ -19,9 +20,10 @@ class CustomerPage {
 }
 
 class CustomersRepository {
-  CustomersRepository(this._dio);
+  CustomersRepository(this._dio, this._ref);
 
   final Dio _dio;
+  final Ref _ref;
 
   /// Paged customer list via `POST /customers/list` (`PagedResult` envelope).
   Future<CustomerPage> list({
@@ -60,6 +62,55 @@ class CustomersRepository {
           .whereType<Map>()
           .map((e) => CustomerVehicle.fromJson(Map<String, dynamic>.from(e)))
           .toList();
+    } on DioException catch (e) {
+      throw AppException.fromDio(e);
+    }
+  }
+
+  /// Quick-create a customer during checkout.
+  Future<Customer> createCustomer({
+    required String firstName,
+    required String lastName,
+    String? phone,
+    String? email,
+    String? companyName,
+  }) async {
+    await requirePermission(_ref, 'sales.create');
+    try {
+      final res = await _dio.post('/customers', data: {
+        'firstName': firstName,
+        'lastName': lastName,
+        if (phone != null && phone.isNotEmpty) 'phone': phone,
+        if (email != null && email.isNotEmpty) 'email': email,
+        if (companyName != null && companyName.isNotEmpty)
+          'companyName': companyName,
+      });
+      return Customer.fromJson(res.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw AppException.fromDio(e);
+    }
+  }
+
+  /// Quick-add a vehicle for a customer during checkout.
+  Future<CustomerVehicle> createVehicle({
+    required String customerId,
+    required String make,
+    required String model,
+    String? registrationNo,
+    int? year,
+    String? color,
+  }) async {
+    await requirePermission(_ref, 'sales.create');
+    try {
+      final res = await _dio.post('/customers/$customerId/vehicles', data: {
+        'make': make,
+        'model': model,
+        if (registrationNo != null && registrationNo.isNotEmpty)
+          'registrationNo': registrationNo,
+        if (year != null) 'year': year,
+        if (color != null && color.isNotEmpty) 'color': color,
+      });
+      return CustomerVehicle.fromJson(res.data as Map<String, dynamic>);
     } on DioException catch (e) {
       throw AppException.fromDio(e);
     }
@@ -182,6 +233,7 @@ class CustomersRepository {
     String? invoiceId,
     bool isAdvance = false,
   }) async {
+    await requirePermission(_ref, 'sales.process-payment');
     try {
       final res = await _dio.post('/customer-payments', data: {
         'customerId': customerId,
@@ -282,7 +334,7 @@ class CustomersRepository {
 }
 
 final customersRepositoryProvider = Provider<CustomersRepository>(
-  (ref) => CustomersRepository(ref.read(dioProvider)),
+  (ref) => CustomersRepository(ref.read(dioProvider), ref),
 );
 
 /// Single customer by id.

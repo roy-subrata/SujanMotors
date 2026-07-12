@@ -9,6 +9,7 @@ import 'sales_repository.dart';
 class QuickSaleState {
   const QuickSaleState({
     this.items = const [],
+    this.discount = 0,
     this.isScanning = false,
     this.isLookingUp = false,
     this.isSubmitting = false,
@@ -27,6 +28,7 @@ class QuickSaleState {
 
   // ── Cart ──────────────────────────────────────────────────────────────────────
   final List<QuickSaleItem> items;
+  final double discount;
   final bool isScanning;
   final bool isLookingUp;
   final bool isSubmitting;
@@ -45,6 +47,7 @@ class QuickSaleState {
 
   bool get isEmpty => items.isEmpty;
   double get total => items.fold(0.0, (s, i) => s + i.lineTotal);
+  double get grandTotal => (total - discount).clamp(0, double.infinity);
   int get itemCount => items.fold(0, (s, i) => s + i.quantity);
 
   List<Product> get filteredCatalog {
@@ -58,6 +61,7 @@ class QuickSaleState {
 
   QuickSaleState copyWith({
     List<QuickSaleItem>? items,
+    double? discount,
     bool? isScanning,
     bool? isLookingUp,
     bool? isSubmitting,
@@ -74,6 +78,7 @@ class QuickSaleState {
   }) {
     return QuickSaleState(
       items: items ?? this.items,
+      discount: discount ?? this.discount,
       isScanning: isScanning ?? this.isScanning,
       isLookingUp: isLookingUp ?? this.isLookingUp,
       isSubmitting: isSubmitting ?? this.isSubmitting,
@@ -301,6 +306,10 @@ class QuickSaleController extends Notifier<QuickSaleState> {
     state = state.copyWith(items: updated);
   }
 
+  void setDiscount(double value) {
+    state = state.copyWith(discount: value.clamp(0, state.total));
+  }
+
   // ── Checkout ─────────────────────────────────────────────────────────────────
 
   Future<void> submit({
@@ -310,6 +319,7 @@ class QuickSaleController extends Notifier<QuickSaleState> {
     String? customerId,
     String? customerPhone,
     String? vehicleId,
+    String? technicianId,
   }) async {
     if (state.isSubmitting || state.items.isEmpty) return;
     state = state.copyWith(isSubmitting: true, submitError: null);
@@ -329,18 +339,30 @@ class QuickSaleController extends Notifier<QuickSaleState> {
             customerId: customerId,
             customerPhone: customerPhone,
             vehicleId: vehicleId,
+            technicianId: technicianId,
           );
-      state = state.copyWith(isSubmitting: false, result: result);
+      // Inject the phone so the success screen can offer SMS/WhatsApp.
+      final resultWithPhone = QuickSaleResult(
+        invoiceId: result.invoiceId,
+        invoiceNumber: result.invoiceNumber,
+        salesOrderNumber: result.salesOrderNumber,
+        grandTotal: result.grandTotal,
+        paidAmount: result.paidAmount,
+        dueAmount: result.dueAmount,
+        vehicleLabel: result.vehicleLabel,
+        technicianName: result.technicianName,
+        customerPhone: customerPhone,
+      );
+      state = state.copyWith(isSubmitting: false, result: resultWithPhone);
     } on AppException catch (e) {
       state = state.copyWith(isSubmitting: false, submitError: e.message);
     }
   }
 
   void reset() {
-    // Keep the catalog when resetting the cart/result so the product grid
-    // doesn't disappear after a successful sale.
     state = state.copyWith(
       items: [],
+      discount: 0,
       isScanning: false,
       isSubmitting: false,
       lookupError: null,

@@ -2,14 +2,18 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
+import '../../core/theme/app_theme.dart';
 import '../../shared/models/product.dart';
 import '../../shared/models/stock.dart';
 import '../../shared/widgets/app_scaffold.dart';
 import '../products/products_repository.dart';
 import 'stock_adjustment_sheet.dart';
 import 'stock_repository.dart';
+
+const _kAccent = Color(0xFF059669);
 
 class StockInScreen extends ConsumerStatefulWidget {
   const StockInScreen({super.key});
@@ -19,21 +23,18 @@ class StockInScreen extends ConsumerStatefulWidget {
 }
 
 class _StockInScreenState extends ConsumerState<StockInScreen> {
-  // ── Scanner ───────────────────────────────────────────────────────────────────
   final _scanner = MobileScannerController(
     detectionSpeed: DetectionSpeed.noDuplicates,
   );
   bool _scanning = false;
   bool _handling = false;
 
-  // ── Search ────────────────────────────────────────────────────────────────────
   final _searchCtrl = TextEditingController();
   final _scrollCtrl = ScrollController();
   Timer? _debounce;
   List<Product> _searchResults = [];
   bool _loadingSearch = false;
 
-  // ── Product load ──────────────────────────────────────────────────────────────
   bool _loadingProduct = false;
   String? _lookupError;
 
@@ -51,8 +52,6 @@ class _StockInScreenState extends ConsumerState<StockInScreen> {
     _debounce?.cancel();
     super.dispose();
   }
-
-  // ── Search ────────────────────────────────────────────────────────────────────
 
   void _onSearchChanged() {
     final q = _searchCtrl.text.trim();
@@ -86,8 +85,6 @@ class _StockInScreenState extends ConsumerState<StockInScreen> {
     }
   }
 
-  // ── Scanner ───────────────────────────────────────────────────────────────────
-
   Future<void> _startScan() async {
     setState(() {
       _scanning = true;
@@ -119,8 +116,6 @@ class _StockInScreenState extends ConsumerState<StockInScreen> {
       } catch (_) {}
     }
   }
-
-  // ── Load product & open sheet ─────────────────────────────────────────────────
 
   Future<void> _openSheetForCode(String code) async {
     setState(() {
@@ -179,8 +174,6 @@ class _StockInScreenState extends ConsumerState<StockInScreen> {
     }
   }
 
-  // ── Build ─────────────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
     if (_scanning) {
@@ -206,38 +199,38 @@ class _StockInScreenState extends ConsumerState<StockInScreen> {
   }
 
   Widget _buildBody() {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
+    final scheme = Theme.of(context).colorScheme;
     final hasSearch = _searchCtrl.text.trim().isNotEmpty;
 
     return Column(
       children: [
-        // ── Search bar ────────────────────────────────────────────────────────
+        // ── Search bar ────────────────────────────────────────────────────
         Padding(
           padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
           child: TextField(
             controller: _searchCtrl,
             textInputAction: TextInputAction.search,
+            style: GoogleFonts.instrumentSans(fontSize: 14, color: AppColors.ink),
             decoration: InputDecoration(
               hintText: 'Search parts, SKU or brand...',
-              prefixIcon: const Icon(Icons.search, size: 20),
+              hintStyle: GoogleFonts.instrumentSans(color: AppColors.muted, fontSize: 14),
+              prefixIcon: const Icon(Icons.search, size: 20, color: AppColors.muted),
               filled: true,
-              fillColor:
-                  scheme.surfaceContainerHighest.withValues(alpha: 0.6),
+              fillColor: scheme.surface,
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(28),
-                borderSide: BorderSide.none,
+                borderRadius: BorderRadius.circular(11),
+                borderSide: BorderSide(color: scheme.outline),
               ),
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(28),
-                borderSide: BorderSide.none,
+                borderRadius: BorderRadius.circular(11),
+                borderSide: BorderSide(color: scheme.outline),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(28),
-                borderSide: BorderSide(color: scheme.primary, width: 1.5),
+                borderRadius: BorderRadius.circular(11),
+                borderSide: const BorderSide(color: Color(0xFF4F46E5), width: 1.5),
               ),
               isDense: true,
-              contentPadding: const EdgeInsets.symmetric(vertical: 10),
+              contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
               suffixIcon: hasSearch
                   ? IconButton(
                       icon: const Icon(Icons.clear, size: 18),
@@ -248,32 +241,45 @@ class _StockInScreenState extends ConsumerState<StockInScreen> {
           ),
         ),
 
-        // ── Loading / error banner ────────────────────────────────────────────
+        // ── Loading / error banner ────────────────────────────────────────
         if (_loadingProduct)
           const Padding(
             padding: EdgeInsets.all(24),
             child: CircularProgressIndicator(),
           )
         else if (_lookupError != null)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
-            child: Text(
-              _lookupError!,
-              style: TextStyle(color: scheme.error, fontSize: 13),
-              textAlign: TextAlign.center,
+          Container(
+            margin: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: AppColors.redBg,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.redBorder),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.error_outline, size: 18, color: AppColors.red),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _lookupError!,
+                    style: GoogleFonts.instrumentSans(color: AppColors.red, fontSize: 13),
+                  ),
+                ),
+              ],
             ),
           ),
 
         Expanded(
           child: hasSearch
-              ? _buildResults(scheme, theme)
-              : _buildEmptyPrompt(theme, scheme),
+              ? _buildResults(scheme)
+              : _buildEmptyPrompt(),
         ),
       ],
     );
   }
 
-  Widget _buildResults(ColorScheme scheme, ThemeData theme) {
+  Widget _buildResults(ColorScheme scheme) {
     if (_loadingSearch) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -281,7 +287,7 @@ class _StockInScreenState extends ConsumerState<StockInScreen> {
       return Center(
         child: Text(
           'No products found',
-          style: TextStyle(color: scheme.onSurfaceVariant),
+          style: GoogleFonts.instrumentSans(color: AppColors.muted, fontSize: 13),
         ),
       );
     }
@@ -297,32 +303,46 @@ class _StockInScreenState extends ConsumerState<StockInScreen> {
     );
   }
 
-  Widget _buildEmptyPrompt(ThemeData theme, ColorScheme scheme) {
+  Widget _buildEmptyPrompt() {
+    final scheme = Theme.of(context).colorScheme;
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.move_to_inbox_outlined,
-              size: 72,
-              color: scheme.primary.withValues(alpha: 0.15),
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: _kAccent.withAlpha(18),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: _kAccent.withAlpha(30)),
+              ),
+              child: Icon(
+                Icons.move_to_inbox_outlined,
+                size: 34,
+                color: _kAccent,
+              ),
             ),
             const SizedBox(height: 16),
             Text(
               'Quick Stock In',
-              style: theme.textTheme.headlineSmall
-                  ?.copyWith(fontWeight: FontWeight.w700),
+              style: GoogleFonts.instrumentSans(
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
               'Scan a barcode or search for a product to record received stock or adjust inventory counts.',
               textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium
-                  ?.copyWith(color: scheme.onSurfaceVariant),
+              style: GoogleFonts.instrumentSans(
+                fontSize: 13,
+                color: scheme.onSurface.withAlpha(160),
+              ),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
@@ -340,7 +360,7 @@ class _StockInScreenState extends ConsumerState<StockInScreen> {
     );
   }
 
-  // ── Scanner overlay ───────────────────────────────────────────────────────────
+  // ── Scanner overlay ───────────────────────────────────────────────────────
 
   Widget _buildScannerOverlay() {
     return Stack(
@@ -397,13 +417,13 @@ class _StockInScreenState extends ConsumerState<StockInScreen> {
               padding:
                   const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: Colors.red.shade700,
+                color: AppColors.red,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
                 _lookupError!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.white),
+                style: GoogleFonts.instrumentSans(color: Colors.white, fontSize: 13),
               ),
             ),
           ),
@@ -422,62 +442,94 @@ class _ProductTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
+    final scheme = Theme.of(context).colorScheme;
     final stock = product.totalStock;
     final initial = product.name.trim().isEmpty
         ? '?'
         : product.name.trim().characters.first.toUpperCase();
+    final inStock = stock != null && stock > 0;
 
-    return Card(
-      child: ListTile(
+    return Material(
+      color: scheme.surface,
+      borderRadius: BorderRadius.circular(13),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(13),
         onTap: onTap,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        leading: CircleAvatar(
-          backgroundColor: scheme.primaryContainer,
-          child: Text(
-            initial,
-            style: TextStyle(
-              color: scheme.onPrimaryContainer,
-              fontWeight: FontWeight.w700,
-            ),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(13),
+            border: Border.all(color: scheme.outline),
           ),
-        ),
-        title: Text(
-          product.name,
-          style: theme.textTheme.bodyMedium
-              ?.copyWith(fontWeight: FontWeight.w700),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        subtitle: Text(
-          product.sku,
-          style: theme.textTheme.bodySmall
-              ?.copyWith(color: scheme.onSurfaceVariant),
-        ),
-        trailing: stock != null
-            ? Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: stock > 0
-                      ? Colors.green.shade50
-                      : scheme.errorContainer.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(8),
-                ),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: _kAccent.withAlpha(25),
                 child: Text(
-                  '$stock ${product.unitName ?? 'pcs'}',
-                  style: TextStyle(
-                    color: stock > 0
-                        ? Colors.green.shade700
-                        : scheme.error,
-                    fontSize: 12,
+                  initial,
+                  style: GoogleFonts.instrumentSans(
+                    color: _kAccent,
                     fontWeight: FontWeight.w700,
+                    fontSize: 14,
                   ),
                 ),
-              )
-            : const Icon(Icons.chevron_right),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      product.name,
+                      style: GoogleFonts.instrumentSans(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      product.sku,
+                      style: GoogleFonts.instrumentSans(
+                        fontSize: 11.5,
+                        color: AppColors.muted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              if (stock != null)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: inStock
+                        ? AppColors.greenBg
+                        : AppColors.redBg,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: inStock
+                          ? AppColors.green.withAlpha(40)
+                          : AppColors.redBorder,
+                    ),
+                  ),
+                  child: Text(
+                    '$stock ${product.unitName ?? 'pcs'}',
+                    style: GoogleFonts.instrumentSans(
+                      color: inStock ? AppColors.green : AppColors.red,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                )
+              else
+                const Icon(Icons.chevron_right, color: AppColors.disabled),
+            ],
+          ),
+        ),
       ),
     );
   }

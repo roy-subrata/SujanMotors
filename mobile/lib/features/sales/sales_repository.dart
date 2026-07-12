@@ -3,12 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/app_exception.dart';
 import '../../core/network/dio_provider.dart';
+import '../../core/network/permission_guard.dart';
 import '../../shared/models/sale.dart';
 
 class SalesRepository {
-  SalesRepository(this._dio);
+  SalesRepository(this._dio, this._ref);
 
   final Dio _dio;
+  final Ref _ref;
 
   Future<QuickSaleResult> submitQuickSale({
     required List<QuickSaleItem> items,
@@ -21,7 +23,9 @@ class SalesRepository {
     String? customerId,
     String? customerPhone,
     String? vehicleId,
+    String? technicianId,
   }) async {
+    await requirePermission(_ref, 'sales.create');
     try {
       final discountAmount = subtotal - grandTotal;
       final res = await _dio.post('/SalesOrder/quick-sale', data: {
@@ -30,6 +34,7 @@ class SalesRepository {
         'customerPhone':
             ?(customerPhone?.isNotEmpty == true ? customerPhone : null),
         'customerVehicleId': ?vehicleId,
+        'technicianId': ?technicianId,
         'subtotal': subtotal,
         'discountAmount': discountAmount > 0 ? discountAmount : 0,
         'grandTotal': grandTotal,
@@ -58,8 +63,20 @@ class SalesRepository {
       throw AppException.fromDio(e);
     }
   }
+
+  Future<List<int>> downloadInvoicePdf(String invoiceId) async {
+    try {
+      final res = await _dio.get(
+        '/SalesOrder/invoices/$invoiceId/pdf',
+        options: Options(responseType: ResponseType.bytes),
+      );
+      return res.data as List<int>;
+    } on DioException catch (e) {
+      throw AppException.fromDio(e);
+    }
+  }
 }
 
 final salesRepositoryProvider = Provider<SalesRepository>(
-  (ref) => SalesRepository(ref.read(dioProvider)),
+  (ref) => SalesRepository(ref.read(dioProvider), ref),
 );

@@ -60,13 +60,12 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
         onPressed: () {},
         backgroundColor: AppColors.ink,
         foregroundColor: Colors.white,
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: const Icon(Icons.add),
       ),
       body: Column(
         children: [
-          // Search
+          // ── Search ─────────────────────────────────────────────────────────
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
             child: SearchInput(
@@ -77,7 +76,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
           ),
           const SizedBox(height: 10),
 
-          // Filter chips
+          // ── Filter chips ───────────────────────────────────────────────────
           FilterChipRow(
             selected: _filterIndex,
             onSelect: (i) => setState(() => _filterIndex = i),
@@ -139,8 +138,6 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
   }
 }
 
-// â”€â”€ Customer card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
 class _CustomerCard extends StatelessWidget {
   const _CustomerCard({required this.customer});
 
@@ -166,11 +163,8 @@ class _CustomerCard extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             child: Row(
               children: [
-                // Circular initials avatar
                 InitialsAvatar(name: customer.fullName, radius: 20),
                 const SizedBox(width: 12),
-
-                // Name + subtitle
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -181,7 +175,7 @@ class _CustomerCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: GoogleFonts.instrumentSans(
                           fontSize: 13.5,
-                          fontWeight: FontWeight.w500
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                       if (phone.isNotEmpty) ...[
@@ -189,7 +183,7 @@ class _CustomerCard extends StatelessWidget {
                         Text(
                           phone,
                           style: GoogleFonts.instrumentSans(
-                            fontSize: 11.5
+                            fontSize: 11.5,
                           ),
                         ),
                       ],
@@ -197,8 +191,6 @@ class _CustomerCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-
-                // Due amount or chevron
                 if (customer.hasDue)
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
@@ -216,7 +208,7 @@ class _CustomerCard extends StatelessWidget {
                       Text(
                         'Due',
                         style: GoogleFonts.instrumentSans(
-                          fontSize: 10.5
+                          fontSize: 10.5,
                         ),
                       ),
                     ],
