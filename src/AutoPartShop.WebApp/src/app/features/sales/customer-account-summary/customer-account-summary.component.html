@@ -25,7 +25,7 @@
     <!-- FILTER BAR -->
     <div class="as-filter-bar">
         <div class="filter-field customer-field">
-            <label class="filter-label">Customer</label>
+            <!-- <label class="filter-label">Customer</label> -->
             <app-lazy-autocomplete
                 [fetchFn]="customerFetchFn"
                 optionLabel="fullName"
@@ -35,7 +35,7 @@
             </app-lazy-autocomplete>
         </div>
         <div class="filter-field date-field">
-            <label class="filter-label">From</label>
+            <!-- <label class="filter-label">From</label> -->
             <p-datepicker
                 [(ngModel)]="fromDate"
                 [showIcon]="true"
@@ -45,7 +45,7 @@
             </p-datepicker>
         </div>
         <div class="filter-field date-field">
-            <label class="filter-label">To</label>
+            <!-- <label class="filter-label">To</label> -->
             <p-datepicker
                 [(ngModel)]="toDate"
                 [showIcon]="true"
@@ -55,7 +55,7 @@
             </p-datepicker>
         </div>
         <div class="filter-field vehicle-field">
-            <label class="filter-label">Vehicle</label>
+            <!-- <label class="filter-label">Vehicle</label> -->
             <p-select
                 [(ngModel)]="selectedVehicleId"
                 [options]="vehicles()"

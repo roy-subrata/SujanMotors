@@ -34,15 +34,15 @@
     </div>
 
     <div filters class="filter-group">
-      <label class="filter-label">Status</label>
+      <!-- <label class="filter-label">Status</label> -->
       <p-select [options]="statusOptions" [(ngModel)]="filterStatus" placeholder="All Statuses"
         [showClear]="true" (onChange)="onFilterChange()" appendTo="body" styleClass="filter-dropdown"></p-select>
     </div>
 
     <div filters class="filter-group">
-      <label class="filter-label">Invoice Date</label>
+      <!-- <label class="filter-label">Invoice Date</label> -->
       <p-datepicker [(ngModel)]="dateRange" selectionMode="range" [showIcon]="true"
-        placeholder="Date range" dateFormat="M dd, yy" [showButtonBar]="true"
+        placeholder="Invoice Date range" dateFormat="M dd, yy" [showButtonBar]="true"
         (onSelect)="onFilterChange()" (onClear)="onFilterChange()" appendTo="body" styleClass="filter-datepicker"></p-datepicker>
     </div>
 
