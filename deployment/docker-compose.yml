@@ -20,8 +20,7 @@
 # ARCHITECTURE:
 #   Browser → nginx (port 4200) → API container (port 8080)
 #                                  ↳ DB container (port 1433)
-#   Only the nginx container is exposed to the internet.
-#   The API and DB are internal-only (not reachable from outside).
+#   Web (4200), API (5000), DB (1433) are all exposed for access.
 #
 # =============================================================================
 
@@ -66,7 +65,7 @@ services:
       - ASPNETCORE_ENVIRONMENT=Production     # Disables Swagger, detailed errors
       - ASPNETCORE_HTTP_PORTS=8080            # API listens on port 8080 inside container
       # Database connection: uses service name "autopartshop.db" for DNS resolution
-      - ConnectionStrings__AutoPartDb=Server=autopartshop.db,1433;Database=${DB_NAME:-AutoPartShopDb};User=sa;Password=${DB_PASSWORD:-YourStrong!Passw0rd};TrustServerCertificate=True;
+      - ConnectionStrings__AutoPartDb=Server=autopartshop.db,1433;Database=${DB_NAME:-AutoPartShopProdDb};User=sa;Password=${DB_PASSWORD:-YourStrong!Passw0rd};TrustServerCertificate=True;
       # JWT authentication settings
       - JwtSettings__SecretKey=${JWT_SECRET:-YourSuperSecretKeyForJWTTokenGenerationMustBe32CharsLong!@#}
       - JwtSettings__Issuer=AutoPartShopAPI
@@ -86,7 +85,7 @@ services:
       - Smtp__FromEmail=${SMTP_FROM_EMAIL:-}
       - Smtp__FromName=${SMTP_FROM_NAME:-SujanMotors}
     ports:
-      - "5292:8080"                           # Expose API for direct access (testing/debugging)
+      - "5000:8080"                           # Expose API for direct access (testing/debugging)
     # No ports exposed to host — browser reaches API through nginx reverse proxy
     depends_on:
       autopartshop.db:

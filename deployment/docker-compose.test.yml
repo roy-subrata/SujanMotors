@@ -26,8 +26,8 @@
 #
 # PORTS:
 #   4201 - Web (Angular + nginx)  → http://<VPS_IP>:4201
-#   5293 - API (.NET)             → http://<VPS_IP>:5293 (debug access)
-#   1434 - SQL Server             → http://<VPS_IP>:1434 (external access, different from prod 1433)
+#   5001 - API (.NET)             → http://<VPS_IP>:5001 (debug access)
+#   1434 - SQL Server             → http://<VPS_IP>:1434 (external access)
 #
 # =============================================================================
 
@@ -75,7 +75,7 @@ services:
       - ASPNETCORE_ENVIRONMENT=Staging        # Enables Swagger UI and detailed error pages
       - ASPNETCORE_HTTP_PORTS=8080            # API listens on port 8080 inside the container
       # Database connection: connects to the test DB container by service name
-      - ConnectionStrings__AutoPartDb=Server=autopartshop.db.test,1433;Database=${DB_NAME:-AutoPartShopDb_Test};User=sa;Password=${DB_PASSWORD:-Test!Passw0rd2024};TrustServerCertificate=True;
+      - ConnectionStrings__AutoPartDb=Server=autopartshop.db.test,1433;Database=${DB_NAME:-AutoPartShopTestDb};User=sa;Password=${DB_PASSWORD:-Test!Passw0rd2024};TrustServerCertificate=True;
       # JWT authentication settings
       - JwtSettings__SecretKey=${JWT_SECRET:-YourSuperSecretKeyForJWTTokenGenerationMustBe32CharsLong!@#}
       - JwtSettings__Issuer=AutoPartShopAPI
@@ -95,7 +95,7 @@ services:
       - Smtp__FromEmail=${SMTP_FROM_EMAIL:-}
       - Smtp__FromName=${SMTP_FROM_NAME:-SujanMotors}
     ports:
-      - "5293:8080"                           # Exposed for debugging (Swagger/Postman)
+      - "5001:8080"                           # Exposed for debugging (Swagger/Postman)
     depends_on:
       autopartshop.db:
         condition: service_healthy            # Wait for DB health check before starting
