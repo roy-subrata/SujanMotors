@@ -1,14 +1,36 @@
-// Production environment — used by `ng build` (default configuration = production),
-// swapped in for environment.ts via the `fileReplacements` in angular.json.
+// =============================================================================
+// PRODUCTION Environment Configuration
+// =============================================================================
 //
-// apiUrl MUST be the absolute base URL of the API on Azure App Service, ending in /api,
-// because the Static Web App and the API live on different origins. The SignalR hub URL
-// is derived from this value (apiUrl.replace('/api','') + '/hubs/...'), so this one
-// setting covers REST + real-time.
+// WHAT THIS FILE DOES:
+//   Provides environment-specific configuration for PRODUCTION builds.
+//   This file replaces environment.ts when you build with --configuration=production
+//   (via the fileReplacements in angular.json).
 //
-// ▶ Replace <API_APP_NAME> with your App Service name (or a custom domain). After changing
-//   it, also add the Static Web App origin to the API's Cors__AllowedOrigins app setting.
+// HOW IT'S USED:
+//   - Angular CLI swaps this file in during `ng build --configuration=production`
+//   - The apiUrl is used for all HTTP API calls and SignalR hub connections
+//   - This file is BAKED INTO the build output at compile time (not runtime)
+//
+// WHY RELATIVE URL:
+//   In Docker deployment, nginx acts as a reverse proxy:
+//     - Browser requests http://domain/api/... → nginx → API container:8080
+//     - Browser requests http://domain/hubs/... → nginx → API container:8080
+//   Using a relative URL "/api" means the browser uses the SAME origin (domain + port),
+//   and nginx handles routing. This is simpler and works across environments.
+//
+// FILE REPLACEMENT (angular.json):
+//   "production" configuration replaces:
+//     environment.ts → environment.prod.ts
+//
+// =============================================================================
+
 export const environment = {
+    // Marks this as a production build (enables Angular optimizations)
     production: true,
-    apiUrl: 'https://sujanmotors-api-gtetffcscjg3cyfe.southeastasia-01.azurewebsites.net/api'
+
+    // Relative URL: browser sends API requests to the same domain it was loaded from.
+    // nginx reverse-proxies /api/* to the API container.
+    // Previous value was Azure App Service URL — changed for VPS Docker deployment.
+    apiUrl: '/api',
 };

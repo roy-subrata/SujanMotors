@@ -1,163 +1,261 @@
-# Deployment
+# =============================================================================
+# Deployment Guide — Hostinger VPS (Docker Compose)
+# =============================================================================
 
-Production runs via Docker Compose:
+This project deploys as Docker containers on a Hostinger VPS using Docker Compose.
 
-```bash
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      Hostinger VPS                              │
+│                                                                 │
+│  ┌─── PRODUCTION (/opt/sujanmotors/) ────────────────────────┐  │
+│  │  web:4200 ← nginx (public)                                │  │
+│  │    └── /api → autopartshop.api:8080 (internal)            │  │
+│  │    └── /hubs → autopartshop.api:8080 (internal)           │  │
+│  │  db:1433 (internal)                                        │  │
+│  └────────────────────────────────────────────────────────────┘  │
+│                                                                 │
+│  ┌─── TEST (/opt/sujanmotors-test/) ─────────────────────────┐  │
+│  │  web:4201 ← nginx                                         │  │
+│  │    └── /api → autopartshop.api.test:8080 (internal)       │  │
+│  │  db:1433 (internal, isolated volume)                       │  │
+│  └────────────────────────────────────────────────────────────┘  │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-The web container (nginx) is the only public-facing service; it reverse-proxies
-`/api` and `/hubs` to the API, which is not exposed directly.
+## Branch Workflow
 
-## Required environment variables (production)
-
-Set these in the environment / `.env` (see `.env.example`) — **never** commit real
-values to `appsettings.json`:
-
-| Variable | Purpose |
-| --- | --- |
-| `ConnectionStrings__AutoPartDb` | SQL Server connection string |
-| `JwtSettings__SecretKey` | JWT signing key (rotate if ever exposed) |
-| `Cors__AllowedOrigins__0`, `__1`, … | **Required** — allow-list of frontend origins (scheme+host+port). Defaults to `[]`, which blocks every cross-origin call in prod. |
-| `Twilio__AccountSid`, `Twilio__AuthToken`, `Twilio__*` | SMS / WhatsApp |
-| `sms__apiKey` | SMS provider key |
-| `Seed__AdminPassword` | **Required** to bootstrap the first admin outside Development |
-| `Seed__DemoUsers` | Leave `false` (default outside Development) — no demo logins in prod |
-| `ASPNETCORE_ENVIRONMENT` | `Production` (set by `docker-compose.prod.yml`) |
-
-Swagger is disabled automatically when `ASPNETCORE_ENVIRONMENT=Production`.
-
-## TLS / HTTPS  ⚠️ required before go-live
-
-The API runs with `RequireHttpsMetadata=false` and the in-app HTTPS redirect
-disabled. That is **only safe behind TLS termination** — JWT bearer tokens travel
-in the clear over plain HTTP. The shipped `nginx.conf` listens on port 80 only, so
-out of the box there is **no TLS**. Pick one before exposing the app publicly:
-
-1. **Upstream TLS** (recommended for cloud): terminate TLS at a load balancer /
-   reverse proxy (Azure App Gateway, Cloudflare, AWS ALB, …) and forward plain
-   HTTP to the web container's port 80. Ensure the proxy sends
-   `X-Forwarded-Proto: https` and adds the HSTS header.
-
-2. **TLS in the nginx container**: follow the commented `443` server block in
-   `src/AutoPartShop.WebApp/nginx.conf` — mount certificates, uncomment the block
-   (it includes HSTS), publish port 443, and switch the port-80 block to a
-   `301 https://…` redirect so nothing is served over plain HTTP.
-
-Verify after deploy: `https://<host>` serves the app, `http://<host>` redirects to
-HTTPS, and the response carries `Strict-Transport-Security`.
-
-## Database migrations
-
-Migrations apply automatically on API startup (`DatabaseSeeder.MigrateAsync`), so
-no manual `dotnet ef database update` step is needed in production.
-
----
-
-# Azure deployment (App Service + Static Web Apps + Docker Hub + MonsterASP MSSQL)
-
-Split deployment:
-
-- **API** → Azure **App Service for Containers**, image built from
-  `src/AutoPartShop.Api/Dockerfile` and stored on **Docker Hub** (`docker.io/subrata23/autopartshop-api`).
-- **Frontend** → Azure **Static Web Apps** (Angular build output `dist/smauto/browser`).
-- **Database** → **MonsterASP.NET free MSSQL** (external SQL Server, SQL auth over the internet).
-
-Both App Service (`*.azurewebsites.net`) and Static Web Apps are HTTPS by default, so no
-manual TLS/cert setup is required for the default hostnames.
-
-CI/CD is GitHub Actions: `.github/workflows/api-deploy.yml` (API → Docker Hub → App Service) and
-`.github/workflows/swa-deploy.yml` (frontend). Edit the placeholder values at the top of
-`api-deploy.yml` (`IMAGE`, `WEBAPP_NAME`, `RESOURCE_GROUP`) to match what you provision.
-
-## 1. Provision Azure resources (`az` CLI, one-time)
-
-```bash
-RG=sujanmotors-rg
-LOC=southeastasia
-API_APP=sujanmotors-api          # globally unique
-PLAN=sujanmotors-plan
-SWA=sujanmotors-web
-
-az group create -n $RG -l $LOC
-
-# App Service plan (Linux) + Web App for Containers (placeholder image first)
-az appservice plan create -n $PLAN -g $RG --is-linux --sku B1
-az webapp create -n $API_APP -g $RG -p $PLAN \
-  --deployment-container-image-name mcr.microsoft.com/dotnet/aspnet:10.0
-
-# Point the Web App at the Docker Hub image. If you make the Docker Hub repo PUBLIC, no creds
-# are needed; for a PRIVATE repo supply a Docker Hub access token:
-az webapp config container set -n $API_APP -g $RG \
-  --container-image-name subrata23/autopartshop-api:latest \
-  --container-registry-url https://index.docker.io/v1/ \
-  --container-registry-user subrata23 \
-  --container-registry-password <DOCKERHUB_TOKEN>
-
-# WebSockets (SignalR) + Always On
-az webapp config set -n $API_APP -g $RG --web-sockets-enabled true --always-on true
-
-# Static Web App (capture the deployment token for the GitHub secret)
-az staticwebapp create -n $SWA -g $RG -l $LOC
-az staticwebapp secrets list -n $SWA -g $RG --query "properties.apiKey" -o tsv   # → AZURE_STATIC_WEB_APPS_API_TOKEN
+```
+feature/* ──merge──▶ dev (no deploy, developer tests locally)
+                       │
+                  merge to test
+                       │
+                       ▼
+              test-deploy.yml triggers
+              → SSH into VPS, rebuild test stack
+              → Available at http://<VPS_IP>:4201
+                       │
+                  merge to main
+                       │
+                       ▼
+              prod-deploy.yml triggers
+              → SSH into VPS, rebuild prod stack
+              → Available at http://<VPS_IP>:4200
 ```
 
-## 2. Database — MonsterASP.NET free MSSQL
-
-Create a free MSSQL database in the MonsterASP.NET control panel and copy its connection
-string (server host like `dbXXXX.databaseasp.net`, a database name, SQL user + password).
-No Azure SQL resource is provisioned. The App Service reaches it outbound over the internet.
-
-> **Semantic search is disabled on this DB.** MonsterASP free MSSQL is SQL Server 2019/2022,
-> which lacks the `vector` type. The `AddProductEmbedding` migration is now version-aware: it
-> **only** creates the `ProductEmbeddings` (vector) table on SQL Server 2025+ (ProductMajorVersion
-> ≥ 17) and is skipped otherwise, so startup migrations succeed. Keep `Embedding__BaseUrl` blank
-> (the default) → product search uses keyword matching. If you later move to a SQL 2025 host, the
-> table is created automatically and semantic search can be enabled by setting `Embedding__BaseUrl`.
-
-## 3. App Service application settings (runtime env vars)
+## 1. VPS Initial Setup (one-time)
 
 ```bash
-az webapp config appsettings set -n $API_APP -g $RG --settings \
-  ASPNETCORE_ENVIRONMENT=Production \
-  WEBSITES_PORT=8080 \
-  ConnectionStrings__AutoPartDb="Server=<dbXXXX.databaseasp.net>;Database=<db-name>;User Id=<db-user>;Password=<db-password>;Encrypt=true;TrustServerCertificate=true;" \
-  JwtSettings__SecretKey="<ROTATED_32B+_KEY>" \
-  Cors__AllowedOrigins__0="https://<SWA-default-hostname>" \
-  Twilio__AccountSid="<rotated>" Twilio__AuthToken="<rotated>" Twilio__SmsMsgServiceSid="<rotated>" \
-  sms__apiKey="<rotated>" \
-  Seed__AdminPassword="<first-admin-password>" \
-  Seed__DemoUsers=false
+# SSH into your Hostinger VPS
+ssh root@<YOUR_VPS_IP>
+
+# Install Docker and Docker Compose (if not installed)
+curl -fsSL https://get.docker.com | sh
+sudo usermod -aG docker $USER
+
+# Create deployment directories
+sudo mkdir -p /opt/sujanmotors /opt/sujanmotors-test
+sudo chown $USER:$USER /opt/sujanmotors /opt/sujanmotors-test
+
+# Clone the repository into each directory
+cd /opt/sujanmotors
+git clone <YOUR_REPO_URL> .
+git checkout main
+
+cd /opt/sujanmotors-test
+git clone <YOUR_REPO_URL> .
+git checkout test
+
+# Create .env files with real secrets
+cd /opt/sujanmotors
+cp deployment/.env.prod.example deployment/.env
+nano deployment/.env    # Edit with real production secrets
+
+cd /opt/sujanmotors-test
+cp deployment/.env.test.example deployment/.env
+nano deployment/.env    # Edit with real test secrets
+
+# Initial build and start
+cd /opt/sujanmotors
+docker compose --env-file deployment/.env -f deployment/docker-compose.yml -f deployment/docker-compose.prod.yml up --build -d
+
+cd /opt/sujanmotors-test
+docker compose --env-file deployment/.env -f deployment/docker-compose.test.yml up --build -d
 ```
 
-Use the exact MonsterASP connection string they give you (the format above is typical;
-`TrustServerCertificate=true` is usually required). Get the SWA hostname with
-`az staticwebapp show -n $SWA -g $RG --query defaultHostname -o tsv` and use it
-(with `https://`, no trailing slash) for `Cors__AllowedOrigins__0`.
+## 2. GitHub Secrets Configuration
 
-## 4. GitHub repo secrets
+Go to your GitHub repo → **Settings** → **Secrets and variables** → **Actions** and add:
 
-| Secret | Source |
-| --- | --- |
-| `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` | App registration with an OIDC federated credential for this repo; role: Contributor on `$RG` (used to update the Web App) |
-| `DOCKERHUB_USERNAME` | Docker Hub username/namespace (`subrata23`) |
-| `DOCKERHUB_TOKEN` | Docker Hub access token (Account Settings → Security → New Access Token). Used both to push the image and by App Service to pull it. |
-| `AZURE_STATIC_WEB_APPS_API_TOKEN` | SWA deployment token (command above) |
+| Secret | Value | Used By |
+|--------|-------|---------|
+| `VPS_HOST` | Your VPS IP address (e.g. `123.45.67.89`) | Both workflows |
+| `VPS_USER` | SSH username (e.g. `root`) | Both workflows |
+| `VPS_SSH_KEY` | Private SSH key (ed25519 recommended) | Both workflows |
 
-## 5. Frontend API URL
+### Generating an SSH Key for GitHub Actions
 
-Set `apiUrl` in `src/AutoPartShop.WebApp/src/environments/environment.prod.ts` to
-`https://<API_APP>.azurewebsites.net/api` before the first frontend deploy — the production
-build bakes it in, and the SignalR hub URL is derived from it.
+```bash
+# On your local machine (not the VPS)
+ssh-keygen -t ed25519 -f github-actions-deploy -N ""
+# Copy the PUBLIC key to the VPS
+ssh-copy-id -i github-actions-deploy.pub root@<YOUR_VPS_IP>
+# Copy the PRIVATE key content to GitHub Secret VPS_SSH_KEY
+cat github-actions-deploy
+```
 
-## Notes & caveats
+## 3. Environment Variables
 
-- **Single instance at launch:** migrations auto-apply on startup; keep the plan at 1 instance
-  initially and back up the DB before deploys. Scaling the API to >1 instance also requires
-  **Azure SignalR Service** (or ARR affinity) for real-time notifications.
-- **MonsterASP free tier limits:** small max DB size and connection limits, and the DB may idle
-  out — fine for a pilot, plan to move to a paid/managed DB as data grows.
-- **Cross-provider latency:** API on Azure + DB on MonsterASP means each query crosses the
-  internet; acceptable for a small shop but noticeably slower than a co-located DB.
-- **Secrets:** set rotated Twilio/SMS/JWT/DB values only as App Service settings — never back in
-  `appsettings.json`.
+Each environment has its own `.env` file:
+
+- **Production:** `/opt/sujanmotors/deployment/.env`
+- **Test:** `/opt/sujanmotors-test/deployment/.env`
+
+See `.env.prod.example` and `.env.test.example` for all available variables.
+
+### Required Variables
+
+| Variable | Purpose | Example |
+|----------|---------|---------|
+| `DB_PASSWORD` | SQL Server SA password | `StrongP@ssw0rd!` |
+| `DB_NAME` | Database name | `AutoPartShopDb` |
+| `JWT_SECRET` | JWT token signing key (32+ chars) | `random-64-char-string...` |
+| `JWT_EXPIRY_MINUTES` | Access token lifetime | `60` |
+| `JWT_REFRESH_DAYS` | Refresh token lifetime | `7` |
+
+## 4. TLS / HTTPS
+
+**Before going live**, you MUST set up HTTPS. JWT tokens travel in the clear over plain HTTP.
+
+### Option A: Cloudflare (Recommended — Easiest)
+
+1. Add your domain to Cloudflare (free plan works)
+2. Point the domain A record to your VPS IP
+3. Enable Cloudflare proxy (orange cloud)
+4. Set SSL mode to **Full (Strict)** in Cloudflare dashboard
+5. Enable "Always Use HTTPS" in SSL/TLS settings
+
+### Option B: Let's Encrypt on VPS
+
+```bash
+# Install Certbot
+sudo apt install certbot
+
+# Get certificate (stop nginx container first, or use standalone)
+sudo certbot certonly --standalone -d yourdomain.com
+
+# Mount certs in docker-compose.prod.yml:
+#   volumes:
+#     - /etc/letsencrypt:/etc/nginx/certs:ro
+# And uncomment the 443 block in nginx.conf
+```
+
+## 5. Manual Deployment
+
+```bash
+# Deploy production
+cd /opt/sujanmotors
+git pull origin main
+docker compose --env-file deployment/.env -f deployment/docker-compose.yml -f deployment/docker-compose.prod.yml up --build -d
+
+# Deploy test
+cd /opt/sujanmotors-test
+git pull origin test
+docker compose --env-file deployment/.env -f deployment/docker-compose.test.yml up --build -d
+
+# View logs
+docker compose --env-file deployment/.env -f deployment/docker-compose.yml logs -f
+
+# Restart services
+docker compose --env-file deployment/.env -f deployment/docker-compose.yml restart
+
+# Stop services
+docker compose --env-file deployment/.env -f deployment/docker-compose.yml down
+```
+
+## 6. Database
+
+- Migrations run automatically on API startup (`DatabaseSeeder.MigrateAsync`)
+- No manual `dotnet ef database update` needed
+- Data persists in Docker named volumes (survives container restarts)
+
+### Backup
+
+```bash
+# Backup production database
+docker exec autopartshop.db /opt/mssql-tools18/bin/sqlcmd \
+  -S localhost -U sa -P 'YOUR_PASSWORD' \
+  -Q "BACKUP DATABASE [AutoPartShopDb] TO DISK = '/var/opt/mssql/backup.bak'"
+
+# Copy backup from container to host
+docker cp autopartshop.db:/var/opt/mssql/backup.bak ./backup-$(date +%Y%m%d).bak
+```
+
+## 7. Monitoring & Logs
+
+```bash
+# View all container logs
+docker compose --env-file deployment/.env -f deployment/docker-compose.yml logs -f
+
+# View specific service logs
+docker compose --env-file deployment/.env -f deployment/docker-compose.yml logs -f autopartshop.api
+docker compose --env-file deployment/.env -f deployment/docker-compose.yml logs -f autopartshop.web
+
+# Check container status
+docker compose --env-file deployment/.env -f deployment/docker-compose.yml ps
+
+# Check container resource usage
+docker stats
+```
+
+## 8. Troubleshooting
+
+### Containers keep restarting
+
+```bash
+# Check logs for errors
+docker compose --env-file deployment/.env -f deployment/docker-compose.yml logs autopartshop.api
+
+# Common issues:
+# - Wrong DB_PASSWORD in .env
+# - SQL Server not ready (health check fails)
+# - Missing environment variables
+```
+
+### Can't connect to API from browser
+
+```bash
+# Check if web container is running
+docker ps | grep autopartshop.web
+
+# Check nginx config inside container
+docker exec autopartshop.web cat /etc/nginx/conf.d/default.conf
+
+# Test API from within the VPS
+curl http://localhost:4200/api/health
+```
+
+### Disk space issues
+
+```bash
+# Remove unused Docker images
+docker image prune -a
+
+# Remove unused volumes (⚠️ this deletes data!)
+docker volume prune
+
+# Check disk usage
+df -h
+docker system df
+```
+
+## Notes
+
+- **Single VPS:** Both test and prod run on the same VPS with different ports/container names
+- **No Docker Hub needed:** Images are built directly on the VPS (not pushed to a registry)
+- **Database isolation:** Test and prod use separate Docker volumes (data never mixes)
+- **Auto-restart:** Production containers restart automatically on crash or server reboot
+- **Manual trigger:** Both workflows support `workflow_dispatch` for manual re-deploys from GitHub UI

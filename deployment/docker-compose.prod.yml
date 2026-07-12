@@ -1,20 +1,37 @@
-# Production overrides
-# docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build
+# =============================================================================
+# PRODUCTION OVERRIDES — Additional settings for production deployment
+# =============================================================================
+#
+# WHAT THIS FILE DOES:
+#   Adds production-specific settings on top of the base docker-compose.yml.
+#   This is an OVERRIDE file — use it with the base file:
+#
+#     docker compose --env-file .env -f docker-compose.yml -f docker-compose.prod.yml up --build -d
+#
+# WHY A SEPARATE OVERRIDE FILE:
+#   - Keeps the base file clean and reusable
+#   - Production-specific settings (restart policy, ports) are isolated here
+#   - Easy to add staging-specific overrides later if needed
+#
+# =============================================================================
 
 services:
+  # Database: ensure restart: always (base already has this, but explicit here)
   autopartshop.db:
-    restart: always       # always restart in prod (not unless-stopped)
+    restart: always               # Always restart in prod (survives crashes and server reboots)
 
+  # API: production environment settings
   autopartshop.api:
     environment:
-      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_ENVIRONMENT=Production  # Confirms production mode (Swagger OFF)
     # No ports exposed — frontend reaches API through nginx proxy only
-    restart: always
+    restart: always               # Always restart in prod
 
+  # Web: production Angular build + public port
   autopartshop.web:
     build:
       args:
-        ENV_NAME: production    # optimization=true, serviceWorker, outputHashing
+        ENV_NAME: production      # Angular production build (optimized, no source maps)
     ports:
-      - "4200:80"         # only the web port is public-facing
-    restart: always
+      - "4200:80"                 # The ONLY public-facing port on the VPS
+    restart: always               # Always restart in prod
