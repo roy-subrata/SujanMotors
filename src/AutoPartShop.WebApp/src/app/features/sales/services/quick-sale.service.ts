@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, BehaviorSubject } from 'rxjs';
+import { Observable, BehaviorSubject, of } from 'rxjs';
 import { map, tap } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
 
@@ -12,6 +12,7 @@ export interface QuickSaleLineItem {
   partId: string;
   productVariantId?: string;
   partName?: string;
+  partLocalName?: string | null;
   partNumber?: string;
   sku?: string;
   unitId?: string;
@@ -41,6 +42,7 @@ export interface QuickSaleRequest {
   technicianId?: string;
   technicianName?: string;
   technicianNotes?: string;
+  customerVehicleId?: string | null;
   paymentResponsibility: PaymentResponsibility;
   purchaseOrderId?: string;
   autoCreatePO: boolean;
@@ -72,6 +74,8 @@ export interface QuickSaleResponse {
   customerName: string;
   technicianId?: string;
   technicianName?: string;
+  customerVehicleId?: string | null;
+  vehicleLabel?: string;
   paymentResponsibility: PaymentResponsibility;
   subtotal: number;
   discountAmount: number;
@@ -82,7 +86,7 @@ export interface QuickSaleResponse {
   status: string;
   isQuotation?: boolean;
   createdAt: string;
-  lines?: { salesOrderLineId: string; partId: string; productVariantId?: string | null; variantName?: string | null; partName: string; quantity: number; unitPrice: number }[];
+  lines?: { salesOrderLineId: string; partId: string; productVariantId?: string | null; variantName?: string | null; partName: string; partLocalName?: string | null; quantity: number; unitPrice: number }[];
 }
 
 export interface StockCheckRequest {
@@ -109,6 +113,11 @@ export interface QuickSaleDraft {
   items: QuickSaleLineItem[];
   payments: PaymentDetail[];
   technicianId?: string;
+  technicianName?: string;
+  customerVehicleId?: string | null;
+  manualDiscountAmount?: number;
+  /** Grand total at the moment the sale was held/drafted — display only. */
+  total?: number;
   notes?: string;
   timestamp: Date;
 }
@@ -168,16 +177,12 @@ export class QuickSaleService {
     return this.http.get<any>(`${this.apiUrl}/v1/customers/search-by-phone?phone=${phone}`);
   }
 
-  /**
-   * Get VAT configuration
-   */
   getVATConfig(): Observable<{ enabled: boolean; percentage: number }> {
-    // For now, return default VAT config
-    // In production, this would come from settings API
-    return new Observable(observer => {
-      observer.next({ enabled: false, percentage: 0 });
-      observer.complete();
-    });
+    return of({ enabled: false, percentage: 15 });
+  }
+
+  resendInvoiceNotification(salesOrderId: string): Observable<void> {
+    return this.http.post<void>(`${this.apiUrl}/v1/notifications/send-invoice-email/${salesOrderId}`, {});
   }
 
   // Draft Management Methods
@@ -194,6 +199,10 @@ export class QuickSaleService {
       items: draft.items || [],
       payments: draft.payments || [],
       technicianId: draft.technicianId,
+      technicianName: draft.technicianName,
+      customerVehicleId: draft.customerVehicleId ?? null,
+      manualDiscountAmount: draft.manualDiscountAmount || 0,
+      total: draft.total,
       notes: draft.notes,
       timestamp: new Date()
     };
@@ -268,6 +277,10 @@ export class QuickSaleService {
       items: sale.items || [],
       payments: sale.payments || [],
       technicianId: sale.technicianId,
+      technicianName: sale.technicianName,
+      customerVehicleId: sale.customerVehicleId ?? null,
+      manualDiscountAmount: sale.manualDiscountAmount || 0,
+      total: sale.total,
       notes: sale.notes,
       timestamp: new Date()
     };

@@ -25,7 +25,7 @@ public class CustomerPayment : AuditableEntity
     public decimal Amount { get; private set; }
     public decimal PaymentFee { get; private set; } = 0;  // Fee charged by provider
     public decimal NetAmount { get; private set; }  // Amount - Fee
-    public string Currency { get; private set; } = "USD";
+    public string Currency { get; private set; } = "BDT";
     public DateTime PaymentDate { get; private set; }
     public string PaymentMethod { get; private set; } = string.Empty;  // CREDIT_CARD, BANK_TRANSFER, CHECK, CASH, etc.
     public string Status { get; private set; } = "PENDING";  // PENDING, PROCESSING, COMPLETED, FAILED, REFUNDED, CANCELLED
@@ -51,7 +51,8 @@ public class CustomerPayment : AuditableEntity
     private CustomerPayment() { }
 
     public static CustomerPayment Create(Guid customerId, Guid? paymentProviderId, decimal amount,
-        string paymentMethod, string transactionNumber = "", string referenceNumber = "", DateTime? paymentDate = null)
+        string paymentMethod, string transactionNumber = "", string referenceNumber = "",
+        DateTime? paymentDate = null, string currency = "BDT")
     {
         if (customerId == Guid.Empty)
             throw new ArgumentException("CustomerId cannot be empty", nameof(customerId));
@@ -82,6 +83,7 @@ public class CustomerPayment : AuditableEntity
             TransactionNumber = txnNumber,
             ReferenceNumber = referenceNumber?.Trim() ?? string.Empty,
             PaymentDate = paymentDate ?? DateTime.UtcNow,
+            Currency = string.IsNullOrWhiteSpace(currency) ? "BDT" : currency.Trim().ToUpper(),
             Status = "PENDING"
         };
     }
@@ -132,6 +134,9 @@ public class CustomerPayment : AuditableEntity
         if (string.IsNullOrWhiteSpace(settledBy))
             throw new ArgumentException("SettledBy cannot be empty", nameof(settledBy));
 
+        if (Status is "REFUNDED" or "CANCELLED")
+            throw new InvalidOperationException($"Cannot settle a {Status} payment.");
+
         Status = "COMPLETED";
         SettledDate = DateTime.UtcNow;
         SettledBy = settledBy.Trim();
@@ -139,6 +144,9 @@ public class CustomerPayment : AuditableEntity
 
     public void MarkAsFailed()
     {
+        if (Status is "COMPLETED" or "REFUNDED")
+            throw new InvalidOperationException($"Cannot mark a {Status} payment as failed. Reverse or refund it first.");
+
         Status = "FAILED";
     }
 
@@ -186,6 +194,12 @@ public class CustomerPayment : AuditableEntity
     /// </summary>
     public void MarkAsAdvance()
     {
+        if (PaymentType == CustomerPaymentType.ADVANCE)
+            return; // idempotent
+
+        if (Status != "PENDING" && Status != "PROCESSING")
+            throw new InvalidOperationException($"Cannot convert a {Status} payment to advance. Only PENDING or PROCESSING payments can be converted.");
+
         PaymentType = CustomerPaymentType.ADVANCE;
         RemainingAmount = Amount;  // Initially, all of the advance is available
     }
@@ -236,7 +250,8 @@ public class CustomerPayment : AuditableEntity
         Guid sourceAdvancePaymentId,
         Guid? paymentProviderId,
         decimal amount,
-        string description)
+        string description,
+        string currency = "BDT")
     {
         if (customerId == Guid.Empty)
             throw new ArgumentException("CustomerId cannot be empty", nameof(customerId));
@@ -266,7 +281,8 @@ public class CustomerPayment : AuditableEntity
             Status = "COMPLETED",
             PaymentType = CustomerPaymentType.REGULAR,
             Notes = description.Trim(),
-            RemainingAmount = 0
+            RemainingAmount = 0,
+            Currency = string.IsNullOrWhiteSpace(currency) ? "BDT" : currency.Trim().ToUpper()
         };
     }
 }

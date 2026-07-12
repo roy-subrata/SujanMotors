@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
+import { Component, OnDestroy, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -6,6 +6,7 @@ import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { ToastModule } from 'primeng/toast';
 import { DatePickerModule } from 'primeng/datepicker';
+import { SelectModule } from 'primeng/select';
 import { TooltipModule } from 'primeng/tooltip';
 import { PaginatorModule, PaginatorState } from 'primeng/paginator';
 import { SkeletonModule } from 'primeng/skeleton';
@@ -13,15 +14,16 @@ import { Observable, Subject, takeUntil } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { LazyAutocompleteComponent, LazyRequest, LazyResponse } from '../../../shared/components/lazy-autocomplete/lazy-autocomplete.component';
 import { CustomerService, CustomerResponse } from '../services/customer.service';
+import { CustomerVehicleService, CustomerVehicleResponse } from '../services/customer-vehicle.service';
 import {
     CustomerAccountSummaryService,
     CustomerAccountSummary,
-    CustomerAccountSummaryQuery,
-    CustomerPurchaseItem
+    CustomerAccountSummaryQuery
 } from '../services/customer-account-summary.service';
 import { CurrencyService } from '../../../shared/services/currency.service';
-import { InvoicePdfService } from '../services/invoice-pdf.service';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
+import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
+import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 
 @Component({
     selector: 'app-customer-account-summary',
@@ -32,20 +34,23 @@ import { PageHeaderComponent } from '@/shared/components/page-header/page-header
         ButtonModule,
         ToastModule,
         DatePickerModule,
+        SelectModule,
         TooltipModule,
         PaginatorModule,
         SkeletonModule,
         LazyAutocompleteComponent,
-        PageHeaderComponent
+        PageHeaderComponent,
+        PageContainerComponent,
+        DataPaginationComponent
     ],
     providers: [MessageService],
     templateUrl: './customer-account-summary.component.html',
     styleUrls: ['./customer-account-summary.component.css']
 })
-export class CustomerAccountSummaryComponent implements OnInit, OnDestroy {
+export class CustomerAccountSummaryComponent implements OnDestroy {
     private readonly customerService = inject(CustomerService);
+    private readonly vehicleService = inject(CustomerVehicleService);
     private readonly summaryService = inject(CustomerAccountSummaryService);
-    private readonly invoicePdfService = inject(InvoicePdfService);
     private readonly router = inject(Router);
     private readonly messageService = inject(MessageService);
     private readonly currencyService = inject(CurrencyService);
@@ -56,23 +61,28 @@ export class CustomerAccountSummaryComponent implements OnInit, OnDestroy {
     fromDate: Date | null = null;
     toDate: Date | null = null;
 
+    // Vehicle filter — the customer's vehicles, and the one this statement is scoped to (optional)
+    vehicles = signal<CustomerVehicleResponse[]>([]);
+    selectedVehicleId: string | null = null;
+
     // Report state
     summary = signal<CustomerAccountSummary | null>(null);
     loading = signal(false);
     error = signal<string | null>(null);
 
-    // PDF state
+    // PDF / Print loading state
     pdfLoading = signal(false);
-    allItems = signal<CustomerPurchaseItem[]>([]);
-    allItemsLoaded = signal(false);
 
     // Pagination
     pageNumber = 1;
     pageSize = 20;
     first = 0;
 
-    // Getter so the template always reads the latest DB-sourced values.
-    get companyConfig() { return this.invoicePdfService.getCompanyConfig(); }
+    // Label of the vehicle the statement is currently scoped to (empty = all vehicles)
+    get selectedVehicleLabel(): string {
+        if (!this.selectedVehicleId) return '';
+        return this.vehicles().find(v => v.id === this.selectedVehicleId)?.label ?? '';
+    }
 
     customerFetchFn = (req: LazyRequest): Observable<LazyResponse<CustomerResponse>> =>
         this.customerService.getCustomers({
@@ -81,17 +91,31 @@ export class CustomerAccountSummaryComponent implements OnInit, OnDestroy {
             pageSize: req.pageSize
         }).pipe(map(res => ({ items: res.data, totalCount: res.pagination.totalCount })));
 
-    ngOnInit(): void {}
-
     onCustomerSelected(customer: CustomerResponse): void {
         this.selectedCustomer = customer;
+        // Reset any prior vehicle filter and load this customer's active vehicles
+        this.selectedVehicleId = null;
+        this.vehicles.set([]);
+        this.vehicleService.getByCustomer(customer.id, true)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+                next: (vehicles) => this.vehicles.set(vehicles),
+                error: () => this.vehicles.set([])
+            });
     }
 
     onCustomerCleared(): void {
         this.selectedCustomer = null;
+        this.selectedVehicleId = null;
+        this.vehicles.set([]);
         this.summary.set(null);
-        this.allItems.set([]);
-        this.allItemsLoaded.set(false);
+    }
+
+    onVehicleChange(): void {
+        // Re-run the report scoped to the selected vehicle (or all vehicles when cleared)
+        if (this.selectedCustomer && this.summary()) {
+            this.generateReport();
+        }
     }
 
     generateReport(): void {
@@ -107,7 +131,6 @@ export class CustomerAccountSummaryComponent implements OnInit, OnDestroy {
 
         this.pageNumber = 1;
         this.first = 0;
-        this.allItemsLoaded.set(false);
         this.loadReport();
     }
 
@@ -119,8 +142,9 @@ export class CustomerAccountSummaryComponent implements OnInit, OnDestroy {
 
         const query: CustomerAccountSummaryQuery = {
             customerId: this.selectedCustomer.id,
-            fromDate: this.fromDate ? this.fromDate.toISOString() : undefined,
-            toDate: this.toDate ? this.toDate.toISOString() : undefined,
+            fromDate: this.fromDate ? this.toLocalDateString(this.fromDate) : undefined,
+            toDate: this.toDate ? this.toLocalDateString(this.toDate) : undefined,
+            customerVehicleId: this.selectedVehicleId ?? undefined,
             pageNumber: this.pageNumber,
             pageSize: this.pageSize
         };
@@ -154,199 +178,104 @@ export class CustomerAccountSummaryComponent implements OnInit, OnDestroy {
         this.loadReport();
     }
 
-    /**
-     * Load ALL items (not paginated) for PDF/Print, then trigger the action.
-     */
-    private loadAllItemsThen(action: 'pdf' | 'print'): void {
+    goToPage(page: number): void {
+        this.onPageChange({ page: page - 1, rows: this.pageSize, first: (page - 1) * this.pageSize } as PaginatorState);
+    }
+
+    onPageSizeChange(size: number): void {
+        this.pageSize = size;
+        this.onPageChange({ page: 0, rows: size, first: 0 } as PaginatorState);
+    }
+
+    onDownloadPdf(): void {
         if (!this.selectedCustomer || !this.summary()) return;
 
-        const totalItems = this.summary()!.purchaseItemsTotalCount;
-
-        // If all items already on current page, use them directly
-        if (totalItems <= this.summary()!.purchaseItems.length) {
-            this.allItems.set(this.summary()!.purchaseItems);
-            this.allItemsLoaded.set(true);
-            setTimeout(() => this.executeAction(action), 100);
-            return;
-        }
-
-        // Fetch all items in one call
         this.pdfLoading.set(true);
+
         const query: CustomerAccountSummaryQuery = {
             customerId: this.selectedCustomer.id,
-            fromDate: this.fromDate ? this.fromDate.toISOString() : undefined,
-            toDate: this.toDate ? this.toDate.toISOString() : undefined,
+            fromDate: this.fromDate ? this.toLocalDateString(this.fromDate) : undefined,
+            toDate: this.toDate ? this.toLocalDateString(this.toDate) : undefined,
+            customerVehicleId: this.selectedVehicleId ?? undefined,
             pageNumber: 1,
-            pageSize: totalItems
+            pageSize: 2147483647
         };
 
         this.summaryService
-            .getAccountSummary(this.selectedCustomer.id, query)
+            .downloadStatementPdf(this.selectedCustomer.id, query)
             .pipe(takeUntil(this.destroy$))
             .subscribe({
-                next: (data) => {
-                    this.allItems.set(data.purchaseItems);
-                    this.allItemsLoaded.set(true);
-                    // Wait for DOM to render the print section
-                    setTimeout(() => this.executeAction(action), 200);
+                next: (blob) => {
+                    const url = window.URL.createObjectURL(blob);
+                    const anchor = document.createElement('a');
+                    const s = this.summary()!;
+                    const dateStr = new Date().toISOString().split('T')[0];
+                    anchor.href = url;
+                    anchor.download = `account-statement-${s.customerCode || 'customer'}-${dateStr}.pdf`;
+                    anchor.click();
+                    window.URL.revokeObjectURL(url);
+                    this.pdfLoading.set(false);
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: 'Success',
+                        detail: 'PDF downloaded successfully',
+                        life: 3000
+                    });
                 },
                 error: () => {
                     this.pdfLoading.set(false);
                     this.messageService.add({
                         severity: 'error',
                         summary: 'Error',
-                        detail: 'Failed to load all items for PDF',
+                        detail: 'Failed to generate PDF. Please try again.',
                         life: 5000
                     });
                 }
             });
     }
 
-    private executeAction(action: 'pdf' | 'print'): void {
-        if (action === 'pdf') {
-            this.downloadPdf();
-        } else {
-            this.printReport();
-        }
-    }
-
-    onDownloadPdf(): void {
-        this.loadAllItemsThen('pdf');
-    }
-
     onPrint(): void {
-        this.loadAllItemsThen('print');
-    }
+        if (!this.selectedCustomer || !this.summary()) return;
 
-    private async downloadPdf(): Promise<void> {
-        try {
-            const element = document.getElementById('account-summary-print');
-            if (!element) {
-                this.pdfLoading.set(false);
-                return;
-            }
+        this.pdfLoading.set(true);
 
-            const html2canvas = (await import('html2canvas')).default;
-            const { jsPDF } = await import('jspdf');
+        const query: CustomerAccountSummaryQuery = {
+            customerId: this.selectedCustomer.id,
+            fromDate: this.fromDate ? this.toLocalDateString(this.fromDate) : undefined,
+            toDate: this.toDate ? this.toLocalDateString(this.toDate) : undefined,
+            customerVehicleId: this.selectedVehicleId ?? undefined,
+            pageNumber: 1,
+            pageSize: 2147483647
+        };
 
-            const canvas = await html2canvas(element, {
-                scale: 2,
-                useCORS: true,
-                logging: false,
-                backgroundColor: '#ffffff'
-            });
-
-            const imgData = canvas.toDataURL('image/png');
-            const pdf = new jsPDF({
-                orientation: 'portrait',
-                unit: 'mm',
-                format: 'a4'
-            });
-
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = pdf.internal.pageSize.getHeight();
-            const imgWidth = pdfWidth;
-            const imgHeight = (canvas.height * pdfWidth) / canvas.width;
-
-            // Handle multi-page
-            let heightLeft = imgHeight;
-            let position = 0;
-
-            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-            heightLeft -= pdfHeight;
-
-            while (heightLeft > 0) {
-                position = position - pdfHeight;
-                pdf.addPage();
-                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                heightLeft -= pdfHeight;
-            }
-
-            const s = this.summary()!;
-            const customerCode = s.customerCode || 'customer';
-            const dateStr = new Date().toISOString().split('T')[0];
-            pdf.save(`account-summary-${customerCode}-${dateStr}.pdf`);
-
-            this.pdfLoading.set(false);
-            this.messageService.add({
-                severity: 'success',
-                summary: 'Success',
-                detail: 'PDF downloaded successfully',
-                life: 3000
-            });
-        } catch (err) {
-            console.error('Error generating PDF:', err);
-            this.pdfLoading.set(false);
-            this.messageService.add({
-                severity: 'error',
-                summary: 'Error',
-                detail: 'Failed to generate PDF',
-                life: 5000
-            });
-        }
-    }
-
-    private printReport(): void {
-        const printContent = document.getElementById('account-summary-print');
-        if (!printContent) {
-            this.pdfLoading.set(false);
-            return;
-        }
-
-        const printWindow = window.open('', '_blank', 'width=800,height=600');
-        if (!printWindow) {
-            this.pdfLoading.set(false);
-            return;
-        }
-
-        printWindow.document.write(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Customer Account Summary</title>
-                <style>
-                    * { margin: 0; padding: 0; box-sizing: border-box; }
-                    body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 12px; color: #333; padding: 10mm; }
-                    @page { size: A4; margin: 10mm; }
-                    @media print {
-                        body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        this.summaryService
+            .downloadStatementPdf(this.selectedCustomer.id, query)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+                next: (blob) => {
+                    const url = window.URL.createObjectURL(blob);
+                    const printWindow = window.open(url, '_blank');
+                    setTimeout(() => window.URL.revokeObjectURL(url), 60000);
+                    this.pdfLoading.set(false);
+                    if (!printWindow) {
+                        this.messageService.add({
+                            severity: 'warn',
+                            summary: 'Pop-up blocked',
+                            detail: 'Please allow pop-ups for this site and try again.',
+                            life: 6000
+                        });
                     }
-                    .print-header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 12px; margin-bottom: 16px; }
-                    .print-company-name { font-size: 20px; font-weight: 700; color: #1f2937; }
-                    .print-company-info { font-size: 11px; color: #6b7280; margin-top: 4px; }
-                    .print-title { font-size: 16px; font-weight: 600; margin-top: 10px; color: #374151; }
-                    .print-customer-info { display: flex; justify-content: space-between; margin-bottom: 16px; padding: 10px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 4px; }
-                    .print-customer-info div { font-size: 12px; }
-                    .print-customer-name { font-size: 14px; font-weight: 600; color: #1f2937; }
-                    .print-metrics { display: flex; justify-content: space-between; margin-bottom: 16px; gap: 12px; }
-                    .print-metric { flex: 1; padding: 10px; border: 1px solid #e5e7eb; border-radius: 4px; text-align: center; }
-                    .print-metric-label { font-size: 10px; text-transform: uppercase; color: #6b7280; font-weight: 500; }
-                    .print-metric-value { font-size: 16px; font-weight: 700; color: #1f2937; margin-top: 4px; }
-                    .print-metric.due .print-metric-value { color: #dc2626; }
-                    .print-metric.paid .print-metric-value { color: #16a34a; }
-                    table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 11px; }
-                    th { background: #f3f4f6; font-weight: 600; text-align: left; padding: 8px 6px; border: 1px solid #d1d5db; }
-                    td { padding: 6px; border: 1px solid #e5e7eb; }
-                    tr:nth-child(even) { background: #f9fafb; }
-                    .text-right { text-align: right; }
-                    .font-bold { font-weight: 700; }
-                    .print-table-title { font-size: 13px; font-weight: 600; margin-top: 16px; margin-bottom: 4px; }
-                    .print-footer { margin-top: 24px; padding-top: 12px; border-top: 1px solid #e5e7eb; text-align: center; font-size: 10px; color: #9ca3af; }
-                    .print-due-box { margin-top: 12px; padding: 10px; border: 2px solid #dc2626; border-radius: 4px; text-align: right; }
-                    .print-due-box .label { font-size: 12px; color: #6b7280; }
-                    .print-due-box .value { font-size: 18px; font-weight: 700; color: #dc2626; }
-                </style>
-            </head>
-            <body>
-                ${printContent.innerHTML}
-                <script>
-                    window.onload = function() { window.print(); window.close(); }
-                </script>
-            </body>
-            </html>
-        `);
-        printWindow.document.close();
-        this.pdfLoading.set(false);
+                },
+                error: () => {
+                    this.pdfLoading.set(false);
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail: 'Failed to generate PDF for printing. Please try again.',
+                        life: 5000
+                    });
+                }
+            });
     }
 
     goBack(): void {
@@ -392,5 +321,15 @@ export class CustomerAccountSummaryComponent implements OnInit, OnDestroy {
     ngOnDestroy(): void {
         this.destroy$.next();
         this.destroy$.complete();
+    }
+
+    // toISOString() converts to UTC which shifts dates in non-UTC timezones.
+    // This helper returns "YYYY-MM-DD" in local time so the backend receives
+    // the date the user actually selected.
+    private toLocalDateString(date: Date): string {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
     }
 }

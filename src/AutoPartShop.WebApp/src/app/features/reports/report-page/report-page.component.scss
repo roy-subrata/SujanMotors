@@ -1,0 +1,77 @@
+// Generic report page — layout chrome comes from the shared data-page classes;
+// only report-specific pieces (totals strip, chart card, mobile card rows) live here.
+
+.totals-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 16px;
+
+    .totals-card {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 160px;
+        padding: 12px 16px;
+        background: var(--color-bg-primary);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+
+        .totals-label {
+            font-size: 12px;
+            color: var(--color-text-secondary);
+        }
+
+        .totals-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--color-text-primary);
+            font-variant-numeric: tabular-nums;
+        }
+    }
+}
+
+.chart-section {
+    margin-bottom: 16px;
+    padding: 16px;
+    background: var(--color-bg-primary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+}
+
+.checkbox-group {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+
+    .filter-label {
+        margin: 0;
+        cursor: pointer;
+    }
+}
+
+// Mobile card body: label/value rows generated from the column config.
+.order-card-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 8px;
+
+    .order-card-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        font-size: 13px;
+
+        .row-label {
+            color: var(--color-text-secondary);
+        }
+
+        .row-value {
+            color: var(--color-text-primary);
+            font-weight: 500;
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
+    }
+}

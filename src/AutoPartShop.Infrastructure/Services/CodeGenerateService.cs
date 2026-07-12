@@ -67,7 +67,7 @@ namespace AutoPartsShop.Infrastructure.Services
                 .AsNoTracking()
                 .FirstOrDefaultAsync(s => s.Prefix == prefix, cancellationToken);
 
-            int next  = (sequence?.LastNumber ?? 0) + 1;
+            int next = (sequence?.LastNumber ?? 0) + 1;
             int width = Math.Max(minDigits, next.ToString().Length);
             return $"{prefix}{next.ToString().PadLeft(width, '0')}";
         }
@@ -129,9 +129,9 @@ namespace AutoPartsShop.Infrastructure.Services
 
                 var p = cmd.CreateParameter();
                 p.ParameterName = "@prefix";
-                p.DbType        = DbType.String;
-                p.Size          = 20;
-                p.Value         = prefix;
+                p.DbType = DbType.String;
+                p.Size = 20;
+                p.Value = prefix;
                 cmd.Parameters.Add(p);
 
                 var scalar = await cmd.ExecuteScalarAsync(ct)

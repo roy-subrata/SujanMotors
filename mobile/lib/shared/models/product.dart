@@ -1,5 +1,47 @@
 import 'json.dart';
 
+class ProductAttributeValue {
+  const ProductAttributeValue({
+    required this.attributeId,
+    required this.attributeName,
+    this.dataType,
+    this.optionId,
+    this.optionValue,
+    this.valueText,
+    this.valueNumber,
+    this.valueBool,
+  });
+
+  final String attributeId;
+  final String attributeName;
+  final String? dataType;
+  final String? optionId;
+  final String? optionValue;
+  final String? valueText;
+  final double? valueNumber;
+  final bool? valueBool;
+
+  String get displayValue {
+    if (optionValue != null && optionValue!.isNotEmpty) return optionValue!;
+    if (valueText != null && valueText!.isNotEmpty) return valueText!;
+    if (valueNumber != null) return valueNumber.toString();
+    if (valueBool != null) return valueBool! ? 'Yes' : 'No';
+    return '';
+  }
+
+  factory ProductAttributeValue.fromJson(Map<String, dynamic> json) =>
+      ProductAttributeValue(
+        attributeId: asString(json['attributeId']),
+        attributeName: asString(json['attributeName']),
+        dataType: asStringOrNull(json['dataType']),
+        optionId: asStringOrNull(json['optionId']),
+        optionValue: asStringOrNull(json['optionValue']),
+        valueText: asStringOrNull(json['valueText']),
+        valueNumber: asDoubleOrNull(json['valueNumber']),
+        valueBool: json['valueBool'] as bool?,
+      );
+}
+
 /// `{ id, name }` reference (e.g. brand, unit).
 class NamedRef {
   const NamedRef({required this.id, required this.name});
@@ -81,6 +123,7 @@ class Product {
   const Product({
     required this.id,
     required this.name,
+    this.localName,
     this.description,
     required this.partNumber,
     required this.sku,
@@ -93,10 +136,13 @@ class Product {
     this.brand,
     this.pricing,
     this.variants = const [],
+    this.unitName,
+    this.totalStock,
   });
 
   final String id;
   final String name;
+  final String? localName;
   final String? description;
   final String partNumber;
   final String sku;
@@ -109,10 +155,13 @@ class Product {
   final NamedRef? brand;
   final Pricing? pricing;
   final List<ProductVariant> variants;
+  final String? unitName;
+  final int? totalStock;
 
   factory Product.fromJson(Map<String, dynamic> json) => Product(
         id: asString(json['id']),
         name: asString(json['name']),
+        localName: asStringOrNull(json['localName']),
         description: asStringOrNull(json['description']),
         partNumber: asString(json['partNumber']),
         sku: asString(json['sku']),
@@ -121,15 +170,37 @@ class Product {
         productType: asStringOrNull(json['productType']),
         isActive: asBool(json['isActive'], fallback: true),
         hasVariants: asBool(json['hasVariants']),
-        category: asMapOrNull(json['category']) == null
-            ? null
-            : Category.fromJson(asMapOrNull(json['category'])!),
-        brand: asMapOrNull(json['brand']) == null
-            ? null
-            : NamedRef.fromJson(asMapOrNull(json['brand'])!),
-        pricing: asMapOrNull(json['pricing']) == null
-            ? null
-            : Pricing.fromJson(asMapOrNull(json['pricing'])!),
+        // Nested format (detail endpoint) takes priority; flat format (list endpoint) is fallback.
+        category: asMapOrNull(json['category']) != null
+            ? Category.fromJson(asMapOrNull(json['category'])!)
+            : asStringOrNull(json['categoryName']) != null
+                ? Category(
+                    id: asString(json['categoryId']),
+                    name: asString(json['categoryName']),
+                  )
+                : null,
+        brand: asMapOrNull(json['brand']) != null
+            ? NamedRef.fromJson(asMapOrNull(json['brand'])!)
+            : asStringOrNull(json['brandName']) != null
+                ? NamedRef(
+                    id: asString(json['brandId']),
+                    name: asString(json['brandName']),
+                  )
+                : null,
+        pricing: asMapOrNull(json['pricing']) != null
+            ? Pricing.fromJson(asMapOrNull(json['pricing'])!)
+            : (json['effectiveSellingPrice'] ?? json['sellingPrice']) != null
+                ? Pricing(
+                    sellingPrice:
+                        asDouble(json['effectiveSellingPrice'] ?? json['sellingPrice']),
+                    costPrice: asDoubleOrNull(
+                        json['effectiveCostPrice'] ?? json['costPrice']),
+                  )
+                : null,
         variants: asList(json['variants'], ProductVariant.fromJson),
+        unitName: asStringOrNull(json['unitName']) ??
+            asStringOrNull(asMapOrNull(json['unit'])?['name']),
+        totalStock:
+            json['totalStock'] != null ? asInt(json['totalStock']) : null,
       );
 }

@@ -25,8 +25,8 @@ public class CustomerPaymentDueNotificationHandler : IDomainEventHandler<Custome
     {
         var daysUntilDue = (evt.DueDate.Date - DateTime.UtcNow.Date).Days;
         var duePhrase = daysUntilDue == 0 ? "today"
-            : daysUntilDue > 0            ? $"in {daysUntilDue} day(s)"
-            :                               $"{Math.Abs(daysUntilDue)} day(s) ago";
+            : daysUntilDue > 0 ? $"in {daysUntilDue} day(s)"
+            : $"{Math.Abs(daysUntilDue)} day(s) ago";
 
         var message =
             $"Dear {evt.CustomerName}, your invoice {evt.InvoiceNumber} " +

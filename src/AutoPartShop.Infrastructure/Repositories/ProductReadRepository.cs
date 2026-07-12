@@ -41,6 +41,7 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
                 PartNumber = x.Product.PartNumber.Value,
                 SKU = x.Product.SKU,
                 OemNumber = x.Product.OemNumber,
+                LocalName = x.Product.LocalName,
                 CategoryId = x.Product.CategoryId,
                 CategoryName = x.Product.Category != null ? x.Product.Category.Name : string.Empty,
                 BrandId = x.Product.BrandId,
@@ -80,6 +81,8 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
             })
             .ToListAsync(cancellationToken);
 
+        var stockMapSem = await GetStockTotalsAsync(items.Select(i => i.Id), cancellationToken);
+        foreach (var it in items) it.TotalStock = stockMapSem.TryGetValue(it.Id, out var ss) ? ss : 0;
         return (items, totalCount);
     }
 
@@ -95,9 +98,11 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
             .Include(p => p.Brand)
             .Include(p => p.Unit)
             .Include(p => p.BaseUnit)
-            .Where(x => !x.Isdeleted && (query.IsActive == null || x.IsActive == query.IsActive) && (
+            .Where(x => !x.Isdeleted && (query.IsActive == null || x.IsActive == query.IsActive)
+                && (query.CategoryId == null || x.CategoryId == query.CategoryId) && (
              (EF.Functions.Like(x.Name, $"%{term}%") ||
-             EF.Functions.Like(x.SKU, $"%{term}%")
+             EF.Functions.Like(x.SKU, $"%{term}%") ||
+             (x.LocalName != null && EF.Functions.Like(x.LocalName, $"%{term}%"))
             )));
 
         if (query.Sorts != null && query.Sorts.Any())
@@ -124,6 +129,7 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
                 PartNumber = part.PartNumber.Value,
                 SKU = part.SKU,
                 OemNumber = part.OemNumber,
+                LocalName = part.LocalName,
                 CategoryId = part.CategoryId,
                 CategoryName = part.Category != null ? part.Category.Name : string.Empty,
                 BrandId = part.BrandId,
@@ -161,7 +167,58 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
             })
             .ToListAsync(cancellationToken);
 
+        await ApplyLotCostAsync(items, cancellationToken);
+        await ApplyVehicleFitAsync(items, cancellationToken);
+        var stockMapAll = await GetStockTotalsAsync(items.Select(i => i.Id), cancellationToken);
+        foreach (var it in items) it.TotalStock = stockMapAll.TryGetValue(it.Id, out var sa) ? sa : 0;
         return (items, totalCount);
+    }
+
+    /// <summary>
+    /// Overwrites each item's <c>CostPrice</c>/<c>EffectiveCostPrice</c> with the weighted-average
+    /// cost of its on-hand purchase lots — the actual inventory cost. Product rows average across all
+    /// of the part's on-hand lots; variant rows average only that variant's lots. Items with no
+    /// on-hand lots get 0 (no purchase yet → no cost). One batched query for the whole page.
+    /// </summary>
+    private async Task ApplyLotCostAsync(List<ProductResponse> items, CancellationToken cancellationToken)
+    {
+        if (items.Count == 0) return;
+
+        var partIds = items.Select(i => i.Id).Distinct().ToList();
+        var lots = await _db.StockLots
+            .Where(l => !l.Isdeleted && l.QuantityAvailable > 0 && partIds.Contains(l.PartId))
+            .Select(l => new { l.PartId, l.VariantId, l.QuantityAvailable, l.CostPrice })
+            .ToListAsync(cancellationToken);
+
+        if (lots.Count == 0)
+        {
+            foreach (var it in items) { it.CostPrice = 0; it.EffectiveCostPrice = 0; }
+            return;
+        }
+
+        static decimal WeightedAvg(IEnumerable<(int Qty, decimal Cost)> rows)
+        {
+            long qty = 0; decimal value = 0;
+            foreach (var r in rows) { qty += r.Qty; value += r.Qty * r.Cost; }
+            return qty > 0 ? value / qty : 0;
+        }
+
+        var byPart = lots
+            .GroupBy(l => l.PartId)
+            .ToDictionary(g => g.Key, g => WeightedAvg(g.Select(x => (x.QuantityAvailable, x.CostPrice))));
+        var byVariant = lots
+            .Where(l => l.VariantId != null)
+            .GroupBy(l => (l.PartId, VariantId: l.VariantId!.Value))
+            .ToDictionary(g => g.Key, g => WeightedAvg(g.Select(x => (x.QuantityAvailable, x.CostPrice))));
+
+        foreach (var it in items)
+        {
+            decimal cost = it.IsVariant && it.VariantId.HasValue
+                ? (byVariant.TryGetValue((it.Id, it.VariantId.Value), out var vc) ? vc : 0)
+                : (byPart.TryGetValue(it.Id, out var pc) ? pc : 0);
+            it.CostPrice = cost;
+            it.EffectiveCostPrice = cost;
+        }
     }
 
     // Flattened view for transactional documents (PO, SO, GRN, POS):
@@ -177,6 +234,7 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
             .Include(p => p.Unit)
             .Include(p => p.BaseUnit)
             .Where(x => !x.Isdeleted && (query.IsActive == null || x.IsActive == query.IsActive)
+                && (query.CategoryId == null || x.CategoryId == query.CategoryId)
                 && !x.Variants.Any(v => v.IsActive && !v.Isdeleted)
                 && (EF.Functions.Like(x.Name, $"%{term}%") || EF.Functions.Like(x.SKU, $"%{term}%")))
             .Select(part => new ProductResponse
@@ -189,6 +247,7 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
                 PartNumber = part.PartNumber.Value,
                 SKU = part.SKU,
                 OemNumber = part.OemNumber,
+                LocalName = part.LocalName,
                 CategoryId = part.CategoryId,
                 CategoryName = part.Category != null ? part.Category.Name : string.Empty,
                 BrandId = part.BrandId,
@@ -233,6 +292,7 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
             .Include(v => v.Part).ThenInclude(p => p!.BaseUnit)
             .Where(v => v.IsActive && !v.Isdeleted
                 && v.Part != null && !v.Part.Isdeleted && (query.IsActive == null || v.Part.IsActive == query.IsActive)
+                && (query.CategoryId == null || v.Part.CategoryId == query.CategoryId)
                 && (EF.Functions.Like(v.Name, $"%{term}%")
                     || (v.SKU != null && EF.Functions.Like(v.SKU, $"%{term}%"))
                     || EF.Functions.Like(v.Part.Name, $"%{term}%")
@@ -247,6 +307,7 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
                 PartNumber = v.Part.PartNumber.Value,
                 SKU = v.Part.SKU,
                 OemNumber = v.Part.OemNumber,
+                LocalName = v.Part.LocalName,
                 CategoryId = v.Part.CategoryId,
                 CategoryName = v.Part.Category != null ? v.Part.Category.Name : string.Empty,
                 BrandId = v.Part.BrandId,
@@ -299,6 +360,10 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
             .Take(query.PageSize)
             .ToList();
 
+        await ApplyLotCostAsync(paged, cancellationToken);
+        await ApplyVehicleFitAsync(paged, cancellationToken);
+        var stockMapFlat = await GetStockTotalsAsync(paged.Select(i => i.Id), cancellationToken);
+        foreach (var it in paged) it.TotalStock = stockMapFlat.TryGetValue(it.Id, out var sf) ? sf : 0;
         return (paged, totalCount);
     }
 
@@ -314,7 +379,8 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
             .Include(p => p.Brand)
             .Include(p => p.Unit)
             .Include(p => p.BaseUnit)
-            .Where(x => !x.Isdeleted && (query.IsActive == null || x.IsActive == query.IsActive) && (
+            .Where(x => !x.Isdeleted && (query.IsActive == null || x.IsActive == query.IsActive)
+                && (query.CategoryId == null || x.CategoryId == query.CategoryId) && (
              (EF.Functions.Like(x.Name, $"%{term}%") ||
              EF.Functions.Like(x.SKU, $"%{term}%")
             )));
@@ -343,6 +409,7 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
                 PartNumber = part.PartNumber.Value,
                 SKU = part.SKU,
                 OemNumber = part.OemNumber,
+                LocalName = part.LocalName,
                 CategoryId = part.CategoryId,
                 CategoryName = part.Category != null ? part.Category.Name : string.Empty,
                 BrandId = part.BrandId,
@@ -375,6 +442,9 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
             })
             .ToListAsync(cancellationToken);
 
+        await ApplyPublicVehicleFitAsync(items, cancellationToken);
+        var stockMapPub = await GetStockTotalsAsync(items.Select(i => i.Id), cancellationToken);
+        foreach (var it in items) it.TotalStock = stockMapPub.TryGetValue(it.Id, out var sp) ? sp : 0;
         return (items, totalCount);
     }
 
@@ -387,6 +457,7 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
             .Include(p => p.Unit)
             .Include(p => p.BaseUnit)
             .Where(x => !x.Isdeleted && (query.IsActive == null || x.IsActive == query.IsActive)
+                && (query.CategoryId == null || x.CategoryId == query.CategoryId)
                 && !x.Variants.Any(v => v.IsActive && !v.Isdeleted)
                 && (EF.Functions.Like(x.Name, $"%{term}%") || EF.Functions.Like(x.SKU, $"%{term}%")))
             .Select(part => new ProductPublicResponse
@@ -399,6 +470,7 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
                 PartNumber = part.PartNumber.Value,
                 SKU = part.SKU,
                 OemNumber = part.OemNumber,
+                LocalName = part.LocalName,
                 CategoryId = part.CategoryId,
                 CategoryName = part.Category != null ? part.Category.Name : string.Empty,
                 BrandId = part.BrandId,
@@ -438,6 +510,7 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
             .Include(v => v.Part).ThenInclude(p => p!.BaseUnit)
             .Where(v => v.IsActive && !v.Isdeleted
                 && v.Part != null && !v.Part.Isdeleted && (query.IsActive == null || v.Part.IsActive == query.IsActive)
+                && (query.CategoryId == null || v.Part.CategoryId == query.CategoryId)
                 && (EF.Functions.Like(v.Name, $"%{term}%")
                     || (v.SKU != null && EF.Functions.Like(v.SKU, $"%{term}%"))
                     || EF.Functions.Like(v.Part.Name, $"%{term}%")
@@ -452,6 +525,7 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
                 PartNumber = v.Part.PartNumber.Value,
                 SKU = v.Part.SKU,
                 OemNumber = v.Part.OemNumber,
+                LocalName = v.Part.LocalName,
                 CategoryId = v.Part.CategoryId,
                 CategoryName = v.Part.Category != null ? v.Part.Category.Name : string.Empty,
                 BrandId = v.Part.BrandId,
@@ -499,6 +573,80 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
             .Take(query.PageSize)
             .ToList();
 
+        await ApplyPublicVehicleFitAsync(paged, cancellationToken);
+        var stockMapPubFlat = await GetStockTotalsAsync(paged.Select(i => i.Id), cancellationToken);
+        foreach (var it in paged) it.TotalStock = stockMapPubFlat.TryGetValue(it.Id, out var spf) ? spf : 0;
         return (paged, totalCount);
+    }
+
+    private async Task ApplyVehicleFitAsync(List<ProductResponse> items, CancellationToken cancellationToken)
+    {
+        if (items.Count == 0) return;
+
+        var partIds = items.Select(i => i.Id).Distinct().ToList();
+        var compatibilities = await _db.PartVehicleCompatibilities
+            .Include(vc => vc.Vehicle)
+            .Where(vc => !vc.Isdeleted && vc.IsCompatible && partIds.Contains(vc.PartId) && vc.Vehicle != null)
+            .Select(vc => new { vc.PartId, Make = vc.Vehicle!.Make, Model = vc.Vehicle.Model, Year = vc.Vehicle.Year })
+            .ToListAsync(cancellationToken);
+
+        var byPart = compatibilities
+            .GroupBy(c => c.PartId)
+            .ToDictionary(g => g.Key, g => g.OrderBy(c => c.Make).ToList());
+
+        foreach (var item in items)
+        {
+            if (!byPart.TryGetValue(item.Id, out var vehicles) || vehicles.Count == 0)
+                continue;
+
+            var labels = vehicles.Take(2).Select(v => $"{v.Make} {v.Model} {v.Year}");
+            var summary = string.Join(", ", labels);
+            if (vehicles.Count > 2)
+                summary += $" +{vehicles.Count - 2}";
+            item.VehicleFit = summary;
+        }
+    }
+
+    private async Task ApplyPublicVehicleFitAsync(List<ProductPublicResponse> items, CancellationToken cancellationToken)
+    {
+        if (items.Count == 0) return;
+
+        var partIds = items.Select(i => i.Id).Distinct().ToList();
+        var compatibilities = await _db.PartVehicleCompatibilities
+            .Include(vc => vc.Vehicle)
+            .Where(vc => !vc.Isdeleted && vc.IsCompatible && partIds.Contains(vc.PartId) && vc.Vehicle != null)
+            .Select(vc => new { vc.PartId, Make = vc.Vehicle!.Make, Model = vc.Vehicle.Model, Year = vc.Vehicle.Year })
+            .ToListAsync(cancellationToken);
+
+        var byPart = compatibilities
+            .GroupBy(c => c.PartId)
+            .ToDictionary(g => g.Key, g => g.OrderBy(c => c.Make).ToList());
+
+        foreach (var item in items)
+        {
+            if (!byPart.TryGetValue(item.Id, out var vehicles) || vehicles.Count == 0)
+                continue;
+
+            var labels = vehicles.Take(2).Select(v => $"{v.Make} {v.Model} {v.Year}");
+            var summary = string.Join(", ", labels);
+            if (vehicles.Count > 2)
+                summary += $" +{vehicles.Count - 2}";
+            item.VehicleFit = summary;
+        }
+    }
+
+    private async Task<Dictionary<Guid, int>> GetStockTotalsAsync(
+        IEnumerable<Guid> partIds, CancellationToken cancellationToken)
+    {
+        var ids = partIds.Distinct().ToList();
+        if (ids.Count == 0) return [];
+
+        var rows = await _db.StockLevels
+            .Where(s => !s.Isdeleted && ids.Contains(s.PartId))
+            .GroupBy(s => s.PartId)
+            .Select(g => new { PartId = g.Key, Total = g.Sum(s => s.QuantityOnHand - s.QuantityReserved) })
+            .ToListAsync(cancellationToken);
+
+        return rows.ToDictionary(r => r.PartId, r => r.Total < 0 ? 0 : r.Total);
     }
 }

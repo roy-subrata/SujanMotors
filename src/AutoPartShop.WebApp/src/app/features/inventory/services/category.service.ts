@@ -75,14 +75,16 @@ export class CategoryService {
         return this.http.get<PagedCategoryResponse>(this.apiUrl, { params });
     }
 
-    /** All active categories as a flat array — convenience for dropdowns. */
+    /** All active categories as a flat array — convenience for dropdowns.
+     *  pageSize is capped at 100 server-side (CategoriesController.GetAll); request
+     *  that exact cap rather than an arbitrary larger number. */
     getActiveCategories(): Observable<CategoryResponse[]> {
-        return this.getCategories({ isActive: true, pageSize: 500 }).pipe(map(r => r.data));
+        return this.getCategories({ isActive: true, pageSize: 100 }).pipe(map(r => r.data));
     }
 
     /** All categories (active + inactive) as a flat array — convenience for dropdowns. */
     getAllCategories(): Observable<CategoryResponse[]> {
-        return this.getCategories({ pageSize: 500 }).pipe(map(r => r.data));
+        return this.getCategories({ pageSize: 100 }).pipe(map(r => r.data));
     }
 
     /** Get a single category by ID. */

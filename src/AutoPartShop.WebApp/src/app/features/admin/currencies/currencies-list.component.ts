@@ -44,7 +44,6 @@ import { PageHeaderComponent } from '@/shared/components/page-header/page-header
       <app-page-header
         title="Currency Management"
         subtitle="Manage system currencies and exchange rates"
-        [breadcrumb]="[{ label: 'Admin' }, { label: 'Currencies' }]"
         [count]="currencies().length" countLabel="currencies" countIcon="pi pi-dollar">
         <ng-container actions>
           <button class="btn-primary" (click)="openDialog()">

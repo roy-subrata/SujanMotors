@@ -14,6 +14,9 @@ import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
 import { PurchaseReturnsListComponent } from './purchase-returns-list/purchase-returns-list.component';
 import { PurchaseReturnService, PurchaseReturnResponse } from '../services/purchase-return.service';
 import { HasRoleDirective } from '../../../shared/directives/has-role.directive';
+import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
+import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
+import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 
 @Component({
   selector: 'app-purchase-returns',
@@ -30,7 +33,10 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
     MenuModule,
     TooltipModule,
     PurchaseReturnsListComponent,
-    HasRoleDirective
+    HasRoleDirective,
+    PageContainerComponent,
+    PageHeaderComponent,
+    FilterBarComponent
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: './purchase-returns.component.html',
@@ -101,15 +107,6 @@ export class PurchaseReturnsComponent implements OnInit {
     this.loading = true;
     this.prService.getPurchaseReturns(pageNumber, pageSize, searchTerm).subscribe({
       next: (response) => {
-        console.log('Purchase Returns API Response:', response);
-        console.log('Purchase Returns Items:', response.items);
-        if (response.items && response.items.length > 0) {
-          console.log('First Item Sample:', response.items[0]);
-          console.log('First Item Supplier Name:', response.items[0].supplierName);
-          console.log('First Item Supplier Code:', response.items[0].supplierCode);
-          console.log('First Item Refund Amount:', response.items[0].refundAmount);
-        }
-
         this.purchaseReturns = response.items;
         this.totalRecords = response.totalCount;
         this.rows = response.pageSize;

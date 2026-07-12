@@ -20,7 +20,7 @@ public class StockLevelReadRepository : IStockLevelReadRepository
     {
         var levels = _dbContext.StockLevels
             .Include(x => x.Part)
-                .ThenInclude(p => p.BaseUnit)
+                .ThenInclude(p => p!.BaseUnit)
             .Include(x => x.Variant)
             .Include(x => x.Warehouse)
             .Include(x => x.Unit)
@@ -84,6 +84,7 @@ public class StockLevelReadRepository : IStockLevelReadRepository
                 Id = level.Id,
                 PartId = level.PartId,
                 PartName = level.Part != null ? level.Part.Name : null,
+                PartLocalName = level.Part != null ? level.Part.LocalName : null,
                 PartSku = level.Part != null ? level.Part.SKU : null,
                 VariantId = level.VariantId,
                 VariantName = level.Variant != null ? level.Variant.Name : null,

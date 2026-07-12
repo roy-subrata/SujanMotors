@@ -22,6 +22,10 @@ import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
 import { CurrencyService } from '../../../../shared/services/currency.service';
 import { I18nService } from '@/shared/services/i18n.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
+import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
+import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
+import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 
 @Component({
   selector: 'app-sales-returns-list',
@@ -43,7 +47,11 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
     MenuModule,
     TagModule,
     InputGroupModule,
-    InputGroupAddonModule
+    InputGroupAddonModule,
+    PageContainerComponent,
+    PageHeaderComponent,
+    FilterBarComponent,
+    DataPaginationComponent
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: './sales-returns-list.component.html',
@@ -216,6 +224,15 @@ export class SalesReturnsListComponent implements OnInit {
     this.pageSize = event.rows ?? 10;
     this.pageNumber = Math.floor(this.first / this.pageSize) + 1;
     this.loadSalesReturns();
+  }
+
+  goToPage(page: number): void {
+    this.onPageChange({ first: (page - 1) * this.pageSize, rows: this.pageSize } as PaginatorState);
+  }
+
+  onPageSizeChange(size: number): void {
+    this.pageSize = size;
+    this.onPageChange({ first: 0, rows: size } as PaginatorState);
   }
 
   onLazyLoad(event: TableLazyLoadEvent): void {

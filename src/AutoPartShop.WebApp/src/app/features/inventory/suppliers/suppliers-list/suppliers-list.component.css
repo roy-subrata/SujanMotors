@@ -4,8 +4,6 @@
 .col-code     { min-width: 120px; }
 .col-customer { min-width: 220px; }
 .col-contact  { min-width: 200px; }
-.col-city     { min-width: 120px; }
-.col-rating   { min-width: 100px; }
 .col-balance  { min-width: 130px; text-align: right; }
 .col-status   { min-width: 120px; }
 .col-actions  { width: 100px; text-align: center; }
@@ -25,22 +23,6 @@
 .balance-cell { display: flex; flex-direction: column; align-items: flex-end; }
 .text-danger  { color: var(--color-danger) !important; }
 .text-success { color: var(--color-success) !important; }
-
-/* Rating badge */
-.rating-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  border-radius: var(--radius-full);
-  font-size: 12px;
-  font-weight: 600;
-}
-.rating-badge i { font-size: 11px; }
-.rating-excellent { background: var(--color-success-light); color: #047857; }
-.rating-good      { background: var(--color-info-light);    color: #1D4ED8; }
-.rating-fair      { background: var(--color-warning-light); color: #92400E; }
-.rating-poor      { background: var(--color-danger-light);  color: #B91C1C; }
 
 /* Mobile card contact row */
 .card-contact { display: flex; align-items: center; gap: 12px; margin-top: 6px; }

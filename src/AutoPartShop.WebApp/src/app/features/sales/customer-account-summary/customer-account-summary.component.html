@@ -1,4 +1,4 @@
-<div class="as-page">
+<app-page-container>
     <p-toast></p-toast>
 
     <!-- HEADER -->
@@ -54,6 +54,21 @@
                 styleClass="w-full">
             </p-datepicker>
         </div>
+        <div class="filter-field vehicle-field">
+            <label class="filter-label">Vehicle</label>
+            <p-select
+                [(ngModel)]="selectedVehicleId"
+                [options]="vehicles()"
+                optionLabel="label"
+                optionValue="id"
+                placeholder="All vehicles"
+                [showClear]="true"
+                [disabled]="!selectedCustomer"
+                appendTo="body"
+                styleClass="w-full"
+                (onChange)="onVehicleChange()">
+            </p-select>
+        </div>
         <button pButton type="button" icon="pi pi-search" label="Generate"
             class="generate-btn" (click)="generateReport()" [loading]="loading()"></button>
     </div>
@@ -64,6 +79,7 @@
         <span class="info-item"><i class="pi pi-hashtag"></i> {{ summary()!.customerCode }}</span>
         <span class="info-item"><i class="pi pi-phone"></i> {{ summary()!.customerPhone }}</span>
         <span class="info-item" *ngIf="summary()!.customerType"><i class="pi pi-tag"></i> {{ summary()!.customerType }}</span>
+        <span class="info-item" *ngIf="selectedVehicleLabel"><i class="pi pi-car"></i> {{ selectedVehicleLabel }}</span>
         <span class="info-item"><i class="pi pi-calendar"></i> {{ formatDate(summary()!.reportDate) }}</span>
     </div>
 
@@ -117,6 +133,17 @@
                         <span class="metric-helper" *ngIf="summary()!.currentDue <= 0">All paid up!</span>
                     </div>
                 </div>
+                <div class="metric-card metric-info">
+                    <div class="metric-icon"><i class="pi pi-history"></i></div>
+                    <div class="metric-body">
+                        <span class="metric-label">Last Payment</span>
+                        <span class="metric-value">
+                            {{ summary()!.lastPaymentDate ? formatCurrency(summary()!.lastPaymentAmount) : '—' }}
+                        </span>
+                        <span class="metric-helper" *ngIf="summary()!.lastPaymentDate">on {{ formatDate(summary()!.lastPaymentDate!) }}</span>
+                        <span class="metric-helper" *ngIf="!summary()!.lastPaymentDate">No payments yet</span>
+                    </div>
+                </div>
             </div>
 
             <!-- Purchase Items Table -->
@@ -133,6 +160,7 @@
                         <span class="col-invoice">Invoice #</span>
                         <span class="col-status">Status</span>
                         <span class="col-item">Item Name</span>
+                        <span class="col-vehicle">Vehicle</span>
                         <span class="col-part">Part #</span>
                         <span class="col-qty">Qty</span>
                         <span class="col-price">Unit Price</span>
@@ -149,6 +177,7 @@
                                 </span>
                             </div>
                             <div class="col-item">{{ item.itemName }}</div>
+                            <div class="col-vehicle muted">{{ item.vehicleLabel || '—' }}</div>
                             <div class="col-part mono muted">{{ item.partNumber || item.sku || '-' }}</div>
                             <div class="col-qty">{{ item.quantity }}</div>
                             <div class="col-price">{{ formatCurrency(item.unitPrice) }}</div>
@@ -182,6 +211,10 @@
                                 <label>Date</label>
                                 <span>{{ formatDate(item.invoiceDate) }}</span>
                             </div>
+                            <div class="mobile-field" *ngIf="item.vehicleLabel">
+                                <label>Vehicle</label>
+                                <span>{{ item.vehicleLabel }}</span>
+                            </div>
                             <div class="mobile-field">
                                 <label>Qty</label>
                                 <span>{{ item.quantity }}</span>
@@ -201,16 +234,15 @@
                     </div>
                 </div>
 
-                <!-- Paginator -->
-                <div class="as-paginator" *ngIf="summary()!.purchaseItemsTotalCount > pageSize">
-                    <p-paginator
-                        [rows]="pageSize"
-                        [totalRecords]="summary()!.purchaseItemsTotalCount"
-                        [first]="first"
-                        [rowsPerPageOptions]="[10, 20, 50]"
-                        (onPageChange)="onPageChange($event)">
-                    </p-paginator>
-                </div>
+                <!-- Pagination -->
+                <app-data-pagination
+                    [first]="first"
+                    [pageSize]="pageSize"
+                    [totalRecords]="summary()!.purchaseItemsTotalCount"
+                    itemLabel="items"
+                    (pageChange)="goToPage($event)"
+                    (pageSizeChange)="onPageSizeChange($event)">
+                </app-data-pagination>
             </div>
         }
     </div>
@@ -232,85 +264,4 @@
             </div>
         </div>
     </div>
-</div>
-
-<!-- ==================== HIDDEN PRINT-OPTIMIZED SECTION ==================== -->
-@if (allItemsLoaded() && summary()) {
-    <div id="account-summary-print" class="print-container">
-        <div class="print-header">
-            <div class="print-company-name">{{ companyConfig.companyName }}</div>
-            <div class="print-company-info">
-                {{ companyConfig.companyAddress }} | {{ companyConfig.companyPhone }} | {{ companyConfig.companyEmail }}
-            </div>
-            <div class="print-title">Customer Account Summary</div>
-        </div>
-        <div class="print-customer-info">
-            <div>
-                <div class="print-customer-name">{{ summary()!.customerName }}</div>
-                <div>Code: {{ summary()!.customerCode }}</div>
-                <div>Phone: {{ summary()!.customerPhone }}</div>
-                <div *ngIf="summary()!.customerType">Type: {{ summary()!.customerType }}</div>
-            </div>
-            <div style="text-align: right;">
-                <div>Report Date: {{ formatDate(summary()!.reportDate) }}</div>
-                <div *ngIf="summary()!.fromDate">From: {{ formatDate(summary()!.fromDate!) }}</div>
-                <div *ngIf="summary()!.toDate">To: {{ formatDate(summary()!.toDate!) }}</div>
-            </div>
-        </div>
-        <div class="print-metrics">
-            <div class="print-metric">
-                <div class="print-metric-label">Total Purchase</div>
-                <div class="print-metric-value">{{ formatCurrency(summary()!.totalPurchaseAmount) }}</div>
-            </div>
-            <div class="print-metric paid">
-                <div class="print-metric-label">Total Paid</div>
-                <div class="print-metric-value">{{ formatCurrency(summary()!.totalPaidAmount) }}</div>
-            </div>
-            <div class="print-metric" [class.due]="summary()!.currentDue > 0">
-                <div class="print-metric-label">Current Due</div>
-                <div class="print-metric-value">{{ formatCurrency(summary()!.currentDue) }}</div>
-            </div>
-        </div>
-        <div class="print-table-title">Purchase Item Details ({{ allItems().length }} items)</div>
-        <table>
-            <thead>
-                <tr>
-                    <th style="width: 5%;">#</th>
-                    <th style="width: 12%;">Invoice Date</th>
-                    <th style="width: 12%;">Invoice #</th>
-                    <th>Item Name</th>
-                    <th style="width: 10%;">Part #</th>
-                    <th class="text-right" style="width: 6%;">Qty</th>
-                    <th class="text-right" style="width: 12%;">Unit Price</th>
-                    <th class="text-right" style="width: 9%;">Discount</th>
-                    <th class="text-right" style="width: 12%;">Line Total</th>
-                </tr>
-            </thead>
-            <tbody>
-                @for (item of allItems(); track item.salesOrderLineId; let i = $index) {
-                    <tr>
-                        <td>{{ i + 1 }}</td>
-                        <td>{{ formatDate(item.invoiceDate) }}</td>
-                        <td>{{ item.invoiceNumber }}</td>
-                        <td>{{ item.itemName }}</td>
-                        <td>{{ item.partNumber || item.sku || '-' }}</td>
-                        <td class="text-right">{{ item.quantity }}</td>
-                        <td class="text-right">{{ formatCurrency(item.unitPrice) }}</td>
-                        <td class="text-right">{{ formatCurrency(item.discount) }}</td>
-                        <td class="text-right font-bold">{{ formatCurrency(item.lineTotal) }}</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-        @if (summary()!.currentDue > 0) {
-            <div class="print-due-box">
-                <span class="label">Total Amount Due: </span>
-                <span class="value">{{ formatCurrency(summary()!.currentDue) }}</span>
-            </div>
-        }
-        <div class="print-footer">
-            <p>This is a computer-generated document. Generated on {{ formatDate(summary()!.reportDate) }} by {{ companyConfig.companyName }}.</p>
-            <p style="margin-top: 4px;">Thank you for your business!</p>
-        </div>
-    </div>
-}
+</app-page-container>

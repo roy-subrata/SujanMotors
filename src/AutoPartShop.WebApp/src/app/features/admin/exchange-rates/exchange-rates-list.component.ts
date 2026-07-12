@@ -48,7 +48,6 @@ import { PageHeaderComponent } from '@/shared/components/page-header/page-header
       <app-page-header
         title="Exchange Rate Management"
         subtitle="Manage currency exchange rates"
-        [breadcrumb]="[{ label: 'Admin' }, { label: 'Exchange Rates' }]"
         [count]="exchangeRates().length" countLabel="rates" countIcon="pi pi-sync">
         <ng-container actions>
           <button class="btn-primary" (click)="openDialog()">

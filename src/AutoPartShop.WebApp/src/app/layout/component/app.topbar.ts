@@ -14,7 +14,7 @@ import { LayoutService } from '../service/layout.service';
 import { AuthService } from '../../shared/services/auth.service';
 import { I18nService } from '../../shared/services/i18n.service';
 import { AppBrandingService } from '../../shared/services/app-branding.service';
-import { NotificationHubService, SaleNotificationEvent } from '../../shared/services/notification-hub.service';
+import { NotificationHubService, SaleNotificationEvent, ReorderAlertEvent } from '../../shared/services/notification-hub.service';
 import { LanguageSwitcherComponent } from '../../shared/components/language-switcher/language-switcher.component';
 import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
@@ -23,7 +23,7 @@ import { Subscription } from 'rxjs';
 
 interface StaffNotification {
     id: string;
-    type: 'sale';
+    type: 'sale' | 'reorder';
     title: string;
     description: string;
     icon: string;
@@ -51,16 +51,25 @@ interface StaffNotification {
             <h1>{{ pageTitle() }}</h1>
         </div>
 
+        <!-- Presentational global search (no search backend wired up yet — visual only,
+             matches the design reference which is likewise a static, non-functional box) -->
+        <div class="topbar-search" pTooltip="Search coming soon" tooltipPosition="bottom">
+            <i class="pi pi-search"></i>
+            <span class="topbar-search-placeholder">Search parts, invoices, customers…</span>
+            <span class="topbar-search-kbd">⌘K</span>
+        </div>
+
         <!-- Actions -->
         <div class="topbar-actions">
             <!-- Quick Sale -->
             <button
                 type="button"
-                class="topbar-action-btn quick-sale-shortcut-btn"
+                class="quick-sale-btn"
                 (click)="navigateToQuickSaleShortcut()"
                 pTooltip="Quick Sale (POS)"
                 tooltipPosition="bottom">
                 <i class="pi pi-bolt"></i>
+                <span>New Sale</span>
             </button>
 
             <!-- Language Switcher -->
@@ -483,6 +492,7 @@ export class AppTopbar implements OnInit, OnDestroy {
     userMenuItems: MenuItem[] = [];
 
     private hubSub?: Subscription;
+    private reorderSub?: Subscription;
 
     constructor() {
         this.buildUserMenuItems();
@@ -504,10 +514,14 @@ export class AppTopbar implements OnInit, OnDestroy {
         this.hubSub = this.notificationHub.saleNotification$.subscribe(evt => {
             this.onSaleNotification(evt);
         });
+        this.reorderSub = this.notificationHub.reorderAlert$.subscribe(evt => {
+            this.onReorderAlert(evt);
+        });
     }
 
     ngOnDestroy(): void {
         this.hubSub?.unsubscribe();
+        this.reorderSub?.unsubscribe();
     }
 
     private onSaleNotification(evt: SaleNotificationEvent): void {
@@ -531,6 +545,34 @@ export class AppTopbar implements OnInit, OnDestroy {
             summary:  'New Sale',
             detail:   `${evt.soNumber} — ${evt.customerName} · ${evt.currency} ${evt.grandTotal.toFixed(2)}`,
             life:      6000
+        });
+    }
+
+    private onReorderAlert(evt: ReorderAlertEvent): void {
+        const plural = evt.itemCount === 1 ? 'item' : 'items';
+        const topNames = evt.items.slice(0, 3).map(i => i.partName).join(', ');
+        const more = evt.itemCount > 3 ? ` +${evt.itemCount - 3} more` : '';
+
+        const notif: StaffNotification = {
+            id: crypto.randomUUID(),
+            type: 'reorder',
+            title: `Low Stock — ${evt.itemCount} ${plural} to reorder`,
+            description: `${topNames}${more}`,
+            icon: 'pi-exclamation-triangle',
+            occurredAt: new Date(evt.occurredAt),
+            isRead: false,
+            routerLink: '/inventory/stock',
+            queryParams: { tab: 'low' }
+        };
+
+        this.notifications.update(ns => [notif, ...ns].slice(0, 20));
+
+        this.messageService.add({
+            key:      'sale-notification',
+            severity: 'warn',
+            summary:  'Low Stock',
+            detail:   `${evt.itemCount} ${plural} at or below reorder level`,
+            life:      8000
         });
     }
 
@@ -680,7 +722,7 @@ export class AppTopbar implements OnInit, OnDestroy {
 
     onSearch() {
         if (this.searchQuery.trim()) {
-            console.log('Searching for:', this.searchQuery);
+            // TODO: implement global search
         }
     }
 

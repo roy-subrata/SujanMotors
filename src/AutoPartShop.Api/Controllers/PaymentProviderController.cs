@@ -1,6 +1,7 @@
-using AutoPartShop.Api.Services;
+﻿using AutoPartShop.Api.Services;
 using AutoPartShop.Application.CustomerPayment.Dtos;
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -87,6 +88,7 @@ public class PaymentProviderController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> Create(CreatePaymentProviderRequest request, CancellationToken cancellationToken)
     {
         try
@@ -126,6 +128,7 @@ public class PaymentProviderController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> Update(Guid id, UpdatePaymentProviderRequest request, CancellationToken cancellationToken)
     {
         try
@@ -156,6 +159,7 @@ public class PaymentProviderController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/activate")]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> Activate(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -175,6 +179,7 @@ public class PaymentProviderController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/deactivate")]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> Deactivate(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -243,6 +248,7 @@ public class PaymentProviderController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/set-default")]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> SetDefault(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -273,6 +279,7 @@ public class PaymentProviderController : ControllerBase
     }
 
     [HttpPost("{id:guid}/test-connection")]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> TestConnection(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -301,6 +308,7 @@ public class PaymentProviderController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         try

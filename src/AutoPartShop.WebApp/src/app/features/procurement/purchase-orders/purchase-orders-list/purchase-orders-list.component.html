@@ -24,14 +24,13 @@
             <th class="col-date">Order Date</th>
             <th class="col-date">Delivery Date</th>
             <th class="col-status">Status</th>
-            <th class="col-amount">Grand Total</th>
             <th class="col-amount">Outstanding</th>
             <th class="col-actions">Actions</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngIf="loading" class="loading-row">
-            <td colspan="8">
+            <td colspan="7">
               <div class="loading-spinner">
                 <i class="pi pi-spin pi-spinner"></i>
                 <span>Loading purchase orders...</span>
@@ -40,7 +39,7 @@
           </tr>
 
           <tr *ngIf="!loading && purchaseOrders.length === 0" class="empty-row">
-            <td colspan="8">
+            <td colspan="7">
               <div class="empty-state">
                 <div class="empty-icon">
                   <i class="pi pi-shopping-bag"></i>
@@ -60,9 +59,6 @@
             </td>
             <td class="col-supplier">
               <div class="customer-cell">
-                <div class="customer-avatar">
-                  {{ (po.supplierName || 'S')[0].toUpperCase() }}
-                </div>
                 <div class="customer-info">
                   <a class="customer-name entity-link" [routerLink]="['/inventory/suppliers', po.supplierId]" *ngIf="po.supplierId">{{ po.supplierName || '-' }}</a>
                   <span class="customer-name" *ngIf="!po.supplierId">{{ po.supplierName || '-' }}</span>
@@ -84,9 +80,6 @@
               </span>
             </td>
             <td class="col-amount">
-              <span class="amount-value">{{ formatCurrency(po.grandTotal) }}</span>
-            </td>
-            <td class="col-amount">
               <span class="amount-value" [class.text-danger]="po.outstandingAmount > 0">
                 {{ formatCurrency(po.outstandingAmount) }}
               </span>
@@ -103,34 +96,17 @@
       </table>
     </div>
   </div>
-
-  <div class="pagination-section" *ngIf="totalRecords > 0">
-    <div class="pagination-info">
-      Showing <strong>{{ ((currentPage - 1) * rows) + 1 }}</strong> to <strong>{{ Math.min(currentPage * rows, totalRecords) }}</strong> of <strong>{{ totalRecords }}</strong> orders
-    </div>
-    <div class="pagination-controls">
-      <span class="page-size-label">Rows per page:</span>
-      <select class="page-size-select" [value]="rows" (change)="onPageSizeChange($event)">
-        <option *ngFor="let size of pageSizeOptions" [value]="size">{{ size }}</option>
-      </select>
-      <div class="page-nav">
-        <button class="page-btn" [disabled]="currentPage === 1" (click)="goToPage(1)">
-          <i class="pi pi-angle-double-left"></i>
-        </button>
-        <button class="page-btn" [disabled]="currentPage === 1" (click)="goToPage(currentPage - 1)">
-          <i class="pi pi-angle-left"></i>
-        </button>
-        <span class="page-indicator">{{ currentPage }} / {{ totalPages }}</span>
-        <button class="page-btn" [disabled]="currentPage === totalPages" (click)="goToPage(currentPage + 1)">
-          <i class="pi pi-angle-right"></i>
-        </button>
-        <button class="page-btn" [disabled]="currentPage === totalPages" (click)="goToPage(totalPages)">
-          <i class="pi pi-angle-double-right"></i>
-        </button>
-      </div>
-    </div>
-  </div>
 </section>
+
+<!-- ==================== PAGINATION (desktop + mobile) ==================== -->
+<app-data-pagination
+  [first]="(currentPage - 1) * rows"
+  [pageSize]="rows"
+  [totalRecords]="totalRecords"
+  itemLabel="orders"
+  (pageChange)="goToPage($event)"
+  (pageSizeChange)="onPageSizeChange($event)">
+</app-data-pagination>
 
 <!-- ==================== MOBILE CARDS ==================== -->
 <section class="cards-section mobile-only">
@@ -167,9 +143,6 @@
       </div>
       <div class="card-body">
         <div class="card-customer">
-          <div class="customer-avatar small">
-            {{ (po.supplierName || 'S')[0].toUpperCase() }}
-          </div>
           <div class="customer-info">
             <span class="customer-name">{{ po.supplierName || '-' }}</span>
             <span *ngIf="po.supplierCode" class="customer-phone">{{ po.supplierCode }}</span>
@@ -182,26 +155,10 @@
         <span *ngIf="po.isOverdue" class="overdue-text"><i class="pi pi-exclamation-triangle"></i> Overdue</span>
       </div>
       <div class="card-footer">
-        <div class="card-amount">
-          <span class="amount-label">Grand Total</span>
-          <span class="amount-value">{{ formatCurrency(po.grandTotal) }}</span>
-        </div>
         <button class="btn-card-action" (click)="showContextMenu($event, po); $event.stopPropagation()">
           <i class="pi pi-ellipsis-v"></i>
         </button>
       </div>
-    </div>
-  </div>
-
-  <div class="mobile-pagination" *ngIf="totalRecords > 0">
-    <span class="pagination-info-mobile">{{ currentPage }} / {{ totalPages }}</span>
-    <div class="pagination-nav-mobile">
-      <button class="page-btn" [disabled]="currentPage === 1" (click)="goToPage(currentPage - 1)">
-        <i class="pi pi-angle-left"></i>
-      </button>
-      <button class="page-btn" [disabled]="currentPage === totalPages" (click)="goToPage(currentPage + 1)">
-        <i class="pi pi-angle-right"></i>
-      </button>
     </div>
   </div>
 </section>

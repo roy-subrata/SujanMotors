@@ -20,13 +20,13 @@
 .form-label {
   font-size: 0.8125rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--text-color);
 }
 
 .label-hint {
   font-size: 0.75rem;
   font-weight: 400;
-  color: #6B7280;
+  color: var(--text-color-secondary);
   margin-left: 4px;
 }
 
@@ -38,16 +38,16 @@
 .form-input {
   width: 100%;
   padding: 0.625rem 0.75rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--surface-border);
   border-radius: 0.375rem;
   font-size: 0.875rem;
   transition: all 0.2s ease;
-  background: #fff;
-  color: #111827;
+  background: var(--surface-card);
+  color: var(--text-color);
 }
 
 .form-input::placeholder {
-  color: #9CA3AF;
+  color: var(--text-color-secondary);
 }
 
 .form-input:focus {
@@ -67,7 +67,7 @@
 :host ::ng-deep .form-input-number .p-inputnumber-input {
   width: 100%;
   padding: 0.625rem 0.75rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--surface-border);
   border-radius: 0.375rem;
   font-size: 0.875rem;
   transition: all 0.2s ease;
@@ -94,7 +94,7 @@
 }
 
 .hint-message {
-  color: #6b7280;
+  color: var(--text-color-secondary);
   font-size: 0.75rem;
   font-style: italic;
 }
@@ -111,21 +111,21 @@
 }
 
 .scope-banner[data-scope="CART"] {
-  background: #ECFDF5;
-  border-color: #A7F3D0;
-  color: #065F46;
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.4);
+  color: #10b981;
 }
 
 .scope-banner[data-scope="PRODUCT"] {
-  background: #EFF6FF;
-  border-color: #BFDBFE;
-  color: #1D4ED8;
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.4);
+  color: #3b82f6;
 }
 
 .scope-banner[data-scope="VARIANT"] {
-  background: #F5F3FF;
-  border-color: #DDD6FE;
-  color: #5B21B6;
+  background: rgba(139, 92, 246, 0.12);
+  border-color: rgba(139, 92, 246, 0.4);
+  color: #8b5cf6;
 }
 
 .scope-banner i { flex-shrink: 0; margin-top: 1px; }
@@ -149,7 +149,7 @@
 .part-row-name {
   font-size: 0.875rem;
   font-weight: 500;
-  color: #111827;
+  color: var(--text-color);
   flex: 1;
   white-space: nowrap;
   overflow: hidden;
@@ -159,13 +159,13 @@
 
 .part-row-sep {
   font-size: 0.75rem;
-  color: #D1D5DB;
+  color: var(--text-color-secondary);
   flex-shrink: 0;
 }
 
 .part-row-sku {
   font-size: 0.75rem;
-  color: #9CA3AF;
+  color: var(--text-color-secondary);
   font-family: ui-monospace, monospace;
   flex-shrink: 0;
 }
@@ -177,17 +177,17 @@
   gap: 6px;
   margin-top: 6px;
   padding: 8px 12px;
-  background-color: #EFF6FF;
-  border: 1px solid #BFDBFE;
+  background-color: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.4);
   border-radius: 6px;
   font-size: 0.8125rem;
-  color: #1D4ED8;
+  color: #3b82f6;
 }
 
 .scope-note.scope-note-item {
-  background-color: #F5F3FF;
-  border-color: #DDD6FE;
-  color: #5B21B6;
+  background-color: rgba(139, 92, 246, 0.12);
+  border-color: rgba(139, 92, 246, 0.4);
+  color: #8b5cf6;
 }
 
 .scope-note i {
@@ -216,13 +216,13 @@
 }
 
 .scope-badge-display[data-scope="ITEM"] {
-  background-color: #EDE9FE;
-  color: #5B21B6;
+  background-color: rgba(139, 92, 246, 0.15);
+  color: #8b5cf6;
 }
 
 .scope-badge-display[data-scope="CART"] {
-  background-color: #D1FAE5;
-  color: #065F46;
+  background-color: rgba(16, 185, 129, 0.15);
+  color: #10b981;
 }
 
 /* Toggle row */

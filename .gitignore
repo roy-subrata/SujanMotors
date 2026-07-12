@@ -28,7 +28,7 @@ node_modules/
 # Environment / secrets — never commit these
 .env
 .env.*
-!.env.example
+!.env*.example
 appsettings.Development.json
 appsettings.Production.json
 # Claude Code worktrees (temporary agent sandboxes)

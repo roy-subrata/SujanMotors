@@ -12,6 +12,7 @@ public class CreateCustomerPaymentRequest
     public string ReferenceNumber { get; set; } = string.Empty;
     public DateTime? PaymentDate { get; set; }
     public string Notes { get; set; } = string.Empty;
+    public string Currency { get; set; } = "BDT";
 }
 
 public class UpdateCustomerPaymentRequest

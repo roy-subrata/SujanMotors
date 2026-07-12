@@ -1,4 +1,5 @@
 import { Component, OnInit, inject } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
@@ -18,6 +19,10 @@ import { StockAdjustmentDialogComponent } from './stock-adjustment-dialog.compon
 import { StockMovementHistoryComponent } from './stock-movement-history.component';
 import { StockLotsByWarehouseComponent } from './stock-lots-by-warehouse.component';
 import { StockPriceHistoryComponent } from './stock-price-history.component';
+import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
+import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
+import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
+import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 
 @Component({
   selector: 'app-stock',
@@ -35,7 +40,11 @@ import { StockPriceHistoryComponent } from './stock-price-history.component';
     DialogModule,
     StockMovementHistoryComponent,
     StockLotsByWarehouseComponent,
-    StockPriceHistoryComponent
+    StockPriceHistoryComponent,
+    PageContainerComponent,
+    PageHeaderComponent,
+    FilterBarComponent,
+    DataPaginationComponent
   ],
   providers: [MessageService, DialogService],
   templateUrl: './stock.component.html',
@@ -47,11 +56,16 @@ export class StockComponent implements OnInit {
   private readonly partService = inject(PartService);
   private readonly warehouseService = inject(WarehouseService);
   private readonly dialogService = inject(DialogService);
+  private readonly route = inject(ActivatedRoute);
 
   allStockLevels: StockLevelResponse[] = [];
   lowStockLevels: StockLevelResponse[] = [];
-  parts: PartResponse[] = [];
   warehouses: WarehouseResponse[] = [];
+  // Stock rows already carry their own partName/partSku/displayName from the API, so this is
+  // only a defensive fallback for a missing name — resolved on demand per partId, not a
+  // capped catalog preload (which could never cover a large parts catalog anyway).
+  private partCache = new Map<string, PartResponse>();
+  private partLoading = new Set<string>();
 
   loading = false;
   searchTerm = '';
@@ -95,7 +109,12 @@ export class StockComponent implements OnInit {
   ];
 
   ngOnInit(): void {
-    this.loadParts();
+    // Deep-link support (e.g. the topbar reorder alert links to /inventory/stock?tab=low).
+    // Subscribed (not snapshot) so the link also works when the page is already open.
+    this.route.queryParamMap.subscribe(params => {
+      if (params.get('tab') === 'low') this.activeTab = 1;
+    });
+
     this.loadWarehouses();
     this.loadAllStock();
     this.loadLowStock();
@@ -250,13 +269,24 @@ export class StockComponent implements OnInit {
     });
   }
 
-  loadParts(): void {
-    this.partService.getParts({ search: '', pageNumber: 1, pageSize: 500, isActive: true }).subscribe({
-      next: (res) => {
-        this.parts = res.data ?? [];
+  /** Resolve a part on demand (cache + single lookup) instead of preloading the catalog. */
+  private resolvePart(partId: string): PartResponse | undefined {
+    const cached = this.partCache.get(partId);
+    if (cached) return cached;
+    this.fetchPart(partId);
+    return undefined;
+  }
+
+  private fetchPart(partId: string): void {
+    if (!partId || this.partLoading.has(partId) || this.partCache.has(partId)) return;
+    this.partLoading.add(partId);
+    this.partService.getPartById(partId).subscribe({
+      next: (part) => {
+        this.partCache.set(partId, part);
+        this.partLoading.delete(partId);
       },
       error: (_error) => {
-        console.error('Error loading parts:', _error);
+        this.partLoading.delete(partId);
       }
     });
   }
@@ -294,24 +324,20 @@ export class StockComponent implements OnInit {
     this.loadLowStock();
   }
 
-  goAllPrevPage(): void {
-    if (this.allFirst === 0) return;
-    this.onAllLazyLoad({ first: this.allFirst - this.allPageSize, rows: this.allPageSize } as TableLazyLoadEvent);
+  goToAllPage(page: number): void {
+    this.onAllLazyLoad({ first: (page - 1) * this.allPageSize, rows: this.allPageSize } as TableLazyLoadEvent);
   }
 
-  goAllNextPage(): void {
-    if (this.allFirst + this.allPageSize >= this.allTotalRecords) return;
-    this.onAllLazyLoad({ first: this.allFirst + this.allPageSize, rows: this.allPageSize } as TableLazyLoadEvent);
+  onAllPageSizeChange(size: number): void {
+    this.onAllLazyLoad({ first: 0, rows: size } as TableLazyLoadEvent);
   }
 
-  goLowPrevPage(): void {
-    if (this.lowFirst === 0) return;
-    this.onLowLazyLoad({ first: this.lowFirst - this.lowPageSize, rows: this.lowPageSize } as TableLazyLoadEvent);
+  goToLowPage(page: number): void {
+    this.onLowLazyLoad({ first: (page - 1) * this.lowPageSize, rows: this.lowPageSize } as TableLazyLoadEvent);
   }
 
-  goLowNextPage(): void {
-    if (this.lowFirst + this.lowPageSize >= this.lowTotalRecords) return;
-    this.onLowLazyLoad({ first: this.lowFirst + this.lowPageSize, rows: this.lowPageSize } as TableLazyLoadEvent);
+  onLowPageSizeChange(size: number): void {
+    this.onLowLazyLoad({ first: 0, rows: size } as TableLazyLoadEvent);
   }
 
   private resetAllPagination(): void {
@@ -363,7 +389,7 @@ export class StockComponent implements OnInit {
    * Get part name for a given partId
    */
   getPartName(partId: string): string {
-    const part = this.parts.find(p => p.id === partId);
+    const part = this.resolvePart(partId);
     return part?.name || partId;
   }
 
@@ -371,7 +397,7 @@ export class StockComponent implements OnInit {
    * Get part SKU for a given partId
    */
   getPartSku(partId: string): string {
-    const part = this.parts.find(p => p.id === partId);
+    const part = this.resolvePart(partId);
     return part?.sku || '';
   }
 
@@ -379,7 +405,7 @@ export class StockComponent implements OnInit {
    * Get part name and code for a given partId
    */
   getPartInfo(partId: string): string {
-    const part = this.parts.find(p => p.id === partId);
+    const part = this.resolvePart(partId);
     if (part) {
       return `${part.name} (${part.sku})`;
     }

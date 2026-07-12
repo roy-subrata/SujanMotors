@@ -1,0 +1,102 @@
+/* PAYROLL RUN DETAIL — page-specific styles only (shared chrome in assets/_data-page.scss) */
+.col-employee { min-width: 200px; }
+.col-att      { min-width: 150px; text-align: center; }
+.col-amount   { min-width: 110px; text-align: right; }
+.col-input    { min-width: 120px; }
+.col-save     { width: 60px; text-align: center; }
+
+.code-sub {
+  display: block;
+  font-size: 12px;
+}
+
+.att-counts {
+  font-variant-numeric: tabular-nums;
+}
+
+.att-absent {
+  color: var(--color-danger);
+}
+
+/* Summary bar */
+.summary-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  padding: 1rem 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.summary-label {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.summary-value {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.summary-net {
+  color: var(--color-primary);
+}
+
+.status-pill[data-status="draft"]    { background: color-mix(in srgb, #f59e0b 15%, transparent); color: #b45309; }
+.status-pill[data-status="approved"] { background: color-mix(in srgb, #3b82f6 15%, transparent); color: #1d4ed8; }
+.status-pill[data-status="paid"]     { background: color-mix(in srgb, #22c55e 15%, transparent); color: #15803d; }
+
+/* Editable number cells */
+::ng-deep .cell-number input {
+  width: 110px;
+  text-align: right;
+  font-size: 13px;
+}
+
+/* Dialog */
+.dialog-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.dialog-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.dialog-field label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.dialog-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.375rem;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+::ng-deep .dialog-form .p-select {
+  width: 100%;
+}
+
+/* Print: hide chrome, show the table */
+@media print {
+  .btn-icon, .btn-primary, .col-save {
+    display: none !important;
+  }
+}

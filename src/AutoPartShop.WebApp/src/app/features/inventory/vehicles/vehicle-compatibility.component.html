@@ -1,25 +1,13 @@
-<div class="container">
+<app-page-container>
   <p-toast></p-toast>
 
-  <div class="page-header">
-    <button
-      pButton
-      pRipple
-      type="button"
-      icon="pi pi-arrow-left"
-      class="p-button-text"
-      label="Back to Vehicles"
-      (click)="goBack()">
-    </button>
-    <div class="vehicle-info" *ngIf="vehicle">
-      <h2>Vehicle Compatibility Management</h2>
-      <p class="vehicle-details">
-        <strong>{{ vehicle.make }} {{ vehicle.model }} {{ vehicle.year }}</strong>
-        <span class="separator">|</span>
-        <span class="engine-type">{{ vehicle.engineType }}</span>
-      </p>
-    </div>
-  </div>
+  <app-page-header title="Vehicle Compatibility Management" [subtitle]="vehicleSubtitle">
+    <ng-container actions>
+      <button class="btn-icon" pTooltip="Back to Vehicles" tooltipPosition="bottom" (click)="goBack()">
+        <i class="pi pi-arrow-left"></i>
+      </button>
+    </ng-container>
+  </app-page-header>
 
   <!-- Add Compatibility Form -->
   <p-card header="Add Part Compatibility">
@@ -41,6 +29,7 @@
             <ng-template let-part>
               <div class="autocomplete-item">
                 <div class="part-name">{{ part.displayName || part.name }}</div>
+                <small *ngIf="part.localName" class="part-row-local">{{ part.localName }}</small>
                 <div class="part-sku">SKU: {{ part.variantSKU || part.sku }}</div>
               </div>
             </ng-template>
@@ -162,4 +151,4 @@
 
   <!-- Confirm Dialog -->
   <p-confirmDialog></p-confirmDialog>
-</div>
+</app-page-container>

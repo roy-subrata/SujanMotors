@@ -23,12 +23,13 @@ import { TextareaModule } from 'primeng/textarea';
 import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
 
 // Services
-import { QuickSaleService, QuickSaleLineItem, PaymentDetail, PaymentMethod, PaymentResponsibility } from '../services/quick-sale.service';
+import { QuickSaleService, QuickSaleLineItem, QuickSaleDraft, PaymentDetail, PaymentMethod, PaymentResponsibility } from '../services/quick-sale.service';
 import { PaymentProviderService, PaymentProviderResponse } from '../../procurement/services/payment-provider.service';
 import { PublicPartService, PublicPartResponse } from '../services/public-part.service';
 import { UnitService, UnitResponse } from '../../inventory/services/unit.service';
 import { UnitConversionService } from '../../inventory/services/unit-conversion.service';
 import { CustomerService } from '../services/customer.service';
+import { CustomerVehicleService, CustomerVehicleResponse } from '../services/customer-vehicle.service';
 import { TechnicianService, TechnicianResponse } from '../services/technician.service';
 import { InvoicePdfService, InvoicePdfData } from '../services/invoice-pdf.service';
 import { ThermalReceiptService } from '../services/thermal-receipt.service';
@@ -36,6 +37,7 @@ import { CurrencyService } from '../../../shared/services/currency.service';
 import { PricingValidationService } from '../../../shared/services/pricing-validation.service';
 import { extractApiError } from '../../../shared/utils/api-error.util';
 import { composeVariantDisplayName } from '../../../shared/utils/variant-name.util';
+import { LayoutService } from '../../../layout/service/layout.service';
 
 // Components
 import { QuickCustomerDialogComponent } from '../components/quick-customer-dialog.component';
@@ -81,6 +83,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
   private readonly unitService = inject(UnitService);
   private readonly unitConversionService = inject(UnitConversionService);
   private readonly customerService = inject(CustomerService);
+  private readonly vehicleService = inject(CustomerVehicleService);
   private readonly technicianService = inject(TechnicianService);
   private readonly currencyService = inject(CurrencyService);
   private readonly messageService = inject(MessageService);
@@ -89,6 +92,8 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
   private readonly thermalReceipt = inject(ThermalReceiptService);
   private readonly pricingValidationService = inject(PricingValidationService);
   private readonly paymentProviderService = inject(PaymentProviderService);
+  readonly layoutService = inject(LayoutService);
+  readonly isDarkMode = computed(() => this.layoutService.isDarkTheme());
 
   @ViewChild(QuickCustomerDialogComponent) quickCustomerDialog!: QuickCustomerDialogComponent;
 
@@ -101,9 +106,9 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
   // Invoice Preview
   showInvoicePreview = false;
   invoicePreviewData: InvoicePdfData | null = null;
+  currentInvoiceId = signal<string | null>(null);
 
   // Parts
-  parts = signal<PublicPartResponse[]>([]);
   selectedPartModel: PublicPartResponse | null = null;
   fetchPartsLazy = (req: LazyRequest) =>
     this.partService.getParts({
@@ -122,6 +127,11 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
   // Customers
   selectedCustomer = signal<any | null>(null);
   selectedCustomerModel: any | null = null;
+
+  // Optional vehicle this sale is for (loaded once a customer is selected)
+  customerVehicles = signal<CustomerVehicleResponse[]>([]);
+  selectedVehicleId = signal<string | null>(null);
+  loadingVehicles = signal(false);
   fetchCustomersLazy = (req: LazyRequest) =>
     this.customerService.getCustomers({
       search: req.search,
@@ -151,7 +161,6 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
 
   // Cart
   cartItems = signal<QuickSaleLineItem[]>([]);
-  globalDiscount = 0;
   pricingErrors = new Map<number, string>();
 
 
@@ -184,16 +193,8 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     } as LazyResponse<PaymentProviderResponse>);
   };
 
-  // VAT
-  vatEnabled = signal(false);
-  vatPercentage = signal(0);
-
   // Manual Discount
   manualDiscountAmount = signal<number>(0);
-
-  onManualDiscountChange(): void {
-    // Trigger re-computation of totals
-  }
 
   // Computed
   subtotal = computed(() => {
@@ -211,16 +212,14 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     }, 0);
   });
 
-  vatAmount = computed(() => {
-    if (!this.vatEnabled()) return 0;
-    return (this.subtotal() * this.vatPercentage()) / 100;
-  });
+  vatEnabled = signal(false);
+  vatPercentage = signal(0);
+  vatAmount = computed(() =>
+    this.vatEnabled() ? Math.round((this.subtotal() - this.manualDiscountAmount()) * this.vatPercentage()) / 100 : 0
+  );
 
   grandTotal = computed(() => {
-    const subtotal = this.subtotal();
-    const vat = this.vatAmount();
-    const manualDiscount = this.manualDiscountAmount();
-    return subtotal + vat - manualDiscount;
+    return this.subtotal() - this.manualDiscountAmount() + this.vatAmount();
   });
 
   availableAdvance = computed(() => {
@@ -229,6 +228,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
   });
 
   // Invoice & Info
+  companyName = '';
   invoiceNumber = signal<string>('');
   currentDate = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 
@@ -236,7 +236,6 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
   autoCreatePO = false;
   /** Receipt format the sales manager prints on checkout. */
   printType: 'NONE' | 'THERMAL' | 'A4' = 'THERMAL';
-  sendSmsNotification = false;
   saleNotes = '';
   paymentResponsibility: PaymentResponsibility = 'CUSTOMER';
 
@@ -259,12 +258,21 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
   returnInvoiceNumber = '';
   returnInvoice: any = null;
   returnRefundType: 'CASH_REFUND' | 'STORE_CREDIT' = 'CASH_REFUND';
-  returnLines: { salesOrderLineId: string; partId: string; partName: string; soldQty: number; unitPrice: number; returnQty: number; selected: boolean }[] = [];
+  returnLines: { salesOrderLineId: string; partId: string; partName: string; partLocalName?: string | null; soldQty: number; unitPrice: number; returnQty: number; selected: boolean }[] = [];
   priceCheckCode = '';
   priceCheckResult: any = null;
   priceCheckLoading = false;
   priceCheckNotFound = false;
   bulkDiscountPercent = 0;
+
+  // Reprint Receipt dialog
+  showReprintDialog = false;
+  reprintInvoiceNumber = '';
+  reprintLoading = signal(false);
+  reprintError = '';
+
+  // Resend notification (Last Sale dialog)
+  resendingNotification = signal(false);
 
   // Stock Check / product search dialog
   stockSearchTerm = '';
@@ -286,12 +294,24 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
   useCreditBalance = false;
   creditAmountToApply: number = 0;
 
-  paymentMethodOptions = [
+  private readonly allPaymentMethodOptions = [
     { label: 'Cash', value: 'CASH' as const, icon: 'pi pi-money-bill' },
     { label: 'Card', value: 'CARD' as const, icon: 'pi pi-credit-card' },
     { label: 'Mobile', value: 'MOBILE_BANKING' as const, icon: 'pi pi-mobile' },
     { label: 'Due', value: 'DUE' as const, icon: 'pi pi-clock' }
   ];
+
+  /** Walk-in customers are a reserved account and must never carry a due/credit balance. */
+  isWalkInCustomer(): boolean {
+    return this.selectedCustomer()?.customerCode === 'WALKIN';
+  }
+
+  /** DUE is hidden from the picker entirely for the reserved Walk-in customer. */
+  paymentMethodOptions = computed(() =>
+    this.isWalkInCustomer()
+      ? this.allPaymentMethodOptions.filter(o => o.value !== 'DUE')
+      : this.allPaymentMethodOptions
+  );
 
   // Payment reference fields
   paymentReference: string = '';
@@ -308,11 +328,14 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
 
   // ===== LIFECYCLE =====
   ngOnInit(): void {
+    this.companyName = this.invoicePdfService.getCompanyConfig().companyName;
     this.initializeForm();
     this.generateInvoiceNumber();
     this.loadUnits();
-    this.loadPaymentProviders();
     this.restoreDraft();
+    this.quickSaleService.getVATConfig().subscribe(cfg => {
+      this.vatPercentage.set(cfg.percentage);
+    });
   }
 
   ngOnDestroy(): void {
@@ -349,15 +372,6 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ===== PAYMENT PROVIDERS =====
-  loadPaymentProviders(): void {
-    this.paymentProviderService.getAllPaymentProviders().subscribe({
-      next: (providers) => {
-        this.paymentProviders = Array.isArray(providers) ? providers : [];
-      }
-    });
-  }
-
   // ===== DRAFT =====
   restoreDraft(): void {
     const draft = this.quickSaleService.loadDraft();
@@ -367,9 +381,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
         header: 'Draft Found',
         icon: 'pi pi-info-circle',
         accept: () => {
-          this.cartItems.set(draft.items);
-          this.payments.set(draft.payments || []);
-          this.saleNotes = draft.notes || '';
+          this.restoreSaleState(draft);
           this.quickSaleService.clearDraft();
         }
       });
@@ -398,6 +410,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
       partId: part.id,
       productVariantId: part.variantId ?? undefined,
       partName: part.displayName || part.name,
+      partLocalName: part.localName ?? null,
       partNumber: part.partNumber,
       sku: part.variantSKU || part.sku,
       unitId: part.unitId || undefined,
@@ -407,6 +420,9 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     };
 
     this.cartItems.update(items => [...items, newItem]);
+    if (part.unitId) {
+      this.cartUnitSelection.set(this.cartItems().length - 1, part.unitId);
+    }
     this.selectedPartModel = null;
 
     this.messageService.add({ severity: 'success', summary: 'Part Added', detail: `${part.displayName || part.name} added to cart` });
@@ -449,15 +465,12 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
   }
 
   onCartUnitChanged(item: QuickSaleLineItem, index: number): void {
-    const part = this.parts().find(p => p.id === item.partId);
-    if (!part?.unitId) return;
-
-    const previousUnitId = this.cartUnitSelection.get(index) || part.unitId;
-    const nextUnitId = item.unitId || part.unitId;
-    if (previousUnitId === nextUnitId) return;
+    const previousUnitId = this.cartUnitSelection.get(index);
+    const nextUnitId = item.unitId;
+    if (!previousUnitId || !nextUnitId || previousUnitId === nextUnitId) return;
 
     const currentPrice = Number(item.unitPrice || 0);
-    this.unitConversionService.getConversion(nextUnitId, part.unitId).subscribe({
+    this.unitConversionService.getConversion(nextUnitId, previousUnitId).subscribe({
       next: (res) => {
         const newPrice = currentPrice * res.conversionFactor;
         this.cartItems.update(items => {
@@ -477,16 +490,52 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
         next: (freshCustomer) => {
           this.selectedCustomer.set(freshCustomer);
           this.selectedCustomerModel = freshCustomer;
+          this.guardWalkInDuePaymentMethod();
         },
         error: () => {
           this.selectedCustomer.set(event);
           this.selectedCustomerModel = event;
+          this.guardWalkInDuePaymentMethod();
         }
       });
+      this.loadCustomerVehicles(event.id);
     } else {
       this.selectedCustomer.set(event);
       this.selectedCustomerModel = event;
+      this.clearVehicleSelection();
+      this.guardWalkInDuePaymentMethod();
     }
+  }
+
+  /** Reserved Walk-in customer must never carry a DUE payment — bump back to Cash if it was pre-selected. */
+  private guardWalkInDuePaymentMethod(): void {
+    if (this.isWalkInCustomer() && this.selectedPaymentMethod === 'DUE') {
+      this.selectedPaymentMethod = 'CASH';
+      this.paymentInputAmount = this.remainingBalance();
+    }
+  }
+
+  private loadCustomerVehicles(customerId: string, preselectVehicleId: string | null = null): void {
+    this.clearVehicleSelection();
+    this.loadingVehicles.set(true);
+    this.vehicleService.getByCustomer(customerId, true).subscribe({
+      next: (vehicles) => {
+        this.customerVehicles.set(vehicles);
+        if (preselectVehicleId && vehicles.some(v => v.id === preselectVehicleId)) {
+          this.selectedVehicleId.set(preselectVehicleId);
+        }
+        this.loadingVehicles.set(false);
+      },
+      error: () => {
+        this.customerVehicles.set([]);
+        this.loadingVehicles.set(false);
+      }
+    });
+  }
+
+  private clearVehicleSelection(): void {
+    this.customerVehicles.set([]);
+    this.selectedVehicleId.set(null);
   }
 
   selectTechnician(event: any): void {
@@ -501,6 +550,8 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
   onCustomerCreated(customer: any): void {
     this.selectedCustomer.set(customer);
     this.selectedCustomerModel = customer;
+    this.clearVehicleSelection();
+    this.guardWalkInDuePaymentMethod();
     this.messageService.add({ severity: 'success', summary: 'Customer Created', detail: `${customer.fullName} added` });
   }
 
@@ -550,6 +601,9 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
               discount: 0
             };
             this.cartItems.update(items => [...items, newItem]);
+            if (result.unitId) {
+              this.cartUnitSelection.set(this.cartItems().length - 1, result.unitId);
+            }
             this.messageService.add({ severity: 'success', summary: 'Added', detail: `${displayName} added` });
           }
         }
@@ -564,12 +618,21 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
 
   // ===== PAYMENT METHODS =====
   selectPaymentMethod(method: 'CASH' | 'CARD' | 'MOBILE_BANKING' | 'DUE'): void {
+    if (method === 'DUE' && this.isWalkInCustomer()) {
+      this.messageService.add({ severity: 'error', summary: 'Due Not Allowed', detail: 'Walk-in customers cannot have a due or credit balance. Select a registered customer for a Due sale.' });
+      return;
+    }
     this.selectedPaymentMethod = method;
   }
 
   addNewPayment(): void {
     const amount = this.paymentInputAmount || 0;
     if (amount <= 0) return;
+
+    if (this.selectedPaymentMethod === 'DUE' && this.isWalkInCustomer()) {
+      this.messageService.add({ severity: 'error', summary: 'Due Not Allowed', detail: 'Walk-in customers cannot have a due or credit balance. Select a registered customer for a Due sale.' });
+      return;
+    }
 
     const payment: PaymentDetail = {
       method: this.selectedPaymentMethod,
@@ -637,8 +700,13 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     this.cartItems.set([]);
     this.payments.set([]);
     this.selectedCustomer.set(null);
+    this.selectedCustomerModel = null;
+    this.clearVehicleSelection();
     this.selectedTechnician.set(null);
+    this.selectedTechnicianModel = null;
     this.selectedPartModel = null;
+    this.manualDiscountAmount.set(0);
+    this.currentInvoiceId.set(null);
     this.saving.set(false);
     this.autoCreatePO = false;
     this.saleNotes = '';
@@ -648,21 +716,30 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     this.paymentInputAmount = null;
     this.paymentReference = '';
     this.paymentNotes = '';
-    this.payments.set([]);
     this.pricingErrors.clear();
     this.cartUnitSelection.clear();
     this.quickSaleService.clearDraft();
   }
 
-  saveDraft(): void {
-    this.quickSaleService.saveDraft({
+  /** Snapshot of everything a parked/drafted sale needs to resume exactly where it left off. */
+  private captureSaleState(): Partial<QuickSaleDraft> {
+    return {
       customerId: this.selectedCustomer()?.id,
       customerName: this.selectedCustomer()?.fullName,
+      customerPhone: this.selectedCustomer()?.phone,
       items: this.cartItems(),
       payments: this.payments(),
       technicianId: this.selectedTechnician()?.id,
+      technicianName: this.selectedTechnician()?.name,
+      customerVehicleId: this.selectedVehicleId(),
+      manualDiscountAmount: this.manualDiscountAmount(),
+      total: this.grandTotal(),
       notes: this.saleNotes
-    });
+    };
+  }
+
+  saveDraft(): void {
+    this.quickSaleService.saveDraft(this.captureSaleState());
     this.messageService.add({ severity: 'success', summary: 'Draft Saved' });
   }
 
@@ -671,14 +748,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
       this.messageService.add({ severity: 'warn', summary: 'No Items', detail: 'Add items before holding' });
       return;
     }
-    const holdId = this.quickSaleService.holdSale({
-      customerId: this.selectedCustomer()?.id,
-      customerName: this.selectedCustomer()?.fullName,
-      items: this.cartItems(),
-      payments: this.payments(),
-      technicianId: this.selectedTechnician()?.id,
-      notes: this.saleNotes
-    });
+    const holdId = this.quickSaleService.holdSale(this.captureSaleState());
     this.messageService.add({ severity: 'success', summary: 'Sale Held', detail: `ID: ${holdId}` });
     this.resetForm();
   }
@@ -691,12 +761,55 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
   recallHeldSale(holdId: string): void {
     const sale = this.quickSaleService.recallHeldSale(holdId);
     if (sale) {
-      this.resetForm();
-      this.cartItems.set(sale.items);
-      this.payments.set(sale.payments);
-      this.saleNotes = sale.notes || '';
+      this.restoreSaleState(sale);
       this.showHeldSalesDialog = false;
       this.messageService.add({ severity: 'success', summary: 'Sale Recalled' });
+    }
+  }
+
+  /** Rebuild the full POS state from a held/drafted sale — cart, payments, customer, technician, vehicle, discount. */
+  private restoreSaleState(sale: QuickSaleDraft): void {
+    this.resetForm();
+    this.cartItems.set(sale.items || []);
+    this.payments.set(sale.payments || []);
+    this.saleNotes = sale.notes || '';
+    this.manualDiscountAmount.set(sale.manualDiscountAmount || 0);
+
+    // Rebuild per-line unit state so the unit dropdowns work after recall
+    (sale.items || []).forEach((item, index) => {
+      if (!item.unitId) return;
+      this.cartUnitSelection.set(index, item.unitId);
+      if (!this.compatibleUnitsMap.has(item.partId)) {
+        this.unitService.getCompatibleUnits(item.unitId).subscribe({
+          next: (compatibleUnits) => this.compatibleUnitsMap.set(item.partId, compatibleUnits),
+          error: () => this.compatibleUnitsMap.set(item.partId, this.units())
+        });
+      }
+    });
+
+    if (sale.technicianId) {
+      const tech = { id: sale.technicianId, name: sale.technicianName || 'Technician' } as TechnicianResponse;
+      this.selectedTechnician.set(tech);
+      this.selectedTechnicianModel = tech;
+    }
+
+    if (sale.customerId) {
+      const customerId = sale.customerId;
+      this.customerService.getCustomerById(customerId).subscribe({
+        next: (freshCustomer) => {
+          this.selectedCustomer.set(freshCustomer);
+          this.selectedCustomerModel = freshCustomer;
+          this.guardWalkInDuePaymentMethod();
+          this.loadCustomerVehicles(customerId, sale.customerVehicleId ?? null);
+        },
+        error: () => {
+          // Customer fetch failed — fall back to the snapshot so the sale is still usable
+          const snapshot = { id: customerId, fullName: sale.customerName, phone: sale.customerPhone };
+          this.selectedCustomer.set(snapshot);
+          this.selectedCustomerModel = snapshot;
+          this.guardWalkInDuePaymentMethod();
+        }
+      });
     }
   }
 
@@ -719,11 +832,17 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
 
   /** Secondary checkout actions, shown in the "More" overflow to keep one clear primary action. */
   get moreActions(): MenuItem[] {
-    const noCustomer = !this.selectedCustomer();
     return [
-      { label: 'Save as Quotation', icon: 'pi pi-file-edit', disabled: noCustomer || this.saving(), command: () => this.processQuotation() },
       { label: 'Save Draft', icon: 'pi pi-save', disabled: this.cartItems().length === 0, command: () => this.saveDraft() },
       { label: 'Hold Sale', icon: 'pi pi-pause', disabled: this.cartItems().length === 0, command: () => this.holdSale() },
+      { label: 'Recall Held Sale', icon: 'pi pi-replay', command: () => this.recallHeldSales() },
+      { separator: true },
+      { label: 'Save as Quotation', icon: 'pi pi-file', disabled: this.cartItems().length === 0 || this.saving(), command: () => this.saveAsQuotation() },
+      { label: 'Reprint Receipt', icon: 'pi pi-print', command: () => this.openReprintDialog() },
+      { separator: true },
+      { label: 'Returns', icon: 'pi pi-refresh', command: () => this.openReturns() },
+      { label: 'Stock Check', icon: 'pi pi-box', command: () => this.openStockSearch() },
+      { label: 'Price Check', icon: 'pi pi-tag', command: () => this.openPriceCheck() },
     ];
   }
 
@@ -734,6 +853,83 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     } else {
       this.messageService.add({ severity: 'warn', summary: 'No Receipt', detail: 'No recent sale available to print.' });
     }
+  }
+
+  resendNotification(): void {
+    const salesOrderId = this.lastSale?.salesOrderId;
+    if (!salesOrderId || this.resendingNotification()) return;
+    this.resendingNotification.set(true);
+    this.quickSaleService.resendInvoiceNotification(salesOrderId).subscribe({
+      next: () => {
+        this.resendingNotification.set(false);
+        this.messageService.add({ severity: 'success', summary: 'Sent', detail: 'Notification resent to customer.' });
+      },
+      error: () => {
+        this.resendingNotification.set(false);
+        this.messageService.add({ severity: 'error', summary: 'Failed', detail: 'Could not resend notification.' });
+      }
+    });
+  }
+
+  saveAsQuotation(): void {
+    if (this.cartItems().length === 0 || this.saving()) return;
+    this.saving.set(true);
+    const customer = this.selectedCustomer();
+    const request = {
+      customerId: customer?.id,
+      customerName: customer?.fullName || 'Walk-in Customer',
+      customerPhone: customer?.phone || '',
+      technicianId: this.selectedTechnician()?.id,
+      customerVehicleId: this.selectedVehicleId() || null,
+      paymentResponsibility: this.paymentResponsibility,
+      autoCreatePO: false,
+      items: this.cartItems(),
+      payments: [],
+      subtotal: this.subtotal(),
+      discountAmount: this.discountAmount(),
+      vatAmount: this.vatAmount(),
+      vatPercentage: this.vatPercentage(),
+      grandTotal: this.grandTotal(),
+      paidAmount: 0,
+      dueAmount: 0,
+      notes: this.saleNotes
+    };
+    this.quickSaleService.generateQuote(request).subscribe({
+      next: (result) => {
+        this.saving.set(false);
+        this.messageService.add({ severity: 'success', summary: 'Quotation Saved', detail: result.quoteNumber });
+      },
+      error: (err) => {
+        this.saving.set(false);
+        this.messageService.add({ severity: 'error', summary: 'Failed', detail: err.error?.message || 'Could not save quotation.' });
+      }
+    });
+  }
+
+  openReprintDialog(): void {
+    this.reprintInvoiceNumber = '';
+    this.reprintError = '';
+    this.showReprintDialog = true;
+  }
+
+  reprintReceipt(): void {
+    const num = this.reprintInvoiceNumber.trim();
+    if (!num || this.reprintLoading()) return;
+    this.reprintError = '';
+    this.reprintLoading.set(true);
+    this.invoicePdfService.getInvoiceByNumber(num).subscribe({
+      next: (invoice) => {
+        this.reprintLoading.set(false);
+        this.showReprintDialog = false;
+        this.invoicePdfService.downloadServerPdf(invoice.id, invoice.invoiceNumber).subscribe({
+          error: () => this.messageService.add({ severity: 'error', summary: 'Download Failed', detail: 'Could not download PDF.' })
+        });
+      },
+      error: () => {
+        this.reprintLoading.set(false);
+        this.reprintError = 'Invoice not found. Check the number and try again.';
+      }
+    });
   }
 
   openReturns(): void {
@@ -754,6 +950,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
           salesOrderLineId: l.salesOrderLineId,
           partId: l.partId,
           partName: l.variantName ? `${l.partName} - ${l.variantName}` : l.partName,
+          partLocalName: l.partLocalName ?? null,
           soldQty: l.quantity,
           unitPrice: l.unitPrice,
           returnQty: l.quantity,
@@ -1019,10 +1216,6 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     this.confirmCheckout();
   }
 
-  processQuotation(): void {
-    this.messageService.add({ severity: 'info', summary: 'Save as Quotation' });
-  }
-
   // ===== CHECKOUT =====
   openCheckout(): void {
     if (this.cartItems().length === 0) {
@@ -1046,6 +1239,12 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     const totalPaid = this.payments().reduce((sum, p) => sum + p.amount, 0) + creditApplied;
     const remaining = this.grandTotal() - totalPaid;
     const hasDuePayment = this.payments().some(p => p.method === 'DUE');
+
+    // Reserved Walk-in customer must never carry a due/credit balance (backend enforces this too).
+    if (hasDuePayment && this.isWalkInCustomer()) {
+      this.messageService.add({ severity: 'error', summary: 'Due Not Allowed', detail: 'Walk-in customers cannot have a due or credit balance. Select a registered customer for a Due sale.' });
+      return;
+    }
 
     if (remaining > 0.01 && !hasDuePayment) {
       this.messageService.add({ severity: 'warn', summary: 'Incomplete Payment', detail: `Remaining: ${this.formatCurrency(remaining)}. Add a payment or select "Due" for credit sale.` });
@@ -1073,22 +1272,32 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     this.saving.set(true);
     const customer = this.selectedCustomer()!;
 
+    // "Use credit balance" only adjusts remainingBalance/notes locally — it is never sent as
+    // useAdvanceBalance/advanceAmountToApply. Fold it into an explicit DUE line so the API
+    // (which now requires payments to fully account for the invoice total) sees it as the
+    // unpaid balance it actually is, rather than silently dropping it.
+    const creditApplied = this.useCreditBalance ? (this.creditAmountToApply || 0) : 0;
+    const paymentsForRequest = creditApplied > 0
+      ? [...this.payments(), { method: 'DUE', amount: creditApplied, reference: 'Credit balance applied' } as PaymentDetail]
+      : this.payments();
+
     const request = {
       customerId: customer.id,
       customerName: customer.fullName,
       customerPhone: customer.phone || '',
       technicianId: this.selectedTechnician()?.id,
+      customerVehicleId: this.selectedVehicleId() || null,
       paymentResponsibility: this.paymentResponsibility,
       autoCreatePO: this.autoCreatePO,
       items: this.cartItems(),
-      payments: this.payments(),
+      payments: paymentsForRequest,
       subtotal: this.subtotal(),
       discountAmount: this.discountAmount(),
       vatAmount: this.vatAmount(),
       vatPercentage: this.vatPercentage(),
       grandTotal: this.grandTotal(),
-      paidAmount: this.payments().filter(p => p.method !== 'DUE').reduce((sum, p) => sum + p.amount, 0),
-      dueAmount: this.totalDueAmount(),
+      paidAmount: paymentsForRequest.filter(p => p.method !== 'DUE').reduce((sum, p) => sum + p.amount, 0),
+      dueAmount: paymentsForRequest.filter(p => p.method === 'DUE').reduce((sum, p) => sum + p.amount, 0),
       notes: this.saleNotes,
       useAdvanceBalance: false,
       advanceAmountToApply: 0,
@@ -1102,6 +1311,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
 
         // Capture the receipt + chosen format BEFORE resetForm() (which restores printType to default).
         this.invoicePreviewData = this.buildReceiptData(result, request);
+        this.currentInvoiceId.set(result.id);
         const receipt = this.invoicePreviewData;
         const printMode = this.printType;
 
@@ -1164,18 +1374,4 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     };
   }
 
-  // ===== INVOICE =====
-  onInvoicePrint(): void {
-    this.messageService.add({ severity: 'info', summary: 'Print Invoice' });
-  }
-
-  onInvoiceDownload(): void {
-    this.messageService.add({ severity: 'info', summary: 'Download Invoice' });
-  }
-
-  // ===== BRAND NAME =====
-  getBrandName(partId: string): string {
-    const part = this.parts().find(p => p.id === partId);
-    return part?.brandName || '-';
-  }
 }

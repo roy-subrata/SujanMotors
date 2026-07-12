@@ -1,9 +1,10 @@
-using AutoPartShop.Api.Services;
+﻿using AutoPartShop.Api.Services;
 using AutoPartShop.Application.Common;
 using AutoPartShop.Application.DTOs.SupplierDtos;
 using AutoPartShop.Application.Suppliers;
 using AutoPartShop.Application.Suppliers.Dtos;
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
@@ -13,7 +14,7 @@ namespace AutoPartShop.Api.Controllers;
 [Route("api/suppliers")]
 [Route("api/v1/suppliers")]
 [ApiController]
-[Authorize]
+[HasPermission(Permissions.ProcurementView)]
 [Produces("application/json")]
 public class SuppliersController : ControllerBase
 {
@@ -77,7 +78,7 @@ public class SuppliersController : ControllerBase
                 return BadRequest($"Page size can not be {query.PageSize}");
             }
 
-            var (response,total) = await _supplierReadRepository.FindAllAsynce(query, cancellationToken);
+            var (response, total) = await _supplierReadRepository.FindAllAsynce(query, cancellationToken);
 
             return Ok(PagedResult<SupplierResponse>.Create(
                 response.ToList(),
@@ -144,6 +145,7 @@ public class SuppliersController : ControllerBase
     }
 
     [HttpPost]
+    [HasPermission(Permissions.ProcurementCreate)]
     public async Task<IActionResult> Create(CreateSupplierRequest request, CancellationToken cancellationToken)
     {
         try
@@ -177,6 +179,7 @@ public class SuppliersController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
+    [HasPermission(Permissions.ProcurementEdit)]
     public async Task<IActionResult> Update(Guid id, UpdateSupplierRequest request, CancellationToken cancellationToken)
     {
         try
@@ -205,6 +208,7 @@ public class SuppliersController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/activate")]
+    [HasPermission(Permissions.ProcurementEdit)]
     public async Task<IActionResult> Activate(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -226,6 +230,7 @@ public class SuppliersController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/deactivate")]
+    [HasPermission(Permissions.ProcurementEdit)]
     public async Task<IActionResult> Deactivate(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -247,6 +252,7 @@ public class SuppliersController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
+    [HasPermission(Permissions.ProcurementDelete)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -269,6 +275,7 @@ public class SuppliersController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/rating")]
+    [HasPermission(Permissions.ProcurementEdit)]
     public async Task<IActionResult> SetRating(Guid id, [FromBody] SupplierRatingRequest request, CancellationToken cancellationToken)
     {
         try

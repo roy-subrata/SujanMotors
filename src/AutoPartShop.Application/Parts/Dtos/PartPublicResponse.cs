@@ -9,6 +9,8 @@ namespace AutoPartShop.Application.Parts.Dtos
         public string PartNumber { get; set; } = string.Empty;
         public string SKU { get; set; } = string.Empty;
         public string? OemNumber { get; set; }
+        public string? LocalName { get; set; }
+        public string? VehicleFit { get; set; }
         public Guid CategoryId { get; set; }
         public string CategoryName { get; set; } = string.Empty;
         public Guid? BrandId { get; set; }
@@ -50,5 +52,8 @@ namespace AutoPartShop.Application.Parts.Dtos
         public decimal? HeightCm { get; set; }
         public decimal? DepthCm { get; set; }
         public string? TaxCode { get; set; }
+
+        /// <summary>Total available stock across all warehouses. Populated by list endpoints only.</summary>
+        public int TotalStock { get; set; }
     }
 }

@@ -17,15 +17,20 @@ using AutoPartShop.Infrastructure.Data;
 using AutoPartShop.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Microsoft.OpenApi.Models;
+using QuestPDF.Infrastructure;
+
+QuestPDF.Settings.License = LicenseType.Community;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // --- Observability bootstrap ---
 var otelEndpoint = builder.Configuration["Otel:Endpoint"] ?? "http://otel-collector:4317";
-var serviceName  = builder.Configuration["Otel:ServiceName"] ?? "autopartshop-api";
+var serviceName = builder.Configuration["Otel:ServiceName"] ?? "autopartshop-api";
 
 builder.Host.UseSerilog((ctx, lc) => lc
     .ReadFrom.Configuration(ctx.Configuration)
@@ -145,10 +150,42 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
         ClockSkew = TimeSpan.Zero
     };
-});
 
-// Add Authorization
+    // Reject tokens whose account was disabled after issue (e.g. HR offboarding).
+    // IsActive is cached for 60s per user, so revocation is near-instant while the
+    // added cost is at most one indexed lookup per user per minute.
+    options.Events = new JwtBearerEvents
+    {
+        OnTokenValidated = async context =>
+        {
+            var userIdValue = context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                ?? context.Principal?.FindFirst("sub")?.Value;
+            if (!Guid.TryParse(userIdValue, out var userId))
+                return;
+
+            var cache = context.HttpContext.RequestServices.GetRequiredService<Microsoft.Extensions.Caching.Memory.IMemoryCache>();
+            var isActive = await cache.GetOrCreateAsync($"user-active:{userId}", async entry =>
+            {
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(60);
+                var db = context.HttpContext.RequestServices.GetRequiredService<AutoPartDbContext>();
+                return await db.Users
+                    .Where(u => u.Id == userId)
+                    .Select(u => (bool?)u.IsActive)
+                    .FirstOrDefaultAsync() ?? false;
+            });
+
+            if (!isActive)
+                context.Fail("Account is disabled");
+        }
+    };
+});
+builder.Services.AddMemoryCache();
+
+// Add Authorization — permission policies ("permission:xxx") are built on demand and
+// resolved against the RolePermissions table (Admin bypasses; see Api/Authorization).
 builder.Services.AddAuthorization();
+builder.Services.AddSingleton<Microsoft.AspNetCore.Authorization.IAuthorizationPolicyProvider, AutoPartShop.Api.Authorization.PermissionPolicyProvider>();
+builder.Services.AddScoped<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, AutoPartShop.Api.Authorization.PermissionAuthorizationHandler>();
 
 // Register HttpContextAccessor (required for CurrentUserService)
 builder.Services.AddHttpContextAccessor();
@@ -161,6 +198,7 @@ builder.Services.AddScoped<ISupplierLedgerService, SupplierLedgerService>();
 builder.Services.AddScoped<ICustomerAccountSummaryService, CustomerAccountSummaryService>();
 builder.Services.AddScoped<IUnitConversionService, UnitConversionService>();
 builder.Services.AddScoped<IFinancialSummaryService, FinancialSummaryService>();
+builder.Services.AddScoped<IReportExportService, ReportExportService>();
 builder.Services.AddScoped<IDailyExpenseService, DailyExpenseService>();
 builder.Services.AddScoped<IPricingValidationService, PricingValidationService>();
 
@@ -212,6 +250,11 @@ builder.Services.Configure<Microsoft.AspNetCore.Authentication.JwtBearer.JwtBear
 // Broadcaster that adapts ISaleEventBroadcaster → IHubContext<SaleNotificationHub>
 builder.Services.AddScoped<ISaleEventBroadcaster, SignalRSaleEventBroadcaster>();
 
+// Reorder alerts: daily low-stock scan broadcast to staff over the same hub
+builder.Services.AddScoped<IReorderAlertBroadcaster, SignalRReorderAlertBroadcaster>();
+builder.Services.AddScoped<ReorderAlertScanner>();
+builder.Services.AddHostedService<ReorderAlertService>();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -261,27 +304,20 @@ var app = builder.Build();
 await DatabaseSeeder.SeedAsync(app.Services);
 
 // Swagger exposes the full API surface; keep it out of production to avoid information disclosure.
-if (!app.Environment.IsProduction())
+
+app.UseSwagger();
+app.UseSwaggerUI(c =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "AutoPart Shop API V1");
-        c.RoutePrefix = "docs"; // set swagger path to /docs
-    });
-}
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "AutoPart Shop API V1");
+    c.RoutePrefix = "docs"; // set swagger path to /docs
+});
+
 await app.ApplyMigration();
 // Enable CORS
 app.UseCors(corsPolicy);
 app.UseMiddleware<GlobalExceptionMiddleware>();
 app.UseSerilogRequestLogging();
 
-// Only redirect HTTPS in production
-//if (!app.Environment.IsDevelopment())
-//{
-   
-//}
-//app.UseHttpsRedirection();
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
@@ -297,5 +333,5 @@ app.Run();
 internal class OpenApiReference
 {
     public ReferenceType Type { get; set; }
-    public string Id { get; set; }
+    public string Id { get; set; } = string.Empty;
 }

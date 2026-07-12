@@ -7,7 +7,6 @@
   <app-page-header
     title="Technicians"
     subtitle="Manage technicians and service providers"
-    [breadcrumb]="[{ label: 'Sales' }, { label: 'Technicians' }]"
     [count]="totalRecords" countLabel="technicians" countIcon="pi pi-users">
     <ng-container actions>
       <button class="btn-icon" pTooltip="Export CSV" tooltipPosition="bottom" (click)="exportTechnicians('csv')">
@@ -120,7 +119,6 @@
         </div>
         <div class="card-body">
           <div class="card-customer">
-            <div class="customer-avatar small">{{ (technician.name || 'T')[0].toUpperCase() }}</div>
             <span class="customer-name">{{ technician.name }}</span>
           </div>
           <div class="card-meta">

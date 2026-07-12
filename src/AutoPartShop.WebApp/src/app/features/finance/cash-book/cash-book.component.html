@@ -1,53 +1,35 @@
 <p-toast position="top-right"></p-toast>
 
-<div class="page-wrapper">
+<app-page-container>
 
   <!-- ═══════════════════════════════ HEADER ═══════════════════════════════ -->
-  <header class="page-header">
-    <div class="header-content">
-
-      <!-- Left: title + date heading -->
-      <div class="header-left">
-        <div class="header-title-group">
-          <h1 class="page-title">
-            <i class="pi pi-book"></i>
-            Cash Book
-          </h1>
-          <span class="page-subtitle">{{ headingDate() }}</span>
-        </div>
+  <app-page-header title="Cash Book" [subtitle]="headingDate()">
+    <ng-container actions>
+      <div class="header-stat in" *ngIf="book()">
+        <span class="stat-label">In</span>
+        <span class="stat-value">{{ formatCurrency(book()!.totalCashIn) }}</span>
       </div>
-
-      <!-- Right: stats + actions -->
-      <div class="header-right">
-        <div class="header-stat in" *ngIf="book()">
-          <span class="stat-label">In</span>
-          <span class="stat-value">{{ formatCurrency(book()!.totalCashIn) }}</span>
-        </div>
-        <div class="header-stat out" *ngIf="book()">
-          <span class="stat-label">Out</span>
-          <span class="stat-value">{{ formatCurrency(book()!.totalCashOut) }}</span>
-        </div>
-        <div class="header-stat net" *ngIf="book()" [class.positive]="book()!.netCash >= 0" [class.negative]="book()!.netCash < 0">
-          <span class="stat-label">Net</span>
-          <span class="stat-value">{{ book()!.netCash >= 0 ? '+' : '' }}{{ formatCurrency(book()!.netCash) }}</span>
-        </div>
-        <div class="header-actions">
-          <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="load()">
-            <i class="pi pi-refresh" [class.pi-spin]="loading()"></i>
-          </button>
-          <div class="view-toggle">
-            <button class="toggle-btn" [class.active]="viewMode() === 'ledger'" (click)="viewMode.set('ledger')" pTooltip="Ledger view">
-              <i class="pi pi-list"></i>
-            </button>
-            <button class="toggle-btn" [class.active]="viewMode() === 'split'" (click)="viewMode.set('split')" pTooltip="Split view">
-              <i class="pi pi-table"></i>
-            </button>
-          </div>
-        </div>
+      <div class="header-stat out" *ngIf="book()">
+        <span class="stat-label">Out</span>
+        <span class="stat-value">{{ formatCurrency(book()!.totalCashOut) }}</span>
       </div>
-
-    </div>
-  </header>
+      <div class="header-stat net" *ngIf="book()" [class.positive]="book()!.netCash >= 0" [class.negative]="book()!.netCash < 0">
+        <span class="stat-label">Net</span>
+        <span class="stat-value">{{ book()!.netCash >= 0 ? '+' : '' }}{{ formatCurrency(book()!.netCash) }}</span>
+      </div>
+      <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="load()">
+        <i class="pi pi-refresh" [class.pi-spin]="loading()"></i>
+      </button>
+      <div class="view-toggle">
+        <button class="toggle-btn" [class.active]="viewMode() === 'ledger'" (click)="viewMode.set('ledger')" pTooltip="Ledger view">
+          <i class="pi pi-list"></i>
+        </button>
+        <button class="toggle-btn" [class.active]="viewMode() === 'split'" (click)="viewMode.set('split')" pTooltip="Split view">
+          <i class="pi pi-table"></i>
+        </button>
+      </div>
+    </ng-container>
+  </app-page-header>
 
   <!-- ═══════════════════════════════ CONTROLS ═══════════════════════════════ -->
   <section class="controls-bar">
@@ -321,4 +303,4 @@
     </ng-container>
 
   </div>
-</div>
+</app-page-container>

@@ -1,10 +1,11 @@
-using AutoPartShop.Api.Services;
+﻿using AutoPartShop.Api.Services;
 using AutoPartShop.Application.Common;
 using AutoPartShop.Application.DTOs.InventoryDtos;
 using AutoPartShop.Application.Stock;
 using AutoPartShop.Application.Stock.Dtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
+using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -14,11 +15,10 @@ namespace AutoPartShop.Api.Controllers;
 [Route("api/[controller]")]
 [Route("api/v1/[controller]")]
 [ApiController]
-[Authorize]
+[HasPermission(Permissions.InventoryView)]
 public class StockLotController(
     ILogger<StockLotController> _logger,
     IStockLotRepository _repository,
-    IStockLotMovementRepository _movementRepository,
     IStockLotReadRepository _stockLotReadRepository,
     IProductRepository _productRepository,
     IWarehouseRepository _warehouseRepository,
@@ -137,20 +137,11 @@ public class StockLotController(
                          .Skip((pageNumber - 1) * pageSize)
                          .Take(pageSize))
             {
-                string supplierName;
-
-                // If supplier already fetched, use cached value
-                if (supplierCache.TryGetValue(l.SupplierId, out supplierName))
+                // Try cache first, then load from DB
+                if (!supplierCache.TryGetValue(l.SupplierId, out var supplierName))
                 {
-                    // OK: supplierName loaded from cache
-                }
-                else
-                {
-                    // First time: load from DB (sync, safe)
                     var supplier = await _supplierRepository.GetByIdAsync(l.SupplierId, cancellationToken);
-                    supplierName = supplier?.Name ?? "";
-
-                    // Store in cache to avoid future DB calls
+                    supplierName = supplier?.Name ?? string.Empty;
                     supplierCache[l.SupplierId] = supplierName;
                 }
 
@@ -200,53 +191,6 @@ public class StockLotController(
         }
     }
 
-
-
-    //[HttpGet("price-history/{partId:guid}")]
-    //public async Task<IActionResult> GetPriceHistory(Guid partId, CancellationToken cancellationToken)
-    //{
-    //    try
-    //    {
-    //        var part = await _productRepository.GetByIdAsync(partId, cancellationToken);
-    //        if (part is null) return NotFound("Part not found");
-
-    //        var lots = await _repository.GetByPartAsync(partId, cancellationToken);
-    //        var sortedLots = lots.OrderByDescending(l => l.ReceivingDate).ToList();
-
-    //        var lotItems = await Task.WhenAll(sortedLots.Select(async l => new StockLotHistoryItem
-    //        {
-    //            LotId = l.Id,
-    //            LotNumber = l.LotNumber,
-    //            SupplierId = l.SupplierId,
-    //            SupplierName = (await _supplierRepository.GetByIdAsync(l.SupplierId, cancellationToken))?.Name ?? "",
-    //            QuantityReceived = l.QuantityReceived,
-    //            QuantityAvailable = l.QuantityAvailable,
-    //            CostPrice = l.CostPrice,
-    //            ReceivingDate = l.ReceivingDate,
-    //            ExpiryDate = l.ExpiryDate,
-    //            IsExpired = l.IsExpired
-    //        }));
-
-    //        var prices = sortedLots.Select(l => l.CostPrice).ToList();
-
-    //        return Ok(new StockLotPriceHistoryResponse
-    //        {
-    //            PartId = partId,
-    //            PartName = part.Name,
-    //            PartSKU = part.SKU,
-    //            Lots = lotItems.ToList(),
-    //            MinPrice = prices.Any() ? prices.Min() : 0,
-    //            MaxPrice = prices.Any() ? prices.Max() : 0,
-    //            AveragePrice = prices.Any() ? prices.Average() : 0,
-    //            LatestPrice = sortedLots.FirstOrDefault()?.CostPrice ?? 0
-    //        });
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        _logger.LogError(ex, "Error getting price history");
-    //        return StatusCode(500, "An error occurred");
-    //    }
-    //}
 
     [HttpGet("warehouse/{partId:guid}/{warehouseId:guid}")]
     public async Task<IActionResult> GetByPartAndWarehouse(Guid partId, Guid warehouseId, CancellationToken cancellationToken)
@@ -309,22 +253,23 @@ public class StockLotController(
     }
 
     [HttpPost]
+    [HasPermission(Permissions.InventoryAdjustStock)]
     public async Task<IActionResult> Create(CreateStockLotRequest request, CancellationToken cancellationToken)
     {
         try
         {
             var lot = StockLot.Create(
-                request.LotNumber, 
-                request.PartId, 
-                request.WarehouseId, 
+                request.LotNumber,
+                request.PartId,
+                request.WarehouseId,
                 request.SupplierId,
-                request.GoodsReceiptLineId, 
-                request.QuantityReceived, 
-                request.CostPrice, 
+                request.GoodsReceiptLineId,
+                request.QuantityReceived,
+                request.CostPrice,
                 request.ReceivingDate,
-                request.ManufacturerLotNumber, 
-                request.ExpiryDate, 
-                request.Currency, 
+                request.ManufacturerLotNumber,
+                request.ExpiryDate,
+                request.Currency,
                 request.Notes,
                 request.UnitId,
                 request.QuantityReceivedInBaseUnit,
@@ -353,6 +298,7 @@ public class StockLotController(
     }
 
     [HttpPut("{id:guid}")]
+    [HasPermission(Permissions.InventoryAdjustStock)]
     public async Task<IActionResult> Update(Guid id, UpdateStockLotRequest request, CancellationToken cancellationToken)
     {
         try

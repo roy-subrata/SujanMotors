@@ -115,7 +115,10 @@
           <div class="part-row"
                [pTooltip]="part.partNumber + (part.brandName ? '  ·  ' + part.brandName : '') + '  ·  ' + part.categoryName"
                tooltipPosition="right" [showDelay]="300">
-            <span class="part-row-name">{{ part.displayName || part.name }}</span>
+            <span class="part-row-name">
+              {{ part.displayName || part.name }}
+              <small *ngIf="part.localName" class="part-row-local">{{ part.localName }}</small>
+            </span>
             <span class="part-row-sep">·</span>
             <span class="part-row-sku">{{ part.variantSKU || part.sku }}</span>
           </div>

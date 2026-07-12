@@ -7,11 +7,12 @@
   max-width: none;
 }
 
-/* Header with gradient */
+/* Header — plain background, no gradient */
 .form-header {
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
   border-radius: 0.5rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   padding: 1.25rem 1.5rem;
   margin-bottom: 1.5rem;
 }
@@ -34,13 +35,13 @@
 }
 
 .header-actions button {
-  background: rgba(255, 255, 255, 0.2) !important;
-  border-color: rgba(255, 255, 255, 0.4) !important;
-  color: white !important;
+  background: var(--color-bg-primary) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-primary) !important;
 }
 
 .header-actions button:hover {
-  background: rgba(255, 255, 255, 0.3) !important;
+  background: var(--color-bg-secondary) !important;
 }
 
 /* Breadcrumb */
@@ -52,41 +53,41 @@
 }
 
 .breadcrumb-link {
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--color-text-secondary);
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 0.375rem;
-  font-size: 0.875rem;
+  font-size: 13px;
   text-decoration: none;
   transition: color 0.2s ease;
 }
 
 .breadcrumb-link:hover {
-  color: #ffffff;
+  color: var(--color-text-primary);
 }
 
 .breadcrumb-separator {
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--color-text-muted);
 }
 
 .breadcrumb-current {
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  font-size: 13px;
 }
 
 .form-title {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 20px;
   font-weight: 700;
-  color: white;
+  color: var(--color-text-primary);
   line-height: 1.2;
 }
 
 .form-subtitle {
   margin: 0;
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  font-size: 13px;
   font-weight: 400;
   line-height: 1.4;
 }
@@ -98,7 +99,7 @@
   align-items: center;
   justify-content: center;
   padding: 3rem;
-  color: #6b7280;
+  color: var(--color-text-secondary);
 }
 
 .loading-state p {
@@ -107,10 +108,10 @@
 
 /* Form card */
 .form-card {
-  background: #ffffff;
+  background: var(--color-bg-primary);
   border-radius: 0.5rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-border);
 }
 
 .form-content {
@@ -121,7 +122,7 @@
 .form-section {
   margin-bottom: 1.5rem;
   padding-bottom: 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .form-section.last,
@@ -133,67 +134,24 @@
 
 .section-title {
   margin: 0 0 1rem 0;
-  font-size: 1rem;
+  font-size: 15px;
   font-weight: 600;
-  color: #374151;
+  color: var(--color-text-primary);
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
 
 .section-icon {
-  color: #3b82f6;
-  font-size: 1rem;
+  color: var(--color-primary);
+  font-size: 15px;
 }
 
-/* Form rows and groups */
-.form-row {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
-  margin-bottom: 1rem;
-}
-
-.form-row:last-child {
-  margin-bottom: 0;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.form-group.full {
-  grid-column: span 2;
-}
-
-.form-group label {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #374151;
-}
-
-.form-group input,
-.form-group textarea {
-  width: 100%;
-}
-
-.required {
-  color: #dc2626;
-}
-
-/* Field hints */
-.field-hint {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  color: #6b7280;
-  font-size: 0.75rem;
-}
-
+/* .form-row / .form-group / .required / .field-hint layout+spacing now come from
+   the shared FORM SYSTEM in assets/styles.scss — only the bits genuinely specific
+   to this page (icon sizing inside hints) stay local. */
 .field-hint i {
-  font-size: 0.75rem;
+  font-size: 12px;
 }
 
 /* Code input wrapper */
@@ -209,14 +167,14 @@
   right: 12px;
   top: 50%;
   transform: translateY(-50%);
-  color: #3b82f6;
-  font-size: 1rem;
+  color: var(--color-primary);
+  font-size: 14px;
 }
 
 /* Error messages */
 .p-error {
-  color: #dc2626;
-  font-size: 0.75rem;
+  color: var(--color-danger);
+  font-size: 12px;
 }
 
 /* Form actions */
@@ -226,7 +184,7 @@
   gap: 1rem;
   margin-top: 1.5rem;
   padding-top: 1.5rem;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--color-border);
 }
 
 /* PrimeNG overrides */
@@ -286,23 +244,7 @@
   }
 
   .form-title {
-    font-size: 1.25rem;
-  }
-
-  .form-row {
-    grid-template-columns: 1fr;
-  }
-
-  .form-group.full {
-    grid-column: span 1;
-  }
-
-  .form-actions {
-    flex-direction: column-reverse;
-  }
-
-  .form-actions button {
-    width: 100%;
+    font-size: 18px;
   }
 
   ::ng-deep .form-card .p-card-body {
@@ -316,11 +258,11 @@
   }
 
   .form-title {
-    font-size: 1.125rem;
+    font-size: 15px;
   }
 
   .form-subtitle {
-    font-size: 0.8125rem;
+    font-size: 12px;
   }
 
   .form-content {

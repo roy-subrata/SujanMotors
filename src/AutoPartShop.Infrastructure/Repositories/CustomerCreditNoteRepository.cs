@@ -30,9 +30,9 @@ public class CustomerCreditNoteRepository(AutoPartDbContext dbContext) : ICustom
     {
         return await dbContext.CustomerCreditNotes
             .Include(cn => cn.Customer)
-            .Where(cn => cn.CustomerId == customerId 
-                      && cn.Status != "CANCELLED" 
-                      && cn.Status != "EXPIRED" 
+            .Where(cn => cn.CustomerId == customerId
+                      && cn.Status != "CANCELLED"
+                      && cn.Status != "EXPIRED"
                       && cn.Status != "FULLY_USED"
                       && (!cn.ExpiryDate.HasValue || cn.ExpiryDate.Value >= DateTime.UtcNow))
             .OrderBy(cn => cn.ExpiryDate)

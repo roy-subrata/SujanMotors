@@ -1,0 +1,1097 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;padding:0;background:var(--bg);}
+:root{
+--bg:#f4f5f7; --surface:#ffffff; --surface2:#fafafb;
+--border:#e6e8ec; --border2:#eef0f3;
+--text:#0f172a; --text2:#5b6472; --text3:#8a93a2;
+--accent:#0f172a; --accent-fg:#ffffff;
+--green:#0d8a53; --green-bg:#e9f7f0; --red:#d63841; --red-bg:#fdeeef; --amber:#b26a00; --amber-bg:#fdf3e2;
+--shadow:0 1px 2px rgba(15,23,42,.05);
+--chart-sales:#3b82f6; --chart-purch:#f59e0b; --chart-profit:#10b981;
+}
+[data-theme="dark"]{
+--bg:#0d1017; --surface:#151922; --surface2:#1a1f2a;
+--border:#252b38; --border2:#1f2530;
+--text:#eef1f6; --text2:#9aa4b5; --text3:#68738a;
+--accent:#e2e8f0; --accent-fg:#0f172a;
+--green:#34d399; --green-bg:#0e2b20; --red:#f8717a; --red-bg:#331418; --amber:#fbbf24; --amber-bg:#2e2410;
+--shadow:0 1px 2px rgba(0,0,0,.4);
+}
+*{box-sizing:border-box}
+input,textarea,select{outline:none}
+input:focus,textarea:focus,select:focus{border-color:var(--text3) !important}
+::placeholder{color:var(--text3)}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:6px;border:2px solid var(--bg)}
+::-webkit-scrollbar-track{background:transparent}
+</style>
+</helmet>
+
+<div style="display:grid;grid-template-columns:{{ shellCols }};min-height:100vh;font-family:'Instrument Sans',system-ui,sans-serif;color:var(--text);background:var(--bg)">
+
+  <!-- ============ SIDEBAR ============ -->
+  <sc-if value="{{ showSidebar }}" hint-placeholder-val="{{ true }}">
+  <aside style="background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;height:100vh;position:sticky;top:0">
+    <div style="display:flex;align-items:center;gap:10px;padding:16px 16px 14px;border-bottom:1px solid var(--border2)">
+      <div style="width:32px;height:32px;border-radius:8px;background:var(--accent);color:var(--accent-fg);display:grid;place-items:center;font-weight:700;font-size:14px;letter-spacing:.5px">SM</div>
+      <div style="display:flex;flex-direction:column;gap:1px">
+        <span style="font-weight:600;font-size:14px;line-height:1">Sunjan Motors</span>
+        <span style="font-size:11px;color:var(--text3);line-height:1.2">Auto Parts POS</span>
+      </div>
+    </div>
+    <nav style="flex:1;overflow-y:auto;padding:10px 10px 16px;display:flex;flex-direction:column;gap:2px">
+      <sc-for list="{{ navItems }}" as="nv" hint-placeholder-count="12">
+        <sc-if value="{{ nv.isGroup }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ nv.toggle }}" style="display:flex;align-items:center;justify-content:space-between;width:100%;background:none;border:none;cursor:pointer;padding:12px 10px 5px;font-family:inherit;font-size:10.5px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--text3)" style-hover="color:var(--text2)">
+            <span>{{ nv.label }}</span><span style="font-size:9px">{{ nv.chev }}</span>
+          </button>
+        </sc-if>
+        <sc-if value="{{ nv.isItem }}" hint-placeholder-val="{{ true }}">
+          <a href="#" onClick="{{ nv.go }}" style="display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:7px;text-decoration:none;font-size:13px;font-weight:{{ nv.weight }};color:{{ nv.color }};background:{{ nv.bg }}" style-hover="background:var(--surface2);color:var(--text)">
+            <span style="width:16px;height:16px;display:grid;place-items:center;font-size:13px;opacity:.85">{{ nv.icon }}</span>
+            <span style="flex:1">{{ nv.label }}</span>
+            <sc-if value="{{ nv.badge }}" hint-placeholder-val="{{ false }}">
+              <span style="font-size:10.5px;font-weight:600;background:var(--red-bg);color:var(--red);border-radius:99px;padding:1px 7px">{{ nv.badge }}</span>
+            </sc-if>
+          </a>
+        </sc-if>
+      </sc-for>
+    </nav>
+    <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-top:1px solid var(--border2)">
+      <div style="width:30px;height:30px;border-radius:99px;background:var(--surface2);border:1px solid var(--border);display:grid;place-items:center;font-size:11px;font-weight:600;color:var(--text2)">SA</div>
+      <div style="display:flex;flex-direction:column;gap:1px;min-width:0">
+        <span style="font-size:12.5px;font-weight:600;line-height:1.2">System Admin</span>
+        <span style="font-size:11px;color:var(--text3);line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">admin@autopartshop.com</span>
+      </div>
+    </div>
+  </aside>
+  </sc-if>
+
+  <!-- ============ MAIN ============ -->
+  <div style="display:flex;flex-direction:column;min-width:0">
+
+    <!-- Top bar -->
+    <header style="display:flex;align-items:center;gap:14px;padding:0 24px;height:56px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:5">
+      <sc-if value="{{ isPos }}" hint-placeholder-val="{{ false }}">
+        <button onClick="{{ goDashboard }}" title="Exit POS" style="display:flex;align-items:center;gap:8px;background:none;border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-family:inherit;font-size:13px;font-weight:500;color:var(--text2);cursor:pointer" style-hover="background:var(--surface2);color:var(--text)">← Exit POS</button>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:30px;height:30px;border-radius:7px;background:var(--accent);color:var(--accent-fg);display:grid;place-items:center;font-weight:700;font-size:13px">SM</div>
+          <span style="font-size:14px;font-weight:600">Point of Sale</span>
+          <span style="font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:99px;background:var(--green-bg);color:var(--green)">Register open</span>
+        </div>
+      </sc-if>
+      <div style="display:flex;align-items:center;gap:8px;flex:1">
+        <sc-if value="{{ notPos }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 12px;width:300px;color:var(--text3);font-size:13px;cursor:text">
+          <span style="font-size:12px">⌕</span> Search parts, invoices, customers…
+          <span style="margin-left:auto;font-size:10.5px;border:1px solid var(--border);border-radius:4px;padding:1px 5px;background:var(--surface)">⌘K</span>
+        </div>
+        </sc-if>
+      </div>
+      <sc-if value="{{ notPos }}" hint-placeholder-val="{{ true }}">
+      <button onClick="{{ newSale }}" style="display:flex;align-items:center;gap:7px;background:var(--accent);color:var(--accent-fg);border:none;border-radius:8px;padding:8px 14px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer" style-hover="opacity:.9">＋ New Sale</button>
+      </sc-if>
+      <button onClick="{{ toggleTheme }}" title="Toggle theme" style="width:34px;height:34px;display:grid;place-items:center;background:none;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:15px;color:var(--text2)" style-hover="background:var(--surface2)">{{ themeIcon }}</button>
+      <button style="width:34px;height:34px;display:grid;place-items:center;background:none;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:15px;color:var(--text2);position:relative" style-hover="background:var(--surface2)">
+        ◷<span style="position:absolute;top:6px;right:7px;width:7px;height:7px;border-radius:99px;background:var(--red);border:2px solid var(--surface)"></span>
+      </button>
+    </header>
+
+    <!-- ================= DASHBOARD ================= -->
+    <sc-if value="{{ isDashboard }}" hint-placeholder-val="{{ true }}">
+    <main data-screen-label="Dashboard" style="padding:24px 24px 40px;display:flex;flex-direction:column;gap:24px;max-width:1440px;width:100%">
+
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap">
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <h1 style="margin:0;font-size:22px;font-weight:700;letter-spacing:-.01em">Dashboard</h1>
+          <span style="font-size:13px;color:var(--text2)">Business performance · Jul 1 – Jul 31, 2026</span>
+        </div>
+        <div style="display:flex;gap:8px">
+          <div style="display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-size:13px;font-weight:500;cursor:pointer;color:var(--text)" style-hover="background:var(--surface2)">◫ This Month <span style="font-size:10px;color:var(--text3)">▾</span></div>
+          <button style="width:34px;height:34px;display:grid;place-items:center;background:var(--surface);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:14px;color:var(--text2)" style-hover="background:var(--surface2)">⟳</button>
+          <button style="display:flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-family:inherit;font-size:13px;font-weight:500;color:var(--text);cursor:pointer" style-hover="background:var(--surface2)">↧ Export</button>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px">
+        <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="4">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 18px 16px;display:flex;flex-direction:column;gap:10px;box-shadow:var(--shadow)" style-hover="border-color:var(--text3)">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <span style="font-size:12.5px;font-weight:500;color:var(--text2)">{{ k.label }}</span>
+              <span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;background:{{ k.deltaBg }};color:{{ k.deltaColor }}">{{ k.delta }}</span>
+            </div>
+            <div style="font-size:24px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:{{ k.valueColor }}">{{ k.value }}</div>
+            <div style="font-size:12px;color:var(--text3)">{{ k.sub }}</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(6,1fr);background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden">
+        <sc-for list="{{ insights }}" as="ins" hint-placeholder-count="6">
+          <div style="padding:14px 18px;display:flex;flex-direction:column;gap:4px;border-right:1px solid var(--border2)">
+            <span style="font-size:11.5px;color:var(--text3)">{{ ins.label }}</span>
+            <span style="font-size:16px;font-weight:650;font-variant-numeric:tabular-nums;color:{{ ins.color }}">{{ ins.value }}</span>
+            <span style="font-size:11px;color:var(--text3)">{{ ins.sub }}</span>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 320px;gap:14px;align-items:stretch">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px;display:flex;flex-direction:column;gap:14px;min-width:0">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+            <div style="display:flex;flex-direction:column;gap:2px">
+              <span style="font-size:15px;font-weight:600">Sales &amp; Profit Trend</span>
+              <span style="font-size:12px;color:var(--text3)">Daily totals, this month</span>
+            </div>
+            <div style="display:flex;gap:14px;font-size:12px;color:var(--text2)">
+              <span style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:3px;border-radius:2px;background:var(--chart-sales)"></span>Sales</span>
+              <span style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:3px;border-radius:2px;background:var(--chart-purch)"></span>Purchases</span>
+              <span style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:3px;border-radius:2px;background:var(--chart-profit)"></span>Profit</span>
+            </div>
+          </div>
+          <div style="width:100%">{{ chart }}</div>
+        </div>
+
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px;display:flex;flex-direction:column;gap:12px">
+          <span style="font-size:15px;font-weight:600">Cash Flow</span>
+          <sc-for list="{{ cashflow }}" as="cf" hint-placeholder-count="3">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border:1px solid var(--border2);border-radius:9px;background:var(--surface2)">
+              <span style="font-size:12.5px;color:var(--text2)">{{ cf.label }}</span>
+              <span style="font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;color:{{ cf.color }}">{{ cf.value }}</span>
+            </div>
+          </sc-for>
+          <div style="margin-top:auto;display:flex;align-items:center;justify-content:space-between;padding:14px;border-radius:9px;background:var(--accent);color:var(--accent-fg)">
+            <span style="font-size:12.5px;opacity:.8">Closing Balance</span>
+            <span style="font-size:17px;font-weight:700;font-variant-numeric:tabular-nums">৳ 19,140.00</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(480px,1fr));gap:14px;align-items:start">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px 12px">
+            <span style="font-size:15px;font-weight:600">Top Products</span>
+            <a href="#" style="font-size:12.5px;font-weight:500;color:var(--text2);text-decoration:none" style-hover="color:var(--text)">View all →</a>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 56px 110px 100px 80px;padding:8px 18px;border-top:1px solid var(--border2);border-bottom:1px solid var(--border2);background:var(--surface2);font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text3)">
+            <span>Product</span><span style="text-align:right">Qty</span><span style="text-align:right">Revenue</span><span style="text-align:right">Profit</span><span style="text-align:right">Margin</span>
+          </div>
+          <sc-for list="{{ products }}" as="p" hint-placeholder-count="2">
+            <div style="display:grid;grid-template-columns:1fr 56px 110px 100px 80px;align-items:center;padding:12px 18px;border-bottom:1px solid var(--border2);font-size:13px" style-hover="background:var(--surface2)">
+              <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                <span style="font-weight:550;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ p.name }}</span>
+                <span style="font-size:11px;color:var(--text3)">{{ p.sku }}</span>
+              </div>
+              <span style="text-align:right;font-variant-numeric:tabular-nums;color:var(--text2)">{{ p.qty }}</span>
+              <span style="text-align:right;font-variant-numeric:tabular-nums;font-weight:550">{{ p.revenue }}</span>
+              <span style="text-align:right;font-variant-numeric:tabular-nums;color:{{ p.profitColor }}">{{ p.profit }}</span>
+              <span style="text-align:right"><span style="font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:99px;background:{{ p.marginBg }};color:{{ p.marginColor }}">{{ p.margin }}</span></span>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px 12px">
+            <span style="font-size:15px;font-weight:600">Top Customers</span>
+            <a href="#" style="font-size:12.5px;font-weight:500;color:var(--text2);text-decoration:none" style-hover="color:var(--text)">View all →</a>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 60px 110px 90px;padding:8px 18px;border-top:1px solid var(--border2);border-bottom:1px solid var(--border2);background:var(--surface2);font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text3)">
+            <span>Customer</span><span style="text-align:right">Orders</span><span style="text-align:right">Revenue</span><span style="text-align:right">Last</span>
+          </div>
+          <sc-for list="{{ customers }}" as="c" hint-placeholder-count="2">
+            <div style="display:grid;grid-template-columns:1fr 60px 110px 90px;align-items:center;padding:12px 18px;border-bottom:1px solid var(--border2);font-size:13px" style-hover="background:var(--surface2)">
+              <div style="display:flex;align-items:center;gap:10px;min-width:0">
+                <div style="width:28px;height:28px;border-radius:99px;background:var(--surface2);border:1px solid var(--border);display:grid;place-items:center;font-size:10.5px;font-weight:600;color:var(--text2);flex-shrink:0">{{ c.initials }}</div>
+                <div style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                  <span style="font-weight:550;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ c.name }}</span>
+                  <span style="font-size:11px;color:var(--text3)">{{ c.phone }}</span>
+                </div>
+              </div>
+              <span style="text-align:right;font-variant-numeric:tabular-nums;color:var(--text2)">{{ c.orders }}</span>
+              <span style="text-align:right;font-variant-numeric:tabular-nums;font-weight:550">{{ c.revenue }}</span>
+              <span style="text-align:right;font-size:12px;color:var(--text3)">{{ c.last }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+    </main>
+    </sc-if>
+
+    <!-- ================= POS SALE ================= -->
+    <sc-if value="{{ isPos }}" hint-placeholder-val="{{ false }}">
+    <main data-screen-label="POS Sale" style="display:flex;flex-direction:column;height:calc(100vh - 56px);min-height:0">
+      <div style="display:flex;flex-wrap:wrap;gap:16px;padding:16px 20px 12px;flex:1;min-height:0;align-items:flex-start;overflow-y:auto">
+
+      <!-- LEFT: cart -->
+      <div style="display:flex;flex-direction:column;gap:12px;flex:1 1 560px;min-width:0;height:100%;min-height:0">
+        <!-- search -->
+        <div style="display:flex;gap:8px">
+          <div style="display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:0 14px;flex:1;box-shadow:var(--shadow)">
+            <span style="font-size:14px;color:var(--text3)">⌕</span>
+            <input placeholder="Scan barcode or search parts by name, SKU…" style="border:none;background:none;font-family:inherit;font-size:14px;color:var(--text);padding:12px 0;width:100%">
+            <span style="font-size:10.5px;border:1px solid var(--border);border-radius:4px;padding:1px 6px;color:var(--text3);background:var(--surface2)">F2</span>
+          </div>
+          <button title="Scan QR" style="width:44px;display:grid;place-items:center;background:var(--surface);border:1px solid var(--border);border-radius:10px;cursor:pointer;font-size:17px;color:var(--text2);box-shadow:var(--shadow)" style-hover="background:var(--surface2)">▦</button>
+        </div>
+
+        <!-- cart card -->
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);display:flex;flex-direction:column;flex:1;min-height:280px;overflow:hidden">
+          <div style="flex:1;overflow:auto;min-height:0">
+          <div style="min-width:680px">
+          <div style="display:grid;grid-template-columns:minmax(160px,1fr) 110px 120px 110px 110px 36px;gap:10px;padding:9px 16px;border-bottom:1px solid var(--border2);background:var(--surface2);font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);position:sticky;top:0">
+            <span>Item</span><span>Unit</span><span style="text-align:center">Qty</span><span style="text-align:right">Price</span><span style="text-align:right">Total</span><span></span>
+          </div>
+            <sc-for list="{{ cartLines }}" as="ln" hint-placeholder-count="2">
+              <div style="display:grid;grid-template-columns:minmax(160px,1fr) 110px 120px 110px 110px 36px;gap:10px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border2);font-size:13px" style-hover="background:var(--surface2)">
+                <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                  <span style="font-weight:550;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ ln.name }}</span>
+                  <span style="font-size:11px;color:var(--text3)">{{ ln.sku }} · in stock {{ ln.stock }}</span>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;border:1px solid var(--border);border-radius:7px;padding:6px 9px;font-size:12.5px;color:var(--text2);cursor:pointer" style-hover="background:var(--surface2)">{{ ln.unit }} <span style="font-size:9px;color:var(--text3)">▾</span></div>
+                <div style="display:flex;align-items:center;justify-content:center;gap:0;border:1px solid var(--border);border-radius:7px;overflow:hidden;width:fit-content;justify-self:center">
+                  <button onClick="{{ ln.dec }}" style="width:30px;height:30px;background:none;border:none;cursor:pointer;font-size:14px;color:var(--text2)" style-hover="background:var(--surface2)">−</button>
+                  <span style="min-width:34px;text-align:center;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;border-left:1px solid var(--border2);border-right:1px solid var(--border2);line-height:30px">{{ ln.qty }}</span>
+                  <button onClick="{{ ln.inc }}" style="width:30px;height:30px;background:none;border:none;cursor:pointer;font-size:14px;color:var(--text2)" style-hover="background:var(--surface2)">＋</button>
+                </div>
+                <span style="text-align:right;font-variant-numeric:tabular-nums;color:var(--text2)">{{ ln.price }}</span>
+                <span style="text-align:right;font-variant-numeric:tabular-nums;font-weight:600">{{ ln.total }}</span>
+                <button onClick="{{ ln.remove }}" title="Remove" style="width:28px;height:28px;display:grid;place-items:center;background:none;border:none;border-radius:6px;cursor:pointer;font-size:14px;color:var(--text3)" style-hover="background:var(--red-bg);color:var(--red)">✕</button>
+              </div>
+            </sc-for>
+            <sc-if value="{{ cartEmpty }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:56px 20px;color:var(--text3)">
+                <span style="font-size:26px">⌕</span>
+                <span style="font-size:13.5px">Scan a barcode or search to add items</span>
+              </div>
+            </sc-if>
+          </div>
+          </div>
+          <!-- totals footer -->
+          <div style="border-top:1px solid var(--border);padding:14px 16px;display:flex;flex-direction:column;gap:8px;background:var(--surface2)">
+            <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text2)"><span>Subtotal · {{ itemCount }} items</span><span style="font-variant-numeric:tabular-nums">{{ subtotal }}</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--text2)">
+              <span>Manual discount</span>
+              <input value="0" style="width:90px;text-align:right;background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:5px 9px;font-family:inherit;font-size:13px;color:var(--text);font-variant-numeric:tabular-nums">
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;padding-top:8px;border-top:1px dashed var(--border)">
+              <span style="font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text2)">Total</span>
+              <span style="font-size:24px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums">{{ grandTotal }}</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT: checkout panel -->
+      <div style="display:flex;flex-direction:column;gap:8px;flex:1 1 340px;max-width:420px;min-width:300px;max-height:100%">
+        <!-- customer -->
+        <section style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:12px 14px;display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;border:1px solid var(--border);border-radius:8px;padding:8px 11px;font-size:13px;cursor:pointer;flex:1" style-hover="background:var(--surface2)">
+              <span style="display:flex;align-items:center;gap:8px"><span style="width:24px;height:24px;border-radius:99px;background:var(--surface2);border:1px solid var(--border);display:grid;place-items:center;font-size:10px;font-weight:600;color:var(--text2)">W</span>Walk-in Customer</span>
+              <span style="font-size:10px;color:var(--text3)">▾</span>
+            </div>
+            <button title="New customer" style="width:36px;height:36px;display:grid;place-items:center;background:none;border:1px solid var(--border);border-radius:8px;font-size:15px;color:var(--text2);cursor:pointer;flex-shrink:0" style-hover="background:var(--surface2)">＋</button>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;font-size:11.5px;color:var(--text3);padding:0 2px">
+            <span>Due <b style="color:var(--text2);font-variant-numeric:tabular-nums">৳ 0.00</b></span>
+            <span>Advance <b style="color:var(--text2);font-variant-numeric:tabular-nums">৳ 0.00</b></span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;border:1px solid var(--border);border-radius:8px;padding:8px 11px;font-size:12.5px;color:var(--text3);cursor:pointer" style-hover="background:var(--surface2)">
+              Vehicle <span style="font-size:10px">▾</span>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;border:1px solid var(--border);border-radius:8px;padding:8px 11px;font-size:12.5px;color:var(--text3);cursor:pointer" style-hover="background:var(--surface2)">
+              Technician <span style="font-size:10px">▾</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- payment -->
+        <section style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:12px 14px;display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <span style="font-size:13px;font-weight:600">Payment</span>
+            <span style="font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--text2)">{{ grandTotal }}</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+            <sc-for list="{{ payMethods }}" as="pm" hint-placeholder-count="3">
+              <button onClick="{{ pm.pick }}" style="display:flex;flex-direction:column;align-items:center;gap:3px;background:{{ pm.bg }};border:1px solid {{ pm.border }};border-radius:8px;padding:9px 4px;font-family:inherit;font-size:11.5px;font-weight:600;color:{{ pm.color }};cursor:pointer" style-hover="border-color:var(--text3)">
+                <span style="font-size:15px">{{ pm.icon }}</span>{{ pm.label }}
+              </button>
+            </sc-for>
+          </div>
+          <div style="display:flex;gap:8px">
+            <div style="display:flex;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;flex:1">
+              <span style="padding:9px 11px;background:var(--surface2);border-right:1px solid var(--border);font-size:13px;color:var(--text3)">৳</span>
+              <input placeholder="Amount received" style="border:none;background:none;padding:9px 12px;font-family:inherit;font-size:13px;color:var(--text);width:100%;font-variant-numeric:tabular-nums">
+            </div>
+            <button style="width:38px;display:grid;place-items:center;background:var(--accent);color:var(--accent-fg);border:none;border-radius:8px;cursor:pointer;font-size:16px" style-hover="opacity:.9">＋</button>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div style="display:flex;flex-direction:column;gap:2px;padding:8px 11px;border:1px solid var(--border2);border-radius:8px;background:var(--surface2)">
+              <span style="font-size:10.5px;color:var(--text3)">Paid</span><span style="font-size:13px;font-weight:600;font-variant-numeric:tabular-nums">৳ 0.00</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:2px;padding:8px 11px;border:1px solid var(--border2);border-radius:8px;background:var(--surface2)">
+              <span style="font-size:10.5px;color:var(--text3)">Change / Due</span><span style="font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--amber)">{{ grandTotal }}</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- options -->
+        <section style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:12px 14px;display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+            <div style="display:flex;gap:14px;font-size:12.5px;color:var(--text2)">
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" style="width:14px;height:14px;accent-color:var(--accent)">Auto PO</label>
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" style="width:14px;height:14px;accent-color:var(--accent)">VAT 15%</label>
+            </div>
+            <div style="display:flex;align-items:center;gap:7px">
+              <span style="font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text3)">Print</span>
+              <div style="display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden">
+                <sc-for list="{{ printModes }}" as="pr" hint-placeholder-count="3">
+                  <button onClick="{{ pr.pick }}" style="background:{{ pr.bg }};border:none;padding:5px 11px;font-family:inherit;font-size:11.5px;font-weight:{{ pr.weight }};color:{{ pr.color }};cursor:pointer">{{ pr.label }}</button>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+          <input placeholder="Sale notes…" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 11px;font-family:inherit;font-size:12.5px;color:var(--text)">
+        </section>
+
+        <!-- complete -->
+        <button style="display:flex;align-items:center;justify-content:center;gap:10px;background:var(--green);color:#fff;border:none;border-radius:12px;padding:14px;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;box-shadow:var(--shadow)" style-hover="opacity:.92">
+          ✓ Complete Sale · {{ grandTotal }}
+        </button>
+      </div>
+      </div>
+
+      <!-- action strip: static bottom bar -->
+      <div style="display:flex;gap:6px;overflow-x:auto;padding:10px 20px;background:var(--surface);border-top:1px solid var(--border);flex-shrink:0">
+        <sc-for list="{{ posActions }}" as="pa" hint-placeholder-count="8">
+          <button style="display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:8px 0;font-family:inherit;font-size:11.5px;font-weight:500;color:{{ pa.color }};cursor:pointer;flex:1;min-width:72px" style-hover="background:var(--surface2)">
+            <span style="font-size:15px">{{ pa.icon }}</span>{{ pa.label }}
+          </button>
+        </sc-for>
+      </div>
+    </main>
+    </sc-if>
+
+    <!-- ================= PARTS LIST ================= -->
+    <sc-if value="{{ isParts }}" hint-placeholder-val="{{ false }}">
+    <main data-screen-label="Parts List" style="padding:24px 24px 40px;display:flex;flex-direction:column;gap:16px;max-width:1440px;width:100%">
+
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap">
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <h1 style="margin:0;font-size:22px;font-weight:700;letter-spacing:-.01em">Parts</h1>
+          <span style="font-size:13px;color:var(--text2)">49 parts in catalog · 0 low stock</span>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button style="display:flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:inherit;font-size:13px;font-weight:500;color:var(--text);cursor:pointer" style-hover="background:var(--surface2)">⇧ Import</button>
+          <button style="display:flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:inherit;font-size:13px;font-weight:500;color:var(--text);cursor:pointer" style-hover="background:var(--surface2)">↧ Export</button>
+          <button onClick="{{ goPartCreate }}" style="display:flex;align-items:center;gap:7px;background:var(--accent);color:var(--accent-fg);border:none;border-radius:8px;padding:8px 14px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer" style-hover="opacity:.9">＋ New Part</button>
+        </div>
+      </div>
+
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden">
+        <!-- filter bar -->
+        <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border2);flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:0 12px;flex:1;min-width:240px">
+            <span style="font-size:12px;color:var(--text3)">⌕</span>
+            <input placeholder="Search by name, SKU, or part number…" style="border:none;background:none;font-family:inherit;font-size:13px;color:var(--text);padding:8px 0;width:100%">
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-size:13px;font-weight:500;cursor:pointer;color:var(--text)" style-hover="background:var(--surface2)">Category: All <span style="font-size:10px;color:var(--text3)">▾</span></div>
+          <div style="display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-size:13px;font-weight:500;cursor:pointer;color:var(--text)" style-hover="background:var(--surface2)">Status: Active <span style="font-size:10px;color:var(--text3)">▾</span></div>
+          <div style="display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-size:13px;font-weight:500;cursor:pointer;color:var(--text)" style-hover="background:var(--surface2)">⇅ Sort <span style="font-size:10px;color:var(--text3)">▾</span></div>
+        </div>
+        <!-- header -->
+        <div style="overflow-x:auto">
+        <div style="min-width:1000px">
+        <div style="display:grid;grid-template-columns:minmax(220px,1.6fr) 1fr .8fr 100px 100px 80px 90px 40px;gap:8px;padding:8px 16px;border-bottom:1px solid var(--border2);background:var(--surface2);font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text3)">
+          <span>Part</span><span>Category</span><span>Brand</span><span style="text-align:right">Cost</span><span style="text-align:right">Selling</span><span style="text-align:right">Min Stock</span><span>Status</span><span></span>
+        </div>
+        <sc-for list="{{ parts }}" as="pt" hint-placeholder-count="8">
+          <div onClick="{{ pt.open }}" style="display:grid;grid-template-columns:minmax(220px,1.6fr) 1fr .8fr 100px 100px 80px 90px 40px;gap:8px;align-items:center;padding:11px 16px;border-bottom:1px solid var(--border2);font-size:13px;cursor:pointer" style-hover="background:var(--surface2)">
+            <div style="display:flex;align-items:center;gap:11px;min-width:0">
+              <div style="width:32px;height:32px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);display:grid;place-items:center;font-size:12px;font-weight:600;color:var(--text2);flex-shrink:0">{{ pt.initial }}</div>
+              <div style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                <span style="font-weight:550;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ pt.name }}</span>
+                <span style="font-size:11px;color:var(--text3)">{{ pt.sku }} · {{ pt.pn }}</span>
+              </div>
+            </div>
+            <span style="color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ pt.category }}</span>
+            <span style="color:var(--text2)">{{ pt.brand }}</span>
+            <span style="text-align:right;font-variant-numeric:tabular-nums;color:var(--text2)">{{ pt.cost }}</span>
+            <span style="text-align:right;font-variant-numeric:tabular-nums;font-weight:550">{{ pt.selling }}</span>
+            <span style="text-align:right;font-variant-numeric:tabular-nums;color:var(--text2)">{{ pt.minStock }}</span>
+            <span><span style="font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:99px;background:var(--green-bg);color:var(--green)">Active</span></span>
+            <button style="width:28px;height:28px;display:grid;place-items:center;background:none;border:none;border-radius:6px;cursor:pointer;font-size:15px;color:var(--text3)" style-hover="background:var(--border2);color:var(--text)">⋮</button>
+          </div>
+        </sc-for>
+        </div>
+        </div>
+        <!-- pagination -->
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;flex-wrap:wrap">
+          <span style="font-size:12.5px;color:var(--text3)">Showing <b style="color:var(--text2)">1–10</b> of <b style="color:var(--text2)">49</b> parts</span>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:12.5px;color:var(--text3);margin-right:6px">Rows: 10 ▾</span>
+            <button style="width:30px;height:30px;display:grid;place-items:center;background:var(--surface);border:1px solid var(--border);border-radius:7px;cursor:pointer;font-size:12px;color:var(--text3)">‹</button>
+            <span style="min-width:30px;height:30px;display:grid;place-items:center;background:var(--accent);color:var(--accent-fg);border-radius:7px;font-size:12.5px;font-weight:600">1</span>
+            <button style="min-width:30px;height:30px;display:grid;place-items:center;background:var(--surface);border:1px solid var(--border);border-radius:7px;cursor:pointer;font-size:12.5px;color:var(--text2)" style-hover="background:var(--surface2)">2</button>
+            <button style="min-width:30px;height:30px;display:grid;place-items:center;background:var(--surface);border:1px solid var(--border);border-radius:7px;cursor:pointer;font-size:12.5px;color:var(--text2)" style-hover="background:var(--surface2)">3</button>
+            <span style="color:var(--text3);font-size:12px">…</span>
+            <button style="min-width:30px;height:30px;display:grid;place-items:center;background:var(--surface);border:1px solid var(--border);border-radius:7px;cursor:pointer;font-size:12.5px;color:var(--text2)" style-hover="background:var(--surface2)">5</button>
+            <button style="width:30px;height:30px;display:grid;place-items:center;background:var(--surface);border:1px solid var(--border);border-radius:7px;cursor:pointer;font-size:12px;color:var(--text2)" style-hover="background:var(--surface2)">›</button>
+          </div>
+        </div>
+      </div>
+    </main>
+    </sc-if>
+
+    <!-- ================= CREATE PART ================= -->
+    <sc-if value="{{ isPartCreate }}" hint-placeholder-val="{{ false }}">
+    <main data-screen-label="Create Part" style="padding:24px 24px 80px;display:flex;flex-direction:column;gap:16px;max-width:1080px;width:100%">
+
+      <div style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text3)">
+        <a href="#" onClick="{{ goParts }}" style="color:var(--text3);text-decoration:none" style-hover="color:var(--text)">Parts</a>
+        <span>/</span><span style="color:var(--text2);font-weight:500">New Part</span>
+      </div>
+
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap">
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <h1 style="margin:0;font-size:22px;font-weight:700;letter-spacing:-.01em">Create New Part</h1>
+          <span style="font-size:13px;color:var(--text2)">Add a new part to inventory</span>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button onClick="{{ goParts }}" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-family:inherit;font-size:13px;font-weight:500;color:var(--text);cursor:pointer" style-hover="background:var(--surface2)">Cancel</button>
+          <button onClick="{{ goParts }}" style="background:var(--accent);color:var(--accent-fg);border:none;border-radius:8px;padding:8px 16px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer" style-hover="opacity:.9">✓ Create Part</button>
+        </div>
+      </div>
+
+      <!-- Basic info -->
+      <section style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px;display:flex;flex-direction:column;gap:16px">
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <span style="font-size:15px;font-weight:600">Basic Information</span>
+          <span style="font-size:12px;color:var(--text3)">Name, identifiers and classification</span>
+        </div>
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:14px">
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <label style="font-size:12.5px;font-weight:550">Part Name <span style="color:var(--red)">*</span></label>
+            <input placeholder="e.g. Front Glass - Leyland 1616" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;color:var(--text)">
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <label style="font-size:12.5px;font-weight:550">SKU <span style="color:var(--red)">*</span></label>
+            <input placeholder="Auto: SKU050" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;color:var(--text)">
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <label style="font-size:12.5px;font-weight:550">Part Number</label>
+            <input placeholder="Manufacturer PN" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;color:var(--text)">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <label style="font-size:12.5px;font-weight:550">Category <span style="color:var(--red)">*</span></label>
+            <select style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;color:var(--text);appearance:auto"><option>Glass/Windsheild</option><option>Transmission</option><option>Battery</option><option>Engine</option></select>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <label style="font-size:12.5px;font-weight:550">Brand</label>
+            <select style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;color:var(--text);appearance:auto"><option>XYG</option><option>Mak Tata</option><option>Navana</option></select>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <label style="font-size:12.5px;font-weight:550">Unit</label>
+            <select style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;color:var(--text);appearance:auto"><option>Piece</option><option>Set</option><option>Litre</option></select>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <label style="font-size:12.5px;font-weight:550">Product Type</label>
+            <select style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;color:var(--text);appearance:auto"><option>Physical</option><option>Service</option></select>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <label style="font-size:12.5px;font-weight:550">Tax Code</label>
+            <select style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;color:var(--text);appearance:auto"><option>None</option><option>VAT 15%</option></select>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <label style="font-size:12.5px;font-weight:550">Search Tags</label>
+            <input placeholder="brake, front, ceramic" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;color:var(--text)">
+          </div>
+        </div>
+        <label style="display:flex;align-items:center;gap:9px;font-size:13px;color:var(--text2);cursor:pointer">
+          <input type="checkbox" style="width:15px;height:15px;accent-color:var(--accent)"> Perishable / expiry tracking <span style="font-size:11.5px;color:var(--text3)">— enables per-lot expiry on goods receipt</span>
+        </label>
+      </section>
+
+      <!-- Pricing & stock -->
+      <section style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px;display:flex;flex-direction:column;gap:16px">
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <span style="font-size:15px;font-weight:600">Pricing &amp; Stock</span>
+          <span style="font-size:12px;color:var(--text3)">Price changes are tracked automatically — full history on the part's Pricing tab</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:14px">
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <label style="font-size:12.5px;font-weight:550">Selling Price <span style="color:var(--red)">*</span></label>
+            <div style="display:flex;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden">
+              <span style="padding:9px 10px;background:var(--surface2);border-right:1px solid var(--border);font-size:13px;color:var(--text3)">৳</span>
+              <input placeholder="0.00" style="border:none;background:none;padding:9px 12px;font-family:inherit;font-size:13px;color:var(--text);width:100%;font-variant-numeric:tabular-nums">
+            </div>
+            <span style="font-size:11px;color:var(--text3)">Base price — inherited by variants</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <label style="font-size:12.5px;font-weight:550">Cost Price</label>
+            <div style="display:flex;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden">
+              <span style="padding:9px 10px;background:var(--surface2);border-right:1px solid var(--border);font-size:13px;color:var(--text3)">৳</span>
+              <input placeholder="0.00" style="border:none;background:none;padding:9px 12px;font-family:inherit;font-size:13px;color:var(--text);width:100%;font-variant-numeric:tabular-nums">
+            </div>
+            <span style="font-size:11px;color:var(--text3)">Updated by goods receipts</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <label style="font-size:12.5px;font-weight:550">Minimum Stock <span style="color:var(--red)">*</span></label>
+            <input placeholder="0" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;color:var(--text)">
+            <span style="font-size:11px;color:var(--text3)">Reorder alert threshold</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <label style="font-size:12.5px;font-weight:550">Weight (kg) <span style="font-weight:400;color:var(--text3)">optional</span></label>
+            <input placeholder="e.g. 0.350" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;color:var(--text)">
+            <span style="font-size:11px;color:var(--text3)">Default shipping weight</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Description -->
+      <section style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px;display:flex;flex-direction:column;gap:16px">
+        <span style="font-size:15px;font-weight:600">Description</span>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <label style="font-size:12.5px;font-weight:550">Short Description <span style="font-weight:400;color:var(--text3)">max 255 chars — shown on listing cards</span></label>
+          <input placeholder="Brief summary for listing cards" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;color:var(--text)">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <label style="font-size:12.5px;font-weight:550">Full Description <span style="font-weight:400;color:var(--text3)">shown on product detail page</span></label>
+          <textarea rows="4" placeholder="Detailed description, specifications, features…" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;color:var(--text);resize:vertical"></textarea>
+        </div>
+      </section>
+
+      <!-- Online listing -->
+      <section style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px;display:flex;flex-direction:column;gap:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <span style="font-size:15px;font-weight:600">Online Listing</span>
+            <span style="font-size:12px;color:var(--text3)">How this part appears in the online storefront</span>
+          </div>
+          <span style="font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);background:var(--surface2);border:1px solid var(--border2);border-radius:99px;padding:3px 10px">E-commerce</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:14px;align-items:start">
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <label style="font-size:12.5px;font-weight:550">URL Slug</label>
+            <div style="display:flex;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden">
+              <span style="padding:9px 10px;background:var(--surface2);border-right:1px solid var(--border);font-size:12.5px;color:var(--text3)">/products/</span>
+              <input placeholder="front-glass-leyland-1616" style="border:none;background:none;padding:9px 12px;font-family:inherit;font-size:13px;color:var(--text);width:100%">
+            </div>
+            <span style="font-size:11px;color:var(--text3)">Lowercase letters, numbers and hyphens only</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px;padding-top:24px">
+            <label onClick="{{ togglePublished }}" style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer">
+              <span style="width:34px;height:20px;border-radius:99px;background:{{ pubBg }};position:relative;transition:background .15s;flex-shrink:0"><span style="position:absolute;top:2px;left:{{ pubLeft }};width:16px;height:16px;border-radius:99px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:left .15s"></span></span>
+              Published <span style="font-size:11.5px;color:var(--text3)">visible in storefront</span>
+            </label>
+            <label onClick="{{ toggleFeatured }}" style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer">
+              <span style="width:34px;height:20px;border-radius:99px;background:{{ featBg }};position:relative;transition:background .15s;flex-shrink:0"><span style="position:absolute;top:2px;left:{{ featLeft }};width:16px;height:16px;border-radius:99px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:left .15s"></span></span>
+              Featured <span style="font-size:11.5px;color:var(--text3)">homepage highlights</span>
+            </label>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <label style="font-size:12.5px;font-weight:550">Meta Title <span style="font-weight:400;color:var(--text3)">SEO · under 60 chars</span></label>
+            <input placeholder="Page title for search engines" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;color:var(--text)">
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <label style="font-size:12.5px;font-weight:550">Meta Description <span style="font-weight:400;color:var(--text3)">SEO · under 150 chars</span></label>
+            <input placeholder="Short summary shown in search results" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;color:var(--text)">
+          </div>
+        </div>
+      </section>
+
+      <!-- Warranty + compatibility -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start">
+        <section style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px;display:flex;flex-direction:column;gap:14px">
+          <span style="font-size:15px;font-weight:600">Warranty</span>
+          <label style="display:flex;align-items:center;gap:9px;font-size:13px;color:var(--text2);cursor:pointer">
+            <input type="checkbox" style="width:15px;height:15px;accent-color:var(--accent)"> This part comes with a warranty
+          </label>
+        </section>
+        <section style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px;display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <span style="font-size:15px;font-weight:600">Vehicle Compatibility</span>
+            <span style="font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);background:var(--surface2);border:1px solid var(--border2);border-radius:99px;padding:3px 10px">Auto parts</span>
+          </div>
+          <button style="display:flex;align-items:center;justify-content:center;gap:7px;background:none;border:1px dashed var(--border);border-radius:8px;padding:10px;font-family:inherit;font-size:13px;font-weight:500;color:var(--text2);cursor:pointer" style-hover="background:var(--surface2);color:var(--text)">＋ Add make / model</button>
+        </section>
+      </div>
+
+      <!-- Variants -->
+      <section style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <span style="font-size:15px;font-weight:600">Variants</span>
+            <span style="font-size:12px;color:var(--text3)">For parts with options — e.g. Color, Size. Define attribute groups first.</span>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:12px 14px;border:1px solid var(--border2);border-radius:9px;background:var(--surface2);font-size:12.5px;color:var(--text3)">
+          ⓘ Save the part first to add variants
+        </div>
+      </section>
+
+      <!-- sticky action bar -->
+      <div style="position:sticky;bottom:0;display:flex;justify-content:flex-end;gap:8px;padding:14px 0;background:linear-gradient(transparent,var(--bg) 30%)">
+        <button onClick="{{ goParts }}" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 16px;font-family:inherit;font-size:13px;font-weight:500;color:var(--text);cursor:pointer;box-shadow:var(--shadow)" style-hover="background:var(--surface2)">Cancel</button>
+        <button onClick="{{ goParts }}" style="background:var(--accent);color:var(--accent-fg);border:none;border-radius:8px;padding:9px 18px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;box-shadow:var(--shadow)" style-hover="opacity:.9">✓ Create Part</button>
+      </div>
+    </main>
+    </sc-if>
+
+    <!-- ================= PART DETAIL ================= -->
+    <sc-if value="{{ isPartView }}" hint-placeholder-val="{{ false }}">
+    <main data-screen-label="Part Detail" style="padding:24px 24px 40px;display:flex;flex-direction:column;gap:16px;max-width:1240px;width:100%">
+
+      <div style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text3)">
+        <a href="#" onClick="{{ goParts }}" style="color:var(--text3);text-decoration:none" style-hover="color:var(--text)">Parts</a>
+        <span>/</span><span style="color:var(--text2);font-weight:500">{{ part.name }}</span>
+      </div>
+
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:14px">
+          <div style="width:52px;height:52px;border-radius:12px;background:var(--surface);border:1px solid var(--border);display:grid;place-items:center;font-size:19px;font-weight:650;color:var(--text2)">{{ part.initial }}</div>
+          <div style="display:flex;flex-direction:column;gap:5px">
+            <div style="display:flex;align-items:center;gap:10px">
+              <h1 style="margin:0;font-size:22px;font-weight:700;letter-spacing:-.01em">{{ part.name }}</h1>
+              <span style="font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:99px;background:var(--green-bg);color:var(--green)">Active</span>
+            </div>
+            <span style="font-size:13px;color:var(--text2)">{{ part.sku }} · {{ part.pn }} · {{ part.category }} · {{ part.brand }}</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button style="display:flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:inherit;font-size:13px;font-weight:500;color:var(--text);cursor:pointer" style-hover="background:var(--surface2)">⎘ Duplicate</button>
+          <button style="display:flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:inherit;font-size:13px;font-weight:500;color:var(--text);cursor:pointer" style-hover="background:var(--surface2)">✎ Edit</button>
+          <button style="width:34px;height:34px;display:grid;place-items:center;background:var(--surface);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:15px;color:var(--text2)" style-hover="background:var(--surface2)">⋮</button>
+        </div>
+      </div>
+
+      <!-- stat strip -->
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden">
+        <sc-for list="{{ partStats }}" as="ps" hint-placeholder-count="5">
+          <div style="padding:14px 18px;display:flex;flex-direction:column;gap:4px;border-right:1px solid var(--border2)">
+            <span style="font-size:11.5px;color:var(--text3)">{{ ps.label }}</span>
+            <span style="font-size:17px;font-weight:650;font-variant-numeric:tabular-nums;color:{{ ps.color }}">{{ ps.value }}</span>
+            <span style="font-size:11px;color:var(--text3)">{{ ps.sub }}</span>
+          </div>
+        </sc-for>
+      </div>
+
+      <!-- tabs -->
+      <div style="display:flex;gap:2px;border-bottom:1px solid var(--border)">
+        <sc-for list="{{ partTabs }}" as="tb" hint-placeholder-count="4">
+          <button onClick="{{ tb.go }}" style="background:none;border:none;border-bottom:2px solid {{ tb.line }};padding:9px 14px;font-family:inherit;font-size:13px;font-weight:{{ tb.weight }};color:{{ tb.color }};cursor:pointer;margin-bottom:-1px" style-hover="color:var(--text)">{{ tb.label }}</button>
+        </sc-for>
+      </div>
+
+      <!-- OVERVIEW tab -->
+      <sc-if value="{{ tabOverview }}" hint-placeholder-val="{{ true }}">
+      <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:16px;align-items:start">
+        <div style="display:flex;flex-direction:column;gap:16px;min-width:0">
+          <section style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px;display:flex;flex-direction:column;gap:14px">
+            <span style="font-size:15px;font-weight:600">Details</span>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px 24px">
+              <sc-for list="{{ partDetails }}" as="pd" hint-placeholder-count="8">
+                <div style="display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--border2);font-size:13px">
+                  <span style="color:var(--text3)">{{ pd.label }}</span>
+                  <span style="font-weight:500;text-align:right">{{ pd.value }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </section>
+          <section style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px;display:flex;flex-direction:column;gap:10px">
+            <span style="font-size:15px;font-weight:600">Description</span>
+            <p style="margin:0;font-size:13.5px;line-height:1.6;color:var(--text2)">Front windshield glass for Leyland 1616 bus chassis. OEM-equivalent XYG glass, laminated safety glass with standard tinting. Fits 2014-onward models.</p>
+          </section>
+          <section style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px;display:flex;flex-direction:column;gap:12px">
+            <span style="font-size:15px;font-weight:600">Vehicle Compatibility</span>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <span style="font-size:12.5px;font-weight:500;padding:5px 12px;border-radius:99px;background:var(--surface2);border:1px solid var(--border);color:var(--text2)">Leyland 1616 · 2014+</span>
+              <span style="font-size:12.5px;font-weight:500;padding:5px 12px;border-radius:99px;background:var(--surface2);border:1px solid var(--border);color:var(--text2)">Leyland Viking · 2016+</span>
+            </div>
+          </section>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <section style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px;display:flex;flex-direction:column;gap:12px">
+            <span style="font-size:15px;font-weight:600">Stock by Warehouse</span>
+            <sc-for list="{{ partStock }}" as="st" hint-placeholder-count="2">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border:1px solid var(--border2);border-radius:9px;background:var(--surface2)">
+                <span style="font-size:12.5px;color:var(--text2)">{{ st.label }}</span>
+                <span style="font-size:14px;font-weight:600;font-variant-numeric:tabular-nums">{{ st.value }}</span>
+              </div>
+            </sc-for>
+            <button style="display:flex;align-items:center;justify-content:center;gap:7px;background:none;border:1px dashed var(--border);border-radius:8px;padding:9px;font-family:inherit;font-size:12.5px;font-weight:500;color:var(--text2);cursor:pointer" style-hover="background:var(--surface2);color:var(--text)">⇄ Stock adjustment</button>
+          </section>
+          <section style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px;display:flex;flex-direction:column;gap:12px">
+            <span style="font-size:15px;font-weight:600">Online Listing</span>
+            <div style="display:flex;align-items:center;justify-content:space-between;font-size:13px">
+              <span style="color:var(--text3)">Status</span>
+              <span style="font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:99px;background:var(--green-bg);color:var(--green)">Published</span>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;font-size:13px">
+              <span style="color:var(--text3)">Slug</span>
+              <span style="font-weight:500;font-size:12.5px">/products/front-glass-leyland-1616</span>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;font-size:13px">
+              <span style="color:var(--text3)">Featured</span>
+              <span style="color:var(--text2)">No</span>
+            </div>
+          </section>
+          <section style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px;display:flex;flex-direction:column;gap:12px">
+            <span style="font-size:15px;font-weight:600">Recent Activity</span>
+            <sc-for list="{{ partActivity }}" as="ac" hint-placeholder-count="3">
+              <div style="display:flex;gap:10px;font-size:12.5px">
+                <span style="width:7px;height:7px;border-radius:99px;background:var(--border);margin-top:5px;flex-shrink:0"></span>
+                <div style="display:flex;flex-direction:column;gap:1px">
+                  <span style="color:var(--text2)">{{ ac.text }}</span>
+                  <span style="font-size:11px;color:var(--text3)">{{ ac.when }}</span>
+                </div>
+              </div>
+            </sc-for>
+          </section>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- PRICING tab -->
+      <sc-if value="{{ tabPricing }}" hint-placeholder-val="{{ false }}">
+      <section style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden">
+        <div style="padding:16px 18px 12px"><span style="font-size:15px;font-weight:600">Price History</span></div>
+        <div style="display:grid;grid-template-columns:1fr 120px 120px 120px;padding:8px 18px;border-top:1px solid var(--border2);border-bottom:1px solid var(--border2);background:var(--surface2);font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text3)">
+          <span>Changed</span><span style="text-align:right">Old</span><span style="text-align:right">New</span><span style="text-align:right">Change</span>
+        </div>
+        <sc-for list="{{ priceHistory }}" as="ph" hint-placeholder-count="2">
+          <div style="display:grid;grid-template-columns:1fr 120px 120px 120px;padding:12px 18px;border-bottom:1px solid var(--border2);font-size:13px">
+            <span style="color:var(--text2)">{{ ph.when }}</span>
+            <span style="text-align:right;font-variant-numeric:tabular-nums;color:var(--text3)">{{ ph.old }}</span>
+            <span style="text-align:right;font-variant-numeric:tabular-nums;font-weight:550">{{ ph.now }}</span>
+            <span style="text-align:right;font-variant-numeric:tabular-nums;color:{{ ph.color }}">{{ ph.change }}</span>
+          </div>
+        </sc-for>
+      </section>
+      </sc-if>
+
+      <!-- MOVEMENTS tab -->
+      <sc-if value="{{ tabMovements }}" hint-placeholder-val="{{ false }}">
+      <section style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden">
+        <div style="padding:16px 18px 12px"><span style="font-size:15px;font-weight:600">Stock Movements</span></div>
+        <div style="display:grid;grid-template-columns:1fr 140px 90px 110px;padding:8px 18px;border-top:1px solid var(--border2);border-bottom:1px solid var(--border2);background:var(--surface2);font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text3)">
+          <span>Reference</span><span>Type</span><span style="text-align:right">Qty</span><span style="text-align:right">Date</span>
+        </div>
+        <sc-for list="{{ movements }}" as="mv" hint-placeholder-count="3">
+          <div style="display:grid;grid-template-columns:1fr 140px 90px 110px;padding:12px 18px;border-bottom:1px solid var(--border2);font-size:13px;align-items:center">
+            <span style="font-weight:500">{{ mv.ref }}</span>
+            <span><span style="font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:99px;background:{{ mv.typeBg }};color:{{ mv.typeColor }}">{{ mv.type }}</span></span>
+            <span style="text-align:right;font-variant-numeric:tabular-nums;font-weight:550;color:{{ mv.qtyColor }}">{{ mv.qty }}</span>
+            <span style="text-align:right;font-size:12px;color:var(--text3)">{{ mv.date }}</span>
+          </div>
+        </sc-for>
+      </section>
+      </sc-if>
+
+    </main>
+    </sc-if>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: 1440, &quot;height&quot;: 900}, &quot;darkMode&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Theme&quot;}, &quot;startScreen&quot;: {&quot;editor&quot;: &quot;enum&quot;, &quot;default&quot;: &quot;dashboard&quot;, &quot;options&quot;: [&quot;dashboard&quot;, &quot;parts&quot;, &quot;partCreate&quot;, &quot;partView&quot;, &quot;pos&quot;], &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Navigation&quot;}}">
+class Component extends DCLogic {
+  state = { dark: false, openGroups: {}, screen: 'dashboard', partTab: 'overview', published: true, featured: false,
+    payMethod: 'cash', printMode: 'thermal',
+    cart: [
+      { name: 'Banshundara Cement PCC 50kg', sku: 'SKU006', stock: 12, unit: 'Piece', qty: 1, price: 550 },
+      { name: 'Navana Battery - 17 Plate', sku: 'SKU003', stock: 4, unit: 'Piece', qty: 1, price: 14200 },
+    ] };
+
+  fmt(n) { return '৳ ' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+
+  componentDidMount() {
+    const dark = this.props.darkMode ?? false;
+    this.setState({ dark });
+    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+    const start = this.props.startScreen ?? 'dashboard';
+    if (start !== 'dashboard') this.setState({ screen: start });
+  }
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.darkMode !== this.props.darkMode) {
+      const dark = this.props.darkMode ?? false;
+      this.setState({ dark });
+      document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+    }
+    if (prevProps.startScreen !== this.props.startScreen && this.props.startScreen) {
+      this.setState({ screen: this.props.startScreen });
+    }
+  }
+
+  buildChart() {
+    const sales =  [0,15200,3800,120,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+    const purch =  [0,18500,2750,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+    const profit = [0,-3300,1050,120,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+    const W = 1000, H = 240, padL = 46, padR = 10, padT = 10, padB = 26;
+    const min = -5000, max = 20000;
+    const x = i => padL + (i / 30) * (W - padL - padR);
+    const y = v => padT + (1 - (v - min) / (max - min)) * (H - padT - padB);
+    const path = arr => arr.map((v, i) => (i ? 'L' : 'M') + x(i).toFixed(1) + ',' + y(v).toFixed(1)).join(' ');
+    const e = React.createElement;
+    const gridVals = [20000, 15000, 10000, 5000, 0, -5000];
+    const kids = [];
+    gridVals.forEach(v => {
+      kids.push(e('line', { key: 'g' + v, x1: padL, x2: W - padR, y1: y(v), y2: y(v), stroke: 'var(--border2)', strokeWidth: v === 0 ? 1.5 : 1 }));
+      kids.push(e('text', { key: 't' + v, x: padL - 8, y: y(v) + 3, textAnchor: 'end', fontSize: 10, fill: 'var(--text3)', fontFamily: 'inherit' }, (v / 1000) + 'k'));
+    });
+    [0, 5, 10, 15, 20, 25, 30].forEach(d => {
+      kids.push(e('text', { key: 'x' + d, x: x(d), y: H - 8, textAnchor: 'middle', fontSize: 10, fill: 'var(--text3)' }, 'Jul ' + (d + 1)));
+    });
+    kids.push(e('path', { key: 'ap', d: path(purch) + ` L${x(30)},${y(0)} L${x(0)},${y(0)} Z`, fill: 'var(--chart-purch)', opacity: .07 }));
+    kids.push(e('path', { key: 'as', d: path(sales) + ` L${x(30)},${y(0)} L${x(0)},${y(0)} Z`, fill: 'var(--chart-sales)', opacity: .09 }));
+    kids.push(e('path', { key: 'p', d: path(purch), fill: 'none', stroke: 'var(--chart-purch)', strokeWidth: 2, strokeLinejoin: 'round' }));
+    kids.push(e('path', { key: 's', d: path(sales), fill: 'none', stroke: 'var(--chart-sales)', strokeWidth: 2, strokeLinejoin: 'round' }));
+    kids.push(e('path', { key: 'pr', d: path(profit), fill: 'none', stroke: 'var(--chart-profit)', strokeWidth: 2, strokeLinejoin: 'round' }));
+    [1, 2, 3].forEach(i => {
+      kids.push(e('circle', { key: 'ds' + i, cx: x(i), cy: y(sales[i]), r: 3.5, fill: 'var(--chart-sales)', stroke: 'var(--surface)', strokeWidth: 1.5 }));
+    });
+    return e('svg', { viewBox: `0 0 ${W} ${H}`, width: '100%', style: { display: 'block' } }, kids);
+  }
+
+  go(screen) { this.setState({ screen }); window.scrollTo(0, 0); }
+
+  renderVals() {
+    const dark = this.state.dark;
+    const screen = this.state.screen;
+    const tab = this.state.partTab;
+
+    const groups = [
+      { label: 'Catalog', items: [['◇','Parts','parts'],['≡','Categories'],['⬦','Brands'],['⚖','Units'],['⋮⋮','Attribute Groups'],['％','Discounts']] },
+      { label: 'Inventory', items: [['▤','Stock Management'],['⌂','Warehouses']] },
+      { label: 'Purchasing', items: [['⇣','Purchase Orders'],['☰','Goods Receipts'],['⇠','Purchase Returns'],['◈','Suppliers'],['⇢','Supplier Payments'],['▤','Supplier Statements'],['⊟','Daily Expenses'],['▣','Payment Providers']] },
+      { label: 'Sales', items: [['⇡','Sales Orders'],['▢','Invoices'],['◷','Pending Deliveries'],['⟲','Sales Returns'],['◉','Customers'],['⊞','Customer Payments'],['▤','Customer Statements']] },
+      { label: 'Service & Warranty', items: [['✦','Technicians'],['◨','Vehicles'],['✓','Warranty Registrations'],['△','Warranty Claims',null,'2']] },
+      { label: 'Finance', items: [['▥','Daily Cash Book'],['⇄','Exchange Rates']] },
+      { label: 'Administration', items: [['◍','Online Store'],['⚙','Settings']] },
+    ];
+
+    const partsActive = screen === 'parts' || screen === 'partCreate' || screen === 'partView';
+    const mkItem = (icon, label, target, badge) => {
+      const active = (target === 'parts' && partsActive) || (target === 'dashboard' && screen === 'dashboard');
+      return { isItem: true, icon, label, badge: badge || null,
+        weight: active ? 600 : 450,
+        color: active ? 'var(--accent-fg)' : 'var(--text2)',
+        bg: active ? 'var(--accent)' : 'transparent',
+        go: target ? (ev) => { ev.preventDefault(); this.go(target); } : (ev) => ev.preventDefault() };
+    };
+
+    const nav = [mkItem('⌂', 'Dashboard', 'dashboard')];
+    groups.forEach(g => {
+      const open = this.state.openGroups[g.label] !== false;
+      nav.push({ isGroup: true, label: g.label, chev: open ? '▾' : '▸',
+        toggle: () => this.setState(s => ({ openGroups: { ...s.openGroups, [g.label]: s.openGroups[g.label] === false } })) });
+      if (open) g.items.forEach(([icon, label, target, badge]) => nav.push(mkItem(icon, label, target, badge)));
+    });
+
+    const partRow = (name, sku, pn, category, brand) => ({
+      initial: name[0], name, sku, pn, category, brand,
+      cost: '৳ 0.00', selling: '৳ 0.00', minStock: '0',
+      open: () => this.setState({ screen: 'partView', partTab: 'overview', selPart: { initial: name[0], name, sku, pn, category, brand } }, () => window.scrollTo(0, 0)),
+    });
+
+    const mkTab = (id, label) => ({
+      label,
+      go: () => this.setState({ partTab: id }),
+      line: tab === id ? 'var(--accent)' : 'transparent',
+      weight: tab === id ? 600 : 450,
+      color: tab === id ? 'var(--text)' : 'var(--text2)',
+    });
+
+    const cart = this.state.cart;
+    const subtotalN = cart.reduce((a, c) => a + c.qty * c.price, 0);
+    const setQty = (i, d) => this.setState(s => {
+      const next = s.cart.map((c, j) => j === i ? { ...c, qty: Math.max(1, c.qty + d) } : c);
+      return { cart: next };
+    });
+    const cartLines = cart.map((c, i) => ({
+      name: c.name, sku: c.sku, stock: c.stock, unit: c.unit, qty: c.qty,
+      price: this.fmt(c.price), total: this.fmt(c.qty * c.price),
+      inc: () => setQty(i, 1), dec: () => setQty(i, -1),
+      remove: () => this.setState(s => ({ cart: s.cart.filter((_, j) => j !== i) })),
+    }));
+    const pm = this.state.payMethod;
+    const payMethods = [
+      ['cash', '▤', 'Cash'], ['card', '▢', 'Card'], ['mobile', '◱', 'bKash'],
+    ].map(([id, icon, label]) => ({
+      icon, label,
+      pick: () => this.setState({ payMethod: id }),
+      bg: pm === id ? 'var(--accent)' : 'var(--surface)',
+      border: pm === id ? 'var(--accent)' : 'var(--border)',
+      color: pm === id ? 'var(--accent-fg)' : 'var(--text2)',
+    }));
+    const pr = this.state.printMode;
+    const printModes = [['none', 'None'], ['thermal', 'Thermal'], ['a4', 'A4']].map(([id, label]) => ({
+      label,
+      pick: () => this.setState({ printMode: id }),
+      bg: pr === id ? 'var(--accent)' : 'var(--surface)',
+      weight: pr === id ? 600 : 450,
+      color: pr === id ? 'var(--accent-fg)' : 'var(--text2)',
+    }));
+
+    return {
+      isPos: screen === 'pos',
+      notPos: screen !== 'pos',
+      showSidebar: screen !== 'pos',
+      shellCols: screen === 'pos' ? '1fr' : '248px 1fr',
+      goDashboard: () => this.go('dashboard'),
+      cartLines,
+      cartEmpty: cart.length === 0,
+      itemCount: String(cart.reduce((a, c) => a + c.qty, 0)),
+      subtotal: this.fmt(subtotalN),
+      grandTotal: this.fmt(subtotalN),
+      payMethods,
+      printModes,
+      posActions: [
+        { icon: '⊕', label: 'New Sale', color: 'var(--text2)' },
+        { icon: '◷', label: 'Last Sale', color: 'var(--text2)' },
+        { icon: '⏸', label: 'Hold', color: 'var(--amber)' },
+        { icon: '⟲', label: 'Recall', color: 'var(--text2)' },
+        { icon: '⇠', label: 'Returns', color: 'var(--text2)' },
+        { icon: '％', label: 'Discount', color: 'var(--text2)' },
+        { icon: '▤', label: 'Draft', color: 'var(--text2)' },
+        { icon: '▢', label: 'Quotation', color: 'var(--text2)' },
+        { icon: '⎙', label: 'Reprint', color: 'var(--text2)' },
+        { icon: '◔', label: 'History', color: 'var(--text2)' },
+        { icon: '⊞', label: 'Credit', color: 'var(--text2)' },
+        { icon: '◇', label: 'Stock', color: 'var(--text2)' },
+      ],
+      isDashboard: screen === 'dashboard',
+      isParts: screen === 'parts',
+      isPartCreate: screen === 'partCreate',
+      isPartView: screen === 'partView',
+      goParts: (ev) => { if (ev && ev.preventDefault) ev.preventDefault(); this.go('parts'); },
+      goPartCreate: () => this.go('partCreate'),
+      themeIcon: dark ? '☀' : '☾',
+      toggleTheme: () => {
+        const next = !this.state.dark;
+        this.setState({ dark: next });
+        document.documentElement.setAttribute('data-theme', next ? 'dark' : 'light');
+      },
+      newSale: () => this.go('pos'),
+      navItems: nav,
+      chart: screen === 'dashboard' ? this.buildChart() : null,
+
+      kpis: [
+        { label: 'Total Sales', value: '৳ 19,120.00', sub: '4 orders · avg ৳ 4,780.00', delta: '+12.4%', deltaBg: 'var(--green-bg)', deltaColor: 'var(--green)', valueColor: 'var(--text)' },
+        { label: 'Revenue Collected', value: '৳ 19,140.00', sub: 'Paid ৳ 19,120 · on credit ৳ 0', delta: '+8.1%', deltaBg: 'var(--green-bg)', deltaColor: 'var(--green)', valueColor: 'var(--text)' },
+        { label: 'Total Expenses', value: '৳ 21,250.00', sub: 'Purchases + daily expenses', delta: '+31%', deltaBg: 'var(--amber-bg)', deltaColor: 'var(--amber)', valueColor: 'var(--text)' },
+        { label: 'Net Profit', value: '−৳ 2,130.00', sub: '−11.14% margin', delta: '▼ loss', deltaBg: 'var(--red-bg)', deltaColor: 'var(--red)', valueColor: 'var(--red)' },
+      ],
+      insights: [
+        { label: 'Gross Profit', value: '−৳ 2,130.00', sub: 'Before daily expenses', color: 'var(--red)' },
+        { label: 'Avg Sale Value', value: '৳ 4,780.00', sub: 'Per order', color: 'var(--text)' },
+        { label: 'New Customers', value: '1', sub: 'of 3 total', color: 'var(--text)' },
+        { label: 'Low Stock Items', value: '0', sub: 'As of today', color: 'var(--text)' },
+        { label: 'Customer Due', value: '৳ 100.00', sub: '1 customer', color: 'var(--amber)' },
+        { label: 'Supplier Due', value: '৳ 141,450.00', sub: '2 suppliers', color: 'var(--text)' },
+      ],
+      cashflow: [
+        { label: 'Opening Balance', value: '৳ 0.00', color: 'var(--text)' },
+        { label: 'Cash Inflow', value: '+৳ 19,140.00', color: 'var(--green)' },
+        { label: 'Cash Outflow', value: '−৳ 0.00', color: 'var(--text2)' },
+      ],
+      products: [
+        { name: 'Navana Batter 21 Plate', sku: 'SKU001', qty: '1', revenue: '৳ 18,500.00', profit: '৳ 0.00', profitColor: 'var(--text2)', margin: '0.0%', marginBg: 'var(--surface2)', marginColor: 'var(--text3)' },
+        { name: 'Looking Glass 10 INCH', sku: 'SKU002', qty: '3', revenue: '৳ 620.00', profit: '+৳ 200.00', profitColor: 'var(--green)', margin: '32.3%', marginBg: 'var(--green-bg)', marginColor: 'var(--green)' },
+      ],
+      customers: [
+        { initials: 'BS', name: 'Bhadhan Shaha', phone: '+880 1716 625369', orders: '3', revenue: '৳ 18,900.00', last: 'Jul 2' },
+        { initials: 'W', name: 'Walk In', phone: '000000', orders: '1', revenue: '৳ 220.00', last: 'Jul 2' },
+      ],
+
+      parts: [
+        partRow('Cluster Plate', 'SKU049', 'PN: SKU049', 'Transmission', 'Mak Tata'),
+        partRow('Door Glass LH - Leyland 1616', 'SKU048', 'PN: SKU048', 'Glass/Windsheild', 'XYG'),
+        partRow('Door Glass RH - Leyland 1616', 'SKU047', 'PN: SKU047', 'Glass/Windsheild', 'XYG'),
+        partRow('Front Colored Glass - Leyland 1616', 'SKU046', 'PN: SKU046', 'Glass/Windsheild', 'XYG'),
+        partRow('Front Glass - Leyland / Dost', 'SKU045', 'PN: SKU045', 'Glass/Windsheild', 'XYG'),
+        partRow('Front Glass - T King', 'SKU044', 'PN: SKU044', 'Glass/Windsheild', 'XYG'),
+        partRow('Door Glass RH - JMC OLD MODEL', 'SKU043', 'PN: SKU043', 'Glass/Windsheild', 'XYG'),
+        partRow('Door Glass RH - JMC NEW MODEL', 'SKU042', 'PN: SKU042', 'Glass/Windsheild', 'XYG'),
+        partRow('Door Glass LH - JMC OLD MODEL', 'SKU041', 'PN: SKU041', 'Glass/Windsheild', 'XYG'),
+        partRow('Door Glass LH - JMC NEW MODEL', 'SKU040', 'PN: SKU040', 'Glass/Windsheild', 'XYG'),
+      ],
+
+      togglePublished: () => this.setState(s => ({ published: !s.published })),
+      toggleFeatured: () => this.setState(s => ({ featured: !s.featured })),
+      pubBg: this.state.published ? 'var(--green)' : 'var(--border)',
+      pubLeft: this.state.published ? '16px' : '2px',
+      featBg: this.state.featured ? 'var(--green)' : 'var(--border)',
+      featLeft: this.state.featured ? '16px' : '2px',
+
+      part: this.state.selPart ?? { initial: 'F', name: 'Front Glass - Leyland 1616', sku: 'SKU046', pn: 'PN: SKU046', category: 'Glass/Windsheild', brand: 'XYG' },
+      partStats: [
+        { label: 'Selling Price', value: '৳ 4,200.00', sub: 'Updated Jul 1', color: 'var(--text)' },
+        { label: 'Cost Price', value: '৳ 3,400.00', sub: 'Last receipt', color: 'var(--text)' },
+        { label: 'Margin', value: '19.0%', sub: '৳ 800 per unit', color: 'var(--green)' },
+        { label: 'In Stock', value: '6', sub: 'Across 1 warehouse', color: 'var(--text)' },
+        { label: 'Min Stock', value: '2', sub: 'Reorder threshold', color: 'var(--text)' },
+      ],
+      partTabs: [mkTab('overview', 'Overview'), mkTab('pricing', 'Pricing'), mkTab('movements', 'Stock Movements')],
+      tabOverview: tab === 'overview',
+      tabPricing: tab === 'pricing',
+      tabMovements: tab === 'movements',
+      partDetails: [
+        { label: 'SKU', value: 'SKU045' },
+        { label: 'Part Number', value: 'SKU045' },
+        { label: 'Category', value: 'Glass/Windsheild' },
+        { label: 'Brand', value: 'XYG' },
+        { label: 'Unit', value: 'Piece' },
+        { label: 'Product Type', value: 'Physical' },
+        { label: 'Warranty', value: 'None' },
+        { label: 'Weight', value: '12.5 kg' },
+        { label: 'Tax Code', value: 'None' },
+        { label: 'Created', value: 'Jun 12, 2026' },
+      ],
+      partStock: [
+        { label: 'Main Warehouse', value: '6' },
+        { label: 'Reserved', value: '0' },
+      ],
+      partActivity: [
+        { text: 'Price updated ৳ 4,000 → ৳ 4,200', when: 'Jul 1, 2026' },
+        { text: 'Goods receipt GRN-0038 · +4 units', when: 'Jun 28, 2026' },
+        { text: 'Sold 1 unit · Invoice INV-0102', when: 'Jun 25, 2026' },
+      ],
+      priceHistory: [
+        { when: 'Jul 1, 2026 · by System Admin', old: '৳ 4,000.00', now: '৳ 4,200.00', change: '+5.0%', color: 'var(--green)' },
+        { when: 'Jun 12, 2026 · part created', old: '—', now: '৳ 4,000.00', change: '—', color: 'var(--text3)' },
+      ],
+      movements: [
+        { ref: 'INV-0102 · Sale', type: 'Out', typeBg: 'var(--red-bg)', typeColor: 'var(--red)', qty: '−1', qtyColor: 'var(--red)', date: 'Jun 25' },
+        { ref: 'GRN-0038 · Goods receipt', type: 'In', typeBg: 'var(--green-bg)', typeColor: 'var(--green)', qty: '+4', qtyColor: 'var(--green)', date: 'Jun 28' },
+        { ref: 'ADJ-0007 · Opening stock', type: 'Adjust', typeBg: 'var(--amber-bg)', typeColor: 'var(--amber)', qty: '+3', qtyColor: 'var(--text2)', date: 'Jun 12' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_theme.dart';
@@ -70,7 +70,7 @@ class _CustomerPaymentHistoryScreenState
                     style: Theme.of(context).textTheme.bodySmall),
               ),
             ),
-          const Divider(height: 1),
+          Divider(height: 1),
           Expanded(
             child: PagedListView<PaymentHistoryItem>(
               resetKey: _status ?? 'all',
@@ -86,7 +86,7 @@ class _CustomerPaymentHistoryScreenState
                 status: _status,
                 page: page,
               ),
-              separatorBuilder: (_, _) => const Divider(height: 1),
+              separatorBuilder: (_, _) => Divider(height: 1),
               emptyBuilder: (_) => EmptyView(
                 message: _status == null
                     ? 'No payments recorded.'
@@ -132,7 +132,7 @@ class _PaymentTile extends StatelessWidget {
           item.paymentMethod!,
         if (item.invoiceNumber != null && item.invoiceNumber!.isNotEmpty)
           item.invoiceNumber!,
-      ].join('  •  ')),
+      ].join('  â€¢  ')),
       trailing: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
         decoration: BoxDecoration(
@@ -140,7 +140,7 @@ class _PaymentTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
         ),
         child: Text(
-          item.status ?? '—',
+          item.status ?? 'â€”',
           style: TextStyle(fontSize: 11, color: fg, fontWeight: FontWeight.w600),
         ),
       ),

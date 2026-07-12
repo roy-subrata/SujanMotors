@@ -39,7 +39,9 @@
 
       <td>
         <div class="part-name">{{ part.name }}</div>
+        <small *ngIf="part.localName" class="text-gray-600 d-block">{{ part.localName }}</small>
         <small class="text-gray-500">{{ part.description }}</small>
+        <small *ngIf="part.vehicleFit" class="text-gray-400 d-block">Fits: {{ part.vehicleFit }}</small>
       </td>
 
       <td>{{ part.partNumber }}</td>

@@ -9,6 +9,8 @@
         public string PartNumber { get; set; } = string.Empty;
         public string SKU { get; set; } = string.Empty;
         public string? OemNumber { get; set; }
+        public string? LocalName { get; set; }
+        public string? VehicleFit { get; set; }
         public Guid CategoryId { get; set; }
         public string CategoryName { get; set; } = string.Empty;
         public Guid? BrandId { get; set; }
@@ -59,5 +61,8 @@
 
         /// <summary>Cosine similarity (0..1, higher = closer) — populated only by semantic search.</summary>
         public double? SimilarityScore { get; set; }
+
+        /// <summary>Total available stock across all warehouses (QuantityOnHand − QuantityReserved). Populated by list endpoints only.</summary>
+        public int TotalStock { get; set; }
     }
 }

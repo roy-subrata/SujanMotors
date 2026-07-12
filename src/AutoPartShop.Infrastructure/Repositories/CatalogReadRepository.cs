@@ -218,7 +218,7 @@ public class CatalogReadRepository(AutoPartDbContext _db) : ICatalogReadReposito
             foreach (var filter in request.AttributeFilters)
             {
                 var hasValues = filter.Values != null && filter.Values.Count > 0;
-                var hasRange  = filter.Min.HasValue || filter.Max.HasValue;
+                var hasRange = filter.Min.HasValue || filter.Max.HasValue;
 
                 // Skip filters with nothing to filter on — avoids excluding products incorrectly
                 if (!hasValues && !hasRange) continue;
@@ -307,14 +307,14 @@ public class CatalogReadRepository(AutoPartDbContext _db) : ICatalogReadReposito
                 var basePrice = rep.SellingPrice > 0 ? rep.SellingPrice : part.SellingPrice;
                 var item = new CatalogProductListItem
                 {
-                    PartId  = part.Id,
+                    PartId = part.Id,
                     VariantId = rep.Id,
-                    Name    = part.Name,  // Part name — variant selected on detail page
-                    CategoryName   = part.Category?.Name ?? string.Empty,
-                    BrandName      = part.Brand?.Name,
-                    Currency       = rep.Currency,
-                    InStock        = g.Any(v => variantStockLookup.Contains(v.Id)),
-                    Slug           = part.CatalogEntry?.Slug ?? SlugFromName(part.Name),
+                    Name = part.Name,  // Part name — variant selected on detail page
+                    CategoryName = part.Category?.Name ?? string.Empty,
+                    BrandName = part.Brand?.Name,
+                    Currency = rep.Currency,
+                    InStock = g.Any(v => variantStockLookup.Contains(v.Id)),
+                    Slug = part.CatalogEntry?.Slug ?? SlugFromName(part.Name),
                     PrimaryImageUrl = part.CatalogEntry?.PrimaryImageUrl ?? string.Empty
                 };
                 ApplyDiscount(item, basePrice, discountLookup);

@@ -21,6 +21,7 @@ export interface CreateSalesOrderRequest {
     customerCity: string;
     technicianId?: string;
     technicianName?: string;
+    customerVehicleId?: string | null;
     deliveryDate: string;
     notes: string;
     currency: string;
@@ -32,6 +33,7 @@ export interface SalesOrderLineResponse {
     id: string;
     partId: string;
     partName?: string;
+    partLocalName?: string | null;
     partSku?: string;
     variantName?: string | null;
     displayName?: string;
@@ -58,6 +60,8 @@ export interface SalesOrderResponse {
     warehouseId?: string;
     technicianId?: string;
     technicianName?: string;
+    customerVehicleId?: string | null;
+    vehicleLabel?: string;
     orderDate: string;
     deliveryDate: string;
     status: string;
@@ -153,6 +157,10 @@ export class SalesOrderService {
     /** Orders waiting to be delivered (Confirmed + ReadyForDelivery). */
     getPendingDeliveries(): Observable<{ data: SalesOrderResponse[] }> {
         return this.http.get<{ data: SalesOrderResponse[] }>(`${this.apiUrl}/pending-deliveries`);
+    }
+
+    cancelSalesOrder(id: string): Observable<SalesOrderResponse> {
+        return this.http.patch<SalesOrderResponse>(`${this.apiUrl}/${id}/cancel`, {});
     }
 
     deleteSalesOrder(id: string): Observable<void> {

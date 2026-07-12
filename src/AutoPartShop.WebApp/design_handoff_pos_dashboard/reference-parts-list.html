@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>REFERENCE</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;padding:0;background:var(--bg);font-family:'Instrument Sans',system-ui,sans-serif;color:var(--text)}
+:root{
+--bg:#f4f5f7; --surface:#ffffff; --surface2:#fafafb;
+--border:#e6e8ec; --border2:#eef0f3;
+--text:#0f172a; --text2:#5b6472; --text3:#8a93a2;
+--accent:#0f172a; --accent-fg:#ffffff;
+--green:#0d8a53; --green-bg:#e9f7f0; --red:#d63841; --red-bg:#fdeeef; --amber:#b26a00; --amber-bg:#fdf3e2;
+--shadow:0 1px 2px rgba(15,23,42,.05);
+}
+*{box-sizing:border-box}
+input,textarea,select{outline:none}
+::placeholder{color:var(--text3)}
+</style>
+</head>
+<body>
+<main data-screen-label="Parts List" style="padding:24px 24px 40px;display:flex;flex-direction:column;gap:16px;max-width:1440px;width:100%">
+
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap">
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <h1 style="margin:0;font-size:22px;font-weight:700;letter-spacing:-.01em">Parts</h1>
+          <span style="font-size:13px;color:var(--text2)">49 parts in catalog · 0 low stock</span>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button style="display:flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:inherit;font-size:13px;font-weight:500;color:var(--text);cursor:pointer" style-hover="background:var(--surface2)">⇧ Import</button>
+          <button style="display:flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:inherit;font-size:13px;font-weight:500;color:var(--text);cursor:pointer" style-hover="background:var(--surface2)">↧ Export</button>
+          <button style="display:flex;align-items:center;gap:7px;background:var(--accent);color:var(--accent-fg);border:none;border-radius:8px;padding:8px 14px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer" style-hover="opacity:.9">＋ New Part</button>
+        </div>
+      </div>
+
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden">
+        <!-- filter bar -->
+        <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border2);flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:0 12px;flex:1;min-width:240px">
+            <span style="font-size:12px;color:var(--text3)">⌕</span>
+            <input placeholder="Search by name, SKU, or part number…" style="border:none;background:none;font-family:inherit;font-size:13px;color:var(--text);padding:8px 0;width:100%">
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-size:13px;font-weight:500;cursor:pointer;color:var(--text)" style-hover="background:var(--surface2)">Category: All <span style="font-size:10px;color:var(--text3)">▾</span></div>
+          <div style="display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-size:13px;font-weight:500;cursor:pointer;color:var(--text)" style-hover="background:var(--surface2)">Status: Active <span style="font-size:10px;color:var(--text3)">▾</span></div>
+          <div style="display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-size:13px;font-weight:500;cursor:pointer;color:var(--text)" style-hover="background:var(--surface2)">⇅ Sort <span style="font-size:10px;color:var(--text3)">▾</span></div>
+        </div>
+        <!-- header -->
+        <div style="overflow-x:auto">
+        <div style="min-width:1000px">
+        <div style="display:grid;grid-template-columns:minmax(220px,1.6fr) 1fr .8fr 100px 100px 80px 90px 40px;gap:8px;padding:8px 16px;border-bottom:1px solid var(--border2);background:var(--surface2);font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text3)">
+          <span>Part</span><span>Category</span><span>Brand</span><span style="text-align:right">Cost</span><span style="text-align:right">Selling</span><span style="text-align:right">Min Stock</span><span>Status</span><span></span>
+        </div>
+        
+          <div style="display:grid;grid-template-columns:minmax(220px,1.6fr) 1fr .8fr 100px 100px 80px 90px 40px;gap:8px;align-items:center;padding:11px 16px;border-bottom:1px solid var(--border2);font-size:13px;cursor:pointer" style-hover="background:var(--surface2)">
+            <div style="display:flex;align-items:center;gap:11px;min-width:0">
+              <div style="width:32px;height:32px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);display:grid;place-items:center;font-size:12px;font-weight:600;color:var(--text2);flex-shrink:0">C</div>
+              <div style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                <span style="font-weight:550;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Cluster Plate</span>
+                <span style="font-size:11px;color:var(--text3)">SKU049 · PN: SKU049</span>
+              </div>
+            </div>
+            <span style="color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Transmission</span>
+            <span style="color:var(--text2)">Mak Tata</span>
+            <span style="text-align:right;font-variant-numeric:tabular-nums;color:var(--text2)">৳ 0.00</span>
+            <span style="text-align:right;font-variant-numeric:tabular-nums;font-weight:550">৳ 0.00</span>
+            <span style="text-align:right;font-variant-numeric:tabular-nums;color:var(--text2)">0</span>
+            <span><span style="font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:99px;background:var(--green-bg);color:var(--green)">Active</span></span>
+            <button style="width:28px;height:28px;display:grid;place-items:center;background:none;border:none;border-radius:6px;cursor:pointer;font-size:15px;color:var(--text3)" style-hover="background:var(--border2);color:var(--text)">⋮</button>
+          </div>
+        
+
+          <div style="display:grid;grid-template-columns:minmax(220px,1.6fr) 1fr .8fr 100px 100px 80px 90px 40px;gap:8px;align-items:center;padding:11px 16px;border-bottom:1px solid var(--border2);font-size:13px;cursor:pointer" style-hover="background:var(--surface2)">
+            <div style="display:flex;align-items:center;gap:11px;min-width:0">
+              <div style="width:32px;height:32px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);display:grid;place-items:center;font-size:12px;font-weight:600;color:var(--text2);flex-shrink:0">D</div>
+              <div style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                <span style="font-weight:550;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Door Glass LH - Leyland 1616</span>
+                <span style="font-size:11px;color:var(--text3)">SKU048 · PN: SKU048</span>
+              </div>
+            </div>
+            <span style="color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Glass/Windsheild</span>
+            <span style="color:var(--text2)">XYG</span>
+            <span style="text-align:right;font-variant-numeric:tabular-nums;color:var(--text2)">৳ 0.00</span>
+            <span style="text-align:right;font-variant-numeric:tabular-nums;font-weight:550">৳ 0.00</span>
+            <span style="text-align:right;font-variant-numeric:tabular-nums;color:var(--text2)">0</span>
+            <span><span style="font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:99px;background:var(--green-bg);color:var(--green)">Active</span></span>
+            <button style="width:28px;height:28px;display:grid;place-items:center;background:none;border:none;border-radius:6px;cursor:pointer;font-size:15px;color:var(--text3)" style-hover="background:var(--border2);color:var(--text)">⋮</button>
+          </div>
+        
+
+          <div style="display:grid;grid-template-columns:minmax(220px,1.6fr) 1fr .8fr 100px 100px 80px 90px 40px;gap:8px;align-items:center;padding:11px 16px;border-bottom:1px solid var(--border2);font-size:13px;cursor:pointer" style-hover="background:var(--surface2)">
+            <div style="display:flex;align-items:center;gap:11px;min-width:0">
+              <div style="width:32px;height:32px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);display:grid;place-items:center;font-size:12px;font-weight:600;color:var(--text2);flex-shrink:0">F</div>
+              <div style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                <span style="font-weight:550;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Front Glass - Leyland / Dost</span>
+                <span style="font-size:11px;color:var(--text3)">SKU045 · PN: SKU045</span>
+              </div>
+            </div>
+            <span style="color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Glass/Windsheild</span>
+            <span style="color:var(--text2)">XYG</span>
+            <span style="text-align:right;font-variant-numeric:tabular-nums;color:var(--text2)">৳ 0.00</span>
+            <span style="text-align:right;font-variant-numeric:tabular-nums;font-weight:550">৳ 0.00</span>
+            <span style="text-align:right;font-variant-numeric:tabular-nums;color:var(--text2)">0</span>
+            <span><span style="font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:99px;background:var(--green-bg);color:var(--green)">Active</span></span>
+            <button style="width:28px;height:28px;display:grid;place-items:center;background:none;border:none;border-radius:6px;cursor:pointer;font-size:15px;color:var(--text3)" style-hover="background:var(--border2);color:var(--text)">⋮</button>
+          </div>
+        
+        </div>
+        </div>
+        <!-- pagination -->
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;flex-wrap:wrap">
+          <span style="font-size:12.5px;color:var(--text3)">Showing <b style="color:var(--text2)">1–10</b> of <b style="color:var(--text2)">49</b> parts</span>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:12.5px;color:var(--text3);margin-right:6px">Rows: 10 ▾</span>
+            <button style="width:30px;height:30px;display:grid;place-items:center;background:var(--surface);border:1px solid var(--border);border-radius:7px;cursor:pointer;font-size:12px;color:var(--text3)">‹</button>
+            <span style="min-width:30px;height:30px;display:grid;place-items:center;background:var(--accent);color:var(--accent-fg);border-radius:7px;font-size:12.5px;font-weight:600">1</span>
+            <button style="min-width:30px;height:30px;display:grid;place-items:center;background:var(--surface);border:1px solid var(--border);border-radius:7px;cursor:pointer;font-size:12.5px;color:var(--text2)" style-hover="background:var(--surface2)">2</button>
+            <button style="min-width:30px;height:30px;display:grid;place-items:center;background:var(--surface);border:1px solid var(--border);border-radius:7px;cursor:pointer;font-size:12.5px;color:var(--text2)" style-hover="background:var(--surface2)">3</button>
+            <span style="color:var(--text3);font-size:12px">…</span>
+            <button style="min-width:30px;height:30px;display:grid;place-items:center;background:var(--surface);border:1px solid var(--border);border-radius:7px;cursor:pointer;font-size:12.5px;color:var(--text2)" style-hover="background:var(--surface2)">5</button>
+            <button style="width:30px;height:30px;display:grid;place-items:center;background:var(--surface);border:1px solid var(--border);border-radius:7px;cursor:pointer;font-size:12px;color:var(--text2)" style-hover="background:var(--surface2)">›</button>
+          </div>
+        </div>
+      </div>
+    </main>
+</body>
+</html>

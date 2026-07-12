@@ -4,6 +4,6 @@ namespace AutoPartShop.Application.SaleOrders
 {
     public interface ISaleOrderReadRepository
     {
-       public Task<(IReadOnlyCollection<SaleOrderResponse> response, int totalCount)> FindAllQuery(SaleOrderQuery query, CancellationToken cancellationToken = default);
+        public Task<(IReadOnlyCollection<SaleOrderResponse> response, int totalCount)> FindAllQuery(SaleOrderQuery query, CancellationToken cancellationToken = default);
     }
 }

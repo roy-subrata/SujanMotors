@@ -20,26 +20,39 @@ public sealed class ApiError
 
     public static ApiError NotFound(string detail, string? instance = null) => new()
     {
-        Type = "NOT_FOUND", Title = "Resource not found",
-        Status = 404, Detail = detail, Instance = instance
+        Type = "NOT_FOUND",
+        Title = "Resource not found",
+        Status = 404,
+        Detail = detail,
+        Instance = instance
     };
 
     public static ApiError Validation(string detail, IDictionary<string, string[]>? errors = null, string? instance = null) => new()
     {
-        Type = "VALIDATION_ERROR", Title = "Validation failed",
-        Status = 400, Detail = detail, Errors = errors, Instance = instance
+        Type = "VALIDATION_ERROR",
+        Title = "Validation failed",
+        Status = 400,
+        Detail = detail,
+        Errors = errors,
+        Instance = instance
     };
 
     public static ApiError Unauthorized(string detail, string? instance = null) => new()
     {
-        Type = "UNAUTHORIZED", Title = "Authentication failed",
-        Status = 401, Detail = detail, Instance = instance
+        Type = "UNAUTHORIZED",
+        Title = "Authentication failed",
+        Status = 401,
+        Detail = detail,
+        Instance = instance
     };
 
     public static ApiError Conflict(string detail, string? instance = null) => new()
     {
-        Type = "CONFLICT", Title = "Conflict",
-        Status = 409, Detail = detail, Instance = instance
+        Type = "CONFLICT",
+        Title = "Conflict",
+        Status = 409,
+        Detail = detail,
+        Instance = instance
     };
 
     /// <summary>
@@ -49,20 +62,28 @@ public sealed class ApiError
     /// </summary>
     public static ApiError ConcurrencyConflict(string detail, string? instance = null) => new()
     {
-        Type = "CONCURRENCY_CONFLICT", Title = "Record changed by another user",
-        Status = 409, Detail = detail, Instance = instance
+        Type = "CONCURRENCY_CONFLICT",
+        Title = "Record changed by another user",
+        Status = 409,
+        Detail = detail,
+        Instance = instance
     };
 
     public static ApiError BusinessRule(string detail, string? instance = null) => new()
     {
-        Type = "BUSINESS_RULE_VIOLATION", Title = "Business rule violated",
-        Status = 422, Detail = detail, Instance = instance
+        Type = "BUSINESS_RULE_VIOLATION",
+        Title = "Business rule violated",
+        Status = 422,
+        Detail = detail,
+        Instance = instance
     };
 
     public static ApiError Internal(string? traceId = null) => new()
     {
-        Type = "INTERNAL_ERROR", Title = "An unexpected error occurred",
-        Status = 500, Detail = "An internal server error occurred. Please try again later.",
+        Type = "INTERNAL_ERROR",
+        Title = "An unexpected error occurred",
+        Status = 500,
+        Detail = "An internal server error occurred. Please try again later.",
         TraceId = traceId
     };
 }

@@ -12,8 +12,10 @@ import { ToastModule } from 'primeng/toast';
 import { InputTextModule } from 'primeng/inputtext';
 import { CheckboxModule } from 'primeng/checkbox';
 import QRCode from 'qrcode';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { BarcodeService, BarcodeType } from '../../services/barcode.service';
-import { PartResponse } from '../../services/part.service';
+import { PartResponse, PartService, VehicleCompatibilityResponse } from '../../services/part.service';
 import {
     LABEL_CSS,
     LABEL_SIZE_PRESETS,
@@ -55,6 +57,7 @@ const LABEL_STYLE_ELEMENT_ID = 'apl-label-styles';
 })
 export class BarcodeDialogComponent implements OnInit {
     private readonly barcodeService = inject(BarcodeService);
+    private readonly partService = inject(PartService);
     private readonly messageService = inject(MessageService);
     private readonly dialogRef = inject(DynamicDialogRef);
     private readonly dialogConfig = inject(DynamicDialogConfig);
@@ -88,6 +91,13 @@ export class BarcodeDialogComponent implements OnInit {
     layoutOptions = [
         { label: 'Classic (id rows)', value: 'classic' as LabelLayout },
         { label: 'Product (company + barcode)', value: 'combo' as LabelLayout },
+    ];
+
+    /** Combo sub-design (manual choice; only relevant when layout = combo). */
+    selectedComboDesign: 'spotlight' | 'detailed' = 'spotlight';
+    comboDesignOptions = [
+        { label: 'Spotlight (big name)', value: 'spotlight' as const },
+        { label: 'Detailed (more fields)', value: 'detailed' as const },
     ];
 
     // Barcode value source
@@ -150,6 +160,61 @@ export class BarcodeDialogComponent implements OnInit {
         this.initializeLabelFields();
         this.applySizeDefaults(this.selectedLayout === 'combo' ? 'large' : 'standard');
         void this.generateBarcode(this.selectedBarcodeType);
+
+        // Receiving/reprint labels carry no brand/category/MRP/compatibility — pull them
+        // from the catalog so the label can show the full product context.
+        this.enrichFromPart();
+    }
+
+    /**
+     * Fill in catalog-only fields (brand, category, MRP, part#, OEM, vehicle
+     * compatibility) from the Part master when the source row didn't carry them.
+     * Best-effort: failures leave the label as-is.
+     */
+    private enrichFromPart(): void {
+        const d = this.data;
+        if (!d?.partId) return;
+
+        // Only fetch what's missing (Parts-catalog source already has most of it).
+        const needsPart = !d.brand || !d.category || d.price == null
+            || !d.partNumber || !d.oemNumber;
+
+        forkJoin({
+            part: needsPart
+                ? this.partService.getPartById(d.partId).pipe(catchError(() => of(null)))
+                : of(null),
+            compat: this.partService.getPartCompatibleVehicles(d.partId)
+                .pipe(catchError(() => of([] as VehicleCompatibilityResponse[]))),
+        }).subscribe(({ part, compat }) => {
+            if (!this.data) return;
+            if (part) {
+                this.data.brand ??= part.brandName ?? undefined;
+                this.data.category ||= part.categoryName;
+                this.data.partNumber ||= part.partNumber;
+                this.data.oemNumber ??= part.oemNumber ?? undefined;
+                if (this.data.price == null) this.data.price = part.sellingPrice ?? null;
+            }
+            const summary = this.summarizeCompatibility(compat);
+            if (summary) this.data.compatibility = summary;
+
+            // Re-derive the field list (values + default visibility) and repaint.
+            this.initializeLabelFields();
+            this.applySizeDefaults(this.selectedSize);
+            this.rebuildLabel();
+        });
+    }
+
+    /** "Honda Civic, Toyota Corolla +3" from the compatible-vehicle list. */
+    private summarizeCompatibility(list: VehicleCompatibilityResponse[]): string {
+        const names = (list ?? [])
+            .filter(v => v.isCompatible !== false)
+            .map(v => `${v.vehicleMake ?? ''} ${v.vehicleModel ?? ''}`.trim())
+            .filter(Boolean);
+        const unique = Array.from(new Set(names));
+        if (unique.length === 0) return '';
+        const shown = unique.slice(0, 2);
+        const extra = unique.length - shown.length;
+        return extra > 0 ? `${shown.join(', ')} +${extra}` : shown.join(', ');
     }
 
     /** Switch label style (classic/combo) and regenerate. */
@@ -157,6 +222,11 @@ export class BarcodeDialogComponent implements OnInit {
         this.selectedLayout = layout;
         this.applySizeDefaults(layout === 'combo' ? 'large' : this.selectedSize);
         void this.generateBarcode(this.selectedBarcodeType);
+    }
+
+    /** Switch combo sub-design (spotlight/detailed) and repaint. */
+    onComboDesignChange(): void {
+        this.rebuildLabel();
     }
 
     /** Inject the canonical label CSS into <head> once (preview = print). */
@@ -181,6 +251,8 @@ export class BarcodeDialogComponent implements OnInit {
             { key: 'categoryName', label: 'Category', value: d.category || '', visible: true },
             { key: 'brandName', label: 'Brand', value: d.brand || '', visible: true },
             { key: 'name', label: 'Name', value: d.name || '', visible: true },
+            { key: 'localName', label: 'Local Name', value: d.localName || '', visible: !!d.localName },
+            { key: 'compatibility', label: 'Fits', value: d.compatibility || '', visible: !!d.compatibility },
             { key: 'sku', label: 'SKU', value: d.sku || '', visible: true },
             { key: 'partNumber', label: 'Part #', value: d.partNumber || '', visible: !!d.partNumber },
             { key: 'oemNumber', label: 'OEM #', value: d.oemNumber || '', visible: !!d.oemNumber },
@@ -289,10 +361,13 @@ export class BarcodeDialogComponent implements OnInit {
             isQr: this.selectedBarcodeType === 'qrcode',
             barcodeSvg: this.barcodeSvg,
             barcodeValue: this.barcodeValue,
+            comboDesign: this.selectedComboDesign,
             companyName: this.companyName,
             category: this.getFieldValue('categoryName'),
             brand: this.getFieldValue('brandName'),
+            compatibility: this.getFieldValue('compatibility'),
             name: this.getFieldValue('name'),
+            localName: this.getFieldValue('localName'),
             sku: this.getFieldValue('sku'),
             partNumber: this.getFieldValue('partNumber'),
             oemNumber: this.getFieldValue('oemNumber'),
@@ -392,11 +467,19 @@ export class BarcodeDialogComponent implements OnInit {
         this.widthMm = preset.widthMm;
         this.heightMm = preset.heightMm;
 
-        // The combo (retail) layout uses a slim, fixed field set so the company
-        // header + fields + barcode fit the label; the classic layout keys off
-        // the size preset. Extra fields can still be toggled on manually.
+        // The combo (retail) layout shows the product context (name big, brand,
+        // category, compatibility, MRP) and trims by size so it still fits the
+        // stock. SKU is off by default — it already prints under the barcode.
+        // Extra fields (incl. SKU) can still be toggled on manually.
+        const comboDefaultsBySize: Record<LabelSizeKey, string[]> = {
+            large: ['name', 'brandName', 'categoryName', 'compatibility', 'batchNumber', 'mfgDate', 'expiryDate', 'sellingPrice'],
+            standard: ['name', 'brandName', 'batchNumber', 'mfgDate', 'expiryDate', 'sellingPrice'],
+            compact: ['name', 'batchNumber', 'expiryDate', 'sellingPrice'],
+            tiny: ['name', 'sellingPrice'],
+            custom: ['name', 'brandName', 'categoryName', 'compatibility', 'batchNumber', 'mfgDate', 'expiryDate', 'sellingPrice'],
+        };
         const defaults = this.selectedLayout === 'combo'
-            ? ['name', 'sku', 'batchNumber', 'mfgDate', 'expiryDate', 'sellingPrice']
+            ? comboDefaultsBySize[size]
             : DEFAULT_FIELDS_BY_SIZE[size];
         this.labelFields.forEach(f => {
             // Never show a field that has no value, even if the size would include it.

@@ -111,6 +111,9 @@ public class PurchaseReturn : AuditableEntity
 
     public void IssueCreditNote(decimal creditAmount)
     {
+        if (Status is not ("RETURNED" or "RECEIVED"))
+            throw new InvalidOperationException($"Credit notes can only be issued for RETURNED or RECEIVED purchase returns. Current status: {Status}");
+
         if (creditAmount <= 0)
             throw new ArgumentException("Credit amount must be greater than 0", nameof(creditAmount));
 
@@ -131,6 +134,9 @@ public class PurchaseReturn : AuditableEntity
 
     public void Reject(string reason = "")
     {
+        if (Status is "RETURNED" or "RECEIVED" or "CREDITED")
+            throw new InvalidOperationException($"Cannot reject a {Status} return — stock has already been moved back to the supplier. Create a new Goods Receipt to receive the goods back into stock.");
+
         Status = "REJECTED";
         Notes = reason?.Trim() ?? string.Empty;
     }

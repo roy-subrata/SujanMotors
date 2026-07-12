@@ -85,8 +85,8 @@ public class PurchaseOrder : AuditableEntity
 
     public void Cancel()
     {
-        if (Status is "DELIVERED" or "CANCELLED")
-            throw new InvalidOperationException($"Cannot cancel a {Status} PO");
+        if (Status is "DELIVERED" or "CANCELLED" or "PARTIAL")
+            throw new InvalidOperationException($"Cannot cancel a {Status} PO. A PARTIAL order has accepted goods receipts — create a purchase return first.");
 
         Status = "CANCELLED";
     }
@@ -171,7 +171,7 @@ public class PurchaseOrder : AuditableEntity
             throw new InvalidOperationException("Credit amount exceeds outstanding amount");
 
         CreditAppliedAmount += amount;
-        
+
         // Update payment status based on total payments + credits
         var totalApplied = PaidAmount + CreditAppliedAmount;
         PaymentStatus = totalApplied >= TotalAmount ? "PAID" : "PARTIAL";
@@ -179,6 +179,9 @@ public class PurchaseOrder : AuditableEntity
 
     public void MarkAsDelivered(DateTime? deliveryDate = null)
     {
+        if (Status is not ("CONFIRMED" or "PARTIAL"))
+            throw new InvalidOperationException($"Only CONFIRMED or PARTIAL purchase orders can be marked as delivered. Current: {Status}");
+
         Status = "DELIVERED";
         ActualDeliveryDate = deliveryDate ?? DateTime.UtcNow;
     }

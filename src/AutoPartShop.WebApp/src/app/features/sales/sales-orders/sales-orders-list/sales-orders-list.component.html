@@ -13,7 +13,6 @@
   <app-page-header
     title="Sales Orders"
     subtitle="Manage and track all customer sales orders"
-    [breadcrumb]="[{ label: 'Sales', link: '/sales/sales-orders' }, { label: 'Sales Orders' }]"
     [count]="totalRecords" countLabel="orders" countIcon="pi pi-shopping-cart">
     <ng-container actions>
       <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="refreshData()">
@@ -139,7 +138,6 @@
 
             <td class="col-customer">
               <div class="cell-media">
-                <div class="customer-avatar">{{ (order.customerName || 'W')[0].toUpperCase() }}</div>
                 <div class="customer-info">
                   <span class="customer-name">{{ order.customerName || 'Walk-in Customer' }}</span>
                   <span *ngIf="order.customerPhone" class="customer-phone">{{ order.customerPhone }}</span>
@@ -263,7 +261,6 @@
 
         <div class="card-body">
           <div class="card-customer">
-            <div class="customer-avatar small">{{ (order.customerName || 'W')[0].toUpperCase() }}</div>
             <span class="customer-name">{{ order.customerName || 'Walk-in Customer' }}</span>
           </div>
           <div class="card-dates">

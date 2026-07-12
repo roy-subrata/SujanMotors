@@ -2,7 +2,7 @@
 
 namespace AutoPartShop.Application.Technecians.Dtos
 {
-    public class TechnecianQuery:BaseQuery
+    public class TechnecianQuery : BaseQuery
     {
 
     }

@@ -1,9 +1,10 @@
-using AutoPartShop.Api.Common;
+﻿using AutoPartShop.Api.Common;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.VariantPricingDtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
 using AutoPartShop.Infrastructure.Data;
+using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -12,12 +13,12 @@ namespace AutoPartShop.Api.Controllers;
 
 /// <summary>
 /// Manages the price schedule for a product (or a specific variant of it).
-/// Price history/audit is in AuditLog — these endpoints handle time-based scheduled prices only.
+/// Price history/audit is in AuditLog â€” these endpoints handle time-based scheduled prices only.
 /// Leave variantId null to target the base product price.
 /// </summary>
 [ApiController]
 [Route("api/v1/products/{productId:guid}/price-schedule")]
-[Authorize]
+[HasPermission(Permissions.InventoryView)]
 [Produces("application/json")]
 public class VariantPricingController : ControllerBase
 {
@@ -80,16 +81,17 @@ public class VariantPricingController : ControllerBase
     /// Use variantId=null to set the base product price.
     /// </summary>
     [HttpPost]
+    [HasPermission(Permissions.InventoryEdit)]
     public async Task<ActionResult<VariantPriceResponse>> SetPrice(
         Guid productId, [FromQuery] Guid? variantId, [FromBody] SetVariantPriceRequest request, CancellationToken cancellationToken)
     {
         var currency = request.Currency?.Trim().ToUpperInvariant() ?? "BDT";
-        var user     = _currentUserService.GetCurrentUsername();
-        var today    = DateTime.UtcNow.Date;
+        var user = _currentUserService.GetCurrentUsername();
+        var today = DateTime.UtcNow.Date;
 
         var newPrice = ProductVariantPriceHistory.Create(
             productId, request.SellingPrice, request.StartDate, variantId, currency, request.Reason);
-        newPrice.CreatedBy  = user;
+        newPrice.CreatedBy = user;
         newPrice.ModifiedBy = user;
 
         var strategy = _db.Database.CreateExecutionStrategy();

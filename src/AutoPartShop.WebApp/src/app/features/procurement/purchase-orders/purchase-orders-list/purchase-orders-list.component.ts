@@ -12,6 +12,7 @@ import { ApplyAdvanceCreditDialogComponent } from '../apply-advance-credit/apply
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { I18nService } from '@/shared/services/i18n.service';
 import { AuthService } from '../../../../shared/services/auth.service';
+import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 
 @Component({
   selector: 'app-purchase-orders-list',
@@ -21,7 +22,8 @@ import { AuthService } from '../../../../shared/services/auth.service';
     ContextMenuModule,
     ConfirmDialogModule,
     TooltipModule,
-    RouterModule
+    RouterModule,
+    DataPaginationComponent
   ],
   providers: [ConfirmationService, MessageService, DialogService],
   templateUrl: './purchase-orders-list.component.html',
@@ -171,10 +173,8 @@ export class PurchaseOrdersListComponent implements OnInit {
     this.pageChange.emit({ page, rows: this.rows });
   }
 
-  onPageSizeChange(event: Event): void {
-    const select = event.target as HTMLSelectElement;
-    const newRows = parseInt(select.value, 10);
-    this.pageChange.emit({ page: 1, rows: newRows });
+  onPageSizeChange(size: number): void {
+    this.pageChange.emit({ page: 1, rows: size });
   }
 
   onPageChange(event: any): void {

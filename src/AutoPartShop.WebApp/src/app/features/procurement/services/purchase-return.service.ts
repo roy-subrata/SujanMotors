@@ -8,6 +8,7 @@ export interface PurchaseReturnLineResponse {
   id: string;
   partId: string;
   partName?: string;
+  partLocalName?: string | null;
   partSku?: string;
   variantName?: string | null;
   displayName?: string;

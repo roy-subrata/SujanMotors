@@ -19,11 +19,14 @@ public class PurchaseOrderRepository(AutoPartDbContext _db) : IPurchaseOrderRepo
     }
     public async Task<PurchaseOrder?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
+        // Tracking (no AsNoTracking) is intentional: EF's identity map ensures the same object
+        // instance is returned if the PO was already loaded as a navigation property on another
+        // entity (e.g. GoodsReceipt.PurchaseOrder). This prevents "already being tracked" errors
+        // in UpdateAsync when the same PO arrives via two different load paths in the same request.
         return await _db.PurchaseOrders
             .Include(p => p.LineItems)
             .Include(p => p.GoodsReceipts)
                 .ThenInclude(gr => gr.LineItems)
-            .AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == id && !x.Isdeleted, cancellationToken);
     }
     public async Task AddAsync(PurchaseOrder entity, CancellationToken cancellationToken = default)
@@ -33,6 +36,14 @@ public class PurchaseOrderRepository(AutoPartDbContext _db) : IPurchaseOrderRepo
     }
     public async Task UpdateAsync(PurchaseOrder entity, CancellationToken cancellationToken = default)
     {
+        // Safety net: if a different instance with the same key is already tracked (e.g. loaded via
+        // a navigation property include on another entity), detach it before attaching the updated one.
+        // With GetByIdAsync now using tracking queries this normally resolves via the identity map
+        // (same instance), but the guard is kept for any code path that might still pass a detached PO.
+        var stale = _db.Set<PurchaseOrder>().Local.FirstOrDefault(e => e.Id == entity.Id);
+        if (stale != null && !ReferenceEquals(stale, entity))
+            _db.Entry(stale).State = EntityState.Detached;
+
         // Get existing line item IDs from database
         var existingLineItemIds = await _db.Set<PurchaseOrderLine>()
             .Where(l => l.PurchaseOrderId == entity.Id)

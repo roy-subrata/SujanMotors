@@ -19,7 +19,6 @@
 
       <ng-template #header>
         <tr>
-          <th class="col-logo">Logo</th>
           <th class="col-name">Name</th>
           <th class="col-country">Country</th>
           <th class="col-website">Website</th>
@@ -32,17 +31,6 @@
 
       <ng-template #body let-brand>
         <tr class="data-row">
-
-          <!-- Logo -->
-          <td class="col-logo">
-            <div class="brand-logo-cell">
-              <img *ngIf="brand.logoUrl" [src]="brand.logoUrl" [alt]="brand.name" class="brand-logo-img"
-                   (error)="brand.logoUrl = null" />
-              <div *ngIf="!brand.logoUrl" class="customer-avatar">
-                {{ (brand.name || 'B')[0].toUpperCase() }}
-              </div>
-            </div>
-          </td>
 
           <!-- Name + description -->
           <td class="col-name">
@@ -100,7 +88,7 @@
 
       <ng-template #emptymessage>
         <tr>
-          <td colspan="9">
+          <td colspan="8">
             <div class="empty-state">
               <div class="empty-icon"><i class="pi pi-tags"></i></div>
               <h3>No Brands Found</h3>
@@ -112,7 +100,6 @@
 
       <ng-template #loadingbody>
         <tr *ngFor="let _ of [1,2,3,4,5,6,7,8]" class="skeleton-row">
-          <td><div class="skeleton skeleton-avatar"></div></td>
           <td><div class="skeleton skeleton-text"></div></td>
           <td><div class="skeleton skeleton-text-sm"></div></td>
           <td><div class="skeleton skeleton-text-sm"></div></td>
@@ -154,7 +141,6 @@
       <div class="card-header">
         <div class="card-logo-name">
           <img *ngIf="brand.logoUrl" [src]="brand.logoUrl" [alt]="brand.name" class="card-logo-img" />
-          <div *ngIf="!brand.logoUrl" class="customer-avatar small">{{ (brand.name || 'B')[0].toUpperCase() }}</div>
           <span class="card-so-number">{{ brand.name }}</span>
         </div>
         <span class="status-pill" [attr.data-status]="brand.isActive ? 'active' : 'inactive'">

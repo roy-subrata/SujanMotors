@@ -5,26 +5,13 @@
 <p-toast position="top-right"></p-toast>
 <p-confirmDialog></p-confirmDialog>
 
-<div class="page-wrapper">
+<app-page-container>
   <!-- ==================== PAGE HEADER ==================== -->
-  <header class="page-header">
-    <div class="header-content">
-      <div class="header-left">
-        <h1 class="page-title">Units</h1>
-        <p class="page-subtitle">Manage measurement units and conversions</p>
-      </div>
-
-      <div class="header-actions">
-        <div class="stats-badge">
-          <i class="pi pi-th-large"></i>
-          <div class="stats-info">
-            <span class="stats-value">{{ unitsTotalRecords }}</span>
-            <span class="stats-label">units</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </header>
+  <app-page-header
+    title="Units"
+    subtitle="Manage measurement units and conversions"
+    [count]="unitsTotalRecords" countLabel="units">
+  </app-page-header>
 
   <p-tabs value="0">
     <p-tablist>
@@ -35,47 +22,45 @@
     <p-tabpanels>
       <!-- Units Tab -->
       <p-tabpanel value="0" header="Units" leftIcon="pi pi-th">
-        <section class="filter-section">
-          <div class="filter-container">
-            <div class="filter-group search-group">
-              <div class="search-input-wrapper">
-                <i class="pi pi-search"></i>
-                <input
-                  type="text"
-                  [(ngModel)]="searchTerm"
-                  placeholder="Search by name, code, or symbol..."
-                  (keyup.enter)="onSearch(searchTerm)"
-                  class="search-input" />
-                <button *ngIf="searchTerm" class="search-clear" (click)="clearUnitsSearch()">
-                  <i class="pi pi-times"></i>
-                </button>
-              </div>
-            </div>
-
-            <div class="filter-group filter-actions">
-              <button class="btn-search" (click)="onSearch(searchTerm)">
-                <i class="pi pi-search"></i>
-                Search
-              </button>
-              <button *ngIf="hasUnitsFilters()" class="btn-clear" (click)="clearUnitsSearch()">
-                <i class="pi pi-filter-slash"></i>
-                Clear
-              </button>
-              <button class="btn-primary" (click)="onNewUnitClick()">
-                <i class="pi pi-plus"></i>
-                <span>New Unit</span>
+        <app-filter-bar>
+          <div search class="filter-group search-group">
+            <div class="search-input-wrapper">
+              <i class="pi pi-search"></i>
+              <input
+                type="text"
+                [(ngModel)]="searchTerm"
+                placeholder="Search by name, code, or symbol..."
+                (keyup.enter)="onSearch(searchTerm)"
+                class="search-input" />
+              <button *ngIf="searchTerm" class="search-clear" (click)="clearUnitsSearch()">
+                <i class="pi pi-times"></i>
               </button>
             </div>
           </div>
 
-          <div *ngIf="hasUnitsFilters()" class="active-filters">
+          <div filterActions class="filter-group filter-actions">
+            <button class="btn-search" (click)="onSearch(searchTerm)">
+              <i class="pi pi-search"></i>
+              Search
+            </button>
+            <button *ngIf="hasUnitsFilters()" class="btn-clear" (click)="clearUnitsSearch()">
+              <i class="pi pi-filter-slash"></i>
+              Clear
+            </button>
+            <button class="btn-primary" (click)="onNewUnitClick()">
+              <i class="pi pi-plus"></i>
+              <span>New Unit</span>
+            </button>
+          </div>
+
+          <div activeFilters *ngIf="hasUnitsFilters()" class="active-filters">
             <span class="active-filters-label">Active filters:</span>
             <span class="filter-chip">
               Search: "{{ searchTerm }}"
               <i class="pi pi-times" (click)="clearUnitsSearch()"></i>
             </span>
           </div>
-        </section>
+        </app-filter-bar>
 
         <app-units-list
           (editUnit)="selectAndOpenUpdate($event)"
@@ -96,47 +81,45 @@
 
       <!-- Conversions Tab -->
       <p-tabpanel value="1" header="Conversions" leftIcon="pi pi-arrows-h">
-        <section class="filter-section">
-          <div class="filter-container">
-            <div class="filter-group search-group">
-              <div class="search-input-wrapper">
-                <i class="pi pi-search"></i>
-                <input
-                  type="text"
-                  [(ngModel)]="conversionSearchTerm"
-                  placeholder="Search by unit names or codes..."
-                  (keyup.enter)="onConversionSearch(conversionSearchTerm)"
-                  class="search-input" />
-                <button *ngIf="conversionSearchTerm" class="search-clear" (click)="clearConversionSearch()">
-                  <i class="pi pi-times"></i>
-                </button>
-              </div>
-            </div>
-
-            <div class="filter-group filter-actions">
-              <button class="btn-search" (click)="onConversionSearch(conversionSearchTerm)">
-                <i class="pi pi-search"></i>
-                Search
-              </button>
-              <button *ngIf="hasConversionFilters()" class="btn-clear" (click)="clearConversionSearch()">
-                <i class="pi pi-filter-slash"></i>
-                Clear
-              </button>
-              <button class="btn-primary" (click)="onNewConversionClick()">
-                <i class="pi pi-plus"></i>
-                <span>New Conversion</span>
+        <app-filter-bar>
+          <div search class="filter-group search-group">
+            <div class="search-input-wrapper">
+              <i class="pi pi-search"></i>
+              <input
+                type="text"
+                [(ngModel)]="conversionSearchTerm"
+                placeholder="Search by unit names or codes..."
+                (keyup.enter)="onConversionSearch(conversionSearchTerm)"
+                class="search-input" />
+              <button *ngIf="conversionSearchTerm" class="search-clear" (click)="clearConversionSearch()">
+                <i class="pi pi-times"></i>
               </button>
             </div>
           </div>
 
-          <div *ngIf="hasConversionFilters()" class="active-filters">
+          <div filterActions class="filter-group filter-actions">
+            <button class="btn-search" (click)="onConversionSearch(conversionSearchTerm)">
+              <i class="pi pi-search"></i>
+              Search
+            </button>
+            <button *ngIf="hasConversionFilters()" class="btn-clear" (click)="clearConversionSearch()">
+              <i class="pi pi-filter-slash"></i>
+              Clear
+            </button>
+            <button class="btn-primary" (click)="onNewConversionClick()">
+              <i class="pi pi-plus"></i>
+              <span>New Conversion</span>
+            </button>
+          </div>
+
+          <div activeFilters *ngIf="hasConversionFilters()" class="active-filters">
             <span class="active-filters-label">Active filters:</span>
             <span class="filter-chip">
               Search: "{{ conversionSearchTerm }}"
               <i class="pi pi-times" (click)="clearConversionSearch()"></i>
             </span>
           </div>
-        </section>
+        </app-filter-bar>
 
         <app-conversions-list
           (editConversion)="selectAndOpenConversionUpdate($event)"
@@ -157,4 +140,4 @@
       </p-tabpanel>
     </p-tabpanels>
   </p-tabs>
-</div>
+</app-page-container>

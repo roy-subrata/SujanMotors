@@ -20,7 +20,7 @@
       [rowHover]="true"
       [scrollable]="true"
       scrollHeight="flex"
-      styleClass="custom-table">
+      styleClass="app-table">
 
       <ng-template #header>
         <tr>
@@ -37,9 +37,6 @@
         <tr class="data-row">
           <td class="col-name">
             <div class="customer-cell">
-              <div class="customer-avatar">
-                {{ (warehouse.name || 'W')[0].toUpperCase() }}
-              </div>
               <div class="customer-info">
                 <span class="customer-name">{{ warehouse.name }}</span>
                 <span *ngIf="warehouse.code" class="customer-phone">{{ warehouse.code }}</span>
@@ -101,37 +98,17 @@
       </ng-template>
     </p-table>
   </div>
-
-  <div class="pagination-section" *ngIf="totalRecords > 0">
-    <div class="pagination-info">
-      Showing <strong>{{ first + 1 }}</strong> to <strong>{{ first + warehouses.length }}</strong> of <strong>{{ totalRecords }}</strong> warehouses
-    </div>
-    <div class="pagination-controls">
-      <span class="page-size-label">Rows per page:</span>
-      <p-select
-        [options]="[{label: '10', value: 10}, {label: '20', value: 20}, {label: '50', value: 50}]"
-        [(ngModel)]="pageSize"
-        (onChange)="onPageChange({first: 0, rows: pageSize})"
-        styleClass="page-size-dropdown">
-      </p-select>
-      <div class="page-nav">
-        <button class="page-btn" [disabled]="first === 0" (click)="onPageChange({first: 0, rows: pageSize})">
-          <i class="pi pi-angle-double-left"></i>
-        </button>
-        <button class="page-btn" [disabled]="first === 0" (click)="onPageChange({first: first - pageSize, rows: pageSize})">
-          <i class="pi pi-angle-left"></i>
-        </button>
-        <span class="page-indicator">{{ pageNumber }} / {{ totalPages }}</span>
-        <button class="page-btn" [disabled]="first + pageSize >= totalRecords" (click)="onPageChange({first: first + pageSize, rows: pageSize})">
-          <i class="pi pi-angle-right"></i>
-        </button>
-        <button class="page-btn" [disabled]="first + pageSize >= totalRecords" (click)="onPageChange({first: (totalPages - 1) * pageSize, rows: pageSize})">
-          <i class="pi pi-angle-double-right"></i>
-        </button>
-      </div>
-    </div>
-  </div>
 </section>
+
+<!-- ==================== PAGINATION (desktop + mobile) ==================== -->
+<app-data-pagination
+  [first]="first"
+  [pageSize]="rows"
+  [totalRecords]="totalRecords"
+  itemLabel="warehouses"
+  (pageChange)="goToPage($event)"
+  (pageSizeChange)="onPageSizeChange($event)">
+</app-data-pagination>
 
 <!-- ==================== MOBILE CARDS ==================== -->
 <section class="cards-section mobile-only">
@@ -171,9 +148,6 @@
 
       <div class="card-body">
         <div class="card-customer">
-          <div class="customer-avatar small">
-            {{ (warehouse.name || 'W')[0].toUpperCase() }}
-          </div>
           <span class="customer-name">{{ warehouse.location || '-' }}</span>
         </div>
         <div class="card-dates">
@@ -197,20 +171,6 @@
           <i class="pi pi-ellipsis-h"></i>
         </button>
       </div>
-    </div>
-  </div>
-
-  <div *ngIf="!loading && warehouses.length > 0" class="mobile-pagination">
-    <div class="pagination-info-mobile">
-      {{ first + 1 }}-{{ first + warehouses.length }} of {{ totalRecords }}
-    </div>
-    <div class="pagination-nav-mobile">
-      <button class="page-btn" [disabled]="first === 0" (click)="onPageChange({first: first - pageSize, rows: pageSize})">
-        <i class="pi pi-chevron-left"></i>
-      </button>
-      <button class="page-btn" [disabled]="first + pageSize >= totalRecords" (click)="onPageChange({first: first + pageSize, rows: pageSize})">
-        <i class="pi pi-chevron-right"></i>
-      </button>
     </div>
   </div>
 </section>

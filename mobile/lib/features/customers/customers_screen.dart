@@ -1,10 +1,13 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 
+import '../../core/theme/app_theme.dart';
 import '../../shared/format.dart';
 import '../../shared/models/customer.dart';
 import '../../shared/widgets/app_scaffold.dart';
+import '../../shared/widgets/design_system.dart';
 import '../../shared/widgets/state_views.dart';
 import 'customers_providers.dart';
 
@@ -18,6 +21,7 @@ class CustomersScreen extends ConsumerStatefulWidget {
 class _CustomersScreenState extends ConsumerState<CustomersScreen> {
   final _searchCtrl = TextEditingController();
   final _scrollCtrl = ScrollController();
+  int _filterIndex = 0;
 
   @override
   void initState() {
@@ -50,37 +54,54 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
 
     return AppScaffold(
       title: 'Customers',
+      showBottomNav: true,
+      showNotificationBell: true,
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {},
+        backgroundColor: AppColors.ink,
+        foregroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16)),
+        child: const Icon(Icons.add),
+      ),
       body: Column(
         children: [
+          // Search
           Padding(
-            padding: const EdgeInsets.all(12),
-            child: TextField(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: SearchInput(
               controller: _searchCtrl,
-              textInputAction: TextInputAction.search,
-              onSubmitted: controller.search,
-              decoration: InputDecoration(
-                hintText: 'Search name, phone or code',
-                prefixIcon: const Icon(Icons.search),
-                border: const OutlineInputBorder(),
-                suffixIcon: _searchCtrl.text.isEmpty
-                    ? null
-                    : IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () {
-                          _searchCtrl.clear();
-                          controller.search('');
-                        },
-                      ),
-              ),
+              hintText: 'Search name, phone or code...',
+              onChanged: controller.search,
             ),
           ),
+          const SizedBox(height: 10),
+
+          // Filter chips
+          FilterChipRow(
+            selected: _filterIndex,
+            onSelect: (i) => setState(() => _filterIndex = i),
+            chips: const [
+              FilterChipData(label: 'All'),
+              FilterChipData(
+                label: 'With due',
+                inactiveColor: AppColors.red,
+                inactiveBg: AppColors.redBg,
+                inactiveBorder: AppColors.redBorder,
+              ),
+              FilterChipData(label: 'Workshops'),
+            ],
+          ),
+          const SizedBox(height: 8),
+
           Expanded(child: _buildBody(state, controller)),
         ],
       ),
     );
   }
 
-  Widget _buildBody(CustomerListState state, CustomerListController controller) {
+  Widget _buildBody(
+      CustomerListState state, CustomerListController controller) {
     if (state.isLoading) return const LoadingView();
     if (state.error != null) {
       return ErrorView(
@@ -88,89 +109,126 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
         onRetry: () => controller.search(state.query),
       );
     }
-    if (state.isEmpty) {
+
+    final filtered = _filterIndex == 1
+        ? state.items.where((c) => c.hasDue).toList()
+        : state.items;
+
+    if (filtered.isEmpty && !state.isLoading) {
       return const EmptyView(
           message: 'No customers found.', icon: Icons.person_off_outlined);
     }
 
     return RefreshIndicator(
       onRefresh: controller.refresh,
-      child: ListView.separated(
+      child: ListView.builder(
         controller: _scrollCtrl,
-        itemCount: state.items.length + (state.hasMore ? 1 : 0),
-        separatorBuilder: (_, _) => const Divider(height: 1),
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 90),
+        itemCount: filtered.length + (state.hasMore ? 1 : 0),
         itemBuilder: (context, index) {
-          if (index >= state.items.length) {
+          if (index >= filtered.length) {
             return const Padding(
               padding: EdgeInsets.all(16),
               child: Center(child: CircularProgressIndicator()),
             );
           }
-          return _CustomerTile(customer: state.items[index]);
+          return _CustomerCard(customer: filtered[index]);
         },
       ),
     );
   }
 }
 
-class _CustomerTile extends StatelessWidget {
-  const _CustomerTile({required this.customer});
+// â”€â”€ Customer card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+class _CustomerCard extends StatelessWidget {
+  const _CustomerCard({required this.customer});
 
   final Customer customer;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final initial = customer.fullName.trim().isEmpty
-        ? '?'
-        : customer.fullName.trim().characters.first.toUpperCase();
-    final subtitle = [
-      if (customer.companyName != null && customer.companyName!.isNotEmpty)
-        customer.companyName!,
-      if (customer.phone != null && customer.phone!.isNotEmpty) customer.phone!,
-    ].join('  •  ');
+    final phone = customer.phone ?? '';
 
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      leading: CircleAvatar(
-        backgroundColor: scheme.primaryContainer,
-        child: Text(initial,
-            style: TextStyle(
-                color: scheme.onPrimaryContainer,
-                fontWeight: FontWeight.w600)),
-      ),
-      title: Text(customer.fullName,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontWeight: FontWeight.w600)),
-      subtitle: subtitle.isEmpty ? null : Text(subtitle),
-      trailing: customer.hasDue
-          ? _DueBadge(amount: customer.dueAmount)
-          : Icon(Icons.chevron_right, color: scheme.outline),
-      onTap: () => context.push('/customers/${customer.id}'),
-    );
-  }
-}
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(13),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(13),
+          onTap: () => context.push('/customers/${customer.id}'),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(13),
+              border: Border.all(color: Theme.of(context).colorScheme.outline),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              children: [
+                // Circular initials avatar
+                InitialsAvatar(name: customer.fullName, radius: 20),
+                const SizedBox(width: 12),
 
-class _DueBadge extends StatelessWidget {
-  const _DueBadge({required this.amount});
+                // Name + subtitle
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        customer.fullName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.instrumentSans(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w500
+                        ),
+                      ),
+                      if (phone.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          phone,
+                          style: GoogleFonts.instrumentSans(
+                            fontSize: 11.5
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
 
-  final double amount;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Text('Due', style: TextStyle(fontSize: 11, color: scheme.error)),
-        Text(
-          formatCurrency(amount),
-          style: TextStyle(fontWeight: FontWeight.w700, color: scheme.error),
+                // Due amount or chevron
+                if (customer.hasDue)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        formatCurrency(customer.dueAmount),
+                        style: GoogleFonts.instrumentSans(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.red,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Due',
+                        style: GoogleFonts.instrumentSans(
+                          fontSize: 10.5
+                        ),
+                      ),
+                    ],
+                  )
+                else
+                  const Icon(Icons.chevron_right,
+                      color: AppColors.disabled, size: 20),
+              ],
+            ),
+          ),
         ),
-      ],
+      ),
     );
   }
 }

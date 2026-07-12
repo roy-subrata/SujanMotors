@@ -5,7 +5,6 @@
   <app-page-header
     title="Payment Providers"
     subtitle="Manage payment methods and gateway configurations"
-    [breadcrumb]="[{ label: 'Procurement' }, { label: 'Payment Providers' }]"
     [count]="totalCount" countLabel="providers" countIcon="pi pi-credit-card">
     <ng-container actions>
       <button class="btn-primary" (click)="createNew()">
@@ -39,9 +38,9 @@
 
         <ng-template pTemplate="header">
           <tr>
-            <th pSortableColumn="providerName">Provider Name <p-sortIcon field="providerName"></p-sortIcon></th>
-            <th pSortableColumn="providerType">Type <p-sortIcon field="providerType"></p-sortIcon></th>
-            <th pSortableColumn="status">Status <p-sortIcon field="status"></p-sortIcon></th>
+            <th>Provider Name</th>
+            <th>Type</th>
+            <th>Status</th>
             <th>Account/Number</th>
             <th>Fee Type</th>
             <th>Settlement Days</th>

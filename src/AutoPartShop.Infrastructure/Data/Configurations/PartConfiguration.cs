@@ -5,6 +5,7 @@ using AutoPartShop.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 namespace AutoPartShop.Infrastructure.Data.Configurations;
+
 public class PartEntityConfiguration : IEntityTypeConfiguration<Product>
 {
     public void Configure(EntityTypeBuilder<Product> builder)
@@ -37,6 +38,10 @@ public class PartEntityConfiguration : IEntityTypeConfiguration<Product>
 
         builder.Property(p => p.OemNumber)
             .HasMaxLength(100)
+            .IsRequired(false);
+
+        builder.Property(p => p.LocalName)
+            .HasMaxLength(200)
             .IsRequired(false);
 
         builder.Property(p => p.CostPrice)

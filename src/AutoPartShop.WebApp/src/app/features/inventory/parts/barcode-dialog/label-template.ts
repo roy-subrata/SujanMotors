@@ -52,7 +52,13 @@ export interface LabelMarkupOptions {
     companyName: string;
     category: string;
     brand: string;
+    /** Compact vehicle-compatibility summary, e.g. "Honda Civic, Toyota Corolla +3". */
+    compatibility?: string;
+    /** Combo sub-design: name-led `spotlight` (default) or field-grid `detailed`. */
+    comboDesign?: 'spotlight' | 'detailed';
     name: string;
+    /** Local-language name shown below the catalog name. */
+    localName?: string;
     sku: string;
     partNumber: string;
     oemNumber: string;
@@ -96,7 +102,7 @@ export function buildLabelMarkup(o: LabelMarkupOptions): string {
            </div>`
         : '';
 
-    const nameRow = o.name ? `<div class="apl-name">${esc(o.name)}</div>` : '';
+    const nameRow = o.name ? `<div class="apl-name">${esc(o.name)}${o.localName ? `<span class="apl-localname"> · ${esc(o.localName)}</span>` : ''}</div>` : '';
 
     const ids = [
         idRow('SKU', o.sku),
@@ -138,40 +144,107 @@ function comboRow(label: string, value: string): string {
 }
 
 /**
- * Build the `combo` (retail/product) label: a company-name header, a
- * colon-aligned field column (incl. batch/mfg/expiry), and a full-width linear
- * barcode with its digits across the bottom.
+ * Auto-fit tier for the product name — bigger for short names, smaller for long
+ * ones, so the headline is as large as possible without clipping. Deterministic
+ * (length-based) so the preview and the print window agree without DOM measuring.
  */
+function nameTier(name: string): 'xl' | 'lg' | 'md' | 'sm' {
+    const len = (name ?? '').trim().length;
+    if (len <= 12) return 'xl';
+    if (len <= 22) return 'lg';
+    if (len <= 36) return 'md';
+    return 'sm';
+}
+
+/** Shared combo pieces (barcode block + MRP band). */
+function comboBarcode(o: LabelMarkupOptions): string {
+    if (!o.barcodeSvg) return '';
+    return `<div class="apl-c-barcode">
+             ${o.barcodeSvg}
+             ${o.barcodeValue ? `<div class="apl-barcode-text">${esc(o.barcodeValue)}</div>` : ''}
+           </div>`;
+}
+function comboPriceBand(o: LabelMarkupOptions): string {
+    return o.price
+        ? `<div class="apl-c-price"><span class="apl-mrp">M.R.P.</span><span class="apl-c-price-val">${esc(o.price)}</span></div>`
+        : '';
+}
+function comboName(o: LabelMarkupOptions): string {
+    return o.name
+        ? `<div class="apl-c-name apl-c-name--${nameTier(o.name)}">${esc(o.name)}</div>`
+        : '';
+}
+function comboCompany(o: LabelMarkupOptions): string {
+    return o.companyName ? `<div class="apl-c-company">${esc(o.companyName)}</div>` : '';
+}
+
+/** Dispatch to the chosen combo sub-design (default: spotlight). */
 function buildComboMarkup(o: LabelMarkupOptions): string {
-    const company = o.companyName
-        ? `<div class="apl-c-company">${esc(o.companyName)}</div>`
+    return o.comboDesign === 'detailed'
+        ? buildComboDetailed(o)
+        : buildComboSpotlight(o);
+}
+
+/**
+ * Spotlight — name-led: company → big auto-fit NAME → brand · category → "Fits"
+ * → optional SKU/lot rows → full-width barcode → M.R.P. band. Best when few fields.
+ */
+function buildComboSpotlight(o: LabelMarkupOptions): string {
+    const brandCat = [o.brand, o.category].filter(Boolean).map(esc).join(' &middot; ');
+    const brandCatLine = brandCat ? `<div class="apl-c-meta">${brandCat}</div>` : '';
+
+    const fitsLine = o.compatibility
+        ? `<div class="apl-c-fits"><span class="apl-c-fits-key">Fits:</span> ${esc(o.compatibility)}</div>`
         : '';
 
-    const fields = [
-        comboRow('Name', o.name),
-        comboRow('Brand', o.brand),
+    const detailRows = [
+        o.localName ? comboRow('Local', o.localName) : '',
         comboRow('SKU', o.sku),
-        comboRow('Part#', o.partNumber),
-        comboRow('Unit', o.unit),
         comboRow('Batch', o.batchNumber ?? ''),
         comboRow('Mfg', o.mfgDate ?? ''),
         comboRow('Expiry', o.expiryDate ?? ''),
-        comboRow('M.R.P.', o.price),
     ].join('');
+    const details = detailRows ? `<div class="apl-c-fields">${detailRows}</div>` : '';
 
-    const barcodeBlock = o.barcodeSvg
-        ? `<div class="apl-c-barcode">
-             ${o.barcodeSvg}
-             ${o.barcodeValue ? `<div class="apl-barcode-text">${esc(o.barcodeValue)}</div>` : ''}
-           </div>`
-        : '';
-
-    return `<div class="apl-label apl-combo apl-${o.sizeKey}" style="width:${o.widthMm}mm;height:${o.heightMm}mm">
-        ${company}
+    return `<div class="apl-label apl-combo apl-design-spotlight apl-${o.sizeKey}" style="width:${o.widthMm}mm;height:${o.heightMm}mm">
+        ${comboCompany(o)}
         <div class="apl-c-top">
-            <div class="apl-c-fields">${fields}</div>
+            ${comboName(o)}
+            ${brandCatLine}
+            ${fitsLine}
+            ${details}
         </div>
-        ${barcodeBlock}
+        ${comboBarcode(o)}
+        ${comboPriceBand(o)}
+    </div>`;
+}
+
+/**
+ * Detailed — field-grid: company → bold NAME → an aligned `key : value` grid
+ * (SKU, Brand, Category, Fits, Batch, Mfg, Expiry) → full-width barcode →
+ * M.R.P. band. Best when many fields need to line up neatly.
+ */
+function buildComboDetailed(o: LabelMarkupOptions): string {
+    const rows = [
+        o.localName ? comboRow('Local', o.localName) : '',
+        comboRow('SKU', o.sku),
+        comboRow('Brand', o.brand),
+        comboRow('Category', o.category),
+        comboRow('Fits', o.compatibility ?? ''),
+        comboRow('Batch', o.batchNumber ?? ''),
+        comboRow('Mfg', o.mfgDate ?? ''),
+        comboRow('Expiry', o.expiryDate ?? ''),
+    ].join('');
+    const fields = rows ? `<div class="apl-c-fields">${rows}</div>` : '';
+
+    return `<div class="apl-label apl-combo apl-design-detailed apl-${o.sizeKey}" style="width:${o.widthMm}mm;height:${o.heightMm}mm">
+        ${comboCompany(o)}
+        <div class="apl-c-top">
+            ${comboName(o)}
+            ${fields}
+        </div>
+        ${comboBarcode(o)}
+        ${comboPriceBand(o)}
     </div>`;
 }
 
@@ -228,6 +301,11 @@ export const LABEL_CSS = `
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
+}
+.apl-localname {
+    font-weight: 500;
+    font-style: italic;
+    font-size: 0.85em;
 }
 .apl-main {
     flex: 1;
@@ -321,15 +399,14 @@ export const LABEL_CSS = `
 .apl-custom .apl-name { font-size: 9pt; }
 .apl-custom .apl-price { font-size: 10pt; }
 
-/* ── Combo (retail/product) layout — company header + fields + barcode ── */
-.apl-combo { padding: 1.2mm 1.6mm; gap: 0.8mm; line-height: 1.05; justify-content: center; }
+/* ── Combo (retail/product) layout — name-led hierarchy + barcode + MRP band ── */
+.apl-combo { padding: 1.2mm 1.6mm; gap: 0.6mm; line-height: 1.1; justify-content: flex-start; }
 .apl-combo .apl-c-company {
-    font-weight: 800;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.2mm;
+    letter-spacing: 0.15mm;
     text-align: center;
-    border-bottom: 0.3mm solid #000;
-    padding-bottom: 0.4mm;
+    color: #333;
     flex-shrink: 0;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -337,20 +414,43 @@ export const LABEL_CSS = `
 }
 .apl-combo .apl-c-top {
     display: flex;
-    align-items: flex-start;
-    gap: 2mm;
-    flex: 0 1 auto;     /* size to content (no growth → no gap); shrink + clip if overfull */
+    flex-direction: column;
+    gap: 0.4mm;
+    flex: 0 1 auto;     /* size to content; shrink + clip if overfull */
     min-height: 0;
     overflow: hidden;
 }
+/* Product name — the headline of the label */
+.apl-combo .apl-c-name {
+    font-weight: 800;
+    line-height: 1.1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+.apl-combo .apl-c-meta {
+    font-weight: 600;
+    color: #333;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.apl-combo .apl-c-fits {
+    color: #222;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.apl-combo .apl-c-fits-key { font-weight: 700; }
 .apl-combo .apl-c-fields {
     display: grid;
     grid-template-columns: auto auto 1fr;
     align-content: start;
     column-gap: 0.6mm;
-    row-gap: 0.3mm;
+    row-gap: 0.2mm;
     min-width: 0;
-    flex: 1;
 }
 .apl-combo .apl-c-row { display: contents; }
 .apl-combo .apl-c-key { font-weight: 700; white-space: nowrap; }
@@ -379,27 +479,99 @@ export const LABEL_CSS = `
     margin-top: 0.3mm;
     width: 100%;
 }
+/* MRP band anchored to the bottom of the label */
+.apl-combo .apl-c-price {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 1mm;
+    flex-shrink: 0;
+    margin-top: 0.4mm;
+    padding-top: 0.5mm;
+    border-top: 0.3mm solid #000;
+    font-weight: 800;
+}
+.apl-combo .apl-c-price .apl-mrp { font-weight: 700; }
 
-/* Combo typography per stock size (kept small so content fits the stock) */
+/* ── Design alignment ── */
+/* Spotlight = centred, retail look; Detailed = left-aligned field grid. */
+.apl-combo.apl-design-spotlight .apl-c-top { align-items: center; text-align: center; }
+.apl-combo.apl-design-spotlight .apl-c-fields { justify-items: center; }
+.apl-combo.apl-design-detailed .apl-c-top { align-items: stretch; text-align: left; }
+
+/* Combo typography per stock size (shared); name sizes are tier × design below. */
 .apl-combo.apl-large { font-size: 8.5pt; }
-.apl-combo.apl-large .apl-c-company { font-size: 11pt; }
+.apl-combo.apl-large .apl-c-company { font-size: 9pt; }
+.apl-combo.apl-large .apl-c-meta { font-size: 9pt; }
+.apl-combo.apl-large .apl-c-fits { font-size: 8.5pt; }
+.apl-combo.apl-large .apl-c-price { font-size: 14pt; }
 .apl-combo.apl-large .apl-barcode-text { font-size: 9pt; }
-.apl-combo.apl-large .apl-c-barcode svg { max-height: 16mm; }
+.apl-combo.apl-large .apl-c-barcode svg { max-height: 15mm; }
+
 .apl-combo.apl-standard { font-size: 6pt; }
-.apl-combo.apl-standard .apl-c-company { font-size: 7.5pt; }
+.apl-combo.apl-standard .apl-c-company { font-size: 6.5pt; }
+.apl-combo.apl-standard .apl-c-meta { font-size: 6.5pt; }
+.apl-combo.apl-standard .apl-c-fits { font-size: 6pt; }
+.apl-combo.apl-standard .apl-c-price { font-size: 10pt; }
 .apl-combo.apl-standard .apl-barcode-text { font-size: 6pt; letter-spacing: 0.4mm; }
-.apl-combo.apl-standard .apl-c-barcode svg { max-height: 12mm; }
-.apl-combo.apl-compact { font-size: 4.5pt; padding: 0.8mm 1mm; }
-.apl-combo.apl-compact .apl-c-company { font-size: 5.5pt; }
+.apl-combo.apl-standard .apl-c-barcode svg { max-height: 11mm; }
+
+.apl-combo.apl-compact { font-size: 4.5pt; padding: 0.8mm 1mm; gap: 0.4mm; }
+.apl-combo.apl-compact .apl-c-company { display: none; }
+.apl-combo.apl-compact .apl-c-name { -webkit-line-clamp: 1; }
+.apl-combo.apl-compact .apl-c-meta { font-size: 4.5pt; }
+.apl-combo.apl-compact .apl-c-price { font-size: 8pt; }
 .apl-combo.apl-compact .apl-barcode-text { font-size: 4.5pt; letter-spacing: 0.3mm; }
 .apl-combo.apl-compact .apl-c-barcode svg { max-height: 8mm; }
+
 .apl-combo.apl-tiny { font-size: 4pt; padding: 0.6mm 0.8mm; }
 .apl-combo.apl-tiny .apl-c-company,
-.apl-combo.apl-tiny .apl-c-top { display: none; }
+.apl-combo.apl-tiny .apl-c-top,
+.apl-combo.apl-tiny .apl-c-price { display: none; }
 .apl-combo.apl-tiny .apl-c-barcode svg { max-height: 9mm; }
 .apl-combo.apl-tiny .apl-barcode-text { font-size: 4pt; letter-spacing: 0.2mm; }
+
 .apl-combo.apl-custom { font-size: 7pt; }
-.apl-combo.apl-custom .apl-c-company { font-size: 9pt; }
+.apl-combo.apl-custom .apl-c-company { font-size: 8pt; }
+.apl-combo.apl-custom .apl-c-meta { font-size: 7pt; }
+.apl-combo.apl-custom .apl-c-fits { font-size: 7pt; }
+.apl-combo.apl-custom .apl-c-price { font-size: 10pt; }
 .apl-combo.apl-custom .apl-barcode-text { font-size: 7pt; }
 .apl-combo.apl-custom .apl-c-barcode svg { max-height: 14mm; }
+
+/* ── Auto-fit product name: size = stock × design × length-tier ── */
+/* Spotlight (headline) — as big as the stock allows. */
+.apl-combo.apl-design-spotlight.apl-large    .apl-c-name--xl { font-size: 22pt; }
+.apl-combo.apl-design-spotlight.apl-large    .apl-c-name--lg { font-size: 17pt; }
+.apl-combo.apl-design-spotlight.apl-large    .apl-c-name--md { font-size: 13pt; }
+.apl-combo.apl-design-spotlight.apl-large    .apl-c-name--sm { font-size: 11pt; }
+.apl-combo.apl-design-spotlight.apl-standard .apl-c-name--xl { font-size: 13pt; }
+.apl-combo.apl-design-spotlight.apl-standard .apl-c-name--lg { font-size: 11pt; }
+.apl-combo.apl-design-spotlight.apl-standard .apl-c-name--md { font-size: 9.5pt; }
+.apl-combo.apl-design-spotlight.apl-standard .apl-c-name--sm { font-size: 8pt; }
+.apl-combo.apl-design-spotlight.apl-compact  .apl-c-name--xl { font-size: 8.5pt; }
+.apl-combo.apl-design-spotlight.apl-compact  .apl-c-name--lg { font-size: 7.5pt; }
+.apl-combo.apl-design-spotlight.apl-compact  .apl-c-name--md { font-size: 7pt; }
+.apl-combo.apl-design-spotlight.apl-compact  .apl-c-name--sm { font-size: 6pt; }
+.apl-combo.apl-design-spotlight.apl-custom   .apl-c-name--xl { font-size: 13pt; }
+.apl-combo.apl-design-spotlight.apl-custom   .apl-c-name--lg { font-size: 11pt; }
+.apl-combo.apl-design-spotlight.apl-custom   .apl-c-name--md { font-size: 10pt; }
+.apl-combo.apl-design-spotlight.apl-custom   .apl-c-name--sm { font-size: 9pt; }
+/* Detailed (capped so the field grid still fits). */
+.apl-combo.apl-design-detailed.apl-large    .apl-c-name--xl { font-size: 14pt; }
+.apl-combo.apl-design-detailed.apl-large    .apl-c-name--lg { font-size: 12pt; }
+.apl-combo.apl-design-detailed.apl-large    .apl-c-name--md { font-size: 11pt; }
+.apl-combo.apl-design-detailed.apl-large    .apl-c-name--sm { font-size: 10pt; }
+.apl-combo.apl-design-detailed.apl-standard .apl-c-name--xl { font-size: 9.5pt; }
+.apl-combo.apl-design-detailed.apl-standard .apl-c-name--lg { font-size: 8.5pt; }
+.apl-combo.apl-design-detailed.apl-standard .apl-c-name--md { font-size: 7.5pt; }
+.apl-combo.apl-design-detailed.apl-standard .apl-c-name--sm { font-size: 7pt; }
+.apl-combo.apl-design-detailed.apl-compact  .apl-c-name--xl { font-size: 7pt; }
+.apl-combo.apl-design-detailed.apl-compact  .apl-c-name--lg { font-size: 6.5pt; }
+.apl-combo.apl-design-detailed.apl-compact  .apl-c-name--md { font-size: 6pt; }
+.apl-combo.apl-design-detailed.apl-compact  .apl-c-name--sm { font-size: 5.5pt; }
+.apl-combo.apl-design-detailed.apl-custom   .apl-c-name--xl { font-size: 10pt; }
+.apl-combo.apl-design-detailed.apl-custom   .apl-c-name--lg { font-size: 9pt; }
+.apl-combo.apl-design-detailed.apl-custom   .apl-c-name--md { font-size: 8pt; }
+.apl-combo.apl-design-detailed.apl-custom   .apl-c-name--sm { font-size: 7.5pt; }
 `;

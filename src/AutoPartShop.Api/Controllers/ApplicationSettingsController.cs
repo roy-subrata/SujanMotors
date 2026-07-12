@@ -48,15 +48,15 @@ public class ApplicationSettingsController : ControllerBase
         return Ok(new
         {
             // Application brand (white-label) — independent of the business identity below.
-            appName           = GetBranding("APP_NAME", "Auto Part Shop"),
-            appLogoUrl        = GetBranding("APP_LOGO_URL", "assets/logo.png"),
-            name              = Get("SHOP_NAME"),
-            address           = Get("SHOP_ADDRESS"),
-            phone             = Get("SHOP_PHONE"),
-            email             = Get("SHOP_EMAIL"),
-            taxNo             = Get("SHOP_TAX_NUMBER"),
-            logoUrl           = Get("SHOP_LOGO_URL", "assets/logo.png"),
-            tagline           = Get("SHOP_TAGLINE"),
+            appName = GetBranding("APP_NAME", "Auto Part Shop"),
+            appLogoUrl = GetBranding("APP_LOGO_URL", "assets/logo.png"),
+            name = Get("SHOP_NAME"),
+            address = Get("SHOP_ADDRESS"),
+            phone = Get("SHOP_PHONE"),
+            email = Get("SHOP_EMAIL"),
+            taxNo = Get("SHOP_TAX_NUMBER"),
+            logoUrl = Get("SHOP_LOGO_URL", "assets/logo.png"),
+            tagline = Get("SHOP_TAGLINE"),
             invoiceFooterText = Get("INVOICE_FOOTER_TEXT", "Thank you for your business!"),
             challanFooterText = Get("CHALLAN_FOOTER_TEXT", "Goods once dispatched will not be accepted back without prior notice.")
         });

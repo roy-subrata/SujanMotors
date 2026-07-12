@@ -1,5 +1,6 @@
-using AutoPartShop.Api.Common;
+﻿using AutoPartShop.Api.Common;
 using AutoPartShop.Infrastructure.Data;
+using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -9,7 +10,7 @@ namespace AutoPartShop.Api.Controllers;
 [Route("api/cash-book")]
 [Route("api/v1/cash-book")]
 [ApiController]
-[Authorize]
+[HasPermission(Permissions.ReportsView)]
 [Produces("application/json")]
 public class CashBookController(AutoPartDbContext _db) : ControllerBase
 {
@@ -18,7 +19,7 @@ public class CashBookController(AutoPartDbContext _db) : ControllerBase
         new(StringComparer.OrdinalIgnoreCase) { "DUE", "PART_PAY" };
 
     /// <summary>
-    /// Daily cash book — aggregates all money movement for a date range.
+    /// Daily cash book â€” aggregates all money movement for a date range.
     /// Cash In : COMPLETED customer payments (positive amounts only)
     /// Cash Out: daily expenses + COMPLETED supplier payments + refund payments (negative customer payments)
     /// Opening balance: cumulative net of all prior COMPLETED transactions before dateFrom
@@ -30,7 +31,7 @@ public class CashBookController(AutoPartDbContext _db) : ControllerBase
         [FromQuery] DateOnly? date,
         [FromQuery] DateOnly? from,
         [FromQuery] DateOnly? to,
-        [FromQuery] int       tzOffsetMinutes = 0,
+        [FromQuery] int tzOffsetMinutes = 0,
         CancellationToken ct = default)
     {
         // Clamp offset to a sane range (UTC-14 to UTC+14).
@@ -39,9 +40,9 @@ public class CashBookController(AutoPartDbContext _db) : ControllerBase
 
         // Resolve local-calendar range, then shift to UTC so DB comparisons are correct.
         var localFrom = from ?? date ?? DateOnly.FromDateTime(DateTime.UtcNow.Add(tzShift));
-        var localTo   = to   ?? date ?? DateOnly.FromDateTime(DateTime.UtcNow.Add(tzShift));
-        var dateFrom  = localFrom.ToDateTime(TimeOnly.MinValue) - tzShift;
-        var dateTo    = localTo  .ToDateTime(TimeOnly.MaxValue) - tzShift;
+        var localTo = to ?? date ?? DateOnly.FromDateTime(DateTime.UtcNow.Add(tzShift));
+        var dateFrom = localFrom.ToDateTime(TimeOnly.MinValue) - tzShift;
+        var dateTo = localTo.ToDateTime(TimeOnly.MaxValue) - tzShift;
 
         if (dateFrom > dateTo) return BadRequest(ApiError.Validation("'from' must not be after 'to'", instance: Request.Path));
 
@@ -50,7 +51,7 @@ public class CashBookController(AutoPartDbContext _db) : ControllerBase
         if (daySpan > 366)
             return BadRequest(ApiError.Validation("Date range cannot exceed 366 days. Split into smaller periods.", instance: Request.Path));
 
-        // ── Opening balance (all COMPLETED transactions before dateFrom) ─
+        // â”€â”€ Opening balance (all COMPLETED transactions before dateFrom) â”€
         var priorCustomerNet = await _db.CustomerPayments
             .Where(p => p.PaymentDate < dateFrom && p.Status == "COMPLETED")
             .SumAsync(p => (decimal?)p.Amount, ct) ?? 0m;
@@ -65,7 +66,7 @@ public class CashBookController(AutoPartDbContext _db) : ControllerBase
 
         var openingBalance = priorCustomerNet - priorExpenseTotal - priorSupplierTotal;
 
-        // ── Customer payments — COMPLETED only ─────────────────────────
+        // â”€â”€ Customer payments â€” COMPLETED only â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         var customerPayments = await _db.CustomerPayments
             .Where(p => p.PaymentDate >= dateFrom && p.PaymentDate <= dateTo
                      && p.Status == "COMPLETED")
@@ -75,14 +76,14 @@ public class CashBookController(AutoPartDbContext _db) : ControllerBase
             .OrderBy(p => p.PaymentDate)
             .ToListAsync(ct);
 
-        // ── Expenses (cash out) ────────────────────────────────────────
+        // â”€â”€ Expenses (cash out) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         var expenses = await _db.DailyExpenses
             .Where(e => e.ExpenseDate >= dateFrom && e.ExpenseDate <= dateTo)
             .AsNoTracking()
             .OrderBy(e => e.ExpenseDate)
             .ToListAsync(ct);
 
-        // ── Supplier payments (cash out) ────────────────────────────────
+        // â”€â”€ Supplier payments (cash out) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         var supplierPayments = await _db.SupplierPayments
             .Where(p => p.PaymentDate >= dateFrom && p.PaymentDate <= dateTo
                      && p.Status == "COMPLETED")
@@ -91,10 +92,10 @@ public class CashBookController(AutoPartDbContext _db) : ControllerBase
             .OrderBy(p => p.PaymentDate)
             .ToListAsync(ct);
 
-        // ── Build cash-in / cash-out from customer payments ────────────
+        // â”€â”€ Build cash-in / cash-out from customer payments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         // Negative-amount payments (refunds from warranty claims / sales returns)
         // are reclassified as cash-out with their absolute value.
-        var cashIn  = new List<CashBookEntry>();
+        var cashIn = new List<CashBookEntry>();
         var cashOut = new List<CashBookEntry>();
 
         foreach (var p in customerPayments)
@@ -102,68 +103,68 @@ public class CashBookController(AutoPartDbContext _db) : ControllerBase
             var customerName = p.Customer != null
                 ? $"{p.Customer.FirstName} {p.Customer.LastName}".Trim()
                 : "Customer";
-            var invoiceRef = p.Invoice != null ? $" · {p.Invoice.InvoiceNumber}" : string.Empty;
-            var isRefund   = p.Amount < 0;
+            var invoiceRef = p.Invoice != null ? $" Â· {p.Invoice.InvoiceNumber}" : string.Empty;
+            var isRefund = p.Amount < 0;
 
             var entry = new CashBookEntry
             {
-                Id            = p.Id,
-                Time          = p.PaymentDate,
-                Type          = isRefund ? "REFUND" : "CUSTOMER_PAYMENT",
-                Description   = isRefund
+                Id = p.Id,
+                Time = p.PaymentDate,
+                Type = isRefund ? "REFUND" : "CUSTOMER_PAYMENT",
+                Description = isRefund
                     ? $"Refund to {customerName}{invoiceRef}"
                     : $"{customerName}{invoiceRef}",
-                Reference     = !string.IsNullOrEmpty(p.TransactionNumber) ? p.TransactionNumber : p.ReferenceNumber,
+                Reference = !string.IsNullOrEmpty(p.TransactionNumber) ? p.TransactionNumber : p.ReferenceNumber,
                 PaymentMethod = p.PaymentMethod,
-                Amount        = Math.Abs(p.Amount),
-                Currency      = p.Currency,
-                Status        = p.Status,
-                Notes         = string.IsNullOrWhiteSpace(p.Notes) ? null : p.Notes,
-                IsCreditSale  = !isRefund && CreditMethods.Contains(p.PaymentMethod)
+                Amount = Math.Abs(p.Amount),
+                Currency = p.Currency,
+                Status = p.Status,
+                Notes = string.IsNullOrWhiteSpace(p.Notes) ? null : p.Notes,
+                IsCreditSale = !isRefund && CreditMethods.Contains(p.PaymentMethod)
             };
 
             if (isRefund) cashOut.Add(entry);
-            else          cashIn.Add(entry);
+            else cashIn.Add(entry);
         }
 
         cashOut.AddRange(expenses.Select(e => new CashBookEntry
         {
-            Id            = e.Id,
-            Time          = e.ExpenseDate,
-            Type          = "EXPENSE",
-            Description   = e.Description,
-            Reference     = e.ReferenceNumber,
+            Id = e.Id,
+            Time = e.ExpenseDate,
+            Type = "EXPENSE",
+            Description = e.Description,
+            Reference = e.ReferenceNumber,
             PaymentMethod = e.PaymentMethod,
-            Amount        = e.Amount,
-            Currency      = e.Currency,
-            Status        = "COMPLETED",
-            Notes         = string.IsNullOrWhiteSpace(e.Notes) ? null : e.Notes,
-            Category      = e.Category,
-            Vendor        = string.IsNullOrWhiteSpace(e.VendorName) ? null : e.VendorName
+            Amount = e.Amount,
+            Currency = e.Currency,
+            Status = "COMPLETED",
+            Notes = string.IsNullOrWhiteSpace(e.Notes) ? null : e.Notes,
+            Category = e.Category,
+            Vendor = string.IsNullOrWhiteSpace(e.VendorName) ? null : e.VendorName
         }));
 
         cashOut.AddRange(supplierPayments.Select(p => new CashBookEntry
         {
-            Id            = p.Id,
-            Time          = p.PaymentDate,
-            Type          = "SUPPLIER_PAYMENT",
-            Description   = p.Supplier != null ? $"Payment to {p.Supplier.Name}" : "Supplier payment",
-            Reference     = !string.IsNullOrEmpty(p.TransactionNumber) ? p.TransactionNumber : p.ReferenceNumber,
+            Id = p.Id,
+            Time = p.PaymentDate,
+            Type = "SUPPLIER_PAYMENT",
+            Description = p.Supplier != null ? $"Payment to {p.Supplier.Name}" : "Supplier payment",
+            Reference = !string.IsNullOrEmpty(p.TransactionNumber) ? p.TransactionNumber : p.ReferenceNumber,
             PaymentMethod = p.PaymentMethod,
-            Amount        = p.NetAmount > 0 ? p.NetAmount : p.Amount,
-            Currency      = p.Currency,
-            Status        = p.Status,
-            Notes         = null
+            Amount = p.NetAmount > 0 ? p.NetAmount : p.Amount,
+            Currency = p.Currency,
+            Status = p.Status,
+            Notes = null
         }));
 
         cashOut = cashOut.OrderBy(e => e.Time).ToList();
 
-        var totalIn       = cashIn.Sum(e => e.Amount);
-        var totalOut      = cashOut.Sum(e => e.Amount);
+        var totalIn = cashIn.Sum(e => e.Amount);
+        var totalOut = cashOut.Sum(e => e.Amount);
         var totalCreditIn = cashIn.Where(e => e.IsCreditSale).Sum(e => e.Amount);
         var totalActualCashIn = totalIn - totalCreditIn;
 
-        // ── Running balance starting from opening balance ───────────────
+        // â”€â”€ Running balance starting from opening balance â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         var allEntries = cashIn.Select(e => new { entry = e, flow = "IN" })
             .Concat(cashOut.Select(e => new { entry = e, flow = "OUT" }))
             .OrderBy(x => x.entry.Time)
@@ -175,25 +176,25 @@ public class CashBookController(AutoPartDbContext _db) : ControllerBase
             running += x.flow == "IN" ? x.entry.Amount : -x.entry.Amount;
             return new LedgerRow
             {
-                Id             = x.entry.Id,
-                Time           = x.entry.Time,
-                Flow           = x.flow,
-                Type           = x.entry.Type,
-                Description    = x.entry.Description,
-                Reference      = x.entry.Reference,
-                PaymentMethod  = x.entry.PaymentMethod,
-                CashIn         = x.flow == "IN"  ? x.entry.Amount : null,
-                CashOut        = x.flow == "OUT" ? x.entry.Amount : null,
-                Balance        = running,
-                Currency       = x.entry.Currency,
-                Status         = x.entry.Status,
-                Notes          = x.entry.Notes,
-                Category       = x.entry.Category,
-                Vendor         = x.entry.Vendor
+                Id = x.entry.Id,
+                Time = x.entry.Time,
+                Flow = x.flow,
+                Type = x.entry.Type,
+                Description = x.entry.Description,
+                Reference = x.entry.Reference,
+                PaymentMethod = x.entry.PaymentMethod,
+                CashIn = x.flow == "IN" ? x.entry.Amount : null,
+                CashOut = x.flow == "OUT" ? x.entry.Amount : null,
+                Balance = running,
+                Currency = x.entry.Currency,
+                Status = x.entry.Status,
+                Notes = x.entry.Notes,
+                Category = x.entry.Category,
+                Vendor = x.entry.Vendor
             };
         }).ToList();
 
-        // ── Payment method breakdown ───────────────────────────────────
+        // â”€â”€ Payment method breakdown â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         var allForBreakdown = cashIn.Select(e => (e.PaymentMethod, In: e.Amount, Out: 0m))
             .Concat(cashOut.Select(e => (e.PaymentMethod, In: 0m, Out: e.Amount)));
 
@@ -202,30 +203,30 @@ public class CashBookController(AutoPartDbContext _db) : ControllerBase
             .Select(g => new
             {
                 method = g.Key,
-                @in    = g.Sum(x => x.In),
-                @out   = g.Sum(x => x.Out),
-                net    = g.Sum(x => x.In - x.Out)
+                @in = g.Sum(x => x.In),
+                @out = g.Sum(x => x.Out),
+                net = g.Sum(x => x.In - x.Out)
             })
             .OrderByDescending(x => x.@in + x.@out)
             .ToList();
 
         return Ok(ApiResponse<object>.Ok(new
         {
-            from               = localFrom.ToString("yyyy-MM-dd"),
-            to                 = localTo  .ToString("yyyy-MM-dd"),
-            isSingleDay        = localFrom == localTo,
+            from = localFrom.ToString("yyyy-MM-dd"),
+            to = localTo.ToString("yyyy-MM-dd"),
+            isSingleDay = localFrom == localTo,
             openingBalance,
             cashIn,
             cashOut,
             ledger,
-            totalCashIn        = totalIn,
+            totalCashIn = totalIn,
             totalActualCashIn,
             totalCreditIn,
-            totalCashOut       = totalOut,
-            netCash            = totalIn - totalOut,
-            netActualCash      = totalActualCashIn - totalOut,
-            closingBalance     = running,
-            entryCount         = cashIn.Count + cashOut.Count,
+            totalCashOut = totalOut,
+            netCash = totalIn - totalOut,
+            netActualCash = totalActualCashIn - totalOut,
+            closingBalance = running,
+            entryCount = cashIn.Count + cashOut.Count,
             paymentMethodBreakdown = breakdown
         }));
     }
@@ -233,40 +234,40 @@ public class CashBookController(AutoPartDbContext _db) : ControllerBase
 
 public sealed class CashBookEntry
 {
-    public Guid     Id            { get; set; }
-    public DateTime Time          { get; set; }
-    public string   Type          { get; set; } = string.Empty;
-    public string   Description   { get; set; } = string.Empty;
-    public string   Reference     { get; set; } = string.Empty;
-    public string   PaymentMethod { get; set; } = string.Empty;
-    public decimal  Amount        { get; set; }
-    public string   Currency      { get; set; } = "BDT";
-    public string   Status        { get; set; } = string.Empty;
-    public string?  Notes         { get; set; }
-    public string?  Category      { get; set; }
-    public string?  Vendor        { get; set; }
+    public Guid Id { get; set; }
+    public DateTime Time { get; set; }
+    public string Type { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string Reference { get; set; } = string.Empty;
+    public string PaymentMethod { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public string Currency { get; set; } = "BDT";
+    public string Status { get; set; } = string.Empty;
+    public string? Notes { get; set; }
+    public string? Category { get; set; }
+    public string? Vendor { get; set; }
     /// <summary>
-    /// True for DUE / PART_PAY entries — cash has not yet been physically received.
+    /// True for DUE / PART_PAY entries â€” cash has not yet been physically received.
     /// Excluded from totalActualCashIn; included in totalCreditIn.
     /// </summary>
-    public bool     IsCreditSale  { get; set; }
+    public bool IsCreditSale { get; set; }
 }
 
 public sealed class LedgerRow
 {
-    public Guid     Id            { get; set; }
-    public DateTime Time          { get; set; }
-    public string   Flow          { get; set; } = string.Empty;   // IN | OUT
-    public string   Type          { get; set; } = string.Empty;
-    public string   Description   { get; set; } = string.Empty;
-    public string   Reference     { get; set; } = string.Empty;
-    public string   PaymentMethod { get; set; } = string.Empty;
-    public decimal? CashIn        { get; set; }
-    public decimal? CashOut       { get; set; }
-    public decimal  Balance       { get; set; }
-    public string   Currency      { get; set; } = "BDT";
-    public string   Status        { get; set; } = string.Empty;
-    public string?  Notes         { get; set; }
-    public string?  Category      { get; set; }
-    public string?  Vendor        { get; set; }
+    public Guid Id { get; set; }
+    public DateTime Time { get; set; }
+    public string Flow { get; set; } = string.Empty;   // IN | OUT
+    public string Type { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string Reference { get; set; } = string.Empty;
+    public string PaymentMethod { get; set; } = string.Empty;
+    public decimal? CashIn { get; set; }
+    public decimal? CashOut { get; set; }
+    public decimal Balance { get; set; }
+    public string Currency { get; set; } = "BDT";
+    public string Status { get; set; } = string.Empty;
+    public string? Notes { get; set; }
+    public string? Category { get; set; }
+    public string? Vendor { get; set; }
 }

@@ -1,7 +1,8 @@
-using AutoPartShop.Api.Services;
+﻿using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.SupplierDtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
+using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,7 +11,7 @@ namespace AutoPartShop.Api.Controllers;
 [Route("api/supplier-payment-accounts")]
 [Route("api/v1/supplier-payment-accounts")]
 [ApiController]
-[Authorize]
+[HasPermission(Permissions.ProcurementView)]
 [Produces("application/json")]
 public class SupplierPaymentAccountController : ControllerBase
 {
@@ -130,6 +131,7 @@ public class SupplierPaymentAccountController : ControllerBase
     /// Create a new supplier payment account
     /// </summary>
     [HttpPost]
+    [HasPermission(Permissions.ProcurementEdit)]
     public async Task<IActionResult> Create(CreateSupplierPaymentAccountRequest request, CancellationToken cancellationToken)
     {
         try
@@ -206,6 +208,7 @@ public class SupplierPaymentAccountController : ControllerBase
     /// Update a supplier payment account
     /// </summary>
     [HttpPut("{id:guid}")]
+    [HasPermission(Permissions.ProcurementEdit)]
     public async Task<IActionResult> Update(Guid id, UpdateSupplierPaymentAccountRequest request, CancellationToken cancellationToken)
     {
         try
@@ -253,6 +256,7 @@ public class SupplierPaymentAccountController : ControllerBase
     /// Set a payment account as default for the supplier
     /// </summary>
     [HttpPatch("{id:guid}/set-default")]
+    [HasPermission(Permissions.ProcurementEdit)]
     public async Task<IActionResult> SetDefault(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -262,7 +266,7 @@ public class SupplierPaymentAccountController : ControllerBase
 
             var currentUser = _currentUserService.GetCurrentUsername();
 
-            // Set the target as default first — if subsequent unsets fail the intended default is at least in place
+            // Set the target as default first â€” if subsequent unsets fail the intended default is at least in place
             account.SetAsDefault(true);
             account.ModifiedBy = currentUser;
             await _repository.UpdateAsync(account, cancellationToken);
@@ -289,6 +293,7 @@ public class SupplierPaymentAccountController : ControllerBase
     /// Delete a payment account (soft delete)
     /// </summary>
     [HttpDelete("{id:guid}")]
+    [HasPermission(Permissions.ProcurementDelete)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         try

@@ -17,6 +17,7 @@ namespace AutoPartShop.Api.Controllers;
 public class EcommerceController(
     AutoPartDbContext _dbContext,
     ICustomerRepository _customerRepository,
+    ICustomerVehicleRepository _customerVehicleRepository,
     ISalesOrderRepository _salesOrderRepository,
     IInvoiceRepository _invoiceRepository,
     ICustomerPaymentRepository _customerPaymentRepository,
@@ -658,6 +659,17 @@ public class EcommerceController(
                 channel: "POS"
             );
 
+            // Optionally link the customer's vehicle this purchase is for
+            if (request.CustomerVehicleId.HasValue && request.CustomerVehicleId.Value != Guid.Empty)
+            {
+                var vehicle = await _customerVehicleRepository.GetByIdAsync(request.CustomerVehicleId.Value, cancellationToken);
+                if (vehicle is null)
+                    return BadRequest(new { message = "The selected vehicle was not found" });
+                if (vehicle.CustomerId != customer.Id)
+                    return BadRequest(new { message = "The selected vehicle does not belong to this customer" });
+                salesOrder.SetVehicle(vehicle.Id, vehicle.GetLabel());
+            }
+
             int lineNumber = 1;
             foreach (var (partId, variantId, qty, price) in lineRequests)
             {
@@ -867,88 +879,88 @@ public class EcommerceController(
             const int maxReserveAttempts = 3;
             for (int attempt = 1; ; attempt++)
             {
-            try
-            {
-            await CleanupExpiredReservationsAsync(request.PartId, cancellationToken);
-
-            // If no variantId was supplied (e.g. item added from landing page),
-            // auto-pick the variant with the most available stock.
-            if (!request.VariantId.HasValue)
-            {
-                var bestVariant = await (
-                    from v in _dbContext.ProductVariants
-                    where v.PartId == request.PartId && !v.Isdeleted && v.IsActive
-                    join sl in _dbContext.StockLevels
-                        on v.Id equals sl.VariantId
-                    where !sl.Isdeleted && sl.IsActive
-                    group sl by v.Id into g
-                    where g.Sum(x => x.QuantityOnHand - x.QuantityReserved) >= request.Quantity
-                    orderby g.Sum(x => x.QuantityOnHand - x.QuantityReserved) descending
-                    select g.Key
-                ).FirstOrDefaultAsync(cancellationToken);
-
-                if (bestVariant != default)
-                    request.VariantId = bestVariant;
-            }
-
-            // Unified stock: rows live in StockLevels scoped by (PartId, VariantId?). VariantId null = part-level.
-            var stockLevels = await _dbContext.StockLevels
-                .Where(sl => sl.PartId == request.PartId && sl.VariantId == request.VariantId && sl.IsActive && !sl.Isdeleted)
-                .ToListAsync(cancellationToken);
-
-            var totalAvailable = stockLevels.Sum(sl => sl.QuantityAvailable);
-
-            if (totalAvailable < request.Quantity)
-                return BadRequest(new { message = $"Only {totalAvailable} unit(s) available", available = totalAvailable });
-
-            var existing = await _dbContext.CartReservations
-                .Where(r => r.SessionId == request.SessionId
-                         && r.PartId == request.PartId
-                         && r.ProductVariantId == request.VariantId
-                         && !r.IsReleased)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (existing != null)
-            {
-                var delta = request.Quantity - existing.Quantity;
-
-                if (delta > 0)
+                try
                 {
-                    stockLevels.OrderByDescending(sl => sl.QuantityAvailable).First().ReserveStock(delta);
-                }
-                else if (delta < 0)
-                {
-                    var toRelease = -delta;
-                    foreach (var sl in stockLevels)
+                    await CleanupExpiredReservationsAsync(request.PartId, cancellationToken);
+
+                    // If no variantId was supplied (e.g. item added from landing page),
+                    // auto-pick the variant with the most available stock.
+                    if (!request.VariantId.HasValue)
                     {
-                        if (toRelease <= 0) break;
-                        var r = Math.Min(sl.QuantityReserved, toRelease);
-                        if (r > 0) { sl.ReleaseReservedStock(r); toRelease -= r; }
+                        var bestVariant = await (
+                            from v in _dbContext.ProductVariants
+                            where v.PartId == request.PartId && !v.Isdeleted && v.IsActive
+                            join sl in _dbContext.StockLevels
+                                on v.Id equals sl.VariantId
+                            where !sl.Isdeleted && sl.IsActive
+                            group sl by v.Id into g
+                            where g.Sum(x => x.QuantityOnHand - x.QuantityReserved) >= request.Quantity
+                            orderby g.Sum(x => x.QuantityOnHand - x.QuantityReserved) descending
+                            select g.Key
+                        ).FirstOrDefaultAsync(cancellationToken);
+
+                        if (bestVariant != default)
+                            request.VariantId = bestVariant;
                     }
+
+                    // Unified stock: rows live in StockLevels scoped by (PartId, VariantId?). VariantId null = part-level.
+                    var stockLevels = await _dbContext.StockLevels
+                        .Where(sl => sl.PartId == request.PartId && sl.VariantId == request.VariantId && sl.IsActive && !sl.Isdeleted)
+                        .ToListAsync(cancellationToken);
+
+                    var totalAvailable = stockLevels.Sum(sl => sl.QuantityAvailable);
+
+                    if (totalAvailable < request.Quantity)
+                        return BadRequest(new { message = $"Only {totalAvailable} unit(s) available", available = totalAvailable });
+
+                    var existing = await _dbContext.CartReservations
+                        .Where(r => r.SessionId == request.SessionId
+                                 && r.PartId == request.PartId
+                                 && r.ProductVariantId == request.VariantId
+                                 && !r.IsReleased)
+                        .FirstOrDefaultAsync(cancellationToken);
+
+                    if (existing != null)
+                    {
+                        var delta = request.Quantity - existing.Quantity;
+
+                        if (delta > 0)
+                        {
+                            stockLevels.OrderByDescending(sl => sl.QuantityAvailable).First().ReserveStock(delta);
+                        }
+                        else if (delta < 0)
+                        {
+                            var toRelease = -delta;
+                            foreach (var sl in stockLevels)
+                            {
+                                if (toRelease <= 0) break;
+                                var r = Math.Min(sl.QuantityReserved, toRelease);
+                                if (r > 0) { sl.ReleaseReservedStock(r); toRelease -= r; }
+                            }
+                        }
+
+                        existing.UpdateQuantity(request.Quantity);
+                        existing.ExtendTtl();
+                    }
+                    else
+                    {
+                        var reservation = CartReservation.Create(
+                            request.SessionId, request.PartId, request.Quantity,
+                            productVariantId: request.VariantId);
+
+                        stockLevels.OrderByDescending(sl => sl.QuantityAvailable).First().ReserveStock(request.Quantity);
+
+                        await _dbContext.CartReservations.AddAsync(reservation, cancellationToken);
+                    }
+
+                    // Single SaveChangesAsync = implicit atomic transaction
+                    await _dbContext.SaveChangesAsync(cancellationToken);
+                    return Ok(new { reserved = true, quantity = request.Quantity });
                 }
-
-                existing.UpdateQuantity(request.Quantity);
-                existing.ExtendTtl();
-            }
-            else
-            {
-                var reservation = CartReservation.Create(
-                    request.SessionId, request.PartId, request.Quantity,
-                    productVariantId: request.VariantId);
-
-                stockLevels.OrderByDescending(sl => sl.QuantityAvailable).First().ReserveStock(request.Quantity);
-
-                await _dbContext.CartReservations.AddAsync(reservation, cancellationToken);
-            }
-
-            // Single SaveChangesAsync = implicit atomic transaction
-            await _dbContext.SaveChangesAsync(cancellationToken);
-            return Ok(new { reserved = true, quantity = request.Quantity });
-            }
-            catch (DbUpdateConcurrencyException) when (attempt < maxReserveAttempts)
-            {
-                _dbContext.ChangeTracker.Clear(); // discard stale tracked state, then retry
-            }
+                catch (DbUpdateConcurrencyException) when (attempt < maxReserveAttempts)
+                {
+                    _dbContext.ChangeTracker.Clear(); // discard stale tracked state, then retry
+                }
             } // end optimistic-concurrency retry loop
         }
         catch (InvalidOperationException ex)
@@ -1267,6 +1279,9 @@ public class InstoreCheckoutRequest : EcommerceCheckoutRequest
     /// <summary>Reason for applying the discount (required for audit trail when discount is applied)</summary>
     public string? DiscountReason { get; set; }
     // PromoCode inherited from EcommerceCheckoutRequest
+
+    /// <summary>Optional: the customer's vehicle this purchase is for (per-vehicle history).</summary>
+    public Guid? CustomerVehicleId { get; set; }
 }
 
 public class CodCollectionRequest

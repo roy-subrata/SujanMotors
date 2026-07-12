@@ -12,6 +12,8 @@
         public Guid? WarehouseId { get; set; }
         public Guid? TechnicianId { get; set; }
         public string? TechnicianName { get; set; }
+        public Guid? CustomerVehicleId { get; set; }
+        public string VehicleLabel { get; set; } = string.Empty;
         public DateTime OrderDate { get; set; }
         public DateTime DeliveryDate { get; set; }
         public string Status { get; set; } = string.Empty; // DRAFT → CONFIRMED → PAID → PACKED → SHIPPED → COMPLETED | CANCELLED | RETURNED

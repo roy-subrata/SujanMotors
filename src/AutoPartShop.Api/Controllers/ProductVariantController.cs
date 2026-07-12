@@ -1,7 +1,8 @@
-using AutoPartShop.Api.Common;
+﻿using AutoPartShop.Api.Common;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
+using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -10,7 +11,7 @@ namespace AutoPartShop.Api.Controllers;
 
 [Route("api/v1/products/{productId:guid}/variants")]
 [ApiController]
-[Authorize]
+[HasPermission(Permissions.InventoryView)]
 [Produces("application/json")]
 public class ProductVariantController : ControllerBase
 {
@@ -68,6 +69,7 @@ public class ProductVariantController : ControllerBase
 
     // POST /api/v1/products/{productId}/variants
     [HttpPost]
+    [HasPermission(Permissions.InventoryCreate)]
     public async Task<IActionResult> Create(Guid productId, [FromBody] CreateVariantRequest req, CancellationToken ct)
     {
         if (!await _db.Parts.AnyAsync(p => p.Id == productId, ct))
@@ -111,6 +113,7 @@ public class ProductVariantController : ControllerBase
 
     // PUT /api/v1/products/{productId}/variants/{id}
     [HttpPut("{id:guid}")]
+    [HasPermission(Permissions.InventoryEdit)]
     public async Task<IActionResult> Update(Guid productId, Guid id, [FromBody] CreateVariantRequest req, CancellationToken ct)
     {
         var variant = await _db.ProductVariants
@@ -156,6 +159,7 @@ public class ProductVariantController : ControllerBase
 
     // DELETE /api/v1/products/{productId}/variants/{id}
     [HttpDelete("{id:guid}")]
+    [HasPermission(Permissions.InventoryDelete)]
     public async Task<IActionResult> Delete(Guid productId, Guid id, CancellationToken ct)
     {
         var variant = await _db.ProductVariants
@@ -170,7 +174,7 @@ public class ProductVariantController : ControllerBase
         return NoContent();
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /// <summary>
     /// Validates that the variant's Code, SKU and Barcode do not collide with another
@@ -212,7 +216,7 @@ public class ProductVariantController : ControllerBase
 
     /// <summary>
     /// Builds a globally-unique SKU for a variant as "{ParentPartSKU}-{Code}" (e.g. BRK100-FRONT).
-    /// Falls back to the bare code when the parent has no SKU, and appends -2, -3, … if the
+    /// Falls back to the bare code when the parent has no SKU, and appends -2, -3, â€¦ if the
     /// candidate is already taken by a variant or a base product. Used to auto-fill the SKU
     /// when the caller leaves it blank, so every variant always has a unique stock identifier.
     /// </summary>
@@ -295,9 +299,9 @@ public class ProductVariantController : ControllerBase
             av.AttributeId,
             attributeName = av.Attribute?.Name,
             attributeCode = av.Attribute?.Code,
-            dataType      = av.Attribute?.DataType,
+            dataType = av.Attribute?.DataType,
             av.OptionId,
-            optionValue   = av.Option?.Value,
+            optionValue = av.Option?.Value,
             av.ValueText,
             av.ValueNumber,
             av.ValueBool
@@ -305,7 +309,7 @@ public class ProductVariantController : ControllerBase
     };
 }
 
-// ── Request DTOs ──────────────────────────────────────────────────────────────
+// â”€â”€ Request DTOs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 public class CreateVariantRequest
 {

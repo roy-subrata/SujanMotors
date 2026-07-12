@@ -9,14 +9,14 @@ import { BadgeModule } from 'primeng/badge';
 import { TagModule } from 'primeng/tag';
 import { MessageService } from 'primeng/api';
 import { UnitConversionService, UnitConversionResponse } from '../../services/unit-conversion.service';
-import { Select } from 'primeng/select';
 import { I18nService } from '@/shared/services/i18n.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 
 @Component({
     selector: 'app-conversions-list',
     standalone: true,
-    imports: [CommonModule, TableModule, ButtonModule, InputTextModule, TooltipModule, BadgeModule, TagModule, FormsModule, Select],
+    imports: [CommonModule, TableModule, ButtonModule, InputTextModule, TooltipModule, BadgeModule, TagModule, FormsModule, DataPaginationComponent],
     templateUrl: './conversions-list.component.html',
     styleUrls: ['./conversions-list.component.css']
 })
@@ -71,6 +71,15 @@ export class ConversionsListComponent implements OnInit {
         const pageNum = Math.floor(event.first / event.rows) + 1;
         this.pageSize = event.rows;
         this.loadConversions(pageNum);
+    }
+
+    goToPage(page: number): void {
+        this.onPageChange({ first: (page - 1) * this.pageSize, rows: this.pageSize });
+    }
+
+    onPageSizeChange(size: number): void {
+        this.pageSize = size;
+        this.onPageChange({ first: 0, rows: size });
     }
 
     search(query: string): void {

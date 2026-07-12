@@ -15,14 +15,13 @@
       [rowHover]="true"
       [scrollable]="true"
       scrollHeight="flex"
-      styleClass="custom-table">
+      styleClass="app-table">
 
       <ng-template #header>
         <tr>
           <th class="col-name">Name</th>
           <th class="col-breadcrumb">Breadcrumb</th>
           <th class="col-level">Level</th>
-          <th class="col-children">Children</th>
           <th class="col-order">Order</th>
           <th class="col-status">Status</th>
           <th class="col-actions">Actions</th>
@@ -35,7 +34,6 @@
           <!-- Name + description -->
           <td class="col-name">
             <div class="customer-cell">
-              <div class="customer-avatar">{{ (category.name || 'C')[0].toUpperCase() }}</div>
               <div class="customer-info">
                 <span class="customer-name">{{ category.name }}</span>
                 <span *ngIf="category.description" class="customer-phone text-truncate"
@@ -54,13 +52,6 @@
           <!-- Level -->
           <td class="col-level">
             <span class="level-badge">{{ getLevelDisplay(category.depthLevel) }}</span>
-          </td>
-
-          <!-- Children count -->
-          <td class="col-children">
-            <span class="children-count" [class.has-children]="category.childCount > 0">
-              {{ category.childCount }}
-            </span>
           </td>
 
           <!-- Display Order -->
@@ -90,7 +81,7 @@
 
       <ng-template #emptymessage>
         <tr>
-          <td colspan="8">
+          <td colspan="7">
             <div class="empty-state">
               <div class="empty-icon"><i class="pi pi-sitemap"></i></div>
               <h3>No Categories Found</h3>
@@ -108,7 +99,6 @@
           </div></td>
           <td><div class="skeleton skeleton-text-sm"></div></td>
           <td><div class="skeleton skeleton-text-sm"></div></td>
-          <td><div class="skeleton skeleton-badge"></div></td>
           <td><div class="skeleton skeleton-text-sm"></div></td>
           <td><div class="skeleton skeleton-text-sm"></div></td>
           <td><div class="skeleton skeleton-badge"></div></td>
@@ -118,39 +108,17 @@
 
     </p-table>
   </div>
-
-  <!-- Pagination -->
-  <div class="pagination-section" *ngIf="totalRecords > 0">
-    <div class="pagination-info">
-      Showing <strong>{{ first + 1 }}</strong> – <strong>{{ Math.min(first + rows, totalRecords) }}</strong>
-      of <strong>{{ totalRecords }}</strong> categories
-    </div>
-    <div class="pagination-controls">
-      <span class="page-size-label">Rows per page:</span>
-      <p-select
-        [options]="[{label:'10',value:10},{label:'20',value:20},{label:'50',value:50}]"
-        [ngModel]="rows"
-        (onChange)="onPageSizeChange($event.value)"
-        styleClass="page-size-dropdown">
-      </p-select>
-      <div class="page-nav">
-        <button class="page-btn" [disabled]="currentPage <= 1" (click)="goToPage(1)" pTooltip="First" tooltipPosition="top">
-          <i class="pi pi-angle-double-left"></i>
-        </button>
-        <button class="page-btn" [disabled]="currentPage <= 1" (click)="goToPage(currentPage - 1)" pTooltip="Previous" tooltipPosition="top">
-          <i class="pi pi-angle-left"></i>
-        </button>
-        <span class="page-indicator">{{ currentPage }} / {{ totalPages }}</span>
-        <button class="page-btn" [disabled]="currentPage >= totalPages" (click)="goToPage(currentPage + 1)" pTooltip="Next" tooltipPosition="top">
-          <i class="pi pi-angle-right"></i>
-        </button>
-        <button class="page-btn" [disabled]="currentPage >= totalPages" (click)="goToPage(totalPages)" pTooltip="Last" tooltipPosition="top">
-          <i class="pi pi-angle-double-right"></i>
-        </button>
-      </div>
-    </div>
-  </div>
 </section>
+
+<!-- ==================== PAGINATION (desktop + mobile) ==================== -->
+<app-data-pagination
+  [first]="first"
+  [pageSize]="rows"
+  [totalRecords]="totalRecords"
+  itemLabel="categories"
+  (pageChange)="goToPage($event)"
+  (pageSizeChange)="onPageSizeChange($event)">
+</app-data-pagination>
 
 <!-- ==================== MOBILE CARDS ==================== -->
 <section class="cards-section mobile-only">
@@ -186,7 +154,6 @@
 
       <div class="card-body">
         <div class="card-customer">
-          <div class="customer-avatar small">{{ (category.name || 'C')[0].toUpperCase() }}</div>
           <div class="customer-info">
             <span class="customer-name">{{ category.name }}</span>
             <span *ngIf="category.description" class="customer-phone">{{ category.description }}</span>
@@ -198,9 +165,6 @@
           </span>
           <span class="card-meta-item">
             <i class="pi pi-layer-group"></i>&nbsp;{{ getLevelDisplay(category.depthLevel) }}
-          </span>
-          <span *ngIf="category.childCount > 0" class="card-meta-item">
-            <i class="pi pi-list"></i>&nbsp;{{ category.childCount }} children
           </span>
           <span class="card-meta-item">
             <i class="pi pi-sort-numeric-down"></i>&nbsp;Order {{ category.displayOrder }}
@@ -214,22 +178,6 @@
           <i class="pi pi-ellipsis-h"></i>
         </button>
       </div>
-    </div>
-  </div>
-
-  <!-- Mobile Pagination — fixed at viewport bottom -->
-  <div *ngIf="!loading && totalRecords > 0" class="mobile-pagination">
-    <div class="pagination-info-mobile">
-      {{ first + 1 }}–{{ Math.min(first + rows, totalRecords) }} of {{ totalRecords }}
-    </div>
-    <div class="pagination-nav-mobile">
-      <button class="page-btn" [disabled]="currentPage <= 1" (click)="goToPage(currentPage - 1)">
-        <i class="pi pi-chevron-left"></i>
-      </button>
-      <span class="page-indicator-mobile">{{ currentPage }} / {{ totalPages }}</span>
-      <button class="page-btn" [disabled]="currentPage >= totalPages" (click)="goToPage(currentPage + 1)">
-        <i class="pi pi-chevron-right"></i>
-      </button>
     </div>
   </div>
 

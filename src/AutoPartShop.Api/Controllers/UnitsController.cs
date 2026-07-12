@@ -1,6 +1,7 @@
-using AutoPartShop.Api.Services;
+﻿using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.UnitDtos;
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,7 +14,7 @@ namespace AutoPartShop.Api.Controllers;
 [Route("api/v1/[controller]")]
 [ApiController]
 [Produces("application/json")]
-[Authorize]
+[HasPermission(Permissions.InventoryView)]
 public class UnitsController : ControllerBase
 {
     private readonly IUnitRepository _unitRepository;
@@ -160,6 +161,7 @@ public class UnitsController : ControllerBase
     /// Create a new unit
     /// </summary>
     [HttpPost]
+    [HasPermission(Permissions.InventoryCreate)]
     [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(UnitResponse))]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
@@ -205,6 +207,7 @@ public class UnitsController : ControllerBase
     /// Update a unit
     /// </summary>
     [HttpPut("{id:guid}")]
+    [HasPermission(Permissions.InventoryEdit)]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(UnitResponse))]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -256,6 +259,7 @@ public class UnitsController : ControllerBase
     /// Activate a unit
     /// </summary>
     [HttpPatch("{id:guid}/activate")]
+    [HasPermission(Permissions.InventoryEdit)]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(UnitResponse))]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Activate(Guid id, CancellationToken cancellationToken)
@@ -289,6 +293,7 @@ public class UnitsController : ControllerBase
     /// Deactivate a unit
     /// </summary>
     [HttpPatch("{id:guid}/deactivate")]
+    [HasPermission(Permissions.InventoryEdit)]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(UnitResponse))]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Deactivate(Guid id, CancellationToken cancellationToken)
@@ -322,6 +327,7 @@ public class UnitsController : ControllerBase
     /// Delete a unit
     /// </summary>
     [HttpDelete("{id:guid}")]
+    [HasPermission(Permissions.InventoryDelete)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
@@ -524,6 +530,7 @@ public class UnitsController : ControllerBase
     /// Create a new unit conversion
     /// </summary>
     [HttpPost("conversions")]
+    [HasPermission(Permissions.InventoryCreate)]
     [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(UnitConversionResponse))]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
@@ -587,6 +594,7 @@ public class UnitsController : ControllerBase
     /// Update a unit conversion
     /// </summary>
     [HttpPut("conversions/{id:guid}")]
+    [HasPermission(Permissions.InventoryEdit)]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(UnitConversionResponse))]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -630,6 +638,7 @@ public class UnitsController : ControllerBase
     /// Delete a unit conversion
     /// </summary>
     [HttpDelete("conversions/{id:guid}")]
+    [HasPermission(Permissions.InventoryDelete)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteConversion(Guid id, CancellationToken cancellationToken)

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace AutoPartShop.Infrastructure.Data.Configurations;
 
+#pragma warning disable CS0618 // InvoicePayment is obsolete; configuration retained for existing DB table
 public class InvoicePaymentConfiguration : IEntityTypeConfiguration<InvoicePayment>
 {
     public void Configure(EntityTypeBuilder<InvoicePayment> builder)
@@ -31,3 +32,4 @@ public class InvoicePaymentConfiguration : IEntityTypeConfiguration<InvoicePayme
         builder.HasIndex(ip => ip.PaymentDate);
     }
 }
+#pragma warning restore CS0618

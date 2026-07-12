@@ -101,7 +101,10 @@
     --space-6: 1.5rem;
 
     /* Corner radii */
-    --radius-sm: 6px;
+    /* --radius-sm is intentionally NOT redeclared here — the canonical value
+       (8px) lives in assets/_data-page.scss; a duplicate 6px value here used
+       to win the cascade (this file loads after it) and silently desynced
+       every list page's border-radius from the design system's own token. */
     --radius-md: 8px;
     --radius-lg: 12px;
 
@@ -113,12 +116,12 @@
     /* Label standard */
     --label-size: 0.8125rem;
     --label-weight: 600;
-    --label-color: #374151;
+    --label-color: var(--color-text-primary); /* was a hardcoded hex with no dark-mode coverage */
     --label-gap: 0.35rem;
 }
 
 html {
-    font-size: 14px; /* Base for desktop — POS/ERP density (scales the whole rem-based app) */
+    font-size: 15px; /* Base for desktop — POS/ERP density (scales the whole rem-based app) */
 }
 
 /* Tablet (768px - 991px) */
@@ -382,6 +385,21 @@ html {
     }
 }
 
+/* Required-field marker + helper/hint text — already copy-pasted identically
+   (color: var(--color-danger) / var(--color-text-secondary)) into ~30
+   component stylesheets; canonical here so new forms don't need their own copy. */
+.required {
+    color: var(--color-danger);
+}
+
+.field-hint {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    color: var(--color-text-secondary);
+    font-size: 12px;
+}
+
 /* Desktop baseline (>=992px) — the standard sizing & spacing */
 @media (min-width: 992px) {
     /* Controls: equal height, padding and font (inside form fields only) */
@@ -526,7 +544,7 @@ body.storefront-scroll .layout-main-container {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-y: contain;
     /* Desktop: calculate height based on viewport minus topbar */
-    height: calc(100vh - 70px);
+    height: calc(100vh - 56px);
 }
 
 .layout-main {
@@ -562,9 +580,9 @@ body.storefront-scroll .layout-main-container {
     }
 
     .layout-main-container {
-        height: calc(100vh - 70px);
+        height: calc(100vh - 56px);
         position: fixed;
-        top: 70px;
+        top: 56px;
         left: 0;
         right: 0;
         bottom: 0;
@@ -577,10 +595,10 @@ body.storefront-scroll .layout-main-container {
         position: static !important;
         display: flex !important;
         flex-direction: column-reverse !important;
-        background: #ffffff !important;
+        background: var(--color-bg-primary) !important; /* was hardcoded #ffffff — broke dark mode */
         padding: 1rem !important;
         margin-top: 1rem !important;
-        border-top: 1px solid #e5e7eb !important;
+        border-top: 1px solid var(--color-border) !important; /* was hardcoded #e5e7eb */
         box-shadow: none !important;
         gap: 0.75rem !important;
     }
@@ -593,17 +611,17 @@ body.storefront-scroll .layout-main-container {
 /* Extra small devices - phones in portrait */
 @media (max-width: 575px) {
     .layout-main-container {
-        height: calc(100vh - 60px);
-        top: 60px;
+        height: calc(100vh - 56px);
+        top: 56px;
     }
 
     .layout-topbar {
-        height: 60px !important;
+        height: 56px !important;
     }
 
     .layout-sidebar {
-        top: 60px !important;
-        height: calc(100vh - 60px) !important;
+        top: 56px !important;
+        height: calc(100vh - 56px) !important;
     }
 
     .form-actions {
@@ -620,14 +638,14 @@ body.storefront-scroll .layout-main-container {
 .layout-topbar {
     display: flex !important;
     align-items: center !important;
-    justify-content: space-between !important;
-    height: 70px !important;
+    justify-content: flex-start !important;
+    height: 56px !important;
 }
 
 .layout-topbar .topbar-title {
     display: flex !important;
     align-items: center !important;
-    height: 70px !important;
+    height: 56px !important;
 }
 
 .layout-topbar .topbar-title h1 {
@@ -638,18 +656,13 @@ body.storefront-scroll .layout-main-container {
 .layout-topbar .topbar-search {
     display: flex !important;
     align-items: center !important;
-    height: 70px !important;
-}
-
-.layout-topbar .topbar-search .p-input-icon-left {
-    display: flex !important;
-    align-items: center !important;
+    height: 34px !important;
 }
 
 .layout-topbar .topbar-actions {
     display: flex !important;
     align-items: center !important;
-    height: 70px !important;
+    height: 56px !important;
 }
 
 .layout-topbar .topbar-action-btn {
@@ -662,7 +675,7 @@ body.storefront-scroll .layout-main-container {
 .layout-topbar .user-menu-container {
     display: flex !important;
     align-items: center !important;
-    height: 70px !important;
+    height: 56px !important;
 }
 
 .layout-topbar .user-menu-btn {
@@ -694,7 +707,7 @@ body.storefront-scroll .layout-main-container {
     .layout-topbar {
         left: 0 !important;
         padding: 0 1rem !important;
-        height: 70px !important;
+        height: 56px !important;
     }
 
     .layout-main-container {
@@ -705,9 +718,9 @@ body.storefront-scroll .layout-main-container {
     .layout-sidebar {
         transform: translateX(-100%);
         left: 0 !important;
-        top: 70px !important;
-        height: calc(100vh - 70px) !important;
-        width: 280px !important;
+        top: 56px !important;
+        height: calc(100vh - 56px) !important;
+        width: 248px !important;
     }
 
     .layout-wrapper.layout-mobile-active .layout-sidebar {
@@ -718,13 +731,13 @@ body.storefront-scroll .layout-main-container {
 /* Extra small devices (phones portrait) */
 @media (max-width: 575px) {
     .layout-topbar {
-        height: 60px !important;
+        height: 56px !important;
         padding: 0 0.75rem !important;
     }
 
     .layout-sidebar {
-        top: 60px !important;
-        height: calc(100vh - 60px) !important;
+        top: 56px !important;
+        height: calc(100vh - 56px) !important;
     }
 }
 
@@ -824,8 +837,8 @@ body.storefront-scroll .layout-main-container {
         gap: 0.5rem !important;
         margin-top: 1rem !important;
         padding: 1rem !important;
-        border-top: 1px solid #e5e7eb !important;
-        background: #f9fafb !important;
+        border-top: 1px solid var(--color-border) !important; /* was hardcoded #e5e7eb */
+        background: var(--color-bg-secondary) !important; /* was hardcoded #f9fafb */
         border-radius: 0.5rem !important;
     }
 
@@ -1054,4 +1067,167 @@ body.storefront-scroll .layout-main-container {
 .fullscreen-dialog .p-dialog-content {
     flex: 1;
     overflow-y: auto;
+}
+
+/* ============================================================
+   DARK MODE — global form & input theme corrections
+   ------------------------------------------------------------
+   Many component CSS files use ::ng-deep with hardcoded light-
+   theme colors (#ffffff, #f9fafb, #d1d5db, #374151…) that
+   override PrimeNG's own dark-mode tokens.  Angular injects
+   component styles AFTER this global bundle, so !important is
+   needed to win the cascade.
+   Does NOT touch .print-* or @media print blocks — those are
+   intentionally light for paper output.
+   ============================================================ */
+.app-dark {
+
+    /* ── Native HTML inputs inside component templates ────────── */
+    /* (goods-receipt wizard, warehouse form, etc.)                */
+    .modal-content input[type="text"],
+    .modal-content input[type="number"],
+    .modal-content input[type="email"],
+    .modal-content input[type="password"],
+    .modal-content input[type="search"],
+    .modal-content select,
+    .modal-content textarea,
+    input[type="text"]:not([class*="p-"]):not(.p-inputtext),
+    input[type="number"]:not([class*="p-"]),
+    input[type="email"]:not([class*="p-"]),
+    input[type="search"]:not([class*="p-"]),
+    input[type="date"]:not([class*="p-"]),
+    select:not([class*="p-"]),
+    textarea:not([class*="p-"]):not(.p-inputtextarea) {
+        background-color: var(--surface-card) !important;
+        border-color: var(--surface-border) !important;
+        color: var(--text-color) !important;
+    }
+
+    /* ── PrimeNG input internals overridden by ::ng-deep ─────── */
+    .p-autocomplete .p-autocomplete-input,
+    .p-inputnumber .p-inputnumber-input {
+        background-color: var(--surface-card) !important;
+        border-color: var(--surface-border) !important;
+        color: var(--text-color) !important;
+    }
+
+    .p-inputnumber-button-group .p-button {
+        background-color: var(--surface-ground) !important;
+        border-color: var(--surface-border) !important;
+        color: var(--text-color-secondary) !important;
+    }
+
+    .p-dropdown .p-dropdown-trigger,
+    .p-select .p-select-dropdown {
+        background-color: var(--surface-card) !important;
+    }
+
+    /* ── Dialog chrome ────────────────────────────────────────── */
+    .p-dialog .p-dialog-header,
+    .p-dialog .p-dialog-content,
+    .p-dialog .p-dialog-footer {
+        background-color: var(--surface-card) !important;
+        border-color: var(--surface-border) !important;
+        color: var(--text-color) !important;
+    }
+
+    /* ── Modal-style containers (non-PrimeNG custom modals) ───── */
+    .modal-content {
+        background-color: var(--surface-card) !important;
+        border-color: var(--surface-border) !important;
+        color: var(--text-color) !important;
+    }
+
+    /* ── Table/list header rows ────────────────────────────────── */
+    .modal-content .items-table th,
+    .form-table th,
+    .line-items-table th,
+    .items-table thead th {
+        background-color: var(--surface-ground) !important;
+        border-color: var(--surface-border) !important;
+        color: var(--text-color) !important;
+    }
+
+    .modal-content .items-table td,
+    .form-table td,
+    .line-items-table td,
+    .items-table tbody td {
+        border-color: var(--surface-border) !important;
+        color: var(--text-color) !important;
+    }
+
+    /* ── Summary / info cards ─────────────────────────────────── */
+    .summary-card {
+        background-color: var(--surface-ground) !important;
+        border-color: var(--surface-border) !important;
+        color: var(--text-color) !important;
+    }
+
+    /* ── Form labels & hint text ──────────────────────────────── */
+    .form-label {
+        color: var(--text-color) !important;
+    }
+
+    .hint-message,
+    .helper-text,
+    .field-hint {
+        color: var(--text-color-secondary) !important;
+    }
+
+    /* ── Autocomplete item text ───────────────────────────────── */
+    .category-autocomplete-item .font-semibold,
+    .unit-autocomplete-item .font-semibold {
+        color: var(--text-color) !important;
+    }
+
+    /* ── Semantic callout/info boxes ─────────────────────────── */
+    /* Blue info callout (#eff6ff / #bfdbfe)                      */
+    .variant-price-note,
+    .pf-callout-blue,
+    .info-callout-blue,
+    .callout-info {
+        background: rgba(59, 130, 246, 0.12) !important;
+        border-color: rgba(99, 155, 246, 0.4) !important;
+        color: #93c5fd !important;
+    }
+
+    /* Green success callout (#f0fdf4 / #bbf7d0)                  */
+    .pf-callout-green,
+    .info-callout-green,
+    .callout-success {
+        background: rgba(34, 197, 94, 0.12) !important;
+        border-color: rgba(34, 197, 94, 0.4) !important;
+        color: #86efac !important;
+    }
+
+    /* ── Supplier / Customer account summary page ─────────────── */
+    /* print-* blocks inside these components are intentionally    */
+    /* left as-is (white for paper output).                        */
+    .account-header,
+    .account-info-grid,
+    .account-statement-table,
+    .statement-filters,
+    .filters-row {
+        background-color: var(--surface-card) !important;
+        border-color: var(--surface-border) !important;
+        color: var(--text-color) !important;
+    }
+
+    /* ── Wizard / stepper chrome ──────────────────────────────── */
+    .wizard-content,
+    .wizard-container {
+        background-color: var(--surface-card) !important;
+        border-color: var(--surface-border) !important;
+    }
+
+    /* ── Generic light-bg containers that don't use tokens ─────── */
+    /* Targets any component that puts a hardcoded #f9fafb / #f3f4f6
+       on a card-like div. We narrow by pairing with border color.  */
+    [style*="background: #f9fafb"],
+    [style*="background-color: #f9fafb"],
+    [style*="background:#f9fafb"],
+    [style*="background: #f3f4f6"],
+    [style*="background:#f3f4f6"] {
+        background-color: var(--surface-ground) !important;
+    }
 }

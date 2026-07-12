@@ -1,8 +1,9 @@
-using AutoPartShop.Api.Services;
+﻿using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.WarrantyDtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
 using AutoPartShop.Infrastructure.Repositories;
+using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -13,7 +14,7 @@ namespace AutoPartShop.Api.Controllers;
 [Route("api/v1/[controller]")]
 [ApiController]
 [Produces("application/json")]
-[Authorize]
+[HasPermission(Permissions.SalesView)]
 public class WarrantyClaimsController : ControllerBase
 {
     private const string WarrantyReplacementOutReason = "WARRANTY_REPLACEMENT_OUT";
@@ -281,6 +282,7 @@ public class WarrantyClaimsController : ControllerBase
     }
 
     [HttpPost]
+    [HasPermission(Permissions.SalesCreate)]
     public async Task<IActionResult> Create(CreateWarrantyClaimRequest request, CancellationToken cancellationToken)
     {
         try
@@ -363,6 +365,7 @@ public class WarrantyClaimsController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/submit-for-review")]
+    [HasPermission(Permissions.SalesEdit)]
     public async Task<IActionResult> SubmitForReview(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -438,6 +441,7 @@ public class WarrantyClaimsController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/assign-technician")]
+    [HasPermission(Permissions.SalesEdit)]
     public async Task<IActionResult> AssignTechnician(Guid id, [FromBody] AssignTechnicianRequest request, CancellationToken cancellationToken)
     {
         try
@@ -498,6 +502,7 @@ public class WarrantyClaimsController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/update-service-cost")]
+    [HasPermission(Permissions.SalesEdit)]
     public async Task<IActionResult> UpdateServiceCost(Guid id, [FromBody] UpdateServiceCostRequest request, CancellationToken cancellationToken)
     {
         try
@@ -840,7 +845,7 @@ public class WarrantyClaimsController : ControllerBase
             if (outstanding)
                 return BadRequest(new { message = "Item is already out for repair. Receive it back before sending again." });
 
-            // Sending the unit out IS the start of service — move an approved claim to in-progress so it
+            // Sending the unit out IS the start of service â€” move an approved claim to in-progress so it
             // can be completed later without forcing an in-house technician assignment.
             if (claim.Status == "APPROVED")
             {
@@ -1354,6 +1359,7 @@ public class WarrantyClaimsController : ControllerBase
             WarrantyCoverageType = claim.WarrantyRegistration?.WarrantyType ?? "",
             GuaranteeMessage = BuildGuaranteeMessage(claim.WarrantyRegistration),
             PartName = claim.WarrantyRegistration?.Part?.Name ?? "",
+            PartLocalName = claim.WarrantyRegistration?.Part?.LocalName,
             PartSKU = claim.WarrantyRegistration?.Part?.SKU ?? "",
             CustomerId = claim.CustomerId,
             CustomerName = claim.Customer != null ? $"{claim.Customer.FirstName} {claim.Customer.LastName}" : "",
@@ -1439,7 +1445,7 @@ public class CompleteClaimRequest
 
     // REPLACEMENT only: when true, the replacement unit is sourced from the vendor
     // (not dispatched from on-hand stock now), so the immediate stock OUT is skipped.
-    // The actual replacement is driven later by the defective/send → replacement/receive flow.
+    // The actual replacement is driven later by the defective/send â†’ replacement/receive flow.
     public bool ReplacementFromVendor { get; set; }
 }
 

@@ -2,6 +2,7 @@ using AutoPartShop.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace AutoPartShop.Infrastructure.Repositories;
+
 public class ProductRepository(AutoPartDbContext _db) : IProductRepository
 {
     public async Task<IEnumerable<Product>> GetAllAsync(CancellationToken cancellationToken = default)
@@ -16,6 +17,7 @@ public class ProductRepository(AutoPartDbContext _db) : IProductRepository
             .Include(p => p.Brand)
             .Include(p => p.Unit)
             .Include(p => p.BaseUnit)
+            .Include(p => p.VehicleCompatibilities).ThenInclude(vc => vc.Vehicle)
             .FirstOrDefaultAsync(p => p.Id == id && !p.Isdeleted, cancellationToken);
     }
 
@@ -57,7 +59,9 @@ public class ProductRepository(AutoPartDbContext _db) : IProductRepository
                 entity.HeightCm,
                 entity.DepthCm,
                 entity.TaxCode,
-                entity.RichDescription);
+                entity.RichDescription,
+                entity.OemNumber,
+                entity.LocalName);
 
             existing.ModifiedBy = entity.ModifiedBy;
         }

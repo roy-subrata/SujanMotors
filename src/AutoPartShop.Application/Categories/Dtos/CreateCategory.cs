@@ -1,4 +1,5 @@
 ﻿namespace AutoPartShop.Application.Categories.Dtos;
+
 public class CreateCategory
 {
     /// <summary>

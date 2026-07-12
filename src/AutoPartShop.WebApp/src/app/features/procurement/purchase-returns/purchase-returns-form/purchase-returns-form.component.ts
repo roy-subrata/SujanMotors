@@ -20,7 +20,7 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { PurchaseReturnService, PurchaseReturnResponse, AvailableLotForReturn, ReturnPrefillFromGrn } from '../../services/purchase-return.service';
 import { PurchaseOrderService, PurchaseOrderResponse } from '../../services/purchase-order.service';
-import { PartService, PartResponse } from '../../../inventory/services/part.service';
+import { PartService } from '../../../inventory/services/part.service';
 import { CurrencyService } from '../../../../shared/services/currency.service';
 import { AppBrandingService } from '../../../../shared/services/app-branding.service';
 
@@ -59,7 +59,11 @@ export class PurchaseReturnsFormComponent implements OnInit {
   returnId: string | null = null;
   filteredPurchaseOrders: PurchaseOrderResponse[] = [];
   purchaseOrders: PurchaseOrderResponse[] = [];
-  parts: PartResponse[] = [];
+  // Part names are resolved on demand (per partId) instead of preloading a capped catalog page —
+  // every line here already originates from a known partId (PO line, saved return line, or GRN
+  // prefill), so we only need name lookups, not a searchable part-picker. See resolvePartLabel().
+  private partNameCache = new Map<string, string>();
+  private partNameLoading = new Set<string>();
   availablePOItems: any[] = [];
   showItemSelectionDialog = false;
   selectedPOItems: any[] = [];
@@ -121,7 +125,6 @@ export class PurchaseReturnsFormComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadPurchaseOrders();
-    this.loadParts();
     this.checkEditMode();
     if (!this.returnId) {
       this.checkPrefillFromGrn();
@@ -173,20 +176,41 @@ export class PurchaseReturnsFormComponent implements OnInit {
   }
 
   /**
-   * Load parts for ID→name lookup (used by getPartName and addPOLineItem helpers)
+   * Resolve a display label for a partId without preloading the whole catalog.
+   * If the caller already has the name (PO line / saved return line / GRN prefill all carry
+   * `displayName`), use it directly and prime the cache. Otherwise fetch it once via
+   * `getPartById` and patch any matching line(s) when it resolves.
    */
-  private loadParts(): void {
-    this.partService.getParts({ search: '', pageNumber: 1, pageSize: 500, isActive: true, flattenVariants: true }).subscribe({
-      next: (res) => {
-        this.parts = Array.isArray(res.data) ? res.data : [];
-      },
-      error: (error) => {
-        console.error('Error loading parts:', error);
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load parts'
+  private resolvePartLabel(partId: string, providedName?: string | null): string {
+    if (providedName) {
+      this.partNameCache.set(partId, providedName);
+      return providedName;
+    }
+    const cached = this.partNameCache.get(partId);
+    if (cached) return cached;
+
+    this.fetchPartName(partId);
+    return partId;
+  }
+
+  private fetchPartName(partId: string): void {
+    if (!partId || this.partNameLoading.has(partId) || this.partNameCache.has(partId)) return;
+    this.partNameLoading.add(partId);
+    this.partService.getPartById(partId).subscribe({
+      next: (part) => {
+        const label = part.displayName || part.name || partId;
+        this.partNameCache.set(partId, label);
+        this.partNameLoading.delete(partId);
+        // Patch any already-built line(s) that were waiting on this name.
+        this.lineItemsArray.controls.forEach(ctrl => {
+          if (ctrl.get('partId')?.value === partId && !ctrl.get('displayName')?.value) {
+            ctrl.get('displayName')?.setValue(label);
+            ctrl.get('part')?.setValue({ id: partId, name: label, displayName: label });
+          }
         });
+      },
+      error: (_error) => {
+        this.partNameLoading.delete(partId);
       }
     });
   }
@@ -336,12 +360,12 @@ export class PurchaseReturnsFormComponent implements OnInit {
    * Create line item form group
    */
   private createLineItem(lineData?: any): FormGroup {
-    // Find the part object if we have a partId; fall back to a minimal object built from the line
-    // (display name) so the required `part` control is satisfied even when the part isn't in the cache.
+    // Resolve a display object for the `part` control from the line's own data (no full-catalog
+    // preload needed — see resolvePartLabel()).
     let partObj: any = null;
     if (lineData?.partId) {
-      partObj = this.parts.find(p => p.id === lineData.partId)
-        || (lineData.displayName ? { id: lineData.partId, name: lineData.displayName, displayName: lineData.displayName } : null);
+      const label = this.resolvePartLabel(lineData.partId, lineData.displayName);
+      partObj = { id: lineData.partId, name: label, displayName: label };
       // Load available lots for this part
       this.loadAvailableLotsForPart(lineData.partId);
     }
@@ -352,6 +376,7 @@ export class PurchaseReturnsFormComponent implements OnInit {
       part: [partObj, Validators.required],
       partId: [lineData?.partId || '', Validators.required],
       displayName: [lineData?.displayName || partObj?.name || ''],
+      partLocalName: [lineData?.partLocalName || null],
       sourceBucket: [lineData?.sourceBucket || 'AVAILABLE'],  // Filters the lot picker; not persisted
       stockLotId: [lineData?.stockLotId || null],  // Optional: specific lot to return from
       quantity: [lineData?.quantity || 1, [Validators.required, Validators.min(1)]],
@@ -580,7 +605,8 @@ export class PurchaseReturnsFormComponent implements OnInit {
    * Helper method to add a PO line item to the form
    */
   private addPOLineItem(poLine: any): void {
-    const partObj = this.parts.find(p => p.id === poLine.partId);
+    const label = this.resolvePartLabel(poLine.partId, poLine.displayName || poLine.partName);
+    const partObj = { id: poLine.partId, name: label, displayName: label };
 
     // Load available lots for this part
     if (poLine.partId) {
@@ -708,8 +734,7 @@ export class PurchaseReturnsFormComponent implements OnInit {
    * Get part name by part ID
    */
   getPartName(partId: string): string {
-    const part = this.parts.find(p => p.id === partId);
-    return part ? `${part.partNumber} - ${part.name}` : 'Unknown Part';
+    return this.resolvePartLabel(partId);
   }
 
   /**

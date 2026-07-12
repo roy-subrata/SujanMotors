@@ -9,6 +9,7 @@ public class WarrantyClaimResponse
     public string WarrantyCoverageType { get; set; } = string.Empty;
     public string GuaranteeMessage { get; set; } = string.Empty;
     public string PartName { get; set; } = string.Empty;
+    public string? PartLocalName { get; set; }
     public string PartSKU { get; set; } = string.Empty;
     public Guid CustomerId { get; set; }
     public string CustomerName { get; set; } = string.Empty;

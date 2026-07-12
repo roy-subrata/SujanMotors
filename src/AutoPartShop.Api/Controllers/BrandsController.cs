@@ -1,10 +1,11 @@
-using AutoPartShop.Api.Common;
+﻿using AutoPartShop.Api.Common;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.Brands;
 using AutoPartShop.Application.Brands.Dtos;
 using AutoPartShop.Application.DTOs.BrandDtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
+using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -13,7 +14,7 @@ namespace AutoPartShop.Api.Controllers;
 
 [ApiController]
 [Route("api/v1/brands")]
-[Authorize]
+[HasPermission(Permissions.InventoryView)]
 [Produces("application/json")]
 public class BrandsController : ControllerBase
 {
@@ -37,7 +38,7 @@ public class BrandsController : ControllerBase
         _currentUserService = currentUserService;
     }
 
-    // ── List ──────────────────────────────────────────────────────────────────
+    // â”€â”€ List â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /// <summary>
     /// List brands with optional filtering and pagination.
@@ -54,7 +55,8 @@ public class BrandsController : ControllerBase
         CancellationToken cancellationToken = default)
     {
         if (page < 1) page = 1;
-        if (pageSize is < 1 or > 100) pageSize = 10;
+        if (pageSize < 1) pageSize = 10;
+        else if (pageSize > 100) pageSize = 100;
 
         var query = new BrandQuery
         {
@@ -69,7 +71,7 @@ public class BrandsController : ControllerBase
         return Ok(PagedApiResponse<BrandResponse>.Create(items, total, page, pageSize));
     }
 
-    // ── Single by ID ──────────────────────────────────────────────────────────
+    // â”€â”€ Single by ID â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     [HttpGet("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -83,12 +85,12 @@ public class BrandsController : ControllerBase
         return Ok(ApiResponse<BrandResponse>.Ok(MapToResponse(brand)));
     }
 
-    // ── Single by code ────────────────────────────────────────────────────────
+    // â”€â”€ Single by code â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-    // ── Create ────────────────────────────────────────────────────────────────
+    // â”€â”€ Create â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     [HttpPost]
-    [Authorize(Roles = "Admin")]
+    [HasPermission(Permissions.InventoryCreate)]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
@@ -117,10 +119,10 @@ public class BrandsController : ControllerBase
             ApiResponse<BrandResponse>.Ok(MapToResponse(brand)));
     }
 
-    // ── Update ────────────────────────────────────────────────────────────────
+    // â”€â”€ Update â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     [HttpPut("{id:guid}")]
-    [Authorize(Roles = "Admin")]
+    [HasPermission(Permissions.InventoryEdit)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -150,10 +152,10 @@ public class BrandsController : ControllerBase
         return Ok(ApiResponse<BrandResponse>.Ok(MapToResponse(brand)));
     }
 
-    // ── Delete ────────────────────────────────────────────────────────────────
+    // â”€â”€ Delete â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     [HttpDelete("{id:guid}")]
-    [Authorize(Roles = "Admin")]
+    [HasPermission(Permissions.InventoryDelete)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
@@ -166,7 +168,7 @@ public class BrandsController : ControllerBase
         return NoContent();
     }
 
-    // ── Mapping ───────────────────────────────────────────────────────────────
+    // â”€â”€ Mapping â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private static BrandResponse MapToResponse(Brand brand) => new()
     {
@@ -174,16 +176,16 @@ public class BrandsController : ControllerBase
         Name = brand.Name,
         // Normalise empty strings stored by the domain to null so the response
         // matches the declared nullable types and frontend null-checks work correctly
-        Description  = NullIfEmpty(brand.Description),
-        LogoUrl      = NullIfEmpty(brand.LogoUrl),
-        Website      = NullIfEmpty(brand.Website),
-        Country      = NullIfEmpty(brand.Country),
+        Description = NullIfEmpty(brand.Description),
+        LogoUrl = NullIfEmpty(brand.LogoUrl),
+        Website = NullIfEmpty(brand.Website),
+        Country = NullIfEmpty(brand.Country),
         ContactEmail = NullIfEmpty(brand.ContactEmail),
         ContactPhone = NullIfEmpty(brand.ContactPhone),
         DisplayOrder = brand.DisplayOrder,
-        IsActive     = brand.IsActive,
-        CreatedAt    = brand.CreatedDate,
-        ModifiedAt   = brand.ModifiedDate == default ? null : brand.ModifiedDate
+        IsActive = brand.IsActive,
+        CreatedAt = brand.CreatedDate,
+        ModifiedAt = brand.ModifiedDate == default ? null : brand.ModifiedDate
     };
 
     private static string? NullIfEmpty(string? value) =>

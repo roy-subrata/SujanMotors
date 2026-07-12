@@ -66,16 +66,27 @@ public class AutoPartDbContext : IdentityDbContext<ApplicationUser, ApplicationR
     public DbSet<GoodsReceipt> GoodsReceipts { get; set; }
     public DbSet<SalesOrder> SalesOrders { get; set; }
     public DbSet<Invoice> Invoices { get; set; }
+#pragma warning disable CS0618 // InvoicePayment is obsolete; DbSet retained for existing DB table
     public DbSet<InvoicePayment> InvoicePayments { get; set; }
+#pragma warning restore CS0618
     public DbSet<SalesReturn> SalesReturns { get; set; }
     public DbSet<PurchaseReturn> PurchaseReturns { get; set; }
     public DbSet<Customer> Customers { get; set; }
+    public DbSet<CustomerVehicle> CustomerVehicles { get; set; }
     public DbSet<PaymentProvider> PaymentProviders { get; set; }
     public DbSet<CustomerPayment> CustomerPayments { get; set; }
     public DbSet<SupplierPayment> SupplierPayments { get; set; }
     public DbSet<StockLot> StockLots { get; set; }
     public DbSet<StockLotMovement> StockLotMovements { get; set; }
     public DbSet<Technician> Technicians { get; set; }
+    public DbSet<Employee> Employees { get; set; }
+    public DbSet<AttendanceRecord> AttendanceRecords { get; set; }
+    public DbSet<LeaveRequest> LeaveRequests { get; set; }
+    public DbSet<Holiday> Holidays { get; set; }
+    public DbSet<PayrollRun> PayrollRuns { get; set; }
+    public DbSet<Payslip> Payslips { get; set; }
+    public DbSet<Shift> Shifts { get; set; }
+    public DbSet<SalaryAdvance> SalaryAdvances { get; set; }
     public DbSet<AuditLog> AuditLogs { get; set; }
     public DbSet<ProductLocation> ProductLocations { get; set; }
     public DbSet<DailyExpense> DailyExpenses { get; set; }

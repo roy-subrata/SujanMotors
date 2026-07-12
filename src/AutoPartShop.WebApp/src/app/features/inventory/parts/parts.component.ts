@@ -15,6 +15,7 @@ import { SkeletonModule } from 'primeng/skeleton';
 import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
 import { PartsImportDialogComponent } from './parts-import-dialog/parts-import-dialog.component';
 import { PartService, PartResponse } from '../services/part.service';
+import { CategoryService, CategoryResponse } from '../services/category.service';
 import { CurrencyService } from '@/shared/services/currency.service';
 import { PriceCodeService } from '@/shared/services/price-code.service';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
@@ -50,6 +51,7 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
 })
 export class PartsComponent implements OnInit {
     private readonly partService = inject(PartService);
+    private readonly categoryService = inject(CategoryService);
     private readonly messageService = inject(MessageService);
     private readonly confirmationService = inject(ConfirmationService);
     private readonly currencyService = inject(CurrencyService);
@@ -66,6 +68,8 @@ export class PartsComponent implements OnInit {
     pageSize = 10;
     searchTerm = '';
     filterStatus = '';
+    filterCategoryId = '';
+    sortValue = '';
 
     actionMenuItems: MenuItem[] = [];
     importDialogVisible = false;
@@ -74,6 +78,17 @@ export class PartsComponent implements OnInit {
         { label: 'All Statuses', value: '' },
         { label: 'Active', value: 'ACTIVE' },
         { label: 'Inactive', value: 'INACTIVE' }
+    ];
+
+    categoryOptions: { label: string; value: string }[] = [{ label: 'All Categories', value: '' }];
+
+    /** value encodes "field_direction" — matches SortOption.Field on the backend Part entity. */
+    sortOptions = [
+        { label: 'Sort', value: '' },
+        { label: 'Name (A–Z)', value: 'Name_asc' },
+        { label: 'Name (Z–A)', value: 'Name_desc' },
+        { label: 'Price (Low–High)', value: 'SellingPrice_asc' },
+        { label: 'Price (High–Low)', value: 'SellingPrice_desc' }
     ];
 
     Math = Math;
@@ -85,6 +100,15 @@ export class PartsComponent implements OnInit {
 
     ngOnInit(): void {
         this.loadData();
+        this.categoryService.getActiveCategories().subscribe({
+            next: (categories: CategoryResponse[]) => {
+                this.categoryOptions = [
+                    { label: 'All Categories', value: '' },
+                    ...categories.map(c => ({ label: c.name, value: c.id }))
+                ];
+            },
+            error: () => { /* dropdown just stays "All Categories" — not worth a toast */ }
+        });
     }
 
     loadData(page = this.currentPage, rows = this.pageSize): void {
@@ -92,11 +116,15 @@ export class PartsComponent implements OnInit {
         this.currentPage = page;
         this.pageSize = rows;
         const isActive = this.filterStatus === 'ACTIVE' ? true : this.filterStatus === 'INACTIVE' ? false : undefined;
+        const [sortBy, sortDirection] = this.sortValue ? this.sortValue.split('_') : [undefined, undefined];
         this.partService.getParts({
             search: this.searchTerm,
             pageNumber: page,
             pageSize: rows,
-            isActive
+            isActive,
+            categoryId: this.filterCategoryId || undefined,
+            sortBy,
+            sortDirection: sortDirection as 'asc' | 'desc' | undefined
         }).subscribe({
             next: (response) => {
                 this.parts = response.data;
@@ -157,6 +185,8 @@ export class PartsComponent implements OnInit {
     clearFilters(): void {
         this.searchTerm = '';
         this.filterStatus = '';
+        this.filterCategoryId = '';
+        this.sortValue = '';
         this.loadData(1, this.pageSize);
     }
 
@@ -164,7 +194,11 @@ export class PartsComponent implements OnInit {
      * Check if filters are active
      */
     hasActiveFilters(): boolean {
-        return !!(this.searchTerm || this.filterStatus);
+        return !!(this.searchTerm || this.filterStatus || this.filterCategoryId || this.sortValue);
+    }
+
+    get filterCategoryLabel(): string {
+        return this.categoryOptions.find(c => c.value === this.filterCategoryId)?.label ?? '';
     }
 
     onLazyLoad(event: TableLazyLoadEvent): void {

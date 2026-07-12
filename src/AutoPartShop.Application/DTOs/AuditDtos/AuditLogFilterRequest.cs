@@ -36,12 +36,12 @@ public class AuditLogFilterRequest
     public string? IpAddress { get; set; }
     public string SortBy { get; set; } = "PerformedAt";
     public bool SortDescending { get; set; } = true;
-    
+
     // Advanced filters
     public List<string>? EntityNames { get; set; }  // Filter by multiple entities
     public List<string>? Actions { get; set; }  // Filter by multiple actions
     public List<string>? Users { get; set; }  // Filter by multiple users
-    
+
     // Export settings
     public int ExportMaxRows
     {

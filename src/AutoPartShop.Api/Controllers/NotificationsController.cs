@@ -1,7 +1,8 @@
-using AutoPartShop.Application.DTOs.Notification;
+﻿using AutoPartShop.Application.DTOs.Notification;
 using AutoPartShop.Application.Interfaces;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
+using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -15,10 +16,10 @@ namespace AutoPartShop.Api.Controllers;
 [Produces("application/json")]
 public class NotificationsController : ControllerBase
 {
-    private const string SmsKey          = "NOTIFICATION:SMS_ENABLED";
-    private const string WhatsAppKey     = "NOTIFICATION:WHATSAPP_ENABLED";
+    private const string SmsKey = "NOTIFICATION:SMS_ENABLED";
+    private const string WhatsAppKey = "NOTIFICATION:WHATSAPP_ENABLED";
     private const string SignalRRolesKey = "NOTIFICATION:SIGNALR_ROLES";
-    private const string NotifCategory   = "NOTIFICATION";
+    private const string NotifCategory = "NOTIFICATION";
 
     private readonly INotificationService _notificationService;
     private readonly IApplicationSettingsRepository _settings;
@@ -42,26 +43,49 @@ public class NotificationsController : ControllerBase
 
     /// <summary>Dev helper: push a fake sale notification to all connected staff via SignalR.</summary>
     [HttpPost("test-signalr")]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> TestSignalR(CancellationToken cancellationToken)
     {
         await _broadcaster.BroadcastAsync(new SaleNotificationEvent
         {
             SalesOrderId = Guid.NewGuid(),
-            SONumber     = "SO-TEST-001",
+            SONumber = "SO-TEST-001",
             CustomerName = "SignalR Test",
-            GrandTotal   = 1234.56m,
-            Currency     = "BDT",
-            SaleChannel  = "POS",
-            SaleType     = "SALE",
-            OccurredAt   = DateTime.UtcNow,
-            CreatedBy    = User.Identity?.Name ?? "test"
+            GrandTotal = 1234.56m,
+            Currency = "BDT",
+            SaleChannel = "POS",
+            SaleType = "SALE",
+            OccurredAt = DateTime.UtcNow,
+            CreatedBy = User.Identity?.Name ?? "test"
         }, cancellationToken);
 
         return Ok(new { message = "Test notification sent to staff group" });
     }
 
+    /// <summary>
+    /// Manually run the reorder-level scan and broadcast the low-stock alert to staff.
+    /// Same scan the daily background job runs — useful for testing and ad-hoc checks.
+    /// </summary>
+    [HttpPost("reorder-alert/run")]
+    [Authorize(Roles = "Admin,Manager")]
+    public async Task<IActionResult> RunReorderAlert(
+        [FromServices] Services.ReorderAlertScanner scanner,
+        CancellationToken cancellationToken)
+    {
+        var evt = await scanner.ScanAndBroadcastAsync(cancellationToken);
+        return Ok(new
+        {
+            itemCount = evt?.ItemCount ?? 0,
+            broadcast = evt != null,
+            message = evt != null
+                ? $"Reorder alert sent: {evt.ItemCount} item(s) at/below reorder level"
+                : "No items at/below reorder level — nothing broadcast"
+        });
+    }
+
     /// <summary>Staff-triggered: send invoice HTML email to the customer for a sales order.</summary>
     [HttpPost("send-invoice-email/{salesOrderId:guid}")]
+    [HasPermission(Permissions.SalesCreate)]
     public async Task<IActionResult> SendInvoiceEmail(Guid salesOrderId, CancellationToken cancellationToken)
     {
         var db = HttpContext.RequestServices.GetRequiredService<AutoPartDbContext>();
@@ -79,7 +103,7 @@ public class NotificationsController : ControllerBase
 
         try
         {
-            var subject  = $"Invoice for Order {order.SONumber}";
+            var subject = $"Invoice for Order {order.SONumber}";
             var htmlBody = BuildInvoiceHtml(order);
 
             // The controller owns the business decision to send this email;
@@ -97,6 +121,7 @@ public class NotificationsController : ControllerBase
 
     /// <summary>Staff-triggered: remind a customer about their outstanding payment due.</summary>
     [HttpPost("send-payment-reminder/{customerId:guid}")]
+    [HasPermission(Permissions.SalesProcessPayment)]
     public async Task<IActionResult> SendPaymentReminder(
         Guid customerId,
         [FromBody] SendPaymentReminderRequest? request,
@@ -159,56 +184,59 @@ public class NotificationsController : ControllerBase
 
     /// <summary>Get the current notification channel settings.</summary>
     [HttpGet("settings")]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> GetSettings(CancellationToken cancellationToken)
     {
-        var smsVal        = await _settings.GetValueAsync(SmsKey,          cancellationToken);
-        var waVal         = await _settings.GetValueAsync(WhatsAppKey,     cancellationToken);
+        var smsVal = await _settings.GetValueAsync(SmsKey, cancellationToken);
+        var waVal = await _settings.GetValueAsync(WhatsAppKey, cancellationToken);
         var signalRRolesVal = await _settings.GetValueAsync(SignalRRolesKey, cancellationToken);
 
         return Ok(new NotificationSettingsDto
         {
-            SmsEnabled      = smsVal?.Equals("true", StringComparison.OrdinalIgnoreCase) == true,
+            SmsEnabled = smsVal?.Equals("true", StringComparison.OrdinalIgnoreCase) == true,
             WhatsAppEnabled = waVal?.Equals("true", StringComparison.OrdinalIgnoreCase) == true,
-            SignalRRoles    = string.IsNullOrWhiteSpace(signalRRolesVal)
+            SignalRRoles = string.IsNullOrWhiteSpace(signalRRolesVal)
                 ? []
-                : [..signalRRolesVal.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)]
+                : [.. signalRRolesVal.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)]
         });
     }
 
     /// <summary>Enable or disable notification channels globally.</summary>
     [HttpPut("settings")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> UpdateSettings(
         [FromBody] UpdateNotificationSettingsRequest request,
         CancellationToken cancellationToken)
     {
-        await _settings.SetValueAsync(SmsKey,          request.SmsEnabled.ToString().ToLower(),      "BOOL",   NotifCategory, "Enable SMS notifications",                           true, cancellationToken);
-        await _settings.SetValueAsync(WhatsAppKey,     request.WhatsAppEnabled.ToString().ToLower(), "BOOL",   NotifCategory, "Enable WhatsApp notifications",                      true, cancellationToken);
-        await _settings.SetValueAsync(SignalRRolesKey, string.Join(",", request.SignalRRoles ?? []),  "STRING", NotifCategory, "Roles that receive real-time SignalR notifications", true, cancellationToken);
+        await _settings.SetValueAsync(SmsKey, request.SmsEnabled.ToString().ToLower(), "BOOL", NotifCategory, "Enable SMS notifications", true, cancellationToken);
+        await _settings.SetValueAsync(WhatsAppKey, request.WhatsAppEnabled.ToString().ToLower(), "BOOL", NotifCategory, "Enable WhatsApp notifications", true, cancellationToken);
+        await _settings.SetValueAsync(SignalRRolesKey, string.Join(",", request.SignalRRoles ?? []), "STRING", NotifCategory, "Roles that receive real-time SignalR notifications", true, cancellationToken);
 
         return Ok(new NotificationSettingsDto
         {
-            SmsEnabled      = request.SmsEnabled,
+            SmsEnabled = request.SmsEnabled,
             WhatsAppEnabled = request.WhatsAppEnabled,
-            SignalRRoles    = request.SignalRRoles ?? []
+            SignalRRoles = request.SignalRRoles ?? []
         });
     }
 
     /// <summary>Get notification logs, optionally filtered by reference, channel, or status.</summary>
     [HttpGet("logs")]
+    [HasPermission(Permissions.AuditView)]
     public async Task<IActionResult> GetLogs(
         [FromQuery] string? channel,
         [FromQuery] string? status,
-        [FromQuery] int page     = 1,
+        [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
         try
         {
             var db = HttpContext.RequestServices.GetRequiredService<AutoPartDbContext>();
-            var q  = db.NotificationLogs.Where(n => !n.Isdeleted).AsQueryable();
+            var q = db.NotificationLogs.Where(n => !n.Isdeleted).AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(channel)) q = q.Where(n => n.Channel == channel.ToUpper());
-            if (!string.IsNullOrWhiteSpace(status))  q = q.Where(n => n.Status  == status.ToUpper());
+            if (!string.IsNullOrWhiteSpace(status)) q = q.Where(n => n.Status == status.ToUpper());
 
             var total = await q.CountAsync(cancellationToken);
             var items = await q
@@ -221,8 +249,13 @@ public class NotificationsController : ControllerBase
             {
                 data = items.Select(n => new
                 {
-                    n.Id, n.Channel, n.Recipient,
-                    n.Status, n.SentAt, n.ErrorMessage, n.CreatedDate
+                    n.Id,
+                    n.Channel,
+                    n.Recipient,
+                    n.Status,
+                    n.SentAt,
+                    n.ErrorMessage,
+                    n.CreatedDate
                 }),
                 pagination = new { page, pageSize, total, totalPages = (int)Math.Ceiling(total / (double)pageSize) }
             });

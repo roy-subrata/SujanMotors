@@ -10,6 +10,7 @@ public class CreateSalesOrderRequest
     public string CustomerCity { get; set; } = string.Empty;
     public Guid? TechnicianId { get; set; }
     public string? TechnicianName { get; set; }
+    public Guid? CustomerVehicleId { get; set; }  // Optional: customer's vehicle this purchase is for
     public DateTime DeliveryDate { get; set; }
     public string Notes { get; set; } = string.Empty;
     public string Currency { get; set; } = "BDT";

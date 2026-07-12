@@ -1,0 +1,61 @@
+/* SALARY ADVANCES — page-specific styles only (shared chrome in assets/_data-page.scss) */
+.col-employee { min-width: 190px; }
+.col-date     { min-width: 120px; }
+.col-amount   { min-width: 110px; text-align: right; }
+.col-method   { min-width: 120px; }
+.col-notes    { min-width: 180px; }
+.col-status   { min-width: 130px; }
+.col-settled  { min-width: 170px; }
+.col-actions  { width: 90px; text-align: center; }
+
+.code-sub {
+  display: block;
+  font-size: 12px;
+}
+
+.status-pill[data-status="outstanding"] { background: color-mix(in srgb, #f59e0b 15%, transparent); color: #b45309; }
+.status-pill[data-status="settled"]     { background: color-mix(in srgb, #22c55e 15%, transparent); color: #15803d; }
+
+.dialog-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.dialog-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.dialog-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.dialog-field label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.dialog-field .required {
+  color: var(--color-danger);
+}
+
+.dialog-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.375rem;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.dialog-field input[pInputText],
+::ng-deep .dialog-form .p-select,
+::ng-deep .dialog-form .p-datepicker,
+::ng-deep .dialog-form .p-inputnumber {
+  width: 100%;
+}

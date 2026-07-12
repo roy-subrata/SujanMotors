@@ -1,9 +1,10 @@
-using AutoPartShop.Api.Services;
+﻿using AutoPartShop.Api.Services;
 using AutoPartShop.Application.Common;
 using AutoPartShop.Application.DTOs.WarehouseDtos;
 using AutoPartShop.Application.Warehouse;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
+using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,7 +14,7 @@ namespace AutoPartShop.Api.Controllers;
 [Route("api/v1/[controller]")]
 [ApiController]
 [Produces("application/json")]
-[Authorize]
+[HasPermission(Permissions.InventoryView)]
 public class WarehousesController(
     IWarehouseRepository _warehouseRepository,
     IWarehouseReadRepository _warehouseReadRepository,
@@ -73,6 +74,7 @@ public class WarehousesController(
     }
 
     [HttpPost]
+    [HasPermission(Permissions.InventoryCreate)]
     public async Task<IActionResult> Create(CreateWarehouseRequest request, CancellationToken cancellationToken)
     {
         try
@@ -121,6 +123,7 @@ public class WarehousesController(
     }
 
     [HttpPut("{id:guid}")]
+    [HasPermission(Permissions.InventoryEdit)]
     public async Task<IActionResult> Update(Guid id, UpdateWarehouseRequest request, CancellationToken cancellationToken)
     {
         try
@@ -151,6 +154,7 @@ public class WarehousesController(
     }
 
     [HttpPatch("{id:guid}/activate")]
+    [HasPermission(Permissions.InventoryEdit)]
     public async Task<IActionResult> Activate(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -173,6 +177,7 @@ public class WarehousesController(
     }
 
     [HttpPatch("{id:guid}/deactivate")]
+    [HasPermission(Permissions.InventoryEdit)]
     public async Task<IActionResult> Deactivate(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -195,6 +200,7 @@ public class WarehousesController(
     }
 
     [HttpDelete("{id:guid}")]
+    [HasPermission(Permissions.InventoryDelete)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         try

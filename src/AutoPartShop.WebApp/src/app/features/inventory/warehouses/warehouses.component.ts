@@ -8,6 +8,9 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { WarehousesListComponent } from './warehouses-list.component';
 import { WarehouseService, WarehouseResponse } from '../services/warehouse.service';
+import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
+import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
+import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 
 @Component({
   selector: 'app-warehouses',
@@ -18,7 +21,10 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
     ButtonModule,
     ToastModule,
     ConfirmDialogModule,
-    WarehousesListComponent
+    WarehousesListComponent,
+    PageContainerComponent,
+    PageHeaderComponent,
+    FilterBarComponent
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: './warehouses.component.html',

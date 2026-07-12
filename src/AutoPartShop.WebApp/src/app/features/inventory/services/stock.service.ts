@@ -7,6 +7,7 @@ export interface StockLevelResponse {
   id: string;
   partId: string;
   partName?: string | null;
+  partLocalName?: string | null;
   partSku?: string | null;
   variantId?: string | null;
   variantName?: string | null;
@@ -61,6 +62,7 @@ export interface StockMovementResponse {
   id: string;
   partId: string;
   partName: string;
+  partLocalName?: string | null;
   partCode: string;
   variantId?: string | null;
   variantName?: string | null;

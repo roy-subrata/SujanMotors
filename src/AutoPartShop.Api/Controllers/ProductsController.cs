@@ -1,5 +1,6 @@
-using AutoPartShop.Api.Common;
+﻿using AutoPartShop.Api.Common;
 using AutoPartShop.Api.Services;
+using AutoPartShop.Application.Common;
 using AutoPartShop.Application.DTOs.PartDtos;
 using AutoPartShop.Application.Interfaces;
 using AutoPartShop.Application.Parts;
@@ -11,13 +12,14 @@ using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
 using AutoPartShop.Infrastructure.Services.Embedding;
 using AutoPartsShop.Domain.Entities;
+using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AutoPartShop.Api.Controllers;
 
 /// <summary>
-/// Products API — v1.
+/// Products API â€” v1.
 /// All list/search is handled by GET / with query parameters.
 /// Authenticated callers receive CostPrice in pricing objects; anonymous callers do not.
 /// Variants always contains at least one entry; products with no explicit variants receive a
@@ -69,7 +71,7 @@ public class ProductsController : ControllerBase
         _logger = logger;
     }
 
-    // ── List ─────────────────────────────────────────────────────────────────
+    // â”€â”€ List â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /// <summary>
     /// List products with optional filtering and pagination.
@@ -80,13 +82,17 @@ public class ProductsController : ControllerBase
     public async Task<IActionResult> GetAll(
         [FromQuery] string? search,
         [FromQuery] bool? isActive,
+        [FromQuery] Guid? categoryId,
+        [FromQuery] string? sortBy,
+        [FromQuery] string? sortDirection,
         [FromQuery] bool flattenVariants = false,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
         if (page < 1) page = 1;
-        if (pageSize is < 1 or > 100) pageSize = 20;
+        if (pageSize < 1) pageSize = 20;
+        else if (pageSize > 100) pageSize = 100;
 
         var query = new AppProductQuery
         {
@@ -94,8 +100,14 @@ public class ProductsController : ControllerBase
             PageNumber = page,
             PageSize = pageSize,
             IsActive = isActive,
-            FlattenVariants = flattenVariants
+            FlattenVariants = flattenVariants,
+            CategoryId = categoryId
         };
+
+        if (!string.IsNullOrWhiteSpace(sortBy))
+        {
+            query.Sorts = [new SortOption { Field = sortBy, Direction = sortDirection ?? "asc" }];
+        }
 
         var isAdmin = User.Identity?.IsAuthenticated == true;
 
@@ -111,7 +123,7 @@ public class ProductsController : ControllerBase
         }
     }
 
-    // ── Single ────────────────────────────────────────────────────────────────
+    // â”€â”€ Single â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /// <summary>
     /// Get a product by ID with fully nested variants array.
@@ -130,7 +142,7 @@ public class ProductsController : ControllerBase
         return Ok(ApiResponse<ProductResponse>.Ok(MapToProductResponse(part, isAdmin)));
     }
 
-    // ── Code lookup ───────────────────────────────────────────────────────────
+    // â”€â”€ Code lookup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /// <summary>
     /// Look up a product by SKU, barcode, or part number.
@@ -154,22 +166,22 @@ public class ProductsController : ControllerBase
 
         if (part is not null)
         {
-            var totalStock  = await GetTotalAvailableStockAsync(part.Id, null, cancellationToken);
+            var totalStock = await GetTotalAvailableStockAsync(part.Id, null, cancellationToken);
             return Ok(ApiResponse<object>.Ok(new
             {
-                productId            = part.Id,
-                name                 = part.Name,
-                sku                  = part.SKU,
-                partNumber           = part.PartNumber?.Value ?? string.Empty,
-                sellingPrice         = part.SellingPrice,
+                productId = part.Id,
+                name = part.Name,
+                sku = part.SKU,
+                partNumber = part.PartNumber?.Value ?? string.Empty,
+                sellingPrice = part.SellingPrice,
                 fallbackSellingPrice = part.SellingPrice,
-                hasLotPrice          = false,
-                stockLevel           = totalStock,
-                unitId               = part.UnitId,
-                unitName             = part.Unit?.Name,
-                variantId            = (Guid?)null,
-                variantName          = (string?)null,
-                variantCode          = (string?)null
+                hasLotPrice = false,
+                stockLevel = totalStock,
+                unitId = part.UnitId,
+                unitName = part.Unit?.Name,
+                variantId = (Guid?)null,
+                variantName = (string?)null,
+                variantCode = (string?)null
             }));
         }
 
@@ -180,27 +192,27 @@ public class ProductsController : ControllerBase
 
         var (variantPart, variant) = variantMatch.Value;
         var variantTotalStock = await GetTotalAvailableStockAsync(variantPart.Id, variant.Id, cancellationToken);
-        var variantPrice      = CatalogPrice.Resolve(variantPart.SellingPrice, variant.SellingPrice);
+        var variantPrice = CatalogPrice.Resolve(variantPart.SellingPrice, variant.SellingPrice);
 
         return Ok(ApiResponse<object>.Ok(new
         {
-            productId            = variantPart.Id,
-            name                 = variantPart.Name,
-            sku                  = variantPart.SKU,
-            partNumber           = variantPart.PartNumber?.Value ?? string.Empty,
-            sellingPrice         = variantPrice,
+            productId = variantPart.Id,
+            name = variantPart.Name,
+            sku = variantPart.SKU,
+            partNumber = variantPart.PartNumber?.Value ?? string.Empty,
+            sellingPrice = variantPrice,
             fallbackSellingPrice = variantPrice,
-            hasLotPrice          = false,
-            stockLevel           = variantTotalStock,
-            unitId               = variantPart.UnitId,
-            unitName             = variantPart.Unit?.Name,
-            variantId            = variant.Id,
-            variantName          = variant.Name,
-            variantCode          = variant.Code
+            hasLotPrice = false,
+            stockLevel = variantTotalStock,
+            unitId = variantPart.UnitId,
+            unitName = variantPart.Unit?.Name,
+            variantId = variant.Id,
+            variantName = variant.Name,
+            variantCode = variant.Code
         }));
     }
 
-    // ── Lot price ─────────────────────────────────────────────────────────────
+    // â”€â”€ Lot price â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /// <summary>
     /// Get the current FIFO lot selling price and stock availability for a product.
@@ -227,7 +239,7 @@ public class ProductsController : ControllerBase
         }));
     }
 
-    // ── Compatible vehicles ───────────────────────────────────────────────────
+    // â”€â”€ Compatible vehicles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /// <summary>Get all vehicles compatible with this product.</summary>
     [HttpGet("{id:guid}/compatible-vehicles")]
@@ -255,10 +267,10 @@ public class ProductsController : ControllerBase
         return Ok(ApiResponse<object>.Ok(response));
     }
 
-    // ── Create ────────────────────────────────────────────────────────────────
+    // â”€â”€ Create â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     [HttpPost]
-    [Authorize]
+    [HasPermission(Permissions.InventoryCreate)]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
@@ -282,7 +294,7 @@ public class ProductsController : ControllerBase
             request.WarrantyTerms, request.WarrantyCertificateTemplate,
             request.Barcode, request.Tags, request.ProductType, request.IsPerishable,
             request.WeightKg, request.WidthCm, request.HeightCm, request.DepthCm, request.TaxCode,
-            request.OemNumber);
+            request.OemNumber, request.LocalName);
 
         var currentUser = _currentUserService.GetCurrentUsername();
         part.CreatedBy = currentUser;
@@ -308,10 +320,10 @@ public class ProductsController : ControllerBase
             ApiResponse<ProductResponse>.Ok(MapToProductResponse(part, isAdmin: true)));
     }
 
-    // ── Update ────────────────────────────────────────────────────────────────
+    // â”€â”€ Update â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     [HttpPut("{id:guid}")]
-    [Authorize]
+    [HasPermission(Permissions.InventoryEdit)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -339,7 +351,7 @@ public class ProductsController : ControllerBase
             request.WarrantyTerms, request.WarrantyCertificateTemplate,
             request.Barcode, request.Tags, request.ProductType,
             request.IsPerishable, request.WeightKg, request.WidthCm, request.HeightCm, request.DepthCm,
-            request.TaxCode, request.RichDescription, request.OemNumber);
+            request.TaxCode, request.RichDescription, request.OemNumber, request.LocalName);
         part.ModifiedBy = _currentUserService.GetCurrentUsername();
 
         await _productRepository.UpdateAsync(part, cancellationToken);
@@ -372,7 +384,7 @@ public class ProductsController : ControllerBase
         return Ok(ApiResponse<ProductResponse>.Ok(MapToProductResponse(part, isAdmin: true)));
     }
 
-    // ── Semantic search ─────────────────────────────────────────────────────────
+    // â”€â”€ Semantic search â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /// <summary>
     /// Natural-language product search. Embeds the query and ranks products by cosine similarity
@@ -391,7 +403,7 @@ public class ProductsController : ControllerBase
 
         var vector = await _embeddingService.EmbedAsync(request.Query, cancellationToken);
 
-        // Graceful fallback: embeddings unconfigured/unavailable → keyword search, same response shape.
+        // Graceful fallback: embeddings unconfigured/unavailable â†’ keyword search, same response shape.
         if (vector is null)
         {
             var query = new AppProductQuery
@@ -449,11 +461,11 @@ public class ProductsController : ControllerBase
         }
     }
 
-    // ── Status ────────────────────────────────────────────────────────────────
+    // â”€â”€ Status â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /// <summary>Activate or deactivate a product. Body: { "isActive": true|false }</summary>
     [HttpPatch("{id:guid}/status")]
-    [Authorize]
+    [HasPermission(Permissions.InventoryEdit)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> SetStatus(Guid id, [FromBody] SetProductStatusRequest request, CancellationToken cancellationToken)
@@ -469,10 +481,10 @@ public class ProductsController : ControllerBase
         return Ok(ApiResponse<ProductResponse>.Ok(MapToProductResponse(part, isAdmin: true)));
     }
 
-    // ── Delete ────────────────────────────────────────────────────────────────
+    // â”€â”€ Delete â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     [HttpDelete("{id:guid}")]
-    [Authorize]
+    [HasPermission(Permissions.InventoryDelete)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
@@ -484,7 +496,7 @@ public class ProductsController : ControllerBase
         return NoContent();
     }
 
-    // ── Mapping ───────────────────────────────────────────────────────────────
+    // â”€â”€ Mapping â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private static ProductResponse MapToProductResponse(Product part, bool isAdmin)
     {
@@ -511,6 +523,8 @@ public class ProductsController : ControllerBase
             PartNumber = part.PartNumber.Value,
             SKU = part.SKU,
             OemNumber = part.OemNumber,
+            LocalName = part.LocalName,
+            VehicleFit = BuildVehicleFitSummary(part.VehicleCompatibilities),
             Barcode = part.Barcode,
             Tags = part.Tags,
             ProductType = part.ProductType,
@@ -615,7 +629,23 @@ public class ProductsController : ControllerBase
         }).ToList() ?? []
     };
 
-    // ── Private helpers ───────────────────────────────────────────────────────
+    private static string? BuildVehicleFitSummary(ICollection<PartVehicleCompatibility> compatibilities)
+    {
+        var vehicles = compatibilities
+            .Where(vc => !vc.Isdeleted && vc.IsCompatible && vc.Vehicle != null)
+            .OrderBy(vc => vc.Vehicle!.Make)
+            .ToList();
+
+        if (vehicles.Count == 0) return null;
+
+        var labels = vehicles.Take(2).Select(vc => $"{vc.Vehicle!.Make} {vc.Vehicle.Model} {vc.Vehicle.Year}");
+        var summary = string.Join(", ", labels);
+        if (vehicles.Count > 2)
+            summary += $" +{vehicles.Count - 2}";
+        return summary;
+    }
+
+    // â”€â”€ Private helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /// <summary>
     /// Sellable stock for a part = on-hand minus reservations (e.g. open ecommerce carts),
@@ -631,7 +661,7 @@ public class ProductsController : ControllerBase
 
         return levels.Sum(sl =>
         {
-            var onHand   = sl.QuantityOnHandInBaseUnit   > 0 ? sl.QuantityOnHandInBaseUnit   : sl.QuantityOnHand;
+            var onHand = sl.QuantityOnHandInBaseUnit > 0 ? sl.QuantityOnHandInBaseUnit : sl.QuantityOnHand;
             var reserved = sl.QuantityReservedInBaseUnit > 0 ? sl.QuantityReservedInBaseUnit : sl.QuantityReserved;
             var available = onHand - reserved;
             return available > 0 ? available : 0;

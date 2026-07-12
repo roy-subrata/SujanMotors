@@ -45,8 +45,7 @@ interface PolicyKeys {
     <app-page-container>
       <app-page-header
         title="Shop Policies"
-        subtitle="Configure storefront policies shown to customers on product pages"
-        [breadcrumb]="[{ label: 'Admin' }, { label: 'Shop Policies' }]">
+        subtitle="Configure storefront policies shown to customers on product pages">
       </app-page-header>
 
       <div class="w-full px-4 py-6">

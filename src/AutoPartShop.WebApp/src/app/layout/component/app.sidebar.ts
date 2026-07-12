@@ -26,7 +26,10 @@ import { AppMenuComponent } from './app-menu/app.menu.component';
                     } @else {
                         <i class="pi pi-box logo-icon"></i>
                     }
-                    <span class="logo-text">{{ branding.appName() }}</span>
+                    <div class="logo-text-group">
+                        <span class="logo-text">{{ branding.appName() }}</span>
+                        <span class="logo-subtitle">{{ branding.tagline() || 'Auto Parts POS' }}</span>
+                    </div>
                 </div>
                 <button
                     class="sidebar-toggle"
@@ -51,7 +54,7 @@ import { AppMenuComponent } from './app-menu/app.menu.component';
                             [label]="getUserInitials()"
                             styleClass="user-avatar"
                             shape="circle"
-                            [style]="{'background-color':'#667eea', 'color': '#ffffff'}">
+                            [style]="{'background-color':'var(--surface2)', 'color': 'var(--text2)', 'border': '1px solid var(--border)'}">
                         </p-avatar>
                         @if (!isCollapsed()) {
                             <div class="user-info">
@@ -67,9 +70,11 @@ import { AppMenuComponent } from './app-menu/app.menu.component';
     styles: [`
         /* Avatar component specific styles */
         ::ng-deep .user-avatar {
-            min-width: 36px !important;
-            width: 36px !important;
-            height: 36px !important;
+            min-width: 30px !important;
+            width: 30px !important;
+            height: 30px !important;
+            font-size: 11px !important;
+            font-weight: 600 !important;
         }
     `]
 })

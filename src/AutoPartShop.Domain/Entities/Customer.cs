@@ -29,6 +29,7 @@ public class Customer : AuditableEntity
     // Navigation properties
     public ICollection<SalesOrder> SalesOrders { get; set; } = new List<SalesOrder>();
     public ICollection<CustomerPayment> CustomerPayments { get; set; } = new List<CustomerPayment>();
+    public ICollection<CustomerVehicle> Vehicles { get; set; } = new List<CustomerVehicle>();
 
     // Computed properties for payment tracking (Single Source of Truth)
     // TotalPaid = ONLY new money received (excludes payments created from advance)
@@ -71,9 +72,6 @@ public class Customer : AuditableEntity
 
         if (string.IsNullOrWhiteSpace(lastName))
             throw new ArgumentException("LastName cannot be empty", nameof(lastName));
-
-        //if (string.IsNullOrWhiteSpace(email))
-        //    throw new ArgumentException("Email cannot be empty", nameof(email));
 
         if (string.IsNullOrWhiteSpace(phone))
             throw new ArgumentException("Phone cannot be empty", nameof(phone));
@@ -118,6 +116,13 @@ public class Customer : AuditableEntity
         LastPurchaseDate = purchaseDate ?? DateTime.UtcNow;
     }
 
+    public void ReverseRecordPurchase(decimal amount)
+    {
+        if (amount <= 0)
+            throw new ArgumentException("Amount must be greater than 0", nameof(amount));
+        TotalPurchaseAmount = Math.Max(0, TotalPurchaseAmount - amount);
+    }
+
     public bool CanPlaceOrder()
     {
         return Status == "ACTIVE";
@@ -148,16 +153,20 @@ public class Customer : AuditableEntity
 
     public void UpdateContactInfo(string email, string phone, string alternatePhone = "", string customerType = "")
     {
-        //if (string.IsNullOrWhiteSpace(email))
-        //    throw new ArgumentException("Email cannot be empty", nameof(email));
-
         if (string.IsNullOrWhiteSpace(phone))
             throw new ArgumentException("Phone cannot be empty", nameof(phone));
 
         Email = email.Trim().ToLower();
         Phone = phone.Trim();
         AlternatePhone = alternatePhone?.Trim() ?? string.Empty;
-        CustomerType = customerType;
+
+        if (!string.IsNullOrWhiteSpace(customerType))
+        {
+            var validCustomerTypes = new[] { "RETAIL", "WHOLESALE", "CORPORATE", "DISTRIBUTOR" };
+            if (!validCustomerTypes.Contains(customerType.ToUpper()))
+                throw new ArgumentException($"CustomerType must be one of: {string.Join(", ", validCustomerTypes)}", nameof(customerType));
+            CustomerType = customerType.ToUpper();
+        }
     }
 
     public void UpdateAddress(string billingAddress, string shippingAddress, string city, string state, string postalCode, string country)

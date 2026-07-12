@@ -1,10 +1,11 @@
-using AutoPartShop.Api.Services;
+﻿using AutoPartShop.Api.Services;
 using AutoPartShop.Application.Common;
 using AutoPartShop.Application.DTOs.PurchaseOrderDtos;
 using AutoPartShop.Application.PurchaseOrders;
 using AutoPartShop.Application.Services;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Common;
+using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -16,7 +17,7 @@ namespace AutoPartShop.Api.Controllers;
 [Route("api/v1/[controller]")]
 [ApiController]
 [Produces("application/json")]
-[Authorize] // reads open to any authenticated user (cashiers view POs); mutations gated per-action
+[HasPermission(Permissions.ProcurementView)]
 public class PurchaseOrderController : ControllerBase
 {
     private readonly IPurchaseOrderRepository _purchaseOrderRepository;
@@ -173,7 +174,7 @@ public class PurchaseOrderController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin,Manager")]
+    [HasPermission(Permissions.ProcurementCreate)]
     public async Task<IActionResult> Create(CreatePurchaseOrderRequest request, CancellationToken cancellationToken)
     {
         try
@@ -242,7 +243,7 @@ public class PurchaseOrderController : ControllerBase
                     // Enforce variant selection when product has active variants
                     var hasVariants = await _productRepository.HasActiveVariantsAsync(lineRequest.PartId, cancellationToken);
                     if (hasVariants && !lineRequest.VariantId.HasValue)
-                        return BadRequest(new { message = $"Product '{part.Name}' has variants — please select a specific variant" });
+                        return BadRequest(new { message = $"Product '{part.Name}' has variants â€” please select a specific variant" });
 
                     var line = PurchaseOrderLine.Create(
                         order.Id,
@@ -284,7 +285,7 @@ public class PurchaseOrderController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
-    [Authorize(Roles = "Admin,Manager")]
+    [HasPermission(Permissions.ProcurementEdit)]
     public async Task<IActionResult> Update(Guid id, UpdatePurchaseOrderRequest request, CancellationToken cancellationToken)
     {
         try
@@ -334,7 +335,7 @@ public class PurchaseOrderController : ControllerBase
 
                 var hasVariants = await _productRepository.HasActiveVariantsAsync(lineRequest.PartId, cancellationToken);
                 if (hasVariants && !lineRequest.VariantId.HasValue)
-                    return BadRequest(new { message = $"Product '{part.Name}' has variants — please select a specific variant" });
+                    return BadRequest(new { message = $"Product '{part.Name}' has variants â€” please select a specific variant" });
 
                 lineItemDataList.Add(new LineItemData(
                     lineRequest.Id,
@@ -382,7 +383,7 @@ public class PurchaseOrderController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/submit")]
-    [Authorize(Roles = "Admin,Manager")]
+    [HasPermission(Permissions.ProcurementEdit)]
     public async Task<IActionResult> Submit(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -408,7 +409,7 @@ public class PurchaseOrderController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/confirm")]
-    [Authorize(Roles = "Admin,Manager")]
+    [HasPermission(Permissions.ProcurementApprove)]
     public async Task<IActionResult> Confirm(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -441,13 +442,20 @@ public class PurchaseOrderController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/cancel")]
-    [Authorize(Roles = "Admin,Manager")]
+    [HasPermission(Permissions.ProcurementEdit)]
     public async Task<IActionResult> Cancel(Guid id, CancellationToken cancellationToken)
     {
         try
         {
             var order = await _purchaseOrderRepository.GetByIdAsync(id, cancellationToken);
             if (order is null) return NotFound(new { message = "Purchase order not found" });
+
+            // Block cancellation once goods have been accepted into stock â€” those movements must be
+            // reversed via a PurchaseReturn rather than simply cancelling the PO.
+            var hasAcceptedGrns = await _dbContext.GoodsReceipts
+                .AnyAsync(g => g.PurchaseOrderId == id && g.Status == "ACCEPTED" && !g.Isdeleted, cancellationToken);
+            if (hasAcceptedGrns)
+                return BadRequest(new { message = "Cannot cancel a purchase order with accepted goods receipts. Create a purchase return to reverse the received stock first." });
 
             // Track if order was confirmed before cancellation (for balance reversal)
             bool wasConfirmed = order.Status == "CONFIRMED";
@@ -483,13 +491,19 @@ public class PurchaseOrderController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
-    [Authorize(Roles = "Admin,Manager")]
+    [HasPermission(Permissions.ProcurementDelete)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         try
         {
-            if (!await _purchaseOrderRepository.ExistsAsync(id, cancellationToken))
+            var orderToDelete = await _purchaseOrderRepository.GetByIdAsync(id, cancellationToken);
+            if (orderToDelete is null)
                 return NotFound(new { message = "Purchase order not found" });
+
+            // Deleting a committed PO would orphan stock lots, payments, and returns.
+            // Cancel it first â€” the cancellation guard above ensures no accepted GRNs remain.
+            if (orderToDelete.Status is "CONFIRMED" or "PARTIAL" or "DELIVERED")
+                return BadRequest(new { message = $"Cannot delete a {orderToDelete.Status} purchase order. Cancel it first to prevent orphaned stock and payment records." });
 
             await _purchaseOrderRepository.DeleteAsync(id, cancellationToken);
             return NoContent();
@@ -503,7 +517,7 @@ public class PurchaseOrderController : ControllerBase
 
     // GRN endpoints
     [HttpPost("grn")]
-    [Authorize(Roles = "Admin,Manager")]
+    [HasPermission(Permissions.ProcurementCreate)]
     public async Task<IActionResult> CreateGRN(CreateGoodsReceiptRequest request, CancellationToken cancellationToken)
     {
         try
@@ -515,6 +529,11 @@ public class PurchaseOrderController : ControllerBase
             var purchaseOrder = await _purchaseOrderRepository.GetByIdAsync(request.PurchaseOrderId, cancellationToken);
             if (purchaseOrder is null)
                 return NotFound(new { message = "Purchase order not found" });
+
+            // Only CONFIRMED or PARTIAL POs are ready to receive goods. Raising a GRN against
+            // a DRAFT/SUBMITTED PO would commit stock before the order is approved.
+            if (purchaseOrder.Status != "CONFIRMED" && purchaseOrder.Status != "PARTIAL")
+                return BadRequest(new { message = $"Goods receipts can only be created for CONFIRMED or PARTIAL purchase orders. Current status: {purchaseOrder.Status}" });
 
             var grnNumber = await _codeGenerateService.GenerateAsync("GRN", cancellationToken);
             var grn = GoodsReceipt.Create(
@@ -566,7 +585,8 @@ public class PurchaseOrderController : ControllerBase
 
                     if (lineRequest.ReceivedQuantity > remainingQty)
                     {
-                        return BadRequest(new {
+                        return BadRequest(new
+                        {
                             message = $"Received quantity ({lineRequest.ReceivedQuantity}) exceeds remaining ordered quantity ({remainingQty}) for part {lineRequest.PartId}. Ordered: {poLine.Quantity}"
                         });
                     }
@@ -591,7 +611,7 @@ public class PurchaseOrderController : ControllerBase
                     decimal unitCostInBaseUnit = lineRequest.UnitCost;
 
                     // Only convert if part has a base unit AND received unit differs from base unit.
-                    // Fail fast if the conversion is required but not configured — stock is tracked
+                    // Fail fast if the conversion is required but not configured â€” stock is tracked
                     // in base units, so silently using display quantities would corrupt on-hand stock.
                     if (part.BaseUnitId.HasValue && lineRequest.UnitId.HasValue && lineRequest.UnitId.Value != part.BaseUnitId.Value)
                     {
@@ -751,7 +771,7 @@ public class PurchaseOrderController : ControllerBase
     }
 
     [HttpPut("grn/{id:guid}")]
-    [Authorize(Roles = "Admin,Manager")]
+    [HasPermission(Permissions.ProcurementEdit)]
     public async Task<IActionResult> UpdateGRN(Guid id, CreateGoodsReceiptRequest request, CancellationToken cancellationToken)
     {
         try
@@ -767,6 +787,9 @@ public class PurchaseOrderController : ControllerBase
             var purchaseOrder = await _purchaseOrderRepository.GetByIdAsync(request.PurchaseOrderId, cancellationToken);
             if (purchaseOrder is null)
                 return NotFound(new { message = "Purchase order not found" });
+
+            if (purchaseOrder.Status is not ("CONFIRMED" or "PARTIAL"))
+                return BadRequest(new { message = $"Cannot update a goods receipt for a {purchaseOrder.Status} purchase order." });
 
             // Update basic GRN info
             grn.ModifiedBy = _currentUserService.GetCurrentUsername();
@@ -794,7 +817,8 @@ public class PurchaseOrderController : ControllerBase
 
                     if (lineRequest.ReceivedQuantity > remainingQty)
                     {
-                        return BadRequest(new {
+                        return BadRequest(new
+                        {
                             message = $"Received quantity ({lineRequest.ReceivedQuantity}) exceeds remaining ordered quantity ({remainingQty}) for part {lineRequest.PartId}. Ordered: {poLine.Quantity}"
                         });
                     }
@@ -819,7 +843,7 @@ public class PurchaseOrderController : ControllerBase
                     decimal unitCostInBaseUnit = lineRequest.UnitCost;
 
                     // Only convert if part has a base unit AND received unit differs from base unit.
-                    // Fail fast if the conversion is required but not configured — stock is tracked
+                    // Fail fast if the conversion is required but not configured â€” stock is tracked
                     // in base units, so silently using display quantities would corrupt on-hand stock.
                     if (part.BaseUnitId.HasValue && lineRequest.UnitId.HasValue && lineRequest.UnitId.Value != part.BaseUnitId.Value)
                     {
@@ -901,13 +925,17 @@ public class PurchaseOrderController : ControllerBase
     }
 
     [HttpPatch("grn/{id:guid}/verify")]
-    [Authorize(Roles = "Admin,Manager")]
+    [HasPermission(Permissions.ProcurementEdit)]
     public async Task<IActionResult> VerifyGRN(Guid id, [FromQuery] string verifiedBy, CancellationToken cancellationToken)
     {
         try
         {
             var grn = await _goodsReceiptRepository.GetByIdAsync(id, cancellationToken);
             if (grn is null) return NotFound(new { message = "Goods receipt not found" });
+
+            var poForVerify = await _purchaseOrderRepository.GetByIdAsync(grn.PurchaseOrderId, cancellationToken);
+            if (poForVerify is null || poForVerify.Status is not ("CONFIRMED" or "PARTIAL"))
+                return BadRequest(new { message = $"Cannot verify a goods receipt for a {poForVerify?.Status ?? "missing"} purchase order." });
 
             grn.Verify(verifiedBy);
             grn.ModifiedBy = _currentUserService.GetCurrentUsername();
@@ -927,7 +955,7 @@ public class PurchaseOrderController : ControllerBase
     }
 
     [HttpPatch("grn/{id:guid}/accept")]
-    [Authorize(Roles = "Admin,Manager")]
+    [HasPermission(Permissions.ProcurementApprove)]
     public async Task<IActionResult> AcceptGRN(Guid id, [FromQuery] bool createReturn, CancellationToken cancellationToken)
     {
         try
@@ -940,7 +968,7 @@ public class PurchaseOrderController : ControllerBase
 
             // Atomic accept: stock processing + status flip in ONE transaction (under the global retry
             // strategy). If two requests race, the loser's grn.Accept() fails the RowVersion check
-            // (→ 409) and its whole transaction — including the stock changes it just made — rolls back,
+            // (â†’ 409) and its whole transaction â€” including the stock changes it just made â€” rolls back,
             // so stock is never double-added. Reload grn inside so a retry applies exactly once.
             var strategy = _dbContext.Database.CreateExecutionStrategy();
             await strategy.ExecuteAsync(async () =>
@@ -952,6 +980,11 @@ public class PurchaseOrderController : ControllerBase
                         ?? throw new InvalidOperationException("Goods receipt not found");
                     if (grn.Status != "VERIFIED")
                         throw new InvalidOperationException("This goods receipt has already been accepted");
+
+                    var poForAccept = await _purchaseOrderRepository.GetByIdAsync(grn.PurchaseOrderId, cancellationToken)
+                        ?? throw new InvalidOperationException("Purchase order not found");
+                    if (poForAccept.Status is not ("CONFIRMED" or "PARTIAL"))
+                        throw new InvalidOperationException($"Cannot accept a goods receipt for a {poForAccept.Status} purchase order.");
 
                     // Stock levels (Good->Available, Damaged->Damaged, Wrong->Quarantine) + PO receipt
                     // status; when createReturn is true, a draft Purchase Return is raised for damaged/wrong lines.
@@ -984,7 +1017,7 @@ public class PurchaseOrderController : ControllerBase
     }
 
     [HttpPatch("grn/{id:guid}/update-pricing")]
-    [Authorize(Roles = "Admin,Manager")]
+    [HasPermission(Permissions.ProcurementEdit)]
     public async Task<IActionResult> UpdateGRNPricing(Guid id, [FromBody] UpdateGRNPricingRequest request, CancellationToken cancellationToken)
     {
         try
@@ -1022,7 +1055,7 @@ public class PurchaseOrderController : ControllerBase
     }
 
     [HttpPatch("grn/{id:guid}/reject")]
-    [Authorize(Roles = "Admin,Manager")]
+    [HasPermission(Permissions.ProcurementEdit)]
     public async Task<IActionResult> RejectGRN(Guid id, [FromQuery] string reason = "", CancellationToken cancellationToken = default)
     {
         try
@@ -1076,6 +1109,7 @@ public class PurchaseOrderController : ControllerBase
                 Id = l.Id,
                 PartId = l.PartId,
                 PartName = l.Part?.Name ?? string.Empty,
+                PartLocalName = l.Part?.LocalName,
                 VariantId = l.VariantId,
                 VariantName = l.Variant?.Name,
                 VariantCode = l.Variant?.Code,
@@ -1131,6 +1165,7 @@ public class PurchaseOrderController : ControllerBase
                 PurchaseOrderLineId = l.PurchaseOrderLineId,
                 PartId = l.PartId,
                 PartName = l.Part?.Name ?? string.Empty,
+                PartLocalName = l.Part?.LocalName,
                 PartSKU = l.Part?.SKU ?? string.Empty,
                 Barcode = l.Part?.Barcode,
                 VariantId = l.VariantId,

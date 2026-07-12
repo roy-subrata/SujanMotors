@@ -58,6 +58,8 @@ export interface PartResponse {
     warrantyTerms: string | null;
     warrantyCertificateTemplate: string | null;
     oemNumber?: string | null;
+    localName?: string | null;
+    vehicleFit?: string | null;
     createdBy: string;
     modifiedBy: string;
 }
@@ -68,6 +70,7 @@ export interface CreatePartRequest {
     richDescription?: string | null;
     partNumber: string;
     oemNumber?: string | null;
+    localName?: string | null;
     barcode?: string | null;
     categoryId: string;
     brandId: string | null;
@@ -99,6 +102,7 @@ export interface UpdatePartRequest {
     description: string;
     richDescription?: string | null;
     oemNumber?: string | null;
+    localName?: string | null;
     barcode?: string | null;
     categoryId: string;
     brandId: string | null;
@@ -153,6 +157,9 @@ export interface PartsQuery {
     pageNumber: number;
     isActive?: boolean;
     flattenVariants?: boolean;
+    categoryId?: string;
+    sortBy?: string;
+    sortDirection?: 'asc' | 'desc';
 }
 
 @Injectable({
@@ -180,6 +187,10 @@ export class PartService {
             .set('pageSize', rQuery.pageSize.toString())
             .set('flattenVariants', (rQuery.flattenVariants ?? false).toString());
         if (rQuery.isActive != null) params = params.set('isActive', rQuery.isActive.toString());
+        if (rQuery.categoryId) params = params.set('categoryId', rQuery.categoryId);
+        if (rQuery.sortBy) {
+            params = params.set('sortBy', rQuery.sortBy).set('sortDirection', rQuery.sortDirection ?? 'asc');
+        }
         return this.http.get<{ data: PartResponse[]; pagination: any }>(this.apiUrl, { params })
             .pipe(map(r => ({
                 data: r.data,

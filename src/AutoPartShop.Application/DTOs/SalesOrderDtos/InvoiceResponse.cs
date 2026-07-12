@@ -9,6 +9,8 @@ public class InvoiceResponse
     public Guid CustomerId { get; set; }
     public string CustomerName { get; set; } = string.Empty;
     public string CustomerPhone { get; set; } = string.Empty;
+    public Guid? CustomerVehicleId { get; set; }
+    public string VehicleLabel { get; set; } = string.Empty;
     public DateTime InvoiceDate { get; set; }
     public DateTime DueDate { get; set; }
     public decimal SubTotal { get; set; }
@@ -17,6 +19,7 @@ public class InvoiceResponse
     public decimal GrandTotal { get; set; }
     public decimal AmountPaid { get; set; }
     public decimal OutstandingAmount { get; set; }
+    public string Currency { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty; // DRAFT, ISSUED, PAID, PARTIALLY_PAID, OVERDUE, CANCELLED
     public bool IsOverdue { get; set; }
     public string Notes { get; set; } = string.Empty;

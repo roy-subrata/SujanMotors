@@ -1,4 +1,5 @@
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Repositories;
 using AutoPartsShop.Domain.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -19,6 +20,7 @@ public class DatabaseSeeder
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<DatabaseSeeder>>();
         var configuration = scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>();
         var environment = scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Hosting.IHostEnvironment>();
+        var customerRepository = scope.ServiceProvider.GetRequiredService<ICustomerRepository>();
 
         try
         {
@@ -30,7 +32,9 @@ public class DatabaseSeeder
             // demo/sample data (customers, catalog, stock, vehicles) is seeded.
             await SeedRolesAsync(roleManager, logger);
             await SeedPermissionsAsync(context, logger);
+            await SeedRolePermissionsAsync(context, logger);
             await SeedUsersAsync(userManager, logger, configuration, environment);
+            await SeedWalkInCustomerAsync(customerRepository, logger);
 
             logger.LogInformation("Database seeding completed successfully");
         }
@@ -151,6 +155,42 @@ public class DatabaseSeeder
         }
     }
 
+    private static async Task SeedWalkInCustomerAsync(ICustomerRepository customerRepository, ILogger logger)
+    {
+        // Reserved "Walk-in" customer used for anonymous/cash counter sales. Business rule:
+        // this customer must never carry a due/credit balance (enforced in SalesOrderController).
+        const string walkInCode = "WALKIN";
+
+        var existing = await customerRepository.GetByCodeAsync(walkInCode);
+        if (existing != null)
+        {
+            logger.LogInformation("Walk-in customer already exists");
+            return;
+        }
+
+        var walkInCustomer = Customer.Create(
+            customerCode: walkInCode,
+            firstName: "Walk-in",
+            lastName: "Customer",
+            email: "",
+            phone: "0000000000",
+            companyName: "",
+            billingAddress: "",
+            shippingAddress: "",
+            city: "",
+            state: "",
+            postalCode: "",
+            country: "",
+            customerType: "RETAIL");
+
+        walkInCustomer.CreatedBy = "System";
+        walkInCustomer.ModifiedBy = "System";
+
+        await customerRepository.AddAsync(walkInCustomer);
+
+        logger.LogInformation("Walk-in customer seeded successfully");
+    }
+
     private static async Task SeedPermissionsAsync(AutoPartDbContext context, ILogger logger)
     {
         if (!await context.Permissions.AnyAsync())
@@ -209,5 +249,63 @@ public class DatabaseSeeder
         {
             logger.LogInformation("Permissions already exist, skipping seed");
         }
+    }
+
+    /// <summary>
+    /// Default role → permission grants, applied only when the RolePermissions table is
+    /// empty so an operator's own assignments are never overwritten. Admin gets no rows —
+    /// the authorization handler treats Admin as a superuser bypass.
+    /// </summary>
+    private static async Task SeedRolePermissionsAsync(AutoPartDbContext context, ILogger logger)
+    {
+        if (await context.RolePermissions.AnyAsync())
+        {
+            logger.LogInformation("Role permissions already assigned, skipping seed");
+            return;
+        }
+
+        var permissions = await context.Permissions.ToDictionaryAsync(p => p.Name);
+        var roles = await context.Roles.ToDictionaryAsync(r => r.Name!, r => r.Id);
+
+        // Manager: full operational access, no user/role administration
+        var managerGrants = permissions.Keys
+            .Where(name => !name.StartsWith("users.") && !name.StartsWith("roles."))
+            .ToArray();
+
+        // User (salesperson/cashier): run the counter — sell, take payments, look things up
+        var userGrants = new[]
+        {
+            "inventory.view",
+            "sales.view", "sales.create", "sales.edit", "sales.process-payment",
+            "procurement.view",
+            "reports.view"
+        };
+
+        // Viewer: read-only
+        var viewerGrants = new[] { "inventory.view", "sales.view", "procurement.view", "reports.view" };
+
+        var grants = new List<(string Role, string[] Permissions)>
+        {
+            ("Manager", managerGrants),
+            ("User", userGrants),
+            ("Viewer", viewerGrants)
+        };
+
+        var count = 0;
+        foreach (var (roleName, permissionNames) in grants)
+        {
+            if (!roles.TryGetValue(roleName, out var roleId)) continue;
+
+            foreach (var permissionName in permissionNames)
+            {
+                if (!permissions.TryGetValue(permissionName, out var permission)) continue;
+
+                context.RolePermissions.Add(RolePermission.Create(roleId, permission.Id, "System"));
+                count++;
+            }
+        }
+
+        await context.SaveChangesAsync();
+        logger.LogInformation("Seeded {Count} default role-permission grants", count);
     }
 }

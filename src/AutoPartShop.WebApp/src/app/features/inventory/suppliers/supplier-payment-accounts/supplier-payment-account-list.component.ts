@@ -15,6 +15,8 @@ import { SupplierPaymentAccountService, SupplierPaymentAccountResponse } from '.
 import { SupplierService } from '../../services/supplier.service';
 import { I18nService } from '@/shared/services/i18n.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
+import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 
 @Component({
   selector: 'app-supplier-payment-account-list',
@@ -30,7 +32,9 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
     ConfirmDialogModule,
     MenuModule,
     TagModule,
-    TooltipModule
+    TooltipModule,
+    PageContainerComponent,
+    PageHeaderComponent
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: './supplier-payment-account-list.component.html',

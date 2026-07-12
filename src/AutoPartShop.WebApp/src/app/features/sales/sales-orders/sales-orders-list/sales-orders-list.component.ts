@@ -101,8 +101,6 @@ export class SalesOrdersListComponent implements OnInit {
             if (this.selectedOrder) this.buildActionMenuItems(this.selectedOrder);
         });
 
-        window.addEventListener('resize', () => this.checkScreenSize());
-
         this.route.queryParams.subscribe((params) => {
             if (params['status']) {
                 this.filterStatus = params['status'];
@@ -124,6 +122,7 @@ export class SalesOrdersListComponent implements OnInit {
     }
 
     private buildActionMenuItems(order: SalesOrderResponse): void {
+        const cancellable = ['PENDING', 'DRAFT', 'CONFIRMED'].includes(order.status);
         this.actionMenuItems = [
             {
                 label: this.i18n.t('common.actions.viewDetails'),
@@ -134,15 +133,22 @@ export class SalesOrdersListComponent implements OnInit {
                 label: this.i18n.t('common.actions.edit'),
                 icon: 'pi pi-pencil',
                 command: () => this.editOrder(order),
-                visible: order.status === 'DRAFT'
+                visible: order.status === 'DRAFT' || order.status === 'PENDING'
             },
             {
                 label: this.i18n.t('common.actions.confirmOrder'),
                 icon: 'pi pi-check-circle',
                 command: () => this.confirmOrder(order),
-                visible: order.status === 'DRAFT'
+                visible: order.status === 'DRAFT' || order.status === 'PENDING'
             },
             { separator: true },
+            {
+                label: 'Cancel Order',
+                icon: 'pi pi-times-circle',
+                command: () => this.cancelOrder(order),
+                visible: cancellable,
+                styleClass: 'text-orange-600'
+            },
             {
                 label: this.i18n.t('common.actions.delete'),
                 icon: 'pi pi-trash',
@@ -152,8 +158,6 @@ export class SalesOrdersListComponent implements OnInit {
             }
         ];
     }
-
-    private checkScreenSize(): void {}
 
     loadData(): void {
         this.loading = true;
@@ -268,6 +272,34 @@ export class SalesOrdersListComponent implements OnInit {
                             severity: 'error',
                             summary: this.i18n.t('common.messages.error'),
                             detail: this.i18n.t('salesOrders.messages.confirmOrderFailed')
+                        });
+                    }
+                });
+            }
+        });
+    }
+
+    cancelOrder(order: SalesOrderResponse): void {
+        this.confirmationService.confirm({
+            message: `Cancel order ${order.soNumber}? This will reverse any stock deductions and cannot be undone.`,
+            header: 'Cancel Sales Order',
+            icon: 'pi pi-exclamation-triangle',
+            acceptButtonStyleClass: 'p-button-warning',
+            accept: () => {
+                this.salesOrderService.cancelSalesOrder(order.id).subscribe({
+                    next: () => {
+                        this.messageService.add({
+                            severity: 'success',
+                            summary: this.i18n.t('common.messages.success'),
+                            detail: `Order ${order.soNumber} has been cancelled.`
+                        });
+                        this.loadData();
+                    },
+                    error: (err) => {
+                        this.messageService.add({
+                            severity: 'error',
+                            summary: this.i18n.t('common.messages.error'),
+                            detail: err?.error?.message ?? 'Failed to cancel order.'
                         });
                     }
                 });

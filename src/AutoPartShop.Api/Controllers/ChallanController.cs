@@ -1,8 +1,9 @@
-using AutoPartShop.Api.Common;
+﻿using AutoPartShop.Api.Common;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
 using AutoPartShop.Infrastructure.Data;
+using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -12,25 +13,25 @@ namespace AutoPartShop.Api.Controllers;
 [Route("api/challans")]
 [Route("api/v1/challans")]
 [ApiController]
-[Authorize]
+[HasPermission(Permissions.SalesView)]
 [Produces("application/json")]
 public class ChallanController(
     IChallanRepository _challanRepo,
     ISalesOrderRepository _soRepo,
-    IInvoiceRepository _invoiceRepo,
     ICustomerRepository _customerRepo,
     ICodeGenerateService _codeGen,
     ICurrentUserService _currentUser,
     AutoPartDbContext _db,
     ILogger<ChallanController> _logger) : ControllerBase
 {
-    // ── Generate challan for an order ────────────────────────────────────────
+    // â”€â”€ Generate challan for an order â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /// <summary>
     /// Generates a Challan (delivery note) for a Confirmed or ReadyForDelivery order.
     /// Marks the order as ReadyForDelivery if it was still in Confirmed state.
     /// </summary>
     [HttpPost("sales-order/{salesOrderId:guid}")]
+    [HasPermission(Permissions.SalesCreate)]
     public async Task<IActionResult> Generate(
         Guid salesOrderId,
         [FromBody] GenerateChallanRequest? req,
@@ -58,20 +59,20 @@ public class ChallanController(
                     .FirstOrDefaultAsync(s => s.Id == salesOrderId && !s.Isdeleted, ct);
                 if (freshSo is null || freshSo.Status is not ("CONFIRMED" or "READY_FOR_DELIVERY"))
                     throw new InvalidOperationException(
-                        $"Challan can no longer be generated — order status is '{freshSo?.Status ?? "deleted"}'.");
+                        $"Challan can no longer be generated â€” order status is '{freshSo?.Status ?? "deleted"}'.");
 
                 var challanNumber = await _codeGen.GenerateAsync("CHN", ct);
                 var deliveryAddress = req?.DeliveryAddress ?? so.DeliveryAddress;
-                var receiverName    = req?.ReceiverName   ?? string.Empty;
-                var receiverPhone   = req?.ReceiverPhone  ?? string.Empty;
-                var notes           = req?.Notes          ?? string.Empty;
+                var receiverName = req?.ReceiverName ?? string.Empty;
+                var receiverPhone = req?.ReceiverPhone ?? string.Empty;
+                var notes = req?.Notes ?? string.Empty;
 
                 challan = Challan.Create(challanNumber, so.Id, deliveryAddress, receiverName, receiverPhone, notes,
                 req?.TransportCompany ?? string.Empty,
-                req?.VehicleNumber    ?? string.Empty,
-                req?.DriverName       ?? string.Empty,
-                req?.DriverPhone      ?? string.Empty);
-                challan.CreatedBy  = _currentUser.GetCurrentUsername();
+                req?.VehicleNumber ?? string.Empty,
+                req?.DriverName ?? string.Empty,
+                req?.DriverPhone ?? string.Empty);
+                challan.CreatedBy = _currentUser.GetCurrentUsername();
                 challan.ModifiedBy = _currentUser.GetCurrentUsername();
 
                 // Copy SO line items to challan lines
@@ -82,15 +83,15 @@ public class ChallanController(
                         challan.Id,
                         line.PartId,
                         line.Quantity,
-                        line.Part?.Name         ?? string.Empty,
-                        line.Part?.SKU          ?? string.Empty,
+                        line.Part?.Name ?? string.Empty,
+                        line.Part?.SKU ?? string.Empty,
                         line.ProductVariant != null
                             ? $"{line.Part?.Name} - {line.ProductVariant.Name}"
                             : (line.Part?.Name ?? string.Empty),
                         line.Unit?.Name ?? string.Empty,
                         lineNo++,
                         line.ProductVariantId);
-                    cl.CreatedBy  = _currentUser.GetCurrentUsername();
+                    cl.CreatedBy = _currentUser.GetCurrentUsername();
                     cl.ModifiedBy = _currentUser.GetCurrentUsername();
                     challan.Lines.Add(cl);
                 }
@@ -121,7 +122,7 @@ public class ChallanController(
             ApiResponse<object>.Ok(MapToResponse(challan!)));
     }
 
-    // ── Get challans for an order ─────────────────────────────────────────────
+    // â”€â”€ Get challans for an order â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     [HttpGet("sales-order/{salesOrderId:guid}")]
     public async Task<IActionResult> GetBySalesOrder(Guid salesOrderId, CancellationToken ct)
@@ -130,7 +131,7 @@ public class ChallanController(
         return Ok(ApiResponse<object>.Ok(challans.Select(MapToResponse)));
     }
 
-    // ── Get single challan ────────────────────────────────────────────────────
+    // â”€â”€ Get single challan â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id, CancellationToken ct)
@@ -142,24 +143,25 @@ public class ChallanController(
         return Ok(ApiResponse<object>.Ok(MapToResponse(challan)));
     }
 
-    // ── Pending challans (delivery queue) ─────────────────────────────────────
+    // â”€â”€ Pending challans (delivery queue) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /// <summary>
-    /// Returns all DRAFT and ISSUED challans — the delivery staff's dispatch queue.
+    /// Returns all DRAFT and ISSUED challans â€” the delivery staff's dispatch queue.
     /// </summary>
     [HttpGet("pending")]
     public async Task<IActionResult> GetPending(CancellationToken ct)
     {
-        var draft  = await _challanRepo.GetByStatusAsync("DRAFT",  ct);
+        var draft = await _challanRepo.GetByStatusAsync("DRAFT", ct);
         var issued = await _challanRepo.GetByStatusAsync("ISSUED", ct);
-        var all    = draft.Concat(issued).OrderBy(c => c.CreatedDate);
+        var all = draft.Concat(issued).OrderBy(c => c.CreatedDate);
         return Ok(ApiResponse<object>.Ok(all.Select(MapToResponse)));
     }
 
-    // ── Issue challan ─────────────────────────────────────────────────────────
+    // â”€â”€ Issue challan â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-    /// <summary>Issues the challan — it can now travel with the goods.</summary>
+    /// <summary>Issues the challan â€” it can now travel with the goods.</summary>
     [HttpPatch("{id:guid}/issue")]
+    [HasPermission(Permissions.SalesEdit)]
     public async Task<IActionResult> Issue(Guid id, CancellationToken ct)
     {
         var challan = await _challanRepo.GetByIdAsync(id, ct);
@@ -173,13 +175,14 @@ public class ChallanController(
         return Ok(ApiResponse<object>.Ok(MapToResponse(challan)));
     }
 
-    // ── Deliver (with challan) ────────────────────────────────────────────────
+    // â”€â”€ Deliver (with challan) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /// <summary>
     /// Marks challan as delivered and transitions the linked Sales Order to DELIVERED.
     /// Also issues the invoice if it is still in DRAFT status.
     /// </summary>
     [HttpPatch("{id:guid}/deliver")]
+    [HasPermission(Permissions.SalesEdit)]
     public async Task<IActionResult> MarkDelivered(
         Guid id,
         [FromBody] DeliverChallanRequest? req,
@@ -199,7 +202,7 @@ public class ChallanController(
                 challan.ModifiedBy = _currentUser.GetCurrentUsername();
                 await _challanRepo.UpdateAsync(challan, ct);
 
-                // Transition SO → DELIVERED
+                // Transition SO â†’ DELIVERED
                 var so = await _soRepo.GetByIdAsync(challan.SalesOrderId, ct);
                 if (so != null && so.Status != "DELIVERED")
                 {
@@ -217,11 +220,11 @@ public class ChallanController(
                         invoice.ModifiedBy = _currentUser.GetCurrentUsername();
 
                         // Customer balance must be updated in the same save as the invoice status
-                        // to guarantee consistency — never issue without recording the liability.
+                        // to guarantee consistency â€” never issue without recording the liability.
                         var customer = await _customerRepo.GetByIdAsync(so.CustomerId, ct);
                         if (customer is null)
                         {
-                            _logger.LogWarning("Customer {Id} not found while issuing invoice on challan delivery — balance not updated.", so.CustomerId);
+                            _logger.LogWarning("Customer {Id} not found while issuing invoice on challan delivery â€” balance not updated.", so.CustomerId);
                         }
                         else
                         {
@@ -243,39 +246,39 @@ public class ChallanController(
         return Ok(ApiResponse<object>.Ok(MapToResponse(challan)));
     }
 
-    // ── Mapping ───────────────────────────────────────────────────────────────
+    // â”€â”€ Mapping â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private static object MapToResponse(Challan c) => new
     {
-        id             = c.Id,
-        challanNumber  = c.ChallanNumber,
-        salesOrderId   = c.SalesOrderId,
+        id = c.Id,
+        challanNumber = c.ChallanNumber,
+        salesOrderId = c.SalesOrderId,
         salesOrderNumber = c.SalesOrder?.SONumber,
-        invoiceId      = c.InvoiceId,
-        status         = c.Status,
-        issuedAt       = c.IssuedAt,
-        deliveredAt    = c.DeliveredAt,
+        invoiceId = c.InvoiceId,
+        status = c.Status,
+        issuedAt = c.IssuedAt,
+        deliveredAt = c.DeliveredAt,
         deliveryAddress = c.DeliveryAddress,
-        receiverName   = c.ReceiverName,
-        receiverPhone  = c.ReceiverPhone,
-        notes            = c.Notes,
+        receiverName = c.ReceiverName,
+        receiverPhone = c.ReceiverPhone,
+        notes = c.Notes,
         transportCompany = c.TransportCompany,
-        vehicleNumber    = c.VehicleNumber,
-        driverName       = c.DriverName,
-        driverPhone      = c.DriverPhone,
-        createdAt        = c.CreatedDate,
-        createdBy        = c.CreatedBy,
-        lines          = c.Lines.OrderBy(l => l.LineNumber).Select(l => new
+        vehicleNumber = c.VehicleNumber,
+        driverName = c.DriverName,
+        driverPhone = c.DriverPhone,
+        createdAt = c.CreatedDate,
+        createdBy = c.CreatedBy,
+        lines = c.Lines.OrderBy(l => l.LineNumber).Select(l => new
         {
-            id               = l.Id,
-            partId           = l.PartId,
+            id = l.Id,
+            partId = l.PartId,
             productVariantId = l.ProductVariantId,
-            partName         = l.PartName,
-            partSku          = l.PartSku,
-            displayName      = l.DisplayName,
-            unitName         = l.UnitName,
-            quantity         = l.Quantity,
-            lineNumber       = l.LineNumber
+            partName = l.PartName,
+            partSku = l.PartSku,
+            displayName = l.DisplayName,
+            unitName = l.UnitName,
+            quantity = l.Quantity,
+            lineNumber = l.LineNumber
         })
     };
 }

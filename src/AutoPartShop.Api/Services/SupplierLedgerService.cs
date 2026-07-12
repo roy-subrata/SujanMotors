@@ -148,11 +148,12 @@ public class SupplierLedgerService : ISupplierLedgerService
     public Task<decimal> GetTotalRefundsAsync(Guid supplierId, CancellationToken ct = default)
         => _purchaseReturnRepository.GetTotalSettledRefundsBySupplierAsync(supplierId, ct);
 
-    public async Task<decimal> GetAvailableAdvanceCreditAsync(Guid supplierId, CancellationToken ct = default)
+    public Task<decimal> GetAvailableAdvanceCreditAsync(Guid supplierId, CancellationToken ct = default)
     {
-        var advanceCredit = await _supplierPaymentRepository.GetAvailableAdvanceCreditBySupplierAsync(supplierId, ct);
-        var creditNoteCredit = await _creditNoteRepository.GetTotalAvailableCreditAsync(supplierId, ct);
-        return advanceCredit + creditNoteCredit;
+        // All advance credit — both cash prepayments and credit notes from purchase returns —
+        // flows through SupplierPayments.RemainingAmount. IssueCreditNote creates an ADVANCE
+        // SupplierPayment, so querying CreditNotes separately here would double-count that credit.
+        return _supplierPaymentRepository.GetAvailableAdvanceCreditBySupplierAsync(supplierId, ct);
     }
 
     #region Private Helper Methods
@@ -191,7 +192,10 @@ public class SupplierLedgerService : ISupplierLedgerService
         var payments = await _supplierPaymentRepository.GetBySupplierAsync(supplierId, ct);
 
         var entries = payments
-            .Where(p => p.Status == "COMPLETED" && p.PaymentMethod != "REFUND")
+            .Where(p => p.Status == "COMPLETED"
+                     && p.PaymentMethod != "REFUND"
+                     && p.PaymentMethod != "CREDIT_NOTE" // settled returns appear separately in GetRefundEntriesAsync
+                     && (p.PaymentType == PaymentType.ADVANCE || p.SourceAdvancePaymentId == null)) // exclude re-applications to avoid double-count with the original advance
             .Where(p => !fromDate.HasValue || p.PaymentDate >= fromDate.Value)
             .Where(p => !toDate.HasValue || p.PaymentDate <= toDate.Value)
             .Select(p => new SupplierLedgerEntryDto

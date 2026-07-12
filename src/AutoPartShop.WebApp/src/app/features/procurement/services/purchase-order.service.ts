@@ -8,6 +8,7 @@ export interface PurchaseOrderLineResponse {
     id: string;
     partId: string;
     partName: string;
+    partLocalName?: string | null;
     variantId?: string | null;
     variantName?: string | null;
     variantCode?: string | null;

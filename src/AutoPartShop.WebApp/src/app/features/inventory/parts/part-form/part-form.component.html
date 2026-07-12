@@ -6,7 +6,7 @@
     <div class="header-content">
       <div class="header-left">
         <div class="pf-breadcrumb">
-          <a (click)="onCancel()" class="pf-back"><i class="pi pi-arrow-left"></i> Parts</a>
+          <a (click)="onCancel()" class="pf-back">Parts</a>
           <i class="pi pi-chevron-right pf-sep"></i>
           <span>{{ isEditMode ? 'Edit' : isViewMode ? 'View' : 'New Part' }}</span>
         </div>
@@ -18,7 +18,6 @@
       <div class="header-actions">
         <div class="action-buttons">
           <button class="btn-secondary" type="button" (click)="onCancel()" [disabled]="isSubmitting">
-            <i class="pi pi-arrow-left"></i>
             <span>{{ isViewMode ? 'Back' : 'Cancel' }}</span>
           </button>
           <button *ngIf="!isViewMode" class="btn-primary" type="button" (click)="onSubmit()" [disabled]="isSubmitting">
@@ -121,6 +120,14 @@
       </div>
 
       <div class="pf-row">
+        <div class="pf-field pf-field-full">
+          <label>Local Name <span class="pf-optional">optional</span></label>
+          <input pInputText formControlName="localName" placeholder="e.g. তেলের ফিল্টার — local language name for staff" [disabled]="isViewMode" />
+          <small class="pf-hint">Staff-facing local-language name shown alongside the catalog name</small>
+        </div>
+      </div>
+
+      <div class="pf-row">
         <div class="pf-field">
           <label>Base Unit</label>
           <small class="pf-hint">Stock &amp; inventory unit (e.g. Piece, ml, g)</small>
@@ -214,7 +221,7 @@
     <div class="pf-section">
       <div class="pf-section-head">
         <i class="pi pi-dollar"></i>
-        <span>Cost &amp; Stock</span>
+        <span>Pricing &amp; Stock</span>
       </div>
 
       <div class="pf-row">

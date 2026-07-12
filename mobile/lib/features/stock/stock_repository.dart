@@ -35,6 +35,32 @@ class StockRepository {
       throw AppException.fromDio(e);
     }
   }
+
+  /// Positive quantity = stock in; negative = removal/adjustment.
+  Future<void> adjustStock({
+    required String partId,
+    String? variantId,
+    required String warehouseId,
+    required int quantity,
+    required String reason,
+    String reference = '',
+    String notes = '',
+  }) async {
+    try {
+      await _dio.post('/stock/adjust', data: {
+        'partId': partId,
+        'variantId': ?variantId,
+        'warehouseId': warehouseId,
+        'quantity': quantity,
+        'quantityInBaseUnit': quantity,
+        'reason': reason,
+        'reference': reference,
+        if (notes.isNotEmpty) 'notes': notes,
+      });
+    } on DioException catch (e) {
+      throw AppException.fromDio(e);
+    }
+  }
 }
 
 final stockRepositoryProvider = Provider<StockRepository>(

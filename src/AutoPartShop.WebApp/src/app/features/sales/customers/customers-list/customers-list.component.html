@@ -3,106 +3,72 @@
 <p-confirmDialog></p-confirmDialog>
 <p-menu #actionMenu [model]="actionMenuItems" [popup]="true" appendTo="body"></p-menu>
 
-<!-- ==================== BREADCRUMB ==================== -->
-<div class="breadcrumb-bar">
-  <div class="breadcrumb-content">
-    <a routerLink="/" class="breadcrumb-link">
-      <i class="pi pi-home"></i>
-    </a>
-    <i class="pi pi-chevron-right breadcrumb-separator"></i>
-    <a routerLink="/sales/customers" class="breadcrumb-link breadcrumb-active">
-      <span>Manage Customers</span>
-    </a>
-  </div>
-</div>
-
 <!-- Main Page Container -->
-<div class="page-wrapper">
+<app-page-container>
 
   <!-- ==================== PAGE HEADER ==================== -->
-  <header class="page-header">
-    <div class="header-content">
-      <!-- Left: Title & Subtitle -->
-      <div class="header-left">
-        <h1 class="page-title">Manage Customers</h1>
-        <p class="page-subtitle">Manage and track all customer accounts</p>
-      </div>
-
-      <!-- Right: Actions -->
-      <div class="header-actions">
-        <!-- Stats Badge -->
-        <div class="stats-badge">
-          <i class="pi pi-users"></i>
-          <div class="stats-info">
-            <span class="stats-value">{{ totalRecords }}</span>
-            <span class="stats-label">customers</span>
-          </div>
-        </div>
-
-        <!-- Action Buttons -->
-        <div class="action-buttons">
-          <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="refreshData()">
-            <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
-          </button>
-          <button class="btn-primary" (click)="createCustomer()">
-            <i class="pi pi-plus"></i>
-            <span>New Customer</span>
-          </button>
-        </div>
-      </div>
-    </div>
-  </header>
+  <app-page-header
+    title="Manage Customers"
+    subtitle="Manage and track all customer accounts"
+    [count]="totalRecords" countLabel="customers">
+    <ng-container actions>
+      <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="refreshData()">
+        <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
+      </button>
+      <button class="btn-primary" (click)="createCustomer()">
+        <i class="pi pi-plus"></i>
+        <span>New Customer</span>
+      </button>
+    </ng-container>
+  </app-page-header>
 
   <!-- ==================== FILTER SECTION ==================== -->
-  <section class="filter-section">
-    <div class="filter-container">
-      <!-- Search Input -->
-      <div class="filter-group search-group">
-        <div class="search-input-wrapper">
-          <i class="pi pi-search"></i>
-          <input
-            type="text"
-            [(ngModel)]="searchTerm"
-            placeholder="Search by name, code, email, phone..."
-            (keyup.enter)="onSearch()"
-            class="search-input" />
-          <button *ngIf="searchTerm" class="search-clear" (click)="searchTerm = ''; onSearch()">
-            <i class="pi pi-times"></i>
-          </button>
-        </div>
-      </div>
-
-      <!-- Type Filter -->
-      <div class="filter-group">
-        <label class="filter-label">Type</label>
-        <p-select
-          [options]="customerTypes"
-          [(ngModel)]="filterType"
-          placeholder="All Types"
-          [showClear]="true"
-          optionLabel="label"
-          optionValue="value"
-          (onChange)="onFilterChange()"
-          appendTo="body"
-          styleClass="filter-dropdown">
-        </p-select>
-      </div>
-
-      <!-- Filter Actions -->
-      <div class="filter-group filter-actions">
-        <button class="btn-search" (click)="onSearch()">
-          <i class="pi pi-search"></i>
-          Search
-        </button>
-        <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
-          <i class="pi pi-filter-slash"></i>
-          Clear
+  <app-filter-bar>
+    <!-- Search Input -->
+    <div search class="filter-group search-group">
+      <div class="search-input-wrapper">
+        <i class="pi pi-search"></i>
+        <input
+          type="text"
+          [(ngModel)]="searchTerm"
+          placeholder="Search by name, code, email, phone..."
+          (keyup.enter)="onSearch()"
+          class="search-input" />
+        <button *ngIf="searchTerm" class="search-clear" (click)="searchTerm = ''; onSearch()">
+          <i class="pi pi-times"></i>
         </button>
       </div>
+    </div>
+
+    <!-- Type Filter -->
+    <div filters class="filter-group">
+      <p-select
+        [options]="customerTypes"
+        [(ngModel)]="filterType"
+        placeholder="All Types"
+        [showClear]="true"
+        optionLabel="label"
+        optionValue="value"
+        (onChange)="onFilterChange()"
+        appendTo="body"
+        styleClass="filter-dropdown">
+      </p-select>
+    </div>
+
+    <!-- Filter Actions -->
+    <div filterActions class="filter-group filter-actions">
+      <button class="btn-search" (click)="onSearch()">
+        <i class="pi pi-search"></i>
+        Search
+      </button>
+      <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
+        <i class="pi pi-filter-slash"></i>
+        Clear
+      </button>
     </div>
 
     <!-- Active Filters Display -->
-    <div *ngIf="hasActiveFilters()" class="active-filters">
+    <div activeFilters *ngIf="hasActiveFilters()" class="active-filters">
       <span class="active-filters-label">Active filters:</span>
       <span *ngIf="searchTerm" class="filter-chip">
         Search: "{{ searchTerm }}"
@@ -113,7 +79,7 @@
         <i class="pi pi-times" (click)="filterType = ''; onFilterChange()"></i>
       </span>
     </div>
-  </section>
+  </app-filter-bar>
 
   <!-- ==================== DATA TABLE (Desktop) ==================== -->
   <section class="table-section desktop-only">
@@ -129,7 +95,7 @@
         [rowHover]="true"
         [scrollable]="true"
         scrollHeight="flex"
-        styleClass="custom-table">
+        styleClass="app-table">
 
         <!-- Table Header -->
         <ng-template #header>
@@ -155,9 +121,6 @@
             <!-- Customer Name -->
             <td class="col-customer">
               <div class="customer-cell">
-                <div class="customer-avatar">
-                  {{ (customer.fullName || customer.firstName || 'C')[0].toUpperCase() }}
-                </div>
                 <div class="customer-info">
                   <span class="customer-name">{{ customer.fullName || (customer.firstName + ' ' + customer.lastName) }}</span>
                   <span *ngIf="customer.companyName" class="customer-company">{{ customer.companyName }}</span>
@@ -263,38 +226,17 @@
 
       </p-table>
     </div>
-
-    <!-- Pagination -->
-    <div class="pagination-section" *ngIf="totalRecords > 0">
-      <div class="pagination-info">
-        Showing <strong>{{ first + 1 }}</strong> to <strong>{{ first + customers.length }}</strong> of <strong>{{ totalRecords }}</strong> customers
-      </div>
-      <div class="pagination-controls">
-        <span class="page-size-label">Rows per page:</span>
-        <p-select
-          [options]="[{label: '10', value: 10}, {label: '20', value: 20}, {label: '50', value: 50}]"
-          [(ngModel)]="pageSize"
-          (onChange)="onPageChange({first: 0, rows: pageSize})"
-          styleClass="page-size-dropdown">
-        </p-select>
-        <div class="page-nav">
-          <button class="page-btn" [disabled]="first === 0" (click)="onPageChange({first: 0, rows: pageSize})">
-            <i class="pi pi-angle-double-left"></i>
-          </button>
-          <button class="page-btn" [disabled]="first === 0" (click)="onPageChange({first: first - pageSize, rows: pageSize})">
-            <i class="pi pi-angle-left"></i>
-          </button>
-          <span class="page-indicator">{{ pageNumber }} / {{ totalPages }}</span>
-          <button class="page-btn" [disabled]="first + pageSize >= totalRecords" (click)="onPageChange({first: first + pageSize, rows: pageSize})">
-            <i class="pi pi-angle-right"></i>
-          </button>
-          <button class="page-btn" [disabled]="first + pageSize >= totalRecords" (click)="onPageChange({first: (totalPages - 1) * pageSize, rows: pageSize})">
-            <i class="pi pi-angle-double-right"></i>
-          </button>
-        </div>
-      </div>
-    </div>
   </section>
+
+  <!-- ==================== PAGINATION ==================== -->
+  <app-data-pagination
+    [first]="first"
+    [pageSize]="pageSize"
+    [totalRecords]="totalRecords"
+    itemLabel="customers"
+    (pageChange)="goToPage($event)"
+    (pageSizeChange)="onPageSizeChange($event)">
+  </app-data-pagination>
 
   <!-- ==================== MOBILE CARDS ==================== -->
   <section class="cards-section mobile-only">
@@ -343,9 +285,6 @@
         <!-- Card Body -->
         <div class="card-body">
           <div class="card-customer">
-            <div class="customer-avatar small">
-              {{ (customer.fullName || customer.firstName || 'C')[0].toUpperCase() }}
-            </div>
             <div class="card-customer-info">
               <span class="customer-name">{{ customer.fullName || (customer.firstName + ' ' + customer.lastName) }}</span>
               <span *ngIf="customer.companyName" class="customer-company">{{ customer.companyName }}</span>
@@ -381,21 +320,6 @@
         </div>
       </div>
     </div>
-
-    <!-- Mobile Pagination -->
-    <div *ngIf="!loading && customers.length > 0" class="mobile-pagination">
-      <div class="pagination-info-mobile">
-        {{ first + 1 }}-{{ first + customers.length }} of {{ totalRecords }}
-      </div>
-      <div class="pagination-nav-mobile">
-        <button class="page-btn" [disabled]="first === 0" (click)="onPageChange({first: first - pageSize, rows: pageSize})">
-          <i class="pi pi-chevron-left"></i>
-        </button>
-        <button class="page-btn" [disabled]="first + pageSize >= totalRecords" (click)="onPageChange({first: first + pageSize, rows: pageSize})">
-          <i class="pi pi-chevron-right"></i>
-        </button>
-      </div>
-    </div>
   </section>
 
-</div>
+</app-page-container>

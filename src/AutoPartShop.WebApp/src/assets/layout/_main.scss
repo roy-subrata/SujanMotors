@@ -2,14 +2,14 @@
     display: flex;
     flex-direction: column;
     /* Fixed height for desktop to enable scrolling */
-    height: calc(100vh - 70px);
+    height: calc(100vh - 56px);
     box-sizing: border-box;
     justify-content: flex-start;
     padding: 0;
-    margin-left: 280px;
-    margin-top: 70px;
+    margin-left: 248px;
+    margin-top: 56px;
     transition: margin-left 0.3s ease;
-    background-color: var(--surface-ground);
+    background-color: var(--bg, var(--surface-ground));
     overflow-y: auto;
     overflow-x: hidden;
 
@@ -23,16 +23,24 @@
 
 /* Collapsed sidebar */
 .layout-wrapper.layout-static-inactive .layout-main-container {
-    margin-left: 70px;
+    margin-left: 64px;
 }
 
+// Content column — capped/centered width and top-gap tightening applied
+// here once so every routed page (dashboard, data-pages, forms) picks up
+// the exact same margin without needing its own copy of this rule.
 .layout-main {
     flex: 1 1 auto;
+    width: 100%;
+    max-width: 1440px;
+    margin: 0 auto;
     padding: 1.5rem;
+    padding-top: 0.5rem; /* 24px - 16px: tightens the gap under the topbar */
     /* main content scrolls with the page when needed */
 
     @media (min-width: 1200px) {
         padding: 2rem;
+        padding-top: 1rem; /* 32px - 16px */
     }
 
     @media (max-width: 991px) {
@@ -86,73 +94,10 @@
     }
 }
 
-// Page header styling
-.page-header {
-    background: var(--surface-card);
-    border-radius: 0.5rem;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    padding: 1.25rem;
-    margin-bottom: 1.5rem;
-    border: 1px solid var(--surface-border);
-
-    .header-content {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 1rem;
-    }
-
-    h1, h2 {
-        margin: 0;
-        font-size: 1.5rem;
-        font-weight: 600;
-        color: var(--text-color);
-    }
-
-    @media (max-width: 991px) {
-        padding: 1rem;
-        margin-bottom: 1rem;
-
-        h1, h2 {
-            font-size: 1.375rem;
-        }
-
-        .header-content {
-            gap: 0.75rem;
-        }
-    }
-
-    @media (max-width: 767px) {
-        padding: 0.875rem;
-        margin-bottom: 0.875rem;
-        border-radius: 0.375rem;
-
-        h1, h2 {
-            font-size: 1.25rem;
-        }
-
-        .header-content {
-            gap: 0.5rem;
-        }
-    }
-
-    @media (max-width: 575px) {
-        padding: 0.75rem;
-        margin-bottom: 0.75rem;
-        border-radius: 0.25rem;
-
-        h1, h2 {
-            font-size: 1.125rem;
-        }
-
-        .header-content {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 0.5rem;
-        }
-    }
-}
+// NOTE: the legacy boxed/shadowed .page-header card rule that used to live
+// here was removed — every page now either uses the real PageHeaderComponent
+// (shared/components/page-header) or the flat header styling from
+// assets/_data-page.scss, so this collision is no longer needed.
 
 img {
     max-width: none !important;

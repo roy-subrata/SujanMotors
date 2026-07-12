@@ -23,9 +23,9 @@
             .layout-sidebar {
                 transform: translateX(-100%);
                 left: 0;
-                top: 70px;
-                height: calc(100vh - 70px);
-                border-right: 1px solid var(--surface-border);
+                top: 56px;
+                height: calc(100vh - 56px);
+                border-right: 1px solid var(--border, var(--surface-border));
                 transition:
                     transform 0.4s cubic-bezier(0.05, 0.74, 0.2, 0.99),
                     left 0.4s cubic-bezier(0.05, 0.74, 0.2, 0.99);
@@ -44,23 +44,23 @@
 
         &.layout-static {
             .layout-main-container {
-                margin-left: 280px;
-                margin-top: 70px;
+                margin-left: 248px;
+                margin-top: 56px;
                 padding-left: 0;
             }
 
             .layout-sidebar {
-                width: 280px;
+                width: 248px;
                 transition: width 0.3s ease;
             }
 
             &.layout-static-inactive {
                 .layout-sidebar {
-                    width: 70px;
+                    width: 64px;
                 }
 
                 .layout-main-container {
-                    margin-left: 70px;
+                    margin-left: 64px;
                     padding-left: 0;
                 }
             }
@@ -81,7 +81,7 @@
         .layout-topbar {
             left: 0 !important;
             padding: 0 1rem;
-            height: 70px;
+            height: 56px;
         }
 
         .layout-main-container {
@@ -93,9 +93,9 @@
         .layout-sidebar {
             transform: translateX(-100%);
             left: 0;
-            top: 70px;
-            height: calc(100vh - 70px);
-            width: 280px !important;
+            top: 56px;
+            height: calc(100vh - 56px);
+            width: 248px !important;
             transition:
                 transform 0.4s cubic-bezier(0.05, 0.74, 0.2, 0.99),
                 left 0.4s cubic-bezier(0.05, 0.74, 0.2, 0.99);
@@ -104,11 +104,11 @@
         .layout-mask {
             display: none;
             position: fixed;
-            top: 70px;
+            top: 56px;
             left: 0;
             z-index: 997;
             width: 100%;
-            height: calc(100% - 70px);
+            height: calc(100% - 56px);
             background-color: var(--maskbg);
         }
 
@@ -134,18 +134,18 @@
 @media (max-width: 575px) {
     .layout-wrapper {
         .layout-topbar {
-            height: 60px !important;
+            height: 56px !important;
             padding: 0 0.75rem;
         }
 
         .layout-sidebar {
-            top: 60px !important;
-            height: calc(100vh - 60px) !important;
+            top: 56px !important;
+            height: calc(100vh - 56px) !important;
         }
 
         .layout-mask {
-            top: 60px !important;
-            height: calc(100% - 60px) !important;
+            top: 56px !important;
+            height: calc(100% - 56px) !important;
         }
     }
 }

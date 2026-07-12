@@ -10,6 +10,9 @@ import { DiscountResponse, DiscountService } from '../services/discount.service'
 import { DiscountsListComponent } from './discounts-list/discounts-list.component';
 import { DiscountFormDialogComponent } from './discount-form-dialog/discount-form-dialog.component';
 import { tap } from 'rxjs';
+import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
+import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
+import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 
 @Component({
   selector: 'app-discounts',
@@ -22,7 +25,10 @@ import { tap } from 'rxjs';
     ButtonModule,
     Select,
     DiscountsListComponent,
-    DiscountFormDialogComponent
+    DiscountFormDialogComponent,
+    PageContainerComponent,
+    PageHeaderComponent,
+    FilterBarComponent
   ],
   providers: [DiscountService, MessageService, ConfirmationService],
   templateUrl: './discounts.component.html',

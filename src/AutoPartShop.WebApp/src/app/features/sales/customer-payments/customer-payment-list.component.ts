@@ -509,6 +509,24 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
         });
     }
 
+    printReceipt(payment: CustomerPaymentResponse): void {
+        this.customerPaymentService.downloadReceipt(payment.id).subscribe({
+            next: (blob) => {
+                const url = window.URL.createObjectURL(blob);
+                window.open(url, '_blank');
+                setTimeout(() => window.URL.revokeObjectURL(url), 60000);
+            },
+            error: (error) => {
+                this.messageService.add({
+                    severity: 'error',
+                    summary: this.i18n.t('common.messages.error'),
+                    detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || 'Failed to generate receipt')
+                });
+                console.error('Error generating receipt:', error);
+            }
+        });
+    }
+
     onPageChange(event: PaginatorState): void {
         this.first = event.first ?? 0;
         this.pageSize = event.rows ?? this.pageSize;

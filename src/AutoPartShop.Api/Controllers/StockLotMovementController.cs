@@ -1,7 +1,8 @@
-using AutoPartShop.Api.Services;
+﻿using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.InventoryDtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Infrastructure.Repositories;
+using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,7 +11,7 @@ namespace AutoPartShop.Api.Controllers;
 [Route("api/[controller]")]
 [Route("api/v1/[controller]")]
 [ApiController]
-[Authorize]
+[HasPermission(Permissions.InventoryView)]
 public class StockLotMovementController : ControllerBase
 {
     private readonly IStockLotMovementRepository _repository;
@@ -205,6 +206,7 @@ public class StockLotMovementController : ControllerBase
     }
 
     [HttpPost]
+    [HasPermission(Permissions.InventoryAdjustStock)]
     public async Task<IActionResult> Create(CreateStockLotMovementRequest request, CancellationToken cancellationToken)
     {
         try

@@ -183,14 +183,7 @@ export class DashboardComponent implements OnInit {
     return `${fmt(this.resolvedStartDate)} – ${fmt(this.resolvedEndDate)}`;
   }
 
-  // ─── Net Cash Flow (#12) — moved out of template ─────────────────────────
-  get netCashFlow(): number {
-    const s = this.dashboardData()?.summary;
-    if (!s) return 0;
-    return s.cashInflow - s.cashOutflow;
-  }
-
-  // ─── Alert helpers (#13) ─────────────────────────────────────────────────
+  // ─── Alert helpers ───────────────────────────────────────────────────────
   get hasAlerts(): boolean {
     const s = this.dashboardData()?.summary;
     if (!s) return false;
@@ -203,23 +196,24 @@ export class DashboardComponent implements OnInit {
 
   // ─── Chart ────────────────────────────────────────────────────────────────
   private updateChartData(data: DashboardResponse): void {
+    // Backend always groups by day, so use a date label for all periods.
+    // (Previously DAILY used a time format which showed "12:00 AM" for the single daily data point.)
     const labels = data.salesTrend.map(t =>
-      this.selectedPeriod === 'DAILY'
-        ? new Date(t.date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-        : new Date(t.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      new Date(t.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     );
     const salesData = data.salesTrend.map(t => t.sales);
     const purchasesData = data.salesTrend.map(t => t.purchases);
     const profitData = data.salesTrend.map(t => t.profit);
 
+    // Design-token chart colors (design_handoff_pos_dashboard/README.md) — same in both themes.
     this.salesTrendChartData = {
       labels,
       datasets: [
         {
           label: 'Sales',
           data: salesData,
-          borderColor: '#42A5F5',
-          backgroundColor: 'rgba(66, 165, 245, 0.15)',
+          borderColor: '#3b82f6',
+          backgroundColor: 'rgba(59, 130, 246, 0.09)',
           fill: true,
           tension: 0.4,
           pointRadius: 3
@@ -227,8 +221,8 @@ export class DashboardComponent implements OnInit {
         {
           label: 'Purchases',
           data: purchasesData,
-          borderColor: '#FFA726',
-          backgroundColor: 'rgba(255, 167, 38, 0.15)',
+          borderColor: '#f59e0b',
+          backgroundColor: 'rgba(245, 158, 11, 0.07)',
           fill: true,
           tension: 0.4,
           pointRadius: 3
@@ -236,8 +230,8 @@ export class DashboardComponent implements OnInit {
         {
           label: 'Profit',
           data: profitData,
-          borderColor: '#66BB6A',
-          backgroundColor: 'rgba(102, 187, 106, 0.15)',
+          borderColor: '#10b981',
+          backgroundColor: 'rgba(16, 185, 129, 0.07)',
           fill: true,
           tension: 0.4,
           pointRadius: 3
@@ -246,15 +240,26 @@ export class DashboardComponent implements OnInit {
     };
   }
 
+  // Read theme colors from CSS custom properties so the chart follows light/dark mode
+  private getThemeColor(varName: string, fallback: string): string {
+    const value = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+    return value || fallback;
+  }
+
   private initializeChartOptions(): void {
     // Fix #7 and #8: currency formatting on Y-axis and tooltips
     const fmt = (v: number) => this.formatCurrency(v);
+
+    // Theme-aware colors from the redesign's own tokens (--text3/--border2), not the
+    // old PrimeNG surface vars, so the chart matches the rest of the shell/dashboard.
+    const textColor = this.getThemeColor('--text3', '#8a93a2');
+    const gridColor = this.getThemeColor('--border2', '#eef0f3');
 
     this.salesTrendChartOptions = {
       maintainAspectRatio: false,
       plugins: {
         legend: {
-          labels: { color: '#495057', font: { size: 12 } }
+          labels: { color: textColor, font: { size: 12 } }
         },
         tooltip: {
           callbacks: {
@@ -264,16 +269,16 @@ export class DashboardComponent implements OnInit {
       },
       scales: {
         x: {
-          ticks: { color: '#64748b', font: { size: 11 } },
-          grid: { color: '#f1f5f9' }
+          ticks: { color: textColor, font: { size: 11 } },
+          grid: { color: gridColor }
         },
         y: {
           ticks: {
-            color: '#64748b',
+            color: textColor,
             font: { size: 11 },
             callback: (value: any) => fmt(value)
           },
-          grid: { color: '#f1f5f9' }
+          grid: { color: gridColor }
         }
       }
     };
@@ -297,6 +302,23 @@ export class DashboardComponent implements OnInit {
   formatDate(date: Date | string | null | undefined): string {
     if (!date) return '—';
     return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  /** Compact "Jul 2" form used in the Top Customers "Last" column. */
+  formatShortDate(date: Date | string | null | undefined): string {
+    if (!date) return '—';
+    return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+
+  getInitials(name: string): string {
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return '?';
+    if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+  }
+
+  getMarginPercent(revenue: number, profit: number): number {
+    return revenue > 0 ? (profit / revenue) * 100 : 0;
   }
 
   getChangeColor(value: number): string {

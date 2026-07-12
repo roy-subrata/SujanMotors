@@ -2,47 +2,26 @@
 <p-confirmDialog></p-confirmDialog>
 <p-contextMenu #contextMenu [model]="contextMenuItems" [appendTo]="'body'"></p-contextMenu>
 
-<!-- Breadcrumb -->
-<div class="breadcrumb-bar">
-  <div class="breadcrumb-content">
-    <a routerLink="/" class="breadcrumb-link"><i class="pi pi-home"></i></a>
-    <i class="pi pi-chevron-right breadcrumb-separator"></i>
-    <span class="breadcrumb-active">Supplier Payments</span>
-  </div>
-</div>
-
-<div class="page-wrapper">
+<app-page-container>
 
   <!-- Header -->
-  <header class="page-header">
-    <div class="header-content">
-      <div class="header-left">
-        <h1 class="page-title">Supplier Payments</h1>
-        <p class="page-subtitle">Track and manage all payments to suppliers</p>
-      </div>
-      <div class="header-actions">
-        <div class="stats-badge">
-          <i class="pi pi-money-bill"></i>
-          <div class="stats-info">
-            <span class="stats-value">{{ totalCount }}</span>
-            <span class="stats-label">payments</span>
-          </div>
-        </div>
-        <div class="action-buttons">
-          <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="loadSupplierPayments()">
-            <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
-          </button>
-          <button class="btn-icon btn-icon-outline" pTooltip="Export CSV" tooltipPosition="bottom" (click)="exportPayments('csv')">
-            <i class="pi pi-download"></i>
-          </button>
-          <button class="btn-primary" (click)="createNew()">
-            <i class="pi pi-plus"></i>
-            <span>New Payment</span>
-          </button>
-        </div>
-      </div>
-    </div>
-  </header>
+  <app-page-header
+    title="Supplier Payments"
+    subtitle="Track and manage all payments to suppliers"
+    [count]="totalCount" countLabel="payments">
+    <ng-container actions>
+      <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="loadSupplierPayments()">
+        <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
+      </button>
+      <button class="btn-icon btn-icon-outline" pTooltip="Export CSV" tooltipPosition="bottom" (click)="exportPayments('csv')">
+        <i class="pi pi-download"></i>
+      </button>
+      <button class="btn-primary" (click)="createNew()">
+        <i class="pi pi-plus"></i>
+        <span>New Payment</span>
+      </button>
+    </ng-container>
+  </app-page-header>
 
   <!-- Active Supplier Filter Banner -->
   <div *ngIf="supplierFilter" class="supplier-banner">
@@ -56,36 +35,34 @@
   </div>
 
   <!-- Filters -->
-  <section class="filter-section">
-    <div class="filter-container">
-      <div class="filter-group search-group">
-        <div class="search-input-wrapper">
-          <i class="pi pi-search"></i>
-          <input type="text" [(ngModel)]="searchTerm" placeholder="Search supplier, invoice number..."
-            (keyup.enter)="onSearch()" class="search-input" />
-          <button *ngIf="searchTerm" class="search-clear" (click)="clearSearch()">
-            <i class="pi pi-times"></i>
-          </button>
-        </div>
-      </div>
-      <div class="filter-group">
-        <p-select [options]="statusOptions" [(ngModel)]="filterStatus" placeholder="Status"
-          [showClear]="true" (onChange)="onFilterChange()" styleClass="filter-select"></p-select>
-      </div>
-      <div class="filter-group date-group">
-        <p-datepicker [(ngModel)]="dateRange" selectionMode="range" [showIcon]="true"
-          placeholder="Date range" dateFormat="M dd, yy" [showButtonBar]="true"
-          (onSelect)="onDateRangeSelect()" (onClearButtonClick)="onDateClear()"
-          styleClass="filter-select"></p-datepicker>
-      </div>
-      <div class="filter-group filter-actions-group">
-        <button class="btn-search" (click)="onSearch()"><i class="pi pi-search"></i></button>
-        <button *ngIf="filterStatus || searchTerm || (dateRange && dateRange.length)" class="btn-clear-filter" (click)="clearFilters()">
-          <i class="pi pi-filter-slash"></i>
+  <app-filter-bar>
+    <div search class="filter-group search-group">
+      <div class="search-input-wrapper">
+        <i class="pi pi-search"></i>
+        <input type="text" [(ngModel)]="searchTerm" placeholder="Search supplier, invoice number..."
+          (keyup.enter)="onSearch()" class="search-input" />
+        <button *ngIf="searchTerm" class="search-clear" (click)="clearSearch()">
+          <i class="pi pi-times"></i>
         </button>
       </div>
     </div>
-  </section>
+    <div filters class="filter-group">
+      <p-select [options]="statusOptions" [(ngModel)]="filterStatus" placeholder="Status"
+        [showClear]="true" (onChange)="onFilterChange()" styleClass="filter-select"></p-select>
+    </div>
+    <div filters class="filter-group date-group">
+      <p-datepicker [(ngModel)]="dateRange" selectionMode="range" [showIcon]="true"
+        placeholder="Date range" dateFormat="M dd, yy" [showButtonBar]="true"
+        (onSelect)="onDateRangeSelect()" (onClearButtonClick)="onDateClear()"
+        styleClass="filter-select"></p-datepicker>
+    </div>
+    <div filterActions class="filter-group filter-actions-group">
+      <button class="btn-search" (click)="onSearch()"><i class="pi pi-search"></i></button>
+      <button *ngIf="filterStatus || searchTerm || (dateRange && dateRange.length)" class="btn-clear-filter" (click)="clearFilters()">
+        <i class="pi pi-filter-slash"></i>
+      </button>
+    </div>
+  </app-filter-bar>
 
   <!-- Desktop Table -->
   <section class="table-section desktop-only">
@@ -102,13 +79,11 @@
         (onContextMenuSelect)="selectedPayment = $event.data"
         [contextMenu]="contextMenu"
         responsiveLayout="scroll"
-        styleClass="custom-table">
+        styleClass="app-table">
 
         <ng-template #header>
           <tr>
-            <th pSortableColumn="paymentDate" class="col-date">
-              Date <p-sortIcon field="paymentDate"></p-sortIcon>
-            </th>
+            <th class="col-date">Date</th>
             <th class="col-supplier">Supplier</th>
             <th class="col-amount text-right">Amount</th>
             <th class="col-method">Method</th>
@@ -182,37 +157,17 @@
         </ng-template>
       </p-table>
     </div>
-
-    <!-- Pagination -->
-    <div class="pagination-section" *ngIf="totalCount > 0">
-      <div class="pagination-info">
-        Showing <strong>{{ first + 1 }}</strong> to
-        <strong>{{ displayedEnd }}</strong>
-        of <strong>{{ totalCount }}</strong> payments
-      </div>
-      <div class="pagination-controls">
-        <span class="page-size-label">Rows:</span>
-        <p-select [options]="pageSizeSelectOptions" [(ngModel)]="pageSize"
-          (onChange)="onPageChange({ first: 0, rows: pageSize })"
-          styleClass="page-size-dropdown"></p-select>
-        <div class="page-nav">
-          <button class="page-btn" [disabled]="first === 0" (click)="onPageChange({ first: 0, rows: pageSize })">
-            <i class="pi pi-angle-double-left"></i>
-          </button>
-          <button class="page-btn" [disabled]="first === 0" (click)="onPageChange({ first: first - pageSize, rows: pageSize })">
-            <i class="pi pi-angle-left"></i>
-          </button>
-          <span class="page-indicator">{{ pageNumber }} / {{ totalPages }}</span>
-          <button class="page-btn" [disabled]="first + pageSize >= totalCount" (click)="onPageChange({ first: first + pageSize, rows: pageSize })">
-            <i class="pi pi-angle-right"></i>
-          </button>
-          <button class="page-btn" [disabled]="first + pageSize >= totalCount" (click)="onPageChange({ first: (totalPages - 1) * pageSize, rows: pageSize })">
-            <i class="pi pi-angle-double-right"></i>
-          </button>
-        </div>
-      </div>
-    </div>
   </section>
+
+  <!-- Pagination -->
+  <app-data-pagination
+    [first]="first"
+    [pageSize]="pageSize"
+    [totalRecords]="totalCount"
+    itemLabel="payments"
+    (pageChange)="goToPage($event)"
+    (pageSizeChange)="onPageSizeChange($event)">
+  </app-data-pagination>
 
   <!-- Mobile Cards -->
   <section class="cards-section mobile-only">
@@ -265,19 +220,6 @@
         </div>
       </div>
     </div>
-
-    <!-- Mobile Pagination -->
-    <div *ngIf="!loading && supplierPayments.length > 0" class="mobile-pagination">
-      <span class="pagination-info-mobile">{{ first + 1 }}–{{ displayedEnd }} of {{ totalCount }}</span>
-      <div class="pagination-nav-mobile">
-        <button class="page-btn" [disabled]="first === 0" (click)="onPageChange({ first: first - pageSize, rows: pageSize })">
-          <i class="pi pi-chevron-left"></i>
-        </button>
-        <button class="page-btn" [disabled]="first + pageSize >= totalCount" (click)="onPageChange({ first: first + pageSize, rows: pageSize })">
-          <i class="pi pi-chevron-right"></i>
-        </button>
-      </div>
-    </div>
   </section>
 
-</div>
+</app-page-container>

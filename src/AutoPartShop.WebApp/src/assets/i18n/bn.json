@@ -47,12 +47,21 @@
     "pendingDeliveries": "বিতরণের অপেক্ষায়",
     "serviceWarranty": "সার্ভিস ও ওয়ারেন্টি",
     "finance": "অর্থ",
+    "reports": "রিপোর্ট",
     "dailyCashBook": "দৈনিক ক্যাশ বুক",
     "onlineStore": "অনলাইন স্টোর",
     "administration": "প্রশাসন",
     "companyProfile": "কোম্পানি প্রোফাইল",
     "shopPolicies": "দোকানের নীতিমালা",
-    "auditDashboard": "অডিট ড্যাশবোর্ড"
+    "auditDashboard": "অডিট ড্যাশবোর্ড",
+    "hr": "এইচআর",
+    "employees": "কর্মচারী",
+    "attendance": "উপস্থিতি",
+    "leaveRequests": "ছুটির আবেদন",
+    "holidays": "ছুটির দিন",
+    "payroll": "বেতন",
+    "shifts": "শিফট",
+    "salaryAdvances": "বেতন অগ্রিম"
   },
   "topbar": {
     "profile": "আমার প্রোফাইল",

@@ -1,0 +1,162 @@
+.adjustment-dialog {
+  padding: 1.25rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.dialog-title {
+  margin-bottom: 1.5rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.info-card, .preview-card {
+  margin-bottom: 1.5rem;
+}
+
+.info-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.info-item label {
+  font-size: 0.875rem;
+  color: var(--text-color-secondary);
+  font-weight: 500;
+}
+
+.info-item .value {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.stock-value {
+  color: #059669;
+  font-size: 1.1rem;
+}
+
+.variant-tag {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0.05rem 0.45rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #2563eb;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.form-row {
+  margin-bottom: 1rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group.full {
+  grid-column: 1 / -1;
+}
+
+.form-group label {
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.textarea-input {
+  border: 1px solid var(--surface-border);
+  border-radius: 4px;
+  padding: 0.5rem;
+  font-family: inherit;
+  resize: vertical;
+  background: var(--surface-card);
+  color: var(--text-color);
+}
+
+.preview-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 1rem;
+}
+
+.preview-row label {
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.preview-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.text-danger {
+  color: #dc2626;
+  font-size: 0.75rem;
+}
+
+.text-success {
+  color: #059669;
+}
+
+.button-group {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.w-full {
+  width: 100%;
+}
+
+.product-option {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+
+  .product-option-name {
+    font-weight: 500;
+  }
+
+  .product-option-sku {
+    color: var(--text-color-secondary);
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .adjustment-dialog {
+    padding: 1rem;
+  }
+
+  .dialog-title {
+    font-size: 1.1rem;
+  }
+
+  .info-row {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .button-group {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

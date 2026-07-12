@@ -1,8 +1,9 @@
-using AutoPartShop.Api.Common;
+﻿using AutoPartShop.Api.Common;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.ProductLocationDtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
+using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -15,7 +16,7 @@ namespace AutoPartShop.Api.Controllers;
 [Route("api/v1/products/{productId:guid}/locations")]
 [ApiController]
 [Produces("application/json")]
-[Authorize]
+[HasPermission(Permissions.InventoryView)]
 public class ProductLocationsController : ControllerBase
 {
     private readonly IProductLocationRepository _locationRepository;
@@ -76,6 +77,7 @@ public class ProductLocationsController : ControllerBase
 
     // POST /api/v1/products/{productId}/locations
     [HttpPost]
+    [HasPermission(Permissions.InventoryCreate)]
     public async Task<IActionResult> Create(Guid productId, [FromBody] CreateLocationBody body, CancellationToken cancellationToken)
     {
         if (!await _productRepository.ExistsAsync(productId, cancellationToken))
@@ -103,6 +105,7 @@ public class ProductLocationsController : ControllerBase
 
     // PUT /api/v1/products/{productId}/locations/{id}
     [HttpPut("{id:guid}")]
+    [HasPermission(Permissions.InventoryEdit)]
     public async Task<IActionResult> Update(Guid productId, Guid id, [FromBody] UpdateProductLocationRequest body, CancellationToken cancellationToken)
     {
         var location = await _locationRepository.GetByIdAsync(id, cancellationToken);
@@ -125,6 +128,7 @@ public class ProductLocationsController : ControllerBase
 
     // PATCH /api/v1/products/{productId}/locations/{id}/set-primary
     [HttpPatch("{id:guid}/set-primary")]
+    [HasPermission(Permissions.InventoryEdit)]
     public async Task<IActionResult> SetPrimary(Guid productId, Guid id, CancellationToken cancellationToken)
     {
         var location = await _locationRepository.GetByIdAsync(id, cancellationToken);
@@ -137,6 +141,7 @@ public class ProductLocationsController : ControllerBase
 
     // DELETE /api/v1/products/{productId}/locations/{id}
     [HttpDelete("{id:guid}")]
+    [HasPermission(Permissions.InventoryDelete)]
     public async Task<IActionResult> Delete(Guid productId, Guid id, CancellationToken cancellationToken)
     {
         var location = await _locationRepository.GetByIdAsync(id, cancellationToken);
@@ -166,7 +171,7 @@ public class ProductLocationsController : ControllerBase
     };
 }
 
-// Request body — productId comes from the URL, not the body
+// Request body â€” productId comes from the URL, not the body
 public record CreateLocationBody(
     Guid WarehouseId,
     string Section,

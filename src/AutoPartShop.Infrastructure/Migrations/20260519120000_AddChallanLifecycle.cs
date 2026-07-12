@@ -16,22 +16,22 @@ namespace AutoPartsShop.Infrastructure.Migrations
                 name: "Challans",
                 columns: table => new
                 {
-                    Id              = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ChallanNumber   = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    SalesOrderId    = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    InvoiceId       = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    Status          = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false, defaultValue: "DRAFT"),
-                    IssuedAt        = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    DeliveredAt     = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ChallanNumber = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    SalesOrderId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    InvoiceId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    Status = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false, defaultValue: "DRAFT"),
+                    IssuedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    DeliveredAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     DeliveryAddress = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false, defaultValue: ""),
-                    ReceiverName    = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false, defaultValue: ""),
-                    ReceiverPhone   = table.Column<string>(type: "nvarchar(50)",  maxLength: 50,  nullable: false, defaultValue: ""),
-                    Notes           = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: false, defaultValue: ""),
-                    CreatedDate     = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    ModifiedDate    = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    CreatedBy       = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    ModifiedBy      = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Isdeleted       = table.Column<bool>(type: "bit", nullable: false, defaultValue: false)
+                    ReceiverName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false, defaultValue: ""),
+                    ReceiverPhone = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false, defaultValue: ""),
+                    Notes = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: false, defaultValue: ""),
+                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ModifiedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Isdeleted = table.Column<bool>(type: "bit", nullable: false, defaultValue: false)
                 },
                 constraints: table =>
                 {
@@ -55,21 +55,21 @@ namespace AutoPartsShop.Infrastructure.Migrations
                 name: "ChallanLines",
                 columns: table => new
                 {
-                    Id               = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ChallanId        = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    PartId           = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ChallanId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    PartId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     ProductVariantId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    Quantity         = table.Column<int>(type: "int", nullable: false),
-                    PartName         = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: false, defaultValue: ""),
-                    PartSku          = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false, defaultValue: ""),
-                    DisplayName      = table.Column<string>(type: "nvarchar(400)", maxLength: 400, nullable: false, defaultValue: ""),
-                    UnitName         = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false, defaultValue: ""),
-                    LineNumber       = table.Column<int>(type: "int", nullable: false),
-                    CreatedDate      = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    ModifiedDate     = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    CreatedBy        = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    ModifiedBy       = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Isdeleted        = table.Column<bool>(type: "bit", nullable: false, defaultValue: false)
+                    Quantity = table.Column<int>(type: "int", nullable: false),
+                    PartName = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: false, defaultValue: ""),
+                    PartSku = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false, defaultValue: ""),
+                    DisplayName = table.Column<string>(type: "nvarchar(400)", maxLength: 400, nullable: false, defaultValue: ""),
+                    UnitName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false, defaultValue: ""),
+                    LineNumber = table.Column<int>(type: "int", nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ModifiedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Isdeleted = table.Column<bool>(type: "bit", nullable: false, defaultValue: false)
                 },
                 constraints: table =>
                 {
@@ -83,11 +83,11 @@ namespace AutoPartsShop.Infrastructure.Migrations
                 });
 
             // Indexes
-            migrationBuilder.CreateIndex(name: "IX_Challans_SalesOrderId",   table: "Challans",     column: "SalesOrderId");
-            migrationBuilder.CreateIndex(name: "IX_Challans_InvoiceId",      table: "Challans",     column: "InvoiceId");
-            migrationBuilder.CreateIndex(name: "IX_Challans_Status",         table: "Challans",     column: "Status");
-            migrationBuilder.CreateIndex(name: "IX_Challans_ChallanNumber",  table: "Challans",     column: "ChallanNumber", unique: true);
-            migrationBuilder.CreateIndex(name: "IX_ChallanLines_ChallanId",  table: "ChallanLines", column: "ChallanId");
+            migrationBuilder.CreateIndex(name: "IX_Challans_SalesOrderId", table: "Challans", column: "SalesOrderId");
+            migrationBuilder.CreateIndex(name: "IX_Challans_InvoiceId", table: "Challans", column: "InvoiceId");
+            migrationBuilder.CreateIndex(name: "IX_Challans_Status", table: "Challans", column: "Status");
+            migrationBuilder.CreateIndex(name: "IX_Challans_ChallanNumber", table: "Challans", column: "ChallanNumber", unique: true);
+            migrationBuilder.CreateIndex(name: "IX_ChallanLines_ChallanId", table: "ChallanLines", column: "ChallanId");
         }
 
         /// <inheritdoc />

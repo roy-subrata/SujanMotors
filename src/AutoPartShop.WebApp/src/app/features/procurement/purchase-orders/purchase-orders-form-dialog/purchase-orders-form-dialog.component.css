@@ -14,7 +14,7 @@
 
     label {
       font-weight: 600;
-      color: #374151;
+      color: var(--text-color);
       font-size: 0.875rem;
 
       .required {
@@ -28,9 +28,9 @@
     .p-inputnumber,
     .p-autocomplete {
       font-size: 0.95rem;
-      color: #374151;
+      color: var(--text-color);
       border-radius: 0.375rem;
-      border: 1px solid #e5e7eb;
+      border: 1px solid var(--surface-border);
       transition: all 0.2s ease;
 
       &:focus {
@@ -96,24 +96,24 @@
 
   .p-dropdown,
   .p-autocomplete {
-    background-color: #ffffff;
+    background-color: var(--surface-card);
 
     &:hover {
-      border-color: #d1d5db;
+      border-color: var(--surface-border);
     }
   }
 
   .p-dropdown-trigger,
   .p-autocomplete-trigger {
-    color: #6b7280;
+    color: var(--text-color-secondary);
   }
 
   /* Line Items Section */
   .line-items-section {
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--surface-border);
     border-radius: 0.5rem;
     padding: 1.5rem;
-    background-color: #f9fafb;
+    background-color: var(--surface-ground);
   }
 
   .section-header {
@@ -127,31 +127,31 @@
     margin: 0;
     font-size: 1rem;
     font-weight: 600;
-    color: #1f2937;
+    color: var(--text-color);
   }
 
   .line-items-table {
     overflow-x: auto;
     margin-bottom: 1.5rem;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--surface-border);
     border-radius: 0.375rem;
-    background-color: #ffffff;
+    background-color: var(--surface-card);
 
     table {
       width: 100%;
       border-collapse: collapse;
 
       thead {
-        background-color: #f3f4f6;
+        background-color: var(--surface-ground);
 
         tr {
-          border-bottom: 2px solid #e5e7eb;
+          border-bottom: 2px solid var(--surface-border);
 
           th {
             padding: 0.75rem 1rem;
             text-align: left;
             font-weight: 600;
-            color: #374151;
+            color: var(--text-color);
             font-size: 0.875rem;
           }
         }
@@ -159,15 +159,15 @@
 
       tbody {
         tr {
-          border-bottom: 1px solid #e5e7eb;
+          border-bottom: 1px solid var(--surface-border);
 
           &:hover {
-            background-color: #f9fafb;
+            background-color: var(--surface-ground);
           }
 
           td {
             padding: 0.75rem 1rem;
-            color: #374151;
+            color: var(--text-color);
 
             .small-input {
               font-size: 0.875rem;
@@ -190,16 +190,16 @@
     justify-content: flex-end;
     gap: 2rem;
     padding: 1rem;
-    background-color: #ffffff;
-    border: 1px solid #e5e7eb;
-    border-top: 2px solid #e5e7eb;
+    background-color: var(--surface-card);
+    border: 1px solid var(--surface-border);
+    border-top: 2px solid var(--surface-border);
     border-radius: 0.375rem;
     margin-bottom: 1rem;
   }
 
   .grand-total-label {
     font-weight: 600;
-    color: #1f2937;
+    color: var(--text-color);
     min-width: 150px;
     text-align: right;
   }
@@ -215,27 +215,27 @@
   /* Dialog Styling */
   .p-dialog {
     .p-dialog-header {
-      background-color: #f9fafb;
-      border-color: #e5e7eb;
+      background-color: var(--surface-ground);
+      border-color: var(--surface-border);
       padding: 1.5rem;
 
       .p-dialog-title {
         font-size: 1.25rem;
         font-weight: 700;
-        color: #1f2937;
+        color: var(--text-color);
       }
     }
 
     .p-dialog-content {
       padding: 1.5rem;
-      background-color: #ffffff;
+      background-color: var(--surface-card);
       max-height: calc(100vh - 200px);
       overflow-y: auto;
     }
 
     .p-dialog-footer {
-      background-color: #f9fafb;
-      border-color: #e5e7eb;
+      background-color: var(--surface-ground);
+      border-color: var(--surface-border);
       padding: 1rem 1.5rem;
       display: flex;
       justify-content: flex-end;
@@ -263,22 +263,22 @@
       }
 
       &:disabled {
-        background-color: #d1d5db;
-        border-color: #d1d5db;
-        color: #9ca3af;
+        background-color: var(--surface-border);
+        border-color: var(--surface-border);
+        color: var(--text-color-secondary);
         cursor: not-allowed;
       }
     }
 
     &.p-button-text {
-      color: #6b7280;
+      color: var(--text-color-secondary);
 
       &:hover {
-        background-color: #f3f4f6;
+        background-color: var(--surface-ground);
       }
 
       &:disabled {
-        color: #d1d5db;
+        color: var(--text-color-secondary);
         cursor: not-allowed;
       }
     }
@@ -291,7 +291,7 @@
       }
 
       &:disabled {
-        color: #d1d5db;
+        color: var(--text-color-secondary);
         cursor: not-allowed;
       }
     }
@@ -315,12 +315,12 @@
 
     .supplier-name {
       font-weight: 500;
-      color: #1f2937;
+      color: var(--text-color);
     }
 
     .supplier-code {
       font-size: 0.85rem;
-      color: #9ca3af;
+      color: var(--text-color-secondary);
     }
   }
 }

@@ -63,16 +63,17 @@
             tooltipPosition="bottom">
           </button>
 
-          <!-- Cancel button - only for DRAFT or SUBMITTED status -->
+          <!-- Cancel button - DRAFT/SUBMITTED: enabled; PARTIAL: disabled (stock received, return must be cancelled first) -->
           <button
-            *ngIf="currentPO.status === 'DRAFT' || currentPO.status === 'SUBMITTED'"
+            *ngIf="currentPO.status === 'DRAFT' || currentPO.status === 'SUBMITTED' || currentPO.status === 'PARTIAL'"
             pButton
             type="button"
             label="Cancel"
             icon="pi pi-ban"
             class="p-button-warning"
             (click)="cancelPurchaseOrder()"
-            pTooltip="Cancel this purchase order"
+            [disabled]="currentPO.status === 'PARTIAL'"
+            [pTooltip]="currentPO.status === 'PARTIAL' ? 'Cancel a purchase return first to reverse received stock' : 'Cancel this purchase order'"
             tooltipPosition="bottom">
           </button>
         </div>
@@ -216,6 +217,7 @@
                     <span class="item-name">{{ part.displayName || part.name }}</span>
                     <span class="part-price">{{ formatCurrency(part.effectiveSellingPrice ?? part.sellingPrice ?? 0) }}</span>
                   </div>
+                  <small *ngIf="part.localName" class="part-row-local">{{ part.localName }}</small>
                   <div class="part-sub-info">
                     <span class="item-code">SKU: {{ part.variantSKU || part.sku }} | PN: {{ part.partNumber }}</span>
                     <span *ngIf="part.pricingMode === 'ADDITIVE'" class="variant-badge"> +delta</span>
@@ -270,6 +272,7 @@
                       tooltipPosition="top">
                     </button>
                   </div>
+                  <small *ngIf="line.get('partId')?.value?.localName" class="part-row-local d-block">{{ line.get('partId')?.value?.localName }}</small>
                   <span class="no-product" *ngIf="!line.get('partId')?.value">
                     <i class="pi pi-exclamation-circle"></i> No product selected
                   </span>
@@ -449,17 +452,17 @@
     <div class="submit-actions" *ngIf="!isViewing">
       <button
         type="button"
-        class="submit-button"
+        class="btn-secondary"
+        (click)="onCancel()">
+        <span>Cancel</span>
+      </button>
+      <button
+        type="button"
+        class="btn-primary"
         (click)="onSubmit()"
         [disabled]="isSubmitting || linesArray.length === 0">
         <i class="pi pi-spin pi-spinner" *ngIf="isSubmitting"></i>
         <span>{{ isSubmitting ? 'Processing...' : (mode === 'edit' ? 'Update Order' : 'Create Order') }}</span>
-      </button>
-      <button
-        type="button"
-        class="cancel-button"
-        (click)="onCancel()">
-        <span>Cancel</span>
       </button>
     </div>
   </p-card>

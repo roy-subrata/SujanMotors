@@ -3,7 +3,7 @@
 :host ::ng-deep {
     .p-dialog .p-dialog-header {
         padding: 1.5rem;
-        background-color: #f8f9fa;
+        background-color: var(--surface-ground);
     }
 
     .p-dialog .p-dialog-content {

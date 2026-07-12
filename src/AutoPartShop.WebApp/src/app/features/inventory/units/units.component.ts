@@ -11,6 +11,9 @@ import { UnitsFormDialogComponent } from './units-form-dialog/units-form-dialog.
 import { ConversionsListComponent } from './conversions-list/conversions-list.component';
 import { ConversionsFormDialogComponent } from './conversions-form-dialog/conversions-form-dialog.component';
 import { TabsModule } from 'primeng/tabs';
+import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
+import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
+import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 
 @Component({
   selector: 'app-units',
@@ -24,7 +27,10 @@ import { TabsModule } from 'primeng/tabs';
     UnitsListComponent,
     UnitsFormDialogComponent,
     ConversionsListComponent,
-    ConversionsFormDialogComponent
+    ConversionsFormDialogComponent,
+    PageContainerComponent,
+    PageHeaderComponent,
+    FilterBarComponent
   ],
   providers: [UnitService, UnitConversionService, MessageService, ConfirmationService],
   templateUrl: './units.component.html',

@@ -7,7 +7,6 @@
   <app-page-header
     title="Customer Payments"
     subtitle="Track and manage customer payments, refunds, and reconciliations"
-    [breadcrumb]="[{ label: 'Sales' }, { label: 'Customer Payments' }]"
     [count]="totalCount" countLabel="payments" countIcon="pi pi-wallet">
     <ng-container actions>
       <button class="btn-icon" pTooltip="Export CSV" tooltipPosition="bottom" (click)="exportPayments('csv')">
@@ -112,6 +111,9 @@
                   class="p-button-warning p-button-sm" pTooltip="Refund Payment" tooltipPosition="left" (click)="refundPayment(payment)"></button>
                 <button *ngIf="payment.status === 'PENDING' || payment.status === 'PROCESSING'" pButton pRipple type="button" icon="pi pi-times"
                   class="p-button-danger p-button-sm" pTooltip="Cancel Payment" tooltipPosition="left" (click)="cancelPayment(payment)"></button>
+                <button pButton pRipple type="button" icon="pi pi-print"
+                  class="p-button-outlined p-button-sm" pTooltip="Print Receipt" tooltipPosition="left"
+                  (click)="printReceipt(payment)"></button>
                 <button class="btn-action" pTooltip="More Actions" (contextmenu)="showContextMenu($event, payment)" (click)="showContextMenu($event, payment)">
                   <i class="pi pi-ellipsis-v"></i>
                 </button>

@@ -11,7 +11,7 @@
       [totalRecords]="totalRecords"
       [rowHover]="true"
       responsiveLayout="scroll"
-      styleClass="custom-table"
+      styleClass="app-table"
       [tableStyle]="{ 'min-width': '50rem' }"
       dataKey="id">
 
@@ -35,9 +35,6 @@
           </td>
           <td class="col-supplier">
             <div class="customer-cell">
-              <div class="customer-avatar">
-                {{ (pr.supplierName || 'S')[0].toUpperCase() }}
-              </div>
               <div class="customer-info">
                 <span class="customer-name">{{ pr.supplierName || '-' }}</span>
                 <span *ngIf="pr.supplierCode" class="customer-phone">{{ pr.supplierCode }}</span>
@@ -80,34 +77,17 @@
       </ng-template>
     </p-table>
   </div>
-
-  <div class="pagination-section" *ngIf="totalRecords > 0">
-    <div class="pagination-info">
-      Showing <strong>{{ ((currentPage - 1) * rows) + 1 }}</strong> to <strong>{{ Math.min(currentPage * rows, totalRecords) }}</strong> of <strong>{{ totalRecords }}</strong> returns
-    </div>
-    <div class="pagination-controls">
-      <span class="page-size-label">Rows per page:</span>
-      <select class="page-size-select" [value]="rows" (change)="onPageChange({ first: 0, rows: +($any($event.target).value) })">
-        <option *ngFor="let size of pageSizeOptions" [value]="size">{{ size }}</option>
-      </select>
-      <div class="page-nav">
-        <button class="page-btn" [disabled]="currentPage === 1" (click)="onPageChange({ first: 0, rows: rows })">
-          <i class="pi pi-angle-double-left"></i>
-        </button>
-        <button class="page-btn" [disabled]="currentPage === 1" (click)="onPageChange({ first: (currentPage - 2) * rows, rows: rows })">
-          <i class="pi pi-angle-left"></i>
-        </button>
-        <span class="page-indicator">{{ currentPage }} / {{ Math.ceil(totalRecords / rows) }}</span>
-        <button class="page-btn" [disabled]="currentPage * rows >= totalRecords" (click)="onPageChange({ first: currentPage * rows, rows: rows })">
-          <i class="pi pi-angle-right"></i>
-        </button>
-        <button class="page-btn" [disabled]="currentPage * rows >= totalRecords" (click)="onPageChange({ first: (Math.ceil(totalRecords / rows) - 1) * rows, rows: rows })">
-          <i class="pi pi-angle-double-right"></i>
-        </button>
-      </div>
-    </div>
-  </div>
 </section>
+
+<!-- ==================== PAGINATION (desktop + mobile) ==================== -->
+<app-data-pagination
+  [first]="(currentPage - 1) * rows"
+  [pageSize]="rows"
+  [totalRecords]="totalRecords"
+  itemLabel="returns"
+  (pageChange)="goToPage($event)"
+  (pageSizeChange)="onPageSizeChange($event)">
+</app-data-pagination>
 
 <!-- ==================== MOBILE CARDS ==================== -->
 <section class="cards-section mobile-only">
@@ -144,9 +124,6 @@
       </div>
       <div class="card-body">
         <div class="card-customer">
-          <div class="customer-avatar small">
-            {{ (pr.supplierName || 'S')[0].toUpperCase() }}
-          </div>
           <div class="customer-info">
             <span class="customer-name">{{ pr.supplierName || '-' }}</span>
             <span *ngIf="pr.supplierCode" class="customer-phone">{{ pr.supplierCode }}</span>
@@ -165,18 +142,6 @@
           <i class="pi pi-ellipsis-v"></i>
         </button>
       </div>
-    </div>
-  </div>
-
-  <div class="mobile-pagination" *ngIf="totalRecords > 0">
-    <span class="pagination-info-mobile">{{ currentPage }} / {{ Math.ceil(totalRecords / rows) }}</span>
-    <div class="pagination-nav-mobile">
-      <button class="page-btn" [disabled]="currentPage === 1" (click)="onPageChange({ first: (currentPage - 2) * rows, rows: rows })">
-        <i class="pi pi-angle-left"></i>
-      </button>
-      <button class="page-btn" [disabled]="currentPage * rows >= totalRecords" (click)="onPageChange({ first: currentPage * rows, rows: rows })">
-        <i class="pi pi-angle-right"></i>
-      </button>
     </div>
   </div>
 </section>

@@ -78,18 +78,18 @@ public class CatalogController(
             var settings = await _settingsRepository.GetByCategoryAsync("SHOP", cancellationToken);
             var lookup = settings.ToDictionary(s => s.Key, s => s.Value);
 
-            bool GetBool(string key, bool fallback)    => lookup.TryGetValue(key, out var v) && bool.TryParse(v, out var b) ? b : fallback;
+            bool GetBool(string key, bool fallback) => lookup.TryGetValue(key, out var v) && bool.TryParse(v, out var b) ? b : fallback;
             decimal GetDecimal(string key, decimal fallback) => lookup.TryGetValue(key, out var v) && decimal.TryParse(v, out var d) ? d : fallback;
-            int GetInt(string key, int fallback)       => lookup.TryGetValue(key, out var v) && int.TryParse(v, out var i) ? i : fallback;
+            int GetInt(string key, int fallback) => lookup.TryGetValue(key, out var v) && int.TryParse(v, out var i) ? i : fallback;
             string GetStr(string key, string fallback) => lookup.TryGetValue(key, out var v) && !string.IsNullOrWhiteSpace(v) ? v : fallback;
 
             return Ok(new ShopPoliciesResponse
             {
-                FreeShippingEnabled   = GetBool   ("SHOP_FREE_SHIPPING_ENABLED",   defaults.FreeShippingEnabled),
-                FreeShippingThreshold = GetDecimal ("SHOP_FREE_SHIPPING_THRESHOLD", defaults.FreeShippingThreshold),
-                FreeShippingCurrency  = GetStr     ("SHOP_FREE_SHIPPING_CURRENCY",  defaults.FreeShippingCurrency),
-                ReturnPolicyDays      = GetInt     ("SHOP_RETURN_POLICY_DAYS",      defaults.ReturnPolicyDays),
-                ReturnPolicyText      = GetStr     ("SHOP_RETURN_POLICY_TEXT",      defaults.ReturnPolicyText),
+                FreeShippingEnabled = GetBool("SHOP_FREE_SHIPPING_ENABLED", defaults.FreeShippingEnabled),
+                FreeShippingThreshold = GetDecimal("SHOP_FREE_SHIPPING_THRESHOLD", defaults.FreeShippingThreshold),
+                FreeShippingCurrency = GetStr("SHOP_FREE_SHIPPING_CURRENCY", defaults.FreeShippingCurrency),
+                ReturnPolicyDays = GetInt("SHOP_RETURN_POLICY_DAYS", defaults.ReturnPolicyDays),
+                ReturnPolicyText = GetStr("SHOP_RETURN_POLICY_TEXT", defaults.ReturnPolicyText),
             });
         }
         catch (Exception ex)
@@ -132,10 +132,10 @@ public class ShopPoliciesResponse
     // and the catch-block so inline code and class defaults can never diverge.
     public static ShopPoliciesResponse Defaults => new()
     {
-        FreeShippingEnabled   = true,
+        FreeShippingEnabled = true,
         FreeShippingThreshold = 5000,
-        FreeShippingCurrency  = "BDT",
-        ReturnPolicyDays      = 30,
-        ReturnPolicyText      = "30-day return policy",
+        FreeShippingCurrency = "BDT",
+        ReturnPolicyDays = 30,
+        ReturnPolicyText = "30-day return policy",
     };
 }

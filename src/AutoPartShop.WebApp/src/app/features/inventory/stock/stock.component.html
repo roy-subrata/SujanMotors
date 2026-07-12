@@ -1,70 +1,56 @@
 <p-toast></p-toast>
 
-<!-- Main Page Container -->
-<div class="page-wrapper">
-  <!-- ==================== PAGE HEADER (MATCHES SALES ORDERS) ==================== -->
-  <header class="page-header">
-    <div class="header-content">
-      <div class="header-left">
-        <h1 class="page-title">Stock Management</h1>
-        <p class="page-subtitle">Monitor inventory levels and manage stock across warehouses</p>
-      </div>
+<app-page-container>
 
-      <div class="header-actions">
-        <div class="stats-badge">
-          <i class="pi pi-box"></i>
-          <div class="stats-info">
-            <span class="stats-value">{{ allTotalRecords }}</span>
-            <span class="stats-label">items</span>
-          </div>
-        </div>
+  <!-- ==================== HEADER ==================== -->
+  <app-page-header
+    title="Stock Management"
+    subtitle="Monitor inventory levels and manage stock across warehouses"
+    [count]="allTotalRecords" countLabel="items">
+    <ng-container actions>
+      <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="onRefresh()">
+        <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
+      </button>
+      <button class="btn-primary" (click)="onNewStockEntry()">
+        <i class="pi pi-plus"></i>
+        <span>New Stock Entry</span>
+      </button>
+    </ng-container>
+  </app-page-header>
 
-        <div class="action-buttons">
-          <button pButton type="button" icon="pi pi-plus" label="New Stock Entry"
-            class="p-button-sm" (click)="onNewStockEntry()"></button>
-          <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="onRefresh()">
-            <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
-          </button>
-        </div>
-      </div>
-    </div>
-  </header>
+  <!-- ==================== TAB NAVIGATION ==================== -->
+  <div class="tab-navigation">
+    <button class="tab-button" [class.active]="activeTab === 0" (click)="setActiveTab(0)">
+      <i class="pi pi-box"></i>
+      <span>All Stock</span>
+      <span class="tab-badge">{{ allTotalRecords }}</span>
+    </button>
+    <button class="tab-button" [class.active]="activeTab === 1" (click)="setActiveTab(1)">
+      <i class="pi pi-exclamation-triangle"></i>
+      <span>Low Stock</span>
+      <span class="tab-badge" [class.tab-badge-danger]="lowTotalRecords > 0">{{ lowTotalRecords }}</span>
+    </button>
+    <button class="tab-button" [class.active]="activeTab === 2" (click)="setActiveTab(2)">
+      <i class="pi pi-history"></i>
+      <span>Movement History</span>
+    </button>
+    <button class="tab-button" [class.active]="activeTab === 3" (click)="setActiveTab(3)">
+      <i class="pi pi-building"></i>
+      <span>By Warehouse</span>
+    </button>
+    <button class="tab-button" [class.active]="activeTab === 4" (click)="setActiveTab(4)">
+      <i class="pi pi-dollar"></i>
+      <span>Price History</span>
+    </button>
+  </div>
 
-  <!-- ==================== CONTENT WRAPPER ==================== -->
-  <div class="content-wrapper">
-    <!-- Tab Navigation - MOVED TO TOP LEVEL -->
-    <div class="tab-navigation">
-      <button class="tab-button" [class.active]="activeTab === 0" (click)="setActiveTab(0)">
-        <i class="pi pi-box"></i>
-        <span>All Stock</span>
-        <span class="tab-badge">{{ allTotalRecords }}</span>
-      </button>
-      <button class="tab-button" [class.active]="activeTab === 1" (click)="setActiveTab(1)">
-        <i class="pi pi-exclamation-triangle"></i>
-        <span>Low Stock</span>
-        <span class="tab-badge" [class.tab-badge-danger]="lowTotalRecords > 0">{{ lowTotalRecords }}</span>
-      </button>
-      <button class="tab-button" [class.active]="activeTab === 2" (click)="setActiveTab(2)">
-        <i class="pi pi-history"></i>
-        <span>Movement History</span>
-      </button>
-      <button class="tab-button" [class.active]="activeTab === 3" (click)="setActiveTab(3)">
-        <i class="pi pi-building"></i>
-        <span>By Warehouse</span>
-      </button>
-      <button class="tab-button" [class.active]="activeTab === 4" (click)="setActiveTab(4)">
-        <i class="pi pi-dollar"></i>
-        <span>Price History</span>
-      </button>
-    </div>
-
-    <!-- Tab Content -->
-    <div class="tab-content">
+  <!-- Tab Content -->
+  <div class="tab-content">
       <!-- ==================== ALL STOCK TAB ==================== -->
       <div class="tab-panel" *ngIf="activeTab === 0">
-        <!-- Tab-specific toolbar -->
-        <div class="tab-toolbar">
-          <div class="toolbar-left">
+        <!-- Filters -->
+        <app-filter-bar>
+          <div search class="filter-group search-group">
             <div class="search-input-wrapper">
               <i class="pi pi-search"></i>
               <input type="text" class="search-input" placeholder="Search parts, SKU..." [(ngModel)]="allStockFilters.search"
@@ -74,45 +60,42 @@
                 <i class="pi pi-times"></i>
               </button>
             </div>
+          </div>
+          <div filters class="filter-group">
             <p-select [options]="warehouseOptions" [(ngModel)]="allStockFilters.warehouseId"
               placeholder="Warehouse" [showClear]="true"
-              (onChange)="onAllStockFilterChange()" class="filter-select"></p-select>
+              (onChange)="onAllStockFilterChange()" styleClass="filter-dropdown"></p-select>
+          </div>
+          <div filters class="filter-group">
             <p-select [options]="stockStatusOptions" [(ngModel)]="allStockFilters.status"
               placeholder="Status" [showClear]="true"
-              (onChange)="onAllStockFilterChange()" class="filter-select"></p-select>
+              (onChange)="onAllStockFilterChange()" styleClass="filter-dropdown"></p-select>
           </div>
-          <div class="toolbar-right">
-            <div class="result-count-wrapper">
-              <i class="pi pi-filter"></i>
-              <span class="result-count">{{ allTotalRecords }}</span>
-              <span class="result-label">items</span>
-            </div>
-          </div>
-        </div>
+        </app-filter-bar>
 
         <!-- All Stock Table -->
         <section class="table-section desktop-only">
-        <p-table [value]="allStockLevels" [rows]="allPageSize" [paginator]="true" [lazy]="true"
-          [rowsPerPageOptions]="pageSizeOptions" [loading]="loading" [showCurrentPageReport]="true"
+        <div class="table-container">
+        <p-table [value]="allStockLevels" [rows]="allPageSize" [paginator]="false" [lazy]="true"
+          [loading]="loading"
           [totalRecords]="allTotalRecords" [first]="allFirst" (onLazyLoad)="onAllLazyLoad($event)"
-          currentPageReportTemplate="Showing {first} to {last} of {totalRecords}" styleClass="stock-table"
+          styleClass="app-table"
           responsiveLayout="scroll">
 
           <ng-template pTemplate="header">
             <tr>
-              <th pSortableColumn="partId">
-                <span class="th-content">Part <p-sortIcon field="partId"></p-sortIcon></span>
+              <th>
+                <span class="th-content">Part</span>
               </th>
-              <th pSortableColumn="warehouseId">Warehouse</th>
-              <th pSortableColumn="quantity" class="text-right">
-                <span class="th-content th-right">On Hand <p-sortIcon field="quantity"></p-sortIcon></span>
+              <th>Warehouse</th>
+              <th class="text-right">
+                <span class="th-content th-right">On Hand</span>
               </th>
               <th class="text-right">Reserved</th>
-              <th pSortableColumn="availableQuantity" class="text-right">
-                <span class="th-content th-right">Available <p-sortIcon field="availableQuantity"></p-sortIcon></span>
+              <th class="text-right">
+                <span class="th-content th-right">Available</span>
               </th>
-              <th class="text-right">Damaged</th>
-              <th class="text-right">Wrong / Quarantine</th>
+              <th class="text-center">Issues</th>
               <th>Status</th>
               <th class="text-center">Actions</th>
             </tr>
@@ -121,16 +104,12 @@
           <ng-template pTemplate="body" let-stock>
             <tr [class.low-stock-row]="isLowStock(stock)">
               <td>
-                <div class="part-cell">
-                  <div class="part-avatar" [class.warning]="isLowStock(stock)">
-                    <i class="pi pi-cog"></i>
-                  </div>
-                  <div class="part-info">
-                    <span class="part-name">
-                      {{ stock.displayName || stock.partName || getPartName(stock.partId) }}
-                    </span>
-                    <span class="part-sku">{{ stock.variantSku || stock.partSku || getPartSku(stock.partId) }}</span>
-                  </div>
+                <div class="part-info">
+                  <span class="part-name">
+                    {{ stock.displayName || stock.partName || getPartName(stock.partId) }}
+                  </span>
+                  <small *ngIf="stock.partLocalName" class="part-row-local d-block">{{ stock.partLocalName }}</small>
+                  <span class="part-sku">{{ stock.variantSku || stock.partSku || getPartSku(stock.partId) }}</span>
                 </div>
               </td>
               <td>
@@ -170,17 +149,22 @@
                   </span>
                 </div>
               </td>
-              <td class="text-right">
-                <span class="qty-value" [class.text-red-600]="stock.damagedQuantity > 0"
-                  [class.text-gray-400]="!stock.damagedQuantity">{{ stock.damagedQuantity || 0 | number }}</span>
-              </td>
-              <td class="text-right">
-                <span class="qty-value" [class.text-orange-600]="stock.quarantineQuantity > 0"
-                  [class.text-gray-400]="!stock.quarantineQuantity">{{ stock.quarantineQuantity || 0 | number }}</span>
+              <td class="text-center">
+                <div class="issues-cell" *ngIf="stock.damagedQuantity > 0 || stock.quarantineQuantity > 0; else noIssues">
+                  <span *ngIf="stock.damagedQuantity > 0" class="issue-badge issue-danger"
+                    pTooltip="{{ stock.damagedQuantity | number }} damaged" tooltipPosition="top">
+                    <i class="pi pi-exclamation-circle"></i>{{ stock.damagedQuantity | number }}
+                  </span>
+                  <span *ngIf="stock.quarantineQuantity > 0" class="issue-badge issue-warning"
+                    pTooltip="{{ stock.quarantineQuantity | number }} in quarantine" tooltipPosition="top">
+                    <i class="pi pi-ban"></i>{{ stock.quarantineQuantity | number }}
+                  </span>
+                </div>
+                <ng-template #noIssues><span class="text-muted">-</span></ng-template>
               </td>
               <td>
                 <div class="status-cell">
-                  <span class="status-badge" [ngClass]="getStatusClass(stock)">
+                  <span class="status-pill" [attr.data-status]="getStatusClass(stock)">
                     <i [ngClass]="getStatusIcon(stock)"></i>
                     {{ getStockStatus(stock) }}
                   </span>
@@ -200,7 +184,7 @@
 
           <ng-template pTemplate="emptymessage">
             <tr>
-              <td colspan="9">
+              <td colspan="8">
                 <div class="empty-state">
                   <i class="pi pi-inbox"></i>
                   <h3>No stock items found</h3>
@@ -210,7 +194,18 @@
             </tr>
           </ng-template>
         </p-table>
+        </div>
         </section>
+
+        <app-data-pagination
+          [first]="allFirst"
+          [pageSize]="allPageSize"
+          [pageSizeOptions]="pageSizeOptions"
+          [totalRecords]="allTotalRecords"
+          itemLabel="items"
+          (pageChange)="goToAllPage($event)"
+          (pageSizeChange)="onAllPageSizeChange($event)">
+        </app-data-pagination>
 
         <!-- Mobile Cards -->
         <section class="cards-section mobile-only">
@@ -226,13 +221,11 @@
             <div *ngFor="let stock of allStockLevels" class="stock-card" [class.card-warning]="isLowStock(stock)">
               <div class="card-header">
                 <div class="card-part">
-                  <div class="part-avatar" [class.warning]="isLowStock(stock)">
-                    <i class="pi pi-cog"></i>
-                  </div>
                   <div>
                     <div class="card-title">
                       {{ stock.displayName || stock.partName || getPartName(stock.partId) }}
                     </div>
+                    <small *ngIf="stock.partLocalName" class="part-row-local d-block">{{ stock.partLocalName }}</small>
                     <div class="card-subtitle">{{ stock.variantSku || stock.partSku || getPartSku(stock.partId) }}</div>
                   </div>
                 </div>
@@ -280,20 +273,6 @@
               </div>
             </div>
           </div>
-
-          <div *ngIf="!loading && allStockLevels.length > 0" class="mobile-pagination">
-            <div class="pagination-info-mobile">
-              {{ allFirst + 1 }}-{{ allFirst + allStockLevels.length }} of {{ allTotalRecords }}
-            </div>
-            <div class="pagination-nav-mobile">
-              <button class="page-btn" [disabled]="allFirst === 0" (click)="goAllPrevPage()">
-                <i class="pi pi-chevron-left"></i>
-              </button>
-              <button class="page-btn" [disabled]="allFirst + allPageSize >= allTotalRecords" (click)="goAllNextPage()">
-                <i class="pi pi-chevron-right"></i>
-              </button>
-            </div>
-          </div>
         </section>
       </div>
 
@@ -310,9 +289,9 @@
             class="p-button-warning p-button-sm"></button>
         </div>
 
-        <!-- Tab-specific toolbar -->
-        <div class="tab-toolbar">
-          <div class="toolbar-left">
+        <!-- Filters -->
+        <app-filter-bar>
+          <div search class="filter-group search-group">
             <div class="search-input-wrapper">
               <i class="pi pi-search"></i>
               <input type="text" class="search-input" placeholder="Search parts, SKU..." [(ngModel)]="lowStockFilters.search"
@@ -322,24 +301,20 @@
                 <i class="pi pi-times"></i>
               </button>
             </div>
+          </div>
+          <div filters class="filter-group">
             <p-select [options]="warehouseOptions" [(ngModel)]="lowStockFilters.warehouseId"
               placeholder="Warehouse" [showClear]="true"
-              (onChange)="onLowStockFilterChange()" class="filter-select"></p-select>
+              (onChange)="onLowStockFilterChange()" styleClass="filter-dropdown"></p-select>
           </div>
-          <div class="toolbar-right">
-            <div class="result-count-wrapper">
-              <i class="pi pi-exclamation-triangle"></i>
-              <span class="result-count">{{ lowTotalRecords }}</span>
-              <span class="result-label">low stock items</span>
-            </div>
-          </div>
-        </div>
+        </app-filter-bar>
 
         <!-- Low Stock Table -->
         <section class="table-section desktop-only">
-        <p-table [value]="lowStockLevels" [rows]="lowPageSize" [paginator]="true" [lazy]="true"
-          [rowsPerPageOptions]="pageSizeOptions" [loading]="loading" [totalRecords]="lowTotalRecords"
-          [first]="lowFirst" (onLazyLoad)="onLowLazyLoad($event)" styleClass="stock-table"
+        <div class="table-container">
+        <p-table [value]="lowStockLevels" [rows]="lowPageSize" [paginator]="false" [lazy]="true"
+          [loading]="loading" [totalRecords]="lowTotalRecords"
+          [first]="lowFirst" (onLazyLoad)="onLowLazyLoad($event)" styleClass="app-table"
           responsiveLayout="scroll">
 
           <ng-template pTemplate="header">
@@ -357,16 +332,12 @@
           <ng-template pTemplate="body" let-stock>
             <tr>
               <td>
-                <div class="part-cell">
-                  <div class="part-avatar warning">
-                    <i class="pi pi-cog"></i>
-                  </div>
-                  <div class="part-info">
-                    <span class="part-name">
-                      {{ stock.displayName || stock.partName || getPartName(stock.partId) }}
-                    </span>
-                    <span class="part-sku">{{ stock.variantSku || stock.partSku || getPartSku(stock.partId) }}</span>
-                  </div>
+                <div class="part-info">
+                  <span class="part-name">
+                    {{ stock.displayName || stock.partName || getPartName(stock.partId) }}
+                  </span>
+                  <small *ngIf="stock.partLocalName" class="part-row-local d-block">{{ stock.partLocalName }}</small>
+                  <span class="part-sku">{{ stock.variantSku || stock.partSku || getPartSku(stock.partId) }}</span>
                 </div>
               </td>
               <td>
@@ -391,7 +362,7 @@
                 <span class="shortage-value">-{{ getShortage(stock) | number }}</span>
               </td>
               <td>
-                <span class="urgency-badge" [ngClass]="getUrgencyClass(stock)">
+                <span class="status-pill" [attr.data-status]="getUrgencyClass(stock)">
                   {{ getUrgencyLevel(stock) }}
                 </span>
               </td>
@@ -420,7 +391,18 @@
             </tr>
           </ng-template>
         </p-table>
+        </div>
         </section>
+
+        <app-data-pagination
+          [first]="lowFirst"
+          [pageSize]="lowPageSize"
+          [pageSizeOptions]="pageSizeOptions"
+          [totalRecords]="lowTotalRecords"
+          itemLabel="items"
+          (pageChange)="goToLowPage($event)"
+          (pageSizeChange)="onLowPageSizeChange($event)">
+        </app-data-pagination>
 
         <!-- Mobile Cards -->
         <section class="cards-section mobile-only">
@@ -436,13 +418,11 @@
             <div *ngFor="let stock of lowStockLevels" class="stock-card card-warning">
               <div class="card-header">
                 <div class="card-part">
-                  <div class="part-avatar warning">
-                    <i class="pi pi-cog"></i>
-                  </div>
                   <div>
                     <div class="card-title">
                       {{ stock.displayName || stock.partName || getPartName(stock.partId) }}
                     </div>
+                    <small *ngIf="stock.partLocalName" class="part-row-local d-block">{{ stock.partLocalName }}</small>
                     <div class="card-subtitle">{{ stock.variantSku || stock.partSku || getPartSku(stock.partId) }}</div>
                   </div>
                 </div>
@@ -482,20 +462,6 @@
               </div>
             </div>
           </div>
-
-          <div *ngIf="!loading && lowStockLevels.length > 0" class="mobile-pagination">
-            <div class="pagination-info-mobile">
-              {{ lowFirst + 1 }}-{{ lowFirst + lowStockLevels.length }} of {{ lowTotalRecords }}
-            </div>
-            <div class="pagination-nav-mobile">
-              <button class="page-btn" [disabled]="lowFirst === 0" (click)="goLowPrevPage()">
-                <i class="pi pi-chevron-left"></i>
-              </button>
-              <button class="page-btn" [disabled]="lowFirst + lowPageSize >= lowTotalRecords" (click)="goLowNextPage()">
-                <i class="pi pi-chevron-right"></i>
-              </button>
-            </div>
-          </div>
         </section>
       </div>
 
@@ -513,6 +479,6 @@
       <div class="tab-panel" *ngIf="activeTab === 4">
         <app-stock-price-history></app-stock-price-history>
       </div>
-    </div>
   </div>
-</div>
+
+</app-page-container>
