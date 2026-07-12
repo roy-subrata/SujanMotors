@@ -20,7 +20,7 @@
 # REQUIRED GITHUB SECRETS (Settings → Secrets and variables → Actions):
 #   VPS_HOST     - IP address of your Hostinger VPS (e.g. 123.45.67.89)
 #   VPS_USER     - SSH username on the VPS (e.g. root)
-#   VPS_SSH_KEY  - Private SSH key for authentication (ed25519 recommended)
+#   VPS_PASSWORD - SSH password for the VPS user
 #
 # PORTS USED BY PRODUCTION STACK:
 #   4200 - Web (Angular + nginx)  → public-facing, the main entry point
@@ -62,7 +62,7 @@ jobs:
           # --- VPS connection details (from GitHub Secrets) ---
           host: ${{ secrets.VPS_HOST }}        # VPS IP address
           username: ${{ secrets.VPS_USER }}    # SSH username
-          key: ${{ secrets.VPS_SSH_KEY }}      # Private SSH key (never commit this!)
+          password: ${{ secrets.VPS_PASSWORD }} # SSH password (stored in GitHub Secrets)
           port: 22                              # Default SSH port
           script_stop: true                     # Stop execution if any command fails
           script: |
