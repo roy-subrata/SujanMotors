@@ -17,6 +17,8 @@ import { VehiclesComponent } from './vehicles/vehicles.component';
 import { VehicleFormComponent } from './vehicles/vehicle-form.component';
 import { VehicleCompatibilityComponent } from './vehicles/vehicle-compatibility.component';
 import { StockComponent } from './stock/stock.component';
+import { StockTakesComponent } from './stock-takes/stock-takes.component';
+import { StockTakeDetailComponent } from './stock-takes/stock-take-detail.component';
 import { AttributeGroupManagerComponent } from './parts/attribute-group-manager/attribute-group-manager.component';
 
 export const inventoryRoutes: Routes = [
@@ -46,6 +48,8 @@ export const inventoryRoutes: Routes = [
   { path: 'vehicles/view', component: VehicleFormComponent },
   { path: 'vehicles/compatibility', component: VehicleCompatibilityComponent },
   { path: 'stock', component: StockComponent },
+  { path: 'stock-takes', component: StockTakesComponent },
+  { path: 'stock-takes/:id', component: StockTakeDetailComponent },
   { path: 'attribute-groups', component: AttributeGroupManagerComponent },
   { path: 'discounts', component: DiscountsComponent }
 ];

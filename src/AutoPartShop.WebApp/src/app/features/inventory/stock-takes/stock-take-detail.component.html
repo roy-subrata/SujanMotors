@@ -1,0 +1,206 @@
+<p-toast position="top-right"></p-toast>
+<p-confirmDialog></p-confirmDialog>
+
+<app-page-container>
+
+  <!-- ==================== HEADER ==================== -->
+  <app-page-header
+    [title]="stockTake ? stockTake.stockTakeNumber : 'Stock Take'"
+    [subtitle]="stockTake ? stockTake.warehouseName + (stockTake.categoryName ? ' · ' + stockTake.categoryName : ' · Full warehouse') : ''">
+    <ng-container actions>
+      <a routerLink="/inventory/stock-takes" class="btn-icon" pTooltip="Back to list" tooltipPosition="bottom">
+        <i class="pi pi-arrow-left"></i>
+      </a>
+      <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="reload()">
+        <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
+      </button>
+
+      <ng-container *ngIf="stockTake">
+        <!-- COUNTING actions -->
+        <button *ngIf="isCounting" class="btn-secondary" [disabled]="saving || dirtyCount === 0" (click)="saveCounts()">
+          <i class="pi" [ngClass]="saving ? 'pi-spin pi-spinner' : 'pi-save'"></i>
+          <span>Save Counts{{ dirtyCount > 0 ? ' (' + dirtyCount + ')' : '' }}</span>
+        </button>
+        <button *ngIf="isCounting" class="btn-primary" [disabled]="saving" (click)="submitForReview()">
+          <i class="pi pi-check-square"></i>
+          <span>Submit for Review</span>
+        </button>
+
+        <!-- REVIEW actions -->
+        <button *ngIf="isReview" class="btn-secondary" (click)="reopenCounting()">
+          <i class="pi pi-undo"></i>
+          <span>Reopen Counting</span>
+        </button>
+        <button *ngIf="isReview" class="btn-primary" [disabled]="approving" (click)="approve()">
+          <i class="pi" [ngClass]="approving ? 'pi-spin pi-spinner' : 'pi-check-circle'"></i>
+          <span>{{ approving ? 'Applying...' : 'Approve & Apply' }}</span>
+        </button>
+
+        <!-- Cancel (any open state) -->
+        <button *ngIf="isOpen" class="btn-icon btn-danger-icon" pTooltip="Cancel stock take" tooltipPosition="bottom" (click)="cancelStockTake()">
+          <i class="pi pi-times-circle"></i>
+        </button>
+      </ng-container>
+    </ng-container>
+  </app-page-header>
+
+  <ng-container *ngIf="stockTake">
+
+    <!-- ==================== SUMMARY STRIP ==================== -->
+    <section class="summary-strip">
+      <div class="summary-card">
+        <span class="summary-label">Status</span>
+        <span class="status-pill" [attr.data-status]="pillStatus(stockTake.status)">{{ stockTake.status | titlecase }}</span>
+      </div>
+      <div class="summary-card">
+        <span class="summary-label">Snapshot</span>
+        <span class="summary-value">{{ stockTake.snapshotDate | date:'dd MMM yyyy HH:mm' }}</span>
+      </div>
+      <div class="summary-card">
+        <span class="summary-label">Counted</span>
+        <span class="summary-value">{{ countedTotal }} / {{ stockTake.totalLines }}</span>
+      </div>
+      <div class="summary-card">
+        <span class="summary-label">Variance Lines</span>
+        <span class="summary-value">{{ varianceTotal }}</span>
+      </div>
+      <div class="summary-card">
+        <span class="summary-label">Variance Value</span>
+        <span class="summary-value" [class.value-negative]="varianceValueTotal < 0" [class.value-positive]="varianceValueTotal > 0">
+          {{ formatCurrency(varianceValueTotal) }}
+        </span>
+      </div>
+      <div class="summary-card" *ngIf="stockTake.status === 'COMPLETED'">
+        <span class="summary-label">Completed</span>
+        <span class="summary-value">{{ stockTake.completedDate | date:'dd MMM yyyy HH:mm' }} · {{ stockTake.completedBy }}</span>
+      </div>
+    </section>
+
+    <!-- Approval conflicts banner -->
+    <section *ngIf="approvalConflicts.length > 0" class="conflict-banner">
+      <div class="conflict-title">
+        <i class="pi pi-exclamation-triangle"></i>
+        Stock moved since counting — these lines no longer fit and nothing was applied:
+      </div>
+      <ul>
+        <li *ngFor="let c of approvalConflicts">{{ c }}</li>
+      </ul>
+      <p>Reopen counting, recount the listed items, then approve again.</p>
+    </section>
+
+    <!-- ==================== LINE FILTERS ==================== -->
+    <section class="lines-toolbar">
+      <div class="search-input-wrapper">
+        <i class="pi pi-search"></i>
+        <input
+          type="text"
+          [(ngModel)]="searchTerm"
+          placeholder="Filter by part, code or location..."
+          class="search-input" />
+        <button *ngIf="searchTerm" class="search-clear" (click)="searchTerm = ''">
+          <i class="pi pi-times"></i>
+        </button>
+      </div>
+      <p-selectButton
+        [options]="lineFilterOptions"
+        [(ngModel)]="lineFilter"
+        optionLabel="label"
+        optionValue="value">
+      </p-selectButton>
+    </section>
+
+    <!-- ==================== LINES TABLE ==================== -->
+    <section class="table-section">
+      <div class="table-container">
+        <p-table
+          [value]="filteredLines"
+          [paginator]="false"
+          [scrollable]="true"
+          scrollHeight="flex"
+          [loading]="loading"
+          [rowHover]="true"
+          styleClass="app-table"
+          dataKey="id"
+          [virtualScroll]="filteredLines.length > 100"
+          [virtualScrollItemSize]="52">
+
+          <ng-template #header>
+            <tr>
+              <th>Part</th>
+              <th>Code</th>
+              <th>Location</th>
+              <th class="col-num">Expected</th>
+              <th class="col-count">Counted</th>
+              <th class="col-num">Variance</th>
+              <th class="col-num">Value</th>
+              <th *ngIf="!isCounting">Counted By</th>
+            </tr>
+          </ng-template>
+
+          <ng-template #body let-line>
+            <tr [class.row-variance]="(effectiveVariance(line) ?? 0) !== 0"
+                [class.row-uncounted]="effectiveCount(line) === null">
+              <td>
+                <div class="customer-info">
+                  <span class="customer-name">{{ line.partName }}<ng-container *ngIf="line.variantName"> — {{ line.variantName }}</ng-container></span>
+                </div>
+              </td>
+              <td><span class="date-text">{{ line.partCode || '—' }}</span></td>
+              <td><span class="date-text">{{ line.location || '—' }}</span></td>
+              <td class="col-num">{{ line.expectedQuantity }}</td>
+
+              <!-- Counted: editable while COUNTING, read-only otherwise -->
+              <td class="col-count">
+                <input
+                  *ngIf="isCounting"
+                  type="number"
+                  min="0"
+                  step="1"
+                  class="count-input"
+                  [class.count-dirty]="draftCounts.has(line.id) && draftCounts.get(line.id) !== line.countedQuantity"
+                  [ngModel]="effectiveCount(line)"
+                  (ngModelChange)="onCountInput(line, $event)"
+                  placeholder="—" />
+                <span *ngIf="!isCounting">{{ line.countedQuantity ?? '—' }}</span>
+              </td>
+
+              <td class="col-num">
+                <span *ngIf="effectiveVariance(line) !== null"
+                      [class.value-negative]="effectiveVariance(line)! < 0"
+                      [class.value-positive]="effectiveVariance(line)! > 0">
+                  {{ effectiveVariance(line)! > 0 ? '+' : '' }}{{ effectiveVariance(line) }}
+                </span>
+                <span *ngIf="effectiveVariance(line) === null" class="text-muted">—</span>
+              </td>
+              <td class="col-num">
+                <span *ngIf="effectiveVariance(line) !== null"
+                      [class.value-negative]="effectiveVariance(line)! < 0"
+                      [class.value-positive]="effectiveVariance(line)! > 0">
+                  {{ formatCurrency(effectiveVariance(line)! * line.unitCost) }}
+                </span>
+                <span *ngIf="effectiveVariance(line) === null" class="text-muted">—</span>
+              </td>
+              <td *ngIf="!isCounting">
+                <span class="date-text">{{ line.countedBy || '—' }}</span>
+              </td>
+            </tr>
+          </ng-template>
+
+          <ng-template #emptymessage>
+            <tr>
+              <td colspan="8">
+                <div class="empty-state">
+                  <div class="empty-icon"><i class="pi pi-filter"></i></div>
+                  <h3>No Lines Match</h3>
+                  <p>Try a different search or filter</p>
+                </div>
+              </td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </div>
+    </section>
+
+  </ng-container>
+
+</app-page-container>

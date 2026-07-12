@@ -78,6 +78,8 @@ public class AutoPartDbContext : IdentityDbContext<ApplicationUser, ApplicationR
     public DbSet<SupplierPayment> SupplierPayments { get; set; }
     public DbSet<StockLot> StockLots { get; set; }
     public DbSet<StockLotMovement> StockLotMovements { get; set; }
+    public DbSet<StockTake> StockTakes { get; set; }
+    public DbSet<StockTakeLine> StockTakeLines { get; set; }
     public DbSet<Technician> Technicians { get; set; }
     public DbSet<Employee> Employees { get; set; }
     public DbSet<AttendanceRecord> AttendanceRecords { get; set; }
