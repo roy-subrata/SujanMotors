@@ -27,7 +27,7 @@
 # PORTS:
 #   4201 - Web (Angular + nginx)  → http://<VPS_IP>:4201
 #   5293 - API (.NET)             → http://<VPS_IP>:5293 (debug access)
-#   1433 - SQL Server             → internal only (not exposed to host)
+#   1434 - SQL Server             → http://<VPS_IP>:1434 (external access, different from prod 1433)
 #
 # =============================================================================
 
@@ -45,6 +45,8 @@ services:
       - ACCEPT_EULA=Y                         # Required: accept SQL Server license agreement
       - SA_PASSWORD=${DB_PASSWORD:-Test!Passw0rd2024}  # SA password from .env or default
       - MSSQL_PID=Developer                   # Free Developer license (full feature set)
+    ports:
+      - "1434:1433"                           # Expose DB for external access (different port than prod)
     volumes:
       - autopart_mssql_test_data:/var/opt/mssql  # Persistent data (survives container restarts)
     restart: unless-stopped                   # Auto-restart on crash, but stop when manually stopped
