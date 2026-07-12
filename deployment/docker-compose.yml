@@ -38,6 +38,8 @@ services:
       - ACCEPT_EULA=Y                         # Required: accept SQL Server license agreement
       - SA_PASSWORD=${DB_PASSWORD:-YourStrong!Passw0rd}  # SA password from .env file
       - MSSQL_PID=Developer                   # Free Developer license (full feature set)
+    ports:
+      - "1433:1433"                           # Expose DB for external connections (VS Code, SSMS)
     volumes:
       - autopart_mssql_data:/var/opt/mssql    # Persistent data (survives container restarts)
     restart: always                           # Always restart in prod (even after server reboot)
