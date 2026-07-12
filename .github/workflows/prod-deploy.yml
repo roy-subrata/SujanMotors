@@ -15,7 +15,7 @@
 #
 # VPS DIRECTORY STRUCTURE:
 #   /opt/sujanmotors-test/   ← test stack (test-deploy.yml)
-#   /opt/sujanmotors/        ← production stack (THIS WORKFLOW deploys here)
+#   /opt/sujanmotors-prod/   ← production stack (THIS WORKFLOW deploys here)
 #
 # REQUIRED GITHUB SECRETS (Settings → Secrets and variables → Actions):
 #   VPS_HOST     - IP address of your Hostinger VPS (e.g. 123.45.67.89)
@@ -72,7 +72,7 @@ jobs:
 
             # Navigate to the production deployment directory
             # This directory is a separate git clone checked out to the "main" branch
-            cd /opt/sujanmotors || { echo "Directory not found! Run initial setup first."; exit 1; }
+            cd /opt/sujanmotors-prod || { echo "Directory not found! Run initial setup first."; exit 1; }
 
             echo "=== Pulling latest code from main branch ==="
             git fetch origin main

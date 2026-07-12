@@ -15,7 +15,7 @@
 #
 # VPS DIRECTORY STRUCTURE:
 #   /opt/sujanmotors-test/   ← this workflow deploys here
-#   /opt/sujanmotors/        ← production (prod-deploy.yml)
+#   /opt/sujanmotors-prod/   ← production (prod-deploy.yml)
 #
 # REQUIRED GITHUB SECRETS (Settings → Secrets and variables → Actions):
 #   VPS_HOST     - IP address of your Hostinger VPS (e.g. 123.45.67.89)
