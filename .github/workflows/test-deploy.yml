@@ -1,0 +1,94 @@
+# =============================================================================
+# Deploy to TEST / STAGING environment on Hostinger VPS
+# =============================================================================
+#
+# WHAT THIS WORKFLOW DOES:
+#   1. Triggers when code is pushed/merged to the "test" branch
+#   2. SSHs into the Hostinger VPS
+#   3. Pulls the latest code from the "test" branch
+#   4. Rebuilds and restarts only the TEST stack (api, web, db) using Docker Compose
+#
+# BRANCH WORKFLOW:
+#   feature/* ──merge──> dev (no deploy, developer tests locally)
+#                       dev ──merge──> test (THIS WORKFLOW triggers)
+#                       test ──merge──> main (prod-deploy.yml triggers)
+#
+# VPS DIRECTORY STRUCTURE:
+#   /opt/sujanmotors-test/   ← this workflow deploys here
+#   /opt/sujanmotors/        ← production (prod-deploy.yml)
+#
+# REQUIRED GITHUB SECRETS (Settings → Secrets and variables → Actions):
+#   VPS_HOST     - IP address of your Hostinger VPS (e.g. 123.45.67.89)
+#   VPS_USER     - SSH username on the VPS (e.g. root)
+#   VPS_SSH_KEY  - Private SSH key for authentication (ed25519 recommended)
+#
+# PORTS USED BY TEST STACK:
+#   4201 - Web (Angular + nginx)  → accessible at http://<VPS_IP>:4201
+#   5293 - API (.NET)             → internal, accessible for debugging only
+#   1433 - SQL Server             → internal, isolated from production
+#
+# =============================================================================
+
+# Trigger: only when code is pushed to the "test" branch
+on:
+  push:
+    branches: [test]
+    # Only trigger when these paths change (avoid unnecessary deploys)
+    paths:
+      - 'src/AutoPartShop.Api/**'           # .NET API source code
+      - 'src/AutoPartShop.Application/**'   # Business logic layer
+      - 'src/AutoPartShop.Domain/**'        # Domain entities
+      - 'src/AutoPartShop.Infrastructure/**' # Data access, external services
+      - 'src/AutoPartShop.WebApp/**'        # Angular frontend
+      - 'deployment/**'                     # Docker compose & env files
+      - '.github/workflows/test-deploy.yml' # This workflow file itself
+  # Allow manual trigger from GitHub Actions UI (useful for re-deploys)
+  workflow_dispatch:
+
+# Job: SSH into VPS and redeploy the test stack
+jobs:
+  deploy-test:
+    runs-on: ubuntu-latest    # GitHub-hosted runner (we just need SSH access)
+    steps:
+      # Step 1: Connect to VPS and run deployment commands
+      # appleboy/ssh-action is a well-maintained GitHub Action for SSH remote execution
+      - name: Deploy test stack to VPS
+        uses: appleboy/ssh-action@v1
+        with:
+          # --- VPS connection details (from GitHub Secrets) ---
+          host: ${{ secrets.VPS_HOST }}        # VPS IP address
+          username: ${{ secrets.VPS_USER }}    # SSH username
+          key: ${{ secrets.VPS_SSH_KEY }}      # Private SSH key (never commit this!)
+          port: 22                              # Default SSH port
+          script_stop: true                     # Stop execution if any command fails
+          script: |
+            # ====================================================================
+            # DEPLOYMENT SCRIPT - runs on the VPS
+            # ====================================================================
+
+            # Navigate to the test deployment directory
+            # This directory is a separate git clone checked out to the "test" branch
+            cd /opt/sujanmotors-test || { echo "Directory not found! Run initial setup first."; exit 1; }
+
+            echo "=== Pulling latest code from test branch ==="
+            git fetch origin test
+            git reset --hard origin/test    # Force local state to match remote (safe because we don't edit files on VPS)
+
+            echo "=== Stopping old test containers ==="
+            # --env-file: explicitly tell Docker Compose where to find secrets (.env)
+            # --remove-orphans: also stops containers that are no longer in the compose file
+            docker compose --env-file deployment/.env -f deployment/docker-compose.test.yml down --remove-orphans
+
+            echo "=== Building and starting test stack ==="
+            # --build: rebuild images (picks up code changes)
+            # -d: run in detached mode (background)
+            # --force-recreate: ensure containers are recreated with new images
+            docker compose --env-file deployment/.env -f deployment/docker-compose.test.yml up --build -d --force-recreate
+
+            echo "=== Cleaning up unused Docker images ==="
+            # Remove dangling images left over from rebuilds to free disk space
+            docker image prune -f
+
+            echo "=== Test deployment complete! ==="
+            echo "Web:  http://${{ secrets.VPS_HOST }}:4201"
+            echo "API:  http://${{ secrets.VPS_HOST }}:5293 (debug only)"
