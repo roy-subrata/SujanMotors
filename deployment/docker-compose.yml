@@ -86,7 +86,6 @@ services:
       - Smtp__FromName=${SMTP_FROM_NAME:-SujanMotors}
       # Seed settings — auto-create admin user on first run
       - Seed__AdminPassword=${SEED_ADMIN_PASSWORD:-Admin@1990}
-      - Seed__DemoUsers=${SEED_DEMO_USERS:-true}
     ports:
       - "5000:8080"                           # Expose API for direct access (testing/debugging)
     # No ports exposed to host — browser reaches API through nginx reverse proxy

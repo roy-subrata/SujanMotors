@@ -44,20 +44,20 @@
     </div>
 
     <div filters class="filter-group">
-      <label class="filter-label">Status</label>
+      <!-- <label class="filter-label">Status</label> -->
       <p-select [options]="statusOptions" [(ngModel)]="statusFilter" placeholder="All Statuses"
         [showClear]="true" (onChange)="onFilterChange()" appendTo="body" styleClass="filter-dropdown"></p-select>
     </div>
 
     <div filters class="filter-group">
-      <label class="filter-label">Payment Date</label>
+      <!-- <label class="filter-label">Payment Date</label> -->
       <p-datepicker [(ngModel)]="dateRange" selectionMode="range" [showIcon]="true"
-        placeholder="Date range" dateFormat="M dd, yy" [showButtonBar]="true"
+        placeholder="Payment Date range" dateFormat="M dd, yy" [showButtonBar]="true"
         (onSelect)="onDateRangeSelect()" (ngModelChange)="onDateRangeChange($event)" appendTo="body" styleClass="filter-datepicker"></p-datepicker>
     </div>
 
     <div filters class="filter-group">
-      <label class="filter-label">Reconciled</label>
+      <!-- <label class="filter-label">Reconciled</label> -->
       <p-select [options]="reconciledOptions" [(ngModel)]="reconciledFilter" placeholder="All"
         [showClear]="true" (onChange)="onFilterChange()" appendTo="body" styleClass="filter-dropdown"></p-select>
     </div>

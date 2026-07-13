@@ -75,20 +75,25 @@ jobs:
             git reset --hard origin/test    # Force local state to match remote (safe because we don't edit files on VPS)
 
             echo "=== Stopping old test containers ==="
-            # --env-file: explicitly tell Docker Compose where to find secrets (.env)
-            # --remove-orphans: also stops containers that are no longer in the compose file
-            docker compose -p sujanmotors-test --env-file deployment/.env -f deployment/docker-compose.test.yml down --remove-orphans
+            docker compose -p sujanmotors-test --env-file deployment/.env -f deployment/docker-compose.test.yml down --remove-orphans --timeout 30
+
+            echo "=== Waiting for containers to fully stop ==="
+            # Wait until the old containers are completely removed
+            for i in $(seq 1 10); do
+              if docker ps -a --format '{{.Names}}' | grep -q 'autopartshop.*\.test'; then
+                echo "Still waiting... ($i/10)"
+                sleep 2
+              else
+                echo "All old containers removed."
+                break
+              fi
+            done
 
             echo "=== Building and starting test stack ==="
-            # --build: rebuild images (picks up code changes)
-            # -d: run in detached mode (background)
-            # --force-recreate: ensure containers are recreated with new images
             docker compose -p sujanmotors-test --env-file deployment/.env -f deployment/docker-compose.test.yml up --build -d --force-recreate
 
             echo "=== Cleaning up unused Docker images ==="
-            # Remove dangling images left over from rebuilds to free disk space
             docker image prune -f
 
             echo "=== Test deployment complete! ==="
             echo "Web:  http://${{ secrets.VPS_HOST }}:4201"
-            echo "API:  http://${{ secrets.VPS_HOST }}:5293 (debug only)"

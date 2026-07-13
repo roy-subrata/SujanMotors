@@ -886,7 +886,8 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
       items: this.cartItems(),
       payments: [],
       subtotal: this.subtotal(),
-      discountAmount: this.discountAmount(),
+      // Cart-level discount only — line discounts are already netted into subtotal/items.
+      discountAmount: this.manualDiscountAmount(),
       vatAmount: this.vatAmount(),
       vatPercentage: this.vatPercentage(),
       grandTotal: this.grandTotal(),
@@ -1292,7 +1293,8 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
       items: this.cartItems(),
       payments: paymentsForRequest,
       subtotal: this.subtotal(),
-      discountAmount: this.discountAmount(),
+      // Cart-level discount only — line discounts are already netted into subtotal/items.
+      discountAmount: this.manualDiscountAmount(),
       vatAmount: this.vatAmount(),
       vatPercentage: this.vatPercentage(),
       grandTotal: this.grandTotal(),

@@ -153,19 +153,27 @@ sudo certbot certonly --standalone -d yourdomain.com
 # And uncomment the 443 block in nginx.conf
 ```
 
-## 5. Manual Deployment
+## 5. Deployment
+
+Use the provided scripts from the VPS:
 
 ```bash
 # Deploy production
 cd /opt/sujanmotors-prod
 git pull origin main
-docker compose -p sujanmotors-prod --env-file deployment/.env -f deployment/docker-compose.yml -f deployment/docker-compose.prod.yml up --build -d
+./deployment/deploy-prod.sh
 
 # Deploy test
 cd /opt/sujanmotors-test
 git pull origin test
-docker compose -p sujanmotors-test --env-file deployment/.env -f deployment/docker-compose.test.yml up --build -d
+./deployment/deploy-test.sh
+```
 
+The scripts handle: docker compose down → up --build -d → image cleanup.
+
+### Manual commands
+
+```bash
 # View logs
 docker compose -p sujanmotors-prod --env-file deployment/.env -f deployment/docker-compose.yml logs -f
 
