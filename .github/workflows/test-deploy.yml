@@ -60,7 +60,8 @@ jobs:
           username: ${{ secrets.VPS_USER }}    # SSH username
           password: ${{ secrets.VPS_PASSWORD }} # SSH password (stored in GitHub Secrets)
           port: 22                              # Default SSH port
-          script_stop: true                     # Stop execution if any command fails
+          timeout: 30s                          # SSH connection timeout
+          command_timeout: 10m                  # Max time for the entire script
           script: |
             # ====================================================================
             # DEPLOYMENT SCRIPT - runs on the VPS
