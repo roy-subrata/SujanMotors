@@ -79,15 +79,20 @@ jobs:
             git reset --hard origin/main     # Force local state to match remote (safe because we don't edit files on VPS)
 
             echo "=== Stopping old production containers ==="
-            # Stop both compose files (base + prod override)
-            # --env-file: explicitly tell Docker Compose where to find secrets (.env)
-            # --remove-orphans: also stops containers that are no longer in the compose file
-            docker compose --env-file deployment/.env -f deployment/docker-compose.yml -f deployment/docker-compose.prod.yml down --remove-orphans
+            docker compose --env-file deployment/.env -f deployment/docker-compose.yml -f deployment/docker-compose.prod.yml down --remove-orphans --timeout 30
+
+            echo "=== Waiting for containers to fully stop ==="
+            for i in $(seq 1 10); do
+              if docker ps -a --format '{{.Names}}' | grep -q 'autopartshop'; then
+                echo "Still waiting... ($i/10)"
+                sleep 2
+              else
+                echo "All old containers removed."
+                break
+              fi
+            done
 
             echo "=== Building and starting production stack ==="
-            # --build: rebuild images (picks up code changes)
-            # -d: run in detached mode (background)
-            # --force-recreate: ensure containers are recreated with new images
             docker compose --env-file deployment/.env -f deployment/docker-compose.yml -f deployment/docker-compose.prod.yml up --build -d --force-recreate
 
             echo "=== Cleaning up unused Docker images ==="
