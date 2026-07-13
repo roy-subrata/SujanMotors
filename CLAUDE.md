@@ -121,7 +121,7 @@ Uses LangGraph for multi-step agentic workflows, OpenAI as the LLM, Qdrant for c
 
 ## Important Notes
 
-- All documentation `.md` files belong in the `docs/` folder, not the project root.
+- All documentation `.md` files belong in the `docs/` folder, not the project root (this `CLAUDE.md` is the exception — Claude Code loads it from the root). Historical one-off reports live in `docs/archive/`; don't add new documents there.
 - The solution file `AutoPartShop.sln` at the root only references the backend projects; the Angular project is managed separately via `npm`.
 - `appsettings.Development.json` overrides the SQL Server connection string for local development.
 - The `src/AutoPartShop.AI/.env` file (gitignored) must be configured from `.env.example` before running the AI agent.

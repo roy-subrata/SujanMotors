@@ -33,3 +33,7 @@ appsettings.Development.json
 appsettings.Production.json
 # Claude Code worktrees (temporary agent sandboxes)
 .claude/worktrees/
+
+# Claude Code local (per-machine) settings
+.claude/settings.local.json
+**/.claude/settings.local.json
