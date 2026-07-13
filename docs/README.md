@@ -30,10 +30,17 @@ guidance lives in `CLAUDE.md` at the repository root.
 | [PERMISSION_BASED_VISIBILITY.md](PERMISSION_BASED_VISIBILITY.md) | Permission-based UI visibility |
 | [AUDIT_TRAIL_DOCUMENTATION.md](AUDIT_TRAIL_DOCUMENTATION.md) | Audit trail |
 
+## API notes
+
+| Document | Topic |
+|---|---|
+| [BRAND_API.md](BRAND_API.md) | Brand endpoints |
+| [BRAND_UI.MD](BRAND_UI.MD) | Brand UI |
+| [CASH_BOOK.md](CASH_BOOK.md) | Cash book |
+
 ## Other
 
-- `API/` — per-endpoint API notes
 - `barcode.png` — reference layout for the combo barcode label (used by `label-template.ts`)
-- `archive/` — historical one-off implementation reports and fix summaries, kept for
-  reference only. Content may describe code that no longer exists (including the old
-  Blazor frontend). Don't add new documents here and don't treat them as current.
+
+Historical one-off implementation reports and fix summaries were removed in the
+repo-structure cleanup; recover them from git history if ever needed.
