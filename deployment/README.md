@@ -79,11 +79,11 @@ cp deployment/.env.test.example deployment/.env
 nano deployment/.env    # Edit with real test secrets
 
 # Initial build and start
-cd /opt/sujanmotors
-docker compose --env-file deployment/.env -f deployment/docker-compose.yml -f deployment/docker-compose.prod.yml up --build -d
+cd /opt/sujanmotors-prod
+docker compose -p sujanmotors-prod --env-file deployment/.env -f deployment/docker-compose.yml -f deployment/docker-compose.prod.yml up --build -d
 
 cd /opt/sujanmotors-test
-docker compose --env-file deployment/.env -f deployment/docker-compose.test.yml up --build -d
+docker compose -p sujanmotors-test --env-file deployment/.env -f deployment/docker-compose.test.yml up --build -d
 ```
 
 ## 2. GitHub Secrets Configuration
@@ -153,27 +153,35 @@ sudo certbot certonly --standalone -d yourdomain.com
 # And uncomment the 443 block in nginx.conf
 ```
 
-## 5. Manual Deployment
+## 5. Deployment
+
+Use the provided scripts from the VPS:
 
 ```bash
 # Deploy production
-cd /opt/sujanmotors
+cd /opt/sujanmotors-prod
 git pull origin main
-docker compose --env-file deployment/.env -f deployment/docker-compose.yml -f deployment/docker-compose.prod.yml up --build -d
+./deployment/deploy-prod.sh
 
 # Deploy test
 cd /opt/sujanmotors-test
 git pull origin test
-docker compose --env-file deployment/.env -f deployment/docker-compose.test.yml up --build -d
+./deployment/deploy-test.sh
+```
 
+The scripts handle: docker compose down → up --build -d → image cleanup.
+
+### Manual commands
+
+```bash
 # View logs
-docker compose --env-file deployment/.env -f deployment/docker-compose.yml logs -f
+docker compose -p sujanmotors-prod --env-file deployment/.env -f deployment/docker-compose.yml logs -f
 
 # Restart services
-docker compose --env-file deployment/.env -f deployment/docker-compose.yml restart
+docker compose -p sujanmotors-prod --env-file deployment/.env -f deployment/docker-compose.yml restart
 
 # Stop services
-docker compose --env-file deployment/.env -f deployment/docker-compose.yml down
+docker compose -p sujanmotors-prod --env-file deployment/.env -f deployment/docker-compose.yml down
 ```
 
 ## 6. Database
@@ -197,15 +205,15 @@ docker cp autopartshop.db:/var/opt/mssql/backup.bak ./backup-$(date +%Y%m%d).bak
 ## 7. Monitoring & Logs
 
 ```bash
-# View all container logs
-docker compose --env-file deployment/.env -f deployment/docker-compose.yml logs -f
+# View all container logs (production)
+docker compose -p sujanmotors-prod --env-file deployment/.env -f deployment/docker-compose.yml logs -f
 
 # View specific service logs
-docker compose --env-file deployment/.env -f deployment/docker-compose.yml logs -f autopartshop.api
-docker compose --env-file deployment/.env -f deployment/docker-compose.yml logs -f autopartshop.web
+docker compose -p sujanmotors-prod --env-file deployment/.env -f deployment/docker-compose.yml logs -f autopartshop.api
+docker compose -p sujanmotors-prod --env-file deployment/.env -f deployment/docker-compose.yml logs -f autopartshop.web
 
 # Check container status
-docker compose --env-file deployment/.env -f deployment/docker-compose.yml ps
+docker compose -p sujanmotors-prod --env-file deployment/.env -f deployment/docker-compose.yml ps
 
 # Check container resource usage
 docker stats
@@ -217,7 +225,7 @@ docker stats
 
 ```bash
 # Check logs for errors
-docker compose --env-file deployment/.env -f deployment/docker-compose.yml logs autopartshop.api
+docker compose -p sujanmotors-prod --env-file deployment/.env -f deployment/docker-compose.yml logs autopartshop.api
 
 # Common issues:
 # - Wrong DB_PASSWORD in .env

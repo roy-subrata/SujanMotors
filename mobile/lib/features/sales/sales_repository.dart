@@ -47,7 +47,9 @@ class SalesRepository {
         'payments': [
           {
             'method': paymentMethod,
-            'amount': paidAmount,
+            // The API requires payment lines (including a DUE line for the unpaid
+            // balance) to account for the full invoice total.
+            'amount': paymentMethod == 'DUE' ? dueAmount : paidAmount,
             'reference': '',
             'notes': '',
           }
