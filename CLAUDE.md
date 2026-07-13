@@ -4,13 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**SujanMotors / AutoPartShop** — an auto parts shop management system with a .NET 10 REST API backend, Angular 20 frontend, and a Python AI sales agent.
+**SujanMotors / AutoPartShop** — an auto parts shop management system with a .NET 10 REST API backend, Angular 20 web frontend, and a Flutter mobile app.
 
 ## Development Commands
 
 ### Database (required first)
 ```bash
-# Start SQL Server 2022 on port 1433
+# Start SQL Server 2025 on port 1433
 docker compose -f deployment/docker-compose.yml up -d
 ```
 
@@ -25,7 +25,8 @@ dotnet build AutoPartShop.sln
 # Add a new EF migration
 dotnet ef migrations add <MigrationName> --project src/AutoPartShop.Infrastructure --startup-project src/AutoPartShop.Api
 
-# Run tests (no test projects currently exist)
+# Run backend tests
+dotnet test src/AutoPartShop.Api.Tests
 ```
 
 ### Frontend (Angular 20)
@@ -37,11 +38,12 @@ npm test           # Karma/Jasmine unit tests
 npm run format     # Prettier formatter
 ```
 
-### AI Agent (Python / Chainlit)
+### Mobile (Flutter)
 ```bash
-cd src/AutoPartShop.AI
-uv sync            # install deps
-chainlit run app/chainlit_app.py
+cd mobile
+flutter pub get    # install deps
+flutter run        # run on connected device/emulator
+flutter analyze    # static analysis
 ```
 
 ## Architecture
@@ -97,26 +99,22 @@ Each feature folder (e.g., `features/inventory/`) contains sub-features (brands,
 
 The app is also a PWA (`@angular/service-worker`, `ngsw-config.json`).
 
-### AI Agent (Python)
+### Mobile — Flutter (`mobile/`)
 
 ```
-src/AutoPartShop.AI/app/
-  agent.py          # LangGraph agent definition
-  chainlit_app.py   # Chainlit UI entry point
-  config.py         # Settings (env-based via pydantic-settings)
-  models.py         # Pydantic models
-  state.py          # LangGraph state schema
-  services/         # API client, tool implementations
-  prompts/          # System prompts
+mobile/lib/
+  core/            # router, network (Dio), app-wide plumbing
+  features/        # dashboard, products, sales (POS), customers, notifications
+  shared/          # models, widgets
 ```
 
-Uses LangGraph for multi-step agentic workflows, OpenAI as the LLM, Qdrant for customer memory (vector store), and Chainlit as the chat UI. Configured entirely via environment variables (see `.env.example`).
+Riverpod for state, Dio for HTTP against the same REST API. Built as APK via `.github/workflows/mobile-apk.yml`.
 
 ### Deployment
 
 `deployment/docker-compose.yml` contains service definitions for:
 - SQL Server (always-on, required for local dev)
-- API, WebApp, AI agent (commented out — build locally instead)
+- API, WebApp (commented out — build locally instead)
 - Full observability stack: OTel Collector, Prometheus, Loki, Tempo, Grafana (commented out)
 
 ## Important Notes
@@ -124,4 +122,3 @@ Uses LangGraph for multi-step agentic workflows, OpenAI as the LLM, Qdrant for c
 - All documentation `.md` files belong in the `docs/` folder, not the project root (this `CLAUDE.md` is the exception — Claude Code loads it from the root). Keep `docs/` to current reference documentation — no one-off fix summaries or work-completed reports.
 - The solution file `AutoPartShop.sln` at the root only references the backend projects; the Angular project is managed separately via `npm`.
 - `appsettings.Development.json` overrides the SQL Server connection string for local development.
-- The `src/AutoPartShop.AI/.env` file (gitignored) must be configured from `.env.example` before running the AI agent.
