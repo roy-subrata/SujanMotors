@@ -38,27 +38,20 @@ export class PriceCodeService {
 
   /** Load magic word and prefix/suffix from application settings */
   loadMagicWord(): void {
-    this.http.get<{ key: string; value: string }>(`${this.apiUrl}/${SETTING_KEY}`).pipe(
-      tap(response => {
-        this.magicWord.set(response.value);
+    // Single category fetch: missing keys are simply absent (no per-key 404s)
+    this.http.get<{ key: string; value: string }[]>(`${this.apiUrl}/category/PRICING`).pipe(
+      tap(settings => {
+        const valueOf = (key: string) =>
+          settings.find(s => s.key === key)?.value || '';
+        this.magicWord.set(valueOf(SETTING_KEY));
+        this.prefix.set(valueOf(PREFIX_KEY));
+        this.suffix.set(valueOf(SUFFIX_KEY));
         this.loaded.set(true);
       }),
       catchError(() => {
         this.loaded.set(true);
         return of(null);
       })
-    ).subscribe();
-
-    // Load prefix (optional)
-    this.http.get<{ key: string; value: string }>(`${this.apiUrl}/${PREFIX_KEY}`).pipe(
-      tap(response => this.prefix.set(response.value || '')),
-      catchError(() => of(null))
-    ).subscribe();
-
-    // Load suffix (optional)
-    this.http.get<{ key: string; value: string }>(`${this.apiUrl}/${SUFFIX_KEY}`).pipe(
-      tap(response => this.suffix.set(response.value || '')),
-      catchError(() => of(null))
     ).subscribe();
   }
 
