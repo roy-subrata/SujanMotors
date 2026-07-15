@@ -6,6 +6,7 @@ import '../../core/network/dio_provider.dart';
 import '../../shared/models/paged_response.dart';
 import '../../shared/models/product.dart';
 import '../../shared/models/product_location.dart';
+import '../../shared/models/product_media.dart';
 import '../../shared/models/stock.dart';
 import '../../shared/models/vehicle_compatibility.dart';
 
@@ -100,6 +101,21 @@ class ProductsRepository {
       return data
           .whereType<Map>()
           .map((e) => ProductLocation.fromJson(Map<String, dynamic>.from(e)))
+          .toList();
+    } on DioException catch (e) {
+      throw AppException.fromDio(e);
+    }
+  }
+
+  /// Images/videos of a product, from GET /products/{id}/media (display order).
+  Future<List<ProductMedia>> getMedia(String productId) async {
+    try {
+      final res = await _dio.get('/products/$productId/media');
+      final data = (res.data as Map<String, dynamic>)['data'];
+      if (data is! List) return const [];
+      return data
+          .whereType<Map>()
+          .map((e) => ProductMedia.fromJson(Map<String, dynamic>.from(e)))
           .toList();
     } on DioException catch (e) {
       throw AppException.fromDio(e);

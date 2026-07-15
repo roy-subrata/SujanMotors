@@ -12,6 +12,7 @@ import '../../features/stock/stock_repository.dart';
 import '../../shared/format.dart';
 import '../../shared/models/product.dart';
 import '../../shared/models/product_location.dart';
+import '../../shared/models/product_media.dart';
 import '../../shared/models/stock.dart';
 import '../../shared/models/vehicle_compatibility.dart';
 import '../../shared/widgets/state_views.dart';
@@ -125,6 +126,7 @@ class _Body extends ConsumerWidget {
         ref.invalidate(compatibleVehiclesProvider(product.id));
         ref.invalidate(productLocationsProvider(product.id));
         ref.invalidate(productVariantAttributesProvider(product.id));
+        ref.invalidate(productMediaProvider(product.id));
       },
       child: Stack(
         children: [
@@ -226,23 +228,17 @@ class _HeroCard extends ConsumerWidget {
       if (product.category != null) product.category!.name,
     ].join(' Â· ');
 
+    final images = (ref.watch(productMediaProvider(product.id)).value ??
+            const <ProductMedia>[])
+        .where((m) => m.isImage)
+        .toList();
+
     return _SurfaceCard(
       padding: const EdgeInsets.all(14),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(11),
-            child: Container(
-              width: 72,
-              height: 72,
-              decoration: BoxDecoration(
-                border: Border.all(color: Theme.of(context).colorScheme.outline),
-                borderRadius: BorderRadius.circular(11),
-              ),
-              child: const _CheckerPlaceholder(),
-            ),
-          ),
+          _ProductThumb(images: images, productName: product.name),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -293,6 +289,140 @@ class _HeroCard extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// â”€â”€ Product image thumbnail + gallery â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+/// 72Ã—72 hero thumbnail. Shows the first product image (the API orders
+/// primary-first) and opens a swipeable full-screen gallery on tap; falls back
+/// to the checkerboard placeholder when the product has no images.
+class _ProductThumb extends StatelessWidget {
+  const _ProductThumb({required this.images, required this.productName});
+
+  final List<ProductMedia> images;
+  final String productName;
+
+  @override
+  Widget build(BuildContext context) {
+    final thumb = ClipRRect(
+      borderRadius: BorderRadius.circular(11),
+      child: Container(
+        width: 72,
+        height: 72,
+        decoration: BoxDecoration(
+          border: Border.all(color: Theme.of(context).colorScheme.outline),
+          borderRadius: BorderRadius.circular(11),
+        ),
+        child: images.isEmpty
+            ? const _CheckerPlaceholder()
+            : Image.network(
+                images.first.resolvedUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => const _CheckerPlaceholder(),
+                loadingBuilder: (context, child, progress) =>
+                    progress == null ? child : const _CheckerPlaceholder(),
+              ),
+      ),
+    );
+
+    if (images.isEmpty) return thumb;
+
+    return GestureDetector(
+      onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
+        builder: (_) =>
+            _ImageGalleryScreen(images: images, title: productName),
+      )),
+      child: Stack(
+        children: [
+          thumb,
+          if (images.length > 1)
+            Positioned(
+              right: 3,
+              bottom: 3,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                decoration: BoxDecoration(
+                  color: Colors.black.withAlpha(140),
+                  borderRadius: BorderRadius.circular(7),
+                ),
+                child: Text(
+                  '${images.length}',
+                  style: GoogleFonts.instrumentSans(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Full-screen swipeable, pinch-to-zoom image gallery.
+class _ImageGalleryScreen extends StatefulWidget {
+  const _ImageGalleryScreen({required this.images, required this.title});
+
+  final List<ProductMedia> images;
+  final String title;
+
+  @override
+  State<_ImageGalleryScreen> createState() => _ImageGalleryScreenState();
+}
+
+class _ImageGalleryScreenState extends State<_ImageGalleryScreen> {
+  int _index = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        title: Text(
+          widget.images.length > 1
+              ? '${widget.title} (${_index + 1}/${widget.images.length})'
+              : widget.title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: GoogleFonts.instrumentSans(
+              fontSize: 15, fontWeight: FontWeight.w600),
+        ),
+      ),
+      body: PageView.builder(
+        itemCount: widget.images.length,
+        onPageChanged: (i) => setState(() => _index = i),
+        itemBuilder: (context, i) => InteractiveViewer(
+          maxScale: 5,
+          child: Center(
+            child: Image.network(
+              widget.images[i].resolvedUrl,
+              fit: BoxFit.contain,
+              errorBuilder: (_, _, _) => const Icon(
+                Icons.broken_image_outlined,
+                color: Colors.white38,
+                size: 48,
+              ),
+              loadingBuilder: (context, child, progress) => progress == null
+                  ? child
+                  : const Center(
+                      child: SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white54),
+                      ),
+                    ),
+            ),
+          ),
+        ),
       ),
     );
   }

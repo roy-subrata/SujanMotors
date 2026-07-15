@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/network/app_exception.dart';
 import '../../shared/models/product.dart';
 import '../../shared/models/product_location.dart';
+import '../../shared/models/product_media.dart';
 import '../../shared/models/vehicle_compatibility.dart';
 import 'products_repository.dart';
 
@@ -159,6 +160,12 @@ final compatibleVehiclesProvider =
 final productLocationsProvider =
     FutureProvider.family<List<ProductLocation>, String>((ref, id) {
   return ref.read(productsRepositoryProvider).getLocations(id);
+});
+
+/// Product images/videos in display order, keyed by productId.
+final productMediaProvider =
+    FutureProvider.family<List<ProductMedia>, String>((ref, id) {
+  return ref.read(productsRepositoryProvider).getMedia(id);
 });
 
 /// Deduplicated attribute values (specs) for a part, keyed by productId.
