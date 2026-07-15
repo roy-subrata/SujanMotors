@@ -1,7 +1,7 @@
 # Handoff: Auto Parts POS — Mobile App (Phase 1)
 
 ## Overview
-Mobile app (Android-first, phone) for **Sunjan Motors**, an auto parts shop POS & inventory system. This is the mobile companion to the existing web POS. Phase 1 covers 15 screens across 4 modules: Login & Products, Customers, Suppliers, and Sales. The architecture is deliberately modular so later web features (purchases, expenses, transfers, reports) slot in as new modules using the same shells.
+Mobile app (Android-first, phone) for **Sunjan Motors**, an auto parts shop POS & inventory system. This is the mobile companion to the existing web POS. Phase 1 covers 20 screens across 5 modules: Login & Products, Customers, Suppliers, Sales, and Cashbook/Stock In/Notifications. The architecture is deliberately modular so later web features (purchases, expenses, transfers, reports) slot in as new modules using the same shells.
 
 ## About the Design Files
 The files in this bundle are **design references created in HTML** — prototypes showing the intended look and behavior, **not production code**. Your task is to **recreate these designs in your target codebase's environment** (Flutter, React Native, Kotlin, etc.) using its established patterns and libraries. If no mobile codebase exists yet, choose the most appropriate framework (Flutter recommended, given the user's context) and implement the designs there.
@@ -73,8 +73,8 @@ Centered column, 28px side padding. Logo block (56px radius-14 dark square "SM")
 ### A2 · Product list
 Top bar with bell + cart. Search + barcode button. Chips: All · 49 (active), Low stock · 6 (red), category chips. List cards: 44px image placeholder, name, `SKU · brand`, price right, stock pill (green "24 in stock" / amber "4 left" / red "Out of stock" or "2 left"). Dark FAB ＋ (add product) above bottom nav. Bottom nav active: Products.
 
-### A3 · Product detail (stock & lots by warehouse)
-Back + name + edit. Hero card: 72px image, name, `SKU · brand · category`, selling price + `cost · margin%` muted. 3-stat grid: Total stock / Reserved / Reorder at. **"Stock by warehouse · lots" card**: per warehouse a `#fafafb` header row (🏬 name … qty pcs), then indented lot rows (lot code, `Recv date · cost`, qty) separated by dashed hairlines; "FIFO" annotation top-right. "Recent movement" card: ± icon squares (green in / red out), description, signed qty. Sticky bottom: outlined "⇧ Stock In" + dark "🛒 Add to cart".
+### A3 · Product detail (media, specs, technical data, lots)
+Back + name + favorite + edit. **Media gallery**: large image (stock-level badge overlay), thumbnail strip incl. a video thumb (▶ + duration). Title card: name, `SKU · barcode · brand · category`, price + `cost · margin%`, attribute tag chips (position, pack size, warranty). 3-stat grid: Total stock / Reserved / Reorder at. Visual section-pill nav (Overview/Specifications/Compatibility/Stock & lots). **Specifications card**: 2-col key-value grid (brand, category, unit, origin, warranty, HS code). **Technical specification card**: full-width label/value rows (material, position, thickness, dimensions, NVH rating). **Compatible vehicles card**: model + year-range rows. **Stock by warehouse · lots card**: per warehouse a `#fafafb` header row (🏬 name … qty pcs), then indented lot rows (lot code, `Recv date · cost · exp`, qty) separated by dashed hairlines; "FIFO" annotation top-right. "Recent movement" card: ± icon squares (green in / red out), description, signed qty. Sticky bottom: outlined "⇧ Stock In" + dark "🛒 Add to cart".
 
 ### B1 · Customer list
 Bell + cart top bar. Search by name/phone. Chips: All · 128, With due · 14 (red), Workshops. Rows: circular initials avatar, name, `phone · N orders`, right: due amount (red if due, green ৳ 0 if clear) + label. FAB add customer. Bottom nav active: Customers.
@@ -112,6 +112,21 @@ Header: back, Cart, `INV-1025 · draft`. Lines card: name, `unit · price`, qty 
 ### D3 · Sale return
 Header: back, title, `from INV-1022`. Source invoice card with Change link. "Select items to return": checkbox rows with `sold qty × price` and return-qty stepper (return qty ≤ sold qty). Reason chips: Wrong part (active) / Defective / Customer changed mind. Summary card: Return value, **Restock to** warehouse selector, **Refund method** selector (Adjust against due / Cash refund), dashed rule, Refund total red 19px/700. Sticky red CTA "↩ Confirm return · ৳ 3,700".
 
+### E1 · Cashbook
+Back + title + period picker ("Today ▾"). Summary card: Opening balance, Cash in / Cash out tinted stat pair, dashed rule, Closing balance 19px/700. Filter chips: All / Cash in / Cash out. List: icon square (in=green ↓, out=red items like 🧾⚡🏠), description, `category · time`, signed amount (green/red). FAB add entry.
+
+### E2 · Add cash entry (sheet)
+Bottom sheet over dimmed Cashbook. Type toggle Cash in (selected, green) / Cash out. Category chips (Sale receipt / Expense / Owner deposit / Other). Amount input (2px dark border). Note field. Dark "Save entry" CTA.
+
+### E3 · Stock In list
+Back + title + bell. Search by PO/supplier. Chips: All · 32, Pending · 3 (amber), Received. Rows: PO number, `supplier · items · date`, total, status pill (Pending amber / Received green). FAB new stock-in.
+
+### E4 · New Stock In entry
+Back + title. Supplier + Warehouse selects, Reference/PO no. + Date fields. **Items** list (name, line total, then `Qty · Cost · Lot` sub-row) + "＋ Add item / scan" action. Totals card: items total, freight/other cost, dashed rule, Grand total 19px/700. Sticky bottom: outlined "Save as draft" + green "✓ Receive stock" (posts to inventory &amp; creates lots).
+
+### E5 · Notifications
+Back + title + "Mark all read". Grouped by day (Today/Yesterday) with eyebrow headers. Rows: icon square (⚠ low stock amber-red, ৳ payment green, 📦 stock-in pending amber, ⏰ due reminder amber, ↩ return red), title (600), subtitle (muted, 2-line), timestamp; unread rows show a red dot at top-right.
+
 ## Interactions & Behavior
 - **Navigation:** bottom tabs = root stacks (Home, Products, Customers, Sales); center ＋ opens New Sale flow; detail/action screens push onto the stack with back arrows. Suppliers lives under Home/More.
 - **Search:** debounced live filtering on lists (name / SKU / phone / invoice no).
@@ -121,6 +136,9 @@ Header: back, title, `from INV-1022`. Source invoice card with Change link. "Sel
 - **Payments:** quick-amount chips prefill; applying to invoices auto-allocates oldest-first, editable per row; confirm shows success state then returns to detail with refreshed balances.
 - **Statements:** period picker (presets: This month, Last month, Quarter, Custom range); Generate PDF renders the table to a shareable PDF (system share sheet).
 - **Reminder:** sends via chosen channel; log the event in customer timeline.
+- **Cashbook:** every sale/payment/purchase-payment auto-posts an entry; manual entries (expenses, owner deposits) added via E2. Filter by type/date; closing balance carries to next day's opening.
+- **Stock In:** "Receive stock" posts each line as a new lot (qty, cost, lot no, optional expiry) into the chosen warehouse, updates supplier payable, and closes the PO as Received; "Save as draft" keeps it Pending.
+- **Notifications:** generated by system events (low stock crossing reorder point, payment received, stock-in pending, overdue dues, returns processed); tapping a row deep-links to the relevant detail screen and marks it read.
 - **Sticky CTAs:** always visible above keyboard/safe-area; content scrolls behind gradient.
 - **Hover/press states:** cards darken border to `#8a93a2`; buttons drop to ~92% opacity; list rows tint `#fafafb`.
 - **Loading:** skeleton cards matching list-card geometry. **Empty states:** icon + one-line hint + primary action.
@@ -133,7 +151,9 @@ Header: back, title, `from INV-1022`. Source invoice card with Change link. "Sel
 - `customers` / `customerDetail`: profile, balances, invoices, payments, returns; `payment` flow state (amount, method, allocations)
 - `suppliers`: mirror of customers with payables + POs
 - `sales`: list w/ date grouping + filters; `saleReturn`: source invoice, selected lines, reason, restock warehouse, refund method
-- `notifications`: unread count + feed
+- `notifications`: unread count + feed, grouped by day
+- `cashbook`: entries {type: in|out, category, amount, method, note, timestamp}; daily opening/closing balance
+- `stockIn`: POs {supplier, warehouse, reference, date, lines: [{product, qty, cost, lot, expiry}], freight, status}; on receive, writes new lots to `productDetail.warehouses`
 - Data fetching: REST/GraphQL against the existing web app's backend; lists paginated; balances re-fetched after any payment/sale/return mutation.
 
 ## Assets

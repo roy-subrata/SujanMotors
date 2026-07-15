@@ -221,7 +221,7 @@ class _InvoiceTileState extends ConsumerState<_InvoiceTile> {
           children: [
             Flexible(
               child: Text(
-                invoice.invoiceNumber.isEmpty ? 'â€”' : invoice.invoiceNumber,
+                invoice.invoiceNumber.isEmpty ? '—' : invoice.invoiceNumber,
                 style: const TextStyle(fontWeight: FontWeight.w600),
                 overflow: TextOverflow.ellipsis,
               ),
@@ -244,7 +244,7 @@ class _InvoiceTileState extends ConsumerState<_InvoiceTile> {
             ],
           ],
         ),
-        subtitle: Text(subtitleParts.join('  â€¢  ')),
+        subtitle: Text(subtitleParts.join('  •  ')),
         trailing: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.end,
@@ -353,12 +353,12 @@ class _LineItems extends StatelessWidget {
                               [
                                 if (line.partSku != null) line.partSku!,
                                 if (line.variantName != null) line.variantName!,
-                              ].join('  â€¢  '),
+                              ].join('  •  '),
                               style: theme.textTheme.bodySmall?.copyWith(
                                   color: theme.colorScheme.onSurfaceVariant),
                             ),
                           Text(
-                            '${line.quantity} ${line.unitSymbol ?? ''} Ã— '
+                            '${line.quantity} ${line.unitSymbol ?? ''} × '
                             '${formatCurrency(line.unitPrice, currency: currency)}',
                             style: theme.textTheme.bodySmall,
                           ),

@@ -56,7 +56,7 @@ class CustomerDetailScreen extends ConsumerWidget {
   }
 }
 
-// â”€â”€ Body â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Body ─────────────────────────────────────────────────────────────────────
 
 class _Body extends ConsumerStatefulWidget {
   const _Body({required this.customer});
@@ -252,7 +252,7 @@ class _BodyState extends ConsumerState<_Body> {
         controller: _scrollCtrl,
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
         children: [
-          // â”€â”€ Header card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+          // ── Header card ──────────────────────────────────────────────
           CardSection(
             padding: const EdgeInsets.all(15),
             child: Column(
@@ -284,7 +284,7 @@ class _BodyState extends ConsumerState<_Body> {
                                 widget.customer.customerType!,
                               if (widget.customer.lastPurchaseDate != null)
                                 'since ${formatDate(widget.customer.lastPurchaseDate!)}',
-                            ].join(' Â· '),
+                            ].join(' · '),
                             style: GoogleFonts.instrumentSans(
                               fontSize: 12
                             ),
@@ -327,7 +327,7 @@ class _BodyState extends ConsumerState<_Body> {
 
                 const SizedBox(height: 14),
 
-                // 2Ã—2 action grid
+                // 2×2 action grid
                 GridView.count(
                   crossAxisCount: 2,
                   shrinkWrap: true,
@@ -369,7 +369,7 @@ class _BodyState extends ConsumerState<_Body> {
           ),
           const SizedBox(height: 12),
 
-          // â”€â”€ Tab chips â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+          // ── Tab chips ────────────────────────────────────────────────
           FilterChipRow(
             selected: _tabIndex,
             onSelect: _onTabSelect,
@@ -381,7 +381,7 @@ class _BodyState extends ConsumerState<_Body> {
           ),
           const SizedBox(height: 12),
 
-          // â”€â”€ Invoices tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+          // ── Invoices tab ─────────────────────────────────────────────
           if (_tabIndex == 0) ...[
             if (!_invoiceInitialized ||
                 (_invoices.isEmpty && _invoiceLoading))
@@ -409,7 +409,7 @@ class _BodyState extends ConsumerState<_Body> {
               ),
           ],
 
-          // â”€â”€ Payments tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+          // ── Payments tab ─────────────────────────────────────────────
           if (_tabIndex == 1) ...[
             if (!_paymentInitialized ||
                 (_payments.isEmpty && _paymentLoading))
@@ -437,7 +437,7 @@ class _BodyState extends ConsumerState<_Body> {
               ),
           ],
 
-          // â”€â”€ Returns tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+          // ── Returns tab ──────────────────────────────────────────────
           if (_tabIndex == 2) ...[
             if (!_returnInitialized ||
                 (_returns.isEmpty && _returnLoading))
@@ -487,7 +487,7 @@ class _BodyState extends ConsumerState<_Body> {
   }
 }
 
-// â”€â”€ Invoice list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Invoice list ──────────────────────────────────────────────────────────────
 
 class _InvoiceList extends StatelessWidget {
   const _InvoiceList({
@@ -561,7 +561,7 @@ class _InvoiceRow extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${formatDate(invoice.invoiceDate)} Â· ${invoice.salesOrderNumber}',
+                    '${formatDate(invoice.invoiceDate)} · ${invoice.salesOrderNumber}',
                     style: GoogleFonts.instrumentSans(
                       fontSize: 11.5
                     ),
@@ -603,7 +603,7 @@ class _InvoiceRow extends StatelessWidget {
   }
 }
 
-// â”€â”€ Payment list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Payment list ──────────────────────────────────────────────────────────────
 
 class _PaymentList extends StatelessWidget {
   const _PaymentList({
@@ -694,7 +694,7 @@ class _PaymentRow extends StatelessWidget {
                     formatDate(payment.paymentDate),
                     if ((payment.invoiceNumber ?? '').isNotEmpty)
                       payment.invoiceNumber!,
-                  ].join(' Â· '),
+                  ].join(' · '),
                   style: GoogleFonts.instrumentSans(
                     fontSize: 11.5
                   ),
@@ -725,16 +725,16 @@ class _PaymentRow extends StatelessWidget {
 
   String _methodEmoji(String method) {
     return switch (method.toLowerCase()) {
-      'cash' => 'ðŸ’µ',
-      'bank' || 'bank transfer' => 'ðŸ¦',
-      'bkash' || 'mobile banking' => 'ðŸ“±',
-      'cheque' => 'ðŸ“„',
-      _ => 'ðŸ’³',
+      'cash' => '💵',
+      'bank' || 'bank transfer' => '🏦',
+      'bkash' || 'mobile banking' => '📱',
+      'cheque' => '📄',
+      _ => '💳',
     };
   }
 }
 
-// â”€â”€ Returns list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Returns list ──────────────────────────────────────────────────────────────
 
 class _ReturnsList extends StatelessWidget {
   const _ReturnsList({
@@ -820,7 +820,7 @@ class _ReturnRow extends StatelessWidget {
                     formatDate(ret.createdAt),
                     if ((ret.salesOrderNumber ?? '').isNotEmpty)
                       ret.salesOrderNumber!,
-                  ].join(' Â· '),
+                  ].join(' · '),
                   style: GoogleFonts.instrumentSans(
                     fontSize: 11.5
                   ),
@@ -876,7 +876,7 @@ class _InitiateReturnButton extends StatelessWidget {
   }
 }
 
-// â”€â”€ Pagination footer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Pagination footer ─────────────────────────────────────────────────────────
 
 class _PaginationFooter extends StatelessWidget {
   const _PaginationFooter(
@@ -915,7 +915,7 @@ class _PaginationFooter extends StatelessWidget {
   }
 }
 
-// â”€â”€ Stat box â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Stat box ──────────────────────────────────────────────────────────────────
 
 class _StatBox extends StatelessWidget {
   const _StatBox({
@@ -943,15 +943,23 @@ class _StatBox extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: GoogleFonts.instrumentSans(
                     fontSize: 10.5, color: AppColors.muted)),
             const SizedBox(height: 3),
-            Text(value,
-                style: GoogleFonts.instrumentSans(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: valueColor ?? AppColors.ink,
-                )),
+            // Long amounts (৳ 1,234,567.00) shrink to fit rather than wrap.
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(value,
+                  maxLines: 1,
+                  style: GoogleFonts.instrumentSans(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: valueColor ?? AppColors.ink,
+                  )),
+            ),
           ],
         ),
       ),
@@ -959,7 +967,7 @@ class _StatBox extends StatelessWidget {
   }
 }
 
-// â”€â”€ Action button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Action button ─────────────────────────────────────────────────────────────
 
 class _ActionButton extends StatelessWidget {
   const _ActionButton({
@@ -994,12 +1002,20 @@ class _ActionButton extends StatelessWidget {
                 size: 15,
                 color: filled ? Colors.white : AppColors.secondary),
             const SizedBox(width: 6),
-            Text(label,
-                style: GoogleFonts.instrumentSans(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w600,
-                  color: filled ? Colors.white : AppColors.ink,
-                )),
+            // Labels ("Receive payment") outgrow the fixed grid cell at
+            // larger text scales — shrink to fit instead of overflowing.
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(label,
+                    maxLines: 1,
+                    style: GoogleFonts.instrumentSans(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                      color: filled ? Colors.white : AppColors.ink,
+                    )),
+              ),
+            ),
           ],
         ),
       ),
@@ -1007,7 +1023,7 @@ class _ActionButton extends StatelessWidget {
   }
 }
 
-// â”€â”€ Reminder sheet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Reminder sheet ────────────────────────────────────────────────────────────
 
 class _ReminderSheet extends ConsumerStatefulWidget {
   const _ReminderSheet({required this.customer});
@@ -1088,7 +1104,7 @@ class _ReminderSheetState extends ConsumerState<_ReminderSheet> {
               ),
               const SizedBox(height: 4),
               Text(
-                '${widget.customer.fullName} Â· due ${formatCurrency(widget.customer.dueAmount)}',
+                '${widget.customer.fullName} · due ${formatCurrency(widget.customer.dueAmount)}',
                 style: GoogleFonts.instrumentSans(
                     fontSize: 12.5, color: AppColors.muted),
               ),

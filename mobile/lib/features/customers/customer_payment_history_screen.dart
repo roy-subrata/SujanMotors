@@ -132,7 +132,7 @@ class _PaymentTile extends StatelessWidget {
           item.paymentMethod!,
         if (item.invoiceNumber != null && item.invoiceNumber!.isNotEmpty)
           item.invoiceNumber!,
-      ].join('  â€¢  ')),
+      ].join('  •  ')),
       trailing: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
         decoration: BoxDecoration(
@@ -140,7 +140,7 @@ class _PaymentTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
         ),
         child: Text(
-          item.status ?? 'â€”',
+          item.status ?? '—',
           style: TextStyle(fontSize: 11, color: fg, fontWeight: FontWeight.w600),
         ),
       ),

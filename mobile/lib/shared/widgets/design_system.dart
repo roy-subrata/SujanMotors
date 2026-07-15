@@ -33,7 +33,16 @@ class StatusPill extends StatelessWidget {
   }
 
   static _PillConfig _cfg(String l, ColorScheme scheme) {
-    switch (l.toUpperCase()) {
+    final upper = l.toUpperCase();
+    // Stock labels with counts, e.g. "24 in stock" / "4 left".
+    if (upper.endsWith('IN STOCK')) {
+      return const _PillConfig(AppColors.green, AppColors.greenBg, null);
+    }
+    if (upper.endsWith('LEFT')) {
+      return const _PillConfig(
+          AppColors.amber, AppColors.amberBg, AppColors.amberBorder);
+    }
+    switch (upper) {
       case 'PAID':
       case 'COMPLETED':
         return const _PillConfig(AppColors.green, AppColors.greenBg, null);
@@ -269,15 +278,22 @@ class MethodGrid extends StatelessWidget {
               ),
             ),
             alignment: Alignment.center,
-            child: Text(
-              methods[i],
-              textAlign: TextAlign.center,
-              style: GoogleFonts.instrumentSans(
-                fontSize: 11.5,
-                fontWeight: FontWeight.w600,
-                color: isSelected
-                    ? scheme.surface
-                    : scheme.onSurface.withAlpha(160),
+            padding: const EdgeInsets.symmetric(horizontal: 6),
+            // Long labels ("On credit", "WhatsApp") shrink to fit the fixed
+            // cell instead of wrapping/overflowing at larger text scales.
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                methods[i],
+                maxLines: 1,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.instrumentSans(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w600,
+                  color: isSelected
+                      ? scheme.surface
+                      : scheme.onSurface.withAlpha(160),
+                ),
               ),
             ),
           ),
@@ -363,6 +379,91 @@ class BillCheckRow extends StatelessWidget {
                 color: scheme.onSurface,
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── FilterDropdown ────────────────────────────────────────────────────────────
+
+/// A 44px bordered dropdown button matching the search-row styling — used for
+/// list-page filters (status, customer type, period) instead of chip rows.
+class FilterDropdown<T> extends StatelessWidget {
+  const FilterDropdown({
+    super.key,
+    required this.value,
+    required this.options,
+    required this.onChanged,
+    this.leadingIcon,
+  });
+
+  final T value;
+
+  /// (value, label) pairs shown in the menu, in order.
+  final List<(T, String)> options;
+  final ValueChanged<T> onChanged;
+  final IconData? leadingIcon;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final label = options
+        .firstWhere((o) => o.$1 == value, orElse: () => options.first)
+        .$2;
+
+    return PopupMenuButton<T>(
+      onSelected: onChanged,
+      itemBuilder: (context) => [
+        for (final (v, l) in options)
+          PopupMenuItem<T>(
+            value: v,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(l,
+                      style: GoogleFonts.instrumentSans(
+                        fontSize: 13.5,
+                        fontWeight:
+                            v == value ? FontWeight.w700 : FontWeight.w400,
+                      )),
+                ),
+                if (v == value)
+                  Icon(Icons.check, size: 16, color: scheme.onSurface),
+              ],
+            ),
+          ),
+      ],
+      child: Container(
+        height: 44,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: scheme.surface,
+          borderRadius: BorderRadius.circular(11),
+          border: Border.all(color: scheme.outline),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (leadingIcon != null) ...[
+              Icon(leadingIcon, size: 16, color: AppColors.secondary),
+              const SizedBox(width: 6),
+            ],
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.instrumentSans(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.secondary,
+                ),
+              ),
+            ),
+            const Icon(Icons.expand_more_rounded,
+                size: 18, color: AppColors.secondary),
           ],
         ),
       ),

@@ -1,4 +1,5 @@
 ﻿using AutoPartShop.Api.Common;
+using AutoPartShop.Domain.Entities;
 using AutoPartShop.Infrastructure.Data;
 using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
@@ -64,7 +65,11 @@ public class CashBookController(AutoPartDbContext _db) : ControllerBase
             .Where(p => p.PaymentDate < dateFrom && p.Status == "COMPLETED")
             .SumAsync(p => (decimal?)(p.NetAmount > 0 ? p.NetAmount : p.Amount), ct) ?? 0m;
 
-        var openingBalance = priorCustomerNet - priorExpenseTotal - priorSupplierTotal;
+        var priorDepositTotal = await _db.CashDeposits
+            .Where(d => d.DepositDate < dateFrom && !d.Isdeleted)
+            .SumAsync(d => (decimal?)d.Amount, ct) ?? 0m;
+
+        var openingBalance = priorCustomerNet + priorDepositTotal - priorExpenseTotal - priorSupplierTotal;
 
         // â”€â”€ Customer payments â€” COMPLETED only â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         var customerPayments = await _db.CustomerPayments
@@ -90,6 +95,14 @@ public class CashBookController(AutoPartDbContext _db) : ControllerBase
             .Include(p => p.Supplier)
             .AsNoTracking()
             .OrderBy(p => p.PaymentDate)
+            .ToListAsync(ct);
+
+        // â”€â”€ Manual deposits (cash in) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        var deposits = await _db.CashDeposits
+            .Where(d => d.DepositDate >= dateFrom && d.DepositDate <= dateTo
+                     && !d.Isdeleted)
+            .AsNoTracking()
+            .OrderBy(d => d.DepositDate)
             .ToListAsync(ct);
 
         // â”€â”€ Build cash-in / cash-out from customer payments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -126,6 +139,23 @@ public class CashBookController(AutoPartDbContext _db) : ControllerBase
             if (isRefund) cashOut.Add(entry);
             else cashIn.Add(entry);
         }
+
+        cashIn.AddRange(deposits.Select(d => new CashBookEntry
+        {
+            Id = d.Id,
+            Time = d.DepositDate,
+            Type = "DEPOSIT",
+            Description = d.Description,
+            Reference = d.ReferenceNumber,
+            PaymentMethod = d.PaymentMethod,
+            Amount = d.Amount,
+            Currency = d.Currency,
+            Status = "COMPLETED",
+            Notes = string.IsNullOrWhiteSpace(d.Notes) ? null : d.Notes,
+            Category = d.Category
+        }));
+
+        cashIn = cashIn.OrderBy(e => e.Time).ToList();
 
         cashOut.AddRange(expenses.Select(e => new CashBookEntry
         {
@@ -230,6 +260,59 @@ public class CashBookController(AutoPartDbContext _db) : ControllerBase
             paymentMethodBreakdown = breakdown
         }));
     }
+
+    /// <summary>
+    /// Records a manual cash-in entry (owner deposit, misc income). Cash-out
+    /// entries go through POST /daily-expense — this is only the IN side.
+    /// </summary>
+    [HttpPost("deposits")]
+    [Authorize(Roles = "Admin,Manager")]
+    public async Task<IActionResult> CreateDeposit(
+        [FromBody] CreateCashDepositRequest request,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            var deposit = CashDeposit.Create(
+                request.DepositDate ?? DateTime.UtcNow,
+                request.Category,
+                request.Amount,
+                request.Description,
+                request.PaymentMethod,
+                request.ReferenceNumber ?? string.Empty,
+                request.Notes ?? string.Empty,
+                request.Currency ?? "BDT");
+
+            _db.CashDeposits.Add(deposit);
+            await _db.SaveChangesAsync(ct);
+
+            return Ok(ApiResponse<object>.Ok(new
+            {
+                deposit.Id,
+                deposit.DepositDate,
+                deposit.Category,
+                deposit.Amount,
+                deposit.Description,
+                deposit.PaymentMethod
+            }));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiError.Validation(ex.Message, instance: Request.Path));
+        }
+    }
+}
+
+public sealed class CreateCashDepositRequest
+{
+    public DateTime? DepositDate { get; set; }
+    public string Category { get; set; } = "OWNER_DEPOSIT"; // OWNER_DEPOSIT | OTHER
+    public decimal Amount { get; set; }
+    public string Description { get; set; } = string.Empty;
+    public string PaymentMethod { get; set; } = "CASH";
+    public string? ReferenceNumber { get; set; }
+    public string? Notes { get; set; }
+    public string? Currency { get; set; }
 }
 
 public sealed class CashBookEntry

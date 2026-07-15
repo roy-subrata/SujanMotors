@@ -129,7 +129,7 @@ public class SalesReturnRepository : ISalesReturnRepository
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<(IEnumerable<SalesReturn> returns, int totalCount)> GetPagedAsync(int pageNumber, int pageSize, string? searchTerm = null, CancellationToken cancellationToken = default)
+    public async Task<(IEnumerable<SalesReturn> returns, int totalCount)> GetPagedAsync(int pageNumber, int pageSize, string? searchTerm = null, DateTime? fromDate = null, DateTime? toDate = null, CancellationToken cancellationToken = default)
     {
         IQueryable<SalesReturn> query = _dbContext.SalesReturns
             .Include(x => x.LineItems)
@@ -138,6 +138,11 @@ public class SalesReturnRepository : ISalesReturnRepository
                 .ThenInclude(so => so!.LineItems)
                     .ThenInclude(sol => sol.ProductVariant)
             .Where(x => !x.Isdeleted);
+
+        if (fromDate.HasValue)
+            query = query.Where(x => x.ReturnDate >= fromDate.Value.Date);
+        if (toDate.HasValue)
+            query = query.Where(x => x.ReturnDate < toDate.Value.Date.AddDays(1));
 
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {

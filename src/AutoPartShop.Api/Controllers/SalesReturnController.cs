@@ -167,13 +167,13 @@ namespace AutoPartShop.Api.Controllers
         }
 
         [HttpGet("list")]
-        public async Task<ActionResult<object>> ListPaged(int pageNumber = 1, int pageSize = 10, string? searchTerm = null)
+        public async Task<ActionResult<object>> ListPaged(int pageNumber = 1, int pageSize = 10, string? searchTerm = null, DateTime? fromDate = null, DateTime? toDate = null)
         {
             if (pageNumber < 1) pageNumber = 1;
             if (pageSize < 1) pageSize = 10;
             if (pageSize > 100) pageSize = 100;
 
-            var (items, totalCount) = await _salesReturnRepository.GetPagedAsync(pageNumber, pageSize, searchTerm);
+            var (items, totalCount) = await _salesReturnRepository.GetPagedAsync(pageNumber, pageSize, searchTerm, fromDate, toDate);
             var response = items.Select(MapToResponse);
             return Ok(new
             {

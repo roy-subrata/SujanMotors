@@ -26,6 +26,51 @@ class CashBookRepository {
       throw AppException.fromDio(e);
     }
   }
+
+  /// Manual cash-in entry (owner deposit / misc income) via
+  /// POST /cash-book/deposits. Requires Admin or Manager role.
+  Future<void> createDeposit({
+    required String category, // OWNER_DEPOSIT | OTHER
+    required double amount,
+    required String description,
+    String paymentMethod = 'CASH',
+    String? notes,
+  }) async {
+    try {
+      await _dio.post('/cash-book/deposits', data: {
+        'category': category,
+        'amount': amount,
+        'description': description,
+        'paymentMethod': paymentMethod,
+        'notes': ?notes,
+      });
+    } on DioException catch (e) {
+      throw AppException.fromDio(e);
+    }
+  }
+
+  /// Manual cash-out entry via POST /daily-expense (shows up in the cash book
+  /// as an EXPENSE row). Requires Admin or Manager role.
+  Future<void> createExpense({
+    required String category,
+    required double amount,
+    required String description,
+    String paymentMethod = 'CASH',
+    String? notes,
+  }) async {
+    try {
+      await _dio.post('/daily-expense', data: {
+        'expenseDate': DateFormat('yyyy-MM-dd').format(DateTime.now()),
+        'category': category,
+        'amount': amount,
+        'description': description,
+        'paymentMethod': paymentMethod,
+        'notes': ?notes,
+      });
+    } on DioException catch (e) {
+      throw AppException.fromDio(e);
+    }
+  }
 }
 
 final cashBookRepositoryProvider = Provider<CashBookRepository>(

@@ -65,7 +65,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         width: 56,
                         height: 56,
                         decoration: BoxDecoration(
-                         
+                          color: AppColors.ink,
                           borderRadius: BorderRadius.circular(14),
                         ),
                         alignment: Alignment.center,
@@ -250,7 +250,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 // Footer
                 Center(
                   child: Text(
-                    'Store: Main Branch Â· v2.4',
+                    'Store: Main Branch · v2.4',
                     style: GoogleFonts.instrumentSans(
                       fontSize: 12
                     ),

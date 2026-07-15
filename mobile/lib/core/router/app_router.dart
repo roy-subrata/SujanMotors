@@ -18,12 +18,17 @@ import '../../features/suppliers/supplier_payment_screen.dart';
 import '../../features/suppliers/supplier_statement_screen.dart';
 import '../../features/suppliers/suppliers_screen.dart';
 import '../../features/notifications/notifications_screen.dart';
+import '../../features/products/product_compatibility_edit_screen.dart';
 import '../../features/products/product_detail_screen.dart';
+import '../../features/products/product_edit_screen.dart';
 import '../../features/products/product_search_screen.dart';
+import '../../features/products/product_specs_edit_screen.dart';
 import '../../features/sales/quick_sale_screen.dart';
 import '../../features/sales/sale_return_screen.dart';
 import '../../features/sales/sales_screen.dart';
 import '../../features/scanner/scanner_screen.dart';
+import '../../features/stock/stock_in_entry_screen.dart';
+import '../../features/stock/stock_in_list_screen.dart';
 import '../../features/stock/stock_in_screen.dart';
 import '../../shared/widgets/splash_screen.dart';
 
@@ -70,6 +75,21 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, state) =>
             ProductDetailScreen(productId: state.pathParameters['id']!),
       ),
+      GoRoute(
+        path: '/product/:id/edit',
+        builder: (_, state) =>
+            ProductEditScreen(productId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/product/:id/specs',
+        builder: (_, state) =>
+            ProductSpecsEditScreen(productId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/product/:id/compatibility',
+        builder: (_, state) => ProductCompatibilityEditScreen(
+            productId: state.pathParameters['id']!),
+      ),
       GoRoute(path: '/scan', builder: (_, _) => const ScannerScreen()),
       GoRoute(
           path: '/customers',
@@ -86,7 +106,13 @@ final routerProvider = Provider<GoRouter>((ref) {
           invoice: state.extra is Invoice ? state.extra as Invoice : null,
         ),
       ),
-      GoRoute(path: '/stock-in', builder: (_, _) => const StockInScreen()),
+      GoRoute(
+          path: '/stock-in', builder: (_, _) => const StockInListScreen()),
+      GoRoute(
+          path: '/stock-in/new',
+          builder: (_, _) => const StockInEntryScreen()),
+      GoRoute(
+          path: '/stock-in/quick', builder: (_, _) => const StockInScreen()),
       GoRoute(
         path: '/customers/:id',
         builder: (_, state) =>
