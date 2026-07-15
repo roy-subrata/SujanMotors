@@ -180,7 +180,7 @@ class _SupplierStatementScreenState
   }
 }
 
-// â”€â”€ Summary bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Summary bar ───────────────────────────────────────────────────────────────
 
 class _SummaryBar extends StatelessWidget {
   const _SummaryBar({required this.supplier});
@@ -197,7 +197,7 @@ class _SummaryBar extends StatelessWidget {
         children: [
           Expanded(
             child: Text(
-              '${supplier.name} Â· ${supplier.phone}',
+              '${supplier.name} · ${supplier.phone}',
               style: GoogleFonts.instrumentSans(
                 fontSize: 12,
                 color: owes ? AppColors.amber : AppColors.muted,
@@ -220,7 +220,7 @@ class _SummaryBar extends StatelessWidget {
   }
 }
 
-// â”€â”€ Bill list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Bill list ─────────────────────────────────────────────────────────────────
 
 class _BillList extends StatelessWidget {
   const _BillList({required this.bills});

@@ -250,7 +250,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 // Footer
                 Center(
                   child: Text(
-                    'Store: Main Branch Â· v2.4',
+                    'Store: Main Branch · v2.4',
                     style: GoogleFonts.instrumentSans(
                       fontSize: 12
                     ),

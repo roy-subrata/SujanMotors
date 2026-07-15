@@ -6,7 +6,7 @@ import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_scaffold.dart';
 
 /// Sales order list screen.
-/// Displays a placeholder list â€” wire up to a real endpoint when available.
+/// Displays a placeholder list — wire up to a real endpoint when available.
 class SalesScreen extends StatelessWidget {
   const SalesScreen({super.key});
 

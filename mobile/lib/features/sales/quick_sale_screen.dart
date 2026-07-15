@@ -113,7 +113,7 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
           ),
           if (itemCount > 0)
             Text(
-              'INV-draft Â· $itemCount item${itemCount == 1 ? '' : 's'}',
+              'INV-draft · $itemCount item${itemCount == 1 ? '' : 's'}',
               style: GoogleFonts.instrumentSans(
                 fontSize: 12
               ),
@@ -137,7 +137,7 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
         ListView(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 160),
           children: [
-            // â”€â”€ Line items card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ── Line items card ──────────────────────────────────────
             Container(
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.surface,
@@ -222,7 +222,7 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
             ),
             const SizedBox(height: 12),
 
-            // â”€â”€ Totals card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ── Totals card ──────────────────────────────────────────
             Container(
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.surface,
@@ -233,7 +233,7 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
               child: Column(
                 children: [
                   _TotalRow(
-                    label: 'Subtotal Â· ${state.itemCount} items',
+                    label: 'Subtotal · ${state.itemCount} items',
                     value: formatCurrency(state.total),
                     labelStyle: GoogleFonts.instrumentSans(
                         fontSize: 13.5, color: AppColors.secondary),
@@ -245,7 +245,7 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
                   const SizedBox(height: 8),
                   _TotalRow(
                     label: 'Discount',
-                    value: 'â€”',
+                    value: '—',
                     labelStyle: GoogleFonts.instrumentSans(
                         fontSize: 13.5, color: AppColors.secondary),
                     valueStyle: GoogleFonts.instrumentSans(
@@ -409,7 +409,7 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
   }
 }
 
-// â”€â”€ Empty cart view â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Empty cart view ───────────────────────────────────────────────────────────
 
 class _EmptyCartView extends StatelessWidget {
   const _EmptyCartView({required this.onScan});
@@ -466,7 +466,7 @@ class _EmptyCartView extends StatelessWidget {
   }
 }
 
-// â”€â”€ Cart item row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Cart item row ─────────────────────────────────────────────────────────────
 
 class _CartItemRow extends StatefulWidget {
   const _CartItemRow({
@@ -553,7 +553,7 @@ class _CartItemRowState extends State<_CartItemRow> {
                 Row(
                   children: [
                     Text(
-                      'à§³ ',
+                      '৳ ',
                       style: GoogleFonts.instrumentSans(
                         fontSize: 12
                       ),
@@ -666,7 +666,7 @@ class _StepBtn extends StatelessWidget {
   }
 }
 
-// â”€â”€ Total row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Total row ─────────────────────────────────────────────────────────────────
 
 class _TotalRow extends StatelessWidget {
   const _TotalRow({
@@ -693,7 +693,7 @@ class _TotalRow extends StatelessWidget {
   }
 }
 
-// â”€â”€ Sticky bottom CTA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Sticky bottom CTA ─────────────────────────────────────────────────────────
 
 class _StickyBottom extends StatelessWidget {
   const _StickyBottom({required this.total, required this.onProceed});
@@ -747,7 +747,7 @@ class _StickyBottom extends StatelessWidget {
                         fontSize: 15, fontWeight: FontWeight.w700),
                   ),
                   child: Text(
-                      'âœ“  Complete Sale Â· ${formatCurrency(total)}'),
+                      '✓  Complete Sale · ${formatCurrency(total)}'),
                 ),
               ),
             ),
@@ -784,7 +784,7 @@ class _StickyBottom extends StatelessWidget {
                       textStyle: GoogleFonts.instrumentSans(
                           fontSize: 13, fontWeight: FontWeight.w600),
                     ),
-                    child: const Text('Print Â· 80mm'),
+                    child: const Text('Print · 80mm'),
                   ),
                 ),
               ],
@@ -796,7 +796,7 @@ class _StickyBottom extends StatelessWidget {
   }
 }
 
-// â”€â”€ Scan icon button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Scan icon button ──────────────────────────────────────────────────────────
 
 class _ScanIconButton extends StatelessWidget {
   const _ScanIconButton(
@@ -829,7 +829,7 @@ class _ScanIconButton extends StatelessWidget {
   }
 }
 
-// â”€â”€ Success view â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Success view ──────────────────────────────────────────────────────────────
 
 class _SuccessView extends StatelessWidget {
   const _SuccessView({required this.result, required this.onNewSale});

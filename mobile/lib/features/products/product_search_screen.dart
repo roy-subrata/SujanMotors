@@ -181,7 +181,7 @@ class _ProductSearchScreenState extends ConsumerState<ProductSearchScreen> {
   }
 }
 
-// â”€â”€ Category tab row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Category tab row ──────────────────────────────────────────────────────────
 
 class _CategoryTabRow extends StatelessWidget {
   const _CategoryTabRow({
@@ -279,7 +279,7 @@ class _Tab extends StatelessWidget {
   }
 }
 
-// â”€â”€ Category picker sheet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Category picker sheet ─────────────────────────────────────────────────────
 
 class _CategoryPickerSheet extends ConsumerStatefulWidget {
   const _CategoryPickerSheet({required this.onSelected});
@@ -371,7 +371,7 @@ class _CategoryPickerSheetState extends ConsumerState<_CategoryPickerSheet> {
   }
 }
 
-// â”€â”€ Product card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Product card ──────────────────────────────────────────────────────────────
 
 class _ProductCard extends ConsumerWidget {
   const _ProductCard({
@@ -394,7 +394,7 @@ class _ProductCard extends ConsumerWidget {
     final subtitle = [
       if ((sku).isNotEmpty) sku,
       if (brand != null && brand.isNotEmpty) brand,
-    ].join(' Â· ');
+    ].join(' · ');
 
     final inStock = stock != null && stock > 0;
     final stockLabel = stock != null
@@ -470,7 +470,7 @@ class _ProductCard extends ConsumerWidget {
                       price != null
                           ? formatCurrency(price,
                               currency: product.pricing?.currency)
-                          : 'â€”',
+                          : '—',
                       style: GoogleFonts.instrumentSans(
                         fontSize: 13.5,
                         fontWeight: FontWeight.w600

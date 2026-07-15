@@ -377,7 +377,7 @@ class _CustomerStatementScreenState
   }
 }
 
-// â”€â”€ Summary bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Summary bar ───────────────────────────────────────────────────────────────
 
 class _SummaryBar extends StatelessWidget {
   const _SummaryBar({required this.summary});
@@ -394,7 +394,7 @@ class _SummaryBar extends StatelessWidget {
         children: [
           Expanded(
             child: Text(
-              '${summary.customerName} Â· Purchased ${formatCurrency(summary.totalPurchaseAmount)} Â· Paid ${formatCurrency(summary.totalPaidAmount)}',
+              '${summary.customerName} · Purchased ${formatCurrency(summary.totalPurchaseAmount)} · Paid ${formatCurrency(summary.totalPaidAmount)}',
               style: GoogleFonts.instrumentSans(
                 fontSize: 12,
                 color: hasDue ? AppColors.red : AppColors.muted,
@@ -417,7 +417,7 @@ class _SummaryBar extends StatelessWidget {
   }
 }
 
-// â”€â”€ Invoice divider â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Invoice divider ───────────────────────────────────────────────────────────
 
 class _InvoiceDivider extends StatelessWidget {
   const _InvoiceDivider({
@@ -465,7 +465,7 @@ class _InvoiceDivider extends StatelessWidget {
   }
 }
 
-// â”€â”€ Purchase item tile â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Purchase item tile ────────────────────────────────────────────────────────
 
 class _PurchaseItemTile extends StatelessWidget {
   const _PurchaseItemTile({required this.item});
@@ -515,7 +515,7 @@ class _PurchaseItemTile extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                '${item.quantity} Ã— ${formatCurrency(item.unitPrice)}',
+                '${item.quantity} × ${formatCurrency(item.unitPrice)}',
                 style: GoogleFonts.instrumentSans(
                   fontSize: 11
                 ),

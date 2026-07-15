@@ -80,7 +80,7 @@ class ProductDetailScreen extends ConsumerWidget {
   }
 }
 
-// â”€â”€ Body â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Body ─────────────────────────────────────────────────────────────────────
 
 class _Body extends ConsumerWidget {
   const _Body({required this.product});
@@ -135,7 +135,7 @@ class _Body extends ConsumerWidget {
           ListView(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 110),
             children: [
-              // â”€â”€ Hero card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+              // ── Hero card ──────────────────────────────────────────────
               _HeroCard(
                 product: product,
                 costPrice: costPrice,
@@ -143,7 +143,7 @@ class _Body extends ConsumerWidget {
               ),
               const SizedBox(height: 12),
 
-              // â”€â”€ 3-stat grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+              // ── 3-stat grid ────────────────────────────────────────────
               _StatsGrid(
                 totalQty: stockLoading ? null : totalQty,
                 reserved: stockLoading ? null : totalReserved,
@@ -151,7 +151,7 @@ class _Body extends ConsumerWidget {
               ),
               const SizedBox(height: 12),
 
-              // â”€â”€ Stock by warehouse Â· lots â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+              // ── Stock by warehouse · lots ──────────────────────────────
               if (stockLoading)
                 const _LoadingCard(height: 140)
               else if (warehouseIds.isNotEmpty)
@@ -162,26 +162,26 @@ class _Body extends ConsumerWidget {
                 ),
               const SizedBox(height: 12),
 
-              // â”€â”€ Product info â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+              // ── Product info ───────────────────────────────────────────
               _ProductInfoCard(product: product),
               const SizedBox(height: 12),
 
-              // â”€â”€ Images â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+              // ── Images ───────────────────────────────────────────────
               _ImagesCard(productId: product.id, productName: product.name),
               const SizedBox(height: 12),
 
-              // â”€â”€ Specifications (variant attributes) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+              // ── Specifications (variant attributes) ────────────────────
               _SpecsCard(productId: product.id),
 
-              // â”€â”€ Storage locations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+              // ── Storage locations ──────────────────────────────────────
               _LocationsCard(partId: product.id),
 
-              // â”€â”€ Vehicle compatibility â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+              // ── Vehicle compatibility ──────────────────────────────────
               _CompatibilityCard(partId: product.id),
             ],
           ),
 
-          // â”€â”€ Bottom gradient action bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+          // ── Bottom gradient action bar ─────────────────────────────────
           Positioned(
             left: 0,
             right: 0,
@@ -194,7 +194,7 @@ class _Body extends ConsumerWidget {
   }
 }
 
-// â”€â”€ Hero card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Hero card ─────────────────────────────────────────────────────────────────
 
 class _HeroCard extends ConsumerWidget {
   const _HeroCard({
@@ -219,7 +219,7 @@ class _HeroCard extends ConsumerWidget {
           priceCode, showActual, costPrice!, currency: costCurrency);
       if (showActual || priceCode == null || !priceCode.isConfigured) {
         final margin = ((price - costPrice!) / price * 100).round();
-        marginText = 'cost $costFormatted Â· margin $margin%';
+        marginText = 'cost $costFormatted · margin $margin%';
       } else {
         marginText = 'cost $costFormatted';
       }
@@ -232,7 +232,7 @@ class _HeroCard extends ConsumerWidget {
       'SKU ${product.sku}',
       if (product.brand != null) product.brand!.name,
       if (product.category != null) product.category!.name,
-    ].join(' Â· ');
+    ].join(' · ');
 
     final images = (ref.watch(productMediaProvider(product.id)).value ??
             const <ProductMedia>[])
@@ -273,7 +273,7 @@ class _HeroCard extends ConsumerWidget {
                       price != null
                           ? formatCurrency(price,
                               currency: product.pricing?.currency)
-                          : 'â€”',
+                          : '—',
                       style: GoogleFonts.instrumentSans(
                         fontSize: 18,
                         fontWeight: FontWeight.w700
@@ -300,9 +300,9 @@ class _HeroCard extends ConsumerWidget {
   }
 }
 
-// â”€â”€ Product image thumbnail + gallery â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Product image thumbnail + gallery ─────────────────────────────────────────
 
-/// 72Ã—72 hero thumbnail. Shows the first product image (the API orders
+/// 72×72 hero thumbnail. Shows the first product image (the API orders
 /// primary-first) and opens a swipeable full-screen gallery on tap; falls back
 /// to the checkerboard placeholder when the product has no images.
 class _ProductThumb extends StatelessWidget {
@@ -448,7 +448,7 @@ class _ImageGalleryScreenState extends State<_ImageGalleryScreen> {
   }
 }
 
-// â”€â”€ 3-stat grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── 3-stat grid ───────────────────────────────────────────────────────────────
 
 class _StatsGrid extends StatelessWidget {
   const _StatsGrid({
@@ -467,15 +467,15 @@ class _StatsGrid extends StatelessWidget {
       children: [
         _StatCell(
             label: 'Total stock',
-            value: totalQty != null ? '$totalQty pcs' : 'â€”'),
+            value: totalQty != null ? '$totalQty pcs' : '—'),
         const SizedBox(width: 8),
         _StatCell(
             label: 'Reserved',
-            value: reserved != null ? '$reserved' : 'â€”'),
+            value: reserved != null ? '$reserved' : '—'),
         const SizedBox(width: 8),
         _StatCell(
             label: 'Reorder at',
-            value: reorderAt != null ? '$reorderAt' : 'â€”'),
+            value: reorderAt != null ? '$reorderAt' : '—'),
       ],
     );
   }
@@ -516,7 +516,7 @@ class _StatCell extends StatelessWidget {
   }
 }
 
-// â”€â”€ Warehouse + lots card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Warehouse + lots card ─────────────────────────────────────────────────────
 
 class _WarehouseLotCard extends StatelessWidget {
   const _WarehouseLotCard({
@@ -546,7 +546,7 @@ class _WarehouseLotCard extends StatelessWidget {
             child: Row(
               children: [
                 Expanded(
-                  child: Text('Stock by warehouse Â· lots',
+                  child: Text('Stock by warehouse · lots',
                       style: GoogleFonts.instrumentSans(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -600,7 +600,7 @@ class _WarehouseSection extends StatelessWidget {
               const EdgeInsets.fromLTRB(15, 11, 15, 11),
           child: Row(
             children: [
-              const Text('ðŸ¬',
+              const Text('🏬',
                   style: TextStyle(fontSize: 13)),
               const SizedBox(width: 9),
               Expanded(
@@ -660,7 +660,7 @@ class _LotRow extends ConsumerWidget {
                 const SizedBox(height: 1),
                 Text(
                   'Recv ${formatDate(lot.receivingDate)}'
-                  ' Â· cost $costLabel',
+                  ' · cost $costLabel',
                   style: GoogleFonts.instrumentSans(
                       fontSize: 11, color: AppColors.muted),
                 ),
@@ -681,7 +681,7 @@ class _LotRow extends ConsumerWidget {
   }
 }
 
-// â”€â”€ Product info card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Product info card ─────────────────────────────────────────────────────────
 
 class _ProductInfoCard extends StatelessWidget {
   const _ProductInfoCard({required this.product});
@@ -748,7 +748,7 @@ class _ProductInfoCard extends StatelessWidget {
   }
 }
 
-// â”€â”€ Images card (view + add + manage) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Images card (view + add + manage) ────────────────────────────────────────
 
 /// Horizontal strip of the product's images with an add-photo tile.
 /// Tap a thumbnail to open the gallery at that image; long-press for
@@ -1061,7 +1061,7 @@ class _AddImageTile extends StatelessWidget {
   }
 }
 
-// â”€â”€ Specs / variant attributes card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Specs / variant attributes card ──────────────────────────────────────────
 
 class _SpecsCard extends ConsumerWidget {
   const _SpecsCard({required this.productId});
@@ -1129,7 +1129,7 @@ class _SpecsCard extends ConsumerWidget {
   }
 }
 
-// â”€â”€ Storage locations card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Storage locations card ────────────────────────────────────────────────────
 
 class _LocationsCard extends ConsumerWidget {
   const _LocationsCard({required this.partId});
@@ -1235,7 +1235,7 @@ class _LocationRow extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Section ${location.section} Â· Shelf ${location.shelf}',
+                  'Section ${location.section} · Shelf ${location.shelf}',
                   style: GoogleFonts.instrumentSans(
                       fontSize: 11.5, color: AppColors.muted),
                 ),
@@ -1248,7 +1248,7 @@ class _LocationRow extends StatelessWidget {
   }
 }
 
-// â”€â”€ Vehicle compatibility card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Vehicle compatibility card ────────────────────────────────────────────────
 
 class _CompatibilityCard extends ConsumerWidget {
   const _CompatibilityCard({required this.partId});
@@ -1362,7 +1362,7 @@ class _CompatRow extends StatelessWidget {
   }
 }
 
-// â”€â”€ Bottom gradient action bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Bottom gradient action bar ────────────────────────────────────────────────
 
 class _BottomBar extends ConsumerWidget {
   const _BottomBar({required this.product, required this.levels});
@@ -1479,9 +1479,9 @@ class _BottomBar extends ConsumerWidget {
   }
 }
 
-// â”€â”€ Shared layout helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Shared layout helpers ─────────────────────────────────────────────────────
 
-/// White bordered card â€” no internal padding (caller controls it per section).
+/// White bordered card — no internal padding (caller controls it per section).
 class _SectionCard extends StatelessWidget {
   const _SectionCard({required this.title, required this.child});
 
@@ -1519,7 +1519,7 @@ class _SectionCard extends StatelessWidget {
   }
 }
 
-/// Card with uniform padding â€” for the hero.
+/// Card with uniform padding — for the hero.
 class _SurfaceCard extends StatelessWidget {
   const _SurfaceCard(
       {required this.padding, required this.child});

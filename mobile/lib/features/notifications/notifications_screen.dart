@@ -21,7 +21,7 @@ class NotificationsScreen extends ConsumerWidget {
       appBar: AppBar(
         flexibleSpace: const AppBarGradient(),
         // Reached both by pushing (bell icon) and by go()-ing (drawer link,
-        // which replaces the stack and leaves nothing to pop) â€” always fall
+        // which replaces the stack and leaves nothing to pop) — always fall
         // back to Home so a back affordance is guaranteed either way.
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -72,7 +72,7 @@ class _StatusBar extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     final (color, label, icon) = switch (status) {
       HubStatus.connected => (Colors.green, 'Live', Icons.bolt),
-      HubStatus.connecting => (Colors.orange, 'Connectingâ€¦', Icons.sync),
+      HubStatus.connecting => (Colors.orange, 'Connecting…', Icons.sync),
       HubStatus.disconnected => (Colors.grey, 'Offline', Icons.cloud_off),
     };
     return SizedBox(
@@ -112,8 +112,8 @@ class _NotificationTile extends StatelessWidget {
         ),
       ),
       subtitle: Text(
-        '${sale.customerName.isEmpty ? 'Walk-in' : sale.customerName} â€¢ '
-        '${formatCurrency(sale.grandTotal, currency: sale.currency)} â€¢ '
+        '${sale.customerName.isEmpty ? 'Walk-in' : sale.customerName} • '
+        '${formatCurrency(sale.grandTotal, currency: sale.currency)} • '
         '${sale.saleChannel}',
       ),
       trailing: Text(

@@ -139,7 +139,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
   }
 }
 
-// â”€â”€ Customer card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Customer card ─────────────────────────────────────────────────────────────
 
 class _CustomerCard extends StatelessWidget {
   const _CustomerCard({required this.customer});

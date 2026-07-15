@@ -118,7 +118,7 @@ class _DateBar extends StatelessWidget {
                       const Icon(Icons.calendar_today_outlined, size: 16),
                       const SizedBox(width: 8),
                       Text(
-                        isToday ? 'Today Â· ${formatDate(date)}'
+                        isToday ? 'Today · ${formatDate(date)}'
                                 : formatDayLong(date),
                         style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
@@ -400,7 +400,7 @@ class _LedgerTile extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 2),
-                  Text(subtitleParts.join('  â€¢  '),
+                  Text(subtitleParts.join('  •  '),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodySmall),
@@ -412,7 +412,7 @@ class _LedgerTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  '${isIn ? '+' : 'âˆ’'}${formatCurrency(row.amount, currency: row.currency)}',
+                  '${isIn ? '+' : '−'}${formatCurrency(row.amount, currency: row.currency)}',
                   style: TextStyle(fontWeight: FontWeight.w700, color: color),
                 ),
                 const SizedBox(height: 2),

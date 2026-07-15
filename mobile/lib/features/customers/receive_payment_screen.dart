@@ -209,7 +209,7 @@ class _ReceivePaymentScreenState
                       fontWeight: FontWeight.w700
                     ),
                     decoration: const InputDecoration(
-                      prefixText: 'à§³ ',
+                      prefixText: '৳ ',
                     ),
                     validator: (v) {
                       if (v == null || v.isEmpty) {
@@ -228,17 +228,17 @@ class _ReceivePaymentScreenState
                     spacing: 8,
                     children: [
                       _QuickChip(
-                          label: 'à§³ 5,000',
+                          label: '৳ 5,000',
                           onTap: () =>
                               _amountCtrl.text = '5000'),
                       _QuickChip(
-                          label: 'à§³ 10,000',
+                          label: '৳ 10,000',
                           onTap: () =>
                               _amountCtrl.text = '10000'),
                       if (customer.hasDue)
                         _QuickChip(
                           label:
-                              'Full Â· ${formatCurrency(customer.dueAmount)}',
+                              'Full · ${formatCurrency(customer.dueAmount)}',
                           onTap: () => _amountCtrl.text =
                               customer.dueAmount
                                   .toStringAsFixed(2),

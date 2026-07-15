@@ -5,7 +5,7 @@ import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_scaffold.dart';
 import '../../shared/widgets/design_system.dart';
 
-/// Supplier list screen â€” placeholder pending backend supplier API.
+/// Supplier list screen — placeholder pending backend supplier API.
 class SuppliersScreen extends StatefulWidget {
   const SuppliersScreen({super.key});
 
