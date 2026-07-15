@@ -41,6 +41,10 @@ public class DatabaseSeeder
             // Reserved walk-in customer for anonymous/cash sales
             await SeedWalkInCustomerAsync(customerRepository, logger);
 
+            // Default database-backup schedule settings (admin-editable from the UI)
+            var settingsRepository = scope.ServiceProvider.GetRequiredService<IApplicationSettingsRepository>();
+            await SeedBackupSettingsAsync(settingsRepository, logger);
+
             logger.LogInformation("Database seeding completed successfully");
         }
         catch (Exception ex)
@@ -184,5 +188,30 @@ public class DatabaseSeeder
         await customerRepository.AddAsync(walkInCustomer);
 
         logger.LogInformation("Walk-in customer seeded successfully");
+    }
+
+    /// <summary>
+    /// Seeds default BACKUP category settings if missing. Values are edited by the admin
+    /// from the Backups page; the backup scheduler re-reads them every poll cycle.
+    /// </summary>
+    private static async Task SeedBackupSettingsAsync(IApplicationSettingsRepository settingsRepository, ILogger logger)
+    {
+        var defaults = new (string Key, string Value, string DataType, string Description)[]
+        {
+            ("BACKUP:ENABLED", "false", "BOOL", "Whether scheduled daily database backups are enabled"),
+            ("BACKUP:LOCAL_TIME", "02:00", "STRING", "Shop-local time of day (HH:mm) to run the daily backup"),
+            ("BACKUP:TZ_OFFSET_MINUTES", "360", "INT", "Minutes to shift UTC to the shop's local clock (360 = UTC+6)"),
+            ("BACKUP:RETENTION_COUNT", "14", "INT", "Number of most recent backups to keep locally and on Google Drive"),
+            ("BACKUP:GDRIVE_FOLDER_ID", "", "STRING", "Google Drive folder id shared with the service account; empty = skip upload")
+        };
+
+        foreach (var (key, value, dataType, description) in defaults)
+        {
+            if (await settingsRepository.ExistsByKeyAsync(key))
+                continue;
+
+            await settingsRepository.SetValueAsync(key, value, dataType, "BACKUP", description, isSystemSetting: true);
+            logger.LogInformation("Seeded backup setting {Key}", key);
+        }
     }
 }
