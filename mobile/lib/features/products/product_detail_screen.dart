@@ -2,6 +2,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../core/network/app_exception.dart';
 import '../../core/theme/app_theme.dart';
@@ -17,6 +18,7 @@ import '../../shared/models/stock.dart';
 import '../../shared/models/vehicle_compatibility.dart';
 import '../../shared/widgets/state_views.dart';
 import 'products_providers.dart';
+import 'products_repository.dart';
 
 class ProductDetailScreen extends ConsumerWidget {
   const ProductDetailScreen({super.key, required this.productId});
@@ -162,6 +164,10 @@ class _Body extends ConsumerWidget {
 
               // â”€â”€ Product info â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
               _ProductInfoCard(product: product),
+              const SizedBox(height: 12),
+
+              // â”€â”€ Images â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+              _ImagesCard(productId: product.id, productName: product.name),
               const SizedBox(height: 12),
 
               // â”€â”€ Specifications (variant attributes) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -367,17 +373,30 @@ class _ProductThumb extends StatelessWidget {
 
 /// Full-screen swipeable, pinch-to-zoom image gallery.
 class _ImageGalleryScreen extends StatefulWidget {
-  const _ImageGalleryScreen({required this.images, required this.title});
+  const _ImageGalleryScreen({
+    required this.images,
+    required this.title,
+    this.initialIndex = 0,
+  });
 
   final List<ProductMedia> images;
   final String title;
+  final int initialIndex;
 
   @override
   State<_ImageGalleryScreen> createState() => _ImageGalleryScreenState();
 }
 
 class _ImageGalleryScreenState extends State<_ImageGalleryScreen> {
-  int _index = 0;
+  late int _index = widget.initialIndex;
+  late final PageController _controller =
+      PageController(initialPage: widget.initialIndex);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -397,6 +416,7 @@ class _ImageGalleryScreenState extends State<_ImageGalleryScreen> {
         ),
       ),
       body: PageView.builder(
+        controller: _controller,
         itemCount: widget.images.length,
         onPageChanged: (i) => setState(() => _index = i),
         itemBuilder: (context, i) => InteractiveViewer(
@@ -723,6 +743,319 @@ class _ProductInfoCard extends StatelessWidget {
             ],
           );
         }).toList(),
+      ),
+    );
+  }
+}
+
+// â”€â”€ Images card (view + add + manage) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+/// Horizontal strip of the product's images with an add-photo tile.
+/// Tap a thumbnail to open the gallery at that image; long-press for
+/// set-primary / delete. Uploading needs the inventory.edit permission —
+/// the API's 403 surfaces as a snackbar.
+class _ImagesCard extends ConsumerStatefulWidget {
+  const _ImagesCard({required this.productId, required this.productName});
+
+  final String productId;
+  final String productName;
+
+  @override
+  ConsumerState<_ImagesCard> createState() => _ImagesCardState();
+}
+
+class _ImagesCardState extends ConsumerState<_ImagesCard> {
+  bool _busy = false;
+
+  Future<void> _pickAndUpload(ImageSource source) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final XFile? picked;
+    try {
+      picked = await ImagePicker().pickImage(
+        source: source,
+        maxWidth: 1600,
+        maxHeight: 1600,
+        imageQuality: 85,
+      );
+    } catch (_) {
+      messenger.showSnackBar(SnackBar(
+        content: Text(source == ImageSource.camera
+            ? 'Could not open the camera.'
+            : 'Could not open the photo gallery.'),
+        backgroundColor: AppColors.red,
+        behavior: SnackBarBehavior.floating,
+      ));
+      return;
+    }
+    if (picked == null || !mounted) return;
+
+    setState(() => _busy = true);
+    try {
+      await ref.read(productsRepositoryProvider).uploadProductImage(
+            productId: widget.productId,
+            filePath: picked.path,
+            fileName: picked.name,
+          );
+      ref.invalidate(productMediaProvider(widget.productId));
+      messenger.showSnackBar(const SnackBar(
+        content: Text('Image added'),
+        duration: Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+      ));
+    } on AppException catch (e) {
+      messenger.showSnackBar(SnackBar(
+        content: Text(e.message),
+        backgroundColor: AppColors.red,
+        behavior: SnackBarBehavior.floating,
+      ));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  void _showAddSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      useSafeArea: true,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: Text('Take photo',
+                  style: GoogleFonts.instrumentSans(fontSize: 14)),
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                _pickAndUpload(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: Text('Choose from gallery',
+                  style: GoogleFonts.instrumentSans(fontSize: 14)),
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                _pickAndUpload(ImageSource.gallery);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _runMediaAction(
+      Future<void> Function(ProductsRepository repo) action) async {
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _busy = true);
+    try {
+      await action(ref.read(productsRepositoryProvider));
+      ref.invalidate(productMediaProvider(widget.productId));
+    } on AppException catch (e) {
+      messenger.showSnackBar(SnackBar(
+        content: Text(e.message),
+        backgroundColor: AppColors.red,
+        behavior: SnackBarBehavior.floating,
+      ));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  void _showManageSheet(ProductMedia media) {
+    showModalBottomSheet<void>(
+      context: context,
+      useSafeArea: true,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (!media.isPrimary)
+              ListTile(
+                leading: const Icon(Icons.star_outline_rounded),
+                title: Text('Set as primary',
+                    style: GoogleFonts.instrumentSans(fontSize: 14)),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  _runMediaAction(
+                      (repo) => repo.setPrimaryMedia(widget.productId, media.id));
+                },
+              ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline_rounded,
+                  color: AppColors.red),
+              title: Text('Delete image',
+                  style: GoogleFonts.instrumentSans(
+                      fontSize: 14, color: AppColors.red)),
+              onTap: () async {
+                Navigator.of(sheetContext).pop();
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder: (dialogContext) => AlertDialog(
+                    title: const Text('Delete image?'),
+                    content:
+                        const Text('This removes the image from the product.'),
+                    actions: [
+                      TextButton(
+                        onPressed: () =>
+                            Navigator.of(dialogContext).pop(false),
+                        child: const Text('Cancel'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.of(dialogContext).pop(true),
+                        child: const Text('Delete',
+                            style: TextStyle(color: AppColors.red)),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirmed == true) {
+                  _runMediaAction(
+                      (repo) => repo.deleteMedia(widget.productId, media.id));
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final images = (ref.watch(productMediaProvider(widget.productId)).value ??
+            const <ProductMedia>[])
+        .where((m) => m.isImage)
+        .toList();
+
+    return _SectionCard(
+      title: 'Images',
+      child: SizedBox(
+        height: 96,
+        child: ListView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.fromLTRB(15, 12, 15, 12),
+          children: [
+            for (final (i, media) in images.indexed) ...[
+              _ImageTile(
+                media: media,
+                onTap: () =>
+                    Navigator.of(context).push(MaterialPageRoute<void>(
+                  builder: (_) => _ImageGalleryScreen(
+                    images: images,
+                    title: widget.productName,
+                    initialIndex: i,
+                  ),
+                )),
+                onLongPress: _busy ? null : () => _showManageSheet(media),
+              ),
+              const SizedBox(width: 8),
+            ],
+            _AddImageTile(
+              busy: _busy,
+              onTap: _busy ? null : _showAddSheet,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ImageTile extends StatelessWidget {
+  const _ImageTile({
+    required this.media,
+    required this.onTap,
+    required this.onLongPress,
+  });
+
+  final ProductMedia media;
+  final VoidCallback onTap;
+  final VoidCallback? onLongPress;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      onLongPress: onLongPress,
+      child: Stack(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                border:
+                    Border.all(color: Theme.of(context).colorScheme.outline),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Image.network(
+                media.resolvedUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => const _CheckerPlaceholder(),
+                loadingBuilder: (context, child, progress) =>
+                    progress == null ? child : const _CheckerPlaceholder(),
+              ),
+            ),
+          ),
+          if (media.isPrimary)
+            Positioned(
+              left: 3,
+              top: 3,
+              child: Container(
+                padding: const EdgeInsets.all(2),
+                decoration: BoxDecoration(
+                  color: Colors.black.withAlpha(140),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Icon(Icons.star_rounded,
+                    size: 12, color: Colors.amber),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AddImageTile extends StatelessWidget {
+  const _AddImageTile({required this.busy, required this.onTap});
+
+  final bool busy;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 72,
+        height: 72,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: scheme.outline),
+        ),
+        alignment: Alignment.center,
+        child: busy
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.add_a_photo_outlined,
+                      size: 20, color: AppColors.secondary),
+                  const SizedBox(height: 3),
+                  Text('Add',
+                      style: GoogleFonts.instrumentSans(
+                          fontSize: 10.5, color: AppColors.muted)),
+                ],
+              ),
       ),
     );
   }

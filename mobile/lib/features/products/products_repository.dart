@@ -122,6 +122,50 @@ class ProductsRepository {
     }
   }
 
+  /// Uploads an image file (POST /files, multipart) and attaches it to the
+  /// product (POST /products/{id}/media). The API auto-marks the first media
+  /// of a product as primary. Requires the inventory.edit permission.
+  Future<void> uploadProductImage({
+    required String productId,
+    required String filePath,
+    required String fileName,
+  }) async {
+    try {
+      final form = FormData.fromMap({
+        'file': await MultipartFile.fromFile(filePath, filename: fileName),
+        'ownerType': 'PRODUCT',
+        'ownerId': productId,
+      });
+      final uploadRes = await _dio.post('/files', data: form);
+      final stored =
+          (uploadRes.data as Map<String, dynamic>)['data'] as Map;
+      await _dio.post('/products/$productId/media', data: {
+        'url': stored['url'],
+        'mediaType': 'image',
+        'fileName': stored['fileName'],
+      });
+    } on DioException catch (e) {
+      throw AppException.fromDio(e);
+    }
+  }
+
+  /// Marks one media item as the product's primary image.
+  Future<void> setPrimaryMedia(String productId, String mediaId) async {
+    try {
+      await _dio.patch('/products/$productId/media/$mediaId/primary');
+    } on DioException catch (e) {
+      throw AppException.fromDio(e);
+    }
+  }
+
+  Future<void> deleteMedia(String productId, String mediaId) async {
+    try {
+      await _dio.delete('/products/$productId/media/$mediaId');
+    } on DioException catch (e) {
+      throw AppException.fromDio(e);
+    }
+  }
+
   Future<ProductByCode> getByCode(String code) async {
     try {
       final res = await _dio.get('/products/by-code',
