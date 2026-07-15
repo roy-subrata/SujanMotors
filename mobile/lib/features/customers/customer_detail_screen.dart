@@ -943,15 +943,23 @@ class _StatBox extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: GoogleFonts.instrumentSans(
                     fontSize: 10.5, color: AppColors.muted)),
             const SizedBox(height: 3),
-            Text(value,
-                style: GoogleFonts.instrumentSans(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: valueColor ?? AppColors.ink,
-                )),
+            // Long amounts (৳ 1,234,567.00) shrink to fit rather than wrap.
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(value,
+                  maxLines: 1,
+                  style: GoogleFonts.instrumentSans(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: valueColor ?? AppColors.ink,
+                  )),
+            ),
           ],
         ),
       ),
@@ -994,12 +1002,20 @@ class _ActionButton extends StatelessWidget {
                 size: 15,
                 color: filled ? Colors.white : AppColors.secondary),
             const SizedBox(width: 6),
-            Text(label,
-                style: GoogleFonts.instrumentSans(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w600,
-                  color: filled ? Colors.white : AppColors.ink,
-                )),
+            // Labels ("Receive payment") outgrow the fixed grid cell at
+            // larger text scales — shrink to fit instead of overflowing.
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(label,
+                    maxLines: 1,
+                    style: GoogleFonts.instrumentSans(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                      color: filled ? Colors.white : AppColors.ink,
+                    )),
+              ),
+            ),
           ],
         ),
       ),

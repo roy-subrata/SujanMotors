@@ -15,6 +15,7 @@ using AutoPartsShop.Domain.Entities;
 using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace AutoPartShop.Api.Controllers;
 
@@ -41,6 +42,7 @@ public class ProductsController : ControllerBase
     private readonly ICurrentUserService _currentUserService;
     private readonly IEmbeddingService _embeddingService;
     private readonly IProductEmbeddingRepository _embeddingRepository;
+    private readonly AutoPartDbContext _dbContext;
     private readonly ILogger<ProductsController> _logger;
 
     public ProductsController(
@@ -55,6 +57,7 @@ public class ProductsController : ControllerBase
         ICurrentUserService currentUserService,
         IEmbeddingService embeddingService,
         IProductEmbeddingRepository embeddingRepository,
+        AutoPartDbContext dbContext,
         ILogger<ProductsController> logger)
     {
         _productRepository = productRepository;
@@ -68,6 +71,7 @@ public class ProductsController : ControllerBase
         _currentUserService = currentUserService;
         _embeddingService = embeddingService;
         _embeddingRepository = embeddingRepository;
+        _dbContext = dbContext;
         _logger = logger;
     }
 
@@ -86,6 +90,7 @@ public class ProductsController : ControllerBase
         [FromQuery] string? sortBy,
         [FromQuery] string? sortDirection,
         [FromQuery] bool flattenVariants = false,
+        [FromQuery] bool lowStockOnly = false,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
@@ -101,7 +106,8 @@ public class ProductsController : ControllerBase
             PageSize = pageSize,
             IsActive = isActive,
             FlattenVariants = flattenVariants,
-            CategoryId = categoryId
+            CategoryId = categoryId,
+            LowStockOnly = lowStockOnly
         };
 
         if (!string.IsNullOrWhiteSpace(sortBy))
@@ -265,6 +271,103 @@ public class ProductsController : ControllerBase
         });
 
         return Ok(ApiResponse<object>.Ok(response));
+    }
+
+    // â”€â”€ Specifications (simple product-level key/value specs) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+    /// <summary>
+    /// Descriptive specs for a product (Label/Value pairs), ordered for display.
+    /// These are the simple product-scoped specs, not the variant attribute EAV.
+    /// </summary>
+    [HttpGet("{id:guid}/specifications")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetSpecifications(Guid id, CancellationToken cancellationToken)
+    {
+        var specs = await _dbContext.ProductSpecifications
+            .Where(s => s.PartId == id && !s.Isdeleted)
+            .OrderBy(s => s.DisplayOrder)
+            .AsNoTracking()
+            .Select(s => new { s.Id, s.Label, s.Key, s.Value, s.DisplayOrder })
+            .ToListAsync(cancellationToken);
+
+        return Ok(ApiResponse<object>.Ok(specs));
+    }
+
+    /// <summary>
+    /// Replaces a product's specs with the supplied list (full replace keeps the
+    /// mobile editor simple). Order follows array position.
+    /// </summary>
+    [HttpPut("{id:guid}/specifications")]
+    [HasPermission(Permissions.InventoryEdit)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateSpecifications(Guid id, [FromBody] UpdateSpecificationsRequest request, CancellationToken cancellationToken)
+    {
+        if (!await _productRepository.ExistsAsync(id, cancellationToken))
+            return NotFound(ApiError.NotFound($"Product '{id}' not found", Request.Path));
+
+        var existing = await _dbContext.ProductSpecifications
+            .Where(s => s.PartId == id)
+            .ToListAsync(cancellationToken);
+        _dbContext.ProductSpecifications.RemoveRange(existing);
+
+        var user = _currentUserService.GetCurrentUsername();
+        var order = 0;
+        foreach (var item in request.Specifications ?? [])
+        {
+            if (string.IsNullOrWhiteSpace(item.Label)) continue;
+            var spec = ProductSpecification.Create(id, item.Label, item.Value ?? string.Empty, order++);
+            spec.CreatedBy = user;
+            spec.ModifiedBy = user;
+            _dbContext.ProductSpecifications.Add(spec);
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        return await GetSpecifications(id, cancellationToken);
+    }
+
+    /// <summary>
+    /// Typeahead suggestions for the spec editor. field=label returns distinct
+    /// labels used across the catalog; field=value returns distinct values
+    /// (optionally scoped to a label key) so staff converge on consistent terms
+    /// — the thing that keeps ecommerce facets clean later.
+    /// </summary>
+    [HttpGet("specifications/suggestions")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetSpecificationSuggestions(
+        [FromQuery] string field,
+        [FromQuery] string? query,
+        [FromQuery] string? labelKey,
+        CancellationToken cancellationToken = default)
+    {
+        var q = _dbContext.ProductSpecifications.Where(s => !s.Isdeleted);
+        var term = (query ?? string.Empty).Trim().ToLower();
+
+        List<string> results;
+        if (string.Equals(field, "value", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!string.IsNullOrWhiteSpace(labelKey))
+            {
+                var key = ProductSpecification.Normalize(labelKey);
+                q = q.Where(s => s.Key == key);
+            }
+            if (term.Length > 0)
+                q = q.Where(s => s.Value.ToLower().Contains(term));
+            results = await q.Select(s => s.Value)
+                .Where(v => v != "")
+                .Distinct().OrderBy(v => v).Take(10)
+                .ToListAsync(cancellationToken);
+        }
+        else
+        {
+            if (term.Length > 0)
+                q = q.Where(s => s.Label.ToLower().Contains(term));
+            results = await q.Select(s => s.Label)
+                .Distinct().OrderBy(l => l).Take(10)
+                .ToListAsync(cancellationToken);
+        }
+
+        return Ok(ApiResponse<object>.Ok(results));
     }
 
     // â”€â”€ Create â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -686,4 +789,15 @@ public class ProductsController : ControllerBase
 public class SetProductStatusRequest
 {
     public bool IsActive { get; set; }
+}
+
+public class UpdateSpecificationsRequest
+{
+    public List<SpecificationItem>? Specifications { get; set; }
+}
+
+public class SpecificationItem
+{
+    public string Label { get; set; } = string.Empty;
+    public string? Value { get; set; }
 }

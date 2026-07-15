@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../core/i18n/app_language_controller.dart';
+import '../../core/i18n/strings.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/theme_mode_controller.dart';
 import '../../features/auth/auth_controller.dart';
@@ -60,7 +62,9 @@ class AppScaffold extends ConsumerWidget {
           ...actions,
           // Theme toggle — sun toggles to light, moon toggles to dark
           IconButton(
-            tooltip: isDark ? 'Switch to light' : 'Switch to dark',
+            tooltip: isDark
+                ? S.of(context).switchToLight
+                : S.of(context).switchToDark,
             icon: Icon(
               isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
               size: 21,
@@ -119,34 +123,35 @@ class AppScaffold extends ConsumerWidget {
 class _AppDrawer extends ConsumerWidget {
   const _AppDrawer();
 
-  static const _navItems = [
-    (icon: Icons.home_outlined, label: 'Dashboard', route: '/'),
-    (icon: Icons.inventory_2_outlined, label: 'Products', route: '/products'),
-    (icon: Icons.people_alt_outlined, label: 'Customers', route: '/customers'),
-    (icon: Icons.receipt_long_outlined, label: 'Sales', route: '/sales'),
-    (icon: Icons.store_outlined, label: 'Suppliers', route: '/suppliers'),
-    (
-      icon: Icons.account_balance_wallet_outlined,
-      label: 'Cash Book',
-      route: '/cashbook'
-    ),
-    (
-      icon: Icons.move_to_inbox_outlined,
-      label: 'Stock In',
-      route: '/stock-in'
-    ),
-    (
-      icon: Icons.notifications_outlined,
-      label: 'Notifications',
-      route: '/notifications'
-    ),
-  ];
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final session = ref.watch(authControllerProvider).asData?.value;
     final scheme = Theme.of(context).colorScheme;
     final loc = GoRouterState.of(context).matchedLocation;
+    final s = S.of(context);
+
+    final navItems = [
+      (icon: Icons.home_outlined, label: s.dashboard, route: '/'),
+      (icon: Icons.inventory_2_outlined, label: s.products, route: '/products'),
+      (icon: Icons.people_alt_outlined, label: s.customers, route: '/customers'),
+      (icon: Icons.receipt_long_outlined, label: s.sales, route: '/sales'),
+      (icon: Icons.store_outlined, label: s.suppliers, route: '/suppliers'),
+      (
+        icon: Icons.account_balance_wallet_outlined,
+        label: s.cashBook,
+        route: '/cashbook'
+      ),
+      (
+        icon: Icons.move_to_inbox_outlined,
+        label: s.stockIn,
+        route: '/stock-in'
+      ),
+      (
+        icon: Icons.notifications_outlined,
+        label: s.notifications,
+        route: '/notifications'
+      ),
+    ];
 
     return Drawer(
       child: Column(
@@ -208,7 +213,7 @@ class _AppDrawer extends ConsumerWidget {
             child: ListView(
               padding: const EdgeInsets.symmetric(vertical: 8),
               children: [
-                ..._navItems.map((item) {
+                ...navItems.map((item) {
                   final active = loc == item.route;
                   return ListTile(
                     dense: true,
@@ -240,6 +245,30 @@ class _AppDrawer extends ConsumerWidget {
                     },
                   );
                 }),
+              ],
+            ),
+          ),
+
+          // ── Language toggle ──────────────────────────────────────────
+          const Divider(height: 1),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              children: [
+                Icon(Icons.translate_rounded,
+                    size: 18, color: scheme.onSurface.withAlpha(160)),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    s.language,
+                    style: GoogleFonts.instrumentSans(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w500,
+                      color: scheme.onSurface,
+                    ),
+                  ),
+                ),
+                _LanguageToggle(scheme: scheme),
               ],
             ),
           ),
@@ -296,7 +325,7 @@ class _AppDrawer extends ConsumerWidget {
                     ),
                   ),
                   IconButton(
-                    tooltip: 'Log out',
+                    tooltip: s.logOut,
                     icon: const Icon(Icons.logout_rounded,
                         size: 20, color: AppColors.red),
                     onPressed: () async {
@@ -321,6 +350,58 @@ class _AppDrawer extends ConsumerWidget {
     if (parts.isEmpty || parts.first.isEmpty) return '?';
     if (parts.length == 1) return parts.first[0].toUpperCase();
     return (parts.first[0] + parts.last[0]).toUpperCase();
+  }
+}
+
+/// EN / বাং segmented switch persisted via [appLanguageProvider].
+class _LanguageToggle extends ConsumerWidget {
+  const _LanguageToggle({required this.scheme});
+
+  final ColorScheme scheme;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final locale = ref.watch(appLanguageProvider);
+
+    Widget cell(String label, Locale value) {
+      final selected = locale.languageCode == value.languageCode;
+      return GestureDetector(
+        onTap: () =>
+            ref.read(appLanguageProvider.notifier).setLocale(value),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+          decoration: BoxDecoration(
+            color: selected ? scheme.primary : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(
+            label,
+            style: GoogleFonts.instrumentSans(
+              fontSize: 12,
+              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+              color: selected
+                  ? scheme.onPrimary
+                  : scheme.onSurface.withAlpha(160),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        border: Border.all(color: scheme.outline),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          cell('EN', AppLanguageController.english),
+          cell('বাং', AppLanguageController.bengali),
+        ],
+      ),
+    );
   }
 }
 
@@ -361,7 +442,7 @@ class _AppBottomNav extends StatelessWidget {
                   _NavItem(
                     icon: Icons.home_outlined,
                     activeIcon: Icons.home_rounded,
-                    label: 'Home',
+                    label: S.of(context).home,
                     index: 0,
                     current: _idx,
                     onTap: () => context.go('/'),
@@ -369,7 +450,7 @@ class _AppBottomNav extends StatelessWidget {
                   _NavItem(
                     icon: Icons.grid_view_outlined,
                     activeIcon: Icons.grid_view_rounded,
-                    label: 'Products',
+                    label: S.of(context).products,
                     index: 1,
                     current: _idx,
                     onTap: () => context.go('/products'),
@@ -378,7 +459,7 @@ class _AppBottomNav extends StatelessWidget {
                   _NavItem(
                     icon: Icons.person_outline_rounded,
                     activeIcon: Icons.person_rounded,
-                    label: 'Customers',
+                    label: S.of(context).customers,
                     index: 2,
                     current: _idx,
                     onTap: () => context.go('/customers'),
@@ -386,7 +467,7 @@ class _AppBottomNav extends StatelessWidget {
                   _NavItem(
                     icon: Icons.receipt_long_outlined,
                     activeIcon: Icons.receipt_long_rounded,
-                    label: 'Sales',
+                    label: S.of(context).sales,
                     index: 3,
                     current: _idx,
                     onTap: () => context.go('/sales'),

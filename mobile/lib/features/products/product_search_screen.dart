@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../core/i18n/strings.dart';
 import '../../shared/format.dart';
 import '../../shared/models/paged_response.dart';
 import '../../shared/models/product.dart';
@@ -78,7 +79,7 @@ class _ProductSearchScreenState extends ConsumerState<ProductSearchScreen> {
     final showActualPrice = ref.watch(showActualPriceProvider);
 
     return AppScaffold(
-      title: 'Products',
+      title: S.of(context).products,
       showBottomNav: true,
       showNotificationBell: true,
       showCartBadge: true,
@@ -116,8 +117,12 @@ class _ProductSearchScreenState extends ConsumerState<ProductSearchScreen> {
                 : _CategoryTabRow(
                     categories: cats,
                     selectedId: state.categoryId,
-                    onSelect: (id, name) =>
-                        controller.selectCategory(id, categoryName: name),
+                    lowStockOnly: state.lowStockOnly,
+                    lowStockCount: ref.watch(lowStockCountProvider).value,
+                    onLowStockToggle: controller.toggleLowStock,
+                    onSelect: (id, name) => id == null
+                        ? controller.showAll()
+                        : controller.selectCategory(id, categoryName: name),
                     onMore: () => _openCategoryPicker(controller),
                   ),
             loading: () => const SizedBox(height: 44),
@@ -187,12 +192,18 @@ class _CategoryTabRow extends StatelessWidget {
   const _CategoryTabRow({
     required this.categories,
     required this.selectedId,
+    required this.lowStockOnly,
+    required this.lowStockCount,
+    required this.onLowStockToggle,
     required this.onSelect,
     required this.onMore,
   });
 
   final List<Category> categories;
   final String? selectedId;
+  final bool lowStockOnly;
+  final int? lowStockCount;
+  final VoidCallback onLowStockToggle;
   final void Function(String? id, String? name) onSelect;
   final VoidCallback onMore;
 
@@ -206,8 +217,13 @@ class _CategoryTabRow extends StatelessWidget {
         children: [
           _Tab(
             label: 'All',
-            isSelected: selectedId == null,
+            isSelected: selectedId == null && !lowStockOnly,
             onTap: () => onSelect(null, null),
+          ),
+          _LowStockTab(
+            isSelected: lowStockOnly,
+            count: lowStockCount,
+            onTap: onLowStockToggle,
           ),
           ...categories.map(
             (cat) => _Tab(
@@ -223,6 +239,47 @@ class _CategoryTabRow extends StatelessWidget {
             onTap: onMore,
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// The red semantic "Low stock · N" chip from the design — tinted when idle,
+/// solid red when the filter is active.
+class _LowStockTab extends StatelessWidget {
+  const _LowStockTab({
+    required this.isSelected,
+    required this.count,
+    required this.onTap,
+  });
+
+  final bool isSelected;
+  final int? count;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = count != null && count! > 0 ? 'Low stock · $count' : 'Low stock';
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(right: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.red : AppColors.redBg,
+          borderRadius: BorderRadius.circular(99),
+          border: Border.all(
+            color: isSelected ? AppColors.red : AppColors.redBorder,
+          ),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.instrumentSans(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: isSelected ? Colors.white : AppColors.red,
+          ),
+        ),
       ),
     );
   }
@@ -396,10 +453,15 @@ class _ProductCard extends ConsumerWidget {
       if (brand != null && brand.isNotEmpty) brand,
     ].join(' · ');
 
-    final inStock = stock != null && stock > 0;
-    final stockLabel = stock != null
-        ? (inStock ? '$stock in stock' : 'Out of stock')
-        : null;
+    // Matches the design's stock tiers: green "N in stock", amber "N left"
+    // when running low, red "Out of stock".
+    final stockLabel = stock == null
+        ? null
+        : stock <= 0
+            ? 'Out of stock'
+            : stock <= 5
+                ? '$stock left'
+                : '$stock in stock';
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -478,9 +540,7 @@ class _ProductCard extends ConsumerWidget {
                     ),
                     if (stockLabel != null) ...[
                       const SizedBox(height: 4),
-                      StatusPill(
-                        label: inStock ? 'In stock' : 'Out of stock',
-                      ),
+                      StatusPill(label: stockLabel),
                     ],
                   ],
                 ),

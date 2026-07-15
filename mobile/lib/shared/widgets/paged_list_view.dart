@@ -17,16 +17,24 @@ class PagedListView<T> extends StatefulWidget {
   const PagedListView({
     super.key,
     required this.fetch,
-    required this.itemBuilder,
+    this.itemBuilder,
+    this.indexedItemBuilder,
     this.resetKey,
     this.padding = EdgeInsets.zero,
     this.separatorBuilder,
     this.emptyBuilder,
     this.onLoaded,
-  });
+  }) : assert((itemBuilder == null) != (indexedItemBuilder == null),
+            'Provide exactly one of itemBuilder / indexedItemBuilder');
 
   final PageFetcher<T> fetch;
-  final Widget Function(BuildContext context, T item) itemBuilder;
+  final Widget Function(BuildContext context, T item)? itemBuilder;
+
+  /// Like [itemBuilder] but also receives the item's index and the full list
+  /// of loaded items — lets rows render group headers (e.g. day sections) by
+  /// comparing against their predecessor.
+  final Widget Function(BuildContext context, int index, List<T> items)?
+      indexedItemBuilder;
 
   /// Changing this reloads the list from page 1 (e.g. when a filter changes).
   final Object? resetKey;
@@ -156,7 +164,9 @@ class _PagedListViewState<T> extends State<PagedListView<T>> {
             widget.separatorBuilder?.call(context, i) ?? const SizedBox.shrink(),
         itemBuilder: (context, index) {
           if (index < _items.length) {
-            return widget.itemBuilder(context, _items[index]);
+            return widget.indexedItemBuilder
+                    ?.call(context, index, List.unmodifiable(_items)) ??
+                widget.itemBuilder!(context, _items[index]);
           }
           // Trailing row: a retry on error, otherwise a spinner that triggers
           // the next page as it scrolls into view.

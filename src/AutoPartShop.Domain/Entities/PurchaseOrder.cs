@@ -197,11 +197,11 @@ public class PurchaseOrder : AuditableEntity
         if (totalOrdered == 0)
             return;
 
-        // Calculate total accepted quantity from all accepted goods receipts
-        var totalAccepted = GoodsReceipts
-            .Where(gr => gr.Status == "ACCEPTED")
-            .SelectMany(gr => gr.LineItems)
-            .Sum(l => l.AcceptedQuantity);
+        // Line ReceivedQuantity is the source of truth here — it has already been
+        // recomputed from accepted GRNs by the caller. Deriving from GoodsReceipts
+        // again would miss the GRN being accepted right now (still VERIFIED in this
+        // snapshot), leaving the PO stuck at CONFIRMED after its final receipt.
+        var totalAccepted = LineItems.Sum(l => l.ReceivedQuantity);
 
         // Update status based on received quantities
         if (totalAccepted >= totalOrdered)

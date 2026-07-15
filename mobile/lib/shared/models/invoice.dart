@@ -19,6 +19,7 @@ class Invoice {
     required this.isOverdue,
     this.currency,
     this.status,
+    this.customerName,
   });
 
   final String id;
@@ -32,6 +33,7 @@ class Invoice {
   final bool isOverdue;
   final String? currency;
   final String? status;
+  final String? customerName;
 
   factory Invoice.fromJson(Map<String, dynamic> json) => Invoice(
         id: asString(json['id']),
@@ -47,6 +49,7 @@ class Invoice {
         isOverdue: asBool(json['isOverdue']),
         currency: asStringOrNull(json['currency']),
         status: asStringOrNull(json['status']),
+        customerName: asStringOrNull(json['customerName']),
       );
 }
 

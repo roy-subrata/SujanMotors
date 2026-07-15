@@ -65,7 +65,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         width: 56,
                         height: 56,
                         decoration: BoxDecoration(
-                         
+                          color: AppColors.ink,
                           borderRadius: BorderRadius.circular(14),
                         ),
                         alignment: Alignment.center,

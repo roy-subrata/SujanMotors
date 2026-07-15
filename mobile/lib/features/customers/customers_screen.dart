@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../core/i18n/strings.dart';
 import '../../shared/format.dart';
 import '../../shared/models/customer.dart';
 import '../../shared/widgets/app_scaffold.dart';
@@ -18,10 +19,14 @@ class CustomersScreen extends ConsumerStatefulWidget {
   ConsumerState<CustomersScreen> createState() => _CustomersScreenState();
 }
 
+/// Customer list filter: due state or customer type (backend types:
+/// RETAIL / WHOLESALE / CORPORATE / DISTRIBUTOR).
+enum _CustomerFilter { all, withDue, retail, wholesale, corporate, distributor }
+
 class _CustomersScreenState extends ConsumerState<CustomersScreen> {
   final _searchCtrl = TextEditingController();
   final _scrollCtrl = ScrollController();
-  int _filterIndex = 0;
+  _CustomerFilter _filter = _CustomerFilter.all;
 
   @override
   void initState() {
@@ -53,7 +58,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
     final controller = ref.read(customerListControllerProvider.notifier);
 
     return AppScaffold(
-      title: 'Customers',
+      title: S.of(context).customers,
       showBottomNav: true,
       showNotificationBell: true,
       floatingActionButton: FloatingActionButton(
@@ -66,33 +71,36 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
       ),
       body: Column(
         children: [
-          // Search
+          // Search + filter dropdown
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            child: SearchInput(
-              controller: _searchCtrl,
-              hintText: 'Search name, phone or code...',
-              onChanged: controller.search,
+            child: Row(
+              children: [
+                Expanded(
+                  child: SearchInput(
+                    controller: _searchCtrl,
+                    hintText: 'Search name, phone or code...',
+                    onChanged: controller.search,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                FilterDropdown<_CustomerFilter>(
+                  value: _filter,
+                  leadingIcon: Icons.filter_list_rounded,
+                  options: const [
+                    (_CustomerFilter.all, 'All'),
+                    (_CustomerFilter.withDue, 'With due'),
+                    (_CustomerFilter.retail, 'Retail'),
+                    (_CustomerFilter.wholesale, 'Wholesale'),
+                    (_CustomerFilter.corporate, 'Corporate'),
+                    (_CustomerFilter.distributor, 'Distributor'),
+                  ],
+                  onChanged: (f) => setState(() => _filter = f),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 10),
-
-          // Filter chips
-          FilterChipRow(
-            selected: _filterIndex,
-            onSelect: (i) => setState(() => _filterIndex = i),
-            chips: const [
-              FilterChipData(label: 'All'),
-              FilterChipData(
-                label: 'With due',
-                inactiveColor: AppColors.red,
-                inactiveBg: AppColors.redBg,
-                inactiveBorder: AppColors.redBorder,
-              ),
-              FilterChipData(label: 'Workshops'),
-            ],
-          ),
-          const SizedBox(height: 8),
 
           Expanded(child: _buildBody(state, controller)),
         ],
@@ -110,9 +118,15 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
       );
     }
 
-    final filtered = _filterIndex == 1
-        ? state.items.where((c) => c.hasDue).toList()
-        : state.items;
+    final filtered = switch (_filter) {
+      _CustomerFilter.all => state.items,
+      _CustomerFilter.withDue =>
+        state.items.where((c) => c.hasDue).toList(),
+      _ => state.items
+          .where((c) =>
+              (c.customerType ?? '').toUpperCase() == _filter.name.toUpperCase())
+          .toList(),
+    };
 
     if (filtered.isEmpty && !state.isLoading) {
       return const EmptyView(

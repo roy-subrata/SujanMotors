@@ -81,17 +81,35 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
     }
 
     if (state.isScanning) {
-      return Scaffold(
-        backgroundColor: Colors.black,
-        body: _buildScannerOverlay(state),
+      // System back exits scan mode instead of popping the route — when the
+      // cart was opened via the bottom-nav ＋ (a go(), stack root), a pop here
+      // would close the whole app.
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) _stopScan();
+        },
+        child: Scaffold(
+          backgroundColor: Colors.black,
+          body: _buildScannerOverlay(state),
+        ),
       );
     }
 
-    return Scaffold(
-      appBar: _buildAppBar(context, itemCount: state.itemCount),
-      body: state.isEmpty
-          ? _EmptyCartView(onScan: _startScan)
-          : _buildCartBody(state, controller),
+    // When the cart is the stack root (opened via the bottom-nav ＋), system
+    // back returns Home — mirroring the app bar's back arrow — instead of
+    // closing the app.
+    return PopScope(
+      canPop: context.canPop(),
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) context.go('/');
+      },
+      child: Scaffold(
+        appBar: _buildAppBar(context, itemCount: state.itemCount),
+        body: state.isEmpty
+            ? _EmptyCartView(onScan: _startScan)
+            : _buildCartBody(state, controller),
+      ),
     );
   }
 

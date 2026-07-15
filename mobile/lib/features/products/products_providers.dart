@@ -4,6 +4,7 @@ import '../../core/network/app_exception.dart';
 import '../../shared/models/product.dart';
 import '../../shared/models/product_location.dart';
 import '../../shared/models/product_media.dart';
+import '../../shared/models/product_specification.dart';
 import '../../shared/models/vehicle_compatibility.dart';
 import 'products_repository.dart';
 
@@ -14,6 +15,7 @@ class ProductSearchState {
     this.query = '',
     this.categoryId,
     this.categoryName,
+    this.lowStockOnly = false,
     this.isLoading = false,
     this.isLoadingMore = false,
     this.hasMore = false,
@@ -26,6 +28,9 @@ class ProductSearchState {
   /// Server-side category filter — null means "All categories".
   final String? categoryId;
   final String? categoryName;
+
+  /// Server-side "at/below reorder point" filter (the red "Low stock" chip).
+  final bool lowStockOnly;
   final bool isLoading;
   final bool isLoadingMore;
   final bool hasMore;
@@ -47,6 +52,7 @@ class ProductSearchState {
       query: query ?? this.query,
       categoryId: categoryId,
       categoryName: categoryName,
+      lowStockOnly: lowStockOnly,
       isLoading: isLoading ?? this.isLoading,
       isLoadingMore: isLoadingMore ?? this.isLoadingMore,
       hasMore: hasMore ?? this.hasMore,
@@ -67,18 +73,40 @@ class ProductSearchController extends Notifier<ProductSearchState> {
   @override
   ProductSearchState build() => const ProductSearchState();
 
-  Future<void> search(String query) =>
-      _run(query: query, categoryId: state.categoryId, categoryName: state.categoryName);
+  Future<void> search(String query) => _run(
+      query: query,
+      categoryId: state.categoryId,
+      categoryName: state.categoryName,
+      lowStockOnly: state.lowStockOnly);
 
   /// Filters the current query by category server-side. Pass null to clear
   /// back to "All categories".
   Future<void> selectCategory(String? categoryId, {String? categoryName}) =>
-      _run(query: state.query, categoryId: categoryId, categoryName: categoryName);
+      _run(
+          query: state.query,
+          categoryId: categoryId,
+          categoryName: categoryName,
+          lowStockOnly: state.lowStockOnly);
+
+  /// The "All" chip — clears both the category and low-stock filters.
+  Future<void> showAll() => _run(
+      query: state.query,
+      categoryId: null,
+      categoryName: null,
+      lowStockOnly: false);
+
+  /// Toggles the server-side low-stock filter (at/below reorder point).
+  Future<void> toggleLowStock() => _run(
+      query: state.query,
+      categoryId: state.categoryId,
+      categoryName: state.categoryName,
+      lowStockOnly: !state.lowStockOnly);
 
   Future<void> _run({
     required String query,
     required String? categoryId,
     required String? categoryName,
+    required bool lowStockOnly,
   }) async {
     final gen = ++_generation;
     _page = 1;
@@ -86,6 +114,7 @@ class ProductSearchController extends Notifier<ProductSearchState> {
       query: query,
       categoryId: categoryId,
       categoryName: categoryName,
+      lowStockOnly: lowStockOnly,
       isLoading: true,
     );
     try {
@@ -93,12 +122,14 @@ class ProductSearchController extends Notifier<ProductSearchState> {
             query: query,
             page: 1,
             categoryId: categoryId,
+            lowStockOnly: lowStockOnly,
           );
       if (gen != _generation) return; // superseded by a newer search
       state = ProductSearchState(
         query: query,
         categoryId: categoryId,
         categoryName: categoryName,
+        lowStockOnly: lowStockOnly,
         items: res.data,
         hasMore: res.pagination.hasNextPage,
       );
@@ -108,6 +139,7 @@ class ProductSearchController extends Notifier<ProductSearchState> {
         query: query,
         categoryId: categoryId,
         categoryName: categoryName,
+        lowStockOnly: lowStockOnly,
         error: e.message,
       );
     }
@@ -123,6 +155,7 @@ class ProductSearchController extends Notifier<ProductSearchState> {
             query: state.query,
             page: next,
             categoryId: state.categoryId,
+            lowStockOnly: state.lowStockOnly,
           );
       if (gen != _generation) return; // superseded by a newer search
       _page = next;
@@ -143,6 +176,15 @@ class ProductSearchController extends Notifier<ProductSearchState> {
 final productSearchControllerProvider =
     NotifierProvider<ProductSearchController, ProductSearchState>(
         ProductSearchController.new);
+
+/// Count for the "Low stock · N" chip — cheapest possible query (one row,
+/// read totalCount). Refreshed whenever the products screen is rebuilt fresh.
+final lowStockCountProvider = FutureProvider.autoDispose<int>((ref) async {
+  final res = await ref
+      .read(productsRepositoryProvider)
+      .search(page: 1, pageSize: 1, lowStockOnly: true);
+  return res.pagination.totalCount;
+});
 
 /// Single product detail by id.
 final productDetailProvider =
@@ -173,4 +215,10 @@ final productMediaProvider =
 final productVariantAttributesProvider =
     FutureProvider.family<List<ProductAttributeValue>, String>((ref, id) {
   return ref.read(productsRepositoryProvider).getVariantAttributes(id);
+});
+
+/// Simple product-level specs (Label/Value), keyed by productId.
+final productSpecificationsProvider =
+    FutureProvider.family<List<ProductSpecification>, String>((ref, id) {
+  return ref.read(productsRepositoryProvider).getSpecifications(id);
 });
