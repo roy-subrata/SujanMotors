@@ -41,6 +41,10 @@ services:
       - "1433:1433"                           # Expose DB for external connections (VS Code, SSMS)
     volumes:
       - autopart_mssql_data:/var/opt/mssql    # Persistent data (survives container restarts)
+      # Shared backup folder (also mounted into the API container). The API writes .bak files
+      # here and SQL Server reads them during RESTORE. Create it on the VPS before first run:
+      #   mkdir -p ./backups && chown 10001:0 ./backups
+      - ./backups:/var/opt/mssql/backups
     restart: always                           # Always restart in prod (even after server reboot)
     healthcheck:
       # Health check: verify SQL Server is ready before allowing API to start
@@ -86,6 +90,13 @@ services:
       - Smtp__FromName=${SMTP_FROM_NAME:-SujanMotors}
       # Seed settings — auto-create admin user on first run
       - Seed__AdminPassword=${SEED_ADMIN_PASSWORD:-Admin@1990}
+      # Database backups: shared folder as seen by this container / by SQL Server,
+      # plus the Google service-account key JSON for Drive uploads (leave blank to skip upload)
+      - Backup__Directory=/app/backups
+      - Backup__SqlServerDirectory=/var/opt/mssql/backups
+      - GoogleDrive__ServiceAccountKeyJson=${GDRIVE_SA_KEY_JSON:-}
+    volumes:
+      - ./backups:/app/backups                # Same host folder as the DB container's backup mount
     ports:
       - "5000:8080"                           # Expose API for direct access (testing/debugging)
     # No ports exposed to host — browser reaches API through nginx reverse proxy
