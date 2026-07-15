@@ -255,6 +255,9 @@ builder.Services.AddScoped<IReorderAlertBroadcaster, SignalRReorderAlertBroadcas
 builder.Services.AddScoped<ReorderAlertScanner>();
 builder.Services.AddHostedService<ReorderAlertService>();
 
+// Scheduled database backups (schedule read from BACKUP:* application settings)
+builder.Services.AddHostedService<BackupSchedulerService>();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {

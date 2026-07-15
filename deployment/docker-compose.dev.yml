@@ -39,6 +39,7 @@ services:
       - "1433:1433"                             # Open for SSMS / DBeaver / Azure Data Studio
     volumes:
       - autopart_mssql_dev_data:/var/opt/mssql   # Separate volume for dev data
+      - ./backups:/var/opt/mssql/backups         # Shared backup folder (SQL reads .bak files here during restore)
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'YourStrong!Passw0rd' -Q 'SELECT 1' -No || exit 1"]
@@ -63,6 +64,11 @@ services:
       - JwtSettings__Audience=AutoPartShopClient
       - JwtSettings__ExpiryInMinutes=60
       - JwtSettings__RefreshTokenExpiryInDays=7
+      # Database backups: shared folder as seen by this container / by SQL Server
+      - Backup__Directory=/app/backups
+      - Backup__SqlServerDirectory=/var/opt/mssql/backups
+    volumes:
+      - ./backups:/app/backups                  # Same host folder as the DB container's backup mount
     ports:
       - "5292:8080"                             # Open for Swagger / Postman
     depends_on:

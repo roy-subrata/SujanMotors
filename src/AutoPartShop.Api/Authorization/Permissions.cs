@@ -1,7 +1,7 @@
 namespace AutoPartShop.Api.Authorization;
 
 /// <summary>
-/// The 28 permission names seeded by DatabaseSeeder. Keep in sync — these strings
+/// The permission names known to the system. Keep in sync — these strings
 /// are matched against Permissions.Name at authorization time.
 /// </summary>
 public static class Permissions
@@ -47,4 +47,7 @@ public static class Permissions
 
     // Audit
     public const string AuditView = "audit.view";
+
+    // Database backups (configure schedule, run, download, restore)
+    public const string BackupsManage = "backups.manage";
 }

@@ -332,6 +332,11 @@ export class AppMenuComponent implements OnInit {
                         routerLink: ['/admin-settings']
                     },
                     {
+                        label: this.i18n.t('menu.backups'),
+                        icon: 'pi pi-database',
+                        routerLink: ['/admin/backups']
+                    },
+                    {
                         label: this.i18n.t('menu.auditDashboard'),
                         icon: 'pi pi-chart-bar',
                         routerLink: ['/audit/dashboard']

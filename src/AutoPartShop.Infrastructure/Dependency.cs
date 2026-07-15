@@ -23,6 +23,7 @@ using AutoPartShop.Application.Warehouse;
 using AutoPartShop.Domain.Repositories;
 using AutoPartShop.Infrastructure.Repositories;
 using AutoPartShop.Infrastructure.Services;
+using AutoPartShop.Infrastructure.Services.Backup;
 using AutoPartShop.Infrastructure.Services.Embedding;
 using AutoPartsShop.Infrastructure.Services;
 using Microsoft.AspNetCore.Builder;
@@ -200,6 +201,12 @@ public static class Dependency
         services.AddScoped<IWarehouseReadRepository, WarehouseReadRepository>();
 
         services.AddScoped<IReportReadRepository, ReportReadRepository>();
+
+        // Database backup: native BACKUP/RESTORE + Google Drive upload
+        services.AddScoped<IBackupRecordRepository, BackupRecordRepository>();
+        services.AddSingleton<BackupCoordinator>();
+        services.AddSingleton<IBackupStorage, GoogleDriveBackupStorage>();
+        services.AddScoped<IBackupService, SqlServerBackupService>();
 
         return services;
     }
