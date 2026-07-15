@@ -78,6 +78,10 @@ public class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
         builder.Property(e => e.Notes)
             .HasMaxLength(1000);
 
+        builder.Property(e => e.PhotoUrl)
+            .HasMaxLength(500)
+            .IsRequired(false);
+
         // Relationship to ApplicationUser (Identity) — no navigation on either side;
         // enforce referential integrity only
         builder.HasOne<ApplicationUser>()

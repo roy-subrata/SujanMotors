@@ -24,6 +24,7 @@ using AutoPartShop.Domain.Repositories;
 using AutoPartShop.Infrastructure.Repositories;
 using AutoPartShop.Infrastructure.Services;
 using AutoPartShop.Infrastructure.Services.Embedding;
+using AutoPartShop.Infrastructure.Services.Storage;
 using AutoPartsShop.Infrastructure.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
@@ -117,6 +118,13 @@ public static class Dependency
         services.AddScoped<ISalaryAdvanceRepository, SalaryAdvanceRepository>();
         services.AddScoped<IProductLocationRepository, ProductLocationRepository>();
         services.AddScoped<IDailyExpenseRepository, DailyExpenseRepository>();
+        services.AddScoped<IProductMediaRepository, ProductMediaRepository>();
+        services.AddScoped<IStoredFileRepository, StoredFileRepository>();
+
+        // Uploaded file blobs (product media, employee photos/documents).
+        // Local disk today; an S3-compatible implementation (Cloudflare R2 / MinIO)
+        // can replace this via "FileStorage:Provider" without touching callers.
+        services.AddSingleton<IFileStorageService, LocalDiskFileStorage>();
 
         // Multi-currency repositories
         services.AddScoped<ICurrencyRepository, CurrencyRepository>();

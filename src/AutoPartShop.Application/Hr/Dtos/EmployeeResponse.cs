@@ -27,6 +27,7 @@ namespace AutoPartShop.Application.Hr.Dtos
         public string EmergencyContactPhone { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
         public string Notes { get; set; } = string.Empty;
+        public string? PhotoUrl { get; set; }
         public Guid? UserId { get; set; }
         public string? UserName { get; set; }
         public DateTime CreatedAt { get; set; }

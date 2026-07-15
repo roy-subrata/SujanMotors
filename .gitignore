@@ -37,3 +37,6 @@ appsettings.Production.json
 # Claude Code local (per-machine) settings
 .claude/settings.local.json
 **/.claude/settings.local.json
+
+# Uploaded file blobs (local FileStorage root — never commit user uploads)
+src/AutoPartShop.Api/App_Data/
