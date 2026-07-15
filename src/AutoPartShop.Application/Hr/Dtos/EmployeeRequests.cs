@@ -24,6 +24,12 @@
         public Guid? UserId { get; set; }
     }
 
+    public class SetEmployeePhotoRequest
+    {
+        /// <summary>Photo URL (typically returned by the file upload endpoint); null/empty clears the photo.</summary>
+        public string? PhotoUrl { get; set; }
+    }
+
     public class DeactivateEmployeeRequest
     {
         /// <summary>Also disable the linked login account so the person can no longer sign in.</summary>

@@ -79,6 +79,7 @@ namespace AutoPartShop.Infrastructure.Repositories
                     EmergencyContactPhone = e.EmergencyContactPhone,
                     Status = e.Status,
                     Notes = e.Notes,
+                    PhotoUrl = e.PhotoUrl,
                     UserId = e.UserId,
                     UserName = _dbContext.Users
                         .Where(u => u.Id == e.UserId)

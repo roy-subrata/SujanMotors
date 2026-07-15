@@ -29,6 +29,7 @@ export interface EmployeeResponse {
     emergencyContactPhone: string;
     status: string;
     notes: string;
+    photoUrl: string | null;
     userId: string | null;
     userName: string | null;
     createdAt: string;
@@ -125,5 +126,10 @@ export class EmployeeService {
 
     deleteEmployee(id: string): Observable<void> {
         return this.http.delete<void>(`${this.apiUrl}/${id}`);
+    }
+
+    /** Sets or clears (null) the profile photo. Upload the image via FileUploadService first. */
+    setPhoto(id: string, photoUrl: string | null): Observable<EmployeeResponse> {
+        return this.http.put<EmployeeResponse>(`${this.apiUrl}/${id}/photo`, { photoUrl });
     }
 }

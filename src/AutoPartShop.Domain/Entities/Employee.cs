@@ -36,6 +36,8 @@ public class Employee : AuditableEntity
     public string Status { get; private set; } = "ACTIVE";  // ACTIVE, INACTIVE
     public string Notes { get; private set; } = string.Empty;
 
+    public string? PhotoUrl { get; private set; }  // Profile photo (uploaded via FilesController)
+
     // Optional link to a login account (ApplicationUser lives in the Identity store)
     public Guid? UserId { get; private set; }
 
@@ -157,4 +159,8 @@ public class Employee : AuditableEntity
     }
 
     public void UnlinkUserAccount() => UserId = null;
+
+    /// <summary>Sets or clears (null) the profile photo URL.</summary>
+    public void SetPhoto(string? photoUrl) =>
+        PhotoUrl = string.IsNullOrWhiteSpace(photoUrl) ? null : photoUrl.Trim();
 }
