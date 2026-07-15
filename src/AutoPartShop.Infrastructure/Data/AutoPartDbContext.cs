@@ -117,6 +117,9 @@ public class AutoPartDbContext : IdentityDbContext<ApplicationUser, ApplicationR
     // Notification audit trail
     public DbSet<NotificationLog> NotificationLogs { get; set; }
 
+    // Uploaded binaries (product media, employee photos/documents)
+    public DbSet<StoredFile> StoredFiles { get; set; }
+
 
     // Identity and Permission tables
     public DbSet<Permission> Permissions { get; set; }

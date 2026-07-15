@@ -273,3 +273,57 @@
     padding: 0.875rem;
   }
 }
+
+/* ── Profile photo ─────────────────────────────────────────────────────── */
+.photo-block {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.photo-avatar {
+  position: relative;
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--surface-100, #f1f5f9);
+  border: 2px solid var(--surface-border, #e2e8f0);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.photo-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.photo-avatar > .pi-user {
+  font-size: 2rem;
+  color: var(--text-color-secondary, #94a3b8);
+}
+
+.photo-uploading {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+}
+
+.photo-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.photo-actions .field-hint {
+  flex-basis: 100%;
+}

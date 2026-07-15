@@ -242,6 +242,32 @@ public class EmployeesController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Sets or clears the employee's profile photo. Upload the image via
+    /// POST /api/v1/files first, then pass the returned URL here (null clears it).
+    /// </summary>
+    [HttpPut("{id:guid}/photo")]
+    public async Task<IActionResult> SetPhoto(Guid id, SetEmployeePhotoRequest? request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var employee = await _employeeRepository.GetByIdAsync(id, cancellationToken);
+            if (employee is null) return NotFound();
+
+            employee.SetPhoto(request?.PhotoUrl);
+            employee.ModifiedBy = _currentUserService.GetCurrentUsername();
+
+            await _employeeRepository.UpdateAsync(employee, cancellationToken);
+
+            return Ok(MapToResponse(employee));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error setting employee photo");
+            return StatusCode(500, "An error occurred");
+        }
+    }
+
     [HttpPatch("{id:guid}/activate")]
     public async Task<IActionResult> Activate(Guid id, ActivateEmployeeRequest? request, CancellationToken cancellationToken)
     {
@@ -362,6 +388,7 @@ public class EmployeesController : ControllerBase
         EmergencyContactPhone = e.EmergencyContactPhone,
         Status = e.Status,
         Notes = e.Notes,
+        PhotoUrl = e.PhotoUrl,
         UserId = e.UserId,
         CreatedAt = e.CreatedDate
     };
