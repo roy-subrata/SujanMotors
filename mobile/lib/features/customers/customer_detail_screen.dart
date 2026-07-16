@@ -34,8 +34,9 @@ class CustomerDetailScreen extends ConsumerWidget {
         ),
         actions: [
           IconButton(
+            tooltip: 'Edit customer',
             icon: const Icon(Icons.edit_outlined),
-            onPressed: () {},
+            onPressed: () => context.push('/customers/$customerId/edit'),
           ),
         ],
       ),

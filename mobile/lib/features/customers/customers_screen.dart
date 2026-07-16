@@ -62,7 +62,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
       showBottomNav: true,
       showNotificationBell: true,
       floatingActionButton: FloatingActionButton(
-        onPressed: () {},
+        onPressed: () => context.push('/customers/new'),
         backgroundColor: AppColors.ink,
         foregroundColor: Colors.white,
         shape: RoundedRectangleBorder(

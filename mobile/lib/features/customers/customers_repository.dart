@@ -47,6 +47,94 @@ class CustomersRepository {
     }
   }
 
+  /// Creates a customer (`POST /customers`). Phone must be unique — the API
+  /// returns 409 (surfaced as an [AppException]) if it already exists. The
+  /// customer code is generated server-side. Returns the new customer id.
+  Future<String> createCustomer({
+    required String firstName,
+    required String lastName,
+    String? phone,
+    String? email,
+    String? companyName,
+    String? city,
+    String customerType = 'RETAIL',
+    String? notes,
+  }) async {
+    try {
+      final res = await _dio.post('/customers', data: {
+        'firstName': firstName,
+        'lastName': lastName,
+        'phone': ?phone,
+        'email': ?email,
+        'companyName': ?companyName,
+        'city': ?city,
+        'customerType': customerType,
+        'notes': ?notes,
+      });
+      final body = res.data;
+      final map = body is Map ? Map<String, dynamic>.from(body) : null;
+      return asString(map?['id']);
+    } on DioException catch (e) {
+      throw AppException.fromDio(e);
+    }
+  }
+
+  /// Updates a customer (`PUT /customers/{id}`). Phone must stay unique — the
+  /// API returns 409 (surfaced as [AppException]) if another customer has it.
+  Future<void> updateCustomer({
+    required String id,
+    required String firstName,
+    required String lastName,
+    String? phone,
+    String? email,
+    String? companyName,
+    String? city,
+    String customerType = 'RETAIL',
+    String? notes,
+  }) async {
+    try {
+      await _dio.put('/customers/$id', data: {
+        'firstName': firstName,
+        'lastName': lastName,
+        'phone': ?phone,
+        'email': ?email,
+        'companyName': ?companyName,
+        'city': ?city,
+        'customerType': customerType,
+        'notes': ?notes,
+      });
+    } on DioException catch (e) {
+      throw AppException.fromDio(e);
+    }
+  }
+
+  /// Adds a vehicle to a customer
+  /// (`POST /customers/{customerId}/vehicles`).
+  Future<void> addVehicle({
+    required String customerId,
+    required String make,
+    required String model,
+    int? year,
+    String? registrationNo,
+    String? engineType,
+    String? color,
+    String? notes,
+  }) async {
+    try {
+      await _dio.post('/customers/$customerId/vehicles', data: {
+        'make': make,
+        'model': model,
+        'year': ?year,
+        'registrationNo': ?registrationNo,
+        'engineType': ?engineType,
+        'color': ?color,
+        'notes': ?notes,
+      });
+    } on DioException catch (e) {
+      throw AppException.fromDio(e);
+    }
+  }
+
   /// Vehicles registered to a customer (`GET /api/v1/customers/{id}/vehicles`).
   Future<List<CustomerVehicle>> vehicles(String customerId) async {
     try {
