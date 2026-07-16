@@ -303,15 +303,15 @@ class QuickSaleController extends Notifier<QuickSaleState> {
 
   // ── Checkout ─────────────────────────────────────────────────────────────────
 
-  /// [paidNow] is the amount tendered via [paymentMethod]; the remainder of
-  /// [grandTotal] becomes a due balance. Full-cash and full-due are just the
-  /// endpoints of this range. [discountAmount] is the explicit cart discount
-  /// (subtotal → grandTotal).
+  /// [advanceApplied] draws down existing advance credit first; [paidNow] is
+  /// tendered via [paymentMethod]; any remainder of [grandTotal] becomes due.
+  /// [discountAmount] is the explicit cart discount (subtotal → grandTotal).
   Future<void> submit({
     required double grandTotal,
     required double paidNow,
     required String paymentMethod,
     double discountAmount = 0,
+    double advanceApplied = 0,
     String paymentReference = '',
     String customerName = 'Walk-in',
     String? customerId,
@@ -321,8 +321,10 @@ class QuickSaleController extends Notifier<QuickSaleState> {
     if (state.isSubmitting || state.items.isEmpty) return;
     state = state.copyWith(isSubmitting: true, submitError: null);
 
-    final paid = paidNow.clamp(0.0, grandTotal);
-    final dueAmount = (grandTotal - paid).clamp(0.0, grandTotal);
+    final advance = advanceApplied.clamp(0.0, grandTotal);
+    final coverable = (grandTotal - advance).clamp(0.0, grandTotal);
+    final paid = paidNow.clamp(0.0, coverable);
+    final dueAmount = (coverable - paid).clamp(0.0, coverable);
 
     try {
       final result = await ref.read(salesRepositoryProvider).submitQuickSale(
@@ -333,6 +335,7 @@ class QuickSaleController extends Notifier<QuickSaleState> {
             dueAmount: dueAmount,
             paymentMethod: paymentMethod,
             discountAmount: discountAmount,
+            advanceApplied: advance,
             paymentReference: paymentReference,
             customerName: customerName.isEmpty ? 'Walk-in' : customerName,
             customerId: customerId,

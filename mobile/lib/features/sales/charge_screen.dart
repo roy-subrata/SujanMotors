@@ -43,6 +43,7 @@ class _ChargeScreenState extends ConsumerState<ChargeScreen> {
     'CHEQUE',
   ];
   int _methodIndex = 0;
+  bool _applyAdvance = false;
 
   String? _localError;
 
@@ -50,9 +51,16 @@ class _ChargeScreenState extends ConsumerState<ChargeScreen> {
       (double.tryParse(_discountCtrl.text) ?? 0).clamp(0, widget.cartTotal);
   double get grandTotal =>
       (widget.cartTotal - _discount).clamp(0, double.infinity);
+
+  double get _advanceAvailable => _customer?.advanceAmount ?? 0;
+  double get advanceApplied =>
+      _applyAdvance ? _advanceAvailable.clamp(0, grandTotal) : 0;
+
+  /// What still has to be covered by cash/card/due after advance credit.
+  double get coverable => (grandTotal - advanceApplied).clamp(0, grandTotal);
   double get paidNow => double.tryParse(_paidNowCtrl.text) ?? 0;
-  double get due => (grandTotal - paidNow).clamp(0, double.infinity);
-  double get change => (paidNow - grandTotal).clamp(0, double.infinity);
+  double get due => (coverable - paidNow).clamp(0, coverable);
+  double get change => (paidNow - coverable).clamp(0, double.infinity);
   bool get _isCash => _methodIndex == 0;
 
   @override
@@ -72,11 +80,20 @@ class _ChargeScreenState extends ConsumerState<ChargeScreen> {
     super.dispose();
   }
 
-  /// A discount change moves the grand total; assume full payment until the
-  /// user explicitly enters a partial amount.
+  /// A discount change moves the grand total; assume full payment of the
+  /// remaining coverable amount until the user enters a partial amount.
   void _onDiscountChanged() {
-    _paidNowCtrl.text = grandTotal.toStringAsFixed(2);
+    _paidNowCtrl.text = coverable.toStringAsFixed(2);
     setState(() {});
+  }
+
+  void _toggleAdvance(bool on) {
+    setState(() {
+      _applyAdvance = on;
+      _localError = null;
+    });
+    // Re-default the tendered amount to whatever's left after advance credit.
+    _paidNowCtrl.text = coverable.toStringAsFixed(2);
   }
 
   // ── Customer loading ─────────────────────────────────────────────────────────
@@ -103,8 +120,10 @@ class _ChargeScreenState extends ConsumerState<ChargeScreen> {
       _vehicle = null;
       _vehicles = [];
       _isLoadingVehicles = c != null;
+      _applyAdvance = false; // reset — advance belongs to a specific customer
       _localError = null;
     });
+    _paidNowCtrl.text = coverable.toStringAsFixed(2);
     if (c == null) return;
 
     try {
@@ -149,6 +168,7 @@ class _ChargeScreenState extends ConsumerState<ChargeScreen> {
           paidNow: paidNow,
           paymentMethod: _methodCodes[_methodIndex],
           discountAmount: _discount,
+          advanceApplied: advanceApplied,
           paymentReference: _isCash ? '' : _referenceCtrl.text.trim(),
           customerName: _customer?.fullName ?? 'Walk-in',
           customerId: _customer?.id,
@@ -194,12 +214,22 @@ class _ChargeScreenState extends ConsumerState<ChargeScreen> {
             onSelectCustomer: _selectCustomer,
             onSelectVehicle: (v) => setState(() => _vehicle = v),
           ),
+          // Advance credit — only when the selected customer has some.
+          if (_advanceAvailable > 0) ...[
+            const SizedBox(height: 14),
+            _AdvanceCard(
+              available: _advanceAvailable,
+              applied: advanceApplied,
+              apply: _applyAdvance,
+              onToggle: _toggleAdvance,
+            ),
+          ],
           const SizedBox(height: 14),
           _PaymentCard(
             methods: _methods,
             methodIndex: _methodIndex,
             isCash: _isCash,
-            grandTotal: grandTotal,
+            coverable: coverable,
             paidNowCtrl: _paidNowCtrl,
             referenceCtrl: _referenceCtrl,
             due: due,
@@ -209,7 +239,7 @@ class _ChargeScreenState extends ConsumerState<ChargeScreen> {
               _localError = null;
             }),
             onPayFull: () {
-              _paidNowCtrl.text = grandTotal.toStringAsFixed(2);
+              _paidNowCtrl.text = coverable.toStringAsFixed(2);
               setState(() {});
             },
           ),
@@ -528,6 +558,63 @@ class _VehicleTile extends StatelessWidget {
   }
 }
 
+// ── Advance credit card ───────────────────────────────────────────────────────
+
+class _AdvanceCard extends StatelessWidget {
+  const _AdvanceCard({
+    required this.available,
+    required this.applied,
+    required this.apply,
+    required this.onToggle,
+  });
+
+  final double available;
+  final double applied;
+  final bool apply;
+  final ValueChanged<bool> onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return _SectionCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.savings_outlined,
+                  size: 20, color: Colors.green.shade700),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Advance credit',
+                        style: theme.textTheme.titleSmall
+                            ?.copyWith(fontWeight: FontWeight.w600)),
+                    Text('Available ${formatCurrency(available)}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant)),
+                  ],
+                ),
+              ),
+              Switch(value: apply, onChanged: onToggle),
+            ],
+          ),
+          if (apply && applied > 0) ...[
+            const SizedBox(height: 8),
+            _SummaryRow(
+              label: 'Applied to this sale',
+              value: '− ${formatCurrency(applied)}',
+              color: Colors.green.shade700,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 // ── Payment card (method grid + partial payment) ──────────────────────────────
 
 class _PaymentCard extends StatelessWidget {
@@ -535,7 +622,7 @@ class _PaymentCard extends StatelessWidget {
     required this.methods,
     required this.methodIndex,
     required this.isCash,
-    required this.grandTotal,
+    required this.coverable,
     required this.paidNowCtrl,
     required this.referenceCtrl,
     required this.due,
@@ -547,7 +634,7 @@ class _PaymentCard extends StatelessWidget {
   final List<String> methods;
   final int methodIndex;
   final bool isCash;
-  final double grandTotal;
+  final double coverable;
   final TextEditingController paidNowCtrl;
   final TextEditingController referenceCtrl;
   final double due;
@@ -667,7 +754,7 @@ class _PaymentCard extends StatelessWidget {
           else
             _SummaryRow(
               label: 'Paid in full',
-              value: formatCurrency(grandTotal),
+              value: formatCurrency(coverable),
               color: Colors.green.shade700,
             ),
         ],

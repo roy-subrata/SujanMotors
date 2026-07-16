@@ -49,6 +49,9 @@ class SalesRepository {
   /// [dueAmount] remainder goes on the customer's account as a DUE line. The
   /// API requires payment lines to sum to the grand total, so a partial payment
   /// sends both a paid line and a DUE line.
+  /// [advanceApplied] draws down the customer's existing advance credit. The
+  /// API requires payment lines + advance applied to equal the grand total, so
+  /// paidAmount + dueAmount + advanceApplied must equal grandTotal.
   Future<QuickSaleResult> submitQuickSale({
     required List<QuickSaleItem> items,
     required double subtotal,
@@ -57,6 +60,7 @@ class SalesRepository {
     required double dueAmount,
     required String paymentMethod,
     double discountAmount = 0,
+    double advanceApplied = 0,
     String paymentReference = '',
     String customerName = 'Walk-in',
     String? customerId,
@@ -87,6 +91,8 @@ class SalesRepository {
         'grandTotal': grandTotal,
         'paidAmount': paidAmount,
         'dueAmount': dueAmount,
+        if (advanceApplied > 0) 'useAdvanceBalance': true,
+        if (advanceApplied > 0) 'advanceAmountToApply': advanceApplied,
         'channel': 'MOBILE',
         'items': items
             .map((i) => {
