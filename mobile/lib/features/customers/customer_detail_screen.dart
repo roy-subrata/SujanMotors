@@ -34,8 +34,9 @@ class CustomerDetailScreen extends ConsumerWidget {
         ),
         actions: [
           IconButton(
+            tooltip: 'Edit customer',
             icon: const Icon(Icons.edit_outlined),
-            onPressed: () {},
+            onPressed: () => context.push('/customers/$customerId/edit'),
           ),
         ],
       ),
@@ -298,25 +299,39 @@ class _BodyState extends ConsumerState<_Body> {
 
                 // 3-stat row
                 summaryAsync.when(
-                  data: (s) => Row(
+                  data: (s) => Column(
                     children: [
-                      _StatBox(
-                        label: 'Due',
-                        value: formatCurrency(s.amountDue),
-                        valueColor: AppColors.red,
-                        bg: AppColors.redBg,
+                      Row(
+                        children: [
+                          _StatBox(
+                            label: 'Due',
+                            value: formatCurrency(s.amountDue),
+                            valueColor: AppColors.red,
+                            bg: AppColors.redBg,
+                          ),
+                          const SizedBox(width: 8),
+                          _StatBox(
+                            label: 'Advance',
+                            value: formatCurrency(
+                                widget.customer.advanceAmount),
+                            valueColor: AppColors.green,
+                            bg: AppColors.greenBg,
+                          ),
+                          const SizedBox(width: 8),
+                          _StatBox(
+                            label: 'Invoices',
+                            value: '${s.totalInvoices}',
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 8),
-                      _StatBox(
-                        label: 'Lifetime',
-                        value: formatCurrency(
-                            widget.customer.totalPurchaseAmount),
-                      ),
-                      const SizedBox(width: 8),
-                      _StatBox(
-                        label: 'Invoices',
-                        value: '${s.totalInvoices}',
-                      ),
+                      // Net bottom line when the customer has both.
+                      if (s.amountDue > 0 &&
+                          widget.customer.advanceAmount > 0) ...[
+                        const SizedBox(height: 8),
+                        _NetRow(
+                          net: s.amountDue - widget.customer.advanceAmount,
+                        ),
+                      ],
                     ],
                   ),
                   loading: () => const SizedBox(
@@ -916,6 +931,39 @@ class _PaginationFooter extends StatelessWidget {
 }
 
 // ── Stat box ──────────────────────────────────────────────────────────────────
+
+/// The net bottom line (due − advance) shown when a customer has both, so
+/// staff see whether the customer actually owes or is in credit.
+class _NetRow extends StatelessWidget {
+  const _NetRow({required this.net});
+
+  final double net;
+
+  @override
+  Widget build(BuildContext context) {
+    final owes = net > 0;
+    final color = owes ? AppColors.red : AppColors.green;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        color: (owes ? AppColors.redBg : AppColors.greenBg),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(owes ? 'Net owed' : 'Net credit',
+              style: GoogleFonts.instrumentSans(
+                  fontSize: 12, fontWeight: FontWeight.w600, color: color)),
+          Text(formatCurrency(net.abs()),
+              style: GoogleFonts.instrumentSans(
+                  fontSize: 13.5, fontWeight: FontWeight.w700, color: color)),
+        ],
+      ),
+    );
+  }
+}
 
 class _StatBox extends StatelessWidget {
   const _StatBox({

@@ -151,6 +151,18 @@ public class Customer : AuditableEntity
         Status = "BLACKLISTED";
     }
 
+    public void UpdateBasicInfo(string firstName, string lastName, string companyName = "")
+    {
+        if (string.IsNullOrWhiteSpace(firstName))
+            throw new ArgumentException("FirstName cannot be empty", nameof(firstName));
+        if (string.IsNullOrWhiteSpace(lastName))
+            throw new ArgumentException("LastName cannot be empty", nameof(lastName));
+
+        FirstName = firstName.Trim();
+        LastName = lastName.Trim();
+        CompanyName = companyName?.Trim() ?? string.Empty;
+    }
+
     public void UpdateContactInfo(string email, string phone, string alternatePhone = "", string customerType = "")
     {
         if (string.IsNullOrWhiteSpace(phone))

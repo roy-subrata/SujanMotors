@@ -61,6 +61,31 @@ class StockRepository {
       throw AppException.fromDio(e);
     }
   }
+
+  /// Moves stock from one warehouse to another atomically (POST /stock/transfer)
+  /// — the real transfer, unlike a one-sided adjust.
+  Future<void> transferStock({
+    required String partId,
+    String? variantId,
+    required String fromWarehouseId,
+    required String toWarehouseId,
+    required int quantity,
+    String notes = '',
+  }) async {
+    try {
+      await _dio.post('/stock/transfer', data: {
+        'partId': partId,
+        'variantId': ?variantId,
+        'fromWarehouseId': fromWarehouseId,
+        'toWarehouseId': toWarehouseId,
+        'quantity': quantity,
+        'quantityInBaseUnit': quantity,
+        if (notes.isNotEmpty) 'notes': notes,
+      });
+    } on DioException catch (e) {
+      throw AppException.fromDio(e);
+    }
+  }
 }
 
 final stockRepositoryProvider = Provider<StockRepository>(

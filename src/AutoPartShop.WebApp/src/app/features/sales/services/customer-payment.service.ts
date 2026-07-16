@@ -16,6 +16,10 @@ export interface CreateCustomerPaymentRequest {
     paymentDate?: string;
     notes: string;
     currency?: string;
+    /** Record as advance credit on the account (not tied to an invoice). The
+     * server marks it ADVANCE at creation, so cash advances complete correctly
+     * and count toward the customer's available balance. */
+    isAdvance?: boolean;
 }
 
 export interface UpdateCustomerPaymentRequest {

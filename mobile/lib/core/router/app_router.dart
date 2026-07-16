@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/auth_controller.dart';
 import '../../features/auth/login_screen.dart';
 import '../../features/cashbook/cashbook_screen.dart';
+import '../../features/customers/add_customer_screen.dart';
 import '../../features/customers/customer_detail_screen.dart';
 import '../../features/customers/customer_invoices_screen.dart';
 import '../../features/customers/customer_payment_history_screen.dart';
@@ -94,6 +95,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
           path: '/customers',
           builder: (_, _) => const CustomersScreen()),
+      GoRoute(
+          path: '/customers/new',
+          builder: (_, _) => const AddCustomerScreen()),
+      GoRoute(
+        path: '/customers/:id/edit',
+        builder: (_, state) =>
+            AddCustomerScreen(customerId: state.pathParameters['id']),
+      ),
       GoRoute(path: '/cashbook', builder: (_, _) => const CashBookScreen()),
       GoRoute(
           path: '/quick-sale',

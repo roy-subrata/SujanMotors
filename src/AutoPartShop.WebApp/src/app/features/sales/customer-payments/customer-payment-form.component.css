@@ -192,3 +192,15 @@ textarea:focus {
   flex-wrap: wrap;
   justify-content: center;
 }
+
+.advance-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+}
+.advance-toggle label {
+  margin: 0;
+  cursor: pointer;
+}

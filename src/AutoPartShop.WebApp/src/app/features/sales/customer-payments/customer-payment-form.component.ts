@@ -10,6 +10,7 @@ import { ToastModule } from 'primeng/toast';
 import { DatePickerModule } from 'primeng/datepicker';
 import { SelectModule } from 'primeng/select';
 import { TagModule } from 'primeng/tag';
+import { CheckboxModule } from 'primeng/checkbox';
 import { MessageService } from 'primeng/api';
 import { CustomerPaymentService, CreateCustomerPaymentRequest, CustomerPaymentResponse } from '../services/customer-payment.service';
 import { CustomerService, CustomerResponse } from '../services/customer.service';
@@ -36,6 +37,7 @@ import { of } from 'rxjs';
     DatePickerModule,
     SelectModule,
     TagModule,
+    CheckboxModule,
     AppCurrencyPipe,
     LazyAutocompleteComponent
   ],
@@ -110,7 +112,8 @@ export class CustomerPaymentFormComponent implements OnInit {
       referenceNumber: [''],
       authorizationCode: [''],
       paymentDate: [new Date()],
-      notes: ['']
+      notes: [''],
+      isAdvance: [false]
     });
   }
 
@@ -144,6 +147,22 @@ export class CustomerPaymentFormComponent implements OnInit {
         this.loadCustomerInvoices(customerId);
       } else if (customerId && typeof customerId === 'object' && customerId.id) {
         this.loadCustomerInvoices(customerId.id);
+      }
+    });
+
+    // Advance credit is not tied to an invoice — the two are mutually exclusive.
+    this.form.get('isAdvance')?.valueChanges.subscribe(isAdvance => {
+      const invoiceCtrl = this.form.get('invoiceId');
+      if (isAdvance) {
+        invoiceCtrl?.reset('');
+        invoiceCtrl?.disable();
+      } else if (!this.isEditing) {
+        invoiceCtrl?.enable();
+      }
+    });
+    this.form.get('invoiceId')?.valueChanges.subscribe(invoiceId => {
+      if (invoiceId && this.form.get('isAdvance')?.value) {
+        this.form.get('isAdvance')?.setValue(false);
       }
     });
   }
@@ -289,16 +308,19 @@ export class CustomerPaymentFormComponent implements OnInit {
       const paymentProviderId = this.form.get('paymentProviderId')?.value;
       const paymentDate = this.form.get('paymentDate')?.value;
 
+      const isAdvance = !!this.form.get('isAdvance')?.value;
+
       const createRequest: CreateCustomerPaymentRequest = {
         customerId: typeof customerId === 'string' ? customerId : customerId?.id || '',
-        invoiceId: invoiceId ? (typeof invoiceId === 'string' ? invoiceId : invoiceId?.id) : undefined,
+        invoiceId: isAdvance ? undefined : (invoiceId ? (typeof invoiceId === 'string' ? invoiceId : invoiceId?.id) : undefined),
         paymentProviderId: typeof paymentProviderId === 'string' ? paymentProviderId : paymentProviderId?.id || '',
         amount: this.form.get('amount')?.value || 0,
         paymentMethod: this.form.get('paymentMethod')?.value || '',
         transactionNumber: this.form.get('transactionNumber')?.value || '',
         referenceNumber: this.form.get('referenceNumber')?.value || '',
         paymentDate: paymentDate ? (paymentDate instanceof Date ? this.toLocalDateString(paymentDate) : paymentDate) : undefined,
-        notes: this.form.get('notes')?.value || ''
+        notes: this.form.get('notes')?.value || '',
+        isAdvance
       };
 
       this.service.createCustomerPayment(createRequest).subscribe({

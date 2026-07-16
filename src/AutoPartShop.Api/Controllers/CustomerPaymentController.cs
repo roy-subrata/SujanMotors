@@ -246,6 +246,11 @@ public class CustomerPaymentController : ControllerBase
             var payment = CustomerPayment.Create(request.CustomerId, request.PaymentProviderId, request.Amount, request.PaymentMethod, request.TransactionNumber, request.ReferenceNumber, request.PaymentDate, request.Currency);
             if (request.InvoiceId.HasValue)
                 payment.LinkToInvoice(request.InvoiceId.Value);
+            // Advance credit: mark before any completion (MarkAsAdvance requires a
+            // PENDING payment) so a CASH advance ends up ADVANCE + COMPLETED and
+            // counts toward the customer's available advance balance.
+            if (request.IsAdvance && !request.InvoiceId.HasValue)
+                payment.MarkAsAdvance();
             payment.CreatedBy = _currentUserService.GetCurrentUsername();
             payment.ModifiedBy = _currentUserService.GetCurrentUsername();
 
@@ -264,8 +269,12 @@ public class CustomerPaymentController : ControllerBase
                         if (customer is null)
                             throw new InvalidOperationException("Customer not found");
 
-                        // Decrease customer balance (negative because payment reduces debt)
-                        customer.UpdateBalance(-request.Amount);
+                        // Decrease customer balance (negative because payment reduces debt).
+                        // An advance is the exception: it lives in AdvanceAmount only and
+                        // reduces the running balance later, when applied to an invoice
+                        // (apply-advance-credit). Reducing it here too would double-count.
+                        if (!request.IsAdvance)
+                            customer.UpdateBalance(-request.Amount);
                         customer.ModifiedBy = _currentUserService.GetCurrentUsername();
 
                         await _repository.AddAsync(payment, cancellationToken);
