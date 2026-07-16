@@ -326,8 +326,8 @@ class _AppDrawer extends ConsumerWidget {
                   ),
                   IconButton(
                     tooltip: s.logOut,
-                    icon: const Icon(Icons.logout_rounded,
-                        size: 20, color: AppColors.red),
+                    icon: Icon(Icons.logout_rounded,
+                        size: 20, color: context.colors.red),
                     onPressed: () async {
                       Navigator.of(context).pop();
                       await ref

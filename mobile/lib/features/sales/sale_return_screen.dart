@@ -127,7 +127,7 @@ class _SaleReturnScreenState extends ConsumerState<SaleReturnScreen> {
       messenger.showSnackBar(SnackBar(
         content: Text(
             '${result.returnNumber} submitted · ${formatCurrency(result.refundAmount)}'),
-        backgroundColor: AppColors.green,
+        backgroundColor: context.colors.green,
       ));
     } on AppException catch (e) {
       _showError(e.message);
@@ -141,7 +141,7 @@ class _SaleReturnScreenState extends ConsumerState<SaleReturnScreen> {
   void _showError(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(msg),
-      backgroundColor: AppColors.red,
+      backgroundColor: context.colors.red,
     ));
   }
 
@@ -220,11 +220,11 @@ class _ManualEntry extends StatelessWidget {
                 width: 56,
                 height: 56,
                 decoration: BoxDecoration(
-                  color: AppColors.amberBg,
+                  color: context.colors.amberBg,
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: const Icon(Icons.receipt_long_outlined,
-                    size: 28, color: AppColors.amber),
+                child: Icon(Icons.receipt_long_outlined,
+                    size: 28, color: context.colors.amber),
               ),
               const SizedBox(height: 16),
               Text(
@@ -251,7 +251,7 @@ class _ManualEntry extends StatelessWidget {
                   icon: const Icon(Icons.arrow_back, size: 16),
                   label: const Text('Go back'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.ink,
+                    foregroundColor: context.colors.ink,
                     side: BorderSide(color: Theme.of(context).colorScheme.outline),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12)),
@@ -460,7 +460,7 @@ class _LoadedBody extends ConsumerWidget {
                       valueStyle: GoogleFonts.instrumentSans(
                         fontSize: 19,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.red,
+                        color: context.colors.red,
                       ),
                     ),
                   ],
@@ -478,7 +478,7 @@ class _LoadedBody extends ConsumerWidget {
               label: '↩  Confirm return',
               onTap: () => onSubmit(lines),
               isLoading: submitting,
-              backgroundColor: AppColors.red,
+              backgroundColor: context.colors.red,
               shadowColor: const Color(0x40D63841),
             ),
           ),
@@ -517,15 +517,15 @@ class _ReturnLineRow extends StatelessWidget {
               width: 22,
               height: 22,
               decoration: BoxDecoration(
-                color: selected ? AppColors.ink : Theme.of(context).colorScheme.surface,
+                color: selected ? context.colors.ink : Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(6),
                 border: Border.all(
-                  color: selected ? AppColors.ink : Theme.of(context).colorScheme.outline,
+                  color: selected ? context.colors.ink : Theme.of(context).colorScheme.outline,
                   width: 1.5,
                 ),
               ),
               child: selected
-                  ? const Icon(Icons.check, size: 14, color: Colors.white)
+                  ? Icon(Icons.check, size: 14, color: context.colors.onInk)
                   : null,
             ),
           ),
@@ -545,7 +545,7 @@ class _ReturnLineRow extends StatelessWidget {
                 Text(
                   '${line.quantity}${unit.isNotEmpty ? ' $unit' : ''} × ${formatCurrency(line.unitPrice)}',
                   style: GoogleFonts.instrumentSans(
-                      fontSize: 11, color: AppColors.muted),
+                      fontSize: 11, color: context.colors.muted),
                 ),
               ],
             ),
@@ -637,7 +637,7 @@ class _StepBtn extends StatelessWidget {
         child: Icon(
           icon,
           size: 14,
-          color: enabled ? AppColors.ink : AppColors.disabled,
+          color: enabled ? context.colors.ink : context.colors.disabled,
         ),
       ),
     );

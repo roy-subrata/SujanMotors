@@ -157,7 +157,7 @@ class _ReceivePaymentScreenState
       if (!mounted) return;
       messenger.showSnackBar(SnackBar(
         content: Text(e.message),
-        backgroundColor: AppColors.red,
+        backgroundColor: context.colors.red,
       ));
     } finally {
       if (mounted) setState(() => _submitting = false);
@@ -221,7 +221,7 @@ class _ReceivePaymentScreenState
                                   style: GoogleFonts.instrumentSans(
                                     fontSize: 11.5,
                                     fontWeight: FontWeight.w600,
-                                    color: AppColors.red,
+                                    color: context.colors.red,
                                   ),
                                 ),
                               if (customer.advanceAmount > 0)
@@ -230,7 +230,7 @@ class _ReceivePaymentScreenState
                                   style: GoogleFonts.instrumentSans(
                                     fontSize: 11.5,
                                     fontWeight: FontWeight.w600,
-                                    color: AppColors.green,
+                                    color: context.colors.green,
                                   ),
                                 ),
                               // Net position when both a due and advance exist,
@@ -248,8 +248,8 @@ class _ReceivePaymentScreenState
                                       fontSize: 11.5,
                                       fontWeight: FontWeight.w700,
                                       color: owes
-                                          ? AppColors.red
-                                          : AppColors.green,
+                                          ? context.colors.red
+                                          : context.colors.green,
                                     ),
                                   );
                                 }),
@@ -380,7 +380,7 @@ class _ReceivePaymentScreenState
                                     'No open invoices',
                                     style: GoogleFonts.instrumentSans(
                                         fontSize: 13,
-                                        color: AppColors.muted),
+                                        color: context.colors.muted),
                                   ),
                                 )
                               : Column(
@@ -418,7 +418,7 @@ class _ReceivePaymentScreenState
                       Text(
                         'Select an invoice',
                         style: GoogleFonts.instrumentSans(
-                            fontSize: 12, color: AppColors.red),
+                            fontSize: 12, color: context.colors.red),
                       ),
                     ],
                     const SizedBox(height: 16),
@@ -426,15 +426,15 @@ class _ReceivePaymentScreenState
                     CardSection(
                       child: Row(
                         children: [
-                          const Icon(Icons.savings_outlined,
-                              size: 18, color: AppColors.green),
+                          Icon(Icons.savings_outlined,
+                              size: 18, color: context.colors.green),
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
                               'Recorded as advance credit on the customer\'s '
                               'account — apply it to invoices later.',
                               style: GoogleFonts.instrumentSans(
-                                  fontSize: 12.5, color: AppColors.secondary),
+                                  fontSize: 12.5, color: context.colors.secondary),
                             ),
                           ),
                         ],
@@ -464,7 +464,7 @@ class _ReceivePaymentScreenState
                 label: _isAdvance ? 'Confirm advance' : 'Confirm payment',
                 onTap: _submit,
                 isLoading: _submitting,
-                backgroundColor: AppColors.green,
+                backgroundColor: context.colors.green,
                 shadowColor: const Color(0x400D8A53),
               ),
             ),

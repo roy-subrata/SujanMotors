@@ -75,8 +75,8 @@ class _SuppliersScreenState extends ConsumerState<SuppliersScreen> {
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                             color: supplier.hasPayable
-                                ? AppColors.amber
-                                : AppColors.green,
+                                ? context.colors.amber
+                                : context.colors.green,
                           ),
                         ),
                       ],
@@ -132,13 +132,13 @@ class _SuppliersScreenState extends ConsumerState<SuppliersScreen> {
           FilterChipRow(
             selected: _filterIndex,
             onSelect: (i) => setState(() => _filterIndex = i),
-            chips: const [
+            chips: [
               FilterChipData(label: 'All'),
               FilterChipData(
                 label: 'We owe',
-                inactiveColor: AppColors.amber,
-                inactiveBg: AppColors.amberBg,
-                inactiveBorder: AppColors.amberBorder,
+                inactiveColor: context.colors.amber,
+                inactiveBg: context.colors.amberBg,
+                inactiveBorder: context.colors.amberBorder,
               ),
             ],
           ),
@@ -216,7 +216,7 @@ class _SupplierCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.instrumentSans(
-                        fontSize: 11.5, color: AppColors.muted),
+                        fontSize: 11.5, color: context.colors.muted),
                   ),
                 ],
               ],
@@ -233,15 +233,15 @@ class _SupplierCard extends StatelessWidget {
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                   color: supplier.hasPayable
-                      ? AppColors.amber
-                      : AppColors.green,
+                      ? context.colors.amber
+                      : context.colors.green,
                 ),
               ),
               const SizedBox(height: 2),
               Text(
                 supplier.hasPayable ? 'we owe' : 'clear',
                 style: GoogleFonts.instrumentSans(
-                    fontSize: 10.5, color: AppColors.muted),
+                    fontSize: 10.5, color: context.colors.muted),
               ),
             ],
           ),
@@ -287,7 +287,7 @@ class _SupplierAvatar extends StatelessWidget {
         style: GoogleFonts.instrumentSans(
           fontSize: size * 0.3,
           fontWeight: FontWeight.w600,
-          color: AppColors.secondary,
+          color: context.colors.secondary,
         ),
       ),
     );

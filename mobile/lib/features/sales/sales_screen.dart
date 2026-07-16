@@ -73,8 +73,8 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
       onCartTap: () => context.push('/quick-sale'),
       floatingActionButton: FloatingActionButton(
         onPressed: () => context.go('/quick-sale'),
-        backgroundColor: AppColors.ink,
-        foregroundColor: Colors.white,
+        backgroundColor: context.colors.ink,
+        foregroundColor: context.colors.onInk,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: const Icon(Icons.add),
       ),
@@ -225,8 +225,8 @@ class _DateRangeButton extends StatelessWidget {
         ),
         child: Row(
           children: [
-            const Icon(Icons.calendar_today_outlined,
-                size: 15, color: AppColors.secondary),
+            Icon(Icons.calendar_today_outlined,
+                size: 15, color: context.colors.secondary),
             const SizedBox(width: 6),
             Expanded(
               child: Text(
@@ -236,12 +236,12 @@ class _DateRangeButton extends StatelessWidget {
                 style: GoogleFonts.instrumentSans(
                   fontSize: 12.5,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.secondary,
+                  color: context.colors.secondary,
                 ),
               ),
             ),
-            const Icon(Icons.expand_more_rounded,
-                size: 18, color: AppColors.secondary),
+            Icon(Icons.expand_more_rounded,
+                size: 18, color: context.colors.secondary),
           ],
         ),
       ),
@@ -396,7 +396,7 @@ class _InvoiceRow extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: GoogleFonts.instrumentSans(
                           fontSize: 11.5,
-                          color: AppColors.muted,
+                          color: context.colors.muted,
                         ),
                       ),
                     ],
@@ -520,7 +520,7 @@ class _ReturnRow extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.instrumentSans(
                       fontSize: 11.5,
-                      color: AppColors.muted,
+                      color: context.colors.muted,
                     ),
                   ),
                 ],
@@ -535,7 +535,7 @@ class _ReturnRow extends StatelessWidget {
                   style: GoogleFonts.instrumentSans(
                     fontSize: 13.5,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.red,
+                    color: context.colors.red,
                   ),
                 ),
                 const SizedBox(height: 4),

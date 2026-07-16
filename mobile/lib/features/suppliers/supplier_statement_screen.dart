@@ -89,7 +89,7 @@ class _SupplierStatementScreenState
               .map((f) => ListTile(
                     title: Text(_filterLabel(f)),
                     trailing: _filter == f
-                        ? const Icon(Icons.check, color: AppColors.ink)
+                        ? Icon(Icons.check, color: context.colors.ink)
                         : null,
                     onTap: () {
                       Navigator.pop(ctx);
@@ -166,8 +166,8 @@ class _SupplierStatementScreenState
                         fontSize: 12, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(width: 4),
-                  const Icon(Icons.expand_more_rounded,
-                      size: 14, color: AppColors.secondary),
+                  Icon(Icons.expand_more_rounded,
+                      size: 14, color: context.colors.secondary),
                 ],
               ),
             ),
@@ -254,7 +254,7 @@ class _SummaryBar extends StatelessWidget {
             TextSpan(
               text: 'Opening ${formatCurrency(opening)} · Closing ',
               style: GoogleFonts.instrumentSans(
-                  fontSize: 12, color: AppColors.muted),
+                  fontSize: 12, color: context.colors.muted),
               children: [
                 TextSpan(
                   text: closing > 0
@@ -263,7 +263,7 @@ class _SummaryBar extends StatelessWidget {
                   style: GoogleFonts.instrumentSans(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: closing > 0 ? AppColors.amber : AppColors.green,
+                    color: closing > 0 ? context.colors.amber : context.colors.green,
                   ),
                 ),
               ],
@@ -341,7 +341,7 @@ class _StatementTable extends StatelessWidget {
                         Text(
                           formatDate(e.date),
                           style: GoogleFonts.instrumentSans(
-                              fontSize: 10.5, color: AppColors.muted),
+                              fontSize: 10.5, color: context.colors.muted),
                         ),
                       ],
                     ),
@@ -349,13 +349,13 @@ class _StatementTable extends StatelessWidget {
                       e.debit > 0 ? _compact(e.debit) : '',
                       textAlign: TextAlign.right,
                       style: GoogleFonts.instrumentSans(
-                          fontSize: 12, color: AppColors.amber),
+                          fontSize: 12, color: context.colors.amber),
                     ),
                     credit: Text(
                       e.credit > 0 ? _compact(e.credit) : '',
                       textAlign: TextAlign.right,
                       style: GoogleFonts.instrumentSans(
-                          fontSize: 12, color: AppColors.green),
+                          fontSize: 12, color: context.colors.green),
                     ),
                     balance: Text(
                       _compact(e.runningBalance),
@@ -377,7 +377,7 @@ class _StatementTable extends StatelessWidget {
         fontSize: 10.5,
         fontWeight: FontWeight.w700,
         letterSpacing: 0.5,
-        color: AppColors.muted,
+        color: context.colors.muted,
       );
 
   static String _typeLabel(String type) => switch (type.toUpperCase()) {
@@ -447,8 +447,8 @@ class _BottomBar extends StatelessWidget {
               icon: const Icon(Icons.ios_share_rounded, size: 16),
               label: const Text('Share statement'),
               style: FilledButton.styleFrom(
-                backgroundColor: AppColors.ink,
-                foregroundColor: Colors.white,
+                backgroundColor: context.colors.ink,
+                foregroundColor: context.colors.onInk,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(11)),
                 padding: const EdgeInsets.symmetric(vertical: 13),

@@ -60,8 +60,8 @@ class _CashBookScreenState extends ConsumerState<CashBookScreen> {
       title: S.of(context).cashBook,
       floatingActionButton: FloatingActionButton(
         onPressed: _addEntry,
-        backgroundColor: AppColors.ink,
-        foregroundColor: Colors.white,
+        backgroundColor: context.colors.ink,
+        foregroundColor: context.colors.onInk,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: const Icon(Icons.add),
       ),
@@ -575,7 +575,7 @@ class _AddEntrySheetState extends ConsumerState<_AddEntrySheet> {
                 Expanded(
                   child: _TypeButton(
                     label: 'Cash in',
-                    color: AppColors.green,
+                    color: context.colors.green,
                     selected: _isCashIn,
                     onTap: () => setState(() {
                       _isCashIn = true;
@@ -587,7 +587,7 @@ class _AddEntrySheetState extends ConsumerState<_AddEntrySheet> {
                 Expanded(
                   child: _TypeButton(
                     label: 'Cash out',
-                    color: AppColors.red,
+                    color: context.colors.red,
                     selected: !_isCashIn,
                     onTap: () => setState(() {
                       _isCashIn = false;
@@ -612,12 +612,12 @@ class _AddEntrySheetState extends ConsumerState<_AddEntrySheet> {
                           horizontal: 14, vertical: 7),
                       decoration: BoxDecoration(
                         color: _category == value
-                            ? AppColors.ink
+                            ? context.colors.ink
                             : Theme.of(context).colorScheme.surface,
                         borderRadius: BorderRadius.circular(99),
                         border: Border.all(
                           color: _category == value
-                              ? AppColors.ink
+                              ? context.colors.ink
                               : Theme.of(context).colorScheme.outline,
                         ),
                       ),
@@ -627,8 +627,8 @@ class _AddEntrySheetState extends ConsumerState<_AddEntrySheet> {
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                           color: _category == value
-                              ? Colors.white
-                              : AppColors.secondary,
+                              ? context.colors.onInk
+                              : context.colors.secondary,
                         ),
                       ),
                     ),
@@ -661,17 +661,17 @@ class _AddEntrySheetState extends ConsumerState<_AddEntrySheet> {
             FilledButton(
               onPressed: _saving ? null : _save,
               style: FilledButton.styleFrom(
-                backgroundColor: AppColors.ink,
+                backgroundColor: context.colors.ink,
                 padding: const EdgeInsets.symmetric(vertical: 15),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14)),
               ),
               child: _saving
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 18,
                       height: 18,
                       child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white),
+                          strokeWidth: 2, color: context.colors.onInk),
                     )
                   : const Text('Save entry'),
             ),
@@ -715,7 +715,7 @@ class _TypeButton extends StatelessWidget {
           style: GoogleFonts.instrumentSans(
             fontSize: 13.5,
             fontWeight: FontWeight.w600,
-            color: selected ? Colors.white : AppColors.secondary,
+            color: selected ? context.colors.onInk : context.colors.secondary,
           ),
         ),
       ),

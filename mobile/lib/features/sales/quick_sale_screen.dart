@@ -160,7 +160,7 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
                     constraints: const BoxConstraints(minWidth: 16),
                     height: 16,
                     decoration: BoxDecoration(
-                      color: AppColors.red,
+                      color: context.colors.red,
                       borderRadius: BorderRadius.circular(99),
                     ),
                     alignment: Alignment.center,
@@ -168,7 +168,7 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
                         style: GoogleFonts.instrumentSans(
                             fontSize: 9.5,
                             fontWeight: FontWeight.w700,
-                            color: Colors.white)),
+                            color: context.colors.onInk)),
                   ),
                 ),
             ],
@@ -265,7 +265,7 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
                                 SnackBar(
                                   content: Text(
                                       'Only ${item.availableStock} ${item.name} in stock'),
-                                  backgroundColor: AppColors.red,
+                                  backgroundColor: context.colors.red,
                                   duration: const Duration(seconds: 2),
                                   behavior: SnackBarBehavior.floating,
                                 ),
@@ -299,8 +299,8 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
                               borderRadius: BorderRadius.circular(8),
                             ),
                             alignment: Alignment.center,
-                            child: const Icon(Icons.add,
-                                size: 18, color: AppColors.secondary),
+                            child: Icon(Icons.add,
+                                size: 18, color: context.colors.secondary),
                           ),
                           const SizedBox(width: 12),
                           Text(
@@ -310,8 +310,8 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
                             ),
                           ),
                           const Spacer(),
-                          const Icon(Icons.qr_code_scanner,
-                              size: 18, color: AppColors.muted),
+                          Icon(Icons.qr_code_scanner,
+                              size: 18, color: context.colors.muted),
                         ],
                       ),
                     ),
@@ -335,21 +335,21 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
                     label: 'Subtotal · ${state.itemCount} items',
                     value: formatCurrency(state.total),
                     labelStyle: GoogleFonts.instrumentSans(
-                        fontSize: 13.5, color: AppColors.secondary),
+                        fontSize: 13.5, color: context.colors.secondary),
                     valueStyle: GoogleFonts.instrumentSans(
                         fontSize: 13.5,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.ink),
+                        color: context.colors.ink),
                   ),
                   const SizedBox(height: 8),
                   _TotalRow(
                     label: 'Discount',
                     value: '—',
                     labelStyle: GoogleFonts.instrumentSans(
-                        fontSize: 13.5, color: AppColors.secondary),
+                        fontSize: 13.5, color: context.colors.secondary),
                     valueStyle: GoogleFonts.instrumentSans(
                         fontSize: 13.5,
-                        color: AppColors.muted),
+                        color: context.colors.muted),
                   ),
                   Padding(
                     padding: EdgeInsets.symmetric(vertical: 10),
@@ -363,11 +363,11 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
                     labelStyle: GoogleFonts.instrumentSans(
                         fontSize: 13.5,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.ink),
+                        color: context.colors.ink),
                     valueStyle: GoogleFonts.instrumentSans(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.ink),
+                        color: context.colors.ink),
                   ),
                 ],
               ),
@@ -442,7 +442,7 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
               padding: const EdgeInsets.symmetric(
                   horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: AppColors.red,
+                color: context.colors.red,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
@@ -524,7 +524,7 @@ class _EmptyCartView extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.shopping_cart_outlined,
-                size: 72, color: AppColors.disabled),
+                size: 72, color: context.colors.disabled),
             const SizedBox(height: 16),
             Text(
               'Cart is empty',
@@ -538,7 +538,7 @@ class _EmptyCartView extends StatelessWidget {
               'Scan a barcode or add items from Products',
               textAlign: TextAlign.center,
               style: GoogleFonts.instrumentSans(
-                  fontSize: 13.5, color: AppColors.muted),
+                  fontSize: 13.5, color: context.colors.muted),
             ),
             const SizedBox(height: 32),
             SizedBox(
@@ -548,8 +548,8 @@ class _EmptyCartView extends StatelessWidget {
                 icon: const Icon(Icons.qr_code_scanner),
                 label: const Text('Scan Barcode'),
                 style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.ink,
-                  foregroundColor: Colors.white,
+                  backgroundColor: context.colors.ink,
+                  foregroundColor: context.colors.onInk,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
                   padding: const EdgeInsets.symmetric(vertical: 14),
@@ -728,8 +728,8 @@ class _CartItemRowState extends State<_CartItemRow> {
                 onTap: widget.onRemove,
                 child: Padding(
                   padding: const EdgeInsets.only(top: 4),
-                  child: const Icon(Icons.delete_outline,
-                      size: 16, color: AppColors.muted),
+                  child: Icon(Icons.delete_outline,
+                      size: 16, color: context.colors.muted),
                 ),
               ),
             ],
@@ -759,7 +759,7 @@ class _StepBtn extends StatelessWidget {
           border: Border.all(color: Theme.of(context).colorScheme.outline),
         ),
         alignment: Alignment.center,
-        child: Icon(icon, size: 16, color: AppColors.secondary),
+        child: Icon(icon, size: 16, color: context.colors.secondary),
       ),
     );
   }
@@ -837,7 +837,7 @@ class _StickyBottom extends StatelessWidget {
                 child: FilledButton(
                   onPressed: onProceed,
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.green,
+                    backgroundColor: context.colors.green,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14)),
@@ -859,7 +859,7 @@ class _StickyBottom extends StatelessWidget {
                   child: OutlinedButton(
                     onPressed: () {},
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.ink,
+                      foregroundColor: context.colors.ink,
                       side: BorderSide(color: Theme.of(context).colorScheme.outline),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(11)),
@@ -875,7 +875,7 @@ class _StickyBottom extends StatelessWidget {
                   child: OutlinedButton(
                     onPressed: () {},
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.ink,
+                      foregroundColor: context.colors.ink,
                       side: BorderSide(color: Theme.of(context).colorScheme.outline),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(11)),
@@ -948,9 +948,9 @@ class _SuccessView extends StatelessWidget {
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                  color: AppColors.greenBg, shape: BoxShape.circle),
-              child: const Icon(Icons.check_circle_rounded,
-                  size: 52, color: AppColors.green),
+                  color: context.colors.greenBg, shape: BoxShape.circle),
+              child: Icon(Icons.check_circle_rounded,
+                  size: 52, color: context.colors.green),
             ),
             const SizedBox(height: 20),
             Text(
@@ -975,7 +975,7 @@ class _SuccessView extends StatelessWidget {
               _InfoRow(
                 label: 'Due',
                 value: formatCurrency(result.dueAmount),
-                valueColor: AppColors.red,
+                valueColor: context.colors.red,
               ),
             ],
             const SizedBox(height: 40),
@@ -986,8 +986,8 @@ class _SuccessView extends StatelessWidget {
                 icon: const Icon(Icons.add_shopping_cart),
                 label: const Text('New Sale'),
                 style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.ink,
-                  foregroundColor: Colors.white,
+                  backgroundColor: context.colors.ink,
+                  foregroundColor: context.colors.onInk,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
                   padding: const EdgeInsets.symmetric(vertical: 15),
@@ -1019,14 +1019,14 @@ class _InfoRow extends StatelessWidget {
         Text(
           '$label: ',
           style: GoogleFonts.instrumentSans(
-              fontSize: 15, color: AppColors.muted),
+              fontSize: 15, color: context.colors.muted),
         ),
         Text(
           value,
           style: GoogleFonts.instrumentSans(
             fontSize: 15,
             fontWeight: FontWeight.w700,
-            color: valueColor ?? AppColors.ink,
+            color: valueColor ?? context.colors.ink,
           ),
         ),
       ],
@@ -1107,7 +1107,7 @@ class _HeldSalesSheet extends ConsumerWidget {
                 child: Center(
                   child: Text('No held sales.',
                       style: GoogleFonts.instrumentSans(
-                          fontSize: 13.5, color: AppColors.muted)),
+                          fontSize: 13.5, color: context.colors.muted)),
                 ),
               )
             else
@@ -1142,7 +1142,7 @@ class _HeldSalesSheet extends ConsumerWidget {
                                   ' · ${formatCurrency(cart.total)}'
                                   ' · ${formatRelative(cart.createdAt)}',
                                   style: GoogleFonts.instrumentSans(
-                                      fontSize: 11.5, color: AppColors.muted),
+                                      fontSize: 11.5, color: context.colors.muted),
                                 ),
                               ],
                             ),
@@ -1150,7 +1150,7 @@ class _HeldSalesSheet extends ConsumerWidget {
                           IconButton(
                             tooltip: 'Delete',
                             icon: Icon(Icons.delete_outline,
-                                size: 20, color: AppColors.red),
+                                size: 20, color: context.colors.red),
                             onPressed: () => ref
                                 .read(heldSalesProvider.notifier)
                                 .remove(cart.id),

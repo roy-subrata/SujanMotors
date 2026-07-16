@@ -187,7 +187,7 @@ class _AddCustomerScreenState extends ConsumerState<AddCustomerScreen> {
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(message),
-      backgroundColor: AppColors.red,
+      backgroundColor: context.colors.red,
       behavior: SnackBarBehavior.floating,
     ));
   }
@@ -322,7 +322,7 @@ class _AddCustomerScreenState extends ConsumerState<AddCustomerScreen> {
                         ),
                         Text('optional',
                             style: GoogleFonts.instrumentSans(
-                                fontSize: 12, color: AppColors.muted)),
+                                fontSize: 12, color: context.colors.muted)),
                       ],
                     ),
                     const SizedBox(height: 8),
@@ -342,7 +342,7 @@ class _AddCustomerScreenState extends ConsumerState<AddCustomerScreen> {
                       icon: const Icon(Icons.add, size: 18),
                       label: const Text('Add vehicle'),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.ink,
+                        foregroundColor: context.colors.ink,
                         side: BorderSide(
                             color: Theme.of(context).colorScheme.outline),
                         minimumSize: const Size.fromHeight(46),
@@ -398,7 +398,7 @@ class _VehicleEditor extends StatelessWidget {
                   style: GoogleFonts.instrumentSans(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.secondary)),
+                      color: context.colors.secondary)),
               const Spacer(),
               IconButton(
                 tooltip: 'Remove',
@@ -482,7 +482,7 @@ class _Field extends StatelessWidget {
             style: GoogleFonts.instrumentSans(
               fontSize: 11.5,
               fontWeight: FontWeight.w600,
-              color: AppColors.secondary,
+              color: context.colors.secondary,
             ),
           ),
           const SizedBox(height: 6),

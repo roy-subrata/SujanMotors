@@ -63,8 +63,8 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
       showNotificationBell: true,
       floatingActionButton: FloatingActionButton(
         onPressed: () => context.push('/customers/new'),
-        backgroundColor: AppColors.ink,
-        foregroundColor: Colors.white,
+        backgroundColor: context.colors.ink,
+        foregroundColor: context.colors.onInk,
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16)),
         child: const Icon(Icons.add),
@@ -223,7 +223,7 @@ class _CustomerCard extends StatelessWidget {
                         style: GoogleFonts.instrumentSans(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
-                          color: AppColors.red,
+                          color: context.colors.red,
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -236,8 +236,8 @@ class _CustomerCard extends StatelessWidget {
                     ],
                   )
                 else
-                  const Icon(Icons.chevron_right,
-                      color: AppColors.disabled, size: 20),
+                  Icon(Icons.chevron_right,
+                      color: context.colors.disabled, size: 20),
               ],
             ),
           ),

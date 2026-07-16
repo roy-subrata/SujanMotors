@@ -12,8 +12,7 @@ class StatusPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final cfg = _cfg(label, scheme);
+    final cfg = _cfg(label, context.colors);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
@@ -32,39 +31,32 @@ class StatusPill extends StatelessWidget {
     );
   }
 
-  static _PillConfig _cfg(String l, ColorScheme scheme) {
+  static _PillConfig _cfg(String l, AppPalette c) {
     final upper = l.toUpperCase();
     // Stock labels with counts, e.g. "24 in stock" / "4 left".
     if (upper.endsWith('IN STOCK')) {
-      return const _PillConfig(AppColors.green, AppColors.greenBg, null);
+      return _PillConfig(c.green, c.greenBg, c.greenBorder);
     }
     if (upper.endsWith('LEFT')) {
-      return const _PillConfig(
-          AppColors.amber, AppColors.amberBg, AppColors.amberBorder);
+      return _PillConfig(c.amber, c.amberBg, c.amberBorder);
     }
     switch (upper) {
       case 'PAID':
       case 'COMPLETED':
-        return const _PillConfig(AppColors.green, AppColors.greenBg, null);
+        return _PillConfig(c.green, c.greenBg, c.greenBorder);
       case 'DUE':
       case 'OVERDUE':
       case 'RETURN':
       case 'RETURNED':
       case 'OUT OF STOCK':
-        return const _PillConfig(
-            AppColors.red, AppColors.redBg, AppColors.redBorder);
+        return _PillConfig(c.red, c.redBg, c.redBorder);
       case 'PARTIAL':
       case 'PARTIALLY_PAID':
       case 'LOW STOCK':
       case 'PENDING':
-        return const _PillConfig(
-            AppColors.amber, AppColors.amberBg, AppColors.amberBorder);
+        return _PillConfig(c.amber, c.amberBg, c.amberBorder);
       default:
-        return _PillConfig(
-          scheme.onSurface.withAlpha(160),
-          scheme.outline.withAlpha(30),
-          scheme.outline,
-        );
+        return _PillConfig(c.secondary, c.surfaceSubtle, c.border);
     }
   }
 }
@@ -408,7 +400,7 @@ class FilterDropdown<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final c = context.colors;
     final label = options
         .firstWhere((o) => o.$1 == value, orElse: () => options.first)
         .$2;
@@ -429,8 +421,7 @@ class FilterDropdown<T> extends StatelessWidget {
                             v == value ? FontWeight.w700 : FontWeight.w400,
                       )),
                 ),
-                if (v == value)
-                  Icon(Icons.check, size: 16, color: scheme.onSurface),
+                if (v == value) Icon(Icons.check, size: 16, color: c.ink),
               ],
             ),
           ),
@@ -439,15 +430,15 @@ class FilterDropdown<T> extends StatelessWidget {
         height: 44,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
-          color: scheme.surface,
+          color: c.surface,
           borderRadius: BorderRadius.circular(11),
-          border: Border.all(color: scheme.outline),
+          border: Border.all(color: c.border),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             if (leadingIcon != null) ...[
-              Icon(leadingIcon, size: 16, color: AppColors.secondary),
+              Icon(leadingIcon, size: 16, color: c.secondary),
               const SizedBox(width: 6),
             ],
             Flexible(
@@ -458,12 +449,11 @@ class FilterDropdown<T> extends StatelessWidget {
                 style: GoogleFonts.instrumentSans(
                   fontSize: 12.5,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.secondary,
+                  color: c.secondary,
                 ),
               ),
             ),
-            const Icon(Icons.expand_more_rounded,
-                size: 18, color: AppColors.secondary),
+            Icon(Icons.expand_more_rounded, size: 18, color: c.secondary),
           ],
         ),
       ),

@@ -277,6 +277,7 @@ class _MediaGalleryState extends ConsumerState<_MediaGallery> {
 
   Future<void> _pickAndUpload(ImageSource source) async {
     final messenger = ScaffoldMessenger.of(context);
+    final errorColor = context.colors.red;
     final XFile? picked;
     try {
       picked = await ImagePicker().pickImage(
@@ -290,7 +291,7 @@ class _MediaGalleryState extends ConsumerState<_MediaGallery> {
         content: Text(source == ImageSource.camera
             ? 'Could not open the camera.'
             : 'Could not open the photo gallery.'),
-        backgroundColor: AppColors.red,
+        backgroundColor: errorColor,
         behavior: SnackBarBehavior.floating,
       ));
       return;
@@ -313,7 +314,7 @@ class _MediaGalleryState extends ConsumerState<_MediaGallery> {
     } on AppException catch (e) {
       messenger.showSnackBar(SnackBar(
         content: Text(e.message),
-        backgroundColor: AppColors.red,
+        backgroundColor: errorColor,
         behavior: SnackBarBehavior.floating,
       ));
     } finally {
@@ -356,6 +357,7 @@ class _MediaGalleryState extends ConsumerState<_MediaGallery> {
   Future<void> _runMediaAction(
       Future<void> Function(ProductsRepository repo) action) async {
     final messenger = ScaffoldMessenger.of(context);
+    final errorColor = context.colors.red;
     setState(() => _busy = true);
     try {
       await action(ref.read(productsRepositoryProvider));
@@ -363,7 +365,7 @@ class _MediaGalleryState extends ConsumerState<_MediaGallery> {
     } on AppException catch (e) {
       messenger.showSnackBar(SnackBar(
         content: Text(e.message),
-        backgroundColor: AppColors.red,
+        backgroundColor: errorColor,
         behavior: SnackBarBehavior.floating,
       ));
     } finally {
@@ -391,11 +393,11 @@ class _MediaGalleryState extends ConsumerState<_MediaGallery> {
                 },
               ),
             ListTile(
-              leading: const Icon(Icons.delete_outline_rounded,
-                  color: AppColors.red),
+              leading: Icon(Icons.delete_outline_rounded,
+                  color: context.colors.red),
               title: Text('Delete image',
                   style: GoogleFonts.instrumentSans(
-                      fontSize: 14, color: AppColors.red)),
+                      fontSize: 14, color: context.colors.red)),
               onTap: () async {
                 Navigator.of(sheetContext).pop();
                 final confirmed = await showDialog<bool>(
@@ -412,8 +414,8 @@ class _MediaGalleryState extends ConsumerState<_MediaGallery> {
                       ),
                       TextButton(
                         onPressed: () => Navigator.of(dialogContext).pop(true),
-                        child: const Text('Delete',
-                            style: TextStyle(color: AppColors.red)),
+                        child: Text('Delete',
+                            style: TextStyle(color: context.colors.red)),
                       ),
                     ],
                   ),
@@ -494,7 +496,7 @@ class _MediaGalleryState extends ConsumerState<_MediaGallery> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 9, vertical: 3),
                       decoration: BoxDecoration(
-                        color: AppColors.ink.withValues(alpha: 0.72),
+                        color: context.colors.ink.withValues(alpha: 0.72),
                         borderRadius: BorderRadius.circular(99),
                       ),
                       child: Text(
@@ -590,8 +592,8 @@ class _MediaGalleryState extends ConsumerState<_MediaGallery> {
                           height: 16,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Icon(Icons.add_a_photo_outlined,
-                          size: 18, color: AppColors.secondary),
+                      : Icon(Icons.add_a_photo_outlined,
+                          size: 18, color: context.colors.secondary),
                 ),
               ),
             ],
@@ -612,10 +614,10 @@ class _StockBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (bg, label) = qty <= 0
-        ? (AppColors.red, 'Out of stock')
+        ? (context.colors.red, 'Out of stock')
         : qty <= 5
             ? (const Color(0xFFCB8600), '$qty left')
-            : (AppColors.green, '$qty in stock');
+            : (context.colors.green, '$qty in stock');
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
       decoration: BoxDecoration(
@@ -700,7 +702,7 @@ class _TitleCard extends ConsumerWidget {
           Text(
             meta,
             style: GoogleFonts.instrumentSans(
-                fontSize: 12, color: AppColors.muted),
+                fontSize: 12, color: context.colors.muted),
           ),
           const SizedBox(height: 8),
           Row(
@@ -723,7 +725,7 @@ class _TitleCard extends ConsumerWidget {
                   child: Text(
                     marginText,
                     style: GoogleFonts.instrumentSans(
-                        fontSize: 11.5, color: AppColors.muted),
+                        fontSize: 11.5, color: context.colors.muted),
                   ),
                 ),
               ],
@@ -760,7 +762,7 @@ class _TagChip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
       decoration: BoxDecoration(
         color: green
-            ? AppColors.greenBg
+            ? context.colors.greenBg
             : Theme.of(context).scaffoldBackgroundColor,
         borderRadius: BorderRadius.circular(99),
         border: Border.all(
@@ -771,7 +773,7 @@ class _TagChip extends StatelessWidget {
         style: GoogleFonts.instrumentSans(
           fontSize: 11,
           fontWeight: FontWeight.w600,
-          color: green ? AppColors.green : AppColors.secondary,
+          color: green ? context.colors.green : context.colors.secondary,
         ),
       ),
     );
@@ -832,7 +834,7 @@ class _StatCell extends StatelessWidget {
           children: [
             Text(label,
                 style: GoogleFonts.instrumentSans(
-                    fontSize: 11, color: AppColors.muted)),
+                    fontSize: 11, color: context.colors.muted)),
             const SizedBox(height: 2),
             Text(value,
                 style: GoogleFonts.instrumentSans(
@@ -890,7 +892,7 @@ class _SectionPillNav extends StatelessWidget {
                         i == active ? FontWeight.w700 : FontWeight.w500,
                     color: i == active
                         ? scheme.surface
-                        : AppColors.secondary,
+                        : context.colors.secondary,
                   ),
                 ),
               ),
@@ -957,7 +959,7 @@ class _DetailsCard extends StatelessWidget {
                 const SizedBox(height: 9),
                 Text('Notes',
                     style: GoogleFonts.instrumentSans(
-                        fontSize: 10.5, color: AppColors.muted)),
+                        fontSize: 10.5, color: context.colors.muted)),
                 const SizedBox(height: 1),
                 Text(notes,
                     style: GoogleFonts.instrumentSans(
@@ -984,7 +986,7 @@ class _SpecCell extends StatelessWidget {
       children: [
         Text(label,
             style: GoogleFonts.instrumentSans(
-                fontSize: 10.5, color: AppColors.muted)),
+                fontSize: 10.5, color: context.colors.muted)),
         const SizedBox(height: 1),
         Text(value,
             style: GoogleFonts.instrumentSans(
@@ -1036,7 +1038,7 @@ class _ProductSpecsCard extends ConsumerWidget {
                           : Icons.edit_outlined, size: 16),
                       label: Text(specs.isEmpty ? 'Add' : 'Edit'),
                       style: TextButton.styleFrom(
-                        foregroundColor: AppColors.ink,
+                        foregroundColor: context.colors.ink,
                         textStyle: GoogleFonts.instrumentSans(
                             fontSize: 12.5, fontWeight: FontWeight.w600),
                       ),
@@ -1049,7 +1051,7 @@ class _ProductSpecsCard extends ConsumerWidget {
                   padding: const EdgeInsets.fromLTRB(15, 0, 15, 15),
                   child: Text('No specifications yet.',
                       style: GoogleFonts.instrumentSans(
-                          fontSize: 12.5, color: AppColors.muted)),
+                          fontSize: 12.5, color: context.colors.muted)),
                 )
               else
                 for (final spec in specs)
@@ -1066,7 +1068,7 @@ class _ProductSpecsCard extends ConsumerWidget {
                         Expanded(
                           child: Text(spec.label,
                               style: GoogleFonts.instrumentSans(
-                                  fontSize: 12.5, color: AppColors.muted)),
+                                  fontSize: 12.5, color: context.colors.muted)),
                         ),
                         const SizedBox(width: 12),
                         Flexible(
@@ -1125,7 +1127,7 @@ class _TechSpecCard extends ConsumerWidget {
                             child: Text(attr.attributeName,
                                 style: GoogleFonts.instrumentSans(
                                     fontSize: 12.5,
-                                    color: AppColors.muted)),
+                                    color: context.colors.muted)),
                           ),
                           const SizedBox(width: 12),
                           Flexible(
@@ -1190,7 +1192,7 @@ class _CompatibilityCard extends ConsumerWidget {
                           size: 16),
                       label: Text(items.isEmpty ? 'Add' : 'Edit'),
                       style: TextButton.styleFrom(
-                        foregroundColor: AppColors.ink,
+                        foregroundColor: context.colors.ink,
                         textStyle: GoogleFonts.instrumentSans(
                             fontSize: 12.5, fontWeight: FontWeight.w600),
                       ),
@@ -1203,7 +1205,7 @@ class _CompatibilityCard extends ConsumerWidget {
                   padding: const EdgeInsets.fromLTRB(15, 0, 15, 15),
                   child: Text('No compatible vehicles yet.',
                       style: GoogleFonts.instrumentSans(
-                          fontSize: 12.5, color: AppColors.muted)),
+                          fontSize: 12.5, color: context.colors.muted)),
                 )
               else
                 for (final item in items) _CompatRow(item: item),
@@ -1236,14 +1238,14 @@ class _CompatRow extends StatelessWidget {
             height: 22,
             margin: const EdgeInsets.only(top: 1),
             decoration: BoxDecoration(
-              color: ok ? AppColors.greenBg : AppColors.redBg,
+              color: ok ? context.colors.greenBg : context.colors.redBg,
               borderRadius: BorderRadius.circular(7),
             ),
             alignment: Alignment.center,
             child: Icon(
               ok ? Icons.check_rounded : Icons.close_rounded,
               size: 14,
-              color: ok ? AppColors.green : AppColors.red,
+              color: ok ? context.colors.green : context.colors.red,
             ),
           ),
           const SizedBox(width: 9),
@@ -1261,11 +1263,11 @@ class _CompatRow extends StatelessWidget {
                 if ((item.notes ?? '').isNotEmpty)
                   Text(item.notes!,
                       style: GoogleFonts.instrumentSans(
-                          fontSize: 11, color: AppColors.secondary)),
+                          fontSize: 11, color: context.colors.secondary)),
                 if (!ok)
                   Text('Not compatible',
                       style: GoogleFonts.instrumentSans(
-                          fontSize: 11, color: AppColors.red)),
+                          fontSize: 11, color: context.colors.red)),
               ],
             ),
           ),
@@ -1273,7 +1275,7 @@ class _CompatRow extends StatelessWidget {
             const SizedBox(width: 8),
             Text(item.engineType!,
                 style: GoogleFonts.instrumentSans(
-                    fontSize: 11, color: AppColors.muted)),
+                    fontSize: 11, color: context.colors.muted)),
           ],
         ],
       ),
@@ -1318,7 +1320,7 @@ class _WarehouseLotCard extends StatelessWidget {
                 ),
                 Text('FIFO',
                     style: GoogleFonts.instrumentSans(
-                        fontSize: 11.5, color: AppColors.muted)),
+                        fontSize: 11.5, color: context.colors.muted)),
               ],
             ),
           ),
@@ -1359,7 +1361,7 @@ class _WarehouseSection extends StatelessWidget {
           decoration: BoxDecoration(
             // Design: subtle #fafafb band behind the warehouse row.
             color: isLight
-                ? AppColors.surfaceSubtle
+                ? context.colors.surfaceSubtle
                 : Colors.white.withAlpha(10),
             border: Border(top: BorderSide(color: _hairline(context))),
           ),
@@ -1432,7 +1434,7 @@ class _LotRow extends ConsumerWidget {
                     Text(
                       meta,
                       style: GoogleFonts.instrumentSans(
-                          fontSize: 11, color: AppColors.muted),
+                          fontSize: 11, color: context.colors.muted),
                     ),
                   ],
                 ),
@@ -1517,8 +1519,8 @@ class _LocationRow extends StatelessWidget {
               Icons.inbox_outlined,
               size: 17,
               color: location.isPrimary
-                  ? AppColors.ink
-                  : AppColors.secondary,
+                  ? context.colors.ink
+                  : context.colors.secondary,
             ),
           ),
           const SizedBox(width: 12),
@@ -1558,7 +1560,7 @@ class _LocationRow extends StatelessWidget {
                 Text(
                   'Section ${location.section} · Shelf ${location.shelf}',
                   style: GoogleFonts.instrumentSans(
-                      fontSize: 11.5, color: AppColors.muted),
+                      fontSize: 11.5, color: context.colors.muted),
                 ),
               ],
             ),
@@ -1734,7 +1736,7 @@ class _BottomBar extends ConsumerWidget {
                   messenger.showSnackBar(SnackBar(
                     content:
                         Text('${product.name} is out of stock'),
-                    backgroundColor: AppColors.red,
+                    backgroundColor: context.colors.red,
                     duration: const Duration(seconds: 2),
                     behavior: SnackBarBehavior.floating,
                   ));
@@ -1957,7 +1959,7 @@ class _EmptyHintCard extends StatelessWidget {
         message,
         textAlign: TextAlign.center,
         style: GoogleFonts.instrumentSans(
-            fontSize: 12.5, color: AppColors.muted),
+            fontSize: 12.5, color: context.colors.muted),
       ),
     );
   }
