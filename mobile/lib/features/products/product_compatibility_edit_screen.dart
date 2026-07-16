@@ -44,6 +44,7 @@ class _ProductCompatibilityEditScreenState
     if (vehicle == null || !mounted) return;
 
     final messenger = ScaffoldMessenger.of(context);
+    final errorColor = context.colors.red;
     setState(() => _busy = true);
     try {
       await ref.read(productsRepositoryProvider).addCompatibility(
@@ -54,7 +55,7 @@ class _ProductCompatibilityEditScreenState
     } on AppException catch (e) {
       messenger.showSnackBar(SnackBar(
         content: Text(e.message),
-        backgroundColor: AppColors.red,
+        backgroundColor: errorColor,
         behavior: SnackBarBehavior.floating,
       ));
     } finally {
@@ -64,6 +65,7 @@ class _ProductCompatibilityEditScreenState
 
   Future<void> _remove(VehicleCompatibility c) async {
     final messenger = ScaffoldMessenger.of(context);
+    final errorColor = context.colors.red;
     setState(() => _busy = true);
     try {
       await ref
@@ -73,7 +75,7 @@ class _ProductCompatibilityEditScreenState
     } on AppException catch (e) {
       messenger.showSnackBar(SnackBar(
         content: Text(e.message),
-        backgroundColor: AppColors.red,
+        backgroundColor: errorColor,
         behavior: SnackBarBehavior.floating,
       ));
     } finally {
@@ -95,8 +97,8 @@ class _ProductCompatibilityEditScreenState
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _busy ? null : _add,
-        backgroundColor: AppColors.ink,
-        foregroundColor: Colors.white,
+        backgroundColor: context.colors.ink,
+        foregroundColor: context.colors.onInk,
         icon: const Icon(Icons.add),
         label: Text('Add vehicle',
             style: GoogleFonts.instrumentSans(fontWeight: FontWeight.w600)),
@@ -131,12 +133,12 @@ class _ProductCompatibilityEditScreenState
                       width: 36,
                       height: 36,
                       decoration: BoxDecoration(
-                        color: AppColors.greenBg,
+                        color: context.colors.greenBg,
                         borderRadius: BorderRadius.circular(10),
                       ),
                       alignment: Alignment.center,
-                      child: const Icon(Icons.directions_car_outlined,
-                          size: 18, color: AppColors.green),
+                      child: Icon(Icons.directions_car_outlined,
+                          size: 18, color: context.colors.green),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -151,7 +153,7 @@ class _ProductCompatibilityEditScreenState
                             const SizedBox(height: 2),
                             Text(c.engineType!,
                                 style: GoogleFonts.instrumentSans(
-                                    fontSize: 11.5, color: AppColors.muted)),
+                                    fontSize: 11.5, color: context.colors.muted)),
                           ],
                         ],
                       ),
@@ -316,14 +318,14 @@ class _VehiclePickerSheetState extends ConsumerState<_VehiclePickerSheet> {
                                                   style: GoogleFonts
                                                       .instrumentSans(
                                                           fontSize: 11.5,
-                                                          color: AppColors
-                                                              .muted)),
+                                                          color: context
+                                                              .colors.muted)),
                                             ],
                                           ],
                                         ),
                                       ),
-                                      const Icon(Icons.add,
-                                          size: 18, color: AppColors.secondary),
+                                      Icon(Icons.add,
+                                          size: 18, color: context.colors.secondary),
                                     ],
                                   ),
                                 );

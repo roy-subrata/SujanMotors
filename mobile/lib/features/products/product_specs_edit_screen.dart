@@ -122,7 +122,7 @@ class _ProductSpecsEditScreenState
       setState(() => _saving = false);
       messenger.showSnackBar(SnackBar(
         content: Text(e.message),
-        backgroundColor: AppColors.red,
+        backgroundColor: context.colors.red,
         behavior: SnackBarBehavior.floating,
       ));
     }
@@ -177,7 +177,7 @@ class _ProductSpecsEditScreenState
                             icon: const Icon(Icons.add, size: 18),
                             label: const Text('Add specification'),
                             style: OutlinedButton.styleFrom(
-                              foregroundColor: AppColors.ink,
+                              foregroundColor: context.colors.ink,
                               side: BorderSide(
                                   color:
                                       Theme.of(context).colorScheme.outline),

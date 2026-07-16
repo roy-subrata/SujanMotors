@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/app_exception.dart';
+import '../../core/theme/app_theme.dart';
 import '../../features/customers/customers_repository.dart';
 import '../../shared/format.dart';
 import '../../shared/models/customer.dart';
@@ -257,11 +258,11 @@ class _ChargeScreenState extends ConsumerState<ChargeScreen> {
                     fontSize: 18, fontWeight: FontWeight.w700),
               ),
               child: isSubmitting
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 22,
                       height: 22,
                       child: CircularProgressIndicator(
-                          strokeWidth: 2.5, color: Colors.white),
+                          strokeWidth: 2.5, color: context.colors.onInk),
                     )
                   : Text(due > 0
                       ? 'Confirm · ${formatCurrency(paidNow.clamp(0, grandTotal))} paid'

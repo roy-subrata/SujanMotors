@@ -148,7 +148,7 @@ class _SupplierPaymentScreenState
     } on AppException catch (e) {
       messenger.showSnackBar(SnackBar(
         content: Text(e.message),
-        backgroundColor: AppColors.red,
+        backgroundColor: context.colors.red,
         behavior: SnackBarBehavior.floating,
       ));
     } finally {
@@ -210,7 +210,7 @@ class _SupplierPaymentScreenState
                                     style: GoogleFonts.instrumentSans(
                                       fontSize: 11.5,
                                       fontWeight: FontWeight.w600,
-                                      color: AppColors.amber,
+                                      color: context.colors.amber,
                                     ),
                                   )
                                 else
@@ -218,7 +218,7 @@ class _SupplierPaymentScreenState
                                     supplier.phone ?? supplier.code,
                                     style: GoogleFonts.instrumentSans(
                                         fontSize: 11.5,
-                                        color: AppColors.muted),
+                                        color: context.colors.muted),
                                   ),
                               ],
                             ),
@@ -392,7 +392,7 @@ class _BillsCard extends StatelessWidget {
           child: Text(
             'Could not load purchase bills',
             style: GoogleFonts.instrumentSans(
-                fontSize: 13, color: AppColors.muted),
+                fontSize: 13, color: context.colors.muted),
           ),
         ),
         data: (bills) => bills.isEmpty
@@ -401,7 +401,7 @@ class _BillsCard extends StatelessWidget {
                 child: Text(
                   'No open purchase bills — the payment will be saved as an advance.',
                   style: GoogleFonts.instrumentSans(
-                      fontSize: 12.5, color: AppColors.muted),
+                      fontSize: 12.5, color: context.colors.muted),
                 ),
               )
             : Column(
@@ -436,7 +436,7 @@ class _BillsCard extends StatelessWidget {
                             'Remaining payable',
                             style: GoogleFonts.instrumentSans(
                                 fontSize: 12.5,
-                                color: AppColors.secondary),
+                                color: context.colors.secondary),
                           ),
                         ),
                         Text(
@@ -445,8 +445,8 @@ class _BillsCard extends StatelessWidget {
                             fontSize: 12.5,
                             fontWeight: FontWeight.w700,
                             color: remainingPayable > 0
-                                ? AppColors.amber
-                                : AppColors.green,
+                                ? context.colors.amber
+                                : context.colors.green,
                           ),
                         ),
                       ],

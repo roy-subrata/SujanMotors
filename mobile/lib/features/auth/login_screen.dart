@@ -65,7 +65,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         width: 56,
                         height: 56,
                         decoration: BoxDecoration(
-                          color: AppColors.ink,
+                          color: context.colors.ink,
                           borderRadius: BorderRadius.circular(14),
                         ),
                         alignment: Alignment.center,
@@ -110,7 +110,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   autocorrect: false,
                   enabled: !_submitting,
                   style: GoogleFonts.instrumentSans(
-                      fontSize: 14, color: AppColors.ink),
+                      fontSize: 14, color: context.colors.ink),
                   decoration: const InputDecoration(
                     hintText: 'Enter your username',
                   ),
@@ -144,14 +144,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   enabled: !_submitting,
                   onFieldSubmitted: (_) => _submit(),
                   style: GoogleFonts.instrumentSans(
-                      fontSize: 14, color: AppColors.ink),
+                      fontSize: 14, color: context.colors.ink),
                   decoration: InputDecoration(
                     hintText: 'Enter your password',
                     suffixIcon: TextButton(
                       onPressed: () =>
                           setState(() => _obscure = !_obscure),
                       style: TextButton.styleFrom(
-                          foregroundColor: AppColors.secondary),
+                          foregroundColor: context.colors.secondary),
                       child: Text(
                         _obscure ? 'Show' : 'Hide',
                         style: GoogleFonts.instrumentSans(
@@ -171,14 +171,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 10),
                     decoration: BoxDecoration(
-                      color: AppColors.redBg,
+                      color: context.colors.redBg,
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: AppColors.redBorder),
+                      border: Border.all(color: context.colors.redBorder),
                     ),
                     child: Text(
                       errorText,
                       style: GoogleFonts.instrumentSans(
-                        color: AppColors.red,
+                        color: context.colors.red,
                         fontSize: 13,
                       ),
                     ),
@@ -192,8 +192,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   height: 50,
                   child: FilledButton(
                     style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.ink,
-                      foregroundColor: Colors.white,
+                      backgroundColor: context.colors.ink,
+                      foregroundColor: context.colors.onInk,
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12)),
                       padding: const EdgeInsets.symmetric(vertical: 15),
@@ -223,7 +223,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   height: 48,
                   child: OutlinedButton(
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.ink,
+                      foregroundColor: context.colors.ink,
                       side: BorderSide(color: Theme.of(context).colorScheme.outline),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12)),

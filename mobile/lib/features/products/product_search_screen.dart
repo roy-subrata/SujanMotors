@@ -135,8 +135,8 @@ class _ProductSearchScreenState extends ConsumerState<ProductSearchScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => context.go('/quick-sale'),
-        backgroundColor: AppColors.ink,
-        foregroundColor: Colors.white,
+        backgroundColor: context.colors.ink,
+        foregroundColor: context.colors.onInk,
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16)),
         child: const Icon(Icons.add),
@@ -266,10 +266,10 @@ class _LowStockTab extends StatelessWidget {
         margin: const EdgeInsets.only(right: 8),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.red : AppColors.redBg,
+          color: isSelected ? context.colors.red : context.colors.redBg,
           borderRadius: BorderRadius.circular(99),
           border: Border.all(
-            color: isSelected ? AppColors.red : AppColors.redBorder,
+            color: isSelected ? context.colors.red : context.colors.redBorder,
           ),
         ),
         child: Text(
@@ -277,7 +277,7 @@ class _LowStockTab extends StatelessWidget {
           style: GoogleFonts.instrumentSans(
             fontSize: 12,
             fontWeight: FontWeight.w600,
-            color: isSelected ? Colors.white : AppColors.red,
+            color: isSelected ? context.colors.onInk : context.colors.red,
           ),
         ),
       ),
@@ -306,10 +306,10 @@ class _Tab extends StatelessWidget {
         margin: const EdgeInsets.only(right: 8),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.ink : Theme.of(context).colorScheme.surface,
+          color: isSelected ? context.colors.ink : Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(99),
           border: Border.all(
-            color: isSelected ? AppColors.ink : Theme.of(context).colorScheme.outline,
+            color: isSelected ? context.colors.ink : Theme.of(context).colorScheme.outline,
           ),
         ),
         child: Row(
@@ -320,14 +320,14 @@ class _Tab extends StatelessWidget {
               style: GoogleFonts.instrumentSans(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: isSelected ? Colors.white : AppColors.secondary,
+                color: isSelected ? context.colors.onInk : context.colors.secondary,
               ),
             ),
             if (icon != null) ...[
               const SizedBox(width: 2),
               Icon(icon,
                   size: 14,
-                  color: isSelected ? Colors.white : AppColors.secondary),
+                  color: isSelected ? context.colors.onInk : context.colors.secondary),
             ],
           ],
         ),
@@ -413,8 +413,8 @@ class _CategoryPickerSheetState extends ConsumerState<_CategoryPickerSheet> {
               icon: Icons.category_outlined,
             ),
             itemBuilder: (context, cat) => ListTile(
-              leading: const Icon(Icons.category_outlined,
-                  color: AppColors.secondary),
+              leading: Icon(Icons.category_outlined,
+                  color: context.colors.secondary),
               title: Text(cat.name),
               onTap: () {
                 widget.onSelected(cat.id, cat.name);
@@ -488,8 +488,8 @@ class _ProductCard extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: Theme.of(context).colorScheme.outline.withAlpha(60)),
                   ),
-                  child: const Icon(Icons.inventory_2_outlined,
-                      size: 20, color: AppColors.disabled),
+                  child: Icon(Icons.inventory_2_outlined,
+                      size: 20, color: context.colors.disabled),
                 ),
                 const SizedBox(width: 12),
 

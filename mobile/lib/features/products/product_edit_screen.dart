@@ -193,7 +193,7 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
       setState(() => _saving = false);
       messenger.showSnackBar(SnackBar(
         content: Text(e.message),
-        backgroundColor: AppColors.red,
+        backgroundColor: context.colors.red,
         behavior: SnackBarBehavior.floating,
       ));
     }
@@ -427,7 +427,7 @@ class _Field extends StatelessWidget {
             style: GoogleFonts.instrumentSans(
               fontSize: 11.5,
               fontWeight: FontWeight.w600,
-              color: AppColors.secondary,
+              color: context.colors.secondary,
             ),
           ),
           const SizedBox(height: 6),

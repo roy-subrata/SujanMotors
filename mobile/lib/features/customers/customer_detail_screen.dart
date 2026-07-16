@@ -306,16 +306,16 @@ class _BodyState extends ConsumerState<_Body> {
                           _StatBox(
                             label: 'Due',
                             value: formatCurrency(s.amountDue),
-                            valueColor: AppColors.red,
-                            bg: AppColors.redBg,
+                            valueColor: context.colors.red,
+                            bg: context.colors.redBg,
                           ),
                           const SizedBox(width: 8),
                           _StatBox(
                             label: 'Advance',
                             value: formatCurrency(
                                 widget.customer.advanceAmount),
-                            valueColor: AppColors.green,
-                            bg: AppColors.greenBg,
+                            valueColor: context.colors.green,
+                            bg: context.colors.greenBg,
                           ),
                           const SizedBox(width: 8),
                           _StatBox(
@@ -601,7 +601,7 @@ class _InvoiceRow extends StatelessWidget {
                     style: GoogleFonts.instrumentSans(
                       fontSize: 10.5,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.red,
+                      color: context.colors.red,
                     ),
                   )
                 else
@@ -609,8 +609,8 @@ class _InvoiceRow extends StatelessWidget {
               ],
             ),
             const SizedBox(width: 8),
-            const Icon(Icons.chevron_right,
-                color: AppColors.disabled, size: 18),
+            Icon(Icons.chevron_right,
+                color: context.colors.disabled, size: 18),
           ],
         ),
       ),
@@ -682,7 +682,7 @@ class _PaymentRow extends StatelessWidget {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: isCompleted ? AppColors.greenBg : Theme.of(context).scaffoldBackgroundColor,
+              color: isCompleted ? context.colors.greenBg : Theme.of(context).scaffoldBackgroundColor,
               borderRadius: BorderRadius.circular(10),
             ),
             alignment: Alignment.center,
@@ -726,7 +726,7 @@ class _PaymentRow extends StatelessWidget {
                   fontSize: 13.5,
                   fontWeight: FontWeight.w600,
                   color:
-                      isCompleted ? AppColors.green : AppColors.ink,
+                      isCompleted ? context.colors.green : context.colors.ink,
                 ),
               ),
               const SizedBox(height: 4),
@@ -810,12 +810,12 @@ class _ReturnRow extends StatelessWidget {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: AppColors.redBg,
+              color: context.colors.redBg,
               borderRadius: BorderRadius.circular(10),
             ),
             alignment: Alignment.center,
-            child: const Icon(Icons.assignment_return_outlined,
-                size: 18, color: AppColors.red),
+            child: Icon(Icons.assignment_return_outlined,
+                size: 18, color: context.colors.red),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -851,7 +851,7 @@ class _ReturnRow extends StatelessWidget {
                 style: GoogleFonts.instrumentSans(
                   fontSize: 13.5,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.red,
+                  color: context.colors.red,
                 ),
               ),
               const SizedBox(height: 4),
@@ -878,7 +878,7 @@ class _InitiateReturnButton extends StatelessWidget {
         icon: const Icon(Icons.assignment_return_outlined, size: 16),
         label: const Text('Initiate return'),
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.ink,
+          foregroundColor: context.colors.ink,
           side: BorderSide(color: Theme.of(context).colorScheme.outline),
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -921,7 +921,7 @@ class _PaginationFooter extends StatelessWidget {
           child: Text(
             'All records loaded',
             style: GoogleFonts.instrumentSans(
-                fontSize: 12, color: AppColors.muted),
+                fontSize: 12, color: context.colors.muted),
           ),
         ),
       );
@@ -942,12 +942,12 @@ class _NetRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final owes = net > 0;
-    final color = owes ? AppColors.red : AppColors.green;
+    final color = owes ? context.colors.red : context.colors.green;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
       decoration: BoxDecoration(
-        color: (owes ? AppColors.redBg : AppColors.greenBg),
+        color: (owes ? context.colors.redBg : context.colors.greenBg),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
@@ -994,7 +994,7 @@ class _StatBox extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: GoogleFonts.instrumentSans(
-                    fontSize: 10.5, color: AppColors.muted)),
+                    fontSize: 10.5, color: context.colors.muted)),
             const SizedBox(height: 3),
             // Long amounts (৳ 1,234,567.00) shrink to fit rather than wrap.
             FittedBox(
@@ -1005,7 +1005,7 @@ class _StatBox extends StatelessWidget {
                   style: GoogleFonts.instrumentSans(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: valueColor ?? AppColors.ink,
+                    color: valueColor ?? context.colors.ink,
                   )),
             ),
           ],
@@ -1038,17 +1038,17 @@ class _ActionButton extends StatelessWidget {
         padding:
             const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
         decoration: BoxDecoration(
-          color: filled ? AppColors.ink : Theme.of(context).colorScheme.surface,
+          color: filled ? context.colors.ink : Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(11),
           border: Border.all(
-              color: filled ? AppColors.ink : Theme.of(context).colorScheme.outline),
+              color: filled ? context.colors.ink : Theme.of(context).colorScheme.outline),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(icon,
                 size: 15,
-                color: filled ? Colors.white : AppColors.secondary),
+                color: filled ? context.colors.onInk : context.colors.secondary),
             const SizedBox(width: 6),
             // Labels ("Receive payment") outgrow the fixed grid cell at
             // larger text scales — shrink to fit instead of overflowing.
@@ -1060,7 +1060,7 @@ class _ActionButton extends StatelessWidget {
                     style: GoogleFonts.instrumentSans(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w600,
-                      color: filled ? Colors.white : AppColors.ink,
+                      color: filled ? context.colors.onInk : context.colors.ink,
                     )),
               ),
             ),
@@ -1092,7 +1092,7 @@ class _ReminderSheetState extends ConsumerState<_ReminderSheet> {
     setState(() => _sending = true);
     final messenger = ScaffoldMessenger.of(context);
     final nav = Navigator.of(context);
-    final errorColor = AppColors.red;
+    final errorColor = context.colors.red;
     try {
       final msg = await ref
           .read(customersRepositoryProvider)
@@ -1154,7 +1154,7 @@ class _ReminderSheetState extends ConsumerState<_ReminderSheet> {
               Text(
                 '${widget.customer.fullName} · due ${formatCurrency(widget.customer.dueAmount)}',
                 style: GoogleFonts.instrumentSans(
-                    fontSize: 12.5, color: AppColors.muted),
+                    fontSize: 12.5, color: context.colors.muted),
               ),
               const SizedBox(height: 20),
               MethodGrid(
@@ -1170,19 +1170,19 @@ class _ReminderSheetState extends ConsumerState<_ReminderSheet> {
                 child: FilledButton(
                   onPressed: _sending ? null : _send,
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.ink,
-                    foregroundColor: Colors.white,
+                    backgroundColor: context.colors.ink,
+                    foregroundColor: context.colors.onInk,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12)),
                     textStyle: GoogleFonts.instrumentSans(
                         fontSize: 15, fontWeight: FontWeight.w700),
                   ),
                   child: _sending
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(
-                              strokeWidth: 2.5, color: Colors.white),
+                              strokeWidth: 2.5, color: context.colors.onInk),
                         )
                       : const Text('Send reminder'),
                 ),

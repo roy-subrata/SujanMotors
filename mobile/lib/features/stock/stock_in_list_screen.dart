@@ -76,8 +76,8 @@ class _StockInListScreenState extends ConsumerState<StockInListScreen> {
           final created = await context.push<bool>('/stock-in/new');
           if (created == true && mounted) setState(() => _reloadTick++);
         },
-        backgroundColor: AppColors.ink,
-        foregroundColor: Colors.white,
+        backgroundColor: context.colors.ink,
+        foregroundColor: context.colors.onInk,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: const Icon(Icons.add),
       ),
@@ -95,20 +95,20 @@ class _StockInListScreenState extends ConsumerState<StockInListScreen> {
           SizedBox(
             width: double.infinity,
             child: FilterChipRow(
-              chips: const [
+              chips: [
                 FilterChipData(label: 'All'),
                 FilterChipData(
                   label: 'Pending',
-                  inactiveColor: AppColors.amber,
-                  inactiveBg: AppColors.amberBg,
-                  inactiveBorder: AppColors.amberBorder,
-                  activeBg: AppColors.amber,
+                  inactiveColor: context.colors.amber,
+                  inactiveBg: context.colors.amberBg,
+                  inactiveBorder: context.colors.amberBorder,
+                  activeBg: context.colors.amber,
                 ),
                 FilterChipData(
                   label: 'Received',
-                  inactiveColor: AppColors.green,
-                  inactiveBg: AppColors.greenBg,
-                  activeBg: AppColors.green,
+                  inactiveColor: context.colors.green,
+                  inactiveBg: context.colors.greenBg,
+                  activeBg: context.colors.green,
                 ),
               ],
               selected: _filter.index,
@@ -206,7 +206,7 @@ class _PoRow extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: GoogleFonts.instrumentSans(
                           fontSize: 11.5,
-                          color: AppColors.muted,
+                          color: context.colors.muted,
                         ),
                       ),
                     ],
@@ -365,7 +365,7 @@ class _PoDetailSheetState extends ConsumerState<_PoDetailSheet> {
               child: Text(
                 '${po.supplierName} · ${formatDate(po.orderDate)}',
                 style: GoogleFonts.instrumentSans(
-                    fontSize: 12.5, color: AppColors.secondary),
+                    fontSize: 12.5, color: context.colors.secondary),
               ),
             ),
             Expanded(
@@ -401,7 +401,7 @@ class _PoDetailSheetState extends ConsumerState<_PoDetailSheet> {
                                 'Qty ${l.quantity} · ${formatCurrency(l.unitPrice)}'
                                 '${l.receivedQuantity > 0 ? ' · ${l.receivedQuantity} received' : ''}',
                                 style: GoogleFonts.instrumentSans(
-                                    fontSize: 11.5, color: AppColors.muted),
+                                    fontSize: 11.5, color: context.colors.muted),
                               ),
                             ],
                           ),
@@ -427,7 +427,7 @@ class _PoDetailSheetState extends ConsumerState<_PoDetailSheet> {
                     children: [
                       Text('Grand total',
                           style: GoogleFonts.instrumentSans(
-                              fontSize: 13, color: AppColors.secondary)),
+                              fontSize: 13, color: context.colors.secondary)),
                       Text(
                         formatCurrency(po.grandTotal, currency: po.currency),
                         style: GoogleFonts.instrumentSans(
@@ -440,18 +440,18 @@ class _PoDetailSheetState extends ConsumerState<_PoDetailSheet> {
                     const SizedBox(height: 12),
                     FilledButton.icon(
                       style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.green,
+                        backgroundColor: context.colors.green,
                         padding: const EdgeInsets.symmetric(vertical: 15),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14)),
                       ),
                       onPressed: _receiving ? null : _receive,
                       icon: _receiving
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 18,
                               height: 18,
                               child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: Colors.white),
+                                  strokeWidth: 2, color: context.colors.onInk),
                             )
                           : const Icon(Icons.check_rounded),
                       label: Text(_progress ?? 'Receive stock'),
@@ -499,8 +499,8 @@ Future<Warehouse?> pickWarehouse(BuildContext context, WidgetRef ref) async {
                 ),
                 for (final w in list)
                   ListTile(
-                    leading: const Icon(Icons.warehouse_outlined,
-                        color: AppColors.secondary),
+                    leading: Icon(Icons.warehouse_outlined,
+                        color: context.colors.secondary),
                     title: Text(w.name),
                     onTap: () => Navigator.of(sheetContext).pop(w),
                   ),

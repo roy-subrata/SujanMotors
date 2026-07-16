@@ -283,7 +283,7 @@ class _StockInEntryScreenState extends ConsumerState<StockInEntryScreen> {
                   children: [
                     Text('Grand total',
                         style: GoogleFonts.instrumentSans(
-                            fontSize: 13, color: AppColors.secondary)),
+                            fontSize: 13, color: context.colors.secondary)),
                     Text(
                       formatCurrency(_grandTotal),
                       style: GoogleFonts.instrumentSans(
@@ -333,17 +333,17 @@ class _StockInEntryScreenState extends ConsumerState<StockInEntryScreen> {
                     child: FilledButton.icon(
                       onPressed: _saving ? null : () => _save(receive: true),
                       style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.green,
+                        backgroundColor: context.colors.green,
                         padding: const EdgeInsets.symmetric(vertical: 15),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14)),
                       ),
                       icon: _saving
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 18,
                               height: 18,
                               child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: Colors.white),
+                                  strokeWidth: 2, color: context.colors.onInk),
                             )
                           : const Icon(Icons.check_rounded),
                       label: Text(_progress ?? 'Receive stock'),
@@ -384,9 +384,9 @@ class _PickerField extends StatelessWidget {
       child: InputDecorator(
         decoration: InputDecoration(
           labelText: label,
-          prefixIcon: Icon(icon, size: 20, color: AppColors.secondary),
-          suffixIcon: const Icon(Icons.expand_more_rounded,
-              color: AppColors.secondary),
+          prefixIcon: Icon(icon, size: 20, color: context.colors.secondary),
+          suffixIcon: Icon(Icons.expand_more_rounded,
+              color: context.colors.secondary),
         ),
         child: Text(
           value ?? hint,
@@ -394,7 +394,7 @@ class _PickerField extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           style: GoogleFonts.instrumentSans(
             fontSize: 14,
-            color: value == null ? AppColors.muted : null,
+            color: value == null ? context.colors.muted : null,
           ),
         ),
       ),
@@ -453,7 +453,7 @@ class _LineCard extends StatelessWidget {
                     Text(
                       meta,
                       style: GoogleFonts.instrumentSans(
-                          fontSize: 11.5, color: AppColors.muted),
+                          fontSize: 11.5, color: context.colors.muted),
                     ),
                   ],
                 ),
@@ -464,8 +464,8 @@ class _LineCard extends StatelessWidget {
                     fontSize: 13.5, fontWeight: FontWeight.w600),
               ),
               IconButton(
-                icon: const Icon(Icons.close, size: 18,
-                    color: AppColors.muted),
+                icon: Icon(Icons.close, size: 18,
+                    color: context.colors.muted),
                 onPressed: onRemove,
               ),
             ],
@@ -612,7 +612,7 @@ class _LineEditorSheetState extends State<_LineEditorSheet> {
             FilledButton(
               onPressed: _done,
               style: FilledButton.styleFrom(
-                backgroundColor: AppColors.ink,
+                backgroundColor: context.colors.ink,
                 padding: const EdgeInsets.symmetric(vertical: 15),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14)),
@@ -699,7 +699,7 @@ class _SupplierPickerSheetState extends ConsumerState<_SupplierPickerSheet> {
               ),
               itemBuilder: (context, s) => ListTile(
                 leading:
-                    const Icon(Icons.store_outlined, color: AppColors.secondary),
+                    Icon(Icons.store_outlined, color: context.colors.secondary),
                 title: Text(s.name),
                 subtitle: s.phone == null ? null : Text(s.phone!),
                 onTap: () => Navigator.of(context).pop(s),
@@ -784,8 +784,8 @@ class _ProductPickerSheetState extends ConsumerState<_ProductPickerSheet> {
                 icon: Icons.search_off,
               ),
               itemBuilder: (context, p) => ListTile(
-                leading: const Icon(Icons.inventory_2_outlined,
-                    color: AppColors.secondary),
+                leading: Icon(Icons.inventory_2_outlined,
+                    color: context.colors.secondary),
                 title: Text(p.name),
                 subtitle: p.sku.isEmpty ? null : Text(p.sku),
                 onTap: () => Navigator.of(context).pop(p),

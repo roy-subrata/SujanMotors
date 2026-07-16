@@ -120,7 +120,7 @@ class _InvoiceBody extends StatelessWidget {
                       _MetaItem(
                         label: 'Due date',
                         value: formatDate(inv.dueDate!),
-                        valueColor: inv.isOverdue ? AppColors.red : null,
+                        valueColor: inv.isOverdue ? context.colors.red : null,
                       ),
                   ],
                 ),
@@ -173,7 +173,7 @@ class _InvoiceBody extends StatelessWidget {
                 _TotalRow(
                   label: 'Amount Paid',
                   value: formatCurrency(inv.amountPaid),
-                  valueColor: AppColors.green,
+                  valueColor: context.colors.green,
                 ),
                 if (inv.outstandingAmount > 0) ...[
                   Padding(
@@ -186,7 +186,7 @@ class _InvoiceBody extends StatelessWidget {
                     valueStyle: GoogleFonts.instrumentSans(
                       fontSize: 19,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.red,
+                      color: context.colors.red,
                     ),
                   ),
                 ],
@@ -203,8 +203,8 @@ class _InvoiceBody extends StatelessWidget {
                   size: 16),
               label: const Text('Initiate return'),
               style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.red,
-                side: BorderSide(color: AppColors.redBorder),
+                foregroundColor: context.colors.red,
+                side: BorderSide(color: context.colors.redBorder),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12)),
                 padding: const EdgeInsets.symmetric(vertical: 13),
@@ -249,7 +249,7 @@ class _MetaItem extends StatelessWidget {
           style: GoogleFonts.instrumentSans(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: valueColor ?? AppColors.ink,
+            color: valueColor ?? context.colors.ink,
           ),
         ),
       ],
@@ -353,7 +353,7 @@ class _TotalRow extends StatelessWidget {
               GoogleFonts.instrumentSans(
                 fontSize: 13.5,
                 fontWeight: FontWeight.w600,
-                color: valueColor ?? AppColors.ink,
+                color: valueColor ?? context.colors.ink,
               ),
         ),
       ],

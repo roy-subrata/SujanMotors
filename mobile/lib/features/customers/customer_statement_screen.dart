@@ -163,7 +163,7 @@ class _CustomerStatementScreenState
         messenger.clearSnackBars();
         messenger.showSnackBar(SnackBar(
           content: Text(e.message),
-          backgroundColor: AppColors.red,
+          backgroundColor: context.colors.red,
           behavior: SnackBarBehavior.floating,
         ));
       }
@@ -214,8 +214,8 @@ class _CustomerStatementScreenState
                     ),
                   ),
                   const SizedBox(width: 4),
-                  const Icon(Icons.expand_more_rounded,
-                      size: 14, color: AppColors.secondary),
+                  Icon(Icons.expand_more_rounded,
+                      size: 14, color: context.colors.secondary),
                 ],
               ),
             ),
@@ -268,7 +268,7 @@ class _CustomerStatementScreenState
                 (f) => ListTile(
                   title: Text(_filterLabel(f)),
                   trailing: _filter == f
-                      ? const Icon(Icons.check, color: AppColors.ink)
+                      ? Icon(Icons.check, color: context.colors.ink)
                       : null,
                   onTap: () {
                     Navigator.pop(ctx);
@@ -335,7 +335,7 @@ class _CustomerStatementScreenState
                   icon: const Icon(Icons.print_outlined, size: 16),
                   label: const Text('Print'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.ink,
+                    foregroundColor: context.colors.ink,
                     side: BorderSide(color: Theme.of(context).colorScheme.outline),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(11)),
@@ -351,16 +351,16 @@ class _CustomerStatementScreenState
                 child: FilledButton.icon(
                   onPressed: _isPdfLoading ? null : _downloadPdf,
                   icon: _isPdfLoading
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 16,
                           height: 16,
                           child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white))
+                              strokeWidth: 2, color: context.colors.onInk))
                       : const Icon(Icons.upload_outlined, size: 16),
                   label: const Text('Generate PDF & share'),
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.ink,
-                    foregroundColor: Colors.white,
+                    backgroundColor: context.colors.ink,
+                    foregroundColor: context.colors.onInk,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(11)),
                     padding: const EdgeInsets.symmetric(vertical: 13),
@@ -397,7 +397,7 @@ class _SummaryBar extends StatelessWidget {
               '${summary.customerName} · Purchased ${formatCurrency(summary.totalPurchaseAmount)} · Paid ${formatCurrency(summary.totalPaidAmount)}',
               style: GoogleFonts.instrumentSans(
                 fontSize: 12,
-                color: hasDue ? AppColors.red : AppColors.muted,
+                color: hasDue ? context.colors.red : context.colors.muted,
               ),
             ),
           ),
@@ -407,7 +407,7 @@ class _SummaryBar extends StatelessWidget {
               style: GoogleFonts.instrumentSans(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: AppColors.red,
+                color: context.colors.red,
               ),
             ),
           ],

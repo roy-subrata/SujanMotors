@@ -100,6 +100,7 @@ class NotificationsScreen extends ConsumerWidget {
       BuildContext context, WidgetRef ref, AppNotification item) async {
     ref.read(notificationsControllerProvider.notifier).markRead(item);
     final messenger = ScaffoldMessenger.of(context);
+    final errorColor = context.colors.red;
     final router = GoRouter.of(context);
     try {
       final chunk = await ref
@@ -117,7 +118,7 @@ class NotificationsScreen extends ConsumerWidget {
     } on AppException catch (e) {
       messenger.showSnackBar(SnackBar(
         content: Text(e.message),
-        backgroundColor: AppColors.red,
+        backgroundColor: errorColor,
         behavior: SnackBarBehavior.floating,
       ));
     }
@@ -138,14 +139,14 @@ class _ConnectionBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final (bg, fg, label, icon) = switch (status) {
       HubStatus.connecting => (
-          AppColors.amberBg,
-          AppColors.amber,
+          context.colors.amberBg,
+          context.colors.amber,
           'Connecting…',
           Icons.sync,
         ),
       _ => (
-          AppColors.redBg,
-          AppColors.red,
+          context.colors.redBg,
+          context.colors.red,
           'Offline — live notifications paused',
           Icons.cloud_off,
         ),
@@ -224,7 +225,7 @@ class _NotificationRow extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: AppColors.greenBg,
+              color: context.colors.greenBg,
               borderRadius: BorderRadius.circular(11),
             ),
             alignment: Alignment.center,
@@ -233,7 +234,7 @@ class _NotificationRow extends StatelessWidget {
               style: GoogleFonts.instrumentSans(
                 fontSize: 17,
                 fontWeight: FontWeight.w700,
-                color: AppColors.green,
+                color: context.colors.green,
               ),
             ),
           ),
@@ -258,7 +259,7 @@ class _NotificationRow extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.instrumentSans(
                     fontSize: 11.5,
-                    color: AppColors.muted,
+                    color: context.colors.muted,
                   ),
                 ),
               ],
@@ -275,7 +276,7 @@ class _NotificationRow extends StatelessWidget {
                     formatRelative(sale.occurredAt),
                     style: GoogleFonts.instrumentSans(
                       fontSize: 11,
-                      color: AppColors.muted,
+                      color: context.colors.muted,
                     ),
                   ),
                   if (!notification.read) ...[
@@ -283,8 +284,8 @@ class _NotificationRow extends StatelessWidget {
                     Container(
                       width: 8,
                       height: 8,
-                      decoration: const BoxDecoration(
-                        color: AppColors.red,
+                      decoration: BoxDecoration(
+                        color: context.colors.red,
                         shape: BoxShape.circle,
                       ),
                     ),
