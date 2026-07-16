@@ -1,0 +1,63 @@
+/* Stock Take detail — shares the data-page tokens; page-specific pieces below. */
+
+/* Summary strip */
+.summary-strip {
+  display: flex; flex-wrap: wrap; gap: 12px;
+  padding: 0 var(--page-gutter, 24px) 16px;
+}
+.summary-card {
+  display: flex; flex-direction: column; gap: 6px;
+  min-width: 140px; padding: 12px 16px;
+  background: var(--color-bg-primary, #fff);
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 10px;
+}
+.summary-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--color-text-secondary); }
+.summary-value { font-size: 14px; font-weight: 600; color: var(--color-text-primary); }
+
+.value-negative { color: var(--color-danger) !important; }
+.value-positive { color: var(--color-success) !important; }
+
+/* Approval conflict banner */
+.conflict-banner {
+  margin: 0 var(--page-gutter, 24px) 16px;
+  padding: 14px 18px;
+  background: var(--color-danger-light, #fef2f2);
+  border: 1px solid var(--color-danger, #dc2626);
+  border-radius: 10px;
+  color: var(--color-danger, #b91c1c);
+  font-size: 13px;
+}
+.conflict-title { display: flex; align-items: center; gap: 8px; font-weight: 700; margin-bottom: 8px; }
+.conflict-banner ul { margin: 0 0 8px; padding-left: 22px; }
+.conflict-banner p { margin: 0; }
+
+/* Lines toolbar */
+.lines-toolbar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 12px;
+  padding: 0 var(--page-gutter, 24px) 12px;
+}
+.lines-toolbar .search-input-wrapper { flex: 1; min-width: 240px; max-width: 420px; }
+
+/* Count entry */
+.col-num { text-align: right; font-variant-numeric: tabular-nums; }
+.col-count { width: 120px; }
+.count-input {
+  width: 96px; padding: 6px 10px; text-align: right;
+  border: 1.5px solid var(--color-border, #d1d5db); border-radius: 8px;
+  font-size: 14px; font-variant-numeric: tabular-nums;
+  background: var(--color-bg-primary, #fff);
+}
+.count-input:focus { outline: none; border-color: var(--color-primary, #2563eb); }
+.count-input.count-dirty { border-color: var(--color-warning, #d97706); background: var(--color-warning-light, #fffbeb); }
+
+/* Row states */
+.row-variance td { background: color-mix(in srgb, var(--color-warning-light, #fffbeb) 55%, transparent); }
+.row-uncounted .customer-name { opacity: .75; }
+
+.btn-danger-icon { color: var(--color-danger) !important; }
+.text-muted { color: var(--color-text-secondary); opacity: .7; }
+
+@media (max-width: 768px) {
+  .summary-card { min-width: calc(50% - 12px); }
+}
