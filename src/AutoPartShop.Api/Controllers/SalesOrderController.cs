@@ -968,6 +968,7 @@ public class SalesOrderController : ControllerBase
         Guid? customerId = null,
         DateTime? fromDate = null,
         DateTime? toDate = null,
+        bool hasDue = false,
         CancellationToken cancellationToken = default)
     {
         try
@@ -977,7 +978,7 @@ public class SalesOrderController : ControllerBase
             if (pageSize > 100) pageSize = 100;
 
             var (invoices, totalCount) = await _invoiceRepository.GetPagedAsync(pageNumber, pageSize,
-                searchTerm, status, customerId, fromDate, toDate, cancellationToken);
+                searchTerm, status, customerId, fromDate, toDate, hasDue, cancellationToken);
 
             var response = invoices.Select(MapToInvoiceResponse);
             return Ok(new

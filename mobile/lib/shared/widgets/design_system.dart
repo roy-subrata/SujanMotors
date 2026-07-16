@@ -12,8 +12,7 @@ class StatusPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final cfg = _cfg(label, scheme);
+    final cfg = _cfg(label, context.colors);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
@@ -32,30 +31,32 @@ class StatusPill extends StatelessWidget {
     );
   }
 
-  static _PillConfig _cfg(String l, ColorScheme scheme) {
-    switch (l.toUpperCase()) {
+  static _PillConfig _cfg(String l, AppPalette c) {
+    final upper = l.toUpperCase();
+    // Stock labels with counts, e.g. "24 in stock" / "4 left".
+    if (upper.endsWith('IN STOCK')) {
+      return _PillConfig(c.green, c.greenBg, c.greenBorder);
+    }
+    if (upper.endsWith('LEFT')) {
+      return _PillConfig(c.amber, c.amberBg, c.amberBorder);
+    }
+    switch (upper) {
       case 'PAID':
       case 'COMPLETED':
-        return const _PillConfig(AppColors.green, AppColors.greenBg, null);
+        return _PillConfig(c.green, c.greenBg, c.greenBorder);
       case 'DUE':
       case 'OVERDUE':
       case 'RETURN':
       case 'RETURNED':
       case 'OUT OF STOCK':
-        return const _PillConfig(
-            AppColors.red, AppColors.redBg, AppColors.redBorder);
+        return _PillConfig(c.red, c.redBg, c.redBorder);
       case 'PARTIAL':
       case 'PARTIALLY_PAID':
       case 'LOW STOCK':
       case 'PENDING':
-        return const _PillConfig(
-            AppColors.amber, AppColors.amberBg, AppColors.amberBorder);
+        return _PillConfig(c.amber, c.amberBg, c.amberBorder);
       default:
-        return _PillConfig(
-          scheme.onSurface.withAlpha(160),
-          scheme.outline.withAlpha(30),
-          scheme.outline,
-        );
+        return _PillConfig(c.secondary, c.surfaceSubtle, c.border);
     }
   }
 }
@@ -269,15 +270,22 @@ class MethodGrid extends StatelessWidget {
               ),
             ),
             alignment: Alignment.center,
-            child: Text(
-              methods[i],
-              textAlign: TextAlign.center,
-              style: GoogleFonts.instrumentSans(
-                fontSize: 11.5,
-                fontWeight: FontWeight.w600,
-                color: isSelected
-                    ? scheme.surface
-                    : scheme.onSurface.withAlpha(160),
+            padding: const EdgeInsets.symmetric(horizontal: 6),
+            // Long labels ("On credit", "WhatsApp") shrink to fit the fixed
+            // cell instead of wrapping/overflowing at larger text scales.
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                methods[i],
+                maxLines: 1,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.instrumentSans(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w600,
+                  color: isSelected
+                      ? scheme.surface
+                      : scheme.onSurface.withAlpha(160),
+                ),
               ),
             ),
           ),
@@ -363,6 +371,89 @@ class BillCheckRow extends StatelessWidget {
                 color: scheme.onSurface,
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── FilterDropdown ────────────────────────────────────────────────────────────
+
+/// A 44px bordered dropdown button matching the search-row styling — used for
+/// list-page filters (status, customer type, period) instead of chip rows.
+class FilterDropdown<T> extends StatelessWidget {
+  const FilterDropdown({
+    super.key,
+    required this.value,
+    required this.options,
+    required this.onChanged,
+    this.leadingIcon,
+  });
+
+  final T value;
+
+  /// (value, label) pairs shown in the menu, in order.
+  final List<(T, String)> options;
+  final ValueChanged<T> onChanged;
+  final IconData? leadingIcon;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final label = options
+        .firstWhere((o) => o.$1 == value, orElse: () => options.first)
+        .$2;
+
+    return PopupMenuButton<T>(
+      onSelected: onChanged,
+      itemBuilder: (context) => [
+        for (final (v, l) in options)
+          PopupMenuItem<T>(
+            value: v,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(l,
+                      style: GoogleFonts.instrumentSans(
+                        fontSize: 13.5,
+                        fontWeight:
+                            v == value ? FontWeight.w700 : FontWeight.w400,
+                      )),
+                ),
+                if (v == value) Icon(Icons.check, size: 16, color: c.ink),
+              ],
+            ),
+          ),
+      ],
+      child: Container(
+        height: 44,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: c.surface,
+          borderRadius: BorderRadius.circular(11),
+          border: Border.all(color: c.border),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (leadingIcon != null) ...[
+              Icon(leadingIcon, size: 16, color: c.secondary),
+              const SizedBox(width: 6),
+            ],
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.instrumentSans(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  color: c.secondary,
+                ),
+              ),
+            ),
+            Icon(Icons.expand_more_rounded, size: 18, color: c.secondary),
           ],
         ),
       ),

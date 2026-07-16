@@ -29,7 +29,7 @@ class AppException implements Exception {
       return AppException(
         detail is String && detail.isNotEmpty
             ? detail
-            : 'Request failed (${status ?? 'unknown'}).',
+            : _fallbackMessage(status),
         statusCode: status,
         fieldErrors: errors,
       );
@@ -39,9 +39,14 @@ class AppException implements Exception {
       return AppException(data, statusCode: status);
     }
 
-    return AppException('Request failed (${status ?? 'unknown'}).',
-        statusCode: status);
+    return AppException(_fallbackMessage(status), statusCode: status);
   }
+
+  /// Permission-policy denials (403) come back with an empty body, so give
+  /// them a human message instead of "Request failed (403).".
+  static String _fallbackMessage(int? status) => status == 403
+      ? "You don't have permission for this action. Ask an admin to grant it."
+      : 'Request failed (${status ?? 'unknown'}).';
 
   static Map<String, List<String>>? _parseFieldErrors(dynamic raw) {
     if (raw is! Map) return null;

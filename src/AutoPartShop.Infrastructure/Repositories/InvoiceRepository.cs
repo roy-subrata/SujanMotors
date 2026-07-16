@@ -109,6 +109,7 @@ public class InvoiceRepository : IInvoiceRepository
         Guid? customerId = null,
         DateTime? fromDate = null,
         DateTime? toDate = null,
+        bool hasDue = false,
         CancellationToken cancellationToken = default)
     {
         var query = _dbContext.Invoices
@@ -116,6 +117,14 @@ public class InvoiceRepository : IInvoiceRepository
             .Include(x => x.CustomerPayments)
             .Where(x => !x.Isdeleted)
             .AsQueryable();
+
+        // Outstanding-balance filter. OutstandingAmount is computed (not mapped),
+        // so filter on the statuses that imply an unpaid balance instead.
+        if (hasDue)
+        {
+            query = query.Where(x => x.Status == "ISSUED" || x.Status == "DUE"
+                || x.Status == "OVERDUE" || x.Status == "PARTIALLY_PAID");
+        }
 
         // Apply search term (invoice number, sales order number, customer name, phone)
         if (!string.IsNullOrWhiteSpace(searchTerm))

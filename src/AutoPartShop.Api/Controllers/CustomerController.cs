@@ -313,6 +313,15 @@ public class CustomerController : ControllerBase
             if (string.IsNullOrWhiteSpace(request.FirstName) || string.IsNullOrWhiteSpace(request.LastName))
                 return BadRequest(new { message = "FirstName and LastName are required" });
 
+            // Phone must be unique across customers (the customer code is
+            // system-generated and unique on its own).
+            if (!string.IsNullOrWhiteSpace(request.Phone))
+            {
+                var existingByPhone = await _customerRepository.GetByPhoneAsync(request.Phone.Trim(), cancellationToken);
+                if (existingByPhone != null)
+                    return Conflict(new { message = $"A customer with phone {request.Phone.Trim()} already exists ({existingByPhone.CustomerCode})." });
+            }
+
             var customerCode = await _codeGenerateService.GenerateAsync("CUST", cancellationToken);
 
             var customer = Customer.Create(
@@ -363,6 +372,16 @@ public class CustomerController : ControllerBase
             var customer = await _customerRepository.GetByIdAsync(id, cancellationToken);
             if (customer is null) return NotFound(new { message = "Customer not found" });
 
+            // Phone must stay unique — reject if another customer already has it.
+            if (!string.IsNullOrWhiteSpace(request.Phone))
+            {
+                var existingByPhone = await _customerRepository.GetByPhoneAsync(request.Phone.Trim(), cancellationToken);
+                if (existingByPhone != null && existingByPhone.Id != id)
+                    return Conflict(new { message = $"A customer with phone {request.Phone.Trim()} already exists ({existingByPhone.CustomerCode})." });
+            }
+
+            // Update name / company
+            customer.UpdateBasicInfo(request.FirstName, request.LastName, request.CompanyName);
             // Update contact info
             customer.UpdateContactInfo(request.Email, request.Phone, request.AlternatePhone, request.CustomerType);
             // Update address

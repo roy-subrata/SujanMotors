@@ -105,6 +105,15 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
              (x.LocalName != null && EF.Functions.Like(x.LocalName, $"%{term}%"))
             )));
 
+        if (query.LowStockOnly)
+        {
+            // Same rule as the reorder alerts: at/below an opted-in reorder point.
+            parts = parts.Where(p => _db.StockLevels.Any(sl =>
+                !sl.Isdeleted && sl.IsActive && sl.PartId == p.Id
+                && sl.ReorderLevel > 0
+                && (sl.QuantityOnHand - sl.QuantityReserved) <= sl.ReorderLevel));
+        }
+
         if (query.Sorts != null && query.Sorts.Any())
         {
             var sorts = query.Sorts.Select(x => (x.Field, x.Direction == "asc" ? true : false)).ToArray();

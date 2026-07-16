@@ -6,6 +6,8 @@ class Customer {
     required this.id,
     required this.customerCode,
     required this.fullName,
+    this.firstName,
+    this.lastName,
     this.companyName,
     this.email,
     this.phone,
@@ -23,6 +25,8 @@ class Customer {
   final String id;
   final String customerCode;
   final String fullName;
+  final String? firstName;
+  final String? lastName;
   final String? companyName;
   final String? email;
   final String? phone;
@@ -42,6 +46,8 @@ class Customer {
         id: asString(json['id']),
         customerCode: asString(json['customerCode']),
         fullName: asString(json['fullName']),
+        firstName: asStringOrNull(json['firstName']),
+        lastName: asStringOrNull(json['lastName']),
         companyName: asStringOrNull(json['companyName']),
         email: asStringOrNull(json['email']),
         phone: asStringOrNull(json['phone']),

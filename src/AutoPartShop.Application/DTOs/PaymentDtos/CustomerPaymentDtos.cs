@@ -13,6 +13,9 @@ public class CreateCustomerPaymentRequest
     public DateTime? PaymentDate { get; set; }
     public string Notes { get; set; } = string.Empty;
     public string Currency { get; set; } = "BDT";
+    /// <summary>Record as advance credit on the customer's account (not tied to
+    /// an invoice) so it can be applied to future invoices.</summary>
+    public bool IsAdvance { get; set; } = false;
 }
 
 public class UpdateCustomerPaymentRequest
@@ -27,6 +30,7 @@ public class MarkAsCustomerPaymentAdvanceRequest
 {
     public string Description { get; set; } = string.Empty;
 }
+
 
 public class MarkAsCustomerPaymentRegularRequest
 {

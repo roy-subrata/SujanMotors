@@ -9,6 +9,7 @@ import '../../core/theme/app_theme.dart';
 import '../../shared/format.dart';
 import '../../shared/models/sale.dart';
 import 'charge_screen.dart';
+import 'held_sales_controller.dart';
 import 'quick_sale_providers.dart';
 
 class QuickSaleScreen extends ConsumerStatefulWidget {
@@ -81,17 +82,35 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
     }
 
     if (state.isScanning) {
-      return Scaffold(
-        backgroundColor: Colors.black,
-        body: _buildScannerOverlay(state),
+      // System back exits scan mode instead of popping the route — when the
+      // cart was opened via the bottom-nav ＋ (a go(), stack root), a pop here
+      // would close the whole app.
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) _stopScan();
+        },
+        child: Scaffold(
+          backgroundColor: Colors.black,
+          body: _buildScannerOverlay(state),
+        ),
       );
     }
 
-    return Scaffold(
-      appBar: _buildAppBar(context, itemCount: state.itemCount),
-      body: state.isEmpty
-          ? _EmptyCartView(onScan: _startScan)
-          : _buildCartBody(state, controller),
+    // When the cart is the stack root (opened via the bottom-nav ＋), system
+    // back returns Home — mirroring the app bar's back arrow — instead of
+    // closing the app.
+    return PopScope(
+      canPop: context.canPop(),
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) context.go('/');
+      },
+      child: Scaffold(
+        appBar: _buildAppBar(context, itemCount: state.itemCount),
+        body: state.isEmpty
+            ? _EmptyCartView(onScan: _startScan)
+            : _buildCartBody(state, controller),
+      ),
     );
   }
 
@@ -113,7 +132,7 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
           ),
           if (itemCount > 0)
             Text(
-              'INV-draft Â· $itemCount item${itemCount == 1 ? '' : 's'}',
+              'INV-draft · $itemCount item${itemCount == 1 ? '' : 's'}',
               style: GoogleFonts.instrumentSans(
                 fontSize: 12
               ),
@@ -121,12 +140,92 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
         ],
       ),
       actions: [
+        // Held carts — badge shows how many are parked.
+        Consumer(builder: (context, ref, _) {
+          final heldCount = ref.watch(heldSalesProvider).length;
+          return Stack(
+            alignment: Alignment.center,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.inventory_2_outlined),
+                tooltip: 'Held sales',
+                onPressed: _openHeldSheet,
+              ),
+              if (heldCount > 0)
+                Positioned(
+                  top: 8,
+                  right: 6,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 5),
+                    constraints: const BoxConstraints(minWidth: 16),
+                    height: 16,
+                    decoration: BoxDecoration(
+                      color: context.colors.red,
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text('$heldCount',
+                        style: GoogleFonts.instrumentSans(
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w700,
+                            color: context.colors.onInk)),
+                  ),
+                ),
+            ],
+          );
+        }),
+        if (itemCount > 0)
+          IconButton(
+            icon: const Icon(Icons.pause_circle_outline),
+            tooltip: 'Hold sale',
+            onPressed: _holdCurrent,
+          ),
         IconButton(
           icon: const Icon(Icons.qr_code_scanner),
           tooltip: 'Scan barcode',
           onPressed: _startScan,
         ),
       ],
+    );
+  }
+
+  Future<void> _holdCurrent() async {
+    final items = ref.read(quickSaleControllerProvider).items;
+    if (items.isEmpty) return;
+    final label = await showDialog<String>(
+      context: context,
+      builder: (ctx) => _HoldDialog(),
+    );
+    if (label == null || !mounted) return; // cancelled
+    await ref.read(heldSalesProvider.notifier).hold(label, items);
+    ref.read(quickSaleControllerProvider.notifier).reset();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      content: Text('Sale held'),
+      duration: Duration(seconds: 2),
+      behavior: SnackBarBehavior.floating,
+    ));
+  }
+
+  void _openHeldSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      useSafeArea: true,
+      isScrollControlled: true,
+      builder: (_) => _HeldSalesSheet(
+        onResume: (cart) {
+          final current = ref.read(quickSaleControllerProvider).items;
+          if (current.isNotEmpty) {
+            // Park the current cart before loading the resumed one so nothing
+            // is lost.
+            ref
+                .read(heldSalesProvider.notifier)
+                .hold('Auto-held', current);
+          }
+          ref.read(quickSaleControllerProvider.notifier).loadItems(cart.items);
+          ref.read(heldSalesProvider.notifier).remove(cart.id);
+        },
+      ),
     );
   }
 
@@ -137,7 +236,7 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
         ListView(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 160),
           children: [
-            // â”€â”€ Line items card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ── Line items card ──────────────────────────────────────
             Container(
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.surface,
@@ -166,7 +265,7 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
                                 SnackBar(
                                   content: Text(
                                       'Only ${item.availableStock} ${item.name} in stock'),
-                                  backgroundColor: AppColors.red,
+                                  backgroundColor: context.colors.red,
                                   duration: const Duration(seconds: 2),
                                   behavior: SnackBarBehavior.floating,
                                 ),
@@ -200,8 +299,8 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
                               borderRadius: BorderRadius.circular(8),
                             ),
                             alignment: Alignment.center,
-                            child: const Icon(Icons.add,
-                                size: 18, color: AppColors.secondary),
+                            child: Icon(Icons.add,
+                                size: 18, color: context.colors.secondary),
                           ),
                           const SizedBox(width: 12),
                           Text(
@@ -211,8 +310,8 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
                             ),
                           ),
                           const Spacer(),
-                          const Icon(Icons.qr_code_scanner,
-                              size: 18, color: AppColors.muted),
+                          Icon(Icons.qr_code_scanner,
+                              size: 18, color: context.colors.muted),
                         ],
                       ),
                     ),
@@ -222,7 +321,7 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
             ),
             const SizedBox(height: 12),
 
-            // â”€â”€ Totals card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ── Totals card ──────────────────────────────────────────
             Container(
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.surface,
@@ -233,24 +332,24 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
               child: Column(
                 children: [
                   _TotalRow(
-                    label: 'Subtotal Â· ${state.itemCount} items',
+                    label: 'Subtotal · ${state.itemCount} items',
                     value: formatCurrency(state.total),
                     labelStyle: GoogleFonts.instrumentSans(
-                        fontSize: 13.5, color: AppColors.secondary),
+                        fontSize: 13.5, color: context.colors.secondary),
                     valueStyle: GoogleFonts.instrumentSans(
                         fontSize: 13.5,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.ink),
+                        color: context.colors.ink),
                   ),
                   const SizedBox(height: 8),
                   _TotalRow(
                     label: 'Discount',
-                    value: 'â€”',
+                    value: '—',
                     labelStyle: GoogleFonts.instrumentSans(
-                        fontSize: 13.5, color: AppColors.secondary),
+                        fontSize: 13.5, color: context.colors.secondary),
                     valueStyle: GoogleFonts.instrumentSans(
                         fontSize: 13.5,
-                        color: AppColors.muted),
+                        color: context.colors.muted),
                   ),
                   Padding(
                     padding: EdgeInsets.symmetric(vertical: 10),
@@ -264,11 +363,11 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
                     labelStyle: GoogleFonts.instrumentSans(
                         fontSize: 13.5,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.ink),
+                        color: context.colors.ink),
                     valueStyle: GoogleFonts.instrumentSans(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.ink),
+                        color: context.colors.ink),
                   ),
                 ],
               ),
@@ -343,7 +442,7 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
               padding: const EdgeInsets.symmetric(
                   horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: AppColors.red,
+                color: context.colors.red,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
@@ -409,7 +508,7 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
   }
 }
 
-// â”€â”€ Empty cart view â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Empty cart view ───────────────────────────────────────────────────────────
 
 class _EmptyCartView extends StatelessWidget {
   const _EmptyCartView({required this.onScan});
@@ -425,7 +524,7 @@ class _EmptyCartView extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.shopping_cart_outlined,
-                size: 72, color: AppColors.disabled),
+                size: 72, color: context.colors.disabled),
             const SizedBox(height: 16),
             Text(
               'Cart is empty',
@@ -439,7 +538,7 @@ class _EmptyCartView extends StatelessWidget {
               'Scan a barcode or add items from Products',
               textAlign: TextAlign.center,
               style: GoogleFonts.instrumentSans(
-                  fontSize: 13.5, color: AppColors.muted),
+                  fontSize: 13.5, color: context.colors.muted),
             ),
             const SizedBox(height: 32),
             SizedBox(
@@ -449,8 +548,8 @@ class _EmptyCartView extends StatelessWidget {
                 icon: const Icon(Icons.qr_code_scanner),
                 label: const Text('Scan Barcode'),
                 style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.ink,
-                  foregroundColor: Colors.white,
+                  backgroundColor: context.colors.ink,
+                  foregroundColor: context.colors.onInk,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
                   padding: const EdgeInsets.symmetric(vertical: 14),
@@ -466,7 +565,7 @@ class _EmptyCartView extends StatelessWidget {
   }
 }
 
-// â”€â”€ Cart item row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Cart item row ─────────────────────────────────────────────────────────────
 
 class _CartItemRow extends StatefulWidget {
   const _CartItemRow({
@@ -553,7 +652,7 @@ class _CartItemRowState extends State<_CartItemRow> {
                 Row(
                   children: [
                     Text(
-                      'à§³ ',
+                      '৳ ',
                       style: GoogleFonts.instrumentSans(
                         fontSize: 12
                       ),
@@ -629,8 +728,8 @@ class _CartItemRowState extends State<_CartItemRow> {
                 onTap: widget.onRemove,
                 child: Padding(
                   padding: const EdgeInsets.only(top: 4),
-                  child: const Icon(Icons.delete_outline,
-                      size: 16, color: AppColors.muted),
+                  child: Icon(Icons.delete_outline,
+                      size: 16, color: context.colors.muted),
                 ),
               ),
             ],
@@ -660,13 +759,13 @@ class _StepBtn extends StatelessWidget {
           border: Border.all(color: Theme.of(context).colorScheme.outline),
         ),
         alignment: Alignment.center,
-        child: Icon(icon, size: 16, color: AppColors.secondary),
+        child: Icon(icon, size: 16, color: context.colors.secondary),
       ),
     );
   }
 }
 
-// â”€â”€ Total row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Total row ─────────────────────────────────────────────────────────────────
 
 class _TotalRow extends StatelessWidget {
   const _TotalRow({
@@ -693,7 +792,7 @@ class _TotalRow extends StatelessWidget {
   }
 }
 
-// â”€â”€ Sticky bottom CTA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Sticky bottom CTA ─────────────────────────────────────────────────────────
 
 class _StickyBottom extends StatelessWidget {
   const _StickyBottom({required this.total, required this.onProceed});
@@ -738,7 +837,7 @@ class _StickyBottom extends StatelessWidget {
                 child: FilledButton(
                   onPressed: onProceed,
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.green,
+                    backgroundColor: context.colors.green,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14)),
@@ -747,7 +846,7 @@ class _StickyBottom extends StatelessWidget {
                         fontSize: 15, fontWeight: FontWeight.w700),
                   ),
                   child: Text(
-                      'âœ“  Complete Sale Â· ${formatCurrency(total)}'),
+                      '✓  Complete Sale · ${formatCurrency(total)}'),
                 ),
               ),
             ),
@@ -760,7 +859,7 @@ class _StickyBottom extends StatelessWidget {
                   child: OutlinedButton(
                     onPressed: () {},
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.ink,
+                      foregroundColor: context.colors.ink,
                       side: BorderSide(color: Theme.of(context).colorScheme.outline),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(11)),
@@ -776,7 +875,7 @@ class _StickyBottom extends StatelessWidget {
                   child: OutlinedButton(
                     onPressed: () {},
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.ink,
+                      foregroundColor: context.colors.ink,
                       side: BorderSide(color: Theme.of(context).colorScheme.outline),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(11)),
@@ -784,7 +883,7 @@ class _StickyBottom extends StatelessWidget {
                       textStyle: GoogleFonts.instrumentSans(
                           fontSize: 13, fontWeight: FontWeight.w600),
                     ),
-                    child: const Text('Print Â· 80mm'),
+                    child: const Text('Print · 80mm'),
                   ),
                 ),
               ],
@@ -796,7 +895,7 @@ class _StickyBottom extends StatelessWidget {
   }
 }
 
-// â”€â”€ Scan icon button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Scan icon button ──────────────────────────────────────────────────────────
 
 class _ScanIconButton extends StatelessWidget {
   const _ScanIconButton(
@@ -829,7 +928,7 @@ class _ScanIconButton extends StatelessWidget {
   }
 }
 
-// â”€â”€ Success view â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Success view ──────────────────────────────────────────────────────────────
 
 class _SuccessView extends StatelessWidget {
   const _SuccessView({required this.result, required this.onNewSale});
@@ -849,9 +948,9 @@ class _SuccessView extends StatelessWidget {
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                  color: AppColors.greenBg, shape: BoxShape.circle),
-              child: const Icon(Icons.check_circle_rounded,
-                  size: 52, color: AppColors.green),
+                  color: context.colors.greenBg, shape: BoxShape.circle),
+              child: Icon(Icons.check_circle_rounded,
+                  size: 52, color: context.colors.green),
             ),
             const SizedBox(height: 20),
             Text(
@@ -876,7 +975,7 @@ class _SuccessView extends StatelessWidget {
               _InfoRow(
                 label: 'Due',
                 value: formatCurrency(result.dueAmount),
-                valueColor: AppColors.red,
+                valueColor: context.colors.red,
               ),
             ],
             const SizedBox(height: 40),
@@ -887,8 +986,8 @@ class _SuccessView extends StatelessWidget {
                 icon: const Icon(Icons.add_shopping_cart),
                 label: const Text('New Sale'),
                 style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.ink,
-                  foregroundColor: Colors.white,
+                  backgroundColor: context.colors.ink,
+                  foregroundColor: context.colors.onInk,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
                   padding: const EdgeInsets.symmetric(vertical: 15),
@@ -920,17 +1019,162 @@ class _InfoRow extends StatelessWidget {
         Text(
           '$label: ',
           style: GoogleFonts.instrumentSans(
-              fontSize: 15, color: AppColors.muted),
+              fontSize: 15, color: context.colors.muted),
         ),
         Text(
           value,
           style: GoogleFonts.instrumentSans(
             fontSize: 15,
             fontWeight: FontWeight.w700,
-            color: valueColor ?? AppColors.ink,
+            color: valueColor ?? context.colors.ink,
           ),
         ),
       ],
+    );
+  }
+}
+
+// ── Hold dialog ───────────────────────────────────────────────────────────────
+
+/// Prompts for an optional label when parking a cart. Returns the label (may be
+/// empty for the default) or null when cancelled.
+class _HoldDialog extends StatefulWidget {
+  @override
+  State<_HoldDialog> createState() => _HoldDialogState();
+}
+
+class _HoldDialogState extends State<_HoldDialog> {
+  final _ctrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Hold sale'),
+      content: TextField(
+        controller: _ctrl,
+        autofocus: true,
+        textCapitalization: TextCapitalization.words,
+        decoration: const InputDecoration(
+          labelText: 'Label (optional)',
+          hintText: 'e.g. customer name or table',
+        ),
+        onSubmitted: (v) => Navigator.of(context).pop(v),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(_ctrl.text),
+          child: const Text('Hold'),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Held sales sheet ──────────────────────────────────────────────────────────
+
+class _HeldSalesSheet extends ConsumerWidget {
+  const _HeldSalesSheet({required this.onResume});
+
+  final void Function(HeldCart) onResume;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final held = ref.watch(heldSalesProvider);
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Held sales',
+                style: GoogleFonts.instrumentSans(
+                    fontSize: 16, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 12),
+            if (held.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Center(
+                  child: Text('No held sales.',
+                      style: GoogleFonts.instrumentSans(
+                          fontSize: 13.5, color: context.colors.muted)),
+                ),
+              )
+            else
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: held.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: 8),
+                  itemBuilder: (context, i) {
+                    final cart = held[i];
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surface,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                            color: Theme.of(context).colorScheme.outline),
+                      ),
+                      padding: const EdgeInsets.fromLTRB(14, 10, 6, 10),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(cart.label,
+                                    style: GoogleFonts.instrumentSans(
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w600)),
+                                const SizedBox(height: 2),
+                                Text(
+                                  '${cart.itemCount} item${cart.itemCount == 1 ? '' : 's'}'
+                                  ' · ${formatCurrency(cart.total)}'
+                                  ' · ${formatRelative(cart.createdAt)}',
+                                  style: GoogleFonts.instrumentSans(
+                                      fontSize: 11.5, color: context.colors.muted),
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: 'Delete',
+                            icon: Icon(Icons.delete_outline,
+                                size: 20, color: context.colors.red),
+                            onPressed: () => ref
+                                .read(heldSalesProvider.notifier)
+                                .remove(cart.id),
+                          ),
+                          FilledButton(
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                              onResume(cart);
+                            },
+                            style: FilledButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 8),
+                            ),
+                            child: const Text('Resume'),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }

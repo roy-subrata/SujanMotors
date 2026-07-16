@@ -59,7 +59,7 @@ class InvoiceDetailScreen extends ConsumerWidget {
   }
 }
 
-// â”€â”€ Body â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Body ──────────────────────────────────────────────────────────────────────
 
 class _InvoiceBody extends StatelessWidget {
   const _InvoiceBody({required this.invoice, required this.lines});
@@ -120,7 +120,7 @@ class _InvoiceBody extends StatelessWidget {
                       _MetaItem(
                         label: 'Due date',
                         value: formatDate(inv.dueDate!),
-                        valueColor: inv.isOverdue ? AppColors.red : null,
+                        valueColor: inv.isOverdue ? context.colors.red : null,
                       ),
                   ],
                 ),
@@ -173,7 +173,7 @@ class _InvoiceBody extends StatelessWidget {
                 _TotalRow(
                   label: 'Amount Paid',
                   value: formatCurrency(inv.amountPaid),
-                  valueColor: AppColors.green,
+                  valueColor: context.colors.green,
                 ),
                 if (inv.outstandingAmount > 0) ...[
                   Padding(
@@ -186,7 +186,7 @@ class _InvoiceBody extends StatelessWidget {
                     valueStyle: GoogleFonts.instrumentSans(
                       fontSize: 19,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.red,
+                      color: context.colors.red,
                     ),
                   ),
                 ],
@@ -203,8 +203,8 @@ class _InvoiceBody extends StatelessWidget {
                   size: 16),
               label: const Text('Initiate return'),
               style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.red,
-                side: BorderSide(color: AppColors.redBorder),
+                foregroundColor: context.colors.red,
+                side: BorderSide(color: context.colors.redBorder),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12)),
                 padding: const EdgeInsets.symmetric(vertical: 13),
@@ -219,7 +219,7 @@ class _InvoiceBody extends StatelessWidget {
   }
 }
 
-// â”€â”€ Meta item â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Meta item ─────────────────────────────────────────────────────────────────
 
 class _MetaItem extends StatelessWidget {
   const _MetaItem({
@@ -249,7 +249,7 @@ class _MetaItem extends StatelessWidget {
           style: GoogleFonts.instrumentSans(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: valueColor ?? AppColors.ink,
+            color: valueColor ?? context.colors.ink,
           ),
         ),
       ],
@@ -257,7 +257,7 @@ class _MetaItem extends StatelessWidget {
   }
 }
 
-// â”€â”€ Line item row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Line item row ─────────────────────────────────────────────────────────────
 
 class _LineItemRow extends StatelessWidget {
   const _LineItemRow({required this.line});
@@ -300,7 +300,7 @@ class _LineItemRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                '${line.quantity}${unit.isNotEmpty ? ' $unit' : ''} Ã— ${formatCurrency(line.unitPrice)}',
+                '${line.quantity}${unit.isNotEmpty ? ' $unit' : ''} × ${formatCurrency(line.unitPrice)}',
                 style: GoogleFonts.instrumentSans(
                   fontSize: 11
                 ),
@@ -321,7 +321,7 @@ class _LineItemRow extends StatelessWidget {
   }
 }
 
-// â”€â”€ Total row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Total row ─────────────────────────────────────────────────────────────────
 
 class _TotalRow extends StatelessWidget {
   const _TotalRow({
@@ -353,7 +353,7 @@ class _TotalRow extends StatelessWidget {
               GoogleFonts.instrumentSans(
                 fontSize: 13.5,
                 fontWeight: FontWeight.w600,
-                color: valueColor ?? AppColors.ink,
+                color: valueColor ?? context.colors.ink,
               ),
         ),
       ],
