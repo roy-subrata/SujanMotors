@@ -9,6 +9,7 @@ import '../../core/theme/app_theme.dart';
 import '../../shared/format.dart';
 import '../../shared/models/sale.dart';
 import 'charge_screen.dart';
+import 'held_sales_controller.dart';
 import 'quick_sale_providers.dart';
 
 class QuickSaleScreen extends ConsumerStatefulWidget {
@@ -139,12 +140,92 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
         ],
       ),
       actions: [
+        // Held carts — badge shows how many are parked.
+        Consumer(builder: (context, ref, _) {
+          final heldCount = ref.watch(heldSalesProvider).length;
+          return Stack(
+            alignment: Alignment.center,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.inventory_2_outlined),
+                tooltip: 'Held sales',
+                onPressed: _openHeldSheet,
+              ),
+              if (heldCount > 0)
+                Positioned(
+                  top: 8,
+                  right: 6,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 5),
+                    constraints: const BoxConstraints(minWidth: 16),
+                    height: 16,
+                    decoration: BoxDecoration(
+                      color: AppColors.red,
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text('$heldCount',
+                        style: GoogleFonts.instrumentSans(
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white)),
+                  ),
+                ),
+            ],
+          );
+        }),
+        if (itemCount > 0)
+          IconButton(
+            icon: const Icon(Icons.pause_circle_outline),
+            tooltip: 'Hold sale',
+            onPressed: _holdCurrent,
+          ),
         IconButton(
           icon: const Icon(Icons.qr_code_scanner),
           tooltip: 'Scan barcode',
           onPressed: _startScan,
         ),
       ],
+    );
+  }
+
+  Future<void> _holdCurrent() async {
+    final items = ref.read(quickSaleControllerProvider).items;
+    if (items.isEmpty) return;
+    final label = await showDialog<String>(
+      context: context,
+      builder: (ctx) => _HoldDialog(),
+    );
+    if (label == null || !mounted) return; // cancelled
+    await ref.read(heldSalesProvider.notifier).hold(label, items);
+    ref.read(quickSaleControllerProvider.notifier).reset();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      content: Text('Sale held'),
+      duration: Duration(seconds: 2),
+      behavior: SnackBarBehavior.floating,
+    ));
+  }
+
+  void _openHeldSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      useSafeArea: true,
+      isScrollControlled: true,
+      builder: (_) => _HeldSalesSheet(
+        onResume: (cart) {
+          final current = ref.read(quickSaleControllerProvider).items;
+          if (current.isNotEmpty) {
+            // Park the current cart before loading the resumed one so nothing
+            // is lost.
+            ref
+                .read(heldSalesProvider.notifier)
+                .hold('Auto-held', current);
+          }
+          ref.read(quickSaleControllerProvider.notifier).loadItems(cart.items);
+          ref.read(heldSalesProvider.notifier).remove(cart.id);
+        },
+      ),
     );
   }
 
@@ -949,6 +1030,151 @@ class _InfoRow extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+// ── Hold dialog ───────────────────────────────────────────────────────────────
+
+/// Prompts for an optional label when parking a cart. Returns the label (may be
+/// empty for the default) or null when cancelled.
+class _HoldDialog extends StatefulWidget {
+  @override
+  State<_HoldDialog> createState() => _HoldDialogState();
+}
+
+class _HoldDialogState extends State<_HoldDialog> {
+  final _ctrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Hold sale'),
+      content: TextField(
+        controller: _ctrl,
+        autofocus: true,
+        textCapitalization: TextCapitalization.words,
+        decoration: const InputDecoration(
+          labelText: 'Label (optional)',
+          hintText: 'e.g. customer name or table',
+        ),
+        onSubmitted: (v) => Navigator.of(context).pop(v),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(_ctrl.text),
+          child: const Text('Hold'),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Held sales sheet ──────────────────────────────────────────────────────────
+
+class _HeldSalesSheet extends ConsumerWidget {
+  const _HeldSalesSheet({required this.onResume});
+
+  final void Function(HeldCart) onResume;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final held = ref.watch(heldSalesProvider);
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Held sales',
+                style: GoogleFonts.instrumentSans(
+                    fontSize: 16, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 12),
+            if (held.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Center(
+                  child: Text('No held sales.',
+                      style: GoogleFonts.instrumentSans(
+                          fontSize: 13.5, color: AppColors.muted)),
+                ),
+              )
+            else
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: held.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: 8),
+                  itemBuilder: (context, i) {
+                    final cart = held[i];
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surface,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                            color: Theme.of(context).colorScheme.outline),
+                      ),
+                      padding: const EdgeInsets.fromLTRB(14, 10, 6, 10),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(cart.label,
+                                    style: GoogleFonts.instrumentSans(
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w600)),
+                                const SizedBox(height: 2),
+                                Text(
+                                  '${cart.itemCount} item${cart.itemCount == 1 ? '' : 's'}'
+                                  ' · ${formatCurrency(cart.total)}'
+                                  ' · ${formatRelative(cart.createdAt)}',
+                                  style: GoogleFonts.instrumentSans(
+                                      fontSize: 11.5, color: AppColors.muted),
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: 'Delete',
+                            icon: Icon(Icons.delete_outline,
+                                size: 20, color: AppColors.red),
+                            onPressed: () => ref
+                                .read(heldSalesProvider.notifier)
+                                .remove(cart.id),
+                          ),
+                          FilledButton(
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                              onResume(cart);
+                            },
+                            style: FilledButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 8),
+                            ),
+                            child: const Text('Resume'),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }

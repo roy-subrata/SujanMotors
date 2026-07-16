@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/network/app_exception.dart';
 import '../../shared/models/product.dart';
 import '../../shared/models/stock.dart';
 import 'stock_repository.dart';
 
-enum StockMode { stockIn, stockOut, adjustment }
+enum StockMode { stockIn, stockOut, transfer, adjustment }
 
 
 class StockAdjustmentSheet extends ConsumerStatefulWidget {
@@ -38,15 +39,17 @@ class _StockAdjustmentSheetState extends ConsumerState<StockAdjustmentSheet> {
   bool _isAdd = true; // direction for Adjustment mode
   String? _selectedVariantId;
   String? _selectedWarehouseId;
+  String? _destinationWarehouseId; // transfer mode only
   String? _reason;
   bool _loading = false;
   String? _error;
 
-  static const _stockInReasons = ['PURCHASE', 'RETURN', 'FOUND'];
+  // "Purchase received" is intentionally NOT here — real purchases must go
+  // through Stock In (GRN) so they create a priced FIFO lot.
+  static const _stockInReasons = ['RETURN', 'FOUND'];
   static const _stockOutReasons = [
     'SALE',
     'INTERNAL_USE',
-    'TRANSFER',
     'DAMAGED',
     'EXPIRED',
     'LOST',
@@ -55,12 +58,10 @@ class _StockAdjustmentSheetState extends ConsumerState<StockAdjustmentSheet> {
   static const _adjustReasons = ['COUNT_CORRECTION'];
 
   static const _reasonLabels = {
-    'PURCHASE': 'Purchase received',
     'RETURN': 'Customer return',
     'FOUND': 'Found in stock',
     'SALE': 'Sale (manual)',
     'INTERNAL_USE': 'Internal use',
-    'TRANSFER': 'Transfer out',
     'DAMAGED': 'Damaged goods',
     'EXPIRED': 'Expired',
     'LOST': 'Lost / stolen',
@@ -72,8 +73,20 @@ class _StockAdjustmentSheetState extends ConsumerState<StockAdjustmentSheet> {
     return switch (_mode) {
       StockMode.stockIn => _stockInReasons,
       StockMode.stockOut => _stockOutReasons,
+      StockMode.transfer => const [],
       StockMode.adjustment => _adjustReasons,
     };
+  }
+
+  /// Available quantity for the currently selected variant + source warehouse.
+  int? get _availableAtSelected {
+    if (_selectedWarehouseId == null) return null;
+    final matches = widget.stockLevels.where((l) =>
+        l.warehouseId == _selectedWarehouseId &&
+        (l.variantId == _selectedVariantId ||
+            (_selectedVariantId == null && l.variantId == null)));
+    if (matches.isEmpty) return null;
+    return matches.fold<int>(0, (s, l) => s + l.availableQuantity);
   }
 
   @override
@@ -107,7 +120,7 @@ class _StockAdjustmentSheetState extends ConsumerState<StockAdjustmentSheet> {
   void _onModeChanged(StockMode mode) {
     setState(() {
       _mode = mode;
-      _reason = _reasons.first;
+      _reason = _reasons.isEmpty ? null : _reasons.first;
     });
   }
 
@@ -115,6 +128,10 @@ class _StockAdjustmentSheetState extends ConsumerState<StockAdjustmentSheet> {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedWarehouseId == null) {
       setState(() => _error = 'Select a warehouse');
+      return;
+    }
+    if (_mode == StockMode.transfer) {
+      await _submitTransfer();
       return;
     }
 
@@ -139,7 +156,7 @@ class _StockAdjustmentSheetState extends ConsumerState<StockAdjustmentSheet> {
             variantId: _selectedVariantId,
             warehouseId: _selectedWarehouseId!,
             quantity: qty,
-            reason: _reason ?? 'PURCHASE',
+            reason: _reason ?? 'FOUND',
             notes: _notesCtrl.text.trim(),
           );
 
@@ -165,11 +182,58 @@ class _StockAdjustmentSheetState extends ConsumerState<StockAdjustmentSheet> {
     }
   }
 
+  Future<void> _submitTransfer() async {
+    if (_destinationWarehouseId == null) {
+      setState(() => _error = 'Select a destination warehouse');
+      return;
+    }
+    if (_destinationWarehouseId == _selectedWarehouseId) {
+      setState(() => _error = 'Source and destination must differ');
+      return;
+    }
+    final rawQty = int.tryParse(_qtyCtrl.text.trim()) ?? 0;
+
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      await ref.read(stockRepositoryProvider).transferStock(
+            partId: widget.product.id,
+            variantId: _selectedVariantId,
+            fromWarehouseId: _selectedWarehouseId!,
+            toWarehouseId: _destinationWarehouseId!,
+            quantity: rawQty,
+            notes: _notesCtrl.text.trim(),
+          );
+
+      ref.invalidate(stockLevelsProvider(widget.product.id));
+      ref.invalidate(stockLotsProvider(widget.product.id));
+
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('$rawQty ${widget.product.unitName ?? 'units'} transferred'),
+          backgroundColor: Colors.blue.shade700,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } on AppException catch (e) {
+      setState(() {
+        _loading = false;
+        _error = e.message;
+      });
+    }
+  }
+
   String _successMessage(int qty) {
     final unit = widget.product.unitName ?? 'units';
     return switch (_mode) {
       StockMode.stockIn => '$qty $unit recorded as received',
       StockMode.stockOut => '$qty $unit recorded as out',
+      StockMode.transfer => '$qty $unit transferred',
       StockMode.adjustment => 'Adjustment saved',
     };
   }
@@ -177,18 +241,21 @@ class _StockAdjustmentSheetState extends ConsumerState<StockAdjustmentSheet> {
   Color get _submitColor => switch (_mode) {
         StockMode.stockIn => Colors.green.shade600,
         StockMode.stockOut => Colors.red.shade600,
+        StockMode.transfer => Colors.blue.shade600,
         StockMode.adjustment => const Color(0xFFD97706),
       };
 
   String get _submitLabel => switch (_mode) {
         StockMode.stockIn => 'Record Stock In',
         StockMode.stockOut => 'Record Stock Out',
+        StockMode.transfer => 'Transfer Stock',
         StockMode.adjustment => 'Save Adjustment',
       };
 
   IconData get _submitIcon => switch (_mode) {
         StockMode.stockIn => Icons.check_circle_outline,
         StockMode.stockOut => Icons.outbox_outlined,
+        StockMode.transfer => Icons.swap_horiz,
         StockMode.adjustment => Icons.save_outlined,
       };
 
@@ -270,33 +337,47 @@ class _StockAdjustmentSheetState extends ConsumerState<StockAdjustmentSheet> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // ── Mode toggle ───────────────────────────────────────────
-                  SegmentedButton<StockMode>(
-                    segments: const [
-                      ButtonSegment(
-                        value: StockMode.stockIn,
-                        icon: Icon(Icons.move_to_inbox_outlined, size: 18),
-                        label: Text('In'),
-                      ),
-                      ButtonSegment(
-                        value: StockMode.stockOut,
-                        icon: Icon(Icons.outbox_outlined, size: 18),
-                        label: Text('Out'),
-                      ),
-                      ButtonSegment(
-                        value: StockMode.adjustment,
-                        icon: Icon(Icons.tune_outlined, size: 18),
-                        label: Text('Adjust'),
-                      ),
+                  // ── Mode toggle (chips wrap cleanly for 4 modes) ──────────
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final (mode, icon, label) in const [
+                        (StockMode.stockIn, Icons.move_to_inbox_outlined, 'In'),
+                        (StockMode.stockOut, Icons.outbox_outlined, 'Out'),
+                        (StockMode.transfer, Icons.swap_horiz, 'Transfer'),
+                        (StockMode.adjustment, Icons.tune_outlined, 'Adjust'),
+                      ])
+                        ChoiceChip(
+                          avatar: Icon(icon,
+                              size: 17,
+                              color: _mode == mode
+                                  ? scheme.onPrimaryContainer
+                                  : scheme.onSurfaceVariant),
+                          label: Text(label),
+                          selected: _mode == mode,
+                          onSelected: (_) => _onModeChanged(mode),
+                        ),
                     ],
-                    selected: {_mode},
-                    onSelectionChanged: (s) => _onModeChanged(s.first),
-                    style: SegmentedButton.styleFrom(
-                      selectedBackgroundColor: scheme.primaryContainer,
-                      selectedForegroundColor: scheme.onPrimaryContainer,
-                    ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
+
+                  // ── Stock In → GRN hint (priced purchases) ────────────────
+                  if (_mode == StockMode.stockIn) ...[
+                    _InfoBanner(
+                      scheme: scheme,
+                      icon: Icons.receipt_long_outlined,
+                      message:
+                          'Recording a supplier purchase? Use Stock In so it '
+                          'creates a priced lot.',
+                      actionLabel: 'Open Stock In',
+                      onAction: () {
+                        Navigator.of(context).pop();
+                        context.push('/stock-in/new');
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                  ],
 
                   // ── Variant selector ──────────────────────────────────────
                   if (hasVariants) ...[
@@ -324,7 +405,11 @@ class _StockAdjustmentSheetState extends ConsumerState<StockAdjustmentSheet> {
                   ],
 
                   // ── Warehouse ─────────────────────────────────────────────
-                  _Label('Warehouse', scheme),
+                  _Label(
+                      _mode == StockMode.transfer
+                          ? 'From warehouse'
+                          : 'Warehouse',
+                      scheme),
                   const SizedBox(height: 6),
                   if (warehouses.isEmpty)
                     Container(
@@ -370,7 +455,44 @@ class _StockAdjustmentSheetState extends ConsumerState<StockAdjustmentSheet> {
                       onChanged: (v) =>
                           setState(() => _selectedWarehouseId = v),
                     ),
+
+                  // Available-stock hint for the selected source warehouse.
+                  if (_availableAtSelected != null) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      'Available here: $_availableAtSelected ${product.unitName ?? 'units'}',
+                      style: theme.textTheme.bodySmall
+                          ?.copyWith(color: scheme.onSurfaceVariant),
+                    ),
+                  ],
                   const SizedBox(height: 16),
+
+                  // ── Destination warehouse (transfer only) ─────────────────
+                  if (_mode == StockMode.transfer) ...[
+                    _Label('To warehouse', scheme),
+                    const SizedBox(height: 6),
+                    DropdownButtonFormField<String>(
+                      initialValue: _destinationWarehouseId,
+                      hint: const Text('Select destination'),
+                      decoration: const InputDecoration(isDense: true),
+                      items: warehouses
+                          .where((w) => w.warehouseId != _selectedWarehouseId)
+                          .map((w) => DropdownMenuItem(
+                                value: w.warehouseId,
+                                child: Text(
+                                  w.warehouseName ?? w.warehouseId,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ))
+                          .toList(),
+                      validator: (v) => _mode == StockMode.transfer && v == null
+                          ? 'Select a destination'
+                          : null,
+                      onChanged: (v) =>
+                          setState(() => _destinationWarehouseId = v),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
 
                   // ── Quantity ──────────────────────────────────────────────
                   _Label(_qtyLabel, scheme),
@@ -427,27 +549,31 @@ class _StockAdjustmentSheetState extends ConsumerState<StockAdjustmentSheet> {
                   ),
                   const SizedBox(height: 16),
 
-                  // ── Reason ────────────────────────────────────────────────
-                  _Label('Reason', scheme),
-                  const SizedBox(height: 6),
-                  DropdownButtonFormField<String>(
-                    // Unlike the fields above, `_reason` is reset externally by
-                    // _onModeChanged() (not just this field's own onChanged), so it
-                    // needs live rebuild syncing — `initialValue` (one-time only)
-                    // would not reflect that reset in the UI.
-                    // ignore: deprecated_member_use
-                    value: _reason,
-                    decoration: const InputDecoration(isDense: true),
-                    items: _reasons
-                        .map((r) => DropdownMenuItem(
-                              value: r,
-                              child: Text(_reasonLabels[r] ?? r),
-                            ))
-                        .toList(),
-                    validator: (v) => v == null ? 'Select a reason' : null,
-                    onChanged: (v) => setState(() => _reason = v),
-                  ),
-                  const SizedBox(height: 16),
+                  // ── Reason (not applicable to transfers) ──────────────────
+                  if (_mode != StockMode.transfer) ...[
+                    _Label('Reason', scheme),
+                    const SizedBox(height: 6),
+                    DropdownButtonFormField<String>(
+                      // Unlike the fields above, `_reason` is reset externally by
+                      // _onModeChanged() (not just this field's own onChanged), so it
+                      // needs live rebuild syncing — `initialValue` (one-time only)
+                      // would not reflect that reset in the UI.
+                      // ignore: deprecated_member_use
+                      value: _reason,
+                      decoration: const InputDecoration(isDense: true),
+                      items: _reasons
+                          .map((r) => DropdownMenuItem(
+                                value: r,
+                                child: Text(_reasonLabels[r] ?? r),
+                              ))
+                          .toList(),
+                      validator: (v) => _mode != StockMode.transfer && v == null
+                          ? 'Select a reason'
+                          : null,
+                      onChanged: (v) => setState(() => _reason = v),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
 
                   // ── Notes ─────────────────────────────────────────────────
                   _Label('Notes (optional)', scheme),
@@ -512,11 +638,13 @@ class _StockAdjustmentSheetState extends ConsumerState<StockAdjustmentSheet> {
   String get _qtyLabel => switch (_mode) {
         StockMode.stockIn => 'Qty received',
         StockMode.stockOut => 'Qty going out',
+        StockMode.transfer => 'Qty to transfer',
         StockMode.adjustment => 'Count difference',
       };
 
   IconData get _qtyIcon {
     if (_mode == StockMode.stockOut) return Icons.remove_circle_outline;
+    if (_mode == StockMode.transfer) return Icons.swap_horiz;
     if (_mode == StockMode.adjustment && !_isAdd) {
       return Icons.remove_circle_outline;
     }
@@ -525,6 +653,7 @@ class _StockAdjustmentSheetState extends ConsumerState<StockAdjustmentSheet> {
 
   Color _qtyIconColor(ColorScheme scheme) {
     if (_mode == StockMode.stockOut) return Colors.red.shade600;
+    if (_mode == StockMode.transfer) return Colors.blue.shade600;
     if (_mode == StockMode.adjustment && !_isAdd) return scheme.error;
     return Colors.green.shade600;
   }
@@ -546,6 +675,57 @@ class _Label extends StatelessWidget {
               fontWeight: FontWeight.w600,
             ),
       );
+}
+
+// ── Info banner (with optional action) ────────────────────────────────────────
+
+class _InfoBanner extends StatelessWidget {
+  const _InfoBanner({
+    required this.scheme,
+    required this.icon,
+    required this.message,
+    this.actionLabel,
+    this.onAction,
+  });
+
+  final ColorScheme scheme;
+  final IconData icon;
+  final String message;
+  final String? actionLabel;
+  final VoidCallback? onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
+      decoration: BoxDecoration(
+        color: scheme.secondaryContainer.withValues(alpha: 0.4),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: scheme.onSecondaryContainer),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                  fontSize: 12.5, color: scheme.onSecondaryContainer),
+            ),
+          ),
+          if (actionLabel != null && onAction != null)
+            TextButton(
+              onPressed: onAction,
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                minimumSize: const Size(0, 32),
+              ),
+              child: Text(actionLabel!),
+            ),
+        ],
+      ),
+    );
+  }
 }
 
 // ── Adjustment direction toggle ───────────────────────────────────────────────
