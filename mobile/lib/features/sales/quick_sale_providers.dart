@@ -303,9 +303,16 @@ class QuickSaleController extends Notifier<QuickSaleState> {
 
   // ── Checkout ─────────────────────────────────────────────────────────────────
 
+  /// [advanceApplied] draws down existing advance credit first; [paidNow] is
+  /// tendered via [paymentMethod]; any remainder of [grandTotal] becomes due.
+  /// [discountAmount] is the explicit cart discount (subtotal → grandTotal).
   Future<void> submit({
     required double grandTotal,
-    required String paymentMethod, // CASH | DUE
+    required double paidNow,
+    required String paymentMethod,
+    double discountAmount = 0,
+    double advanceApplied = 0,
+    String paymentReference = '',
     String customerName = 'Walk-in',
     String? customerId,
     String? customerPhone,
@@ -314,17 +321,22 @@ class QuickSaleController extends Notifier<QuickSaleState> {
     if (state.isSubmitting || state.items.isEmpty) return;
     state = state.copyWith(isSubmitting: true, submitError: null);
 
-    final paidAmount = paymentMethod == 'CASH' ? grandTotal : 0.0;
-    final dueAmount = paymentMethod == 'DUE' ? grandTotal : 0.0;
+    final advance = advanceApplied.clamp(0.0, grandTotal);
+    final coverable = (grandTotal - advance).clamp(0.0, grandTotal);
+    final paid = paidNow.clamp(0.0, coverable);
+    final dueAmount = (coverable - paid).clamp(0.0, coverable);
 
     try {
       final result = await ref.read(salesRepositoryProvider).submitQuickSale(
             items: state.items,
             subtotal: state.total,
             grandTotal: grandTotal,
-            paidAmount: paidAmount,
+            paidAmount: paid,
             dueAmount: dueAmount,
             paymentMethod: paymentMethod,
+            discountAmount: discountAmount,
+            advanceApplied: advance,
+            paymentReference: paymentReference,
             customerName: customerName.isEmpty ? 'Walk-in' : customerName,
             customerId: customerId,
             customerPhone: customerPhone,
@@ -344,6 +356,15 @@ class QuickSaleController extends Notifier<QuickSaleState> {
       isScanning: false,
       isSubmitting: false,
       lookupError: null,
+      submitError: null,
+      result: null,
+    );
+  }
+
+  /// Replaces the cart with a resumed (held) cart's lines.
+  void loadItems(List<QuickSaleItem> items) {
+    state = state.copyWith(
+      items: List.of(items),
       submitError: null,
       result: null,
     );

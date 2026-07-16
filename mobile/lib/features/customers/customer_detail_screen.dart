@@ -34,8 +34,9 @@ class CustomerDetailScreen extends ConsumerWidget {
         ),
         actions: [
           IconButton(
+            tooltip: 'Edit customer',
             icon: const Icon(Icons.edit_outlined),
-            onPressed: () {},
+            onPressed: () => context.push('/customers/$customerId/edit'),
           ),
         ],
       ),
@@ -56,7 +57,7 @@ class CustomerDetailScreen extends ConsumerWidget {
   }
 }
 
-// â”€â”€ Body â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Body ─────────────────────────────────────────────────────────────────────
 
 class _Body extends ConsumerStatefulWidget {
   const _Body({required this.customer});
@@ -252,7 +253,7 @@ class _BodyState extends ConsumerState<_Body> {
         controller: _scrollCtrl,
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
         children: [
-          // â”€â”€ Header card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+          // ── Header card ──────────────────────────────────────────────
           CardSection(
             padding: const EdgeInsets.all(15),
             child: Column(
@@ -284,7 +285,7 @@ class _BodyState extends ConsumerState<_Body> {
                                 widget.customer.customerType!,
                               if (widget.customer.lastPurchaseDate != null)
                                 'since ${formatDate(widget.customer.lastPurchaseDate!)}',
-                            ].join(' Â· '),
+                            ].join(' · '),
                             style: GoogleFonts.instrumentSans(
                               fontSize: 12
                             ),
@@ -298,25 +299,39 @@ class _BodyState extends ConsumerState<_Body> {
 
                 // 3-stat row
                 summaryAsync.when(
-                  data: (s) => Row(
+                  data: (s) => Column(
                     children: [
-                      _StatBox(
-                        label: 'Due',
-                        value: formatCurrency(s.amountDue),
-                        valueColor: AppColors.red,
-                        bg: AppColors.redBg,
+                      Row(
+                        children: [
+                          _StatBox(
+                            label: 'Due',
+                            value: formatCurrency(s.amountDue),
+                            valueColor: context.colors.red,
+                            bg: context.colors.redBg,
+                          ),
+                          const SizedBox(width: 8),
+                          _StatBox(
+                            label: 'Advance',
+                            value: formatCurrency(
+                                widget.customer.advanceAmount),
+                            valueColor: context.colors.green,
+                            bg: context.colors.greenBg,
+                          ),
+                          const SizedBox(width: 8),
+                          _StatBox(
+                            label: 'Invoices',
+                            value: '${s.totalInvoices}',
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 8),
-                      _StatBox(
-                        label: 'Lifetime',
-                        value: formatCurrency(
-                            widget.customer.totalPurchaseAmount),
-                      ),
-                      const SizedBox(width: 8),
-                      _StatBox(
-                        label: 'Invoices',
-                        value: '${s.totalInvoices}',
-                      ),
+                      // Net bottom line when the customer has both.
+                      if (s.amountDue > 0 &&
+                          widget.customer.advanceAmount > 0) ...[
+                        const SizedBox(height: 8),
+                        _NetRow(
+                          net: s.amountDue - widget.customer.advanceAmount,
+                        ),
+                      ],
                     ],
                   ),
                   loading: () => const SizedBox(
@@ -327,7 +342,7 @@ class _BodyState extends ConsumerState<_Body> {
 
                 const SizedBox(height: 14),
 
-                // 2Ã—2 action grid
+                // 2×2 action grid
                 GridView.count(
                   crossAxisCount: 2,
                   shrinkWrap: true,
@@ -369,7 +384,7 @@ class _BodyState extends ConsumerState<_Body> {
           ),
           const SizedBox(height: 12),
 
-          // â”€â”€ Tab chips â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+          // ── Tab chips ────────────────────────────────────────────────
           FilterChipRow(
             selected: _tabIndex,
             onSelect: _onTabSelect,
@@ -381,7 +396,7 @@ class _BodyState extends ConsumerState<_Body> {
           ),
           const SizedBox(height: 12),
 
-          // â”€â”€ Invoices tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+          // ── Invoices tab ─────────────────────────────────────────────
           if (_tabIndex == 0) ...[
             if (!_invoiceInitialized ||
                 (_invoices.isEmpty && _invoiceLoading))
@@ -409,7 +424,7 @@ class _BodyState extends ConsumerState<_Body> {
               ),
           ],
 
-          // â”€â”€ Payments tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+          // ── Payments tab ─────────────────────────────────────────────
           if (_tabIndex == 1) ...[
             if (!_paymentInitialized ||
                 (_payments.isEmpty && _paymentLoading))
@@ -437,7 +452,7 @@ class _BodyState extends ConsumerState<_Body> {
               ),
           ],
 
-          // â”€â”€ Returns tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+          // ── Returns tab ──────────────────────────────────────────────
           if (_tabIndex == 2) ...[
             if (!_returnInitialized ||
                 (_returns.isEmpty && _returnLoading))
@@ -487,7 +502,7 @@ class _BodyState extends ConsumerState<_Body> {
   }
 }
 
-// â”€â”€ Invoice list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Invoice list ──────────────────────────────────────────────────────────────
 
 class _InvoiceList extends StatelessWidget {
   const _InvoiceList({
@@ -561,7 +576,7 @@ class _InvoiceRow extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${formatDate(invoice.invoiceDate)} Â· ${invoice.salesOrderNumber}',
+                    '${formatDate(invoice.invoiceDate)} · ${invoice.salesOrderNumber}',
                     style: GoogleFonts.instrumentSans(
                       fontSize: 11.5
                     ),
@@ -586,7 +601,7 @@ class _InvoiceRow extends StatelessWidget {
                     style: GoogleFonts.instrumentSans(
                       fontSize: 10.5,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.red,
+                      color: context.colors.red,
                     ),
                   )
                 else
@@ -594,8 +609,8 @@ class _InvoiceRow extends StatelessWidget {
               ],
             ),
             const SizedBox(width: 8),
-            const Icon(Icons.chevron_right,
-                color: AppColors.disabled, size: 18),
+            Icon(Icons.chevron_right,
+                color: context.colors.disabled, size: 18),
           ],
         ),
       ),
@@ -603,7 +618,7 @@ class _InvoiceRow extends StatelessWidget {
   }
 }
 
-// â”€â”€ Payment list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Payment list ──────────────────────────────────────────────────────────────
 
 class _PaymentList extends StatelessWidget {
   const _PaymentList({
@@ -667,7 +682,7 @@ class _PaymentRow extends StatelessWidget {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: isCompleted ? AppColors.greenBg : Theme.of(context).scaffoldBackgroundColor,
+              color: isCompleted ? context.colors.greenBg : Theme.of(context).scaffoldBackgroundColor,
               borderRadius: BorderRadius.circular(10),
             ),
             alignment: Alignment.center,
@@ -694,7 +709,7 @@ class _PaymentRow extends StatelessWidget {
                     formatDate(payment.paymentDate),
                     if ((payment.invoiceNumber ?? '').isNotEmpty)
                       payment.invoiceNumber!,
-                  ].join(' Â· '),
+                  ].join(' · '),
                   style: GoogleFonts.instrumentSans(
                     fontSize: 11.5
                   ),
@@ -711,7 +726,7 @@ class _PaymentRow extends StatelessWidget {
                   fontSize: 13.5,
                   fontWeight: FontWeight.w600,
                   color:
-                      isCompleted ? AppColors.green : AppColors.ink,
+                      isCompleted ? context.colors.green : context.colors.ink,
                 ),
               ),
               const SizedBox(height: 4),
@@ -725,16 +740,16 @@ class _PaymentRow extends StatelessWidget {
 
   String _methodEmoji(String method) {
     return switch (method.toLowerCase()) {
-      'cash' => 'ðŸ’µ',
-      'bank' || 'bank transfer' => 'ðŸ¦',
-      'bkash' || 'mobile banking' => 'ðŸ“±',
-      'cheque' => 'ðŸ“„',
-      _ => 'ðŸ’³',
+      'cash' => '💵',
+      'bank' || 'bank transfer' => '🏦',
+      'bkash' || 'mobile banking' => '📱',
+      'cheque' => '📄',
+      _ => '💳',
     };
   }
 }
 
-// â”€â”€ Returns list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Returns list ──────────────────────────────────────────────────────────────
 
 class _ReturnsList extends StatelessWidget {
   const _ReturnsList({
@@ -795,12 +810,12 @@ class _ReturnRow extends StatelessWidget {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: AppColors.redBg,
+              color: context.colors.redBg,
               borderRadius: BorderRadius.circular(10),
             ),
             alignment: Alignment.center,
-            child: const Icon(Icons.assignment_return_outlined,
-                size: 18, color: AppColors.red),
+            child: Icon(Icons.assignment_return_outlined,
+                size: 18, color: context.colors.red),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -820,7 +835,7 @@ class _ReturnRow extends StatelessWidget {
                     formatDate(ret.createdAt),
                     if ((ret.salesOrderNumber ?? '').isNotEmpty)
                       ret.salesOrderNumber!,
-                  ].join(' Â· '),
+                  ].join(' · '),
                   style: GoogleFonts.instrumentSans(
                     fontSize: 11.5
                   ),
@@ -836,7 +851,7 @@ class _ReturnRow extends StatelessWidget {
                 style: GoogleFonts.instrumentSans(
                   fontSize: 13.5,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.red,
+                  color: context.colors.red,
                 ),
               ),
               const SizedBox(height: 4),
@@ -863,7 +878,7 @@ class _InitiateReturnButton extends StatelessWidget {
         icon: const Icon(Icons.assignment_return_outlined, size: 16),
         label: const Text('Initiate return'),
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.ink,
+          foregroundColor: context.colors.ink,
           side: BorderSide(color: Theme.of(context).colorScheme.outline),
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -876,7 +891,7 @@ class _InitiateReturnButton extends StatelessWidget {
   }
 }
 
-// â”€â”€ Pagination footer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Pagination footer ─────────────────────────────────────────────────────────
 
 class _PaginationFooter extends StatelessWidget {
   const _PaginationFooter(
@@ -906,7 +921,7 @@ class _PaginationFooter extends StatelessWidget {
           child: Text(
             'All records loaded',
             style: GoogleFonts.instrumentSans(
-                fontSize: 12, color: AppColors.muted),
+                fontSize: 12, color: context.colors.muted),
           ),
         ),
       );
@@ -915,7 +930,40 @@ class _PaginationFooter extends StatelessWidget {
   }
 }
 
-// â”€â”€ Stat box â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Stat box ──────────────────────────────────────────────────────────────────
+
+/// The net bottom line (due − advance) shown when a customer has both, so
+/// staff see whether the customer actually owes or is in credit.
+class _NetRow extends StatelessWidget {
+  const _NetRow({required this.net});
+
+  final double net;
+
+  @override
+  Widget build(BuildContext context) {
+    final owes = net > 0;
+    final color = owes ? context.colors.red : context.colors.green;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        color: (owes ? context.colors.redBg : context.colors.greenBg),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(owes ? 'Net owed' : 'Net credit',
+              style: GoogleFonts.instrumentSans(
+                  fontSize: 12, fontWeight: FontWeight.w600, color: color)),
+          Text(formatCurrency(net.abs()),
+              style: GoogleFonts.instrumentSans(
+                  fontSize: 13.5, fontWeight: FontWeight.w700, color: color)),
+        ],
+      ),
+    );
+  }
+}
 
 class _StatBox extends StatelessWidget {
   const _StatBox({
@@ -943,15 +991,23 @@ class _StatBox extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: GoogleFonts.instrumentSans(
-                    fontSize: 10.5, color: AppColors.muted)),
+                    fontSize: 10.5, color: context.colors.muted)),
             const SizedBox(height: 3),
-            Text(value,
-                style: GoogleFonts.instrumentSans(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: valueColor ?? AppColors.ink,
-                )),
+            // Long amounts (৳ 1,234,567.00) shrink to fit rather than wrap.
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(value,
+                  maxLines: 1,
+                  style: GoogleFonts.instrumentSans(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: valueColor ?? context.colors.ink,
+                  )),
+            ),
           ],
         ),
       ),
@@ -959,7 +1015,7 @@ class _StatBox extends StatelessWidget {
   }
 }
 
-// â”€â”€ Action button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Action button ─────────────────────────────────────────────────────────────
 
 class _ActionButton extends StatelessWidget {
   const _ActionButton({
@@ -982,24 +1038,32 @@ class _ActionButton extends StatelessWidget {
         padding:
             const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
         decoration: BoxDecoration(
-          color: filled ? AppColors.ink : Theme.of(context).colorScheme.surface,
+          color: filled ? context.colors.ink : Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(11),
           border: Border.all(
-              color: filled ? AppColors.ink : Theme.of(context).colorScheme.outline),
+              color: filled ? context.colors.ink : Theme.of(context).colorScheme.outline),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(icon,
                 size: 15,
-                color: filled ? Colors.white : AppColors.secondary),
+                color: filled ? context.colors.onInk : context.colors.secondary),
             const SizedBox(width: 6),
-            Text(label,
-                style: GoogleFonts.instrumentSans(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w600,
-                  color: filled ? Colors.white : AppColors.ink,
-                )),
+            // Labels ("Receive payment") outgrow the fixed grid cell at
+            // larger text scales — shrink to fit instead of overflowing.
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(label,
+                    maxLines: 1,
+                    style: GoogleFonts.instrumentSans(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                      color: filled ? context.colors.onInk : context.colors.ink,
+                    )),
+              ),
+            ),
           ],
         ),
       ),
@@ -1007,7 +1071,7 @@ class _ActionButton extends StatelessWidget {
   }
 }
 
-// â”€â”€ Reminder sheet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Reminder sheet ────────────────────────────────────────────────────────────
 
 class _ReminderSheet extends ConsumerStatefulWidget {
   const _ReminderSheet({required this.customer});
@@ -1028,7 +1092,7 @@ class _ReminderSheetState extends ConsumerState<_ReminderSheet> {
     setState(() => _sending = true);
     final messenger = ScaffoldMessenger.of(context);
     final nav = Navigator.of(context);
-    final errorColor = AppColors.red;
+    final errorColor = context.colors.red;
     try {
       final msg = await ref
           .read(customersRepositoryProvider)
@@ -1088,9 +1152,9 @@ class _ReminderSheetState extends ConsumerState<_ReminderSheet> {
               ),
               const SizedBox(height: 4),
               Text(
-                '${widget.customer.fullName} Â· due ${formatCurrency(widget.customer.dueAmount)}',
+                '${widget.customer.fullName} · due ${formatCurrency(widget.customer.dueAmount)}',
                 style: GoogleFonts.instrumentSans(
-                    fontSize: 12.5, color: AppColors.muted),
+                    fontSize: 12.5, color: context.colors.muted),
               ),
               const SizedBox(height: 20),
               MethodGrid(
@@ -1106,19 +1170,19 @@ class _ReminderSheetState extends ConsumerState<_ReminderSheet> {
                 child: FilledButton(
                   onPressed: _sending ? null : _send,
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.ink,
-                    foregroundColor: Colors.white,
+                    backgroundColor: context.colors.ink,
+                    foregroundColor: context.colors.onInk,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12)),
                     textStyle: GoogleFonts.instrumentSans(
                         fontSize: 15, fontWeight: FontWeight.w700),
                   ),
                   child: _sending
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(
-                              strokeWidth: 2.5, color: Colors.white),
+                              strokeWidth: 2.5, color: context.colors.onInk),
                         )
                       : const Text('Send reminder'),
                 ),

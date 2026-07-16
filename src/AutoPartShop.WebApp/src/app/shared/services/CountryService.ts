@@ -1,4 +1,3 @@
-import { query } from '@angular/animations';
 import { Injectable } from '@angular/core';
 import { delay, map, Observable, of } from 'rxjs';
 
@@ -42,7 +41,7 @@ export class CountryService {
         return of(this.countries).pipe(
             map((list) => {
                 // 1️⃣ filter
-                const filtered = query != null ? list.filter((c) => c.label.toLowerCase().includes(search)) : list;
+                const filtered = search ? list.filter((c) => c.label.toLowerCase().includes(search)) : list;
 
                 // 2️⃣ paginate
                 const start = (request.page - 1) * request.pageSize;
@@ -77,7 +76,7 @@ export class CustomerTypeService {
         return of(this.customerTypes).pipe(
             map((list) => {
                 // 1️⃣ filter
-                const filtered = query != null ? list.filter((c) => c.label.toLowerCase().includes(search)) : list;
+                const filtered = search ? list.filter((c) => c.label.toLowerCase().includes(search)) : list;
 
                 // 2️⃣ paginate
                 const start = (request.page - 1) * request.pageSize;

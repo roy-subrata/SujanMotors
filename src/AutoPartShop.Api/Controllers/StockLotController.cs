@@ -1,10 +1,11 @@
-using AutoPartShop.Api.Services;
+﻿using AutoPartShop.Api.Services;
 using AutoPartShop.Application.Common;
 using AutoPartShop.Application.DTOs.InventoryDtos;
 using AutoPartShop.Application.Stock;
 using AutoPartShop.Application.Stock.Dtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
+using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -14,7 +15,7 @@ namespace AutoPartShop.Api.Controllers;
 [Route("api/[controller]")]
 [Route("api/v1/[controller]")]
 [ApiController]
-[Authorize]
+[HasPermission(Permissions.InventoryView)]
 public class StockLotController(
     ILogger<StockLotController> _logger,
     IStockLotRepository _repository,
@@ -252,6 +253,7 @@ public class StockLotController(
     }
 
     [HttpPost]
+    [HasPermission(Permissions.InventoryAdjustStock)]
     public async Task<IActionResult> Create(CreateStockLotRequest request, CancellationToken cancellationToken)
     {
         try
@@ -296,6 +298,7 @@ public class StockLotController(
     }
 
     [HttpPut("{id:guid}")]
+    [HasPermission(Permissions.InventoryAdjustStock)]
     public async Task<IActionResult> Update(Guid id, UpdateStockLotRequest request, CancellationToken cancellationToken)
     {
         try

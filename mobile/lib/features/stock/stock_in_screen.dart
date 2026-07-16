@@ -10,6 +10,7 @@ import '../../shared/widgets/app_scaffold.dart';
 import '../products/products_repository.dart';
 import 'stock_adjustment_sheet.dart';
 import 'stock_repository.dart';
+import '../../core/i18n/strings.dart';
 
 class StockInScreen extends ConsumerStatefulWidget {
   const StockInScreen({super.key});
@@ -185,14 +186,14 @@ class _StockInScreenState extends ConsumerState<StockInScreen> {
   Widget build(BuildContext context) {
     if (_scanning) {
       return AppScaffold(
-        title: 'Stock In',
+        title: S.of(context).stockIn,
         showNotificationBell: false,
         body: _buildScannerOverlay(),
       );
     }
 
     return AppScaffold(
-      title: 'Stock In',
+      title: S.of(context).stockIn,
       showNotificationBell: false,
       actions: [
         IconButton(

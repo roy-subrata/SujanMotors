@@ -634,92 +634,22 @@
   display: block;
 }
 
-/* Submit Actions (below form, inside card) */
+/* Submit Actions (below form, inside card) — buttons themselves are the
+   shared .btn-primary/.btn-secondary (assets/_data-page.scss), stacked
+   full-width here to match this form's large bottom action bar. */
 .submit-actions {
-  padding: 1.5rem 1.5rem 1.5rem 1.5rem;
+  padding: 1.5rem;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
 }
 
-.submit-actions .submit-button {
+.submit-actions .btn-primary,
+.submit-actions .btn-secondary {
   width: 100%;
-  margin-top: 0;
-}
-
-.submit-actions .cancel-button {
-  width: 100%;
-  margin-top: 0;
-}
-
-/* Submit Button */
-.submit-button {
-  width: 100%;
-  min-height: 48px;
-  border: none;
-  border-radius: 0.5rem;
-  background: var(--color-primary);
-  color: var(--accent-fg);
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 6px -1px var(--color-primary-light);
-}
-
-.submit-button:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 12px -2px var(--color-primary-light);
-  opacity: 0.9;
-}
-
-.submit-button:active:not(:disabled) {
-  transform: translateY(0);
-}
-
-.submit-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.submit-button i {
-  font-size: 15px;
-}
-
-/* Cancel Button */
-.cancel-button {
   min-height: 44px;
-  padding: 0 2rem;
-  border: 1px solid var(--color-border);
-  border-radius: 0.5rem;
-  background: var(--color-bg-primary);
-  color: var(--color-text-secondary);
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-  width: 100%;
-}
-
-.submit-actions .cancel-button {
-  margin-top: 0;
-}
-
-.cancel-button:hover {
-  background: var(--color-bg-secondary);
-  border-color: var(--color-text-muted);
-  color: var(--color-text-primary);
-}
-
-.cancel-button:active {
-  background: var(--color-bg-secondary);
+  font-size: 14px;
 }
 
 /* PrimeNG overrides */
@@ -871,8 +801,8 @@
     font-size: 18px;
   }
 
-  .submit-button {
-    min-height: 44px;
+  .submit-actions .btn-primary,
+  .submit-actions .btn-secondary {
     font-size: 13px;
   }
 

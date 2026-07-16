@@ -1,3 +1,4 @@
+using AutoPartShop.Api.Authorization;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.Common;
 using AutoPartShop.Application.DTOs.PaymentDtos;
@@ -16,7 +17,9 @@ namespace AutoPartShop.Api.Controllers;
 [Route("api/supplier-payments")]
 [Route("api/v1/supplier-payments")]
 [ApiController]
-[Authorize(Roles = "Admin,Manager")]
+// procurement.create (not .view) on the whole controller keeps supplier payments
+// restricted to roles that can spend — preserving the previous Admin/Manager-only posture
+[HasPermission(Permissions.ProcurementCreate)]
 public class SupplierPaymentController : ControllerBase
 {
     private readonly ISupplierPaymentRepository _repository;

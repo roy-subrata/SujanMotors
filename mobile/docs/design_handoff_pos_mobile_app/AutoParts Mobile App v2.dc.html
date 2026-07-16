@@ -23,8 +23,8 @@ html,body{margin:0;padding:0;background:#edeef1;}
   <!-- ============ HEADER ============ -->
   <div style="display:flex;flex-direction:column;gap:12px;max-width:900px">
     <span style="font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#8a93a2">Sunjan Motors · Auto Parts POS — Mobile v2</span>
-    <h1 style="margin:0;font-size:30px;font-weight:700;letter-spacing:-.02em">Phase 1 Feature Set — 15 Screens</h1>
-    <p style="margin:0;font-size:14px;line-height:1.6;color:#5b6472">Login · Products (search, barcode, detail with warehouse lots) · Customers (detail, invoice, payment, reminder, statement) · Suppliers (list, payment, statement) · Sales (list, cart, return). Every list screen carries the notification bell and cart in the top bar. The bottom nav + stacked detail pages pattern extends cleanly as more web features move to mobile.</p>
+    <h1 style="margin:0;font-size:30px;font-weight:700;letter-spacing:-.02em">Phase 1 Feature Set — 20 Screens</h1>
+    <p style="margin:0;font-size:14px;line-height:1.6;color:#5b6472">Login · Products (search, barcode, rich detail with media, specs, technical data &amp; warehouse lots) · Customers (detail, invoice, payment, reminder, statement) · Suppliers (list, payment, statement) · Sales (list, cart, return) · Cashbook (ledger, add entry) · Stock In (list, new entry) · Notifications. Every list screen carries the notification bell and cart in the top bar. The bottom nav + stacked detail pages pattern extends cleanly as more web features move to mobile.</p>
   </div>
 
   <!-- ==================================================== -->
@@ -111,31 +111,103 @@ html,body{margin:0;padding:0;background:#edeef1;}
 
       <!-- A3 PRODUCT DETAIL -->
       <div style="display:flex;flex-direction:column;gap:12px">
-        <span style="font-size:12px;font-weight:600;color:#5b6472">A3 · Product detail (stock &amp; lots by warehouse)</span>
+        <span style="font-size:12px;font-weight:600;color:#5b6472">A3 · Product detail (media, specs, technical data, lots)</span>
         <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" hint-size="428px,908px">
           <div data-screen-label="Product Detail" style="height:100%;display:flex;flex-direction:column;background:#f4f5f7;font-family:'Instrument Sans',system-ui,sans-serif;color:#0f172a;position:relative">
             <div style="display:flex;align-items:center;gap:10px;padding:12px 16px 10px">
               <span style="font-size:15px;color:#5b6472;cursor:pointer">←</span>
               <span style="font-size:16px;font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Brake Pad Set — Toyota Axio</span>
+              <span style="font-size:14px;color:#5b6472;cursor:pointer">☆</span>
               <span style="font-size:14px;color:#5b6472;cursor:pointer">✎</span>
             </div>
             <div style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding:4px 16px 110px">
-              <div style="display:flex;gap:12px;background:#fff;border:1px solid #e6e8ec;border-radius:14px;padding:14px">
-                <div style="width:72px;height:72px;border-radius:11px;background:repeating-linear-gradient(45deg,#f4f5f7,#f4f5f7 5px,#eef0f3 5px,#eef0f3 10px);border:1px solid #e6e8ec;flex-shrink:0"></div>
-                <div style="flex:1;display:flex;flex-direction:column;gap:4px;min-width:0">
-                  <span style="font-size:15px;font-weight:700;line-height:1.3">Brake Pad Set — Toyota Axio</span>
-                  <span style="font-size:12px;color:#8a93a2">SKU BP-AX-104 · Akebono · Brakes</span>
-                  <div style="display:flex;align-items:baseline;gap:8px;margin-top:2px">
-                    <span style="font-size:18px;font-weight:700;font-variant-numeric:tabular-nums">৳ 1,850</span>
-                    <span style="font-size:11.5px;color:#8a93a2">cost ৳ 1,320 · margin 29%</span>
+
+              <!-- Media gallery -->
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <div style="position:relative;width:100%;height:200px;border-radius:14px;background:repeating-linear-gradient(45deg,#eef0f3,#eef0f3 6px,#e6e8ec 6px,#e6e8ec 12px);border:1px solid #e6e8ec;overflow:hidden">
+                  <span style="position:absolute;top:10px;left:10px;font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:99px;background:rgba(15,23,42,.72);color:#fff">1 / 5</span>
+                  <span style="position:absolute;top:10px;right:10px;font-size:10.5px;font-weight:600;padding:3px 9px;border-radius:99px;background:#0d8a53;color:#fff">24 in stock</span>
+                </div>
+                <div style="display:flex;gap:7px">
+                  <div style="width:52px;height:52px;border-radius:10px;background:repeating-linear-gradient(45deg,#f4f5f7,#f4f5f7 4px,#eef0f3 4px,#eef0f3 8px);border:2px solid #0f172a;flex-shrink:0"></div>
+                  <sc-for list="{{ galleryThumbs }}" as="gt" hint-placeholder-count="3">
+                    <div style="width:52px;height:52px;border-radius:10px;background:repeating-linear-gradient(45deg,#f4f5f7,#f4f5f7 4px,#eef0f3 4px,#eef0f3 8px);border:1px solid #e6e8ec;flex-shrink:0"></div>
+                  </sc-for>
+                  <div style="position:relative;width:52px;height:52px;border-radius:10px;background:#0f172a;flex-shrink:0;display:grid;place-items:center;cursor:pointer">
+                    <span style="color:#fff;font-size:16px">▶</span>
+                    <span style="position:absolute;bottom:3px;right:5px;font-size:8.5px;color:#c3c9d2">0:42</span>
                   </div>
                 </div>
               </div>
+
+              <!-- Title / price -->
+              <div style="display:flex;flex-direction:column;gap:6px;background:#fff;border:1px solid #e6e8ec;border-radius:14px;padding:14px 15px">
+                <span style="font-size:15.5px;font-weight:700;line-height:1.3">Brake Pad Set — Toyota Axio</span>
+                <span style="font-size:12px;color:#8a93a2">SKU BP-AX-104 · Barcode 8801234567891 · Akebono · Brakes</span>
+                <div style="display:flex;align-items:baseline;gap:8px;margin-top:2px">
+                  <span style="font-size:19px;font-weight:700;font-variant-numeric:tabular-nums">৳ 1,850</span>
+                  <span style="font-size:11.5px;color:#8a93a2">cost ৳ 1,320 · margin 29%</span>
+                </div>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:2px">
+                  <span style="font-size:11px;font-weight:600;padding:5px 11px;border-radius:99px;background:#f4f5f7;border:1px solid #e6e8ec;color:#5b6472">Front axle</span>
+                  <span style="font-size:11px;font-weight:600;padding:5px 11px;border-radius:99px;background:#f4f5f7;border:1px solid #e6e8ec;color:#5b6472">Set of 4 pads</span>
+                  <span style="font-size:11px;font-weight:600;padding:5px 11px;border-radius:99px;background:#e9f7f0;border:1px solid #cdeedd;color:#0d8a53">6-month warranty</span>
+                </div>
+              </div>
+
               <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
                 <div style="background:#fff;border:1px solid #e6e8ec;border-radius:12px;padding:11px 12px;display:flex;flex-direction:column;gap:2px"><span style="font-size:11px;color:#8a93a2">Total stock</span><span style="font-size:16px;font-weight:700;font-variant-numeric:tabular-nums">24 pcs</span></div>
                 <div style="background:#fff;border:1px solid #e6e8ec;border-radius:12px;padding:11px 12px;display:flex;flex-direction:column;gap:2px"><span style="font-size:11px;color:#8a93a2">Reserved</span><span style="font-size:16px;font-weight:700;font-variant-numeric:tabular-nums">2</span></div>
                 <div style="background:#fff;border:1px solid #e6e8ec;border-radius:12px;padding:11px 12px;display:flex;flex-direction:column;gap:2px"><span style="font-size:11px;color:#8a93a2">Reorder at</span><span style="font-size:16px;font-weight:700;font-variant-numeric:tabular-nums">8</span></div>
               </div>
+
+              <!-- Section pill nav (visual) -->
+              <div style="display:flex;gap:6px;overflow-x:auto">
+                <span style="flex-shrink:0;font-size:11.5px;font-weight:700;padding:6px 13px;border-radius:99px;background:#0f172a;color:#fff">Overview</span>
+                <span style="flex-shrink:0;font-size:11.5px;font-weight:500;padding:6px 13px;border-radius:99px;background:#fff;border:1px solid #e6e8ec;color:#5b6472">Specifications</span>
+                <span style="flex-shrink:0;font-size:11.5px;font-weight:500;padding:6px 13px;border-radius:99px;background:#fff;border:1px solid #e6e8ec;color:#5b6472">Compatibility</span>
+                <span style="flex-shrink:0;font-size:11.5px;font-weight:500;padding:6px 13px;border-radius:99px;background:#fff;border:1px solid #e6e8ec;color:#5b6472">Stock &amp; lots</span>
+              </div>
+
+              <!-- General specifications -->
+              <div style="background:#fff;border:1px solid #e6e8ec;border-radius:14px;padding:13px 15px;display:flex;flex-direction:column;gap:9px">
+                <span style="font-size:14px;font-weight:600">Specifications</span>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px 14px">
+                  <sc-for list="{{ specRows }}" as="spec" hint-placeholder-count="6">
+                    <div style="display:flex;flex-direction:column;gap:1px">
+                      <span style="font-size:10.5px;color:#8a93a2">{{ spec.label }}</span>
+                      <span style="font-size:12.5px;font-weight:550">{{ spec.value }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+
+              <!-- Technical specification table -->
+              <div style="background:#fff;border:1px solid #e6e8ec;border-radius:14px;overflow:hidden">
+                <span style="display:block;font-size:14px;font-weight:600;padding:13px 15px 9px">Technical specification</span>
+                <sc-for list="{{ techSpecRows }}" as="ts" hint-placeholder-count="6">
+                  <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 15px;border-top:1px solid #eef0f3;font-size:12.5px">
+                    <span style="color:#8a93a2">{{ ts.label }}</span>
+                    <span style="font-weight:600">{{ ts.value }}</span>
+                  </div>
+                </sc-for>
+              </div>
+
+              <!-- Compatible vehicles -->
+              <div style="background:#fff;border:1px solid #e6e8ec;border-radius:14px;padding:13px 15px;display:flex;flex-direction:column;gap:10px">
+                <span style="font-size:14px;font-weight:600">Compatible vehicles</span>
+                <div style="display:flex;flex-direction:column;gap:0">
+                  <sc-for list="{{ compatVehicles }}" as="cv" hint-placeholder-count="4">
+                    <div style="display:flex;align-items:center;gap:9px;padding:8px 0;border-top:1px solid #eef0f3">
+                      <span style="font-size:13px">🚗</span>
+                      <span style="flex:1;font-size:12.5px;font-weight:550">{{ cv.model }}</span>
+                      <span style="font-size:11px;color:#8a93a2">{{ cv.years }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+
+              <!-- Stock by warehouse & lots -->
               <div style="background:#fff;border:1px solid #e6e8ec;border-radius:14px;overflow:hidden">
                 <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 15px 9px">
                   <span style="font-size:14px;font-weight:600">Stock by warehouse · lots</span>
@@ -152,7 +224,7 @@ html,body{margin:0;padding:0;background:#edeef1;}
                       <div style="display:flex;align-items:center;gap:10px;padding:10px 15px 10px 37px;border-top:1px dashed #eef0f3">
                         <div style="flex:1;display:flex;flex-direction:column;gap:1px">
                           <span style="font-size:12.5px;font-weight:550">{{ lot.lot }}</span>
-                          <span style="font-size:11px;color:#8a93a2">Recv {{ lot.recv }} · cost {{ lot.cost }}</span>
+                          <span style="font-size:11px;color:#8a93a2">Recv {{ lot.recv }} · cost {{ lot.cost }} · exp {{ lot.exp }}</span>
                         </div>
                         <span style="font-size:12.5px;font-weight:600;font-variant-numeric:tabular-nums">{{ lot.qty }} pcs</span>
                       </div>
@@ -160,6 +232,7 @@ html,body{margin:0;padding:0;background:#edeef1;}
                   </div>
                 </sc-for>
               </div>
+
               <div style="background:#fff;border:1px solid #e6e8ec;border-radius:14px;padding:13px 15px;display:flex;flex-direction:column;gap:9px">
                 <span style="font-size:14px;font-weight:600">Recent movement</span>
                 <sc-for list="{{ movements }}" as="mv" hint-placeholder-count="3">
@@ -814,6 +887,235 @@ html,body{margin:0;padding:0;background:#edeef1;}
     </div>
   </div>
 
+  <!-- ==================================================== -->
+  <!-- MODULE E · CASHBOOK, STOCK IN, NOTIFICATIONS -->
+  <!-- ==================================================== -->
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <span style="font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#0f172a">E · Cashbook, Stock In, Notifications</span>
+    <div style="display:flex;gap:36px;flex-wrap:wrap;align-items:flex-start">
+
+      <!-- E1 CASHBOOK -->
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <span style="font-size:12px;font-weight:600;color:#5b6472">E1 · Cashbook</span>
+        <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" hint-size="428px,908px">
+          <div data-screen-label="Cashbook" style="height:100%;display:flex;flex-direction:column;background:#f4f5f7;font-family:'Instrument Sans',system-ui,sans-serif;color:#0f172a;position:relative">
+            <div style="display:flex;align-items:center;gap:10px;padding:12px 16px 10px">
+              <span style="font-size:15px;color:#5b6472;cursor:pointer">←</span>
+              <span style="font-size:17px;font-weight:700;flex:1">Cashbook</span>
+              <button style="display:flex;align-items:center;gap:6px;background:#fff;border:1px solid #e6e8ec;border-radius:9px;padding:7px 12px;font-family:inherit;font-size:12px;font-weight:600;color:#0f172a;cursor:pointer">Today ▾</button>
+            </div>
+            <div style="padding:2px 16px 10px">
+              <div style="background:#fff;border:1px solid #e6e8ec;border-radius:14px;padding:14px 15px;display:flex;flex-direction:column;gap:8px">
+                <div style="display:flex;justify-content:space-between;font-size:12.5px;color:#5b6472"><span>Opening balance</span><span style="font-weight:600;font-variant-numeric:tabular-nums">৳ 22,400</span></div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                  <div style="background:#e9f7f0;border-radius:10px;padding:9px 11px;display:flex;flex-direction:column;gap:1px"><span style="font-size:10.5px;color:#0d8a53;font-weight:600">Cash in</span><span style="font-size:14.5px;font-weight:700;color:#0d8a53;font-variant-numeric:tabular-nums">৳ 48,250</span></div>
+                  <div style="background:#fdeeef;border-radius:10px;padding:9px 11px;display:flex;flex-direction:column;gap:1px"><span style="font-size:10.5px;color:#d63841;font-weight:600">Cash out</span><span style="font-size:14.5px;font-weight:700;color:#d63841;font-variant-numeric:tabular-nums">৳ 31,600</span></div>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:baseline;padding-top:7px;border-top:1px dashed #e6e8ec"><span style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#5b6472">Closing balance</span><span style="font-size:19px;font-weight:700;font-variant-numeric:tabular-nums">৳ 39,050</span></div>
+              </div>
+            </div>
+            <div style="display:flex;gap:6px;padding:0 16px 10px">
+              <span style="font-size:12px;font-weight:600;padding:6px 13px;border-radius:99px;background:#0f172a;color:#fff">All</span>
+              <span style="font-size:12px;font-weight:500;padding:6px 13px;border-radius:99px;background:#e9f7f0;border:1px solid #cdeedd;color:#0d8a53">Cash in</span>
+              <span style="font-size:12px;font-weight:500;padding:6px 13px;border-radius:99px;background:#fdeeef;border:1px solid #f6d5d7;color:#d63841">Cash out</span>
+            </div>
+            <div style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:0 16px 90px">
+              <sc-for list="{{ cashbookEntries }}" as="cb" hint-placeholder-count="6">
+                <div style="display:flex;align-items:center;gap:12px;background:#fff;border:1px solid #e6e8ec;border-radius:13px;padding:12px 14px">
+                  <span style="width:32px;height:32px;border-radius:9px;background:{{ cb.bg }};color:{{ cb.color }};display:grid;place-items:center;font-size:14px;flex-shrink:0">{{ cb.icon }}</span>
+                  <div style="flex:1;display:flex;flex-direction:column;gap:2px;min-width:0">
+                    <span style="font-size:13.5px;font-weight:550;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ cb.desc }}</span>
+                    <span style="font-size:11.5px;color:#8a93a2">{{ cb.category }} · {{ cb.time }}</span>
+                  </div>
+                  <span style="font-size:13.5px;font-weight:700;font-variant-numeric:tabular-nums;color:{{ cb.color }}">{{ cb.amount }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <button style="position:absolute;right:16px;bottom:80px;width:54px;height:54px;border-radius:16px;background:#0f172a;color:#fff;border:none;font-size:22px;cursor:pointer;box-shadow:0 8px 24px rgba(15,23,42,.3)" title="Add entry">＋</button>
+          </div>
+        </x-import>
+      </div>
+
+      <!-- E2 ADD CASH ENTRY -->
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <span style="font-size:12px;font-weight:600;color:#5b6472">E2 · Add cash entry (sheet)</span>
+        <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" hint-size="428px,908px">
+          <div data-screen-label="Add Cash Entry" style="height:100%;display:flex;flex-direction:column;background:#f4f5f7;font-family:'Instrument Sans',system-ui,sans-serif;color:#0f172a;position:relative">
+            <div style="flex:1;opacity:.35;padding:12px 16px">
+              <div style="background:#fff;border:1px solid #e6e8ec;border-radius:14px;height:150px"></div>
+            </div>
+            <div style="position:absolute;inset:0;background:rgba(15,23,42,.35)"></div>
+            <div style="position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:22px 22px 0 0;padding:10px 20px 24px;display:flex;flex-direction:column;gap:12px;box-shadow:0 -12px 40px rgba(15,23,42,.18)">
+              <div style="width:40px;height:4px;border-radius:99px;background:#e6e8ec;align-self:center"></div>
+              <span style="font-size:17px;font-weight:700">Add cash entry</span>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                <div style="display:flex;flex-direction:column;align-items:center;gap:4px;background:#e9f7f0;border:1.5px solid #0d8a53;border-radius:11px;padding:11px 4px;font-size:12px;font-weight:700;color:#0d8a53;cursor:pointer">⬇ Cash in</div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:4px;background:#fff;border:1px solid #e6e8ec;border-radius:11px;padding:11px 4px;font-size:12px;font-weight:600;color:#5b6472;cursor:pointer" style-hover="border-color:#8a93a2">⬆ Cash out</div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <span style="font-size:13px;font-weight:600">Category</span>
+                <div style="display:flex;gap:6px;flex-wrap:wrap">
+                  <span style="font-size:12px;font-weight:600;padding:6px 13px;border-radius:99px;background:#0f172a;color:#fff">Sale receipt</span>
+                  <span style="font-size:12px;font-weight:500;padding:6px 13px;border-radius:99px;background:#fff;border:1px solid #e6e8ec;color:#5b6472">Expense</span>
+                  <span style="font-size:12px;font-weight:500;padding:6px 13px;border-radius:99px;background:#fff;border:1px solid #e6e8ec;color:#5b6472">Owner deposit</span>
+                  <span style="font-size:12px;font-weight:500;padding:6px 13px;border-radius:99px;background:#fff;border:1px solid #e6e8ec;color:#5b6472">Other</span>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <span style="font-size:13px;font-weight:600">Amount</span>
+                <div style="display:flex;align-items:center;background:#fff;border:2px solid #0f172a;border-radius:12px;overflow:hidden">
+                  <span style="padding:13px 14px;background:#fafafb;border-right:1px solid #e6e8ec;font-size:14px;color:#8a93a2">৳</span>
+                  <span style="padding:13px 14px;font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;flex:1">3,500</span>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <span style="font-size:13px;font-weight:600">Note</span>
+                <div style="background:#f4f5f7;border:1px solid #e6e8ec;border-radius:12px;padding:12px 14px;font-size:13px;color:#8a93a2">Cash sale — counter, no invoice…</div>
+              </div>
+              <button style="background:#0f172a;color:#fff;border:none;border-radius:13px;padding:15px;font-family:inherit;font-size:14.5px;font-weight:600;cursor:pointer" style-hover="opacity:.92">Save entry</button>
+            </div>
+          </div>
+        </x-import>
+      </div>
+
+      <!-- E3 STOCK IN LIST -->
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <span style="font-size:12px;font-weight:600;color:#5b6472">E3 · Stock In list</span>
+        <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" hint-size="428px,908px">
+          <div data-screen-label="Stock In List" style="height:100%;display:flex;flex-direction:column;background:#f4f5f7;font-family:'Instrument Sans',system-ui,sans-serif;color:#0f172a;position:relative">
+            <div style="display:flex;align-items:center;gap:9px;padding:12px 16px 10px">
+              <span style="font-size:15px;color:#5b6472;cursor:pointer">←</span>
+              <span style="font-size:17px;font-weight:700;flex:1">Stock In</span>
+              <div style="position:relative;width:38px;height:38px;border-radius:11px;background:#fff;border:1px solid #e6e8ec;display:grid;place-items:center;font-size:15px;cursor:pointer">🔔<span style="position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;border-radius:99px;background:#d63841;color:#fff;font-size:9.5px;font-weight:700;display:grid;place-items:center;padding:0 4px">3</span></div>
+            </div>
+            <div style="padding:0 16px 10px">
+              <div style="display:flex;align-items:center;gap:9px;background:#fff;border:1px solid #e6e8ec;border-radius:11px;padding:11px 13px;font-size:13.5px;color:#8a93a2">⌕ PO number, supplier…</div>
+            </div>
+            <div style="display:flex;gap:6px;padding:0 16px 12px">
+              <span style="font-size:12px;font-weight:600;padding:6px 13px;border-radius:99px;background:#0f172a;color:#fff">All · 32</span>
+              <span style="font-size:12px;font-weight:500;padding:6px 13px;border-radius:99px;background:#fdf3e2;border:1px solid #f3e2bd;color:#b26a00">Pending · 3</span>
+              <span style="font-size:12px;font-weight:500;padding:6px 13px;border-radius:99px;background:#fff;border:1px solid #e6e8ec;color:#5b6472">Received</span>
+            </div>
+            <div style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:0 16px 90px">
+              <sc-for list="{{ stockInList }}" as="si" hint-placeholder-count="5">
+                <div style="display:flex;align-items:center;gap:12px;background:#fff;border:1px solid #e6e8ec;border-radius:13px;padding:12px 14px;cursor:pointer" style-hover="border-color:#8a93a2">
+                  <div style="flex:1;display:flex;flex-direction:column;gap:2px;min-width:0">
+                    <span style="font-size:13.5px;font-weight:550">{{ si.po }}</span>
+                    <span style="font-size:11.5px;color:#8a93a2">{{ si.supplier }} · {{ si.items }} items · {{ si.date }}</span>
+                  </div>
+                  <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">
+                    <span style="font-size:13.5px;font-weight:600;font-variant-numeric:tabular-nums">{{ si.total }}</span>
+                    <span style="font-size:10.5px;font-weight:600;padding:1px 8px;border-radius:99px;background:{{ si.bg }};color:{{ si.color }}">{{ si.status }}</span>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+            <button style="position:absolute;right:16px;bottom:80px;width:54px;height:54px;border-radius:16px;background:#0f172a;color:#fff;border:none;font-size:22px;cursor:pointer;box-shadow:0 8px 24px rgba(15,23,42,.3)" title="New stock in">＋</button>
+          </div>
+        </x-import>
+      </div>
+
+      <!-- E4 STOCK IN FORM -->
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <span style="font-size:12px;font-weight:600;color:#5b6472">E4 · New Stock In entry</span>
+        <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" hint-size="428px,908px">
+          <div data-screen-label="New Stock In" style="height:100%;display:flex;flex-direction:column;background:#f4f5f7;font-family:'Instrument Sans',system-ui,sans-serif;color:#0f172a;position:relative">
+            <div style="display:flex;align-items:center;gap:10px;padding:12px 16px 10px">
+              <span style="font-size:15px;color:#5b6472;cursor:pointer">←</span>
+              <span style="font-size:16px;font-weight:700;flex:1">New Stock In</span>
+            </div>
+            <div style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding:4px 16px 130px">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                <div style="display:flex;flex-direction:column;gap:5px">
+                  <span style="font-size:11.5px;font-weight:600;color:#5b6472">Supplier</span>
+                  <div style="background:#fff;border:1px solid #e6e8ec;border-radius:11px;padding:11px 12px;font-size:13px;font-weight:550">Rahman Auto Imports ▾</div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:5px">
+                  <span style="font-size:11.5px;font-weight:600;color:#5b6472">Warehouse</span>
+                  <div style="background:#fff;border:1px solid #e6e8ec;border-radius:11px;padding:11px 12px;font-size:13px;font-weight:550">Main Warehouse ▾</div>
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                <div style="display:flex;flex-direction:column;gap:5px">
+                  <span style="font-size:11.5px;font-weight:600;color:#5b6472">Reference / PO no.</span>
+                  <div style="background:#fff;border:1px solid #e6e8ec;border-radius:11px;padding:11px 12px;font-size:13px">PO-0456</div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:5px">
+                  <span style="font-size:11.5px;font-weight:600;color:#5b6472">Date</span>
+                  <div style="background:#fff;border:1px solid #e6e8ec;border-radius:11px;padding:11px 12px;font-size:13px">15 Jul 2026</div>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <div style="display:flex;align-items:center;justify-content:space-between">
+                  <span style="font-size:13px;font-weight:600">Items</span>
+                  <span style="font-size:12px;color:#5b6472;font-weight:600;cursor:pointer">＋ Add item / scan ▦</span>
+                </div>
+                <div style="background:#fff;border:1px solid #e6e8ec;border-radius:13px;overflow:hidden">
+                  <sc-for list="{{ stockInLines }}" as="sl" hint-placeholder-count="3">
+                    <div style="display:flex;flex-direction:column;gap:7px;padding:12px 14px;border-bottom:1px solid #eef0f3">
+                      <div style="display:flex;align-items:center;gap:10px">
+                        <span style="flex:1;font-size:13px;font-weight:550;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ sl.name }}</span>
+                        <span style="font-size:12.5px;font-weight:600;font-variant-numeric:tabular-nums">{{ sl.lineTotal }}</span>
+                      </div>
+                      <div style="display:flex;align-items:center;gap:8px;font-size:11.5px;color:#8a93a2">
+                        <span>Qty <b style="color:#0f172a">{{ sl.qty }}</b></span>
+                        <span>·</span>
+                        <span>Cost <b style="color:#0f172a">{{ sl.cost }}</b></span>
+                        <span>·</span>
+                        <span>Lot <b style="color:#0f172a">{{ sl.lot }}</b></span>
+                      </div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="background:#fff;border:1px solid #e6e8ec;border-radius:13px;padding:13px 15px;display:flex;flex-direction:column;gap:8px">
+                <div style="display:flex;justify-content:space-between;font-size:12.5px;color:#5b6472"><span>Items total · 3 lines</span><span style="font-variant-numeric:tabular-nums">৳ 42,600</span></div>
+                <div style="display:flex;justify-content:space-between;font-size:12.5px;color:#5b6472"><span>Freight / other cost</span><span style="font-variant-numeric:tabular-nums">৳ 1,200</span></div>
+                <div style="display:flex;justify-content:space-between;align-items:baseline;padding-top:7px;border-top:1px dashed #e6e8ec"><span style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#5b6472">Grand total</span><span style="font-size:19px;font-weight:700;font-variant-numeric:tabular-nums">৳ 43,800</span></div>
+              </div>
+            </div>
+            <div style="position:absolute;left:0;right:0;bottom:0;padding:12px 16px 16px;background:linear-gradient(transparent,#f4f5f7 30%);display:flex;gap:8px">
+              <button style="flex:1;background:#fff;border:1px solid #e6e8ec;border-radius:12px;padding:13px;font-family:inherit;font-size:13px;font-weight:600;color:#0f172a;cursor:pointer" style-hover="border-color:#8a93a2">Save as draft</button>
+              <button style="flex:1.4;background:#0d8a53;color:#fff;border:none;border-radius:12px;padding:13px;font-family:inherit;font-size:13.5px;font-weight:700;cursor:pointer" style-hover="opacity:.92">✓ Receive stock</button>
+            </div>
+          </div>
+        </x-import>
+      </div>
+
+      <!-- E5 NOTIFICATIONS -->
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <span style="font-size:12px;font-weight:600;color:#5b6472">E5 · Notifications</span>
+        <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" hint-size="428px,908px">
+          <div data-screen-label="Notifications" style="height:100%;display:flex;flex-direction:column;background:#f4f5f7;font-family:'Instrument Sans',system-ui,sans-serif;color:#0f172a">
+            <div style="display:flex;align-items:center;gap:10px;padding:12px 16px 10px">
+              <span style="font-size:15px;color:#5b6472;cursor:pointer">←</span>
+              <span style="font-size:17px;font-weight:700;flex:1">Notifications</span>
+              <span style="font-size:12px;font-weight:600;color:#5b6472;cursor:pointer">Mark all read</span>
+            </div>
+            <div style="flex:1;overflow-y:auto;display:flex;flex-direction:column;padding:0 16px 24px">
+              <sc-for list="{{ notifGroups }}" as="grp" hint-placeholder-count="3">
+                <span style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#8a93a2;padding:12px 2px 6px">{{ grp.label }}</span>
+                <sc-for list="{{ grp.items }}" as="n" hint-placeholder-count="2">
+                  <div style="display:flex;align-items:flex-start;gap:11px;background:#fff;border:1px solid #e6e8ec;border-radius:13px;padding:12px 14px;margin-bottom:8px;position:relative">
+                    <span style="width:32px;height:32px;border-radius:9px;background:{{ n.bg }};color:{{ n.color }};display:grid;place-items:center;font-size:14px;flex-shrink:0">{{ n.icon }}</span>
+                    <div style="flex:1;display:flex;flex-direction:column;gap:2px;min-width:0">
+                      <span style="font-size:13px;font-weight:600">{{ n.title }}</span>
+                      <span style="font-size:11.5px;color:#5b6472;line-height:1.4">{{ n.subtitle }}</span>
+                      <span style="font-size:10.5px;color:#8a93a2;margin-top:2px">{{ n.time }}</span>
+                    </div>
+                    <sc-if value="{{ n.unread }}" hint-placeholder-val="{{ false }}">
+                      <span style="width:8px;height:8px;border-radius:99px;background:#d63841;flex-shrink:0;margin-top:4px"></span>
+                    </sc-if>
+                  </div>
+                </sc-for>
+              </sc-for>
+            </div>
+          </div>
+        </x-import>
+      </div>
+    </div>
+  </div>
+
   <p style="margin:0;font-size:13px;color:#8a93a2;max-width:900px">Extension pattern: every module = list screen → detail screen → action screens (payment / statement / return). New web features (purchases, expenses, reports, transfers) slot in as new modules using the same list/detail/action shells, chips, cards and bottom-sheet patterns.</p>
 
 </div>
@@ -836,12 +1138,36 @@ class Component extends DCLogic {
       ],
       warehouses: [
         { name: 'Main Warehouse', qty: 18, lots: [
-          { lot: 'LOT-2406-A', recv: '12 Jun 2026', cost: '৳ 1,280', qty: 10 },
-          { lot: 'LOT-2405-C', recv: '28 May 2026', cost: '৳ 1,320', qty: 8 },
+          { lot: 'LOT-2406-A', recv: '12 Jun 2026', cost: '৳ 1,280', exp: '—', qty: 10 },
+          { lot: 'LOT-2405-C', recv: '28 May 2026', cost: '৳ 1,320', exp: '—', qty: 8 },
         ]},
         { name: 'Shop Front', qty: 6, lots: [
-          { lot: 'LOT-2406-A', recv: '14 Jun 2026', cost: '৳ 1,280', qty: 6 },
+          { lot: 'LOT-2406-A', recv: '14 Jun 2026', cost: '৳ 1,280', exp: '—', qty: 6 },
         ]},
+      ],
+      galleryThumbs: [{}, {}, {}],
+      specRows: [
+        { label: 'Brand', value: 'Akebono' },
+        { label: 'Category', value: 'Brakes · Pads' },
+        { label: 'Unit', value: 'Set (4 pcs)' },
+        { label: 'Country of origin', value: 'Japan' },
+        { label: 'Warranty', value: '6 months' },
+        { label: 'HS code', value: '8708.30' },
+      ],
+      techSpecRows: [
+        { label: 'Material', value: 'Semi-metallic' },
+        { label: 'Position', value: 'Front axle' },
+        { label: 'Thickness', value: '17.5 mm' },
+        { label: 'Width', value: '112 mm' },
+        { label: 'Height', value: '68 mm' },
+        { label: 'Includes shims', value: 'Yes' },
+        { label: 'Noise rating', value: 'Low (NVH treated)' },
+      ],
+      compatVehicles: [
+        { model: 'Toyota Axio (NZE161/164)', years: '2012–2018' },
+        { model: 'Toyota Fielder', years: '2012–2018' },
+        { model: 'Toyota Corolla', years: '2013–2019' },
+        { model: 'Toyota Premio', years: '2010–2016' },
       ],
       movements: [
         { dir: '−', what: 'Sold · INV-1024 · Rahim Khan', qty: '−2', bg: lowBg, color: low },
@@ -922,6 +1248,37 @@ class Component extends DCLogic {
         { ...checked, name: 'Brake Pad Set — Toyota Axio', sold: 4, price: '৳ 1,850', qty: 2 },
         { ...unchecked, name: 'Engine Oil 4L — Mobil 5W-30', sold: 2, price: '৳ 2,400', qty: 0 },
         { ...unchecked, name: 'Air Filter — Honda Vezel', sold: 2, price: '৳ 650', qty: 0 },
+      ],
+      cashbookEntries: [
+        { icon: '৳', bg: okBg, color: ok, desc: 'Sale receipt · INV-1024', category: 'Sale', time: '10:42 AM', amount: '+ ৳ 4,150' },
+        { icon: '🧾', bg: lowBg, color: low, desc: 'Supplier payment · Rahman Auto Imports', category: 'Purchase payment', time: '11:20 AM', amount: '− ৳ 50,000' },
+        { icon: '৳', bg: okBg, color: ok, desc: 'Sale receipt · INV-1023', category: 'Sale', time: '10:18 AM', amount: '+ ৳ 950' },
+        { icon: '⚡', bg: lowBg, color: low, desc: 'Electricity bill', category: 'Expense', time: '9:30 AM', amount: '− ৳ 3,200' },
+        { icon: '৳', bg: okBg, color: ok, desc: 'Payment received · Karim Auto Works', category: 'Customer payment', time: '9:51 AM', amount: '+ ৳ 10,000' },
+        { icon: '🏠', bg: lowBg, color: low, desc: 'Shop rent — July', category: 'Expense', time: '9:00 AM', amount: '− ৳ 25,000' },
+      ],
+      stockInList: [
+        { po: 'PO-0456', supplier: 'Rahman Auto Imports', items: 8, date: '15 Jul 2026', total: '৳ 43,800', status: 'Pending', bg: warnBg, color: warn },
+        { po: 'PO-0455', supplier: 'Chittagong Traders', items: 5, date: '01 Jul 2026', total: '৳ 18,400', status: 'Received', bg: okBg, color: ok },
+        { po: 'PO-0441', supplier: 'Rahman Auto Imports', items: 12, date: '12 Jun 2026', total: '৳ 45,000', status: 'Received', bg: okBg, color: ok },
+        { po: 'PO-0428', supplier: 'Dhaka Lubricants Ltd', items: 6, date: '30 May 2026', total: '৳ 24,000', status: 'Received', bg: okBg, color: ok },
+        { po: 'PO-0402', supplier: 'Hamko Battery Dist.', items: 4, date: '18 Apr 2026', total: '৳ 36,000', status: 'Received', bg: okBg, color: ok },
+      ],
+      stockInLines: [
+        { name: 'Brake Pad Set — Toyota Axio', qty: 20, cost: '৳ 1,280', lot: 'LOT-2407-A', lineTotal: '৳ 25,600' },
+        { name: 'Battery 65Ah — Hamko', qty: 6, cost: '৳ 2,450', lot: 'LOT-2407-B', lineTotal: '৳ 14,700' },
+        { name: 'Air Filter — Honda Vezel', qty: 10, cost: '৳ 230', lot: 'LOT-2407-C', lineTotal: '৳ 2,300' },
+      ],
+      notifGroups: [
+        { label: 'Today', items: [
+          { icon: '⚠', bg: lowBg, color: low, title: 'Low stock: Battery 65Ah — Hamko', subtitle: 'Only 2 left in Main Warehouse — reorder point is 5', time: '11:05 AM', unread: true },
+          { icon: '৳', bg: okBg, color: ok, title: 'Payment received', subtitle: 'Karim Auto Works paid ৳ 10,000 against INV-0982', time: '9:52 AM', unread: true },
+          { icon: '📦', bg: warnBg, color: warn, title: 'Stock in pending', subtitle: 'PO-0456 from Rahman Auto Imports awaiting receipt', time: '8:40 AM', unread: true },
+        ]},
+        { label: 'Yesterday', items: [
+          { icon: '⏰', bg: warnBg, color: warn, title: 'Payment due reminder', subtitle: '5 customers have invoices overdue by 30+ days', time: '4:30 PM', unread: false },
+          { icon: '↩', bg: lowBg, color: low, title: 'Sale return processed', subtitle: 'RTN-0031 · Karim Auto Works · ৳ 3,700', time: '2:31 PM', unread: false },
+        ]},
       ],
     };
   }

@@ -11,17 +11,21 @@ using AutoPartShop.Application.CustomerPayment;
 using AutoPartShop.Application.Customers;
 using AutoPartShop.Application.Parts;
 using AutoPartShop.Application.PurchaseOrders;
+using AutoPartShop.Application.Reports;
 using AutoPartShop.Application.SaleOrders;
 using AutoPartShop.Application.Services;
 using AutoPartShop.Application.Stock;
 using AutoPartShop.Application.Supplier;
 using AutoPartShop.Application.Suppliers;
+using AutoPartShop.Application.Hr;
 using AutoPartShop.Application.Technecians;
 using AutoPartShop.Application.Warehouse;
 using AutoPartShop.Domain.Repositories;
 using AutoPartShop.Infrastructure.Repositories;
 using AutoPartShop.Infrastructure.Services;
+using AutoPartShop.Infrastructure.Services.Backup;
 using AutoPartShop.Infrastructure.Services.Embedding;
+using AutoPartShop.Infrastructure.Services.Storage;
 using AutoPartsShop.Infrastructure.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
@@ -106,8 +110,22 @@ public static class Dependency
         services.AddScoped<IStockLotRepository, StockLotRepository>();
         services.AddScoped<IStockLotMovementRepository, StockLotMovementRepository>();
         services.AddScoped<ITechnicianRepository, TechnicianRepository>();
+        services.AddScoped<IEmployeeRepository, EmployeeRepository>();
+        services.AddScoped<IAttendanceRepository, AttendanceRepository>();
+        services.AddScoped<ILeaveRequestRepository, LeaveRequestRepository>();
+        services.AddScoped<IHolidayRepository, HolidayRepository>();
+        services.AddScoped<IPayrollRepository, PayrollRepository>();
+        services.AddScoped<IShiftRepository, ShiftRepository>();
+        services.AddScoped<ISalaryAdvanceRepository, SalaryAdvanceRepository>();
         services.AddScoped<IProductLocationRepository, ProductLocationRepository>();
         services.AddScoped<IDailyExpenseRepository, DailyExpenseRepository>();
+        services.AddScoped<IProductMediaRepository, ProductMediaRepository>();
+        services.AddScoped<IStoredFileRepository, StoredFileRepository>();
+
+        // Uploaded file blobs (product media, employee photos/documents).
+        // Local disk today; an S3-compatible implementation (Cloudflare R2 / MinIO)
+        // can replace this via "FileStorage:Provider" without touching callers.
+        services.AddSingleton<IFileStorageService, LocalDiskFileStorage>();
 
         // Multi-currency repositories
         services.AddScoped<ICurrencyRepository, CurrencyRepository>();
@@ -183,7 +201,20 @@ public static class Dependency
         services.AddScoped<IStockLotReadRepository, StockLotReadRepository>();
 
         services.AddScoped<ITechnecianReadRepository, TechnecianReadRepository>();
+        services.AddScoped<IEmployeeReadRepository, EmployeeReadRepository>();
+        services.AddScoped<IAttendanceReadRepository, AttendanceReadRepository>();
+        services.AddScoped<ILeaveRequestReadRepository, LeaveRequestReadRepository>();
+        services.AddScoped<ISalaryAdvanceReadRepository, SalaryAdvanceReadRepository>();
+        services.AddScoped<IHrSalesReadRepository, HrSalesReadRepository>();
         services.AddScoped<IWarehouseReadRepository, WarehouseReadRepository>();
+
+        services.AddScoped<IReportReadRepository, ReportReadRepository>();
+
+        // Database backup: native BACKUP/RESTORE + Google Drive upload
+        services.AddScoped<IBackupRecordRepository, BackupRecordRepository>();
+        services.AddSingleton<BackupCoordinator>();
+        services.AddSingleton<IBackupStorage, GoogleDriveBackupStorage>();
+        services.AddScoped<IBackupService, SqlServerBackupService>();
 
         return services;
     }

@@ -48,12 +48,22 @@
     "pendingDeliveries": "Pending Deliveries",
     "serviceWarranty": "Service & Warranty",
     "finance": "Finance",
+    "reports": "Reports",
     "dailyCashBook": "Daily Cash Book",
     "onlineStore": "Online Store",
     "administration": "Administration",
     "companyProfile": "Company Profile",
     "shopPolicies": "Shop Policies",
-    "auditDashboard": "Audit Dashboard"
+    "backups": "Backups",
+    "auditDashboard": "Audit Dashboard",
+    "hr": "HR",
+    "employees": "Employees",
+    "attendance": "Attendance",
+    "leaveRequests": "Leave Requests",
+    "holidays": "Holidays",
+    "payroll": "Payroll",
+    "shifts": "Shifts",
+    "salaryAdvances": "Salary Advances"
   },
   "topbar": {
     "profile": "My Profile",

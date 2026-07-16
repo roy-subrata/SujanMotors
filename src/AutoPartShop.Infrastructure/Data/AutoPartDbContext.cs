@@ -81,9 +81,19 @@ public class AutoPartDbContext : IdentityDbContext<ApplicationUser, ApplicationR
     public DbSet<StockTake> StockTakes { get; set; }
     public DbSet<StockTakeLine> StockTakeLines { get; set; }
     public DbSet<Technician> Technicians { get; set; }
+    public DbSet<Employee> Employees { get; set; }
+    public DbSet<AttendanceRecord> AttendanceRecords { get; set; }
+    public DbSet<LeaveRequest> LeaveRequests { get; set; }
+    public DbSet<Holiday> Holidays { get; set; }
+    public DbSet<PayrollRun> PayrollRuns { get; set; }
+    public DbSet<Payslip> Payslips { get; set; }
+    public DbSet<Shift> Shifts { get; set; }
+    public DbSet<SalaryAdvance> SalaryAdvances { get; set; }
     public DbSet<AuditLog> AuditLogs { get; set; }
     public DbSet<ProductLocation> ProductLocations { get; set; }
     public DbSet<DailyExpense> DailyExpenses { get; set; }
+    public DbSet<CashDeposit> CashDeposits { get; set; }
+    public DbSet<ProductSpecification> ProductSpecifications { get; set; }
     public DbSet<Currency> Currencies { get; set; }
     public DbSet<ExchangeRate> ExchangeRates { get; set; }
     public DbSet<ApplicationSettings> ApplicationSettings { get; set; }
@@ -111,10 +121,16 @@ public class AutoPartDbContext : IdentityDbContext<ApplicationUser, ApplicationR
     // Notification audit trail
     public DbSet<NotificationLog> NotificationLogs { get; set; }
 
+    // Uploaded binaries (product media, employee photos/documents)
+    public DbSet<StoredFile> StoredFiles { get; set; }
+
 
     // Identity and Permission tables
     public DbSet<Permission> Permissions { get; set; }
     public DbSet<RolePermission> RolePermissions { get; set; }
+
+    // Database backup history
+    public DbSet<BackupRecord> BackupRecords { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

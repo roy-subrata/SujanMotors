@@ -1,8 +1,9 @@
-using AutoPartShop.Api.Pdf;
+﻿using AutoPartShop.Api.Pdf;
 using AutoPartShop.Api.Services;
 using QuestPDF.Fluent;
 using AutoPartShop.Application.DTOs.CustomerDtos;
 using AutoPartShop.Domain.Repositories;
+using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,7 +12,7 @@ namespace AutoPartShop.Api.Controllers;
 [Route("api/customer-account-summary")]
 [Route("api/v1/customer-account-summary")]
 [ApiController]
-[Authorize]
+[HasPermission(Permissions.ReportsView)]
 [Produces("application/json")]
 public class CustomerAccountSummaryController : ControllerBase
 {

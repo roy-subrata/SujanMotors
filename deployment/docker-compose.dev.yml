@@ -1,18 +1,45 @@
-# DEVELOPMENT — local machine only.
-# docker compose -f docker-compose.dev.yml up --build
+# =============================================================================
+# DEVELOPMENT — Docker Compose for local development
+# =============================================================================
+#
+# WHAT THIS FILE DOES:
+#   Defines a local development stack with ALL services exposed to the host.
+#   This is a STANDALONE file — run it directly:
+#
+#     docker compose -f docker-compose.dev.yml up --build
+#
+# HOW IT DIFFERS FROM PRODUCTION:
+#   - All ports are exposed (DB, API, Web) for direct access
+#   - Hardcoded secrets (safe for local dev, NEVER use in production)
+#   - Angular builds with "development" configuration (source maps ON, no optimization)
+#   - restart: unless-stopped (doesn't auto-restart after server reboot)
+#   - API port 5292 open for Swagger/Postman testing
+#   - DB port 1433 open for SSMS/DBeaver database tools
+#
+# ON THE HOSTINGER VPS:
+#   This file is NOT used on the VPS. It's only for local development on your machine.
+#
+# PORTS:
+#   4200 - Web (Angular + nginx)  → http://localhost:4200
+#   5292 - API (.NET Swagger)    → http://localhost:5292/swagger
+#   1433 - SQL Server             → connect with SSMS/DBeaver
+#
+# =============================================================================
 
 services:
+  # SQL Server for local development — port 1433 exposed for database tools
   autopartshop.db:
     image: mcr.microsoft.com/mssql/server:2025-latest
     container_name: autopartshop.db
     environment:
       - ACCEPT_EULA=Y
-      - SA_PASSWORD=YourStrong!Passw0rd
+      - SA_PASSWORD=YourStrong!Passw0rd         # Hardcoded for local dev convenience
       - MSSQL_PID=Developer
     ports:
-      - "1433:1433"           # open for SSMS / DBeaver
+      - "1433:1433"                             # Open for SSMS / DBeaver / Azure Data Studio
     volumes:
-      - autopart_mssql_dev_data:/var/opt/mssql
+      - autopart_mssql_dev_data:/var/opt/mssql   # Separate volume for dev data
+      - ./backups:/var/opt/mssql/backups         # Shared backup folder (SQL reads .bak files here during restore)
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'YourStrong!Passw0rd' -Q 'SELECT 1' -No || exit 1"]
@@ -21,14 +48,15 @@ services:
       retries: 10
       start_period: 30s
 
+  # .NET API — port 5292 exposed for Swagger UI and Postman testing
   autopartshop.api:
     build:
-      context: ..
+      context: ..                               # Repo root
       dockerfile: src/AutoPartShop.Api/Dockerfile
     image: smapi:dev
     container_name: autopartshop.api
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_ENVIRONMENT=Development       # Enables Swagger UI and detailed errors
       - ASPNETCORE_HTTP_PORTS=8080
       - ConnectionStrings__AutoPartDb=Server=autopartshop.db,1433;Database=AutoPartShopDb;User=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=True;
       - JwtSettings__SecretKey=YourSuperSecretKeyForJWTTokenGenerationMustBe32CharsLong!@#
@@ -36,26 +64,33 @@ services:
       - JwtSettings__Audience=AutoPartShopClient
       - JwtSettings__ExpiryInMinutes=60
       - JwtSettings__RefreshTokenExpiryInDays=7
+      # Database backups: shared folder as seen by this container / by SQL Server
+      - Backup__Directory=/app/backups
+      - Backup__SqlServerDirectory=/var/opt/mssql/backups
+    volumes:
+      - ./backups:/app/backups                  # Same host folder as the DB container's backup mount
     ports:
-      - "5292:8080"           # open for Swagger / Postman
+      - "5292:8080"                             # Open for Swagger / Postman
     depends_on:
       autopartshop.db:
         condition: service_healthy
     restart: unless-stopped
 
+  # Angular Web — port 4200, built with development config (source maps, no optimization)
   autopartshop.web:
     build:
       context: ../src/AutoPartShop.WebApp
       dockerfile: dockerfile
       args:
-        ENV_NAME: development  # sourceMap=true, optimization=false
+        ENV_NAME: development                   # Angular dev build (source maps ON)
     image: smweb:dev
     container_name: autopartshop.web
     ports:
-      - "4200:80"
+      - "4200:80"                               # Web UI at http://localhost:4200
     depends_on:
       - autopartshop.api
     restart: unless-stopped
 
+# Named volumes for persistent dev data
 volumes:
   autopart_mssql_dev_data:

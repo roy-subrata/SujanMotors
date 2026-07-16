@@ -1,9 +1,10 @@
-using AutoPartShop.Api.Services;
+﻿using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.SalesOrderDtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Common;
 using AutoPartShop.Domain.Repositories;
 using AutoPartShop.Infrastructure.Repositories;
+using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -57,6 +58,7 @@ namespace AutoPartShop.Api.Controllers
         }
 
         [HttpPost]
+    [HasPermission(Permissions.SalesCreate)]
         public async Task<ActionResult<SalesReturnResponse>> Create([FromBody] CreateSalesReturnRequest request)
         {
             if (request.Lines == null || request.Lines.Count == 0)
@@ -141,6 +143,7 @@ namespace AutoPartShop.Api.Controllers
         }
 
         [HttpPut("{id}")]
+    [HasPermission(Permissions.SalesEdit)]
         public async Task<ActionResult<SalesReturnResponse>> Update(Guid id, [FromBody] CreateSalesReturnRequest request)
         {
             var salesReturn = await _salesReturnRepository.GetByIdAsync(id);
@@ -164,13 +167,13 @@ namespace AutoPartShop.Api.Controllers
         }
 
         [HttpGet("list")]
-        public async Task<ActionResult<object>> ListPaged(int pageNumber = 1, int pageSize = 10, string? searchTerm = null)
+        public async Task<ActionResult<object>> ListPaged(int pageNumber = 1, int pageSize = 10, string? searchTerm = null, DateTime? fromDate = null, DateTime? toDate = null)
         {
             if (pageNumber < 1) pageNumber = 1;
             if (pageSize < 1) pageSize = 10;
             if (pageSize > 100) pageSize = 100;
 
-            var (items, totalCount) = await _salesReturnRepository.GetPagedAsync(pageNumber, pageSize, searchTerm);
+            var (items, totalCount) = await _salesReturnRepository.GetPagedAsync(pageNumber, pageSize, searchTerm, fromDate, toDate);
             var response = items.Select(MapToResponse);
             return Ok(new
             {
@@ -180,6 +183,7 @@ namespace AutoPartShop.Api.Controllers
         }
 
         [HttpPatch("{id}/approve")]
+    [HasPermission(Permissions.SalesEdit)]
         public async Task<ActionResult<SalesReturnResponse>> Approve(Guid id, CancellationToken cancellationToken)
         {
             SalesReturn? salesReturn = null;
@@ -235,6 +239,7 @@ namespace AutoPartShop.Api.Controllers
         }
 
         [HttpPatch("{id}/receive")]
+    [HasPermission(Permissions.SalesEdit)]
         public async Task<ActionResult<SalesReturnResponse>> Receive(Guid id, CancellationToken cancellationToken)
         {
             var salesReturn = await _salesReturnRepository.GetByIdAsync(id, cancellationToken);
@@ -248,6 +253,7 @@ namespace AutoPartShop.Api.Controllers
         }
 
         [HttpPatch("{id}/process")]
+    [HasPermission(Permissions.SalesEdit)]
         public async Task<ActionResult<SalesReturnResponse>> Process(Guid id, CancellationToken cancellationToken)
         {
             var salesReturn = await _salesReturnRepository.GetByIdAsync(id, cancellationToken);
@@ -325,7 +331,7 @@ namespace AutoPartShop.Api.Controllers
                             _dbContext.StockMovements.Add(stockMovement);
 
                             // Restore returned stock to the exact lot(s) it was sold from by reversing the
-                            // original SALE lot movements — keeps FIFO cost accurate and never creates a
+                            // original SALE lot movements â€” keeps FIFO cost accurate and never creates a
                             // supplier-less lot. Lot tracking is best-effort: a failure here must not abort
                             // the return (StockLevel above is the source of truth for on-hand counts).
                             try
@@ -420,7 +426,7 @@ namespace AutoPartShop.Api.Controllers
                             }
                             catch (Exception lotEx)
                             {
-                                // Lot tracking is best-effort — never block the return on it.
+                                // Lot tracking is best-effort â€” never block the return on it.
                                 _logger.LogWarning(lotEx, "Failed to restore lot tracking for part {PartId} in return {ReturnNumber}", line.PartId, salesReturn.ReturnNumber);
                             }
                         }
@@ -503,7 +509,7 @@ namespace AutoPartShop.Api.Controllers
 
                                     if (balancePart > 0)
                                     {
-                                        // Goods returned that were never paid for → the customer owes that much less.
+                                        // Goods returned that were never paid for â†’ the customer owes that much less.
                                         customer.UpdateBalance(-balancePart);
                                         customer.ModifiedBy = _currentUserService.GetCurrentUsername();
                                     }
@@ -532,7 +538,7 @@ namespace AutoPartShop.Api.Controllers
                                     salesReturn.SetCustomerCreditNote(customerCreditNote.Id);
                                 }
 
-                                // Reverse TotalPurchaseAmount — applies regardless of refund type
+                                // Reverse TotalPurchaseAmount â€” applies regardless of refund type
                                 customer.ReverseRecordPurchase(salesReturn.RefundAmount);
                                 customer.ModifiedBy = _currentUserService.GetCurrentUsername();
                             }
@@ -563,6 +569,7 @@ namespace AutoPartShop.Api.Controllers
         public class RejectRequest { public string? Reason { get; set; } }
 
         [HttpPatch("{id}/reject")]
+    [HasPermission(Permissions.SalesEdit)]
         public async Task<ActionResult<SalesReturnResponse>> Reject(Guid id, [FromBody] RejectRequest request, CancellationToken cancellationToken)
         {
             SalesReturn? salesReturn = null;

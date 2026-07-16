@@ -1,6 +1,7 @@
-using AutoPartShop.Api.Services;
+﻿using AutoPartShop.Api.Services;
 using AutoPartShop.Application.Shipments.Dtos;
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -10,7 +11,7 @@ namespace AutoPartShop.Api.Controllers;
 [Route("api/[controller]")]
 [Route("api/v1/[controller]")]
 [ApiController]
-[Authorize]
+[HasPermission(Permissions.SalesView)]
 [Produces("application/json")]
 public class ShipmentController(
     AutoPartDbContext _dbContext,
@@ -41,6 +42,7 @@ public class ShipmentController(
     }
 
     [HttpPost]
+    [HasPermission(Permissions.SalesCreate)]
     public async Task<IActionResult> Create(CreateShipmentRequest request, CancellationToken cancellationToken)
     {
         try
@@ -136,6 +138,7 @@ public class ShipmentController(
     }
 
     [HttpPatch("{id:guid}/dispatch")]
+    [HasPermission(Permissions.SalesEdit)]
     public async Task<IActionResult> Dispatch(Guid id, [FromBody] DispatchShipmentRequest request, CancellationToken cancellationToken)
     {
         try
@@ -207,6 +210,7 @@ public class ShipmentController(
     }
 
     [HttpPatch("{id:guid}/in-transit")]
+    [HasPermission(Permissions.SalesEdit)]
     public async Task<IActionResult> MarkInTransit(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -232,6 +236,7 @@ public class ShipmentController(
     }
 
     [HttpPatch("{id:guid}/deliver")]
+    [HasPermission(Permissions.SalesEdit)]
     public async Task<IActionResult> MarkDelivered(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -296,6 +301,7 @@ public class ShipmentController(
     }
 
     [HttpPatch("{id:guid}/fail")]
+    [HasPermission(Permissions.SalesEdit)]
     public async Task<IActionResult> MarkFailed(Guid id, [FromBody] FailShipmentRequest request, CancellationToken cancellationToken)
     {
         try
@@ -324,6 +330,7 @@ public class ShipmentController(
     }
 
     [HttpPatch("{id:guid}/tracking")]
+    [HasPermission(Permissions.SalesEdit)]
     public async Task<IActionResult> UpdateTracking(Guid id, [FromBody] UpdateTrackingRequest request, CancellationToken cancellationToken)
     {
         try
@@ -344,7 +351,7 @@ public class ShipmentController(
         }
     }
 
-    // ── Helpers ──────────────────────────────────────────────────────────────
+    // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private Task<Shipment?> LoadShipmentAsync(Guid id, CancellationToken ct) =>
         _dbContext.Shipments

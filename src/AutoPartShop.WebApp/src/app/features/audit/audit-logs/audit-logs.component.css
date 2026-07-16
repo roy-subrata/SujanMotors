@@ -1,37 +1,11 @@
-/* ===============================================
-   AUDIT LOGS - STANDARD LIST PAGE TEMPLATE
-   ===============================================
+/* ============================================================
+   AUDIT LOGS — component-specific overrides only.
+   Shared design-system classes (page-header, filter-bar,
+   search-input, pagination, empty-state, etc.) are defined
+   globally in assets/_data-page.scss and assets/styles.scss.
+   ============================================================ */
 
-   This is the standard CSS template for list pages.
-   Follow this structure for consistent styling across the application.
-
-   Key Features:
-   - Fully responsive design
-   - Gradient header with title and actions
-   - Filter card with search and dropdowns
-   - Data table with consistent styling
-   - Proper spacing and alignment
-   - Mobile-first approach
-
-   Sections:
-   1. Container & Layout
-   2. Header Section
-   3. Filters Section
-   4. Search Component
-   5. Table Section
-   6. Table Cell Styles
-   7. Empty State
-   8. Paginator
-   9. PrimeNG Overrides
-   10. Responsive Design
-   =============================================== */
-
-/* ===============================================
-   1. CONTAINER & LAYOUT
-   ===============================================
-   Main container that holds the entire page.
-   Ensures full width and proper spacing.
-   =============================================== */
+/* ── Container ───────────────────────────────────────────── */
 .audit-logs-container {
   padding: 0;
   width: 100%;
@@ -40,22 +14,7 @@
   margin: 0 auto;
 }
 
-/* ===============================================
-   3. FILTERS SECTION
-   ===============================================
-   Filter card container with flexible layout.
-   Contains search, dropdowns, and action buttons.
-   =============================================== */
-:host ::ng-deep .filters-card {
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-}
-
-:host ::ng-deep .filters-card .p-card-body {
-  padding: 1rem 1.25rem;
-}
-
+/* ── Filter layout ───────────────────────────────────────── */
 .filters-container {
   display: flex;
   flex-wrap: wrap;
@@ -89,43 +48,39 @@
 .export-divider {
   width: 1px;
   height: 24px;
-  background: var(--surface-border);
+  background: var(--color-border);
   margin: 0 0.25rem;
 }
 
-/* ===============================================
-   4. SEARCH COMPONENT
-   ===============================================
-   Reusable search input with icon and clear button.
-   Includes focus states and transitions.
-   =============================================== */
+/* ── Search container (audit-logs uses a wrapper div around
+      the input, unlike the global .search-input pattern) ──── */
 .search-container {
   width: 100%;
   position: relative;
   display: flex;
   align-items: center;
-  background-color: var(--surface-ground);
-  border: 1px solid var(--surface-border);
-  border-radius: 0.5rem;
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   padding: 0 0.875rem;
   transition: all 0.2s ease;
   box-sizing: border-box;
 }
 
 .search-container:focus-within {
-  background-color: var(--surface-card);
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  background-color: var(--color-bg-primary);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
 }
 
 .search-icon {
-  color: var(--text-color-secondary);
+  color: var(--color-text-muted);
   font-size: 0.9375rem;
   margin-right: 0.625rem;
   flex-shrink: 0;
 }
 
-.search-input {
+.audit-search-input {
   flex: 1;
   border: none;
   outline: none;
@@ -133,16 +88,16 @@
   font-size: 0.9375rem;
   background: transparent;
   font-family: inherit;
-  color: var(--text-color);
+  color: var(--color-text-primary);
   min-width: 0;
 }
 
-.search-input::placeholder {
-  color: var(--text-color-secondary);
+.audit-search-input::placeholder {
+  color: var(--color-text-muted);
 }
 
 .clear-icon {
-  color: var(--text-color-secondary);
+  color: var(--color-text-muted);
   font-size: 0.8125rem;
   margin-left: 0.5rem;
   cursor: pointer;
@@ -152,72 +107,37 @@
 }
 
 .clear-icon:hover {
-  color: var(--text-color);
+  color: var(--color-text-primary);
 }
 
-/* ===============================================
-   5. TABLE SECTION
-   ===============================================
-   Table card container with zero padding.
-   PrimeNG table handles internal padding.
-
-   SCROLL BEHAVIOR: Page-level scroll (natural scrolling)
-   - Table grows to full height
-   - Page scrolls naturally
-   - Pagination always visible below table
-   =============================================== */
-:host ::ng-deep .table-card {
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-}
-
-:host ::ng-deep .table-card .p-card-body {
-  padding: 0;
-}
-
-:host ::ng-deep .table-card .p-card-content {
-  padding: 0;
-}
-
-/* ===============================================
-   6. TABLE CELL STYLES
-   ===============================================
-   Consistent styling for different data types.
-   Reusable classes for timestamp, entity, values, etc.
-   =============================================== */
-
-/* Timestamp Display */
+/* ── Table cell styles (audit-specific data display) ─────── */
 .timestamp {
   font-size: 0.875rem;
-  color: var(--text-color-secondary);
+  color: var(--color-text-secondary);
   font-family: 'Courier New', 'Consolas', monospace;
   white-space: nowrap;
 }
 
-/* Entity Information */
 .entity-name {
   font-weight: 500;
-  color: var(--text-color);
+  color: var(--color-text-primary);
   font-size: 0.9375rem;
 }
 
 .entity-id {
   font-family: 'Courier New', 'Consolas', monospace;
   font-size: 0.8rem;
-  color: var(--text-color-secondary);
+  color: var(--color-text-secondary);
   cursor: help;
 }
 
-/* Property Name */
 .property-name {
   font-family: 'Courier New', 'Consolas', monospace;
   font-size: 0.875rem;
-  color: var(--primary-color);
+  color: var(--color-primary);
   font-weight: 500;
 }
 
-/* Value Display Cells */
 .value-cell {
   font-family: 'Courier New', 'Consolas', monospace;
   font-size: 0.875rem;
@@ -233,105 +153,52 @@
 
 .old-value {
   background: rgba(239, 68, 68, 0.1);
-  color: #dc2626;
+  color: var(--color-danger);
   border: 1px solid rgba(239, 68, 68, 0.2);
 }
 
 .new-value {
   background: rgba(34, 197, 94, 0.1);
-  color: #16a34a;
+  color: var(--color-success);
   border: 1px solid rgba(34, 197, 94, 0.2);
 }
 
-/* User Information */
 .user-name {
   font-weight: 500;
-  color: var(--text-color);
+  color: var(--color-text-primary);
   font-size: 0.9375rem;
 }
 
 .ip-address {
   font-family: 'Courier New', 'Consolas', monospace;
   font-size: 0.875rem;
-  color: var(--text-color-secondary);
+  color: var(--color-text-secondary);
 }
 
-/* No Value Placeholder */
 .no-value {
-  color: var(--text-color-secondary);
+  color: var(--color-text-muted);
   font-style: italic;
   font-size: 0.875rem;
 }
 
-/* ===============================================
-   7. EMPTY STATE
-   ===============================================
-   Displayed when no data is available.
-   Centered with icon and message.
-   =============================================== */
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 3rem 2rem;
-  text-align: center;
-}
-
-/* ===============================================
-   8. PAGINATOR
-   ===============================================
-   Bottom pagination controls.
-   =============================================== */
-:host ::ng-deep .p-paginator {
-  border-top: 1px solid var(--surface-border);
-  padding: 1rem 1.25rem;
-  background: transparent;
-}
-
-/* ===============================================
-   9. PRIMENG COMPONENT OVERRIDES
-   ===============================================
-   Global overrides for PrimeNG components.
-   Ensures consistent styling and responsiveness.
-   =============================================== */
-
-/* PrimeNG Table */
-:host ::ng-deep .p-datatable {
-  width: 100%;
-  max-width: 100%;
-}
-
-:host ::ng-deep .p-datatable .p-datatable-wrapper {
-  overflow-x: auto;
-}
-
+/* ── PrimeNG component overrides (audit-specific) ────────── */
 :host ::ng-deep .p-datatable .p-datatable-thead > tr > th {
-  background-color: var(--surface-ground);
-  color: var(--text-color);
+  background-color: var(--color-bg-secondary);
+  color: var(--color-text-muted);
   font-weight: 600;
   padding: 0.75rem 1rem;
   white-space: nowrap;
   font-size: 0.875rem;
-  border-bottom: 2px solid var(--surface-border);
-}
-
-:host ::ng-deep .p-datatable .p-datatable-tbody > tr {
-  transition: background-color 0.15s ease;
-}
-
-:host ::ng-deep .p-datatable .p-datatable-tbody > tr:hover {
-  background-color: var(--surface-ground);
+  border-bottom: 2px solid var(--color-border);
 }
 
 :host ::ng-deep .p-datatable .p-datatable-tbody > tr > td {
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--surface-border);
+  border-bottom: 1px solid var(--color-border);
   vertical-align: middle;
   font-size: 0.9375rem;
 }
 
-/* PrimeNG Tags */
 :host ::ng-deep .p-tag {
   font-size: 0.75rem;
   font-weight: 600;
@@ -339,59 +206,8 @@
   border-radius: 0.375rem;
 }
 
-/* PrimeNG Buttons */
-:host ::ng-deep .p-button {
-  font-size: 0.875rem;
-  padding: 0.5rem 1rem;
-  border-radius: 0.375rem;
-  transition: all 0.2s ease;
-}
-
-:host ::ng-deep .p-button-outlined {
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  color: #ffffff;
-}
-
-:host ::ng-deep .p-button-outlined:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.5);
-}
-
-:host ::ng-deep .p-button-text {
-  background: transparent;
-  border: none;
-}
-
-/* PrimeNG Select/Dropdown */
-:host ::ng-deep .p-select,
-:host ::ng-deep .p-datepicker {
-  width: 100%;
-}
-
-/* ===============================================
-   10. RESPONSIVE DESIGN
-   ===============================================
-   Mobile-first responsive breakpoints.
-
-   Breakpoints:
-   - Desktop: > 1024px (default styles above)
-   - Tablet: 768px - 1024px
-   - Mobile: < 768px
-   =============================================== */
-
-/* Tablet Screens (768px - 1024px) */
-@media (max-width: 1024px) {
-  /* No extra padding needed - layout-main provides it */
-}
-
-/* Mobile Screens (< 768px) */
+/* ── Responsive ──────────────────────────────────────────── */
 @media (max-width: 768px) {
-  /* Filters */
-  :host ::ng-deep .filters-card .p-card-body {
-    padding: 0.875rem 1rem;
-  }
-
   .filters-container {
     flex-direction: column;
     gap: 0.625rem;
@@ -412,30 +228,9 @@
   .filter-actions button {
     flex: 1;
   }
-
-  /* Table */
-  :host ::ng-deep .p-datatable .p-datatable-thead > tr > th {
-    padding: 0.625rem 0.75rem;
-    font-size: 0.8125rem;
-  }
-
-  :host ::ng-deep .p-datatable .p-datatable-tbody > tr > td {
-    padding: 0.625rem 0.75rem;
-    font-size: 0.8125rem;
-  }
-
-  /* Paginator */
-  :host ::ng-deep .p-paginator {
-    padding: 0.875rem 1rem;
-  }
 }
 
-/* Small Mobile Screens (< 640px) */
 @media (max-width: 640px) {
-  :host ::ng-deep .filters-card .p-card-body {
-    padding: 0.75rem 0.875rem;
-  }
-
   .filter-actions {
     flex-direction: column;
   }
@@ -444,71 +239,3 @@
     width: 100%;
   }
 }
-
-/* ===============================================
-   USAGE NOTES FOR DEVELOPERS
-   ===============================================
-
-   1. CONTAINER STRUCTURE:
-      - Always wrap page content in a container with width constraints
-      - Use padding for consistent spacing
-
-   2. HEADER PATTERN:
-      - .page-header for gradient background
-      - .header-content for flex layout
-      - .header-title-section and .header-actions for content areas
-
-   3. FILTERS PATTERN:
-      - Use PrimeNG Card with .filters-card class
-      - .filters-container for flex layout of filters
-      - .search-filter, .filter-item, .date-filter for inputs
-      - .filter-actions for action buttons
-
-   4. SEARCH PATTERN:
-      - .search-container for wrapper
-      - .search-icon, .search-input, .clear-icon for components
-      - Always include focus states
-
-   5. TABLE PATTERN:
-      - Use PrimeNG Table with .table-card wrapper
-      - Apply consistent cell classes (.timestamp, .entity-name, etc.)
-      - Use .value-cell with .old-value or .new-value for comparisons
-
-   5a. SCROLL BEHAVIOR (CURRENT: PAGE-LEVEL SCROLL):
-      PAGE-LEVEL SCROLL - ENABLED
-        ✓ Natural scrolling behavior
-        ✓ Table grows to full height based on data
-        ✓ Entire page scrolls (not just table)
-        ✓ Pagination always visible below table
-        ✓ Simple and intuitive UX
-
-      BENEFITS:
-        - No complex height calculations
-        - Works perfectly on all screen sizes
-        - Pagination always accessible
-        - Natural browser scrolling behavior
-
-   6. RESPONSIVE APPROACH:
-      - Desktop-first base styles
-      - Use media queries for tablet and mobile
-      - Stack horizontally-aligned elements vertically on mobile
-      - Increase touch targets on mobile (padding)
-
-   7. REUSABLE CLASSES:
-      - .search-container - Search input wrapper
-      - .filter-item - Filter dropdown wrapper
-      - .value-cell - Monospace value display
-      - .timestamp - Date/time display
-      - .entity-name - Bold entity labels
-      - .no-value - Placeholder for empty cells
-
-   8. COLOR SCHEME:
-      - Primary gradient: #667eea to #764ba2
-      - Success (new values): #16a34a
-      - Danger (old values): #dc2626
-      - Text primary: #1f2937
-      - Text secondary: #6b7280
-      - Borders: #e5e7eb
-      - Background: #f9fafb
-
-   =============================================== */

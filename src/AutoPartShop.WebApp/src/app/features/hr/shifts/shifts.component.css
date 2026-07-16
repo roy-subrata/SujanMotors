@@ -1,0 +1,57 @@
+/* SHIFTS — page-specific styles only (shared chrome in assets/_data-page.scss) */
+.col-name    { min-width: 180px; }
+.col-time    { min-width: 100px; }
+.col-grace   { min-width: 100px; text-align: center; }
+.col-notes   { min-width: 200px; }
+.col-actions { width: 110px; text-align: center; }
+
+.dialog-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.dialog-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.dialog-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.dialog-field label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.dialog-field .required {
+  color: var(--color-danger);
+}
+
+.dialog-hint {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.time-input {
+  padding: 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.375rem;
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  font-size: 13px;
+  width: 100%;
+}
+
+.dialog-field input[pInputText],
+::ng-deep .dialog-form .p-inputnumber {
+  width: 100%;
+}

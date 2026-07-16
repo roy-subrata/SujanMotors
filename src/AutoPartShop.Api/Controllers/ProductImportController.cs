@@ -1,6 +1,7 @@
-using AutoPartShop.Api.Common;
+﻿using AutoPartShop.Api.Common;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.PartDtos;
+using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -14,7 +15,7 @@ namespace AutoPartShop.Api.Controllers;
 /// </summary>
 [Route("api/v1/products/import")]
 [ApiController]
-[Authorize]
+[HasPermission(Permissions.InventoryCreate)]
 [Produces("application/json")]
 public class ProductImportController(
     IProductImportService _importService,

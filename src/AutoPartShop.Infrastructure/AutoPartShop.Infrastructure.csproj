@@ -14,7 +14,9 @@
   </ItemGroup>
 
 <ItemGroup>
+  <PackageReference Include="Dapper" Version="2.1.79" />
   <PackageReference Include="FluentResults" Version="4.0.0" />
+  <PackageReference Include="Google.Apis.Drive.v3" Version="1.75.0.4192" />
   <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.3.0" />
   <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.0" />
   <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.0" />

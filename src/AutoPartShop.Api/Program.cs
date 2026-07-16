@@ -17,6 +17,8 @@ using AutoPartShop.Infrastructure.Data;
 using AutoPartShop.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Microsoft.OpenApi.Models;
@@ -148,10 +150,42 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
         ClockSkew = TimeSpan.Zero
     };
-});
 
-// Add Authorization
+    // Reject tokens whose account was disabled after issue (e.g. HR offboarding).
+    // IsActive is cached for 60s per user, so revocation is near-instant while the
+    // added cost is at most one indexed lookup per user per minute.
+    options.Events = new JwtBearerEvents
+    {
+        OnTokenValidated = async context =>
+        {
+            var userIdValue = context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                ?? context.Principal?.FindFirst("sub")?.Value;
+            if (!Guid.TryParse(userIdValue, out var userId))
+                return;
+
+            var cache = context.HttpContext.RequestServices.GetRequiredService<Microsoft.Extensions.Caching.Memory.IMemoryCache>();
+            var isActive = await cache.GetOrCreateAsync($"user-active:{userId}", async entry =>
+            {
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(60);
+                var db = context.HttpContext.RequestServices.GetRequiredService<AutoPartDbContext>();
+                return await db.Users
+                    .Where(u => u.Id == userId)
+                    .Select(u => (bool?)u.IsActive)
+                    .FirstOrDefaultAsync() ?? false;
+            });
+
+            if (!isActive)
+                context.Fail("Account is disabled");
+        }
+    };
+});
+builder.Services.AddMemoryCache();
+
+// Add Authorization — permission policies ("permission:xxx") are built on demand and
+// resolved against the RolePermissions table (Admin bypasses; see Api/Authorization).
 builder.Services.AddAuthorization();
+builder.Services.AddSingleton<Microsoft.AspNetCore.Authorization.IAuthorizationPolicyProvider, AutoPartShop.Api.Authorization.PermissionPolicyProvider>();
+builder.Services.AddScoped<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, AutoPartShop.Api.Authorization.PermissionAuthorizationHandler>();
 
 // Register HttpContextAccessor (required for CurrentUserService)
 builder.Services.AddHttpContextAccessor();
@@ -165,6 +199,7 @@ builder.Services.AddScoped<ISupplierLedgerService, SupplierLedgerService>();
 builder.Services.AddScoped<ICustomerAccountSummaryService, CustomerAccountSummaryService>();
 builder.Services.AddScoped<IUnitConversionService, UnitConversionService>();
 builder.Services.AddScoped<IFinancialSummaryService, FinancialSummaryService>();
+builder.Services.AddScoped<IReportExportService, ReportExportService>();
 builder.Services.AddScoped<IDailyExpenseService, DailyExpenseService>();
 builder.Services.AddScoped<IPricingValidationService, PricingValidationService>();
 
@@ -215,6 +250,14 @@ builder.Services.Configure<Microsoft.AspNetCore.Authentication.JwtBearer.JwtBear
 
 // Broadcaster that adapts ISaleEventBroadcaster → IHubContext<SaleNotificationHub>
 builder.Services.AddScoped<ISaleEventBroadcaster, SignalRSaleEventBroadcaster>();
+
+// Reorder alerts: daily low-stock scan broadcast to staff over the same hub
+builder.Services.AddScoped<IReorderAlertBroadcaster, SignalRReorderAlertBroadcaster>();
+builder.Services.AddScoped<ReorderAlertScanner>();
+builder.Services.AddHostedService<ReorderAlertService>();
+
+// Scheduled database backups (schedule read from BACKUP:* application settings)
+builder.Services.AddHostedService<BackupSchedulerService>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>

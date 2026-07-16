@@ -1,7 +1,8 @@
-using AutoPartShop.Application.DTOs.Notification;
+﻿using AutoPartShop.Application.DTOs.Notification;
 using AutoPartShop.Application.Interfaces;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
+using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -42,6 +43,7 @@ public class NotificationsController : ControllerBase
 
     /// <summary>Dev helper: push a fake sale notification to all connected staff via SignalR.</summary>
     [HttpPost("test-signalr")]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> TestSignalR(CancellationToken cancellationToken)
     {
         await _broadcaster.BroadcastAsync(new SaleNotificationEvent
@@ -60,8 +62,30 @@ public class NotificationsController : ControllerBase
         return Ok(new { message = "Test notification sent to staff group" });
     }
 
+    /// <summary>
+    /// Manually run the reorder-level scan and broadcast the low-stock alert to staff.
+    /// Same scan the daily background job runs — useful for testing and ad-hoc checks.
+    /// </summary>
+    [HttpPost("reorder-alert/run")]
+    [Authorize(Roles = "Admin,Manager")]
+    public async Task<IActionResult> RunReorderAlert(
+        [FromServices] Services.ReorderAlertScanner scanner,
+        CancellationToken cancellationToken)
+    {
+        var evt = await scanner.ScanAndBroadcastAsync(cancellationToken);
+        return Ok(new
+        {
+            itemCount = evt?.ItemCount ?? 0,
+            broadcast = evt != null,
+            message = evt != null
+                ? $"Reorder alert sent: {evt.ItemCount} item(s) at/below reorder level"
+                : "No items at/below reorder level — nothing broadcast"
+        });
+    }
+
     /// <summary>Staff-triggered: send invoice HTML email to the customer for a sales order.</summary>
     [HttpPost("send-invoice-email/{salesOrderId:guid}")]
+    [HasPermission(Permissions.SalesCreate)]
     public async Task<IActionResult> SendInvoiceEmail(Guid salesOrderId, CancellationToken cancellationToken)
     {
         var db = HttpContext.RequestServices.GetRequiredService<AutoPartDbContext>();
@@ -97,6 +121,7 @@ public class NotificationsController : ControllerBase
 
     /// <summary>Staff-triggered: remind a customer about their outstanding payment due.</summary>
     [HttpPost("send-payment-reminder/{customerId:guid}")]
+    [HasPermission(Permissions.SalesProcessPayment)]
     public async Task<IActionResult> SendPaymentReminder(
         Guid customerId,
         [FromBody] SendPaymentReminderRequest? request,
@@ -159,6 +184,7 @@ public class NotificationsController : ControllerBase
 
     /// <summary>Get the current notification channel settings.</summary>
     [HttpGet("settings")]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> GetSettings(CancellationToken cancellationToken)
     {
         var smsVal = await _settings.GetValueAsync(SmsKey, cancellationToken);
@@ -177,6 +203,7 @@ public class NotificationsController : ControllerBase
 
     /// <summary>Enable or disable notification channels globally.</summary>
     [HttpPut("settings")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> UpdateSettings(
         [FromBody] UpdateNotificationSettingsRequest request,
         CancellationToken cancellationToken)
@@ -195,6 +222,7 @@ public class NotificationsController : ControllerBase
 
     /// <summary>Get notification logs, optionally filtered by reference, channel, or status.</summary>
     [HttpGet("logs")]
+    [HasPermission(Permissions.AuditView)]
     public async Task<IActionResult> GetLogs(
         [FromQuery] string? channel,
         [FromQuery] string? status,

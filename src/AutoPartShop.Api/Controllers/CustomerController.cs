@@ -1,9 +1,10 @@
-using AutoPartShop.Api.Services;
+﻿using AutoPartShop.Api.Services;
 using AutoPartShop.Application.Common;
 using AutoPartShop.Application.Customers;
 using AutoPartShop.Application.Customers.Dtos;
 using AutoPartShop.Application.DTOs.CustomerDtos;
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -12,7 +13,7 @@ namespace AutoPartShop.Api.Controllers;
 [Route("api/customers")]
 [Route("api/v1/customers")]
 [ApiController]
-[Authorize]
+[HasPermission(Permissions.SalesView)]
 [Produces("application/json")]
 public class CustomerController : ControllerBase
 {
@@ -304,12 +305,22 @@ public class CustomerController : ControllerBase
     }
 
     [HttpPost]
+    [HasPermission(Permissions.SalesCreate)]
     public async Task<IActionResult> Create(CreateCustomerRequest request, CancellationToken cancellationToken)
     {
         try
         {
             if (string.IsNullOrWhiteSpace(request.FirstName) || string.IsNullOrWhiteSpace(request.LastName))
                 return BadRequest(new { message = "FirstName and LastName are required" });
+
+            // Phone must be unique across customers (the customer code is
+            // system-generated and unique on its own).
+            if (!string.IsNullOrWhiteSpace(request.Phone))
+            {
+                var existingByPhone = await _customerRepository.GetByPhoneAsync(request.Phone.Trim(), cancellationToken);
+                if (existingByPhone != null)
+                    return Conflict(new { message = $"A customer with phone {request.Phone.Trim()} already exists ({existingByPhone.CustomerCode})." });
+            }
 
             var customerCode = await _codeGenerateService.GenerateAsync("CUST", cancellationToken);
 
@@ -353,6 +364,7 @@ public class CustomerController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
+    [HasPermission(Permissions.SalesEdit)]
     public async Task<IActionResult> Update(Guid id, UpdateCustomerRequest request, CancellationToken cancellationToken)
     {
         try
@@ -360,6 +372,16 @@ public class CustomerController : ControllerBase
             var customer = await _customerRepository.GetByIdAsync(id, cancellationToken);
             if (customer is null) return NotFound(new { message = "Customer not found" });
 
+            // Phone must stay unique — reject if another customer already has it.
+            if (!string.IsNullOrWhiteSpace(request.Phone))
+            {
+                var existingByPhone = await _customerRepository.GetByPhoneAsync(request.Phone.Trim(), cancellationToken);
+                if (existingByPhone != null && existingByPhone.Id != id)
+                    return Conflict(new { message = $"A customer with phone {request.Phone.Trim()} already exists ({existingByPhone.CustomerCode})." });
+            }
+
+            // Update name / company
+            customer.UpdateBasicInfo(request.FirstName, request.LastName, request.CompanyName);
             // Update contact info
             customer.UpdateContactInfo(request.Email, request.Phone, request.AlternatePhone, request.CustomerType);
             // Update address
@@ -385,6 +407,7 @@ public class CustomerController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/activate")]
+    [HasPermission(Permissions.SalesEdit)]
     public async Task<IActionResult> Activate(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -410,6 +433,7 @@ public class CustomerController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/deactivate")]
+    [HasPermission(Permissions.SalesEdit)]
     public async Task<IActionResult> Deactivate(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -431,6 +455,7 @@ public class CustomerController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/suspend")]
+    [HasPermission(Permissions.SalesEdit)]
     public async Task<IActionResult> Suspend(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -452,6 +477,7 @@ public class CustomerController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/blacklist")]
+    [HasPermission(Permissions.SalesEdit)]
     public async Task<IActionResult> Blacklist(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -473,6 +499,7 @@ public class CustomerController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
+    [HasPermission(Permissions.SalesDelete)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         try

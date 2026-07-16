@@ -1,4 +1,4 @@
-using AutoPartShop.Api.Services;
+﻿using AutoPartShop.Api.Services;
 using AutoPartShop.Application.Common;
 using AutoPartShop.Application.DTOs.StockDtos;
 using AutoPartShop.Application.Services;
@@ -6,6 +6,7 @@ using AutoPartShop.Application.Stock;
 using AutoPartShop.Application.Stock.Dtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Infrastructure.Repositories;
+using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -16,7 +17,7 @@ namespace AutoPartShop.Api.Controllers;
 [Route("api/v1/[controller]")]
 [ApiController]
 [Produces("application/json")]
-[Authorize]
+[HasPermission(Permissions.InventoryView)]
 public class StockController : ControllerBase
 {
     private readonly IStockLevelRepository _stockLevelRepository;
@@ -73,7 +74,7 @@ public class StockController : ControllerBase
         }
     }
 
-    /// <summary>Batch variant of <see cref="CheckStock"/> — one response per requested part.</summary>
+    /// <summary>Batch variant of <see cref="CheckStock"/> â€” one response per requested part.</summary>
     [HttpPost("check-multiple")]
     public async Task<IActionResult> CheckMultipleStock([FromBody] List<StockCheckRequest> requests, CancellationToken cancellationToken)
     {
@@ -249,7 +250,7 @@ public class StockController : ControllerBase
     }
 
     [HttpPost("levels")]
-    [Authorize(Roles = "Admin,Manager")]
+    [HasPermission(Permissions.InventoryAdjustStock)]
     public async Task<IActionResult> CreateStockLevel(CreateStockLevelRequest request, CancellationToken cancellationToken)
     {
         try
@@ -283,7 +284,7 @@ public class StockController : ControllerBase
     }
 
     [HttpPut("levels/{id:guid}")]
-    [Authorize(Roles = "Admin,Manager")]
+    [HasPermission(Permissions.InventoryAdjustStock)]
     public async Task<IActionResult> UpdateStockLevel(Guid id, UpdateStockLevelRequest request, CancellationToken cancellationToken)
     {
         try
@@ -372,7 +373,7 @@ public class StockController : ControllerBase
     }
 
     [HttpPost("movements")]
-    [Authorize(Roles = "Admin,Manager")]
+    [HasPermission(Permissions.InventoryAdjustStock)]
     public async Task<IActionResult> CreateMovement(CreateStockMovementRequest request, CancellationToken cancellationToken)
     {
         try
@@ -408,7 +409,7 @@ public class StockController : ControllerBase
     }
 
     [HttpPost("transfer")]
-    [Authorize(Roles = "Admin,Manager")]
+    [HasPermission(Permissions.InventoryAdjustStock)]
     public async Task<IActionResult> TransferStock(StockTransferRequest request, CancellationToken cancellationToken)
     {
         try
@@ -567,7 +568,7 @@ public class StockController : ControllerBase
     }
 
     [HttpPost("adjust")]
-    [Authorize(Roles = "Admin,Manager")]
+    [HasPermission(Permissions.InventoryAdjustStock)]
     public async Task<IActionResult> AdjustStock(StockAdjustmentRequest request, CancellationToken cancellationToken)
     {
         try

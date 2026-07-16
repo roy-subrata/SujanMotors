@@ -15,5 +15,6 @@ public interface IInvoiceRepository : IBaseRepository<Invoice>
         Guid? customerId = null,
         DateTime? fromDate = null,
         DateTime? toDate = null,
+        bool hasDue = false,
         CancellationToken cancellationToken = default);
 }

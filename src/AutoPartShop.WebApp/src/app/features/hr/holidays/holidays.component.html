@@ -1,0 +1,91 @@
+<p-toast></p-toast>
+<p-confirmDialog></p-confirmDialog>
+
+<app-page-container>
+
+  <!-- ==================== HEADER ==================== -->
+  <app-page-header
+    title="Holidays"
+    subtitle="Shop holiday calendar"
+    [count]="holidays.length" countLabel="holidays" countIcon="pi pi-calendar">
+    <ng-container actions>
+      <button class="btn-primary" (click)="openCreate()">
+        <i class="pi pi-plus"></i>
+        <span>Add Holiday</span>
+      </button>
+    </ng-container>
+  </app-page-header>
+
+  <!-- ==================== YEAR FILTER ==================== -->
+  <app-filter-bar>
+    <div filters class="filter-group">
+      <!-- <label class="filter-label">Year</label> -->
+      <p-select [options]="yearOptions" [(ngModel)]="selectedYear" (onChange)="loadHolidays()"
+        appendTo="body" styleClass="filter-dropdown"></p-select>
+    </div>
+  </app-filter-bar>
+
+  <!-- ==================== DATA TABLE ==================== -->
+  <section class="table-section">
+    <div class="table-container">
+      <p-table [value]="holidays" [loading]="loading" [scrollable]="true" scrollHeight="flex"
+        styleClass="app-table" dataKey="id">
+
+        <ng-template #header>
+          <tr>
+            <th class="col-date">Date</th>
+            <th class="col-day">Day</th>
+            <th class="col-name">Holiday</th>
+            <th class="col-actions">Actions</th>
+          </tr>
+        </ng-template>
+
+        <ng-template #body let-holiday>
+          <tr class="data-row">
+            <td class="col-date">{{ holiday.date | date: 'dd MMM yyyy' }}</td>
+            <td class="col-day"><span class="text-muted">{{ holiday.date | date: 'EEEE' }}</span></td>
+            <td class="col-name"><span class="cell-primary">{{ holiday.name }}</span></td>
+            <td class="col-actions">
+              <div class="action-cell">
+                <button class="btn-action" pTooltip="Edit" (click)="openEdit(holiday)"><i class="pi pi-pencil"></i></button>
+                <button class="btn-action" pTooltip="Delete" (click)="deleteHoliday(holiday)"><i class="pi pi-trash"></i></button>
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+
+        <ng-template #emptymessage>
+          <tr>
+            <td colspan="4">
+              <div class="empty-state">
+                <div class="empty-icon"><i class="pi pi-calendar"></i></div>
+                <h3>No Holidays for {{ selectedYear }}</h3>
+                <p>Add Eid, national holidays and other shop closures</p>
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </div>
+  </section>
+
+</app-page-container>
+
+<!-- ==================== ADD / EDIT DIALOG ==================== -->
+<p-dialog [(visible)]="dialogVisible" [modal]="true" [style]="{ width: '420px' }"
+  [header]="editingId ? 'Edit Holiday' : 'Add Holiday'" [draggable]="false" [resizable]="false">
+  <div class="dialog-form">
+    <div class="dialog-field">
+      <label>Date <span class="required">*</span></label>
+      <p-datepicker [(ngModel)]="form.date" dateFormat="dd/mm/yy" [showIcon]="true" appendTo="body"></p-datepicker>
+    </div>
+    <div class="dialog-field">
+      <label>Holiday Name <span class="required">*</span></label>
+      <input pInputText [(ngModel)]="form.name" placeholder="e.g., Eid-ul-Fitr" />
+    </div>
+  </div>
+  <ng-template pTemplate="footer">
+    <button pButton label="Cancel" icon="pi pi-times" class="p-button-outlined" (click)="dialogVisible = false"></button>
+    <button pButton [label]="saving ? 'Saving...' : 'Save'" icon="pi pi-check" [loading]="saving" (click)="saveHoliday()"></button>
+  </ng-template>
+</p-dialog>

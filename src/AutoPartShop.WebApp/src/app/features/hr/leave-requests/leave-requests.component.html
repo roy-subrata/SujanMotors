@@ -1,0 +1,155 @@
+<p-toast></p-toast>
+<p-confirmDialog></p-confirmDialog>
+
+<app-page-container>
+
+  <!-- ==================== HEADER ==================== -->
+  <app-page-header
+    title="Leave Requests"
+    subtitle="Manage employee leave applications"
+    [count]="totalRecords" countLabel="requests" countIcon="pi pi-calendar-minus">
+    <ng-container actions>
+      <button class="btn-primary" (click)="openCreate()">
+        <i class="pi pi-plus"></i>
+        <span>New Leave Request</span>
+      </button>
+    </ng-container>
+  </app-page-header>
+
+  <!-- ==================== FILTERS ==================== -->
+  <app-filter-bar>
+    <div search class="filter-group search-group">
+      <div class="search-input-wrapper">
+        <i class="pi pi-search"></i>
+        <input type="text" [(ngModel)]="searchTerm" placeholder="Search by employee name, code, reason..."
+          class="search-input" (keyup.enter)="onSearch()">
+        <button *ngIf="searchTerm" class="search-clear" (click)="clearSearch()"><i class="pi pi-times"></i></button>
+      </div>
+    </div>
+
+    <div filters class="filter-group">
+      <!-- <label class="filter-label">Status</label> -->
+      <p-select [options]="statusOptions" [(ngModel)]="filterStatus" placeholder="All Statuses"
+        [showClear]="true" (onChange)="onFilterChange()" appendTo="body" styleClass="filter-dropdown"></p-select>
+    </div>
+
+    <div filterActions class="filter-group filter-actions">
+      <button class="btn-search" (click)="onSearch()"><i class="pi pi-search"></i> Search</button>
+      <button *ngIf="searchTerm || filterStatus" class="btn-clear" (click)="clearFilters()">
+        <i class="pi pi-filter-slash"></i> Clear
+      </button>
+    </div>
+  </app-filter-bar>
+
+  <!-- ==================== DATA TABLE ==================== -->
+  <section class="table-section">
+    <div class="table-container">
+      <p-table [value]="requests" [loading]="loading" [lazy]="true" [paginator]="false"
+        [rows]="pageSize" [totalRecords]="totalRecords" [scrollable]="true" scrollHeight="flex"
+        styleClass="app-table" dataKey="id">
+
+        <ng-template #header>
+          <tr>
+            <th class="col-employee">Employee</th>
+            <th class="col-type">Type</th>
+            <th class="col-dates">From</th>
+            <th class="col-dates">To</th>
+            <th class="col-days">Days</th>
+            <th class="col-reason">Reason</th>
+            <th class="col-status">Status</th>
+            <th class="col-decision">Decision By</th>
+            <th class="col-actions">Actions</th>
+          </tr>
+        </ng-template>
+
+        <ng-template #body let-request>
+          <tr class="data-row">
+            <td class="col-employee">
+              <span class="cell-primary">{{ request.employeeName }}</span>
+              <span class="text-muted code-sub">{{ request.employeeCode }}</span>
+            </td>
+            <td class="col-type">{{ request.leaveType }}</td>
+            <td class="col-dates">{{ request.fromDate | date: 'dd MMM yyyy' }}</td>
+            <td class="col-dates">{{ request.toDate | date: 'dd MMM yyyy' }}</td>
+            <td class="col-days">{{ request.totalDays }}</td>
+            <td class="col-reason"><span class="text-muted">{{ request.reason || '-' }}</span></td>
+            <td class="col-status">
+              <span class="status-pill" [attr.data-status]="request.status.toLowerCase()">{{ request.status }}</span>
+            </td>
+            <td class="col-decision"><span class="text-muted">{{ request.decisionBy || '-' }}</span></td>
+            <td class="col-actions">
+              <div class="action-cell">
+                <ng-container *ngIf="request.status === 'PENDING'">
+                  <button class="btn-action" pTooltip="Approve" (click)="approve(request)"><i class="pi pi-check"></i></button>
+                  <button class="btn-action" pTooltip="Reject" (click)="reject(request)"><i class="pi pi-times"></i></button>
+                  <button class="btn-action" pTooltip="Edit" (click)="openEdit(request)"><i class="pi pi-pencil"></i></button>
+                </ng-container>
+                <span *ngIf="request.status !== 'PENDING'" class="text-muted">-</span>
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+
+        <ng-template #emptymessage>
+          <tr>
+            <td colspan="9">
+              <div class="empty-state">
+                <div class="empty-icon"><i class="pi pi-calendar-minus"></i></div>
+                <h3>No Leave Requests Found</h3>
+                <p>{{ searchTerm ? 'Try adjusting your filters or search criteria' : 'Start by creating a leave request' }}</p>
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </div>
+  </section>
+
+  <!-- ==================== PAGINATION ==================== -->
+  <app-data-pagination
+    [first]="(pageNumber - 1) * pageSize"
+    [pageSize]="pageSize"
+    [totalRecords]="totalRecords"
+    [pageSizeOptions]="pageSizeOptions"
+    itemLabel="requests"
+    (pageChange)="onPageChange({ page: $event - 1, rows: pageSize })"
+    (pageSizeChange)="onPageChange({ page: 0, rows: $event })">
+  </app-data-pagination>
+
+</app-page-container>
+
+<!-- ==================== CREATE / EDIT DIALOG ==================== -->
+<p-dialog [(visible)]="dialogVisible" [modal]="true" [style]="{ width: '480px' }"
+  [header]="editingId ? 'Edit Leave Request' : 'New Leave Request'" [draggable]="false" [resizable]="false">
+  <div class="dialog-form">
+    <div class="dialog-field">
+      <label>Employee <span class="required">*</span></label>
+      <p-select [options]="employees" [(ngModel)]="form.employeeId" optionValue="id" optionLabel="name"
+        placeholder="Select employee" [filter]="true" filterBy="name,employeeCode" appendTo="body"
+        [disabled]="!!editingId"></p-select>
+    </div>
+    <div class="dialog-field">
+      <label>Leave Type <span class="required">*</span></label>
+      <p-select [options]="leaveTypeOptions" [(ngModel)]="form.leaveType" appendTo="body"></p-select>
+    </div>
+    <div class="dialog-row">
+      <div class="dialog-field">
+        <label>From <span class="required">*</span></label>
+        <p-datepicker [(ngModel)]="form.fromDate" dateFormat="dd/mm/yy" [showIcon]="true" appendTo="body"></p-datepicker>
+      </div>
+      <div class="dialog-field">
+        <label>To <span class="required">*</span></label>
+        <p-datepicker [(ngModel)]="form.toDate" dateFormat="dd/mm/yy" [showIcon]="true"
+          [minDate]="form.fromDate || undefined" appendTo="body"></p-datepicker>
+      </div>
+    </div>
+    <div class="dialog-field">
+      <label>Reason</label>
+      <textarea pInputTextarea [(ngModel)]="form.reason" rows="3" placeholder="Reason for leave..."></textarea>
+    </div>
+  </div>
+  <ng-template pTemplate="footer">
+    <button pButton label="Cancel" icon="pi pi-times" class="p-button-outlined" (click)="dialogVisible = false"></button>
+    <button pButton [label]="saving ? 'Saving...' : 'Save'" icon="pi pi-check" [loading]="saving" (click)="saveRequest()"></button>
+  </ng-template>
+</p-dialog>

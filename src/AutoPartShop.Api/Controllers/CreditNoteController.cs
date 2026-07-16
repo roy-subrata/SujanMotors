@@ -1,8 +1,9 @@
-using AutoPartShop.Api.Services;
+﻿using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.CreditNoteDtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
 using AutoPartShop.Infrastructure.Data;
+using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -14,7 +15,7 @@ namespace AutoPartShop.Api.Controllers;
 [Route("api/v1/[controller]")]
 [ApiController]
 [Produces("application/json")]
-[Authorize]
+[HasPermission(Permissions.ProcurementView)]
 public class CreditNoteController : ControllerBase
 {
     private readonly ICreditNoteRepository _creditNoteRepository;
@@ -146,6 +147,7 @@ public class CreditNoteController : ControllerBase
     }
 
     [HttpPost("apply")]
+    [HasPermission(Permissions.ProcurementEdit)]
     public async Task<IActionResult> ApplyCredit([FromBody] ApplyCreditNoteRequest request, CancellationToken cancellationToken)
     {
         try
@@ -218,6 +220,7 @@ public class CreditNoteController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/cancel")]
+    [HasPermission(Permissions.ProcurementEdit)]
     public async Task<IActionResult> Cancel(Guid id, [FromQuery] string reason = "", CancellationToken cancellationToken = default)
     {
         try

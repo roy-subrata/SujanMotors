@@ -28,8 +28,22 @@ node_modules/
 # Environment / secrets — never commit these
 .env
 .env.*
-!.env.example
+!.env*.example
 appsettings.Development.json
 appsettings.Production.json
 # Claude Code worktrees (temporary agent sandboxes)
 .claude/worktrees/
+
+# Claude Code local (per-machine) settings
+.claude/settings.local.json
+**/.claude/settings.local.json
+
+# Database backup files (shared SQL Server/API folder)
+deployment/backups/
+
+# Claude Code local (per-machine) settings
+.claude/settings.local.json
+**/.claude/settings.local.json
+
+# Uploaded file blobs (local FileStorage root — never commit user uploads)
+src/AutoPartShop.Api/App_Data/

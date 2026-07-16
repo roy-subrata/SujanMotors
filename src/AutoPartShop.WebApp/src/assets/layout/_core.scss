@@ -1,10 +1,11 @@
 html {
     height: 100%;
-    font-size: 14px;
+    /* Base rem size is set once in assets/styles.scss ("POS/ERP density", 15px)
+       with its own responsive breakpoints — not redeclared here. */
 }
 
 body {
-    font-family: 'Instrument Sans', system-ui, -apple-system, sans-serif;
+    font-family: var(--font-sans);
     color: var(--text-color);
     background-color: var(--surface-ground);
     margin: 0;

@@ -452,17 +452,17 @@
     <div class="submit-actions" *ngIf="!isViewing">
       <button
         type="button"
-        class="submit-button"
+        class="btn-secondary"
+        (click)="onCancel()">
+        <span>Cancel</span>
+      </button>
+      <button
+        type="button"
+        class="btn-primary"
         (click)="onSubmit()"
         [disabled]="isSubmitting || linesArray.length === 0">
         <i class="pi pi-spin pi-spinner" *ngIf="isSubmitting"></i>
         <span>{{ isSubmitting ? 'Processing...' : (mode === 'edit' ? 'Update Order' : 'Create Order') }}</span>
-      </button>
-      <button
-        type="button"
-        class="cancel-button"
-        (click)="onCancel()">
-        <span>Cancel</span>
       </button>
     </div>
   </p-card>

@@ -1,0 +1,259 @@
+<p-toast position="top-right"></p-toast>
+
+<app-page-container>
+
+  <!-- ==================== HEADER ==================== -->
+  <app-page-header
+    [title]="config.title"
+    [subtitle]="config.subtitle"
+    [count]="totalRecords" [countLabel]="config.itemLabel || 'rows'"
+    [backLink]="['/reports']">
+    <ng-container actions>
+      <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="loadData()">
+        <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
+      </button>
+      <ng-container *appHasPermission="'reports.export'">
+        <button class="btn-secondary" (click)="export('xlsx')" [disabled]="exporting !== null || loading">
+          <i [class]="exporting === 'xlsx' ? 'pi pi-spin pi-spinner' : 'pi pi-file-excel'"></i>
+          <span>Excel</span>
+        </button>
+        <button class="btn-secondary" (click)="export('pdf')" [disabled]="exporting !== null || loading">
+          <i [class]="exporting === 'pdf' ? 'pi pi-spin pi-spinner' : 'pi pi-file-pdf'"></i>
+          <span>PDF</span>
+        </button>
+      </ng-container>
+    </ng-container>
+  </app-page-header>
+
+  <!-- ==================== FILTERS ==================== -->
+  <app-filter-bar>
+    @if (hasSearch) {
+      <div search class="filter-group search-group">
+        <div class="search-input-wrapper">
+          <i class="pi pi-search"></i>
+          <input
+            type="text"
+            [(ngModel)]="searchTerm"
+            [placeholder]="searchPlaceholder"
+            (keyup.enter)="onSearch()"
+            class="search-input" />
+          <button *ngIf="searchTerm" class="search-clear" (click)="searchTerm = ''; onSearch()">
+            <i class="pi pi-times"></i>
+          </button>
+        </div>
+      </div>
+    }
+
+    @if (hasDateRange) {
+      <div filters class="filter-group">
+        <label class="filter-label">Date Range</label>
+        <p-datepicker
+          [(ngModel)]="dateRange"
+          selectionMode="range"
+          placeholder="Select date range"
+          dateFormat="dd M yy"
+          [showIcon]="true"
+          [showButtonBar]="true"
+          (onSelect)="onDateRangeSelect()"
+          appendTo="body"
+          styleClass="filter-datepicker">
+        </p-datepicker>
+      </div>
+    }
+
+    @for (filter of selectFilters; track filter.key) {
+      <div filters class="filter-group">
+        <label class="filter-label">{{ filter.label }}</label>
+        <p-select
+          [options]="optionsFor(filter)"
+          [(ngModel)]="filterValues[filter.key]"
+          [placeholder]="filter.placeholder || 'All'"
+          [showClear]="filter.default === undefined"
+          [filter]="optionsFor(filter).length > 10"
+          (onChange)="onFilterChange()"
+          appendTo="body"
+          styleClass="filter-dropdown">
+        </p-select>
+      </div>
+    }
+
+    @for (filter of checkboxFilters; track filter.key) {
+      <div filters class="filter-group checkbox-group">
+        <p-checkbox
+          [(ngModel)]="filterValues[filter.key]"
+          [binary]="true"
+          [inputId]="filter.key"
+          (onChange)="onFilterChange()">
+        </p-checkbox>
+        <label class="filter-label" [for]="filter.key">{{ filter.label }}</label>
+      </div>
+    }
+
+    <div filterActions class="filter-group filter-actions">
+      <button class="btn-search" (click)="onSearch()">
+        <i class="pi pi-search"></i>
+        Run
+      </button>
+      <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
+        <i class="pi pi-filter-slash"></i>
+        Clear
+      </button>
+    </div>
+  </app-filter-bar>
+
+  <!-- ==================== TOTALS ==================== -->
+  @if (totals && config.totals?.length) {
+    <section class="totals-strip">
+      @for (total of config.totals ?? []; track total.field) {
+        <div class="totals-card">
+          <span class="totals-label">{{ total.label }}</span>
+          <span class="totals-value">
+            @if (total.type === 'money') {
+              {{ (totals[total.field] | number:'1.2-2') || '0.00' }}
+            } @else {
+              {{ (totals[total.field] | number) || 0 }}
+            }
+          </span>
+        </div>
+      }
+    </section>
+  }
+
+  <!-- ==================== CHART ==================== -->
+  @if (config.chart && chartData) {
+    <section class="chart-section">
+      <p-chart [type]="config.chart.type" [data]="chartData" [options]="chartOptions" height="280px"></p-chart>
+    </section>
+  }
+
+  <!-- ==================== DATA TABLE (Desktop) ==================== -->
+  <section class="table-section desktop-only">
+    <div class="table-container">
+      <p-table
+        [value]="rows"
+        [paginator]="false"
+        [loading]="loading"
+        [rowHover]="true"
+        [scrollable]="true"
+        scrollHeight="flex"
+        styleClass="app-table">
+
+        <ng-template #header>
+          <tr>
+            @for (col of config.columns; track col.field) {
+              <th [class.col-amount]="col.type === 'money' || col.type === 'number' || col.type === 'percent'">
+                {{ col.header }}
+              </th>
+            }
+          </tr>
+        </ng-template>
+
+        <ng-template #body let-row>
+          <tr>
+            @for (col of config.columns; track col.field) {
+              <td [class.col-amount]="col.type === 'money' || col.type === 'number' || col.type === 'percent'">
+                @switch (col.type) {
+                  @case ('money') {
+                    <span class="amount-value">{{ row[col.field] !== null && row[col.field] !== undefined ? (row[col.field] | number:'1.2-2') : '—' }}</span>
+                  }
+                  @case ('number') {
+                    {{ row[col.field] | number }}
+                  }
+                  @case ('percent') {
+                    {{ row[col.field] | number:'1.2-2' }}%
+                  }
+                  @case ('date') {
+                    {{ row[col.field] | date:'dd MMM yyyy' }}
+                  }
+                  @default {
+                    {{ row[col.field] || '—' }}
+                  }
+                }
+              </td>
+            }
+          </tr>
+        </ng-template>
+
+        <ng-template #emptymessage>
+          <tr>
+            <td [attr.colspan]="config.columns.length">
+              <div class="empty-state">
+                <i class="pi pi-chart-bar"></i>
+                <p>No data for the selected filters</p>
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </div>
+  </section>
+
+  <!-- ==================== CARDS (Mobile) ==================== -->
+  <section class="cards-section mobile-only">
+    @if (loading) {
+      <div class="skeleton-cards">
+        @for (i of [1, 2, 3]; track i) {
+          <div class="order-card skeleton"></div>
+        }
+      </div>
+    } @else if (rows.length === 0) {
+      <div class="empty-state">
+        <i class="pi pi-chart-bar"></i>
+        <p>No data for the selected filters</p>
+      </div>
+    } @else {
+      @for (row of rows; track $index) {
+        <div class="order-card">
+          <div class="order-card-header">
+            <span class="order-card-title">
+              @if (config.columns[0].type === 'date' && config.columns[0].field === mobilePrimaryField) {
+                {{ row[mobilePrimaryField] | date:'dd MMM yyyy' }}
+              } @else {
+                {{ row[mobilePrimaryField] || '—' }}
+              }
+            </span>
+          </div>
+          <div class="order-card-rows">
+            @for (col of config.columns; track col.field) {
+              @if (col.field !== mobilePrimaryField) {
+                <div class="order-card-row">
+                  <span class="row-label">{{ col.header }}</span>
+                  <span class="row-value">
+                    @switch (col.type) {
+                      @case ('money') {
+                        {{ row[col.field] !== null && row[col.field] !== undefined ? (row[col.field] | number:'1.2-2') : '—' }}
+                      }
+                      @case ('number') {
+                        {{ row[col.field] | number }}
+                      }
+                      @case ('percent') {
+                        {{ row[col.field] | number:'1.2-2' }}%
+                      }
+                      @case ('date') {
+                        {{ row[col.field] | date:'dd MMM yyyy' }}
+                      }
+                      @default {
+                        {{ row[col.field] || '—' }}
+                      }
+                    }
+                  </span>
+                </div>
+              }
+            }
+          </div>
+        </div>
+      }
+    }
+  </section>
+
+  <!-- ==================== PAGINATION ==================== -->
+  @if (config.paged) {
+    <app-data-pagination
+      [first]="first" [pageSize]="pageSize" [totalRecords]="totalRecords"
+      [pageSizeOptions]="[10, 20, 50, 100]"
+      [itemLabel]="config.itemLabel || 'rows'"
+      (pageChange)="goToPage($event)" (pageSizeChange)="onPageSizeChange($event)">
+    </app-data-pagination>
+  }
+
+</app-page-container>

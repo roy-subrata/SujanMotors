@@ -64,7 +64,8 @@
   --page-gutter-x: 24px;
   --page-gutter-y: 16px;
 
-  --font-sans: 'Instrument Sans', system-ui, -apple-system, sans-serif;
+  /* Single font-family source of truth lives in assets/layout/_tokens.scss;
+     referenced here rather than redeclared so it can never drift. */
 }
 
 /* Dark-mode overrides for the handful of tokens with no direct equivalent

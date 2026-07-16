@@ -1,0 +1,156 @@
+<p-toast></p-toast>
+<p-confirmDialog></p-confirmDialog>
+
+<app-page-container>
+
+  <!-- ==================== HEADER ==================== -->
+  <app-page-header
+    title="Salary Advances"
+    subtitle="Cash advances against future salary"
+    [count]="totalRecords" countLabel="advances" countIcon="pi pi-money-bill">
+    <ng-container actions>
+      <button class="btn-primary" (click)="openGive()">
+        <i class="pi pi-plus"></i>
+        <span>Give Advance</span>
+      </button>
+    </ng-container>
+  </app-page-header>
+
+  <!-- ==================== FILTERS ==================== -->
+  <app-filter-bar>
+    <div search class="filter-group search-group">
+      <div class="search-input-wrapper">
+        <i class="pi pi-search"></i>
+        <input type="text" [(ngModel)]="searchTerm" placeholder="Search by employee name, code..."
+          class="search-input" (keyup.enter)="onSearch()">
+        <button *ngIf="searchTerm" class="search-clear" (click)="clearSearch()"><i class="pi pi-times"></i></button>
+      </div>
+    </div>
+
+    <div filters class="filter-group">
+      <!-- <label class="filter-label">Status</label> -->
+      <p-select [options]="statusOptions" [(ngModel)]="filterStatus" placeholder="All Statuses"
+        [showClear]="true" (onChange)="onFilterChange()" appendTo="body" styleClass="filter-dropdown"></p-select>
+    </div>
+
+    <div filterActions class="filter-group filter-actions">
+      <button class="btn-search" (click)="onSearch()"><i class="pi pi-search"></i> Search</button>
+      <button *ngIf="searchTerm || filterStatus" class="btn-clear" (click)="clearFilters()">
+        <i class="pi pi-filter-slash"></i> Clear
+      </button>
+    </div>
+  </app-filter-bar>
+
+  <!-- ==================== DATA TABLE ==================== -->
+  <section class="table-section">
+    <div class="table-container">
+      <p-table [value]="advances" [loading]="loading" [lazy]="true" [paginator]="false"
+        [rows]="pageSize" [totalRecords]="totalRecords" [scrollable]="true" scrollHeight="flex"
+        styleClass="app-table" dataKey="id">
+
+        <ng-template #header>
+          <tr>
+            <th class="col-employee">Employee</th>
+            <th class="col-date">Date</th>
+            <th class="col-amount">Amount</th>
+            <th class="col-method">Method</th>
+            <th class="col-notes">Notes</th>
+            <th class="col-status">Status</th>
+            <th class="col-settled">Settled</th>
+            <th class="col-actions">Actions</th>
+          </tr>
+        </ng-template>
+
+        <ng-template #body let-advance>
+          <tr class="data-row">
+            <td class="col-employee">
+              <span class="cell-primary">{{ advance.employeeName }}</span>
+              <span class="text-muted code-sub">{{ advance.employeeCode }}</span>
+            </td>
+            <td class="col-date">{{ advance.advanceDate | date: 'dd MMM yyyy' }}</td>
+            <td class="col-amount"><span class="cell-primary">{{ advance.amount | number: '1.2-2' }}</span></td>
+            <td class="col-method"><span class="text-muted">{{ advance.paymentMethod }}</span></td>
+            <td class="col-notes"><span class="text-muted">{{ advance.notes || '-' }}</span></td>
+            <td class="col-status">
+              <span class="status-pill" [attr.data-status]="advance.status.toLowerCase()">{{ advance.status }}</span>
+            </td>
+            <td class="col-settled">
+              <span *ngIf="advance.settledAt" class="text-muted">{{ advance.settledAt | date: 'dd MMM yyyy' }} ({{ advance.settledRunCode }})</span>
+              <span *ngIf="!advance.settledAt" class="text-muted">-</span>
+            </td>
+            <td class="col-actions">
+              <div class="action-cell">
+                <button *ngIf="advance.status === 'OUTSTANDING'" class="btn-action" pTooltip="Cancel advance"
+                  (click)="cancelAdvance(advance)"><i class="pi pi-trash"></i></button>
+                <span *ngIf="advance.status !== 'OUTSTANDING'" class="text-muted">-</span>
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+
+        <ng-template #emptymessage>
+          <tr>
+            <td colspan="8">
+              <div class="empty-state">
+                <div class="empty-icon"><i class="pi pi-money-bill"></i></div>
+                <h3>No Salary Advances</h3>
+                <p>Advances are deducted automatically in the next payroll run</p>
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </div>
+  </section>
+
+  <!-- ==================== PAGINATION ==================== -->
+  <app-data-pagination
+    [first]="(pageNumber - 1) * pageSize"
+    [pageSize]="pageSize"
+    [totalRecords]="totalRecords"
+    [pageSizeOptions]="pageSizeOptions"
+    itemLabel="advances"
+    (pageChange)="onPageChange({ page: $event - 1, rows: pageSize })"
+    (pageSizeChange)="onPageChange({ page: 0, rows: $event })">
+  </app-data-pagination>
+
+</app-page-container>
+
+<!-- ==================== GIVE ADVANCE DIALOG ==================== -->
+<p-dialog [(visible)]="dialogVisible" [modal]="true" [style]="{ width: '440px' }"
+  header="Give Salary Advance" [draggable]="false" [resizable]="false">
+  <div class="dialog-form">
+    <div class="dialog-field">
+      <label>Employee <span class="required">*</span></label>
+      <p-select [options]="employees" [(ngModel)]="form.employeeId" optionValue="id" optionLabel="name"
+        placeholder="Select employee" [filter]="true" filterBy="name,employeeCode" appendTo="body"></p-select>
+    </div>
+    <div class="dialog-row">
+      <div class="dialog-field">
+        <label>Date <span class="required">*</span></label>
+        <p-datepicker [(ngModel)]="form.advanceDate" dateFormat="dd/mm/yy" [showIcon]="true" appendTo="body"></p-datepicker>
+      </div>
+      <div class="dialog-field">
+        <label>Amount (BDT) <span class="required">*</span></label>
+        <p-inputNumber [(ngModel)]="form.amount" mode="decimal" [min]="0" [maxFractionDigits]="2"
+          placeholder="e.g., 5000"></p-inputNumber>
+      </div>
+    </div>
+    <div class="dialog-field">
+      <label>Payment Method</label>
+      <p-select [options]="paymentMethodOptions" [(ngModel)]="form.paymentMethod" appendTo="body"></p-select>
+    </div>
+    <div class="dialog-field">
+      <label>Notes</label>
+      <input pInputText [(ngModel)]="form.notes" placeholder="Optional notes" />
+    </div>
+    <small class="dialog-hint">
+      <i class="pi pi-info-circle"></i>
+      Posts a SALARY_ADVANCE expense to the cash book now; the amount is deducted in the next payroll run.
+    </small>
+  </div>
+  <ng-template pTemplate="footer">
+    <button pButton label="Cancel" icon="pi pi-times" class="p-button-outlined" (click)="dialogVisible = false"></button>
+    <button pButton [label]="saving ? 'Saving...' : 'Give Advance'" icon="pi pi-check" [loading]="saving" (click)="giveAdvance()"></button>
+  </ng-template>
+</p-dialog>

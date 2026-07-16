@@ -1,5 +1,6 @@
-using AutoPartShop.Application.DTOs.AuditDtos;
+﻿using AutoPartShop.Application.DTOs.AuditDtos;
 using AutoPartShop.Application.Services;
+using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,7 +9,7 @@ namespace AutoPartShop.Api.Controllers;
 [Route("api/[controller]")]
 [Route("api/v1/[controller]")]
 [ApiController]
-[Authorize]
+[HasPermission(Permissions.AuditView)]
 public class AuditLogController : ControllerBase
 {
     private readonly IAuditLogService _auditLogService;

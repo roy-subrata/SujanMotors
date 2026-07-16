@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, OnChanges, SimpleChanges, inject } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
@@ -20,7 +20,7 @@ import { I18nService } from '@/shared/services/i18n.service';
   templateUrl: './stock-levels-list.component.html',
   styleUrls: ['./stock-levels-list.component.css']
 })
-export class StockLevelsListComponent implements OnChanges {
+export class StockLevelsListComponent {
   @Input() stockLevels: StockLevelResponse[] = [];
   @Input() loading = false;
   @Input() totalRecords = 0;
@@ -30,8 +30,6 @@ export class StockLevelsListComponent implements OnChanges {
   @Input() getWarehouseName: ((warehouseId: string) => string) | null = null;
 
   private readonly i18n = inject(I18nService);
-
-  ngOnChanges(_changes: SimpleChanges): void { }
 
   @Output() adjustClick = new EventEmitter<StockLevelResponse>();
   @Output() pageChange = new EventEmitter<{ page: number; rows: number }>();

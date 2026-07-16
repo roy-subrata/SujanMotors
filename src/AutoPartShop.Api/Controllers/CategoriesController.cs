@@ -1,8 +1,9 @@
-using AutoPartShop.Api.Common;
+﻿using AutoPartShop.Api.Common;
 using AutoPartShop.Application.Categories.Dtos;
 using AutoPartShop.Application.Catgories;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
+using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,14 +11,14 @@ namespace AutoPartShop.Api.Controllers;
 
 [ApiController]
 [Route("api/v1/categories")]
-[Authorize]
+[HasPermission(Permissions.InventoryView)]
 [Produces("application/json")]
 public class CategoriesController(
     ILogger<CategoriesController> _logger,
     ICategoryRepository _categoryRepository,
     ICategoryReadRepository _categoryReadRepository) : ControllerBase
 {
-    // ── List ──────────────────────────────────────────────────────────────────
+    // â”€â”€ List â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /// <summary>
     /// List categories with optional filtering and pagination.
@@ -48,7 +49,7 @@ public class CategoriesController(
         return Ok(PagedApiResponse<CategoryResponse>.Create(items, total, page, pageSize));
     }
 
-    // ── Single ────────────────────────────────────────────────────────────────
+    // â”€â”€ Single â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     [HttpGet("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -62,7 +63,7 @@ public class CategoriesController(
         return Ok(ApiResponse<CategoryResponse>.Ok(MapToResponse(category)));
     }
 
-    // ── Tree navigation (sub-resources) ──────────────────────────────────────
+    // â”€â”€ Tree navigation (sub-resources) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /// <summary>Direct children of a category.</summary>
     [HttpGet("{id:guid}/subcategories")]
@@ -131,10 +132,10 @@ public class CategoriesController(
         }));
     }
 
-    // ── Create ────────────────────────────────────────────────────────────────
+    // â”€â”€ Create â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     [HttpPost]
-    [Authorize(Roles = "Admin")]
+    [HasPermission(Permissions.InventoryCreate)]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
@@ -161,10 +162,10 @@ public class CategoriesController(
             ApiResponse<CategoryResponse>.Ok(MapToResponse(category)));
     }
 
-    // ── Update ────────────────────────────────────────────────────────────────
+    // â”€â”€ Update â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     [HttpPut("{id:guid}")]
-    [Authorize(Roles = "Admin")]
+    [HasPermission(Permissions.InventoryEdit)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -187,11 +188,11 @@ public class CategoriesController(
         return Ok(ApiResponse<CategoryResponse>.Ok(MapToResponse(category)));
     }
 
-    // ── Status ────────────────────────────────────────────────────────────────
+    // â”€â”€ Status â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /// <summary>Activate or deactivate a category. Body: { "isActive": true|false }</summary>
     [HttpPatch("{id:guid}/status")]
-    [Authorize(Roles = "Admin")]
+    [HasPermission(Permissions.InventoryEdit)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> SetStatus(Guid id, [FromBody] SetCategoryStatusRequest request, CancellationToken cancellationToken = default)
@@ -206,10 +207,10 @@ public class CategoriesController(
         return Ok(ApiResponse<CategoryResponse>.Ok(MapToResponse(category)));
     }
 
-    // ── Delete ────────────────────────────────────────────────────────────────
+    // â”€â”€ Delete â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     [HttpDelete("{id:guid}")]
-    [Authorize(Roles = "Admin")]
+    [HasPermission(Permissions.InventoryDelete)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
@@ -231,7 +232,7 @@ public class CategoriesController(
         return NoContent();
     }
 
-    // ── Mapping ───────────────────────────────────────────────────────────────
+    // â”€â”€ Mapping â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private static CategoryResponse MapToResponse(Category category, int depth = 0, int maxDepth = 2)
     {

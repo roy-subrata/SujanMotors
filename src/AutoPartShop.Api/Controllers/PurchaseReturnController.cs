@@ -1,10 +1,11 @@
-using AutoPartShop.Api.Services;
+﻿using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.LedgerDtos;
 using AutoPartShop.Application.DTOs.PurchaseReturnDtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Common;
 using AutoPartShop.Domain.Repositories;
 using AutoPartShop.Infrastructure.Repositories;
+using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -15,7 +16,7 @@ namespace AutoPartShop.Api.Controllers;
 [Route("api/v1/[controller]")]
 [ApiController]
 [Produces("application/json")]
-[Authorize] // reads open to any authenticated user (cashiers view returns); mutations gated per-action
+[HasPermission(Permissions.ProcurementView)]
 public class PurchaseReturnController : ControllerBase
 {
     private readonly IPurchaseReturnRepository _purchaseReturnRepository;
@@ -198,7 +199,7 @@ public class PurchaseReturnController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin,Manager")]
+    [HasPermission(Permissions.ProcurementCreate)]
     public async Task<IActionResult> Create(CreatePurchaseReturnRequest request, CancellationToken cancellationToken)
     {
         try
@@ -267,7 +268,7 @@ public class PurchaseReturnController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
-    [Authorize(Roles = "Admin,Manager")]
+    [HasPermission(Permissions.ProcurementEdit)]
     public async Task<IActionResult> Update(Guid id, UpdatePurchaseReturnRequest request, CancellationToken cancellationToken)
     {
         try
@@ -330,7 +331,7 @@ public class PurchaseReturnController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/approve")]
-    [Authorize(Roles = "Admin,Manager")]
+    [HasPermission(Permissions.ProcurementApprove)]
     public async Task<IActionResult> Approve(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -360,7 +361,7 @@ public class PurchaseReturnController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/mark-returned")]
-    [Authorize(Roles = "Admin,Manager")]
+    [HasPermission(Permissions.ProcurementEdit)]
     public async Task<IActionResult> MarkAsReturned(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -498,7 +499,7 @@ public class PurchaseReturnController : ControllerBase
                                     .ToList();
 
                                 // Must have enough AVAILABLE stock from THIS supplier. We never draw a return
-                                // from another supplier's lots — that would destroy lot/supplier traceability.
+                                // from another supplier's lots â€” that would destroy lot/supplier traceability.
                                 // If the originating supplier's lots are short, the operator must pick specific
                                 // lots on the return lines instead.
                                 int totalAvailableFromSupplier = supplierLots.Sum(l => l.QuantityAvailable);
@@ -596,7 +597,7 @@ public class PurchaseReturnController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/mark-received")]
-    [Authorize(Roles = "Admin,Manager")]
+    [HasPermission(Permissions.ProcurementEdit)]
     public async Task<IActionResult> MarkAsReceived(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -626,7 +627,7 @@ public class PurchaseReturnController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/issue-credit-note")]
-    [Authorize(Roles = "Admin,Manager")]
+    [HasPermission(Permissions.ProcurementEdit)]
     public async Task<IActionResult> IssueCreditNote(Guid id, [FromQuery] decimal creditAmount, CancellationToken cancellationToken)
     {
         try
@@ -654,7 +655,7 @@ public class PurchaseReturnController : ControllerBase
                 issuedBy: currentUser
             );
 
-            // All writes in one transaction — if the SupplierPayment insert fails, the
+            // All writes in one transaction â€” if the SupplierPayment insert fails, the
             // credit note and return status update are rolled back together.
             await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
             try
@@ -719,7 +720,7 @@ public class PurchaseReturnController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/reject")]
-    [Authorize(Roles = "Admin,Manager")]
+    [HasPermission(Permissions.ProcurementEdit)]
     public async Task<IActionResult> Reject(Guid id, [FromQuery] string reason = "", CancellationToken cancellationToken = default)
     {
         try
@@ -751,7 +752,7 @@ public class PurchaseReturnController : ControllerBase
     /// <param name="request">Settlement details</param>
     /// <param name="cancellationToken">Cancellation token</param>
     [HttpPatch("{id:guid}/settle")]
-    [Authorize(Roles = "Admin,Manager")]
+    [HasPermission(Permissions.ProcurementEdit)]
     public async Task<IActionResult> SettlePurchaseReturn(
         Guid id,
         [FromBody] SettlePurchaseReturnRequest request,
@@ -971,7 +972,7 @@ public class PurchaseReturnController : ControllerBase
     };
 
     [HttpDelete("{id:guid}")]
-    [Authorize(Roles = "Admin,Manager")]
+    [HasPermission(Permissions.ProcurementDelete)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         try

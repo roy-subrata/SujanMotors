@@ -173,6 +173,10 @@
               </div>
             </ng-template>
           </p-select>
+          <div class="advance-toggle" *ngIf="!isEditing">
+            <p-checkbox formControlName="isAdvance" [binary]="true" inputId="isAdvance"></p-checkbox>
+            <label for="isAdvance">Record as advance credit (not tied to an invoice)</label>
+          </div>
         </div>
         <div class="form-group">
           <label>Transaction Number</label>

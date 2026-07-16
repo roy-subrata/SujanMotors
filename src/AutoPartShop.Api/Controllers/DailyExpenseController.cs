@@ -1,5 +1,6 @@
-using AutoPartShop.Api.Services;
+﻿using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.ExpenseDtos;
+using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,7 +9,7 @@ namespace AutoPartShop.Api.Controllers;
 [Route("api/daily-expense")]
 [Route("api/v1/daily-expense")]
 [ApiController]
-[Authorize]
+[HasPermission(Permissions.ReportsView)]
 public class DailyExpenseController : ControllerBase
 {
     private readonly IDailyExpenseService _service;
@@ -122,6 +123,7 @@ public class DailyExpenseController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> Create([FromBody] CreateDailyExpenseRequest request, CancellationToken cancellationToken)
     {
         try
@@ -145,6 +147,7 @@ public class DailyExpenseController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateDailyExpenseRequest request, CancellationToken cancellationToken)
     {
         try
@@ -173,6 +176,7 @@ public class DailyExpenseController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         try

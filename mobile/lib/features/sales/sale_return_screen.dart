@@ -12,7 +12,7 @@ import '../../shared/widgets/state_views.dart';
 import '../customers/customers_repository.dart';
 import 'sales_returns_repository.dart';
 
-// â”€â”€ Providers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Providers ─────────────────────────────────────────────────────────────────
 
 final _returnLinesProvider =
     FutureProvider.autoDispose.family<List<InvoiceLine>, String>(
@@ -20,7 +20,7 @@ final _returnLinesProvider =
       ref.read(customersRepositoryProvider).invoiceLines(invoiceId),
 );
 
-// â”€â”€ Screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Screen ────────────────────────────────────────────────────────────────────
 
 class SaleReturnScreen extends ConsumerStatefulWidget {
   const SaleReturnScreen({
@@ -41,7 +41,7 @@ class _SaleReturnScreenState extends ConsumerState<SaleReturnScreen> {
   String? _resolvedInvoiceId;
   Invoice? _resolvedInvoice;
 
-  // Line item selection: partId â†’ selected quantity (0 = not selected)
+  // Line item selection: partId → selected quantity (0 = not selected)
   final Map<String, int> _selectedQty = {};
 
   // Return options
@@ -72,7 +72,7 @@ class _SaleReturnScreenState extends ConsumerState<SaleReturnScreen> {
     }
   }
 
-  // â”€â”€ computed â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── computed ────────────────────────────────────────────────────────────────
 
   double _computeRefundTotal(List<InvoiceLine> lines) {
     double total = 0;
@@ -86,7 +86,7 @@ class _SaleReturnScreenState extends ConsumerState<SaleReturnScreen> {
   int get _selectedCount =>
       _selectedQty.values.where((q) => q > 0).length;
 
-  // â”€â”€ submit â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── submit ──────────────────────────────────────────────────────────────────
 
   Future<void> _submit(List<InvoiceLine> lines) async {
     final invoiceNumber = _resolvedInvoice?.invoiceNumber ?? '';
@@ -126,8 +126,8 @@ class _SaleReturnScreenState extends ConsumerState<SaleReturnScreen> {
       nav.pop();
       messenger.showSnackBar(SnackBar(
         content: Text(
-            '${result.returnNumber} submitted Â· ${formatCurrency(result.refundAmount)}'),
-        backgroundColor: AppColors.green,
+            '${result.returnNumber} submitted · ${formatCurrency(result.refundAmount)}'),
+        backgroundColor: context.colors.green,
       ));
     } on AppException catch (e) {
       _showError(e.message);
@@ -141,11 +141,11 @@ class _SaleReturnScreenState extends ConsumerState<SaleReturnScreen> {
   void _showError(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(msg),
-      backgroundColor: AppColors.red,
+      backgroundColor: context.colors.red,
     ));
   }
 
-  // â”€â”€ build â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── build ───────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -197,7 +197,7 @@ class _SaleReturnScreenState extends ConsumerState<SaleReturnScreen> {
   }
 }
 
-// â”€â”€ No invoice selected â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── No invoice selected ───────────────────────────────────────────────────────
 
 class _ManualEntry extends StatelessWidget {
   const _ManualEntry();
@@ -220,11 +220,11 @@ class _ManualEntry extends StatelessWidget {
                 width: 56,
                 height: 56,
                 decoration: BoxDecoration(
-                  color: AppColors.amberBg,
+                  color: context.colors.amberBg,
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: const Icon(Icons.receipt_long_outlined,
-                    size: 28, color: AppColors.amber),
+                child: Icon(Icons.receipt_long_outlined,
+                    size: 28, color: context.colors.amber),
               ),
               const SizedBox(height: 16),
               Text(
@@ -236,7 +236,7 @@ class _ManualEntry extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'Go to Customers â†’ select a customer â†’ Invoices tab â†’ tap an invoice â†’ "Initiate return".',
+                'Go to Customers → select a customer → Invoices tab → tap an invoice → "Initiate return".',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.instrumentSans(
                   fontSize: 13,
@@ -251,7 +251,7 @@ class _ManualEntry extends StatelessWidget {
                   icon: const Icon(Icons.arrow_back, size: 16),
                   label: const Text('Go back'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.ink,
+                    foregroundColor: context.colors.ink,
                     side: BorderSide(color: Theme.of(context).colorScheme.outline),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12)),
@@ -269,7 +269,7 @@ class _ManualEntry extends StatelessWidget {
   }
 }
 
-// â”€â”€ Loaded body (invoice id is known) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Loaded body (invoice id is known) ─────────────────────────────────────────
 
 class _LoadedBody extends ConsumerWidget {
   const _LoadedBody({
@@ -322,7 +322,7 @@ class _LoadedBody extends ConsumerWidget {
           ListView(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 110),
             children: [
-              // â”€â”€ Invoice header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+              // ── Invoice header ─────────────────────────────────────
               if (invoice != null) ...[
                 CardSection(
                   padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
@@ -361,7 +361,7 @@ class _LoadedBody extends ConsumerWidget {
                 const SizedBox(height: 16),
               ],
 
-              // â”€â”€ Select items â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+              // ── Select items ───────────────────────────────────────
               Text(
                 'Select items to return',
                 style: GoogleFonts.instrumentSans(
@@ -400,7 +400,7 @@ class _LoadedBody extends ConsumerWidget {
                     ),
               const SizedBox(height: 16),
 
-              // â”€â”€ Reason â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+              // ── Reason ─────────────────────────────────────────────
               Text(
                 'Reason for return',
                 style: GoogleFonts.instrumentSans(
@@ -418,7 +418,7 @@ class _LoadedBody extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
 
-              // â”€â”€ Refund type â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+              // ── Refund type ────────────────────────────────────────
               Text(
                 'Refund method',
                 style: GoogleFonts.instrumentSans(
@@ -436,7 +436,7 @@ class _LoadedBody extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
 
-              // â”€â”€ Summary â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+              // ── Summary ────────────────────────────────────────────
               CardSection(
                 child: Column(
                   children: [
@@ -460,7 +460,7 @@ class _LoadedBody extends ConsumerWidget {
                       valueStyle: GoogleFonts.instrumentSans(
                         fontSize: 19,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.red,
+                        color: context.colors.red,
                       ),
                     ),
                   ],
@@ -469,16 +469,16 @@ class _LoadedBody extends ConsumerWidget {
             ],
           ),
 
-          // â”€â”€ Sticky CTA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+          // ── Sticky CTA ─────────────────────────────────────────────
           Positioned(
             bottom: 0,
             left: 0,
             right: 0,
             child: PrimaryCtaBar(
-              label: 'â†©  Confirm return',
+              label: '↩  Confirm return',
               onTap: () => onSubmit(lines),
               isLoading: submitting,
-              backgroundColor: AppColors.red,
+              backgroundColor: context.colors.red,
               shadowColor: const Color(0x40D63841),
             ),
           ),
@@ -488,7 +488,7 @@ class _LoadedBody extends ConsumerWidget {
   }
 }
 
-// â”€â”€ Return line row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Return line row ───────────────────────────────────────────────────────────
 
 class _ReturnLineRow extends StatelessWidget {
   const _ReturnLineRow({
@@ -517,15 +517,15 @@ class _ReturnLineRow extends StatelessWidget {
               width: 22,
               height: 22,
               decoration: BoxDecoration(
-                color: selected ? AppColors.ink : Theme.of(context).colorScheme.surface,
+                color: selected ? context.colors.ink : Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(6),
                 border: Border.all(
-                  color: selected ? AppColors.ink : Theme.of(context).colorScheme.outline,
+                  color: selected ? context.colors.ink : Theme.of(context).colorScheme.outline,
                   width: 1.5,
                 ),
               ),
               child: selected
-                  ? const Icon(Icons.check, size: 14, color: Colors.white)
+                  ? Icon(Icons.check, size: 14, color: context.colors.onInk)
                   : null,
             ),
           ),
@@ -543,9 +543,9 @@ class _ReturnLineRow extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '${line.quantity}${unit.isNotEmpty ? ' $unit' : ''} Ã— ${formatCurrency(line.unitPrice)}',
+                  '${line.quantity}${unit.isNotEmpty ? ' $unit' : ''} × ${formatCurrency(line.unitPrice)}',
                   style: GoogleFonts.instrumentSans(
-                      fontSize: 11, color: AppColors.muted),
+                      fontSize: 11, color: context.colors.muted),
                 ),
               ],
             ),
@@ -573,7 +573,7 @@ class _ReturnLineRow extends StatelessWidget {
   }
 }
 
-// â”€â”€ Quantity stepper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Quantity stepper ──────────────────────────────────────────────────────────
 
 class _QtyStepper extends StatelessWidget {
   const _QtyStepper({
@@ -637,14 +637,14 @@ class _StepBtn extends StatelessWidget {
         child: Icon(
           icon,
           size: 14,
-          color: enabled ? AppColors.ink : AppColors.disabled,
+          color: enabled ? context.colors.ink : context.colors.disabled,
         ),
       ),
     );
   }
 }
 
-// â”€â”€ Summary row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Summary row ───────────────────────────────────────────────────────────────
 
 class _SummaryRow extends StatelessWidget {
   const _SummaryRow({

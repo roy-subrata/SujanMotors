@@ -188,27 +188,31 @@ export class AuthService {
   }
 
   /**
-   * Check if user has a specific permission
+   * Check if user has a specific permission.
+   * Mirrors the API: the Admin role bypasses permission checks entirely.
    */
   hasPermission(permission: string): boolean {
     const user = this.currentUser();
+    if (user?.roles?.includes('Admin')) return true;
     return user?.permissions?.includes(permission) ?? false;
   }
 
   /**
-   * Check if user has any of the specified permissions
+   * Check if user has any of the specified permissions (Admin bypasses)
    */
   hasAnyPermission(permissions: string[]): boolean {
     const user = this.currentUser();
+    if (user?.roles?.includes('Admin')) return true;
     if (!user || !user.permissions) return false;
     return permissions.some(permission => user.permissions.includes(permission));
   }
 
   /**
-   * Check if user has all specified permissions
+   * Check if user has all specified permissions (Admin bypasses)
    */
   hasAllPermissions(permissions: string[]): boolean {
     const user = this.currentUser();
+    if (user?.roles?.includes('Admin')) return true;
     if (!user || !user.permissions) return false;
     return permissions.every(permission => user.permissions.includes(permission));
   }

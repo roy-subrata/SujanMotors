@@ -117,7 +117,7 @@ public class StockManagementService
 
             // Update Purchase Order line received quantities and receipt status
             // This is done here because the PO is already loaded and tracked by DbContext
-            await UpdatePurchaseOrderReceiptStatusAsync(purchaseOrder, cancellationToken);
+            await UpdatePurchaseOrderReceiptStatusAsync(purchaseOrder, goodsReceipt.Id, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -307,7 +307,7 @@ public class StockManagementService
     /// <summary>
     /// Updates Purchase Order line received quantities and receipt status
     /// </summary>
-    private async Task UpdatePurchaseOrderReceiptStatusAsync(PurchaseOrder purchaseOrder, CancellationToken cancellationToken = default)
+    private async Task UpdatePurchaseOrderReceiptStatusAsync(PurchaseOrder purchaseOrder, Guid acceptingGrnId, CancellationToken cancellationToken = default)
     {
         if (purchaseOrder?.LineItems == null)
             return;
@@ -320,8 +320,11 @@ public class StockManagementService
                 // Calculate total accepted quantity for THIS PO line from ALL accepted GRNs.
                 // Match on PurchaseOrderLineId so multiple lines of the same part (e.g. different
                 // variants) each receive only their own quantity instead of the combined total.
+                // The GRN being accepted right now is still VERIFIED in this snapshot (its status
+                // flips only after stock processing succeeds), so include it by id — otherwise the
+                // PO's received quantities lag one receipt behind and it never reaches DELIVERED.
                 var totalAcceptedForLine = purchaseOrder.GoodsReceipts
-                    .Where(gr => gr.Status == "ACCEPTED")
+                    .Where(gr => gr.Status == "ACCEPTED" || gr.Id == acceptingGrnId)
                     .SelectMany(gr => gr.LineItems)
                     .Where(l => l.PurchaseOrderLineId == poLine.Id)
                     .Sum(l => l.AcceptedQuantity);

@@ -3,7 +3,7 @@ import { inject, Injectable } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { environment } from 'src/environments/environment';
 
-export type CodeType = 'part' | 'warehouse' | 'invoice' | 'sales-order' | 'customer' | 'supplier' | 'purchase-order' | 'technician' | 'goods-receipt' | 'sales-return';
+export type CodeType = 'part' | 'warehouse' | 'invoice' | 'sales-order' | 'customer' | 'supplier' | 'purchase-order' | 'technician' | 'goods-receipt' | 'sales-return' | 'employee';
 
 @Injectable({
     providedIn: 'root'

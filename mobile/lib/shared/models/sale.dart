@@ -34,6 +34,28 @@ class QuickSaleItem {
         quantity: quantity ?? this.quantity,
         availableStock: availableStock,
       );
+
+  Map<String, dynamic> toJson() => {
+        'partId': partId,
+        'variantId': variantId,
+        'name': name,
+        'localName': localName,
+        'unitPrice': unitPrice,
+        'quantity': quantity,
+        'availableStock': availableStock,
+      };
+
+  factory QuickSaleItem.fromJson(Map<String, dynamic> json) => QuickSaleItem(
+        partId: asString(json['partId']),
+        variantId: asStringOrNull(json['variantId']),
+        name: asString(json['name']),
+        localName: asStringOrNull(json['localName']),
+        unitPrice: asDouble(json['unitPrice']),
+        quantity: asInt(json['quantity']),
+        availableStock: json['availableStock'] == null
+            ? null
+            : asInt(json['availableStock']),
+      );
 }
 
 /// Response from `POST /api/v1/SalesOrder/quick-sale` — fields for the success

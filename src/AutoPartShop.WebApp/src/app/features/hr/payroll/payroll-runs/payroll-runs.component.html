@@ -1,0 +1,103 @@
+<p-toast></p-toast>
+<p-confirmDialog></p-confirmDialog>
+
+<app-page-container>
+
+  <!-- ==================== HEADER ==================== -->
+  <app-page-header
+    title="Payroll"
+    subtitle="Monthly salary runs"
+    [count]="runs.length" countLabel="runs" countIcon="pi pi-wallet">
+    <ng-container actions>
+      <button class="btn-primary" (click)="openGenerate()">
+        <i class="pi pi-plus"></i>
+        <span>Generate Payroll</span>
+      </button>
+    </ng-container>
+  </app-page-header>
+
+  <!-- ==================== DATA TABLE ==================== -->
+  <section class="table-section">
+    <div class="table-container">
+      <p-table [value]="runs" [loading]="loading" [scrollable]="true" scrollHeight="flex"
+        styleClass="app-table" dataKey="id">
+
+        <ng-template #header>
+          <tr>
+            <th class="col-code">Run</th>
+            <th class="col-month">Month</th>
+            <th class="col-count">Employees</th>
+            <th class="col-amount">Gross</th>
+            <th class="col-amount">Deductions</th>
+            <th class="col-amount">Net Pay</th>
+            <th class="col-status">Status</th>
+            <th class="col-paid">Paid</th>
+            <th class="col-actions">Actions</th>
+          </tr>
+        </ng-template>
+
+        <ng-template #body let-run>
+          <tr class="data-row" (dblclick)="viewRun(run)">
+            <td class="col-code"><span class="code-link" (click)="viewRun(run)">{{ run.runCode }}</span></td>
+            <td class="col-month"><span class="cell-primary">{{ monthLabel(run) }}</span></td>
+            <td class="col-count">{{ run.employeeCount }}</td>
+            <td class="col-amount">{{ run.totalGross | number: '1.2-2' }}</td>
+            <td class="col-amount">{{ run.totalDeductions | number: '1.2-2' }}</td>
+            <td class="col-amount"><span class="cell-primary">{{ run.totalNet | number: '1.2-2' }}</span></td>
+            <td class="col-status">
+              <span class="status-pill" [attr.data-status]="run.status.toLowerCase()">{{ run.status }}</span>
+            </td>
+            <td class="col-paid">
+              <span *ngIf="run.paidAt" class="text-muted">{{ run.paidAt | date: 'dd MMM yyyy' }} ({{ run.paymentMethod }})</span>
+              <span *ngIf="!run.paidAt" class="text-muted">-</span>
+            </td>
+            <td class="col-actions">
+              <div class="action-cell">
+                <button class="btn-action" pTooltip="Open" (click)="viewRun(run)"><i class="pi pi-eye"></i></button>
+                <button *ngIf="run.status !== 'PAID'" class="btn-action" pTooltip="Delete" (click)="deleteRun(run)"><i class="pi pi-trash"></i></button>
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+
+        <ng-template #emptymessage>
+          <tr>
+            <td colspan="9">
+              <div class="empty-state">
+                <div class="empty-icon"><i class="pi pi-wallet"></i></div>
+                <h3>No Payroll Runs</h3>
+                <p>Generate the first monthly payroll run</p>
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </div>
+  </section>
+
+</app-page-container>
+
+<!-- ==================== GENERATE DIALOG ==================== -->
+<p-dialog [(visible)]="dialogVisible" [modal]="true" [style]="{ width: '400px' }"
+  header="Generate Payroll" [draggable]="false" [resizable]="false">
+  <div class="dialog-form">
+    <div class="dialog-row">
+      <div class="dialog-field">
+        <label>Year</label>
+        <p-select [options]="yearOptions" [(ngModel)]="genYear" appendTo="body"></p-select>
+      </div>
+      <div class="dialog-field">
+        <label>Month</label>
+        <p-select [options]="monthOptions" [(ngModel)]="genMonth" appendTo="body"></p-select>
+      </div>
+    </div>
+    <small class="dialog-hint">
+      <i class="pi pi-info-circle"></i>
+      Creates a draft from active employees and the month's attendance. Regenerating a draft replaces its payslips.
+    </small>
+  </div>
+  <ng-template pTemplate="footer">
+    <button pButton label="Cancel" icon="pi pi-times" class="p-button-outlined" (click)="dialogVisible = false"></button>
+    <button pButton [label]="generating ? 'Generating...' : 'Generate'" icon="pi pi-cog" [loading]="generating" (click)="generate()"></button>
+  </ng-template>
+</p-dialog>

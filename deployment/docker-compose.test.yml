@@ -1,59 +1,128 @@
-# TEST / STAGING — local or CI pipeline.
-# docker compose -f docker-compose.test.yml up --build
+# =============================================================================
+# TEST / STAGING — Docker Compose for the test environment
+# =============================================================================
+#
+# WHAT THIS FILE DOES:
+#   Defines the complete test/staging stack: API, Web (Angular), and Database.
+#   This is a STANDALONE file (not an override) — run it directly:
+#
+#     docker compose --env-file .env -f docker-compose.test.yml up --build -d
+#
+# HOW IT DIFFERS FROM PRODUCTION:
+#   - Container names have ".test" suffix (avoids conflicts on shared VPS)
+#   - Different ports: Web on 4201, API on 5293 (prod uses 4200, API internal)
+#   - Separate database volume (test data isolated from production)
+#   - ASPNETCORE_ENVIRONMENT=Staging (enables Swagger, detailed errors)
+#   - Angular builds with "staging" configuration (source maps ON for debugging)
+#
+# ENVIRONMENT VARIABLES:
+#   Secrets are read from a .env file in this directory (deployment/.env).
+#   Copy .env.test.example to .env and fill in real values.
+#   Falls back to safe defaults if .env is missing.
+#
+# ON THE VPS:
+#   This stack lives in /opt/sujanmotors-test/ on the Hostinger VPS.
+#   Deployed automatically when code is merged to the "test" branch.
+#
+# PORTS:
+#   4201 - Web (Angular + nginx)  → http://<VPS_IP>:4201
+#   5001 - API (.NET)             → http://<VPS_IP>:5001 (debug access)
+#   1434 - SQL Server             → http://<VPS_IP>:1434 (external access)
+#
+# =============================================================================
 
 services:
+  # ---------------------------------------------------------------------------
+  # SQL Server 2025 Database
+  # ---------------------------------------------------------------------------
+  # Runs Microsoft SQL Server 2025 in a Docker container.
+  # Uses a SEPARATE volume (autopart_mssql_test_data) so test data never
+  # touches production data. Database name defaults to "AutoPartShopDb_Test".
   autopartshop.db:
     image: mcr.microsoft.com/mssql/server:2025-latest
-    container_name: autopartshop.db.test
+    container_name: autopartshop.db.test      # ".test" suffix to avoid name collision with prod
     environment:
-      - ACCEPT_EULA=Y
-      - SA_PASSWORD=YourStrong!Passw0rd
-      - MSSQL_PID=Developer
+      - ACCEPT_EULA=Y                         # Required: accept SQL Server license agreement
+      - SA_PASSWORD=${DB_PASSWORD:-Test!Passw0rd2024}  # SA password from .env or default
+      - MSSQL_PID=Developer                   # Free Developer license (full feature set)
+    ports:
+      - "1434:1433"                           # Expose DB for external access (different port than prod)
     volumes:
-      - autopart_mssql_test_data:/var/opt/mssql   # isolated from dev data
-    restart: unless-stopped
+      - autopart_mssql_test_data:/var/opt/mssql  # Persistent data (survives container restarts)
+    restart: unless-stopped                   # Auto-restart on crash, but stop when manually stopped
     healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'YourStrong!Passw0rd' -Q 'SELECT 1' -No || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
+      # Health check: run a simple query to verify SQL Server is ready to accept connections
+      # Uses -No flag to disable encryption (self-signed cert in dev/test)
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P '${DB_PASSWORD:-Test!Passw0rd2024}' -Q 'SELECT 1' -No || exit 1"]
+      interval: 10s                           # Check every 10 seconds
+      timeout: 5s                             # Fail if no response within 5 seconds
+      retries: 10                             # Mark unhealthy after 10 consecutive failures
+      start_period: 30s                       # Give SQL Server 30 seconds to start up
 
+  # ---------------------------------------------------------------------------
+  # .NET 10 Web API
+  # ---------------------------------------------------------------------------
+  # The backend REST API. Built from the Dockerfile in src/AutoPartShop.Api/.
+  # In test mode, the API port (5293) IS exposed to the host for debugging
+  # (Swagger UI, Postman, etc.). In production, the API is NOT exposed directly.
   autopartshop.api:
     build:
-      context: ..
+      context: ..                             # Repo root (Dockerfile needs access to all .csproj files)
       dockerfile: src/AutoPartShop.Api/Dockerfile
-    image: smapi:test
-    container_name: autopartshop.api.test
+    image: smapi:test                         # Local image tag (avoids pushing to Docker Hub)
+    container_name: autopartshop.api.test     # ".test" suffix
     environment:
-      - ASPNETCORE_ENVIRONMENT=Staging
-      - ASPNETCORE_HTTP_PORTS=8080
-      - ConnectionStrings__AutoPartDb=Server=autopartshop.db.test,1433;Database=AutoPartShopDb_Test;User=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=True;
-      - JwtSettings__SecretKey=YourSuperSecretKeyForJWTTokenGenerationMustBe32CharsLong!@#
+      - ASPNETCORE_ENVIRONMENT=Staging        # Enables Swagger UI and detailed error pages
+      - ASPNETCORE_HTTP_PORTS=8080            # API listens on port 8080 inside the container
+      # Database connection: connects to the test DB container by service name
+      - ConnectionStrings__AutoPartDb=Server=autopartshop.db.test,1433;Database=${DB_NAME:-AutoPartShopTestDb};User=sa;Password=${DB_PASSWORD:-Test!Passw0rd2024};TrustServerCertificate=True;
+      # JWT authentication settings
+      - JwtSettings__SecretKey=${JWT_SECRET:-YourSuperSecretKeyForJWTTokenGenerationMustBe32CharsLong!@#}
       - JwtSettings__Issuer=AutoPartShopAPI
       - JwtSettings__Audience=AutoPartShopClient
-      - JwtSettings__ExpiryInMinutes=60
-      - JwtSettings__RefreshTokenExpiryInDays=7
+      - JwtSettings__ExpiryInMinutes=${JWT_EXPIRY_MINUTES:-60}
+      - JwtSettings__RefreshTokenExpiryInDays=${JWT_EXPIRY_DAYS:-7}
+      # Twilio integration (SMS / WhatsApp) — leave blank if not used
+      - Twilio__AccountSid=${TWILIO_ACCOUNT_SID:-}
+      - Twilio__AuthToken=${TWILIO_AUTH_TOKEN:-}
+      - Twilio__SmsMsgServiceSid=${TWILIO_SMS_SID:-}
+      - Twilio__WhatsAppMsgServiceSid=${TWILIO_WHATSAPP_SID:-}
+      # SMTP email settings — leave blank if not used
+      - Smtp__Host=${SMTP_HOST:-}
+      - Smtp__Port=${SMTP_PORT:-587}
+      - Smtp__Username=${SMTP_USERNAME:-}
+      - Smtp__Password=${SMTP_PASSWORD:-}
+      - Smtp__FromEmail=${SMTP_FROM_EMAIL:-}
+      - Smtp__FromName=${SMTP_FROM_NAME:-SujanMotors}
+      # Seed settings — auto-create admin user on first run
+      - Seed__AdminPassword=${SEED_ADMIN_PASSWORD:-Admin@1990}
     ports:
-      - "5293:8080"           # different port — run alongside dev if needed
+      - "5001:8080"                           # Exposed for debugging (Swagger/Postman)
     depends_on:
       autopartshop.db:
-        condition: service_healthy
+        condition: service_healthy            # Wait for DB health check before starting
     restart: unless-stopped
 
+  # ---------------------------------------------------------------------------
+  # Angular Frontend (served by nginx)
+  # ---------------------------------------------------------------------------
+  # Builds the Angular app and serves it via nginx.
+  # nginx also acts as a reverse proxy: /api → api container, /hubs → SignalR.
+  # Built with "staging" configuration (source maps ON, for debugging).
   autopartshop.web:
     build:
-      context: ../src/AutoPartShop.WebApp
+      context: ../src/AutoPartShop.WebApp    # Angular project directory
       dockerfile: dockerfile
       args:
-        ENV_NAME: development  # source maps on for debugging test failures
-    image: smweb:test
-    container_name: autopartshop.web.test
+        ENV_NAME: staging                     # Uses environment.staging.ts (relative /api URL)
+    image: smweb:test                         # Local image tag
+    container_name: autopartshop.web.test     # ".test" suffix
     ports:
-      - "4201:80"             # different port — run alongside dev if needed
+      - "4201:80"                             # Web UI accessible at http://<VPS_IP>:4201
     depends_on:
-      - autopartshop.api
+      - autopartshop.api                      # API must be running before web starts
     restart: unless-stopped
 
+# Named volumes: persistent storage that survives container restarts
 volumes:
-  autopart_mssql_test_data:
+  autopart_mssql_test_data:                   # Isolated from production data volume

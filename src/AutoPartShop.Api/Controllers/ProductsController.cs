@@ -1,4 +1,4 @@
-using AutoPartShop.Api.Common;
+﻿using AutoPartShop.Api.Common;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.Common;
 using AutoPartShop.Application.DTOs.PartDtos;
@@ -12,13 +12,15 @@ using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
 using AutoPartShop.Infrastructure.Services.Embedding;
 using AutoPartsShop.Domain.Entities;
+using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace AutoPartShop.Api.Controllers;
 
 /// <summary>
-/// Products API — v1.
+/// Products API â€” v1.
 /// All list/search is handled by GET / with query parameters.
 /// Authenticated callers receive CostPrice in pricing objects; anonymous callers do not.
 /// Variants always contains at least one entry; products with no explicit variants receive a
@@ -40,6 +42,7 @@ public class ProductsController : ControllerBase
     private readonly ICurrentUserService _currentUserService;
     private readonly IEmbeddingService _embeddingService;
     private readonly IProductEmbeddingRepository _embeddingRepository;
+    private readonly AutoPartDbContext _dbContext;
     private readonly ILogger<ProductsController> _logger;
 
     public ProductsController(
@@ -54,6 +57,7 @@ public class ProductsController : ControllerBase
         ICurrentUserService currentUserService,
         IEmbeddingService embeddingService,
         IProductEmbeddingRepository embeddingRepository,
+        AutoPartDbContext dbContext,
         ILogger<ProductsController> logger)
     {
         _productRepository = productRepository;
@@ -67,10 +71,11 @@ public class ProductsController : ControllerBase
         _currentUserService = currentUserService;
         _embeddingService = embeddingService;
         _embeddingRepository = embeddingRepository;
+        _dbContext = dbContext;
         _logger = logger;
     }
 
-    // ── List ─────────────────────────────────────────────────────────────────
+    // â”€â”€ List â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /// <summary>
     /// List products with optional filtering and pagination.
@@ -85,6 +90,7 @@ public class ProductsController : ControllerBase
         [FromQuery] string? sortBy,
         [FromQuery] string? sortDirection,
         [FromQuery] bool flattenVariants = false,
+        [FromQuery] bool lowStockOnly = false,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
@@ -100,7 +106,8 @@ public class ProductsController : ControllerBase
             PageSize = pageSize,
             IsActive = isActive,
             FlattenVariants = flattenVariants,
-            CategoryId = categoryId
+            CategoryId = categoryId,
+            LowStockOnly = lowStockOnly
         };
 
         if (!string.IsNullOrWhiteSpace(sortBy))
@@ -122,7 +129,7 @@ public class ProductsController : ControllerBase
         }
     }
 
-    // ── Single ────────────────────────────────────────────────────────────────
+    // â”€â”€ Single â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /// <summary>
     /// Get a product by ID with fully nested variants array.
@@ -141,7 +148,7 @@ public class ProductsController : ControllerBase
         return Ok(ApiResponse<ProductResponse>.Ok(MapToProductResponse(part, isAdmin)));
     }
 
-    // ── Code lookup ───────────────────────────────────────────────────────────
+    // â”€â”€ Code lookup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /// <summary>
     /// Look up a product by SKU, barcode, or part number.
@@ -211,7 +218,7 @@ public class ProductsController : ControllerBase
         }));
     }
 
-    // ── Lot price ─────────────────────────────────────────────────────────────
+    // â”€â”€ Lot price â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /// <summary>
     /// Get the current FIFO lot selling price and stock availability for a product.
@@ -238,7 +245,7 @@ public class ProductsController : ControllerBase
         }));
     }
 
-    // ── Compatible vehicles ───────────────────────────────────────────────────
+    // â”€â”€ Compatible vehicles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /// <summary>Get all vehicles compatible with this product.</summary>
     [HttpGet("{id:guid}/compatible-vehicles")]
@@ -266,10 +273,107 @@ public class ProductsController : ControllerBase
         return Ok(ApiResponse<object>.Ok(response));
     }
 
-    // ── Create ────────────────────────────────────────────────────────────────
+    // â”€â”€ Specifications (simple product-level key/value specs) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+    /// <summary>
+    /// Descriptive specs for a product (Label/Value pairs), ordered for display.
+    /// These are the simple product-scoped specs, not the variant attribute EAV.
+    /// </summary>
+    [HttpGet("{id:guid}/specifications")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetSpecifications(Guid id, CancellationToken cancellationToken)
+    {
+        var specs = await _dbContext.ProductSpecifications
+            .Where(s => s.PartId == id && !s.Isdeleted)
+            .OrderBy(s => s.DisplayOrder)
+            .AsNoTracking()
+            .Select(s => new { s.Id, s.Label, s.Key, s.Value, s.DisplayOrder })
+            .ToListAsync(cancellationToken);
+
+        return Ok(ApiResponse<object>.Ok(specs));
+    }
+
+    /// <summary>
+    /// Replaces a product's specs with the supplied list (full replace keeps the
+    /// mobile editor simple). Order follows array position.
+    /// </summary>
+    [HttpPut("{id:guid}/specifications")]
+    [HasPermission(Permissions.InventoryEdit)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateSpecifications(Guid id, [FromBody] UpdateSpecificationsRequest request, CancellationToken cancellationToken)
+    {
+        if (!await _productRepository.ExistsAsync(id, cancellationToken))
+            return NotFound(ApiError.NotFound($"Product '{id}' not found", Request.Path));
+
+        var existing = await _dbContext.ProductSpecifications
+            .Where(s => s.PartId == id)
+            .ToListAsync(cancellationToken);
+        _dbContext.ProductSpecifications.RemoveRange(existing);
+
+        var user = _currentUserService.GetCurrentUsername();
+        var order = 0;
+        foreach (var item in request.Specifications ?? [])
+        {
+            if (string.IsNullOrWhiteSpace(item.Label)) continue;
+            var spec = ProductSpecification.Create(id, item.Label, item.Value ?? string.Empty, order++);
+            spec.CreatedBy = user;
+            spec.ModifiedBy = user;
+            _dbContext.ProductSpecifications.Add(spec);
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        return await GetSpecifications(id, cancellationToken);
+    }
+
+    /// <summary>
+    /// Typeahead suggestions for the spec editor. field=label returns distinct
+    /// labels used across the catalog; field=value returns distinct values
+    /// (optionally scoped to a label key) so staff converge on consistent terms
+    /// — the thing that keeps ecommerce facets clean later.
+    /// </summary>
+    [HttpGet("specifications/suggestions")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetSpecificationSuggestions(
+        [FromQuery] string field,
+        [FromQuery] string? query,
+        [FromQuery] string? labelKey,
+        CancellationToken cancellationToken = default)
+    {
+        var q = _dbContext.ProductSpecifications.Where(s => !s.Isdeleted);
+        var term = (query ?? string.Empty).Trim().ToLower();
+
+        List<string> results;
+        if (string.Equals(field, "value", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!string.IsNullOrWhiteSpace(labelKey))
+            {
+                var key = ProductSpecification.Normalize(labelKey);
+                q = q.Where(s => s.Key == key);
+            }
+            if (term.Length > 0)
+                q = q.Where(s => s.Value.ToLower().Contains(term));
+            results = await q.Select(s => s.Value)
+                .Where(v => v != "")
+                .Distinct().OrderBy(v => v).Take(10)
+                .ToListAsync(cancellationToken);
+        }
+        else
+        {
+            if (term.Length > 0)
+                q = q.Where(s => s.Label.ToLower().Contains(term));
+            results = await q.Select(s => s.Label)
+                .Distinct().OrderBy(l => l).Take(10)
+                .ToListAsync(cancellationToken);
+        }
+
+        return Ok(ApiResponse<object>.Ok(results));
+    }
+
+    // â”€â”€ Create â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     [HttpPost]
-    [Authorize]
+    [HasPermission(Permissions.InventoryCreate)]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
@@ -319,10 +423,10 @@ public class ProductsController : ControllerBase
             ApiResponse<ProductResponse>.Ok(MapToProductResponse(part, isAdmin: true)));
     }
 
-    // ── Update ────────────────────────────────────────────────────────────────
+    // â”€â”€ Update â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     [HttpPut("{id:guid}")]
-    [Authorize]
+    [HasPermission(Permissions.InventoryEdit)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -383,7 +487,7 @@ public class ProductsController : ControllerBase
         return Ok(ApiResponse<ProductResponse>.Ok(MapToProductResponse(part, isAdmin: true)));
     }
 
-    // ── Semantic search ─────────────────────────────────────────────────────────
+    // â”€â”€ Semantic search â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /// <summary>
     /// Natural-language product search. Embeds the query and ranks products by cosine similarity
@@ -402,7 +506,7 @@ public class ProductsController : ControllerBase
 
         var vector = await _embeddingService.EmbedAsync(request.Query, cancellationToken);
 
-        // Graceful fallback: embeddings unconfigured/unavailable → keyword search, same response shape.
+        // Graceful fallback: embeddings unconfigured/unavailable â†’ keyword search, same response shape.
         if (vector is null)
         {
             var query = new AppProductQuery
@@ -460,11 +564,11 @@ public class ProductsController : ControllerBase
         }
     }
 
-    // ── Status ────────────────────────────────────────────────────────────────
+    // â”€â”€ Status â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /// <summary>Activate or deactivate a product. Body: { "isActive": true|false }</summary>
     [HttpPatch("{id:guid}/status")]
-    [Authorize]
+    [HasPermission(Permissions.InventoryEdit)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> SetStatus(Guid id, [FromBody] SetProductStatusRequest request, CancellationToken cancellationToken)
@@ -480,10 +584,10 @@ public class ProductsController : ControllerBase
         return Ok(ApiResponse<ProductResponse>.Ok(MapToProductResponse(part, isAdmin: true)));
     }
 
-    // ── Delete ────────────────────────────────────────────────────────────────
+    // â”€â”€ Delete â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     [HttpDelete("{id:guid}")]
-    [Authorize]
+    [HasPermission(Permissions.InventoryDelete)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
@@ -495,7 +599,7 @@ public class ProductsController : ControllerBase
         return NoContent();
     }
 
-    // ── Mapping ───────────────────────────────────────────────────────────────
+    // â”€â”€ Mapping â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private static ProductResponse MapToProductResponse(Product part, bool isAdmin)
     {
@@ -644,7 +748,7 @@ public class ProductsController : ControllerBase
         return summary;
     }
 
-    // ── Private helpers ───────────────────────────────────────────────────────
+    // â”€â”€ Private helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /// <summary>
     /// Sellable stock for a part = on-hand minus reservations (e.g. open ecommerce carts),
@@ -685,4 +789,15 @@ public class ProductsController : ControllerBase
 public class SetProductStatusRequest
 {
     public bool IsActive { get; set; }
+}
+
+public class UpdateSpecificationsRequest
+{
+    public List<SpecificationItem>? Specifications { get; set; }
+}
+
+public class SpecificationItem
+{
+    public string Label { get; set; } = string.Empty;
+    public string? Value { get; set; }
 }

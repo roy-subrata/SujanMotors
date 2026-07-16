@@ -73,5 +73,9 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Take photos of products to attach to their catalog entry.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Pick product photos from your library to attach to the catalog.</string>
 </dict>
 </plist>

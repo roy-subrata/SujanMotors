@@ -1,0 +1,104 @@
+# =============================================================================
+# Deploy to PRODUCTION environment on Hostinger VPS
+# =============================================================================
+#
+# WHAT THIS WORKFLOW DOES:
+#   1. Triggers when code is pushed/merged to the "main" branch
+#   2. SSHs into the Hostinger VPS
+#   3. Pulls the latest code from the "main" branch
+#   4. Rebuilds and restarts the PRODUCTION stack using Docker Compose
+#
+# BRANCH WORKFLOW:
+#   feature/* ──merge──> dev (no deploy, developer tests locally)
+#                       dev ──merge──> test (test-deploy.yml triggers)
+#                       test ──merge──> main (THIS WORKFLOW triggers)
+#
+# VPS DIRECTORY STRUCTURE:
+#   /opt/sujanmotors-test/   ← test stack (test-deploy.yml)
+#   /opt/sujanmotors-prod/   ← production stack (THIS WORKFLOW deploys here)
+#
+# REQUIRED GITHUB SECRETS (Settings → Secrets and variables → Actions):
+#   VPS_HOST     - IP address of your Hostinger VPS (e.g. 123.45.67.89)
+#   VPS_USER     - SSH username on the VPS (e.g. root)
+#   VPS_PASSWORD - SSH password for the VPS user
+#
+# PORTS USED BY PRODUCTION STACK:
+#   4200 - Web (Angular + nginx)  → public-facing, the main entry point
+#   (API is NOT exposed - nginx reverse-proxies /api to the API container)
+#   1433 - SQL Server             → internal only
+#
+# ⚠️  BEFORE MERGING TO MAIN:
+#   - All changes must be tested on the "test" branch first
+#   - The production .env file on the VPS must have real secrets configured
+#   - TLS/HTTPS must be set up (see deployment/README.md)
+#
+# =============================================================================
+
+# Trigger: only when code is pushed to the "main" branch
+on:
+  push:
+    branches: [main]
+    # Only trigger when these paths change (avoid unnecessary deploys)
+    paths:
+      - 'src/AutoPartShop.Api/**'           # .NET API source code
+      - 'src/AutoPartShop.Application/**'   # Business logic layer
+      - 'src/AutoPartShop.Domain/**'        # Domain entities
+      - 'src/AutoPartShop.Infrastructure/**' # Data access, external services
+      - 'src/AutoPartShop.WebApp/**'        # Angular frontend
+      - 'deployment/**'                     # Docker compose & env files
+      - '.github/workflows/prod-deploy.yml' # This workflow file itself
+  # Allow manual trigger from GitHub Actions UI (useful for re-deploys or hotfixes)
+  workflow_dispatch:
+
+# Job: SSH into VPS and redeploy the production stack
+jobs:
+  deploy-prod:
+    runs-on: ubuntu-latest    # GitHub-hosted runner (we just need SSH access)
+    steps:
+      # Step 1: Connect to VPS and run deployment commands
+      - name: Deploy production stack to VPS
+        uses: appleboy/ssh-action@v1
+        with:
+          # --- VPS connection details (from GitHub Secrets) ---
+          host: ${{ secrets.VPS_HOST }}        # VPS IP address
+          username: ${{ secrets.VPS_USER }}    # SSH username
+          password: ${{ secrets.VPS_PASSWORD }} # SSH password (stored in GitHub Secrets)
+          port: 22                              # Default SSH port
+          timeout: 30s                          # SSH connection timeout
+          command_timeout: 10m                  # Max time for the entire script
+          script: |
+            # ====================================================================
+            # DEPLOYMENT SCRIPT - runs on the VPS
+            # ====================================================================
+
+            # Navigate to the production deployment directory
+            # This directory is a separate git clone checked out to the "main" branch
+            cd /opt/sujanmotors-prod || { echo "Directory not found! Run initial setup first."; exit 1; }
+
+            echo "=== Pulling latest code from main branch ==="
+            git fetch origin main
+            git reset --hard origin/main     # Force local state to match remote (safe because we don't edit files on VPS)
+
+            echo "=== Stopping old production containers ==="
+            docker compose -p sujanmotors-prod --env-file deployment/.env -f deployment/docker-compose.yml -f deployment/docker-compose.prod.yml down --remove-orphans --timeout 30
+
+            echo "=== Waiting for containers to fully stop ==="
+            for i in $(seq 1 10); do
+              if docker ps -a --format '{{.Names}}' | grep -q 'autopartshop'; then
+                echo "Still waiting... ($i/10)"
+                sleep 2
+              else
+                echo "All old containers removed."
+                break
+              fi
+            done
+
+            echo "=== Building and starting production stack ==="
+            docker compose -p sujanmotors-prod --env-file deployment/.env -f deployment/docker-compose.yml -f deployment/docker-compose.prod.yml up --build -d --force-recreate
+
+            echo "=== Cleaning up unused Docker images ==="
+            # Remove dangling images left over from rebuilds to free disk space
+            docker image prune -f
+
+            echo "=== Production deployment complete! ==="
+            echo "Web:  http://${{ secrets.VPS_HOST }}:4200"

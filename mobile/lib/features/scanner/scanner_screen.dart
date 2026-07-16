@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../../core/network/app_exception.dart';
-import '../../core/theme/app_theme.dart';
 import '../products/products_repository.dart';
 
 class ScannerScreen extends ConsumerStatefulWidget {
@@ -135,7 +134,13 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        flexibleSpace: const AppBarGradient(),
+        // Explicit back with a fallback: the old gradient app bar hid the
+        // automatic arrow (dark icon on dark gradient), leaving no way out.
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () =>
+              context.canPop() ? context.pop() : context.go('/products'),
+        ),
         title: const Text('Scan barcode'),
         actions: [
           IconButton(

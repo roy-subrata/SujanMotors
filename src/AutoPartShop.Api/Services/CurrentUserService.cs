@@ -34,6 +34,15 @@ public class CurrentUserService : ICurrentUserService
     }
 
     /// <summary>
+    /// Gets the user ID of the currently authenticated user as a Guid, for FK attribution.
+    /// </summary>
+    /// <returns>User Guid, or null if not authenticated or the claim isn't a valid Guid.</returns>
+    public Guid? GetCurrentUserGuid()
+    {
+        return Guid.TryParse(GetCurrentUserId(), out var id) ? id : null;
+    }
+
+    /// <summary>
     /// Checks if the current user is authenticated
     /// </summary>
     /// <returns>True if authenticated, false otherwise</returns>

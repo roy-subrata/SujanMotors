@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/app_exception.dart';
+import '../../core/theme/app_theme.dart';
 import '../../features/customers/customers_repository.dart';
 import '../../shared/format.dart';
 import '../../shared/models/customer.dart';
@@ -19,9 +20,9 @@ class ChargeScreen extends ConsumerStatefulWidget {
 }
 
 class _ChargeScreenState extends ConsumerState<ChargeScreen> {
-  // Amount
-  late final TextEditingController _grandTotalCtrl;
-  late final TextEditingController _cashReceivedCtrl;
+  final _discountCtrl = TextEditingController(text: '0');
+  final _paidNowCtrl = TextEditingController();
+  final _referenceCtrl = TextEditingController();
 
   // Customer list
   List<Customer> _customers = [];
@@ -33,34 +34,67 @@ class _ChargeScreenState extends ConsumerState<ChargeScreen> {
   bool _isLoadingVehicles = false;
   CustomerVehicle? _vehicle;
 
-  // Payment
-  String _paymentMethod = 'CASH';
+  // Payment methods (label → backend code).
+  static const _methods = ['Cash', 'Card', 'bKash', 'Bank', 'Cheque'];
+  static const _methodCodes = [
+    'CASH',
+    'CARD',
+    'MOBILE_BANKING',
+    'BANK_TRANSFER',
+    'CHEQUE',
+  ];
+  int _methodIndex = 0;
+  bool _applyAdvance = false;
+
   String? _localError;
 
+  double get _discount =>
+      (double.tryParse(_discountCtrl.text) ?? 0).clamp(0, widget.cartTotal);
   double get grandTotal =>
-      double.tryParse(_grandTotalCtrl.text) ?? widget.cartTotal;
-  double get cashReceived =>
-      double.tryParse(_cashReceivedCtrl.text) ?? grandTotal;
-  double get change => (cashReceived - grandTotal).clamp(0, double.infinity);
+      (widget.cartTotal - _discount).clamp(0, double.infinity);
+
+  double get _advanceAvailable => _customer?.advanceAmount ?? 0;
+  double get advanceApplied =>
+      _applyAdvance ? _advanceAvailable.clamp(0, grandTotal) : 0;
+
+  /// What still has to be covered by cash/card/due after advance credit.
+  double get coverable => (grandTotal - advanceApplied).clamp(0, grandTotal);
+  double get paidNow => double.tryParse(_paidNowCtrl.text) ?? 0;
+  double get due => (coverable - paidNow).clamp(0, coverable);
+  double get change => (paidNow - coverable).clamp(0, double.infinity);
+  bool get _isCash => _methodIndex == 0;
 
   @override
   void initState() {
     super.initState();
-    _grandTotalCtrl = TextEditingController(
-        text: widget.cartTotal.toStringAsFixed(2));
-    _cashReceivedCtrl = TextEditingController(
-        text: widget.cartTotal.toStringAsFixed(2));
-    _grandTotalCtrl.addListener(() => setState(() {}));
-    _cashReceivedCtrl.addListener(() => setState(() {}));
-    // Load all customers immediately so the list is ready.
+    _paidNowCtrl.text = widget.cartTotal.toStringAsFixed(2);
+    _discountCtrl.addListener(_onDiscountChanged);
+    _paidNowCtrl.addListener(() => setState(() {}));
     _loadCustomers('');
   }
 
   @override
   void dispose() {
-    _grandTotalCtrl.dispose();
-    _cashReceivedCtrl.dispose();
+    _discountCtrl.dispose();
+    _paidNowCtrl.dispose();
+    _referenceCtrl.dispose();
     super.dispose();
+  }
+
+  /// A discount change moves the grand total; assume full payment of the
+  /// remaining coverable amount until the user enters a partial amount.
+  void _onDiscountChanged() {
+    _paidNowCtrl.text = coverable.toStringAsFixed(2);
+    setState(() {});
+  }
+
+  void _toggleAdvance(bool on) {
+    setState(() {
+      _applyAdvance = on;
+      _localError = null;
+    });
+    // Re-default the tendered amount to whatever's left after advance credit.
+    _paidNowCtrl.text = coverable.toStringAsFixed(2);
   }
 
   // ── Customer loading ─────────────────────────────────────────────────────────
@@ -68,9 +102,8 @@ class _ChargeScreenState extends ConsumerState<ChargeScreen> {
   Future<void> _loadCustomers(String query) async {
     setState(() => _isLoadingCustomers = true);
     try {
-      final page = await ref
-          .read(customersRepositoryProvider)
-          .list(search: query.trim().isEmpty ? null : query.trim(), pageSize: 300);
+      final page = await ref.read(customersRepositoryProvider).list(
+          search: query.trim().isEmpty ? null : query.trim(), pageSize: 300);
       if (mounted) {
         setState(() {
           _customers = page.items;
@@ -88,8 +121,10 @@ class _ChargeScreenState extends ConsumerState<ChargeScreen> {
       _vehicle = null;
       _vehicles = [];
       _isLoadingVehicles = c != null;
+      _applyAdvance = false; // reset — advance belongs to a specific customer
       _localError = null;
     });
+    _paidNowCtrl.text = coverable.toStringAsFixed(2);
     if (c == null) return;
 
     try {
@@ -109,19 +144,33 @@ class _ChargeScreenState extends ConsumerState<ChargeScreen> {
 
   void _submit() {
     final gt = grandTotal;
-    if (gt <= 0) return;
+    if (gt <= 0) {
+      setState(() => _localError = 'Nothing to charge.');
+      return;
+    }
     final isWalkIn = _customer == null ||
         _customer!.customerCode.toUpperCase() == 'WALKIN';
-    if (_paymentMethod == 'DUE' && isWalkIn) {
+    // A due balance (partial or unpaid) must belong to a registered customer.
+    if (due > 0 && isWalkIn) {
       setState(() => _localError = _customer == null
-          ? 'Select a customer before recording a Due sale — Walk-in can\'t carry a balance.'
-          : 'Walk-in customers can\'t carry a due balance — select a registered customer for a Due sale.');
+          ? 'Select a customer to leave a balance — Walk-in must pay in full.'
+          : 'Walk-in customers can\'t carry a balance — select a registered customer.');
+      return;
+    }
+    // Non-cash methods should note a reference (txn / cheque / card no.).
+    if (!_isCash && paidNow > 0 && _referenceCtrl.text.trim().isEmpty) {
+      setState(() =>
+          _localError = 'Add a reference for the ${_methods[_methodIndex]} payment.');
       return;
     }
     setState(() => _localError = null);
     ref.read(quickSaleControllerProvider.notifier).submit(
           grandTotal: gt,
-          paymentMethod: _paymentMethod,
+          paidNow: paidNow,
+          paymentMethod: _methodCodes[_methodIndex],
+          discountAmount: _discount,
+          advanceApplied: advanceApplied,
+          paymentReference: _isCash ? '' : _referenceCtrl.text.trim(),
           customerName: _customer?.fullName ?? 'Walk-in',
           customerId: _customer?.id,
           customerPhone: _customer?.phone,
@@ -152,13 +201,8 @@ class _ChargeScreenState extends ConsumerState<ChargeScreen> {
         children: [
           _AmountCard(
             cartTotal: widget.cartTotal,
-            grandTotalCtrl: _grandTotalCtrl,
-            onEditingComplete: () {
-              if (_paymentMethod == 'CASH') {
-                _cashReceivedCtrl.text = grandTotal.toStringAsFixed(2);
-              }
-              setState(() {});
-            },
+            discountCtrl: _discountCtrl,
+            grandTotal: grandTotal,
           ),
           const SizedBox(height: 14),
           _CustomerCard(
@@ -171,19 +215,34 @@ class _ChargeScreenState extends ConsumerState<ChargeScreen> {
             onSelectCustomer: _selectCustomer,
             onSelectVehicle: (v) => setState(() => _vehicle = v),
           ),
+          // Advance credit — only when the selected customer has some.
+          if (_advanceAvailable > 0) ...[
+            const SizedBox(height: 14),
+            _AdvanceCard(
+              available: _advanceAvailable,
+              applied: advanceApplied,
+              apply: _applyAdvance,
+              onToggle: _toggleAdvance,
+            ),
+          ],
           const SizedBox(height: 14),
           _PaymentCard(
-            paymentMethod: _paymentMethod,
-            grandTotal: grandTotal,
-            cashReceivedCtrl: _cashReceivedCtrl,
+            methods: _methods,
+            methodIndex: _methodIndex,
+            isCash: _isCash,
+            coverable: coverable,
+            paidNowCtrl: _paidNowCtrl,
+            referenceCtrl: _referenceCtrl,
+            due: due,
             change: change,
-            onMethodChanged: (m) => setState(() {
-              _paymentMethod = m;
+            onMethodChanged: (i) => setState(() {
+              _methodIndex = i;
               _localError = null;
-              if (m == 'CASH') {
-                _cashReceivedCtrl.text = grandTotal.toStringAsFixed(2);
-              }
             }),
+            onPayFull: () {
+              _paidNowCtrl.text = coverable.toStringAsFixed(2);
+              setState(() {});
+            },
           ),
           if ((_localError ?? submitError) != null) ...[
             const SizedBox(height: 14),
@@ -199,13 +258,15 @@ class _ChargeScreenState extends ConsumerState<ChargeScreen> {
                     fontSize: 18, fontWeight: FontWeight.w700),
               ),
               child: isSubmitting
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 22,
                       height: 22,
                       child: CircularProgressIndicator(
-                          strokeWidth: 2.5, color: Colors.white),
+                          strokeWidth: 2.5, color: context.colors.onInk),
                     )
-                  : const Text('Confirm Sale'),
+                  : Text(due > 0
+                      ? 'Confirm · ${formatCurrency(paidNow.clamp(0, grandTotal))} paid'
+                      : 'Confirm Sale'),
             ),
           ),
         ],
@@ -214,21 +275,18 @@ class _ChargeScreenState extends ConsumerState<ChargeScreen> {
   }
 }
 
-// ── Amount card ───────────────────────────────────────────────────────────────
+// ── Amount card (with explicit discount) ──────────────────────────────────────
 
 class _AmountCard extends StatelessWidget {
   const _AmountCard({
     required this.cartTotal,
-    required this.grandTotalCtrl,
-    required this.onEditingComplete,
+    required this.discountCtrl,
+    required this.grandTotal,
   });
 
   final double cartTotal;
-  final TextEditingController grandTotalCtrl;
-  final VoidCallback onEditingComplete;
-
-  double get _entered => double.tryParse(grandTotalCtrl.text) ?? cartTotal;
-  double get _discount => (cartTotal - _entered).clamp(0, double.infinity);
+  final TextEditingController discountCtrl;
+  final double grandTotal;
 
   @override
   Widget build(BuildContext context) {
@@ -250,39 +308,51 @@ class _AmountCard extends StatelessWidget {
                       ?.copyWith(fontWeight: FontWeight.w600)),
             ],
           ),
-          if (_discount > 0) ...[
-            const SizedBox(height: 4),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Discount',
-                    style: TextStyle(color: Colors.green.shade700)),
-                Text('− ${formatCurrency(_discount)}',
-                    style: TextStyle(
-                        color: Colors.green.shade700,
-                        fontWeight: FontWeight.w600)),
-              ],
-            ),
-          ],
           const SizedBox(height: 12),
-          TextField(
-            controller: grandTotalCtrl,
-            keyboardType:
-                const TextInputType.numberWithOptions(decimal: true),
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))
+          Row(
+            children: [
+              Expanded(
+                child: Text('Discount',
+                    style: theme.textTheme.bodyMedium
+                        ?.copyWith(color: scheme.onSurfaceVariant)),
+              ),
+              SizedBox(
+                width: 130,
+                child: TextField(
+                  controller: discountCtrl,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))
+                  ],
+                  textAlign: TextAlign.right,
+                  decoration: const InputDecoration(
+                    prefixText: '৳ ',
+                    isDense: true,
+                    border: OutlineInputBorder(),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                  ),
+                ),
+              ),
             ],
-            textAlign: TextAlign.right,
-            onEditingComplete: onEditingComplete,
-            style: theme.textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.w800, color: scheme.primary),
-            decoration: const InputDecoration(
-              labelText: 'Grand Total',
-              prefixText: '৳  ',
-              border: OutlineInputBorder(),
-              contentPadding:
-                  EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-            ),
+          ),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12),
+            child: Divider(height: 1),
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Grand Total',
+                  style: theme.textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w700)),
+              Text(
+                formatCurrency(grandTotal),
+                style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w800, color: scheme.primary),
+              ),
+            ],
           ),
         ],
       ),
@@ -489,22 +559,89 @@ class _VehicleTile extends StatelessWidget {
   }
 }
 
-// ── Payment card ──────────────────────────────────────────────────────────────
+// ── Advance credit card ───────────────────────────────────────────────────────
+
+class _AdvanceCard extends StatelessWidget {
+  const _AdvanceCard({
+    required this.available,
+    required this.applied,
+    required this.apply,
+    required this.onToggle,
+  });
+
+  final double available;
+  final double applied;
+  final bool apply;
+  final ValueChanged<bool> onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return _SectionCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.savings_outlined,
+                  size: 20, color: Colors.green.shade700),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Advance credit',
+                        style: theme.textTheme.titleSmall
+                            ?.copyWith(fontWeight: FontWeight.w600)),
+                    Text('Available ${formatCurrency(available)}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant)),
+                  ],
+                ),
+              ),
+              Switch(value: apply, onChanged: onToggle),
+            ],
+          ),
+          if (apply && applied > 0) ...[
+            const SizedBox(height: 8),
+            _SummaryRow(
+              label: 'Applied to this sale',
+              value: '− ${formatCurrency(applied)}',
+              color: Colors.green.shade700,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+// ── Payment card (method grid + partial payment) ──────────────────────────────
 
 class _PaymentCard extends StatelessWidget {
   const _PaymentCard({
-    required this.paymentMethod,
-    required this.grandTotal,
-    required this.cashReceivedCtrl,
+    required this.methods,
+    required this.methodIndex,
+    required this.isCash,
+    required this.coverable,
+    required this.paidNowCtrl,
+    required this.referenceCtrl,
+    required this.due,
     required this.change,
     required this.onMethodChanged,
+    required this.onPayFull,
   });
 
-  final String paymentMethod;
-  final double grandTotal;
-  final TextEditingController cashReceivedCtrl;
+  final List<String> methods;
+  final int methodIndex;
+  final bool isCash;
+  final double coverable;
+  final TextEditingController paidNowCtrl;
+  final TextEditingController referenceCtrl;
+  final double due;
   final double change;
-  final void Function(String) onMethodChanged;
+  final void Function(int) onMethodChanged;
+  final VoidCallback onPayFull;
 
   @override
   Widget build(BuildContext context) {
@@ -519,104 +656,135 @@ class _PaymentCard extends StatelessWidget {
               style: theme.textTheme.titleSmall
                   ?.copyWith(color: scheme.onSurfaceVariant)),
           const SizedBox(height: 12),
-          SegmentedButton<String>(
-            style: SegmentedButton.styleFrom(
-              textStyle:
-                  const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-            ),
-            showSelectedIcon: false,
-            segments: const [
-              ButtonSegment(
-                value: 'CASH',
-                label: Text('Cash'),
-                icon: Icon(Icons.payments_outlined),
-              ),
-              ButtonSegment(
-                value: 'DUE',
-                label: Text('Due'),
-                icon: Icon(Icons.pending_actions_outlined),
-              ),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final (i, m) in methods.indexed)
+                ChoiceChip(
+                  label: Text(m),
+                  selected: i == methodIndex,
+                  onSelected: (_) => onMethodChanged(i),
+                ),
             ],
-            selected: {paymentMethod},
-            onSelectionChanged: (s) => onMethodChanged(s.first),
           ),
           const SizedBox(height: 16),
-          if (paymentMethod == 'CASH') ...[
+
+          // Amount paid now + Full shortcut
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: paidNowCtrl,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))
+                  ],
+                  textAlign: TextAlign.right,
+                  style: theme.textTheme.titleLarge
+                      ?.copyWith(fontWeight: FontWeight.w700),
+                  decoration: const InputDecoration(
+                    labelText: 'Amount paid now',
+                    prefixText: '৳  ',
+                    border: OutlineInputBorder(),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              OutlinedButton(
+                onPressed: onPayFull,
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(0, 52),
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                ),
+                child: const Text('Full'),
+              ),
+            ],
+          ),
+
+          // Reference for non-cash methods
+          if (!isCash) ...[
+            const SizedBox(height: 12),
             TextField(
-              controller: cashReceivedCtrl,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))
-              ],
-              textAlign: TextAlign.right,
-              style: theme.textTheme.titleLarge
-                  ?.copyWith(fontWeight: FontWeight.w700),
-              decoration: const InputDecoration(
-                labelText: 'Cash Received',
-                prefixText: '৳  ',
-                border: OutlineInputBorder(),
+              controller: referenceCtrl,
+              decoration: InputDecoration(
+                labelText: '${methods[methodIndex]} reference',
+                hintText: 'Txn / cheque / card no.',
+                isDense: true,
+                border: const OutlineInputBorder(),
                 contentPadding:
-                    EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               ),
             ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Change',
-                    style: theme.textTheme.titleMedium
-                        ?.copyWith(color: scheme.onSurfaceVariant)),
-                Text(
-                  formatCurrency(change),
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: change > 0
-                        ? Colors.green.shade700
-                        : scheme.onSurface,
-                  ),
-                ),
-              ],
-            ),
-          ] else ...[
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Amount Due', style: theme.textTheme.titleMedium),
-                Text(
-                  formatCurrency(grandTotal),
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: scheme.error,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
+          ],
+
+          const SizedBox(height: 14),
+          // Change (overpaid cash) or Due (partial) summary
+          if (change > 0 && isCash)
+            _SummaryRow(
+              label: 'Change',
+              value: formatCurrency(change),
+              color: Colors.green.shade700,
+            )
+          else if (due > 0)
             Container(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: scheme.errorContainer.withValues(alpha: 0.4),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(10),
               ),
               child: Row(
                 children: [
                   Icon(Icons.info_outline,
-                      size: 16, color: scheme.onErrorContainer),
-                  const SizedBox(width: 8),
+                      size: 18, color: scheme.onErrorContainer),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'Added to the customer\'s outstanding balance.',
+                      'Remaining ${formatCurrency(due)} added to the customer\'s balance.',
                       style: TextStyle(
-                          fontSize: 12, color: scheme.onErrorContainer),
+                          fontSize: 12.5, color: scheme.onErrorContainer),
                     ),
                   ),
                 ],
               ),
+            )
+          else
+            _SummaryRow(
+              label: 'Paid in full',
+              value: formatCurrency(coverable),
+              color: Colors.green.shade700,
             ),
-          ],
         ],
       ),
+    );
+  }
+}
+
+class _SummaryRow extends StatelessWidget {
+  const _SummaryRow(
+      {required this.label, required this.value, required this.color});
+
+  final String label;
+  final String value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label,
+            style: theme.textTheme.titleMedium
+                ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+        Text(value,
+            style: theme.textTheme.titleLarge
+                ?.copyWith(fontWeight: FontWeight.w800, color: color)),
+      ],
     );
   }
 }

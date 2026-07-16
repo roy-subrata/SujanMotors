@@ -1,69 +1,130 @@
-# PRODUCTION — used by Hostinger VPS deployment.
-# Secrets come from a .env file on the server (see .env.example).
-# docker compose up --build
+# =============================================================================
+# PRODUCTION BASE — Docker Compose for the production stack
+# =============================================================================
+#
+# WHAT THIS FILE DOES:
+#   Defines the complete production stack: API, Web (Angular), and Database.
+#   This is the BASE compose file. For production, combine it with the override:
+#
+#     docker compose --env-file .env -f docker-compose.yml -f docker-compose.prod.yml up --build -d
+#
+# ENVIRONMENT VARIABLES:
+#   All secrets are read from a .env file in this directory (deployment/.env).
+#   Copy .env.prod.example to .env and fill in real values.
+#   Falls back to safe defaults if .env is missing (NOT recommended for real prod).
+#
+# ON THE VPS:
+#   This stack lives in /opt/sujanmotors/ on the Hostinger VPS.
+#   Deployed automatically when code is merged to the "main" branch.
+#
+# ARCHITECTURE:
+#   Browser → nginx (port 4200) → API container (port 8080)
+#                                  ↳ DB container (port 1433)
+#   Web (4200), API (5000), DB (1433) are all exposed for access.
+#
+# =============================================================================
 
 services:
+  # ---------------------------------------------------------------------------
+  # SQL Server 2025 Database
+  # ---------------------------------------------------------------------------
+  # The primary database. Uses a named volume for data persistence.
+  # Migrations run automatically on API startup (DatabaseSeeder.MigrateAsync).
   autopartshop.db:
     image: mcr.microsoft.com/mssql/server:2025-latest
-    container_name: autopartshop.db
+    container_name: autopartshop.db            # Stable name for container-to-container networking
     environment:
-      - ACCEPT_EULA=Y
-      - SA_PASSWORD=${DB_PASSWORD:-YourStrong!Passw0rd}
-      - MSSQL_PID=Developer
+      - ACCEPT_EULA=Y                         # Required: accept SQL Server license agreement
+      - SA_PASSWORD=${DB_PASSWORD:-YourStrong!Passw0rd}  # SA password from .env file
+      - MSSQL_PID=Developer                   # Free Developer license (full feature set)
+    ports:
+      - "1433:1433"                           # Expose DB for external connections (VS Code, SSMS)
     volumes:
-      - autopart_mssql_data:/var/opt/mssql
-    restart: always
+      - autopart_mssql_data:/var/opt/mssql    # Persistent data (survives container restarts)
+      # Shared backup folder (also mounted into the API container). The API writes .bak files
+      # here and SQL Server reads them during RESTORE. Create it on the VPS before first run:
+      #   mkdir -p ./backups && chown 10001:0 ./backups
+      - ./backups:/var/opt/mssql/backups
+    restart: always                           # Always restart in prod (even after server reboot)
     healthcheck:
+      # Health check: verify SQL Server is ready before allowing API to start
       test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P '${DB_PASSWORD:-YourStrong!Passw0rd}' -Q 'SELECT 1' -No || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
+      interval: 10s                           # Check every 10 seconds
+      timeout: 5s                             # Fail if no response within 5 seconds
+      retries: 10                             # Mark unhealthy after 10 consecutive failures
+      start_period: 30s                       # Give SQL Server 30 seconds to start up
 
+  # ---------------------------------------------------------------------------
+  # .NET 10 Web API
+  # ---------------------------------------------------------------------------
+  # The backend REST API. Built from src/AutoPartShop.Api/Dockerfile.
+  # NOT exposed to the internet — accessed only through nginx reverse proxy.
   autopartshop.api:
     build:
-      context: ..
+      context: ..                             # Repo root (Dockerfile needs all .csproj files)
       dockerfile: src/AutoPartShop.Api/Dockerfile
-    image: smapi:local
+    image: smapi:local                        # Local image tag (avoids Docker Hub)
     container_name: autopartshop.api
     environment:
-      - ASPNETCORE_ENVIRONMENT=Production
-      - ASPNETCORE_HTTP_PORTS=8080
-      - ConnectionStrings__AutoPartDb=Server=autopartshop.db,1433;Database=${DB_NAME:-AutoPartShopDb};User=sa;Password=${DB_PASSWORD:-YourStrong!Passw0rd};TrustServerCertificate=True;
+      - ASPNETCORE_ENVIRONMENT=Production     # Disables Swagger, detailed errors
+      - ASPNETCORE_HTTP_PORTS=8080            # API listens on port 8080 inside container
+      # Database connection: uses service name "autopartshop.db" for DNS resolution
+      - ConnectionStrings__AutoPartDb=Server=autopartshop.db,1433;Database=${DB_NAME:-AutoPartShopProdDb};User=sa;Password=${DB_PASSWORD:-YourStrong!Passw0rd};TrustServerCertificate=True;
+      # JWT authentication settings
       - JwtSettings__SecretKey=${JWT_SECRET:-YourSuperSecretKeyForJWTTokenGenerationMustBe32CharsLong!@#}
       - JwtSettings__Issuer=AutoPartShopAPI
       - JwtSettings__Audience=AutoPartShopClient
       - JwtSettings__ExpiryInMinutes=${JWT_EXPIRY_MINUTES:-60}
       - JwtSettings__RefreshTokenExpiryInDays=${JWT_REFRESH_DAYS:-7}
+      # Twilio integration (SMS / WhatsApp) — leave blank if not used
       - Twilio__AccountSid=${TWILIO_ACCOUNT_SID:-}
       - Twilio__AuthToken=${TWILIO_AUTH_TOKEN:-}
       - Twilio__SmsMsgServiceSid=${TWILIO_SMS_SID:-}
       - Twilio__WhatsAppMsgServiceSid=${TWILIO_WHATSAPP_SID:-}
+      # SMTP email settings — leave blank if not used
       - Smtp__Host=${SMTP_HOST:-}
       - Smtp__Port=${SMTP_PORT:-587}
       - Smtp__Username=${SMTP_USERNAME:-}
       - Smtp__Password=${SMTP_PASSWORD:-}
       - Smtp__FromEmail=${SMTP_FROM_EMAIL:-}
       - Smtp__FromName=${SMTP_FROM_NAME:-SujanMotors}
-    # No ports exposed — browser reaches API through nginx reverse proxy
+      # Seed settings — auto-create admin user on first run
+      - Seed__AdminPassword=${SEED_ADMIN_PASSWORD:-Admin@1990}
+      # Database backups: shared folder as seen by this container / by SQL Server,
+      # plus the Google service-account key JSON for Drive uploads (leave blank to skip upload)
+      - Backup__Directory=/app/backups
+      - Backup__SqlServerDirectory=/var/opt/mssql/backups
+      - GoogleDrive__ServiceAccountKeyJson=${GDRIVE_SA_KEY_JSON:-}
+    volumes:
+      - ./backups:/app/backups                # Same host folder as the DB container's backup mount
+    ports:
+      - "5000:8080"                           # Expose API for direct access (testing/debugging)
+    # No ports exposed to host — browser reaches API through nginx reverse proxy
     depends_on:
       autopartshop.db:
-        condition: service_healthy
-    restart: always
+        condition: service_healthy            # Wait for DB health check before starting
+    restart: always                           # Always restart in prod
 
+  # ---------------------------------------------------------------------------
+  # Angular Frontend (served by nginx)
+  # ---------------------------------------------------------------------------
+  # Builds the Angular app and serves it via nginx.
+  # nginx also reverse-proxies /api and /hubs to the API container.
+  # This is the ONLY container exposed to the internet (port 4200).
   autopartshop.web:
     build:
-      context: ../src/AutoPartShop.WebApp
+      context: ../src/AutoPartShop.WebApp    # Angular project directory
       dockerfile: dockerfile
       args:
-        ENV_NAME: production
-    image: smweb:local
+        ENV_NAME: production                  # Uses environment.prod.ts (relative /api URL)
+    image: smweb:local                        # Local image tag
     container_name: autopartshop.web
     ports:
-      - "4200:80"
+      - "4200:80"                             # Only public-facing port (web UI)
     depends_on:
-      - autopartshop.api
-    restart: always
+      - autopartshop.api                      # API must be running before web starts
+    restart: always                           # Always restart in prod
 
+# Named volumes: persistent storage that survives container restarts
 volumes:
-  autopart_mssql_data:
+  autopart_mssql_data:                        # SQL Server data (production)

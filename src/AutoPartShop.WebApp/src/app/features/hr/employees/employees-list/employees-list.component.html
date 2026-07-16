@@ -1,0 +1,192 @@
+<p-toast></p-toast>
+<p-confirmDialog></p-confirmDialog>
+
+<app-page-container>
+
+  <!-- ==================== HEADER ==================== -->
+  <app-page-header
+    title="Employees"
+    subtitle="Manage shop staff records"
+    [count]="totalRecords" countLabel="employees" countIcon="pi pi-id-card">
+    <ng-container actions>
+      <button class="btn-icon" pTooltip="Export CSV" tooltipPosition="bottom" (click)="exportEmployees('csv')">
+        <i class="pi pi-file"></i>
+      </button>
+      <button class="btn-icon" pTooltip="Export JSON" tooltipPosition="bottom" (click)="exportEmployees('json')">
+        <i class="pi pi-file-export"></i>
+      </button>
+      <button class="btn-primary" (click)="createEmployee()">
+        <i class="pi pi-plus"></i>
+        <span>Add Employee</span>
+      </button>
+    </ng-container>
+  </app-page-header>
+
+  <!-- ==================== FILTERS ==================== -->
+  <app-filter-bar>
+    <div search class="filter-group search-group">
+      <div class="search-input-wrapper">
+        <i class="pi pi-search"></i>
+        <input type="text" [(ngModel)]="searchTerm" placeholder="Search by name, code, phone, designation..."
+          class="search-input" (keyup.enter)="onSearch()">
+        <button *ngIf="searchTerm" class="search-clear" (click)="clearSearch()"><i class="pi pi-times"></i></button>
+      </div>
+    </div>
+
+    <div filters class="filter-group">
+      <!-- <label class="filter-label">Department</label> -->
+      <p-select [options]="departmentOptions" [(ngModel)]="filterDepartment" placeholder="All Departments"
+        [showClear]="true" (onChange)="onFilterChange()" appendTo="body" styleClass="filter-dropdown"></p-select>
+    </div>
+
+    <div filters class="filter-group">
+      <!-- <label class="filter-label">Status</label> -->
+      <p-select [options]="statusOptions" [(ngModel)]="filterStatus" placeholder="All Statuses"
+        [showClear]="true" (onChange)="onFilterChange()" appendTo="body" styleClass="filter-dropdown"></p-select>
+    </div>
+
+    <div filterActions class="filter-group filter-actions">
+      <button class="btn-search" (click)="onSearch()"><i class="pi pi-search"></i> Search</button>
+      <button *ngIf="searchTerm || filterStatus || filterDepartment" class="btn-clear" (click)="clearFilters()">
+        <i class="pi pi-filter-slash"></i> Clear
+      </button>
+    </div>
+  </app-filter-bar>
+
+  <!-- ==================== DATA TABLE (Desktop) ==================== -->
+  <section class="table-section desktop-only">
+    <div class="table-container">
+      <p-table [value]="employees" [loading]="loading" [lazy]="true" [paginator]="false"
+        [rows]="pageSize" [totalRecords]="totalRecords" [scrollable]="true" scrollHeight="flex"
+        styleClass="app-table" dataKey="id">
+
+        <ng-template #header>
+          <tr>
+            <th class="col-code">Code</th>
+            <th class="col-name">Name</th>
+            <th class="col-designation">Designation</th>
+            <th class="col-department">Department</th>
+            <th class="col-phone">Phone</th>
+            <th class="col-join-date">Join Date</th>
+            <th class="col-user">Login Account</th>
+            <th class="col-status">Status</th>
+            <th class="col-actions">Actions</th>
+          </tr>
+        </ng-template>
+
+        <ng-template #body let-employee>
+          <tr class="data-row" (dblclick)="viewEmployee(employee)">
+            <td class="col-code"><span class="code-link" (click)="viewEmployee(employee)">{{ employee.employeeCode }}</span></td>
+            <td class="col-name"><span class="cell-primary">{{ employee.name }}</span></td>
+            <td class="col-designation">{{ employee.designation || '-' }}</td>
+            <td class="col-department"><span class="text-muted">{{ employee.department || '-' }}</span></td>
+            <td class="col-phone">{{ employee.phone || '-' }}</td>
+            <td class="col-join-date"><span class="text-muted">{{ employee.joinDate | date: 'dd MMM yyyy' }}</span></td>
+            <td class="col-user">
+              <span *ngIf="employee.userName" class="text-muted"><i class="pi pi-user"></i> {{ employee.userName }}</span>
+              <span *ngIf="!employee.userName" class="text-muted">-</span>
+            </td>
+            <td class="col-status">
+              <span class="status-pill" [attr.data-status]="employee.status.toLowerCase()">{{ employee.status }}</span>
+            </td>
+            <td class="col-actions">
+              <div class="action-cell">
+                <button class="btn-action" pTooltip="View" (click)="viewEmployee(employee)"><i class="pi pi-eye"></i></button>
+                <button class="btn-action" pTooltip="Edit" (click)="editEmployee(employee)"><i class="pi pi-pencil"></i></button>
+                <button class="btn-action" [pTooltip]="employee.status === 'ACTIVE' ? 'Deactivate' : 'Activate'" (click)="toggleStatus(employee)">
+                  <i class="pi" [ngClass]="employee.status === 'ACTIVE' ? 'pi-ban' : 'pi-check'"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+
+        <ng-template #emptymessage>
+          <tr>
+            <td colspan="9">
+              <div class="empty-state">
+                <div class="empty-icon"><i class="pi pi-id-card"></i></div>
+                <h3>No Employees Found</h3>
+                <p>{{ searchTerm ? 'Try adjusting your filters or search criteria' : 'Start by adding a new employee' }}</p>
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </div>
+  </section>
+
+  <!-- ==================== MOBILE CARDS ==================== -->
+  <section class="cards-section mobile-only">
+    <div *ngIf="!loading && employees.length === 0" class="empty-state-mobile">
+      <div class="empty-icon"><i class="pi pi-id-card"></i></div>
+      <h3>No Employees</h3>
+      <p>{{ searchTerm ? 'Try different filters' : 'Add your first employee' }}</p>
+    </div>
+
+    <div *ngIf="employees.length > 0" class="cards-grid">
+      <div *ngFor="let employee of employees" class="order-card" (click)="viewEmployee(employee)">
+        <div class="card-header">
+          <span class="card-so-number">{{ employee.employeeCode }}</span>
+          <span class="status-pill" [attr.data-status]="employee.status.toLowerCase()">{{ employee.status }}</span>
+        </div>
+        <div class="card-body">
+          <div class="card-customer">
+            <span class="customer-name">{{ employee.name }}</span>
+          </div>
+          <div class="card-meta">
+            <span *ngIf="employee.designation" class="card-meta-item"><i class="pi pi-briefcase"></i> {{ employee.designation }}</span>
+            <span *ngIf="employee.phone" class="card-meta-item"><i class="pi pi-phone"></i> {{ employee.phone }}</span>
+            <span *ngIf="employee.department" class="card-meta-item"><i class="pi pi-building"></i> {{ employee.department }}</span>
+          </div>
+        </div>
+        <div class="card-footer">
+          <button class="btn-card-action" (click)="editEmployee(employee); $event.stopPropagation()"><i class="pi pi-pencil"></i></button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== PAGINATION ==================== -->
+  <app-data-pagination
+    [first]="(pageNumber - 1) * pageSize"
+    [pageSize]="pageSize"
+    [totalRecords]="totalRecords"
+    [pageSizeOptions]="pageSizeOptions"
+    itemLabel="employees"
+    (pageChange)="onPageChange({ page: $event - 1, rows: pageSize })"
+    (pageSizeChange)="onPageChange({ page: 0, rows: $event })">
+  </app-data-pagination>
+
+</app-page-container>
+
+<!-- ==================== ACTIVATE / DEACTIVATE DIALOG ==================== -->
+<p-dialog [(visible)]="statusDialogVisible" [modal]="true" [style]="{ width: '430px' }"
+  [header]="statusDeactivating ? 'Deactivate Employee' : 'Activate Employee'" [draggable]="false" [resizable]="false">
+  <div class="status-dialog" *ngIf="statusTarget">
+    <p>
+      {{ statusDeactivating ? 'Deactivate' : 'Activate' }}
+      <strong>{{ statusTarget.name }}</strong> ({{ statusTarget.employeeCode }})?
+    </p>
+    <label *ngIf="statusTarget.userName" class="login-toggle">
+      <input type="checkbox" [(ngModel)]="alsoToggleLogin" />
+      <span>
+        Also {{ statusDeactivating ? 'disable' : 'enable' }} login account
+        <strong>{{ statusTarget.userName }}</strong>
+      </span>
+    </label>
+    <small *ngIf="statusTarget.userName && statusDeactivating && alsoToggleLogin" class="login-hint">
+      <i class="pi pi-info-circle"></i>
+      They will no longer be able to sign in. An already-open session stays valid until its token expires (~1 hour).
+    </small>
+    <small *ngIf="!statusTarget.userName" class="login-hint">
+      <i class="pi pi-info-circle"></i>
+      No login account is linked to this employee.
+    </small>
+  </div>
+  <ng-template pTemplate="footer">
+    <button pButton label="Cancel" icon="pi pi-times" class="p-button-outlined" (click)="statusDialogVisible = false"></button>
+    <button pButton [label]="statusSaving ? 'Working...' : (statusDeactivating ? 'Deactivate' : 'Activate')"
+      [icon]="statusDeactivating ? 'pi pi-ban' : 'pi pi-check'" [loading]="statusSaving" (click)="confirmStatusChange()"></button>
+  </ng-template>
+</p-dialog>

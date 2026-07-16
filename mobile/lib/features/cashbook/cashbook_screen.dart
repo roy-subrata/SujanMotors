@@ -1,9 +1,11 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/network/app_exception.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/i18n/strings.dart';
 import '../../shared/format.dart';
 import '../../shared/models/cashbook.dart';
 import '../../shared/widgets/app_scaffold.dart';
@@ -36,12 +38,33 @@ class _CashBookScreenState extends ConsumerState<CashBookScreen> {
     if (picked != null) setState(() => _date = DateUtils.dateOnly(picked));
   }
 
+  Future<void> _addEntry() async {
+    final saved = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (_) => const _AddEntrySheet(),
+    );
+    if (saved == true && mounted) {
+      // Entries are stamped "now", so land on today before refreshing.
+      setState(() => _date = DateUtils.dateOnly(DateTime.now()));
+      ref.invalidate(cashBookDayProvider(_dateKey));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final dayAsync = ref.watch(cashBookDayProvider(_dateKey));
 
     return AppScaffold(
-      title: 'Cash Book',
+      title: S.of(context).cashBook,
+      floatingActionButton: FloatingActionButton(
+        onPressed: _addEntry,
+        backgroundColor: context.colors.ink,
+        foregroundColor: context.colors.onInk,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: const Icon(Icons.add),
+      ),
       body: Column(
         children: [
           _DateBar(
@@ -118,7 +141,7 @@ class _DateBar extends StatelessWidget {
                       const Icon(Icons.calendar_today_outlined, size: 16),
                       const SizedBox(width: 8),
                       Text(
-                        isToday ? 'Today Â· ${formatDate(date)}'
+                        isToday ? 'Today · ${formatDate(date)}'
                                 : formatDayLong(date),
                         style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
@@ -400,7 +423,7 @@ class _LedgerTile extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 2),
-                  Text(subtitleParts.join('  â€¢  '),
+                  Text(subtitleParts.join('  •  '),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodySmall),
@@ -412,7 +435,7 @@ class _LedgerTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  '${isIn ? '+' : 'âˆ’'}${formatCurrency(row.amount, currency: row.currency)}',
+                  '${isIn ? '+' : '−'}${formatCurrency(row.amount, currency: row.currency)}',
                   style: TextStyle(fontWeight: FontWeight.w700, color: color),
                 ),
                 const SizedBox(height: 2),
@@ -450,6 +473,252 @@ class _SectionLabel extends StatelessWidget {
               letterSpacing: 0.6,
               fontWeight: FontWeight.w700,
               color: Theme.of(context).colorScheme.onSurfaceVariant)),
+    );
+  }
+}
+
+// ── E2 · Add cash entry sheet ─────────────────────────────────────────────────
+
+class _AddEntrySheet extends ConsumerStatefulWidget {
+  const _AddEntrySheet();
+
+  @override
+  ConsumerState<_AddEntrySheet> createState() => _AddEntrySheetState();
+}
+
+class _AddEntrySheetState extends ConsumerState<_AddEntrySheet> {
+  bool _isCashIn = true;
+  String? _category;
+  final _amountCtrl = TextEditingController();
+  final _descCtrl = TextEditingController();
+  bool _saving = false;
+
+  static const _inCategories = [
+    ('OWNER_DEPOSIT', 'Owner deposit'),
+    ('OTHER', 'Other'),
+  ];
+  static const _outCategories = [
+    ('GENERAL', 'Expense'),
+    ('UTILITIES', 'Utilities'),
+    ('TRANSPORTATION', 'Transport'),
+    ('OTHER', 'Other'),
+  ];
+
+  @override
+  void dispose() {
+    _amountCtrl.dispose();
+    _descCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final amount = double.tryParse(_amountCtrl.text.trim()) ?? 0;
+    final description = _descCtrl.text.trim();
+    String? problem;
+    if (_category == null) problem = 'Pick a category.';
+    if (amount <= 0) problem = 'Enter an amount.';
+    if (description.isEmpty) problem = 'Add a short description.';
+    if (problem != null) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(problem)));
+      return;
+    }
+
+    setState(() => _saving = true);
+    try {
+      final repo = ref.read(cashBookRepositoryProvider);
+      if (_isCashIn) {
+        await repo.createDeposit(
+          category: _category!,
+          amount: amount,
+          description: description,
+        );
+      } else {
+        await repo.createExpense(
+          category: _category!,
+          amount: amount,
+          description: description,
+        );
+      }
+      if (mounted) Navigator.of(context).pop(true);
+    } on AppException catch (e) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final categories = _isCashIn ? _inCategories : _outCategories;
+
+    return Padding(
+      padding:
+          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Add cash entry',
+              style: GoogleFonts.instrumentSans(
+                  fontSize: 16, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 14),
+
+            // Type toggle: Cash in (green) / Cash out
+            Row(
+              children: [
+                Expanded(
+                  child: _TypeButton(
+                    label: 'Cash in',
+                    color: context.colors.green,
+                    selected: _isCashIn,
+                    onTap: () => setState(() {
+                      _isCashIn = true;
+                      _category = null;
+                    }),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _TypeButton(
+                    label: 'Cash out',
+                    color: context.colors.red,
+                    selected: !_isCashIn,
+                    onTap: () => setState(() {
+                      _isCashIn = false;
+                      _category = null;
+                    }),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+
+            // Category chips
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final (value, label) in categories)
+                  GestureDetector(
+                    onTap: () => setState(() => _category = value),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 7),
+                      decoration: BoxDecoration(
+                        color: _category == value
+                            ? context.colors.ink
+                            : Theme.of(context).colorScheme.surface,
+                        borderRadius: BorderRadius.circular(99),
+                        border: Border.all(
+                          color: _category == value
+                              ? context.colors.ink
+                              : Theme.of(context).colorScheme.outline,
+                        ),
+                      ),
+                      child: Text(
+                        label,
+                        style: GoogleFonts.instrumentSans(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: _category == value
+                              ? context.colors.onInk
+                              : context.colors.secondary,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 14),
+
+            TextField(
+              controller: _amountCtrl,
+              autofocus: true,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              style: GoogleFonts.instrumentSans(
+                  fontSize: 19, fontWeight: FontWeight.w700),
+              decoration: const InputDecoration(
+                labelText: 'Amount',
+                prefixText: '৳ ',
+              ),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _descCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Description / note',
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            FilledButton(
+              onPressed: _saving ? null : _save,
+              style: FilledButton.styleFrom(
+                backgroundColor: context.colors.ink,
+                padding: const EdgeInsets.symmetric(vertical: 15),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14)),
+              ),
+              child: _saving
+                  ? SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: context.colors.onInk),
+                    )
+                  : const Text('Save entry'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TypeButton extends StatelessWidget {
+  const _TypeButton({
+    required this.label,
+    required this.color,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final Color color;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: selected ? color : Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color:
+                selected ? color : Theme.of(context).colorScheme.outline,
+          ),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.instrumentSans(
+            fontSize: 13.5,
+            fontWeight: FontWeight.w600,
+            color: selected ? context.colors.onInk : context.colors.secondary,
+          ),
+        ),
+      ),
     );
   }
 }

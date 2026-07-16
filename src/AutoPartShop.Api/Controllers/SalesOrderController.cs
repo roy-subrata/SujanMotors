@@ -1,4 +1,4 @@
-using AutoPartShop.Api.Common;
+﻿using AutoPartShop.Api.Common;
 using AutoPartShop.Api.Pdf;
 using AutoPartShop.Api.Services;
 using QuestPDF.Fluent;
@@ -11,6 +11,7 @@ using AutoPartShop.Application.SaleOrders.Dtos;
 using AutoPartShop.Application.Services;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Common;
+using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -20,7 +21,7 @@ namespace AutoPartShop.Api.Controllers;
 [Route("api/[controller]")]
 [Route("api/v1/[controller]")]
 [ApiController]
-[Authorize]
+[HasPermission(Permissions.SalesView)]
 [Produces("application/json")]
 public class SalesOrderController : ControllerBase
 {
@@ -214,6 +215,7 @@ public class SalesOrderController : ControllerBase
     }
 
     [HttpPost]
+    [HasPermission(Permissions.SalesCreate)]
     public async Task<IActionResult> Create(CreateSalesOrderRequest request, CancellationToken cancellationToken)
     {
         try
@@ -263,8 +265,10 @@ public class SalesOrderController : ControllerBase
                     order.SetDiscountPercentage(request.Discount);
                     order.CalculateTotal();
 
-                    order.CreatedBy = _currentUserService.GetCurrentUsername();
-                    order.ModifiedBy = _currentUserService.GetCurrentUsername();
+                    var cashierUsername = _currentUserService.GetCurrentUsername();
+                    order.SetCashier(_currentUserService.GetCurrentUserGuid(), cashierUsername);
+                    order.CreatedBy = cashierUsername;
+                    order.ModifiedBy = cashierUsername;
 
                     await _salesOrderRepository.AddAsync(order, cancellationToken);
                     await tx.CommitAsync(cancellationToken);
@@ -294,6 +298,7 @@ public class SalesOrderController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
+    [HasPermission(Permissions.SalesEdit)]
     public async Task<IActionResult> Update(Guid id, CreateSalesOrderRequest request, CancellationToken cancellationToken)
     {
         try
@@ -396,7 +401,7 @@ public class SalesOrderController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/cancel")]
-    [Authorize]
+    [HasPermission(Permissions.SalesEdit)]
     public async Task<IActionResult> Cancel(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -544,6 +549,7 @@ public class SalesOrderController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/confirm")]
+    [HasPermission(Permissions.SalesEdit)]
     public async Task<IActionResult> Confirm(Guid id, [FromBody] ConfirmSalesOrderRequest? confirmRequest, CancellationToken cancellationToken)
     {
         try
@@ -569,7 +575,7 @@ public class SalesOrderController : ControllerBase
                     if (IsWalkIn(confirmCustomer))
                         throw new InvalidOperationException("Walk-in customers cannot be used for invoiced/credit orders. Use Quick Sale with full payment instead.");
 
-                    // Check stock and deduct in one pass — eliminates TOCTOU window between check and deduction
+                    // Check stock and deduct in one pass â€” eliminates TOCTOU window between check and deduction
                     foreach (var line in order.LineItems)
                     {
                         var stockLevel = await _stockLevelRepository.GetByPartVariantAndWarehouseAsync(line.PartId, line.ProductVariantId, warehouseId, cancellationToken);
@@ -592,14 +598,14 @@ public class SalesOrderController : ControllerBase
                         stockMovement.ModifiedBy = _currentUserService.GetCurrentUsername();
                         await _dbContext.StockMovements.AddAsync(stockMovement, cancellationToken);
 
-                        // Deduct from lots — FIFO or manual selection
+                        // Deduct from lots â€” FIFO or manual selection
                         // StockLotMovement records (ReferenceId = line.Id) serve as the audit trail
                         var manualAlloc = confirmRequest?.ManualAllocations
                             ?.FirstOrDefault(a => a.SalesOrderLineId == line.Id);
 
                         if (manualAlloc != null)
                         {
-                            // Manual lot selection — validate then deduct specified lots
+                            // Manual lot selection â€” validate then deduct specified lots
                             int totalManual = manualAlloc.Lots.Sum(l => l.Quantity);
                             if (totalManual != line.QuantityInBaseUnit)
                                 throw new InvalidOperationException(
@@ -633,7 +639,7 @@ public class SalesOrderController : ControllerBase
                         }
                         else
                         {
-                            // FIFO — oldest lot first (expiry date, then receipt date), scoped to the variant
+                            // FIFO â€” oldest lot first (expiry date, then receipt date), scoped to the variant
                             var stockLots = await _dbContext.StockLots
                                 .Where(sl => sl.PartId == line.PartId &&
                                             sl.VariantId == line.ProductVariantId &&
@@ -670,7 +676,7 @@ public class SalesOrderController : ControllerBase
                     order.Confirm();
                     order.ModifiedBy = _currentUserService.GetCurrentUsername();
 
-                    // Atomic status transition — WHERE Status IN ('PENDING','DRAFT') prevents double-confirm.
+                    // Atomic status transition â€” WHERE Status IN ('PENDING','DRAFT') prevents double-confirm.
                     var rowsUpdated = await _dbContext.Set<SalesOrder>()
                         .Where(so => so.Id == order.Id
                                   && (so.Status == "PENDING" || so.Status == "DRAFT")
@@ -685,7 +691,7 @@ public class SalesOrderController : ControllerBase
                     if (rowsUpdated == 0)
                         throw new InvalidOperationException("Sales order has already been confirmed or no longer exists.");
 
-                    // ── Auto-create a DRAFT invoice (mandatory at Confirm) ────────────
+                    // â”€â”€ Auto-create a DRAFT invoice (mandatory at Confirm) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                     // AnyAsync check is a first guard; the DB-level unique filtered index on
                     // (SalesOrderId) WHERE Isdeleted=0 is the hard safety net against races.
                     var existingInvoiceCheck = await _dbContext.Invoices
@@ -707,7 +713,7 @@ public class SalesOrderController : ControllerBase
                         invoice.ModifiedBy = _currentUserService.GetCurrentUsername();
                         await _dbContext.Invoices.AddAsync(invoice, cancellationToken);
                     }
-                    // ────────────────────────────────────────────────────────────────
+                    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
                     await _dbContext.SaveChangesAsync(cancellationToken);
                     await tx.CommitAsync(cancellationToken);
@@ -742,7 +748,7 @@ public class SalesOrderController : ControllerBase
                         }
                         catch (InvalidOperationException)
                         {
-                            // Part/lot has no warranty — silently skip
+                            // Part/lot has no warranty â€” silently skip
                         }
                     }
                 }
@@ -779,14 +785,14 @@ public class SalesOrderController : ControllerBase
         }
     }
 
-    // ── Ready for delivery ────────────────────────────────────────────────────
+    // â”€â”€ Ready for delivery â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /// <summary>
     /// Later-delivery flow: marks a Confirmed order as packed and ready to dispatch.
     /// After this a Challan should be generated before the goods leave the warehouse.
     /// </summary>
     [HttpPatch("{id:guid}/ready-for-delivery")]
-    [Authorize]
+    [HasPermission(Permissions.SalesEdit)]
     public async Task<IActionResult> MarkReadyForDelivery(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -808,15 +814,15 @@ public class SalesOrderController : ControllerBase
         }
     }
 
-    // ── Direct deliver (no challan) ───────────────────────────────────────────
+    // â”€â”€ Direct deliver (no challan) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /// <summary>
     /// Direct-handover flow: marks a Confirmed order as Delivered immediately.
     /// The invoice is automatically issued if it is still in DRAFT status.
-    /// No challan is generated — use the Challan endpoints for the later-delivery flow.
+    /// No challan is generated â€” use the Challan endpoints for the later-delivery flow.
     /// </summary>
     [HttpPatch("{id:guid}/deliver")]
-    [Authorize]
+    [HasPermission(Permissions.SalesEdit)]
     public async Task<IActionResult> DeliverDirect(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -826,7 +832,7 @@ public class SalesOrderController : ControllerBase
             if (preCheck is null) return NotFound(ApiError.NotFound("Sales order not found", Request.Path));
 
             // If the order is in READY_FOR_DELIVERY state, block direct delivery when a
-            // challan has already been ISSUED — the challan deliver endpoint must be used instead.
+            // challan has already been ISSUED â€” the challan deliver endpoint must be used instead.
             if (preCheck.Status == "READY_FOR_DELIVERY")
             {
                 var hasIssuedChallan = await _dbContext.Challans
@@ -871,13 +877,13 @@ public class SalesOrderController : ControllerBase
                             {
                                 customer.UpdateBalance(invoice.GrandTotal);
                                 customer.ModifiedBy = _currentUserService.GetCurrentUsername();
-                                // GetByIdAsync uses AsNoTracking — must attach explicitly so
+                                // GetByIdAsync uses AsNoTracking â€” must attach explicitly so
                                 // SaveChangesAsync persists the balance change.
                                 _dbContext.Customers.Update(customer);
                             }
                             else
                             {
-                                _logger.LogWarning("Customer {Id} not found during direct delivery of SO {SOId} — balance not updated.", order.CustomerId, order.Id);
+                                _logger.LogWarning("Customer {Id} not found during direct delivery of SO {SOId} â€” balance not updated.", order.CustomerId, order.Id);
                             }
                         }
 
@@ -900,10 +906,10 @@ public class SalesOrderController : ControllerBase
         }
     }
 
-    // ── Pending deliveries ────────────────────────────────────────────────────
+    // â”€â”€ Pending deliveries â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /// <summary>
-    /// Returns all Confirmed or ReadyForDelivery orders — for the delivery staff queue.
+    /// Returns all Confirmed or ReadyForDelivery orders â€” for the delivery staff queue.
     /// </summary>
     [HttpGet("pending-deliveries")]
     [Authorize]
@@ -921,6 +927,7 @@ public class SalesOrderController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
+    [HasPermission(Permissions.SalesDelete)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -961,6 +968,7 @@ public class SalesOrderController : ControllerBase
         Guid? customerId = null,
         DateTime? fromDate = null,
         DateTime? toDate = null,
+        bool hasDue = false,
         CancellationToken cancellationToken = default)
     {
         try
@@ -970,7 +978,7 @@ public class SalesOrderController : ControllerBase
             if (pageSize > 100) pageSize = 100;
 
             var (invoices, totalCount) = await _invoiceRepository.GetPagedAsync(pageNumber, pageSize,
-                searchTerm, status, customerId, fromDate, toDate, cancellationToken);
+                searchTerm, status, customerId, fromDate, toDate, hasDue, cancellationToken);
 
             var response = invoices.Select(MapToInvoiceResponse);
             return Ok(new
@@ -1013,6 +1021,7 @@ public class SalesOrderController : ControllerBase
     }
 
     [HttpPost("invoices")]
+    [HasPermission(Permissions.SalesCreate)]
     public async Task<IActionResult> CreateInvoice(CreateInvoiceRequest request, CancellationToken cancellationToken)
     {
         try
@@ -1167,6 +1176,7 @@ public class SalesOrderController : ControllerBase
     /// lifecycle on the Sales Returns screen (no stock or refund side effects happen here).
     /// </summary>
     [HttpPost("return")]
+    [HasPermission(Permissions.SalesCreate)]
     public async Task<IActionResult> CreateQuickReturn([FromBody] QuickReturnRequest request, CancellationToken cancellationToken)
     {
         if (request is null || string.IsNullOrWhiteSpace(request.OriginalInvoiceNumber))
@@ -1202,7 +1212,7 @@ public class SalesOrderController : ControllerBase
 
             var returnNumber = await _codeGenerateService.GenerateAsync("SR", cancellationToken);
             var salesReturn = SalesReturn.Create(returnNumber, salesOrder.Id, invoice.Id, reason, warehouseId.Value, DateTime.UtcNow, string.Empty);
-            // SetRefundType validates against CASH_REFUND | STORE_CREDIT and throws ArgumentException (→ 400) on a bad value.
+            // SetRefundType validates against CASH_REFUND | STORE_CREDIT and throws ArgumentException (â†’ 400) on a bad value.
             salesReturn.SetRefundType(string.IsNullOrWhiteSpace(request.RefundType) ? "CASH_REFUND" : request.RefundType);
 
             foreach (var item in request.Items)
@@ -1293,6 +1303,7 @@ public class SalesOrderController : ControllerBase
     }
 
     [HttpPatch("invoices/{id:guid}/issue")]
+    [HasPermission(Permissions.SalesEdit)]
     public async Task<IActionResult> IssueInvoice(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -1307,7 +1318,7 @@ public class SalesOrderController : ControllerBase
             if (customer is null) return NotFound(new { message = "Customer not found" });
 
             // Fix #2: invoice status + customer balance update must be atomic.
-            // Wrapped in the EF execution strategy (global retry policy) — entities are reloaded
+            // Wrapped in the EF execution strategy (global retry policy) â€” entities are reloaded
             // INSIDE the lambda so a retry after rollback applies the balance change exactly once.
             var strategy = _dbContext.Database.CreateExecutionStrategy();
             await strategy.ExecuteAsync(async () =>
@@ -1352,6 +1363,7 @@ public class SalesOrderController : ControllerBase
     }
 
     [HttpPatch("invoices/{id:guid}/payment")]
+    [HasPermission(Permissions.SalesProcessPayment)]
     public async Task<IActionResult> RecordPayment(Guid id, [FromBody] RecordPaymentRequest request, CancellationToken cancellationToken)
     {
         try
@@ -1486,7 +1498,7 @@ public class SalesOrderController : ControllerBase
         }
     }
 
-    // ── Print data endpoint ────────────────────────────────────────────────────
+    // â”€â”€ Print data endpoint â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /// <summary>
     /// Returns all data required to render a printable invoice or delivery challan.
@@ -1513,7 +1525,7 @@ public class SalesOrderController : ControllerBase
         if (invoice is null)
             return NotFound(ApiError.NotFound($"Invoice '{id}' not found", Request.Path));
 
-        // Shop settings — graceful fallback if not configured
+        // Shop settings â€” graceful fallback if not configured
         async Task<string> Setting(string key) =>
             (await _dbContext.Set<ApplicationSettings>()
                 .Where(s => s.Key == key && !s.Isdeleted)
@@ -1617,7 +1629,7 @@ public class SalesOrderController : ControllerBase
             TaxNo: await Setting("SHOP_TAX_NUMBER"),
             Tagline: await Setting("SHOP_TAGLINE"),
             FooterText: await Setting("INVOICE_FOOTER_TEXT") is { Length: > 0 } ft ? ft : "Thank you for your business!",
-            CurrencySymbol: "৳");
+            CurrencySymbol: "à§³");
 
         var lines = (so?.LineItems ?? [])
             .OrderBy(l => l.LineNumber)
@@ -1790,7 +1802,7 @@ public class SalesOrderController : ControllerBase
                 throw new ArgumentException($"Variant {lineRequest.ProductVariantId} not found for part '{part.Name}'");
         }
 
-        // Price resolution: manual entry → variant price → product base price → error
+        // Price resolution: manual entry â†’ variant price â†’ product base price â†’ error
         var unitPrice = lineRequest.UnitPrice > 0
             ? lineRequest.UnitPrice
             : (variant?.SellingPrice > 0 ? variant.SellingPrice : part.SellingPrice);
@@ -1899,6 +1911,7 @@ public class SalesOrderController : ControllerBase
     }
 
     [HttpPost("quick-sale")]
+    [HasPermission(Permissions.SalesCreate)]
     public async Task<IActionResult> CreateQuickSale(QuickSaleRequest request, CancellationToken cancellationToken)
     {
         try
@@ -2059,6 +2072,12 @@ public class SalesOrderController : ControllerBase
 
                     // Calculate totals
                     salesOrder.CalculateTotal();
+
+                    // Cart-level discount must live on the order itself, not just the invoice —
+                    // the sales list, order detail, and reports all read SalesOrder totals.
+                    if (request.DiscountAmount > 0)
+                        salesOrder.ApplyAdditionalDiscount(request.DiscountAmount);
+
                     salesOrder.SetTax(request.VatAmount);
 
                     // If SaveAsQuotation = true, keep as DRAFT. Otherwise, confirm the order
@@ -2066,8 +2085,10 @@ public class SalesOrderController : ControllerBase
                     {
                         salesOrder.Confirm();
                     }
-                    salesOrder.CreatedBy = _currentUserService.GetCurrentUsername();
-                    salesOrder.ModifiedBy = _currentUserService.GetCurrentUsername();
+                    var quickSaleCashier = _currentUserService.GetCurrentUsername();
+                    salesOrder.SetCashier(_currentUserService.GetCurrentUserGuid(), quickSaleCashier);
+                    salesOrder.CreatedBy = quickSaleCashier;
+                    salesOrder.ModifiedBy = quickSaleCashier;
 
                     await _salesOrderRepository.AddAsync(salesOrder, cancellationToken);
 
@@ -2136,14 +2157,14 @@ public class SalesOrderController : ControllerBase
 
                     // Guard: the payment lines (including any DUE line for an unpaid balance) plus
                     // advance credit applied must fully account for the invoice total. The POS UI
-                    // already enforces this client-side, but the API must not trust that — otherwise
+                    // already enforces this client-side, but the API must not trust that â€” otherwise
                     // a caller bypassing the UI could persist a sale whose payments don't add up.
                     var paymentsTendered = request.Payments?.Where(p => p.Amount > 0).Sum(p => p.Amount) ?? 0;
                     var totalAccountedFor = paymentsTendered + advancePaymentAmount;
                     if (Math.Abs(totalAccountedFor - invoice.GrandTotal) > 0.01m)
                         throw new ArgumentException(
                             $"Payment total ({totalAccountedFor:F2}) does not match the invoice total ({invoice.GrandTotal:F2}). " +
-                            "Add payment line(s) — including a DUE line for any unpaid balance — that account for the full amount.");
+                            "Add payment line(s) â€” including a DUE line for any unpaid balance â€” that account for the full amount.");
 
                     decimal manualPaymentAmount = 0;
                     if (request.CustomerId.HasValue && request.CustomerId.Value != Guid.Empty)
@@ -2317,7 +2338,7 @@ public class SalesOrderController : ControllerBase
             _logger.LogInformation("Quick sale created successfully. Invoice: {InvoiceNumber}, SO: {SONumber}",
                 invoiceNumber, soNumber);
 
-            // Dispatch domain events raised by salesOrder.Confirm() — after commit only
+            // Dispatch domain events raised by salesOrder.Confirm() â€” after commit only
             if (!request.SaveAsQuotation)
             {
                 var quickSaleEvents = salesOrder.DomainEvents.ToList();
