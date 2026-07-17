@@ -1629,7 +1629,7 @@ public class SalesOrderController : ControllerBase
             TaxNo: await Setting("SHOP_TAX_NUMBER"),
             Tagline: await Setting("SHOP_TAGLINE"),
             FooterText: await Setting("INVOICE_FOOTER_TEXT") is { Length: > 0 } ft ? ft : "Thank you for your business!",
-            CurrencySymbol: "à§³");
+            BankDetails: await Setting("SHOP_BANK_DETAILS"));
 
         var lines = (so?.LineItems ?? [])
             .OrderBy(l => l.LineNumber)

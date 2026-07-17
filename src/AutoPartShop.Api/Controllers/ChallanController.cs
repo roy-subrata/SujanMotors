@@ -1,4 +1,5 @@
 ﻿using AutoPartShop.Api.Common;
+using AutoPartShop.Api.Pdf;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
@@ -7,6 +8,7 @@ using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using QuestPDF.Fluent;
 
 namespace AutoPartShop.Api.Controllers;
 
@@ -141,6 +143,92 @@ public class ChallanController(
             return NotFound(ApiError.NotFound("Challan not found", Request.Path));
 
         return Ok(ApiResponse<object>.Ok(MapToResponse(challan)));
+    }
+
+    /// <summary>
+    /// Download the Delivery Challan as a PDF. Quantities only — no prices, per the document spec.
+    /// </summary>
+    [HttpGet("{id:guid}/pdf")]
+    [Produces("application/pdf")]
+    [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DownloadPdf(Guid id, CancellationToken ct)
+    {
+        var challan = await _db.Set<Challan>()
+            .AsNoTracking()
+            .Include(c => c.Lines)
+            .Include(c => c.Invoice)
+            .Include(c => c.SalesOrder!).ThenInclude(so => so.Customer)
+            .FirstOrDefaultAsync(c => c.Id == id && !c.Isdeleted, ct);
+
+        if (challan is null)
+            return NotFound(ApiError.NotFound("Challan not found", Request.Path));
+
+        // Part numbers and local names aren't denormalised onto ChallanLine, so pull them for the
+        // lines in play rather than N+1 per line.
+        var partIds = challan.Lines.Select(l => l.PartId).Distinct().ToList();
+        var parts = await _db.Set<Product>()
+            .AsNoTracking()
+            .Where(p => partIds.Contains(p.Id))
+            .Select(p => new { p.Id, PartNumber = p.PartNumber!.Value, p.LocalName })
+            .ToDictionaryAsync(p => p.Id, ct);
+
+        var settings = await _db.Set<ApplicationSettings>()
+            .AsNoTracking()
+            .Where(s => !s.Isdeleted)
+            .ToListAsync(ct);
+
+        string Get(string key, string fallback = "")
+        {
+            var v = settings.FirstOrDefault(s => s.Key == key)?.Value;
+            return string.IsNullOrWhiteSpace(v) ? fallback : v;
+        }
+
+        var shopProfile = new ShopProfile(
+            Name: Get("SHOP_NAME"),
+            Address: Get("SHOP_ADDRESS"),
+            Phone: Get("SHOP_PHONE"),
+            Email: Get("SHOP_EMAIL"),
+            TaxNo: Get("SHOP_TAX_NUMBER"),
+            Tagline: Get("SHOP_TAGLINE"),
+            FooterText: Get("INVOICE_FOOTER_TEXT", "Thank you for your business!"),
+            BankDetails: Get("SHOP_BANK_DETAILS"));
+
+        var customer = challan.SalesOrder?.Customer;
+        var customerName = customer is null
+            ? string.Empty
+            : !string.IsNullOrWhiteSpace(customer.CompanyName)
+                ? customer.CompanyName
+                : $"{customer.FirstName} {customer.LastName}".Trim();
+
+        var data = new ChallanDocumentData(
+            ChallanNumber: challan.ChallanNumber,
+            ChallanDate: challan.IssuedAt ?? challan.CreatedDate,
+            SalesOrderNumber: challan.SalesOrder?.SONumber ?? string.Empty,
+            InvoiceNumber: challan.Invoice?.InvoiceNumber ?? string.Empty,
+            CustomerName: customerName,
+            DeliveryAddress: challan.DeliveryAddress,
+            ReceiverName: challan.ReceiverName,
+            ReceiverPhone: challan.ReceiverPhone,
+            TransportCompany: challan.TransportCompany,
+            VehicleNumber: challan.VehicleNumber,
+            DriverName: challan.DriverName,
+            DriverPhone: challan.DriverPhone,
+            DispatchedAt: challan.IssuedAt,
+            Lines: challan.Lines
+                .OrderBy(l => l.LineNumber)
+                .Select((l, i) => new ChallanDocumentLine(
+                    SlNo: i + 1,
+                    PartNumber: parts.TryGetValue(l.PartId, out var p) ? p.PartNumber ?? string.Empty : l.PartSku,
+                    DisplayName: !string.IsNullOrWhiteSpace(l.DisplayName) ? l.DisplayName : l.PartName,
+                    LocalName: parts.TryGetValue(l.PartId, out var p2) ? p2.LocalName : null,
+                    Quantity: l.Quantity,
+                    UnitName: l.UnitName))
+                .ToList(),
+            Notes: challan.Notes);
+
+        var pdfBytes = new DeliveryChallanDocument(data, shopProfile).GeneratePdf();
+        return File(pdfBytes, "application/pdf", $"challan-{challan.ChallanNumber}.pdf");
     }
 
     // â”€â”€ Pending challans (delivery queue) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

@@ -1,6 +1,7 @@
+using AutoPartShop.Api.Pdf.Components;
+using AutoPartShop.Api.Pdf.Design;
 using AutoPartShop.Application.DTOs.CustomerDtos;
 using QuestPDF.Fluent;
-using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 
 namespace AutoPartShop.Api.Pdf;
@@ -13,49 +14,44 @@ public record ShopProfile(
     string TaxNo,
     string Tagline,
     string FooterText,
-    string CurrencySymbol = "৳");
+    string CurrencySymbol = "৳",
+    // BankDetails: free-text bank block for the invoice footer, from the SHOP_BANK_DETAILS setting
+    // — e.g. "City Bank PLC — Kawran Bazar Branch\nA/C Name: …\nA/C No: … · Routing: …".
+    // Blank until configured; the invoice omits the block rather than printing a placeholder
+    // account number that someone might actually pay into.
+    string BankDetails = "");
 
+/// <summary>
+/// Statement of Account. Not one of the 13 documents in design_handoff_pos_documents, so the body
+/// is bespoke, but it uses the same header, palette, and table conventions so it reads as part of
+/// the same product.
+/// </summary>
 public class CustomerAccountStatementDocument : IDocument
 {
-    // ── Palette ────────────────────────────────────────────────────────────────
-    private const string NavyPrimary = "#1e3a8a";
-    private const string GreenText = "#15803d";
-    private const string Gray50 = "#f9fafb";
-    private const string Gray100 = "#f3f4f6";
-    private const string Gray200 = "#e5e7eb";
-    private const string Gray300 = "#d1d5db";
-    private const string Gray400 = "#9ca3af";
-    private const string Gray500 = "#6b7280";
-    private const string Gray700 = "#374151";
-    private const string Gray900 = "#111827";
-    private const string White = "#FFFFFF";
-
     private readonly CustomerAccountSummaryDto _data;
     private readonly ShopProfile _shop;
+    private readonly DocTheme _theme;
 
-    public CustomerAccountStatementDocument(CustomerAccountSummaryDto data, ShopProfile shop)
+    public CustomerAccountStatementDocument(CustomerAccountSummaryDto data, ShopProfile shop, DocTheme? theme = null)
     {
         _data = data;
         _shop = shop;
+        _theme = (theme ?? DocTheme.Default) with { CurrencySymbol = shop.CurrencySymbol };
     }
 
     public DocumentMetadata GetMetadata() => new()
     {
         Title = $"Statement of Account – {_data.CustomerName}",
         Author = _shop.Name,
+        Subject = $"Statement of account for {_data.CustomerName}",
         CreationDate = DateTime.UtcNow
     };
 
-    // ── Page setup ─────────────────────────────────────────────────────────────
-    // A4: 595pt wide. Margins 40pt each side → 515pt usable content width.
     public void Compose(IDocumentContainer container)
     {
         container.Page(page =>
         {
-            page.Size(PageSizes.A4);
-            page.MarginHorizontal(40);
-            page.MarginVertical(32);
-            page.DefaultTextStyle(x => x.FontSize(9).FontColor(Gray900));
+            _theme.ApplyPage(page);
 
             page.Header().Element(ComposeHeader);
             page.Content().Element(ComposeContent);
@@ -63,109 +59,54 @@ public class CustomerAccountStatementDocument : IDocument
         });
     }
 
-    // ── HEADER — repeated on every page ────────────────────────────────────────
-    // Left col: company identity (RelativeItem, ~330pt)
-    // Right col: document title block (185pt)
-    private void ComposeHeader(IContainer container)
-    {
-        container.Column(col =>
-        {
-            col.Item().Row(row =>
-            {
-                // Company identity
-                row.RelativeItem().Column(left =>
-                {
-                    left.Item().Text(_shop.Name)
-                        .Bold().FontSize(16).FontColor(NavyPrimary);
+    // "Statement" rather than "Statement of Account": the longer title is wider than any in the
+    // handoff and squeezes the company block until the tagline wraps. The meta grid says what it is.
+    private void ComposeHeader(IContainer container) =>
+        new DocHeader(_theme, _shop, "Statement",
+        [
+            // Period is too wide for the meta column and already appears under Statement Details.
+            new MetaField("No.", $"SOA-{_data.CustomerCode}"),
+            new MetaField("Date", _data.ReportDate.ToString("dd MMM yyyy")),
+        ]).Compose(container);
 
-                    if (!string.IsNullOrWhiteSpace(_shop.Tagline))
-                        left.Item().PaddingTop(2).Text(_shop.Tagline)
-                            .FontSize(8).Italic().FontColor(Gray500);
-
-                    if (!string.IsNullOrWhiteSpace(_shop.Address))
-                        left.Item().PaddingTop(5).Text(_shop.Address)
-                            .FontSize(8).FontColor(Gray500);
-
-                    var contacts = new List<string>();
-                    if (!string.IsNullOrWhiteSpace(_shop.Phone)) contacts.Add($"Tel: {_shop.Phone}");
-                    if (!string.IsNullOrWhiteSpace(_shop.Email)) contacts.Add($"Email: {_shop.Email}");
-                    if (!string.IsNullOrWhiteSpace(_shop.TaxNo)) contacts.Add($"Tax No: {_shop.TaxNo}");
-                    if (contacts.Count > 0)
-                        left.Item().PaddingTop(2).Text(string.Join("   ·   ", contacts))
-                            .FontSize(8).FontColor(Gray500);
-                });
-
-                // Document title block (right column, 185pt)
-                // "STATEMENT OF ACCOUNT" at 13pt bold ≈ 150pt — safe in 185pt.
-                row.ConstantItem(185).Column(right =>
-                {
-                    right.Item().AlignRight().Text("STATEMENT OF ACCOUNT")
-                        .Bold().FontSize(13).FontColor(NavyPrimary);
-
-                    right.Item().PaddingTop(10).AlignRight().Text(txt =>
-                    {
-                        txt.Span("Date:   ").FontSize(8).FontColor(Gray500);
-                        txt.Span(_data.ReportDate.ToString("dd MMM yyyy"))
-                            .FontSize(8).Bold().FontColor(Gray900);
-                    });
-
-                    right.Item().PaddingTop(3).AlignRight().Text(txt =>
-                    {
-                        txt.Span("Ref:   ").FontSize(8).FontColor(Gray500);
-                        txt.Span($"SOA-{_data.CustomerCode}-{_data.ReportDate:yyyyMMdd}")
-                            .FontSize(8).FontColor(Gray700);
-                    });
-                });
-            });
-
-            // Navy rule separating header from content
-            col.Item().PaddingTop(12).LineHorizontal(1.5f).LineColor(NavyPrimary);
-        });
-    }
-
-    // ── CONTENT ────────────────────────────────────────────────────────────────
     private void ComposeContent(IContainer container)
     {
-        container.PaddingTop(16).Column(col =>
+        container.PaddingTop(DocTheme.Px(18)).Column(col =>
         {
-            // Bill To / Statement Details side-by-side
             col.Item().Row(row =>
             {
-                row.RelativeItem().Element(ComposeBillToBlock);
-                row.ConstantItem(16);
-                row.RelativeItem().Element(ComposeStatementDetailsBlock);
+                row.RelativeItem().Element(ComposeBillTo);
+                row.ConstantItem(DocTheme.Px(24));
+                row.RelativeItem().Element(ComposeStatementDetails);
             });
 
-            col.Item().PaddingTop(22).Element(ComposeTransactionsTable);
+            col.Item().PaddingTop(DocTheme.Px(22)).Element(ComposeTransactions);
         });
     }
 
-    // ── BILL TO — plain, no box ────────────────────────────────────────────────
-    private void ComposeBillToBlock(IContainer container)
+    // ── Bill To ────────────────────────────────────────────────────────────────
+    private void ComposeBillTo(IContainer container)
     {
         container.Column(col =>
         {
-            col.Item().Text("BILL TO").Bold().FontSize(7).FontColor(NavyPrimary);
-            col.Item().PaddingTop(5).Text(_data.CustomerName)
-                .Bold().FontSize(13).FontColor(Gray900);
-            col.Item().PaddingTop(6).LineHorizontal(0.5f).LineColor(Gray200);
+            col.Item().Element(c => SectionLabel(c, "Bill To"));
+
+            col.Item().PaddingTop(DocTheme.Px(6)).Text(_data.CustomerName)
+                .FontSize(DocTheme.Px(13)).SemiBold().FontColor(DocTheme.Ink);
 
             if (!string.IsNullOrWhiteSpace(_data.CustomerCode))
-                col.Item().PaddingTop(5).Element(c => InfoRow(c, "Account No", _data.CustomerCode));
+                col.Item().PaddingTop(DocTheme.Px(4)).Element(c => InfoRow(c, "Account No", _data.CustomerCode));
             if (!string.IsNullOrWhiteSpace(_data.CustomerPhone))
-                col.Item().PaddingTop(3).Element(c => InfoRow(c, "Phone", _data.CustomerPhone));
+                col.Item().PaddingTop(DocTheme.Px(2)).Element(c => InfoRow(c, "Phone", _data.CustomerPhone));
             if (!string.IsNullOrWhiteSpace(_data.CustomerType))
-                col.Item().PaddingTop(3).Element(c => InfoRow(c, "Account Type", _data.CustomerType));
+                col.Item().PaddingTop(DocTheme.Px(2)).Element(c => InfoRow(c, "Account Type", _data.CustomerType));
         });
     }
 
-    // ── STATEMENT DETAILS — plain, period only ─────────────────────────────────
-    private void ComposeStatementDetailsBlock(IContainer container)
+    // ── Statement details ──────────────────────────────────────────────────────
+    private void ComposeStatementDetails(IContainer container)
     {
-        var from = _data.FromDate?.ToString("dd MMM yyyy") ?? "All time";
-        var to = _data.ToDate?.ToString("dd MMM yyyy") ?? "All time";
-
-        var vehicleLabels = _data.PurchaseItems
+        var vehicles = _data.PurchaseItems
             .Select(x => x.VehicleLabel)
             .Where(v => !string.IsNullOrWhiteSpace(v))
             .Distinct()
@@ -173,217 +114,193 @@ public class CustomerAccountStatementDocument : IDocument
 
         container.Column(col =>
         {
-            col.Item().Text("STATEMENT DETAILS").Bold().FontSize(7).FontColor(Gray500);
-            col.Item().PaddingTop(5).LineHorizontal(0.5f).LineColor(Gray200);
-            col.Item().PaddingTop(8).Text("Statement Period").FontSize(8).Bold().FontColor(Gray700);
-            col.Item().PaddingTop(3).Text($"{from}  –  {to}").FontSize(9).FontColor(Gray900);
+            col.Item().Element(c => SectionLabel(c, "Statement Details"));
+            col.Item().PaddingTop(DocTheme.Px(6)).Element(c => InfoRow(c, "Period", PeriodLabel()));
+            col.Item().PaddingTop(DocTheme.Px(2)).Element(c => InfoRow(c, "Transactions", _data.PurchaseItems.Count.ToString()));
 
-            if (vehicleLabels.Count == 1)
-            {
-                col.Item().PaddingTop(8).Text("Vehicle").FontSize(8).Bold().FontColor(Gray700);
-                col.Item().PaddingTop(3).Text(vehicleLabels[0]).FontSize(9).FontColor(Gray900);
-            }
+            // Only meaningful when the whole statement concerns one vehicle; otherwise the column
+            // in the table carries it per line.
+            if (vehicles.Count == 1)
+                col.Item().PaddingTop(DocTheme.Px(2)).Element(c => InfoRow(c, "Vehicle", vehicles[0]));
         });
     }
 
-    // ── TRANSACTION TABLE + SUMMARY ────────────────────────────────────────────
-    // Column widths (relative, total = 80, content = 515pt):
-    //   Date (9) = 57.9pt  · Invoice (10) = 64.4pt · Item (26) = 167.4pt
-    //   Vehicle (10) = 64.4pt · Qty (5) = 32.2pt · UnitPrice (10) = 64.4pt · Amount (10) = 64.4pt
-    // PaddingHorizontal(5) → inner width = col_pt − 10
-    private void ComposeTransactionsTable(IContainer container)
+    // ── Transaction history ────────────────────────────────────────────────────
+    private void ComposeTransactions(IContainer container)
     {
-        var grandTotal = _data.PurchaseItems.Sum(x => x.LineTotal);
-
         container.Column(col =>
         {
-            // Section heading
-            col.Item().BorderBottom(1.5f).BorderColor(NavyPrimary).PaddingBottom(6)
-                .Text("TRANSACTION HISTORY").Bold().FontSize(10).FontColor(NavyPrimary);
+            col.Item().Element(c => SectionLabel(c, "Transaction History"));
 
             if (_data.PurchaseItems.Count == 0)
             {
-                col.Item().PaddingTop(20).AlignCenter()
+                col.Item().PaddingTop(DocTheme.Px(20)).AlignCenter()
                     .Text("No transactions found for this period.")
-                    .FontSize(9).Italic().FontColor(Gray400);
+                    .FontSize(DocTheme.Body).FontColor(DocTheme.Label);
                 return;
             }
 
-            col.Item().PaddingTop(10).Table(table =>
+            col.Item().PaddingTop(DocTheme.Px(8)).Table(table =>
             {
                 table.ColumnsDefinition(c =>
                 {
-                    c.RelativeColumn(9);   // Date
-                    c.RelativeColumn(10);  // Invoice #
-                    c.RelativeColumn(26);  // Item + SKU
-                    c.RelativeColumn(10);  // Vehicle
-                    c.RelativeColumn(5);   // Qty
-                    c.RelativeColumn(10);  // Unit Price
-                    c.RelativeColumn(10);  // Amount
+                    // Sized so the mono values fit on one line: "17 Jul 26" and "INV-2026-0847"
+                    // both wrapped at the handoff's narrower widths once px→pt scaling applied.
+                    c.ConstantColumn(DocTheme.Px(92));   // Date
+                    c.ConstantColumn(DocTheme.Px(125));  // Invoice #
+                    c.RelativeColumn();                  // Item
+                    c.ConstantColumn(DocTheme.Px(115));  // Vehicle
+                    c.ConstantColumn(DocTheme.Px(45));   // Qty
+                    c.ConstantColumn(DocTheme.Px(85));   // Unit price
+                    c.ConstantColumn(DocTheme.Px(95));   // Amount
                 });
 
-                // Header row
                 table.Header(header =>
                 {
-                    void H(IContainer c, string text, bool right = false)
-                    {
-                        var cell = c.Background(NavyPrimary)
-                            .PaddingHorizontal(5).PaddingVertical(7);
-                        (right ? cell.AlignRight().Text(text) : cell.Text(text))
-                            .Bold().FontSize(8f).FontColor(White);
-                    }
-
-                    H(header.Cell(), "Date");
-                    H(header.Cell(), "Invoice #");
-                    H(header.Cell(), "Item Description");
-                    H(header.Cell(), "Vehicle");
-                    H(header.Cell(), "Qty", right: true);
-                    H(header.Cell(), "Unit Price", right: true);
-                    H(header.Cell(), "Amount", right: true);
+                    Head(header.Cell(), "Date");
+                    Head(header.Cell(), "Invoice");
+                    Head(header.Cell(), "Item Description");
+                    Head(header.Cell(), "Vehicle");
+                    Head(header.Cell(), "Qty", right: true);
+                    Head(header.Cell(), $"Rate ({_theme.CurrencySymbol})", right: true);
+                    Head(header.Cell(), $"Amount ({_theme.CurrencySymbol})", right: true);
                 });
 
-                // Data rows — alternating white / gray50
-                bool alt = false;
                 foreach (var item in _data.PurchaseItems)
                 {
-                    string bg = alt ? Gray50 : White;
-                    alt = !alt;
-                    const float hp = 5f, vp = 5f, bs = 0.5f;
-                    string sku = !string.IsNullOrWhiteSpace(item.SKU) ? item.SKU : item.PartNumber;
+                    var sku = !string.IsNullOrWhiteSpace(item.SKU) ? item.SKU : item.PartNumber;
 
-                    table.Cell().Background(bg).BorderBottom(bs).BorderColor(Gray200)
-                        .PaddingHorizontal(hp).PaddingVertical(vp)
-                        .Text(item.InvoiceDate.ToString("dd MMM yy"))
-                        .FontSize(8).FontColor(Gray700);
+                    Cell(table.Cell(), item.InvoiceDate.ToString("dd MMM yy"), mono: true);
+                    Cell(table.Cell(), item.InvoiceNumber, mono: true);
 
-                    table.Cell().Background(bg).BorderBottom(bs).BorderColor(Gray200)
-                        .PaddingHorizontal(hp).PaddingVertical(vp)
-                        .Text(item.InvoiceNumber)
-                        .FontSize(8).FontColor(NavyPrimary);
+                    // Description carries the local name and code beneath, as on the invoice.
+                    Body(table.Cell()).Column(c =>
+                    {
+                        c.Item().Text(item.ItemName).FontSize(DocTheme.TableCell).FontColor(DocTheme.Ink);
+                        if (!string.IsNullOrWhiteSpace(item.ItemLocalName))
+                            c.Item().Text(item.ItemLocalName)
+                                .FontSize(DocTheme.AddressSize).FontColor(DocTheme.Muted);
+                        if (!string.IsNullOrWhiteSpace(sku))
+                            c.Item().Text(sku)
+                                .Style(DocTheme.MonoText).FontSize(DocTheme.AddressSize).FontColor(DocTheme.Label);
+                    });
 
-                    table.Cell().Background(bg).BorderBottom(bs).BorderColor(Gray200)
-                        .PaddingHorizontal(hp).PaddingVertical(vp)
-                        .Column(c =>
-                        {
-                            c.Item().Text(item.ItemName).FontSize(8).FontColor(Gray900);
-                            if (!string.IsNullOrWhiteSpace(item.ItemLocalName))
-                                c.Item().PaddingTop(1).Text(item.ItemLocalName).FontSize(7f).FontColor(Gray500);
-                            if (!string.IsNullOrWhiteSpace(sku))
-                                c.Item().PaddingTop(1).Text(sku).FontSize(7.5f).FontColor(Gray400);
-                        });
-
-                    table.Cell().Background(bg).BorderBottom(bs).BorderColor(Gray200)
-                        .PaddingHorizontal(hp).PaddingVertical(vp)
-                        .Text(string.IsNullOrWhiteSpace(item.VehicleLabel) ? "—" : item.VehicleLabel)
-                        .FontSize(8f).FontColor(Gray500);
-
-                    table.Cell().Background(bg).BorderBottom(bs).BorderColor(Gray200)
-                        .PaddingHorizontal(hp).PaddingVertical(vp)
-                        .AlignRight()
-                        .Text(item.Quantity.ToString()).FontSize(8).FontColor(Gray700);
-
-                    table.Cell().Background(bg).BorderBottom(bs).BorderColor(Gray200)
-                        .PaddingHorizontal(hp).PaddingVertical(vp)
-                        .AlignRight()
-                        .Text($"{_shop.CurrencySymbol} {item.UnitPrice:N2}").FontSize(8).FontColor(Gray700);
-
-                    table.Cell().Background(bg).BorderBottom(bs).BorderColor(Gray200)
-                        .PaddingHorizontal(hp).PaddingVertical(vp)
-                        .AlignRight()
-                        .Text($"{_shop.CurrencySymbol} {item.LineTotal:N2}").FontSize(8).Bold().FontColor(Gray900);
+                    Cell(table.Cell(), string.IsNullOrWhiteSpace(item.VehicleLabel) ? "—" : item.VehicleLabel,
+                        color: DocTheme.Muted);
+                    Cell(table.Cell(), item.Quantity.ToString(), mono: true, right: true);
+                    Cell(table.Cell(), item.UnitPrice.ToString("N2"), mono: true, right: true);
+                    Cell(table.Cell(), item.LineTotal.ToString("N2"), mono: true, right: true, medium: true);
                 }
-
-                // Grand Total footer row
-                table.Cell().ColumnSpan(6)
-                    .Background(Gray100).PaddingHorizontal(5).PaddingVertical(8)
-                    .AlignRight()
-                    .Text("GRAND TOTAL").Bold().FontSize(8.5f).FontColor(NavyPrimary);
-
-                table.Cell()
-                    .Background(NavyPrimary).PaddingHorizontal(5).PaddingVertical(8)
-                    .AlignRight()
-                    .Text($"{_shop.CurrencySymbol} {grandTotal:N2}").Bold().FontSize(8.5f).FontColor(White);
             });
 
-            // Financial summary — plain text, right-aligned, no box
-            // ConstantItem(200): label col ~105pt, value col 90pt.
-            // "BALANCE DUE" at 10pt ≈ 66pt — fits in 110pt.
-            // "100,000.00" at 10pt ≈ 55pt — fits in 90pt.
-            col.Item().PaddingTop(4).Row(summaryRow =>
-            {
-                summaryRow.RelativeItem(); // spacer pushes summary to right
-
-                summaryRow.ConstantItem(200).Column(s =>
-                {
-                    s.Item().PaddingTop(10).Row(r =>
-                    {
-                        r.RelativeItem().Text("Total Billed").FontSize(8.5f).FontColor(Gray500);
-                        r.ConstantItem(90).AlignRight()
-                            .Text($"{_shop.CurrencySymbol} {_data.TotalPurchaseAmount:N2}").FontSize(8.5f).FontColor(Gray700);
-                    });
-
-                    s.Item().PaddingTop(6).Row(r =>
-                    {
-                        r.RelativeItem().Text("Total Paid").FontSize(8.5f).FontColor(GreenText);
-                        r.ConstantItem(90).AlignRight()
-                            .Text($"({_shop.CurrencySymbol} {_data.TotalPaidAmount:N2})").FontSize(8.5f).FontColor(GreenText);
-                    });
-
-                    s.Item().PaddingTop(8).LineHorizontal(1f).LineColor(Gray300);
-
-                    s.Item().PaddingTop(8).Row(r =>
-                    {
-                        r.RelativeItem().Text("BALANCE DUE").Bold().FontSize(10).FontColor(Gray900);
-                        r.ConstantItem(90).AlignRight()
-                            .Text($"{_shop.CurrencySymbol} {_data.CurrentDue:N2}").Bold().FontSize(10).FontColor(Gray900);
-                    });
-                });
-            });
+            col.Item().PaddingTop(DocTheme.Px(10)).Element(ComposeSummary);
         });
     }
 
-    // ── FOOTER ─────────────────────────────────────────────────────────────────
+    // ── Summary stack (mirrors the shared ItemsTable totals block) ─────────────
+    private void ComposeSummary(IContainer container)
+    {
+        container.AlignRight().Width(DocTheme.TotalsWidth).Column(col =>
+        {
+            SummaryRow(col, "Total Billed", _data.TotalPurchaseAmount.ToString("N2"));
+            SummaryRow(col, "Total Paid", $"({_data.TotalPaidAmount:N2})");
+
+            col.Item().PaddingTop(DocTheme.Px(4))
+                .BorderTop(DocTheme.RuleMedium).BorderBottom(DocTheme.RuleMedium)
+                .BorderColor(DocTheme.Ink)
+                .Padding(DocTheme.Px(8))
+                .Row(row =>
+                {
+                    row.RelativeItem().Text(_data.CurrentDue <= 0 ? "Settled" : "Balance Due")
+                        .FontSize(DocTheme.GrandTotal).Bold().FontColor(DocTheme.Ink);
+                    row.AutoItem().Text(_theme.Money(Math.Abs(_data.CurrentDue)))
+                        .Style(DocTheme.MonoText).FontSize(DocTheme.GrandTotal).Bold().FontColor(DocTheme.Ink);
+                });
+        });
+
+        static void SummaryRow(ColumnDescriptor col, string label, string value) =>
+            col.Item().PaddingVertical(DocTheme.Px(5)).PaddingHorizontal(DocTheme.Px(8)).Row(row =>
+            {
+                row.RelativeItem().Text(label)
+                    .FontSize(DocTheme.TableCell).FontColor(DocTheme.Secondary);
+                row.AutoItem().Text(value)
+                    .Style(DocTheme.MonoText).FontSize(DocTheme.TableCell).FontColor(DocTheme.Secondary);
+            });
+    }
+
     private void ComposeFooter(IContainer container)
     {
-        container.Column(col =>
+        container.PaddingTop(DocTheme.Px(10)).Row(row =>
         {
-            col.Item().LineHorizontal(0.5f).LineColor(Gray200);
-
-            col.Item().PaddingTop(6).Row(row =>
-            {
-                // Footer text + generated timestamp
-                row.RelativeItem().Column(left =>
-                {
-                    var footerText = string.IsNullOrWhiteSpace(_shop.FooterText)
+            row.RelativeItem().Text(
+                    string.IsNullOrWhiteSpace(_shop.FooterText)
                         ? "Thank you for your continued business. Please contact us for any queries."
-                        : _shop.FooterText;
-                    left.Item().Text(footerText).FontSize(8f).Italic().FontColor(Gray400);
-                    left.Item().PaddingTop(2)
-                        .Text($"Generated {DateTime.UtcNow:dd MMM yyyy, HH:mm} UTC")
-                        .FontSize(7f).FontColor(Gray300);
-                });
+                        : _shop.FooterText)
+                .FontSize(DocTheme.AddressSize).FontColor(DocTheme.Label);
 
-                // Page number — 70pt fits "Page 99 / 99" at 8pt
-                row.ConstantItem(70).AlignRight().Text(txt =>
-                {
-                    txt.Span("Page ").FontSize(8).FontColor(Gray400);
-                    txt.CurrentPageNumber()
-                        .Style(TextStyle.Default.FontSize(8).Bold().FontColor(NavyPrimary));
-                    txt.Span(" / ").FontSize(8).FontColor(Gray400);
-                    txt.TotalPages()
-                        .Style(TextStyle.Default.FontSize(8).Bold().FontColor(NavyPrimary));
-                });
+            row.AutoItem().Text(txt =>
+            {
+                txt.DefaultTextStyle(DocTheme.MonoText.FontSize(DocTheme.AddressSize).FontColor(DocTheme.Label));
+                txt.CurrentPageNumber();
+                txt.Span(" / ");
+                txt.TotalPages();
             });
         });
     }
 
-    // ── Helper ─────────────────────────────────────────────────────────────────
-    private static void InfoRow(IContainer c, string label, string value)
+    // ── Helpers ────────────────────────────────────────────────────────────────
+    private string PeriodLabel()
     {
-        c.Text(txt =>
-        {
-            txt.Span($"{label}:  ").FontSize(8).FontColor(Gray500);
-            txt.Span(value).FontSize(8).Bold().FontColor(Gray700);
-        });
+        var from = _data.FromDate?.ToString("dd MMM yyyy");
+        var to = _data.ToDate?.ToString("dd MMM yyyy");
+
+        if (from is null && to is null) return "All time";
+        return $"{from ?? "All time"} – {to ?? _data.ReportDate.ToString("dd MMM yyyy")}";
     }
+
+    private static void Head(IContainer cell, string text, bool right = false)
+    {
+        var c = cell
+            .BorderBottom(DocTheme.RuleMedium).BorderColor(DocTheme.Ink)
+            .PaddingVertical(DocTheme.Px(7)).PaddingHorizontal(DocTheme.Px(8));
+
+        if (right) c = c.AlignRight();
+
+        c.Text(text.ToUpperInvariant())
+            .FontSize(DocTheme.TableHeader).SemiBold().FontColor(DocTheme.Secondary)
+            .LetterSpacing(1.2f / DocTheme.TableHeader);
+    }
+
+    private static IContainer Body(IContainer cell) =>
+        cell.BorderBottom(DocTheme.RuleHairline).BorderColor(DocTheme.Hairline).Padding(DocTheme.Px(8));
+
+    private static void Cell(
+        IContainer cell,
+        string text,
+        bool mono = false,
+        bool right = false,
+        bool medium = false,
+        string color = DocTheme.Ink)
+    {
+        var c = Body(cell);
+        if (right) c = c.AlignRight();
+
+        var span = c.Text(text).FontSize(DocTheme.TableCell).FontColor(color);
+        if (mono) span = span.Style(DocTheme.MonoText).FontSize(DocTheme.TableCell).FontColor(color);
+        if (medium) span.Medium();
+    }
+
+    private static void SectionLabel(IContainer c, string text) =>
+        c.Text(text.ToUpperInvariant())
+            .FontSize(DocTheme.SectionLabel).SemiBold().FontColor(DocTheme.Label)
+            .LetterSpacing(1.2f / DocTheme.SectionLabel);
+
+    private static void InfoRow(IContainer c, string label, string value) =>
+        c.Row(row =>
+        {
+            row.ConstantItem(DocTheme.Px(80)).Text(label)
+                .FontSize(DocTheme.Body).FontColor(DocTheme.Label);
+            row.RelativeItem().Text(value)
+                .FontSize(DocTheme.Body).FontColor(DocTheme.Secondary);
+        });
 }

@@ -25,6 +25,7 @@ using Microsoft.OpenApi.Models;
 using QuestPDF.Infrastructure;
 
 QuestPDF.Settings.License = LicenseType.Community;
+AutoPartShop.Api.Pdf.Design.DocFonts.Register();
 
 var builder = WebApplication.CreateBuilder(args);
 

@@ -41,6 +41,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Document fonts are embedded so PDF rendering does not depend on host-installed fonts. -->
+    <EmbeddedResource Include="Fonts\*.ttf" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="../AutoPartShop.Domain/AutoPartShop.Domain.csproj" />
     <ProjectReference Include="../AutoPartShop.Application/AutoPartShop.Application.csproj" />
     <ProjectReference Include="../AutoPartShop.Infrastructure/AutoPartShop.Infrastructure.csproj" />
