@@ -43,6 +43,8 @@ public class SalesOrderController : ControllerBase
     private readonly IDomainEventDispatcher _eventDispatcher;
     private readonly ILogger<SalesOrderController> _logger;
     private readonly AutoPartDbContext _dbContext;
+    private readonly ITillSessionRepository _tillSessionRepository;
+    private readonly IPermissionCheckService _permissionCheckService;
 
     public SalesOrderController(
         ISalesOrderRepository salesOrderRepository,
@@ -62,7 +64,9 @@ public class SalesOrderController : ControllerBase
         INotificationService notificationService,
         IDomainEventDispatcher eventDispatcher,
         ILogger<SalesOrderController> logger,
-        AutoPartDbContext dbContext)
+        AutoPartDbContext dbContext,
+        ITillSessionRepository tillSessionRepository,
+        IPermissionCheckService permissionCheckService)
     {
         _salesOrderRepository = salesOrderRepository;
         _saleOrderReadRepository = saleOrderReadRepository;
@@ -82,6 +86,8 @@ public class SalesOrderController : ControllerBase
         _eventDispatcher = eventDispatcher;
         _logger = logger;
         _dbContext = dbContext;
+        _tillSessionRepository = tillSessionRepository;
+        _permissionCheckService = permissionCheckService;
     }
 
     private static bool IsWalkIn(Customer? customer) =>
@@ -1990,6 +1996,20 @@ public class SalesOrderController : ControllerBase
         try
         {
             _logger.LogInformation("Creating quick sale for customer: {CustomerName}", request.CustomerName);
+
+            // 0. Till session gate — opt-in via Permissions.SalesRequireTillSession (roles without
+            // it behave exactly as before). See TillSessionController.RequiresOpenSession for the
+            // frontend "should I prompt to open a till" pre-check that mirrors this logic.
+            if (await _permissionCheckService.UserHasPermissionAsync(User, Permissions.SalesRequireTillSession, cancellationToken))
+            {
+                var cashierId = _currentUserService.GetCurrentUserGuid();
+                if (cashierId is null || cashierId == Guid.Empty)
+                    return Unauthorized(new { message = "Could not resolve the current user" });
+
+                var openSession = await _tillSessionRepository.GetOpenSessionForCashierAsync(cashierId.Value, cancellationToken);
+                if (openSession is null)
+                    return BadRequest(new { message = "You need to open a till session before starting a sale." });
+            }
 
             // 1. Validate request
             if (request.Items == null || !request.Items.Any())

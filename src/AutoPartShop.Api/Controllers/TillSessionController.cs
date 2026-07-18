@@ -20,9 +20,93 @@ namespace AutoPartShop.Api.Controllers;
 public class TillSessionController(
     ITillSessionRepository tillSessionRepository,
     ICurrentUserService currentUserService,
+    IPermissionCheckService permissionCheckService,
     AutoPartDbContext dbContext,
     ILogger<TillSessionController> logger) : ControllerBase
 {
+    /// <summary>
+    /// Lets the frontend proactively check "do I need to open a till before starting a sale"
+    /// (better UX than waiting for Quick Sale to reject at submit time). Mirrors the gate
+    /// applied server-side in SalesOrderController.CreateQuickSale.
+    /// </summary>
+    [HttpGet("requires-open-session")]
+    public async Task<IActionResult> RequiresOpenSession(CancellationToken cancellationToken)
+    {
+        var required = await permissionCheckService.UserHasPermissionAsync(User, Permissions.SalesRequireTillSession, cancellationToken);
+
+        var hasOpenSession = false;
+        if (required)
+        {
+            var cashierId = currentUserService.GetCurrentUserGuid();
+            if (cashierId is null || cashierId == Guid.Empty)
+                return Unauthorized(new { message = "Could not resolve the current user" });
+
+            var openSession = await tillSessionRepository.GetOpenSessionForCashierAsync(cashierId.Value, cancellationToken);
+            hasOpenSession = openSession is not null;
+        }
+
+        return Ok(new { required, hasOpenSession });
+    }
+
+    /// <summary>
+    /// Suggests defaults for the Open Till form.
+    /// <para>
+    /// Opening float is scoped by TERMINAL, not cashier: the cash physically sitting in a given
+    /// drawer is a fact about that drawer, not about whoever counted it last. Two cashiers on two
+    /// counters at the same time, or one cashier rotating between counters day to day, must never
+    /// have one drawer's history leak into another's suggestion — so this only returns a value
+    /// when <paramref name="terminalLabel"/> is supplied, looked up against that exact terminal's
+    /// last CLOSED session (whoever ran it). Pass null/empty before the cashier has typed a
+    /// terminal yet; you'll just get no opening-float suggestion back.
+    /// </para>
+    /// <para>
+    /// Shift label, in contrast, IS a fact about the cashier (their HR-assigned shift), so it's
+    /// resolved from the current user regardless of terminal.
+    /// </para>
+    /// Purely UI suggestions either way — the Open form fields stay editable, nothing is enforced.
+    /// </summary>
+    [HttpGet("suggested-opening-float")]
+    public async Task<IActionResult> GetSuggestedOpeningFloat([FromQuery] string? terminalLabel, CancellationToken cancellationToken)
+    {
+        var cashierId = currentUserService.GetCurrentUserGuid();
+        if (cashierId is null || cashierId == Guid.Empty)
+            return Unauthorized(new { message = "Could not resolve the current user" });
+
+        TillSession? lastClosedOnTerminal = null;
+        if (!string.IsNullOrWhiteSpace(terminalLabel))
+            lastClosedOnTerminal = await tillSessionRepository.GetLastClosedSessionForTerminalAsync(terminalLabel.Trim(), cancellationToken);
+
+        string? suggestedShiftLabel = null;
+        string? suggestedShiftHours = null;
+        var employee = await dbContext.Employees
+            .AsNoTracking()
+            .FirstOrDefaultAsync(e => e.UserId == cashierId.Value && !e.Isdeleted, cancellationToken);
+        if (employee?.ShiftId is not null)
+        {
+            var shift = await dbContext.Shifts
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.Id == employee.ShiftId.Value && !s.Isdeleted, cancellationToken);
+            if (shift is not null)
+            {
+                suggestedShiftLabel = shift.Name;
+                suggestedShiftHours = $"{shift.StartTime:hh\\:mm} – {shift.EndTime:hh\\:mm}";
+            }
+        }
+
+        var suggestedOpeningFloatFromCashier = lastClosedOnTerminal is null
+            ? null
+            : await ResolveCashierDisplayAsync(lastClosedOnTerminal, cancellationToken);
+
+        return Ok(new
+        {
+            suggestedOpeningFloat = lastClosedOnTerminal?.ClosingCountedAmount,
+            suggestedOpeningFloatFromCashier,
+            suggestedOpeningFloatClosedAt = lastClosedOnTerminal?.ClosedAt,
+            suggestedShiftLabel,
+            suggestedShiftHours
+        });
+    }
+
     [HttpPost("open")]
     [HasPermission(Permissions.SalesCreate)]
     public async Task<IActionResult> Open(OpenTillSessionRequest request, CancellationToken cancellationToken)

@@ -30,6 +30,11 @@ class _TillSessionScreenState extends ConsumerState<TillSessionScreen> {
   // rather than re-derived from the provider.
   TillSession? _justClosed;
 
+  // Remembered across the "Open New Till" transition so the next Open Till
+  // form can suggest this session's counted amount as the opening float,
+  // without a round trip — we already have it right here.
+  TillSession? _lastClosedForSuggestion;
+
   Future<void> _openCashDropSheet(TillSession session) async {
     final saved = await showModalBottomSheet<bool>(
       context: context,
@@ -54,7 +59,10 @@ class _TillSessionScreenState extends ConsumerState<TillSessionScreen> {
   }
 
   void _startNewSession() {
-    setState(() => _justClosed = null);
+    setState(() {
+      _lastClosedForSuggestion = _justClosed;
+      _justClosed = null;
+    });
     ref.invalidate(currentTillSessionProvider);
   }
 
@@ -98,6 +106,7 @@ class _TillSessionScreenState extends ConsumerState<TillSessionScreen> {
           data: (session) => session == null
               ? _OpenTillFormCard(
                   onOpened: () => ref.invalidate(currentTillSessionProvider),
+                  previousClosedSession: _lastClosedForSuggestion,
                 )
               : _OpenSessionBody(
                   session: session,
@@ -112,24 +121,76 @@ class _TillSessionScreenState extends ConsumerState<TillSessionScreen> {
 // ── No open session: "Open Till" form ───────────────────────────────────────
 
 class _OpenTillFormCard extends ConsumerStatefulWidget {
-  const _OpenTillFormCard({required this.onOpened});
+  const _OpenTillFormCard({required this.onOpened, this.previousClosedSession});
 
   final VoidCallback onOpened;
+
+  /// The session just closed in this same screen visit, if any — used only
+  /// to default the Terminal field (reopening the same counter is the common
+  /// case). The actual opening-float suggestion always comes from a fresh,
+  /// terminal-scoped lookup (see [_OpenTillFormCardState._loadSuggestions]),
+  /// not from this session directly — the cash physically stays in the
+  /// drawer regardless of who counts it next, so it's the drawer's own
+  /// history that matters, not this cashier's.
+  final TillSession? previousClosedSession;
 
   @override
   ConsumerState<_OpenTillFormCard> createState() => _OpenTillFormCardState();
 }
 
 class _OpenTillFormCardState extends ConsumerState<_OpenTillFormCard> {
-  final _terminalCtrl = TextEditingController(text: 'Mobile POS');
+  late final _terminalCtrl = TextEditingController(
+      text: widget.previousClosedSession?.terminalLabel ?? 'Mobile POS');
+  final _terminalFocus = FocusNode();
   final _floatCtrl = TextEditingController();
   final _shiftCtrl = TextEditingController();
   final _notesCtrl = TextEditingController();
   bool _saving = false;
+  String? _suggestedFloatFromCashier;
+  String? _suggestedShiftHours;
+
+  @override
+  void initState() {
+    super.initState();
+    // The terminal field already has a default value (either the just-closed
+    // session's terminal, or 'Mobile POS'), so we can look up its suggestion
+    // right away rather than waiting for the cashier to touch the field.
+    _loadSuggestions(_terminalCtrl.text.trim());
+    _terminalFocus.addListener(() {
+      if (!_terminalFocus.hasFocus) _loadSuggestions(_terminalCtrl.text.trim());
+    });
+  }
+
+  /// Opening float is scoped to [terminalLabel]'s own last closed session
+  /// (whoever ran it) — never carried over from a different cashier's
+  /// history. Shift label is always resolved from the current cashier.
+  Future<void> _loadSuggestions(String terminalLabel) async {
+    try {
+      final result = await ref
+          .read(tillSessionRepositoryProvider)
+          .getSuggestedOpeningFloat(terminalLabel: terminalLabel);
+      if (!mounted) return;
+      setState(() {
+        if (result.suggestedOpeningFloat != null) {
+          _floatCtrl.text = result.suggestedOpeningFloat!.toStringAsFixed(2);
+          _suggestedFloatFromCashier = result.suggestedOpeningFloatFromCashier;
+        } else {
+          _suggestedFloatFromCashier = null;
+        }
+        if (result.suggestedShiftLabel != null) {
+          _shiftCtrl.text = result.suggestedShiftLabel!;
+          _suggestedShiftHours = result.suggestedShiftHours;
+        }
+      });
+    } on AppException {
+      // Best-effort UI hints only — silently skip if it fails, fields stay blank.
+    }
+  }
 
   @override
   void dispose() {
     _terminalCtrl.dispose();
+    _terminalFocus.dispose();
     _floatCtrl.dispose();
     _shiftCtrl.dispose();
     _notesCtrl.dispose();
@@ -200,6 +261,7 @@ class _OpenTillFormCardState extends ConsumerState<_OpenTillFormCard> {
               const SizedBox(height: 16),
               TextField(
                 controller: _terminalCtrl,
+                focusNode: _terminalFocus,
                 decoration: const InputDecoration(labelText: 'Terminal label'),
               ),
               const SizedBox(height: 10),
@@ -213,14 +275,46 @@ class _OpenTillFormCardState extends ConsumerState<_OpenTillFormCard> {
                   labelText: 'Opening float',
                   prefixText: '৳ ',
                 ),
+                onChanged: (_) {
+                  if (_suggestedFloatFromCashier != null) {
+                    setState(() => _suggestedFloatFromCashier = null);
+                  }
+                },
               ),
+              if (_suggestedFloatFromCashier != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    "Suggested from this terminal's last closed session (counted by $_suggestedFloatFromCashier) — edit if the count differs.",
+                    style: GoogleFonts.instrumentSans(
+                      fontSize: 11,
+                      color: context.colors.secondary,
+                    ),
+                  ),
+                ),
               const SizedBox(height: 10),
               TextField(
                 controller: _shiftCtrl,
                 decoration: const InputDecoration(
                   labelText: 'Shift label (optional)',
                 ),
+                onChanged: (_) {
+                  if (_suggestedShiftHours != null) {
+                    setState(() => _suggestedShiftHours = null);
+                  }
+                },
               ),
+              if (_suggestedShiftHours != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    'From your assigned shift ($_suggestedShiftHours) — edit if this shift differs.',
+                    style: GoogleFonts.instrumentSans(
+                      fontSize: 11,
+                      color: context.colors.secondary,
+                    ),
+                  ),
+                ),
               const SizedBox(height: 10),
               TextField(
                 controller: _notesCtrl,

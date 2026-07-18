@@ -79,6 +79,67 @@ class TillSession {
       );
 }
 
+/// Whether the current user's role requires an open till session before
+/// starting a sale, mirroring `GET /api/v1/till-sessions/requires-open-session`.
+///
+/// [required] is opt-in per role (`sales.require-till-session` permission) —
+/// most roles won't have it, in which case [hasOpenSession] is always
+/// `false` and irrelevant. Only gate the UI when both [required] is `true`
+/// and [hasOpenSession] is `false`.
+class TillSessionRequirement {
+  const TillSessionRequirement({
+    required this.required,
+    required this.hasOpenSession,
+  });
+
+  final bool required;
+  final bool hasOpenSession;
+
+  bool get blocksSale => required && !hasOpenSession;
+
+  factory TillSessionRequirement.fromJson(Map<String, dynamic> json) =>
+      TillSessionRequirement(
+        required: asBool(json['required']),
+        hasOpenSession: asBool(json['hasOpenSession']),
+      );
+}
+
+/// Suggested defaults for the Open Till form. Mirrors
+/// `GET /api/v1/till-sessions/suggested-opening-float`. UI hints only; every
+/// Open Till field always stays editable.
+///
+/// [suggestedOpeningFloat] is scoped by TERMINAL, not cashier — the cash
+/// physically sitting in a drawer is a fact about that drawer, not about
+/// whoever counted it last. It's only populated when a `terminalLabel` was
+/// passed to the request; [suggestedOpeningFloatFromCashier] names whoever
+/// last closed a session on that terminal, for context.
+///
+/// [suggestedShiftLabel] IS a fact about the cashier (their HR-assigned
+/// shift), so it's resolved from the current user regardless of terminal —
+/// null when they have no linked Employee record or no ShiftId assigned.
+class SuggestedOpeningFloat {
+  const SuggestedOpeningFloat({
+    this.suggestedOpeningFloat,
+    this.suggestedOpeningFloatFromCashier,
+    this.suggestedShiftLabel,
+    this.suggestedShiftHours,
+  });
+
+  final double? suggestedOpeningFloat;
+  final String? suggestedOpeningFloatFromCashier;
+  final String? suggestedShiftLabel;
+  final String? suggestedShiftHours;
+
+  factory SuggestedOpeningFloat.fromJson(Map<String, dynamic> json) =>
+      SuggestedOpeningFloat(
+        suggestedOpeningFloat: asDoubleOrNull(json['suggestedOpeningFloat']),
+        suggestedOpeningFloatFromCashier:
+            asStringOrNull(json['suggestedOpeningFloatFromCashier']),
+        suggestedShiftLabel: asStringOrNull(json['suggestedShiftLabel']),
+        suggestedShiftHours: asStringOrNull(json['suggestedShiftHours']),
+      );
+}
+
 /// One recorded cash drop against a [TillSession].
 class TillCashDrop {
   const TillCashDrop({

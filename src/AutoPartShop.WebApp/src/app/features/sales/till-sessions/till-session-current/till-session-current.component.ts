@@ -70,6 +70,10 @@ export class TillSessionCurrentComponent implements OnInit {
     openNotes = '';
     opening = signal(false);
     openError = signal<string | null>(null);
+    /** Hint shown under the Opening Float field when it was pre-filled from this terminal's last closed session. */
+    openingFloatSuggestedFromCashier = signal<string | null>(null);
+    /** Hint shown under the Shift Label field when it was pre-filled from the cashier's assigned HR shift. */
+    shiftLabelSuggestedHours = signal<string | null>(null);
 
     // ── Record Cash Drop dialog (plain boolean — two-way bound to p-dialog [(visible)]) ─────
     showCashDropDialog = false;
@@ -101,6 +105,10 @@ export class TillSessionCurrentComponent implements OnInit {
             next: (session) => {
                 this.session.set(session);
                 this.loading.set(false);
+                // Shift suggestion doesn't need a terminal (it's resolved from the cashier's own
+                // HR assignment) — fetch it now. Opening float DOES need a terminal, so it waits
+                // until the cashier types one (see onTerminalBlur()).
+                if (session === null) this.loadSuggestions();
             },
             error: (err) => {
                 this.loading.set(false);
@@ -111,6 +119,36 @@ export class TillSessionCurrentComponent implements OnInit {
                 });
             }
         });
+    }
+
+    /**
+     * Fetches Open Till suggestions. Shift label is always resolved (cashier-scoped). Opening
+     * float is only resolved when `terminalLabel` is given — it's scoped to that specific
+     * terminal's own history, not the cashier's, since the cash physically stays in the drawer
+     * regardless of who counts it next. Best-effort UI hints only; every field stays editable.
+     */
+    private loadSuggestions(terminalLabel?: string): void {
+        this.tillSessionService.getSuggestedOpeningFloat(terminalLabel).subscribe({
+            next: (result) => {
+                if (result.suggestedOpeningFloat != null) {
+                    this.openingFloat = result.suggestedOpeningFloat;
+                    this.openingFloatSuggestedFromCashier.set(result.suggestedOpeningFloatFromCashier);
+                }
+                if (result.suggestedShiftLabel) {
+                    this.shiftLabel = result.suggestedShiftLabel;
+                    this.shiftLabelSuggestedHours.set(result.suggestedShiftHours);
+                }
+            },
+            error: () => {
+                // Best-effort UI hint only — silently skip if it fails, fields just stay blank.
+            }
+        });
+    }
+
+    /** Re-checks the opening-float suggestion once the cashier has typed/edited a terminal. */
+    onTerminalBlur(): void {
+        const terminal = this.terminalLabel.trim();
+        if (terminal) this.loadSuggestions(terminal);
     }
 
     // ── Open Till ────────────────────────────────────────────────────────
@@ -158,11 +196,19 @@ export class TillSessionCurrentComponent implements OnInit {
         this.shiftLabel = '';
         this.openNotes = '';
         this.openError.set(null);
+        this.openingFloatSuggestedFromCashier.set(null);
+        this.shiftLabelSuggestedHours.set(null);
     }
 
     /** Reset back to the Open Till form for the next shift, after a session has been closed. */
     startNewSession(): void {
+        // Default the terminal to the one just closed — reopening the same counter is the common
+        // case — then immediately look up its opening-float suggestion since we already know
+        // which terminal to ask about. The cashier can still edit it if they're switching counters.
+        const justClosedTerminal = this.session()?.terminalLabel ?? '';
         this.session.set(null);
+        this.terminalLabel = justClosedTerminal;
+        this.loadSuggestions(justClosedTerminal || undefined);
     }
 
     // ── Record Cash Drop ─────────────────────────────────────────────────

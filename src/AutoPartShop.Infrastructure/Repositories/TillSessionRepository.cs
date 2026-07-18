@@ -21,6 +21,14 @@ public class TillSessionRepository(AutoPartDbContext dbContext) : ITillSessionRe
             .FirstOrDefaultAsync(t => t.CashierId == cashierId && t.Status == "OPEN" && !t.Isdeleted, cancellationToken);
     }
 
+    public async Task<TillSession?> GetLastClosedSessionForTerminalAsync(string terminalLabel, CancellationToken cancellationToken = default)
+    {
+        return await dbContext.TillSessions
+            .Where(t => t.TerminalLabel == terminalLabel && t.Status == "CLOSED" && !t.Isdeleted)
+            .OrderByDescending(t => t.ClosedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
     public async Task<(IEnumerable<TillSession> Sessions, int TotalCount)> SearchPagedAsync(
         TillSessionQuery query, CancellationToken cancellationToken = default)
     {

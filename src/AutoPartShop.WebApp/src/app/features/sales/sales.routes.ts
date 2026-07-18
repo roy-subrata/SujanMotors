@@ -69,7 +69,8 @@ export const salesRoutes: Routes = [
     },
 
     // Till Sessions — standalone admin cash-drawer lifecycle (open/cash-drop/close/shift report).
-    // Deliberately separate from checkout — the Quick Sale shortcut has no till-session awareness.
+    // The Quick Sale shortcut links here when the (opt-in) till-session gate blocks a cashier
+    // without an open session — see QuickSaleShortcutComponent.tillSessionBlocked.
     {
         path: 'till-sessions',
         component: TillSessionsComponent,

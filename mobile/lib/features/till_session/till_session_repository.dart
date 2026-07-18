@@ -98,6 +98,36 @@ class TillSessionRepository {
       throw AppException.fromDio(e);
     }
   }
+
+  /// Whether the current user's role requires an open till session before
+  /// starting a sale, and whether they currently have one
+  /// (`GET /till-sessions/requires-open-session`).
+  Future<TillSessionRequirement> checkRequiresOpenSession() async {
+    try {
+      final res = await _dio.get('/till-sessions/requires-open-session');
+      return TillSessionRequirement.fromJson(
+          res.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw AppException.fromDio(e);
+    }
+  }
+
+  /// Suggested Open Till defaults (`GET /till-sessions/suggested-opening-float`).
+  /// Opening float is scoped by [terminalLabel] (pass null/empty before the
+  /// cashier has typed one yet — you'll just get no float suggestion back);
+  /// shift label is always resolved from the current cashier regardless.
+  Future<SuggestedOpeningFloat> getSuggestedOpeningFloat(
+      {String? terminalLabel}) async {
+    try {
+      final res = await _dio.get('/till-sessions/suggested-opening-float',
+          queryParameters: (terminalLabel != null && terminalLabel.isNotEmpty)
+              ? {'terminalLabel': terminalLabel}
+              : null);
+      return SuggestedOpeningFloat.fromJson(res.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw AppException.fromDio(e);
+    }
+  }
 }
 
 final tillSessionRepositoryProvider = Provider<TillSessionRepository>(
@@ -107,4 +137,11 @@ final tillSessionRepositoryProvider = Provider<TillSessionRepository>(
 /// The current user's open till session, or null if they have none.
 final currentTillSessionProvider = FutureProvider<TillSession?>((ref) {
   return ref.read(tillSessionRepositoryProvider).getCurrent();
+});
+
+/// Whether the current user must have an open till session before starting a
+/// sale, and whether they currently have one. See [TillSessionRequirement].
+final tillSessionRequirementProvider =
+    FutureProvider<TillSessionRequirement>((ref) {
+  return ref.read(tillSessionRepositoryProvider).checkRequiresOpenSession();
 });

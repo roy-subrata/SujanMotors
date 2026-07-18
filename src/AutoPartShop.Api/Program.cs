@@ -187,6 +187,7 @@ builder.Services.AddMemoryCache();
 builder.Services.AddAuthorization();
 builder.Services.AddSingleton<Microsoft.AspNetCore.Authorization.IAuthorizationPolicyProvider, AutoPartShop.Api.Authorization.PermissionPolicyProvider>();
 builder.Services.AddScoped<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, AutoPartShop.Api.Authorization.PermissionAuthorizationHandler>();
+builder.Services.AddScoped<IPermissionCheckService, PermissionCheckService>();
 
 // Register HttpContextAccessor (required for CurrentUserService)
 builder.Services.AddHttpContextAccessor();

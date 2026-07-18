@@ -457,7 +457,9 @@ public class SalesReportsController(
                 BusinessDayLabel: query.FromDate is { } f && query.ToDate is { } t && f.Date == t.Date
                     ? f.ToString("dd MMM yyyy")
                     : $"{query.FromDate:dd MMM} – {query.ToDate:dd MMM yyyy}",
-                // No till/terminal domain yet (that's the cashier-shifts feature) — one label for all.
+                // Deliberately shop-wide, not per-terminal — this is the whole-day summary across
+                // every cashier/counter. TillSession (cashier-shifts feature) now exists and gives
+                // the per-terminal, per-shift equivalent via the Shift Report instead.
                 TerminalLabel: "All Tills",
                 GrossSales: gross,
                 ReturnsAmount: returnsTotal,

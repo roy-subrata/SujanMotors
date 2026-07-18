@@ -41,15 +41,23 @@
     <div class="till-form-grid">
       <div class="dialog-field">
         <label>Terminal *</label>
-        <input pInputText [(ngModel)]="terminalLabel" placeholder="e.g. Counter 1" />
+        <input pInputText [(ngModel)]="terminalLabel" (blur)="onTerminalBlur()" placeholder="e.g. Counter 1" />
       </div>
       <div class="dialog-field">
         <label>Opening Float *</label>
-        <input pInputText type="number" min="0" step="0.01" [(ngModel)]="openingFloat" placeholder="0.00" />
+        <input pInputText type="number" min="0" step="0.01" [(ngModel)]="openingFloat"
+               (ngModelChange)="openingFloatSuggestedFromCashier.set(null)" placeholder="0.00" />
+        <small *ngIf="openingFloatSuggestedFromCashier() as fromCashier" class="field-hint">
+          Suggested from this terminal's last closed session (counted by {{ fromCashier }}) — edit if the count differs.
+        </small>
       </div>
       <div class="dialog-field">
         <label>Shift Label</label>
-        <input pInputText [(ngModel)]="shiftLabel" placeholder="e.g. Morning Shift" />
+        <input pInputText [(ngModel)]="shiftLabel"
+               (ngModelChange)="shiftLabelSuggestedHours.set(null)" placeholder="e.g. Morning Shift" />
+        <small *ngIf="shiftLabelSuggestedHours() as hours" class="field-hint">
+          From your assigned shift ({{ hours }}) — edit if this shift differs.
+        </small>
       </div>
       <div class="dialog-field full">
         <label>Notes</label>
