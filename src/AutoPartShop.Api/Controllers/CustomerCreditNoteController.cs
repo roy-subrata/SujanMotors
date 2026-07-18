@@ -1,4 +1,5 @@
-﻿using AutoPartShop.Api.Services;
+﻿using AutoPartShop.Api.Pdf;
+using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.CustomerCreditNoteDtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
@@ -8,6 +9,7 @@ using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using QuestPDF.Fluent;
 using System.Data;
 
 namespace AutoPartShop.Api.Controllers;
@@ -149,6 +151,103 @@ public class CustomerCreditNoteController : ControllerBase
             return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving the customer credit note");
         }
     }
+
+    /// <summary>Download the customer Credit Note as a PDF.</summary>
+    [HttpGet("{id:guid}/pdf")]
+    [Produces("application/pdf")]
+    [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DownloadPdf(
+        Guid id,
+        [FromServices] IShopProfileProvider shopProfiles,
+        CancellationToken cancellationToken)
+    {
+        var creditNote = await _dbContext.Set<CustomerCreditNote>()
+            .AsNoTracking()
+            .Include(cn => cn.Customer)
+            .Include(cn => cn.SalesReturn!).ThenInclude(sr => sr.LineItems).ThenInclude(l => l.Part)
+            .Include(cn => cn.SalesReturn!).ThenInclude(sr => sr.LineItems).ThenInclude(l => l.Unit)
+            .Include(cn => cn.Invoice)
+            .FirstOrDefaultAsync(cn => cn.Id == id && !cn.Isdeleted, cancellationToken);
+
+        if (creditNote is null)
+            return NotFound(new { message = "Customer credit note not found" });
+
+        var currency = await _dbContext.Set<Currency>()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Code == creditNote.Currency && !c.Isdeleted, cancellationToken);
+        var shop = await shopProfiles.GetAsync(currency?.Symbol, cancellationToken);
+
+        var customer = creditNote.Customer;
+        var customerName = customer is null
+            ? string.Empty
+            : !string.IsNullOrWhiteSpace(customer.CompanyName)
+                ? customer.CompanyName
+                : $"{customer.FirstName} {customer.LastName}".Trim();
+        var address = customer is null
+            ? string.Empty
+            : string.Join(", ", new[] { customer.BillingAddress, customer.City, customer.PostalCode }
+                .Where(s => !string.IsNullOrWhiteSpace(s)));
+
+        // Part numbers aren't on the return line, so fetch them for the parts in play.
+        var returnLines = creditNote.SalesReturn?.LineItems.ToList() ?? [];
+        var partIds = returnLines.Select(l => l.PartId).Distinct().ToList();
+        var partNumbers = await _dbContext.Set<Product>()
+            .AsNoTracking()
+            .Where(p => partIds.Contains(p.Id))
+            .Select(p => new { p.Id, PartNumber = p.PartNumber!.Value })
+            .ToDictionaryAsync(p => p.Id, p => p.PartNumber, cancellationToken);
+
+        List<CreditNoteLine> lines;
+        if (returnLines.Count > 0)
+        {
+            lines = returnLines
+                .Select((l, i) => new CreditNoteLine(
+                    SlNo: i + 1,
+                    PartNumber: partNumbers.TryGetValue(l.PartId, out var pn) ? pn : (l.Part?.SKU ?? string.Empty),
+                    DisplayName: l.Part?.Name ?? string.Empty,
+                    LocalName: l.Part?.LocalName,
+                    Quantity: l.Quantity,
+                    UnitSymbol: l.Unit?.Symbol ?? string.Empty,
+                    UnitPrice: l.UnitPrice,
+                    LineTotal: l.RefundAmount))
+                .ToList();
+        }
+        else
+        {
+            // Warranty refunds and standalone credits have no return lines — show one summary line
+            // so the total is still itemised rather than appearing from nowhere.
+            lines =
+            [
+                new CreditNoteLine(1, "—", "Credit adjustment", null, 1, "", creditNote.TotalAmount, creditNote.TotalAmount)
+            ];
+        }
+
+        var data = new CreditNoteDocumentData(
+            CreditNoteNumber: creditNote.CreditNoteNumber,
+            IssueDate: creditNote.IssueDate,
+            RefInvoiceNumber: creditNote.Invoice?.InvoiceNumber ?? string.Empty,
+            CustomerName: customerName,
+            CustomerAddress: address,
+            CustomerPhone: customer?.Phone ?? string.Empty,
+            Reason: FormatReason(creditNote.SalesReturn?.Reason),
+            Lines: lines,
+            TotalCredit: creditNote.TotalAmount,
+            Notes: creditNote.Notes);
+
+        var pdfBytes = new CreditNoteDocument(data, shop).GeneratePdf();
+        return File(pdfBytes, "application/pdf", $"credit-note-{creditNote.CreditNoteNumber}.pdf");
+    }
+
+    private static string FormatReason(string? reason) => reason switch
+    {
+        null or "" => "",
+        "DAMAGED" => "Goods returned — damaged.",
+        "DEFECTIVE" => "Goods returned — manufacturing defect.",
+        "WRONG_ITEM" => "Goods returned — wrong item supplied.",
+        "EXCESS_STOCK" => "Goods returned — excess stock.",
+        _ => reason.Replace('_', ' ')
+    };
 
     [HttpPost("apply")]
     [HasPermission(Permissions.SalesProcessPayment)]

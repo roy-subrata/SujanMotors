@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
 
 export enum SupplierLedgerTransactionType {
@@ -101,6 +102,29 @@ export class SupplierLedgerService {
         if (fromDate) params = params.set('fromDate', fromDate);
         if (toDate) params = params.set('toDate', toDate);
         return this.http.get<SupplierLedgerEntryDto[]>(`${this.apiUrl}/${supplierId}/entries`, { params });
+    }
+
+    /**
+     * Download the server-rendered supplier ledger statement PDF. Mirrors the date filter
+     * currently applied on-screen; totals are always all-time (matches the summary endpoint).
+     * Returns an Observable that completes once the browser download is triggered.
+     */
+    downloadStatementPdf(supplierId: string, supplierCode: string, fromDate?: string, toDate?: string): Observable<void> {
+        let params = new HttpParams();
+        if (fromDate) params = params.set('fromDate', fromDate);
+        if (toDate) params = params.set('toDate', toDate);
+
+        return this.http.get(`${this.apiUrl}/${supplierId}/statement-pdf`, { params, responseType: 'blob' }).pipe(
+            map(blob => {
+                const objectUrl = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = objectUrl;
+                const dateStr = new Date().toISOString().split('T')[0];
+                a.download = `supplier-ledger-${supplierCode || supplierId}-${dateStr}.pdf`;
+                a.click();
+                URL.revokeObjectURL(objectUrl);
+            })
+        );
     }
 
     /**

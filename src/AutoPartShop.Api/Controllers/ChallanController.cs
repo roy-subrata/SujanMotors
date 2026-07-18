@@ -152,7 +152,10 @@ public class ChallanController(
     [Produces("application/pdf")]
     [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> DownloadPdf(Guid id, CancellationToken ct)
+    public async Task<IActionResult> DownloadPdf(
+        Guid id,
+        [FromServices] IShopProfileProvider shopProfiles,
+        CancellationToken ct)
     {
         var challan = await _db.Set<Challan>()
             .AsNoTracking()
@@ -173,26 +176,7 @@ public class ChallanController(
             .Select(p => new { p.Id, PartNumber = p.PartNumber!.Value, p.LocalName })
             .ToDictionaryAsync(p => p.Id, ct);
 
-        var settings = await _db.Set<ApplicationSettings>()
-            .AsNoTracking()
-            .Where(s => !s.Isdeleted)
-            .ToListAsync(ct);
-
-        string Get(string key, string fallback = "")
-        {
-            var v = settings.FirstOrDefault(s => s.Key == key)?.Value;
-            return string.IsNullOrWhiteSpace(v) ? fallback : v;
-        }
-
-        var shopProfile = new ShopProfile(
-            Name: Get("SHOP_NAME"),
-            Address: Get("SHOP_ADDRESS"),
-            Phone: Get("SHOP_PHONE"),
-            Email: Get("SHOP_EMAIL"),
-            TaxNo: Get("SHOP_TAX_NUMBER"),
-            Tagline: Get("SHOP_TAGLINE"),
-            FooterText: Get("INVOICE_FOOTER_TEXT", "Thank you for your business!"),
-            BankDetails: Get("SHOP_BANK_DETAILS"));
+        var shopProfile = await shopProfiles.GetAsync(cancellationToken: ct);
 
         var customer = challan.SalesOrder?.Customer;
         var customerName = customer is null

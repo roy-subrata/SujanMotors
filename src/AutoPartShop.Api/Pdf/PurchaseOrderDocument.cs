@@ -1,4 +1,4 @@
-using AutoPartShop.Api.Pdf.Components;
+﻿using AutoPartShop.Api.Pdf.Components;
 using AutoPartShop.Api.Pdf.Design;
 using QuestPDF.Fluent;
 using QuestPDF.Infrastructure;
@@ -137,23 +137,23 @@ public class PurchaseOrderDocument : IDocument
             Code: l.PartNumber,
             Name: string.IsNullOrWhiteSpace(l.LocalName) ? l.DisplayName : $"{l.DisplayName}\n{l.LocalName}",
             Qty: FormatQty(l.Quantity, l.UnitSymbol),
-            Rate: l.UnitPrice.ToString("N2"),
-            Amount: l.LineTotal.ToString("N2"))).ToList();
+            Rate: DocTheme.Amount(l.UnitPrice),
+            Amount: DocTheme.Amount(l.LineTotal))).ToList();
 
-        var totals = new List<TotalRow> { new("Subtotal", _data.SubTotal.ToString("N2")) };
+        var totals = new List<TotalRow> { new("Subtotal", DocTheme.Amount(_data.SubTotal)) };
 
         if (_data.DiscountAmount > 0)
-            totals.Add(new TotalRow("Discount", $"({_data.DiscountAmount:N2})"));
+            totals.Add(new TotalRow("Discount", $"({DocTheme.Amount(_data.DiscountAmount)})"));
 
         if (_data.TaxAmount > 0)
             totals.Add(new TotalRow(
                 _data.TaxPercentage > 0 ? $"VAT ({_data.TaxPercentage:N0}%)" : "VAT",
-                _data.TaxAmount.ToString("N2")));
+                DocTheme.Amount(_data.TaxAmount)));
 
         new ItemsTable(
             _theme, items, totals,
             grandLabel: "PO Total",
-            grandValue: _data.TotalAmount.ToString("N2"),
+            grandValue: DocTheme.Amount(_data.TotalAmount),
             words: AmountInWords.Convert(_data.TotalAmount)).Compose(container);
     }
 

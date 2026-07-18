@@ -1,4 +1,4 @@
-using AutoPartShop.Api.Pdf.Components;
+﻿using AutoPartShop.Api.Pdf.Components;
 using AutoPartShop.Api.Pdf.Design;
 using QuestPDF.Fluent;
 using QuestPDF.Infrastructure;
@@ -136,14 +136,14 @@ public class CreditNoteDocument : IDocument
             Code: l.PartNumber,
             Name: string.IsNullOrWhiteSpace(l.LocalName) ? l.DisplayName : $"{l.DisplayName}\n{l.LocalName}",
             Qty: string.IsNullOrWhiteSpace(l.UnitSymbol) ? l.Quantity.ToString() : $"{l.Quantity} {l.UnitSymbol}",
-            Rate: l.UnitPrice.ToString("N2"),
-            Amount: l.LineTotal.ToString("N2"))).ToList();
+            Rate: DocTheme.Amount(l.UnitPrice),
+            Amount: DocTheme.Amount(l.LineTotal))).ToList();
 
         // Scoped to returned items only, so the sole total is the credit itself.
         new ItemsTable(
             _theme, items, totals: [],
             grandLabel: "Total Credit",
-            grandValue: _data.TotalCredit.ToString("N2"),
+            grandValue: DocTheme.Amount(_data.TotalCredit),
             words: AmountInWords.Convert(_data.TotalCredit)).Compose(container);
     }
 

@@ -193,6 +193,7 @@ builder.Services.AddHttpContextAccessor();
 
 // Register application services
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+builder.Services.AddScoped<IShopProfileProvider, ShopProfileProvider>();
 builder.Services.AddScoped<StockManagementService>();
 builder.Services.AddScoped<StockAdjustmentApplier>();
 builder.Services.AddScoped<SupplierPaymentSummaryService>();

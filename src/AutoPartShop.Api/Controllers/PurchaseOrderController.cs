@@ -7,8 +7,10 @@ using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Common;
 using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
+using AutoPartShop.Api.Pdf;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using QuestPDF.Fluent;
 
 
 namespace AutoPartShop.Api.Controllers;
@@ -106,6 +108,92 @@ public class PurchaseOrderController : ControllerBase
             _logger.LogError(ex, "Error getting purchase order by ID: {POId}", id);
             return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving the purchase order");
         }
+    }
+
+    /// <summary>Download the Purchase Order as a PDF (cost pricing).</summary>
+    [HttpGet("{id:guid}/pdf")]
+    [Produces("application/pdf")]
+    [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DownloadPdf(
+        Guid id,
+        [FromServices] IShopProfileProvider shopProfiles,
+        CancellationToken cancellationToken)
+    {
+        var po = await _dbContext.Set<PurchaseOrder>()
+            .AsNoTracking()
+            .Include(o => o.Supplier)
+            .Include(o => o.Warehouse)
+            .Include(o => o.LineItems).ThenInclude(l => l.Part)
+            .Include(o => o.LineItems).ThenInclude(l => l.Variant)
+            .Include(o => o.LineItems).ThenInclude(l => l.Unit)
+            .FirstOrDefaultAsync(o => o.Id == id && !o.Isdeleted, cancellationToken);
+
+        if (po is null)
+            return NotFound(new { message = "Purchase order not found" });
+
+        var shop = await shopProfiles.GetAsync(cancellationToken: cancellationToken);
+
+        var supplier = po.Supplier;
+        var supplierAddress = supplier is null
+            ? string.Empty
+            : string.Join(", ", new[] { supplier.Address, supplier.City, supplier.PostalCode }
+                .Where(s => !string.IsNullOrWhiteSpace(s)));
+        // Supplier has no tax/BIN field; the contact person is the more useful second line.
+        var supplierContact = supplier?.ContactPerson is { Length: > 0 } cp ? $"Attn: {cp}" : string.Empty;
+
+        // Deliver-To is our receiving warehouse; fall back to the shop identity when unset.
+        var deliverToName = string.IsNullOrWhiteSpace(po.Warehouse?.Name)
+            ? $"{shop.Name} — Store"
+            : $"{shop.Name} — {po.Warehouse!.Name}";
+        var deliverToAddress = string.IsNullOrWhiteSpace(po.Warehouse?.Location)
+            ? shop.Address
+            : po.Warehouse!.Location;
+
+        var data = new PurchaseOrderDocumentData(
+            PONumber: po.PONumber,
+            PODate: po.PODate,
+            ExpectedDeliveryDate: po.ExpectedDeliveryDate,
+            PaymentTerms: FormatPaymentTerms(supplier?.PaymentTerms),
+            SupplierName: supplier?.Name ?? string.Empty,
+            SupplierAddress: supplierAddress,
+            SupplierPhone: supplier?.Phone ?? string.Empty,
+            SupplierTaxNo: supplierContact,
+            DeliverToName: deliverToName,
+            DeliverToAddress: deliverToAddress,
+            Lines: po.LineItems
+                .OrderBy(l => l.LineNumber)
+                .Select((l, i) => new PurchaseOrderDocumentLine(
+                    SlNo: i + 1,
+                    PartNumber: l.Part?.PartNumber?.Value ?? l.Part?.SKU ?? string.Empty,
+                    DisplayName: l.Variant is not null
+                        ? $"{l.Part?.Name} - {l.Variant.Name}"
+                        : (l.Part?.Name ?? l.Description),
+                    LocalName: l.Part?.LocalName,
+                    Quantity: l.Quantity,
+                    UnitSymbol: l.Unit?.Symbol ?? string.Empty,
+                    UnitPrice: l.UnitPrice,
+                    LineTotal: l.TotalPrice))
+                .ToList(),
+            SubTotal: po.SubTotal,
+            DiscountAmount: po.DiscountAmount,
+            TaxPercentage: po.TaxPercentage,
+            TaxAmount: po.TaxAmount,
+            TotalAmount: po.TotalAmount,
+            Notes: po.Notes);
+
+        var pdfBytes = new PurchaseOrderDocument(data, shop).GeneratePdf();
+        return File(pdfBytes, "application/pdf", $"purchase-order-{po.PONumber}.pdf");
+    }
+
+    /// <summary>Turns a payment-terms code (e.g. "NET30") into a readable label.</summary>
+    private static string FormatPaymentTerms(string? terms)
+    {
+        if (string.IsNullOrWhiteSpace(terms)) return string.Empty;
+        var t = terms.Trim().ToUpperInvariant();
+        if (t == "COD") return "Cash on delivery";
+        if (t.StartsWith("NET") && int.TryParse(t[3..], out var days)) return $"{days} days credit";
+        return terms;
     }
 
     [HttpGet("number/{poNumber}")]

@@ -270,37 +270,6 @@ export class InvoicePdfService {
     printWindow.document.close();
   }
 
-  /**
-   * Download invoice as PDF using html2canvas and jspdf
-   */
-  async downloadAsPdf(elementId: string, filename: string): Promise<void> {
-    const element = document.getElementById(elementId);
-    if (!element) return;
-
-    // Dynamic import for better bundle size
-    const html2canvas = (await import('html2canvas')).default;
-    const { jsPDF } = await import('jspdf');
-
-    const canvas = await html2canvas(element, {
-      scale: 2,
-      useCORS: true,
-      logging: false
-    });
-
-    const imgData = canvas.toDataURL('image/png');
-    const pdf = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm',
-      format: 'a4'
-    });
-
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-    pdf.save(`${filename}.pdf`);
-  }
-
   getInvoiceByNumber(invoiceNumber: string): Observable<{ id: string; invoiceNumber: string }> {
     return this.http.get<{ id: string; invoiceNumber: string }>(
       `${environment.apiUrl}/v1/salesorders/invoices/number/${encodeURIComponent(invoiceNumber)}`

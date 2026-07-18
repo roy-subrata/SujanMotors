@@ -4,7 +4,9 @@ using AutoPartShop.Api.Services;
 using AutoPartShop.Application.Common;
 using AutoPartShop.Application.DTOs.ReportDtos;
 using AutoPartShop.Application.Reports;
+using AutoPartShop.Api.Pdf;
 using Microsoft.AspNetCore.Mvc;
+using QuestPDF.Fluent;
 
 namespace AutoPartShop.Api.Controllers.Reports;
 
@@ -407,4 +409,92 @@ public class SalesReportsController(
             return StatusCode(StatusCodes.Status500InternalServerError, ApiError.Internal(HttpContext.TraceIdentifier));
         }
     }
+
+    /// <summary>
+    /// Daily Sales (Z) Report PDF — the handoff document. Composed from several report procs for a
+    /// single business day (FromDate/ToDate should bound one day): sales summary, sales returns,
+    /// payment collections by method, and sales by category.
+    /// </summary>
+    [HttpPost("daily-z-report/pdf")]
+    [HasPermission(Permissions.ReportsExport)]
+    [Produces("application/pdf")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(FileResult))]
+    public async Task<IActionResult> DownloadDailyZReport(
+        [FromBody] ReportQuery query,
+        [FromServices] IShopProfileProvider shopProfiles,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // Each sub-report needs its own GroupBy; clone the query so filters don't leak between them.
+            ReportQuery With(string? groupBy) => new()
+            {
+                FromDate = query.FromDate,
+                ToDate = query.ToDate,
+                WarehouseId = query.WarehouseId,
+                GroupBy = groupBy,
+            };
+
+            var summaryRows = await reportRepository.GetSalesSummaryAsync(With("day"), cancellationToken);
+            var categoryRows = await reportRepository.GetSalesByCategoryAsync(With(null), cancellationToken);
+            var paymentRows = await reportRepository.GetPaymentCollectionsAsync(With("method"), cancellationToken);
+            var returns = await reportRepository.GetSalesReturnsAsync(With(null), ExportRowCap, cancellationToken);
+
+            var gross = summaryRows.Sum(r => r.GrossAmount);
+            var discounts = summaryRows.Sum(r => r.DiscountAmount);
+            var vat = summaryRows.Sum(r => r.TaxAmount);
+            var receipts = summaryRows.Sum(r => r.OrderCount);
+            var returnsTotal = returns.Data.Sum(r => r.RefundAmount);
+            // Reconciliation identity shown on the report: Gross − Returns − Discounts = Net.
+            var net = gross - returnsTotal - discounts;
+
+            var shop = await shopProfiles.GetAsync(cancellationToken: cancellationToken);
+            var businessDate = query.FromDate ?? DateTime.Now;
+
+            var data = new DailySalesReportData(
+                ReportNumber: $"Z-{businessDate:yyyyMMdd}",
+                BusinessDate: businessDate,
+                BusinessDayLabel: query.FromDate is { } f && query.ToDate is { } t && f.Date == t.Date
+                    ? f.ToString("dd MMM yyyy")
+                    : $"{query.FromDate:dd MMM} – {query.ToDate:dd MMM yyyy}",
+                // No till/terminal domain yet (that's the cashier-shifts feature) — one label for all.
+                TerminalLabel: "All Tills",
+                GrossSales: gross,
+                ReturnsAmount: returnsTotal,
+                DiscountsAmount: discounts,
+                NetSales: net,
+                VatCollected: vat,
+                ReceiptCount: receipts,
+                Payments: paymentRows
+                    .Select(p => new ZReportPaymentRow(FormatMethod(p.GroupKey), p.PaymentCount, p.TotalAmount))
+                    .ToList(),
+                Categories: categoryRows
+                    .OrderByDescending(c => c.NetRevenue)
+                    .Select(c => new ZReportCategoryRow(c.CategoryName, c.NetRevenue))
+                    .ToList(),
+                Note: "");
+
+            var pdfBytes = new DailySalesReportDocument(data, shop).GeneratePdf();
+            return File(pdfBytes, "application/pdf", $"daily-sales-report-{businessDate:yyyyMMdd}.pdf");
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiError.Validation(ex.Message));
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error generating daily Z report PDF");
+            return StatusCode(StatusCodes.Status500InternalServerError, ApiError.Internal(HttpContext.TraceIdentifier));
+        }
+    }
+
+    private static string FormatMethod(string method) => method switch
+    {
+        "CASH" => "Cash",
+        "CARD" => "Card",
+        "MOBILE_BANKING" => "Mobile Banking",
+        "BANK_TRANSFER" => "Bank Transfer",
+        "ADVANCE_CREDIT" => "Credit Applied",
+        _ => string.IsNullOrWhiteSpace(method) ? "Other" : method.Replace('_', ' ')
+    };
 }

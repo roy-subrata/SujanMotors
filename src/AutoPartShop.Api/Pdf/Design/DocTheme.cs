@@ -83,5 +83,51 @@ public sealed record DocTheme
         page.DefaultTextStyle(BaseText);
     }
 
-    public string Money(decimal amount) => $"{CurrencySymbol} {amount:N2}";
+    /// <summary>Currency symbol + Indian-grouped amount, e.g. "৳ 1,84,250.00".</summary>
+    public string Money(decimal amount) => $"{CurrencySymbol} {Amount(amount)}";
+
+    /// <summary>
+    /// Amount with two decimals and South-Asian (Indian) digit grouping — the last three digits,
+    /// then groups of two: 184250 → "1,84,250.00". This is the grouping used across the handoff
+    /// (BDT locale), not Western thousands. Done manually rather than via a CultureInfo so it never
+    /// depends on ICU/culture data being present on the host.
+    /// </summary>
+    public static string Amount(decimal value)
+    {
+        var negative = value < 0;
+        value = Math.Abs(value);
+
+        var whole = (long)decimal.Truncate(value);
+        var fraction = (int)Math.Round((value - whole) * 100, MidpointRounding.AwayFromZero);
+        if (fraction == 100)
+        {
+            whole++;
+            fraction = 0;
+        }
+
+        var digits = whole.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        string grouped;
+
+        if (digits.Length <= 3)
+        {
+            grouped = digits;
+        }
+        else
+        {
+            var lastThree = digits[^3..];
+            var rest = digits[..^3];
+
+            var sb = new System.Text.StringBuilder();
+            var count = 0;
+            for (var i = rest.Length - 1; i >= 0; i--)
+            {
+                sb.Insert(0, rest[i]);
+                count++;
+                if (count % 2 == 0 && i != 0) sb.Insert(0, ',');
+            }
+            grouped = $"{sb},{lastThree}";
+        }
+
+        return $"{(negative ? "-" : "")}{grouped}.{fraction:D2}";
+    }
 }

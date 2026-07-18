@@ -1,4 +1,4 @@
-using AutoPartShop.Api.Pdf.Components;
+﻿using AutoPartShop.Api.Pdf.Components;
 using AutoPartShop.Api.Pdf.Design;
 using AutoPartShop.Application.DTOs.CustomerDtos;
 using QuestPDF.Fluent;
@@ -188,8 +188,8 @@ public class CustomerAccountStatementDocument : IDocument
                     Cell(table.Cell(), string.IsNullOrWhiteSpace(item.VehicleLabel) ? "—" : item.VehicleLabel,
                         color: DocTheme.Muted);
                     Cell(table.Cell(), item.Quantity.ToString(), mono: true, right: true);
-                    Cell(table.Cell(), item.UnitPrice.ToString("N2"), mono: true, right: true);
-                    Cell(table.Cell(), item.LineTotal.ToString("N2"), mono: true, right: true, medium: true);
+                    Cell(table.Cell(), DocTheme.Amount(item.UnitPrice), mono: true, right: true);
+                    Cell(table.Cell(), DocTheme.Amount(item.LineTotal), mono: true, right: true, medium: true);
                 }
             });
 
@@ -202,8 +202,8 @@ public class CustomerAccountStatementDocument : IDocument
     {
         container.AlignRight().Width(DocTheme.TotalsWidth).Column(col =>
         {
-            SummaryRow(col, "Total Billed", _data.TotalPurchaseAmount.ToString("N2"));
-            SummaryRow(col, "Total Paid", $"({_data.TotalPaidAmount:N2})");
+            SummaryRow(col, "Total Billed", DocTheme.Amount(_data.TotalPurchaseAmount));
+            SummaryRow(col, "Total Paid", $"({DocTheme.Amount(_data.TotalPaidAmount)})");
 
             col.Item().PaddingTop(DocTheme.Px(4))
                 .BorderTop(DocTheme.RuleMedium).BorderBottom(DocTheme.RuleMedium)
