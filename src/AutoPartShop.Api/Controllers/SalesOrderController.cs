@@ -149,6 +149,79 @@ public class SalesOrderController : ControllerBase
         }
     }
 
+    /// <summary>Download the Sales Order as a PDF.</summary>
+    [HttpGet("{id:guid}/pdf")]
+    [Produces("application/pdf")]
+    [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DownloadPdf(
+        Guid id,
+        [FromServices] IShopProfileProvider shopProfiles,
+        CancellationToken cancellationToken)
+    {
+        var order = await _dbContext.SalesOrders
+            .AsNoTracking()
+            .Include(o => o.Customer)
+            .Include(o => o.LineItems).ThenInclude(l => l.Part)
+            .Include(o => o.LineItems).ThenInclude(l => l.ProductVariant)
+            .Include(o => o.LineItems).ThenInclude(l => l.Unit)
+            .FirstOrDefaultAsync(o => o.Id == id && !o.Isdeleted, cancellationToken);
+
+        if (order is null)
+            return NotFound(new { message = "Sales order not found" });
+
+        var shop = await shopProfiles.GetAsync(cancellationToken: cancellationToken);
+
+        var customer = order.Customer;
+        var billAddress = customer is null
+            ? string.Empty
+            : string.Join(", ", new[] { customer.BillingAddress, customer.City, customer.PostalCode }
+                .Where(s => !string.IsNullOrWhiteSpace(s)));
+
+        var data = new SalesOrderDocumentData(
+            SONumber: order.SONumber,
+            SODate: order.SODate,
+            DeliveryBy: order.DeliveryDate,
+            // No customer-supplied-PO field exists on the domain yet; header simply omits it.
+            CustomerPO: string.Empty,
+            CustomerName: order.CustomerName,
+            BillToAddress: billAddress,
+            BillToPhone: order.CustomerPhone,
+            // Ship To uses the order's own delivery address/vehicle context when set, else falls
+            // back to the customer's billing details inside the document itself.
+            ShipToName: !string.IsNullOrWhiteSpace(order.VehicleLabel) ? $"{order.CustomerName} — {order.VehicleLabel}" : string.Empty,
+            ShipToAddress: order.DeliveryAddress,
+            ShipToContact: order.CustomerPhone,
+            Lines: order.LineItems
+                .OrderBy(l => l.LineNumber)
+                .Select((l, i) => new SalesOrderDocumentLine(
+                    SlNo: i + 1,
+                    PartNumber: l.Part?.PartNumber?.Value ?? l.Part?.SKU ?? string.Empty,
+                    DisplayName: l.ProductVariant is not null
+                        ? $"{l.Part?.Name} - {l.ProductVariant.Name}"
+                        : (l.Part?.Name ?? l.Description),
+                    LocalName: l.Part?.LocalName,
+                    Quantity: l.Quantity,
+                    UnitSymbol: l.Unit?.Symbol ?? string.Empty,
+                    UnitPrice: l.UnitPrice,
+                    DiscountPerUnit: l.Discount,
+                    LineTotal: l.TotalPrice))
+                .ToList(),
+            SubTotal: order.SubTotal,
+            DiscountAmount: order.DiscountAmount,
+            // No stored tax-rate field on SalesOrder — derived from the taxable base (post-discount)
+            // purely for the "VAT (X%)" label; the actual TaxAmount below is the real stored figure.
+            TaxPercentage: order.SubTotal - order.DiscountAmount > 0
+                ? Math.Round(order.TaxAmount / (order.SubTotal - order.DiscountAmount) * 100, 0)
+                : 0,
+            TaxAmount: order.TaxAmount,
+            TotalAmount: order.TotalAmount + order.TaxAmount,
+            Notes: order.Notes);
+
+        var pdfBytes = new SalesOrderDocument(data, shop).GeneratePdf();
+        return File(pdfBytes, "application/pdf", $"sales-order-{order.SONumber}.pdf");
+    }
+
     [HttpGet("number/{soNumber}")]
     public async Task<IActionResult> GetByNumber(string soNumber, CancellationToken cancellationToken)
     {

@@ -47,4 +47,12 @@ public class ReportQuery : BaseQuery
 
     public bool IncludeZeroStock { get; set; }
     public bool IncludeExpired { get; set; }
+
+    /// <summary>
+    /// VAT rate used only to derive the VAT portion of customer credit notes for the VAT report —
+    /// credit notes store a tax-exclusive amount with no per-transaction tax breakdown, unlike
+    /// invoices and purchase orders which store their own actual TaxAmount. Defaults to 15 (the
+    /// shop's standard rate) when omitted.
+    /// </summary>
+    public decimal? VatRatePercent { get; set; }
 }
