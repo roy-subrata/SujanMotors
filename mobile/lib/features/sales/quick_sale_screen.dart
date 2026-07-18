@@ -8,6 +8,8 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/format.dart';
 import '../../shared/models/sale.dart';
+import '../../shared/widgets/state_views.dart';
+import '../till_session/till_session_repository.dart';
 import 'charge_screen.dart';
 import 'held_sales_controller.dart';
 import 'quick_sale_providers.dart';
@@ -68,6 +70,14 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
     );
   }
 
+  /// Sends the cashier to open a till session, then re-checks the gate on
+  /// return so they land back on the (now unblocked) cart automatically.
+  Future<void> _openTillSession() async {
+    await context.push('/till-session');
+    if (!mounted) return;
+    ref.invalidate(tillSessionRequirementProvider);
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(quickSaleControllerProvider);
@@ -78,6 +88,28 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
         appBar: _buildAppBar(context, itemCount: 0),
         body: _SuccessView(
             result: state.result!, onNewSale: controller.reset),
+      );
+    }
+
+    // Till-session gate: opt-in per role via the `sales.require-till-session`
+    // permission (most roles won't have it, so `requirementAsync` normally
+    // resolves to a no-op `required: false` and nothing below changes). This
+    // only blocks the UX early so a cashier doesn't build a whole cart before
+    // hitting the server's 400 at checkout — the backend enforces the same
+    // rule regardless (see SalesOrderController.CreateQuickSale's till
+    // session gate), so a slow/failed check here fails OPEN rather than
+    // trapping a sale the server would otherwise allow.
+    final requirementAsync = ref.watch(tillSessionRequirementProvider);
+    if (requirementAsync.isLoading && !requirementAsync.hasValue) {
+      return Scaffold(
+        appBar: _buildAppBar(context, itemCount: 0),
+        body: const LoadingView(),
+      );
+    }
+    if (requirementAsync.asData?.value.blocksSale ?? false) {
+      return Scaffold(
+        appBar: _buildAppBar(context, itemCount: 0),
+        body: _TillSessionRequiredView(onOpenTill: _openTillSession),
       );
     }
 
@@ -547,6 +579,65 @@ class _EmptyCartView extends StatelessWidget {
                 onPressed: onScan,
                 icon: const Icon(Icons.qr_code_scanner),
                 label: const Text('Scan Barcode'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: context.colors.ink,
+                  foregroundColor: context.colors.onInk,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  textStyle: GoogleFonts.instrumentSans(
+                      fontSize: 15, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Till session required (blocking gate) ───────────────────────────────────
+
+class _TillSessionRequiredView extends StatelessWidget {
+  const _TillSessionRequiredView({required this.onOpenTill});
+
+  final VoidCallback onOpenTill;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.lock_clock_outlined,
+                size: 72, color: context.colors.disabled),
+            const SizedBox(height: 16),
+            Text(
+              'Open a till session to start selling',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.instrumentSans(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Your role requires an open till session before taking sales. '
+              'Count the cash drawer and open one to continue.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.instrumentSans(
+                  fontSize: 13.5, color: context.colors.muted),
+            ),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: onOpenTill,
+                icon: const Icon(Icons.lock_open_outlined),
+                label: const Text('Open Till Session'),
                 style: FilledButton.styleFrom(
                   backgroundColor: context.colors.ink,
                   foregroundColor: context.colors.onInk,

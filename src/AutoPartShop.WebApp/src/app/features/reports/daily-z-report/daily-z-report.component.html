@@ -1,0 +1,59 @@
+<p-toast position="top-right"></p-toast>
+
+<app-page-container>
+
+  <app-page-header
+    title="Daily Sales (Z) Report"
+    subtitle="End-of-day sales summary and cash-up report for a single business day"
+    [backLink]="['/reports']">
+  </app-page-header>
+
+  <div class="report-filter">
+    <div class="filter-item">
+      <label class="filter-label">Business Date</label>
+      <p-datepicker
+        [(ngModel)]="businessDate"
+        dateFormat="dd M yy"
+        [showIcon]="true"
+        appendTo="body"
+        styleClass="filter-datepicker">
+      </p-datepicker>
+    </div>
+    <div class="filter-item">
+      <label class="filter-label">Warehouse</label>
+      <p-select
+        [options]="warehouseOptions"
+        [(ngModel)]="warehouseId"
+        placeholder="All warehouses"
+        [showClear]="true"
+        [filter]="warehouseOptions.length > 10"
+        appendTo="body"
+        styleClass="filter-dropdown">
+      </p-select>
+    </div>
+  </div>
+
+  <div class="z-report-card">
+    <div class="z-report-icon">
+      <i class="pi pi-file-pdf"></i>
+    </div>
+    <div class="z-report-body">
+      <h3>Z Report contents</h3>
+      <p>The report reconciles a single business day and includes:</p>
+      <ul>
+        <li>Gross sales, returns and discounts, and net sales</li>
+        <li>VAT collected for the day</li>
+        <li>Receipt / order count</li>
+        <li>Payment collections broken down by method</li>
+        <li>Sales broken down by category</li>
+      </ul>
+    </div>
+    <ng-container *appHasPermission="'reports.export'">
+      <button class="btn-primary z-report-download" (click)="downloadPdf()" [disabled]="downloading || !businessDate">
+        <i [class]="downloading ? 'pi pi-spin pi-spinner' : 'pi pi-download'"></i>
+        <span>Download Z Report PDF</span>
+      </button>
+    </ng-container>
+  </div>
+
+</app-page-container>

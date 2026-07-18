@@ -57,6 +57,15 @@
             (click)="selectCredit(credit)"
             [disabled]="credit.availableAmount <= 0">
           </button>
+          <button
+            pButton
+            type="button"
+            icon="pi pi-file-pdf"
+            pTooltip="Download PDF"
+            tooltipPosition="top"
+            class="p-button-sm p-button-text"
+            (click)="downloadPdf(credit)">
+          </button>
         </td>
       </tr>
     </ng-template>

@@ -108,6 +108,12 @@ public class AutoPartDbContext : IdentityDbContext<ApplicationUser, ApplicationR
     public DbSet<SupplierPaymentAccount> SupplierPaymentAccounts { get; set; }
     public DbSet<CreditNote> CreditNotes { get; set; }
     public DbSet<CustomerCreditNote> CustomerCreditNotes { get; set; }
+    public DbSet<CustomerDebitNote> CustomerDebitNotes { get; set; }
+    public DbSet<Quotation> Quotations { get; set; }
+    public DbSet<QuotationLine> QuotationLines { get; set; }
+    public DbSet<ProformaInvoice> ProformaInvoices { get; set; }
+    public DbSet<TillSession> TillSessions { get; set; }
+    public DbSet<TillCashDrop> TillCashDrops { get; set; }
 
     // Discount system
     public DbSet<Discount> Discounts { get; set; }

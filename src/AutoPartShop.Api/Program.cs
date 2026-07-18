@@ -25,6 +25,7 @@ using Microsoft.OpenApi.Models;
 using QuestPDF.Infrastructure;
 
 QuestPDF.Settings.License = LicenseType.Community;
+AutoPartShop.Api.Pdf.Design.DocFonts.Register();
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -186,12 +187,14 @@ builder.Services.AddMemoryCache();
 builder.Services.AddAuthorization();
 builder.Services.AddSingleton<Microsoft.AspNetCore.Authorization.IAuthorizationPolicyProvider, AutoPartShop.Api.Authorization.PermissionPolicyProvider>();
 builder.Services.AddScoped<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, AutoPartShop.Api.Authorization.PermissionAuthorizationHandler>();
+builder.Services.AddScoped<IPermissionCheckService, PermissionCheckService>();
 
 // Register HttpContextAccessor (required for CurrentUserService)
 builder.Services.AddHttpContextAccessor();
 
 // Register application services
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+builder.Services.AddScoped<IShopProfileProvider, ShopProfileProvider>();
 builder.Services.AddScoped<StockManagementService>();
 builder.Services.AddScoped<StockAdjustmentApplier>();
 builder.Services.AddScoped<SupplierPaymentSummaryService>();

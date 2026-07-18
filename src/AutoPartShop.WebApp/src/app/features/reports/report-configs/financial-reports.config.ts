@@ -113,5 +113,22 @@ export const FINANCIAL_REPORT_CONFIGS: ReportPageConfig[] = [
         itemLabel: 'lines',
         filters: [],
         columns: []
+    },
+    {
+        // Hub-card entry only: its route ('vat') is registered as a static path in
+        // reports.routes.ts ahead of the generic ':reportKey' route, so it always resolves to
+        // the bespoke VatReportComponent rather than this config's (unused) endpoint/columns.
+        key: 'vat',
+        group: 'financial',
+        title: 'VAT Report',
+        subtitle: 'Output VAT (sales) vs. input VAT (purchases) reconciliation for the period',
+        icon: 'pi pi-percentage',
+        endpoint: 'v1/reports/financial/vat',
+        paged: false,
+        defaultRange: 'thisMonth',
+        requiresDateRange: true,
+        itemLabel: 'lines',
+        filters: [],
+        columns: []
     }
 ];

@@ -30,6 +30,8 @@ export interface ReportQuery {
     asOfDate?: string;
     includeZeroStock?: boolean;
     includeExpired?: boolean;
+    /** VAT rate used to derive credit-note VAT on the VAT report; defaults to 15 server-side. */
+    vatRatePercent?: number;
 }
 
 export interface PaginationMeta {

@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    body{margin:0;font-family:'IBM Plex Sans',Helvetica,Arial,sans-serif;background:#dedcd8}
+    a{color:#B0392E;text-decoration:none}a:hover{color:#7f2a21}
+    @media print{#sidebar{display:none !important}#shell{display:block !important;height:auto !important}#main{overflow:visible !important;height:auto !important}}
+  </style>
+</helmet>
+<div id="shell" style="display:flex;height:100vh">
+  <div id="sidebar" style="width:228px;flex-shrink:0;background:#1c1917;color:#d6d3d1;display:flex;flex-direction:column;overflow:auto">
+    <div style="display:flex;align-items:center;gap:10px;padding:18px 16px 16px;border-bottom:1px solid #38342f">
+      <div style="width:34px;height:34px;background:{{accent}};color:#ffffff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;flex-shrink:0">SM</div>
+      <div>
+        <div style="font-size:13px;font-weight:700;letter-spacing:1px;color:#fafaf9">SUJAN MOTORS</div>
+        <div style="font-size:9.5px;color:#a8a29e;letter-spacing:0.5px">POS Document Templates</div>
+      </div>
+    </div>
+    <div style="padding:14px 10px;display:flex;flex-direction:column;gap:2px">
+      <div style="font-size:9px;letter-spacing:1.5px;color:#78716c;font-weight:600;padding:4px 12px">SALES</div>
+      <sc-for list="{{salesNav}}" as="n" hint-placeholder-count="8">
+        <div onClick="{{n.go}}" style="{{n.st}}">{{n.label}}</div>
+      </sc-for>
+      <div style="font-size:9px;letter-spacing:1.5px;color:#78716c;font-weight:600;padding:12px 12px 4px">PURCHASING</div>
+      <sc-for list="{{purchaseNav}}" as="n" hint-placeholder-count="1">
+        <div onClick="{{n.go}}" style="{{n.st}}">{{n.label}}</div>
+      </sc-for>
+      <div style="font-size:9px;letter-spacing:1.5px;color:#78716c;font-weight:600;padding:12px 12px 4px">REPORTS</div>
+      <sc-for list="{{reportNav}}" as="n" hint-placeholder-count="4">
+        <div onClick="{{n.go}}" style="{{n.st}}">{{n.label}}</div>
+      </sc-for>
+    </div>
+    <div style="margin-top:auto;padding:14px">
+      <div onClick="{{doPrint}}" style="background:{{accent}};color:#ffffff;text-align:center;padding:10px;font-size:12px;font-weight:600;letter-spacing:0.5px;cursor:pointer">Print / Save PDF</div>
+      <div style="font-size:9px;color:#78716c;text-align:center;margin-top:8px;line-height:1.5">Prints the document currently shown</div>
+    </div>
+  </div>
+  <div id="main" style="flex:1;overflow:auto">
+
+    <sc-if value="{{show.quote}}" hint-placeholder-val="{{false}}">
+      <x-import component-from-global-scope="doc-page" from="./doc-page.js" size="a4" margin="0.55in" hint-size="100%,1100px">
+        <dc-import name="DocHeader" title="Quotation" num="QT-2026-0312" date="16 Jul 2026" extra-label="Valid Until" extra-val="31 Jul 2026" accent="{{accent}}" hint-size="100%,120px"></dc-import>
+        <div style="margin:18px 0">
+          <div style="font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:#78716c;font-weight:600;margin-bottom:5px">Quotation To</div>
+          <div style="font-size:11px;line-height:1.6;color:#1c1917"><strong>Rahim Auto Works</strong><br>42 Shaheed Tajuddin Sarani, Tejgaon I/A, Dhaka 1208<br>+880 1819-334 556 · BIN: 001987234-0203</div>
+        </div>
+        <dc-import name="ItemsTable" items="{{saleItems}}" totals="{{saleTotals}}" grand-label="Total" grand-value="{{saleGrand}}" words="{{saleWords}}" hint-size="100%,380px"></dc-import>
+        <div style="margin-top:20px;font-size:10px;color:#57534e;line-height:1.7">
+          <div style="font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:#78716c;font-weight:600;margin-bottom:5px">Terms &amp; Conditions</div>
+          1. Prices are valid for 15 days from the date of this quotation.<br>
+          2. Delivery within 3–5 working days of confirmed order.<br>
+          3. 50% advance payable on order confirmation.<br>
+          4. Warranty as per manufacturer's policy.
+        </div>
+        <dc-import name="SignRow" a="Prepared By" b="Checked By" c="Authorized Signatory" hint-size="100%,90px"></dc-import>
+      </x-import>
+    </sc-if>
+
+    <sc-if value="{{show.so}}" hint-placeholder-val="{{false}}">
+      <x-import component-from-global-scope="doc-page" from="./doc-page.js" size="a4" margin="0.55in" hint-size="100%,1100px">
+        <dc-import name="DocHeader" title="Sales Order" num="SO-2026-0458" date="16 Jul 2026" extra-label="Customer PO" extra-val="PO-RA-1027" extra2-label="Delivery By" extra2-val="20 Jul 2026" accent="{{accent}}" hint-size="100%,120px"></dc-import>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin:18px 0">
+          <div>
+            <div style="font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:#78716c;font-weight:600;margin-bottom:5px">Bill To</div>
+            <div style="font-size:11px;line-height:1.6;color:#1c1917"><strong>Rahim Auto Works</strong><br>42 Shaheed Tajuddin Sarani, Tejgaon I/A, Dhaka 1208<br>+880 1819-334 556 · BIN: 001987234-0203</div>
+          </div>
+          <div>
+            <div style="font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:#78716c;font-weight:600;margin-bottom:5px">Ship To</div>
+            <div style="font-size:11px;line-height:1.6;color:#1c1917">Rahim Auto Works — Workshop<br>Plot 9, Tejgaon I/A, Dhaka 1208<br>Contact: Md. Rahim, +880 1819-334 556</div>
+          </div>
+        </div>
+        <dc-import name="ItemsTable" items="{{saleItems}}" totals="{{saleTotals}}" grand-label="Order Total" grand-value="{{saleGrand}}" words="{{saleWords}}" hint-size="100%,380px"></dc-import>
+        <div style="margin-top:20px;font-size:10px;color:#57534e;line-height:1.7">Order confirmed against customer PO. Goods will be delivered with Delivery Challan; Tax Invoice to follow on delivery.</div>
+        <dc-import name="SignRow" a="Prepared By" b="Customer Confirmation" c="Authorized Signatory" hint-size="100%,90px"></dc-import>
+      </x-import>
+    </sc-if>
+
+    <sc-if value="{{show.proforma}}" hint-placeholder-val="{{false}}">
+      <x-import component-from-global-scope="doc-page" from="./doc-page.js" size="a4" margin="0.55in" hint-size="100%,1100px">
+        <dc-import name="DocHeader" title="Proforma Invoice" num="PI-2026-0119" date="16 Jul 2026" extra-label="Valid Until" extra-val="31 Jul 2026" extra2-label="Ref. Order" extra2-val="SO-2026-0458" accent="{{accent}}" hint-size="100%,120px"></dc-import>
+        <div style="margin:18px 0">
+          <div style="font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:#78716c;font-weight:600;margin-bottom:5px">Bill To</div>
+          <div style="font-size:11px;line-height:1.6;color:#1c1917"><strong>Rahim Auto Works</strong><br>42 Shaheed Tajuddin Sarani, Tejgaon I/A, Dhaka 1208<br>+880 1819-334 556 · BIN: 001987234-0203</div>
+        </div>
+        <dc-import name="ItemsTable" items="{{saleItems}}" totals="{{saleTotals}}" grand-label="Total Payable" grand-value="{{saleGrand}}" words="{{saleWords}}" hint-size="100%,380px"></dc-import>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:20px">
+          <div style="font-size:10px;color:#57534e;line-height:1.7">
+            <div style="font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:#78716c;font-weight:600;margin-bottom:5px">Bank Details</div>
+            City Bank PLC — Kawran Bazar Branch<br>A/C Name: Sujan Motors<br>A/C No: 1102-4459-8837-001 · Routing: 225261726
+          </div>
+          <div style="font-size:10px;color:#57534e;line-height:1.7">
+            <div style="font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:#78716c;font-weight:600;margin-bottom:5px">Note</div>
+            This is a proforma invoice — not a tax invoice.<br>50% advance payable to confirm the order.
+          </div>
+        </div>
+        <dc-import name="SignRow" a="Prepared By" b="Checked By" c="Authorized Signatory" hint-size="100%,90px"></dc-import>
+      </x-import>
+    </sc-if>
+
+    <sc-if value="{{show.challan}}" hint-placeholder-val="{{false}}">
+      <x-import component-from-global-scope="doc-page" from="./doc-page.js" size="a4" margin="0.55in" hint-size="100%,1100px">
+        <dc-import name="DocHeader" title="Delivery Challan" num="DC-2026-0231" date="16 Jul 2026" extra-label="Ref. Order" extra-val="SO-2026-0458" extra2-label="Vehicle" extra2-val="DHK METRO-TA 11-2043" accent="{{accent}}" hint-size="100%,120px"></dc-import>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin:18px 0">
+          <div>
+            <div style="font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:#78716c;font-weight:600;margin-bottom:5px">Deliver To</div>
+            <div style="font-size:11px;line-height:1.6;color:#1c1917"><strong>Rahim Auto Works — Workshop</strong><br>Plot 9, Tejgaon I/A, Dhaka 1208<br>Contact: Md. Rahim, +880 1819-334 556</div>
+          </div>
+          <div>
+            <div style="font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:#78716c;font-weight:600;margin-bottom:5px">Dispatch Details</div>
+            <div style="font-size:11px;line-height:1.6;color:#1c1917">Driver: Abul Kashem · +880 1911-208 771<br>Dispatched: 16 Jul 2026, 11:30 AM</div>
+          </div>
+        </div>
+        <table style="width:100%;border-collapse:collapse;font-size:11px;color:#1c1917">
+          <thead>
+            <tr>
+              <th style="text-align:left;padding:7px 8px;border-bottom:2px solid #1c1917;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:#44403c;width:30px">#</th>
+              <th style="text-align:left;padding:7px 8px;border-bottom:2px solid #1c1917;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:#44403c;width:110px">Part No</th>
+              <th style="text-align:left;padding:7px 8px;border-bottom:2px solid #1c1917;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:#44403c">Description</th>
+              <th style="text-align:right;padding:7px 8px;border-bottom:2px solid #1c1917;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:#44403c;width:70px">Qty</th>
+              <th style="text-align:left;padding:7px 8px 7px 16px;border-bottom:2px solid #1c1917;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:#44403c;width:60px">Unit</th>
+            </tr>
+          </thead>
+          <tbody>
+            <sc-for list="{{challanItems}}" as="it" hint-placeholder-count="5">
+              <tr>
+                <td style="padding:8px;border-bottom:1px solid #e7e5e4;font-family:'IBM Plex Mono',monospace;color:#78716c">{{it.sn}}</td>
+                <td style="padding:8px;border-bottom:1px solid #e7e5e4;font-family:'IBM Plex Mono',monospace;font-size:10.5px">{{it.code}}</td>
+                <td style="padding:8px;border-bottom:1px solid #e7e5e4">{{it.name}}</td>
+                <td style="padding:8px;border-bottom:1px solid #e7e5e4;text-align:right;font-family:'IBM Plex Mono',monospace">{{it.qty}}</td>
+                <td style="padding:8px 8px 8px 16px;border-bottom:1px solid #e7e5e4">{{it.unit}}</td>
+              </tr>
+            </sc-for>
+            <tr>
+              <td style="padding:8px" colSpan="3"></td>
+              <td style="padding:8px;text-align:right;font-family:'IBM Plex Mono',monospace;font-weight:600;border-top:2px solid #1c1917">{{challanQty}}</td>
+              <td style="padding:8px 8px 8px 16px;font-weight:600;border-top:2px solid #1c1917">Total</td>
+            </tr>
+          </tbody>
+        </table>
+        <div style="margin-top:20px;font-size:10px;color:#57534e;line-height:1.7">Goods listed above are dispatched in good condition. Prices are not shown on this challan — refer to Tax Invoice INV-2026-0847. Please verify quantities on receipt and sign below.</div>
+        <dc-import name="SignRow" a="Prepared By" b="Driver" c="Received By (Customer)" hint-size="100%,90px"></dc-import>
+      </x-import>
+    </sc-if>
+
+    <sc-if value="{{show.invoice}}" hint-placeholder-val="{{true}}">
+      <x-import component-from-global-scope="doc-page" from="./doc-page.js" size="a4" margin="0.55in" hint-size="100%,1100px">
+        <dc-import name="DocHeader" title="Tax Invoice" num="INV-2026-0847" date="16 Jul 2026" extra-label="Payment Due" extra-val="31 Jul 2026" extra2-label="Ref. Challan" extra2-val="DC-2026-0231" accent="{{accent}}" hint-size="100%,120px"></dc-import>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin:18px 0">
+          <div>
+            <div style="font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:#78716c;font-weight:600;margin-bottom:5px">Bill To</div>
+            <div style="font-size:11px;line-height:1.6;color:#1c1917"><strong>Rahim Auto Works</strong><br>42 Shaheed Tajuddin Sarani, Tejgaon I/A, Dhaka 1208<br>+880 1819-334 556 · BIN: 001987234-0203</div>
+          </div>
+          <div>
+            <div style="font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:#78716c;font-weight:600;margin-bottom:5px">Payment</div>
+            <div style="font-size:11px;line-height:1.6;color:#1c1917">Terms: 15 days credit<br>Mushak-6.3 · VAT included at {{vatRate}}%</div>
+          </div>
+        </div>
+        <dc-import name="ItemsTable" items="{{saleItems}}" totals="{{saleTotals}}" grand-label="Grand Total" grand-value="{{saleGrand}}" words="{{saleWords}}" hint-size="100%,380px"></dc-import>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:20px">
+          <div style="font-size:10px;color:#57534e;line-height:1.7">
+            <div style="font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:#78716c;font-weight:600;margin-bottom:5px">Bank Details</div>
+            City Bank PLC — Kawran Bazar Branch<br>A/C Name: Sujan Motors<br>A/C No: 1102-4459-8837-001 · Routing: 225261726
+          </div>
+          <div style="font-size:10px;color:#57534e;line-height:1.7">
+            <div style="font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:#78716c;font-weight:600;margin-bottom:5px">Terms</div>
+            Goods once sold are returnable within 7 days with this invoice.<br>Warranty as per manufacturer's policy.
+          </div>
+        </div>
+        <dc-import name="SignRow" a="Prepared By" b="Customer Signature" c="Authorized Signatory" hint-size="100%,90px"></dc-import>
+      </x-import>
+    </sc-if>
+
+    <sc-if value="{{show.receipt}}" hint-placeholder-val="{{false}}">
+      <x-import component-from-global-scope="doc-page" from="./doc-page.js" size="a4" margin="0.55in" hint-size="100%,1000px">
+        <dc-import name="DocHeader" title="Payment Receipt" num="RCP-2026-0592" date="16 Jul 2026" extra-label="Mode" extra-val="bKash" accent="{{accent}}" hint-size="100%,120px"></dc-import>
+        <div style="margin:18px 0">
+          <div style="font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:#78716c;font-weight:600;margin-bottom:5px">Received From</div>
+          <div style="font-size:11px;line-height:1.6;color:#1c1917"><strong>Rahim Auto Works</strong><br>42 Shaheed Tajuddin Sarani, Tejgaon I/A, Dhaka 1208<br>+880 1819-334 556 · BIN: 001987234-0203</div>
+        </div>
+        <div style="border:2px solid #1c1917;padding:18px 22px;display:flex;justify-content:space-between;align-items:center;margin:22px 0">
+          <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#57534e;font-weight:600">Amount Received</div>
+          <div style="font-size:26px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:{{accent}}">৳ {{saleGrand}}</div>
+        </div>
+        <div style="font-size:10.5px;color:#44403c;margin-bottom:22px"><span style="font-weight:600;letter-spacing:1px;text-transform:uppercase;font-size:9px;color:#78716c">In words&nbsp;&nbsp;</span>{{saleWords}}</div>
+        <table style="width:100%;border-collapse:collapse;font-size:11px;color:#1c1917">
+          <tbody>
+            <tr><td style="padding:8px;border-bottom:1px solid #e7e5e4;color:#78716c;width:200px">Payment Mode</td><td style="padding:8px;border-bottom:1px solid #e7e5e4">bKash (Merchant)</td></tr>
+            <tr><td style="padding:8px;border-bottom:1px solid #e7e5e4;color:#78716c">Transaction Ref</td><td style="padding:8px;border-bottom:1px solid #e7e5e4;font-family:'IBM Plex Mono',monospace">TRX9F2K71QX</td></tr>
+            <tr><td style="padding:8px;border-bottom:1px solid #e7e5e4;color:#78716c">Against Invoice</td><td style="padding:8px;border-bottom:1px solid #e7e5e4;font-family:'IBM Plex Mono',monospace">INV-2026-0847</td></tr>
+            <tr><td style="padding:8px;border-bottom:1px solid #e7e5e4;color:#78716c">Invoice Total</td><td style="padding:8px;border-bottom:1px solid #e7e5e4;font-family:'IBM Plex Mono',monospace">৳ {{saleGrand}}</td></tr>
+            <tr><td style="padding:8px;border-bottom:1px solid #e7e5e4;color:#78716c">Balance Due</td><td style="padding:8px;border-bottom:1px solid #e7e5e4;font-family:'IBM Plex Mono',monospace;font-weight:600">৳ 0.00</td></tr>
+          </tbody>
+        </table>
+        <div style="margin-top:20px;font-size:10px;color:#57534e;line-height:1.7">Invoice INV-2026-0847 is settled in full. This receipt is proof of payment for reconciliation purposes.</div>
+        <dc-import name="SignRow" a="Received By" b="Customer Signature" c="Authorized Signatory" hint-size="100%,90px"></dc-import>
+      </x-import>
+    </sc-if>
+
+    <sc-if value="{{show.credit}}" hint-placeholder-val="{{false}}">
+      <x-import component-from-global-scope="doc-page" from="./doc-page.js" size="a4" margin="0.55in" hint-size="100%,1000px">
+        <dc-import name="DocHeader" title="Credit Note" num="CN-2026-0027" date="16 Jul 2026" extra-label="Ref. Invoice" extra-val="INV-2026-0847" accent="{{accent}}" hint-size="100%,120px"></dc-import>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin:18px 0">
+          <div>
+            <div style="font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:#78716c;font-weight:600;margin-bottom:5px">Issued To</div>
+            <div style="font-size:11px;line-height:1.6;color:#1c1917"><strong>Rahim Auto Works</strong><br>42 Shaheed Tajuddin Sarani, Tejgaon I/A, Dhaka 1208<br>+880 1819-334 556 · BIN: 001987234-0203</div>
+          </div>
+          <div>
+            <div style="font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:#78716c;font-weight:600;margin-bottom:5px">Reason for Credit</div>
+            <div style="font-size:11px;line-height:1.6;color:#1c1917">Goods returned — manufacturing defect.<br>Return approved by service desk, 16 Jul 2026.</div>
+          </div>
+        </div>
+        <dc-import name="ItemsTable" items="{{cnItems}}" totals="{{cnTotals}}" grand-label="Total Credit" grand-value="{{cnGrand}}" words="{{cnWords}}" hint-size="100%,240px"></dc-import>
+        <div style="margin-top:20px;font-size:10px;color:#57534e;line-height:1.7">The credited amount will be adjusted against the customer's next purchase, or refunded on request. For a charge in the other direction (undercharged invoice), a Debit Note is issued in the same format.</div>
+        <dc-import name="SignRow" a="Prepared By" b="Customer Acknowledgement" c="Authorized Signatory" hint-size="100%,90px"></dc-import>
+      </x-import>
+    </sc-if>
+
+    <sc-if value="{{show.thermal}}" hint-placeholder-val="{{false}}">
+      <div style="display:flex;gap:48px;justify-content:center;align-items:flex-start;padding:48px 24px;flex-wrap:wrap">
+        <div>
+          <div style="text-align:center;font-size:10px;letter-spacing:1.5px;color:#78716c;font-weight:600;margin-bottom:10px">80MM — STANDARD</div>
+          <div style="width:302px;background:#ffffff;box-shadow:0 4px 18px rgba(0,0,0,0.18);padding:16px 14px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:#111111;line-height:1.5">
+            <div style="text-align:center">
+              <div style="font-size:15px;font-weight:700;letter-spacing:1px">SUJAN MOTORS</div>
+              <div style="font-size:9.5px">Genuine Auto Parts &amp; Accessories</div>
+              <div style="font-size:9.5px">137/B Bangla Motor Road, Dhaka 1000</div>
+              <div style="font-size:9.5px">+880 1712-456 890</div>
+              <div style="font-size:9.5px">BIN: 004512347-0101</div>
+            </div>
+            <div style="border-top:1px dashed #999;margin:8px 0"></div>
+            <div style="display:flex;justify-content:space-between"><span>Rcpt: INV-2026-0847</span><span>16-Jul-26 14:32</span></div>
+            <div style="display:flex;justify-content:space-between"><span>Cashier: Karim</span><span>Till: 01</span></div>
+            <div style="border-top:1px dashed #999;margin:8px 0"></div>
+            <div style="margin-bottom:6px">Brake Pad Set Toyota (F)<div style="display:flex;justify-content:space-between"><span>&nbsp;4 x 2,850.00</span><span>11,400.00</span></div></div>
+            <div style="margin-bottom:6px">Oil Filter Honda 1.8<div style="display:flex;justify-content:space-between"><span>&nbsp;12 x 450.00</span><span>5,400.00</span></div></div>
+            <div style="margin-bottom:6px">Spark Plug NGK IX<div style="display:flex;justify-content:space-between"><span>&nbsp;16 x 620.00</span><span>9,920.00</span></div></div>
+            <div style="margin-bottom:6px">Air Filter Nissan X-Trail<div style="display:flex;justify-content:space-between"><span>&nbsp;6 x 980.00</span><span>5,880.00</span></div></div>
+            <div>Clutch Plate Mitsubishi<div style="display:flex;justify-content:space-between"><span>&nbsp;2 x 7,400.00</span><span>14,800.00</span></div></div>
+            <div style="border-top:1px dashed #999;margin:8px 0"></div>
+            <div style="display:flex;justify-content:space-between"><span>Subtotal</span><span>47,400.00</span></div>
+            <div style="display:flex;justify-content:space-between"><span>Discount</span><span>-2,400.00</span></div>
+            <div style="display:flex;justify-content:space-between"><span>VAT 15%</span><span>6,750.00</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:700;margin-top:4px"><span>TOTAL</span><span>Tk 51,750.00</span></div>
+            <div style="border-top:1px dashed #999;margin:8px 0"></div>
+            <div style="display:flex;justify-content:space-between"><span>CASH</span><span>52,000.00</span></div>
+            <div style="display:flex;justify-content:space-between"><span>CHANGE</span><span>250.00</span></div>
+            <div style="border-top:1px dashed #999;margin:8px 0"></div>
+            <div style="display:flex;justify-content:space-between;font-size:9.5px"><span>Items: 5</span><span>Qty: 40</span></div>
+            <div style="text-align:center;font-size:9.5px;margin-top:6px">VAT included · Mushak-6.3</div>
+            <div style="text-align:center;font-weight:700;margin-top:8px">THANK YOU!</div>
+            <div style="text-align:center;font-size:9.5px">No refund without this receipt</div>
+            <div style="height:32px;margin:10px 8px 2px;background:repeating-linear-gradient(90deg,#111 0 2px,#fff 2px 5px,#111 5px 6px,#fff 6px 10px,#111 10px 13px,#fff 13px 15px)"></div>
+            <div style="text-align:center;font-size:9px;letter-spacing:2px">INV20260847</div>
+          </div>
+        </div>
+        <div>
+          <div style="text-align:center;font-size:10px;letter-spacing:1.5px;color:#78716c;font-weight:600;margin-bottom:10px">58MM — COMPACT</div>
+          <div style="width:219px;background:#ffffff;box-shadow:0 4px 18px rgba(0,0,0,0.18);padding:14px 11px;font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:#111111;line-height:1.5">
+            <div style="text-align:center">
+              <div style="font-size:12.5px;font-weight:700;letter-spacing:0.5px">SUJAN MOTORS</div>
+              <div style="font-size:8.5px">137/B Bangla Motor Rd, Dhaka</div>
+              <div style="font-size:8.5px">+880 1712-456 890</div>
+              <div style="font-size:8.5px">BIN: 004512347-0101</div>
+            </div>
+            <div style="border-top:1px dashed #999;margin:7px 0"></div>
+            <div>Rcpt: INV-2026-0847</div>
+            <div style="display:flex;justify-content:space-between;white-space:nowrap"><span>16-Jul-26 14:32</span><span>Till 01</span></div>
+            <div style="border-top:1px dashed #999;margin:7px 0"></div>
+            <div style="margin-bottom:5px">Brake Pad Set Toyota<div style="display:flex;justify-content:space-between"><span>&nbsp;4x2,850</span><span>11,400.00</span></div></div>
+            <div style="margin-bottom:5px">Oil Filter Honda<div style="display:flex;justify-content:space-between"><span>&nbsp;12x450</span><span>5,400.00</span></div></div>
+            <div style="margin-bottom:5px">Spark Plug NGK IX<div style="display:flex;justify-content:space-between"><span>&nbsp;16x620</span><span>9,920.00</span></div></div>
+            <div style="margin-bottom:5px">Air Filter Nissan<div style="display:flex;justify-content:space-between"><span>&nbsp;6x980</span><span>5,880.00</span></div></div>
+            <div>Clutch Plate Mitsubishi<div style="display:flex;justify-content:space-between"><span>&nbsp;2x7,400</span><span>14,800.00</span></div></div>
+            <div style="border-top:1px dashed #999;margin:7px 0"></div>
+            <div style="display:flex;justify-content:space-between"><span>Subtotal</span><span>47,400.00</span></div>
+            <div style="display:flex;justify-content:space-between"><span>Discount</span><span>-2,400.00</span></div>
+            <div style="display:flex;justify-content:space-between"><span>VAT 15%</span><span>6,750.00</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:11.5px;font-weight:700;margin-top:3px;white-space:nowrap"><span>TOTAL</span><span>Tk&nbsp;51,750</span></div>
+            <div style="border-top:1px dashed #999;margin:7px 0"></div>
+            <div style="display:flex;justify-content:space-between"><span>CASH</span><span>52,000.00</span></div>
+            <div style="display:flex;justify-content:space-between"><span>CHANGE</span><span>250.00</span></div>
+            <div style="border-top:1px dashed #999;margin:7px 0"></div>
+            <div style="text-align:center;font-weight:700">THANK YOU!</div>
+            <div style="text-align:center;font-size:8.5px">No refund without receipt</div>
+            <div style="height:26px;margin:8px 6px 2px;background:repeating-linear-gradient(90deg,#111 0 2px,#fff 2px 5px,#111 5px 6px,#fff 6px 10px,#111 10px 13px,#fff 13px 15px)"></div>
+            <div style="text-align:center;font-size:8px;letter-spacing:2px">INV20260847</div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{show.po}}" hint-placeholder-val="{{false}}">
+      <x-import component-from-global-scope="doc-page" from="./doc-page.js" size="a4" margin="0.55in" hint-size="100%,1100px">
+        <dc-import name="DocHeader" title="Purchase Order" num="PO-2026-0165" date="16 Jul 2026" extra-label="Delivery By" extra-val="24 Jul 2026" extra2-label="Payment" extra2-val="30 days credit" accent="{{accent}}" hint-size="100%,120px"></dc-import>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin:18px 0">
+          <div>
+            <div style="font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:#78716c;font-weight:600;margin-bottom:5px">Supplier</div>
+            <div style="font-size:11px;line-height:1.6;color:#1c1917"><strong>Dhaka Auto Imports Ltd</strong><br>88 Nawabpur Road, Dhaka 1100<br>+880 2-9556 712 · BIN: 000761298-0104</div>
+          </div>
+          <div>
+            <div style="font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:#78716c;font-weight:600;margin-bottom:5px">Deliver To</div>
+            <div style="font-size:11px;line-height:1.6;color:#1c1917">Sujan Motors — Store<br>137/B Bangla Motor Road, Dhaka 1000<br>Receiving hours: 10:00 AM – 6:00 PM</div>
+          </div>
+        </div>
+        <dc-import name="ItemsTable" items="{{poItems}}" totals="{{poTotals}}" grand-label="PO Total" grand-value="{{poGrand}}" words="{{poWords}}" hint-size="100%,340px"></dc-import>
+        <div style="margin-top:20px;font-size:10px;color:#57534e;line-height:1.7">
+          <div style="font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:#78716c;font-weight:600;margin-bottom:5px">Conditions</div>
+          1. Supply genuine parts only; counterfeit items will be rejected at supplier's cost.<br>
+          2. Deliver with challan and Mushak-6.3 invoice quoting this PO number.<br>
+          3. Short or damaged supply must be replaced within 7 days.
+        </div>
+        <dc-import name="SignRow" a="Prepared By" b="Approved By" c="Supplier Acknowledgement" hint-size="100%,90px"></dc-import>
+      </x-import>
+    </sc-if>
+
+    <sc-if value="{{show.stock}}" hint-placeholder-val="{{false}}">
+      <x-import component-from-global-scope="doc-page" from="./doc-page.js" size="a4" margin="0.55in" hint-size="100%,1100px">
+        <dc-import name="DocHeader" title="Stock Report" num="STK-2026-0716" date="16 Jul 2026" extra-label="As Of" extra-val="16 Jul 2026, 6:00 PM" accent="{{accent}}" hint-size="100%,120px"></dc-import>
+        <table style="width:100%;border-collapse:collapse;font-size:10.5px;color:#1c1917;margin-top:18px">
+          <thead>
+            <tr>
+              <th style="text-align:left;padding:7px 8px;border-bottom:2px solid #1c1917;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:#44403c;width:100px">Part No</th>
+              <th style="text-align:left;padding:7px 8px;border-bottom:2px solid #1c1917;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:#44403c">Description</th>
+              <th style="text-align:left;padding:7px 8px;border-bottom:2px solid #1c1917;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:#44403c;width:90px">Category</th>
+              <th style="text-align:right;padding:7px 8px;border-bottom:2px solid #1c1917;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:#44403c;width:60px">On Hand</th>
+              <th style="text-align:right;padding:7px 8px;border-bottom:2px solid #1c1917;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:#44403c;width:60px">Reorder</th>
+              <th style="text-align:right;padding:7px 8px;border-bottom:2px solid #1c1917;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:#44403c;width:90px">Value (৳)</th>
+              <th style="text-align:center;padding:7px 8px;border-bottom:2px solid #1c1917;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:#44403c;width:64px">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <sc-for list="{{stockRows}}" as="r" hint-placeholder-count="8">
+              <tr>
+                <td style="padding:7px 8px;border-bottom:1px solid #e7e5e4;font-family:'IBM Plex Mono',monospace;font-size:10px">{{r.code}}</td>
+                <td style="padding:7px 8px;border-bottom:1px solid #e7e5e4">{{r.name}}</td>
+                <td style="padding:7px 8px;border-bottom:1px solid #e7e5e4;color:#57534e">{{r.cat}}</td>
+                <td style="padding:7px 8px;border-bottom:1px solid #e7e5e4;text-align:right;font-family:'IBM Plex Mono',monospace">{{r.onhand}}</td>
+                <td style="padding:7px 8px;border-bottom:1px solid #e7e5e4;text-align:right;font-family:'IBM Plex Mono',monospace;color:#78716c">{{r.reorder}}</td>
+                <td style="padding:7px 8px;border-bottom:1px solid #e7e5e4;text-align:right;font-family:'IBM Plex Mono',monospace">{{r.value}}</td>
+                <td style="padding:7px 8px;border-bottom:1px solid #e7e5e4;text-align:center"><span style="{{r.pill}}">{{r.status}}</span></td>
+              </tr>
+            </sc-for>
+            <tr>
+              <td style="padding:9px 8px;font-weight:700;border-top:2px solid #1c1917" colSpan="5">Total Stock Value</td>
+              <td style="padding:9px 8px;text-align:right;font-family:'IBM Plex Mono',monospace;font-weight:700;border-top:2px solid #1c1917">{{stockTotal}}</td>
+              <td style="border-top:2px solid #1c1917"></td>
+            </tr>
+          </tbody>
+        </table>
+        <div style="margin-top:18px;font-size:10px;color:#57534e;line-height:1.7">Items marked <strong>LOW</strong> are at or below their reorder level — include them in the next Purchase Order. Values are at last purchase cost.</div>
+        <dc-import name="SignRow" a="Store Keeper" b="Checked By" c="Manager" hint-size="100%,90px"></dc-import>
+      </x-import>
+    </sc-if>
+
+    <sc-if value="{{show.zreport}}" hint-placeholder-val="{{false}}">
+      <x-import component-from-global-scope="doc-page" from="./doc-page.js" size="a4" margin="0.55in" hint-size="100%,1100px">
+        <dc-import name="DocHeader" title="Daily Sales Report" num="Z-2026-0716" date="16 Jul 2026" extra-label="Business Day" extra-val="09:00 – 21:00" extra2-label="Terminal" extra2-val="Till 01 + 02" accent="{{accent}}" hint-size="100%,120px"></dc-import>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0">
+          <div style="border:1px solid #d6d3d1;padding:12px 14px"><div style="font-size:8.5px;letter-spacing:1.2px;text-transform:uppercase;color:#78716c;font-weight:600">Gross Sales</div><div style="font-size:16px;font-weight:700;font-family:'IBM Plex Mono',monospace;margin-top:4px">৳ 1,84,250</div></div>
+          <div style="border:1px solid #d6d3d1;padding:12px 14px"><div style="font-size:8.5px;letter-spacing:1.2px;text-transform:uppercase;color:#78716c;font-weight:600">Net Sales</div><div style="font-size:16px;font-weight:700;font-family:'IBM Plex Mono',monospace;margin-top:4px">৳ 1,73,575</div></div>
+          <div style="border:1px solid #d6d3d1;padding:12px 14px"><div style="font-size:8.5px;letter-spacing:1.2px;text-transform:uppercase;color:#78716c;font-weight:600">VAT Collected</div><div style="font-size:16px;font-weight:700;font-family:'IBM Plex Mono',monospace;margin-top:4px">৳ 22,640</div></div>
+          <div style="border:1px solid #d6d3d1;padding:12px 14px"><div style="font-size:8.5px;letter-spacing:1.2px;text-transform:uppercase;color:#78716c;font-weight:600">Receipts</div><div style="font-size:16px;font-weight:700;font-family:'IBM Plex Mono',monospace;margin-top:4px">47</div></div>
+        </div>
+        <table style="width:100%;border-collapse:collapse;font-size:11px;color:#1c1917;margin-top:6px">
+          <tbody>
+            <tr><td style="padding:7px 8px;border-bottom:1px solid #e7e5e4;color:#78716c;width:260px">Gross Sales</td><td style="padding:7px 8px;border-bottom:1px solid #e7e5e4;text-align:right;font-family:'IBM Plex Mono',monospace">1,84,250.00</td></tr>
+            <tr><td style="padding:7px 8px;border-bottom:1px solid #e7e5e4;color:#78716c">Less: Returns (Credit Notes)</td><td style="padding:7px 8px;border-bottom:1px solid #e7e5e4;text-align:right;font-family:'IBM Plex Mono',monospace">− 6,555.00</td></tr>
+            <tr><td style="padding:7px 8px;border-bottom:1px solid #e7e5e4;color:#78716c">Less: Discounts</td><td style="padding:7px 8px;border-bottom:1px solid #e7e5e4;text-align:right;font-family:'IBM Plex Mono',monospace">− 4,120.00</td></tr>
+            <tr><td style="padding:8px;font-weight:700;border-bottom:2px solid #1c1917">Net Sales</td><td style="padding:8px;text-align:right;font-family:'IBM Plex Mono',monospace;font-weight:700;border-bottom:2px solid #1c1917">1,73,575.00</td></tr>
+          </tbody>
+        </table>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:22px">
+          <div>
+            <div style="font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:#78716c;font-weight:600;margin-bottom:6px">By Payment Method</div>
+            <table style="width:100%;border-collapse:collapse;font-size:10.5px;color:#1c1917">
+              <thead><tr><th style="text-align:left;padding:6px 8px;border-bottom:1.5px solid #1c1917;font-size:8.5px;letter-spacing:1px;text-transform:uppercase;color:#44403c">Method</th><th style="text-align:right;padding:6px 8px;border-bottom:1.5px solid #1c1917;font-size:8.5px;letter-spacing:1px;text-transform:uppercase;color:#44403c">Txns</th><th style="text-align:right;padding:6px 8px;border-bottom:1.5px solid #1c1917;font-size:8.5px;letter-spacing:1px;text-transform:uppercase;color:#44403c">Amount (৳)</th></tr></thead>
+              <tbody>
+                <sc-for list="{{zPay}}" as="p" hint-placeholder-count="4">
+                  <tr><td style="padding:6px 8px;border-bottom:1px solid #e7e5e4">{{p.m}}</td><td style="padding:6px 8px;border-bottom:1px solid #e7e5e4;text-align:right;font-family:'IBM Plex Mono',monospace">{{p.c}}</td><td style="padding:6px 8px;border-bottom:1px solid #e7e5e4;text-align:right;font-family:'IBM Plex Mono',monospace">{{p.a}}</td></tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+          <div>
+            <div style="font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:#78716c;font-weight:600;margin-bottom:6px">By Category</div>
+            <table style="width:100%;border-collapse:collapse;font-size:10.5px;color:#1c1917">
+              <thead><tr><th style="text-align:left;padding:6px 8px;border-bottom:1.5px solid #1c1917;font-size:8.5px;letter-spacing:1px;text-transform:uppercase;color:#44403c">Category</th><th style="text-align:right;padding:6px 8px;border-bottom:1.5px solid #1c1917;font-size:8.5px;letter-spacing:1px;text-transform:uppercase;color:#44403c">Amount (৳)</th></tr></thead>
+              <tbody>
+                <sc-for list="{{zCat}}" as="c" hint-placeholder-count="6">
+                  <tr><td style="padding:6px 8px;border-bottom:1px solid #e7e5e4">{{c.m}}</td><td style="padding:6px 8px;border-bottom:1px solid #e7e5e4;text-align:right;font-family:'IBM Plex Mono',monospace">{{c.a}}</td></tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div style="margin-top:20px;font-size:10px;color:#57534e;line-height:1.7">Z-counter closed at 21:04. Average sale ৳ 3,693 across 47 receipts. Figures reconcile with Shift Reports SHF-A-0716 and SHF-B-0716.</div>
+        <dc-import name="SignRow" a="Head Cashier" b="Accountant" c="Manager" hint-size="100%,90px"></dc-import>
+      </x-import>
+    </sc-if>
+
+    <sc-if value="{{show.vat}}" hint-placeholder-val="{{false}}">
+      <x-import component-from-global-scope="doc-page" from="./doc-page.js" size="a4" margin="0.55in" hint-size="100%,1000px">
+        <dc-import name="DocHeader" title="VAT Report" num="VAT-2026-J1" date="16 Jul 2026" extra-label="Period" extra-val="01 – 15 Jul 2026" accent="{{accent}}" hint-size="100%,120px"></dc-import>
+        <table style="width:100%;border-collapse:collapse;font-size:11px;color:#1c1917;margin-top:18px">
+          <thead>
+            <tr>
+              <th style="text-align:left;padding:7px 8px;border-bottom:2px solid #1c1917;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:#44403c">Description</th>
+              <th style="text-align:right;padding:7px 8px;border-bottom:2px solid #1c1917;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:#44403c;width:130px">Taxable Value (৳)</th>
+              <th style="text-align:right;padding:7px 8px;border-bottom:2px solid #1c1917;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:#44403c;width:120px">VAT (৳)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td style="padding:8px;border-bottom:1px solid #e7e5e4">Output VAT — Sales (Mushak-6.3, 214 invoices)</td><td style="padding:8px;border-bottom:1px solid #e7e5e4;text-align:right;font-family:'IBM Plex Mono',monospace">18,42,600.00</td><td style="padding:8px;border-bottom:1px solid #e7e5e4;text-align:right;font-family:'IBM Plex Mono',monospace">2,76,390.00</td></tr>
+            <tr><td style="padding:8px;border-bottom:1px solid #e7e5e4">Less: Output VAT reversed — Credit Notes</td><td style="padding:8px;border-bottom:1px solid #e7e5e4;text-align:right;font-family:'IBM Plex Mono',monospace">− 38,900.00</td><td style="padding:8px;border-bottom:1px solid #e7e5e4;text-align:right;font-family:'IBM Plex Mono',monospace">− 5,835.00</td></tr>
+            <tr><td style="padding:8px;border-bottom:1px solid #e7e5e4">Less: Input VAT — Purchases (Mushak-6.1)</td><td style="padding:8px;border-bottom:1px solid #e7e5e4;text-align:right;font-family:'IBM Plex Mono',monospace">9,60,400.00</td><td style="padding:8px;border-bottom:1px solid #e7e5e4;text-align:right;font-family:'IBM Plex Mono',monospace">− 1,44,060.00</td></tr>
+            <tr><td style="padding:9px 8px;font-weight:700;border-top:2px solid #1c1917;border-bottom:2px solid #1c1917">Net VAT Payable to NBR</td><td style="padding:9px 8px;border-top:2px solid #1c1917;border-bottom:2px solid #1c1917"></td><td style="padding:9px 8px;text-align:right;font-family:'IBM Plex Mono',monospace;font-weight:700;border-top:2px solid #1c1917;border-bottom:2px solid #1c1917">1,26,495.00</td></tr>
+          </tbody>
+        </table>
+        <div style="margin-top:20px;font-size:10px;color:#57534e;line-height:1.7">Standard VAT rate 15% applied on all taxable sales. Figures feed the monthly Mushak-9.1 return, due by the 15th of the following month. Supporting registers: sales register, purchase register, credit note file.</div>
+        <dc-import name="SignRow" a="Accountant" b="VAT Consultant" c="Proprietor" hint-size="100%,90px"></dc-import>
+      </x-import>
+    </sc-if>
+
+    <sc-if value="{{show.shift}}" hint-placeholder-val="{{false}}">
+      <x-import component-from-global-scope="doc-page" from="./doc-page.js" size="a4" margin="0.55in" hint-size="100%,1000px">
+        <dc-import name="DocHeader" title="Shift Report" num="SHF-A-0716" date="16 Jul 2026" extra-label="Shift" extra-val="A · 09:00 – 17:00" extra2-label="Terminal" extra2-val="Till 01" accent="{{accent}}" hint-size="100%,120px"></dc-import>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin:18px 0">
+          <div>
+            <div style="font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:#78716c;font-weight:600;margin-bottom:5px">Cashier</div>
+            <div style="font-size:11px;line-height:1.6;color:#1c1917"><strong>Md. Karim Uddin</strong> · Staff ID 014<br>Signed in 08:52 · Signed out 17:06</div>
+          </div>
+          <div>
+            <div style="font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:#78716c;font-weight:600;margin-bottom:5px">Transactions</div>
+            <div style="font-size:11px;line-height:1.6;color:#1c1917">28 receipts · 1 return · 1 void<br>Cash 14 · Card 5 · bKash 7 · Nagad 2</div>
+          </div>
+        </div>
+        <div style="font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:#78716c;font-weight:600;margin-bottom:6px">Cash Drawer Reconciliation</div>
+        <table style="width:100%;border-collapse:collapse;font-size:11px;color:#1c1917">
+          <tbody>
+            <sc-for list="{{shiftRows}}" as="r" hint-placeholder-count="6">
+              <tr><td style="padding:7px 8px;border-bottom:1px solid #e7e5e4;color:#57534e">{{r.l}}</td><td style="padding:7px 8px;border-bottom:1px solid #e7e5e4;text-align:right;font-family:'IBM Plex Mono',monospace;width:150px">{{r.v}}</td></tr>
+            </sc-for>
+            <tr><td style="padding:9px 8px;font-weight:700;border-top:2px solid #1c1917">Over / Short</td><td style="padding:9px 8px;text-align:right;font-family:'IBM Plex Mono',monospace;font-weight:700;border-top:2px solid #1c1917;color:{{accent}}">− 120.00</td></tr>
+          </tbody>
+        </table>
+        <div style="margin-top:20px;font-size:10px;color:#57534e;line-height:1.7">Shortage of ৳120 noted and logged. Cash drops of ৳40,000 deposited to safe at 13:10 and 16:45. Non-cash settlements reconcile with acquirer reports.</div>
+        <dc-import name="SignRow" a="Cashier" b="Head Cashier" c="Manager" hint-size="100%,90px"></dc-import>
+      </x-import>
+    </sc-if>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;vatRate&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:15,&quot;min&quot;:0,&quot;max&quot;:30,&quot;unit&quot;:&quot;%&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Tax&quot;},&quot;accent&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#B0392E&quot;,&quot;options&quot;:[&quot;#B0392E&quot;,&quot;#0F766E&quot;,&quot;#1E40AF&quot;,&quot;#3F3F46&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Brand&quot;}}">
+class Component extends DCLogic {
+  state = { doc: 'invoice' };
+  renderVals() {
+    const vr = this.props.vatRate ?? 15;
+    const accent = this.props.accent ?? '#B0392E';
+    const fmt = n => Math.abs(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const W1 = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+    const W10 = ['', 'Ten', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+    const two = n => n < 20 ? W1[n] : W10[Math.floor(n / 10)] + (n % 10 ? ' ' + W1[n % 10] : '');
+    const three = n => (n > 99 ? W1[Math.floor(n / 100)] + ' Hundred' + (n % 100 ? ' ' : '') : '') + (n % 100 ? two(n % 100) : '');
+    const words = n => {
+      if (!n) return 'Zero Taka Only';
+      let s = '', cr = Math.floor(n / 1e7), lk = Math.floor(n / 1e5) % 100, th = Math.floor(n / 1e3) % 100, rest = n % 1000;
+      if (cr) s += three(cr) + ' Crore ';
+      if (lk) s += two(lk) + ' Lakh ';
+      if (th) s += two(th) + ' Thousand ';
+      if (rest) s += three(rest) + ' ';
+      return s.trim() + ' Taka Only';
+    };
+    const mk = rows => rows.map((r, i) => ({ sn: i + 1, code: r[0], name: r[1], qty: r[2], rate: fmt(r[3]), amount: fmt(r[2] * r[3]), unit: r[4] || 'pcs' }));
+    const sum = rows => rows.reduce((a, r) => a + r[2] * r[3], 0);
+    const SALE = [
+      ['BP-TYT-014', 'Brake Pad Set — Toyota Corolla (Front)', 4, 2850, 'set'],
+      ['OF-HND-221', 'Oil Filter — Honda Civic 1.8', 12, 450, 'pcs'],
+      ['SP-NGK-104', 'Spark Plug — NGK Iridium IX', 16, 620, 'pcs'],
+      ['AF-NIS-087', 'Air Filter — Nissan X-Trail', 6, 980, 'pcs'],
+      ['CL-MIT-042', 'Clutch Plate — Mitsubishi L200', 2, 7400, 'pcs']];
+    const PO = [
+      ['BP-TYT-014', 'Brake Pad Set — Toyota Corolla (Front)', 20, 2100],
+      ['OF-HND-221', 'Oil Filter — Honda Civic 1.8', 50, 310],
+      ['SP-NGK-104', 'Spark Plug — NGK Iridium IX', 60, 455],
+      ['GB-UNI-009', 'Gear Oil 75W-90 — 1 Litre', 24, 850]];
+    const CN = [['BP-TYT-014', 'Brake Pad Set — Toyota Corolla (Front)', 2, 2850]];
+    const sSub = sum(SALE), disc = 2400, sTax = sSub - disc, sVat = Math.round(sTax * vr / 100), sTot = sTax + sVat;
+    const pSub = sum(PO), pVat = Math.round(pSub * vr / 100), pTot = pSub + pVat;
+    const cSub = sum(CN), cVat = Math.round(cSub * vr / 100), cTot = cSub + cVat;
+    const STOCK = [
+      ['BP-TYT-014', 'Brake Pad Set — Toyota Corolla (Front)', 'Brakes', 18, 10, 2100],
+      ['OF-HND-221', 'Oil Filter — Honda Civic 1.8', 'Filters', 8, 25, 310],
+      ['SP-NGK-104', 'Spark Plug — NGK Iridium IX', 'Ignition', 64, 40, 455],
+      ['AF-NIS-087', 'Air Filter — Nissan X-Trail', 'Filters', 5, 12, 640],
+      ['CL-MIT-042', 'Clutch Plate — Mitsubishi L200', 'Transmission', 4, 3, 5900],
+      ['GB-UNI-009', 'Gear Oil 75W-90 — 1 Litre', 'Lubricants', 36, 20, 850],
+      ['BT-AGM-055', 'Battery 65Ah AGM — Universal', 'Electrical', 7, 6, 9200],
+      ['WB-BSH-118', 'Wiper Blade Set — Bosch Aerotwin', 'Exterior', 2, 15, 720]];
+    const pillBase = { display: 'inline-block', padding: '2px 8px', fontSize: 8.5, fontWeight: 700, letterSpacing: 1 };
+    const stockRows = STOCK.map(r => ({
+      code: r[0], name: r[1], cat: r[2], onhand: r[3], reorder: r[4], value: fmt(r[3] * r[5]),
+      status: r[3] <= r[4] ? 'LOW' : 'OK',
+      pill: r[3] <= r[4] ? { ...pillBase, background: accent, color: '#fff' } : { ...pillBase, background: '#e7e5e4', color: '#57534e' }
+    }));
+    const stockTotal = fmt(STOCK.reduce((a, r) => a + r[3] * r[5], 0));
+    const DOCS = {
+      sales: [['quote', 'Quotation'], ['so', 'Sales Order'], ['proforma', 'Proforma Invoice'], ['challan', 'Delivery Challan'], ['invoice', 'Tax Invoice'], ['receipt', 'Payment Receipt'], ['credit', 'Credit Note'], ['thermal', 'Thermal Receipt']],
+      purchase: [['po', 'Purchase Order']],
+      reports: [['stock', 'Stock Report'], ['zreport', 'Daily Sales (Z)'], ['vat', 'VAT Report'], ['shift', 'Shift Report']]
+    };
+    const nav = ([k, label]) => {
+      const act = this.state.doc === k;
+      return {
+        label, go: () => this.setState({ doc: k }),
+        st: { padding: '7px 12px', fontSize: 12.5, cursor: 'pointer', background: act ? '#38342f' : 'transparent', color: act ? '#fafaf9' : '#a8a29e', fontWeight: act ? 600 : 400, borderLeft: act ? '3px solid ' + accent : '3px solid transparent' }
+      };
+    };
+    const show = {}; ['quote', 'so', 'proforma', 'challan', 'invoice', 'receipt', 'credit', 'thermal', 'po', 'stock', 'zreport', 'vat', 'shift'].forEach(k => show[k] = this.state.doc === k);
+    return {
+      accent, vatRate: vr, show,
+      salesNav: DOCS.sales.map(nav), purchaseNav: DOCS.purchase.map(nav), reportNav: DOCS.reports.map(nav),
+      doPrint: () => window.print(),
+      saleItems: mk(SALE), challanItems: mk(SALE), challanQty: SALE.reduce((a, r) => a + r[2], 0),
+      saleTotals: [{ l: 'Subtotal', v: fmt(sSub) }, { l: 'Discount', v: '− ' + fmt(disc) }, { l: 'VAT (' + vr + '%)', v: fmt(sVat) }],
+      saleGrand: fmt(sTot), saleWords: words(sTot),
+      poItems: mk(PO), poTotals: [{ l: 'Subtotal', v: fmt(pSub) }, { l: 'VAT (' + vr + '%)', v: fmt(pVat) }], poGrand: fmt(pTot), poWords: words(pTot),
+      cnItems: mk(CN), cnTotals: [{ l: 'Subtotal', v: fmt(cSub) }, { l: 'VAT (' + vr + '%)', v: fmt(cVat) }], cnGrand: fmt(cTot), cnWords: words(cTot),
+      stockRows, stockTotal,
+      zPay: [{ m: 'Cash', c: 21, a: fmt(78900) }, { m: 'Card (Visa/Master)', c: 8, a: fmt(32450) }, { m: 'bKash', c: 12, a: fmt(44725) }, { m: 'Nagad', c: 6, a: fmt(17500) }],
+      zCat: [{ m: 'Brakes', a: fmt(52300) }, { m: 'Filters', a: fmt(28150) }, { m: 'Ignition', a: fmt(31900) }, { m: 'Lubricants', a: fmt(22425) }, { m: 'Electrical', a: fmt(24800) }, { m: 'Other', a: fmt(14000) }],
+      shiftRows: [
+        { l: 'Opening Float', v: fmt(5000) }, { l: 'Cash Sales', v: '+ ' + fmt(78900) },
+        { l: 'Cash Refunds', v: '− ' + fmt(2850) }, { l: 'Cash Drops to Safe', v: '− ' + fmt(40000) },
+        { l: 'Expected in Drawer', v: fmt(41050) }, { l: 'Counted at Close', v: fmt(40930) }]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -165,10 +165,21 @@ export class AppMenuComponent implements OnInit {
                 visible: can('sales.view'),
                 items: [
                     {
+                        label: this.i18n.t('menu.quotations'),
+                        icon: 'pi pi-file-edit',
+                        routerLink: ['/sales/quotations']
+                    },
+                    {
+                        label: this.i18n.t('menu.proformaInvoices'),
+                        icon: 'pi pi-receipt',
+                        routerLink: ['/sales/proforma-invoices']
+                    },
+                    {
                         label: this.i18n.t('menu.salesOrders'),
                         icon: 'pi pi-file',
                         routerLink: ['/sales/sales-orders']
                     },
+             
                     {
                         label: this.i18n.t('menu.invoices'),
                         icon: 'pi pi-file-check',
@@ -193,6 +204,16 @@ export class AppMenuComponent implements OnInit {
                         label: this.i18n.t('menu.customerPayments'),
                         icon: 'pi pi-dollar',
                         routerLink: ['/sales/customer-payments']
+                    },
+                    {
+                        label: this.i18n.t('menu.debitNotes'),
+                        icon: 'pi pi-file-export',
+                        routerLink: ['/sales/debit-notes']
+                    },
+                    {
+                        label: this.i18n.t('menu.tillSessions'),
+                        icon: 'pi pi-wallet',
+                        routerLink: ['/sales/till-sessions']
                     },
                     {
                         label: this.i18n.t('menu.customerStatements'),

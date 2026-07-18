@@ -47,6 +47,64 @@
 }
 
 /* ============================================
+   Till Session Required (blocking gate)
+   ============================================ */
+.till-gate-overlay {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--color-bg-tertiary);
+}
+
+.till-gate-card {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--pos-radius-lg);
+  box-shadow: var(--pos-shadow-lg);
+  padding: 40px 32px;
+  max-width: 420px;
+  width: 100%;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.till-gate-icon {
+  font-size: 2.5rem;
+  color: var(--color-warning, #d97706);
+  background: var(--color-warning-light, rgba(217, 119, 6, 0.12));
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.till-gate-card h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.till-gate-card p {
+  margin: 0 0 8px;
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+}
+
+.till-gate-card .btn-primary {
+  text-decoration: none;
+}
+
+/* ============================================
    Header
    ============================================ */
 .pos-header {

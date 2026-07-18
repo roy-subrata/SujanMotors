@@ -463,6 +463,26 @@ public class ReportReadRepository : IReportReadRepository
         return rows.ToList();
     }
 
+    public async Task<VatReportDto> GetVatReportAsync(
+        ReportQuery query, CancellationToken cancellationToken = default)
+    {
+        var (fromDate, toDate) = RequireDateRange(query, MaxSummaryRangeDays);
+
+        var connection = await GetOpenConnectionAsync(cancellationToken);
+        var result = await connection.QuerySingleAsync<VatReportDto>(new CommandDefinition(
+            "dbo.usp_Report_Vat",
+            new
+            {
+                FromDate = fromDate,
+                ToDate = toDate,
+                VatRatePercent = query.VatRatePercent ?? 15m
+            },
+            commandType: CommandType.StoredProcedure,
+            cancellationToken: cancellationToken));
+
+        return result;
+    }
+
     /// <summary>
     /// Runs a paged stored procedure whose result set carries COUNT(*) OVER() AS TotalCount on
     /// every row, and strips that column back out into a separate total (0 when the page is empty).

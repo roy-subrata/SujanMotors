@@ -6,10 +6,10 @@
   <app-invoice-preview [(visible)]="showInvoicePreview" [invoiceData]="invoicePreviewData" [invoiceId]="currentInvoiceId()"></app-invoice-preview>
 
   <!-- Loading Overlay -->
-  <div *ngIf="loading()" class="loading-overlay">
+  <div *ngIf="loading() || checkingTillSession()" class="loading-overlay">
     <div class="loading-content">
       <i class="pi pi-spin pi-spinner" style="font-size: 3rem; color: var(--pos-primary);"></i>
-      <h3>Loading Quick Sale...</h3>
+      <h3>{{ checkingTillSession() ? 'Checking till session...' : 'Loading Quick Sale...' }}</h3>
     </div>
   </div>
 
@@ -39,8 +39,23 @@
     </div>
   </header>
 
+  <!-- Till Session Required: blocks the cart/checkout UI entirely until the cashier opens a
+       till session. Only applies to roles granted Permissions.SalesRequireTillSession; a no-op
+       for everyone else. See TillSessionController.RequiresOpenSession. -->
+  <div *ngIf="!checkingTillSession() && tillSessionBlocked()" class="till-gate-overlay">
+    <div class="till-gate-card">
+      <i class="pi pi-lock till-gate-icon"></i>
+      <h2>Till Session Required</h2>
+      <p>You need to open a till session before starting a sale.</p>
+      <a class="btn-primary" routerLink="/sales/till-sessions">
+        <i class="pi pi-lock-open"></i>
+        <span>Open Till Session</span>
+      </a>
+    </div>
+  </div>
+
   <!-- Main Content -->
-  <main class="pos-main">
+  <main class="pos-main" *ngIf="!checkingTillSession() && !tillSessionBlocked()">
     <!-- Left: Product Search + Cart -->
     <section class="cart-section">
       <!-- Product Search -->

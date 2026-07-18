@@ -70,4 +70,7 @@ public interface IReportReadRepository
 
     Task<IReadOnlyList<ExpenseReportRowDto>> GetExpensesAsync(
         ReportQuery query, CancellationToken cancellationToken = default);
+
+    Task<VatReportDto> GetVatReportAsync(
+        ReportQuery query, CancellationToken cancellationToken = default);
 }

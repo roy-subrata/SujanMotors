@@ -3,6 +3,7 @@ using AutoPartShop.Application.DTOs.LedgerDtos;
 using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using QuestPDF.Fluent;
 
 namespace AutoPartShop.Api.Controllers;
 
@@ -83,6 +84,85 @@ public class SupplierLedgerController : ControllerBase
             _logger.LogError(ex, "Error getting ledger entries for supplier: {SupplierId}", supplierId);
             return StatusCode(StatusCodes.Status500InternalServerError,
                 new { message = "An error occurred while retrieving ledger entries" });
+        }
+    }
+
+    /// <summary>
+    /// Download the supplier ledger as a PDF — the server-rendered equivalent of the Supplier
+    /// Account Summary page. Totals are always all-time (matching GetLedgerSummaryAsync); the
+    /// entry list respects fromDate/toDate the same way the on-screen date filter does.
+    /// </summary>
+    [HttpGet("{supplierId:guid}/statement-pdf")]
+    [Produces("application/pdf")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(FileResult))]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DownloadStatementPdf(
+        Guid supplierId,
+        [FromQuery] DateTime? fromDate,
+        [FromQuery] DateTime? toDate,
+        [FromServices] AutoPartShop.Api.Services.IShopProfileProvider shopProfiles,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // entryLimit here only bounds the summary DTO's own Entries list, which this document
+            // doesn't use — the real entry list below is fetched separately so it can honour the
+            // date filter, same as the Angular page's "load all entries then export" flow.
+            var summary = await _ledgerService.GetLedgerSummaryAsync(supplierId, entryLimit: 1, cancellationToken);
+
+            const int allEntriesCap = 50_000;
+            var paged = await _ledgerService.GetLedgerEntriesAsync(
+                new AutoPartShop.Application.DTOs.LedgerDtos.SupplierLedgerQueryDto
+                {
+                    SupplierId = supplierId,
+                    PageNumber = 1,
+                    PageSize = allEntriesCap,
+                    FromDate = fromDate,
+                    ToDate = toDate
+                },
+                cancellationToken);
+
+            var shop = await shopProfiles.GetAsync(cancellationToken: cancellationToken);
+
+            var periodLabel = fromDate is null && toDate is null
+                ? "All time"
+                : $"{fromDate?.ToString("dd MMM yyyy") ?? "…"} – {toDate?.ToString("dd MMM yyyy") ?? "…"}";
+
+            var data = new AutoPartShop.Api.Pdf.SupplierLedgerStatementData(
+                SupplierName: summary.SupplierName,
+                SupplierCode: summary.SupplierCode,
+                PeriodLabel: periodLabel,
+                TotalPurchases: summary.TotalPurchases,
+                TotalPayments: summary.TotalPayments,
+                TotalRefunds: summary.TotalRefunds,
+                AvailableAdvanceCredit: summary.AvailableAdvanceCredit,
+                CurrentBalance: summary.CurrentBalance,
+                Entries: paged.Entries
+                    .Select(e => new AutoPartShop.Api.Pdf.SupplierLedgerStatementLine(
+                        TransactionDate: e.TransactionDate,
+                        TransactionType: e.TransactionType.ToString(),
+                        ReferenceNumber: e.ReferenceNumber,
+                        Description: e.Description,
+                        DebitAmount: e.DebitAmount,
+                        CreditAmount: e.CreditAmount,
+                        RunningBalance: e.RunningBalance))
+                    .ToList());
+
+            var pdfBytes = new AutoPartShop.Api.Pdf.SupplierLedgerStatementDocument(data, shop)
+                .GeneratePdf();
+
+            var dateStr = DateTime.UtcNow.ToString("yyyyMMdd");
+            return File(pdfBytes, "application/pdf", $"supplier-ledger-{summary.SupplierCode}-{dateStr}.pdf");
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("not found"))
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating ledger statement PDF for supplier: {SupplierId}", supplierId);
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { message = "An error occurred while generating the ledger statement" });
         }
     }
 

@@ -664,6 +664,12 @@ class _QuickActions extends StatelessWidget {
           accent: const Color(0xFF059669),
           onTap: () => context.push('/stock-in'),
         ),
+        _ActionTile(
+          label: 'Till Session',
+          icon: Icons.lock_clock_outlined,
+          accent: const Color(0xFF334155),
+          onTap: () => context.push('/till-session'),
+        ),
       ],
     );
   }

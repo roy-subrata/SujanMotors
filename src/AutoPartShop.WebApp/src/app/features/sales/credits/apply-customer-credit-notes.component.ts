@@ -9,6 +9,7 @@ import { MessageService } from 'primeng/api';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ConfirmationService } from 'primeng/api';
+import { TooltipModule } from 'primeng/tooltip';
 import { CustomerCreditNoteService, CustomerCreditNoteResponse } from '../services/customer-credit-note.service';
 
 @Component({
@@ -22,7 +23,8 @@ import { CustomerCreditNoteService, CustomerCreditNoteResponse } from '../servic
     CardModule,
     InputNumberModule,
     ToastModule,
-    ConfirmDialogModule
+    ConfirmDialogModule,
+    TooltipModule
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: './apply-customer-credit-notes.component.html',
@@ -77,6 +79,18 @@ export class ApplyCustomerCreditNotesComponent implements OnInit {
   selectCredit(credit: CustomerCreditNoteResponse): void {
     this.selectedCreditNote = credit;
     this.amountToApply = null;
+  }
+
+  downloadPdf(credit: CustomerCreditNoteResponse): void {
+    this.creditNoteService.downloadPdf(credit.id, credit.creditNoteNumber).subscribe({
+      error: () => {
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Failed to download the credit note PDF'
+        });
+      }
+    });
   }
 
   applyCredit(): void {
