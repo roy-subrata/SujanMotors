@@ -1,5 +1,5 @@
 <!-- ============================================================
-     SALES ORDERS LIST — standardized data-page layout
+     QUOTATIONS LIST — standardized data-page layout
      ============================================================ -->
 
 <!-- PrimeNG Global Components -->
@@ -7,24 +7,20 @@
 <p-confirmDialog></p-confirmDialog>
 <p-menu #actionMenu [model]="actionMenuItems" [popup]="true" appendTo="body"></p-menu>
 
-<app-generate-proforma-dialog [(visible)]="generateProformaDialogVisible" [salesOrder]="selectedOrderForProforma"
-  (created)="onProformaGenerated($event)">
-</app-generate-proforma-dialog>
-
 <app-page-container>
 
   <!-- ==================== HEADER ==================== -->
   <app-page-header
-    title="Sales Orders"
-    subtitle="Manage and track all customer sales orders"
-    [count]="totalRecords" countLabel="orders" countIcon="pi pi-shopping-cart">
+    title="Quotations"
+    subtitle="Create and track price quotes for prospective customers"
+    [count]="totalRecords" countLabel="quotations" countIcon="pi pi-file-edit">
     <ng-container actions>
       <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="refreshData()">
         <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
       </button>
-      <button class="btn-primary" (click)="createOrder()">
+      <button class="btn-primary" (click)="createQuotation()">
         <i class="pi pi-plus"></i>
-        <span>New Order</span>
+        <span>New Quotation</span>
       </button>
     </ng-container>
   </app-page-header>
@@ -37,7 +33,7 @@
         <input
           type="text"
           [(ngModel)]="searchTerm"
-          placeholder="Search by SO number, customer name..."
+          placeholder="Search by quotation number, customer name..."
           (keyup.enter)="onSearch()"
           class="search-input" />
         <button *ngIf="searchTerm" class="search-clear" (click)="searchTerm = ''; onSearch()">
@@ -47,7 +43,6 @@
     </div>
 
     <div filters class="filter-group">
-      <!-- <label class="filter-label">Status</label> -->
       <p-select
         [options]="statusOptions"
         [(ngModel)]="filterStatus"
@@ -57,21 +52,6 @@
         appendTo="body"
         styleClass="filter-dropdown">
       </p-select>
-    </div>
-
-    <div filters class="filter-group">
-      <!-- <label class="filter-label">Order Date</label> -->
-      <p-datepicker
-        [(ngModel)]="dateRange"
-        selectionMode="range"
-        placeholder="Select order date range"
-        dateFormat="dd M yy"
-        [showIcon]="true"
-        [showButtonBar]="true"
-        (onSelect)="onFilterChange()"
-        appendTo="body"
-        styleClass="filter-datepicker">
-      </p-datepicker>
     </div>
 
     <div filterActions class="filter-group filter-actions">
@@ -95,10 +75,6 @@
         Status: {{ filterStatus }}
         <i class="pi pi-times" (click)="filterStatus = ''; onFilterChange()"></i>
       </span>
-      <span *ngIf="dateRange && dateRange.length > 0" class="filter-chip">
-        Date Range
-        <i class="pi pi-times" (click)="dateRange = []; onFilterChange()"></i>
-      </span>
     </div>
   </app-filter-bar>
 
@@ -106,7 +82,7 @@
   <section class="table-section desktop-only">
     <div class="table-container">
       <p-table
-        [value]="salesOrders"
+        [value]="quotations"
         [lazy]="true"
         [paginator]="false"
         [rows]="pageSize"
@@ -120,58 +96,51 @@
 
         <ng-template #header>
           <tr>
-            <th class="col-so">SO Number</th>
+            <th class="col-quotation">Quotation #</th>
             <th class="col-customer">Customer</th>
-            <th class="col-date">Order Date</th>
-            <th class="col-date">Delivery Date</th>
+            <th class="col-date">Quote Date</th>
+            <th class="col-date">Valid Until</th>
             <th class="col-status">Status</th>
             <th class="col-amount">Grand Total</th>
-            <th class="col-amount">Outstanding</th>
             <th class="col-actions">Actions</th>
           </tr>
         </ng-template>
 
-        <ng-template #body let-order>
-          <tr class="data-row" [class.row-overdue]="order.isOverdue" (dblclick)="viewOrder(order)">
-            <td class="col-so">
+        <ng-template #body let-quotation>
+          <tr class="data-row" [class.row-overdue]="quotation.isExpired" (dblclick)="viewQuotation(quotation)">
+            <td class="col-quotation">
               <div class="so-cell">
-                <a class="so-link" (click)="viewOrder(order)">{{ order.soNumber }}</a>
-                <span *ngIf="order.isOverdue" class="overdue-badge">Overdue</span>
+                <a class="so-link" (click)="viewQuotation(quotation)">{{ quotation.quotationNumber }}</a>
+                <span *ngIf="quotation.isExpired" class="overdue-badge">Expired</span>
               </div>
             </td>
 
             <td class="col-customer">
               <div class="cell-media">
                 <div class="customer-info">
-                  <span class="customer-name">{{ order.customerName || 'Walk-in Customer' }}</span>
-                  <span *ngIf="order.customerPhone" class="customer-phone">{{ order.customerPhone }}</span>
+                  <span class="customer-name">{{ quotation.customerName || 'Walk-in Customer' }}</span>
+                  <span *ngIf="quotation.customerPhone" class="customer-phone">{{ quotation.customerPhone }}</span>
                 </div>
               </div>
             </td>
 
-            <td class="col-date"><span class="date-text">{{ formatDate(order.orderDate) }}</span></td>
+            <td class="col-date"><span class="date-text">{{ formatDate(quotation.quoteDate) }}</span></td>
 
             <td class="col-date">
-              <span class="date-text" [class.text-danger]="order.isOverdue">{{ formatDate(order.deliveryDate) }}</span>
+              <span class="date-text" [class.text-danger]="quotation.isExpired">{{ formatDate(quotation.validUntil) }}</span>
             </td>
 
             <td class="col-status">
-              <span class="status-pill" [attr.data-status]="order.status.toLowerCase()">
-                {{ formatStatus(order.status) }}
+              <span class="status-pill" [attr.data-status]="quotation.status.toLowerCase()">
+                {{ formatStatus(quotation.status) }}
               </span>
             </td>
 
-            <td class="col-amount"><span class="amount-value">{{ formatCurrency(order.grandTotal) }}</span></td>
-
-            <td class="col-amount">
-              <span class="amount-value" [class.text-danger]="order.outstandingAmount > 0">
-                {{ formatCurrency(order.outstandingAmount) }}
-              </span>
-            </td>
+            <td class="col-amount"><span class="amount-value">{{ formatCurrency(quotation.grandTotal, quotation.currency) }}</span></td>
 
             <td class="col-actions">
               <div class="action-cell">
-                <button class="btn-action" pTooltip="More" (click)="showActionMenu($event, order)">
+                <button class="btn-action" pTooltip="More" (click)="showActionMenu($event, quotation)">
                   <i class="pi pi-ellipsis-v"></i>
                 </button>
               </div>
@@ -181,15 +150,15 @@
 
         <ng-template #emptymessage>
           <tr>
-            <td colspan="8">
+            <td colspan="7">
               <div class="empty-state">
-                <div class="empty-icon"><i class="pi pi-shopping-cart"></i></div>
-                <h3>No Sales Orders Found</h3>
+                <div class="empty-icon"><i class="pi pi-file-edit"></i></div>
+                <h3>No Quotations Found</h3>
                 <p *ngIf="hasActiveFilters()">Try adjusting your filters or search criteria</p>
-                <p *ngIf="!hasActiveFilters()">Get started by creating your first sales order</p>
-                <button *ngIf="!hasActiveFilters()" class="btn-primary" (click)="createOrder()">
+                <p *ngIf="!hasActiveFilters()">Get started by creating your first quotation</p>
+                <button *ngIf="!hasActiveFilters()" class="btn-primary" (click)="createQuotation()">
                   <i class="pi pi-plus"></i>
-                  Create Sales Order
+                  Create Quotation
                 </button>
                 <button *ngIf="hasActiveFilters()" class="btn-secondary" (click)="clearFilters()">
                   <i class="pi pi-filter-slash"></i>
@@ -212,7 +181,6 @@
             <td><div class="skeleton skeleton-text-sm"></div></td>
             <td><div class="skeleton skeleton-text-sm"></div></td>
             <td><div class="skeleton skeleton-badge"></div></td>
-            <td><div class="skeleton skeleton-text-sm"></div></td>
             <td><div class="skeleton skeleton-text-sm"></div></td>
             <td><div class="skeleton skeleton-actions"></div></td>
           </tr>
@@ -243,35 +211,35 @@
     </div>
 
     <!-- Empty State -->
-    <div *ngIf="!loading && salesOrders.length === 0" class="empty-state-mobile">
-      <div class="empty-icon"><i class="pi pi-shopping-cart"></i></div>
-      <h3>No Sales Orders</h3>
-      <p>{{ hasActiveFilters() ? 'Try different filters' : 'Create your first order' }}</p>
-      <button class="btn-primary" (click)="hasActiveFilters() ? clearFilters() : createOrder()">
+    <div *ngIf="!loading && quotations.length === 0" class="empty-state-mobile">
+      <div class="empty-icon"><i class="pi pi-file-edit"></i></div>
+      <h3>No Quotations</h3>
+      <p>{{ hasActiveFilters() ? 'Try different filters' : 'Create your first quotation' }}</p>
+      <button class="btn-primary" (click)="hasActiveFilters() ? clearFilters() : createQuotation()">
         <i class="pi" [class.pi-plus]="!hasActiveFilters()" [class.pi-filter-slash]="hasActiveFilters()"></i>
-        {{ hasActiveFilters() ? 'Clear Filters' : 'New Order' }}
+        {{ hasActiveFilters() ? 'Clear Filters' : 'New Quotation' }}
       </button>
     </div>
 
-    <!-- Order Cards -->
-    <div *ngIf="!loading && salesOrders.length > 0" class="cards-grid">
-      <div *ngFor="let order of salesOrders" class="order-card" [class.card-overdue]="order.isOverdue" (click)="viewOrder(order)">
+    <!-- Quotation Cards -->
+    <div *ngIf="!loading && quotations.length > 0" class="cards-grid">
+      <div *ngFor="let quotation of quotations" class="order-card" [class.card-overdue]="quotation.isExpired" (click)="viewQuotation(quotation)">
         <div class="card-header">
-          <span class="card-so-number">{{ order.soNumber }}</span>
-          <span class="status-pill" [attr.data-status]="order.status.toLowerCase()">
-            {{ formatStatus(order.status) }}
+          <span class="card-so-number">{{ quotation.quotationNumber }}</span>
+          <span class="status-pill" [attr.data-status]="quotation.status.toLowerCase()">
+            {{ formatStatus(quotation.status) }}
           </span>
         </div>
 
         <div class="card-body">
           <div class="card-customer">
-            <span class="customer-name">{{ order.customerName || 'Walk-in Customer' }}</span>
+            <span class="customer-name">{{ quotation.customerName || 'Walk-in Customer' }}</span>
           </div>
           <div class="card-dates">
-            <span class="card-date"><i class="pi pi-calendar"></i> {{ formatDate(order.orderDate) }}</span>
-            <span *ngIf="order.isOverdue" class="overdue-text">
+            <span class="card-date"><i class="pi pi-calendar"></i> {{ formatDate(quotation.quoteDate) }}</span>
+            <span *ngIf="quotation.isExpired" class="overdue-text">
               <i class="pi pi-exclamation-circle"></i>
-              Overdue
+              Expired
             </span>
           </div>
         </div>
@@ -279,15 +247,9 @@
         <div class="card-footer">
           <div class="card-amount">
             <span class="amount-label">Total</span>
-            <span class="amount-value">{{ formatCurrency(order.grandTotal) }}</span>
+            <span class="amount-value">{{ formatCurrency(quotation.grandTotal, quotation.currency) }}</span>
           </div>
-          <div class="card-amount">
-            <span class="amount-label">Outstanding</span>
-            <span class="amount-value" [class.text-danger]="order.outstandingAmount > 0">
-              {{ formatCurrency(order.outstandingAmount) }}
-            </span>
-          </div>
-          <button class="btn-card-action" (click)="showActionMenu($event, order); $event.stopPropagation()">
+          <button class="btn-card-action" (click)="showActionMenu($event, quotation); $event.stopPropagation()">
             <i class="pi pi-ellipsis-h"></i>
           </button>
         </div>
@@ -300,9 +262,9 @@
     [first]="first"
     [pageSize]="pageSize"
     [totalRecords]="totalRecords"
-    itemLabel="orders"
-    (pageChange)="onPageChange({ first: ($event - 1) * pageSize, rows: pageSize })"
-    (pageSizeChange)="onPageChange({ first: 0, rows: $event })">
+    itemLabel="quotations"
+    (pageChange)="goToPage($event)"
+    (pageSizeChange)="onPageSizeChange($event)">
   </app-data-pagination>
 
 </app-page-container>

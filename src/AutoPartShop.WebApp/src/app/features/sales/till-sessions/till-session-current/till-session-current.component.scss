@@ -1,0 +1,263 @@
+/* ============================================================
+   TILL SESSION — CURRENT SESSION VIEW — page-specific styles only
+   Shared chrome (buttons, status-pill, page header/container) lives in
+   assets/_data-page.scss
+   ============================================================ */
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 1.25rem;
+  gap: 12px;
+  color: var(--color-text-secondary);
+
+  i { font-size: 28px; }
+}
+
+.till-card {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 20px 24px;
+  margin-bottom: 16px;
+
+  h3 {
+    margin: 0 0 4px;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    i { color: var(--color-primary); }
+  }
+}
+
+.till-card-subtitle {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.till-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+/* ── Open Till form ─────────────────────────────────────────── */
+.till-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.dialog-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  &.full { grid-column: span 2; }
+
+  label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+  }
+
+  input, textarea {
+    width: 100%;
+  }
+
+  textarea { resize: vertical; }
+}
+
+.dialog-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background-color: var(--color-danger-light);
+  color: var(--color-danger);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.field-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-text-tertiary, var(--color-text-secondary));
+  margin: 0 0 12px;
+}
+
+/* ── Session summary ────────────────────────────────────────── */
+.session-summary-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.session-summary-title {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+
+    span { font-weight: 400; color: var(--color-text-secondary); }
+  }
+}
+
+.session-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.session-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+.meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.meta-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+
+.meta-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+/* ── Reconciliation ─────────────────────────────────────────── */
+.recon-grid {
+  display: flex;
+  flex-direction: column;
+}
+
+.recon-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  border-bottom: 1px dashed var(--color-border);
+
+  &:last-child { border-bottom: none; }
+
+  span:last-child {
+    font-weight: 600;
+    color: var(--color-text-primary);
+  }
+}
+
+.recon-row.recon-total {
+  border-top: 2px solid var(--color-border);
+  border-bottom: none;
+  margin-top: 4px;
+  padding-top: 12px;
+
+  span:first-child {
+    font-weight: 700;
+    color: var(--color-text-primary);
+  }
+
+  span:last-child {
+    font-size: 16px;
+    font-weight: 700;
+  }
+}
+
+.till-notes {
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
+.amount-exact { color: var(--color-success) !important; }
+.amount-over  { color: var(--color-info, #1D4ED8) !important; }
+.amount-short { color: var(--color-danger) !important; }
+
+/* ── Cash drops table ───────────────────────────────────────── */
+.drops-count {
+  font-weight: 400;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+.empty-drops {
+  padding: 20px 0;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.drops-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-top: 8px;
+
+  th {
+    text-align: left;
+    padding: 8px 10px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--color-text-muted);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-text-primary);
+  }
+
+  .drops-total-row td {
+    border-bottom: none;
+    border-top: 2px solid var(--color-border);
+    font-weight: 700;
+  }
+}
+
+/* ── Dialog body (Cash Drop / Close Till) ───────────────────── */
+.till-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+@media (max-width: 640px) {
+  .till-form-grid { grid-template-columns: 1fr; }
+  .dialog-field.full { grid-column: span 1; }
+  .session-actions { width: 100%; }
+  .session-actions button { flex: 1 1 auto; }
+}

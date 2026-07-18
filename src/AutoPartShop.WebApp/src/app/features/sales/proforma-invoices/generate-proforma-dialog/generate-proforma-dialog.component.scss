@@ -1,0 +1,80 @@
+.proforma-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dialog-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background-color: var(--color-danger-light);
+  color: var(--color-danger);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+}
+
+.dialog-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+  }
+
+  textarea {
+    width: 100%;
+    resize: vertical;
+  }
+}
+
+.field-hint {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+}
+
+.locked-order,
+.so-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.locked-order {
+  padding: 10px 12px;
+  background-color: var(--color-bg-tertiary);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+}
+
+.locked-order-main,
+.so-option-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.locked-order-number,
+.so-option-number {
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.locked-order-customer,
+.so-option-customer {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.locked-order-amount,
+.so-option-amount {
+  font-weight: 600;
+}

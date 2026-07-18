@@ -3,6 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
+import { PdfDownloadService } from '@/shared/services/pdf-download.service';
 
 export interface SalesOrderLineRequest {
     partId: string;
@@ -100,6 +101,7 @@ export interface PaginatedResponse<T> {
 @Injectable({ providedIn: 'root' })
 export class SalesOrderService {
     private readonly http = inject(HttpClient);
+    private readonly pdfDownload = inject(PdfDownloadService);
     private readonly apiUrl = `${environment.apiUrl}/v1/salesorder`;
 
     getAllSalesOrders(): Observable<SalesOrderResponse[]> {
@@ -165,5 +167,10 @@ export class SalesOrderService {
 
     deleteSalesOrder(id: string): Observable<void> {
         return this.http.delete<void>(`${this.apiUrl}/${id}`);
+    }
+
+    /** Download the server-rendered Sales Order PDF and trigger the browser save dialog. */
+    downloadPdf(id: string, soNumber: string): Observable<void> {
+        return this.pdfDownload.downloadGet(`${this.apiUrl}/${id}/pdf`, `sales-order-${soNumber}.pdf`);
     }
 }

@@ -1,10 +1,11 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, map } from 'rxjs';
+import { Observable } from 'rxjs';
 import { shareReplay } from 'rxjs/operators';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { CurrencyService } from '../../../shared/services/currency.service';
 import { AppSettingsService, ShopProfile } from '../../../shared/services/app-settings.service';
+import { PdfDownloadService } from '../../../shared/services/pdf-download.service';
 import { environment } from '../../../../environments/environment';
 
 const DEFAULT_PROFILE: ShopProfile = {
@@ -84,6 +85,7 @@ export class InvoicePdfService {
   private readonly currencyService = inject(CurrencyService);
   private readonly appSettings = inject(AppSettingsService);
   private readonly http = inject(HttpClient);
+  private readonly pdfDownload = inject(PdfDownloadService);
 
   /** Loaded once from DB; all print components read this signal. */
   readonly shopProfile = toSignal(
@@ -282,15 +284,6 @@ export class InvoicePdfService {
    */
   downloadServerPdf(invoiceId: string, invoiceNumber: string): Observable<void> {
     const url = `${environment.apiUrl}/salesorders/invoices/${invoiceId}/pdf`;
-    return this.http.get(url, { responseType: 'blob' }).pipe(
-      map(blob => {
-        const objectUrl = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = objectUrl;
-        a.download = `invoice-${invoiceNumber}.pdf`;
-        a.click();
-        URL.revokeObjectURL(objectUrl);
-      })
-    );
+    return this.pdfDownload.downloadGet(url, `invoice-${invoiceNumber}.pdf`);
   }
 }

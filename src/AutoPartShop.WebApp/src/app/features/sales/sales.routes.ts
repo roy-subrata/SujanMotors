@@ -1,4 +1,15 @@
 import { Routes } from '@angular/router';
+import { QuotationsComponent } from './quotations/quotations.component';
+import { QuotationsListComponent } from './quotations/quotations-list/quotations-list.component';
+import { QuotationFormComponent } from './quotations/quotation-form/quotation-form.component';
+import { ProformaInvoicesComponent } from './proforma-invoices/proforma-invoices.component';
+import { ProformaInvoicesListComponent } from './proforma-invoices/proforma-invoices-list/proforma-invoices-list.component';
+import { DebitNotesComponent } from './debit-notes/debit-notes.component';
+import { DebitNotesListComponent } from './debit-notes/debit-notes-list/debit-notes-list.component';
+import { DebitNoteFormComponent } from './debit-notes/debit-note-form/debit-note-form.component';
+import { TillSessionsComponent } from './till-sessions/till-sessions.component';
+import { TillSessionCurrentComponent } from './till-sessions/till-session-current/till-session-current.component';
+import { TillSessionsListComponent } from './till-sessions/till-sessions-list/till-sessions-list.component';
 import { SalesOrdersComponent } from './sales-orders/sales-orders.component';
 import { SalesOrdersListComponent } from './sales-orders/sales-orders-list/sales-orders-list.component';
 import { SalesOrderFormComponent } from './sales-orders/sales-order-form/sales-order-form.component';
@@ -25,6 +36,49 @@ import { TechniciansListComponent } from './technicians/technicians-list/technic
 import { TechnicianFormComponent } from './technicians/technician-form/technician-form.component';
 
 export const salesRoutes: Routes = [
+    // Quotations — separate from the legacy /api/v1/quotes "Save as Quotation" shortcut
+    {
+        path: 'quotations',
+        component: QuotationsComponent,
+        children: [
+            { path: '', component: QuotationsListComponent },
+            { path: 'create', component: QuotationFormComponent },
+            { path: 'view', component: QuotationFormComponent }
+        ]
+    },
+
+    // Proforma Invoices — thin wrapper generated FROM an existing Sales Order; no line items or
+    // a create form of its own, so there is only a list (the "Generate Proforma" dialog is shared
+    // with the Sales Order row action and lives under proforma-invoices/generate-proforma-dialog).
+    {
+        path: 'proforma-invoices',
+        component: ProformaInvoicesComponent,
+        children: [
+            { path: '', component: ProformaInvoicesListComponent }
+        ]
+    },
+
+    // Customer Debit Notes — standalone flat balance-owed adjustment against a customer
+    {
+        path: 'debit-notes',
+        component: DebitNotesComponent,
+        children: [
+            { path: '', component: DebitNotesListComponent },
+            { path: 'create', component: DebitNoteFormComponent }
+        ]
+    },
+
+    // Till Sessions — standalone admin cash-drawer lifecycle (open/cash-drop/close/shift report).
+    // Deliberately separate from checkout — the Quick Sale shortcut has no till-session awareness.
+    {
+        path: 'till-sessions',
+        component: TillSessionsComponent,
+        children: [
+            { path: '', component: TillSessionCurrentComponent },
+            { path: 'history', component: TillSessionsListComponent }
+        ]
+    },
+
     // Sales Orders
     {
         path: 'sales-orders',

@@ -1,0 +1,78 @@
+.report-filter {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 20px;
+    margin-bottom: 20px;
+
+    .filter-item {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        min-width: 220px;
+    }
+
+    .filter-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--color-text-secondary);
+    }
+}
+
+.z-report-card {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 24px;
+    padding: 28px;
+    background: var(--color-bg-primary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+}
+
+.z-report-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    flex-shrink: 0;
+    border-radius: var(--radius-md);
+    background: var(--color-primary-light);
+    color: var(--color-primary);
+    font-size: 28px;
+}
+
+.z-report-body {
+    flex: 1 1 320px;
+    min-width: 240px;
+
+    h3 {
+        margin: 0 0 6px;
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--color-text-primary);
+    }
+
+    p {
+        margin: 0 0 8px;
+        font-size: 13px;
+        color: var(--color-text-secondary);
+    }
+
+    ul {
+        margin: 0;
+        padding-left: 18px;
+        font-size: 13px;
+        color: var(--color-text-primary);
+
+        li {
+            padding: 2px 0;
+        }
+    }
+}
+
+.z-report-download {
+    flex-shrink: 0;
+    white-space: nowrap;
+}

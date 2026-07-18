@@ -1,0 +1,150 @@
+<div class="container">
+  <p-toast></p-toast>
+
+  <!-- Header -->
+  <div class="form-header">
+    <div class="header-content">
+      <div class="header-title-section">
+        <div class="breadcrumb">
+          <a (click)="cancel()" class="breadcrumb-link">
+            <i class="pi pi-arrow-left"></i>
+            Debit Notes
+          </a>
+          <span class="breadcrumb-separator">/</span>
+          <span class="breadcrumb-current">New</span>
+        </div>
+        <h1 class="form-title">Create Customer Debit Note</h1>
+        <p class="form-subtitle">Issue a flat balance-owed adjustment against a customer</p>
+      </div>
+      <div class="header-actions">
+        <button pButton type="button" icon="pi pi-arrow-left"
+          class="p-button-text p-button-sm" style="color:rgba(255,255,255,0.8); border:1px solid rgba(255,255,255,0.3);"
+          pTooltip="Back" tooltipPosition="bottom" (click)="cancel()">
+        </button>
+
+        <button pButton type="button"
+          [label]="saving() ? 'Saving…' : 'Create'"
+          icon="pi pi-check" class="p-button-sm"
+          style="background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.4); color:#fff; font-weight:600;"
+          [loading]="saving()" [disabled]="saving() || debitNoteForm.invalid || !selectedCustomerId"
+          (click)="onSubmit()">
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error Alert -->
+  <div *ngIf="error()" class="error-box">
+    <i class="pi pi-exclamation-circle"></i>
+    <span>{{ error() }}</span>
+  </div>
+
+  <!-- Form -->
+  <p-card class="form-card">
+    <form [formGroup]="debitNoteForm" (ngSubmit)="onSubmit()" class="form-content">
+
+      <!-- Section 1: Customer -->
+      <div class="form-section">
+        <h3 class="section-title">
+          <i class="pi pi-user section-icon"></i>
+          Customer
+        </h3>
+
+        <div class="form-row">
+          <div class="form-group full">
+            <label>Select Customer *</label>
+            <app-lazy-autocomplete [fetchFn]="searchCustomers" [(ngModel)]="selectedCustomer"
+              [ngModelOptions]="{standalone: true}" optionLabel="fullName"
+              placeholder="Search by name, email, or customer code..." (onItemSelect)="onCustomerSelected($any($event))"
+              (onClearEvent)="onCustomerCleared()">
+              <ng-template let-customer>
+                <div class="option-item">
+                  <div class="option-item-name">
+                    {{ customer.firstName }} {{ customer.lastName }}<span class="option-item-code">{{ customer.customerCode }}</span>
+                  </div>
+                  <div class="option-item-details">
+                    {{ customer.email }}<span *ngIf="customer.phone" class="separator">•</span><span
+                      *ngIf="customer.phone">{{ customer.phone }}</span>
+                  </div>
+                </div>
+              </ng-template>
+            </app-lazy-autocomplete>
+            <small class="field-hint">
+              <i class="pi pi-info-circle"></i>
+              <span *ngIf="!selectedCustomerId">Type to search for a customer</span>
+              <span *ngIf="selectedCustomerId" class="success-text">Customer selected</span>
+            </small>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group full">
+            <label>Linked Invoice <span class="optional-tag">(optional)</span></label>
+            <app-lazy-autocomplete #invoicePicker [fetchFn]="searchInvoices" [(ngModel)]="selectedInvoice"
+              [ngModelOptions]="{standalone: true}" optionLabel="invoiceNumber"
+              placeholder="Search by invoice number..." (onItemSelect)="onInvoiceSelected($any($event))"
+              (onClearEvent)="onInvoiceCleared()">
+              <ng-template let-invoice>
+                <div class="option-item">
+                  <div class="option-item-name">
+                    {{ invoice.invoiceNumber }}<span class="option-item-code">{{ invoice.customerName }}</span>
+                  </div>
+                  <div class="option-item-details">
+                    Grand Total: {{ invoice.grandTotal | number: '1.2-2' }}
+                  </div>
+                </div>
+              </ng-template>
+            </app-lazy-autocomplete>
+            <small class="field-hint">
+              <i class="pi pi-info-circle"></i>
+              <span>The invoice this correction relates to, if any. Select a customer first to narrow the list.</span>
+            </small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 2: Amount & Reason -->
+      <div class="form-section">
+        <h3 class="section-title">
+          <i class="pi pi-file-export section-icon"></i>
+          Adjustment Details
+        </h3>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Amount *</label>
+            <p-inputNumber formControlName="amount" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="2"
+              [min]="0.01" placeholder="0.00" styleClass="w-full">
+            </p-inputNumber>
+            <small class="error-text" *ngIf="debitNoteForm.get('amount')?.invalid && debitNoteForm.get('amount')?.touched">
+              Amount must be greater than 0
+            </small>
+          </div>
+
+          <div class="form-group">
+            <label>Currency *</label>
+            <app-currency-selector formControlName="currency" [showLabel]="false"></app-currency-selector>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group full">
+            <label>Reason *</label>
+            <input type="text" pInputText formControlName="reason" placeholder="e.g. Undercharged on invoice, freight correction..." />
+            <small class="error-text" *ngIf="debitNoteForm.get('reason')?.invalid && debitNoteForm.get('reason')?.touched">
+              Reason is required
+            </small>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group full">
+            <label>Notes</label>
+            <textarea pTextarea formControlName="notes" placeholder="Additional notes..." rows="3"></textarea>
+          </div>
+        </div>
+      </div>
+
+    </form>
+  </p-card>
+</div>
