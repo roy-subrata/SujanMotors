@@ -31,6 +31,7 @@ import '../../features/scanner/scanner_screen.dart';
 import '../../features/stock/stock_in_entry_screen.dart';
 import '../../features/stock/stock_in_list_screen.dart';
 import '../../features/stock/stock_in_screen.dart';
+import '../../features/till_session/till_session_screen.dart';
 import '../../shared/widgets/splash_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -172,6 +173,9 @@ final routerProvider = Provider<GoRouter>((ref) {
           invoice: state.extra is Invoice ? state.extra as Invoice : null,
         ),
       ),
+      GoRoute(
+          path: '/till-session',
+          builder: (_, _) => const TillSessionScreen()),
     ],
   );
 });
