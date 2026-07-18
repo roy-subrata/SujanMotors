@@ -25,15 +25,22 @@ public record CreditNoteDocumentData(
     string Reason,
     List<CreditNoteLine> Lines,
     decimal TotalCredit,
-    string Notes);
+    string Notes,
+    /// <summary>
+    /// When true, renders as a Debit Note — the handoff's own copy says "Debit Notes use the same
+    /// layout" as the Credit Note, so this flips the title, section label, and totals label rather
+    /// than duplicating the class. Defaults to false so existing Credit Note callers are unaffected.
+    /// </summary>
+    bool IsDebit = false);
 
 /// <summary>
-/// Credit Note — document 7 of design_handoff_pos_documents. Customer-facing: credit issued to a
-/// customer for returned goods.
+/// Credit Note / Debit Note — document 7 of design_handoff_pos_documents (both directions share
+/// this one layout, per the handoff's own note). Customer-facing.
 ///
-/// Note this is backed by <c>CustomerCreditNote</c>, not the <c>CreditNote</c> entity — the latter
-/// is a *supplier* credit (credit we receive against a purchase return), which runs in the opposite
-/// direction and is not this document.
+/// The credit direction is backed by <c>CustomerCreditNote</c>, not the <c>CreditNote</c> entity —
+/// the latter is a *supplier* credit (credit we receive against a purchase return), which runs in
+/// the opposite direction and is not this document. The debit direction is backed by
+/// <c>CustomerDebitNote</c>.
 /// </summary>
 public class CreditNoteDocument : IDocument
 {
@@ -48,11 +55,13 @@ public class CreditNoteDocument : IDocument
         _theme = (theme ?? DocTheme.Default) with { CurrencySymbol = shop.CurrencySymbol };
     }
 
+    private string DocTitle => _data.IsDebit ? "Debit Note" : "Credit Note";
+
     public DocumentMetadata GetMetadata() => new()
     {
-        Title = $"Credit Note {_data.CreditNoteNumber}",
+        Title = $"{DocTitle} {_data.CreditNoteNumber}",
         Author = _shop.Name,
-        Subject = $"Credit note for {_data.CustomerName}",
+        Subject = $"{DocTitle} for {_data.CustomerName}",
         CreationDate = DateTime.UtcNow
     };
 
@@ -69,7 +78,7 @@ public class CreditNoteDocument : IDocument
     }
 
     private void ComposeHeader(IContainer container) =>
-        new DocHeader(_theme, _shop, "Credit Note",
+        new DocHeader(_theme, _shop, DocTitle,
         [
             new MetaField("No.", _data.CreditNoteNumber),
             new MetaField("Date", _data.IssueDate.ToString("dd MMM yyyy")),
@@ -122,7 +131,7 @@ public class CreditNoteDocument : IDocument
     {
         container.Column(col =>
         {
-            col.Item().Element(c => SectionLabel(c, "Reason for Credit"));
+            col.Item().Element(c => SectionLabel(c, _data.IsDebit ? "Reason for Debit" : "Reason for Credit"));
             col.Item().PaddingTop(DocTheme.Px(6)).Text(
                     string.IsNullOrWhiteSpace(_data.Reason) ? "—" : _data.Reason)
                 .FontSize(DocTheme.TableCell).FontColor(DocTheme.Ink).LineHeight(1.6f);
@@ -139,10 +148,10 @@ public class CreditNoteDocument : IDocument
             Rate: DocTheme.Amount(l.UnitPrice),
             Amount: DocTheme.Amount(l.LineTotal))).ToList();
 
-        // Scoped to returned items only, so the sole total is the credit itself.
+        // Scoped to the corrected items only, so the sole total is the credit/debit itself.
         new ItemsTable(
             _theme, items, totals: [],
-            grandLabel: "Total Credit",
+            grandLabel: _data.IsDebit ? "Total Debit" : "Total Credit",
             grandValue: DocTheme.Amount(_data.TotalCredit),
             words: AmountInWords.Convert(_data.TotalCredit)).Compose(container);
     }
@@ -151,7 +160,9 @@ public class CreditNoteDocument : IDocument
     {
         var note = !string.IsNullOrWhiteSpace(_data.Notes)
             ? _data.Notes
-            : "The credited amount will be adjusted against the customer's next purchase, or refunded on request.";
+            : _data.IsDebit
+                ? "This amount is added to the customer's outstanding balance and is payable with the next invoice, or on request."
+                : "The credited amount will be adjusted against the customer's next purchase, or refunded on request.";
 
         container.Text(note)
             .FontSize(DocTheme.Px(10)).FontColor(DocTheme.Muted).LineHeight(1.7f);
