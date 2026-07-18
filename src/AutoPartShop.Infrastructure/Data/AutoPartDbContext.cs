@@ -112,6 +112,8 @@ public class AutoPartDbContext : IdentityDbContext<ApplicationUser, ApplicationR
     public DbSet<Quotation> Quotations { get; set; }
     public DbSet<QuotationLine> QuotationLines { get; set; }
     public DbSet<ProformaInvoice> ProformaInvoices { get; set; }
+    public DbSet<TillSession> TillSessions { get; set; }
+    public DbSet<TillCashDrop> TillCashDrops { get; set; }
 
     // Discount system
     public DbSet<Discount> Discounts { get; set; }
