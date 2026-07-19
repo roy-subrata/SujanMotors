@@ -78,6 +78,8 @@ public class AutoPartDbContext : IdentityDbContext<ApplicationUser, ApplicationR
     public DbSet<SupplierPayment> SupplierPayments { get; set; }
     public DbSet<StockLot> StockLots { get; set; }
     public DbSet<StockLotMovement> StockLotMovements { get; set; }
+    public DbSet<StockTake> StockTakes { get; set; }
+    public DbSet<StockTakeLine> StockTakeLines { get; set; }
     public DbSet<Technician> Technicians { get; set; }
     public DbSet<Employee> Employees { get; set; }
     public DbSet<AttendanceRecord> AttendanceRecords { get; set; }
@@ -107,6 +109,12 @@ public class AutoPartDbContext : IdentityDbContext<ApplicationUser, ApplicationR
     public DbSet<SupplierPaymentAccount> SupplierPaymentAccounts { get; set; }
     public DbSet<CreditNote> CreditNotes { get; set; }
     public DbSet<CustomerCreditNote> CustomerCreditNotes { get; set; }
+    public DbSet<CustomerDebitNote> CustomerDebitNotes { get; set; }
+    public DbSet<Quotation> Quotations { get; set; }
+    public DbSet<QuotationLine> QuotationLines { get; set; }
+    public DbSet<ProformaInvoice> ProformaInvoices { get; set; }
+    public DbSet<TillSession> TillSessions { get; set; }
+    public DbSet<TillCashDrop> TillCashDrops { get; set; }
 
     // Discount system
     public DbSet<Discount> Discounts { get; set; }

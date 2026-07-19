@@ -5,6 +5,7 @@ using AutoPartShop.Application.DTOs.DashboardDtos;
 using AutoPartShop.Application.DTOs.ReportDtos;
 using AutoPartShop.Application.Reports;
 using Microsoft.AspNetCore.Mvc;
+using QuestPDF.Fluent;
 
 namespace AutoPartShop.Api.Controllers.Reports;
 
@@ -214,6 +215,75 @@ public class FinancialReportsController(
             EndDate = query.ToDate.Value.Date,
             Period = "CUSTOM"
         };
+    }
+
+    /// <summary>
+    /// VAT reconciliation for a period: output VAT on sales, less output VAT reversed by credit
+    /// notes, less input VAT on purchases.
+    /// </summary>
+    [HttpPost("vat")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(VatReportDto))]
+    public async Task<IActionResult> GetVatReport([FromBody] ReportQuery query, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var report = await reportRepository.GetVatReportAsync(query, cancellationToken);
+            return Ok(report);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiError.Validation(ex.Message));
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error running VAT report");
+            return StatusCode(StatusCodes.Status500InternalServerError, ApiError.Internal(HttpContext.TraceIdentifier));
+        }
+    }
+
+    /// <summary>Branded VAT Report PDF (the handoff document).</summary>
+    [HttpPost("vat/pdf")]
+    [HasPermission(Permissions.ReportsExport)]
+    [Produces("application/pdf")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(FileResult))]
+    public async Task<IActionResult> DownloadVatReportPdf(
+        [FromBody] ReportQuery query,
+        [FromServices] IShopProfileProvider shopProfiles,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var report = await reportRepository.GetVatReportAsync(query, cancellationToken);
+            var shop = await shopProfiles.GetAsync(cancellationToken: cancellationToken);
+            var rate = query.VatRatePercent ?? 15m;
+
+            var data = new AutoPartShop.Api.Pdf.VatReportDocumentData(
+                ReportNumber: $"VAT-{query.FromDate:yyyyMMdd}",
+                FromDate: query.FromDate!.Value,
+                ToDate: query.ToDate!.Value,
+                VatRatePercent: rate,
+                SalesTaxableValue: report.SalesTaxableValue,
+                SalesVatAmount: report.SalesVatAmount,
+                SalesInvoiceCount: report.SalesInvoiceCount,
+                CreditTaxableValue: report.CreditTaxableValue,
+                CreditVatAmount: report.CreditVatAmount,
+                PurchaseTaxableValue: report.PurchaseTaxableValue,
+                PurchaseVatAmount: report.PurchaseVatAmount,
+                PurchaseOrderCount: report.PurchaseOrderCount,
+                NetVatPayable: report.NetVatPayable);
+
+            var pdfBytes = new AutoPartShop.Api.Pdf.VatReportDocument(data, shop).GeneratePdf();
+            return File(pdfBytes, "application/pdf", $"vat-report-{query.FromDate:yyyyMMdd}-{query.ToDate:yyyyMMdd}.pdf");
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiError.Validation(ex.Message));
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error generating VAT report PDF");
+            return StatusCode(StatusCodes.Status500InternalServerError, ApiError.Internal(HttpContext.TraceIdentifier));
+        }
     }
 
     private static List<StatementLineDto> BuildStatementLines(FinancialSummaryResponse s) =>

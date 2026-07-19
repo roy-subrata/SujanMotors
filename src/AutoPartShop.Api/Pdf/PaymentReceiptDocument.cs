@@ -1,32 +1,43 @@
+using AutoPartShop.Api.Pdf.Components;
+using AutoPartShop.Api.Pdf.Design;
 using AutoPartShop.Application.CustomerPayment.Dtos;
 using QuestPDF.Fluent;
-using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 
 namespace AutoPartShop.Api.Pdf;
 
+/// <summary>
+/// Extra detail the handoff's receipt shows but <see cref="CustomerPaymentResponse"/> does not
+/// carry. Supplied by the controller when the payment is linked to an invoice; rows are omitted
+/// when the value is null so the receipt still renders for standalone payments.
+/// </summary>
+public record PaymentReceiptContext(
+    decimal? InvoiceTotal = null,
+    decimal? BalanceDue = null,
+    string CustomerAddress = "",
+    string CustomerPhone = "");
+
+/// <summary>
+/// Payment Receipt — document 6 of design_handoff_pos_documents.
+/// Header + Received From + amount highlight box + in-words + detail table + note + signature row.
+/// </summary>
 public class PaymentReceiptDocument : IDocument
 {
-    // ── Palette (matches CustomerAccountStatementDocument) ─────────────────────
-    private const string NavyPrimary = "#1e3a8a";
-    private const string GreenBg = "#f0fdf4";
-    private const string GreenBorder = "#86efac";
-    private const string GreenText = "#15803d";
-    private const string Gray200 = "#e5e7eb";
-    private const string Gray300 = "#d1d5db";
-    private const string Gray400 = "#9ca3af";
-    private const string Gray500 = "#6b7280";
-    private const string Gray700 = "#374151";
-    private const string Gray900 = "#111827";
-    private const string White = "#FFFFFF";
-
     private readonly CustomerPaymentResponse _payment;
     private readonly ShopProfile _shop;
+    private readonly PaymentReceiptContext _context;
+    private readonly DocTheme _theme;
 
-    public PaymentReceiptDocument(CustomerPaymentResponse payment, ShopProfile shop)
+    public PaymentReceiptDocument(
+        CustomerPaymentResponse payment,
+        ShopProfile shop,
+        PaymentReceiptContext? context = null,
+        DocTheme? theme = null)
     {
         _payment = payment;
         _shop = shop;
+        _context = context ?? new PaymentReceiptContext();
+        _theme = (theme ?? DocTheme.Default) with { CurrencySymbol = shop.CurrencySymbol };
     }
 
     public DocumentMetadata GetMetadata() => new()
@@ -36,16 +47,11 @@ public class PaymentReceiptDocument : IDocument
         CreationDate = DateTime.UtcNow
     };
 
-    // ── Page setup ─────────────────────────────────────────────────────────────
-    // A5: 420pt wide. Margins 32pt each side → 356pt usable content width.
     public void Compose(IDocumentContainer container)
     {
         container.Page(page =>
         {
-            page.Size(PageSizes.A5);
-            page.MarginHorizontal(32);
-            page.MarginVertical(28);
-            page.DefaultTextStyle(x => x.FontSize(9).FontColor(Gray900));
+            _theme.ApplyPage(page);
 
             page.Header().Element(ComposeHeader);
             page.Content().Element(ComposeContent);
@@ -53,201 +59,192 @@ public class PaymentReceiptDocument : IDocument
         });
     }
 
-    // ── HEADER ─────────────────────────────────────────────────────────────────
-    // Left col: company identity (RelativeItem, ~221pt)
-    // Right col: document title block (135pt)
-    private void ComposeHeader(IContainer container)
-    {
-        container.Column(col =>
-        {
-            col.Item().Row(row =>
-            {
-                // Company identity
-                row.RelativeItem().Column(left =>
-                {
-                    left.Item().Text(_shop.Name)
-                        .Bold().FontSize(16).FontColor(NavyPrimary);
+    private void ComposeHeader(IContainer container) =>
+        new DocHeader(_theme, _shop, "Payment Receipt",
+        [
+            new MetaField("No.", _payment.TransactionNumber),
+            new MetaField("Date", _payment.PaymentDate.ToString("dd MMM yyyy")),
+            // The handoff shows just the brand here ("bKash"); the long form goes in the detail table.
+            new MetaField("Mode", ShortMode()),
+        ]).Compose(container);
 
-                    if (!string.IsNullOrWhiteSpace(_shop.Tagline))
-                        left.Item().PaddingTop(2).Text(_shop.Tagline)
-                            .FontSize(8).Italic().FontColor(Gray500);
-
-                    if (!string.IsNullOrWhiteSpace(_shop.Address))
-                        left.Item().PaddingTop(5).Text(_shop.Address)
-                            .FontSize(8).FontColor(Gray500);
-
-                    var contacts = new List<string>();
-                    if (!string.IsNullOrWhiteSpace(_shop.Phone)) contacts.Add($"Tel: {_shop.Phone}");
-                    if (!string.IsNullOrWhiteSpace(_shop.Email)) contacts.Add($"Email: {_shop.Email}");
-                    if (!string.IsNullOrWhiteSpace(_shop.TaxNo)) contacts.Add($"Tax No: {_shop.TaxNo}");
-                    if (contacts.Count > 0)
-                        left.Item().PaddingTop(2).Text(string.Join("   ·   ", contacts))
-                            .FontSize(8).FontColor(Gray500);
-                });
-
-                // Document title block (right column, 135pt)
-                // "PAYMENT RECEIPT" at 13pt bold ≈ 113pt — safe in 135pt.
-                row.ConstantItem(135).Column(right =>
-                {
-                    right.Item().AlignRight().Text("PAYMENT RECEIPT")
-                        .Bold().FontSize(13).FontColor(NavyPrimary);
-
-                    right.Item().PaddingTop(10).AlignRight().Text(txt =>
-                    {
-                        txt.Span("Date:   ").FontSize(8).FontColor(Gray500);
-                        txt.Span(_payment.PaymentDate.ToString("dd MMM yyyy"))
-                            .FontSize(8).Bold().FontColor(Gray900);
-                    });
-
-                    right.Item().PaddingTop(3).AlignRight().Text(txt =>
-                    {
-                        txt.Span("Ref:   ").FontSize(8).FontColor(Gray500);
-                        txt.Span(_payment.TransactionNumber)
-                            .FontSize(8).FontColor(Gray700);
-                    });
-                });
-            });
-
-            // Navy rule (matches SOA header separator)
-            col.Item().PaddingTop(12).LineHorizontal(1.5f).LineColor(NavyPrimary);
-        });
-    }
-
-    // ── CONTENT ────────────────────────────────────────────────────────────────
     private void ComposeContent(IContainer container)
     {
-        container.PaddingTop(16).Column(col =>
+        container.PaddingTop(DocTheme.Px(18)).Column(col =>
         {
-            // RECEIVED FROM — plain heading + name + divider (matches SOA Bill To style)
-            col.Item().Column(c =>
-            {
-                c.Item().Text("RECEIVED FROM").Bold().FontSize(7).FontColor(NavyPrimary);
-                c.Item().PaddingTop(5).Text(_payment.CustomerName)
-                    .Bold().FontSize(13).FontColor(Gray900);
-                c.Item().PaddingTop(6).LineHorizontal(0.5f).LineColor(Gray200);
-            });
-
-            // Payment detail rows
-            // Label: RelativeItem (~226pt). Value: ConstantItem(120).
-            // Longest value: "BANK_TRANSFER" → "BANK TRANSFER" = 13 chars ≈ 65pt at 8pt. Fits in 120pt.
-            col.Item().PaddingTop(14).Column(details =>
-            {
-                void DetailRow(IContainer r, string label, string value)
-                {
-                    r.BorderBottom(0.5f).BorderColor(Gray200)
-                        .PaddingVertical(6)
-                        .Row(row =>
-                        {
-                            row.RelativeItem()
-                                .Text(label).FontSize(8).FontColor(Gray500);
-                            row.ConstantItem(120).AlignRight()
-                                .Text(value).FontSize(8).FontColor(Gray700);
-                        });
-                }
-
-                details.Item().Element(r => DetailRow(r, "Payment Method", FormatMethod(_payment.PaymentMethod)));
-                details.Item().Element(r => DetailRow(r, "Status", _payment.Status));
-                if (!string.IsNullOrWhiteSpace(_payment.Currency))
-                    details.Item().Element(r => DetailRow(r, "Currency", _payment.Currency));
-
-                if (!string.IsNullOrWhiteSpace(_payment.InvoiceNumber))
-                    details.Item().Element(r => DetailRow(r, "Invoice Reference", _payment.InvoiceNumber));
-
-                if (!string.IsNullOrWhiteSpace(_payment.ProviderName))
-                    details.Item().Element(r => DetailRow(r, "Payment Provider", _payment.ProviderName));
-
-                if (!string.IsNullOrWhiteSpace(_payment.ReferenceNumber))
-                    details.Item().Element(r => DetailRow(r, "Reference No", _payment.ReferenceNumber));
-
-                if (!string.IsNullOrWhiteSpace(_payment.AuthorizationCode))
-                    details.Item().Element(r => DetailRow(r, "Auth Code", _payment.AuthorizationCode));
-
-                if (_payment.PaymentFee > 0)
-                    details.Item().Element(r => DetailRow(r, "Transaction Fee", $"{_payment.PaymentFee:N2}"));
-            });
-
-            // AMOUNT RECEIVED — prominent green box (full content width, 356pt)
-            // Label: RelativeItem (~206pt). Amount: ConstantItem(140).
-            // "100,000.00" at 16pt bold ≈ 10 chars × 9pt = 90pt — safe in 140pt.
-            col.Item().PaddingTop(20)
-                .Border(1f).BorderColor(GreenBorder)
-                .Background(GreenBg)
-                .PaddingHorizontal(16).PaddingVertical(14)
-                .Row(row =>
-                {
-                    row.RelativeItem().AlignMiddle()
-                        .Text("AMOUNT RECEIVED")
-                        .Bold().FontSize(9).FontColor(GreenText);
-
-                    row.ConstantItem(140).AlignRight().AlignMiddle()
-                        .Text($"{_shop.CurrencySymbol} {_payment.Amount:N2}")
-                        .Bold().FontSize(16).FontColor(GreenText);
-                });
-
-            // Net amount (shown only when a fee was charged)
-            if (_payment.PaymentFee > 0)
-            {
-                col.Item().PaddingTop(5).AlignRight().Text(txt =>
-                {
-                    txt.Span("Net Amount:   ").FontSize(8).FontColor(Gray500);
-                    txt.Span($"{_shop.CurrencySymbol} {_payment.NetAmount:N2}").FontSize(8).Bold().FontColor(Gray700);
-                });
-            }
-
-            // Notes
-            if (!string.IsNullOrWhiteSpace(_payment.Notes))
-            {
-                col.Item().PaddingTop(16).Column(n =>
-                {
-                    n.Item().Text("Notes").Bold().FontSize(7).FontColor(Gray500);
-                    n.Item().PaddingTop(3).Text(_payment.Notes)
-                        .FontSize(8).Italic().FontColor(Gray700);
-                });
-            }
-
-            // Signature lines — two equal-width cols with a 20pt spacer
-            // Each col: (356 − 20) / 2 = 168pt. Plenty for label text.
-            col.Item().PaddingTop(32).Row(sig =>
-            {
-                sig.RelativeItem().Column(left =>
-                {
-                    left.Item().LineHorizontal(0.5f).LineColor(Gray300);
-                    left.Item().PaddingTop(5)
-                                .Text("Authorised Signature").FontSize(8f).FontColor(Gray400);
-                });
-
-                sig.ConstantItem(20);
-
-                sig.RelativeItem().Column(right =>
-                {
-                    right.Item().LineHorizontal(0.5f).LineColor(Gray300);
-                    right.Item().PaddingTop(5)
-                        .Text("Received By").FontSize(8f).FontColor(Gray400);
-                });
-            });
+            col.Item().Element(ComposeReceivedFrom);
+            col.Item().PaddingTop(DocTheme.Px(22)).Element(ComposeAmountBox);
+            col.Item().PaddingTop(DocTheme.Px(12)).Element(ComposeWords);
+            col.Item().PaddingTop(DocTheme.Px(22)).Element(ComposeDetails);
+            col.Item().PaddingTop(DocTheme.Px(20)).Element(ComposeNote);
+            col.Item().ShowEntire().Element(c =>
+                new SignRow("Received By", "Customer Signature", "Authorized Signatory").Compose(c));
         });
     }
 
-    // ── FOOTER ─────────────────────────────────────────────────────────────────
-    private void ComposeFooter(IContainer container)
+    // ── Received From ──────────────────────────────────────────────────────────
+    private void ComposeReceivedFrom(IContainer container)
     {
-        var footerText = string.IsNullOrWhiteSpace(_shop.FooterText)
-            ? "Thank you for your payment."
-            : _shop.FooterText;
-
         container.Column(col =>
         {
-            col.Item().LineHorizontal(0.5f).LineColor(Gray200);
+            col.Item().Text("RECEIVED FROM")
+                .FontSize(DocTheme.SectionLabel).SemiBold().FontColor(DocTheme.Label)
+                .LetterSpacing(1.2f / DocTheme.SectionLabel);
 
-            col.Item().PaddingTop(6).AlignCenter()
-                .Text(footerText).FontSize(8).Italic().FontColor(Gray400);
+            col.Item().PaddingTop(DocTheme.Px(5)).Text(_payment.CustomerName)
+                .FontSize(DocTheme.TableCell).Bold().FontColor(DocTheme.Ink).LineHeight(1.6f);
 
-            col.Item().PaddingTop(2).AlignCenter()
-                .Text($"Computer-generated receipt. Generated {DateTime.UtcNow:dd MMM yyyy, HH:mm} UTC")
-                .FontSize(7f).FontColor(Gray300);
+            foreach (var line in new[] { _context.CustomerAddress, _context.CustomerPhone })
+            {
+                if (!string.IsNullOrWhiteSpace(line))
+                    col.Item().Text(line)
+                        .FontSize(DocTheme.TableCell).FontColor(DocTheme.Ink).LineHeight(1.6f);
+            }
         });
     }
 
-    private static string FormatMethod(string method) =>
-        method.Replace("_", " ").ToUpperInvariant();
+    // ── Amount highlight box (2px ink border, 26pt accent mono figure) ─────────
+    private void ComposeAmountBox(IContainer container)
+    {
+        container
+            .Border(DocTheme.RuleMedium).BorderColor(DocTheme.Ink)
+            .PaddingVertical(DocTheme.Px(18)).PaddingHorizontal(DocTheme.Px(22))
+            .Row(row =>
+            {
+                row.RelativeItem().AlignMiddle()
+                    .Text("AMOUNT RECEIVED")
+                    .FontSize(DocTheme.Px(10)).SemiBold().FontColor(DocTheme.Muted)
+                    .LetterSpacing(1.5f / 10f);
+
+                row.AutoItem().AlignRight().AlignMiddle()
+                    .Text(_theme.Money(_payment.Amount))
+                    .Style(DocTheme.MonoText).FontSize(DocTheme.Px(26)).Bold().FontColor(_theme.Accent);
+            });
+    }
+
+    private void ComposeWords(IContainer container) =>
+        container.Text(txt =>
+        {
+            txt.Span("IN WORDS  ")
+                .FontSize(DocTheme.SectionLabel).SemiBold().FontColor(DocTheme.Label)
+                .LetterSpacing(1f / DocTheme.SectionLabel);
+            txt.Span(AmountInWords.Convert(_payment.Amount))
+                .FontSize(DocTheme.Body).FontColor(DocTheme.Secondary);
+        });
+
+    // ── Detail table ───────────────────────────────────────────────────────────
+    private void ComposeDetails(IContainer container)
+    {
+        var rows = new List<(string Label, string Value, bool Mono, bool Bold)>
+        {
+            ("Payment Mode", PaymentMode(), false, false),
+        };
+
+        if (!string.IsNullOrWhiteSpace(_payment.ReferenceNumber))
+            rows.Add(("Transaction Ref", _payment.ReferenceNumber, true, false));
+        else if (!string.IsNullOrWhiteSpace(_payment.TransactionNumber))
+            rows.Add(("Transaction Ref", _payment.TransactionNumber, true, false));
+
+        if (!string.IsNullOrWhiteSpace(_payment.AuthorizationCode))
+            rows.Add(("Auth Code", _payment.AuthorizationCode, true, false));
+
+        if (!string.IsNullOrWhiteSpace(_payment.InvoiceNumber))
+            rows.Add(("Against Invoice", _payment.InvoiceNumber, true, false));
+
+        if (_payment.PaymentFee > 0)
+        {
+            rows.Add(("Transaction Fee", _theme.Money(_payment.PaymentFee), true, false));
+            rows.Add(("Net Amount", _theme.Money(_payment.NetAmount), true, false));
+        }
+
+        if (_context.InvoiceTotal is { } total)
+            rows.Add(("Invoice Total", _theme.Money(total), true, false));
+
+        if (_context.BalanceDue is { } balance)
+            rows.Add(("Balance Due", _theme.Money(balance), true, true));
+
+        container.Table(table =>
+        {
+            table.ColumnsDefinition(c =>
+            {
+                c.ConstantColumn(DocTheme.Px(200));
+                c.RelativeColumn();
+            });
+
+            foreach (var (label, value, mono, bold) in rows)
+            {
+                table.Cell()
+                    .BorderBottom(DocTheme.RuleHairline).BorderColor(DocTheme.Hairline).Padding(DocTheme.Px(8))
+                    .Text(label).FontSize(DocTheme.TableCell).FontColor(DocTheme.Label);
+
+                var cell = table.Cell()
+                    .BorderBottom(DocTheme.RuleHairline).BorderColor(DocTheme.Hairline).Padding(DocTheme.Px(8))
+                    .Text(value).FontSize(DocTheme.TableCell).FontColor(DocTheme.Ink);
+
+                if (mono) cell = cell.Style(DocTheme.MonoText).FontSize(DocTheme.TableCell).FontColor(DocTheme.Ink);
+                if (bold) cell.SemiBold();
+            }
+        });
+    }
+
+    // ── Closing note ───────────────────────────────────────────────────────────
+    private void ComposeNote(IContainer container)
+    {
+        string note;
+
+        if (!string.IsNullOrWhiteSpace(_payment.Notes))
+        {
+            note = _payment.Notes;
+        }
+        else if (!string.IsNullOrWhiteSpace(_payment.InvoiceNumber))
+        {
+            note = _context.BalanceDue is { } b && b <= 0
+                ? $"Invoice {_payment.InvoiceNumber} is settled in full. This receipt is proof of payment for reconciliation purposes."
+                : $"This receipt is proof of payment against invoice {_payment.InvoiceNumber} for reconciliation purposes.";
+        }
+        else
+        {
+            note = "This receipt is proof of payment for reconciliation purposes.";
+        }
+
+        container.Text(note)
+            .FontSize(DocTheme.Px(10)).FontColor(DocTheme.Muted).LineHeight(1.7f);
+    }
+
+    private void ComposeFooter(IContainer container)
+    {
+        container.PaddingTop(DocTheme.Px(10)).Text(
+                string.IsNullOrWhiteSpace(_shop.FooterText)
+                    ? "Thank you for your payment."
+                    : _shop.FooterText)
+            .FontSize(DocTheme.AddressSize).FontColor(DocTheme.Label);
+    }
+
+    /// <summary>
+    /// The handoff shows the provider brand ("bKash") where available, since that is what a
+    /// customer recognises; the raw method enum is the fallback.
+    /// </summary>
+    private string ShortMode() =>
+        string.IsNullOrWhiteSpace(_payment.ProviderName) ? MethodName() : _payment.ProviderName;
+
+    private string PaymentMode()
+    {
+        var method = MethodName();
+        return string.IsNullOrWhiteSpace(_payment.ProviderName)
+            ? method
+            : $"{_payment.ProviderName} ({method})";
+    }
+
+    private string MethodName()
+    {
+        return _payment.PaymentMethod switch
+        {
+            "CASH" => "Cash",
+            "CARD" => "Card",
+            "MOBILE_BANKING" => "Mobile Banking",
+            "BANK_TRANSFER" => "Bank Transfer",
+            "ADVANCE_CREDIT" => "Credit Applied",
+            _ => _payment.PaymentMethod.Replace('_', ' ')
+        };
+    }
 }

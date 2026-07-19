@@ -287,5 +287,23 @@ export const SALES_REPORT_CONFIGS: ReportPageConfig[] = [
             { field: 'grossProfit', header: 'Gross Profit', type: 'money' },
             { field: 'marginPercent', header: 'Margin %', type: 'percent' }
         ]
+    },
+    {
+        // Hub-card entry only: its route ('daily-z-report') is registered as a static path in
+        // reports.routes.ts ahead of the generic ':reportKey' route, so it always resolves to
+        // the bespoke DailyZReportComponent. There is no JSON preview endpoint for this report —
+        // it's PDF-generation-only, so this config's endpoint/columns are unused.
+        key: 'daily-z-report',
+        group: 'sales',
+        title: 'Daily Sales (Z) Report',
+        subtitle: 'End-of-day sales summary and cash-up report for a single business day',
+        icon: 'pi pi-calculator',
+        endpoint: 'v1/reports/sales/daily-z-report',
+        paged: false,
+        defaultRange: 'today',
+        requiresDateRange: true,
+        itemLabel: 'lines',
+        filters: [],
+        columns: []
     }
 ];

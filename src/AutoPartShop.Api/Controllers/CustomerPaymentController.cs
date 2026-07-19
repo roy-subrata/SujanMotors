@@ -683,7 +683,38 @@ public class CustomerPaymentController : ControllerBase
                 FooterText: Get("INVOICE_FOOTER_TEXT", "Thank you for your payment."),
                 CurrencySymbol: currencySymbol);
 
-            var document = new PaymentReceiptDocument(mapped, shopProfile);
+            // The receipt shows Invoice Total / Balance Due, which the payment DTO doesn't carry.
+            PaymentReceiptContext? receiptContext = null;
+            if (payment.InvoiceId is { } invoiceId)
+            {
+                // CustomerPayments drives Invoice.AmountPaid/OutstandingAmount, so it must be
+                // loaded or the balance reads as the full invoice total. The customer hangs off
+                // the sales order, not the invoice.
+                var invoice = await _dbContext.Set<Invoice>()
+                    .AsNoTracking()
+                    .Include(i => i.CustomerPayments)
+                    .Include(i => i.SalesOrder!).ThenInclude(so => so.Customer)
+                    .FirstOrDefaultAsync(i => i.Id == invoiceId && !i.Isdeleted, cancellationToken);
+
+                if (invoice is not null)
+                {
+                    var customer = invoice.SalesOrder?.Customer;
+                    var address = string.Join(", ", new[]
+                        {
+                            customer?.BillingAddress,
+                            customer?.City,
+                            customer?.PostalCode
+                        }.Where(s => !string.IsNullOrWhiteSpace(s)));
+
+                    receiptContext = new PaymentReceiptContext(
+                        InvoiceTotal: invoice.GrandTotal,
+                        BalanceDue: invoice.OutstandingAmount,
+                        CustomerAddress: address,
+                        CustomerPhone: customer?.Phone ?? string.Empty);
+                }
+            }
+
+            var document = new PaymentReceiptDocument(mapped, shopProfile, receiptContext);
             var pdfBytes = document.GeneratePdf();
 
             var filename = $"receipt-{mapped.TransactionNumber}-{DateTime.UtcNow:yyyyMMdd}.pdf";

@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
+import { PdfDownloadService } from '@/shared/services/pdf-download.service';
 
 export interface CustomerCreditNoteResponse {
   id: string;
@@ -56,6 +57,7 @@ export interface PaginatedCustomerCreditNotesResponse {
 })
 export class CustomerCreditNoteService {
   private readonly http = inject(HttpClient);
+  private readonly pdfDownload = inject(PdfDownloadService);
   private readonly apiUrl = `${environment.apiUrl}/v1/customer-credit-notes`;
 
   /**
@@ -117,5 +119,10 @@ export class CustomerCreditNoteService {
   cancel(id: string, reason?: string): Observable<void> {
     const params = reason ? new HttpParams().set('reason', reason) : undefined;
     return this.http.patch<void>(`${this.apiUrl}/${id}/cancel`, null, { params });
+  }
+
+  /** Download the server-rendered Credit Note PDF and trigger the browser save dialog. */
+  downloadPdf(id: string, creditNoteNumber: string): Observable<void> {
+    return this.pdfDownload.downloadGet(`${this.apiUrl}/${id}/pdf`, `credit-note-${creditNoteNumber}.pdf`);
   }
 }

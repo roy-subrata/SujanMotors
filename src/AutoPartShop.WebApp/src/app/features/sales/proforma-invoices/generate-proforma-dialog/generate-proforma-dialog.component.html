@@ -1,0 +1,73 @@
+<p-dialog
+  [visible]="visible"
+  (visibleChange)="visible = $event; visibleChange.emit($event)"
+  (onShow)="onShow()"
+  (onHide)="onHide()"
+  [modal]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [style]="{ width: '520px', maxWidth: '95vw' }"
+  header="Generate Proforma Invoice"
+  [dismissableMask]="true">
+
+  <div class="proforma-dialog">
+    <div *ngIf="error" class="dialog-error">
+      <i class="pi pi-exclamation-triangle"></i>
+      <span>{{ error }}</span>
+    </div>
+
+    <!-- Sales order: locked read-only view when opened from a Sales Order row -->
+    <div class="dialog-field">
+      <label>Sales Order *</label>
+
+      <div *ngIf="lockedOrder && selectedOrder" class="locked-order">
+        <div class="locked-order-main">
+          <span class="locked-order-number">{{ selectedOrder.soNumber }}</span>
+          <span class="locked-order-customer">{{ selectedOrder.customerName || 'Walk-in Customer' }}</span>
+        </div>
+        <span class="locked-order-amount">{{ formatCurrency(selectedOrder.grandTotal, selectedOrder.currency) }}</span>
+      </div>
+
+      <app-lazy-autocomplete *ngIf="!lockedOrder" [fetchFn]="searchSalesOrders" [(ngModel)]="selectedOrder"
+        [ngModelOptions]="{standalone: true}" optionLabel="soNumber"
+        placeholder="Search by SO number or customer..." (onItemSelect)="onOrderSelected($any($event))"
+        (onClearEvent)="onOrderCleared()">
+        <ng-template let-order>
+          <div class="so-option">
+            <div class="so-option-main">
+              <span class="so-option-number">{{ order.soNumber }}</span>
+              <span class="so-option-customer">{{ order.customerName || 'Walk-in Customer' }}</span>
+            </div>
+            <span class="so-option-amount">{{ formatCurrency(order.grandTotal, order.currency) }}</span>
+          </div>
+        </ng-template>
+      </app-lazy-autocomplete>
+      <small class="field-hint" *ngIf="!lockedOrder">
+        <i class="pi pi-info-circle"></i>
+        <span>Line items and totals are read live from the selected sales order.</span>
+      </small>
+    </div>
+
+    <div class="dialog-field">
+      <label>Valid Until</label>
+      <p-datepicker [(ngModel)]="validUntil" [showIcon]="true" dateFormat="dd M yy" [ngModelOptions]="{standalone: true}"
+        placeholder="Defaults to 15 days from issue" appendTo="body" styleClass="w-full">
+      </p-datepicker>
+    </div>
+
+    <div class="dialog-field">
+      <label>Notes</label>
+      <textarea pTextarea [(ngModel)]="notes" [ngModelOptions]="{standalone: true}" rows="3"
+        placeholder="Optional notes for this proforma invoice"></textarea>
+    </div>
+  </div>
+
+  <ng-template #footer>
+    <button class="btn-secondary" (click)="close()" [disabled]="saving">Cancel</button>
+    <button class="btn-primary" (click)="submit()" [disabled]="saving || !selectedOrder">
+      <i class="pi" [ngClass]="saving ? 'pi-spin pi-spinner' : 'pi-check'"></i>
+      <span>Generate</span>
+    </button>
+  </ng-template>
+
+</p-dialog>

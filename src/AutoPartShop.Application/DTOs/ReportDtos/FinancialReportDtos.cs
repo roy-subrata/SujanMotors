@@ -60,3 +60,26 @@ public class StatementLineDto
     public string Label { get; set; } = "";
     public decimal Value { get; set; }
 }
+
+/// <summary>
+/// Output/input VAT reconciliation for a period, from dbo.usp_Report_Vat.
+/// Sales and Purchase figures are the actual stored Invoice/PurchaseOrder TaxAmount totals.
+/// Credit-note figures are derived (TotalAmount × the caller's VatRatePercent, default 15) since
+/// CustomerCreditNote has no stored per-transaction tax breakdown — see ReportQuery.VatRatePercent.
+/// </summary>
+public class VatReportDto
+{
+    public decimal SalesTaxableValue { get; set; }
+    public decimal SalesVatAmount { get; set; }
+    public int SalesInvoiceCount { get; set; }
+
+    public decimal CreditTaxableValue { get; set; }
+    public decimal CreditVatAmount { get; set; }
+
+    public decimal PurchaseTaxableValue { get; set; }
+    public decimal PurchaseVatAmount { get; set; }
+    public int PurchaseOrderCount { get; set; }
+
+    /// <summary>SalesVatAmount − CreditVatAmount − PurchaseVatAmount.</summary>
+    public decimal NetVatPayable { get; set; }
+}

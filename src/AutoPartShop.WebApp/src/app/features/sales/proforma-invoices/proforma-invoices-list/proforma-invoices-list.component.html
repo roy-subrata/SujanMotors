@@ -1,0 +1,221 @@
+<!-- ============================================================
+     PROFORMA INVOICES LIST — standardized data-page layout
+     A proforma is a thin wrapper generated FROM an existing Sales Order — no line items or
+     search/status filters of its own on the API, so this page skips the filter bar used by
+     Quotations/Sales Orders and just paginates.
+     ============================================================ -->
+
+<!-- PrimeNG Global Components -->
+<p-toast position="top-right"></p-toast>
+<p-confirmDialog></p-confirmDialog>
+<p-menu #actionMenu [model]="actionMenuItems" [popup]="true" appendTo="body"></p-menu>
+
+<app-generate-proforma-dialog [(visible)]="generateDialogVisible" [salesOrder]="null"
+  (created)="onProformaGenerated($event)">
+</app-generate-proforma-dialog>
+
+<app-page-container>
+
+  <!-- ==================== HEADER ==================== -->
+  <app-page-header
+    title="Proforma Invoices"
+    subtitle="Pre-payment bills generated from confirmed sales orders"
+    [count]="totalRecords" countLabel="proforma invoices" countIcon="pi pi-receipt">
+    <ng-container actions>
+      <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="refreshData()">
+        <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
+      </button>
+      <button class="btn-primary" (click)="openGenerateDialog()">
+        <i class="pi pi-plus"></i>
+        <span>Generate Proforma</span>
+      </button>
+    </ng-container>
+  </app-page-header>
+
+  <!-- ==================== DATA TABLE (Desktop) ==================== -->
+  <section class="table-section desktop-only">
+    <div class="table-container">
+      <p-table
+        [value]="proformas"
+        [lazy]="true"
+        [paginator]="false"
+        [rows]="pageSize"
+        [totalRecords]="totalRecords"
+        [loading]="loading"
+        (onLazyLoad)="onLazyLoad($event)"
+        [rowHover]="true"
+        [scrollable]="true"
+        scrollHeight="flex"
+        styleClass="app-table">
+
+        <ng-template #header>
+          <tr>
+            <th class="col-proforma">Proforma #</th>
+            <th class="col-so">Sales Order</th>
+            <th class="col-customer">Customer</th>
+            <th class="col-date">Issue Date</th>
+            <th class="col-date">Valid Until</th>
+            <th class="col-status">Status</th>
+            <th class="col-amount">Grand Total</th>
+            <th class="col-actions">Actions</th>
+          </tr>
+        </ng-template>
+
+        <ng-template #body let-proforma>
+          <tr class="data-row" [class.row-overdue]="proforma.isExpired">
+            <td class="col-proforma">
+              <div class="so-cell">
+                <span class="so-link">{{ proforma.proformaNumber }}</span>
+                <span *ngIf="proforma.isExpired" class="overdue-badge">Expired</span>
+              </div>
+            </td>
+
+            <td class="col-so">
+              <a class="so-link" (click)="viewSalesOrder(proforma)">{{ proforma.soNumber }}</a>
+            </td>
+
+            <td class="col-customer">
+              <span class="customer-name">{{ proforma.customerName || 'Walk-in Customer' }}</span>
+            </td>
+
+            <td class="col-date"><span class="date-text">{{ formatDate(proforma.issueDate) }}</span></td>
+
+            <td class="col-date">
+              <span class="date-text" [class.text-danger]="proforma.isExpired">{{ formatDate(proforma.validUntil) }}</span>
+            </td>
+
+            <td class="col-status">
+              <span class="status-pill" [attr.data-status]="proforma.status.toLowerCase()">
+                {{ formatStatus(proforma.status) }}
+              </span>
+            </td>
+
+            <td class="col-amount"><span class="amount-value">{{ formatCurrency(proforma.grandTotal) }}</span></td>
+
+            <td class="col-actions">
+              <div class="action-cell">
+                <button class="btn-action" pTooltip="More" (click)="showActionMenu($event, proforma)">
+                  <i class="pi pi-ellipsis-v"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+
+        <ng-template #emptymessage>
+          <tr>
+            <td colspan="8">
+              <div class="empty-state">
+                <div class="empty-icon"><i class="pi pi-receipt"></i></div>
+                <h3>No Proforma Invoices Found</h3>
+                <p>Generate a proforma invoice from a confirmed sales order to get started.</p>
+                <button class="btn-primary" (click)="openGenerateDialog()">
+                  <i class="pi pi-plus"></i>
+                  Generate Proforma
+                </button>
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+
+        <ng-template #loadingbody>
+          <tr *ngFor="let _ of [1,2,3,4,5,6,7,8]" class="skeleton-row">
+            <td><div class="skeleton skeleton-text"></div></td>
+            <td><div class="skeleton skeleton-text"></div></td>
+            <td>
+              <div class="skeleton-stack">
+                <div class="skeleton skeleton-avatar"></div>
+                <div class="skeleton skeleton-text"></div>
+              </div>
+            </td>
+            <td><div class="skeleton skeleton-text-sm"></div></td>
+            <td><div class="skeleton skeleton-text-sm"></div></td>
+            <td><div class="skeleton skeleton-badge"></div></td>
+            <td><div class="skeleton skeleton-text-sm"></div></td>
+            <td><div class="skeleton skeleton-actions"></div></td>
+          </tr>
+        </ng-template>
+
+      </p-table>
+    </div>
+  </section>
+
+  <!-- ==================== MOBILE CARDS ==================== -->
+  <section class="cards-section mobile-only">
+    <!-- Loading Skeleton -->
+    <div *ngIf="loading" class="cards-grid">
+      <div *ngFor="let _ of [1,2,3,4]" class="order-card skeleton-card">
+        <div class="card-header">
+          <div class="skeleton skeleton-text"></div>
+          <div class="skeleton skeleton-badge"></div>
+        </div>
+        <div class="card-body">
+          <div class="skeleton skeleton-text-lg"></div>
+          <div class="skeleton skeleton-text-sm"></div>
+        </div>
+        <div class="card-footer">
+          <div class="skeleton skeleton-text-sm"></div>
+          <div class="skeleton skeleton-text-sm"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="!loading && proformas.length === 0" class="empty-state-mobile">
+      <div class="empty-icon"><i class="pi pi-receipt"></i></div>
+      <h3>No Proforma Invoices</h3>
+      <p>Generate a proforma invoice from a confirmed sales order.</p>
+      <button class="btn-primary" (click)="openGenerateDialog()">
+        <i class="pi pi-plus"></i>
+        Generate Proforma
+      </button>
+    </div>
+
+    <!-- Proforma Cards -->
+    <div *ngIf="!loading && proformas.length > 0" class="cards-grid">
+      <div *ngFor="let proforma of proformas" class="order-card" [class.card-overdue]="proforma.isExpired">
+        <div class="card-header">
+          <span class="card-so-number">{{ proforma.proformaNumber }}</span>
+          <span class="status-pill" [attr.data-status]="proforma.status.toLowerCase()">
+            {{ formatStatus(proforma.status) }}
+          </span>
+        </div>
+
+        <div class="card-body">
+          <div class="card-customer">
+            <span class="customer-name">{{ proforma.customerName || 'Walk-in Customer' }}</span>
+            <a class="so-link" (click)="viewSalesOrder(proforma)">{{ proforma.soNumber }}</a>
+          </div>
+          <div class="card-dates">
+            <span class="card-date"><i class="pi pi-calendar"></i> {{ formatDate(proforma.issueDate) }}</span>
+            <span *ngIf="proforma.isExpired" class="overdue-text">
+              <i class="pi pi-exclamation-circle"></i>
+              Expired
+            </span>
+          </div>
+        </div>
+
+        <div class="card-footer">
+          <div class="card-amount">
+            <span class="amount-label">Total</span>
+            <span class="amount-value">{{ formatCurrency(proforma.grandTotal) }}</span>
+          </div>
+          <button class="btn-card-action" (click)="showActionMenu($event, proforma); $event.stopPropagation()">
+            <i class="pi pi-ellipsis-h"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== PAGINATION (desktop + mobile) ==================== -->
+  <app-data-pagination
+    [first]="first"
+    [pageSize]="pageSize"
+    [totalRecords]="totalRecords"
+    itemLabel="proforma invoices"
+    (pageChange)="goToPage($event)"
+    (pageSizeChange)="onPageSizeChange($event)">
+  </app-data-pagination>
+
+</app-page-container>

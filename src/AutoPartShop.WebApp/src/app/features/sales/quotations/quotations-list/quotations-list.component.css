@@ -1,0 +1,71 @@
+/* ============================================================
+   QUOTATIONS LIST — page-specific styles only
+   Shared chrome (page header, filters, table, pagination,
+   cards, skeleton, empty states) lives in assets/_data-page.scss
+   ============================================================ */
+
+/* Overdue/expired row highlight */
+.app-table .p-datatable-tbody > tr.row-overdue { background-color: #FEF2F2; }
+.app-table .p-datatable-tbody > tr.row-overdue:hover { background-color: #FEE2E2 !important; }
+
+/* Column widths */
+.col-quotation { min-width: 150px; }
+.col-customer  { min-width: 200px; }
+.col-date      { min-width: 120px; }
+.col-status    { min-width: 130px; }
+.col-amount    { min-width: 130px; text-align: right; }
+.col-actions   { width: 100px; text-align: center; }
+
+/* Quotation number cell */
+.so-cell { display: flex; align-items: center; gap: 8px; }
+
+.so-link {
+  font-weight: 600;
+  color: var(--color-primary);
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+.so-link:hover { color: var(--color-primary-hover); text-decoration: underline; }
+
+.overdue-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  background-color: var(--color-danger);
+  border-radius: var(--radius-full);
+  font-size: 10px;
+  font-weight: 600;
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.overdue-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-danger);
+}
+.overdue-text i { font-size: 12px; }
+
+/* Customer name cell */
+.customer-info { display: flex; flex-direction: column; gap: 2px; }
+
+.date-text { color: var(--color-text-secondary); }
+.text-danger { color: var(--color-danger) !important; }
+
+/* Expired card */
+.order-card.card-overdue {
+  border-left: 4px solid var(--color-danger);
+  background-color: #FFFBFB;
+}
+
+/* Quotation status pill colours (base pill styling is global) */
+.status-pill[data-status="draft"]     { background-color: var(--color-bg-tertiary); color: var(--color-text-secondary); }
+.status-pill[data-status="sent"]      { background-color: var(--color-info-light); color: #1D4ED8; }
+.status-pill[data-status="accepted"]  { background-color: var(--color-success-light); color: #047857; }
+.status-pill[data-status="rejected"]  { background-color: var(--color-danger-light); color: #B91C1C; }
+.status-pill[data-status="converted"] { background-color: #E0E7FF; color: #4338CA; }
+.status-pill[data-status="expired"]   { background-color: var(--color-warning-light); color: #B45309; }

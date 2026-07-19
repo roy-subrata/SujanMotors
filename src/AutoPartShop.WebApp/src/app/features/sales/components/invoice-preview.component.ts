@@ -4,6 +4,7 @@ import { DialogModule } from 'primeng/dialog';
 import { ButtonModule } from 'primeng/button';
 import { TooltipModule } from 'primeng/tooltip';
 import { DividerModule } from 'primeng/divider';
+import { MessageService } from 'primeng/api';
 import { InvoicePdfService, InvoicePdfData } from '../services/invoice-pdf.service';
 import { ThermalReceiptService } from '../services/thermal-receipt.service';
 
@@ -652,10 +653,11 @@ import { ThermalReceiptService } from '../services/thermal-receipt.service';
 export class InvoicePreviewComponent implements OnInit {
   private readonly pdfService = inject(InvoicePdfService);
   private readonly thermalReceipt = inject(ThermalReceiptService);
+  private readonly messageService = inject(MessageService);
 
   @Input() visible = false;
   @Input() invoiceData: InvoicePdfData | null = null;
-  /** When set, "Download PDF" fetches the server-rendered QuestPDF instead of using html2canvas. */
+  /** Required for "Download PDF" — it fetches the server-rendered QuestPDF invoice. */
   @Input() invoiceId: string | null = null;
   @Output() visibleChange = new EventEmitter<boolean>();
   @Output() onPrint = new EventEmitter<void>();
@@ -731,19 +733,24 @@ export class InvoicePreviewComponent implements OnInit {
   async downloadPdf(): Promise<void> {
     if (!this.invoiceData) return;
 
+    if (!this.invoiceId) {
+      // Should not happen on the one path that opens this dialog (quick-sale-shortcut always
+      // sets currentInvoiceId before showing the preview), but fail loudly rather than silently
+      // do nothing if that ever changes.
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Download failed',
+        detail: 'This invoice has not been saved yet, so a PDF cannot be generated.'
+      });
+      return;
+    }
+
     this.downloading.set(true);
     try {
-      if (this.invoiceId) {
-        await new Promise<void>((resolve, reject) =>
-          this.pdfService.downloadServerPdf(this.invoiceId!, this.invoiceData!.invoiceNumber)
-            .subscribe({ next: () => resolve(), error: reject })
-        );
-      } else {
-        await this.pdfService.downloadAsPdf(
-          'invoice-print-area',
-          `Invoice-${this.invoiceData.invoiceNumber}`
-        );
-      }
+      await new Promise<void>((resolve, reject) =>
+        this.pdfService.downloadServerPdf(this.invoiceId!, this.invoiceData!.invoiceNumber)
+          .subscribe({ next: () => resolve(), error: reject })
+      );
       this.onDownload.emit();
     } finally {
       this.downloading.set(false);

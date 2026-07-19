@@ -30,6 +30,8 @@ import { PageContainerComponent } from '@/shared/components/page-container/page-
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { GenerateProformaDialogComponent } from '../../proforma-invoices/generate-proforma-dialog/generate-proforma-dialog.component';
+import { ProformaInvoiceResponse } from '../../services/proforma-invoice.service';
 
 @Component({
     selector: 'app-sales-orders-list',
@@ -56,7 +58,8 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
         PageContainerComponent,
         PageHeaderComponent,
         FilterBarComponent,
-        DataPaginationComponent
+        DataPaginationComponent,
+        GenerateProformaDialogComponent
     ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './sales-orders-list.component.html',
@@ -91,6 +94,10 @@ export class SalesOrdersListComponent implements OnInit {
     statusOptions: { label: string; value: string }[] = [];
 
     actionMenuItems: MenuItem[] = [];
+
+    // "Generate Proforma" dialog — pre-selected with the order the action was triggered from.
+    generateProformaDialogVisible = false;
+    selectedOrderForProforma: SalesOrderResponse | null = null;
 
     Math = Math;
 
@@ -134,6 +141,17 @@ export class SalesOrdersListComponent implements OnInit {
                 icon: 'pi pi-pencil',
                 command: () => this.editOrder(order),
                 visible: order.status === 'DRAFT' || order.status === 'PENDING'
+            },
+            {
+                label: 'Download PDF',
+                icon: 'pi pi-file-pdf',
+                command: () => this.downloadPdf(order)
+            },
+            {
+                label: 'Generate Proforma',
+                icon: 'pi pi-receipt',
+                command: () => this.openGenerateProforma(order),
+                visible: order.status !== 'CANCELLED' && order.status !== 'RETURNED'
             },
             {
                 label: this.i18n.t('common.actions.confirmOrder'),
@@ -249,6 +267,27 @@ export class SalesOrdersListComponent implements OnInit {
 
     editOrder(order: SalesOrderResponse): void {
         this.router.navigate(['/sales/sales-orders/edit'], { queryParams: { id: order.id } });
+    }
+
+    downloadPdf(order: SalesOrderResponse): void {
+        this.salesOrderService.downloadPdf(order.id, order.soNumber).subscribe({
+            error: () => {
+                this.messageService.add({
+                    severity: 'error',
+                    summary: this.i18n.t('common.messages.error'),
+                    detail: 'Failed to download the sales order PDF'
+                });
+            }
+        });
+    }
+
+    openGenerateProforma(order: SalesOrderResponse): void {
+        this.selectedOrderForProforma = order;
+        this.generateProformaDialogVisible = true;
+    }
+
+    onProformaGenerated(_proforma: ProformaInvoiceResponse): void {
+        // No refresh needed — a proforma is a read-only wrapper and doesn't change the order itself.
     }
 
     confirmOrder(order: SalesOrderResponse): void {

@@ -101,6 +101,10 @@ public static class Dependency
         services.AddScoped<IPurchaseReturnRepository, PurchaseReturnRepository>();
         services.AddScoped<ICreditNoteRepository, CreditNoteRepository>();
         services.AddScoped<ICustomerCreditNoteRepository, CustomerCreditNoteRepository>();
+        services.AddScoped<ICustomerDebitNoteRepository, CustomerDebitNoteRepository>();
+        services.AddScoped<IQuotationRepository, QuotationRepository>();
+        services.AddScoped<IProformaInvoiceRepository, ProformaInvoiceRepository>();
+        services.AddScoped<ITillSessionRepository, TillSessionRepository>();
         services.AddScoped<ICustomerRepository, CustomerRepository>();
         services.AddScoped<ICustomerVehicleRepository, CustomerVehicleRepository>();
         services.AddScoped<IPaymentProviderRepository, PaymentProviderRepository>();

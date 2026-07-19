@@ -43,6 +43,8 @@ public class SalesOrderController : ControllerBase
     private readonly IDomainEventDispatcher _eventDispatcher;
     private readonly ILogger<SalesOrderController> _logger;
     private readonly AutoPartDbContext _dbContext;
+    private readonly ITillSessionRepository _tillSessionRepository;
+    private readonly IPermissionCheckService _permissionCheckService;
 
     public SalesOrderController(
         ISalesOrderRepository salesOrderRepository,
@@ -62,7 +64,9 @@ public class SalesOrderController : ControllerBase
         INotificationService notificationService,
         IDomainEventDispatcher eventDispatcher,
         ILogger<SalesOrderController> logger,
-        AutoPartDbContext dbContext)
+        AutoPartDbContext dbContext,
+        ITillSessionRepository tillSessionRepository,
+        IPermissionCheckService permissionCheckService)
     {
         _salesOrderRepository = salesOrderRepository;
         _saleOrderReadRepository = saleOrderReadRepository;
@@ -82,6 +86,8 @@ public class SalesOrderController : ControllerBase
         _eventDispatcher = eventDispatcher;
         _logger = logger;
         _dbContext = dbContext;
+        _tillSessionRepository = tillSessionRepository;
+        _permissionCheckService = permissionCheckService;
     }
 
     private static bool IsWalkIn(Customer? customer) =>
@@ -147,6 +153,79 @@ public class SalesOrderController : ControllerBase
             _logger.LogError(ex, "Error getting sales order by ID: {SOId}", id);
             return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving the sales order");
         }
+    }
+
+    /// <summary>Download the Sales Order as a PDF.</summary>
+    [HttpGet("{id:guid}/pdf")]
+    [Produces("application/pdf")]
+    [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DownloadPdf(
+        Guid id,
+        [FromServices] IShopProfileProvider shopProfiles,
+        CancellationToken cancellationToken)
+    {
+        var order = await _dbContext.SalesOrders
+            .AsNoTracking()
+            .Include(o => o.Customer)
+            .Include(o => o.LineItems).ThenInclude(l => l.Part)
+            .Include(o => o.LineItems).ThenInclude(l => l.ProductVariant)
+            .Include(o => o.LineItems).ThenInclude(l => l.Unit)
+            .FirstOrDefaultAsync(o => o.Id == id && !o.Isdeleted, cancellationToken);
+
+        if (order is null)
+            return NotFound(new { message = "Sales order not found" });
+
+        var shop = await shopProfiles.GetAsync(cancellationToken: cancellationToken);
+
+        var customer = order.Customer;
+        var billAddress = customer is null
+            ? string.Empty
+            : string.Join(", ", new[] { customer.BillingAddress, customer.City, customer.PostalCode }
+                .Where(s => !string.IsNullOrWhiteSpace(s)));
+
+        var data = new SalesOrderDocumentData(
+            SONumber: order.SONumber,
+            SODate: order.SODate,
+            DeliveryBy: order.DeliveryDate,
+            // No customer-supplied-PO field exists on the domain yet; header simply omits it.
+            CustomerPO: string.Empty,
+            CustomerName: order.CustomerName,
+            BillToAddress: billAddress,
+            BillToPhone: order.CustomerPhone,
+            // Ship To uses the order's own delivery address/vehicle context when set, else falls
+            // back to the customer's billing details inside the document itself.
+            ShipToName: !string.IsNullOrWhiteSpace(order.VehicleLabel) ? $"{order.CustomerName} — {order.VehicleLabel}" : string.Empty,
+            ShipToAddress: order.DeliveryAddress,
+            ShipToContact: order.CustomerPhone,
+            Lines: order.LineItems
+                .OrderBy(l => l.LineNumber)
+                .Select((l, i) => new SalesOrderDocumentLine(
+                    SlNo: i + 1,
+                    PartNumber: l.Part?.PartNumber?.Value ?? l.Part?.SKU ?? string.Empty,
+                    DisplayName: l.ProductVariant is not null
+                        ? $"{l.Part?.Name} - {l.ProductVariant.Name}"
+                        : (l.Part?.Name ?? l.Description),
+                    LocalName: l.Part?.LocalName,
+                    Quantity: l.Quantity,
+                    UnitSymbol: l.Unit?.Symbol ?? string.Empty,
+                    UnitPrice: l.UnitPrice,
+                    DiscountPerUnit: l.Discount,
+                    LineTotal: l.TotalPrice))
+                .ToList(),
+            SubTotal: order.SubTotal,
+            DiscountAmount: order.DiscountAmount,
+            // No stored tax-rate field on SalesOrder — derived from the taxable base (post-discount)
+            // purely for the "VAT (X%)" label; the actual TaxAmount below is the real stored figure.
+            TaxPercentage: order.SubTotal - order.DiscountAmount > 0
+                ? Math.Round(order.TaxAmount / (order.SubTotal - order.DiscountAmount) * 100, 0)
+                : 0,
+            TaxAmount: order.TaxAmount,
+            TotalAmount: order.TotalAmount + order.TaxAmount,
+            Notes: order.Notes);
+
+        var pdfBytes = new SalesOrderDocument(data, shop).GeneratePdf();
+        return File(pdfBytes, "application/pdf", $"sales-order-{order.SONumber}.pdf");
     }
 
     [HttpGet("number/{soNumber}")]
@@ -1629,7 +1708,7 @@ public class SalesOrderController : ControllerBase
             TaxNo: await Setting("SHOP_TAX_NUMBER"),
             Tagline: await Setting("SHOP_TAGLINE"),
             FooterText: await Setting("INVOICE_FOOTER_TEXT") is { Length: > 0 } ft ? ft : "Thank you for your business!",
-            CurrencySymbol: "à§³");
+            BankDetails: await Setting("SHOP_BANK_DETAILS"));
 
         var lines = (so?.LineItems ?? [])
             .OrderBy(l => l.LineNumber)
@@ -1917,6 +1996,20 @@ public class SalesOrderController : ControllerBase
         try
         {
             _logger.LogInformation("Creating quick sale for customer: {CustomerName}", request.CustomerName);
+
+            // 0. Till session gate — opt-in via Permissions.SalesRequireTillSession (roles without
+            // it behave exactly as before). See TillSessionController.RequiresOpenSession for the
+            // frontend "should I prompt to open a till" pre-check that mirrors this logic.
+            if (await _permissionCheckService.UserHasPermissionAsync(User, Permissions.SalesRequireTillSession, cancellationToken))
+            {
+                var cashierId = _currentUserService.GetCurrentUserGuid();
+                if (cashierId is null || cashierId == Guid.Empty)
+                    return Unauthorized(new { message = "Could not resolve the current user" });
+
+                var openSession = await _tillSessionRepository.GetOpenSessionForCashierAsync(cashierId.Value, cancellationToken);
+                if (openSession is null)
+                    return BadRequest(new { message = "You need to open a till session before starting a sale." });
+            }
 
             // 1. Validate request
             if (request.Items == null || !request.Items.Any())

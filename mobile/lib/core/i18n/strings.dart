@@ -30,6 +30,7 @@ class S {
   String get sales => _t('Sales', 'বিক্রয়');
   String get suppliers => _t('Suppliers', 'সরবরাহকারী');
   String get cashBook => _t('Cash Book', 'ক্যাশ বুক');
+  String get tillSession => _t('Till Session', 'টিল সেশন');
   String get stockIn => _t('Stock In', 'স্টক ইন');
   String get newStockIn => _t('New Stock In', 'নতুন স্টক ইন');
   String get notifications => _t('Notifications', 'নোটিফিকেশন');

@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { PaginatedResponse } from '@/features/sales/services/customer.service';
+import { PdfDownloadService } from '@/shared/services/pdf-download.service';
 import { environment } from 'src/environments/environment';
 
 export interface PurchaseOrderLineResponse {
@@ -112,6 +113,7 @@ export interface PurchaeOrderQuery {
 })
 export class PurchaseOrderService {
     private readonly http = inject(HttpClient);
+    private readonly pdfDownload = inject(PdfDownloadService);
     private readonly apiUrl = `${environment.apiUrl}/v1/purchaseorder`;
 
     /**
@@ -203,5 +205,10 @@ export class PurchaseOrderService {
      */
     deletePurchaseOrder(id: string): Observable<void> {
         return this.http.delete<void>(`${this.apiUrl}/${id}`);
+    }
+
+    /** Download the server-rendered Purchase Order PDF and trigger the browser save dialog. */
+    downloadPdf(id: string, poNumber: string): Observable<void> {
+        return this.pdfDownload.downloadGet(`${this.apiUrl}/${id}/pdf`, `purchase-order-${poNumber}.pdf`);
     }
 }

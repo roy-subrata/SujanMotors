@@ -1,0 +1,270 @@
+<!-- ============================================================
+     QUOTATIONS LIST — standardized data-page layout
+     ============================================================ -->
+
+<!-- PrimeNG Global Components -->
+<p-toast position="top-right"></p-toast>
+<p-confirmDialog></p-confirmDialog>
+<p-menu #actionMenu [model]="actionMenuItems" [popup]="true" appendTo="body"></p-menu>
+
+<app-page-container>
+
+  <!-- ==================== HEADER ==================== -->
+  <app-page-header
+    title="Quotations"
+    subtitle="Create and track price quotes for prospective customers"
+    [count]="totalRecords" countLabel="quotations" countIcon="pi pi-file-edit">
+    <ng-container actions>
+      <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="refreshData()">
+        <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
+      </button>
+      <button class="btn-primary" (click)="createQuotation()">
+        <i class="pi pi-plus"></i>
+        <span>New Quotation</span>
+      </button>
+    </ng-container>
+  </app-page-header>
+
+  <!-- ==================== FILTERS ==================== -->
+  <app-filter-bar>
+    <div search class="filter-group search-group">
+      <div class="search-input-wrapper">
+        <i class="pi pi-search"></i>
+        <input
+          type="text"
+          [(ngModel)]="searchTerm"
+          placeholder="Search by quotation number, customer name..."
+          (keyup.enter)="onSearch()"
+          class="search-input" />
+        <button *ngIf="searchTerm" class="search-clear" (click)="searchTerm = ''; onSearch()">
+          <i class="pi pi-times"></i>
+        </button>
+      </div>
+    </div>
+
+    <div filters class="filter-group">
+      <p-select
+        [options]="statusOptions"
+        [(ngModel)]="filterStatus"
+        placeholder="All Statuses"
+        [showClear]="true"
+        (onChange)="onFilterChange()"
+        appendTo="body"
+        styleClass="filter-dropdown">
+      </p-select>
+    </div>
+
+    <div filterActions class="filter-group filter-actions">
+      <button class="btn-search" (click)="onSearch()">
+        <i class="pi pi-search"></i>
+        Search
+      </button>
+      <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
+        <i class="pi pi-filter-slash"></i>
+        Clear
+      </button>
+    </div>
+
+    <div activeFilters *ngIf="hasActiveFilters()" class="active-filters">
+      <span class="active-filters-label">Active filters:</span>
+      <span *ngIf="searchTerm" class="filter-chip">
+        Search: "{{ searchTerm }}"
+        <i class="pi pi-times" (click)="searchTerm = ''; onSearch()"></i>
+      </span>
+      <span *ngIf="filterStatus" class="filter-chip">
+        Status: {{ filterStatus }}
+        <i class="pi pi-times" (click)="filterStatus = ''; onFilterChange()"></i>
+      </span>
+    </div>
+  </app-filter-bar>
+
+  <!-- ==================== DATA TABLE (Desktop) ==================== -->
+  <section class="table-section desktop-only">
+    <div class="table-container">
+      <p-table
+        [value]="quotations"
+        [lazy]="true"
+        [paginator]="false"
+        [rows]="pageSize"
+        [totalRecords]="totalRecords"
+        [loading]="loading"
+        (onLazyLoad)="onLazyLoad($event)"
+        [rowHover]="true"
+        [scrollable]="true"
+        scrollHeight="flex"
+        styleClass="app-table">
+
+        <ng-template #header>
+          <tr>
+            <th class="col-quotation">Quotation #</th>
+            <th class="col-customer">Customer</th>
+            <th class="col-date">Quote Date</th>
+            <th class="col-date">Valid Until</th>
+            <th class="col-status">Status</th>
+            <th class="col-amount">Grand Total</th>
+            <th class="col-actions">Actions</th>
+          </tr>
+        </ng-template>
+
+        <ng-template #body let-quotation>
+          <tr class="data-row" [class.row-overdue]="quotation.isExpired" (dblclick)="viewQuotation(quotation)">
+            <td class="col-quotation">
+              <div class="so-cell">
+                <a class="so-link" (click)="viewQuotation(quotation)">{{ quotation.quotationNumber }}</a>
+                <span *ngIf="quotation.isExpired" class="overdue-badge">Expired</span>
+              </div>
+            </td>
+
+            <td class="col-customer">
+              <div class="cell-media">
+                <div class="customer-info">
+                  <span class="customer-name">{{ quotation.customerName || 'Walk-in Customer' }}</span>
+                  <span *ngIf="quotation.customerPhone" class="customer-phone">{{ quotation.customerPhone }}</span>
+                </div>
+              </div>
+            </td>
+
+            <td class="col-date"><span class="date-text">{{ formatDate(quotation.quoteDate) }}</span></td>
+
+            <td class="col-date">
+              <span class="date-text" [class.text-danger]="quotation.isExpired">{{ formatDate(quotation.validUntil) }}</span>
+            </td>
+
+            <td class="col-status">
+              <span class="status-pill" [attr.data-status]="quotation.status.toLowerCase()">
+                {{ formatStatus(quotation.status) }}
+              </span>
+            </td>
+
+            <td class="col-amount"><span class="amount-value">{{ formatCurrency(quotation.grandTotal, quotation.currency) }}</span></td>
+
+            <td class="col-actions">
+              <div class="action-cell">
+                <button class="btn-action" pTooltip="More" (click)="showActionMenu($event, quotation)">
+                  <i class="pi pi-ellipsis-v"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+
+        <ng-template #emptymessage>
+          <tr>
+            <td colspan="7">
+              <div class="empty-state">
+                <div class="empty-icon"><i class="pi pi-file-edit"></i></div>
+                <h3>No Quotations Found</h3>
+                <p *ngIf="hasActiveFilters()">Try adjusting your filters or search criteria</p>
+                <p *ngIf="!hasActiveFilters()">Get started by creating your first quotation</p>
+                <button *ngIf="!hasActiveFilters()" class="btn-primary" (click)="createQuotation()">
+                  <i class="pi pi-plus"></i>
+                  Create Quotation
+                </button>
+                <button *ngIf="hasActiveFilters()" class="btn-secondary" (click)="clearFilters()">
+                  <i class="pi pi-filter-slash"></i>
+                  Clear Filters
+                </button>
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+
+        <ng-template #loadingbody>
+          <tr *ngFor="let _ of [1,2,3,4,5,6,7,8]" class="skeleton-row">
+            <td><div class="skeleton skeleton-text"></div></td>
+            <td>
+              <div class="skeleton-stack">
+                <div class="skeleton skeleton-avatar"></div>
+                <div class="skeleton skeleton-text"></div>
+              </div>
+            </td>
+            <td><div class="skeleton skeleton-text-sm"></div></td>
+            <td><div class="skeleton skeleton-text-sm"></div></td>
+            <td><div class="skeleton skeleton-badge"></div></td>
+            <td><div class="skeleton skeleton-text-sm"></div></td>
+            <td><div class="skeleton skeleton-actions"></div></td>
+          </tr>
+        </ng-template>
+
+      </p-table>
+    </div>
+  </section>
+
+  <!-- ==================== MOBILE CARDS ==================== -->
+  <section class="cards-section mobile-only">
+    <!-- Loading Skeleton -->
+    <div *ngIf="loading" class="cards-grid">
+      <div *ngFor="let _ of [1,2,3,4]" class="order-card skeleton-card">
+        <div class="card-header">
+          <div class="skeleton skeleton-text"></div>
+          <div class="skeleton skeleton-badge"></div>
+        </div>
+        <div class="card-body">
+          <div class="skeleton skeleton-text-lg"></div>
+          <div class="skeleton skeleton-text-sm"></div>
+        </div>
+        <div class="card-footer">
+          <div class="skeleton skeleton-text-sm"></div>
+          <div class="skeleton skeleton-text-sm"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="!loading && quotations.length === 0" class="empty-state-mobile">
+      <div class="empty-icon"><i class="pi pi-file-edit"></i></div>
+      <h3>No Quotations</h3>
+      <p>{{ hasActiveFilters() ? 'Try different filters' : 'Create your first quotation' }}</p>
+      <button class="btn-primary" (click)="hasActiveFilters() ? clearFilters() : createQuotation()">
+        <i class="pi" [class.pi-plus]="!hasActiveFilters()" [class.pi-filter-slash]="hasActiveFilters()"></i>
+        {{ hasActiveFilters() ? 'Clear Filters' : 'New Quotation' }}
+      </button>
+    </div>
+
+    <!-- Quotation Cards -->
+    <div *ngIf="!loading && quotations.length > 0" class="cards-grid">
+      <div *ngFor="let quotation of quotations" class="order-card" [class.card-overdue]="quotation.isExpired" (click)="viewQuotation(quotation)">
+        <div class="card-header">
+          <span class="card-so-number">{{ quotation.quotationNumber }}</span>
+          <span class="status-pill" [attr.data-status]="quotation.status.toLowerCase()">
+            {{ formatStatus(quotation.status) }}
+          </span>
+        </div>
+
+        <div class="card-body">
+          <div class="card-customer">
+            <span class="customer-name">{{ quotation.customerName || 'Walk-in Customer' }}</span>
+          </div>
+          <div class="card-dates">
+            <span class="card-date"><i class="pi pi-calendar"></i> {{ formatDate(quotation.quoteDate) }}</span>
+            <span *ngIf="quotation.isExpired" class="overdue-text">
+              <i class="pi pi-exclamation-circle"></i>
+              Expired
+            </span>
+          </div>
+        </div>
+
+        <div class="card-footer">
+          <div class="card-amount">
+            <span class="amount-label">Total</span>
+            <span class="amount-value">{{ formatCurrency(quotation.grandTotal, quotation.currency) }}</span>
+          </div>
+          <button class="btn-card-action" (click)="showActionMenu($event, quotation); $event.stopPropagation()">
+            <i class="pi pi-ellipsis-h"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== PAGINATION (desktop + mobile) ==================== -->
+  <app-data-pagination
+    [first]="first"
+    [pageSize]="pageSize"
+    [totalRecords]="totalRecords"
+    itemLabel="quotations"
+    (pageChange)="goToPage($event)"
+    (pageSizeChange)="onPageSizeChange($event)">
+  </app-data-pagination>
+
+</app-page-container>

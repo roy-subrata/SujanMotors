@@ -1,5 +1,6 @@
+﻿using AutoPartShop.Api.Pdf.Components;
+using AutoPartShop.Api.Pdf.Design;
 using QuestPDF.Fluent;
-using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 
 namespace AutoPartShop.Api.Pdf;
@@ -37,7 +38,7 @@ public record InvoiceDocumentData(
     List<InvoiceLine> Lines,
     decimal SubTotal,
     decimal DiscountAmount,
-    decimal TaxPercentage,   // informational; shown as "Tax (X%)" label
+    decimal TaxPercentage,   // informational; shown as "VAT (X%)" label
     decimal TaxAmount,
     decimal GrandTotal,
     decimal PaidAmount,
@@ -45,30 +46,21 @@ public record InvoiceDocumentData(
     List<InvoicePaymentEntry> Payments,
     string Notes);
 
+/// <summary>
+/// Tax Invoice — document 5 of design_handoff_pos_documents.
+/// Header + Bill To / Payment terms + items table + payments + terms footer + signature row.
+/// </summary>
 public class InvoiceDocument : IDocument
 {
-    // ── Palette (matches CustomerAccountStatementDocument) ──────────────────────
-    private const string NavyPrimary = "#1e3a8a";
-    private const string GreenText = "#15803d";
-    private const string AmberText = "#92400e";
-    private const string RedText = "#dc2626";
-    private const string Gray50 = "#f9fafb";
-    private const string Gray100 = "#f3f4f6";
-    private const string Gray200 = "#e5e7eb";
-    private const string Gray300 = "#d1d5db";
-    private const string Gray400 = "#9ca3af";
-    private const string Gray500 = "#6b7280";
-    private const string Gray700 = "#374151";
-    private const string Gray900 = "#111827";
-    private const string White = "#FFFFFF";
-
     private readonly InvoiceDocumentData _data;
     private readonly ShopProfile _shop;
+    private readonly DocTheme _theme;
 
-    public InvoiceDocument(InvoiceDocumentData data, ShopProfile shop)
+    public InvoiceDocument(InvoiceDocumentData data, ShopProfile shop, DocTheme? theme = null)
     {
         _data = data;
         _shop = shop;
+        _theme = (theme ?? DocTheme.Default) with { CurrencySymbol = shop.CurrencySymbol };
     }
 
     public DocumentMetadata GetMetadata() => new()
@@ -79,15 +71,11 @@ public class InvoiceDocument : IDocument
         CreationDate = DateTime.UtcNow
     };
 
-    // ── Page setup ─────────────────────────────────────────────────────────────
     public void Compose(IDocumentContainer container)
     {
         container.Page(page =>
         {
-            page.Size(PageSizes.A4);
-            page.MarginHorizontal(40);
-            page.MarginVertical(32);
-            page.DefaultTextStyle(x => x.FontSize(9).FontColor(Gray900));
+            _theme.ApplyPage(page);
 
             page.Header().Element(ComposeHeader);
             page.Content().Element(ComposeContent);
@@ -95,415 +83,257 @@ public class InvoiceDocument : IDocument
         });
     }
 
-    // ── HEADER ─────────────────────────────────────────────────────────────────
-    private void ComposeHeader(IContainer container)
-    {
-        container.Column(col =>
-        {
-            col.Item().Row(row =>
-            {
-                // Company identity (left)
-                row.RelativeItem().Column(left =>
-                {
-                    left.Item().Text(_shop.Name)
-                        .Bold().FontSize(16).FontColor(NavyPrimary);
+    private void ComposeHeader(IContainer container) =>
+        new DocHeader(_theme, _shop, "Tax Invoice",
+        [
+            new MetaField("No.", _data.InvoiceNumber),
+            new MetaField("Date", _data.InvoiceDate.ToString("dd MMM yyyy")),
+            new MetaField("Payment Due", _data.DueDate.ToString("dd MMM yyyy")),
+            new MetaField("Ref. Order", _data.SalesOrderNumber),
+        ]).Compose(container);
 
-                    if (!string.IsNullOrWhiteSpace(_shop.Tagline))
-                        left.Item().PaddingTop(2).Text(_shop.Tagline)
-                            .FontSize(8).Italic().FontColor(Gray500);
-
-                    if (!string.IsNullOrWhiteSpace(_shop.Address))
-                        left.Item().PaddingTop(5).Text(_shop.Address)
-                            .FontSize(8).FontColor(Gray500);
-
-                    var contacts = new List<string>();
-                    if (!string.IsNullOrWhiteSpace(_shop.Phone)) contacts.Add($"Tel: {_shop.Phone}");
-                    if (!string.IsNullOrWhiteSpace(_shop.Email)) contacts.Add($"Email: {_shop.Email}");
-                    if (!string.IsNullOrWhiteSpace(_shop.TaxNo)) contacts.Add($"Tax: {_shop.TaxNo}");
-                    if (contacts.Count > 0)
-                        left.Item().PaddingTop(2).Text(string.Join("   ·   ", contacts))
-                            .FontSize(8).FontColor(Gray500);
-                });
-
-                // Document title block (right, 185pt)
-                row.ConstantItem(185).Column(right =>
-                {
-                    right.Item().AlignRight().Text("INVOICE")
-                        .Bold().FontSize(18).FontColor(NavyPrimary);
-
-                    right.Item().PaddingTop(6).AlignRight().Text(txt =>
-                    {
-                        txt.Span("No:   ").FontSize(8).FontColor(Gray500);
-                        txt.Span(_data.InvoiceNumber).FontSize(9).Bold().FontColor(NavyPrimary);
-                    });
-
-                    right.Item().PaddingTop(3).AlignRight().Text(txt =>
-                    {
-                        txt.Span("Date:   ").FontSize(8).FontColor(Gray500);
-                        txt.Span(_data.InvoiceDate.ToString("dd MMM yyyy"))
-                            .FontSize(8).Bold().FontColor(Gray900);
-                    });
-
-                    right.Item().PaddingTop(3).AlignRight().Text(txt =>
-                    {
-                        txt.Span("Due:   ").FontSize(8).FontColor(Gray500);
-                        txt.Span(_data.DueDate.ToString("dd MMM yyyy"))
-                            .FontSize(8).FontColor(Gray700);
-                    });
-
-                    // Status badge (colored text)
-                    right.Item().PaddingTop(6).AlignRight().Text(_data.Status.Replace("_", " "))
-                        .Bold().FontSize(8).FontColor(GetStatusColor());
-                });
-            });
-
-            col.Item().PaddingTop(12).LineHorizontal(1.5f).LineColor(NavyPrimary);
-        });
-    }
-
-    // ── CONTENT ────────────────────────────────────────────────────────────────
     private void ComposeContent(IContainer container)
     {
-        container.PaddingTop(16).Column(col =>
+        container.PaddingTop(DocTheme.Px(18)).Column(col =>
         {
-            // Bill To + Invoice Details side by side
             col.Item().Row(row =>
             {
                 row.RelativeItem().Element(ComposeBillTo);
-                row.ConstantItem(16);
-                row.RelativeItem().Element(ComposeInvoiceDetails);
+                row.ConstantItem(DocTheme.Px(24));
+                row.RelativeItem().Element(ComposePaymentTerms);
             });
 
-            col.Item().PaddingTop(22).Element(ComposeItemsTable);
+            col.Item().PaddingTop(DocTheme.Px(20)).Element(ComposeItems);
 
+            // ShowEntire keeps each block whole, so a section label can never be orphaned at the
+            // foot of a page with its content on the next one.
             if (_data.Payments.Count > 0)
-                col.Item().PaddingTop(18).Element(ComposePaymentsTable);
+                col.Item().PaddingTop(DocTheme.Px(16)).ShowEntire().Element(ComposePayments);
 
-            if (!string.IsNullOrWhiteSpace(_data.Notes))
-                col.Item().PaddingTop(14).Element(ComposeNotes);
+            col.Item().PaddingTop(DocTheme.Px(20)).ShowEntire().Element(ComposeBankAndTerms);
+
+            col.Item().ShowEntire().Element(c =>
+                new SignRow("Prepared By", "Customer Signature", "Authorized Signatory").Compose(c));
         });
     }
 
-    // ── BILL TO ────────────────────────────────────────────────────────────────
+    // ── Bill To ────────────────────────────────────────────────────────────────
     private void ComposeBillTo(IContainer container)
     {
         container.Column(col =>
         {
-            col.Item().Text("BILL TO").Bold().FontSize(7).FontColor(NavyPrimary);
-            col.Item().PaddingTop(5).Text(_data.CustomerName)
-                .Bold().FontSize(13).FontColor(Gray900);
-            col.Item().PaddingTop(6).LineHorizontal(0.5f).LineColor(Gray200);
+            col.Item().Element(c => SectionLabel(c, "Bill To"));
 
-            if (!string.IsNullOrWhiteSpace(_data.CustomerPhone))
-                col.Item().PaddingTop(5).Element(c => InfoRow(c, "Phone", _data.CustomerPhone));
-            if (!string.IsNullOrWhiteSpace(_data.CustomerEmail))
-                col.Item().PaddingTop(3).Element(c => InfoRow(c, "Email", _data.CustomerEmail));
-            if (!string.IsNullOrWhiteSpace(_data.CustomerAddress))
-                col.Item().PaddingTop(3).Element(c => InfoRow(c, "Address", _data.CustomerAddress));
+            col.Item().PaddingTop(DocTheme.Px(6)).Text(_data.CustomerName)
+                .FontSize(DocTheme.Px(13)).SemiBold().FontColor(DocTheme.Ink);
+
+            // A stacked address block, as in the handoff — not a label/value grid. Contact details
+            // run full width so long addresses don't wrap against a label column.
+            var lines = new List<string>();
+            if (!string.IsNullOrWhiteSpace(_data.CustomerAddress)) lines.Add(_data.CustomerAddress);
+
+            // Phone and email each get their own line — this column is half-width, so joining them
+            // with a separator wraps and strands the separator at the end of a line.
+            if (!string.IsNullOrWhiteSpace(_data.CustomerPhone)) lines.Add(_data.CustomerPhone);
+            if (!string.IsNullOrWhiteSpace(_data.CustomerEmail)) lines.Add(_data.CustomerEmail);
+
+            if (lines.Count > 0)
+                col.Item().PaddingTop(DocTheme.Px(4)).Column(c =>
+                {
+                    foreach (var line in lines)
+                        c.Item().Text(line)
+                            .FontSize(DocTheme.Body).FontColor(DocTheme.Secondary).LineHeight(1.55f);
+                });
+
+            // Vehicle and technician are job context rather than address, so they stay labelled.
             if (!string.IsNullOrWhiteSpace(_data.VehicleLabel))
-                col.Item().PaddingTop(3).Element(c => InfoRow(c, "Vehicle", _data.VehicleLabel));
+                col.Item().PaddingTop(DocTheme.Px(4)).Element(c => InfoRow(c, "Vehicle", _data.VehicleLabel));
             if (!string.IsNullOrWhiteSpace(_data.TechnicianName))
-                col.Item().PaddingTop(3).Element(c => InfoRow(c, "Technician", _data.TechnicianName));
+                col.Item().PaddingTop(DocTheme.Px(2)).Element(c => InfoRow(c, "Technician", _data.TechnicianName));
         });
     }
 
-    // ── INVOICE DETAILS ────────────────────────────────────────────────────────
-    private void ComposeInvoiceDetails(IContainer container)
+    // ── Payment terms (right column) ───────────────────────────────────────────
+    private void ComposePaymentTerms(IContainer container)
     {
         container.Column(col =>
         {
-            col.Item().Text("INVOICE DETAILS").Bold().FontSize(7).FontColor(Gray500);
-            col.Item().PaddingTop(5).LineHorizontal(0.5f).LineColor(Gray200);
+            col.Item().Element(c => SectionLabel(c, "Terms"));
 
-            col.Item().PaddingTop(8).Element(c => InfoRow(c, "Invoice No", _data.InvoiceNumber));
-            if (!string.IsNullOrWhiteSpace(_data.SalesOrderNumber))
-                col.Item().PaddingTop(4).Element(c => InfoRow(c, "Sales Order", _data.SalesOrderNumber));
-            col.Item().PaddingTop(4).Element(c => InfoRow(c, "Date", _data.InvoiceDate.ToString("dd MMM yyyy")));
-            col.Item().PaddingTop(4).Element(c => InfoRow(c, "Due Date", _data.DueDate.ToString("dd MMM yyyy")));
+            var creditDays = Math.Max(0, (_data.DueDate.Date - _data.InvoiceDate.Date).Days);
+
+            col.Item().PaddingTop(DocTheme.Px(6)).Element(c => InfoRow(c, "Status", _data.Status.Replace('_', ' ')));
+            col.Item().PaddingTop(DocTheme.Px(3)).Element(c => InfoRow(c, "Credit", creditDays == 0 ? "Due on receipt" : $"{creditDays} days"));
+
+            if (_data.PaidAmount > 0)
+                col.Item().PaddingTop(DocTheme.Px(3)).Element(c => InfoRow(c, "Paid", _theme.Money(_data.PaidAmount)));
+
+            col.Item().PaddingTop(DocTheme.Px(3)).Element(c => InfoRow(
+                c,
+                _data.BalanceDue <= 0 ? "Settled" : "Balance Due",
+                _theme.Money(Math.Abs(_data.BalanceDue))));
+
+            if (_data.TaxAmount > 0)
+                col.Item().PaddingTop(DocTheme.Px(6)).Text("VAT charged as per Mushak-6.3.")
+                    .FontSize(DocTheme.AddressSize).FontColor(DocTheme.Label);
         });
     }
 
-    // ── ITEMS TABLE ────────────────────────────────────────────────────────────
-    // Relative column widths: total = 52 units → 515pt content
-    //   SL(3) · Description(22) · Qty(5) · UnitPrice(8) · Disc%(5) · Amount(9)
-    private void ComposeItemsTable(IContainer container)
+    // ── Items ──────────────────────────────────────────────────────────────────
+    private void ComposeItems(IContainer container)
     {
-        container.Column(col =>
-        {
-            col.Item().BorderBottom(1.5f).BorderColor(NavyPrimary).PaddingBottom(6)
-                .Text("ITEMS").Bold().FontSize(10).FontColor(NavyPrimary);
+        var items = _data.Lines.Select(l => new ItemRow(
+            Sn: l.SlNo,
+            Code: !string.IsNullOrWhiteSpace(l.PartNumber) ? l.PartNumber : l.SKU,
+            Name: string.IsNullOrWhiteSpace(l.LocalName) ? l.DisplayName : $"{l.DisplayName}\n{l.LocalName}",
+            Qty: FormatQty(l.Quantity, l.UnitSymbol),
+            Rate: DocTheme.Amount(l.UnitPrice),
+            Amount: DocTheme.Amount(l.LineTotal))).ToList();
 
-            col.Item().PaddingTop(10).Table(table =>
-            {
-                table.ColumnsDefinition(c =>
-                {
-                    c.RelativeColumn(3);   // SL#
-                    c.RelativeColumn(22);  // Description + SKU
-                    c.RelativeColumn(5);   // Qty
-                    c.RelativeColumn(8);   // Unit Price
-                    c.RelativeColumn(5);   // Disc%
-                    c.RelativeColumn(9);   // Amount
-                });
+        var totals = new List<TotalRow> { new("Subtotal", DocTheme.Amount(_data.SubTotal)) };
 
-                table.Header(header =>
-                {
-                    void H(IContainer c, string text, bool right = false)
-                    {
-                        var cell = c.Background(NavyPrimary)
-                            .PaddingHorizontal(5).PaddingVertical(7);
-                        (right ? cell.AlignRight().Text(text) : cell.Text(text))
-                            .Bold().FontSize(8).FontColor(White);
-                    }
-
-                    H(header.Cell(), "#");
-                    H(header.Cell(), "Description");
-                    H(header.Cell(), "Qty", right: true);
-                    H(header.Cell(), "Unit Price", right: true);
-                    H(header.Cell(), "Discount", right: true);
-                    H(header.Cell(), "Amount", right: true);
-                });
-
-                bool alt = false;
-                foreach (var line in _data.Lines)
-                {
-                    string bg = alt ? Gray50 : White;
-                    alt = !alt;
-                    const float hp = 5f, vp = 5f, bs = 0.5f;
-
-                    // SL#
-                    table.Cell().Background(bg).BorderBottom(bs).BorderColor(Gray200)
-                        .PaddingHorizontal(hp).PaddingVertical(vp)
-                        .Text(line.SlNo.ToString()).FontSize(8).FontColor(Gray500);
-
-                    // Description (name + part no / SKU below)
-                    table.Cell().Background(bg).BorderBottom(bs).BorderColor(Gray200)
-                        .PaddingHorizontal(hp).PaddingVertical(vp)
-                        .Column(c =>
-                        {
-                            c.Item().Text(line.DisplayName).FontSize(8).FontColor(Gray900);
-                            if (!string.IsNullOrWhiteSpace(line.LocalName))
-                                c.Item().PaddingTop(1).Text(line.LocalName).FontSize(7f).FontColor(Gray500);
-                            var sub = !string.IsNullOrWhiteSpace(line.PartNumber)
-                                ? line.PartNumber
-                                : line.SKU;
-                            if (!string.IsNullOrWhiteSpace(sub))
-                                c.Item().PaddingTop(1).Text(sub).FontSize(7.5f).FontColor(Gray400);
-                        });
-
-                    // Qty
-                    table.Cell().Background(bg).BorderBottom(bs).BorderColor(Gray200)
-                        .PaddingHorizontal(hp).PaddingVertical(vp).AlignRight()
-                        .Text(line.Quantity % 1 == 0
-                            ? ((int)line.Quantity).ToString()
-                            : line.Quantity.ToString("N2"))
-                        .FontSize(8).FontColor(Gray700);
-
-                    // Unit Price
-                    table.Cell().Background(bg).BorderBottom(bs).BorderColor(Gray200)
-                        .PaddingHorizontal(hp).PaddingVertical(vp).AlignRight()
-                        .Text($"{_shop.CurrencySymbol} {line.UnitPrice:N2}").FontSize(8).FontColor(Gray700);
-
-                    // Discount (per-unit absolute amount)
-                    table.Cell().Background(bg).BorderBottom(bs).BorderColor(Gray200)
-                        .PaddingHorizontal(hp).PaddingVertical(vp).AlignRight()
-                        .Text(line.DiscountPerUnit > 0 ? $"({_shop.CurrencySymbol} {line.DiscountPerUnit:N2})" : "—")
-                        .FontSize(8).FontColor(line.DiscountPerUnit > 0 ? GreenText : Gray400);
-
-                    // Amount
-                    table.Cell().Background(bg).BorderBottom(bs).BorderColor(Gray200)
-                        .PaddingHorizontal(hp).PaddingVertical(vp).AlignRight()
-                        .Text($"{_shop.CurrencySymbol} {line.LineTotal:N2}").FontSize(8).Bold().FontColor(Gray900);
-                }
-
-                // Totals footer spanning all columns
-                AppendTotalsFooter(table);
-            });
-        });
-    }
-
-    // ── TOTALS FOOTER (inside items table) ────────────────────────────────────
-    private void AppendTotalsFooter(TableDescriptor table)
-    {
-        void SummaryRow(string label, string value, string labelColor, string valueColor, bool topBorder = false)
-        {
-            var labelCell = table.Cell().ColumnSpan(5)
-                .Background(Gray100)
-                .PaddingHorizontal(5).PaddingVertical(5)
-                .AlignRight();
-            if (topBorder)
-                labelCell = labelCell.BorderTop(1f).BorderColor(Gray300);
-            labelCell.Text(label).FontSize(8).FontColor(labelColor);
-
-            var valueCell = table.Cell()
-                .Background(Gray100)
-                .PaddingHorizontal(5).PaddingVertical(5)
-                .AlignRight();
-            if (topBorder)
-                valueCell = valueCell.BorderTop(1f).BorderColor(Gray300);
-            valueCell.Text(value).FontSize(8).FontColor(valueColor);
-        }
-
-        // Subtotal
-        SummaryRow("Subtotal", $"{_shop.CurrencySymbol} {_data.SubTotal:N2}", Gray500, Gray700);
-
-        // Discount (only if > 0)
         if (_data.DiscountAmount > 0)
-            SummaryRow("Discount", $"({_shop.CurrencySymbol} {_data.DiscountAmount:N2})", Gray500, GreenText);
+            totals.Add(new TotalRow("Discount", $"({DocTheme.Amount(_data.DiscountAmount)})"));
 
-        // Tax (only if > 0)
         if (_data.TaxAmount > 0)
-        {
-            var taxLabel = _data.TaxPercentage > 0 ? $"Tax ({_data.TaxPercentage:N0}%)" : "Tax";
-            SummaryRow(taxLabel, $"{_shop.CurrencySymbol} {_data.TaxAmount:N2}", Gray500, Gray700);
-        }
+            totals.Add(new TotalRow(
+                _data.TaxPercentage > 0 ? $"VAT ({_data.TaxPercentage:N0}%)" : "VAT",
+                DocTheme.Amount(_data.TaxAmount)));
 
-        // Grand Total (navy background)
-        table.Cell().ColumnSpan(5)
-            .Background(NavyPrimary).PaddingHorizontal(5).PaddingVertical(8)
-            .AlignRight()
-            .Text("GRAND TOTAL").Bold().FontSize(8.5f).FontColor(White);
-        table.Cell()
-            .Background(NavyPrimary).PaddingHorizontal(5).PaddingVertical(8)
-            .AlignRight()
-            .Text($"{_shop.CurrencySymbol} {_data.GrandTotal:N2}").Bold().FontSize(8.5f).FontColor(White);
-
-        // Paid (only if > 0)
-        if (_data.PaidAmount > 0)
-            SummaryRow("Paid", $"({_shop.CurrencySymbol} {_data.PaidAmount:N2})", GreenText, GreenText);
-
-        // Balance Due (separator + bold)
-        var balanceColor = _data.BalanceDue <= 0 ? GreenText : Gray900;
-        var balanceLabel = _data.BalanceDue <= 0 ? "SETTLED" : "BALANCE DUE";
-        table.Cell().ColumnSpan(5)
-            .Background(Gray100).BorderTop(1f).BorderColor(Gray300)
-            .PaddingHorizontal(5).PaddingVertical(8)
-            .AlignRight()
-            .Text(balanceLabel).Bold().FontSize(9).FontColor(balanceColor);
-        table.Cell()
-            .Background(Gray100).BorderTop(1f).BorderColor(Gray300)
-            .PaddingHorizontal(5).PaddingVertical(8)
-            .AlignRight()
-            .Text($"{_shop.CurrencySymbol} {Math.Abs(_data.BalanceDue):N2}").Bold().FontSize(9).FontColor(balanceColor);
+        new ItemsTable(
+            _theme, items, totals,
+            grandLabel: "Grand Total",
+            grandValue: DocTheme.Amount(_data.GrandTotal),
+            words: AmountInWords.Convert(_data.GrandTotal)).Compose(container);
     }
 
-    // ── PAYMENTS RECEIVED ──────────────────────────────────────────────────────
-    private void ComposePaymentsTable(IContainer container)
+    // ── Payments received ──────────────────────────────────────────────────────
+    private void ComposePayments(IContainer container)
     {
         container.Column(col =>
         {
-            col.Item().BorderBottom(1f).BorderColor(Gray200).PaddingBottom(5)
-                .Text("PAYMENTS RECEIVED").Bold().FontSize(9).FontColor(Gray700);
+            col.Item().Element(c => SectionLabel(c, "Payments Received"));
 
-            col.Item().PaddingTop(8).Table(table =>
+            col.Item().PaddingTop(DocTheme.Px(8)).Table(table =>
             {
                 table.ColumnsDefinition(c =>
                 {
-                    c.RelativeColumn(10); // Date
-                    c.RelativeColumn(10); // Method
-                    c.RelativeColumn(22); // Reference
-                    c.RelativeColumn(10); // Amount
+                    c.ConstantColumn(DocTheme.Px(90));
+                    c.ConstantColumn(DocTheme.Px(110));
+                    c.RelativeColumn();
+                    c.ConstantColumn(DocTheme.Px(110));
                 });
 
                 table.Header(header =>
                 {
-                    void H(IContainer c, string text, bool right = false)
-                    {
-                        var cell = c.Background(Gray100)
-                            .PaddingHorizontal(5).PaddingVertical(6);
-                        (right ? cell.AlignRight().Text(text) : cell.Text(text))
-                            .Bold().FontSize(7.5f).FontColor(Gray700);
-                    }
-
-                    H(header.Cell(), "Date");
-                    H(header.Cell(), "Method");
-                    H(header.Cell(), "Reference");
-                    H(header.Cell(), "Amount", right: true);
+                    Head(header.Cell(), "Date");
+                    Head(header.Cell(), "Method");
+                    Head(header.Cell(), "Reference");
+                    Head(header.Cell(), "Amount", right: true);
                 });
 
-                bool alt = false;
                 foreach (var p in _data.Payments)
                 {
-                    string bg = alt ? Gray50 : White;
-                    alt = !alt;
-                    const float hp = 5f, vp = 5f, bs = 0.5f;
-
-                    table.Cell().Background(bg).BorderBottom(bs).BorderColor(Gray200)
-                        .PaddingHorizontal(hp).PaddingVertical(vp)
-                        .Text(p.PaymentDate.ToString("dd MMM yyyy")).FontSize(8).FontColor(Gray700);
-
-                    table.Cell().Background(bg).BorderBottom(bs).BorderColor(Gray200)
-                        .PaddingHorizontal(hp).PaddingVertical(vp)
-                        .Text(FormatPaymentMethod(p.Method)).FontSize(8).FontColor(Gray700);
-
-                    table.Cell().Background(bg).BorderBottom(bs).BorderColor(Gray200)
-                        .PaddingHorizontal(hp).PaddingVertical(vp)
-                        .Text(string.IsNullOrWhiteSpace(p.Reference) ? "—" : p.Reference)
-                        .FontSize(8).FontColor(Gray500);
-
-                    table.Cell().Background(bg).BorderBottom(bs).BorderColor(Gray200)
-                        .PaddingHorizontal(hp).PaddingVertical(vp).AlignRight()
-                        .Text($"{_shop.CurrencySymbol} {p.Amount:N2}").FontSize(8).Bold().FontColor(GreenText);
+                    Cell(table.Cell(), p.PaymentDate.ToString("dd MMM yyyy"), mono: true);
+                    Cell(table.Cell(), FormatPaymentMethod(p.Method));
+                    Cell(table.Cell(), string.IsNullOrWhiteSpace(p.Reference) ? "—" : p.Reference, mono: true);
+                    Cell(table.Cell(), _theme.Money(p.Amount), mono: true, right: true);
                 }
             });
         });
-    }
 
-    // ── NOTES ──────────────────────────────────────────────────────────────────
-    private void ComposeNotes(IContainer container)
-    {
-        container.Column(col =>
+        static void Head(IContainer cell, string text, bool right = false)
         {
-            col.Item().PaddingBottom(5).Text("NOTES").Bold().FontSize(7).FontColor(Gray500);
-            col.Item().Background(Gray50).Border(0.5f).BorderColor(Gray200)
-                .Padding(8)
-                .Text(_data.Notes).FontSize(8).Italic().FontColor(Gray700);
-        });
+            var c = cell.BorderBottom(DocTheme.RuleMedium).BorderColor(DocTheme.Ink)
+                .PaddingVertical(DocTheme.Px(7)).PaddingHorizontal(DocTheme.Px(8));
+            if (right) c = c.AlignRight();
+            c.Text(text.ToUpperInvariant())
+                .FontSize(DocTheme.TableHeader).SemiBold().FontColor(DocTheme.Secondary)
+                .LetterSpacing(1.2f / DocTheme.TableHeader);
+        }
+
+        static void Cell(IContainer cell, string text, bool mono = false, bool right = false)
+        {
+            var c = cell.BorderBottom(DocTheme.RuleHairline).BorderColor(DocTheme.Hairline).Padding(DocTheme.Px(8));
+            if (right) c = c.AlignRight();
+            var span = c.Text(text).FontSize(DocTheme.TableCell).FontColor(DocTheme.Ink);
+            if (mono) span.Style(DocTheme.MonoText).FontSize(DocTheme.TableCell).FontColor(DocTheme.Ink);
+        }
     }
 
-    // ── FOOTER ─────────────────────────────────────────────────────────────────
+    // ── Bank Details + Terms (two-column footer, per the handoff) ──────────────
+    private void ComposeBankAndTerms(IContainer container)
+    {
+        container.Row(row =>
+        {
+            row.RelativeItem().Element(c => Block(c, "Bank Details", _shop.BankDetails));
+            row.ConstantItem(DocTheme.Px(24));
+            row.RelativeItem().Element(c => Block(c, "Terms", TermsText()));
+        });
+
+        // The handoff's Bank Details block is fixed text; ours comes from SHOP_BANK_DETAILS and is
+        // skipped while unset, so the column simply stays empty rather than printing a placeholder
+        // account number.
+        static void Block(IContainer c, string label, string body)
+        {
+            if (string.IsNullOrWhiteSpace(body)) return;
+
+            c.Column(col =>
+            {
+                col.Item().Element(x => SectionLabel(x, label));
+                col.Item().PaddingTop(DocTheme.Px(5)).Text(body)
+                    .FontSize(DocTheme.Px(10)).FontColor(DocTheme.Muted).LineHeight(1.7f);
+            });
+        }
+    }
+
+    /// <summary>Invoice notes when present, else the handoff's standing terms.</summary>
+    private string TermsText() =>
+        !string.IsNullOrWhiteSpace(_data.Notes)
+            ? _data.Notes
+            : "Goods once sold are returnable within 7 days with this invoice.\nWarranty as per manufacturer's policy.";
+
+    // ── Footer ─────────────────────────────────────────────────────────────────
     private void ComposeFooter(IContainer container)
     {
-        container.Column(col =>
+        container.PaddingTop(DocTheme.Px(10)).Row(row =>
         {
-            col.Item().LineHorizontal(0.5f).LineColor(Gray200);
-
-            col.Item().PaddingTop(6).Row(row =>
-            {
-                row.RelativeItem().Column(left =>
-                {
-                    var footerText = string.IsNullOrWhiteSpace(_shop.FooterText)
+            row.RelativeItem().Text(
+                    string.IsNullOrWhiteSpace(_shop.FooterText)
                         ? "Thank you for your business!"
-                        : _shop.FooterText;
-                    left.Item().Text(footerText).FontSize(8f).Italic().FontColor(Gray400);
-                    left.Item().PaddingTop(2)
-                        .Text($"Generated {DateTime.UtcNow:dd MMM yyyy, HH:mm} UTC")
-                        .FontSize(7f).FontColor(Gray300);
-                });
+                        : _shop.FooterText)
+                .FontSize(DocTheme.AddressSize).FontColor(DocTheme.Label);
 
-                row.ConstantItem(70).AlignRight().Text(txt =>
-                {
-                    txt.Span("Page ").FontSize(8).FontColor(Gray400);
-                    txt.CurrentPageNumber()
-                        .Style(TextStyle.Default.FontSize(8).Bold().FontColor(NavyPrimary));
-                    txt.Span(" / ").FontSize(8).FontColor(Gray400);
-                    txt.TotalPages()
-                        .Style(TextStyle.Default.FontSize(8).Bold().FontColor(NavyPrimary));
-                });
+            row.AutoItem().Text(txt =>
+            {
+                txt.DefaultTextStyle(DocTheme.MonoText.FontSize(DocTheme.AddressSize).FontColor(DocTheme.Label));
+                txt.CurrentPageNumber();
+                txt.Span(" / ");
+                txt.TotalPages();
             });
         });
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────────
-    private string GetStatusColor() => _data.Status switch
+    private static void SectionLabel(IContainer c, string text) =>
+        c.Text(text.ToUpperInvariant())
+            .FontSize(DocTheme.SectionLabel).SemiBold().FontColor(DocTheme.Label)
+            .LetterSpacing(1.2f / DocTheme.SectionLabel);
+
+    private static void InfoRow(IContainer c, string label, string value) =>
+        c.Row(row =>
+        {
+            row.ConstantItem(DocTheme.Px(70)).Text(label)
+                .FontSize(DocTheme.Body).FontColor(DocTheme.Label);
+            row.RelativeItem().Text(value)
+                .FontSize(DocTheme.Body).FontColor(DocTheme.Secondary);
+        });
+
+    private static string FormatQty(decimal qty, string unitSymbol)
     {
-        "PAID" => GreenText,
-        "ISSUED" => NavyPrimary,
-        "DUE" => AmberText,
-        "PARTIALLY_PAID" => AmberText,
-        "OVERDUE" => RedText,
-        "CANCELLED" => Gray400,
-        _ => Gray700
-    };
+        var n = qty % 1 == 0 ? ((int)qty).ToString() : qty.ToString("N2");
+        return string.IsNullOrWhiteSpace(unitSymbol) ? n : $"{n} {unitSymbol}";
+    }
 
     private static string FormatPaymentMethod(string method) => method switch
     {
@@ -514,13 +344,4 @@ public class InvoiceDocument : IDocument
         "ADVANCE_CREDIT" => "Credit Applied",
         _ => method
     };
-
-    private static void InfoRow(IContainer c, string label, string value)
-    {
-        c.Text(txt =>
-        {
-            txt.Span($"{label}:  ").FontSize(8).FontColor(Gray500);
-            txt.Span(value).FontSize(8).Bold().FontColor(Gray700);
-        });
-    }
 }
