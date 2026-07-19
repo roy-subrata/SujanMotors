@@ -91,6 +91,7 @@ public class AutoPartDbContext : IdentityDbContext<ApplicationUser, ApplicationR
     public DbSet<SalaryAdvance> SalaryAdvances { get; set; }
     public DbSet<AuditLog> AuditLogs { get; set; }
     public DbSet<ProductLocation> ProductLocations { get; set; }
+    public DbSet<WarehouseLocation> WarehouseLocations { get; set; }
     public DbSet<DailyExpense> DailyExpenses { get; set; }
     public DbSet<CashDeposit> CashDeposits { get; set; }
     public DbSet<ProductSpecification> ProductSpecifications { get; set; }

@@ -1,4 +1,4 @@
-﻿using AutoPartShop.Api.Common;
+using AutoPartShop.Api.Common;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.ProductLocationDtos;
 using AutoPartShop.Domain.Entities;
@@ -10,7 +10,8 @@ using Microsoft.AspNetCore.Mvc;
 namespace AutoPartShop.Api.Controllers;
 
 /// <summary>
-/// Warehouse bin/shelf locations for a product.
+/// Warehouse bin/shelf locations for a product — a join to a printed, structured
+/// <see cref="WarehouseLocation"/> bin (see WarehouseLocationsController), not free text.
 /// All endpoints are scoped under the owning product.
 /// </summary>
 [Route("api/v1/products/{productId:guid}/locations")]
@@ -21,20 +22,20 @@ public class ProductLocationsController : ControllerBase
 {
     private readonly IProductLocationRepository _locationRepository;
     private readonly IProductRepository _productRepository;
-    private readonly IWarehouseRepository _warehouseRepository;
+    private readonly IWarehouseLocationRepository _warehouseLocationRepository;
     private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<ProductLocationsController> _logger;
 
     public ProductLocationsController(
         IProductLocationRepository locationRepository,
         IProductRepository productRepository,
-        IWarehouseRepository warehouseRepository,
+        IWarehouseLocationRepository warehouseLocationRepository,
         ICurrentUserService currentUserService,
         ILogger<ProductLocationsController> logger)
     {
         _locationRepository = locationRepository;
         _productRepository = productRepository;
-        _warehouseRepository = warehouseRepository;
+        _warehouseLocationRepository = warehouseLocationRepository;
         _currentUserService = currentUserService;
         _logger = logger;
     }
@@ -83,13 +84,13 @@ public class ProductLocationsController : ControllerBase
         if (!await _productRepository.ExistsAsync(productId, cancellationToken))
             return NotFound(ApiError.NotFound($"Product '{productId}' not found", Request.Path));
 
-        if (!await _warehouseRepository.ExistsAsync(body.WarehouseId, cancellationToken))
-            return BadRequest(ApiError.Validation("Warehouse not found", instance: Request.Path));
+        if (!await _warehouseLocationRepository.ExistsAsync(body.WarehouseLocationId, cancellationToken))
+            return BadRequest(ApiError.Validation("Warehouse location not found", instance: Request.Path));
 
-        if (await _locationRepository.LocationExistsAsync(productId, body.WarehouseId, body.Section, body.Shelf, null, cancellationToken))
-            return Conflict(ApiError.Conflict("A location with this section and shelf already exists for this product in this warehouse", Request.Path));
+        if (await _locationRepository.LocationExistsAsync(productId, body.WarehouseLocationId, null, cancellationToken))
+            return Conflict(ApiError.Conflict("This product is already assigned to this location", Request.Path));
 
-        var location = ProductLocation.Create(productId, body.WarehouseId, body.Section, body.Shelf, body.IsPrimary, body.Notes);
+        var location = ProductLocation.Create(productId, body.WarehouseLocationId, body.IsPrimary, body.Notes);
         var user = _currentUserService.GetCurrentUsername();
         location.CreatedBy = user;
         location.ModifiedBy = user;
@@ -99,8 +100,10 @@ public class ProductLocationsController : ControllerBase
         if (body.IsPrimary)
             await _locationRepository.SetPrimaryLocationAsync(productId, location.Id, cancellationToken);
 
+        var created = await _locationRepository.GetByIdAsync(location.Id, cancellationToken) ?? location;
+
         return CreatedAtAction(nameof(GetById), new { productId, id = location.Id },
-            ApiResponse<ProductLocationResponse>.Ok(MapToResponse(location)));
+            ApiResponse<ProductLocationResponse>.Ok(MapToResponse(created)));
     }
 
     // PUT /api/v1/products/{productId}/locations/{id}
@@ -112,10 +115,13 @@ public class ProductLocationsController : ControllerBase
         if (location is null || location.PartId != productId)
             return NotFound(ApiError.NotFound($"Location '{id}' not found on product '{productId}'", Request.Path));
 
-        if (await _locationRepository.LocationExistsAsync(productId, location.WarehouseId, body.Section, body.Shelf, id, cancellationToken))
-            return Conflict(ApiError.Conflict("A location with this section and shelf already exists in this warehouse", Request.Path));
+        if (!await _warehouseLocationRepository.ExistsAsync(body.WarehouseLocationId, cancellationToken))
+            return BadRequest(ApiError.Validation("Warehouse location not found", instance: Request.Path));
 
-        location.Update(body.Section, body.Shelf, body.IsPrimary, body.Notes);
+        if (await _locationRepository.LocationExistsAsync(productId, body.WarehouseLocationId, id, cancellationToken))
+            return Conflict(ApiError.Conflict("This product is already assigned to this location", Request.Path));
+
+        location.Update(body.WarehouseLocationId, body.IsPrimary, body.Notes);
         location.ModifiedBy = _currentUserService.GetCurrentUsername();
 
         await _locationRepository.UpdateAsync(location, cancellationToken);
@@ -123,7 +129,8 @@ public class ProductLocationsController : ControllerBase
         if (body.IsPrimary)
             await _locationRepository.SetPrimaryLocationAsync(productId, location.Id, cancellationToken);
 
-        return Ok(ApiResponse<ProductLocationResponse>.Ok(MapToResponse(location)));
+        var updated = await _locationRepository.GetByIdAsync(location.Id, cancellationToken) ?? location;
+        return Ok(ApiResponse<ProductLocationResponse>.Ok(MapToResponse(updated)));
     }
 
     // PATCH /api/v1/products/{productId}/locations/{id}/set-primary
@@ -158,12 +165,15 @@ public class ProductLocationsController : ControllerBase
         PartId = location.PartId,
         PartName = location.Part?.Name ?? string.Empty,
         PartSKU = location.Part?.SKU ?? string.Empty,
-        WarehouseId = location.WarehouseId,
-        WarehouseName = location.Warehouse?.Name ?? string.Empty,
-        WarehouseCode = location.Warehouse?.Code ?? string.Empty,
-        Section = location.Section,
-        Shelf = location.Shelf,
-        FullLocation = location.GetFullLocation(),
+        WarehouseLocationId = location.WarehouseLocationId,
+        WarehouseId = location.Location?.WarehouseId ?? Guid.Empty,
+        WarehouseName = location.Location?.Warehouse?.Name ?? string.Empty,
+        WarehouseCode = location.Location?.Warehouse?.Code ?? string.Empty,
+        Zone = location.Location?.Zone ?? string.Empty,
+        Aisle = location.Location?.Aisle ?? string.Empty,
+        Rack = location.Location?.Rack ?? string.Empty,
+        Bin = location.Location?.Bin ?? string.Empty,
+        LocationCode = location.Location?.GetLocationCode() ?? string.Empty,
         Notes = location.Notes,
         IsPrimary = location.IsPrimary,
         CreatedBy = location.CreatedBy,
@@ -171,10 +181,8 @@ public class ProductLocationsController : ControllerBase
     };
 }
 
-// Request body â€” productId comes from the URL, not the body
+// Request body — productId comes from the URL, not the body
 public record CreateLocationBody(
-    Guid WarehouseId,
-    string Section,
-    string Shelf,
+    Guid WarehouseLocationId,
     bool IsPrimary,
     string? Notes);
