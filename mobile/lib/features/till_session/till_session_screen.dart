@@ -148,6 +148,7 @@ class _OpenTillFormCardState extends ConsumerState<_OpenTillFormCard> {
   bool _saving = false;
   String? _suggestedFloatFromCashier;
   String? _suggestedShiftHours;
+  List<String> _terminalLabelOptions = const [];
 
   @override
   void initState() {
@@ -159,6 +160,17 @@ class _OpenTillFormCardState extends ConsumerState<_OpenTillFormCard> {
     _terminalFocus.addListener(() {
       if (!_terminalFocus.hasFocus) _loadSuggestions(_terminalCtrl.text.trim());
     });
+    _loadTerminalLabelOptions();
+  }
+
+  Future<void> _loadTerminalLabelOptions() async {
+    try {
+      final labels =
+          await ref.read(tillSessionRepositoryProvider).getTerminalLabels();
+      if (mounted) setState(() => _terminalLabelOptions = labels);
+    } on AppException {
+      // Best-effort suggestion list only — an empty list just means plain free typing.
+    }
   }
 
   /// Opening float is scoped to [terminalLabel]'s own last closed session
@@ -259,10 +271,61 @@ class _OpenTillFormCardState extends ConsumerState<_OpenTillFormCard> {
                 ),
               ),
               const SizedBox(height: 16),
-              TextField(
-                controller: _terminalCtrl,
+              RawAutocomplete<String>(
+                textEditingController: _terminalCtrl,
                 focusNode: _terminalFocus,
-                decoration: const InputDecoration(labelText: 'Terminal label'),
+                optionsBuilder: (value) {
+                  final query = value.text.trim().toLowerCase();
+                  if (query.isEmpty) return _terminalLabelOptions;
+                  return _terminalLabelOptions
+                      .where((label) => label.toLowerCase().contains(query));
+                },
+                fieldViewBuilder:
+                    (context, textController, focusNode, onFieldSubmitted) {
+                  return TextField(
+                    controller: textController,
+                    focusNode: focusNode,
+                    decoration:
+                        const InputDecoration(labelText: 'Terminal label'),
+                  );
+                },
+                optionsViewBuilder: (context, onSelected, options) {
+                  final scheme = Theme.of(context).colorScheme;
+                  return Align(
+                    alignment: Alignment.topLeft,
+                    child: Material(
+                      elevation: 4,
+                      borderRadius: BorderRadius.circular(10),
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(
+                            maxHeight: 200, maxWidth: 320),
+                        child: ListView.builder(
+                          padding: EdgeInsets.zero,
+                          shrinkWrap: true,
+                          itemCount: options.length,
+                          itemBuilder: (context, i) {
+                            final option = options.elementAt(i);
+                            return InkWell(
+                              onTap: () {
+                                onSelected(option);
+                                _loadSuggestions(option);
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 10),
+                                child: Text(
+                                  option,
+                                  style: GoogleFonts.instrumentSans(
+                                      fontSize: 13, color: scheme.onSurface),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
               const SizedBox(height: 10),
               TextField(

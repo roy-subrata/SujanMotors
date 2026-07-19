@@ -14,6 +14,13 @@ public interface ITillSessionRepository
     /// not the cashier's.
     /// </summary>
     Task<TillSession?> GetLastClosedSessionForTerminalAsync(string terminalLabel, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Every distinct terminal label ever used, most-recently-used first — powers a
+    /// suggest-as-you-type on the Open Till form so cashiers converge on consistent
+    /// naming without needing a hard admin-managed terminal roster.
+    /// </summary>
+    Task<IReadOnlyList<string>> GetDistinctTerminalLabelsAsync(CancellationToken cancellationToken = default);
     Task<(IEnumerable<TillSession> Sessions, int TotalCount)> SearchPagedAsync(
         TillSessionQuery query, CancellationToken cancellationToken = default);
     Task AddAsync(TillSession entity, CancellationToken cancellationToken = default);

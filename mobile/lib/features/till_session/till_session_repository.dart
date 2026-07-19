@@ -47,6 +47,18 @@ class TillSessionRepository {
     }
   }
 
+  /// Every distinct terminal label ever used, most-recently-used first
+  /// (`GET /till-sessions/terminal-labels`) — powers a suggest-as-you-type on
+  /// the Terminal field so cashiers converge on consistent naming.
+  Future<List<String>> getTerminalLabels() async {
+    try {
+      final res = await _dio.get('/till-sessions/terminal-labels');
+      return (res.data as List).map((e) => e.toString()).toList();
+    } on DioException catch (e) {
+      throw AppException.fromDio(e);
+    }
+  }
+
   /// Records a cash drop against an OPEN session
   /// (`POST /till-sessions/{id}/cash-drops`). Returns the updated session.
   Future<TillSession> recordCashDrop({

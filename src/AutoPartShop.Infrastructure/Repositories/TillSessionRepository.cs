@@ -29,6 +29,17 @@ public class TillSessionRepository(AutoPartDbContext dbContext) : ITillSessionRe
             .FirstOrDefaultAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<string>> GetDistinctTerminalLabelsAsync(CancellationToken cancellationToken = default)
+    {
+        return await dbContext.TillSessions
+            .Where(t => !t.Isdeleted)
+            .GroupBy(t => t.TerminalLabel)
+            .OrderByDescending(g => g.Max(t => t.OpenedAt))
+            .Select(g => g.Key)
+            .Take(50)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<(IEnumerable<TillSession> Sessions, int TotalCount)> SearchPagedAsync(
         TillSessionQuery query, CancellationToken cancellationToken = default)
     {

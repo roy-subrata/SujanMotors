@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
+import { AutoCompleteModule } from 'primeng/autocomplete';
 import { TextareaModule } from 'primeng/textarea';
 import { DialogModule } from 'primeng/dialog';
 import { ToastModule } from 'primeng/toast';
@@ -42,6 +43,7 @@ import { PageHeaderComponent } from '@/shared/components/page-header/page-header
         FormsModule,
         ButtonModule,
         InputTextModule,
+        AutoCompleteModule,
         TextareaModule,
         DialogModule,
         ToastModule,
@@ -74,6 +76,9 @@ export class TillSessionCurrentComponent implements OnInit {
     openingFloatSuggestedFromCashier = signal<string | null>(null);
     /** Hint shown under the Shift Label field when it was pre-filled from the cashier's assigned HR shift. */
     shiftLabelSuggestedHours = signal<string | null>(null);
+    /** Every distinct terminal label ever used — powers the Terminal field's suggest-as-you-type. */
+    terminalLabelOptions: string[] = [];
+    filteredTerminalLabels: string[] = [];
 
     // ── Record Cash Drop dialog (plain boolean — two-way bound to p-dialog [(visible)]) ─────
     showCashDropDialog = false;
@@ -97,6 +102,16 @@ export class TillSessionCurrentComponent implements OnInit {
 
     ngOnInit(): void {
         this.loadCurrent();
+        this.tillSessionService.getTerminalLabels().subscribe({
+            next: (labels) => { this.terminalLabelOptions = labels; },
+            error: () => { /* best-effort suggestion list only — an empty list just means plain free typing */ }
+        });
+    }
+
+    filterTerminalLabels(event: { query: string }): void {
+        const query = event.query.toLowerCase();
+        this.filteredTerminalLabels = this.terminalLabelOptions.filter(label =>
+            label.toLowerCase().includes(query));
     }
 
     loadCurrent(): void {
