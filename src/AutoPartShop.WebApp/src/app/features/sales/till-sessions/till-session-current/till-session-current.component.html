@@ -1,0 +1,282 @@
+<!-- ============================================================
+     TILL SESSION — standalone admin cash-drawer page (current session)
+     Not part of checkout; purely a cashier/admin self-service shift tool.
+     ============================================================ -->
+
+<p-toast position="top-right"></p-toast>
+<p-confirmDialog></p-confirmDialog>
+
+<app-page-container>
+
+  <app-page-header
+    title="Till Session"
+    subtitle="Open, reconcile and close your own cash drawer session">
+    <ng-container actions>
+      <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="loadCurrent()">
+        <i class="pi pi-refresh" [class.pi-spin]="loading()"></i>
+      </button>
+      <a class="btn-secondary" routerLink="/sales/till-sessions/history">
+        <i class="pi pi-history"></i>
+        <span>Session History</span>
+      </a>
+    </ng-container>
+  </app-page-header>
+
+  <!-- ==================== LOADING ==================== -->
+  <div *ngIf="loading()" class="loading-state">
+    <i class="pi pi-spin pi-spinner"></i>
+    <p>Loading your till session...</p>
+  </div>
+
+  <!-- ==================== NO OPEN SESSION: OPEN TILL FORM ==================== -->
+  <div *ngIf="!loading() && !session()" class="till-card open-till-card">
+    <h3><i class="pi pi-lock-open"></i> Open Till</h3>
+    <p class="till-card-subtitle">Start a new cash drawer session before taking cash payments.</p>
+
+    <div *ngIf="openError()" class="dialog-error">
+      <i class="pi pi-exclamation-triangle"></i>
+      <span>{{ openError() }}</span>
+    </div>
+
+    <div class="till-form-grid">
+      <div class="dialog-field">
+        <label>Terminal *</label>
+        <p-autoComplete [(ngModel)]="terminalLabel" [suggestions]="filteredTerminalLabels"
+                         (completeMethod)="filterTerminalLabels($event)" (onBlur)="onTerminalBlur()"
+                         (onSelect)="onTerminalBlur()" [dropdown]="true"
+                         placeholder="e.g. Counter 1" styleClass="w-full" [inputStyleClass]="'w-full'">
+        </p-autoComplete>
+        <small class="field-hint">Type freely, or pick a previously used terminal — helps keep opening-float suggestions matching correctly.</small>
+      </div>
+      <div class="dialog-field">
+        <label>Opening Float *</label>
+        <input pInputText type="number" min="0" step="0.01" [(ngModel)]="openingFloat"
+               (ngModelChange)="openingFloatSuggestedFromCashier.set(null)" placeholder="0.00" />
+        <small *ngIf="openingFloatSuggestedFromCashier() as fromCashier" class="field-hint">
+          Suggested from this terminal's last closed session (counted by {{ fromCashier }}) — edit if the count differs.
+        </small>
+      </div>
+      <div class="dialog-field">
+        <label>Shift Label</label>
+        <input pInputText [(ngModel)]="shiftLabel"
+               (ngModelChange)="shiftLabelSuggestedHours.set(null)" placeholder="e.g. Morning Shift" />
+        <small *ngIf="shiftLabelSuggestedHours() as hours" class="field-hint">
+          From your assigned shift ({{ hours }}) — edit if this shift differs.
+        </small>
+      </div>
+      <div class="dialog-field full">
+        <label>Notes</label>
+        <textarea pTextarea rows="2" [(ngModel)]="openNotes" placeholder="Optional notes"></textarea>
+      </div>
+    </div>
+
+    <div class="till-card-actions">
+      <button class="btn-primary" (click)="openTill()" [disabled]="opening()">
+        <i class="pi" [class.pi-spin]="opening()" [class.pi-spinner]="opening()" [class.pi-lock-open]="!opening()"></i>
+        <span>Open Till</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ==================== SESSION PRESENT (OPEN or CLOSED) ==================== -->
+  <div *ngIf="!loading() && session() as s" class="till-session-view">
+
+    <!-- Summary -->
+    <div class="till-card session-summary-card">
+      <div class="session-summary-header">
+        <div class="session-summary-title">
+          <span class="status-pill" [attr.data-status]="s.status.toLowerCase()">{{ s.status }}</span>
+          <h2>{{ s.terminalLabel }}<span *ngIf="s.shiftLabel"> &middot; {{ s.shiftLabel }}</span></h2>
+        </div>
+
+        <div class="session-actions" *ngIf="s.status === 'OPEN'">
+          <button class="btn-secondary" (click)="openCashDropDialog()">
+            <i class="pi pi-wallet"></i>
+            <span>Record Cash Drop</span>
+          </button>
+          <button class="btn-primary" (click)="openCloseDialog()">
+            <i class="pi pi-lock"></i>
+            <span>Close Till</span>
+          </button>
+        </div>
+
+        <div class="session-actions" *ngIf="s.status === 'CLOSED'">
+          <button class="btn-secondary" (click)="downloadPdf()">
+            <i class="pi pi-file-pdf"></i>
+            <span>Download Shift Report</span>
+          </button>
+          <button class="btn-primary" (click)="startNewSession()">
+            <i class="pi pi-plus"></i>
+            <span>Open New Till</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="session-meta-grid">
+        <div class="meta-item">
+          <span class="meta-label">Cashier</span>
+          <span class="meta-value">{{ s.cashierName }}</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Opened</span>
+          <span class="meta-value">{{ formatDateTime(s.openedAt) }}</span>
+        </div>
+        <div class="meta-item" *ngIf="s.closedAt">
+          <span class="meta-label">Closed</span>
+          <span class="meta-value">{{ formatDateTime(s.closedAt) }}</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Opening Float</span>
+          <span class="meta-value">{{ formatCurrency(s.openingFloat) }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reconciliation -->
+    <div class="till-card recon-card">
+      <h3><i class="pi pi-calculator"></i> Cash Reconciliation</h3>
+      <div class="recon-grid">
+        <div class="recon-row">
+          <span>Opening Float</span>
+          <span>{{ formatCurrency(s.openingFloat) }}</span>
+        </div>
+        <div class="recon-row">
+          <span>Cash Sales</span>
+          <span>{{ formatCurrency(s.cashSalesTotal) }}</span>
+        </div>
+        <div class="recon-row">
+          <span>Cash Refunds</span>
+          <span>-{{ formatCurrency(s.cashRefundsTotal) }}</span>
+        </div>
+        <div class="recon-row">
+          <span>Cash Drops</span>
+          <span>-{{ formatCurrency(s.cashDropsTotal) }}</span>
+        </div>
+        <div class="recon-row recon-total">
+          <span>Expected in Drawer</span>
+          <span>{{ formatCurrency(s.expectedAmount) }}</span>
+        </div>
+        <ng-container *ngIf="s.status === 'CLOSED'">
+          <div class="recon-row">
+            <span>Counted at Close</span>
+            <span>{{ formatCurrency(s.closingCountedAmount) }}</span>
+          </div>
+          <div class="recon-row recon-total">
+            <span>Over / Short</span>
+            <span [ngClass]="overShortClass(s.overShortAmount)">{{ formatCurrency(s.overShortAmount) }}</span>
+          </div>
+        </ng-container>
+      </div>
+      <p class="till-notes" *ngIf="s.notes">Notes: {{ s.notes }}</p>
+    </div>
+
+    <!-- Cash drops -->
+    <div class="till-card drops-card">
+      <h3><i class="pi pi-list"></i> Cash Drops <span class="drops-count">({{ s.cashDrops.length }})</span></h3>
+
+      <div *ngIf="s.cashDrops.length === 0" class="empty-drops">No cash drops recorded for this session.</div>
+
+      <table class="drops-table" *ngIf="s.cashDrops.length > 0">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Amount</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let drop of s.cashDrops">
+            <td>{{ formatDateTime(drop.droppedAt) }}</td>
+            <td>{{ formatCurrency(drop.amount) }}</td>
+            <td>{{ drop.notes || '—' }}</td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr class="drops-total-row">
+            <td>Total</td>
+            <td>{{ formatCurrency(cashDropsTotal()) }}</td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+</app-page-container>
+
+<!-- ==================== RECORD CASH DROP DIALOG ==================== -->
+<p-dialog
+  [(visible)]="showCashDropDialog"
+  [modal]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [style]="{ width: '420px', maxWidth: '95vw' }"
+  header="Record Cash Drop"
+  [dismissableMask]="true">
+
+  <div class="till-dialog-body">
+    <div *ngIf="cashDropError()" class="dialog-error">
+      <i class="pi pi-exclamation-triangle"></i>
+      <span>{{ cashDropError() }}</span>
+    </div>
+
+    <div class="dialog-field">
+      <label>Amount *</label>
+      <input pInputText type="number" min="0.01" step="0.01" [(ngModel)]="cashDropAmount" placeholder="0.00" />
+    </div>
+
+    <div class="dialog-field">
+      <label>Notes</label>
+      <textarea pTextarea rows="3" [(ngModel)]="cashDropNotes" placeholder="Reason for this cash drop (optional)"></textarea>
+    </div>
+  </div>
+
+  <ng-template #footer>
+    <button class="btn-secondary" (click)="showCashDropDialog = false" [disabled]="recordingDrop()">Cancel</button>
+    <button class="btn-primary" (click)="submitCashDrop()" [disabled]="recordingDrop()">
+      <i class="pi" [class.pi-spin]="recordingDrop()" [class.pi-spinner]="recordingDrop()" [class.pi-check]="!recordingDrop()"></i>
+      <span>Record</span>
+    </button>
+  </ng-template>
+</p-dialog>
+
+<!-- ==================== CLOSE TILL DIALOG ==================== -->
+<p-dialog
+  [(visible)]="showCloseDialog"
+  [modal]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [style]="{ width: '460px', maxWidth: '95vw' }"
+  header="Close Till Session"
+  [dismissableMask]="true">
+
+  <div class="till-dialog-body">
+    <div *ngIf="closeError()" class="dialog-error">
+      <i class="pi pi-exclamation-triangle"></i>
+      <span>{{ closeError() }}</span>
+    </div>
+
+    <p class="field-hint">
+      <i class="pi pi-info-circle"></i>
+      <span>Count the physical cash in the drawer and enter it below. This freezes the session's reconciliation and cannot be undone.</span>
+    </p>
+
+    <div class="dialog-field">
+      <label>Counted Amount *</label>
+      <input pInputText type="number" min="0" step="0.01" [(ngModel)]="closeCountedAmount" placeholder="0.00" />
+    </div>
+
+    <div class="dialog-field">
+      <label>Notes</label>
+      <textarea pTextarea rows="3" [(ngModel)]="closeNotes" placeholder="Optional closing notes"></textarea>
+    </div>
+  </div>
+
+  <ng-template #footer>
+    <button class="btn-secondary" (click)="showCloseDialog = false" [disabled]="closingSession()">Cancel</button>
+    <button class="btn-primary" (click)="confirmClose()" [disabled]="closingSession()">
+      <i class="pi" [class.pi-spin]="closingSession()" [class.pi-spinner]="closingSession()" [class.pi-lock]="!closingSession()"></i>
+      <span>Close Till</span>
+    </button>
+  </ng-template>
+</p-dialog>

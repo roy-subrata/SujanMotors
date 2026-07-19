@@ -33,6 +33,10 @@ public static class Permissions
     public const string SalesEdit = "sales.edit";
     public const string SalesDelete = "sales.delete";
     public const string SalesProcessPayment = "sales.process-payment";
+    // Requires an open Till Session before a Quick Sale can be completed, for roles this is
+    // granted to (opt-in gate — see SalesOrderController.CreateQuickSale and
+    // TillSessionController.RequiresOpenSession).
+    public const string SalesRequireTillSession = "sales.require-till-session";
 
     // Procurement (purchase orders, suppliers, supplier payments)
     public const string ProcurementView = "procurement.view";

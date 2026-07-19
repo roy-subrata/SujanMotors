@@ -5,6 +5,7 @@ using AutoPartShop.Application.Common;
 using AutoPartShop.Application.DTOs.ReportDtos;
 using AutoPartShop.Application.Reports;
 using Microsoft.AspNetCore.Mvc;
+using QuestPDF.Fluent;
 
 namespace AutoPartShop.Api.Controllers.Reports;
 
@@ -60,6 +61,51 @@ public class InventoryReportsController(
         catch (Exception ex)
         {
             logger.LogError(ex, "Error exporting stock summary report");
+            return StatusCode(StatusCodes.Status500InternalServerError, ApiError.Internal(HttpContext.TraceIdentifier));
+        }
+    }
+
+    /// <summary>
+    /// Branded Stock Report PDF (the handoff document), as opposed to the generic xlsx/pdf export.
+    /// Fetches the whole filtered set (capped) and shows a LOW/OK status per line.
+    /// </summary>
+    [HttpPost("stock-summary/report-pdf")]
+    [HasPermission(Permissions.ReportsExport)]
+    [Produces("application/pdf")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(FileResult))]
+    public async Task<IActionResult> DownloadStockReport(
+        [FromBody] ReportQuery query,
+        [FromServices] IShopProfileProvider shopProfiles,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var page = await reportRepository.GetStockSummaryAsync(query, ExportRowCap, cancellationToken);
+            var shop = await shopProfiles.GetAsync(cancellationToken: cancellationToken);
+
+            // Header label from the data itself: one warehouse → its name, otherwise "All Warehouses".
+            var warehouses = page.Data.Select(r => r.WarehouseName).Distinct().ToList();
+            var warehouseLabel = warehouses.Count == 1 ? warehouses[0] : "All Warehouses";
+
+            var asOf = query.AsOfDate ?? DateTime.Now;
+            var data = new AutoPartShop.Api.Pdf.StockReportDocumentData(
+                ReportNumber: $"STK-{asOf:yyyyMMdd}",
+                AsOf: asOf,
+                WarehouseLabel: warehouseLabel,
+                Rows: page.Data,
+                TotalStockValue: page.Totals?.TotalStockValue ?? page.Data.Sum(r => r.StockValue));
+
+            var pdfBytes = new AutoPartShop.Api.Pdf.StockReportDocument(data, shop).GeneratePdf();
+
+            return File(pdfBytes, "application/pdf", $"stock-report-{asOf:yyyyMMdd}.pdf");
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiError.Validation(ex.Message));
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error generating stock report PDF");
             return StatusCode(StatusCodes.Status500InternalServerError, ApiError.Internal(HttpContext.TraceIdentifier));
         }
     }

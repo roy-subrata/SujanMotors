@@ -31,6 +31,7 @@ import { UnitConversionService } from '../../inventory/services/unit-conversion.
 import { CustomerService } from '../services/customer.service';
 import { CustomerVehicleService, CustomerVehicleResponse } from '../services/customer-vehicle.service';
 import { TechnicianService, TechnicianResponse } from '../services/technician.service';
+import { TillSessionService } from '../services/till-session.service';
 import { InvoicePdfService, InvoicePdfData } from '../services/invoice-pdf.service';
 import { ThermalReceiptService } from '../services/thermal-receipt.service';
 import { CurrencyService } from '../../../shared/services/currency.service';
@@ -85,6 +86,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
   private readonly customerService = inject(CustomerService);
   private readonly vehicleService = inject(CustomerVehicleService);
   private readonly technicianService = inject(TechnicianService);
+  private readonly tillSessionService = inject(TillSessionService);
   private readonly currencyService = inject(CurrencyService);
   private readonly messageService = inject(MessageService);
   private readonly confirmationService = inject(ConfirmationService);
@@ -102,6 +104,12 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
   saving = signal(false);
   loading = signal(false);
   private destroy$ = new Subject<void>();
+
+  // Till session gate (opt-in via Permissions.SalesRequireTillSession) — see
+  // TillSessionController.RequiresOpenSession. Blocks the whole cart/checkout UI until the
+  // cashier opens a till session, for roles the gate applies to; a no-op for everyone else.
+  checkingTillSession = signal(true);
+  tillSessionBlocked = signal(false);
 
   // Invoice Preview
   showInvoicePreview = false;
@@ -328,7 +336,33 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
 
   // ===== LIFECYCLE =====
   ngOnInit(): void {
+    // Company name/theme is cheap and needed even if the till-session gate ends up blocking
+    // the screen (the header still renders in the blocked state).
     this.companyName = this.invoicePdfService.getCompanyConfig().companyName;
+
+    // Till session gate — check this before loading anything else. If the current user's role
+    // requires an open till session and they don't have one, there's no point pulling in
+    // units/VAT config/drafts for a cart they won't be allowed to check out anyway.
+    this.tillSessionService.checkRequiresOpenSession().subscribe({
+      next: (result) => {
+        this.checkingTillSession.set(false);
+        if (result.required && !result.hasOpenSession) {
+          this.tillSessionBlocked.set(true);
+          return;
+        }
+        this.initQuickSaleData();
+      },
+      error: () => {
+        // Fail open on the pre-check itself — this is only a UX nicety; the backend still
+        // enforces the same gate at submit time (CreateQuickSale) as the real safety net.
+        this.checkingTillSession.set(false);
+        this.initQuickSaleData();
+      }
+    });
+  }
+
+  /** The screen's normal init work — skipped entirely while the till-session gate is blocking. */
+  private initQuickSaleData(): void {
     this.initializeForm();
     this.generateInvoiceNumber();
     this.loadUnits();

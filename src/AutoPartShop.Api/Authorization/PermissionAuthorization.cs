@@ -1,7 +1,5 @@
-using System.Security.Claims;
+using AutoPartShop.Api.Services;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 
 namespace AutoPartShop.Api.Authorization;
@@ -51,40 +49,17 @@ public sealed class PermissionPolicyProvider(IOptions<AuthorizationOptions> opti
 /// Resolves the user's permissions from their roles (RolePermissions table), cached per
 /// role for 60s so permission changes in the admin panel apply within a minute without
 /// a database hit on every request. The Admin role is a superuser and always passes.
+/// Delegates the actual resolution to <see cref="IPermissionCheckService"/> so the same
+/// logic backs both this attribute-driven gate and any in-method permission checks.
 /// </summary>
 public sealed class PermissionAuthorizationHandler(
-    AutoPartDbContext dbContext,
-    IMemoryCache cache) : AuthorizationHandler<PermissionRequirement>
+    IPermissionCheckService permissionCheckService) : AuthorizationHandler<PermissionRequirement>
 {
     protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, PermissionRequirement requirement)
     {
-        if (context.User.IsInRole("Admin"))
+        if (await permissionCheckService.UserHasPermissionAsync(context.User, requirement.Permission))
         {
             context.Succeed(requirement);
-            return;
-        }
-
-        var roles = context.User.FindAll(ClaimTypes.Role).Select(c => c.Value).Distinct();
-
-        foreach (var role in roles)
-        {
-            var permissions = await cache.GetOrCreateAsync($"role-perms:{role}", async entry =>
-            {
-                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(60);
-                return await (
-                    from rp in dbContext.RolePermissions
-                    join r in dbContext.Roles on rp.RoleId equals r.Id
-                    join p in dbContext.Permissions on rp.PermissionId equals p.Id
-                    where r.Name == role && p.IsActive && !p.Isdeleted
-                    select p.Name)
-                    .ToHashSetAsync();
-            });
-
-            if (permissions is not null && permissions.Contains(requirement.Permission))
-            {
-                context.Succeed(requirement);
-                return;
-            }
         }
     }
 }

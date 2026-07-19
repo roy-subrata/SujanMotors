@@ -7,6 +7,10 @@
 <p-confirmDialog></p-confirmDialog>
 <p-menu #actionMenu [model]="actionMenuItems" [popup]="true" appendTo="body"></p-menu>
 
+<app-generate-proforma-dialog [(visible)]="generateProformaDialogVisible" [salesOrder]="selectedOrderForProforma"
+  (created)="onProformaGenerated($event)">
+</app-generate-proforma-dialog>
+
 <app-page-container>
 
   <!-- ==================== HEADER ==================== -->

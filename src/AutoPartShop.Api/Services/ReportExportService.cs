@@ -83,9 +83,10 @@ public class ReportExportService : IReportExportService
 
     public byte[] ToPdf<T>(ReportExportMeta meta, IReadOnlyList<T> rows, IReadOnlyList<ReportColumn<T>> columns)
     {
-        const string headerBg = "#1e3a8a";
-        const string gray200 = "#e5e7eb";
-        const string gray500 = "#6b7280";
+        // Brand accent, aligned with the POS document design system (design_handoff_pos_documents).
+        const string headerBg = "#B0392E";
+        const string gray200 = "#e7e5e4";
+        const string gray500 = "#78716c";
 
         var document = Document.Create(container =>
         {

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div style="font-family:'IBM Plex Sans',Helvetica,Arial,sans-serif">
+  <table style="width:100%;border-collapse:collapse;font-size:11px;color:#1c1917">
+    <thead>
+      <tr>
+        <th style="text-align:left;padding:7px 8px;border-bottom:2px solid #1c1917;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:#44403c;width:30px">#</th>
+        <th style="text-align:left;padding:7px 8px;border-bottom:2px solid #1c1917;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:#44403c;width:105px">Part No</th>
+        <th style="text-align:left;padding:7px 8px;border-bottom:2px solid #1c1917;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:#44403c">Description</th>
+        <th style="text-align:right;padding:7px 8px;border-bottom:2px solid #1c1917;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:#44403c;width:55px">Qty</th>
+        <th style="text-align:right;padding:7px 8px;border-bottom:2px solid #1c1917;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:#44403c;width:95px">Rate (৳)</th>
+        <th style="text-align:right;padding:7px 8px;border-bottom:2px solid #1c1917;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:#44403c;width:110px">Amount (৳)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <sc-for list="{{items}}" as="it" hint-placeholder-count="5">
+        <tr>
+          <td style="padding:8px;border-bottom:1px solid #e7e5e4;font-family:'IBM Plex Mono',monospace;color:#78716c">{{it.sn}}</td>
+          <td style="padding:8px;border-bottom:1px solid #e7e5e4;font-family:'IBM Plex Mono',monospace;font-size:10.5px">{{it.code}}</td>
+          <td style="padding:8px;border-bottom:1px solid #e7e5e4">{{it.name}}</td>
+          <td style="padding:8px;border-bottom:1px solid #e7e5e4;text-align:right;font-family:'IBM Plex Mono',monospace">{{it.qty}}</td>
+          <td style="padding:8px;border-bottom:1px solid #e7e5e4;text-align:right;font-family:'IBM Plex Mono',monospace">{{it.rate}}</td>
+          <td style="padding:8px;border-bottom:1px solid #e7e5e4;text-align:right;font-family:'IBM Plex Mono',monospace;font-weight:500">{{it.amount}}</td>
+        </tr>
+      </sc-for>
+    </tbody>
+  </table>
+  <div style="display:flex;justify-content:flex-end;margin-top:10px">
+    <div style="width:300px">
+      <sc-for list="{{totals}}" as="t" hint-placeholder-count="3">
+        <div style="display:flex;justify-content:space-between;padding:5px 8px;font-size:11px;color:#44403c">
+          <div>{{t.l}}</div>
+          <div style="font-family:'IBM Plex Mono',monospace">{{t.v}}</div>
+        </div>
+      </sc-for>
+      <div style="display:flex;justify-content:space-between;padding:8px;border-top:2px solid #1c1917;border-bottom:2px solid #1c1917;margin-top:4px;font-size:13px;font-weight:700;color:#1c1917">
+        <div>{{grandLabel}}</div>
+        <div style="font-family:'IBM Plex Mono',monospace">৳ {{grandValue}}</div>
+      </div>
+    </div>
+  </div>
+  <sc-if value="{{words}}" hint-placeholder-val="{{false}}">
+    <div style="margin-top:10px;font-size:10.5px;color:#44403c"><span style="font-weight:600;letter-spacing:1px;text-transform:uppercase;font-size:9px;color:#78716c">In words&nbsp;&nbsp;</span>{{words}}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:760,&quot;height&quot;:420},&quot;items&quot;:{&quot;editor&quot;:null,&quot;default&quot;:[],&quot;tsType&quot;:&quot;Array&lt;object&gt;&quot;},&quot;totals&quot;:{&quot;editor&quot;:null,&quot;default&quot;:[],&quot;tsType&quot;:&quot;Array&lt;object&gt;&quot;},&quot;grandLabel&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Grand Total&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;grandValue&quot;:{&quot;editor&quot;:null,&quot;default&quot;:&quot;0.00&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;words&quot;:{&quot;editor&quot;:null,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;}}"></script>
+</body>
+</html>

@@ -1,0 +1,46 @@
+/* ============================================================
+   DEBIT NOTES LIST — page-specific styles only
+   Shared chrome (page header, filters, table, pagination, cards,
+   skeleton, empty states) lives in assets/_data-page.scss
+   ============================================================ */
+
+/* Column widths */
+.col-debit-note { min-width: 140px; }
+.col-customer    { min-width: 180px; }
+.col-invoice     { min-width: 120px; }
+.col-reason      { min-width: 200px; max-width: 260px; }
+.col-date        { min-width: 120px; }
+.col-status      { min-width: 120px; }
+.col-amount      { min-width: 130px; text-align: right; }
+.col-actions     { width: 100px; text-align: center; }
+
+.dn-link {
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.reason-text {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.customer-name { display: block; }
+.date-text { color: var(--color-text-secondary); }
+
+.card-customer {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.invoice-ref {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+/* Debit note status pill colours (base pill styling is global) */
+.status-pill[data-status="issued"]    { background-color: var(--color-info-light); color: #1D4ED8; }
+.status-pill[data-status="settled"]   { background-color: var(--color-success-light); color: #047857; }
+.status-pill[data-status="cancelled"] { background-color: var(--color-danger-light); color: #B91C1C; }

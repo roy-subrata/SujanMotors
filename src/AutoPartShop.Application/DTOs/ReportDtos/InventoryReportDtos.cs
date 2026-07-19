@@ -17,6 +17,12 @@ public class StockSummaryRowDto
     public int QuantityReserved { get; set; }
     public int QuantityDamaged { get; set; }
     public int QuantityAvailable { get; set; }
+
+    /// <summary>
+    /// Stock level's reorder threshold. Drives the LOW/OK status on the Stock Report — an item is
+    /// LOW when ReorderLevel > 0 and QuantityOnHand &lt;= ReorderLevel. Zero means opted out.
+    /// </summary>
+    public int ReorderLevel { get; set; }
     /// <summary>Weighted average lot cost of the AVAILABLE quantity; null when no available lots.</summary>
     public decimal? AverageCost { get; set; }
     /// <summary>Σ QuantityAvailable × CostPrice over AVAILABLE lots for this row's part/variant/warehouse.</summary>

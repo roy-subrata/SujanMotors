@@ -205,7 +205,7 @@ export class SupplierAccountSummaryComponent implements OnInit, OnDestroy {
         this.onPageChange({ page: 0, rows: size, first: 0 } as PaginatorState);
     }
 
-    private loadAllEntriesThen(action: 'pdf' | 'print'): void {
+    private loadAllEntriesThen(action: 'print'): void {
         if (!this.selectedSupplier || !this.summary()) return;
 
         const total = this.totalEntryCount();
@@ -213,7 +213,7 @@ export class SupplierAccountSummaryComponent implements OnInit, OnDestroy {
         if (total <= this.entries().length) {
             this.allEntries.set(this.entries());
             this.allEntriesLoaded.set(true);
-            setTimeout(() => this.executeAction(action), 100);
+            setTimeout(() => this.printReport(), 100);
             return;
         }
 
@@ -233,101 +233,50 @@ export class SupplierAccountSummaryComponent implements OnInit, OnDestroy {
                 next: (data) => {
                     this.allEntries.set(data.entries);
                     this.allEntriesLoaded.set(true);
-                    setTimeout(() => this.executeAction(action), 200);
+                    setTimeout(() => this.printReport(), 200);
                 },
                 error: () => {
                     this.pdfLoading.set(false);
                     this.messageService.add({
                         severity: 'error',
                         summary: 'Error',
-                        detail: 'Failed to load all entries for PDF',
+                        detail: 'Failed to load all entries for print',
                         life: 5000
                     });
                 }
             });
     }
 
-    private executeAction(action: 'pdf' | 'print'): void {
-        if (action === 'pdf') {
-            this.downloadPdf();
-        } else {
-            this.printReport();
-        }
-    }
-
+    /** Server-rendered QuestPDF statement — the full ledger, not just the on-screen page of entries. */
     onDownloadPdf(): void {
-        this.loadAllEntriesThen('pdf');
+        if (!this.selectedSupplier) {
+            this.messageService.add({ severity: 'warn', summary: 'Warning', detail: 'Please select a supplier', life: 3000 });
+            return;
+        }
+
+        this.pdfLoading.set(true);
+        this.ledgerService
+            .downloadStatementPdf(
+                this.selectedSupplier.id,
+                this.selectedSupplier.code,
+                this.fromDate ? this.fromDate.toISOString() : undefined,
+                this.toDate ? this.toDate.toISOString() : undefined
+            )
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+                next: () => {
+                    this.pdfLoading.set(false);
+                    this.messageService.add({ severity: 'success', summary: 'Success', detail: 'PDF downloaded successfully', life: 3000 });
+                },
+                error: () => {
+                    this.pdfLoading.set(false);
+                    this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to generate PDF', life: 5000 });
+                }
+            });
     }
 
     onPrint(): void {
         this.loadAllEntriesThen('print');
-    }
-
-    private async downloadPdf(): Promise<void> {
-        try {
-            const element = document.getElementById('supplier-account-summary-print');
-            if (!element) {
-                this.pdfLoading.set(false);
-                return;
-            }
-
-            const html2canvas = (await import('html2canvas')).default;
-            const { jsPDF } = await import('jspdf');
-
-            const canvas = await html2canvas(element, {
-                scale: 2,
-                useCORS: true,
-                logging: false,
-                backgroundColor: '#ffffff'
-            });
-
-            const imgData = canvas.toDataURL('image/png');
-            const pdf = new jsPDF({
-                orientation: 'portrait',
-                unit: 'mm',
-                format: 'a4'
-            });
-
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = pdf.internal.pageSize.getHeight();
-            const imgWidth = pdfWidth;
-            const imgHeight = (canvas.height * pdfWidth) / canvas.width;
-
-            let heightLeft = imgHeight;
-            let position = 0;
-
-            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-            heightLeft -= pdfHeight;
-
-            while (heightLeft > 0) {
-                position = position - pdfHeight;
-                pdf.addPage();
-                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                heightLeft -= pdfHeight;
-            }
-
-            const s = this.summary()!;
-            const supplierCode = s.supplierCode || 'supplier';
-            const dateStr = new Date().toISOString().split('T')[0];
-            pdf.save(`supplier-account-summary-${supplierCode}-${dateStr}.pdf`);
-
-            this.pdfLoading.set(false);
-            this.messageService.add({
-                severity: 'success',
-                summary: 'Success',
-                detail: 'PDF downloaded successfully',
-                life: 3000
-            });
-        } catch (err) {
-            console.error('Error generating PDF:', err);
-            this.pdfLoading.set(false);
-            this.messageService.add({
-                severity: 'error',
-                summary: 'Error',
-                detail: 'Failed to generate PDF',
-                life: 5000
-            });
-        }
     }
 
     private printReport(): void {

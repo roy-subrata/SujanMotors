@@ -95,6 +95,13 @@ export class PurchaseOrdersListComponent implements OnInit {
         },
         visible: po ? po.status === 'DRAFT' && this.canManage : false
       },
+      {
+        label: 'Download PDF',
+        icon: 'pi pi-file-pdf',
+        command: () => {
+          if (po) this.downloadPdf(po);
+        }
+      },
       { separator: true },
       {
         label: this.i18n.t('common.actions.applyAdvanceCredit'),
@@ -208,6 +215,18 @@ export class PurchaseOrdersListComponent implements OnInit {
 
   viewDetails(po: PurchaseOrderResponse): void {
     this.router.navigate(['/procurement/purchase-orders/view'], { queryParams: { id: po.id } });
+  }
+
+  downloadPdf(po: PurchaseOrderResponse): void {
+    this.poService.downloadPdf(po.id, po.poNumber).subscribe({
+      error: () => {
+        this.messageService.add({
+          severity: 'error',
+          summary: this.i18n.t('common.messages.error'),
+          detail: 'Failed to download the purchase order PDF'
+        });
+      }
+    });
   }
 
   submitPurchaseOrder(po: PurchaseOrderResponse): void {
