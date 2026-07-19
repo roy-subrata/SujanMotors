@@ -41,7 +41,12 @@
     <div class="till-form-grid">
       <div class="dialog-field">
         <label>Terminal *</label>
-        <input pInputText [(ngModel)]="terminalLabel" (blur)="onTerminalBlur()" placeholder="e.g. Counter 1" />
+        <p-autoComplete [(ngModel)]="terminalLabel" [suggestions]="filteredTerminalLabels"
+                         (completeMethod)="filterTerminalLabels($event)" (onBlur)="onTerminalBlur()"
+                         (onSelect)="onTerminalBlur()" [dropdown]="true"
+                         placeholder="e.g. Counter 1" styleClass="w-full" [inputStyleClass]="'w-full'">
+        </p-autoComplete>
+        <small class="field-hint">Type freely, or pick a previously used terminal — helps keep opening-float suggestions matching correctly.</small>
       </div>
       <div class="dialog-field">
         <label>Opening Float *</label>

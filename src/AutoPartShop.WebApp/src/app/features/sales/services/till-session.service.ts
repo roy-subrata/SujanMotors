@@ -107,6 +107,14 @@ export class TillSessionService {
     }
 
     /**
+     * Every distinct terminal label ever used, most-recently-used first — powers a
+     * suggest-as-you-type on the Terminal field so cashiers converge on consistent naming.
+     */
+    getTerminalLabels(): Observable<string[]> {
+        return this.http.get<string[]>(`${this.apiUrl}/terminal-labels`);
+    }
+
+    /**
      * Proactive "should I let this user into Quick Sale" check — lets the frontend block
      * early with a clear message instead of waiting for the till-session gate to reject the
      * sale at submit time. Mirrors the server-side gate in SalesOrderController.CreateQuickSale.

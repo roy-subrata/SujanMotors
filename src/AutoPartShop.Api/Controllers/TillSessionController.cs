@@ -49,6 +49,19 @@ public class TillSessionController(
     }
 
     /// <summary>
+    /// Every distinct terminal label ever used, most-recently-used first — powers a
+    /// suggest-as-you-type on the Terminal field so cashiers converge on consistent naming
+    /// (which the opening-float suggestion depends on matching exactly) without a hard
+    /// admin-managed terminal roster.
+    /// </summary>
+    [HttpGet("terminal-labels")]
+    public async Task<IActionResult> GetTerminalLabels(CancellationToken cancellationToken)
+    {
+        var labels = await tillSessionRepository.GetDistinctTerminalLabelsAsync(cancellationToken);
+        return Ok(labels);
+    }
+
+    /// <summary>
     /// Suggests defaults for the Open Till form.
     /// <para>
     /// Opening float is scoped by TERMINAL, not cashier: the cash physically sitting in a given
