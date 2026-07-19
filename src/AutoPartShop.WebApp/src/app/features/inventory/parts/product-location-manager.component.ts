@@ -19,6 +19,7 @@ import {
   UpdateProductLocationRequest
 } from '../services/product-location.service';
 import { WarehouseService, WarehouseResponse } from '../services/warehouse.service';
+import { WarehouseLocationService, WarehouseLocationResponse } from '../services/warehouse-location.service';
 
 @Component({
   selector: 'app-product-location-manager',
@@ -48,11 +49,15 @@ export class ProductLocationManagerComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly locationService = inject(ProductLocationService);
   private readonly warehouseService = inject(WarehouseService);
+  private readonly warehouseLocationService = inject(WarehouseLocationService);
   private readonly messageService = inject(MessageService);
   private readonly confirmationService = inject(ConfirmationService);
 
   locations: ProductLocationResponse[] = [];
   warehouses: WarehouseResponse[] = [];
+  /** Bins in the currently-selected warehouse — the "Bin" picker only shows once a warehouse is chosen. */
+  warehouseLocations: WarehouseLocationResponse[] = [];
+  loadingWarehouseLocations = false;
   loading = false;
   displayDialog = false;
   isEditing = false;
@@ -65,13 +70,17 @@ export class ProductLocationManagerComponent implements OnInit {
     this.locationForm = this.createForm();
     this.loadWarehouses();
     this.loadLocations();
+
+    this.locationForm.get('warehouseId')?.valueChanges.subscribe((warehouseId: string) => {
+      this.locationForm.get('warehouseLocationId')?.setValue(null);
+      this.loadWarehouseLocations(warehouseId);
+    });
   }
 
   private createForm(): FormGroup {
     return this.fb.group({
       warehouseId: ['', Validators.required],
-      section: ['', [Validators.required, Validators.maxLength(100)]],
-      shelf: ['', [Validators.required, Validators.maxLength(100)]],
+      warehouseLocationId: ['', Validators.required],
       isPrimary: [false],
       notes: ['', Validators.maxLength(500)]
     });
@@ -89,6 +98,29 @@ export class ProductLocationManagerComponent implements OnInit {
           detail: 'Failed to load warehouses'
         });
         console.error('Error loading warehouses:', error);
+      }
+    });
+  }
+
+  /** Bins belonging to the chosen warehouse — populates the "Bin" picker once a warehouse is selected. */
+  private loadWarehouseLocations(warehouseId: string | null): void {
+    this.warehouseLocations = [];
+    if (!warehouseId) return;
+
+    this.loadingWarehouseLocations = true;
+    this.warehouseLocationService.getByWarehouse(warehouseId).subscribe({
+      next: (locations) => {
+        this.warehouseLocations = locations;
+        this.loadingWarehouseLocations = false;
+      },
+      error: (error) => {
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Failed to load bin locations for this warehouse'
+        });
+        console.error('Error loading warehouse locations:', error);
+        this.loadingWarehouseLocations = false;
       }
     });
   }
@@ -117,6 +149,7 @@ export class ProductLocationManagerComponent implements OnInit {
   openCreateDialog(): void {
     this.isEditing = false;
     this.selectedLocation = null;
+    this.warehouseLocations = [];
     this.locationForm.reset({ isPrimary: false });
     this.displayDialog = true;
   }
@@ -124,13 +157,17 @@ export class ProductLocationManagerComponent implements OnInit {
   openEditDialog(location: ProductLocationResponse): void {
     this.isEditing = true;
     this.selectedLocation = location;
+
+    // Load this warehouse's bins first so the "Bin" select has the current value to show,
+    // then patch without emitting — the warehouseId valueChanges handler (which resets the
+    // bin selection) is only meant to fire on a user-driven warehouse change, not this restore.
+    this.loadWarehouseLocations(location.warehouseId);
     this.locationForm.patchValue({
       warehouseId: location.warehouseId,
-      section: location.section,
-      shelf: location.shelf,
+      warehouseLocationId: location.warehouseLocationId,
       isPrimary: location.isPrimary,
       notes: location.notes || ''
-    });
+    }, { emitEvent: false });
     this.displayDialog = true;
   }
 
@@ -160,9 +197,7 @@ export class ProductLocationManagerComponent implements OnInit {
   private createLocation(): void {
     const request: CreateProductLocationRequest = {
       partId: this.partId,
-      warehouseId: this.locationForm.value.warehouseId,
-      section: this.locationForm.value.section,
-      shelf: this.locationForm.value.shelf,
+      warehouseLocationId: this.locationForm.value.warehouseLocationId,
       isPrimary: this.locationForm.value.isPrimary,
       notes: this.locationForm.value.notes || undefined
     };
@@ -194,8 +229,7 @@ export class ProductLocationManagerComponent implements OnInit {
     if (!this.selectedLocation) return;
 
     const request: UpdateProductLocationRequest = {
-      section: this.locationForm.value.section,
-      shelf: this.locationForm.value.shelf,
+      warehouseLocationId: this.locationForm.value.warehouseLocationId,
       isPrimary: this.locationForm.value.isPrimary,
       notes: this.locationForm.value.notes || undefined
     };
@@ -246,7 +280,7 @@ export class ProductLocationManagerComponent implements OnInit {
 
   deleteLocation(location: ProductLocationResponse): void {
     this.confirmationService.confirm({
-      message: `Are you sure you want to delete the location "${location.fullLocation}"?`,
+      message: `Are you sure you want to delete the location "${location.locationCode}"?`,
       header: 'Confirm Delete',
       icon: 'pi pi-exclamation-triangle',
       acceptButtonStyleClass: 'p-button-danger',

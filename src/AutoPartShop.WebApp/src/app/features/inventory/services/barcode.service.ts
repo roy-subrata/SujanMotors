@@ -16,6 +16,13 @@ export interface BarcodeConfig {
 })
 export class BarcodeService {
   /**
+   * Bar/text ink color for generated barcodes — matches the label design
+   * system's ink token (#1c1917) instead of pure black. Purely cosmetic;
+   * scanners don't care about the exact shade.
+   */
+  private static readonly BAR_COLOR = '#1c1917';
+
+  /**
    * Generate a linear barcode (Code128, Code39, EAN13) as SVG
    */
   generateLinearBarcode(config: BarcodeConfig): string {
@@ -26,7 +33,8 @@ export class BarcodeService {
         width: config.width || 2,
         height: config.height || 100,
         displayValue: config.displayText !== undefined ? config.displayText.length > 0 : true,
-        text: config.displayText
+        text: config.displayText,
+        lineColor: BarcodeService.BAR_COLOR
       });
       return new XMLSerializer().serializeToString(svg);
     } catch (error) {
@@ -46,7 +54,8 @@ export class BarcodeService {
         width: config.width || 2,
         height: config.height || 100,
         displayValue: config.displayText !== undefined ? config.displayText.length > 0 : true,
-        text: config.displayText
+        text: config.displayText,
+        lineColor: BarcodeService.BAR_COLOR
       });
       return canvas;
     } catch (error) {

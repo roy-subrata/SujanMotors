@@ -98,6 +98,11 @@ export class AppMenuComponent implements OnInit {
                         label: this.i18n.t('menu.warehouses'),
                         icon: 'pi pi-building',
                         routerLink: ['/inventory/warehouses']
+                    },
+                    {
+                        label: this.i18n.t('menu.warehouseLocations'),
+                        icon: 'pi pi-map-marker',
+                        routerLink: ['/inventory/warehouse-locations']
                     }
                 ]
             },

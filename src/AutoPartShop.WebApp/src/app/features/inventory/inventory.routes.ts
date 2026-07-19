@@ -13,6 +13,8 @@ import { SupplierPaymentAccountListComponent } from './suppliers/supplier-paymen
 import { SupplierPaymentAccountFormComponent } from './suppliers/supplier-payment-accounts/supplier-payment-account-form.component';
 import { WarehousesComponent } from './warehouses/warehouses.component';
 import { WarehouseFormComponent } from './warehouses/warehouse-form.component';
+import { WarehouseLocationsListComponent } from './warehouse-locations/warehouse-locations-list.component';
+import { WarehouseLocationFormComponent } from './warehouse-locations/warehouse-location-form.component';
 import { VehiclesComponent } from './vehicles/vehicles.component';
 import { VehicleFormComponent } from './vehicles/vehicle-form.component';
 import { VehicleCompatibilityComponent } from './vehicles/vehicle-compatibility.component';
@@ -40,6 +42,9 @@ export const inventoryRoutes: Routes = [
   { path: 'warehouses/create', component: WarehouseFormComponent },
   { path: 'warehouses/edit', component: WarehouseFormComponent },
   { path: 'warehouses/view', component: WarehouseFormComponent },
+  { path: 'warehouse-locations', component: WarehouseLocationsListComponent },
+  { path: 'warehouse-locations/create', component: WarehouseLocationFormComponent },
+  { path: 'warehouse-locations/edit', component: WarehouseLocationFormComponent },
   { path: 'vehicles', component: VehiclesComponent },
   { path: 'vehicles/create', component: VehicleFormComponent },
   { path: 'vehicles/edit', component: VehicleFormComponent },

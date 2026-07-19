@@ -39,10 +39,11 @@ public interface IPartVehicleCompatibilityRepository : IBaseRepository<PartVehic
 
 public interface IProductLocationRepository : IBaseRepository<ProductLocation>
 {
+    /// <summary>Locations for a part; optionally narrowed to one warehouse (via the joined WarehouseLocation.WarehouseId).</summary>
     Task<IEnumerable<ProductLocation>> GetLocationsByPartAsync(Guid partId, Guid? warehouseId = null, CancellationToken cancellationToken = default);
     Task<IEnumerable<ProductLocation>> GetLocationsByWarehouseAsync(Guid warehouseId, CancellationToken cancellationToken = default);
-    Task<ProductLocation?> GetLocationByPartAndWarehouseAsync(Guid partId, Guid warehouseId, string section, string shelf, CancellationToken cancellationToken = default);
+    Task<ProductLocation?> GetLocationByPartAndWarehouseLocationAsync(Guid partId, Guid warehouseLocationId, CancellationToken cancellationToken = default);
     Task<ProductLocation?> GetPrimaryLocationByPartAsync(Guid partId, CancellationToken cancellationToken = default);
     Task SetPrimaryLocationAsync(Guid partId, Guid locationId, CancellationToken cancellationToken = default);
-    Task<bool> LocationExistsAsync(Guid partId, Guid warehouseId, string section, string shelf, Guid? excludeLocationId = null, CancellationToken cancellationToken = default);
+    Task<bool> LocationExistsAsync(Guid partId, Guid warehouseLocationId, Guid? excludeLocationId = null, CancellationToken cancellationToken = default);
 }
