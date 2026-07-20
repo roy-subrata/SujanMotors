@@ -104,6 +104,7 @@ export class WarrantiesListComponent implements OnInit {
     showVoidDialog = false;
     selectedWarranty: WarrantyRegistrationResponse | null = null;
     voidReason = '';
+    voidSubmitted = false;
 
     showDetailDialog = false;
     detailWarranty: WarrantyRegistrationResponse | null = null;
@@ -344,10 +345,12 @@ export class WarrantiesListComponent implements OnInit {
     openVoidDialog(warranty: WarrantyRegistrationResponse): void {
         this.selectedWarranty = warranty;
         this.voidReason = '';
+        this.voidSubmitted = false;
         this.showVoidDialog = true;
     }
 
     confirmVoid(): void {
+        this.voidSubmitted = true;
         if (!this.selectedWarranty || !this.voidReason.trim()) {
             this.messageService.add({ severity: 'warn', summary: this.i18n.t('common.messages.warning'), detail: this.i18n.t('warranties.messages.voidReasonRequired') });
             return;

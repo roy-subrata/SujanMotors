@@ -309,6 +309,7 @@
       <textarea pTextarea [(ngModel)]="voidReason"
         placeholder="Enter the reason for voiding this warranty..."
         rows="3" class="w-full"></textarea>
+      <small class="p-error" *ngIf="voidSubmitted && !voidReason.trim()">Reason for voiding is required.</small>
     </div>
   </div>
 
