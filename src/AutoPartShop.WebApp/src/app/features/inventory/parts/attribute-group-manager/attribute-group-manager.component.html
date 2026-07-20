@@ -140,7 +140,7 @@
             <small class="field-error" *ngIf="attrForm.get('code')?.invalid && attrForm.get('code')?.touched">Code is required</small>
           </div>
           <div class="inline-field">
-            <label class="field-label">Data Type</label>
+            <label class="field-label">Data Type <span class="required">*</span></label>
             <p-select formControlName="dataType" [options]="dataTypeOptions" optionLabel="label" optionValue="value" appendTo="body" styleClass="filter-dropdown"></p-select>
           </div>
           <div class="inline-field narrow">

@@ -77,7 +77,7 @@ interface PolicyKeys {
 
           <div class="grid grid-cols-2 gap-4 mt-4" [class.opacity-40]="!form.get('freeShippingEnabled')?.value" [class.pointer-events-none]="!form.get('freeShippingEnabled')?.value">
             <div>
-              <label class="block text-sm font-medium text-gray-600 mb-2">Minimum order threshold</label>
+              <label class="block text-sm font-medium text-gray-600 mb-2"><span class="required">*</span> Minimum order threshold</label>
               <p-inputNumber
                 formControlName="freeShippingThreshold"
                 [min]="0"
@@ -87,9 +87,12 @@ interface PolicyKeys {
                 inputStyleClass="w-full">
               </p-inputNumber>
               <small class="text-gray-400">Orders above this amount qualify for free shipping</small>
+              <small class="p-error block mt-1" *ngIf="form.get('freeShippingThreshold')?.invalid && form.get('freeShippingThreshold')?.touched">
+                Enter a threshold of 0 or more
+              </small>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-600 mb-2">Currency code</label>
+              <label class="block text-sm font-medium text-gray-600 mb-2"><span class="required">*</span> Currency code</label>
               <input
                 pInputText
                 formControlName="freeShippingCurrency"
@@ -98,6 +101,9 @@ interface PolicyKeys {
                 class="w-full"
                 style="text-transform:uppercase" />
               <small class="text-gray-400">Currency label displayed next to the threshold</small>
+              <small class="p-error block mt-1" *ngIf="form.get('freeShippingCurrency')?.invalid && form.get('freeShippingCurrency')?.touched">
+                Currency code is required
+              </small>
             </div>
           </div>
         </p-card>
@@ -113,7 +119,7 @@ interface PolicyKeys {
 
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-600 mb-2">Return window (days)</label>
+              <label class="block text-sm font-medium text-gray-600 mb-2"><span class="required">*</span> Return window (days)</label>
               <p-inputNumber
                 formControlName="returnPolicyDays"
                 [min]="1"
@@ -126,15 +132,21 @@ interface PolicyKeys {
                 styleClass="w-full"
                 inputStyleClass="w-full text-center">
               </p-inputNumber>
+              <small class="p-error block mt-1" *ngIf="form.get('returnPolicyDays')?.invalid && form.get('returnPolicyDays')?.touched">
+                Enter a value between 1 and 365
+              </small>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-600 mb-2">Display label</label>
+              <label class="block text-sm font-medium text-gray-600 mb-2"><span class="required">*</span> Display label</label>
               <input
                 pInputText
                 formControlName="returnPolicyText"
                 placeholder="e.g. 30-day return policy"
                 class="w-full" />
               <small class="text-gray-400">Text shown on the product page badge</small>
+              <small class="p-error block mt-1" *ngIf="form.get('returnPolicyText')?.invalid && form.get('returnPolicyText')?.touched">
+                Display label is required
+              </small>
             </div>
           </div>
         </p-card>
@@ -170,7 +182,21 @@ interface PolicyKeys {
       </form>
       </div>
     </app-page-container>
-  `
+  `,
+  styles: [`
+    /* This page is built with Tailwind gray-scale utility classes, which are
+       static (they don't flip under the app's .app-dark class the way the
+       --color-* tokens from assets/_data-page.scss do). Re-point the neutral
+       text/background/border utilities actually used above at those tokens so
+       the page stays readable in dark mode. */
+    :host ::ng-deep {
+      .text-gray-400 { color: var(--color-text-muted) !important; }
+      .text-gray-600 { color: var(--color-text-secondary) !important; }
+      .text-gray-700 { color: var(--color-text-primary) !important; }
+      .bg-gray-50 { background-color: var(--color-bg-secondary) !important; }
+      .border-gray-200 { border-color: var(--color-border) !important; }
+    }
+  `]
 })
 export class ShopPoliciesComponent implements OnInit {
   private readonly settingsService = inject(AppSettingsService);
@@ -210,7 +236,10 @@ export class ShopPoliciesComponent implements OnInit {
   }
 
   save(): void {
-    if (this.form.invalid) return;
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
     this.saving.set(true);
 
     const v = this.form.value;

@@ -14,7 +14,7 @@
 
 .header-content .subtitle {
   margin: 0;
-  color: #6b7280;
+  color: var(--text-color-secondary);
   font-size: 0.875rem;
 }
 
@@ -45,13 +45,13 @@
 
 .part-autocomplete-item .part-name {
   font-weight: 600;
-  color: #1f2937;
+  color: var(--text-color);
   font-size: 0.9375rem;
 }
 
 .part-autocomplete-item .part-sku {
   font-size: 0.8125rem;
-  color: #6b7280;
+  color: var(--text-color-secondary);
 }
 
 .filter-actions {
@@ -98,23 +98,23 @@
 }
 
 .text-gray-500 {
-  color: #6b7280;
+  color: var(--text-color-secondary);
 }
 
 .text-gray-600 {
-  color: #4b5563;
+  color: var(--text-color-secondary);
 }
 
 .text-red-600 {
-  color: #dc2626;
+  color: var(--color-danger);
 }
 
 .text-red-500 {
-  color: #ef4444;
+  color: var(--color-danger);
 }
 
 .text-green-600 {
-  color: #16a34a;
+  color: var(--color-success);
 }
 
 /* Dual Unit Display Styles */
@@ -127,19 +127,19 @@
 
 .display-qty {
   font-weight: 600;
-  color: #0f172a;
+  color: var(--text-color);
   font-size: 14px;
 }
 
 .display-unit {
   font-size: 11px;
-  color: #64748b;
+  color: var(--text-color-secondary);
   font-weight: 500;
 }
 
 .base-qty {
   font-size: 11px;
-  color: #94a3b8;
+  color: var(--text-color-secondary);
   font-weight: 400;
 }
 
@@ -155,7 +155,7 @@
   gap: 1rem;
   margin-top: 1.5rem;
   padding-top: 1.5rem;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--surface-border);
 }
 
 .summary-item {
@@ -166,19 +166,19 @@
 
 .summary-item label {
   font-weight: 500;
-  color: #374151;
+  color: var(--text-color);
 }
 
 .summary-value {
   font-size: 1.125rem;
   font-weight: 700;
-  color: #059669;
+  color: var(--color-success);
 }
 
 .empty-state {
   text-align: center;
   padding: 3rem 1rem;
-  color: #6b7280;
+  color: var(--text-color-secondary);
 }
 
 .empty-state i {
@@ -221,6 +221,6 @@
 .coded-price {
   font-family: 'Courier New', monospace;
   letter-spacing: 0.1em;
-  color: #6366f1 !important;
+  color: var(--color-primary) !important;
   font-weight: 600;
 }

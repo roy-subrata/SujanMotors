@@ -154,15 +154,15 @@
           </td>
           <td>
             <div class="font-semibold">{{ entry.referenceNumber }}</div>
-            <div *ngIf="entry.description" style="font-size: 0.75rem; color: #6c757d;">{{ entry.description }}</div>
+            <div *ngIf="entry.description" style="font-size: 0.75rem; color: var(--color-text-secondary);">{{ entry.description }}</div>
           </td>
-          <td style="font-weight: 600; color: #dc2626;">
+          <td style="font-weight: 600; color: var(--color-danger);">
             {{ entry.debitAmount > 0 ? formatCurrency(entry.debitAmount) : '' }}
           </td>
-          <td style="font-weight: 600; color: #16a34a;">
+          <td style="font-weight: 600; color: var(--color-success);">
             {{ entry.creditAmount > 0 ? formatCurrency(entry.creditAmount) : '' }}
           </td>
-          <td style="font-weight: 600;" [style.color]="entry.runningBalance > 0 ? '#dc2626' : '#16a34a'">
+          <td style="font-weight: 600;" [style.color]="entry.runningBalance > 0 ? 'var(--color-danger)' : 'var(--color-success)'">
             {{ formatCurrency(entry.runningBalance) }}
           </td>
           <td>

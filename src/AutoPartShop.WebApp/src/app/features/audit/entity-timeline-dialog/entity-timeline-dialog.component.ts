@@ -199,19 +199,19 @@ import {
     }
 
     .timeline-marker.insert {
-      background: #22c55e;
+      background: var(--color-success);
     }
 
     .timeline-marker.update {
-      background: #3b82f6;
+      background: var(--color-info);
     }
 
     .timeline-marker.delete {
-      background: #ef4444;
+      background: var(--color-danger);
     }
 
     .timeline-marker.default {
-      background: #6b7280;
+      background: var(--text-color-secondary);
     }
 
     .timeline-event-card {
@@ -270,8 +270,8 @@ import {
     }
 
     .old-value {
-      background: rgba(239, 68, 68, 0.1);
-      color: #dc2626;
+      background: color-mix(in srgb, var(--color-danger) 10%, transparent);
+      color: var(--color-danger);
       padding: 0.2rem 0.4rem;
       border-radius: 4px;
       font-family: monospace;
@@ -280,8 +280,8 @@ import {
     }
 
     .new-value {
-      background: rgba(34, 197, 94, 0.1);
-      color: #16a34a;
+      background: color-mix(in srgb, var(--color-success) 10%, transparent);
+      color: var(--color-success);
       padding: 0.2rem 0.4rem;
       border-radius: 4px;
       font-family: monospace;

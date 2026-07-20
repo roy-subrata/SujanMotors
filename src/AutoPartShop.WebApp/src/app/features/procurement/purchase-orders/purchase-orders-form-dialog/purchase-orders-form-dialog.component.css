@@ -18,7 +18,7 @@
       font-size: 0.875rem;
 
       .required {
-        color: #ef4444;
+        color: var(--color-danger);
       }
     }
 
@@ -34,15 +34,15 @@
       transition: all 0.2s ease;
 
       &:focus {
-        border-color: #3b82f6;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        border-color: var(--color-primary);
+        box-shadow: 0 0 0 3px var(--color-primary-light);
       }
 
       &.ng-invalid.ng-touched {
-        border-color: #ef4444;
+        border-color: var(--color-danger);
 
         &:focus {
-          box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+          box-shadow: 0 0 0 3px var(--color-danger-light);
         }
       }
     }
@@ -77,7 +77,7 @@
   }
 
   .text-danger {
-    color: #ef4444;
+    color: var(--color-danger);
     font-size: 0.75rem;
     margin-top: 0.25rem;
   }
@@ -181,7 +181,7 @@
 
   .line-total {
     font-weight: 600;
-    color: #059669;
+    color: var(--color-success);
     text-align: right;
   }
 
@@ -206,7 +206,7 @@
 
   .grand-total-amount {
     font-weight: 700;
-    color: #059669;
+    color: var(--color-success);
     font-size: 1.125rem;
     min-width: 150px;
     text-align: right;
@@ -254,12 +254,13 @@
     transition: all 0.2s ease;
 
     &.p-button-success {
-      background-color: #22c55e;
-      border-color: #22c55e;
+      background-color: var(--color-success);
+      border-color: var(--color-success);
 
       &:hover {
-        background-color: #16a34a;
-        border-color: #16a34a;
+        background-color: var(--color-success);
+        border-color: var(--color-success);
+        opacity: 0.9;
       }
 
       &:disabled {
@@ -284,10 +285,10 @@
     }
 
     &.p-button-danger {
-      color: #ef4444;
+      color: var(--color-danger);
 
       &:hover:not(:disabled) {
-        background-color: #fee2e2;
+        background-color: var(--color-danger-light);
       }
 
       &:disabled {

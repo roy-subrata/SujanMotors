@@ -16,8 +16,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: rgba(59, 130, 246, 0.1);
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  background: var(--color-info-light);
+  border: 1px solid var(--color-info);
   border-radius: 0.75rem;
   padding: 0.75rem 1.25rem;
 }
@@ -35,8 +35,8 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-  color: #fff;
+  background: var(--color-info);
+  color: var(--accent-fg);
   font-size: 0.875rem;
   font-weight: 700;
   display: flex;
@@ -52,7 +52,7 @@
 /* Amount cell */
 .amount-cell { display: flex; flex-direction: column; align-items: flex-end; gap: 0.125rem; }
 .amount-fee { font-size: 0.75rem; color: var(--color-text-secondary); }
-.amount-highlight { font-weight: 700; color: #059669; }
+.amount-highlight { font-weight: 700; color: var(--color-success); }
 
 /* Method / type badges */
 .method-badge,
@@ -65,8 +65,8 @@
   text-transform: uppercase;
 }
 .method-badge { background: var(--color-bg-secondary); color: var(--color-text-secondary); }
-.type-badge.type-advance { background: #fef9c3; color: #854d0e; }
-.type-badge.type-regular { background: #f0fdf4; color: #166534; }
+.type-badge.type-advance { background: var(--color-warning-light); color: var(--color-warning); }
+.type-badge.type-regular { background: var(--color-success-light); color: var(--color-success); }
 
 .invoice-ref { font-size: 0.8125rem; color: var(--color-text-secondary); font-family: monospace; }
 

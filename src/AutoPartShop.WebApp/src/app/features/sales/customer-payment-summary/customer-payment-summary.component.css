@@ -129,6 +129,10 @@
   margin-top: 0.25rem;
 }
 
+.metric-helper-danger {
+  color: var(--color-danger);
+}
+
 .metric-small {
   font-size: 14px;
 }

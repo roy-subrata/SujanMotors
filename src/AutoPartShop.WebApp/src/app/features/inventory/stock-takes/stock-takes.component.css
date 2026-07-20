@@ -20,4 +20,4 @@ td.col-num { font-variant-numeric: tabular-nums; }
   background: var(--color-info-light, #eff6ff); color: var(--color-text-secondary);
   font-size: 12.5px; line-height: 1.5;
 }
-.create-hint i { margin-top: 2px; color: #1d4ed8; }
+.create-hint i { margin-top: 2px; color: var(--color-info); }

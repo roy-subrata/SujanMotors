@@ -35,9 +35,8 @@ import { CustomerService, CreateCustomerRequest } from '../services/customer.ser
                     </div>
 
                     <div class="form-field">
-                        <label for="lastName"> Last Name <span class="required">*</span> </label>
+                        <label for="lastName"> Last Name </label>
                         <input pInputText id="lastName" formControlName="lastName" placeholder="Enter last name" [class.invalid]="customerForm.get('lastName')?.invalid && customerForm.get('lastName')?.touched" />
-                        <small class="error-text" *ngIf="customerForm.get('lastName')?.invalid && customerForm.get('lastName')?.touched"> Last name is required </small>
                     </div>
                 </div>
 
@@ -201,7 +200,7 @@ import { CustomerService, CreateCustomerRequest } from '../services/customer.ser
             }
 
             .form-field label .required {
-                color: #ef4444;
+                color: var(--red);
             }
 
             .form-field input {
@@ -217,13 +216,13 @@ import { CustomerService, CreateCustomerRequest } from '../services/customer.ser
 
             .form-field input:focus {
                 outline: none;
-                border-color: #3b82f6;
-                box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+                border-color: var(--accent);
+                box-shadow: 0 0 0 3px var(--color-primary-light);
             }
 
             .form-field input.invalid {
-                border-color: #ef4444;
-                background: rgba(239, 68, 68, 0.05);
+                border-color: var(--red);
+                background: var(--red-bg);
             }
 
             .form-field input::placeholder {
@@ -240,7 +239,7 @@ import { CustomerService, CreateCustomerRequest } from '../services/customer.ser
 
             .error-text {
                 font-size: 0.75rem;
-                color: #ef4444;
+                color: var(--red);
             }
 
             .error-banner {
@@ -248,10 +247,10 @@ import { CustomerService, CreateCustomerRequest } from '../services/customer.ser
                 align-items: center;
                 gap: 0.75rem;
                 padding: 0.875rem 1rem;
-                background: #fef2f2;
-                border: 1px solid #fecaca;
+                background: var(--red-bg);
+                border: 1px solid var(--red-bg);
                 border-radius: 8px;
-                color: #dc2626;
+                color: var(--red);
                 font-size: 0.9rem;
             }
 

@@ -39,7 +39,7 @@
         <div class="metric-label">Outstanding Balance</div>
         <div class="metric-value">{{ formatCurrency(summary.totalOutstanding || 0) }}</div>
         <div class="metric-helper" *ngIf="(summary.unpaidInvoices || 0) > 0">{{ summary.unpaidInvoices }} unpaid invoices</div>
-        <div class="metric-helper" *ngIf="(summary.overdueInvoices || 0) > 0" style="color: #dc2626;">{{ summary.overdueInvoices }} overdue</div>
+        <div class="metric-helper metric-helper-danger" *ngIf="(summary.overdueInvoices || 0) > 0">{{ summary.overdueInvoices }} overdue</div>
         <div class="metric-helper" *ngIf="(summary.unpaidInvoices || 0) === 0">All paid up!</div>
       </div>
       <div class="metric-card" [ngClass]="(summary.availableAdvance || 0) > 0 ? 'metric-success' : 'metric-neutral'">

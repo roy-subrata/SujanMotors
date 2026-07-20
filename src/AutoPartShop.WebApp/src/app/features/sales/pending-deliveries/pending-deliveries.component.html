@@ -109,42 +109,42 @@
 <p-dialog header="Generate Delivery Challan" [(visible)]="showChallanDialog"
   [modal]="true" [style]="{width:'560px',maxWidth:'95vw'}" appendTo="body">
   <div style="display:flex;flex-direction:column;gap:14px;padding:4px 0;">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-      <div style="grid-column:span 2;display:flex;flex-direction:column;gap:5px;">
-        <label style="font-size:13px;font-weight:500;color:#374151">Delivery Address</label>
+    <div class="form-row">
+      <div class="form-group full">
+        <label class="form-label">Delivery Address</label>
         <input pInputText [(ngModel)]="challanForm.deliveryAddress" style="width:100%" />
       </div>
-      <div style="display:flex;flex-direction:column;gap:5px;">
-        <label style="font-size:13px;font-weight:500;color:#374151">Receiver Name</label>
+      <div class="form-group">
+        <label class="form-label">Receiver Name</label>
         <input pInputText [(ngModel)]="challanForm.receiverName" style="width:100%" />
       </div>
-      <div style="display:flex;flex-direction:column;gap:5px;">
-        <label style="font-size:13px;font-weight:500;color:#374151">Receiver Phone</label>
+      <div class="form-group">
+        <label class="form-label">Receiver Phone</label>
         <input pInputText [(ngModel)]="challanForm.receiverPhone" style="width:100%" />
       </div>
     </div>
     <p-divider align="left">
-      <span style="font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.05em">Transport / Carrier</span>
+      <span style="font-size:12px;font-weight:600;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.05em">Transport / Carrier</span>
     </p-divider>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-      <div style="display:flex;flex-direction:column;gap:5px;">
-        <label style="font-size:13px;font-weight:500;color:#374151">Transport Company</label>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Transport Company</label>
         <input pInputText [(ngModel)]="challanForm.transportCompany" placeholder="e.g. Sundarban Courier" style="width:100%" />
       </div>
-      <div style="display:flex;flex-direction:column;gap:5px;">
-        <label style="font-size:13px;font-weight:500;color:#374151">Vehicle / Truck No.</label>
+      <div class="form-group">
+        <label class="form-label">Vehicle / Truck No.</label>
         <input pInputText [(ngModel)]="challanForm.vehicleNumber" placeholder="DHAKA-KA-11-1234" style="width:100%" />
       </div>
-      <div style="display:flex;flex-direction:column;gap:5px;">
-        <label style="font-size:13px;font-weight:500;color:#374151">Driver Name</label>
+      <div class="form-group">
+        <label class="form-label">Driver Name</label>
         <input pInputText [(ngModel)]="challanForm.driverName" style="width:100%" />
       </div>
-      <div style="display:flex;flex-direction:column;gap:5px;">
-        <label style="font-size:13px;font-weight:500;color:#374151">Driver Phone</label>
+      <div class="form-group">
+        <label class="form-label">Driver Phone</label>
         <input pInputText [(ngModel)]="challanForm.driverPhone" style="width:100%" />
       </div>
-      <div style="grid-column:span 2;display:flex;flex-direction:column;gap:5px;">
-        <label style="font-size:13px;font-weight:500;color:#374151">Notes (optional)</label>
+      <div class="form-group full">
+        <label class="form-label">Notes (optional)</label>
         <textarea pInputTextarea [(ngModel)]="challanForm.notes" rows="2" style="width:100%"></textarea>
       </div>
     </div>

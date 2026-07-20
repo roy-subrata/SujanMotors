@@ -200,7 +200,7 @@
 }
 
 .btn-save:hover {
-  background-color: #059669;
+  opacity: 0.88;
 }
 
 .btn-save:disabled {
@@ -394,11 +394,11 @@
   font-weight: 600;
   cursor: pointer;
   transition: all var(--transition-fast);
-  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
+  box-shadow: var(--shadow-md);
 }
 
 .btn-primary-empty:hover {
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+  box-shadow: var(--shadow-lg);
 }
 
 .btn-secondary-action {
@@ -464,7 +464,7 @@
   justify-content: center;
   width: 36px;
   height: 36px;
-  background: linear-gradient(135deg, var(--color-primary-light) 0%, #E0E7FF 100%);
+  background: linear-gradient(135deg, var(--color-primary-light) 0%, var(--color-info-light) 100%);
   border-radius: var(--radius-full);
   flex-shrink: 0;
 }
@@ -510,12 +510,12 @@
 
 .status-pill[data-status="active"] {
   background-color: var(--color-success-light);
-  color: #047857;
+  color: var(--color-success);
 }
 
 .status-pill[data-status="inactive"] {
   background-color: var(--color-danger-light);
-  color: #B91C1C;
+  color: var(--color-danger);
 }
 
 /* ==================== ACTION BUTTONS ==================== */
