@@ -79,6 +79,9 @@
               <span *ngIf="!selectedSalesOrder()">Select a sales order to create a return</span>
               <span *ngIf="selectedSalesOrder()" class="success-text">Sales order selected</span>
             </small>
+            <small *ngIf="salesReturnForm.get('salesOrderId')?.invalid && salesReturnForm.get('salesOrderId')?.touched" class="p-error">
+              Sales Order is required
+            </small>
           </div>
         </div>
 

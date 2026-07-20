@@ -1104,11 +1104,37 @@ body.storefront-scroll .layout-main-container {
     }
 
     /* ── PrimeNG input internals overridden by ::ng-deep ─────── */
+    /* Broad coverage: any hand-written component CSS that hardcodes a light-
+       theme color via ::ng-deep on these classes gets overridden here.
+       Previously only .p-autocomplete-input/.p-inputnumber-input were listed,
+       which is why dropdown/select LABEL text (the visible selected value)
+       and plain .p-inputtext instances still rendered dark text on a dark
+       background — the single most-reported dark-mode bug. */
+    .p-inputtext,
     .p-autocomplete .p-autocomplete-input,
-    .p-inputnumber .p-inputnumber-input {
+    .p-inputnumber .p-inputnumber-input,
+    .p-select .p-select-label,
+    .p-dropdown .p-dropdown-label,
+    .p-multiselect .p-multiselect-label,
+    .p-textarea,
+    .p-password input,
+    .p-datepicker input,
+    .p-cascadeselect .p-cascadeselect-label {
         background-color: var(--surface-card) !important;
         border-color: var(--surface-border) !important;
         color: var(--text-color) !important;
+    }
+
+    /* Placeholder text — left at the default gray by most component CSS,
+       which reads correctly in light mode but disappears (near-black on
+       near-black) once the input background flips dark above. */
+    .p-inputtext::placeholder,
+    .p-autocomplete .p-autocomplete-input::placeholder,
+    .p-inputnumber .p-inputnumber-input::placeholder,
+    .p-textarea::placeholder,
+    .p-password input::placeholder {
+        color: var(--text-color-secondary) !important;
+        opacity: 1 !important;
     }
 
     .p-inputnumber-button-group .p-button {
@@ -1118,8 +1144,42 @@ body.storefront-scroll .layout-main-container {
     }
 
     .p-dropdown .p-dropdown-trigger,
-    .p-select .p-select-dropdown {
+    .p-select .p-select-dropdown,
+    .p-multiselect .p-multiselect-trigger,
+    .p-cascadeselect .p-cascadeselect-trigger {
         background-color: var(--surface-card) !important;
+        color: var(--text-color-secondary) !important;
+    }
+
+    /* Overlay panels (dropdown/select/multiselect/autocomplete option lists) —
+       these render in a CDK overlay appended to <body>, outside any component
+       host, so a component's own ::ng-deep rules never reach them; without
+       this they stay stuck light (white panel, dark-on-dark or invisible
+       hover state) even when the closed control itself is themed correctly. */
+    .p-select-overlay,
+    .p-dropdown-panel,
+    .p-multiselect-panel,
+    .p-autocomplete-overlay,
+    .p-cascadeselect-overlay,
+    .p-datepicker-panel {
+        background-color: var(--surface-card) !important;
+        border-color: var(--surface-border) !important;
+        color: var(--text-color) !important;
+    }
+
+    .p-select-option,
+    .p-dropdown-item,
+    .p-multiselect-option,
+    .p-autocomplete-option,
+    .p-cascadeselect-option {
+        color: var(--text-color) !important;
+    }
+
+    .p-select-option:not(.p-select-option-selected):not(.p-disabled).p-focus,
+    .p-dropdown-item:not(.p-highlight):not(.p-disabled).p-focus,
+    .p-multiselect-option:not(.p-highlight):not(.p-disabled).p-focus,
+    .p-autocomplete-option:not(.p-highlight):not(.p-disabled).p-focus {
+        background-color: var(--surface-ground) !important;
     }
 
     /* ── Dialog chrome ────────────────────────────────────────── */

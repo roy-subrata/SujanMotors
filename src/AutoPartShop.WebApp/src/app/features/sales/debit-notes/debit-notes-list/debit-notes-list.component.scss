@@ -41,6 +41,6 @@
 }
 
 /* Debit note status pill colours (base pill styling is global) */
-.status-pill[data-status="issued"]    { background-color: var(--color-info-light); color: #1D4ED8; }
-.status-pill[data-status="settled"]   { background-color: var(--color-success-light); color: #047857; }
-.status-pill[data-status="cancelled"] { background-color: var(--color-danger-light); color: #B91C1C; }
+.status-pill[data-status="issued"]    { background-color: var(--color-info-light); color: var(--color-info); }
+.status-pill[data-status="settled"]   { background-color: var(--color-success-light); color: var(--color-success); }
+.status-pill[data-status="cancelled"] { background-color: var(--color-danger-light); color: var(--color-danger); }

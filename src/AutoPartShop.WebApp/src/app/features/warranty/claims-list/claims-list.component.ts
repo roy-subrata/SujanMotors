@@ -116,6 +116,9 @@ export class ClaimsListComponent implements OnInit {
     isLoadingReplacementLogistics = false;
 
     rejectReason = '';
+    rejectSubmitted = false;
+    assignSubmitted = false;
+    completeSubmitted = false;
     resolutionDetails = '';
     refundType: 'CASH_REFUND' | 'STORE_CREDIT' = 'CASH_REFUND';
     refundAmount: number | null = null;
@@ -137,6 +140,7 @@ export class ClaimsListComponent implements OnInit {
         referenceNumber: '',
         notes: ''
     };
+    sendDefectiveSubmitted = false;
     receiveReplacementForm = {
         partnerType: 'SELLER' as 'SELLER' | 'MANUFACTURER',
         supplierId: '',
@@ -145,6 +149,7 @@ export class ClaimsListComponent implements OnInit {
         referenceNumber: '',
         notes: ''
     };
+    receiveReplacementSubmitted = false;
 
     suppliers: SupplierResponse[] = [];
 
@@ -155,6 +160,7 @@ export class ClaimsListComponent implements OnInit {
     activeWarranties: WarrantyRegistrationResponse[] = [];
     filteredWarranties: WarrantyRegistrationResponse[] = [];
     selectedWarranty: WarrantyRegistrationResponse | null = null;
+    createClaimSubmitted = false;
     newClaim = {
         warrantyNumber: '',
         issueDescription: '',
@@ -407,15 +413,18 @@ export class ClaimsListComponent implements OnInit {
     // ==================== REPAIR LOGISTICS (send/receive to manufacturer) ====================
     showSendForRepairDialog = false;
     sendForRepairForm = { partnerType: 'MANUFACTURER', partnerName: '', responsibleBy: '', referenceNumber: '', expectedReturnDate: null as Date | null, notes: '' };
+    sendForRepairSubmitted = false;
 
     openSendForRepairDialog(claim: WarrantyClaimResponse): void {
         this.selectedClaim = claim;
         this.sendForRepairForm = { partnerType: 'MANUFACTURER', partnerName: '', responsibleBy: this.currentUsername, referenceNumber: '', expectedReturnDate: null, notes: '' };
+        this.sendForRepairSubmitted = false;
         this.showSendForRepairDialog = true;
     }
 
     submitSendForRepair(): void {
         if (!this.selectedClaim) return;
+        this.sendForRepairSubmitted = true;
         if (!this.sendForRepairForm.partnerName.trim() || !this.sendForRepairForm.responsibleBy.trim()) {
             this.messageService.add({ severity: 'warn', summary: this.i18n.t('common.messages.warning'), detail: 'Partner name and responsible person are required' });
             return;
@@ -494,10 +503,12 @@ export class ClaimsListComponent implements OnInit {
     openRejectDialog(claim: WarrantyClaimResponse): void {
         this.selectedClaim = claim;
         this.rejectReason = '';
+        this.rejectSubmitted = false;
         this.showRejectDialog = true;
     }
 
     rejectClaim(): void {
+        this.rejectSubmitted = true;
         if (!this.selectedClaim || !this.rejectReason.trim()) {
             this.messageService.add({ severity: 'warn', summary: this.i18n.t('common.messages.warning'), detail: this.i18n.t('warrantyClaims.messages.validationRejectReason') });
             return;
@@ -523,6 +534,7 @@ export class ClaimsListComponent implements OnInit {
         this.selectedClaim = claim;
         this.selectedTechnician = null;
         this.filteredTechnicians = [...this.technicians];
+        this.assignSubmitted = false;
         this.showAssignDialog = true;
     }
 
@@ -538,6 +550,7 @@ export class ClaimsListComponent implements OnInit {
         })));
 
     assignTechnician(): void {
+        this.assignSubmitted = true;
         if (!this.selectedClaim || !this.selectedTechnician) {
             this.messageService.add({ severity: 'warn', summary: this.i18n.t('common.messages.warning'), detail: this.i18n.t('warrantyClaims.messages.validationSelectTechnician') });
             return;
@@ -602,10 +615,12 @@ export class ClaimsListComponent implements OnInit {
         this.replacementReturnItemReceived = true;
         this.serviceCost = claim.serviceCost || 0;
         this.serviceNotes = claim.serviceNotes || '';
+        this.completeSubmitted = false;
         this.showCompleteDialog = true;
     }
 
     completeClaim(): void {
+        this.completeSubmitted = true;
         if (!this.selectedClaim || !this.resolutionDetails.trim()) {
             this.messageService.add({ severity: 'warn', summary: this.i18n.t('common.messages.warning'), detail: this.i18n.t('warrantyClaims.messages.validationResolutionDetails') });
             return;
@@ -691,11 +706,13 @@ export class ClaimsListComponent implements OnInit {
             referenceNumber: '',
             notes: ''
         };
+        this.sendDefectiveSubmitted = false;
         this.showSendDefectiveDialog = true;
     }
 
     submitSendDefective(): void {
         if (!this.selectedClaim) return;
+        this.sendDefectiveSubmitted = true;
 
         const destination = this.sendDefectiveForm.partnerType === 'SELLER'
             ? this.getSupplierName(this.sendDefectiveForm.supplierId)
@@ -738,11 +755,13 @@ export class ClaimsListComponent implements OnInit {
             referenceNumber: '',
             notes: ''
         };
+        this.receiveReplacementSubmitted = false;
         this.showReceiveReplacementDialog = true;
     }
 
     submitReceiveReplacement(): void {
         if (!this.selectedClaim) return;
+        this.receiveReplacementSubmitted = true;
 
         const source = this.receiveReplacementForm.partnerType === 'SELLER'
             ? this.getSupplierName(this.receiveReplacementForm.supplierId)
@@ -971,6 +990,7 @@ export class ClaimsListComponent implements OnInit {
             serviceType: 'REPAIR',
             claimDate: new Date()
         };
+        this.createClaimSubmitted = false;
         this.showCreateDialog = true;
     }
 
@@ -991,6 +1011,7 @@ export class ClaimsListComponent implements OnInit {
     }
 
     createClaim(): void {
+        this.createClaimSubmitted = true;
         if (!this.selectedWarranty) {
             this.messageService.add({ severity: 'warn', summary: this.i18n.t('common.messages.warning'), detail: this.i18n.t('warrantyClaims.messages.validationSelectWarranty') });
             return;

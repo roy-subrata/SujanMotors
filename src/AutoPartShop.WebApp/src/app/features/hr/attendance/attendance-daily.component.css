@@ -8,7 +8,7 @@
 .col-notes       { min-width: 200px; }
 
 .marked-icon {
-  color: var(--color-success, #22c55e);
+  color: var(--color-success);
   margin-left: 0.5rem;
   font-size: 13px;
 }

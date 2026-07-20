@@ -6,14 +6,16 @@
    in assets/_data-page.scss and assets/styles.scss.
    ============================================================ */
 
-/* ── Domain-specific tokens (no global equivalent) ──────── */
+/* ── Domain-specific tokens — aliased to the app's dark-mode-aware
+   design tokens (assets/layout/_tokens.scss / _data-page.scss) so
+   cash-in/cash-out/balance colors flip correctly under .app-dark. ── */
 :host {
-  --color-in:            #16a34a;
-  --color-in-light:      #dcfce7;
-  --color-out:           #dc2626;
-  --color-out-light:     #fee2e2;
-  --color-balance-pos:   #1d4ed8;
-  --color-balance-neg:   #ea580c;
+  --color-in:            var(--green);
+  --color-in-light:      var(--green-bg);
+  --color-out:           var(--red);
+  --color-out-light:     var(--red-bg);
+  --color-balance-pos:   var(--color-info);
+  --color-balance-neg:   var(--amber);
 }
 
 /* ── Header additions (stat badges, toggle, title icon) ──── */
@@ -250,8 +252,8 @@
   padding: 11px 14px;
   border-bottom: 1px solid var(--color-border);
 }
-.split-header.in  { background: var(--color-in-light);  border-bottom-color: #bbf7d0; }
-.split-header.out { background: var(--color-out-light); border-bottom-color: #fecaca; }
+.split-header.in  { background: var(--color-in-light);  border-bottom-color: var(--color-in); }
+.split-header.out { background: var(--color-out-light); border-bottom-color: var(--color-out); }
 
 .split-title { display: flex; align-items: center; gap: 7px; font-weight: 600; font-size: 14px; }
 .split-header.in  .split-title { color: var(--color-in);  }

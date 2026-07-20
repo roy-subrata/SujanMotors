@@ -80,10 +80,13 @@ const FIELDS: FieldDef[] = [
 
           <div class="flex flex-col gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">Application Name</label>
+              <label class="block text-sm font-medium text-gray-600 mb-1"><span class="required">*</span> Application Name</label>
               <input pInputText formControlName="appName"
                 placeholder="e.g. Auto Part Shop" class="w-full" />
               <small class="text-gray-400">Shown in the browser tab, sidebar, login page, and storefront. Independent of the business name on documents.</small>
+              <small class="p-error block mt-1" *ngIf="form.get('appName')?.invalid && form.get('appName')?.touched">
+                Application name is required
+              </small>
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-600 mb-1">Application Logo URL</label>
@@ -112,7 +115,9 @@ const FIELDS: FieldDef[] = [
           <div class="flex flex-col gap-4">
             <ng-container *ngFor="let f of identityFields">
               <div>
-                <label class="block text-sm font-medium text-gray-600 mb-1">{{ f.label }}</label>
+                <label class="block text-sm font-medium text-gray-600 mb-1">
+                  <span class="required" *ngIf="f.control === 'name'">*</span> {{ f.label }}
+                </label>
                 <textarea *ngIf="f.type === 'textarea'"
                   pTextarea
                   [formControlName]="f.control"
@@ -127,6 +132,9 @@ const FIELDS: FieldDef[] = [
                   [type]="f.type === 'url' ? 'url' : 'text'"
                   class="w-full" />
                 <small class="text-gray-400">{{ f.hint }}</small>
+                <small class="p-error block mt-1" *ngIf="form.get(f.control)?.invalid && form.get(f.control)?.touched">
+                  {{ f.control === 'email' ? 'Enter a valid email address' : (f.label + ' is required') }}
+                </small>
               </div>
             </ng-container>
           </div>
@@ -223,7 +231,25 @@ const FIELDS: FieldDef[] = [
       </form>
       </div>
     </app-page-container>
-  `
+  `,
+  styles: [`
+    /* This page is built with Tailwind gray-scale utility classes, which are
+       static (they don't flip under the app's .app-dark class the way the
+       --color-* tokens from assets/_data-page.scss do). Re-point the neutral
+       text/background/border utilities actually used above at those tokens so
+       the page stays readable in dark mode; the section-icon accent colors
+       (indigo/blue/purple/green-500) are decorative and stay fixed.  */
+    :host ::ng-deep {
+      .text-gray-400 { color: var(--color-text-muted) !important; }
+      .text-gray-500 { color: var(--color-text-muted) !important; }
+      .text-gray-600 { color: var(--color-text-secondary) !important; }
+      .text-gray-700 { color: var(--color-text-primary) !important; }
+      .text-gray-800 { color: var(--color-text-primary) !important; }
+      .bg-white { background-color: var(--color-bg-primary) !important; }
+      .bg-gray-50 { background-color: var(--color-bg-secondary) !important; }
+      .border-gray-200 { border-color: var(--color-border) !important; }
+    }
+  `]
 })
 export class CompanyProfileComponent implements OnInit {
   private readonly settingsService = inject(AppSettingsService);
@@ -278,7 +304,10 @@ export class CompanyProfileComponent implements OnInit {
   }
 
   save(): void {
-    if (this.form.invalid) return;
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
     this.saving.set(true);
 
     const v = this.form.value;

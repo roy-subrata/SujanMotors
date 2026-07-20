@@ -23,23 +23,21 @@
       </div>
       <div class="header-actions">
         <button pButton type="button" icon="pi pi-arrow-left"
-          class="p-button-text p-button-sm" style="color:rgba(255,255,255,0.8); border:1px solid rgba(255,255,255,0.3);"
+          class="p-button-text p-button-sm"
           pTooltip="Back" tooltipPosition="bottom" (click)="cancel()">
         </button>
 
         <!-- View mode: lifecycle actions based on current status -->
         <ng-container *ngIf="mode() === 'view' && currentQuotation">
           <button pButton type="button" label="Download PDF" icon="pi pi-file-pdf"
-            class="p-button-sm p-button-help"
-            style="border:1px solid rgba(255,255,255,0.3);"
+            class="p-button-sm p-button-help"
             pTooltip="Download quotation PDF" tooltipPosition="bottom"
             (click)="downloadPdf()">
           </button>
 
           <button *ngIf="currentQuotation.status === 'DRAFT'"
             pButton type="button" label="Send to Customer" icon="pi pi-send"
-            class="p-button-sm p-button-info"
-            style="border:1px solid rgba(255,255,255,0.3);"
+            class="p-button-sm p-button-info"
             [loading]="processing()" [disabled]="processing()"
             pTooltip="Mark as Sent" tooltipPosition="bottom"
             (click)="sendQuotation()">
@@ -47,15 +45,13 @@
 
           <ng-container *ngIf="currentQuotation.status === 'SENT'">
             <button pButton type="button" label="Accept" icon="pi pi-check-circle"
-              class="p-button-sm p-button-success"
-              style="border:1px solid rgba(255,255,255,0.3);"
+              class="p-button-sm p-button-success"
               [loading]="processing()" [disabled]="processing()"
               pTooltip="Mark as Accepted" tooltipPosition="bottom"
               (click)="acceptQuotation()">
             </button>
             <button pButton type="button" label="Reject" icon="pi pi-times-circle"
-              class="p-button-sm p-button-danger"
-              style="border:1px solid rgba(255,255,255,0.3);"
+              class="p-button-sm p-button-danger"
               [loading]="processing()" [disabled]="processing()"
               pTooltip="Reject this quotation" tooltipPosition="bottom"
               (click)="rejectQuotation()">
@@ -64,8 +60,7 @@
 
           <button *ngIf="currentQuotation.status === 'ACCEPTED'"
             pButton type="button" label="Convert to Sales Order" icon="pi pi-arrow-right-arrow-left"
-            class="p-button-sm p-button-success"
-            style="border:1px solid rgba(255,255,255,0.3);"
+            class="p-button-sm p-button-success"
             [loading]="processing()" [disabled]="processing()"
             pTooltip="Create a Sales Order from this quotation" tooltipPosition="bottom"
             (click)="convertQuotation()">
@@ -75,8 +70,7 @@
         <!-- Create mode: save -->
         <button *ngIf="mode() === 'create'" pButton type="button"
           [label]="saving() ? 'Saving…' : 'Create'"
-          icon="pi pi-check" class="p-button-sm"
-          style="background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.4); color:#fff; font-weight:600;"
+          icon="pi pi-check" class="p-button-sm"
           [loading]="saving()" [disabled]="saving() || quotationForm.invalid"
           (click)="onSubmit()">
         </button>

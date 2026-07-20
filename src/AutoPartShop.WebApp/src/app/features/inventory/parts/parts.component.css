@@ -22,9 +22,9 @@
   padding: 6px 10px;
   border-radius: var(--radius-full);
   background-color: var(--color-success-light);
-  color: #047857;
+  color: var(--color-success);
   font-size: 12px;
   font-weight: 600;
 }
 
-.warranty-meta { font-size: 11px; color: #065F46; }
+.warranty-meta { font-size: 11px; color: var(--color-success); }

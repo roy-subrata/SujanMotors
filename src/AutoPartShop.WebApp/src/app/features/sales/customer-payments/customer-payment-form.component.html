@@ -86,10 +86,13 @@
             <ng-template let-customer>
               <div>
                 <div style="font-weight: 500;">{{ customer.firstName }} {{ customer.lastName }}</div>
-                <div style="font-size: 0.85rem; color: #666;">Code: {{ customer.customerCode }}</div>
+                <div style="font-size: 0.85rem; color: var(--color-text-secondary);">Code: {{ customer.customerCode }}</div>
               </div>
             </ng-template>
           </app-lazy-autocomplete>
+          <small *ngIf="form.get('customerId')?.invalid && form.get('customerId')?.touched" class="p-error">
+            Customer is required
+          </small>
         </div>
         <div class="form-group">
           <label>Payment Provider *</label>
@@ -105,10 +108,13 @@
             <ng-template let-provider>
               <div>
                 <div style="font-weight: 500;">{{ provider.providerName }}</div>
-                <div style="font-size: 0.85rem; color: #666;">{{ provider.providerType }}</div>
+                <div style="font-size: 0.85rem; color: var(--color-text-secondary);">{{ provider.providerType }}</div>
               </div>
             </ng-template>
           </app-lazy-autocomplete>
+          <small *ngIf="form.get('paymentProviderId')?.invalid && form.get('paymentProviderId')?.touched" class="p-error">
+            Payment provider is required
+          </small>
         </div>
       </div>
 
@@ -117,6 +123,9 @@
           <label>Amount *</label>
           <p-inputNumber formControlName="amount" mode="currency" [currency]="currencyCode" [locale]="currencyLocale" placeholder="0.00"
             [readonly]="isEditing"></p-inputNumber>
+          <small *ngIf="form.get('amount')?.invalid && form.get('amount')?.touched" class="p-error">
+            Amount must be at least 0.01
+          </small>
         </div>
         <div class="form-group">
           <label>Payment Fee</label>
@@ -146,9 +155,12 @@
               </div>
             </ng-template>
           </p-select>
+          <small *ngIf="form.get('paymentMethod')?.invalid && form.get('paymentMethod')?.touched" class="p-error">
+            Payment method is required
+          </small>
         </div>
         <div class="form-group">
-          <label>Payment Date *</label>
+          <label>Payment Date</label>
           <p-datepicker formControlName="paymentDate" dateFormat="dd-M-yy" placeholder="Select date"
             [disabled]="isEditing">
           </p-datepicker>
@@ -169,7 +181,7 @@
             <ng-template let-invoice pTemplate="item">
               <div *ngIf="invoice">
                 <div style="font-weight: 500;">{{ invoice.invoiceNumber }}</div>
-                <div style="font-size: 0.85rem; color: #666;">Amount: {{ invoice.grandTotal | appCurrency }}</div>
+                <div style="font-size: 0.85rem; color: var(--color-text-secondary);">Amount: {{ invoice.grandTotal | appCurrency }}</div>
               </div>
             </ng-template>
           </p-select>

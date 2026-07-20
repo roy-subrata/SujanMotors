@@ -73,15 +73,18 @@
     <div class="dialog-field">
       <label>Shift Name <span class="required">*</span></label>
       <input pInputText [(ngModel)]="form.name" placeholder="e.g., Morning 9-6" />
+      <small class="p-error" *ngIf="submitted && !form.name.trim()">Shift name is required</small>
     </div>
     <div class="dialog-row">
       <div class="dialog-field">
         <label>Start Time <span class="required">*</span></label>
         <input type="time" class="time-input" [(ngModel)]="form.startTime" />
+        <small class="p-error" *ngIf="submitted && !form.startTime">Start time is required</small>
       </div>
       <div class="dialog-field">
         <label>End Time <span class="required">*</span></label>
         <input type="time" class="time-input" [(ngModel)]="form.endTime" />
+        <small class="p-error" *ngIf="submitted && !form.endTime">End time is required</small>
       </div>
     </div>
     <div class="dialog-field">

@@ -18,14 +18,13 @@
       </div>
       <div class="header-actions">
         <button pButton type="button" icon="pi pi-arrow-left"
-          class="p-button-text p-button-sm" style="color:rgba(255,255,255,0.8); border:1px solid rgba(255,255,255,0.3);"
+          class="p-button-text p-button-sm"
           pTooltip="Back" tooltipPosition="bottom" (click)="cancel()">
         </button>
 
         <button pButton type="button"
           [label]="saving() ? 'Saving…' : 'Create'"
           icon="pi pi-check" class="p-button-sm"
-          style="background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.4); color:#fff; font-weight:600;"
           [loading]="saving()" [disabled]="saving() || debitNoteForm.invalid || !selectedCustomerId"
           (click)="onSubmit()">
         </button>
@@ -124,6 +123,9 @@
           <div class="form-group">
             <label>Currency *</label>
             <app-currency-selector formControlName="currency" [showLabel]="false"></app-currency-selector>
+            <small class="error-text" *ngIf="debitNoteForm.get('currency')?.invalid && debitNoteForm.get('currency')?.touched">
+              Currency is required
+            </small>
           </div>
         </div>
 

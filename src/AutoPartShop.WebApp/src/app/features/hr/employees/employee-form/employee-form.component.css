@@ -289,8 +289,8 @@
   border-radius: 50%;
   overflow: hidden;
   flex-shrink: 0;
-  background: var(--surface-100, #f1f5f9);
-  border: 2px solid var(--surface-border, #e2e8f0);
+  background: var(--color-bg-secondary);
+  border: 2px solid var(--color-border);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -304,13 +304,13 @@
 
 .photo-avatar > .pi-user {
   font-size: 2rem;
-  color: var(--text-color-secondary, #94a3b8);
+  color: var(--color-text-secondary);
 }
 
 .photo-uploading {
   position: absolute;
   inset: 0;
-  background: rgba(255, 255, 255, 0.7);
+  background: color-mix(in srgb, var(--color-bg-primary) 70%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;

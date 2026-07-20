@@ -5,8 +5,8 @@
    ============================================================ */
 
 /* Expired row highlight */
-.app-table .p-datatable-tbody > tr.row-overdue { background-color: #FEF2F2; }
-.app-table .p-datatable-tbody > tr.row-overdue:hover { background-color: #FEE2E2 !important; }
+.app-table .p-datatable-tbody > tr.row-overdue { background-color: var(--color-danger-light); }
+.app-table .p-datatable-tbody > tr.row-overdue:hover { background-color: var(--color-danger-light) !important; }
 
 /* Column widths */
 .col-proforma { min-width: 150px; }
@@ -56,7 +56,7 @@
 
 .order-card.card-overdue {
   border-left: 4px solid var(--color-danger);
-  background-color: #FFFBFB;
+  background-color: var(--color-danger-light);
 }
 
 .card-customer {
@@ -66,6 +66,6 @@
 }
 
 /* Proforma status pill colours (base pill styling is global) */
-.status-pill[data-status="issued"]     { background-color: var(--color-success-light); color: #047857; }
-.status-pill[data-status="expired"]    { background-color: var(--color-warning-light); color: #B45309; }
+.status-pill[data-status="issued"]     { background-color: var(--color-success-light); color: var(--color-success); }
+.status-pill[data-status="expired"]    { background-color: var(--color-warning-light); color: var(--color-warning); }
 .status-pill[data-status="superseded"] { background-color: var(--color-bg-tertiary); color: var(--color-text-secondary); }

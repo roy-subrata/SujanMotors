@@ -60,6 +60,7 @@ export class SalaryAdvancesComponent implements OnInit {
 
     dialogVisible = false;
     saving = false;
+    submitted = false;
     employees: EmployeeResponse[] = [];
     form = this.emptyForm();
 
@@ -140,6 +141,7 @@ export class SalaryAdvancesComponent implements OnInit {
     }
 
     openGive(): void {
+        this.submitted = false;
         this.form = this.emptyForm();
         if (this.employees.length === 0) {
             this.employeeService.getAllEmployees().subscribe({
@@ -151,6 +153,7 @@ export class SalaryAdvancesComponent implements OnInit {
     }
 
     giveAdvance(): void {
+        this.submitted = true;
         if (!this.form.employeeId || !this.form.amount || this.form.amount <= 0) {
             this.messageService.add({
                 severity: 'warn',
