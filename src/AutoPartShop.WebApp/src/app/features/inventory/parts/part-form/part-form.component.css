@@ -84,7 +84,7 @@
 }
 
 .pf-section-badge-gray {
-  background: var(--surface-100);
+  background: var(--surface-ground);
   color: var(--text-color-secondary);
   border-color: var(--surface-border);
 }
@@ -150,7 +150,7 @@
 
 .pf-tag {
   font-size: 0.72rem;
-  background: var(--surface-100);
+  background: var(--surface-ground);
   border: 1px solid var(--surface-border);
   border-radius: 3px;
   padding: 0 5px;
@@ -170,7 +170,7 @@
 .pf-ac-code {
   font-size: 0.75rem;
   color: var(--text-color-secondary);
-  background: var(--surface-100);
+  background: var(--surface-ground);
   border-radius: 3px;
   padding: 0 4px;
 }
@@ -190,18 +190,18 @@
 .pf-callout i { flex-shrink: 0; margin-top: 1px; }
 
 .pf-callout-blue {
-  background: #EFF6FF;
-  border: 1px solid #BFDBFE;
-  color: #1D4ED8;
+  background: var(--color-info-light);
+  border: 1px solid var(--color-info);
+  color: var(--color-info);
 }
-.pf-callout-blue i { color: #3B82F6; }
+.pf-callout-blue i { color: var(--color-info); }
 
 .pf-callout-green {
-  background: #F0FDF4;
-  border: 1px solid #BBF7D0;
-  color: #15803D;
+  background: var(--color-success-light);
+  border: 1px solid var(--color-success);
+  color: var(--color-success);
 }
-.pf-callout-green i { color: #22C55E; }
+.pf-callout-green i { color: var(--color-success); }
 
 /* ── Checkboxes ─────────────────────────────────────────────────── */
 .pf-checkbox-row {
@@ -239,7 +239,7 @@
 
 .pf-slug-prefix {
   padding: 0.5rem 0.7rem;
-  background: var(--surface-100);
+  background: var(--surface-ground);
   color: var(--text-color-secondary);
   font-size: 0.83rem;
   border-right: 1px solid var(--surface-border);
@@ -255,7 +255,7 @@
 
 /* ── Char count ─────────────────────────────────────────────────── */
 .pf-char-count { transition: color 0.2s; }
-.pf-char-warn { color: var(--orange-600) !important; }
+.pf-char-warn { color: var(--color-warning) !important; }
 
 /* ── Warranty select ────────────────────────────────────────────── */
 .pf-select {

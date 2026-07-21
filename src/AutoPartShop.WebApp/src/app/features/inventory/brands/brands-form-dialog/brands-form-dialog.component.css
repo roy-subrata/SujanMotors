@@ -18,7 +18,7 @@
 }
 
 .required {
-  color: #ef4444;
+  color: var(--color-danger);
   margin-right: 0.25rem;
 }
 
@@ -35,8 +35,8 @@
 
 .form-input:focus {
   outline: none;
-  border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
 }
 
 .form-input:disabled {
@@ -120,7 +120,7 @@
 
 /* Validation error text */
 .form-error {
-  color: #ef4444;
+  color: var(--color-danger);
   font-size: 0.75rem;
   margin-top: 2px;
 }

@@ -302,6 +302,7 @@
           appendTo="body"
           >
         </p-select>
+        <small *ngIf="isInvalid('update', 'type')" class="error-message">Type is required</small>
       </div>
 
       <div class="form-group">

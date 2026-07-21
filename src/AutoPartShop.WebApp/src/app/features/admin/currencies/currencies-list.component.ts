@@ -309,6 +309,9 @@ import { PageHeaderComponent } from '@/shared/components/page-header/page-header
         font-weight: 600;
       }
 
+      /* Tailwind gray utility is static and doesn't flip under .app-dark. */
+      .text-gray-500 { color: var(--color-text-muted) !important; }
+
       .currency-dialog {
         .p-dialog-content {
           padding: 1.5rem;
@@ -339,12 +342,12 @@ import { PageHeaderComponent } from '@/shared/components/page-header/page-header
         }
 
         .p-error {
-          color: #dc3545;
+          color: var(--red);
           font-size: 0.875rem;
         }
 
         .p-invalid {
-          border-color: #dc3545;
+          border-color: var(--red);
         }
       }
     }

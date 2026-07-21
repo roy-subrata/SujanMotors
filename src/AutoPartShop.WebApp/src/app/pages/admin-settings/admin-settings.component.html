@@ -265,10 +265,10 @@
             <div class="price-code-section">
             <!-- Header -->
             <div class="price-code-header">
-              <i class="pi pi-lock" style="font-size: 1.75rem; color: #6366f1;"></i>
+              <i class="pi pi-lock" style="font-size: 1.75rem; color: var(--color-primary);"></i>
               <div>
                 <h3 style="margin: 0; font-size: 1.15rem; font-weight: 600;">Price Code Configuration</h3>
-                <p style="margin: 0.25rem 0 0; color: #6b7280; font-size: 0.875rem;">
+                <p style="margin: 0.25rem 0 0; color: var(--color-text-muted); font-size: 0.875rem;">
                   Encode cost prices using a secret word. Each of the 10 letters maps to a digit (1–9, 0). Only users who know the word can read the price.
                 </p>
               </div>
@@ -286,11 +286,11 @@
                     maxlength="10"
                     placeholder="e.g. SUJANMOTER"
                     style="text-transform: uppercase; letter-spacing: 0.15em; font-weight: 600; font-size: 1.1rem;" />
-                  <small style="color: #6b7280; display: block; margin-top: 0.35rem;">
+                  <small style="color: var(--color-text-muted); display: block; margin-top: 0.35rem;">
                     Each letter represents a digit: 1st→1, 2nd→2, ... 10th→0. Length: {{ priceCodeWord.length }}/10
                   </small>
                   @if (priceCodeWord.length > 0 && !getPriceCodeValidation().valid) {
-                    <small style="color: #ef4444; display: block; margin-top: 0.25rem;">
+                    <small style="color: var(--color-danger); display: block; margin-top: 0.25rem;">
                       <i class="pi pi-exclamation-circle" style="font-size: 0.75rem;"></i>
                       {{ getPriceCodeValidation().error }}
                     </small>
@@ -299,22 +299,22 @@
 
                 <div class="prefix-suffix-row">
                   <div class="form-field">
-                    <label for="priceCodePrefix">Prefix <span style="color: #9ca3af; font-weight: normal;">(optional)</span></label>
+                    <label for="priceCodePrefix">Prefix <span style="color: var(--color-text-muted); font-weight: normal;">(optional)</span></label>
                     <input pInputText id="priceCodePrefix"
                       [(ngModel)]="priceCodePrefix"
                       class="w-full"
                       maxlength="5"
                       placeholder="e.g. #, *, XX" />
-                    <small style="color: #6b7280; display: block; margin-top: 0.25rem;">Prepended to encoded price</small>
+                    <small style="color: var(--color-text-muted); display: block; margin-top: 0.25rem;">Prepended to encoded price</small>
                   </div>
                   <div class="form-field">
-                    <label for="priceCodeSuffix">Suffix <span style="color: #9ca3af; font-weight: normal;">(optional)</span></label>
+                    <label for="priceCodeSuffix">Suffix <span style="color: var(--color-text-muted); font-weight: normal;">(optional)</span></label>
                     <input pInputText id="priceCodeSuffix"
                       [(ngModel)]="priceCodeSuffix"
                       class="w-full"
                       maxlength="5"
                       placeholder="e.g. /, **, ZZ" />
-                    <small style="color: #6b7280; display: block; margin-top: 0.25rem;">Appended to encoded price</small>
+                    <small style="color: var(--color-text-muted); display: block; margin-top: 0.25rem;">Appended to encoded price</small>
                   </div>
                 </div>
 
@@ -338,14 +338,14 @@
               <div class="price-code-preview-panel">
                 @if (getPriceCodeValidation().valid) {
                   <div class="price-code-preview">
-                    <h4 style="margin: 0 0 0.75rem; font-size: 0.95rem; color: #374151; font-weight: 600;">
-                      <i class="pi pi-table" style="margin-right: 0.4rem; color: #6366f1;"></i>Digit → Letter Mapping
+                    <h4 style="margin: 0 0 0.75rem; font-size: 0.95rem; color: var(--color-text-primary); font-weight: 600;">
+                      <i class="pi pi-table" style="margin-right: 0.4rem; color: var(--color-primary);"></i>Digit → Letter Mapping
                     </h4>
                     <div class="preview-mapping">
                       @for (digit of [1,2,3,4,5,6,7,8,9,0]; track digit) {
                         <div class="mapping-item">
                           <span class="digit">{{ digit }}</span>
-                          <i class="pi pi-arrow-right" style="font-size: 0.65rem; color: #9ca3af;"></i>
+                          <i class="pi pi-arrow-right" style="font-size: 0.65rem; color: var(--color-text-muted);"></i>
                           <span class="letter">{{ priceCodeWord[digit === 0 ? 9 : digit - 1]?.toUpperCase() }}</span>
                         </div>
                       }
@@ -356,7 +356,7 @@
                     </div>
                   </div>
                 } @else {
-                  <div class="price-code-preview" style="display: flex; align-items: center; justify-content: center; min-height: 180px; color: #9ca3af;">
+                  <div class="price-code-preview" style="display: flex; align-items: center; justify-content: center; min-height: 180px; color: var(--color-text-muted);">
                     <div style="text-align: center;">
                       <i class="pi pi-eye-slash" style="font-size: 2rem; display: block; margin-bottom: 0.5rem;"></i>
                       <span style="font-size: 0.9rem;">Enter a valid 10-letter word to see the preview</span>
@@ -369,12 +369,12 @@
             <!-- Status bar -->
             @if (priceCodeService.isConfigured()) {
               <div class="price-code-status">
-                <i class="pi pi-check-circle" style="color: #22c55e;"></i>
+                <i class="pi pi-check-circle" style="color: var(--color-success);"></i>
                 <span>Price code is <strong>active</strong>. Cost prices are displayed as encoded letters across all inventory views.</span>
               </div>
             } @else {
               <div class="price-code-status inactive">
-                <i class="pi pi-info-circle" style="color: #f59e0b;"></i>
+                <i class="pi pi-info-circle" style="color: var(--color-warning);"></i>
                 <span>No price code configured. Cost prices are shown as plain numbers.</span>
               </div>
             }
@@ -388,17 +388,17 @@
           <div class="price-code-section">
 
             <div class="price-code-header">
-              <i class="pi pi-bell" style="font-size: 1.75rem; color: #6366f1;"></i>
+              <i class="pi pi-bell" style="font-size: 1.75rem; color: var(--color-primary);"></i>
               <div>
                 <h3 style="margin: 0; font-size: 1.15rem; font-weight: 600;">Notification Channels</h3>
-                <p style="margin: 0.25rem 0 0; color: #6b7280; font-size: 0.875rem;">
+                <p style="margin: 0.25rem 0 0; color: var(--color-text-muted); font-size: 0.875rem;">
                   Enable or disable outbound notification channels. Changes take effect immediately — no restart required.
                 </p>
               </div>
             </div>
 
             @if (notifLoading()) {
-              <div style="padding: 2rem; text-align: center; color: #9ca3af;">
+              <div style="padding: 2rem; text-align: center; color: var(--color-text-muted);">
                 <i class="pi pi-spin pi-spinner" style="font-size: 1.5rem;"></i>
               </div>
             } @else {
@@ -421,7 +421,7 @@
 
                 <!-- WhatsApp -->
                 <div class="notif-channel-card" [class.notif-channel-active]="notifSettings().whatsAppEnabled">
-                  <div class="notif-channel-icon" style="background: #dcfce7; color: #16a34a;">
+                  <div class="notif-channel-icon" style="background: var(--green-bg); color: var(--green);">
                     <i class="pi pi-comments"></i>
                   </div>
                   <div class="notif-channel-info">
@@ -437,7 +437,7 @@
                 <!-- SignalR role filter -->
                 <div class="notif-channel-card" style="flex-direction: column; align-items: flex-start; gap: 0.75rem;">
                   <div style="display: flex; align-items: center; gap: 0.75rem; width: 100%;">
-                    <div class="notif-channel-icon" style="background: #ede9fe; color: #7c3aed;">
+                    <div class="notif-channel-icon" style="background: color-mix(in srgb, #7c3aed 12%, transparent); color: #7c3aed;">
                       <i class="pi pi-wifi"></i>
                     </div>
                     <div class="notif-channel-info">
@@ -468,7 +468,7 @@
               </div>
 
               <div class="price-code-status" style="margin-top: 1.25rem;">
-                <i class="pi pi-info-circle" style="color: #6366f1;"></i>
+                <i class="pi pi-info-circle" style="color: var(--color-primary);"></i>
                 <span>Email notifications are always active and cannot be disabled here.</span>
               </div>
             }
@@ -488,31 +488,46 @@
       <div class="dialog-form">
         <div class="form-row">
           <div class="form-field">
-            <label for="username">Username</label>
+            <label for="username"><span class="required">*</span> Username</label>
             <input pInputText id="username" formControlName="username" class="w-full" placeholder="Enter username" />
+            <small class="p-error" *ngIf="userForm.get('username')?.touched && userForm.get('username')?.invalid">
+              Username is required (min 3 characters)
+            </small>
           </div>
           <div class="form-field">
-            <label for="email">Email</label>
+            <label for="email"><span class="required">*</span> Email</label>
             <input pInputText id="email" type="email" formControlName="email" class="w-full" placeholder="user@example.com" />
+            <small class="p-error" *ngIf="userForm.get('email')?.touched && userForm.get('email')?.invalid">
+              A valid email is required
+            </small>
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-field">
-            <label for="firstName">First Name</label>
+            <label for="firstName"><span class="required">*</span> First Name</label>
             <input pInputText id="firstName" formControlName="firstName" class="w-full" placeholder="First name" />
+            <small class="p-error" *ngIf="userForm.get('firstName')?.touched && userForm.get('firstName')?.invalid">
+              First name is required
+            </small>
           </div>
           <div class="form-field">
-            <label for="lastName">Last Name</label>
+            <label for="lastName"><span class="required">*</span> Last Name</label>
             <input pInputText id="lastName" formControlName="lastName" class="w-full" placeholder="Last name" />
+            <small class="p-error" *ngIf="userForm.get('lastName')?.touched && userForm.get('lastName')?.invalid">
+              Last name is required
+            </small>
           </div>
         </div>
 
         @if (!editingUser()) {
           <div class="form-field">
-            <label for="password">Password</label>
+            <label for="password"><span class="required">*</span> Password</label>
             <p-password id="password" formControlName="password" [toggleMask]="true"
               styleClass="w-full" [inputStyle]="{width: '100%'}" placeholder="Minimum 8 characters"></p-password>
+            <small class="p-error" *ngIf="userForm.get('password')?.touched && userForm.get('password')?.invalid">
+              Password is required (min 8 characters)
+            </small>
           </div>
         }
 
@@ -538,8 +553,11 @@
     <form [formGroup]="roleForm" (ngSubmit)="saveRole()">
       <div class="dialog-form">
         <div class="form-field">
-          <label for="roleName">Role Name</label>
+          <label for="roleName"><span class="required">*</span> Role Name</label>
           <input pInputText id="roleName" formControlName="name" class="w-full" placeholder="e.g. Manager, Cashier" />
+          <small class="p-error" *ngIf="roleForm.get('name')?.touched && roleForm.get('name')?.invalid">
+            Role name is required
+          </small>
         </div>
 
         <div class="form-field">
@@ -572,22 +590,31 @@
       <div class="dialog-form">
         <div class="form-row">
           <div class="form-field">
-            <label for="permissionName">Permission Name (code)</label>
+            <label for="permissionName"><span class="required">*</span> Permission Name (code)</label>
             <input pInputText id="permissionName" formControlName="name" class="w-full"
               placeholder="e.g., users.create" />
+            <small class="p-error" *ngIf="permissionForm.get('name')?.touched && permissionForm.get('name')?.invalid">
+              Permission code is required
+            </small>
           </div>
           <div class="form-field">
-            <label for="displayName">Display Name</label>
+            <label for="displayName"><span class="required">*</span> Display Name</label>
             <input pInputText id="displayName" formControlName="displayName" class="w-full"
               placeholder="e.g., Create Users" />
+            <small class="p-error" *ngIf="permissionForm.get('displayName')?.touched && permissionForm.get('displayName')?.invalid">
+              Display name is required
+            </small>
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-field">
-            <label for="category">Category</label>
+            <label for="category"><span class="required">*</span> Category</label>
             <input pInputText id="category" formControlName="category" class="w-full"
               placeholder="e.g., User Management" />
+            <small class="p-error" *ngIf="permissionForm.get('category')?.touched && permissionForm.get('category')?.invalid">
+              Category is required
+            </small>
           </div>
           <div class="form-field">
             <label for="permissionDescription">Description</label>

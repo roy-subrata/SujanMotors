@@ -32,8 +32,15 @@
 
 .error {
   display: block;
-  color: #dc3545;
+  color: var(--color-danger);
   font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+.hint {
+  display: block;
+  color: var(--text-color-secondary, #6c757d);
+  font-size: 0.8125rem;
   margin-top: 0.25rem;
 }
 

@@ -12,9 +12,7 @@
             <tr>
                 <th style="width: 30px"></th>
                 <th>Warehouse</th>
-                <th>Section</th>
-                <th>Shelf</th>
-                <th>Full Location</th>
+                <th>Bin</th>
                 <th>Notes</th>
                 <th style="width: 100px">Actions</th>
             </tr>
@@ -29,16 +27,8 @@
                     {{ location.warehouseName }} ({{ location.warehouseCode }})
                 </td>
                 <td>
-                    <span class="p-column-title">Section</span>
-                    {{ location.section }}
-                </td>
-                <td>
-                    <span class="p-column-title">Shelf</span>
-                    {{ location.shelf }}
-                </td>
-                <td>
-                    <span class="p-column-title">Full Location</span>
-                    <strong>{{ location.fullLocation }}</strong>
+                    <span class="p-column-title">Bin</span>
+                    <strong>{{ location.locationCode }}</strong>
                 </td>
                 <td>
                     <span class="p-column-title">Notes</span>
@@ -71,7 +61,7 @@
         </ng-template>
         <ng-template pTemplate="emptymessage">
             <tr>
-                <td colspan="7" class="text-center">No locations found. Click "Add Location" to create one.</td>
+                <td colspan="5" class="text-center">No locations found. Click "Add Location" to create one.</td>
             </tr>
         </ng-template>
     </p-table>
@@ -89,7 +79,7 @@
                 optionLabel="name"
                 optionValue="id"
                 placeholder="Select a warehouse"
-                [disabled]="isEditing || isSubmitting"
+                [disabled]="isSubmitting"
                 [style]="{ width: '100%' }"
             >
                 <ng-template let-warehouse pTemplate="item">
@@ -100,15 +90,26 @@
         </div>
 
         <div class="form-group">
-            <label for="section">Section / Aisle *</label>
-            <input id="section" type="text" pInputText formControlName="section" class="w-full" [disabled]="isSubmitting" />
-            <small class="error" *ngIf="hasError('section')">Section is required and must not exceed 100 characters</small>
-        </div>
-
-        <div class="form-group">
-            <label for="shelf">Shelf / Bin *</label>
-            <input id="shelf" type="text" pInputText formControlName="shelf" class="w-full" [disabled]="isSubmitting" />
-            <small class="error" *ngIf="hasError('shelf')">Shelf is required and must not exceed 100 characters</small>
+            <label for="warehouseLocationId">Bin *</label>
+            <p-select
+                id="warehouseLocationId"
+                formControlName="warehouseLocationId"
+                [options]="warehouseLocations"
+                optionLabel="locationCode"
+                optionValue="id"
+                [loading]="loadingWarehouseLocations"
+                [placeholder]="locationForm.value.warehouseId ? 'Select a bin' : 'Select a warehouse first'"
+                [disabled]="!locationForm.value.warehouseId || isSubmitting"
+                [style]="{ width: '100%' }"
+            >
+                <ng-template let-loc pTemplate="item">
+                    <div>{{ loc.locationCode }}<span *ngIf="loc.categoryName"> &middot; {{ loc.categoryName }}</span></div>
+                </ng-template>
+            </p-select>
+            <small class="error" *ngIf="hasError('warehouseLocationId')">Bin is required</small>
+            <small *ngIf="locationForm.value.warehouseId && !loadingWarehouseLocations && warehouseLocations.length === 0" class="hint">
+                No bins exist in this warehouse yet — create one under Inventory &rsaquo; Warehouse Locations first.
+            </small>
         </div>
 
         <div class="form-group">

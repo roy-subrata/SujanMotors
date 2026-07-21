@@ -1,7 +1,7 @@
 /* Page-specific only — header/search/table chrome comes from the global
    data-page design system (.page-header, .filter-section, .app-table, etc.). */
 .text-secondary {
-  color: #999;
+  color: var(--color-text-secondary);
 }
 
 :host ::ng-deep .p-tag {

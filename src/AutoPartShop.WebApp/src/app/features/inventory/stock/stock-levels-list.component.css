@@ -8,24 +8,24 @@
   padding: 0.05rem 0.45rem;
   font-size: 0.7rem;
   font-weight: 600;
-  color: #2563eb;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
+  color: var(--color-info);
+  background: var(--color-info-light);
+  border: 1px solid var(--color-info);
   border-radius: 999px;
   vertical-align: middle;
   white-space: nowrap;
 }
 
 .text-gray-500 {
-  color: #6b7280;
+  color: var(--text-color-secondary);
 }
 
 .text-gray-600 {
-  color: #666;
+  color: var(--text-color-secondary);
 }
 
 .text-orange-600 {
-  color: #ea580c;
+  color: var(--color-warning);
 }
 
 .text-right {

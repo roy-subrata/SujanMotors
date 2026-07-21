@@ -8,9 +8,15 @@
   padding: 24px;
 }
 
-/* ── Card ── */
+/* ── Card ──
+   Colors reference the app's own theme tokens (assets/layout/_tokens.scss:
+   --surface/--text/--border/etc.), which already flip under `.app-dark` —
+   same mechanism every other themed page uses, so this page never needs its
+   own duplicate dark-mode block. The purple/red brand gradients below are
+   decorative accents (not text/surface colors) and are left as-is; they read
+   fine against both a light and a dark card. */
 .ul-card {
-  background: #fff;
+  background: var(--surface);
   border-radius: 20px;
   padding: 40px 40px 32px;
   width: 100%;
@@ -50,14 +56,14 @@
 .ul-logo-title {
   font-weight: 700;
   font-size: 18px;
-  color: #1a202c;
+  color: var(--text);
   display: block;
   line-height: 1.2;
 }
 
 .ul-logo-sub {
   font-size: 11px;
-  color: #a0aec0;
+  color: var(--text3);
   display: block;
   text-transform: uppercase;
   letter-spacing: 0.07em;
@@ -67,22 +73,22 @@
 .ul-heading {
   font-size: 22px;
   font-weight: 700;
-  color: #1a202c;
+  color: var(--text);
   margin: 0 0 6px;
 }
 
 .ul-sub {
   font-size: 13px;
-  color: #718096;
+  color: var(--text2);
   margin: 0 0 22px;
   line-height: 1.5;
 }
 
 /* ── Error banner ── */
 .ul-error {
-  background: #fff5f5;
-  border: 1.5px solid #fc8181;
-  color: #c53030;
+  background: var(--red-bg);
+  border: 1.5px solid var(--red);
+  color: var(--red);
   padding: 10px 14px;
   border-radius: 9px;
   font-size: 13px;
@@ -107,7 +113,14 @@
 .ul-field label {
   font-size: 13px;
   font-weight: 600;
-  color: #374151;
+  color: var(--text);
+}
+
+/* Required-field marker — matches the app-wide `.required` convention
+   (assets/styles.scss) used for form fields elsewhere. */
+.ul-field label .ul-required {
+  color: var(--red);
+  margin-left: 2px;
 }
 
 /* Input with icon */
@@ -116,7 +129,7 @@
 .ul-input-icon {
   position: absolute;
   left: 13px;
-  color: #a0aec0;
+  color: var(--text3);
   font-size: 14px;
   pointer-events: none;
 }
@@ -124,11 +137,11 @@
 .ul-input-wrap input {
   width: 100%;
   padding: 11px 40px 11px 38px;
-  border: 1.5px solid #e2e8f0;
+  border: 1.5px solid var(--border);
   border-radius: 9px;
   font-size: 14px;
-  color: #1a202c;
-  background: #fafafa;
+  color: var(--text);
+  background: var(--surface2);
   box-sizing: border-box;
   transition: border-color 0.18s, background 0.18s, box-shadow 0.18s;
 }
@@ -136,18 +149,18 @@
 .ul-input-wrap input:focus {
   outline: none;
   border-color: #667eea;
-  background: #fff;
+  background: var(--surface);
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
 }
 
-.ul-input-wrap input.ul-input-error { border-color: #fc8181; background: #fff5f5; }
+.ul-input-wrap input.ul-input-error { border-color: var(--red); background: var(--red-bg); }
 
 .ul-toggle-pw {
   position: absolute;
   right: 12px;
   background: none;
   border: none;
-  color: #a0aec0;
+  color: var(--text3);
   cursor: pointer;
   padding: 4px;
   display: flex;
@@ -155,9 +168,9 @@
   font-size: 14px;
   transition: color 0.15s;
 }
-.ul-toggle-pw:hover { color: #718096; }
+.ul-toggle-pw:hover { color: var(--text2); }
 
-.ul-field-error { font-size: 12px; color: #e53e3e; }
+.ul-field-error { font-size: 12px; color: var(--red); }
 
 /* ── Remember me ── */
 .ul-remember { margin-top: -4px; }
@@ -167,7 +180,7 @@
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  color: #4a5568;
+  color: var(--text2);
   cursor: pointer;
   user-select: none;
 }
@@ -217,7 +230,7 @@
   gap: 6px;
   margin-top: 22px;
   font-size: 13px;
-  color: #718096;
+  color: var(--text2);
 }
 
 .ul-footer a {
@@ -230,7 +243,7 @@
   transition: color 0.15s;
 }
 .ul-footer a:hover { color: #764ba2; text-decoration: underline; }
-.ul-sep { color: #cbd5e0; }
+.ul-sep { color: var(--border); }
 
 /* ── Responsive ── */
 @media (max-width: 480px) {

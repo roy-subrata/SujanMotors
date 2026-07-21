@@ -260,8 +260,8 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
       }
 
       .p-inputtext:focus {
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px var(--color-primary-light);
+        border-color: var(--color-primary);
       }
 
       .p-datepicker-trigger {
@@ -332,14 +332,13 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
     }
 
     .btn-search {
-      background: #3b82f6;
-      border-color: #3b82f6;
+      background: var(--color-info);
+      border-color: var(--color-info);
       color: #fff;
     }
 
     .btn-search:hover {
-      background: #2563eb;
-      border-color: #2563eb;
+      opacity: 0.88;
     }
 
     .btn-clear {
@@ -379,15 +378,15 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
       gap: 0.375rem;
       padding: 0.25rem 0.5rem;
       border-radius: 9999px;
-      background: rgba(37, 99, 235, 0.1);
-      color: #1d4ed8;
+      background: var(--color-info-light);
+      color: var(--color-info);
       font-size: 0.75rem;
       font-weight: 600;
     }
 
     .filter-chip i {
       cursor: pointer;
-      color: #1d4ed8;
+      color: var(--color-info);
     }
 
     @media (max-width: 768px) {
@@ -444,15 +443,15 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
     }
 
     .text-green {
-      color: #059669;
+      color: var(--color-success);
     }
 
     .text-red {
-      color: #dc2626;
+      color: var(--color-danger);
     }
 
     .text-orange {
-      color: #ea580c;
+      color: var(--color-warning);
     }
 
     /* Dual Unit Display Styles */

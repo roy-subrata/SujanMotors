@@ -79,19 +79,19 @@
 }
 
 .text-gray-600 {
-  color: #4b5563;
+  color: var(--text-color-secondary);
 }
 
 .text-gray-500 {
-  color: #6b7280;
+  color: var(--text-color-secondary);
 }
 
 .text-green-600 {
-  color: #16a34a;
+  color: var(--color-success);
 }
 
 .text-red-600 {
-  color: #dc2626;
+  color: var(--color-danger);
 }
 
 .text-right {
@@ -131,11 +131,11 @@
 }
 
 .stat-value.text-green {
-  color: #16a34a;
+  color: var(--color-success);
 }
 
 .stat-value.text-red {
-  color: #dc2626;
+  color: var(--color-danger);
 }
 
 .insights-section {
@@ -250,6 +250,6 @@
 .coded-price {
   font-family: 'Courier New', monospace;
   letter-spacing: 0.1em;
-  color: #6366f1 !important;
+  color: var(--color-primary) !important;
   font-weight: 600;
 }

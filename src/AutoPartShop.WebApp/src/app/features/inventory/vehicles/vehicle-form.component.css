@@ -44,7 +44,7 @@
 
 .form-field label.required::after {
   content: ' *';
-  color: #e24c4c;
+  color: var(--color-danger);
 }
 
 .form-field input,
@@ -77,13 +77,13 @@
 }
 
 .p-error {
-  color: #e24c4c;
+  color: var(--color-danger);
   font-size: 0.875rem;
   margin-top: 0.25rem;
 }
 
 ::ng-deep .ng-invalid.ng-dirty {
-  border-color: #e24c4c !important;
+  border-color: var(--color-danger) !important;
 }
 
 ::ng-deep .p-card {

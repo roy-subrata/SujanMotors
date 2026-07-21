@@ -401,6 +401,7 @@
     <div class="form-group">
       <label class="form-label"><span class="required">*</span> Rejection Reason</label>
       <textarea pTextarea [(ngModel)]="rejectReason" placeholder="Enter reason for rejection..." rows="4" class="w-full"></textarea>
+      <small class="p-error" *ngIf="rejectSubmitted && !rejectReason.trim()">Rejection reason is required.</small>
     </div>
   </div>
   <ng-template #footer>
@@ -432,6 +433,7 @@
           </div>
         </ng-template>
       </app-lazy-autocomplete>
+      <small class="p-error" *ngIf="assignSubmitted && !selectedTechnician">A technician must be selected.</small>
     </div>
 
     <div *ngIf="selectedTechnician" class="selected-tech-card">
@@ -480,6 +482,7 @@
     <div class="form-group">
       <label class="form-label"><span class="required">*</span> Resolution Details</label>
       <textarea pTextarea [(ngModel)]="resolutionDetails" placeholder="Describe the resolution and work performed..." rows="4" class="w-full"></textarea>
+      <small class="p-error" *ngIf="completeSubmitted && !resolutionDetails.trim()">Resolution details are required.</small>
     </div>
 
     <div *ngIf="selectedClaim.serviceType === 'REFUND'" class="dialog-summary" style="margin-top: 0.75rem;">
@@ -497,6 +500,7 @@
       <label class="form-label"><span class="required">*</span> Refund Amount</label>
       <p-inputNumber [(ngModel)]="refundAmount" mode="decimal" [min]="0.01" [minFractionDigits]="2" [maxFractionDigits]="2"
         placeholder="Enter refund amount" styleClass="w-full"></p-inputNumber>
+      <small class="p-error" *ngIf="completeSubmitted && selectedClaim.serviceType === 'REFUND' && (!refundAmount || refundAmount <= 0)">Refund amount must be greater than 0.</small>
     </div>
 
     <div *ngIf="selectedClaim.serviceType === 'REFUND'" class="form-group">
@@ -640,16 +644,19 @@
           </div>
         </ng-template>
       </p-select>
+      <small class="p-error" *ngIf="sendDefectiveSubmitted && !sendDefectiveForm.supplierId">Seller is required.</small>
     </div>
 
     <div class="form-group" *ngIf="sendDefectiveForm.partnerType === 'MANUFACTURER'">
       <label class="form-label"><span class="required">*</span> Manufacturer Name</label>
       <input pInputText [(ngModel)]="sendDefectiveForm.manufacturerName" class="w-full" placeholder="e.g. ABC Manufacturer Ltd" />
+      <small class="p-error" *ngIf="sendDefectiveSubmitted && !sendDefectiveForm.manufacturerName.trim()">Manufacturer name is required.</small>
     </div>
 
     <div class="form-group">
       <label class="form-label"><span class="required">*</span> Responsible By</label>
       <input pInputText [(ngModel)]="sendDefectiveForm.responsibleBy" class="w-full" placeholder="Person responsible" />
+      <small class="p-error" *ngIf="sendDefectiveSubmitted && !sendDefectiveForm.responsibleBy.trim()">Responsible person is required.</small>
     </div>
 
     <div class="form-row">
@@ -703,16 +710,19 @@
           </div>
         </ng-template>
       </p-select>
+      <small class="p-error" *ngIf="receiveReplacementSubmitted && !receiveReplacementForm.supplierId">Seller is required.</small>
     </div>
 
     <div class="form-group" *ngIf="receiveReplacementForm.partnerType === 'MANUFACTURER'">
       <label class="form-label"><span class="required">*</span> Manufacturer Name</label>
       <input pInputText [(ngModel)]="receiveReplacementForm.manufacturerName" class="w-full" placeholder="e.g. ABC Manufacturer Ltd" />
+      <small class="p-error" *ngIf="receiveReplacementSubmitted && !receiveReplacementForm.manufacturerName.trim()">Manufacturer name is required.</small>
     </div>
 
     <div class="form-group">
       <label class="form-label"><span class="required">*</span> Responsible By</label>
       <input pInputText [(ngModel)]="receiveReplacementForm.responsibleBy" class="w-full" placeholder="Person responsible" />
+      <small class="p-error" *ngIf="receiveReplacementSubmitted && !receiveReplacementForm.responsibleBy.trim()">Responsible person is required.</small>
     </div>
 
     <div class="form-row">
@@ -753,11 +763,13 @@
     <div class="form-group">
       <label class="form-label"><span class="required">*</span> Partner Name</label>
       <input pInputText [(ngModel)]="sendForRepairForm.partnerName" class="w-full" placeholder="e.g. ABC Manufacturer Ltd" />
+      <small class="p-error" *ngIf="sendForRepairSubmitted && !sendForRepairForm.partnerName.trim()">Partner name is required.</small>
     </div>
 
     <div class="form-group">
       <label class="form-label"><span class="required">*</span> Responsible By</label>
       <input pInputText [(ngModel)]="sendForRepairForm.responsibleBy" class="w-full" placeholder="Person responsible" />
+      <small class="p-error" *ngIf="sendForRepairSubmitted && !sendForRepairForm.responsibleBy.trim()">Responsible person is required.</small>
     </div>
 
     <div class="form-row">
@@ -803,6 +815,7 @@
         </ng-template>
       </p-autoComplete>
       <small class="form-hint">Search and select an active warranty registration</small>
+      <small class="p-error" *ngIf="createClaimSubmitted && !selectedWarranty">A warranty registration must be selected.</small>
     </div>
 
     <div *ngIf="selectedWarranty" class="selected-warranty-card">
@@ -833,6 +846,7 @@
       <textarea pTextarea [(ngModel)]="newClaim.issueDescription"
         placeholder="Describe the issue in detail..." rows="5" class="w-full"></textarea>
       <small class="form-hint">Include details about the defect or problem</small>
+      <small class="p-error" *ngIf="createClaimSubmitted && !newClaim.issueDescription.trim()">Issue description is required.</small>
     </div>
   </div>
 

@@ -1,0 +1,141 @@
+<div class="form-container">
+  <div class="form-header">
+    <h1>{{ pageTitle }}</h1>
+    <button pButton type="button" icon="pi pi-arrow-left" class="p-button-text" (click)="goBack()"></button>
+  </div>
+
+  <p-card class="form-card">
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form">
+
+      <!-- Warehouse -->
+      <div class="form-group">
+        <label for="warehouseId">Warehouse <span class="required">*</span></label>
+        <p-select
+          inputId="warehouseId"
+          formControlName="warehouseId"
+          [options]="warehouseOptions"
+          optionLabel="label"
+          optionValue="value"
+          [filter]="true"
+          filterBy="label"
+          placeholder="Select a warehouse"
+          appendTo="body"
+          class="w-full"
+          [class.ng-invalid]="hasError('warehouseId')">
+        </p-select>
+        <small class="text-danger" *ngIf="hasError('warehouseId')">
+          {{ getErrorMessage('warehouseId') }}
+        </small>
+      </div>
+
+      <!-- Zone / Aisle / Rack / Bin -->
+      <div class="form-row form-row-4">
+        <div class="form-group col">
+          <label for="zone">Zone <span class="required">*</span></label>
+          <input
+            pInputText
+            id="zone"
+            type="text"
+            formControlName="zone"
+            placeholder="e.g. A"
+            maxlength="10"
+            class="w-full"
+            [class.ng-invalid]="hasError('zone')">
+          <small class="text-danger" *ngIf="hasError('zone')">{{ getErrorMessage('zone') }}</small>
+        </div>
+
+        <div class="form-group col">
+          <label for="aisle">Aisle <span class="required">*</span></label>
+          <input
+            pInputText
+            id="aisle"
+            type="text"
+            formControlName="aisle"
+            placeholder="e.g. 04"
+            maxlength="10"
+            class="w-full"
+            [class.ng-invalid]="hasError('aisle')">
+          <small class="text-danger" *ngIf="hasError('aisle')">{{ getErrorMessage('aisle') }}</small>
+        </div>
+
+        <div class="form-group col">
+          <label for="rack">Rack <span class="required">*</span></label>
+          <input
+            pInputText
+            id="rack"
+            type="text"
+            formControlName="rack"
+            placeholder="e.g. B"
+            maxlength="10"
+            class="w-full"
+            [class.ng-invalid]="hasError('rack')">
+          <small class="text-danger" *ngIf="hasError('rack')">{{ getErrorMessage('rack') }}</small>
+        </div>
+
+        <div class="form-group col">
+          <label for="bin">Bin <span class="required">*</span></label>
+          <input
+            pInputText
+            id="bin"
+            type="text"
+            formControlName="bin"
+            placeholder="e.g. 12"
+            maxlength="10"
+            class="w-full"
+            [class.ng-invalid]="hasError('bin')">
+          <small class="text-danger" *ngIf="hasError('bin')">{{ getErrorMessage('bin') }}</small>
+        </div>
+      </div>
+
+      <!-- Category (optional) -->
+      <div class="form-group">
+        <label for="categoryId">Category</label>
+        <p-select
+          inputId="categoryId"
+          formControlName="categoryId"
+          [options]="categoryOptions"
+          optionLabel="label"
+          optionValue="value"
+          [filter]="true"
+          filterBy="label"
+          [showClear]="true"
+          placeholder="No category (optional)"
+          appendTo="body"
+          class="w-full">
+        </p-select>
+        <span class="field-hint">
+          <i class="pi pi-info-circle"></i>
+          Informational only — shown on the printed label, doesn't restrict what can be stocked here.
+        </span>
+      </div>
+
+      <!-- Notes -->
+      <div class="form-group">
+        <label for="notes">Notes</label>
+        <textarea
+          pInputTextarea
+          id="notes"
+          formControlName="notes"
+          placeholder="Optional notes about this location"
+          class="w-full"
+          rows="4">
+        </textarea>
+      </div>
+
+      <!-- Form Actions -->
+      <div class="form-actions">
+        <button pButton type="button" label="Cancel" class="p-button-text" (click)="goBack()"></button>
+        <button
+          pButton
+          type="submit"
+          [label]="isEditMode ? 'Update Location' : 'Create Location'"
+          class="p-button-success"
+          [loading]="isSubmitting"
+          [disabled]="isSubmitting">
+        </button>
+      </div>
+    </form>
+  </p-card>
+</div>
+
+<p-toast position="top-right"></p-toast>

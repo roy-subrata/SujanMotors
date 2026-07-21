@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body{margin:0;font-family:'IBM Plex Sans',Helvetica,Arial,sans-serif;background:#dedcd8}
+    a{color:#B0392E;text-decoration:none}a:hover{color:#7f2a21}
+    @media print{#sidebar{display:none !important}#shell{display:block !important;height:auto !important}#main{overflow:visible !important;height:auto !important;display:block !important;padding:0 !important}#stage-small,#stage-medium,#stage-loc{transform:scale(1) !important}}
+  </style>
+</helmet>
+<div id="shell" style="display:flex;height:100vh">
+  <div id="sidebar" style="width:228px;flex-shrink:0;background:#1c1917;color:#d6d3d1;display:flex;flex-direction:column;overflow:auto">
+    <div style="display:flex;align-items:center;gap:10px;padding:18px 16px 16px;border-bottom:1px solid #38342f">
+      <div style="width:34px;height:34px;background:{{accent}};color:#ffffff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;flex-shrink:0">SM</div>
+      <div>
+        <div style="font-size:13px;font-weight:700;letter-spacing:1px;color:#fafaf9">SUJAN MOTORS</div>
+        <div style="font-size:9.5px;color:#a8a29e;letter-spacing:0.5px">Barcode Label Templates</div>
+      </div>
+    </div>
+    <div style="padding:14px 10px;display:flex;flex-direction:column;gap:2px">
+      <div style="font-size:9px;letter-spacing:1.5px;color:#78716c;font-weight:600;padding:4px 12px">PRODUCT LABELS</div>
+      <sc-for list="{{productNav}}" as="n" hint-placeholder-count="2">
+        <div onClick="{{n.go}}" style="{{n.st}}">{{n.label}}</div>
+      </sc-for>
+      <div style="font-size:9px;letter-spacing:1.5px;color:#78716c;font-weight:600;padding:12px 12px 4px">WAREHOUSE LOCATION</div>
+      <sc-for list="{{locNav}}" as="n" hint-placeholder-count="1">
+        <div onClick="{{n.go}}" style="{{n.st}}">{{n.label}}</div>
+      </sc-for>
+    </div>
+    <div style="margin-top:auto;padding:14px">
+      <div onClick="{{doPrint}}" style="background:{{accent}};color:#ffffff;text-align:center;padding:10px;font-size:12px;font-weight:600;letter-spacing:0.5px;cursor:pointer">Print / Save PDF</div>
+      <div style="font-size:9px;color:#78716c;text-align:center;margin-top:8px;line-height:1.5">Prints label at true size on a thermal/label printer</div>
+    </div>
+  </div>
+  <div id="main" style="flex:1;overflow:auto;display:flex;align-items:flex-start;justify-content:center;padding:60px;box-sizing:border-box">
+
+    <sc-if value="{{show.small}}" hint-placeholder-val="{{true}}">
+      <div style="width:472.5px;height:236.25px;margin-top:40px">
+      <div id="stage-small" style="width:189px;height:94.5px;transform:scale(2.5);transform-origin:top left">
+      <x-import component-from-global-scope="doc-page" from="./doc-page.js" width="50mm" height="25mm" margin="0" hint-size="100%,400px">
+        <div style="width:100%;height:100%;box-sizing:border-box;padding:2mm 2.4mm;display:flex;flex-direction:column;justify-content:space-between;font-family:'IBM Plex Sans',Helvetica,Arial,sans-serif">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;padding-bottom:1mm;border-bottom:0.35mm solid #1c1917">
+            <div style="font-size:6.5px;font-weight:700;letter-spacing:1.2px;color:#1c1917">SUJAN MOTORS</div>
+            <div style="font-size:12px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:#1c1917;letter-spacing:0.2px">৳{{p1.price}}</div>
+          </div>
+          <div>
+            <div style="font-size:8.5px;font-weight:600;color:#1c1917;line-height:1.28;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">{{p1.name}}</div>
+          </div>
+          <div style="display:flex;align-items:stretch;gap:0;height:8mm;background:#ffffff">
+            <sc-for list="{{p1.bars}}" as="b" hint-placeholder-count="40">
+              <div style="{{b.st}}"></div>
+            </sc-for>
+          </div>
+          <div style="text-align:center;font-size:7px;font-family:'IBM Plex Mono',monospace;font-weight:600;letter-spacing:2px;color:#1c1917">{{p1.code}}</div>
+        </div>
+      </x-import>
+      </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{show.medium}}" hint-placeholder-val="{{false}}">
+      <div style="width:529.2px;height:302.4px;margin-top:40px">
+      <div id="stage-medium" style="width:264.6px;height:151.2px;transform:scale(2);transform-origin:top left">
+      <x-import component-from-global-scope="doc-page" from="./doc-page.js" width="70mm" height="40mm" margin="0" hint-size="100%,460px">
+        <div style="width:100%;height:100%;box-sizing:border-box;padding:3mm;display:flex;flex-direction:column;justify-content:space-between;font-family:'IBM Plex Sans',Helvetica,Arial,sans-serif">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:3.5mm;padding-bottom:2mm;border-bottom:0.35mm solid #1c1917">
+            <div style="min-width:0">
+              <div style="font-size:7.5px;font-weight:700;letter-spacing:1.2px;color:#1c1917">SUJAN MOTORS</div>
+              <div style="font-size:11px;font-weight:700;color:#1c1917;line-height:1.32;margin-top:4px">{{p2.name}}</div>
+              <div style="font-size:8px;color:#78716c;font-family:'IBM Plex Mono',monospace;letter-spacing:0.4px;margin-top:4px">SKU {{p2.part}}</div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat({{p2.qrDim}},1fr);width:15mm;height:15mm;flex-shrink:0;background:#ffffff;border:0.3mm solid #1c1917">
+              <sc-for list="{{p2.qr}}" as="c" hint-placeholder-count="441">
+                <div style="{{c.st}}"></div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:4mm">
+            <div style="display:flex;align-items:stretch;gap:0;height:11mm;flex:1;background:#ffffff">
+              <sc-for list="{{p2.bars}}" as="b" hint-placeholder-count="45">
+                <div style="{{b.st}}"></div>
+              </sc-for>
+            </div>
+            <div style="font-size:17px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:#1c1917;letter-spacing:0.3px">৳{{p2.price}}</div>
+          </div>
+          <div style="text-align:center;font-size:8px;font-family:'IBM Plex Mono',monospace;font-weight:600;letter-spacing:2.5px;color:#1c1917">{{p2.code}}</div>
+        </div>
+      </x-import>
+      </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{show.loc}}" hint-placeholder-val="{{false}}">
+      <div style="width:604.8px;height:302.4px;margin-top:40px">
+      <div id="stage-loc" style="width:378px;height:189px;transform:scale(1.6);transform-origin:top left">
+      <x-import component-from-global-scope="doc-page" from="./doc-page.js" width="100mm" height="50mm" margin="0" hint-size="100%,530px">
+        <div style="width:100%;height:100%;box-sizing:border-box;display:flex;font-family:'IBM Plex Sans',Helvetica,Arial,sans-serif">
+          <div style="width:10mm;background:{{loc.zoneColor}};flex-shrink:0;display:flex;align-items:center;justify-content:center">
+            <div style="color:#ffffff;font-size:12.5px;font-weight:700;letter-spacing:2px;writing-mode:vertical-rl;transform:rotate(180deg)">ZONE {{loc.zone}}</div>
+          </div>
+          <div style="flex:1;padding:4mm 5mm;display:flex;flex-direction:column;justify-content:space-between;min-width:0">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;padding-bottom:2mm;border-bottom:0.35mm solid #1c1917">
+              <div style="font-size:8.5px;font-weight:700;letter-spacing:1.5px;color:#1c1917">SUJAN MOTORS &middot; WAREHOUSE</div>
+              <div style="font-size:8.5px;font-weight:600;letter-spacing:0.5px;color:#78716c">{{loc.category}}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:6mm">
+              <div style="flex:1">
+                <div style="font-size:8.5px;letter-spacing:2px;text-transform:uppercase;color:#78716c;font-weight:600">Aisle &middot; Rack &middot; Bin</div>
+                <div style="font-size:32px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:#1c1917;letter-spacing:1px;line-height:1.1;margin-top:3px">{{loc.aisle}}-{{loc.rack}}-{{loc.bin}}</div>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat({{loc.qrDim}},1fr);width:22mm;height:22mm;flex-shrink:0;background:#ffffff;border:0.3mm solid #1c1917">
+                <sc-for list="{{loc.qr}}" as="c" hint-placeholder-count="625">
+                  <div style="{{c.st}}"></div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="padding-top:2mm;border-top:0.35mm solid #1c1917">
+              <div style="display:flex;align-items:stretch;gap:0;height:10mm;background:#ffffff">
+                <sc-for list="{{loc.bars}}" as="b" hint-placeholder-count="55">
+                  <div style="{{b.st}}"></div>
+                </sc-for>
+              </div>
+              <div style="text-align:center;font-size:9px;font-family:'IBM Plex Mono',monospace;font-weight:600;letter-spacing:3.5px;color:#1c1917;margin-top:1.5mm">{{loc.code}}</div>
+            </div>
+          </div>
+        </div>
+      </x-import>
+      </div>
+      </div>
+    </sc-if>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;accent&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#B0392E&quot;,&quot;options&quot;:[&quot;#B0392E&quot;,&quot;#0F766E&quot;,&quot;#1E40AF&quot;,&quot;#3F3F46&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Brand&quot;}}">
+class Component extends DCLogic {
+  state = { doc: 'small' };
+
+  _seed(str) {
+    let h = 0;
+    for (let i = 0; i < str.length; i++) h = (Math.imul(h, 31) + str.charCodeAt(i)) | 0;
+    return h >>> 0;
+  }
+  _rng(seed) {
+    let s = seed;
+    return () => {
+      s = (s + 0x6D2B79F5) | 0;
+      let t = Math.imul(s ^ (s >>> 15), 1 | s);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  _bars(text, count) {
+    const rng = this._rng(this._seed(text));
+    const bars = [];
+    for (let i = 0; i < count; i++) {
+      const w = 1 + Math.floor(rng() * 3);
+      const on = i % 2 === 0;
+      bars.push({ st: { flex: w + ' 0 0', height: '100%', background: on ? '#1c1917' : 'transparent' } });
+    }
+    return bars;
+  }
+  _qr(text, dim) {
+    const rng = this._rng(this._seed(text) ^ 0x9e3779b9);
+    const isFinder = (r, c) => {
+      const corners = [[0, 0], [0, dim - 7], [dim - 7, 0]];
+      for (const [cr, cc] of corners) {
+        const lr = r - cr, lc = c - cc;
+        if (lr >= 0 && lr < 7 && lc >= 0 && lc < 7) {
+          const onBorder = lr === 0 || lr === 6 || lc === 0 || lc === 6;
+          const onCenter = lr >= 2 && lr <= 4 && lc >= 2 && lc <= 4;
+          return { in: true, on: onBorder || onCenter };
+        }
+      }
+      return { in: false };
+    };
+    const cells = [];
+    for (let r = 0; r < dim; r++) {
+      for (let c = 0; c < dim; c++) {
+        const f = isFinder(r, c);
+        const on = f.in ? f.on : rng() < 0.46;
+        cells.push({ st: { background: on ? '#1c1917' : '#ffffff' } });
+      }
+    }
+    return cells;
+  }
+
+  renderVals() {
+    const accent = this.props.accent ?? '#B0392E';
+    const nav = (k, label) => {
+      const act = this.state.doc === k;
+      return {
+        label, go: () => this.setState({ doc: k }),
+        st: { padding: '7px 12px', fontSize: 12.5, cursor: 'pointer', background: act ? '#38342f' : 'transparent', color: act ? '#fafaf9' : '#a8a29e', fontWeight: act ? 600 : 400, borderLeft: act ? '3px solid ' + accent : '3px solid transparent' }
+      };
+    };
+    const show = { small: this.state.doc === 'small', medium: this.state.doc === 'medium', loc: this.state.doc === 'loc' };
+
+    const p1code = 'BP-TYT-014';
+    const p2code = 'OF-HND-221';
+    const locCode = 'A-04-B-12';
+
+    const zoneColors = { A: '#B0392E', B: '#0F766E', C: '#1E40AF' };
+
+    return {
+      accent,
+      show,
+      productNav: [nav('small', '50 × 25mm — Compact'), nav('medium', '70 × 40mm — With QR')],
+      locNav: [nav('loc', '100 × 50mm — Bin / Rack')],
+      doPrint: () => window.print(),
+
+      p1: {
+        name: 'Brake Pad Set — Toyota Corolla (Front)',
+        price: '2,850', code: p1code,
+        bars: this._bars(p1code, 46)
+      },
+      p2: {
+        name: 'Oil Filter — Honda Civic 1.8', part: p2code,
+        price: '450', code: p2code,
+        bars: this._bars(p2code, 50),
+        qr: this._qr(p2code, 21), qrDim: 21
+      },
+      loc: {
+        zone: 'A', zoneColor: zoneColors.A, category: 'BRAKES & SUSPENSION',
+        aisle: '04', rack: 'B', bin: '12', code: locCode,
+        bars: this._bars(locCode, 60),
+        qr: this._qr(locCode, 25), qrDim: 25
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

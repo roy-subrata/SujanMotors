@@ -114,7 +114,7 @@
     <div class="vd-section">
       <div class="vd-row">
         <div class="vd-field">
-          <label>Variant Name * <span style="font-size:0.78rem;color:#6b7280;font-weight:400">(short label only — e.g. LH, RH, Red / Large; the product name is added automatically)</span></label>
+          <label>Variant Name * <span style="font-size:0.78rem;color:var(--text-color-secondary);font-weight:400">(short label only — e.g. LH, RH, Red / Large; the product name is added automatically)</span></label>
           <input pInputText formControlName="name" placeholder="e.g. LH" class="w-full" />
           <small class="p-error" *ngIf="variantForm.get('name')?.invalid && variantForm.get('name')?.touched">Required</small>
         </div>
@@ -137,7 +137,7 @@
       </div>
       <div class="vd-row">
         <div class="vd-field">
-          <label>Selling Price <span style="font-size:0.78rem;color:#6b7280;font-weight:400">(leave blank to inherit base product price)</span></label>
+          <label>Selling Price <span style="font-size:0.78rem;color:var(--text-color-secondary);font-weight:400">(leave blank to inherit base product price)</span></label>
           <p-inputNumber formControlName="sellingPrice" placeholder="0.00"
             [min]="0" [step]="0.01" [minFractionDigits]="2" [maxFractionDigits]="2"
             mode="decimal" [showClear]="true" class="w-full">
@@ -264,7 +264,7 @@
 .section-hint { margin: 0.25rem 0 0; font-size: 0.825rem; color: var(--text-color-secondary); }
 .save-first-hint { font-size: 0.85rem; color: var(--text-color-secondary); display: flex; align-items: center; gap: 0.3rem; }
 .attr-chips { display: flex; flex-wrap: wrap; gap: 0.25rem; }
-.attr-chip { background: var(--surface-100); border: 1px solid var(--surface-border); border-radius: 4px; padding: 0.1rem 0.35rem; font-size: 0.78rem; }
+.attr-chip { background: var(--surface-ground); border: 1px solid var(--surface-border); border-radius: 4px; padding: 0.1rem 0.35rem; font-size: 0.78rem; }
 .text-secondary { color: var(--text-color-secondary); }
 .text-xs { font-size: 0.75rem; }
 .text-sm { font-size: 0.875rem; }
@@ -278,8 +278,8 @@
 .vd-section-title { font-size: 0.9rem; font-weight: 600; display: flex; align-items: center; gap: 0.35rem; }
 .vd-section-title small { font-weight: normal; color: var(--text-color-secondary); font-size: 0.8rem; }
 .vd-section-hint { display: block; font-size: 0.8rem; color: var(--text-color-secondary); margin-top: 0.2rem; }
-.vd-note { display: flex; align-items: flex-start; gap: 9px; padding: 10px 14px; background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 8px; font-size: 0.8rem; color: #1D4ED8; line-height: 1.5; margin-bottom: 0.4rem; }
-.vd-note i { color: #3B82F6; flex-shrink: 0; margin-top: 2px; }
+.vd-note { display: flex; align-items: flex-start; gap: 9px; padding: 10px 14px; background: var(--color-info-light); border: 1px solid var(--color-info); border-radius: 8px; font-size: 0.8rem; color: var(--color-info); line-height: 1.5; margin-bottom: 0.4rem; }
+.vd-note i { color: var(--color-info); flex-shrink: 0; margin-top: 2px; }
 .vd-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-bottom: 0.6rem; }
 .vd-row.three-col { grid-template-columns: 1fr 1fr 1fr; }
 .vd-row.four-col { grid-template-columns: 1fr 1fr 1fr 1fr; }
@@ -289,16 +289,16 @@
 
 /* Attribute rows */
 .attr-rows { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.6rem; }
-.attr-value-row { display: flex; align-items: center; gap: 0.5rem; background: var(--surface-50); border: 1px solid var(--surface-border); border-radius: 6px; padding: 0.4rem 0.6rem; }
+.attr-value-row { display: flex; align-items: center; gap: 0.5rem; background: var(--surface-ground); border: 1px solid var(--surface-border); border-radius: 6px; padding: 0.4rem 0.6rem; }
 .attr-value-label { flex: 0 0 160px; display: flex; flex-direction: column; }
 .attr-name { font-size: 0.875rem; font-weight: 500; }
 .attr-unit { font-size: 0.75rem; color: var(--text-color-secondary); }
-.attr-group-badge { font-size: 0.7rem; color: var(--primary-color); background: var(--blue-50); border-radius: 3px; padding: 0 4px; align-self: flex-start; margin-top: 2px; }
+.attr-group-badge { font-size: 0.7rem; color: var(--primary-color); background: var(--color-info-light); border-radius: 3px; padding: 0 4px; align-self: flex-start; margin-top: 2px; }
 .attr-value-input { flex: 1; }
 .attr-remove-btn { flex-shrink: 0; }
 .attr-add-row { display: flex; gap: 0.5rem; align-items: center; }
 .no-attrs-hint, .all-added-hint { font-size: 0.825rem; color: var(--text-color-secondary); display: flex; align-items: center; gap: 0.3rem; padding: 0.4rem 0; }
-.all-added-hint { color: var(--green-600); }
+.all-added-hint { color: var(--color-success); }
 
 .checkbox-row { display: flex; align-items: center; gap: 0.5rem; }
 

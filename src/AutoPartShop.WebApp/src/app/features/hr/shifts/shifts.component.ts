@@ -34,6 +34,7 @@ export class ShiftsComponent implements OnInit {
 
     dialogVisible = false;
     saving = false;
+    submitted = false;
     editingId: string | null = null;
     form = { name: '', startTime: '09:00', endTime: '18:00', graceMinutes: 10, notes: '' };
 
@@ -66,12 +67,14 @@ export class ShiftsComponent implements OnInit {
 
     openCreate(): void {
         this.editingId = null;
+        this.submitted = false;
         this.form = { name: '', startTime: '09:00', endTime: '18:00', graceMinutes: 10, notes: '' };
         this.dialogVisible = true;
     }
 
     openEdit(shift: ShiftResponse): void {
         this.editingId = shift.id;
+        this.submitted = false;
         this.form = {
             name: shift.name,
             startTime: this.formatTime(shift.startTime),
@@ -83,6 +86,7 @@ export class ShiftsComponent implements OnInit {
     }
 
     saveShift(): void {
+        this.submitted = true;
         if (!this.form.name.trim() || !this.form.startTime || !this.form.endTime) {
             this.messageService.add({
                 severity: 'warn',

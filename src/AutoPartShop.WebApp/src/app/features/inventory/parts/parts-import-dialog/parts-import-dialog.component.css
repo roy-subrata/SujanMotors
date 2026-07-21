@@ -11,9 +11,9 @@
   padding: 0.75rem 1rem;
   margin-bottom: 1rem;
   border-radius: 8px;
-  background: var(--red-50, #fef2f2);
-  color: var(--red-700, #b91c1c);
-  border: 1px solid var(--red-200, #fecaca);
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+  border: 1px solid var(--color-danger);
   font-size: 0.875rem;
 }
 
@@ -36,9 +36,9 @@
   gap: 0.75rem;
   flex-wrap: wrap;
   padding: 1rem;
-  border: 1px dashed var(--surface-300, #cbd5e1);
+  border: 1px dashed var(--surface-border, #cbd5e1);
   border-radius: 8px;
-  background: var(--surface-50, #f8fafc);
+  background: var(--surface-ground, #f8fafc);
 }
 
 .upload-filename {
@@ -61,12 +61,12 @@
   flex: 1;
   padding: 0.75rem;
   border-radius: 8px;
-  background: var(--surface-50, #f8fafc);
-  border: 1px solid var(--surface-200, #e2e8f0);
+  background: var(--surface-ground, #f8fafc);
+  border: 1px solid var(--surface-border, #e2e8f0);
 }
 
-.summary-stat.valid { background: var(--green-50, #f0fdf4); border-color: var(--green-200, #bbf7d0); }
-.summary-stat.error { background: var(--red-50, #fef2f2); border-color: var(--red-200, #fecaca); }
+.summary-stat.valid { background: var(--color-success-light); border-color: var(--color-success); }
+.summary-stat.error { background: var(--color-danger-light); border-color: var(--color-danger); }
 
 .stat-value { font-size: 1.5rem; font-weight: 700; }
 .stat-label { font-size: 0.75rem; color: var(--text-color-secondary, #64748b); }
@@ -81,10 +81,10 @@
   margin: 0;
   padding-left: 1.1rem;
   font-size: 0.8125rem;
-  color: var(--red-600, #dc2626);
+  color: var(--color-danger);
 }
 
-.row-error { background: var(--red-50, #fef2f2); }
+.row-error { background: var(--color-danger-light); }
 
 .text-muted { color: var(--text-color-secondary, #94a3b8); }
 
@@ -94,15 +94,15 @@
   gap: 0.75rem;
   padding: 1rem;
   border-radius: 8px;
-  background: var(--green-50, #f0fdf4);
-  border: 1px solid var(--green-200, #bbf7d0);
-  color: var(--green-800, #166534);
+  background: var(--color-success-light);
+  border: 1px solid var(--color-success);
+  color: var(--color-success);
 }
 
 .import-result-banner i { font-size: 1.5rem; }
 
 .import-result-banner.has-failures {
-  background: var(--orange-50, #fff7ed);
-  border-color: var(--orange-200, #fed7aa);
-  color: var(--orange-800, #9a3412);
+  background: var(--color-warning-light);
+  border-color: var(--color-warning);
+  color: var(--color-warning);
 }

@@ -1,0 +1,42 @@
+/* ============================================================
+   WAREHOUSE LOCATIONS LIST — page-specific styles only
+   Shared chrome (page header, filters, table, pagination,
+   cards, skeleton, empty states) lives in assets/_data-page.scss
+   ============================================================ */
+
+/* Column widths */
+.col-code       { min-width: 150px; }
+.col-warehouse  { min-width: 180px; }
+.col-zone       { width: 90px; text-align: center; }
+.col-cell       { width: 80px; }
+.col-category   { min-width: 160px; }
+.col-status     { min-width: 100px; }
+.col-actions    { width: 110px; text-align: center; }
+
+.customer-info { display: flex; flex-direction: column; gap: 2px; }
+.date-text { color: var(--color-text-secondary); }
+.text-muted { color: var(--color-text-muted); }
+
+/* Location code — mono, prominent */
+.location-code {
+  font-family: 'Courier New', monospace;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--color-text-primary);
+}
+
+/* Zone chip — background color derived client-side from the zone letter (see zone-color.ts) */
+.zone-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  padding: 2px 10px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: #ffffff;
+}
+
+.action-cell { display: flex; align-items: center; justify-content: center; gap: 4px; }

@@ -125,8 +125,8 @@ export class BarcodeDialogComponent implements OnInit {
 
     barcodeSizeOptions = [
         { label: 'Large — 100 × 50 mm', value: 'large' },
-        { label: 'Standard — 50 × 40 mm', value: 'standard' },
-        { label: 'Compact — 40 × 25 mm', value: 'compact' },
+        { label: 'Standard — 70 × 40 mm (with QR)', value: 'standard' },
+        { label: 'Compact — 50 × 25 mm', value: 'compact' },
         { label: 'Tiny — 30 × 15 mm', value: 'tiny' },
         { label: 'Custom (mm)', value: 'custom' }
     ];
