@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../core/i18n/strings.dart';
 import '../../core/network/app_exception.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/models/product.dart';
@@ -182,9 +183,9 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
           .updateProduct(widget.productId, payload);
       ref.invalidate(productDetailProvider(widget.productId));
       ref.invalidate(lowStockCountProvider);
-      messenger.showSnackBar(const SnackBar(
-        content: Text('Product updated'),
-        duration: Duration(seconds: 2),
+      messenger.showSnackBar(SnackBar(
+        content: Text(S.of(context).productUpdated),
+        duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
       ));
       router.pop();
@@ -201,10 +202,11 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Edit product',
+          s.editProduct,
           style: GoogleFonts.instrumentSans(
               fontSize: 16, fontWeight: FontWeight.w700),
         ),
@@ -225,19 +227,19 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
                           padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
                           children: [
                             _Field(
-                              label: 'Name *',
+                              label: s.nameRequired,
                               child: TextFormField(
                                 controller: _name,
                                 textCapitalization:
                                     TextCapitalization.sentences,
                                 validator: (v) =>
                                     (v ?? '').trim().isEmpty
-                                        ? 'Name is required'
+                                        ? s.nameRequiredValidation
                                         : null,
                               ),
                             ),
                             _Field(
-                              label: 'Local name',
+                              label: s.localName,
                               child: TextFormField(controller: _localName),
                             ),
                             Row(
@@ -245,7 +247,7 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
                               children: [
                                 Expanded(
                                   child: _Field(
-                                    label: 'Category *',
+                                    label: s.categoryRequired,
                                     child: _dropdown(
                                       value: _categoryId,
                                       items: [
@@ -255,7 +257,7 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
                                       onChanged: (v) =>
                                           setState(() => _categoryId = v),
                                       validator: (v) => v == null
-                                          ? 'Category is required'
+                                          ? s.categoryRequiredValidation
                                           : null,
                                     ),
                                   ),
@@ -263,11 +265,11 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: _Field(
-                                    label: 'Brand',
+                                    label: s.brand,
                                     child: _dropdown(
                                       value: _brandId,
                                       items: [
-                                        (null, 'No brand'),
+                                        (null, s.noBrand),
                                         for (final b in _brands)
                                           (b.id, b.name),
                                       ],
@@ -283,7 +285,7 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
                               children: [
                                 Expanded(
                                   child: _Field(
-                                    label: 'Selling price *',
+                                    label: s.sellingPriceRequired,
                                     child: TextFormField(
                                       controller: _sellingPrice,
                                       keyboardType: const TextInputType
@@ -292,7 +294,7 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
                                         final parsed =
                                             double.tryParse((v ?? '').trim());
                                         if (parsed == null || parsed < 0) {
-                                          return 'Enter a valid price';
+                                          return s.enterValidPrice;
                                         }
                                         return null;
                                       },
@@ -302,7 +304,7 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: _Field(
-                                    label: 'Minimum stock',
+                                    label: s.minimumStock,
                                     child: TextFormField(
                                       controller: _minimumStock,
                                       keyboardType: TextInputType.number,
@@ -311,7 +313,7 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
                                         if (t.isEmpty) return null;
                                         final parsed = int.tryParse(t);
                                         if (parsed == null || parsed < 0) {
-                                          return 'Whole number';
+                                          return s.wholeNumber;
                                         }
                                         return null;
                                       },
@@ -321,15 +323,15 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
                               ],
                             ),
                             _Field(
-                              label: 'Barcode',
+                              label: s.barcode,
                               child: TextFormField(controller: _barcode),
                             ),
                             _Field(
-                              label: 'OEM number',
+                              label: s.oemNumber,
                               child: TextFormField(controller: _oemNumber),
                             ),
                             _Field(
-                              label: 'Description',
+                              label: s.descriptionLabel,
                               child: TextFormField(
                                 controller: _description,
                                 maxLines: 3,
@@ -352,7 +354,7 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
                                 children: [
                                   Expanded(
                                     child: Text(
-                                      'Active',
+                                      s.activeLabel,
                                       style: GoogleFonts.instrumentSans(
                                         fontSize: 13.5,
                                         fontWeight: FontWeight.w500,
@@ -372,7 +374,7 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
                       ),
                     ),
                     PrimaryCtaBar(
-                      label: 'Save changes',
+                      label: s.saveChanges,
                       isLoading: _saving,
                       onTap: _save,
                     ),

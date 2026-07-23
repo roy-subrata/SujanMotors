@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
+import '../../core/i18n/strings.dart';
 import '../../core/network/app_exception.dart';
 import '../products/products_repository.dart';
 
@@ -66,6 +67,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
   /// Friendly full-screen state shown when the camera cannot start
   /// (permission denied, unsupported device, or a generic camera error).
   Widget _buildCameraError(BuildContext context, MobileScannerException error) {
+    final s = S.of(context);
     final isPermission =
         error.errorCode == MobileScannerErrorCode.permissionDenied;
     final isUnsupported =
@@ -74,19 +76,14 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
     final String title;
     final String message;
     if (isPermission) {
-      title = 'Camera access needed';
-      message =
-          'Allow camera access to scan barcodes. If you previously denied it, '
-          'enable the Camera permission for this app in your device Settings, '
-          'then tap Try again.';
+      title = s.cameraAccessNeeded;
+      message = s.allowCameraAccessBody;
     } else if (isUnsupported) {
-      title = 'Scanning not supported';
-      message = 'This device does not support barcode scanning.';
+      title = s.scanningNotSupported;
+      message = s.scanningNotSupportedBody;
     } else {
-      title = 'Camera error';
-      message =
-          'The camera could not be started. ${error.errorDetails?.message ?? ''}'
-              .trim();
+      title = s.cameraError;
+      message = s.cameraErrorBody(error.errorDetails?.message ?? '').trim();
     }
 
     return Container(
@@ -122,7 +119,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
             FilledButton.icon(
               onPressed: _retryCamera,
               icon: const Icon(Icons.refresh),
-              label: const Text('Try again'),
+              label: Text(s.tryAgain),
             ),
           ],
         ],
@@ -132,6 +129,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     return Scaffold(
       appBar: AppBar(
         // Explicit back with a fallback: the old gradient app bar hid the
@@ -141,17 +139,17 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
           onPressed: () =>
               context.canPop() ? context.pop() : context.go('/products'),
         ),
-        title: const Text('Scan barcode'),
+        title: Text(s.scanBarcode),
         actions: [
           IconButton(
             icon: const Icon(Icons.flash_on),
             onPressed: () => _controller.toggleTorch(),
-            tooltip: 'Toggle torch',
+            tooltip: s.torch,
           ),
           IconButton(
             icon: const Icon(Icons.cameraswitch),
             onPressed: () => _controller.switchCamera(),
-            tooltip: 'Switch camera',
+            tooltip: s.switchCamera,
           ),
         ],
       ),

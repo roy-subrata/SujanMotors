@@ -2,6 +2,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../core/i18n/strings.dart';
 import '../../core/network/app_exception.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/format.dart';
@@ -89,10 +90,11 @@ class _SaleReturnScreenState extends ConsumerState<SaleReturnScreen> {
   // ── submit ──────────────────────────────────────────────────────────────────
 
   Future<void> _submit(List<InvoiceLine> lines) async {
+    final s = S.of(context);
     final invoiceNumber = _resolvedInvoice?.invoiceNumber ?? '';
 
     if (invoiceNumber.isEmpty) {
-      _showError('No invoice loaded.');
+      _showError(s.noInvoiceLoaded);
       return;
     }
 
@@ -107,7 +109,7 @@ class _SaleReturnScreenState extends ConsumerState<SaleReturnScreen> {
         .toList();
 
     if (items.isEmpty) {
-      _showError('Select at least one item to return.');
+      _showError(s.selectAtLeastOneReturn);
       return;
     }
 
@@ -125,14 +127,14 @@ class _SaleReturnScreenState extends ConsumerState<SaleReturnScreen> {
       if (!mounted) return;
       nav.pop();
       messenger.showSnackBar(SnackBar(
-        content: Text(
-            '${result.returnNumber} submitted · ${formatCurrency(result.refundAmount)}'),
+        content: Text(s.returnSubmitted(
+            result.returnNumber, formatCurrency(result.refundAmount))),
         backgroundColor: context.colors.green,
       ));
     } on AppException catch (e) {
       _showError(e.message);
     } catch (_) {
-      _showError('Failed to submit return. Please try again.');
+      _showError(s.failedToSubmitReturn);
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -157,7 +159,7 @@ class _SaleReturnScreenState extends ConsumerState<SaleReturnScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Sale Return',
+              S.of(context).saleReturn,
               style: GoogleFonts.instrumentSans(
                 fontSize: 16,
                 fontWeight: FontWeight.w700
@@ -228,7 +230,7 @@ class _ManualEntry extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                'Open an invoice first',
+                S.of(context).openInvoiceFirst,
                 style: GoogleFonts.instrumentSans(
                   fontSize: 15,
                   fontWeight: FontWeight.w700
@@ -236,7 +238,7 @@ class _ManualEntry extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'Go to Customers → select a customer → Invoices tab → tap an invoice → "Initiate return".',
+                S.of(context).returnHowTo,
                 textAlign: TextAlign.center,
                 style: GoogleFonts.instrumentSans(
                   fontSize: 13,
@@ -249,7 +251,7 @@ class _ManualEntry extends StatelessWidget {
                 child: OutlinedButton.icon(
                   onPressed: () => Navigator.of(context).pop(),
                   icon: const Icon(Icons.arrow_back, size: 16),
-                  label: const Text('Go back'),
+                  label: Text(S.of(context).goBack),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: context.colors.ink,
                     side: BorderSide(color: Theme.of(context).colorScheme.outline),
@@ -313,7 +315,9 @@ class _LoadedBody extends ConsumerWidget {
       error: (e, _) => ListView(children: [
         const SizedBox(height: 120),
         ErrorView(
-          message: e is AppException ? e.message : 'Failed to load invoice.',
+          message: e is AppException
+              ? e.message
+              : S.of(context).failedToLoadInvoice,
           onRetry: () => ref.invalidate(_returnLinesProvider(invoiceId)),
         ),
       ]),
@@ -363,7 +367,7 @@ class _LoadedBody extends ConsumerWidget {
 
               // ── Select items ───────────────────────────────────────
               Text(
-                'Select items to return',
+                S.of(context).selectItemsToReturn,
                 style: GoogleFonts.instrumentSans(
                   fontSize: 13,
                   fontWeight: FontWeight.w600
@@ -371,8 +375,8 @@ class _LoadedBody extends ConsumerWidget {
               ),
               const SizedBox(height: 8),
               lines.isEmpty
-                  ? const EmptyView(
-                      message: 'No items found on this invoice.',
+                  ? EmptyView(
+                      message: S.of(context).noItemsOnInvoice,
                       icon: Icons.receipt_long_outlined)
                   : CardSection(
                       padding: EdgeInsets.zero,
@@ -402,7 +406,7 @@ class _LoadedBody extends ConsumerWidget {
 
               // ── Reason ─────────────────────────────────────────────
               Text(
-                'Reason for return',
+                S.of(context).reasonForReturn,
                 style: GoogleFonts.instrumentSans(
                   fontSize: 13,
                   fontWeight: FontWeight.w600
@@ -413,14 +417,15 @@ class _LoadedBody extends ConsumerWidget {
                 selected: reasonIndex,
                 onSelect: onReasonSelect,
                 chips: reasons
-                    .map((r) => FilterChipData(label: r))
+                    .map((r) => FilterChipData(
+                        label: S.of(context).returnReasonName(r)))
                     .toList(),
               ),
               const SizedBox(height: 16),
 
               // ── Refund type ────────────────────────────────────────
               Text(
-                'Refund method',
+                S.of(context).refundMethod,
                 style: GoogleFonts.instrumentSans(
                   fontSize: 13,
                   fontWeight: FontWeight.w600
@@ -431,7 +436,8 @@ class _LoadedBody extends ConsumerWidget {
                 selected: refundTypeIndex,
                 onSelect: onRefundTypeSelect,
                 chips: refundTypes
-                    .map((r) => FilterChipData(label: r))
+                    .map((r) =>
+                        FilterChipData(label: S.of(context).refundTypeName(r)))
                     .toList(),
               ),
               const SizedBox(height: 16),
@@ -441,13 +447,15 @@ class _LoadedBody extends ConsumerWidget {
                 child: Column(
                   children: [
                     _SummaryRow(
-                      label: 'Items selected',
+                      label: S.of(context).itemsSelected,
                       value: '$selectedCount',
                     ),
                     const SizedBox(height: 8),
                     _SummaryRow(
-                      label: 'Refund method',
-                      value: refundTypes[refundTypeIndex],
+                      label: S.of(context).refundMethod,
+                      value: S
+                          .of(context)
+                          .refundTypeName(refundTypes[refundTypeIndex]),
                     ),
                     Padding(
                       padding: EdgeInsets.symmetric(vertical: 10),
@@ -455,7 +463,7 @@ class _LoadedBody extends ConsumerWidget {
                           height: 1, color: Theme.of(context).colorScheme.outline.withAlpha(60)),
                     ),
                     _SummaryRow(
-                      label: 'Refund total',
+                      label: S.of(context).refundTotal,
                       value: formatCurrency(computeRefundTotal(lines)),
                       valueStyle: GoogleFonts.instrumentSans(
                         fontSize: 19,
@@ -475,7 +483,7 @@ class _LoadedBody extends ConsumerWidget {
             left: 0,
             right: 0,
             child: PrimaryCtaBar(
-              label: '↩  Confirm return',
+              label: S.of(context).confirmReturn,
               onTap: () => onSubmit(lines),
               isLoading: submitting,
               backgroundColor: context.colors.red,

@@ -79,7 +79,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
                 Expanded(
                   child: SearchInput(
                     controller: _searchCtrl,
-                    hintText: 'Search name, phone or code...',
+                    hintText: S.of(context).searchCustomerHint,
                     onChanged: controller.search,
                   ),
                 ),
@@ -87,13 +87,13 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
                 FilterDropdown<_CustomerFilter>(
                   value: _filter,
                   leadingIcon: Icons.filter_list_rounded,
-                  options: const [
-                    (_CustomerFilter.all, 'All'),
-                    (_CustomerFilter.withDue, 'With due'),
-                    (_CustomerFilter.retail, 'Retail'),
-                    (_CustomerFilter.wholesale, 'Wholesale'),
-                    (_CustomerFilter.corporate, 'Corporate'),
-                    (_CustomerFilter.distributor, 'Distributor'),
+                  options: [
+                    (_CustomerFilter.all, S.of(context).all),
+                    (_CustomerFilter.withDue, S.of(context).withDue),
+                    (_CustomerFilter.retail, S.of(context).retail),
+                    (_CustomerFilter.wholesale, S.of(context).wholesale),
+                    (_CustomerFilter.corporate, S.of(context).corporate),
+                    (_CustomerFilter.distributor, S.of(context).distributor),
                   ],
                   onChanged: (f) => setState(() => _filter = f),
                 ),
@@ -129,8 +129,9 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
     };
 
     if (filtered.isEmpty && !state.isLoading) {
-      return const EmptyView(
-          message: 'No customers found.', icon: Icons.person_off_outlined);
+      return EmptyView(
+          message: S.of(context).noCustomersFound,
+          icon: Icons.person_off_outlined);
     }
 
     return RefreshIndicator(
@@ -228,7 +229,7 @@ class _CustomerCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Due',
+                        S.of(context).due,
                         style: GoogleFonts.instrumentSans(
                           fontSize: 10.5
                         ),

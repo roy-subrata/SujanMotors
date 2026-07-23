@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../core/i18n/strings.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/format.dart';
 import '../../shared/models/dashboard.dart';
@@ -196,18 +197,18 @@ class _DashboardBody extends StatelessWidget {
           const SizedBox(height: 12),
           _CashFlowCard(summary: s),
           const SizedBox(height: 16),
-          _SectionLabel('Quick Actions', scheme: scheme),
+          _SectionLabel(S.of(context).quickActions, scheme: scheme),
           const SizedBox(height: 8),
           _QuickActions(),
           const SizedBox(height: 16),
           if (data.topProducts.isNotEmpty) ...[
-            _SectionLabel('Top Products', scheme: scheme),
+            _SectionLabel(S.of(context).topProducts, scheme: scheme),
             const SizedBox(height: 8),
             _TopProductsList(products: data.topProducts),
             const SizedBox(height: 16),
           ],
           if (data.topCustomers.isNotEmpty) ...[
-            _SectionLabel('Top Customers', scheme: scheme),
+            _SectionLabel(S.of(context).topCustomers, scheme: scheme),
             const SizedBox(height: 8),
             _TopCustomersList(customers: data.topCustomers),
             const SizedBox(height: 16),
@@ -246,9 +247,9 @@ class _RevenueCard extends StatelessWidget {
                 const Icon(Icons.point_of_sale,
                     color: Colors.white70, size: 16),
                 const SizedBox(width: 6),
-                const Text(
-                  'Total Revenue',
-                  style: TextStyle(
+                Text(
+                  S.of(context).totalRevenue,
+                  style: const TextStyle(
                     color: Colors.white70,
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
@@ -263,7 +264,7 @@ class _RevenueCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    '${summary.totalSalesCount} orders',
+                    S.of(context).ordersCount(summary.totalSalesCount),
                     style: const TextStyle(
                         color: Colors.white70, fontSize: 11),
                   ),
@@ -272,7 +273,7 @@ class _RevenueCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              formatCurrency(summary.totalRevenue),
+              formatCurrency(summary.totalSales),
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 30,
@@ -284,14 +285,16 @@ class _RevenueCard extends StatelessWidget {
             Row(
               children: [
                 _MiniStat(
-                    label: 'Cash',
+                    label: S.of(context).cash,
                     value: formatCurrency(summary.cashSales),
-                    color: Colors.white),
+                    color: Colors.white,
+                    subtitle: S.of(context).paid),
                 const SizedBox(width: 20),
                 _MiniStat(
-                    label: 'Credit',
+                    label: S.of(context).credit,
                     value: formatCurrency(summary.creditSales),
-                    color: Colors.white70),
+                    color: Colors.white70,
+                    subtitle: S.of(context).due),
                 const Spacer(),
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -344,11 +347,12 @@ class _RevenueCard extends StatelessWidget {
 
 class _MiniStat extends StatelessWidget {
   const _MiniStat(
-      {required this.label, required this.value, required this.color});
+      {required this.label, required this.value, required this.color, this.subtitle});
 
   final String label;
   final String value;
   final Color color;
+  final String? subtitle;
 
   @override
   Widget build(BuildContext context) => Column(
@@ -359,6 +363,9 @@ class _MiniStat extends StatelessWidget {
           Text(value,
               style: TextStyle(
                   color: color, fontSize: 12, fontWeight: FontWeight.w600)),
+          if (subtitle != null)
+            Text(subtitle!,
+                style: const TextStyle(color: Colors.white38, fontSize: 9)),
         ],
       );
 }
@@ -383,13 +390,13 @@ class _StatGrid extends StatelessWidget {
       childAspectRatio: 1.7,
       children: [
         _StatCard(
-          label: 'Gross Profit',
+          label: S.of(context).grossProfit,
           value: formatCurrency(summary.grossProfit),
           icon: Icons.trending_up,
           accent: const Color(0xFF059669),
         ),
         _StatCard(
-          label: 'Net Profit',
+          label: S.of(context).netProfit,
           value: formatCurrency(profit),
           icon: profit >= 0 ? Icons.show_chart : Icons.trending_down,
           accent: profit >= 0
@@ -397,7 +404,7 @@ class _StatGrid extends StatelessWidget {
               : const Color(0xFFDC2626),
         ),
         _StatCard(
-          label: 'Customer Due',
+          label: S.of(context).customerDue,
           value: formatCurrency(summary.customerDueAmount),
           badge: summary.customerDueCount > 0
               ? '${summary.customerDueCount}'
@@ -406,7 +413,7 @@ class _StatGrid extends StatelessWidget {
           accent: const Color(0xFFD97706),
         ),
         _StatCard(
-          label: 'Overdue',
+          label: S.of(context).overdue,
           value: formatCurrency(summary.customerOverdueAmount),
           badge: summary.customerOverdueCount > 0
               ? '${summary.customerOverdueCount}'
@@ -530,7 +537,7 @@ class _CashFlowCard extends StatelessWidget {
                   size: 15, color: scheme.onSurface.withAlpha(160)),
               const SizedBox(width: 6),
               Text(
-                'Cash Flow',
+                S.of(context).cashFlow,
                 style: GoogleFonts.instrumentSans(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
@@ -544,22 +551,22 @@ class _CashFlowCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               _FlowItem(
-                  label: 'Opening',
+                  label: S.of(context).opening,
                   value: summary.openingBalance,
                   color: scheme.onSurface.withAlpha(180)),
               _Arrow(scheme: scheme),
               _FlowItem(
-                  label: 'In',
+                  label: S.of(context).flowIn,
                   value: summary.cashInflow,
                   color: const Color(0xFF059669)),
               _Arrow(scheme: scheme),
               _FlowItem(
-                  label: 'Out',
+                  label: S.of(context).flowOut,
                   value: summary.cashOutflow,
                   color: const Color(0xFFDC2626)),
               _Arrow(scheme: scheme),
               _FlowItem(
-                  label: 'Closing',
+                  label: S.of(context).closing,
                   value: summary.closingBalance,
                   color: _kAccent,
                   bold: true),
@@ -629,43 +636,43 @@ class _QuickActions extends StatelessWidget {
       childAspectRatio: 1.5,
       children: [
         _ActionTile(
-          label: 'New Sale',
+          label: S.of(context).newSale,
           icon: Icons.point_of_sale,
           accent: const Color(0xFFF59E0B),
           onTap: () => context.push('/quick-sale'),
         ),
         _ActionTile(
-          label: 'Customers',
+          label: S.of(context).customers,
           icon: Icons.people_alt_outlined,
           accent: _kAccent,
           onTap: () => context.push('/customers'),
         ),
         _ActionTile(
-          label: 'Products',
+          label: S.of(context).products,
           icon: Icons.inventory_2_outlined,
           accent: const Color(0xFF0891B2),
           onTap: () => context.push('/products'),
         ),
         _ActionTile(
-          label: 'Suppliers',
+          label: S.of(context).suppliers,
           icon: Icons.store_outlined,
           accent: const Color(0xFF7C3AED),
           onTap: () => context.push('/suppliers'),
         ),
         _ActionTile(
-          label: 'Cash Book',
+          label: S.of(context).cashBook,
           icon: Icons.account_balance_wallet_outlined,
           accent: const Color(0xFF0D9488),
           onTap: () => context.push('/cashbook'),
         ),
         _ActionTile(
-          label: 'Stock In',
+          label: S.of(context).stockIn,
           icon: Icons.move_to_inbox_outlined,
           accent: const Color(0xFF059669),
           onTap: () => context.push('/stock-in'),
         ),
         _ActionTile(
-          label: 'Till Session',
+          label: S.of(context).tillSession,
           icon: Icons.lock_clock_outlined,
           accent: const Color(0xFF334155),
           onTap: () => context.push('/till-session'),
@@ -905,7 +912,7 @@ class _TopCustomersList extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            '${c.totalOrders} orders',
+                            S.of(context).ordersCount(c.totalOrders),
                             style: GoogleFonts.instrumentSans(
                               fontSize: 11,
                               color: scheme.onSurface.withAlpha(130),
@@ -927,7 +934,7 @@ class _TopCustomersList extends StatelessWidget {
                         ),
                         if (c.outstandingAmount > 0)
                           Text(
-                            'Due: ${formatCurrency(c.outstandingAmount)}',
+                            '${S.of(context).due}: ${formatCurrency(c.outstandingAmount)}',
                             style: const TextStyle(
                               fontSize: 11,
                               color: Color(0xFFD97706),
@@ -982,7 +989,7 @@ class _LowStockAlert extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Low Stock Alert',
+                  S.of(context).lowStockAlert,
                   style: GoogleFonts.instrumentSans(
                     fontWeight: FontWeight.w700,
                     color: accent,
@@ -990,7 +997,7 @@ class _LowStockAlert extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '$count item${count == 1 ? '' : 's'} below reorder level',
+                  S.of(context).itemsBelowReorderLevel(count),
                   style: GoogleFonts.instrumentSans(
                       fontSize: 12,
                       color: scheme.onSurface.withAlpha(160)),

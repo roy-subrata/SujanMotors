@@ -66,7 +66,7 @@ class _StockInListScreenState extends ConsumerState<StockInListScreen> {
       showNotificationBell: true,
       actions: [
         IconButton(
-          tooltip: 'Quick stock adjust',
+          tooltip: S.of(context).quickStockAdjust,
           icon: const Icon(Icons.bolt_outlined),
           onPressed: () => context.push('/stock-in/quick'),
         ),
@@ -87,7 +87,7 @@ class _StockInListScreenState extends ConsumerState<StockInListScreen> {
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
             child: SearchInput(
               controller: _searchCtrl,
-              hintText: 'Search PO no, supplier...',
+              hintText: S.of(context).searchPoHint,
               onChanged: _onSearchChanged,
             ),
           ),
@@ -96,16 +96,16 @@ class _StockInListScreenState extends ConsumerState<StockInListScreen> {
             width: double.infinity,
             child: FilterChipRow(
               chips: [
-                FilterChipData(label: 'All'),
+                FilterChipData(label: S.of(context).all),
                 FilterChipData(
-                  label: 'Pending',
+                  label: S.of(context).pending,
                   inactiveColor: context.colors.amber,
                   inactiveBg: context.colors.amberBg,
                   inactiveBorder: context.colors.amberBorder,
                   activeBg: context.colors.amber,
                 ),
                 FilterChipData(
-                  label: 'Received',
+                  label: S.of(context).received,
                   inactiveColor: context.colors.green,
                   inactiveBg: context.colors.greenBg,
                   activeBg: context.colors.green,
@@ -126,8 +126,8 @@ class _StockInListScreenState extends ConsumerState<StockInListScreen> {
                     status: _filter == _PoFilter.received ? 'DELIVERED' : null,
                     page: page,
                   ),
-              emptyBuilder: (context) => const EmptyView(
-                message: 'No stock-in orders found.',
+              emptyBuilder: (context) => EmptyView(
+                message: S.of(context).noStockInOrders,
                 icon: Icons.move_to_inbox_outlined,
               ),
               itemBuilder: (context, po) =>
@@ -141,23 +141,8 @@ class _StockInListScreenState extends ConsumerState<StockInListScreen> {
 }
 
 /// Maps backend PO statuses onto the design's pill labels.
-String poPillLabel(String status) {
-  switch (status) {
-    case 'DELIVERED':
-      return 'Received';
-    case 'DRAFT':
-      return 'Draft';
-    case 'SUBMITTED':
-    case 'CONFIRMED':
-      return 'Pending';
-    case 'PARTIAL':
-      return 'Partial';
-    case 'CANCELLED':
-      return 'Cancelled';
-    default:
-      return status;
-  }
-}
+String poPillLabel(BuildContext context, String status) =>
+    S.of(context).poStatusName(status);
 
 class _PoRow extends StatelessWidget {
   const _PoRow({required this.po, required this.onTap});
@@ -224,7 +209,7 @@ class _PoRow extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    StatusPill(label: poPillLabel(po.status)),
+                    StatusPill(label: poPillLabel(context, po.status)),
                   ],
                 ),
               ],
@@ -277,20 +262,21 @@ class _PoDetailSheetState extends ConsumerState<_PoDetailSheet> {
     final warehouse = await pickWarehouse(context, ref);
     if (warehouse == null || !mounted) return;
 
+    final s = S.of(context);
     final repo = ref.read(purchaseOrdersRepositoryProvider);
     final username =
         ref.read(authControllerProvider).value?.username ?? 'mobile';
     setState(() => _receiving = true);
     try {
       if (po.status == 'DRAFT') {
-        setState(() => _progress = 'Submitting order...');
+        setState(() => _progress = s.submittingOrder);
         await repo.submit(po.id);
       }
       if (po.status == 'DRAFT' || po.status == 'SUBMITTED') {
-        setState(() => _progress = 'Confirming order...');
+        setState(() => _progress = s.confirmingOrder);
         await repo.confirm(po.id);
       }
-      setState(() => _progress = 'Posting goods receipt...');
+      setState(() => _progress = s.postingGrn);
       final grnId = await repo.createGrn(
         purchaseOrderId: po.id,
         warehouseId: warehouse.id,
@@ -305,13 +291,13 @@ class _PoDetailSheetState extends ConsumerState<_PoDetailSheet> {
                 ))
             .toList(),
       );
-      setState(() => _progress = 'Verifying...');
+      setState(() => _progress = s.verifying);
       await repo.verifyGrn(grnId, verifiedBy: username);
-      setState(() => _progress = 'Accepting stock...');
+      setState(() => _progress = s.acceptingStock);
       await repo.acceptGrn(grnId);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${po.poNumber} received — stock posted.')),
+        SnackBar(content: Text(s.poReceivedStockPosted(po.poNumber))),
       );
       Navigator.of(context).pop(true);
     } catch (e) {
@@ -342,12 +328,13 @@ class _PoDetailSheetState extends ConsumerState<_PoDetailSheet> {
               children: [
                 Expanded(
                   child: Text(
-                    po?.poNumber ?? 'Purchase order',
+                    po?.poNumber ?? S.of(context).purchaseOrder,
                     style: GoogleFonts.instrumentSans(
                         fontSize: 16, fontWeight: FontWeight.w700),
                   ),
                 ),
-                if (po != null) StatusPill(label: poPillLabel(po.status)),
+                if (po != null)
+                  StatusPill(label: poPillLabel(context, po.status)),
                 IconButton(
                   icon: const Icon(Icons.close),
                   onPressed: () => Navigator.of(context).pop(),
@@ -398,8 +385,8 @@ class _PoDetailSheetState extends ConsumerState<_PoDetailSheet> {
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                'Qty ${l.quantity} · ${formatCurrency(l.unitPrice)}'
-                                '${l.receivedQuantity > 0 ? ' · ${l.receivedQuantity} received' : ''}',
+                                '${S.of(context).qtyShort} ${l.quantity} · ${formatCurrency(l.unitPrice)}'
+                                '${l.receivedQuantity > 0 ? ' · ${S.of(context).nReceived(l.receivedQuantity)}' : ''}',
                                 style: GoogleFonts.instrumentSans(
                                     fontSize: 11.5, color: context.colors.muted),
                               ),
@@ -425,7 +412,7 @@ class _PoDetailSheetState extends ConsumerState<_PoDetailSheet> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Grand total',
+                      Text(S.of(context).grandTotalLabel,
                           style: GoogleFonts.instrumentSans(
                               fontSize: 13, color: context.colors.secondary)),
                       Text(
@@ -454,7 +441,7 @@ class _PoDetailSheetState extends ConsumerState<_PoDetailSheet> {
                                   strokeWidth: 2, color: context.colors.onInk),
                             )
                           : const Icon(Icons.check_rounded),
-                      label: Text(_progress ?? 'Receive stock'),
+                      label: Text(_progress ?? S.of(context).receiveStock),
                     ),
                   ],
                 ],
@@ -492,7 +479,7 @@ Future<Warehouse?> pickWarehouse(BuildContext context, WidgetRef ref) async {
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                   child: Text(
-                    'Receive into warehouse',
+                    S.of(context).receiveIntoWarehouse,
                     style: GoogleFonts.instrumentSans(
                         fontSize: 15, fontWeight: FontWeight.w700),
                   ),

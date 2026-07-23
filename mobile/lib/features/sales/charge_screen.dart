@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/i18n/strings.dart';
 import '../../core/network/app_exception.dart';
 import '../../core/theme/app_theme.dart';
 import '../../features/customers/customers_repository.dart';
@@ -143,9 +144,10 @@ class _ChargeScreenState extends ConsumerState<ChargeScreen> {
   // ── Submit ───────────────────────────────────────────────────────────────────
 
   void _submit() {
+    final s = S.of(context);
     final gt = grandTotal;
     if (gt <= 0) {
-      setState(() => _localError = 'Nothing to charge.');
+      setState(() => _localError = s.nothingToCharge);
       return;
     }
     final isWalkIn = _customer == null ||
@@ -153,14 +155,14 @@ class _ChargeScreenState extends ConsumerState<ChargeScreen> {
     // A due balance (partial or unpaid) must belong to a registered customer.
     if (due > 0 && isWalkIn) {
       setState(() => _localError = _customer == null
-          ? 'Select a customer to leave a balance — Walk-in must pay in full.'
-          : 'Walk-in customers can\'t carry a balance — select a registered customer.');
+          ? s.walkInMustPayFull
+          : s.walkInNoBalance);
       return;
     }
     // Non-cash methods should note a reference (txn / cheque / card no.).
     if (!_isCash && paidNow > 0 && _referenceCtrl.text.trim().isEmpty) {
-      setState(() =>
-          _localError = 'Add a reference for the ${_methods[_methodIndex]} payment.');
+      setState(() => _localError =
+          s.addReferenceFor(s.paymentMethodName(_methods[_methodIndex])));
       return;
     }
     setState(() => _localError = null);
@@ -195,7 +197,7 @@ class _ChargeScreenState extends ConsumerState<ChargeScreen> {
     );
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Checkout')),
+      appBar: AppBar(title: Text(S.of(context).checkout)),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 40),
         children: [
@@ -265,8 +267,9 @@ class _ChargeScreenState extends ConsumerState<ChargeScreen> {
                           strokeWidth: 2.5, color: context.colors.onInk),
                     )
                   : Text(due > 0
-                      ? 'Confirm · ${formatCurrency(paidNow.clamp(0, grandTotal))} paid'
-                      : 'Confirm Sale'),
+                      ? S.of(context).confirmPaid(
+                          formatCurrency(paidNow.clamp(0, grandTotal)))
+                      : S.of(context).confirmSale),
             ),
           ),
         ],
@@ -300,7 +303,7 @@ class _AmountCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Cart Total',
+              Text(S.of(context).cartTotal,
                   style: theme.textTheme.bodyMedium
                       ?.copyWith(color: scheme.onSurfaceVariant)),
               Text(formatCurrency(cartTotal),
@@ -312,7 +315,7 @@ class _AmountCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: Text('Discount',
+                child: Text(S.of(context).discount,
                     style: theme.textTheme.bodyMedium
                         ?.copyWith(color: scheme.onSurfaceVariant)),
               ),
@@ -327,7 +330,7 @@ class _AmountCard extends StatelessWidget {
                   ],
                   textAlign: TextAlign.right,
                   decoration: const InputDecoration(
-                    prefixText: '৳ ',
+                    prefixText: kCurrencyPrefix,
                     isDense: true,
                     border: OutlineInputBorder(),
                     contentPadding:
@@ -344,7 +347,7 @@ class _AmountCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Grand Total',
+              Text(S.of(context).grandTotalLabel,
                   style: theme.textTheme.titleMedium
                       ?.copyWith(fontWeight: FontWeight.w700)),
               Text(
@@ -392,7 +395,7 @@ class _CustomerCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Customer',
+          Text(S.of(context).customer,
               style: theme.textTheme.titleSmall
                   ?.copyWith(color: scheme.onSurfaceVariant)),
           const SizedBox(height: 10),
@@ -408,19 +411,19 @@ class _CustomerCard extends StatelessWidget {
                 enableFilter: true,
                 requestFocusOnTap: true,
                 width: constraints.maxWidth,
-                hintText: 'Walk-in / Select customer',
+                hintText: S.of(context).walkInSelectCustomer,
                 inputDecorationTheme:
                     const InputDecorationTheme(isDense: true),
                 dropdownMenuEntries: [
-                  const DropdownMenuEntry(
+                  DropdownMenuEntry(
                     value: null,
-                    label: 'Walk-in (no account)',
+                    label: S.of(context).walkInNoAccount,
                   ),
                   ...customers.map(
                     (c) => DropdownMenuEntry(
                       value: c,
                       label: c.dueAmount > 0
-                          ? '${c.fullName} (Due: ${formatCurrency(c.dueAmount)})'
+                          ? '${c.fullName} (${S.of(context).due}: ${formatCurrency(c.dueAmount)})'
                           : c.fullName,
                     ),
                   ),
@@ -448,7 +451,7 @@ class _CustomerCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Outstanding Due',
+                          S.of(context).outstandingDue,
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.amber.shade800,
@@ -475,7 +478,7 @@ class _CustomerCard extends StatelessWidget {
           // Vehicle section — only shown when a real customer is selected
           if (selectedCustomer != null) ...[
             const SizedBox(height: 14),
-            Text('Vehicle',
+            Text(S.of(context).vehicle,
                 style: theme.textTheme.titleSmall
                     ?.copyWith(color: scheme.onSurfaceVariant)),
             const SizedBox(height: 8),
@@ -484,7 +487,7 @@ class _CustomerCard extends StatelessWidget {
             else if (vehicles.isEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Text('No vehicles on file for this customer.',
+                child: Text(S.of(context).noVehiclesOnFile,
                     style: TextStyle(color: scheme.onSurfaceVariant)),
               )
             else
@@ -497,7 +500,7 @@ class _CustomerCard extends StatelessWidget {
                 child: Column(
                   children: [
                     _VehicleTile(
-                      label: 'No vehicle',
+                      label: S.of(context).noVehicle,
                       isSelected: selectedVehicle == null,
                       onTap: () => onSelectVehicle(null),
                       scheme: scheme,
@@ -590,10 +593,13 @@ class _AdvanceCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Advance credit',
+                    Text(S.of(context).advanceCredit,
                         style: theme.textTheme.titleSmall
                             ?.copyWith(fontWeight: FontWeight.w600)),
-                    Text('Available ${formatCurrency(available)}',
+                    Text(
+                        S
+                            .of(context)
+                            .availableAmount(formatCurrency(available)),
                         style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant)),
                   ],
@@ -605,7 +611,7 @@ class _AdvanceCard extends StatelessWidget {
           if (apply && applied > 0) ...[
             const SizedBox(height: 8),
             _SummaryRow(
-              label: 'Applied to this sale',
+              label: S.of(context).appliedToThisSale,
               value: '− ${formatCurrency(applied)}',
               color: Colors.green.shade700,
             ),
@@ -652,7 +658,7 @@ class _PaymentCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Payment',
+          Text(S.of(context).payment,
               style: theme.textTheme.titleSmall
                   ?.copyWith(color: scheme.onSurfaceVariant)),
           const SizedBox(height: 12),
@@ -662,7 +668,7 @@ class _PaymentCard extends StatelessWidget {
             children: [
               for (final (i, m) in methods.indexed)
                 ChoiceChip(
-                  label: Text(m),
+                  label: Text(S.of(context).paymentMethodName(m)),
                   selected: i == methodIndex,
                   onSelected: (_) => onMethodChanged(i),
                 ),
@@ -685,12 +691,12 @@ class _PaymentCard extends StatelessWidget {
                   textAlign: TextAlign.right,
                   style: theme.textTheme.titleLarge
                       ?.copyWith(fontWeight: FontWeight.w700),
-                  decoration: const InputDecoration(
-                    labelText: 'Amount paid now',
-                    prefixText: '৳  ',
-                    border: OutlineInputBorder(),
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                  decoration: InputDecoration(
+                    labelText: S.of(context).amountPaidNow,
+                    prefixText: kCurrencyPrefix,
+                    border: const OutlineInputBorder(),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 14),
                   ),
                 ),
               ),
@@ -701,7 +707,7 @@ class _PaymentCard extends StatelessWidget {
                   minimumSize: const Size(0, 52),
                   padding: const EdgeInsets.symmetric(horizontal: 14),
                 ),
-                child: const Text('Full'),
+                child: Text(S.of(context).full),
               ),
             ],
           ),
@@ -712,8 +718,9 @@ class _PaymentCard extends StatelessWidget {
             TextField(
               controller: referenceCtrl,
               decoration: InputDecoration(
-                labelText: '${methods[methodIndex]} reference',
-                hintText: 'Txn / cheque / card no.',
+                labelText: S.of(context).referenceFor(
+                    S.of(context).paymentMethodName(methods[methodIndex])),
+                hintText: S.of(context).txnRefHint,
                 isDense: true,
                 border: const OutlineInputBorder(),
                 contentPadding:
@@ -726,7 +733,7 @@ class _PaymentCard extends StatelessWidget {
           // Change (overpaid cash) or Due (partial) summary
           if (change > 0 && isCash)
             _SummaryRow(
-              label: 'Change',
+              label: S.of(context).changeLabel,
               value: formatCurrency(change),
               color: Colors.green.shade700,
             )
@@ -744,7 +751,9 @@ class _PaymentCard extends StatelessWidget {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'Remaining ${formatCurrency(due)} added to the customer\'s balance.',
+                      S
+                          .of(context)
+                          .remainingAddedToBalance(formatCurrency(due)),
                       style: TextStyle(
                           fontSize: 12.5, color: scheme.onErrorContainer),
                     ),
@@ -754,7 +763,7 @@ class _PaymentCard extends StatelessWidget {
             )
           else
             _SummaryRow(
-              label: 'Paid in full',
+              label: S.of(context).paidInFull,
               value: formatCurrency(coverable),
               color: Colors.green.shade700,
             ),

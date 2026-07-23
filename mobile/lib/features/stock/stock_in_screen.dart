@@ -136,7 +136,7 @@ class _StockInScreenState extends ConsumerState<StockInScreen> {
       if (mounted) {
         setState(() {
           _loadingProduct = false;
-          _lookupError = 'Product not found for this barcode';
+          _lookupError = S.of(context).productNotFoundForBarcode;
         });
       }
     }
@@ -174,7 +174,7 @@ class _StockInScreenState extends ConsumerState<StockInScreen> {
       if (mounted) {
         setState(() {
           _loadingProduct = false;
-          _lookupError = 'Failed to load product details';
+          _lookupError = S.of(context).failedToLoadProductDetails;
         });
       }
     }
@@ -198,7 +198,7 @@ class _StockInScreenState extends ConsumerState<StockInScreen> {
       actions: [
         IconButton(
           icon: const Icon(Icons.qr_code_scanner),
-          tooltip: 'Scan barcode',
+          tooltip: S.of(context).scanBarcode,
           onPressed: _startScan,
         ),
       ],
@@ -220,7 +220,7 @@ class _StockInScreenState extends ConsumerState<StockInScreen> {
             controller: _searchCtrl,
             textInputAction: TextInputAction.search,
             decoration: InputDecoration(
-              hintText: 'Search parts, SKU or brand...',
+              hintText: S.of(context).searchPartsHint,
               prefixIcon: const Icon(Icons.search, size: 20),
               filled: true,
               fillColor:
@@ -281,7 +281,7 @@ class _StockInScreenState extends ConsumerState<StockInScreen> {
     if (_searchResults.isEmpty) {
       return Center(
         child: Text(
-          'No products found',
+          S.of(context).noProductsFound,
           style: TextStyle(color: scheme.onSurfaceVariant),
         ),
       );
@@ -312,13 +312,13 @@ class _StockInScreenState extends ConsumerState<StockInScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Quick Stock In',
+              S.of(context).quickStockIn,
               style: theme.textTheme.headlineSmall
                   ?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 8),
             Text(
-              'Scan a barcode or search for a product to record received stock or adjust inventory counts.',
+              S.of(context).quickStockInSubtitle,
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium
                   ?.copyWith(color: scheme.onSurfaceVariant),
@@ -329,7 +329,7 @@ class _StockInScreenState extends ConsumerState<StockInScreen> {
               child: FilledButton.icon(
                 onPressed: _startScan,
                 icon: const Icon(Icons.qr_code_scanner),
-                label: const Text('Scan Barcode'),
+                label: Text(S.of(context).scanBarcode),
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
@@ -364,7 +364,7 @@ class _StockInScreenState extends ConsumerState<StockInScreen> {
           left: 12,
           child: _ScanBtn(
             icon: Icons.close,
-            tooltip: 'Cancel',
+            tooltip: S.of(context).cancel,
             onTap: _stopScan,
           ),
         ),
@@ -373,15 +373,15 @@ class _StockInScreenState extends ConsumerState<StockInScreen> {
           right: 12,
           child: _ScanBtn(
             icon: Icons.flash_on,
-            tooltip: 'Torch',
+            tooltip: S.of(context).torch,
             onTap: () => _scanner.toggleTorch(),
           ),
         ),
-        const Positioned(
+        Positioned(
           bottom: 80,
           child: Text(
-            'Point camera at a barcode',
-            style: TextStyle(color: Colors.white, fontSize: 15),
+            S.of(context).pointCameraAtBarcode,
+            style: const TextStyle(color: Colors.white, fontSize: 15),
           ),
         ),
         if (_handling || _loadingProduct)

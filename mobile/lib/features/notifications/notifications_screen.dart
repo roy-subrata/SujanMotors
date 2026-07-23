@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/i18n/strings.dart';
 import '../../core/network/app_exception.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/format.dart';
@@ -33,13 +34,13 @@ class NotificationsScreen extends ConsumerWidget {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.canPop() ? context.pop() : context.go('/'),
         ),
-        title: const Text('Notifications'),
+        title: Text(S.of(context).notifications),
         actions: [
           if (state.items.any((n) => !n.read))
             TextButton(
               onPressed: controller.markAllRead,
               child: Text(
-                'Mark all read',
+                S.of(context).markAllRead,
                 style: GoogleFonts.instrumentSans(
                   fontSize: 12.5,
                   fontWeight: FontWeight.w600,
@@ -48,7 +49,7 @@ class NotificationsScreen extends ConsumerWidget {
             ),
           if (state.items.isNotEmpty)
             IconButton(
-              tooltip: 'Clear all',
+              tooltip: S.of(context).clearAll,
               icon: const Icon(Icons.delete_sweep_outlined, size: 20),
               onPressed: controller.clearAll,
             ),
@@ -62,9 +63,8 @@ class NotificationsScreen extends ConsumerWidget {
             _ConnectionBanner(status: state.status),
           Expanded(
             child: state.items.isEmpty
-                ? const EmptyView(
-                    message:
-                        'No notifications yet.\nNew sales will appear here live.',
+                ? EmptyView(
+                    message: S.of(context).noNotificationsYet,
                     icon: Icons.notifications_off_outlined,
                   )
                 : ListView.builder(
@@ -100,6 +100,7 @@ class NotificationsScreen extends ConsumerWidget {
       BuildContext context, WidgetRef ref, AppNotification item) async {
     ref.read(notificationsControllerProvider.notifier).markRead(item);
     final messenger = ScaffoldMessenger.of(context);
+    final s = S.of(context);
     final errorColor = context.colors.red;
     final router = GoRouter.of(context);
     try {
@@ -108,8 +109,8 @@ class NotificationsScreen extends ConsumerWidget {
           .invoices(search: item.sale.soNumber, pageSize: 1);
       final invoice = chunk.items.firstOrNull;
       if (invoice == null) {
-        messenger.showSnackBar(const SnackBar(
-          content: Text('Invoice not found for this sale yet.'),
+        messenger.showSnackBar(SnackBar(
+          content: Text(s.invoiceNotFoundYet),
           behavior: SnackBarBehavior.floating,
         ));
         return;
@@ -141,13 +142,13 @@ class _ConnectionBanner extends StatelessWidget {
       HubStatus.connecting => (
           context.colors.amberBg,
           context.colors.amber,
-          'Connecting…',
+          S.of(context).connecting,
           Icons.sync,
         ),
       _ => (
           context.colors.redBg,
           context.colors.red,
-          'Offline — live notifications paused',
+          S.of(context).offlinePaused,
           Icons.cloud_off,
         ),
     };
@@ -188,9 +189,9 @@ class _DayHeader extends StatelessWidget {
     final thatDay = DateTime(day.year, day.month, day.day);
     final diff = today.difference(thatDay).inDays;
     final label = diff == 0
-        ? 'Today'
+        ? S.of(context).today
         : diff == 1
-            ? 'Yesterday'
+            ? S.of(context).yesterday
             : DateFormat('d MMM').format(day);
 
     return Padding(
@@ -212,7 +213,8 @@ class _NotificationRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final sale = notification.sale;
     final scheme = Theme.of(context).colorScheme;
-    final who = sale.customerName.isEmpty ? 'Walk-in' : sale.customerName;
+    final who =
+        sale.customerName.isEmpty ? S.of(context).walkIn : sale.customerName;
 
     return ListCard(
       onTap: onTap,
@@ -230,7 +232,7 @@ class _NotificationRow extends StatelessWidget {
             ),
             alignment: Alignment.center,
             child: Text(
-              '৳',
+              kCurrencySymbol,
               style: GoogleFonts.instrumentSans(
                 fontSize: 17,
                 fontWeight: FontWeight.w700,
@@ -244,7 +246,7 @@ class _NotificationRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'New sale · ${sale.soNumber}',
+                  S.of(context).newSaleTitled(sale.soNumber),
                   style: GoogleFonts.instrumentSans(
                     fontSize: 13.5,
                     fontWeight: FontWeight.w600,
@@ -273,7 +275,7 @@ class _NotificationRow extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    formatRelative(sale.occurredAt),
+                    formatRelative(sale.occurredAt, s: S.of(context)),
                     style: GoogleFonts.instrumentSans(
                       fontSize: 11,
                       color: context.colors.muted,

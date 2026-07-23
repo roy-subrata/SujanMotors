@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/app_exception.dart';
@@ -43,7 +44,12 @@ class DashboardController extends Notifier<DashboardState> {
   DashboardState build() {
     final today = DateTime.now();
     final start = DateTime(today.year, today.month, today.day);
-    Future.microtask(() => load());
+    // Defer initial load to after the first frame to avoid modifying state
+    // during build. WidgetsBinding.addPostFrameCallback is safe because the
+    // notifier is guaranteed to still be alive at that point.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (ref.exists(dashboardControllerProvider)) load();
+    });
     return DashboardState(isLoading: true, rangeStart: start, rangeEnd: start);
   }
 
@@ -72,6 +78,8 @@ class DashboardController extends Notifier<DashboardState> {
       state = state.copyWith(data: data, isLoading: false);
     } on AppException catch (e) {
       state = state.copyWith(isLoading: false, error: e.message);
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: 'Something went wrong.');
     }
   }
 }

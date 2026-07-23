@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/i18n/strings.dart';
 import '../../core/theme/app_theme.dart';
 
 class SplashScreen extends StatelessWidget {
@@ -10,19 +11,19 @@ class SplashScreen extends StatelessWidget {
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(gradient: AppGradients.brand),
-        child: const Center(
+        child: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.inventory_2_outlined, size: 64, color: Colors.white),
-              SizedBox(height: 20),
-              Text('Auto Parts Shop',
-                  style: TextStyle(
+              const Icon(Icons.inventory_2_outlined, size: 64, color: Colors.white),
+              const SizedBox(height: 20),
+              Text(S.of(context).brandName,
+                  style: const TextStyle(
                       color: Colors.white,
                       fontSize: 22,
                       fontWeight: FontWeight.w700)),
-              SizedBox(height: 24),
-              SizedBox(
+              const SizedBox(height: 24),
+              const SizedBox(
                 height: 26,
                 width: 26,
                 child: CircularProgressIndicator(

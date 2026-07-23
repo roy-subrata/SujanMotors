@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../core/i18n/strings.dart';
+
 /// Centered spinner for loading states.
 class LoadingView extends StatelessWidget {
   const LoadingView({super.key});
@@ -33,7 +35,7 @@ class ErrorView extends StatelessWidget {
               FilledButton.tonalIcon(
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh),
-                label: const Text('Retry'),
+                label: Text(S.of(context).retry),
               ),
             ],
           ],

@@ -4,6 +4,7 @@ import 'package:signalr_netcore/signalr_client.dart';
 import '../../core/config/api_config.dart';
 import '../../core/notifications/local_notifications.dart';
 import '../../core/storage/token_storage.dart';
+import '../../shared/format.dart';
 import '../auth/auth_controller.dart';
 import 'notification_models.dart';
 
@@ -124,7 +125,8 @@ class NotificationsController extends Notifier<NotificationsState> {
     final who = sale.customerName.isEmpty ? 'Walk-in' : sale.customerName;
     LocalNotifications.instance.show(
       title: 'New sale · ${sale.soNumber}',
-      body: '$who · ${sale.currency} ${sale.grandTotal.toStringAsFixed(2)}',
+      body:
+          '$who · ${formatCurrency(sale.grandTotal, currency: sale.currency)}',
     );
   }
 
