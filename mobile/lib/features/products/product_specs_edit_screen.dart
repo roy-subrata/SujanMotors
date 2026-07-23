@@ -106,6 +106,7 @@ class _ProductSpecsEditScreenState
 
     final messenger = ScaffoldMessenger.of(context);
     final router = GoRouter.of(context);
+    final s = S.of(context);
     setState(() => _saving = true);
     try {
       await ref
@@ -113,7 +114,7 @@ class _ProductSpecsEditScreenState
           .updateSpecifications(widget.productId, specs);
       ref.invalidate(productSpecificationsProvider(widget.productId));
       messenger.showSnackBar(SnackBar(
-        content: Text(S.of(context).specificationsSaved),
+        content: Text(s.specificationsSaved),
         duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
       ));
