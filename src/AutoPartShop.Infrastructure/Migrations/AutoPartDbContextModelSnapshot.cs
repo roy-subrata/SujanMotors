@@ -3075,9 +3075,6 @@ namespace AutoPartsShop.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<decimal?>("DepthCm")
-                        .HasColumnType("decimal(10,2)");
-
                     b.Property<string>("Description")
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
@@ -3086,9 +3083,6 @@ namespace AutoPartsShop.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
-
-                    b.Property<decimal?>("HeightCm")
-                        .HasColumnType("decimal(10,2)");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
@@ -3177,9 +3171,6 @@ namespace AutoPartsShop.Infrastructure.Migrations
 
                     b.Property<decimal?>("WeightKg")
                         .HasColumnType("decimal(10,4)");
-
-                    b.Property<decimal?>("WidthCm")
-                        .HasColumnType("decimal(10,2)");
 
                     b.HasKey("Id");
 
@@ -3664,14 +3655,8 @@ namespace AutoPartsShop.Infrastructure.Migrations
                         .HasMaxLength(3)
                         .HasColumnType("nvarchar(3)");
 
-                    b.Property<decimal?>("DepthCm")
-                        .HasColumnType("decimal(10,2)");
-
                     b.Property<bool?>("HasWarrantyOverride")
                         .HasColumnType("bit");
-
-                    b.Property<decimal?>("HeightCm")
-                        .HasColumnType("decimal(10,2)");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
@@ -3717,9 +3702,6 @@ namespace AutoPartsShop.Infrastructure.Migrations
 
                     b.Property<decimal?>("WeightKg")
                         .HasColumnType("decimal(10,4)");
-
-                    b.Property<decimal?>("WidthCm")
-                        .HasColumnType("decimal(10,2)");
 
                     b.HasKey("Id");
 
