@@ -24,6 +24,8 @@ class DashboardRepository {
       return DashboardData.fromJson(res.data as Map<String, dynamic>);
     } on DioException catch (e) {
       throw AppException.fromDio(e);
+    } catch (e) {
+      throw AppException('Failed to load dashboard data.');
     }
   }
 }

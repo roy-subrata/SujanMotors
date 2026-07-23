@@ -273,7 +273,7 @@ class _RevenueCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              formatCurrency(summary.totalRevenue),
+              formatCurrency(summary.totalSales),
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 30,
@@ -287,12 +287,14 @@ class _RevenueCard extends StatelessWidget {
                 _MiniStat(
                     label: S.of(context).cash,
                     value: formatCurrency(summary.cashSales),
-                    color: Colors.white),
+                    color: Colors.white,
+                    subtitle: S.of(context).paid),
                 const SizedBox(width: 20),
                 _MiniStat(
                     label: S.of(context).credit,
                     value: formatCurrency(summary.creditSales),
-                    color: Colors.white70),
+                    color: Colors.white70,
+                    subtitle: S.of(context).due),
                 const Spacer(),
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -345,11 +347,12 @@ class _RevenueCard extends StatelessWidget {
 
 class _MiniStat extends StatelessWidget {
   const _MiniStat(
-      {required this.label, required this.value, required this.color});
+      {required this.label, required this.value, required this.color, this.subtitle});
 
   final String label;
   final String value;
   final Color color;
+  final String? subtitle;
 
   @override
   Widget build(BuildContext context) => Column(
@@ -360,6 +363,9 @@ class _MiniStat extends StatelessWidget {
           Text(value,
               style: TextStyle(
                   color: color, fontSize: 12, fontWeight: FontWeight.w600)),
+          if (subtitle != null)
+            Text(subtitle!,
+                style: const TextStyle(color: Colors.white38, fontSize: 9)),
         ],
       );
 }
