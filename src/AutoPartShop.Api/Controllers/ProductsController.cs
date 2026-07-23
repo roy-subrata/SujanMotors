@@ -396,7 +396,7 @@ public class ProductsController : ControllerBase
             request.HasWarranty, request.WarrantyPeriodMonths, request.WarrantyType,
             request.WarrantyTerms, request.WarrantyCertificateTemplate,
             request.Barcode, request.Tags, request.ProductType, request.IsPerishable,
-            request.WeightKg, request.WidthCm, request.HeightCm, request.DepthCm, request.TaxCode,
+            request.WeightKg, request.TaxCode,
             request.OemNumber, request.LocalName);
 
         var currentUser = _currentUserService.GetCurrentUsername();
@@ -453,7 +453,7 @@ public class ProductsController : ControllerBase
             request.HasWarranty, request.WarrantyPeriodMonths, request.WarrantyType,
             request.WarrantyTerms, request.WarrantyCertificateTemplate,
             request.Barcode, request.Tags, request.ProductType,
-            request.IsPerishable, request.WeightKg, request.WidthCm, request.HeightCm, request.DepthCm,
+            request.IsPerishable, request.WeightKg,
             request.TaxCode, request.RichDescription, request.OemNumber, request.LocalName);
         part.ModifiedBy = _currentUserService.GetCurrentUsername();
 
@@ -603,7 +603,7 @@ public class ProductsController : ControllerBase
 
     private static ProductResponse MapToProductResponse(Product part, bool isAdmin)
     {
-        var hasDimensions = part.WeightKg.HasValue || part.WidthCm.HasValue || part.HeightCm.HasValue || part.DepthCm.HasValue;
+        var hasDimensions = part.WeightKg.HasValue;
         var hasWarrantyData = part.HasWarranty || part.WarrantyPeriodMonths.HasValue;
 
         var explicitVariants = part.Variants?
@@ -665,10 +665,7 @@ public class ProductsController : ControllerBase
             },
             Dimensions = hasDimensions ? new ProductDimensionsSummary
             {
-                WeightKg = part.WeightKg,
-                WidthCm = part.WidthCm,
-                HeightCm = part.HeightCm,
-                DepthCm = part.DepthCm
+                WeightKg = part.WeightKg
             } : null,
             Warranty = hasWarrantyData ? new ProductWarrantySummary
             {

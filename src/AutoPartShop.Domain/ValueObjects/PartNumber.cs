@@ -14,14 +14,12 @@ public class PartNumber
     {
         if (string.IsNullOrWhiteSpace(value))
             throw new ArgumentException("Part number cannot be empty", nameof(value));
-        if (value.Length < 3 || value.Length > 20)
-            throw new ArgumentException("Part number must be between 3 and 20 characters", nameof(value));
 
-        // Example: Ensure part number starts with a letter (customize as needed)
-        if (!char.IsLetter(value[0]))
-            throw new ArgumentException("Part number must start with a letter", nameof(value));
+        var trimmed = value.Trim();
+        if (trimmed.Length < 1 || trimmed.Length > 30)
+            throw new ArgumentException("Part number must be between 1 and 30 characters", nameof(value));
 
-        return new PartNumber(value);
+        return new PartNumber(trimmed);
     }
 
     public override bool Equals(object? obj)

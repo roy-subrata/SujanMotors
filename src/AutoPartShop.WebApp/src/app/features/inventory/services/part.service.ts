@@ -47,9 +47,6 @@ export interface PartResponse {
     productType: string;
     isPerishable: boolean;
     weightKg?: number | null;
-    widthCm?: number | null;
-    heightCm?: number | null;
-    depthCm?: number | null;
     taxCode?: string | null;
     // Warranty
     hasWarranty: boolean;
@@ -84,9 +81,6 @@ export interface CreatePartRequest {
     productType: string;
     isPerishable: boolean;
     weightKg?: number | null;
-    widthCm?: number | null;
-    heightCm?: number | null;
-    depthCm?: number | null;
     taxCode?: string | null;
     // Warranty
     hasWarranty: boolean;
@@ -117,9 +111,6 @@ export interface UpdatePartRequest {
     productType: string;
     isPerishable: boolean;
     weightKg?: number | null;
-    widthCm?: number | null;
-    heightCm?: number | null;
-    depthCm?: number | null;
     taxCode?: string | null;
     // Warranty
     hasWarranty: boolean;
@@ -240,9 +231,6 @@ export class PartService {
                     productType: p.productType ?? 'PHYSICAL',
                     isPerishable: p.isPerishable ?? false,
                     weightKg: p.dimensions?.weightKg ?? null,
-                    widthCm: p.dimensions?.widthCm ?? null,
-                    heightCm: p.dimensions?.heightCm ?? null,
-                    depthCm: p.dimensions?.depthCm ?? null,
                     taxCode: p.taxCode ?? null,
                     hasWarranty: p.warranty?.hasWarranty ?? false,
                     warrantyPeriodMonths: p.warranty?.periodMonths ?? null,

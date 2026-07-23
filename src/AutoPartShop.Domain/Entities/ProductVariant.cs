@@ -16,9 +16,6 @@ public class ProductVariant : AuditableEntity
     public bool IsActive { get; private set; } = true;
 
     public decimal? WeightKg { get; private set; }
-    public decimal? WidthCm { get; private set; }
-    public decimal? HeightCm { get; private set; }
-    public decimal? DepthCm { get; private set; }
 
     // null = inherit from parent Part; true = variant has warranty; false = variant explicitly has no warranty
     public bool? HasWarrantyOverride { get; private set; }
@@ -41,10 +38,7 @@ public class ProductVariant : AuditableEntity
         string? barcode = null,
         string currency = "BDT",
         bool isActive = true,
-        decimal? weightKg = null,
-        decimal? widthCm = null,
-        decimal? heightCm = null,
-        decimal? depthCm = null)
+        decimal? weightKg = null)
     {
         if (partId == Guid.Empty)
             throw new ArgumentException("PartId cannot be empty", nameof(partId));
@@ -69,10 +63,7 @@ public class ProductVariant : AuditableEntity
             SellingPrice = sellingPrice,
             Currency = string.IsNullOrWhiteSpace(currency) ? "BDT" : currency.Trim().ToUpperInvariant(),
             IsActive = isActive,
-            WeightKg = weightKg,
-            WidthCm = widthCm,
-            HeightCm = heightCm,
-            DepthCm = depthCm
+            WeightKg = weightKg
         };
     }
 
@@ -85,10 +76,7 @@ public class ProductVariant : AuditableEntity
         string? barcode = null,
         string currency = "BDT",
         bool isActive = true,
-        decimal? weightKg = null,
-        decimal? widthCm = null,
-        decimal? heightCm = null,
-        decimal? depthCm = null)
+        decimal? weightKg = null)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Name cannot be empty", nameof(name));
@@ -108,9 +96,6 @@ public class ProductVariant : AuditableEntity
         Currency = string.IsNullOrWhiteSpace(currency) ? "BDT" : currency.Trim().ToUpperInvariant();
         IsActive = isActive;
         WeightKg = weightKg;
-        WidthCm = widthCm;
-        HeightCm = heightCm;
-        DepthCm = depthCm;
     }
 
     public void UpdateSellingPrice(decimal newPrice, string currency = "BDT")

@@ -32,9 +32,6 @@ public class ProductImportRow
     public string? WarrantyType { get; set; }
 
     public decimal? WeightKg { get; set; }
-    public decimal? WidthCm { get; set; }
-    public decimal? HeightCm { get; set; }
-    public decimal? DepthCm { get; set; }
 }
 
 /// <summary>Per-row outcome of validation or commit.</summary>

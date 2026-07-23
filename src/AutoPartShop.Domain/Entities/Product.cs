@@ -36,9 +36,6 @@ public class Product : AuditableEntity
 
     // ── Physical attributes (shipping / shelf planning) ───────────────────────
     public decimal? WeightKg { get; private set; }
-    public decimal? WidthCm { get; private set; }
-    public decimal? HeightCm { get; private set; }
-    public decimal? DepthCm { get; private set; }
 
     // ── Product behaviour flags ───────────────────────────────────────────────
     public string ProductType { get; private set; } = "PHYSICAL";  // PHYSICAL, DIGITAL, SERVICE
@@ -73,7 +70,6 @@ public class Product : AuditableEntity
         string? warrantyTerms = null, string? warrantyCertificateTemplate = null,
         string? barcode = null, string? tags = null, string productType = "PHYSICAL",
         bool isPerishable = false, decimal? weightKg = null,
-        decimal? widthCm = null, decimal? heightCm = null, decimal? depthCm = null,
         string? taxCode = null, string? oemNumber = null, string? localName = null)
     {
         if (string.IsNullOrWhiteSpace(name))
@@ -141,9 +137,6 @@ public class Product : AuditableEntity
             IsActive = true,
             TaxCode = taxCode?.Trim().ToUpper(),
             WeightKg = weightKg,
-            WidthCm = widthCm,
-            HeightCm = heightCm,
-            DepthCm = depthCm,
             ProductType = resolvedType,
             IsPerishable = isPerishable,
             HasWarranty = hasWarranty,
@@ -161,7 +154,6 @@ public class Product : AuditableEntity
         string? warrantyTerms = null, string? warrantyCertificateTemplate = null,
         string? barcode = null, string? tags = null, string productType = "PHYSICAL",
         bool isPerishable = false, decimal? weightKg = null,
-        decimal? widthCm = null, decimal? heightCm = null, decimal? depthCm = null,
         string? taxCode = null, string? richDescription = null, string? oemNumber = null, string? localName = null)
     {
         if (string.IsNullOrWhiteSpace(name))
@@ -217,9 +209,6 @@ public class Product : AuditableEntity
         IsActive = isActive;
         TaxCode = taxCode?.Trim().ToUpper();
         WeightKg = weightKg;
-        WidthCm = widthCm;
-        HeightCm = heightCm;
-        DepthCm = depthCm;
         ProductType = resolvedType;
         IsPerishable = isPerishable;
         HasWarranty = hasWarranty;
