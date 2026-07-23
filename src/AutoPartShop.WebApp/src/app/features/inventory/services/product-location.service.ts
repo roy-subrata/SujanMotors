@@ -9,12 +9,16 @@ export interface ProductLocationResponse {
   partId: string;
   partName: string;
   partSKU: string;
+  warehouseLocationId: string;
   warehouseId: string;
   warehouseName: string;
   warehouseCode: string;
-  section: string;
-  shelf: string;
-  fullLocation: string;
+  zone: string;
+  aisle: string;
+  rack: string;
+  bin: string;
+  /** Computed "Zone-Aisle-Rack-Bin", e.g. "A-04-B-12" — matches the printed bin label. */
+  locationCode: string;
   notes: string;
   isPrimary: boolean;
   createdBy: string;
@@ -23,16 +27,13 @@ export interface ProductLocationResponse {
 
 export interface CreateProductLocationRequest {
   partId: string;
-  warehouseId: string;
-  section: string;
-  shelf: string;
+  warehouseLocationId: string;
   isPrimary: boolean;
   notes?: string;
 }
 
 export interface UpdateProductLocationRequest {
-  section: string;
-  shelf: string;
+  warehouseLocationId: string;
   isPrimary: boolean;
   notes?: string;
 }

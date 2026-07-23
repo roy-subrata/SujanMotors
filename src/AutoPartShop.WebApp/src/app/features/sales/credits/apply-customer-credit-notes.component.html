@@ -99,7 +99,7 @@
         </div>
 
         <div class="form-group">
-          <label>Amount to Apply</label>
+          <label>Amount to Apply <span class="required">*</span></label>
           <p-inputNumber
             [(ngModel)]="amountToApply"
             [min]="0"
@@ -107,6 +107,9 @@
             placeholder="Enter amount"
             styleClass="amount-input">
           </p-inputNumber>
+          <small class="text-danger" *ngIf="amountToApply !== null && amountToApply !== undefined && amountToApply <= 0">
+            Enter an amount greater than 0
+          </small>
         </div>
       </div>
 

@@ -297,6 +297,15 @@ import { PageHeaderComponent } from '@/shared/components/page-header/page-header
         background-color: var(--surface-ground);
         font-weight: 600;
       }
+
+      /* Tailwind gray-scale utility classes used above are static and don't
+         flip under .app-dark — re-point them at the theme-aware --color-*
+         tokens from assets/_data-page.scss. */
+      .text-gray-400 { color: var(--color-text-muted) !important; }
+      .text-gray-500 { color: var(--color-text-muted) !important; }
+      .text-gray-600 { color: var(--color-text-secondary) !important; }
+      .text-gray-800 { color: var(--color-text-primary) !important; }
+      .bg-gray-100 { background-color: var(--color-bg-secondary) !important; }
     }
   `]
 })

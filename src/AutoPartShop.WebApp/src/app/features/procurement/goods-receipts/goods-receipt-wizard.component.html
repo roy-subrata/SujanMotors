@@ -19,11 +19,14 @@
         <!-- Step 1: PO & Warehouse -->
         <form [formGroup]="formStep1" class="wizard-form">
           <div class="form-row">
-            <label>Purchase Order *</label>
+            <label><span class="required">*</span> Purchase Order</label>
             <select formControlName="purchaseOrderId" (change)="onPOChange($event.target.value)">
               <option value="">Select a PO...</option>
               <option *ngFor="let po of purchaseOrders" [value]="po.id">{{ po.poNumber }} - {{ po.supplierName }}</option>
             </select>
+            <small class="p-error" *ngIf="formStep1.get('purchaseOrderId')?.touched && formStep1.get('purchaseOrderId')?.invalid">
+              Purchase order is required.
+            </small>
           </div>
           <div *ngIf="selectedPO" class="po-summary">
             <div><b>Supplier:</b> {{ selectedPO.supplierName }}</div>
@@ -31,15 +34,21 @@
             <div><b>Status:</b> {{ selectedPO.status }}</div>
           </div>
           <div class="form-row">
-            <label>Warehouse *</label>
+            <label><span class="required">*</span> Warehouse</label>
             <select formControlName="warehouseId" (change)="onWarehouseChange($event.target.value)">
               <option value="">Select a warehouse...</option>
               <option *ngFor="let w of warehouses" [value]="w.id">{{ w.name }} ({{ w.location }})</option>
             </select>
+            <small class="p-error" *ngIf="formStep1.get('warehouseId')?.touched && formStep1.get('warehouseId')?.invalid">
+              Warehouse is required.
+            </small>
           </div>
           <div class="form-row">
-            <label>Received Date *</label>
+            <label><span class="required">*</span> Received Date</label>
             <input type="date" formControlName="receivedDate">
+            <small class="p-error" *ngIf="formStep1.get('receivedDate')?.touched && formStep1.get('receivedDate')?.invalid">
+              Received date is required.
+            </small>
           </div>
           <div class="form-row">
             <label>

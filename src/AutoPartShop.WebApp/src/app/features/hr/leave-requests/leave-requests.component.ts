@@ -64,6 +64,7 @@ export class LeaveRequestsComponent implements OnInit {
     // Create/edit dialog
     dialogVisible = false;
     saving = false;
+    submitted = false;
     editingId: string | null = null;
     employees: EmployeeResponse[] = [];
     form = this.emptyForm();
@@ -146,6 +147,7 @@ export class LeaveRequestsComponent implements OnInit {
 
     openCreate(): void {
         this.editingId = null;
+        this.submitted = false;
         this.form = this.emptyForm();
         this.loadEmployeesForDialog();
         this.dialogVisible = true;
@@ -153,6 +155,7 @@ export class LeaveRequestsComponent implements OnInit {
 
     openEdit(request: LeaveRequestResponse): void {
         this.editingId = request.id;
+        this.submitted = false;
         this.form = {
             employeeId: request.employeeId,
             leaveType: request.leaveType,
@@ -173,6 +176,7 @@ export class LeaveRequestsComponent implements OnInit {
     }
 
     saveRequest(): void {
+        this.submitted = true;
         if (!this.form.employeeId || !this.form.fromDate || !this.form.toDate) {
             this.messageService.add({
                 severity: 'warn',

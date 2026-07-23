@@ -31,7 +31,7 @@
 }
 
 .required {
-  color: #ef4444;
+  color: var(--color-danger);
   margin-right: 0.25rem;
 }
 
@@ -52,16 +52,16 @@
 
 .form-input:focus {
   outline: none;
-  border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
 }
 
 .form-input-error {
-  border-color: #ef4444 !important;
+  border-color: var(--color-danger) !important;
 }
 
 .form-input-error:focus {
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
+  box-shadow: 0 0 0 3px var(--color-danger-light) !important;
 }
 
 :host ::ng-deep .form-input-number .p-inputnumber-input {
@@ -75,8 +75,8 @@
 
 :host ::ng-deep .form-input-number .p-inputnumber-input:focus {
   outline: none;
-  border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
 }
 
 :host ::ng-deep .p-select {
@@ -88,7 +88,7 @@
 }
 
 .error-message {
-  color: #ef4444;
+  color: var(--color-danger);
   font-size: 0.75rem;
   margin-top: 2px;
 }
@@ -111,15 +111,15 @@
 }
 
 .scope-banner[data-scope="CART"] {
-  background: rgba(16, 185, 129, 0.12);
-  border-color: rgba(16, 185, 129, 0.4);
-  color: #10b981;
+  background: var(--color-success-light);
+  border-color: var(--color-success);
+  color: var(--color-success);
 }
 
 .scope-banner[data-scope="PRODUCT"] {
-  background: rgba(59, 130, 246, 0.12);
-  border-color: rgba(59, 130, 246, 0.4);
-  color: #3b82f6;
+  background: var(--color-info-light);
+  border-color: var(--color-info);
+  color: var(--color-info);
 }
 
 .scope-banner[data-scope="VARIANT"] {
@@ -177,11 +177,11 @@
   gap: 6px;
   margin-top: 6px;
   padding: 8px 12px;
-  background-color: rgba(59, 130, 246, 0.12);
-  border: 1px solid rgba(59, 130, 246, 0.4);
+  background-color: var(--color-info-light);
+  border: 1px solid var(--color-info);
   border-radius: 6px;
   font-size: 0.8125rem;
-  color: #3b82f6;
+  color: var(--color-info);
 }
 
 .scope-note.scope-note-item {
@@ -221,8 +221,8 @@
 }
 
 .scope-badge-display[data-scope="CART"] {
-  background-color: rgba(16, 185, 129, 0.15);
-  color: #10b981;
+  background-color: var(--color-success-light);
+  color: var(--color-success);
 }
 
 /* Toggle row */
@@ -241,7 +241,7 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  color: #047857;
+  color: var(--color-success);
   font-weight: 600;
 }
 
@@ -249,7 +249,7 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  color: #B91C1C;
+  color: var(--color-danger);
   font-weight: 600;
 }
 

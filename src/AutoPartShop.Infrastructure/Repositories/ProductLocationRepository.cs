@@ -18,11 +18,13 @@ public class ProductLocationRepository : IProductLocationRepository
     {
         return await _db.ProductLocations
             .Include(x => x.Part)
-            .Include(x => x.Warehouse)
+            .Include(x => x.Location).ThenInclude(l => l.Warehouse)
             .Where(x => !x.Isdeleted)
             .OrderBy(x => x.IsPrimary ? 0 : 1)
-            .ThenBy(x => x.Section)
-            .ThenBy(x => x.Shelf)
+            .ThenBy(x => x.Location.Zone)
+            .ThenBy(x => x.Location.Aisle)
+            .ThenBy(x => x.Location.Rack)
+            .ThenBy(x => x.Location.Bin)
             .ToListAsync(cancellationToken);
     }
 
@@ -30,24 +32,26 @@ public class ProductLocationRepository : IProductLocationRepository
     {
         return await _db.ProductLocations
             .Include(x => x.Part)
-            .Include(x => x.Warehouse)
+            .Include(x => x.Location).ThenInclude(l => l.Warehouse)
             .FirstOrDefaultAsync(x => x.Id == id && !x.Isdeleted, cancellationToken);
     }
 
     public async Task<IEnumerable<ProductLocation>> GetLocationsByPartAsync(Guid partId, Guid? warehouseId = null, CancellationToken cancellationToken = default)
     {
         var query = _db.ProductLocations
-            .Include(x => x.Warehouse)
+            .Include(x => x.Location).ThenInclude(l => l.Warehouse)
             .Where(x => x.PartId == partId && !x.Isdeleted);
 
         if (warehouseId.HasValue)
-            query = query.Where(x => x.WarehouseId == warehouseId.Value);
+            query = query.Where(x => x.Location.WarehouseId == warehouseId.Value);
 
         return await query
             .OrderBy(x => x.IsPrimary ? 0 : 1)
-            .ThenBy(x => x.Warehouse.Name)
-            .ThenBy(x => x.Section)
-            .ThenBy(x => x.Shelf)
+            .ThenBy(x => x.Location.Warehouse.Name)
+            .ThenBy(x => x.Location.Zone)
+            .ThenBy(x => x.Location.Aisle)
+            .ThenBy(x => x.Location.Rack)
+            .ThenBy(x => x.Location.Bin)
             .ToListAsync(cancellationToken);
     }
 
@@ -55,28 +59,29 @@ public class ProductLocationRepository : IProductLocationRepository
     {
         return await _db.ProductLocations
             .Include(x => x.Part)
-            .Where(x => x.WarehouseId == warehouseId && !x.Isdeleted)
-            .OrderBy(x => x.Section)
-            .ThenBy(x => x.Shelf)
+            .Include(x => x.Location)
+            .Where(x => x.Location.WarehouseId == warehouseId && !x.Isdeleted)
+            .OrderBy(x => x.Location.Zone)
+            .ThenBy(x => x.Location.Aisle)
+            .ThenBy(x => x.Location.Rack)
+            .ThenBy(x => x.Location.Bin)
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<ProductLocation?> GetLocationByPartAndWarehouseAsync(Guid partId, Guid warehouseId, string section, string shelf, CancellationToken cancellationToken = default)
+    public async Task<ProductLocation?> GetLocationByPartAndWarehouseLocationAsync(Guid partId, Guid warehouseLocationId, CancellationToken cancellationToken = default)
     {
         return await _db.ProductLocations
             .Include(x => x.Part)
-            .Include(x => x.Warehouse)
+            .Include(x => x.Location).ThenInclude(l => l.Warehouse)
             .FirstOrDefaultAsync(x => x.PartId == partId
-                && x.WarehouseId == warehouseId
-                && x.Section == section
-                && x.Shelf == shelf
+                && x.WarehouseLocationId == warehouseLocationId
                 && !x.Isdeleted, cancellationToken);
     }
 
     public async Task<ProductLocation?> GetPrimaryLocationByPartAsync(Guid partId, CancellationToken cancellationToken = default)
     {
         return await _db.ProductLocations
-            .Include(x => x.Warehouse)
+            .Include(x => x.Location).ThenInclude(l => l.Warehouse)
             .FirstOrDefaultAsync(x => x.PartId == partId && x.IsPrimary && !x.Isdeleted, cancellationToken);
     }
 
@@ -102,13 +107,11 @@ public class ProductLocationRepository : IProductLocationRepository
         await _db.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task<bool> LocationExistsAsync(Guid partId, Guid warehouseId, string section, string shelf, Guid? excludeLocationId = null, CancellationToken cancellationToken = default)
+    public async Task<bool> LocationExistsAsync(Guid partId, Guid warehouseLocationId, Guid? excludeLocationId = null, CancellationToken cancellationToken = default)
     {
         var query = _db.ProductLocations
             .Where(x => x.PartId == partId
-                && x.WarehouseId == warehouseId
-                && x.Section == section
-                && x.Shelf == shelf
+                && x.WarehouseLocationId == warehouseLocationId
                 && !x.Isdeleted);
 
         if (excludeLocationId.HasValue)

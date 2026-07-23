@@ -7,9 +7,9 @@
 .col-paid    { min-width: 170px; }
 .col-actions { width: 110px; text-align: center; }
 
-.status-pill[data-status="draft"]    { background: color-mix(in srgb, #f59e0b 15%, transparent); color: #b45309; }
-.status-pill[data-status="approved"] { background: color-mix(in srgb, #3b82f6 15%, transparent); color: #1d4ed8; }
-.status-pill[data-status="paid"]     { background: color-mix(in srgb, #22c55e 15%, transparent); color: #15803d; }
+.status-pill[data-status="draft"]    { background: var(--amber-bg); color: var(--amber); }
+.status-pill[data-status="approved"] { background: var(--color-info-light); color: var(--color-info); }
+.status-pill[data-status="paid"]     { background: var(--green-bg); color: var(--green); }
 
 .dialog-form {
   display: flex;

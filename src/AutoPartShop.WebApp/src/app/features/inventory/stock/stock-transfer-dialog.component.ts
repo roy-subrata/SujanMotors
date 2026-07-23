@@ -188,18 +188,18 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
 
     .info-item label {
       font-size: 0.875rem;
-      color: #6b7280;
+      color: var(--text-color-secondary);
       font-weight: 500;
     }
 
     .info-item .value {
       font-size: 1rem;
       font-weight: 600;
-      color: #1f2937;
+      color: var(--text-color);
     }
 
     .stock-value {
-      color: #059669;
+      color: var(--color-success);
       font-size: 1.1rem;
     }
 
@@ -224,15 +224,17 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
 
     .text-muted {
       font-size: 0.75rem;
-      color: #6b7280;
+      color: var(--text-color-secondary);
     }
 
     .textarea-input {
-      border: 1px solid #d1d5db;
+      border: 1px solid var(--surface-border);
       border-radius: 4px;
       padding: 0.5rem;
       font-family: inherit;
       resize: vertical;
+      background: var(--surface-card);
+      color: var(--text-color);
     }
 
     .preview-row {
@@ -251,13 +253,13 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
 
     .preview-item label {
       font-size: 0.75rem;
-      color: #6b7280;
+      color: var(--text-color-secondary);
       font-weight: 500;
     }
 
     .warehouse-name {
       font-weight: 600;
-      color: #1f2937;
+      color: var(--text-color);
     }
 
     .stock-change {
@@ -266,20 +268,20 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
     }
 
     .stock-change.increase {
-      color: #059669;
+      color: var(--color-success);
     }
 
     .stock-change.decrease {
-      color: #dc2626;
+      color: var(--color-danger);
     }
 
     .arrow {
       font-size: 1.5rem;
-      color: #3b82f6;
+      color: var(--color-info);
     }
 
     .text-danger {
-      color: #dc2626;
+      color: var(--color-danger);
       font-size: 0.75rem;
     }
 

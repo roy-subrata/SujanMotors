@@ -146,6 +146,7 @@
                     <div class="form-group">
                         <label>Employment Type <span class="required">*</span></label>
                         <p-select [options]="employmentTypeOptions" formControlName="employmentType" appendTo="body"></p-select>
+                        <small class="p-error" *ngIf="employeeForm.get('employmentType')?.invalid && employeeForm.get('employmentType')?.touched"> Employment type is required </small>
                     </div>
                 </div>
 

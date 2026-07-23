@@ -86,12 +86,15 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label class="block text-sm font-medium text-gray-600 mb-2">Backup time (shop local)</label>
+                <label class="block text-sm font-medium text-gray-600 mb-2"><span class="required">*</span> Backup time (shop local)</label>
                 <input type="time" pInputText formControlName="localTime" class="w-full" />
                 <small class="text-gray-400">Daily backup time on the shop's clock</small>
+                <small class="p-error block mt-1" *ngIf="form.get('localTime')?.invalid && form.get('localTime')?.touched">
+                  Backup time is required
+                </small>
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-600 mb-2">Backups to keep</label>
+                <label class="block text-sm font-medium text-gray-600 mb-2"><span class="required">*</span> Backups to keep</label>
                 <p-inputNumber
                   formControlName="retentionCount"
                   [min]="1" [max]="365"
@@ -100,6 +103,9 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
                   inputStyleClass="w-full">
                 </p-inputNumber>
                 <small class="text-gray-400">Older backups are deleted locally and on Google Drive</small>
+                <small class="p-error block mt-1" *ngIf="form.get('retentionCount')?.invalid && form.get('retentionCount')?.touched">
+                  Enter a value between 1 and 365
+                </small>
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-600 mb-2">Google Drive folder ID</label>
@@ -249,6 +255,20 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
       </ng-template>
     </p-dialog>
   `,
+  styles: [`
+    /* This page is built with Tailwind gray-scale utility classes, which are
+       static (they don't flip under the app's .app-dark class the way the
+       --color-* tokens from assets/_data-page.scss do). Re-point the neutral
+       text/background utilities actually used above at those tokens so the
+       page stays readable in dark mode. */
+    :host ::ng-deep {
+      .text-gray-400 { color: var(--color-text-muted) !important; }
+      .text-gray-500 { color: var(--color-text-muted) !important; }
+      .text-gray-600 { color: var(--color-text-secondary) !important; }
+      .text-gray-700 { color: var(--color-text-primary) !important; }
+      .bg-gray-100 { background-color: var(--color-bg-secondary) !important; }
+    }
+  `],
 })
 export class BackupsComponent implements OnInit, OnDestroy {
   private readonly settingsService = inject(AppSettingsService);
@@ -314,7 +334,10 @@ export class BackupsComponent implements OnInit, OnDestroy {
   }
 
   saveSettings(): void {
-    if (this.form.invalid) return;
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
     this.settingsSaving.set(true);
     const v = this.form.value;
 

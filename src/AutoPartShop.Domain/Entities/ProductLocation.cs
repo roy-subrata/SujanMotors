@@ -1,46 +1,40 @@
 namespace AutoPartShop.Domain.Entities;
 
 /// <summary>
-/// Represents a physical location where a product is stored within a warehouse
+/// Join between a Product and a physical <see cref="WarehouseLocation"/> bin/shelf — "this part
+/// lives at that bin". A part can have several locations (IsPrimary marks the main one); a bin can
+/// hold several different parts. The location itself (Zone/Aisle/Rack/Bin) is owned by
+/// <see cref="WarehouseLocation"/>, not this entity — this used to carry free-text Section/Shelf
+/// directly, but that let staff type anything with no link to a real, printable, structured bin.
 /// </summary>
 public class ProductLocation : AuditableEntity
 {
     public Guid PartId { get; private set; }
-    public Guid WarehouseId { get; private set; }
-    public string Section { get; private set; } = string.Empty;
-    public string Shelf { get; private set; } = string.Empty;
+    public Guid WarehouseLocationId { get; private set; }
     public string? Notes { get; private set; }
     public bool IsPrimary { get; private set; }
 
     // Navigation properties
     public virtual Product Part { get; set; } = null!;
-    public virtual Warehouse Warehouse { get; set; } = null!;
+    public virtual WarehouseLocation Location { get; set; } = null!;
 
     private ProductLocation() { }
 
     public static ProductLocation Create(
         Guid partId,
-        Guid warehouseId,
-        string section,
-        string shelf,
+        Guid warehouseLocationId,
         bool isPrimary = false,
         string? notes = null)
     {
         if (partId == Guid.Empty)
             throw new ArgumentException("Part ID is required", nameof(partId));
-        if (warehouseId == Guid.Empty)
-            throw new ArgumentException("Warehouse ID is required", nameof(warehouseId));
-        if (string.IsNullOrWhiteSpace(section))
-            throw new ArgumentException("Section/Aisle is required", nameof(section));
-        if (string.IsNullOrWhiteSpace(shelf))
-            throw new ArgumentException("Shelf/Bin is required", nameof(shelf));
+        if (warehouseLocationId == Guid.Empty)
+            throw new ArgumentException("Warehouse location ID is required", nameof(warehouseLocationId));
 
         return new ProductLocation
         {
             PartId = partId,
-            WarehouseId = warehouseId,
-            Section = section.Trim(),
-            Shelf = shelf.Trim(),
+            WarehouseLocationId = warehouseLocationId,
             IsPrimary = isPrimary,
             Notes = notes?.Trim(),
             CreatedDate = DateTime.UtcNow,
@@ -49,15 +43,12 @@ public class ProductLocation : AuditableEntity
         };
     }
 
-    public void Update(string section, string shelf, bool isPrimary, string? notes = null)
+    public void Update(Guid warehouseLocationId, bool isPrimary, string? notes = null)
     {
-        if (string.IsNullOrWhiteSpace(section))
-            throw new ArgumentException("Section/Aisle is required", nameof(section));
-        if (string.IsNullOrWhiteSpace(shelf))
-            throw new ArgumentException("Shelf/Bin is required", nameof(shelf));
+        if (warehouseLocationId == Guid.Empty)
+            throw new ArgumentException("Warehouse location ID is required", nameof(warehouseLocationId));
 
-        Section = section.Trim();
-        Shelf = shelf.Trim();
+        WarehouseLocationId = warehouseLocationId;
         IsPrimary = isPrimary;
         Notes = notes?.Trim();
         ModifiedDate = DateTime.UtcNow;
@@ -73,10 +64,5 @@ public class ProductLocation : AuditableEntity
     {
         IsPrimary = false;
         ModifiedDate = DateTime.UtcNow;
-    }
-
-    public string GetFullLocation()
-    {
-        return $"{Section} / {Shelf}";
     }
 }

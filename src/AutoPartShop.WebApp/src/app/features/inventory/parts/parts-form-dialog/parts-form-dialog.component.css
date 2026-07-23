@@ -3,11 +3,11 @@
   align-items: flex-start;
   gap: 0.5rem;
   padding: 0.75rem 1rem;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
+  background: var(--color-info-light);
+  border: 1px solid var(--color-info);
   border-radius: 6px;
   font-size: 0.875rem;
-  color: #1d4ed8;
+  color: var(--color-info);
   line-height: 1.5;
 }
 .variant-price-note i { flex-shrink: 0; margin-top: 2px; }
@@ -34,7 +34,7 @@
 }
 
 .form-label .required {
-  color: #ef4444;
+  color: var(--color-danger);
   margin-right: 0.25rem;
 }
 
@@ -53,29 +53,29 @@ input[pInputText]:focus,
 input[pInputNumber]:focus,
 textarea[pInputTextarea]:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
 }
 
 .form-input.error,
 input[pInputText].error,
 input[pInputNumber].error,
 textarea[pInputTextarea].error {
-  border-color: #ef4444;
-  background-color: #fef2f2;
+  border-color: var(--color-danger);
+  background-color: var(--color-danger-light);
 }
 
 .form-input.success,
 input[pInputText].success,
 input[pInputNumber].success,
 textarea[pInputTextarea].success {
-  border-color: #10b981;
-  background-color: #f0fdf4;
+  border-color: var(--color-success);
+  background-color: var(--color-success-light);
 }
 
 /* Messages */
 .error-message {
-  color: #ef4444;
+  color: var(--color-danger);
   font-size: 0.875rem;
   font-weight: 500;
 }
@@ -108,7 +108,7 @@ textarea[pInputTextarea].success {
 }
 
 .status-active {
-  color: #10b981;
+  color: var(--color-success);
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -207,8 +207,8 @@ textarea[pInputTextarea].success {
 
     .p-autocomplete-input:focus {
       outline: none;
-      border-color: #3b82f6;
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 3px var(--color-primary-light);
     }
 
     .p-autocomplete-panel {
@@ -218,7 +218,7 @@ textarea[pInputTextarea].success {
 
       .p-autocomplete-item {
         padding: 0.5rem 1rem;
-        border-bottom: 1px solid #f3f4f6;
+        border-bottom: 1px solid var(--surface-border);
 
         &:hover {
           background-color: var(--surface-ground);
@@ -261,19 +261,19 @@ textarea[pInputTextarea].success {
 
       &:focus {
         outline: none;
-        border-color: #3b82f6;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        border-color: var(--color-primary);
+        box-shadow: 0 0 0 3px var(--color-primary-light);
       }
     }
 
     &.error .p-inputnumber-input {
-      border-color: #ef4444;
-      background-color: #fef2f2;
+      border-color: var(--color-danger);
+      background-color: var(--color-danger-light);
     }
 
     &.success .p-inputnumber-input {
-      border-color: #10b981;
-      background-color: #f0fdf4;
+      border-color: var(--color-success);
+      background-color: var(--color-success-light);
     }
 
     .p-inputnumber-button-group {
@@ -301,8 +301,8 @@ textarea[pInputTextarea].success {
 
     &:focus {
       outline: none;
-      border-color: #3b82f6;
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 3px var(--color-primary-light);
     }
   }
 
@@ -318,29 +318,27 @@ textarea[pInputTextarea].success {
 
     &:focus {
       outline: none;
-      border-color: #3b82f6;
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 3px var(--color-primary-light);
     }
   }
 
   .p-button {
     &.p-button-success {
-      background-color: #10b981;
-      border-color: #10b981;
+      background-color: var(--color-success);
+      border-color: var(--color-success);
 
       &:hover:not(:disabled) {
-        background-color: #059669;
-        border-color: #059669;
+        opacity: 0.88;
       }
     }
 
     &.p-button-info {
-      background-color: #3b82f6;
-      border-color: #3b82f6;
+      background-color: var(--color-info);
+      border-color: var(--color-info);
 
       &:hover:not(:disabled) {
-        background-color: #2563eb;
-        border-color: #2563eb;
+        opacity: 0.88;
       }
     }
 

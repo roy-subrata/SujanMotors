@@ -77,6 +77,8 @@ export class PartFormComponent implements OnInit {
     isEditMode = false;
     isViewMode = false;
     partId: string | null = null;
+    /** Backend still has a CostPrice column (see Cost Model design), but this form has no UI for it — preserve the existing value on update instead of clobbering it. */
+    private existingCostPrice = 0;
     isSubmitting = false;
     isLoading = false;
     isCompatibilitySubmitting = false;
@@ -187,6 +189,7 @@ export class PartFormComponent implements OnInit {
     }
 
     private populateForm(part: PartResponse): void {
+        this.existingCostPrice = part.costPrice ?? 0;
         this.selectedCategory = this.categories.find(c => c.id === part.categoryId) || null;
         this.selectedBaseUnit = this.units.find(u => u.id === part.baseUnitId) || null;
         this.selectedUnit = this.units.find(u => u.id === part.unitId) || null;
@@ -565,7 +568,7 @@ export class PartFormComponent implements OnInit {
             brandId: v.brandId || null,
             baseUnitId: v.baseUnitId || null,
             unitId: v.unitId || v.baseUnitId || null,
-            costPrice: v.costPrice || 0,
+            costPrice: 0,
             sellingPrice: v.sellingPrice || 0,
             minimumStock: v.minimumStock || 0,
             tags: v.tags?.trim() || null,
@@ -619,7 +622,7 @@ export class PartFormComponent implements OnInit {
             brandId: v.brandId || null,
             baseUnitId: v.baseUnitId || null,
             unitId: v.unitId || v.baseUnitId || null,
-            costPrice: v.costPrice || 0,
+            costPrice: this.existingCostPrice,
             sellingPrice: v.sellingPrice || 0,
             minimumStock: v.minimumStock || 0,
             isActive: v.isActive,
@@ -712,7 +715,7 @@ export class PartFormComponent implements OnInit {
     private getFieldLabel(fieldName: string): string {
         const labels: Record<string, string> = {
             name: 'Part Name', partNumber: 'Part Number', oemNumber: 'OEM Number',
-            categoryId: 'Category', costPrice: 'Cost Price',
+            categoryId: 'Category',
             minimumStock: 'Minimum Stock', warrantyPeriodMonths: 'Warranty Period',
             warrantyType: 'Warranty Type'
         };

@@ -127,6 +127,7 @@
       <p-select [options]="employees" [(ngModel)]="form.employeeId" optionValue="id" optionLabel="name"
         placeholder="Select employee" [filter]="true" filterBy="name,employeeCode" appendTo="body"
         [disabled]="!!editingId"></p-select>
+      <small class="p-error" *ngIf="submitted && !form.employeeId">Employee is required</small>
     </div>
     <div class="dialog-field">
       <label>Leave Type <span class="required">*</span></label>
@@ -136,11 +137,13 @@
       <div class="dialog-field">
         <label>From <span class="required">*</span></label>
         <p-datepicker [(ngModel)]="form.fromDate" dateFormat="dd/mm/yy" [showIcon]="true" appendTo="body"></p-datepicker>
+        <small class="p-error" *ngIf="submitted && !form.fromDate">From date is required</small>
       </div>
       <div class="dialog-field">
         <label>To <span class="required">*</span></label>
         <p-datepicker [(ngModel)]="form.toDate" dateFormat="dd/mm/yy" [showIcon]="true"
           [minDate]="form.fromDate || undefined" appendTo="body"></p-datepicker>
+        <small class="p-error" *ngIf="submitted && !form.toDate">To date is required</small>
       </div>
     </div>
     <div class="dialog-field">

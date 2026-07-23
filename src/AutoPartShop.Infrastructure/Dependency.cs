@@ -122,6 +122,7 @@ public static class Dependency
         services.AddScoped<IShiftRepository, ShiftRepository>();
         services.AddScoped<ISalaryAdvanceRepository, SalaryAdvanceRepository>();
         services.AddScoped<IProductLocationRepository, ProductLocationRepository>();
+        services.AddScoped<IWarehouseLocationRepository, WarehouseLocationRepository>();
         services.AddScoped<IDailyExpenseRepository, DailyExpenseRepository>();
         services.AddScoped<IProductMediaRepository, ProductMediaRepository>();
         services.AddScoped<IStoredFileRepository, StoredFileRepository>();

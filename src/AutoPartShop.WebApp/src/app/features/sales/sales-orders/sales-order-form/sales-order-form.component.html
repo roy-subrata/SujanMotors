@@ -22,7 +22,7 @@
       </div>
       <div class="header-actions">
         <button pButton type="button" icon="pi pi-arrow-left"
-          class="p-button-text p-button-sm" style="color:rgba(255,255,255,0.8); border:1px solid rgba(255,255,255,0.3);"
+          class="p-button-text p-button-sm"
           pTooltip="Back" tooltipPosition="bottom" (click)="cancel()">
         </button>
 
@@ -33,7 +33,6 @@
           <button *ngIf="currentSO.status === 'PENDING' || currentSO.status === 'DRAFT'"
             pButton type="button" label="Confirm Order" icon="pi pi-check"
             class="p-button-sm p-button-success"
-            style="border:1px solid rgba(255,255,255,0.3);"
             pTooltip="Confirm & generate invoice" tooltipPosition="bottom"
             (click)="confirmSalesOrder()">
           </button>
@@ -42,13 +41,11 @@
           <ng-container *ngIf="currentSO.status === 'CONFIRMED'">
             <button pButton type="button" label="Deliver Now" icon="pi pi-check-circle"
               class="p-button-sm p-button-success"
-              style="border:1px solid rgba(255,255,255,0.3);"
               pTooltip="Direct handover — no challan" tooltipPosition="bottom"
               (click)="deliverDirect()">
             </button>
             <button pButton type="button" label="Ready for Delivery" icon="pi pi-truck"
               class="p-button-sm p-button-warning"
-              style="border:1px solid rgba(255,255,255,0.3);"
               pTooltip="Pack & prepare challan" tooltipPosition="bottom"
               (click)="markReadyForDelivery()">
             </button>
@@ -58,13 +55,11 @@
           <ng-container *ngIf="currentSO.status === 'READY_FOR_DELIVERY'">
             <button pButton type="button" label="Generate Challan" icon="pi pi-file-export"
               class="p-button-sm"
-              style="background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.4); color:#fff; font-weight:600;"
               pTooltip="Create delivery challan" tooltipPosition="bottom"
               (click)="openChallanDialog()">
             </button>
             <button pButton type="button" label="Deliver Now" icon="pi pi-check-circle"
               class="p-button-sm p-button-success"
-              style="border:1px solid rgba(255,255,255,0.3);"
               pTooltip="Skip challan and mark delivered" tooltipPosition="bottom"
               (click)="deliverDirect()">
             </button>
@@ -76,7 +71,6 @@
         <button *ngIf="mode() !== 'view'" pButton type="button"
           [label]="saving() ? 'Saving…' : (mode() === 'edit' ? 'Update' : 'Create')"
           icon="pi pi-check" class="p-button-sm"
-          style="background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.4); color:#fff; font-weight:600;"
           [loading]="saving()" [disabled]="saving() || salesOrderForm.invalid"
           (click)="onSubmit()">
         </button>
@@ -570,7 +564,7 @@
     </div>
 
     <p-divider align="left">
-      <span style="font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.05em">Transport / Carrier</span>
+      <span style="font-size:12px;font-weight:600;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.05em">Transport / Carrier</span>
     </p-divider>
 
     <div class="cd-row">

@@ -16,13 +16,13 @@
 
 .form-field label {
   font-weight: 500;
-  color: #495057;
+  color: var(--text-color);
   font-size: 0.95rem;
 }
 
 .form-field label.required::after {
   content: ' *';
-  color: #e24c4c;
+  color: var(--color-danger);
 }
 
 .form-field ::ng-deep .p-autocomplete {
@@ -52,12 +52,12 @@
 
 .part-name {
   font-weight: 500;
-  color: #333;
+  color: var(--text-color);
 }
 
 .part-sku {
   font-size: 0.875rem;
-  color: #666;
+  color: var(--text-color-secondary);
 }
 
 .form-actions {
@@ -72,7 +72,7 @@
 }
 
 .text-gray-600 {
-  color: #666;
+  color: var(--text-color-secondary);
 }
 
 .text-sm {
@@ -97,7 +97,7 @@
 }
 
 ::ng-deep .ng-invalid.ng-dirty {
-  border-color: #e24c4c !important;
+  border-color: var(--color-danger) !important;
 }
 
 ::ng-deep .p-card {

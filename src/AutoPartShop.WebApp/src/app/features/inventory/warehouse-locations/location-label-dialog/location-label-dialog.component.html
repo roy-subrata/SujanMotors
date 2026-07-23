@@ -1,0 +1,79 @@
+<div class="wl-dialog">
+  <p-toast position="top-right"></p-toast>
+
+  <div class="wl-dialog-layout">
+    <!-- Left: Location info + quantity -->
+    <div class="wl-info-panel">
+      <h4 class="panel-title"><i class="pi pi-map-marker"></i> Location</h4>
+
+      <div class="info-row">
+        <span class="info-label">Location Code</span>
+        <span class="info-value mono">{{ location?.locationCode }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Warehouse</span>
+        <span class="info-value">{{ location?.warehouseName }}</span>
+      </div>
+      <div class="info-row" *ngIf="location?.categoryName">
+        <span class="info-label">Category</span>
+        <span class="info-value">{{ location?.categoryName }}</span>
+      </div>
+
+      <div class="field">
+        <label for="qty">Print Quantity</label>
+        <div class="qty-input-group">
+          <button pButton icon="pi pi-minus" class="p-button-sm p-button-outlined"
+            (click)="quantity = quantity > 1 ? quantity - 1 : 1"
+            [disabled]="quantity <= 1"></button>
+          <input pInputText id="qty" type="number"
+            [(ngModel)]="quantity"
+            (change)="validateQuantity()"
+            min="1" [max]="maxQuantity"
+            class="qty-input">
+          <button pButton icon="pi pi-plus" class="p-button-sm p-button-outlined"
+            (click)="quantity = quantity < maxQuantity ? quantity + 1 : maxQuantity"
+            [disabled]="quantity >= maxQuantity"></button>
+        </div>
+        <small class="field-hint">Max {{ maxQuantity }} per batch</small>
+      </div>
+    </div>
+
+    <!-- Right: Label preview -->
+    <div class="wl-preview-panel">
+      <h4 class="panel-title"><i class="pi pi-eye"></i> Label Preview</h4>
+
+      <div class="label-preview-wrapper">
+        <div class="label-preview-stage">
+          <div class="label-scale-box"
+            *ngIf="labelHtmlSafe"
+            [style.width.px]="previewBox.w"
+            [style.height.px]="previewBox.h">
+            <div class="label-scale-inner"
+              [style.transform]="'scale(' + previewScale + ')'"
+              [innerHTML]="labelHtmlSafe"></div>
+          </div>
+
+          <div class="preview-loading" *ngIf="isGenerating">
+            <i class="pi pi-spin pi-spinner"></i>
+          </div>
+        </div>
+        <small class="preview-dims">{{ widthMm }} × {{ heightMm }} mm</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- Action Bar -->
+  <div class="action-bar">
+    <div class="action-bar-left"></div>
+    <div class="action-bar-right">
+      <button pButton icon="pi pi-print"
+        [label]="quantity > 1 ? 'Print Labels (' + quantity + ')' : 'Print Label'"
+        class="p-button-sm"
+        (click)="printLabel()"
+        [disabled]="isGenerating || !labelHtmlSafe"></button>
+      <button pButton icon="pi pi-times" label="Close"
+        class="p-button-sm p-button-text"
+        (click)="closeDialog()"></button>
+    </div>
+  </div>
+</div>

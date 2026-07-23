@@ -145,8 +145,8 @@
   gap: 0.5rem;
   padding: 1.5rem;
   background:
-    linear-gradient(45deg, #eef2f7 25%, transparent 25%, transparent 75%, #eef2f7 75%) 0 0 / 16px 16px,
-    linear-gradient(45deg, #eef2f7 25%, #f8fafc 25%, #f8fafc 75%, #eef2f7 75%) 8px 8px / 16px 16px;
+    linear-gradient(45deg, var(--surface-ground) 25%, transparent 25%, transparent 75%, var(--surface-ground) 75%) 0 0 / 16px 16px,
+    linear-gradient(45deg, var(--surface-ground) 25%, var(--surface-card) 25%, var(--surface-card) 75%, var(--surface-ground) 75%) 8px 8px / 16px 16px;
   border-radius: 8px;
   margin-top: 0.5rem;
   min-height: 280px;
@@ -206,7 +206,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: #ef4444;
+  color: var(--color-danger);
   font-size: 0.8rem;
   max-width: 260px;
   text-align: center;

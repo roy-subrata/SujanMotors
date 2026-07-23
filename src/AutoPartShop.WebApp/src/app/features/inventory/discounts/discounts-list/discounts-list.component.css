@@ -22,10 +22,10 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
-.type-badge[data-type="PERCENTAGE"] { background-color: #DBEAFE; color: #2563EB; }
-.type-badge[data-type="FIXED"]      { background-color: #FFEDD5; color: #EA580C; }
-.scope-badge[data-scope="ITEM"]     { background-color: #EDE9FE; color: #7C3AED; }
-.scope-badge[data-scope="CART"]     { background-color: #D1FAE5; color: #059669; }
+.type-badge[data-type="PERCENTAGE"] { background-color: var(--color-info-light); color: var(--color-info); }
+.type-badge[data-type="FIXED"]      { background-color: var(--color-warning-light); color: var(--color-warning); }
+.scope-badge[data-scope="ITEM"]     { background-color: rgba(139, 92, 246, 0.15); color: #8b5cf6; }
+.scope-badge[data-scope="CART"]     { background-color: var(--color-success-light); color: var(--color-success); }
 
 /* Text cells */
 .value-text {

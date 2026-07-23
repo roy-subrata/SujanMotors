@@ -40,9 +40,9 @@
 
 /* Over/short colour coding */
 .amount-exact { color: var(--color-success) !important; }
-.amount-over  { color: var(--color-info, #1D4ED8) !important; }
+.amount-over  { color: var(--color-info) !important; }
 .amount-short { color: var(--color-danger) !important; }
 
 /* Till session status pill colours (base pill styling is global) */
-.status-pill[data-status="open"]   { background-color: var(--color-info-light); color: #1D4ED8; }
-.status-pill[data-status="closed"] { background-color: var(--color-success-light); color: #047857; }
+.status-pill[data-status="open"]   { background-color: var(--color-info-light); color: var(--color-info); }
+.status-pill[data-status="closed"] { background-color: var(--color-success-light); color: var(--color-success); }

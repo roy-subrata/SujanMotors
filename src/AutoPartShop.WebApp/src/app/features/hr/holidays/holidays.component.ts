@@ -39,6 +39,7 @@ export class HolidaysComponent implements OnInit {
 
     dialogVisible = false;
     saving = false;
+    submitted = false;
     editingId: string | null = null;
     form: { date: Date | null; name: string } = { date: null, name: '' };
 
@@ -77,17 +78,20 @@ export class HolidaysComponent implements OnInit {
 
     openCreate(): void {
         this.editingId = null;
+        this.submitted = false;
         this.form = { date: null, name: '' };
         this.dialogVisible = true;
     }
 
     openEdit(holiday: HolidayResponse): void {
         this.editingId = holiday.id;
+        this.submitted = false;
         this.form = { date: new Date(holiday.date), name: holiday.name };
         this.dialogVisible = true;
     }
 
     saveHoliday(): void {
+        this.submitted = true;
         if (!this.form.date || !this.form.name.trim()) {
             this.messageService.add({
                 severity: 'warn',

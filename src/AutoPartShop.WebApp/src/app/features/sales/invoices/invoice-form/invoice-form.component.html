@@ -116,7 +116,7 @@
           </div>
           <div class="summary-item" *ngIf="invoice()!.discountAmount > 0">
             <span class="summary-item-label">Discount</span>
-            <span class="summary-item-value" style="color:#16a34a">− {{ formatCurrency(invoice()!.discountAmount) }}</span>
+            <span class="summary-item-value" style="color:var(--color-success)">− {{ formatCurrency(invoice()!.discountAmount) }}</span>
           </div>
           <div class="summary-item">
             <span class="summary-item-label">Grand Total</span>
@@ -154,7 +154,7 @@
           <tr *ngFor="let p of (invoice()!.payments ?? [])">
             <td>{{ formatDate(p.paymentDate) }}</td>
             <td>{{ p.paymentMethod }}</td>
-            <td style="color:#94a3b8">{{ p.referenceNumber || '—' }}</td>
+            <td style="color:var(--color-text-muted)">{{ p.referenceNumber || '—' }}</td>
             <td class="amount-cell">{{ formatCurrency(p.amount) }}</td>
           </tr>
         </tbody>
@@ -184,7 +184,7 @@
         <div class="inv-form-grid">
 
           <div class="inv-form-full">
-            <label class="inv-form-label">Sales Order <span style="color:#ef4444">*</span></label>
+            <label class="inv-form-label"><span class="required">*</span> Sales Order</label>
             <p-select appendTo="body" formControlName="salesOrderId" [options]="salesOrderOptions()"
               optionLabel="label" optionValue="value" placeholder="Select a sales order…"
               [style]="{width:'100%'}" (onChange)="onSalesOrderChange($event.value)">
@@ -195,9 +195,12 @@
           </div>
 
           <div>
-            <label class="inv-form-label">Subtotal <span style="color:#ef4444">*</span></label>
+            <label class="inv-form-label"><span class="required">*</span> Subtotal</label>
             <p-inputNumber formControlName="subTotal" mode="currency" [currency]="currencyCode"
               [locale]="currencyLocale" [style]="{width:'100%'}"></p-inputNumber>
+            <small *ngIf="invoiceForm.get('subTotal')?.invalid && invoiceForm.get('subTotal')?.touched" class="p-error">
+              Subtotal must be 0 or more
+            </small>
           </div>
 
           <div>
@@ -207,9 +210,12 @@
           </div>
 
           <div>
-            <label class="inv-form-label">Due Date <span style="color:#ef4444">*</span></label>
+            <label class="inv-form-label"><span class="required">*</span> Due Date</label>
             <p-datepicker appendTo="body" formControlName="dueDate" [showIcon]="true"
               dateFormat="yy-mm-dd" [style]="{width:'100%'}"></p-datepicker>
+            <small *ngIf="invoiceForm.get('dueDate')?.invalid && invoiceForm.get('dueDate')?.touched" class="p-error">
+              Due Date is required
+            </small>
           </div>
 
           <div class="inv-form-full">
@@ -243,15 +249,21 @@
       </div>
       <div style="display:flex;flex-direction:column;gap:14px;">
         <div>
-          <label class="inv-form-label">Payment Amount <span style="color:#ef4444">*</span></label>
+          <label class="inv-form-label"><span class="required">*</span> Payment Amount</label>
           <p-inputNumber formControlName="amount" mode="currency" [currency]="currencyCode"
             [locale]="currencyLocale" [max]="invoice()!.outstandingAmount" [min]="0.01"
             [style]="{width:'100%'}"></p-inputNumber>
+          <small *ngIf="paymentForm.get('amount')?.invalid && paymentForm.get('amount')?.touched" class="p-error">
+            Payment amount must be at least 0.01
+          </small>
         </div>
         <div>
-          <label class="inv-form-label">Payment Date <span style="color:#ef4444">*</span></label>
+          <label class="inv-form-label"><span class="required">*</span> Payment Date</label>
           <p-datepicker formControlName="paymentDate" [showIcon]="true" dateFormat="yy-mm-dd"
             [style]="{width:'100%'}"></p-datepicker>
+          <small *ngIf="paymentForm.get('paymentDate')?.invalid && paymentForm.get('paymentDate')?.touched" class="p-error">
+            Payment Date is required
+          </small>
         </div>
       </div>
     </form>
