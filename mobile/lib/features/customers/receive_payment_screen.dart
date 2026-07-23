@@ -2,6 +2,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../core/i18n/strings.dart';
 import '../../core/network/app_exception.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/format.dart';
@@ -86,19 +87,19 @@ class _ReceivePaymentScreenState
       final bankIt = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Customer has a balance'),
+          title: Text(S.of(ctx).customerHasBalance),
           content: Text(
-            '${customer.fullName} owes ${formatCurrency(customer.dueAmount)}. '
-            'Apply this payment to their invoices instead of banking it as advance credit?',
+            S.of(ctx).owesApplyToInvoices(
+                customer.fullName, formatCurrency(customer.dueAmount)),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('Pay invoice'),
+              child: Text(S.of(ctx).payInvoice),
             ),
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('Bank as advance'),
+              child: Text(S.of(ctx).bankAsAdvance),
             ),
           ],
         ),
@@ -150,8 +151,8 @@ class _ReceivePaymentScreenState
       messenger.showSnackBar(
         SnackBar(
             content: Text(_isAdvance
-                ? 'Advance credit recorded'
-                : 'Payment recorded successfully')),
+                ? S.of(context).advanceCreditRecorded
+                : S.of(context).paymentRecorded)),
       );
     } on AppException catch (e) {
       if (!mounted) return;
@@ -172,7 +173,7 @@ class _ReceivePaymentScreenState
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Receive Payment',
+          S.of(context).receivePayment,
           style: GoogleFonts.instrumentSans(
             fontSize: 16,
             fontWeight: FontWeight.w700
@@ -182,7 +183,8 @@ class _ReceivePaymentScreenState
       body: customerAsync.when(
         loading: () => const LoadingView(),
         error: (e, _) => ErrorView(
-          message: e is AppException ? e.message : 'Failed to load.',
+          message:
+              e is AppException ? e.message : S.of(context).failedToLoad,
           onRetry: () =>
               ref.invalidate(customerDetailProvider(widget.customerId)),
         ),
@@ -217,7 +219,8 @@ class _ReceivePaymentScreenState
                               ),
                               if (customer.hasDue)
                                 Text(
-                                  'Total due ${formatCurrency(customer.dueAmount)}',
+                                  S.of(context).totalDue(
+                                      formatCurrency(customer.dueAmount)),
                                   style: GoogleFonts.instrumentSans(
                                     fontSize: 11.5,
                                     fontWeight: FontWeight.w600,
@@ -226,7 +229,9 @@ class _ReceivePaymentScreenState
                                 ),
                               if (customer.advanceAmount > 0)
                                 Text(
-                                  'Advance credit ${formatCurrency(customer.advanceAmount)}',
+                                  S.of(context).advanceCreditAmount(
+                                      formatCurrency(
+                                          customer.advanceAmount)),
                                   style: GoogleFonts.instrumentSans(
                                     fontSize: 11.5,
                                     fontWeight: FontWeight.w600,
@@ -242,8 +247,10 @@ class _ReceivePaymentScreenState
                                   final owes = net > 0;
                                   return Text(
                                     owes
-                                        ? 'Net owed ${formatCurrency(net)}'
-                                        : 'Net credit ${formatCurrency(-net)}',
+                                        ? S.of(context).netOwedAmount(
+                                            formatCurrency(net))
+                                        : S.of(context).netCreditAmount(
+                                            formatCurrency(-net)),
                                     style: GoogleFonts.instrumentSans(
                                       fontSize: 11.5,
                                       fontWeight: FontWeight.w700,
@@ -263,16 +270,17 @@ class _ReceivePaymentScreenState
 
                   // Mode: against an invoice vs. advance (credit on account)
                   SegmentedButton<bool>(
-                    segments: const [
+                    segments: [
                       ButtonSegment(
                         value: false,
-                        icon: Icon(Icons.receipt_long_outlined, size: 18),
-                        label: Text('Against invoice'),
+                        icon: const Icon(Icons.receipt_long_outlined,
+                            size: 18),
+                        label: Text(S.of(context).againstInvoice),
                       ),
                       ButtonSegment(
                         value: true,
-                        icon: Icon(Icons.savings_outlined, size: 18),
-                        label: Text('Advance'),
+                        icon: const Icon(Icons.savings_outlined, size: 18),
+                        label: Text(S.of(context).advance),
                       ),
                     ],
                     selected: {_isAdvance},
@@ -282,7 +290,7 @@ class _ReceivePaymentScreenState
 
                   // Amount
                   Text(
-                    'Amount received',
+                    S.of(context).amountReceived,
                     style: GoogleFonts.instrumentSans(
                       fontSize: 13,
                       fontWeight: FontWeight.w600
@@ -298,16 +306,16 @@ class _ReceivePaymentScreenState
                       fontWeight: FontWeight.w700
                     ),
                     decoration: const InputDecoration(
-                      prefixText: '৳ ',
+                      prefixText: kCurrencyPrefix,
                     ),
                     validator: (v) {
                       if (v == null || v.isEmpty) {
-                        return 'Enter an amount';
+                        return S.of(context).enterAnAmount;
                       }
                       final n = double.tryParse(
                           v.trim().replaceAll(',', ''));
                       if (n == null || n <= 0) {
-                        return 'Enter a valid amount';
+                        return S.of(context).enterValidAmount;
                       }
                       return null;
                     },
@@ -317,17 +325,17 @@ class _ReceivePaymentScreenState
                     spacing: 8,
                     children: [
                       _QuickChip(
-                          label: '৳ 5,000',
+                          label: formatCurrencyWhole(5000),
                           onTap: () =>
                               _amountCtrl.text = '5000'),
                       _QuickChip(
-                          label: '৳ 10,000',
+                          label: formatCurrencyWhole(10000),
                           onTap: () =>
                               _amountCtrl.text = '10000'),
                       if (customer.hasDue)
                         _QuickChip(
-                          label:
-                              'Full · ${formatCurrency(customer.dueAmount)}',
+                          label: S.of(context).fullWithAmount(
+                              formatCurrency(customer.dueAmount)),
                           onTap: () => _amountCtrl.text =
                               customer.dueAmount
                                   .toStringAsFixed(2),
@@ -338,7 +346,7 @@ class _ReceivePaymentScreenState
 
                   // Payment method
                   Text(
-                    'Payment method',
+                    S.of(context).paymentMethod,
                     style: GoogleFonts.instrumentSans(
                       fontSize: 13,
                       fontWeight: FontWeight.w600
@@ -346,7 +354,9 @@ class _ReceivePaymentScreenState
                   ),
                   const SizedBox(height: 8),
                   MethodGrid(
-                    methods: _methods,
+                    methods: _methods
+                        .map((m) => S.of(context).paymentMethodName(m))
+                        .toList(),
                     selected: _methodIndex,
                     onSelect: (i) =>
                         setState(() => _methodIndex = i),
@@ -356,7 +366,7 @@ class _ReceivePaymentScreenState
                   // Invoice allocation (only when paying against an invoice)
                   if (!_isAdvance) ...[
                     Text(
-                      'Apply to invoices',
+                      S.of(context).applyToInvoices,
                       style: GoogleFonts.instrumentSans(
                         fontSize: 13,
                         fontWeight: FontWeight.w600
@@ -377,7 +387,7 @@ class _ReceivePaymentScreenState
                                   padding: const EdgeInsets.symmetric(
                                       vertical: 12),
                                   child: Text(
-                                    'No open invoices',
+                                    S.of(context).noOpenInvoices,
                                     style: GoogleFonts.instrumentSans(
                                         fontSize: 13,
                                         color: context.colors.muted),
@@ -416,7 +426,7 @@ class _ReceivePaymentScreenState
                     if (_invoiceError) ...[
                       const SizedBox(height: 8),
                       Text(
-                        'Select an invoice',
+                        S.of(context).selectAnInvoice,
                         style: GoogleFonts.instrumentSans(
                             fontSize: 12, color: context.colors.red),
                       ),
@@ -431,8 +441,7 @@ class _ReceivePaymentScreenState
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
-                              'Recorded as advance credit on the customer\'s '
-                              'account — apply it to invoices later.',
+                              S.of(context).advanceCreditNote,
                               style: GoogleFonts.instrumentSans(
                                   fontSize: 12.5, color: context.colors.secondary),
                             ),
@@ -447,8 +456,8 @@ class _ReceivePaymentScreenState
                   TextField(
                     controller: _notesCtrl,
                     maxLines: 2,
-                    decoration: const InputDecoration(
-                      hintText: 'Notes (optional)',
+                    decoration: InputDecoration(
+                      hintText: S.of(context).notesOptional,
                     ),
                   ),
                 ],
@@ -461,7 +470,9 @@ class _ReceivePaymentScreenState
               left: 0,
               right: 0,
               child: PrimaryCtaBar(
-                label: _isAdvance ? 'Confirm advance' : 'Confirm payment',
+                label: _isAdvance
+                    ? S.of(context).confirmAdvance
+                    : S.of(context).confirmPayment,
                 onTap: _submit,
                 isLoading: _submitting,
                 backgroundColor: context.colors.green,

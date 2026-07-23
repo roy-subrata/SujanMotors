@@ -111,13 +111,14 @@ class _StockInEntryScreenState extends ConsumerState<StockInEntryScreen> {
   // ── Submit ──────────────────────────────────────────────────────────────────
 
   String? _validate({required bool forReceive}) {
-    if (_supplier == null) return 'Select a supplier.';
-    if (_lines.isEmpty) return 'Add at least one item.';
+    final s = S.of(context);
+    if (_supplier == null) return s.selectASupplier;
+    if (_lines.isEmpty) return s.addAtLeastOneItem;
     if (forReceive && _warehouse == null) {
-      return 'Select a warehouse to receive into.';
+      return s.selectWarehouseToReceive;
     }
     if (forReceive && _lines.any((l) => l.unitCost <= 0)) {
-      return 'Every item needs a unit cost to receive stock.';
+      return s.everyItemNeedsCost;
     }
     return null;
   }
@@ -130,12 +131,13 @@ class _StockInEntryScreenState extends ConsumerState<StockInEntryScreen> {
       return;
     }
 
+    final s = S.of(context);
     final repo = ref.read(purchaseOrdersRepositoryProvider);
     final username =
         ref.read(authControllerProvider).value?.username ?? 'mobile';
     setState(() {
       _saving = true;
-      _progress = 'Creating order...';
+      _progress = s.creatingOrder;
     });
     try {
       final po = await repo.create(
@@ -146,11 +148,11 @@ class _StockInEntryScreenState extends ConsumerState<StockInEntryScreen> {
       );
 
       if (receive) {
-        setState(() => _progress = 'Confirming order...');
+        setState(() => _progress = s.confirmingOrder);
         await repo.submit(po.id);
         await repo.confirm(po.id);
 
-        setState(() => _progress = 'Posting goods receipt...');
+        setState(() => _progress = s.postingGrn);
         // Match draft lines back to server PO lines to carry lot/expiry over.
         final serverLines = po.lines;
         final grnId = await repo.createGrn(
@@ -175,17 +177,17 @@ class _StockInEntryScreenState extends ConsumerState<StockInEntryScreen> {
               ),
           ],
         );
-        setState(() => _progress = 'Verifying...');
+        setState(() => _progress = s.verifying);
         await repo.verifyGrn(grnId, verifiedBy: username);
-        setState(() => _progress = 'Accepting stock...');
+        setState(() => _progress = s.acceptingStock);
         await repo.acceptGrn(grnId);
       }
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(receive
-            ? '${po.poNumber} received — stock posted.'
-            : '${po.poNumber} saved as draft.'),
+            ? s.poReceivedStockPosted(po.poNumber)
+            : s.poSavedAsDraft(po.poNumber)),
       ));
       Navigator.of(context).pop(true);
     } catch (e) {
@@ -211,17 +213,17 @@ class _StockInEntryScreenState extends ConsumerState<StockInEntryScreen> {
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 150),
             children: [
               _PickerField(
-                label: 'Supplier',
+                label: S.of(context).supplier,
                 value: _supplier?.name,
-                hint: 'Select supplier',
+                hint: S.of(context).selectSupplier,
                 icon: Icons.store_outlined,
                 onTap: _pickSupplier,
               ),
               const SizedBox(height: 10),
               _PickerField(
-                label: 'Warehouse',
+                label: S.of(context).warehouse,
                 value: _warehouse?.name,
-                hint: 'Select warehouse',
+                hint: S.of(context).selectWarehouse,
                 icon: Icons.warehouse_outlined,
                 onTap: _pickWarehouse,
               ),
@@ -231,15 +233,15 @@ class _StockInEntryScreenState extends ConsumerState<StockInEntryScreen> {
                   Expanded(
                     child: TextField(
                       controller: _referenceCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'Reference / bill no.',
+                      decoration: InputDecoration(
+                        labelText: S.of(context).referenceBillNo,
                       ),
                     ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: _PickerField(
-                      label: 'Date',
+                      label: S.of(context).date,
                       value: formatDate(_date),
                       hint: '',
                       icon: Icons.event_outlined,
@@ -249,7 +251,7 @@ class _StockInEntryScreenState extends ConsumerState<StockInEntryScreen> {
                 ],
               ),
               const SizedBox(height: 18),
-              const SectionEyebrow(label: 'Items'),
+              SectionEyebrow(label: S.of(context).items),
               const SizedBox(height: 8),
               for (var i = 0; i < _lines.length; i++) ...[
                 _LineCard(
@@ -262,7 +264,7 @@ class _StockInEntryScreenState extends ConsumerState<StockInEntryScreen> {
               OutlinedButton.icon(
                 onPressed: _saving ? null : _addItem,
                 icon: const Icon(Icons.add),
-                label: const Text('Add item'),
+                label: Text(S.of(context).addItem),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
@@ -281,7 +283,7 @@ class _StockInEntryScreenState extends ConsumerState<StockInEntryScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Grand total',
+                    Text(S.of(context).grandTotalLabel,
                         style: GoogleFonts.instrumentSans(
                             fontSize: 13, color: context.colors.secondary)),
                     Text(
@@ -324,7 +326,7 @@ class _StockInEntryScreenState extends ConsumerState<StockInEntryScreen> {
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14)),
                       ),
-                      child: const Text('Save as draft'),
+                      child: Text(S.of(context).saveAsDraft),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -346,7 +348,7 @@ class _StockInEntryScreenState extends ConsumerState<StockInEntryScreen> {
                                   strokeWidth: 2, color: context.colors.onInk),
                             )
                           : const Icon(Icons.check_rounded),
-                      label: Text(_progress ?? 'Receive stock'),
+                      label: Text(_progress ?? S.of(context).receiveStock),
                     ),
                   ),
                 ],
@@ -417,11 +419,14 @@ class _LineCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     final meta = [
-      'Qty ${line.quantity}',
+      '${s.qtyShort} ${line.quantity}',
       formatCurrency(line.unitCost),
-      if ((line.batchNumber ?? '').isNotEmpty) 'Lot ${line.batchNumber}',
-      if (line.expiryDate != null) 'Exp ${formatDate(line.expiryDate!)}',
+      if ((line.batchNumber ?? '').isNotEmpty)
+        '${s.lotShort} ${line.batchNumber}',
+      if (line.expiryDate != null)
+        '${s.expShort} ${formatDate(line.expiryDate!)}',
     ].join(' · ');
 
     return Material(
@@ -517,7 +522,7 @@ class _LineEditorSheetState extends State<_LineEditorSheet> {
     final cost = double.tryParse(_costCtrl.text.trim()) ?? 0;
     if (qty <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Quantity must be at least 1.')));
+          SnackBar(content: Text(S.of(context).quantityAtLeast1)));
       return;
     }
     Navigator.of(context).pop(StockInDraftLine(
@@ -556,7 +561,8 @@ class _LineEditorSheetState extends State<_LineEditorSheet> {
                     controller: _qtyCtrl,
                     autofocus: true,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Quantity'),
+                    decoration: InputDecoration(
+                        labelText: S.of(context).quantity),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -565,8 +571,8 @@ class _LineEditorSheetState extends State<_LineEditorSheet> {
                     controller: _costCtrl,
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),
-                    decoration:
-                        const InputDecoration(labelText: 'Unit cost'),
+                    decoration: InputDecoration(
+                        labelText: S.of(context).unitCost),
                   ),
                 ),
               ],
@@ -577,8 +583,8 @@ class _LineEditorSheetState extends State<_LineEditorSheet> {
                 Expanded(
                   child: TextField(
                     controller: _lotCtrl,
-                    decoration: const InputDecoration(
-                        labelText: 'Lot / batch (optional)'),
+                    decoration: InputDecoration(
+                        labelText: S.of(context).lotBatchOptional),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -597,8 +603,8 @@ class _LineEditorSheetState extends State<_LineEditorSheet> {
                     },
                     borderRadius: BorderRadius.circular(11),
                     child: InputDecorator(
-                      decoration: const InputDecoration(
-                          labelText: 'Expiry (optional)'),
+                      decoration: InputDecoration(
+                          labelText: S.of(context).expiryOptional),
                       child: Text(
                         _expiry == null ? '—' : formatDate(_expiry!),
                         style: GoogleFonts.instrumentSans(fontSize: 14),
@@ -617,7 +623,7 @@ class _LineEditorSheetState extends State<_LineEditorSheet> {
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14)),
               ),
-              child: const Text('Done'),
+              child: Text(S.of(context).done),
             ),
           ],
         ),
@@ -658,7 +664,7 @@ class _SupplierPickerSheetState extends ConsumerState<_SupplierPickerSheet> {
               children: [
                 Expanded(
                   child: Text(
-                    'Select supplier',
+                    S.of(context).selectSupplier,
                     style: GoogleFonts.instrumentSans(
                         fontSize: 16, fontWeight: FontWeight.w700),
                   ),
@@ -674,7 +680,7 @@ class _SupplierPickerSheetState extends ConsumerState<_SupplierPickerSheet> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: SearchInput(
               controller: _searchCtrl,
-              hintText: 'Search suppliers...',
+              hintText: S.of(context).searchSupplierHint,
               onChanged: (v) => setState(() => _query = v.trim()),
             ),
           ),
@@ -693,8 +699,8 @@ class _SupplierPickerSheetState extends ConsumerState<_SupplierPickerSheet> {
                   hasMore: res.hasMore,
                 );
               },
-              emptyBuilder: (context) => const EmptyView(
-                message: 'No suppliers found.',
+              emptyBuilder: (context) => EmptyView(
+                message: S.of(context).noSuppliersFound,
                 icon: Icons.store_outlined,
               ),
               itemBuilder: (context, s) => ListTile(
@@ -744,7 +750,7 @@ class _ProductPickerSheetState extends ConsumerState<_ProductPickerSheet> {
               children: [
                 Expanded(
                   child: Text(
-                    'Add item',
+                    S.of(context).addItem,
                     style: GoogleFonts.instrumentSans(
                         fontSize: 16, fontWeight: FontWeight.w700),
                   ),
@@ -760,7 +766,7 @@ class _ProductPickerSheetState extends ConsumerState<_ProductPickerSheet> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: SearchInput(
               controller: _searchCtrl,
-              hintText: 'Search name, SKU, brand...',
+              hintText: S.of(context).searchProductsHint,
               onChanged: (v) => setState(() => _query = v.trim()),
             ),
           ),
@@ -779,8 +785,8 @@ class _ProductPickerSheetState extends ConsumerState<_ProductPickerSheet> {
                   hasMore: res.pagination.hasNextPage,
                 );
               },
-              emptyBuilder: (context) => const EmptyView(
-                message: 'No products found.',
+              emptyBuilder: (context) => EmptyView(
+                message: S.of(context).noProductsFound,
                 icon: Icons.search_off,
               ),
               itemBuilder: (context, p) => ListTile(

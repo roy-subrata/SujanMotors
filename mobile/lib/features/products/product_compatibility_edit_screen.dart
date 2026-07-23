@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../core/i18n/strings.dart';
 import '../../core/network/app_exception.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/models/vehicle.dart';
@@ -85,12 +86,13 @@ class _ProductCompatibilityEditScreenState
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     final async = ref.watch(compatibleVehiclesProvider(widget.productId));
 
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Compatible vehicles',
+          s.compatibleVehicles,
           style: GoogleFonts.instrumentSans(
               fontSize: 16, fontWeight: FontWeight.w700),
         ),
@@ -100,7 +102,7 @@ class _ProductCompatibilityEditScreenState
         backgroundColor: context.colors.ink,
         foregroundColor: context.colors.onInk,
         icon: const Icon(Icons.add),
-        label: Text('Add vehicle',
+        label: Text(s.addVehicle,
             style: GoogleFonts.instrumentSans(fontWeight: FontWeight.w600)),
       ),
       body: async.when(
@@ -108,15 +110,15 @@ class _ProductCompatibilityEditScreenState
         error: (e, _) => ListView(children: [
           const SizedBox(height: 120),
           ErrorView(
-            message: e is AppException ? e.message : 'Failed to load.',
+            message: e is AppException ? e.message : s.failedToLoadLabel,
             onRetry: () =>
                 ref.invalidate(compatibleVehiclesProvider(widget.productId)),
           ),
         ]),
         data: (items) {
           if (items.isEmpty) {
-            return const EmptyView(
-              message: 'No compatible vehicles yet.\nTap “Add vehicle”.',
+            return EmptyView(
+              message: s.noCompatibleVehiclesMessage,
               icon: Icons.directions_car_outlined,
             );
           }
@@ -159,7 +161,7 @@ class _ProductCompatibilityEditScreenState
                       ),
                     ),
                     IconButton(
-                      tooltip: 'Remove',
+                      tooltip: s.remove,
                       icon: Icon(Icons.close,
                           size: 18,
                           color: Theme.of(context)
@@ -241,6 +243,7 @@ class _VehiclePickerSheetState extends ConsumerState<_VehiclePickerSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     final scheme = Theme.of(context).colorScheme;
     return DraggableScrollableSheet(
       initialChildSize: 0.75,
@@ -271,7 +274,7 @@ class _VehiclePickerSheetState extends ConsumerState<_VehiclePickerSheet> {
               child: SearchInput(
                 controller: _searchCtrl,
                 autofocus: true,
-                hintText: 'Search make, model, year...',
+                hintText: s.searchVehicleHint,
                 onChanged: _onChanged,
               ),
             ),
@@ -283,8 +286,8 @@ class _VehiclePickerSheetState extends ConsumerState<_VehiclePickerSheet> {
                           message: _error!,
                           onRetry: () => _search(_searchCtrl.text.trim()))
                       : _results.isEmpty
-                          ? const EmptyView(
-                              message: 'No vehicles found.',
+                          ? EmptyView(
+                              message: s.noVehiclesFound,
                               icon: Icons.directions_car_outlined,
                             )
                           : ListView.separated(

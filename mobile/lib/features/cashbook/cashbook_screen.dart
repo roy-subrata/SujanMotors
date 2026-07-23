@@ -85,7 +85,7 @@ class _CashBookScreenState extends ConsumerState<CashBookScreen> {
                   ErrorView(
                     message: e is AppException
                         ? e.message
-                        : 'Failed to load cash book.',
+                        : S.of(context).failedToLoadCashBook,
                     onRetry: () =>
                         ref.invalidate(cashBookDayProvider(_dateKey)),
                   ),
@@ -127,7 +127,7 @@ class _DateBar extends StatelessWidget {
             IconButton(
               icon: const Icon(Icons.chevron_left),
               onPressed: onPrev,
-              tooltip: 'Previous day',
+              tooltip: S.of(context).previousDay,
             ),
             Expanded(
               child: InkWell(
@@ -141,8 +141,9 @@ class _DateBar extends StatelessWidget {
                       const Icon(Icons.calendar_today_outlined, size: 16),
                       const SizedBox(width: 8),
                       Text(
-                        isToday ? 'Today · ${formatDate(date)}'
-                                : formatDayLong(date),
+                        isToday
+                            ? '${S.of(context).today} · ${formatDate(date)}'
+                            : formatDayLong(date),
                         style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
                     ],
@@ -153,7 +154,7 @@ class _DateBar extends StatelessWidget {
             IconButton(
               icon: const Icon(Icons.chevron_right),
               onPressed: onNext,
-              tooltip: 'Next day',
+              tooltip: S.of(context).nextDay,
             ),
           ],
         ),
@@ -175,18 +176,18 @@ class _CashBookBody extends StatelessWidget {
         _SummaryCard(day: day),
         const SizedBox(height: 16),
         if (day.breakdown.isNotEmpty) ...[
-          _SectionLabel('By payment method'),
+          _SectionLabel(S.of(context).byPaymentMethod),
           const SizedBox(height: 8),
           _BreakdownCard(rows: day.breakdown),
           const SizedBox(height: 16),
         ],
-        _SectionLabel('Transactions (${day.entryCount})'),
+        _SectionLabel(S.of(context).transactionsCount(day.entryCount)),
         const SizedBox(height: 8),
         if (day.ledger.isEmpty)
-          const Padding(
-            padding: EdgeInsets.only(top: 24),
+          Padding(
+            padding: const EdgeInsets.only(top: 24),
             child: EmptyView(
-              message: 'No cash movement on this day.',
+              message: S.of(context).noCashMovement,
               icon: Icons.receipt_long_outlined,
             ),
           )
@@ -221,7 +222,7 @@ class _SummaryCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Closing balance',
+                Text(S.of(context).closingBalance,
                     style: theme.textTheme.bodySmall
                         ?.copyWith(color: Colors.white70)),
                 const SizedBox(height: 4),
@@ -230,7 +231,10 @@ class _SummaryCard extends StatelessWidget {
                   style: theme.textTheme.headlineMedium?.copyWith(
                       color: Colors.white, fontWeight: FontWeight.bold),
                 ),
-                Text('Opening ${formatCurrency(day.openingBalance)}',
+                Text(
+                    S
+                        .of(context)
+                        .openingAmount(formatCurrency(day.openingBalance)),
                     style: theme.textTheme.bodySmall
                         ?.copyWith(color: Colors.white70)),
               ],
@@ -242,12 +246,14 @@ class _SummaryCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: _FlowMetric(
-                    label: 'Cash in',
+                    label: S.of(context).cashIn,
                     value: day.totalActualCashIn,
                     color: Colors.green.shade700,
                     icon: Icons.south_west,
                     note: day.totalCreditIn > 0
-                        ? '+${formatCurrency(day.totalCreditIn)} on credit'
+                        ? S
+                            .of(context)
+                            .onCredit(formatCurrency(day.totalCreditIn))
                         : null,
                   ),
                 ),
@@ -255,7 +261,7 @@ class _SummaryCard extends StatelessWidget {
                     width: 1, height: 44, color: scheme.outlineVariant),
                 Expanded(
                   child: _FlowMetric(
-                    label: 'Cash out',
+                    label: S.of(context).cashOut,
                     value: day.totalCashOut,
                     color: scheme.error,
                     icon: Icons.north_east,
@@ -265,7 +271,7 @@ class _SummaryCard extends StatelessWidget {
                     width: 1, height: 44, color: scheme.outlineVariant),
                 Expanded(
                   child: _FlowMetric(
-                    label: 'Net',
+                    label: S.of(context).net,
                     value: day.netCash,
                     color: day.netCash >= 0
                         ? Colors.green.shade700
@@ -347,7 +353,7 @@ class _BreakdownCard extends StatelessWidget {
                 child: Row(
                   children: [
                     Expanded(
-                      child: Text(_pretty(r.method),
+                      child: Text(S.of(context).cashMethodName(r.method),
                           style:
                               const TextStyle(fontWeight: FontWeight.w600)),
                     ),
@@ -368,13 +374,6 @@ class _BreakdownCard extends StatelessWidget {
     );
   }
 
-  String _pretty(String method) {
-    if (method.isEmpty) return 'Other';
-    return method
-        .split(RegExp(r'[_\s]+'))
-        .map((w) => w.isEmpty ? w : w[0].toUpperCase() + w.substring(1).toLowerCase())
-        .join(' ');
-  }
 }
 
 class _LedgerTile extends StatelessWidget {
@@ -439,7 +438,8 @@ class _LedgerTile extends StatelessWidget {
                   style: TextStyle(fontWeight: FontWeight.w700, color: color),
                 ),
                 const SizedBox(height: 2),
-                Text('Bal ${formatCurrency(row.balance, currency: row.currency)}',
+                Text(
+                    '${S.of(context).balShort} ${formatCurrency(row.balance, currency: row.currency)}',
                     style: theme.textTheme.labelSmall
                         ?.copyWith(color: scheme.onSurfaceVariant)),
               ],
@@ -493,15 +493,12 @@ class _AddEntrySheetState extends ConsumerState<_AddEntrySheet> {
   final _descCtrl = TextEditingController();
   bool _saving = false;
 
-  static const _inCategories = [
-    ('OWNER_DEPOSIT', 'Owner deposit'),
-    ('OTHER', 'Other'),
-  ];
+  static const _inCategories = ['OWNER_DEPOSIT', 'OTHER'];
   static const _outCategories = [
-    ('GENERAL', 'Expense'),
-    ('UTILITIES', 'Utilities'),
-    ('TRANSPORTATION', 'Transport'),
-    ('OTHER', 'Other'),
+    'GENERAL',
+    'UTILITIES',
+    'TRANSPORTATION',
+    'OTHER',
   ];
 
   @override
@@ -512,12 +509,13 @@ class _AddEntrySheetState extends ConsumerState<_AddEntrySheet> {
   }
 
   Future<void> _save() async {
+    final s = S.of(context);
     final amount = double.tryParse(_amountCtrl.text.trim()) ?? 0;
     final description = _descCtrl.text.trim();
     String? problem;
-    if (_category == null) problem = 'Pick a category.';
-    if (amount <= 0) problem = 'Enter an amount.';
-    if (description.isEmpty) problem = 'Add a short description.';
+    if (_category == null) problem = s.pickACategory;
+    if (amount <= 0) problem = s.enterAnAmount;
+    if (description.isEmpty) problem = s.addShortDescription;
     if (problem != null) {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(problem)));
@@ -563,7 +561,7 @@ class _AddEntrySheetState extends ConsumerState<_AddEntrySheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Add cash entry',
+              S.of(context).addCashEntry,
               style: GoogleFonts.instrumentSans(
                   fontSize: 16, fontWeight: FontWeight.w700),
             ),
@@ -574,7 +572,7 @@ class _AddEntrySheetState extends ConsumerState<_AddEntrySheet> {
               children: [
                 Expanded(
                   child: _TypeButton(
-                    label: 'Cash in',
+                    label: S.of(context).cashIn,
                     color: context.colors.green,
                     selected: _isCashIn,
                     onTap: () => setState(() {
@@ -586,7 +584,7 @@ class _AddEntrySheetState extends ConsumerState<_AddEntrySheet> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: _TypeButton(
-                    label: 'Cash out',
+                    label: S.of(context).cashOut,
                     color: context.colors.red,
                     selected: !_isCashIn,
                     onTap: () => setState(() {
@@ -604,7 +602,7 @@ class _AddEntrySheetState extends ConsumerState<_AddEntrySheet> {
               spacing: 8,
               runSpacing: 8,
               children: [
-                for (final (value, label) in categories)
+                for (final value in categories)
                   GestureDetector(
                     onTap: () => setState(() => _category = value),
                     child: Container(
@@ -622,7 +620,7 @@ class _AddEntrySheetState extends ConsumerState<_AddEntrySheet> {
                         ),
                       ),
                       child: Text(
-                        label,
+                        S.of(context).cashCategoryName(value),
                         style: GoogleFonts.instrumentSans(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -644,16 +642,16 @@ class _AddEntrySheetState extends ConsumerState<_AddEntrySheet> {
                   const TextInputType.numberWithOptions(decimal: true),
               style: GoogleFonts.instrumentSans(
                   fontSize: 19, fontWeight: FontWeight.w700),
-              decoration: const InputDecoration(
-                labelText: 'Amount',
-                prefixText: '৳ ',
+              decoration: InputDecoration(
+                labelText: S.of(context).amount,
+                prefixText: kCurrencyPrefix,
               ),
             ),
             const SizedBox(height: 10),
             TextField(
               controller: _descCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Description / note',
+              decoration: InputDecoration(
+                labelText: S.of(context).descriptionNote,
               ),
             ),
             const SizedBox(height: 16),
@@ -673,7 +671,7 @@ class _AddEntrySheetState extends ConsumerState<_AddEntrySheet> {
                       child: CircularProgressIndicator(
                           strokeWidth: 2, color: context.colors.onInk),
                     )
-                  : const Text('Save entry'),
+                  : Text(S.of(context).saveEntry),
             ),
           ],
         ),

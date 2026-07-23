@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../core/i18n/strings.dart';
 import '../../core/network/app_exception.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/models/product_specification.dart';
@@ -111,9 +112,9 @@ class _ProductSpecsEditScreenState
           .read(productsRepositoryProvider)
           .updateSpecifications(widget.productId, specs);
       ref.invalidate(productSpecificationsProvider(widget.productId));
-      messenger.showSnackBar(const SnackBar(
-        content: Text('Specifications saved'),
-        duration: Duration(seconds: 2),
+      messenger.showSnackBar(SnackBar(
+        content: Text(S.of(context).specificationsSaved),
+        duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
       ));
       router.pop();
@@ -143,10 +144,11 @@ class _ProductSpecsEditScreenState
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Specifications',
+          s.specifications,
           style: GoogleFonts.instrumentSans(
               fontSize: 16, fontWeight: FontWeight.w700),
         ),
@@ -175,7 +177,7 @@ class _ProductSpecsEditScreenState
                           child: OutlinedButton.icon(
                             onPressed: _addRow,
                             icon: const Icon(Icons.add, size: 18),
-                            label: const Text('Add specification'),
+                            label: Text(s.addSpecification),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: context.colors.ink,
                               side: BorderSide(
@@ -202,7 +204,7 @@ class _ProductSpecsEditScreenState
                       ),
                     ),
                     PrimaryCtaBar(
-                      label: 'Save specifications',
+                      label: s.saveSpecifications,
                       isLoading: _saving,
                       onTap: _save,
                     ),
@@ -230,6 +232,7 @@ class _SpecRowEditor extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -248,7 +251,7 @@ class _SpecRowEditor extends StatelessWidget {
             flex: 4,
             child: _SuggestField(
               controller: row.label,
-              hint: 'Label',
+              hint: s.labelLabel,
               suggest: labelSuggest,
             ),
           ),
@@ -257,12 +260,12 @@ class _SpecRowEditor extends StatelessWidget {
             flex: 5,
             child: _SuggestField(
               controller: row.value,
-              hint: 'Value',
+              hint: s.valueLabel,
               suggest: valueSuggest,
             ),
           ),
           IconButton(
-            tooltip: 'Remove',
+            tooltip: s.remove,
             icon: Icon(Icons.close, size: 18, color: scheme.onSurface.withAlpha(140)),
             onPressed: onRemove,
           ),

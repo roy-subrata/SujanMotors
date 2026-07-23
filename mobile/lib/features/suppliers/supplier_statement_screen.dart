@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../core/i18n/strings.dart';
 import '../../core/network/app_exception.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/format.dart';
@@ -73,10 +74,10 @@ class _SupplierStatementScreenState
   }
 
   String _filterLabel(_DateFilter f) => switch (f) {
-        _DateFilter.thisMonth => 'This Month',
-        _DateFilter.last3Months => 'Last 3 Months',
-        _DateFilter.thisYear => 'This Year',
-        _DateFilter.all => 'All Time',
+        _DateFilter.thisMonth => S.of(context).thisMonth,
+        _DateFilter.last3Months => S.of(context).last3Months,
+        _DateFilter.thisYear => S.of(context).thisYear,
+        _DateFilter.all => S.of(context).allTime,
       };
 
   void _showPeriodPicker() {
@@ -115,21 +116,23 @@ class _SupplierStatementScreenState
       _entries.isEmpty ? 0 : _entries.last.runningBalance;
 
   Future<void> _shareStatement(SupplierLedgerSummary summary) async {
+    final s = S.of(context);
     final buffer = StringBuffer()
-      ..writeln('Supplier statement — ${summary.supplierName}')
-      ..writeln('Period: ${_filterLabel(_filter)}')
-      ..writeln('Opening: ${formatCurrency(_openingBalance)}')
-      ..writeln('Closing: ${formatCurrency(_closingBalance)} payable')
+      ..writeln(s.supplierStatementFor(summary.supplierName))
+      ..writeln('${s.periodLabel}: ${_filterLabel(_filter)}')
+      ..writeln('${s.opening}: ${formatCurrency(_openingBalance)}')
+      ..writeln(
+          '${s.closing}: ${formatCurrency(_closingBalance)} ${s.payableLower}')
       ..writeln('');
     for (final e in _entries) {
       final amount = e.debit > 0
-          ? 'purchase ${formatCurrency(e.debit)}'
-          : 'paid ${formatCurrency(e.credit)}';
+          ? '${s.purchaseLower} ${formatCurrency(e.debit)}'
+          : '${s.paidLowerWord} ${formatCurrency(e.credit)}';
       buffer.writeln(
-          '${formatDate(e.date)} · ${e.referenceNumber} · $amount · balance ${formatCurrency(e.runningBalance)}');
+          '${formatDate(e.date)} · ${e.referenceNumber} · $amount · ${s.balanceLower} ${formatCurrency(e.runningBalance)}');
     }
     await Share.share(buffer.toString(),
-        subject: 'Supplier statement — ${summary.supplierName}');
+        subject: s.supplierStatementFor(summary.supplierName));
   }
 
   @override
@@ -140,7 +143,7 @@ class _SupplierStatementScreenState
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Supplier Statement',
+          S.of(context).supplierStatement,
           style: GoogleFonts.instrumentSans(
               fontSize: 16, fontWeight: FontWeight.w700),
         ),
@@ -177,8 +180,9 @@ class _SupplierStatementScreenState
       body: summaryAsync.when(
         loading: () => const LoadingView(),
         error: (e, _) => ErrorView(
-          message:
-              e is AppException ? e.message : 'Failed to load supplier.',
+          message: e is AppException
+              ? e.message
+              : S.of(context).failedToLoadSupplier,
           onRetry: () => ref
               .invalidate(supplierLedgerSummaryProvider(widget.supplierId)),
         ),
@@ -199,11 +203,12 @@ class _SupplierStatementScreenState
                       : RefreshIndicator(
                           onRefresh: _load,
                           child: _entries.isEmpty
-                              ? ListView(children: const [
-                                  SizedBox(height: 100),
+                              ? ListView(children: [
+                                  const SizedBox(height: 100),
                                   EmptyView(
-                                    message:
-                                        'No transactions in this period.',
+                                    message: S
+                                        .of(context)
+                                        .noTransactionsInPeriod,
                                     icon: Icons.receipt_long_outlined,
                                   ),
                                 ])
@@ -252,13 +257,14 @@ class _SummaryBar extends StatelessWidget {
           const SizedBox(height: 2),
           Text.rich(
             TextSpan(
-              text: 'Opening ${formatCurrency(opening)} · Closing ',
+              text:
+                  '${S.of(context).opening} ${formatCurrency(opening)} · ${S.of(context).closing} ',
               style: GoogleFonts.instrumentSans(
                   fontSize: 12, color: context.colors.muted),
               children: [
                 TextSpan(
                   text: closing > 0
-                      ? '${formatCurrency(closing)} payable'
+                      ? '${formatCurrency(closing)} ${S.of(context).payableLower}'
                       : formatCurrency(closing),
                   style: GoogleFonts.instrumentSans(
                     fontSize: 12,
@@ -303,14 +309,15 @@ class _StatementTable extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 child: _Grid(
-                  entry: Text('ENTRY', style: _headerStyle(context)),
-                  debit: Text('PURCHASE',
+                  entry: Text(S.of(context).entryHeader,
+                      style: _headerStyle(context)),
+                  debit: Text(S.of(context).purchaseHeader,
                       textAlign: TextAlign.right,
                       style: _headerStyle(context)),
-                  credit: Text('PAID',
+                  credit: Text(S.of(context).paidHeader,
                       textAlign: TextAlign.right,
                       style: _headerStyle(context)),
-                  balance: Text('BALANCE',
+                  balance: Text(S.of(context).balanceHeader,
                       textAlign: TextAlign.right,
                       style: _headerStyle(context)),
                 ),
@@ -330,8 +337,8 @@ class _StatementTable extends StatelessWidget {
                       children: [
                         Text(
                           e.referenceNumber.isEmpty
-                              ? _typeLabel(e.type)
-                              : '${e.referenceNumber} · ${_typeLabel(e.type)}',
+                              ? S.of(context).ledgerTypeName(e.type)
+                              : '${e.referenceNumber} · ${S.of(context).ledgerTypeName(e.type)}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: GoogleFonts.instrumentSans(
@@ -379,15 +386,6 @@ class _StatementTable extends StatelessWidget {
         letterSpacing: 0.5,
         color: context.colors.muted,
       );
-
-  static String _typeLabel(String type) => switch (type.toUpperCase()) {
-        'PURCHASE' => 'purchase',
-        'PAYMENT' => 'payment',
-        'REFUND' => 'refund',
-        'ADVANCE' => 'advance',
-        'CANCELLATION' => 'cancelled',
-        _ => type.toLowerCase(),
-      };
 
   /// Amounts without decimals — the 4-column grid is tight on a phone.
   static String _compact(double v) =>
@@ -445,7 +443,7 @@ class _BottomBar extends StatelessWidget {
             child: FilledButton.icon(
               onPressed: onShare,
               icon: const Icon(Icons.ios_share_rounded, size: 16),
-              label: const Text('Share statement'),
+              label: Text(S.of(context).shareStatement),
               style: FilledButton.styleFrom(
                 backgroundColor: context.colors.ink,
                 foregroundColor: context.colors.onInk,

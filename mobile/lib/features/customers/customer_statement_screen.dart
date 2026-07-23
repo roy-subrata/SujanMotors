@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../core/i18n/strings.dart';
 import '../../core/network/app_exception.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/format.dart';
@@ -156,7 +157,7 @@ class _CustomerStatementScreenState
       if (!mounted) return;
       await Share.shareXFiles(
         [XFile(path, mimeType: 'application/pdf', name: 'statement_$timestamp.pdf')],
-        subject: 'Account Statement',
+        subject: S.of(context).accountStatement,
       );
     } on AppException catch (e) {
       if (mounted) {
@@ -173,10 +174,10 @@ class _CustomerStatementScreenState
   }
 
   String _filterLabel(_DateFilter f) => switch (f) {
-        _DateFilter.thisMonth => 'This Month',
-        _DateFilter.last3Months => 'Last 3 Months',
-        _DateFilter.thisYear => 'This Year',
-        _DateFilter.all => 'All Time',
+        _DateFilter.thisMonth => S.of(context).thisMonth,
+        _DateFilter.last3Months => S.of(context).last3Months,
+        _DateFilter.thisYear => S.of(context).thisYear,
+        _DateFilter.all => S.of(context).allTime,
       };
 
   @override
@@ -184,7 +185,7 @@ class _CustomerStatementScreenState
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Statement',
+          S.of(context).statement,
           style: GoogleFonts.instrumentSans(
             fontSize: 16,
             fontWeight: FontWeight.w700
@@ -244,8 +245,9 @@ class _CustomerStatementScreenState
                           await _loadPage(1);
                         },
                         child: _items.isEmpty
-                            ? const EmptyView(
-                                message: 'No transactions in this period.',
+                            ? EmptyView(
+                                message:
+                                    S.of(context).noTransactionsInPeriod,
                                 icon: Icons.receipt_long_outlined,
                               )
                             : _buildList(),
@@ -333,7 +335,7 @@ class _CustomerStatementScreenState
                 child: OutlinedButton.icon(
                   onPressed: () {},
                   icon: const Icon(Icons.print_outlined, size: 16),
-                  label: const Text('Print'),
+                  label: Text(S.of(context).print),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: context.colors.ink,
                     side: BorderSide(color: Theme.of(context).colorScheme.outline),
@@ -357,7 +359,7 @@ class _CustomerStatementScreenState
                           child: CircularProgressIndicator(
                               strokeWidth: 2, color: context.colors.onInk))
                       : const Icon(Icons.upload_outlined, size: 16),
-                  label: const Text('Generate PDF & share'),
+                  label: Text(S.of(context).generatePdfShare),
                   style: FilledButton.styleFrom(
                     backgroundColor: context.colors.ink,
                     foregroundColor: context.colors.onInk,
@@ -394,7 +396,10 @@ class _SummaryBar extends StatelessWidget {
         children: [
           Expanded(
             child: Text(
-              '${summary.customerName} · Purchased ${formatCurrency(summary.totalPurchaseAmount)} · Paid ${formatCurrency(summary.totalPaidAmount)}',
+              S.of(context).purchasedPaidSummary(
+                  summary.customerName,
+                  formatCurrency(summary.totalPurchaseAmount),
+                  formatCurrency(summary.totalPaidAmount)),
               style: GoogleFonts.instrumentSans(
                 fontSize: 12,
                 color: hasDue ? context.colors.red : context.colors.muted,
@@ -403,7 +408,7 @@ class _SummaryBar extends StatelessWidget {
           ),
           if (hasDue) ...[
             Text(
-              'Due ${formatCurrency(summary.currentDue)}',
+              '${S.of(context).due} ${formatCurrency(summary.currentDue)}',
               style: GoogleFonts.instrumentSans(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,

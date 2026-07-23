@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../core/i18n/strings.dart';
 import '../../core/network/app_exception.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/format.dart';
@@ -35,7 +36,7 @@ class InvoiceDetailScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          inv?.invoiceNumber ?? 'Invoice',
+          inv?.invoiceNumber ?? S.of(context).invoice,
           style: GoogleFonts.instrumentSans(
             fontSize: 16,
             fontWeight: FontWeight.w700
@@ -47,8 +48,9 @@ class InvoiceDetailScreen extends ConsumerWidget {
         error: (e, _) => ListView(children: [
           const SizedBox(height: 120),
           ErrorView(
-            message:
-                e is AppException ? e.message : 'Failed to load invoice.',
+            message: e is AppException
+                ? e.message
+                : S.of(context).failedToLoadInvoice,
             onRetry: () =>
                 ref.invalidate(_invoiceLinesProvider(invoiceId)),
           ),
@@ -112,13 +114,13 @@ class _InvoiceBody extends StatelessWidget {
                 Row(
                   children: [
                     _MetaItem(
-                      label: 'Invoice date',
+                      label: S.of(context).invoiceDate,
                       value: formatDate(inv.invoiceDate),
                     ),
                     const SizedBox(width: 24),
                     if (inv.dueDate != null)
                       _MetaItem(
-                        label: 'Due date',
+                        label: S.of(context).dueDate,
                         value: formatDate(inv.dueDate!),
                         valueColor: inv.isOverdue ? context.colors.red : null,
                       ),
@@ -132,7 +134,7 @@ class _InvoiceBody extends StatelessWidget {
 
         // Items
         Text(
-          'Items',
+          S.of(context).items,
           style: GoogleFonts.instrumentSans(
             fontSize: 13,
             fontWeight: FontWeight.w600
@@ -140,8 +142,8 @@ class _InvoiceBody extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         lines.isEmpty
-            ? const EmptyView(
-                message: 'No items found.',
+            ? EmptyView(
+                message: S.of(context).noItemsFound,
                 icon: Icons.receipt_long_outlined)
             : CardSection(
                 padding: EdgeInsets.zero,
@@ -166,12 +168,12 @@ class _InvoiceBody extends StatelessWidget {
             child: Column(
               children: [
                 _TotalRow(
-                  label: 'Grand Total',
+                  label: S.of(context).grandTotalLabel,
                   value: formatCurrency(inv.grandTotal),
                 ),
                 const SizedBox(height: 8),
                 _TotalRow(
-                  label: 'Amount Paid',
+                  label: S.of(context).amountPaid,
                   value: formatCurrency(inv.amountPaid),
                   valueColor: context.colors.green,
                 ),
@@ -181,7 +183,7 @@ class _InvoiceBody extends StatelessWidget {
                     child: Divider(height: 1, color: Theme.of(context).colorScheme.outline.withAlpha(60)),
                   ),
                   _TotalRow(
-                    label: 'Outstanding',
+                    label: S.of(context).outstanding,
                     value: formatCurrency(inv.outstandingAmount),
                     valueStyle: GoogleFonts.instrumentSans(
                       fontSize: 19,
@@ -201,7 +203,7 @@ class _InvoiceBody extends StatelessWidget {
                   context.push('/sales/return', extra: inv),
               icon: const Icon(Icons.assignment_return_outlined,
                   size: 16),
-              label: const Text('Initiate return'),
+              label: Text(S.of(context).initiateReturn),
               style: OutlinedButton.styleFrom(
                 foregroundColor: context.colors.red,
                 side: BorderSide(color: context.colors.redBorder),

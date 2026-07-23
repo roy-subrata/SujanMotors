@@ -90,6 +90,7 @@ class TopProduct {
     required this.partId,
     required this.partName,
     required this.partNumber,
+    required this.sku,
     required this.quantitySold,
     required this.totalRevenue,
     required this.totalProfit,
@@ -98,6 +99,7 @@ class TopProduct {
   final String partId;
   final String partName;
   final String partNumber;
+  final String sku;
   final int quantitySold;
   final double totalRevenue;
   final double totalProfit;
@@ -106,6 +108,7 @@ class TopProduct {
         partId: j['partId'] as String? ?? '',
         partName: j['partName'] as String? ?? '',
         partNumber: j['partNumber'] as String? ?? '',
+        sku: j['sku'] as String? ?? '',
         quantitySold: (j['quantitySold'] as num?)?.toInt() ?? 0,
         totalRevenue: (j['totalRevenue'] as num?)?.toDouble() ?? 0,
         totalProfit: (j['totalProfit'] as num?)?.toDouble() ?? 0,
@@ -120,6 +123,7 @@ class TopCustomer {
     required this.totalOrders,
     required this.totalRevenue,
     required this.outstandingAmount,
+    this.lastPurchaseDate,
   });
 
   final String customerId;
@@ -128,6 +132,7 @@ class TopCustomer {
   final int totalOrders;
   final double totalRevenue;
   final double outstandingAmount;
+  final DateTime? lastPurchaseDate;
 
   factory TopCustomer.fromJson(Map<String, dynamic> j) => TopCustomer(
         customerId: j['customerId'] as String? ?? '',
@@ -136,6 +141,33 @@ class TopCustomer {
         totalOrders: (j['totalOrders'] as num?)?.toInt() ?? 0,
         totalRevenue: (j['totalRevenue'] as num?)?.toDouble() ?? 0,
         outstandingAmount: (j['outstandingAmount'] as num?)?.toDouble() ?? 0,
+        lastPurchaseDate: j['lastPurchaseDate'] != null
+            ? DateTime.tryParse(j['lastPurchaseDate'] as String)
+            : null,
+      );
+}
+
+class SalesTrend {
+  const SalesTrend({
+    required this.date,
+    required this.sales,
+    required this.purchases,
+    required this.profit,
+    required this.orderCount,
+  });
+
+  final DateTime date;
+  final double sales;
+  final double purchases;
+  final double profit;
+  final int orderCount;
+
+  factory SalesTrend.fromJson(Map<String, dynamic> j) => SalesTrend(
+        date: DateTime.tryParse(j['date'] as String? ?? '') ?? DateTime(0),
+        sales: (j['sales'] as num?)?.toDouble() ?? 0,
+        purchases: (j['purchases'] as num?)?.toDouble() ?? 0,
+        profit: (j['profit'] as num?)?.toDouble() ?? 0,
+        orderCount: (j['orderCount'] as num?)?.toInt() ?? 0,
       );
 }
 
@@ -144,11 +176,13 @@ class DashboardData {
     required this.summary,
     required this.topProducts,
     required this.topCustomers,
+    required this.salesTrend,
   });
 
   final DashboardSummary summary;
   final List<TopProduct> topProducts;
   final List<TopCustomer> topCustomers;
+  final List<SalesTrend> salesTrend;
 
   factory DashboardData.fromJson(Map<String, dynamic> j) => DashboardData(
         summary: DashboardSummary.fromJson(
@@ -162,6 +196,11 @@ class DashboardData {
         topCustomers: (j['topCustomers'] as List?)
                 ?.whereType<Map>()
                 .map((e) => TopCustomer.fromJson(e.cast<String, dynamic>()))
+                .toList() ??
+            [],
+        salesTrend: (j['salesTrend'] as List?)
+                ?.whereType<Map>()
+                .map((e) => SalesTrend.fromJson(e.cast<String, dynamic>()))
                 .toList() ??
             [],
       );

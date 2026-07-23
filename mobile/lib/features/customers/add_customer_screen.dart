@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../core/i18n/strings.dart';
 import '../../core/network/app_exception.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/design_system.dart';
@@ -122,13 +123,14 @@ class _AddCustomerScreenState extends ConsumerState<AddCustomerScreen> {
     for (final v in _vehicles) {
       if (v.isEmpty) continue;
       if (v.make.text.trim().isEmpty || v.model.text.trim().isEmpty) {
-        _showError('Each vehicle needs a make and model (or clear the row).');
+        _showError(S.of(context).vehicleNeedsMakeModel);
         return;
       }
     }
 
     final messenger = ScaffoldMessenger.of(context);
     final router = GoRouter.of(context);
+    final s = S.of(context);
     setState(() => _saving = true);
     try {
       final repo = ref.read(customersRepositoryProvider);
@@ -172,7 +174,8 @@ class _AddCustomerScreenState extends ConsumerState<AddCustomerScreen> {
 
       ref.read(customerListControllerProvider.notifier).search('');
       messenger.showSnackBar(SnackBar(
-        content: Text(widget.isEdit ? 'Customer updated' : 'Customer added'),
+        content:
+            Text(widget.isEdit ? s.customerUpdated : s.customerAdded),
         duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
       ));
@@ -196,7 +199,10 @@ class _AddCustomerScreenState extends ConsumerState<AddCustomerScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.isEdit ? 'Edit customer' : 'Add customer',
+        title: Text(
+            widget.isEdit
+                ? S.of(context).editCustomer
+                : S.of(context).addCustomer,
             style: GoogleFonts.instrumentSans(
                 fontSize: 16, fontWeight: FontWeight.w700)),
       ),
@@ -215,12 +221,12 @@ class _AddCustomerScreenState extends ConsumerState<AddCustomerScreen> {
                     children: [
                       Expanded(
                         child: _Field(
-                          label: 'First name *',
+                          label: S.of(context).firstNameRequired,
                           child: TextFormField(
                             controller: _firstName,
                             textCapitalization: TextCapitalization.words,
                             validator: (v) => (v ?? '').trim().isEmpty
-                                ? 'Required'
+                                ? S.of(context).required
                                 : null,
                           ),
                         ),
@@ -228,12 +234,12 @@ class _AddCustomerScreenState extends ConsumerState<AddCustomerScreen> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: _Field(
-                          label: 'Last name *',
+                          label: S.of(context).lastNameRequired,
                           child: TextFormField(
                             controller: _lastName,
                             textCapitalization: TextCapitalization.words,
                             validator: (v) => (v ?? '').trim().isEmpty
-                                ? 'Required'
+                                ? S.of(context).required
                                 : null,
                           ),
                         ),
@@ -241,16 +247,17 @@ class _AddCustomerScreenState extends ConsumerState<AddCustomerScreen> {
                     ],
                   ),
                   _Field(
-                    label: 'Phone * (must be unique)',
+                    label: S.of(context).phoneUniqueLabel,
                     child: TextFormField(
                       controller: _phone,
                       keyboardType: TextInputType.phone,
-                      validator: (v) =>
-                          (v ?? '').trim().isEmpty ? 'Phone is required' : null,
+                      validator: (v) => (v ?? '').trim().isEmpty
+                          ? S.of(context).phoneRequired
+                          : null,
                     ),
                   ),
                   _Field(
-                    label: 'Customer type',
+                    label: S.of(context).customerType,
                     child: DropdownButtonFormField<String>(
                       initialValue: _type,
                       isExpanded: true,
@@ -259,7 +266,7 @@ class _AddCustomerScreenState extends ConsumerState<AddCustomerScreen> {
                           DropdownMenuItem(
                             value: t,
                             child: Text(
-                              '${t[0]}${t.substring(1).toLowerCase()}',
+                              S.of(context).customerTypeName(t),
                               style:
                                   GoogleFonts.instrumentSans(fontSize: 13.5),
                             ),
@@ -269,7 +276,7 @@ class _AddCustomerScreenState extends ConsumerState<AddCustomerScreen> {
                     ),
                   ),
                   _Field(
-                    label: 'Company',
+                    label: S.of(context).company,
                     child: TextFormField(
                       controller: _company,
                       textCapitalization: TextCapitalization.words,
@@ -280,7 +287,7 @@ class _AddCustomerScreenState extends ConsumerState<AddCustomerScreen> {
                     children: [
                       Expanded(
                         child: _Field(
-                          label: 'Email',
+                          label: S.of(context).email,
                           child: TextFormField(
                             controller: _email,
                             keyboardType: TextInputType.emailAddress,
@@ -290,7 +297,7 @@ class _AddCustomerScreenState extends ConsumerState<AddCustomerScreen> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: _Field(
-                          label: 'City',
+                          label: S.of(context).city,
                           child: TextFormField(
                             controller: _city,
                             textCapitalization: TextCapitalization.words,
@@ -300,7 +307,7 @@ class _AddCustomerScreenState extends ConsumerState<AddCustomerScreen> {
                     ],
                   ),
                   _Field(
-                    label: 'Notes',
+                    label: S.of(context).notes,
                     child: TextFormField(
                       controller: _notes,
                       maxLines: 2,
@@ -315,12 +322,12 @@ class _AddCustomerScreenState extends ConsumerState<AddCustomerScreen> {
                     Row(
                       children: [
                         Expanded(
-                          child: Text('Vehicles',
+                          child: Text(S.of(context).vehicles,
                               style: GoogleFonts.instrumentSans(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w700)),
                         ),
-                        Text('optional',
+                        Text(S.of(context).optionalLower,
                             style: GoogleFonts.instrumentSans(
                                 fontSize: 12, color: context.colors.muted)),
                       ],
@@ -340,7 +347,7 @@ class _AddCustomerScreenState extends ConsumerState<AddCustomerScreen> {
                       onPressed: () =>
                           setState(() => _vehicles.add(_VehicleRow())),
                       icon: const Icon(Icons.add, size: 18),
-                      label: const Text('Add vehicle'),
+                      label: Text(S.of(context).addVehicle),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: context.colors.ink,
                         side: BorderSide(
@@ -358,7 +365,9 @@ class _AddCustomerScreenState extends ConsumerState<AddCustomerScreen> {
             ),
           ),
           PrimaryCtaBar(
-            label: widget.isEdit ? 'Save changes' : 'Save customer',
+            label: widget.isEdit
+                ? S.of(context).saveChanges
+                : S.of(context).saveCustomer,
             isLoading: _saving,
             onTap: _save,
           ),
@@ -394,14 +403,14 @@ class _VehicleEditor extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text('Vehicle $index',
+              Text(S.of(context).vehicleN(index),
                   style: GoogleFonts.instrumentSans(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w600,
                       color: context.colors.secondary)),
               const Spacer(),
               IconButton(
-                tooltip: 'Remove',
+                tooltip: S.of(context).remove,
                 visualDensity: VisualDensity.compact,
                 icon: Icon(Icons.close,
                     size: 18, color: scheme.onSurface.withAlpha(140)),
@@ -416,8 +425,8 @@ class _VehicleEditor extends StatelessWidget {
                   controller: row.make,
                   textCapitalization: TextCapitalization.words,
                   style: GoogleFonts.instrumentSans(fontSize: 13.5),
-                  decoration: const InputDecoration(
-                      labelText: 'Make', isDense: true),
+                  decoration: InputDecoration(
+                      labelText: S.of(context).make, isDense: true),
                 ),
               ),
               const SizedBox(width: 8),
@@ -426,8 +435,8 @@ class _VehicleEditor extends StatelessWidget {
                   controller: row.model,
                   textCapitalization: TextCapitalization.words,
                   style: GoogleFonts.instrumentSans(fontSize: 13.5),
-                  decoration: const InputDecoration(
-                      labelText: 'Model', isDense: true),
+                  decoration: InputDecoration(
+                      labelText: S.of(context).model, isDense: true),
                 ),
               ),
             ],
@@ -441,8 +450,8 @@ class _VehicleEditor extends StatelessWidget {
                   controller: row.year,
                   keyboardType: TextInputType.number,
                   style: GoogleFonts.instrumentSans(fontSize: 13.5),
-                  decoration: const InputDecoration(
-                      labelText: 'Year', isDense: true),
+                  decoration: InputDecoration(
+                      labelText: S.of(context).year, isDense: true),
                 ),
               ),
               const SizedBox(width: 8),
@@ -451,8 +460,8 @@ class _VehicleEditor extends StatelessWidget {
                   controller: row.regNo,
                   textCapitalization: TextCapitalization.characters,
                   style: GoogleFonts.instrumentSans(fontSize: 13.5),
-                  decoration: const InputDecoration(
-                      labelText: 'Reg. no.', isDense: true),
+                  decoration: InputDecoration(
+                      labelText: S.of(context).regNo, isDense: true),
                 ),
               ),
             ],

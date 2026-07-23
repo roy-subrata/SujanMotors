@@ -1,6 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/i18n/strings.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/format.dart';
 import '../../shared/models/invoice.dart';
@@ -47,7 +48,7 @@ class _CustomerInvoicesScreenState
     return Scaffold(
       appBar: AppBar(
         flexibleSpace: const AppBarGradient(),
-        title: const Text('Invoices'),
+        title: Text(S.of(context).invoices),
       ),
       body: Column(
         children: [
@@ -62,7 +63,7 @@ class _CustomerInvoicesScreenState
                     textInputAction: TextInputAction.search,
                     onSubmitted: (v) => setState(() => _search = v.trim()),
                     decoration: InputDecoration(
-                      hintText: 'Search invoice number',
+                      hintText: S.of(context).searchInvoiceNumber,
                       prefixIcon: const Icon(Icons.search),
                       isDense: true,
                       border: const OutlineInputBorder(),
@@ -92,7 +93,7 @@ class _CustomerInvoicesScreenState
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               child: Align(
                 alignment: Alignment.centerLeft,
-                child: Text('$_total invoice(s)',
+                child: Text(S.of(context).invoicesCount(_total!),
                     style: Theme.of(context).textTheme.bodySmall),
               ),
             ),
@@ -114,8 +115,8 @@ class _CustomerInvoicesScreenState
                 search: _search.isEmpty ? null : _search,
                 page: page,
               ),
-              emptyBuilder: (_) => const EmptyView(
-                  message: 'No matching invoices.',
+              emptyBuilder: (_) => EmptyView(
+                  message: S.of(context).noMatchingInvoices,
                   icon: Icons.receipt_long_outlined),
               itemBuilder: (_, invoice) => _InvoiceTile(invoice: invoice),
             ),
@@ -139,12 +140,14 @@ class _StatusMenu extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final active = value != null;
     return PopupMenuButton<String?>(
-      tooltip: 'Filter by status',
+      tooltip: S.of(context).filterByStatus,
       onSelected: onChanged,
       itemBuilder: (_) => [
-        const PopupMenuItem(value: null, child: Text('All statuses')),
+        PopupMenuItem(
+            value: null, child: Text(S.of(context).allStatuses)),
         for (final s in options)
-          PopupMenuItem(value: s, child: Text(_statusLabel(s))),
+          PopupMenuItem(
+              value: s, child: Text(S.of(context).statusName(s))),
       ],
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -158,7 +161,10 @@ class _StatusMenu extends StatelessWidget {
             Icon(Icons.filter_list, size: 18,
                 color: active ? scheme.onPrimaryContainer : scheme.onSurfaceVariant),
             const SizedBox(width: 4),
-            Text(active ? _statusLabel(value!) : 'Status',
+            Text(
+                active
+                    ? S.of(context).statusName(value!)
+                    : S.of(context).status,
                 style: TextStyle(
                     color: active
                         ? scheme.onPrimaryContainer
@@ -169,13 +175,6 @@ class _StatusMenu extends StatelessWidget {
       ),
     );
   }
-}
-
-/// "PARTIALLY_PAID" -> "Partially paid".
-String _statusLabel(String s) {
-  if (s.isEmpty) return s;
-  final lower = s.replaceAll('_', ' ').toLowerCase();
-  return lower[0].toUpperCase() + lower.substring(1);
 }
 
 class _InvoiceTile extends ConsumerStatefulWidget {
@@ -200,7 +199,8 @@ class _InvoiceTileState extends ConsumerState<_InvoiceTile> {
 
     final subtitleParts = <String>[
       formatDate(invoice.invoiceDate),
-      if (invoice.dueDate != null) 'Due ${formatDate(invoice.dueDate!)}',
+      if (invoice.dueDate != null)
+        '${S.of(context).due} ${formatDate(invoice.dueDate!)}',
       if (invoice.salesOrderNumber.isNotEmpty) 'SO ${invoice.salesOrderNumber}',
     ];
 
@@ -235,7 +235,7 @@ class _InvoiceTileState extends ConsumerState<_InvoiceTile> {
                   color: scheme.errorContainer,
                   borderRadius: BorderRadius.circular(4),
                 ),
-                child: Text('Overdue',
+                child: Text(S.of(context).overdue,
                     style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w700,
@@ -253,10 +253,10 @@ class _InvoiceTileState extends ConsumerState<_InvoiceTile> {
                 style: const TextStyle(fontWeight: FontWeight.w700)),
             if (hasOutstanding)
               Text(
-                  'Due ${formatCurrency(invoice.outstandingAmount, currency: invoice.currency)}',
+                  '${S.of(context).due} ${formatCurrency(invoice.outstandingAmount, currency: invoice.currency)}',
                   style: TextStyle(fontSize: 11, color: scheme.error))
             else
-              Text('Paid',
+              Text(S.of(context).statusPaid,
                   style: TextStyle(fontSize: 11, color: Colors.green.shade700)),
           ],
         ),
@@ -266,8 +266,9 @@ class _InvoiceTileState extends ConsumerState<_InvoiceTile> {
             Divider(height: 16),
             Row(
               children: [
-                Text('Status: ', style: theme.textTheme.bodySmall),
-                Text(_statusLabel(invoice.status!),
+                Text('${S.of(context).status}: ',
+                    style: theme.textTheme.bodySmall),
+                Text(S.of(context).statusName(invoice.status!),
                     style: theme.textTheme.bodySmall
                         ?.copyWith(fontWeight: FontWeight.w600)),
               ],
@@ -320,7 +321,7 @@ class _LineItems extends StatelessWidget {
         if (snap.hasError) {
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Text('Could not load items.',
+            child: Text(S.of(context).couldNotLoadItems,
                 style: theme.textTheme.bodySmall
                     ?.copyWith(color: theme.colorScheme.error)),
           );
@@ -329,8 +330,8 @@ class _LineItems extends StatelessWidget {
         if (lines.isEmpty) {
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),
-            child:
-                Text('No items on this invoice.', style: theme.textTheme.bodySmall),
+            child: Text(S.of(context).noItemsOnInvoice,
+                style: theme.textTheme.bodySmall),
           );
         }
         return Column(

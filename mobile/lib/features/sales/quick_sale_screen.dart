@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
+import '../../core/i18n/strings.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/format.dart';
 import '../../shared/models/sale.dart';
@@ -156,7 +157,7 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Cart',
+            S.of(context).cart,
             style: GoogleFonts.instrumentSans(
               fontSize: 17,
               fontWeight: FontWeight.w700
@@ -164,7 +165,7 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
           ),
           if (itemCount > 0)
             Text(
-              'INV-draft · $itemCount item${itemCount == 1 ? '' : 's'}',
+              S.of(context).invDraftItems(itemCount),
               style: GoogleFonts.instrumentSans(
                 fontSize: 12
               ),
@@ -180,7 +181,7 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
             children: [
               IconButton(
                 icon: const Icon(Icons.inventory_2_outlined),
-                tooltip: 'Held sales',
+                tooltip: S.of(context).heldSales,
                 onPressed: _openHeldSheet,
               ),
               if (heldCount > 0)
@@ -209,12 +210,12 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
         if (itemCount > 0)
           IconButton(
             icon: const Icon(Icons.pause_circle_outline),
-            tooltip: 'Hold sale',
+            tooltip: S.of(context).holdSale,
             onPressed: _holdCurrent,
           ),
         IconButton(
           icon: const Icon(Icons.qr_code_scanner),
-          tooltip: 'Scan barcode',
+          tooltip: S.of(context).scanBarcode,
           onPressed: _startScan,
         ),
       ],
@@ -232,9 +233,9 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
     await ref.read(heldSalesProvider.notifier).hold(label, items);
     ref.read(quickSaleControllerProvider.notifier).reset();
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-      content: Text('Sale held'),
-      duration: Duration(seconds: 2),
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(S.of(context).saleHeld),
+      duration: const Duration(seconds: 2),
       behavior: SnackBarBehavior.floating,
     ));
   }
@@ -252,7 +253,7 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
             // is lost.
             ref
                 .read(heldSalesProvider.notifier)
-                .hold('Auto-held', current);
+                .hold(S.of(context).autoHeld, current);
           }
           ref.read(quickSaleControllerProvider.notifier).loadItems(cart.items);
           ref.read(heldSalesProvider.notifier).remove(cart.id);
@@ -295,8 +296,8 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
                             if (!ok) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text(
-                                      'Only ${item.availableStock} ${item.name} in stock'),
+                                  content: Text(S.of(context).onlyNInStock(
+                                      item.availableStock ?? 0, item.name)),
                                   backgroundColor: context.colors.red,
                                   duration: const Duration(seconds: 2),
                                   behavior: SnackBarBehavior.floating,
@@ -336,7 +337,7 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
                           ),
                           const SizedBox(width: 12),
                           Text(
-                            'Add more items',
+                            S.of(context).addMoreItems,
                             style: GoogleFonts.instrumentSans(
                               fontSize: 13.5
                             ),
@@ -364,7 +365,7 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
               child: Column(
                 children: [
                   _TotalRow(
-                    label: 'Subtotal · ${state.itemCount} items',
+                    label: S.of(context).subtotalItems(state.itemCount),
                     value: formatCurrency(state.total),
                     labelStyle: GoogleFonts.instrumentSans(
                         fontSize: 13.5, color: context.colors.secondary),
@@ -375,7 +376,7 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
                   ),
                   const SizedBox(height: 8),
                   _TotalRow(
-                    label: 'Discount',
+                    label: S.of(context).discount,
                     value: '—',
                     labelStyle: GoogleFonts.instrumentSans(
                         fontSize: 13.5, color: context.colors.secondary),
@@ -390,7 +391,7 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
                         color: Theme.of(context).colorScheme.outline.withAlpha(60)),
                   ),
                   _TotalRow(
-                    label: 'Total',
+                    label: S.of(context).total,
                     value: formatCurrency(state.total),
                     labelStyle: GoogleFonts.instrumentSans(
                         fontSize: 13.5,
@@ -442,22 +443,24 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
           top: 48,
           left: 12,
           child: _ScanIconButton(
-              icon: Icons.close, tooltip: 'Cancel', onTap: _stopScan),
+              icon: Icons.close,
+              tooltip: S.of(context).cancel,
+              onTap: _stopScan),
         ),
         Positioned(
           top: 48,
           right: 12,
           child: _ScanIconButton(
             icon: Icons.flash_on,
-            tooltip: 'Torch',
+            tooltip: S.of(context).torch,
             onTap: () => _scanner.toggleTorch(),
           ),
         ),
-        const Positioned(
+        Positioned(
           bottom: 80,
           child: Text(
-            'Point camera at a barcode',
-            style: TextStyle(color: Colors.white, fontSize: 15),
+            S.of(context).pointCameraAtBarcode,
+            style: const TextStyle(color: Colors.white, fontSize: 15),
           ),
         ),
         if (_handling || state.isLookingUp)
@@ -506,7 +509,9 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            isPermission ? 'Camera access needed' : 'Camera error',
+            isPermission
+                ? S.of(context).cameraAccessNeeded
+                : S.of(context).cameraError,
             textAlign: TextAlign.center,
             style: const TextStyle(
                 color: Colors.white,
@@ -516,9 +521,9 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
           const SizedBox(height: 8),
           Text(
             isPermission
-                ? 'Allow camera access in Settings, then tap Try again.'
+                ? S.of(context).allowCameraAccess
                 : (error.errorDetails?.message ??
-                    'Could not start the camera.'),
+                    S.of(context).couldNotStartCamera),
             textAlign: TextAlign.center,
             style: const TextStyle(color: Colors.white70),
           ),
@@ -532,7 +537,7 @@ class _QuickSaleScreenState extends ConsumerState<QuickSaleScreen> {
               }
             },
             icon: const Icon(Icons.refresh),
-            label: const Text('Try again'),
+            label: Text(S.of(context).tryAgain),
           ),
         ],
       ),
@@ -559,7 +564,7 @@ class _EmptyCartView extends StatelessWidget {
                 size: 72, color: context.colors.disabled),
             const SizedBox(height: 16),
             Text(
-              'Cart is empty',
+              S.of(context).cartIsEmpty,
               style: GoogleFonts.instrumentSans(
                 fontSize: 18,
                 fontWeight: FontWeight.w700
@@ -567,7 +572,7 @@ class _EmptyCartView extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Scan a barcode or add items from Products',
+              S.of(context).scanOrAddFromProducts,
               textAlign: TextAlign.center,
               style: GoogleFonts.instrumentSans(
                   fontSize: 13.5, color: context.colors.muted),
@@ -578,7 +583,7 @@ class _EmptyCartView extends StatelessWidget {
               child: FilledButton.icon(
                 onPressed: onScan,
                 icon: const Icon(Icons.qr_code_scanner),
-                label: const Text('Scan Barcode'),
+                label: Text(S.of(context).scanBarcode),
                 style: FilledButton.styleFrom(
                   backgroundColor: context.colors.ink,
                   foregroundColor: context.colors.onInk,
@@ -616,7 +621,7 @@ class _TillSessionRequiredView extends StatelessWidget {
                 size: 72, color: context.colors.disabled),
             const SizedBox(height: 16),
             Text(
-              'Open a till session to start selling',
+              S.of(context).openTillToSell,
               textAlign: TextAlign.center,
               style: GoogleFonts.instrumentSans(
                 fontSize: 18,
@@ -625,8 +630,7 @@ class _TillSessionRequiredView extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Your role requires an open till session before taking sales. '
-              'Count the cash drawer and open one to continue.',
+              S.of(context).tillRequiredBody,
               textAlign: TextAlign.center,
               style: GoogleFonts.instrumentSans(
                   fontSize: 13.5, color: context.colors.muted),
@@ -637,7 +641,7 @@ class _TillSessionRequiredView extends StatelessWidget {
               child: FilledButton.icon(
                 onPressed: onOpenTill,
                 icon: const Icon(Icons.lock_open_outlined),
-                label: const Text('Open Till Session'),
+                label: Text(S.of(context).openTillSession),
                 style: FilledButton.styleFrom(
                   backgroundColor: context.colors.ink,
                   foregroundColor: context.colors.onInk,
@@ -743,7 +747,7 @@ class _CartItemRowState extends State<_CartItemRow> {
                 Row(
                   children: [
                     Text(
-                      '৳ ',
+                      kCurrencyPrefix,
                       style: GoogleFonts.instrumentSans(
                         fontSize: 12
                       ),
@@ -936,8 +940,9 @@ class _StickyBottom extends StatelessWidget {
                     textStyle: GoogleFonts.instrumentSans(
                         fontSize: 15, fontWeight: FontWeight.w700),
                   ),
-                  child: Text(
-                      '✓  Complete Sale · ${formatCurrency(total)}'),
+                  child: Text(S
+                      .of(context)
+                      .completeSaleWith(formatCurrency(total))),
                 ),
               ),
             ),
@@ -958,7 +963,7 @@ class _StickyBottom extends StatelessWidget {
                       textStyle: GoogleFonts.instrumentSans(
                           fontSize: 13, fontWeight: FontWeight.w600),
                     ),
-                    child: const Text('Hold sale'),
+                    child: Text(S.of(context).holdSale),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -974,7 +979,7 @@ class _StickyBottom extends StatelessWidget {
                       textStyle: GoogleFonts.instrumentSans(
                           fontSize: 13, fontWeight: FontWeight.w600),
                     ),
-                    child: const Text('Print · 80mm'),
+                    child: Text(S.of(context).print80mm),
                   ),
                 ),
               ],
@@ -1045,26 +1050,27 @@ class _SuccessView extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             Text(
-              'Sale Complete!',
+              S.of(context).saleComplete,
               style: GoogleFonts.instrumentSans(
                 fontSize: 22,
                 fontWeight: FontWeight.w800
               ),
             ),
             const SizedBox(height: 20),
-            _InfoRow(label: 'Invoice', value: result.invoiceNumber),
+            _InfoRow(
+                label: S.of(context).invoice, value: result.invoiceNumber),
             const SizedBox(height: 6),
             _InfoRow(
-                label: 'Total',
+                label: S.of(context).total,
                 value: formatCurrency(result.grandTotal)),
             if (result.hasDue) ...[
               const SizedBox(height: 6),
               _InfoRow(
-                  label: 'Paid',
+                  label: S.of(context).paid,
                   value: formatCurrency(result.paidAmount)),
               const SizedBox(height: 4),
               _InfoRow(
-                label: 'Due',
+                label: S.of(context).due,
                 value: formatCurrency(result.dueAmount),
                 valueColor: context.colors.red,
               ),
@@ -1075,7 +1081,7 @@ class _SuccessView extends StatelessWidget {
               child: FilledButton.icon(
                 onPressed: onNewSale,
                 icon: const Icon(Icons.add_shopping_cart),
-                label: const Text('New Sale'),
+                label: Text(S.of(context).newSale),
                 style: FilledButton.styleFrom(
                   backgroundColor: context.colors.ink,
                   foregroundColor: context.colors.onInk,
@@ -1146,25 +1152,25 @@ class _HoldDialogState extends State<_HoldDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Hold sale'),
+      title: Text(S.of(context).holdSale),
       content: TextField(
         controller: _ctrl,
         autofocus: true,
         textCapitalization: TextCapitalization.words,
-        decoration: const InputDecoration(
-          labelText: 'Label (optional)',
-          hintText: 'e.g. customer name or table',
+        decoration: InputDecoration(
+          labelText: S.of(context).labelOptional,
+          hintText: S.of(context).holdLabelHint,
         ),
         onSubmitted: (v) => Navigator.of(context).pop(v),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(S.of(context).cancel),
         ),
         FilledButton(
           onPressed: () => Navigator.of(context).pop(_ctrl.text),
-          child: const Text('Hold'),
+          child: Text(S.of(context).hold),
         ),
       ],
     );
@@ -1188,7 +1194,7 @@ class _HeldSalesSheet extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Held sales',
+            Text(S.of(context).heldSales,
                 style: GoogleFonts.instrumentSans(
                     fontSize: 16, fontWeight: FontWeight.w700)),
             const SizedBox(height: 12),
@@ -1196,7 +1202,7 @@ class _HeldSalesSheet extends ConsumerWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 24),
                 child: Center(
-                  child: Text('No held sales.',
+                  child: Text(S.of(context).noHeldSales,
                       style: GoogleFonts.instrumentSans(
                           fontSize: 13.5, color: context.colors.muted)),
                 ),
@@ -1229,9 +1235,9 @@ class _HeldSalesSheet extends ConsumerWidget {
                                         fontWeight: FontWeight.w600)),
                                 const SizedBox(height: 2),
                                 Text(
-                                  '${cart.itemCount} item${cart.itemCount == 1 ? '' : 's'}'
+                                  '${S.of(context).itemsCount(cart.itemCount)}'
                                   ' · ${formatCurrency(cart.total)}'
-                                  ' · ${formatRelative(cart.createdAt)}',
+                                  ' · ${formatRelative(cart.createdAt, s: S.of(context))}',
                                   style: GoogleFonts.instrumentSans(
                                       fontSize: 11.5, color: context.colors.muted),
                                 ),
@@ -1239,7 +1245,7 @@ class _HeldSalesSheet extends ConsumerWidget {
                             ),
                           ),
                           IconButton(
-                            tooltip: 'Delete',
+                            tooltip: S.of(context).delete,
                             icon: Icon(Icons.delete_outline,
                                 size: 20, color: context.colors.red),
                             onPressed: () => ref
@@ -1255,7 +1261,7 @@ class _HeldSalesSheet extends ConsumerWidget {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 14, vertical: 8),
                             ),
-                            child: const Text('Resume'),
+                            child: Text(S.of(context).resume),
                           ),
                         ],
                       ),

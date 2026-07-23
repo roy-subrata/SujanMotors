@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../core/i18n/strings.dart';
 import '../../core/network/app_exception.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/format.dart';
@@ -97,8 +98,8 @@ class _SupplierPaymentScreenState
               .firstOrNull ??
           providers.firstOrNull;
       if (provider == null) {
-        throw AppException(
-            'No active payment provider is configured. Add one on the web app first.');
+        if (!mounted) return;
+        throw AppException(S.of(context).noActiveProvider);
       }
 
       final allocations = _allocate(bills);
@@ -142,7 +143,8 @@ class _SupplierPaymentScreenState
       if (!mounted) return;
       navigator.pop();
       messenger.showSnackBar(SnackBar(
-        content: Text('Payment of ${formatCurrency(_amount)} recorded'),
+        content: Text(
+            S.of(context).paymentOfRecorded(formatCurrency(_amount))),
         behavior: SnackBarBehavior.floating,
       ));
     } on AppException catch (e) {
@@ -164,7 +166,7 @@ class _SupplierPaymentScreenState
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Pay Supplier',
+          S.of(context).paySupplier,
           style: GoogleFonts.instrumentSans(
               fontSize: 16, fontWeight: FontWeight.w700),
         ),
@@ -172,8 +174,9 @@ class _SupplierPaymentScreenState
       body: supplierAsync.when(
         loading: () => const LoadingView(),
         error: (e, _) => ErrorView(
-          message:
-              e is AppException ? e.message : 'Failed to load supplier.',
+          message: e is AppException
+              ? e.message
+              : S.of(context).failedToLoadSupplier,
           onRetry: () =>
               ref.invalidate(supplierDetailProvider(widget.supplierId)),
         ),
@@ -206,7 +209,8 @@ class _SupplierPaymentScreenState
                                 ),
                                 if (supplier.hasPayable)
                                   Text(
-                                    'We owe ${formatCurrency(supplier.currentBalance)}',
+                                    S.of(context).weOweAmount(formatCurrency(
+                                        supplier.currentBalance)),
                                     style: GoogleFonts.instrumentSans(
                                       fontSize: 11.5,
                                       fontWeight: FontWeight.w600,
@@ -230,7 +234,7 @@ class _SupplierPaymentScreenState
 
                     // ── Amount ────────────────────────────────────
                     Text(
-                      'Amount to pay',
+                      S.of(context).amountToPay,
                       style: GoogleFonts.instrumentSans(
                           fontSize: 13, fontWeight: FontWeight.w600),
                     ),
@@ -241,13 +245,16 @@ class _SupplierPaymentScreenState
                           decimal: true),
                       style: GoogleFonts.instrumentSans(
                           fontSize: 19, fontWeight: FontWeight.w700),
-                      decoration: const InputDecoration(prefixText: '৳ '),
+                      decoration:
+                          const InputDecoration(prefixText: kCurrencyPrefix),
                       validator: (v) {
-                        if (v == null || v.isEmpty) return 'Enter an amount';
+                        if (v == null || v.isEmpty) {
+                          return S.of(context).enterAnAmount;
+                        }
                         final n =
                             double.tryParse(v.trim().replaceAll(',', ''));
                         if (n == null || n <= 0) {
-                          return 'Enter a valid amount';
+                          return S.of(context).enterValidAmount;
                         }
                         return null;
                       },
@@ -258,14 +265,14 @@ class _SupplierPaymentScreenState
                         spacing: 8,
                         children: [
                           _QuickChip(
-                              label: '৳ 5,000',
+                              label: formatCurrencyWhole(5000),
                               onTap: () => _amountCtrl.text = '5000'),
                           _QuickChip(
-                              label: '৳ 10,000',
+                              label: formatCurrencyWhole(10000),
                               onTap: () => _amountCtrl.text = '10000'),
                           _QuickChip(
-                            label:
-                                'Full · ${formatCurrency(supplier.currentBalance)}',
+                            label: S.of(context).fullWithAmount(
+                                formatCurrency(supplier.currentBalance)),
                             onTap: () {
                               _amountCtrl.text = supplier.currentBalance
                                   .toStringAsFixed(2);
@@ -279,13 +286,15 @@ class _SupplierPaymentScreenState
 
                     // ── Payment method ────────────────────────────
                     Text(
-                      'Method',
+                      S.of(context).method,
                       style: GoogleFonts.instrumentSans(
                           fontSize: 13, fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(height: 8),
                     MethodGrid(
-                      methods: _methods,
+                      methods: _methods
+                          .map((m) => S.of(context).paymentMethodName(m))
+                          .toList(),
                       selected: _methodIndex,
                       onSelect: (i) => setState(() => _methodIndex = i),
                     ),
@@ -293,22 +302,22 @@ class _SupplierPaymentScreenState
 
                     // ── Reference ─────────────────────────────────
                     Text(
-                      'Reference',
+                      S.of(context).reference,
                       style: GoogleFonts.instrumentSans(
                           fontSize: 13, fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(height: 8),
                     TextField(
                       controller: _refCtrl,
-                      decoration: const InputDecoration(
-                        hintText: 'Bank / cheque / TRX no. (optional)',
+                      decoration: InputDecoration(
+                        hintText: S.of(context).bankChequeTrxHint,
                       ),
                     ),
                     const SizedBox(height: 16),
 
                     // ── Against purchase bills ────────────────────
                     Text(
-                      'Against purchase bills',
+                      S.of(context).againstPurchaseBills,
                       style: GoogleFonts.instrumentSans(
                           fontSize: 13, fontWeight: FontWeight.w600),
                     ),
@@ -332,8 +341,8 @@ class _SupplierPaymentScreenState
                     TextField(
                       controller: _notesCtrl,
                       maxLines: 2,
-                      decoration:
-                          const InputDecoration(hintText: 'Note (optional)'),
+                      decoration: InputDecoration(
+                          hintText: S.of(context).noteOptional),
                     ),
                   ],
                 ),
@@ -346,8 +355,10 @@ class _SupplierPaymentScreenState
                 right: 0,
                 child: PrimaryCtaBar(
                   label: _amount > 0
-                      ? 'Confirm payment · ${formatCurrency(_amount)}'
-                      : 'Confirm payment',
+                      ? S
+                          .of(context)
+                          .confirmPaymentWith(formatCurrency(_amount))
+                      : S.of(context).confirmPayment,
                   onTap: () => _submit(supplier, bills),
                   isLoading: _submitting,
                   shadowColor: const Color(0x400F172A),
@@ -390,7 +401,7 @@ class _BillsCard extends StatelessWidget {
         error: (_, _) => Padding(
           padding: const EdgeInsets.all(14),
           child: Text(
-            'Could not load purchase bills',
+            S.of(context).couldNotLoadBills,
             style: GoogleFonts.instrumentSans(
                 fontSize: 13, color: context.colors.muted),
           ),
@@ -399,7 +410,7 @@ class _BillsCard extends StatelessWidget {
             ? Padding(
                 padding: const EdgeInsets.all(14),
                 child: Text(
-                  'No open purchase bills — the payment will be saved as an advance.',
+                  S.of(context).noOpenBillsAdvance,
                   style: GoogleFonts.instrumentSans(
                       fontSize: 12.5, color: context.colors.muted),
                 ),
@@ -413,7 +424,7 @@ class _BillsCard extends StatelessWidget {
                       child: BillCheckRow(
                         title: bill.billNumber,
                         sub:
-                            '${formatDate(bill.billDate)} · due ${formatCurrency(bill.outstandingAmount)}',
+                            '${formatDate(bill.billDate)} · ${S.of(context).dueLower} ${formatCurrency(bill.outstandingAmount)}',
                         amount: allocations.containsKey(bill.id)
                             ? formatCurrency(allocations[bill.id]!)
                             : '—',
@@ -433,7 +444,7 @@ class _BillsCard extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            'Remaining payable',
+                            S.of(context).remainingPayable,
                             style: GoogleFonts.instrumentSans(
                                 fontSize: 12.5,
                                 color: context.colors.secondary),

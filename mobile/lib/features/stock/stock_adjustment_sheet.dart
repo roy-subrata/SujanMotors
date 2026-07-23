@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/i18n/strings.dart';
 import '../../core/network/app_exception.dart';
 import '../../shared/models/product.dart';
 import '../../shared/models/stock.dart';
@@ -56,18 +57,6 @@ class _StockAdjustmentSheetState extends ConsumerState<StockAdjustmentSheet> {
     'SAMPLE',
   ];
   static const _adjustReasons = ['COUNT_CORRECTION'];
-
-  static const _reasonLabels = {
-    'RETURN': 'Customer return',
-    'FOUND': 'Found in stock',
-    'SALE': 'Sale (manual)',
-    'INTERNAL_USE': 'Internal use',
-    'DAMAGED': 'Damaged goods',
-    'EXPIRED': 'Expired',
-    'LOST': 'Lost / stolen',
-    'SAMPLE': 'Sample / demo',
-    'COUNT_CORRECTION': 'Count correction',
-  };
 
   List<String> get _reasons {
     return switch (_mode) {
@@ -125,9 +114,10 @@ class _StockAdjustmentSheetState extends ConsumerState<StockAdjustmentSheet> {
   }
 
   Future<void> _submit() async {
+    final s = S.of(context);
     if (!_formKey.currentState!.validate()) return;
     if (_selectedWarehouseId == null) {
-      setState(() => _error = 'Select a warehouse');
+      setState(() => _error = s.selectAWarehouse);
       return;
     }
     if (_mode == StockMode.transfer) {
@@ -183,12 +173,13 @@ class _StockAdjustmentSheetState extends ConsumerState<StockAdjustmentSheet> {
   }
 
   Future<void> _submitTransfer() async {
+    final s = S.of(context);
     if (_destinationWarehouseId == null) {
-      setState(() => _error = 'Select a destination warehouse');
+      setState(() => _error = s.selectDestinationWarehouse);
       return;
     }
     if (_destinationWarehouseId == _selectedWarehouseId) {
-      setState(() => _error = 'Source and destination must differ');
+      setState(() => _error = s.sourceDestinationDiffer);
       return;
     }
     final rawQty = int.tryParse(_qtyCtrl.text.trim()) ?? 0;
@@ -213,9 +204,10 @@ class _StockAdjustmentSheetState extends ConsumerState<StockAdjustmentSheet> {
 
       if (!mounted) return;
       Navigator.of(context).pop();
+      final unit = widget.product.unitName ?? S.of(context).unitsLabel;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('$rawQty ${widget.product.unitName ?? 'units'} transferred'),
+          content: Text(S.of(context).qtyTransferred('$rawQty $unit')),
           backgroundColor: Colors.blue.shade700,
           behavior: SnackBarBehavior.floating,
         ),
@@ -229,12 +221,13 @@ class _StockAdjustmentSheetState extends ConsumerState<StockAdjustmentSheet> {
   }
 
   String _successMessage(int qty) {
-    final unit = widget.product.unitName ?? 'units';
+    final unit = widget.product.unitName ?? S.of(context).unitsLabel;
+    final s = S.of(context);
     return switch (_mode) {
-      StockMode.stockIn => '$qty $unit recorded as received',
-      StockMode.stockOut => '$qty $unit recorded as out',
-      StockMode.transfer => '$qty $unit transferred',
-      StockMode.adjustment => 'Adjustment saved',
+      StockMode.stockIn => s.recordedAsReceived('$qty $unit'),
+      StockMode.stockOut => s.recordedAsOut('$qty $unit'),
+      StockMode.transfer => s.qtyTransferred('$qty $unit'),
+      StockMode.adjustment => s.adjustmentSaved,
     };
   }
 
@@ -245,12 +238,15 @@ class _StockAdjustmentSheetState extends ConsumerState<StockAdjustmentSheet> {
         StockMode.adjustment => const Color(0xFFD97706),
       };
 
-  String get _submitLabel => switch (_mode) {
-        StockMode.stockIn => 'Record Stock In',
-        StockMode.stockOut => 'Record Stock Out',
-        StockMode.transfer => 'Transfer Stock',
-        StockMode.adjustment => 'Save Adjustment',
-      };
+  String get _submitLabel {
+    final s = S.of(context);
+    return switch (_mode) {
+      StockMode.stockIn => s.recordStockIn,
+      StockMode.stockOut => s.recordStockOut,
+      StockMode.transfer => s.transferStock,
+      StockMode.adjustment => s.saveAdjustment,
+    };
+  }
 
   IconData get _submitIcon => switch (_mode) {
         StockMode.stockIn => Icons.check_circle_outline,
@@ -263,6 +259,7 @@ class _StockAdjustmentSheetState extends ConsumerState<StockAdjustmentSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final s = S.of(context);
     final product = widget.product;
     final warehouses = _uniqueWarehouses();
     final hasVariants = product.hasVariants;
@@ -342,11 +339,11 @@ class _StockAdjustmentSheetState extends ConsumerState<StockAdjustmentSheet> {
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      for (final (mode, icon, label) in const [
-                        (StockMode.stockIn, Icons.move_to_inbox_outlined, 'In'),
-                        (StockMode.stockOut, Icons.outbox_outlined, 'Out'),
-                        (StockMode.transfer, Icons.swap_horiz, 'Transfer'),
-                        (StockMode.adjustment, Icons.tune_outlined, 'Adjust'),
+                      for (final (mode, icon, label) in [
+                        (StockMode.stockIn, Icons.move_to_inbox_outlined, s.modeIn),
+                        (StockMode.stockOut, Icons.outbox_outlined, s.modeOut),
+                        (StockMode.transfer, Icons.swap_horiz, s.modeTransfer),
+                        (StockMode.adjustment, Icons.tune_outlined, s.modeAdjust),
                       ])
                         ChoiceChip(
                           avatar: Icon(icon,
@@ -367,10 +364,8 @@ class _StockAdjustmentSheetState extends ConsumerState<StockAdjustmentSheet> {
                     _InfoBanner(
                       scheme: scheme,
                       icon: Icons.receipt_long_outlined,
-                      message:
-                          'Recording a supplier purchase? Use Stock In so it '
-                          'creates a priced lot.',
-                      actionLabel: 'Open Stock In',
+                      message: s.grnHint,
+                      actionLabel: s.openStockIn,
                       onAction: () {
                         Navigator.of(context).pop();
                         context.push('/stock-in/new');
@@ -381,14 +376,14 @@ class _StockAdjustmentSheetState extends ConsumerState<StockAdjustmentSheet> {
 
                   // ── Variant selector ──────────────────────────────────────
                   if (hasVariants) ...[
-                    _Label('Variant', scheme),
+                    _Label(s.variant, scheme),
                     const SizedBox(height: 6),
                     DropdownButtonFormField<String>(
                       // `_selectedVariantId` is only ever set in initState() (before
                       // first build) or by this field's own onChanged below, so a
                       // one-time initialValue is equivalent to the deprecated `value`.
                       initialValue: _selectedVariantId,
-                      hint: const Text('Select variant'),
+                      hint: Text(s.selectVariant),
                       decoration: const InputDecoration(isDense: true),
                       items: product.variants
                           .where((v) => v.id != null)
@@ -397,7 +392,7 @@ class _StockAdjustmentSheetState extends ConsumerState<StockAdjustmentSheet> {
                                 child: Text(v.name),
                               ))
                           .toList(),
-                      validator: (v) => v == null ? 'Select a variant' : null,
+                      validator: (v) => v == null ? s.selectAVariant : null,
                       onChanged: (v) =>
                           setState(() => _selectedVariantId = v),
                     ),
@@ -407,8 +402,8 @@ class _StockAdjustmentSheetState extends ConsumerState<StockAdjustmentSheet> {
                   // ── Warehouse ─────────────────────────────────────────────
                   _Label(
                       _mode == StockMode.transfer
-                          ? 'From warehouse'
-                          : 'Warehouse',
+                          ? s.fromWarehouse
+                          : s.warehouse,
                       scheme),
                   const SizedBox(height: 6),
                   if (warehouses.isEmpty)
@@ -425,7 +420,7 @@ class _StockAdjustmentSheetState extends ConsumerState<StockAdjustmentSheet> {
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'No warehouse found — initialize stock from the admin panel first.',
+                              s.noWarehouseFound,
                               style: TextStyle(
                                   color: scheme.error, fontSize: 13),
                             ),
@@ -439,7 +434,7 @@ class _StockAdjustmentSheetState extends ConsumerState<StockAdjustmentSheet> {
                       // first build) or by this field's own onChanged below, so a
                       // one-time initialValue is equivalent to the deprecated `value`.
                       initialValue: _selectedWarehouseId,
-                      hint: const Text('Select warehouse'),
+                      hint: Text(s.selectWarehouse),
                       decoration: const InputDecoration(isDense: true),
                       items: warehouses
                           .map((w) => DropdownMenuItem(
@@ -451,7 +446,7 @@ class _StockAdjustmentSheetState extends ConsumerState<StockAdjustmentSheet> {
                               ))
                           .toList(),
                       validator: (v) =>
-                          v == null ? 'Select a warehouse' : null,
+                          v == null ? s.selectAWarehouse : null,
                       onChanged: (v) =>
                           setState(() => _selectedWarehouseId = v),
                     ),
@@ -460,7 +455,8 @@ class _StockAdjustmentSheetState extends ConsumerState<StockAdjustmentSheet> {
                   if (_availableAtSelected != null) ...[
                     const SizedBox(height: 6),
                     Text(
-                      'Available here: $_availableAtSelected ${product.unitName ?? 'units'}',
+                      s.availableHere(
+                          '$_availableAtSelected ${widget.product.unitName ?? s.unitsLabel}'),
                       style: theme.textTheme.bodySmall
                           ?.copyWith(color: scheme.onSurfaceVariant),
                     ),
@@ -469,11 +465,11 @@ class _StockAdjustmentSheetState extends ConsumerState<StockAdjustmentSheet> {
 
                   // ── Destination warehouse (transfer only) ─────────────────
                   if (_mode == StockMode.transfer) ...[
-                    _Label('To warehouse', scheme),
+                    _Label(s.toWarehouse, scheme),
                     const SizedBox(height: 6),
                     DropdownButtonFormField<String>(
                       initialValue: _destinationWarehouseId,
-                      hint: const Text('Select destination'),
+                      hint: Text(s.selectDestinationHint),
                       decoration: const InputDecoration(isDense: true),
                       items: warehouses
                           .where((w) => w.warehouseId != _selectedWarehouseId)
@@ -486,7 +482,7 @@ class _StockAdjustmentSheetState extends ConsumerState<StockAdjustmentSheet> {
                               ))
                           .toList(),
                       validator: (v) => _mode == StockMode.transfer && v == null
-                          ? 'Select a destination'
+                          ? s.selectADestination
                           : null,
                       onChanged: (v) =>
                           setState(() => _destinationWarehouseId = v),
@@ -502,7 +498,7 @@ class _StockAdjustmentSheetState extends ConsumerState<StockAdjustmentSheet> {
                       children: [
                         Expanded(
                           child: _DirectionBtn(
-                            label: '+ Add',
+                            label: s.addPlus,
                             selected: _isAdd,
                             onTap: () => setState(() => _isAdd = true),
                             scheme: scheme,
@@ -511,7 +507,7 @@ class _StockAdjustmentSheetState extends ConsumerState<StockAdjustmentSheet> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: _DirectionBtn(
-                            label: '− Remove',
+                            label: s.removeMinus,
                             selected: !_isAdd,
                             onTap: () => setState(() => _isAdd = false),
                             scheme: scheme,
@@ -542,7 +538,7 @@ class _StockAdjustmentSheetState extends ConsumerState<StockAdjustmentSheet> {
                     validator: (v) {
                       final n = int.tryParse(v ?? '');
                       if (n == null || n <= 0) {
-                        return 'Enter a quantity greater than zero';
+                        return s.enterQuantityGtZero;
                       }
                       return null;
                     },
@@ -551,7 +547,7 @@ class _StockAdjustmentSheetState extends ConsumerState<StockAdjustmentSheet> {
 
                   // ── Reason (not applicable to transfers) ──────────────────
                   if (_mode != StockMode.transfer) ...[
-                    _Label('Reason', scheme),
+                    _Label(s.reasonLabel, scheme),
                     const SizedBox(height: 6),
                     DropdownButtonFormField<String>(
                       // Unlike the fields above, `_reason` is reset externally by
@@ -564,11 +560,11 @@ class _StockAdjustmentSheetState extends ConsumerState<StockAdjustmentSheet> {
                       items: _reasons
                           .map((r) => DropdownMenuItem(
                                 value: r,
-                                child: Text(_reasonLabels[r] ?? r),
+                                child: Text(s.adjustReasonName(r)),
                               ))
                           .toList(),
                       validator: (v) => _mode != StockMode.transfer && v == null
-                          ? 'Select a reason'
+                          ? s.selectAReason
                           : null,
                       onChanged: (v) => setState(() => _reason = v),
                     ),
@@ -576,14 +572,13 @@ class _StockAdjustmentSheetState extends ConsumerState<StockAdjustmentSheet> {
                   ],
 
                   // ── Notes ─────────────────────────────────────────────────
-                  _Label('Notes (optional)', scheme),
+                  _Label(s.notesOptional, scheme),
                   const SizedBox(height: 6),
                   TextFormField(
                     controller: _notesCtrl,
                     maxLines: 2,
-                    decoration: const InputDecoration(
-                      hintText:
-                          'Supplier invoice no., batch, delivery ref…',
+                    decoration: InputDecoration(
+                      hintText: s.stockNotesHint,
                       isDense: true,
                     ),
                   ),
@@ -635,12 +630,15 @@ class _StockAdjustmentSheetState extends ConsumerState<StockAdjustmentSheet> {
     );
   }
 
-  String get _qtyLabel => switch (_mode) {
-        StockMode.stockIn => 'Qty received',
-        StockMode.stockOut => 'Qty going out',
-        StockMode.transfer => 'Qty to transfer',
-        StockMode.adjustment => 'Count difference',
-      };
+  String get _qtyLabel {
+    final s = S.of(context);
+    return switch (_mode) {
+      StockMode.stockIn => s.qtyReceived,
+      StockMode.stockOut => s.qtyGoingOut,
+      StockMode.transfer => s.qtyToTransfer,
+      StockMode.adjustment => s.countDifference,
+    };
+  }
 
   IconData get _qtyIcon {
     if (_mode == StockMode.stockOut) return Icons.remove_circle_outline;

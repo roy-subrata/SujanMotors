@@ -2,6 +2,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../core/i18n/strings.dart';
 import '../../core/network/app_exception.dart';
 import '../../core/theme/app_theme.dart';
 import 'auth_controller.dart';
@@ -39,11 +40,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     final auth = ref.watch(authControllerProvider);
     final errorText = auth.hasError
         ? (auth.error is AppException
             ? (auth.error as AppException).message
-            : 'Login failed. Please try again.')
+            : s.loginFailed)
         : null;
 
     return Scaffold(
@@ -80,18 +82,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Sujan Motors',
+                        s.brandName,
                         style: GoogleFonts.instrumentSans(
-                         
                           fontSize: 20,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Auto Parts POS & Inventory',
+                        s.brandSubtitle,
                         style: GoogleFonts.instrumentSans(
-                         
                           fontSize: 13,
                         ),
                       ),
@@ -102,7 +102,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 const SizedBox(height: 48),
 
                 // Username field
-                _FieldLabel(label: 'Username or phone'),
+                _FieldLabel(label: s.usernameOrPhone),
                 const SizedBox(height: 6),
                 TextFormField(
                   controller: _usernameCtrl,
@@ -111,11 +111,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   enabled: !_submitting,
                   style: GoogleFonts.instrumentSans(
                       fontSize: 14, color: context.colors.ink),
-                  decoration: const InputDecoration(
-                    hintText: 'Enter your username',
+                  decoration: InputDecoration(
+                    hintText: s.enterUsernameHint,
                   ),
                   validator: (v) => (v == null || v.trim().isEmpty)
-                      ? 'Username is required'
+                      ? s.usernameRequired
                       : null,
                 ),
                 const SizedBox(height: 16),
@@ -124,11 +124,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const _FieldLabel(label: 'Password'),
+                    _FieldLabel(label: s.passwordLabel),
                     GestureDetector(
                       onTap: () {},
                       child: Text(
-                        'Forgot password?',
+                        s.forgotPassword,
                         style: GoogleFonts.instrumentSans(
                           fontSize: 12.5,
                           fontWeight: FontWeight.w600
@@ -146,14 +146,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   style: GoogleFonts.instrumentSans(
                       fontSize: 14, color: context.colors.ink),
                   decoration: InputDecoration(
-                    hintText: 'Enter your password',
+                    hintText: s.enterPasswordHint,
                     suffixIcon: TextButton(
                       onPressed: () =>
                           setState(() => _obscure = !_obscure),
                       style: TextButton.styleFrom(
                           foregroundColor: context.colors.secondary),
                       child: Text(
-                        _obscure ? 'Show' : 'Hide',
+                        _obscure ? s.showLabel : s.hideLabel,
                         style: GoogleFonts.instrumentSans(
                           fontSize: 12.5,
                           fontWeight: FontWeight.w600,
@@ -162,7 +162,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                   ),
                   validator: (v) =>
-                      (v == null || v.isEmpty) ? 'Password is required' : null,
+                      (v == null || v.isEmpty) ? s.passwordRequired : null,
                 ),
 
                 if (errorText != null) ...[
@@ -212,7 +212,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               color: Colors.white,
                             ),
                           )
-                        : const Text('Sign in'),
+                        : Text(s.signIn),
                   ),
                 ),
 
@@ -234,12 +234,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                     ),
                     onPressed: () {},
-                    child: const Row(
+                    child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.dialpad_outlined, size: 16),
-                        SizedBox(width: 8),
-                        Text('Use PIN instead'),
+                        const Icon(Icons.dialpad_outlined, size: 16),
+                        const SizedBox(width: 8),
+                        Text(s.usePinInstead),
                       ],
                     ),
                   ),
@@ -250,7 +250,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 // Footer
                 Center(
                   child: Text(
-                    'Store: Main Branch · v2.4',
+                    s.storeFooter,
                     style: GoogleFonts.instrumentSans(
                       fontSize: 12
                     ),
